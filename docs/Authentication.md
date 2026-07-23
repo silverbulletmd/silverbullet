@@ -3,21 +3,27 @@ tags: getting-started
 references:
 - bin/silverbullet/src/config.rs
 - bin/silverbullet/src/server.rs
+- server/src/multi/users.rs
+- server/src/multi/access.rs
 ---
+How you authenticate depends on how the server is running (see [[Space Manager#Boot modes]]):
 
-To be secure it is recommended you enable authentication. Here are the options.
+* **Accounts (the default).** A fresh install manages people through named accounts in `users.json` and controls who can reach each space. This is the recommended setup — see [[#Accounts]].
+* **Single-space mode.** One folder served as one space, authenticated by a single set of environment-variable credentials — see [[#Single-space mode]].
+* **No authentication.** A single-space server with no credentials set is open to anyone who can reach it.
 
-# Default: no authentication
-Out of the box, SilverBullet runs **unauthenticated** — anyone who can reach the server’s port can read and write your entire space. There are no built-in default credentials. This is intentional: for `localhost` use it’s the simplest possible setup. As soon as your server is reachable from anywhere else, you need to turn authentication on yourself.
+# Accounts
+When the server runs in the default [[Space Manager|multi-space]] mode, authentication is account-based:
 
-# Single-user authentication
-SilverBullet’s built-in auth is a single set of credentials, set via the `SB_USER` environment variable in `username:password` form. There is intentionally no notion of multiple users or signup flow — a SilverBullet [[Space]] is a personal space.
+* Every person has an **account** (username + password).
+* Each [[Space]] is either **public** (no login) or requires login, and lists the **members** allowed in. Admins can reach every space and the admin UI.
+* Accounts, spaces, and access are all managed in the `/.spaces` surface, which every account can open (admins additionally get the Users tab and space create/edit screens).
+* When no space is bound to `/`, the server root provides an account-facing index of the spaces available to the current user.
 
-If you need multi-user style access control (different people, SSO, MFA, …), put SilverBullet behind an [[Authentication Proxy]] (Authelia, Authentik, Cloudflare Access, etc.) and let that handle identity.
+# Single-space mode
+[[Space Manager#Single-space mode|Single-space mode]] serves one folder as one space, authenticated the classic way: a single set of credentials set via the `SB_USER` environment variable in `username:password` form.
 
-For running many separately-authenticated spaces from one server, see [[Multi-Space Mode]].
-
-# Enabling authentication
+## Enabling authentication
 Set `SB_USER` when starting the server. For the [[Install/Binary]]:
 
 ```shell
@@ -32,28 +38,10 @@ docker run -e SB_USER=pete:1234 ...
 
 This allows `pete` to log in with password `1234`. When authentication is enabled, SilverBullet shows a login page on first access.
 
-## Changing the user or password
-There’s nothing to “reset” — just restart the server with a different `SB_USER`. Existing browser sessions get invalidated on the next request and you (or whoever) will be prompted to log in again.
+# API
+For programmatic access via the [[HTTP API]], you can use bearer token authentication. In single-space mode, this token is configured with an environment variable, see [[Install/Configuration]]. In multi-space mode, new API tokens can be issued via the [[Space Manager]] UI.
 
-# Remember me
-The login page has a "Remember me" checkbox. When checked, the session persists across browser restarts. The session duration defaults to 7 days and can be configured:
-
-* `SB_REMEMBER_ME_HOURS`: Sets session duration in hours (default: 168, i.e. 7 days)
-
-# Lockout protection
-To prevent brute-force attacks, SilverBullet locks out clients after too many failed login attempts:
-
-* `SB_LOCKOUT_LIMIT`: Number of failed attempts before lockout (default: 10)
-* `SB_LOCKOUT_TIME`: Duration of lockout in seconds (default: 60)
-
-# API authentication
-For programmatic access via the [[HTTP API]], you can use bearer token authentication:
-
-* `SB_AUTH_TOKEN`: Sets a token for `Authorization: Bearer <token>` style authentication
-
-This is useful for scripts, automation, or integrating SilverBullet with other tools.
-
-# Authentication proxy
-Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy's built-in auth). This is common in more complex self-hosted setups.
+# Authentication proxies
+Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy's built-in auth). This is common in more complex self-hosted setups. In accounts mode, pair a proxy with **public** spaces so the proxy owns identity; in single-space mode, put the proxy in front of an open server.
 
 For all authentication-related configuration options, see [[Install/Configuration#Authentication]].

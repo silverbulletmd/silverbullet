@@ -6,8 +6,8 @@ references:
 - bin/sb/src/main.rs
 ---
 
-> **note** Not the server
-> `sb` is the optional **CLI client** — it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.
+> **note** This is **not** the server
+> `sb` is the optional **CLI client**, it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.
 
 The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server via the [[Runtime API]], letting you evaluate Lua expressions, run scripts, open an interactive REPL, tail logs, and more — without touching a browser.
 
@@ -117,9 +117,9 @@ Self-update the CLI binary to the latest stable or edge release.
 # Authentication
 The CLI supports three authentication methods, configured per-space during `space add`:
 
-* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on the server.
-* **Password** — authenticates via `POST /.auth` (username/password), then uses the returned session cookie. Use this with `SB_USER` on the server.
-* **None** — no authentication (for local or trusted-network setups).
+* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on a [[Space Manager#Single-space mode|single-space]] server, or with a per-account [[Space Manager#API tokens|API token]] on an accounts-based server.
+* **Password** — authenticates via `POST /.auth` (username/password), then uses the returned session cookie. Use this with `SB_USER` on a single-space server, or with an account username/password on a space you’re a member of.
+* **None** — no authentication (for local or trusted-network setups, or public spaces).
 
 Credentials are encrypted at rest using AES-256-GCM with PBKDF2 key derivation.
 

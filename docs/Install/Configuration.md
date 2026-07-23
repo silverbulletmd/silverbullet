@@ -5,6 +5,9 @@ references:
 ---
 SilverBullet is primarily configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Docker|docker-compose file]].
 
+> **note** Single-space vs. multi-space
+> The environment variables below configure a **single-space** server (one folder, one space). A fresh install pointed at an empty folder instead runs the [[Space Manager|setup wizard]] and stores per-space settings in `spaces.json` — the variables marked _single-space only_ below don’t apply there. Setting any of them (or passing `--single`) selects single-space mode. See [[Space Manager#Boot modes]].
+
 # General configuration
 
 * `SB_INDEX_PAGE`: Sets the default page to load, defaults to `index`.
@@ -20,28 +23,22 @@ SilverBullet is primarily configured via environment variables. This page gives 
 * `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
 
 # Authentication
-SilverBullet supports basic authentication for a single user.
+> **note** Note
+> These variables configure authentication for a **single-space** server. In [[Space Manager|multi-space]] mode, accounts live in `users.json` and access is per space, so setting `SB_USER` alongside a `spaces.json` is an error — see [[Authentication]].
 
-* `SB_USER`: Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
-* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]].
+* `SB_USER` (single-space only): Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
+* `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Space Manager#API tokens|API tokens]].
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
 * `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days.
 
-# Storage
-SilverBullet supports storage backends for keeping your [[Space]] content. Right now the only supported backend is to use your local disk.
-
-## Disk storage
-This is the default and simplest backend to use: a folder on disk. It is configured as follows:
-
-* `SB_FOLDER`: Sets the folder to expose. In the docker container, this defaults to `/space`.
-
-
 # Run mode
-* `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.
+* `SB_READ_ONLY`: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
-# Multi-space mode
-* `SB_MULTI_SPACE`: Set to `1` to run the server in [[Multi-Space Mode]], serving any number of spaces (each with its own binding, auth, and settings in `spaces.json`) instead of a single space. Requires `SB_USER` for admin credentials; most other per-space `SB_*` variables (e.g. `SB_READ_ONLY`, `SB_NAME`) are ignored since those become per-space settings.
+# Spaces and accounts
+Hosting more than one space is is configured through `spaces.json`, `users.json`, and the admin UI rather than environment variables — see [[Space Manager]].
+
+To force the classic single-space server on an empty folder, pass `--single` (or set any of the single-space `SB_*` variables above).
 
 # Runtime API
 * `SB_RUNTIME_API`: The [[Runtime API]] is enabled automatically when Chrome/Chromium is detected on the system. Set to `0` to explicitly disable. Not available in read-only mode.
@@ -51,7 +48,8 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 * `SB_CHROME_LOG_CONSOLE`: Forward the headless Chrome page’s `console.*` output to the server log (so you can see what the runtime is doing). Enabled by default; set to `0` to disable. The same log is also available via `/.runtime/logs` (e.g. `sb logs`).
 
 # Security
-SilverBullet enables plugs to run shell commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
+> **note** Note
+> These variables configure authentication for a **single-space** server. In [[Space Manager|multi-space]] mode, these options are enabled at a per-space level from the UI
 
 * `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]].
 * `SB_SHELL_WHITELIST`: Allow only a specific list of shell commands (just the first command name, not arguments). When not set, allows all shell commands. Example: `SB_SHELL_WHITELIST="git pandoc"`

@@ -29,4 +29,6 @@ On the client, all of SilverBullet’s local data storage is built on a small ke
 
 A strong 256-bit cryptographic key is derived (using _PBKDF2_) on the client from your username/password combo entered upon login. This key is kept in the service worker for SilverBullet clients to obtain so that the user is not required to constant log in when refreshing a tab, or opening new SilverBullet tabs and windows.
 
+On an account-managed multi-space server, every prefix uses the server's shared encryption salt. Prefixes have separate service-worker scopes, so a newly opened space asks the server's other same-origin SilverBullet workers for the in-memory key. As long as another unlocked space remains open, moving between spaces does not require entering the password again; once every worker has discarded the key, the login page is required to unlock client storage again even if the server session cookie is still valid.
+
 Since we need deterministic and stable encryption for data store keys, we use _AES-CTR_ with a fixed counter. For values we use _AES-GCM_ with randomized ivs.

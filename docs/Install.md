@@ -1,9 +1,9 @@
 #getting-started
 
-Excited to use SilverBullet? Here are three ways for you to deploy it. 
+Excited to use SilverBullet? Here are a few ways for you to deploy it. 
 
 > **note** Note
-> There is now a fourth option: the (commercial) [desktop app](https://silverbullet.plus) version of SilverBullet.
+> There is now an additional option: the (commercial) [desktop app](https://silverbullet.plus) version of SilverBullet.
 
 # localhost (desktop, laptop)
 While this is not an ideal deployment (it limits accessing your space to _just your own machine_), it is an easy way to get started (although [SilverBullet+](https://silverbullet.plus) may be an even lower-friction option to consider): simply run the SilverBullet server on your own laptop or desktop.
@@ -12,7 +12,7 @@ Steps:
 1. Install SilverBullet following the instructions of one of these options:
    * [[Install/Binary]] — a single self-contained binary
    * [[Install/Docker]] — a docker container
-3. Access it via `http://localhost:3000`
+3. Access it via `http://localhost:3000` and go through the setup flow.
 4. Follow [[Getting Started]] to learn the basics
 
 Is that working out for you? Great, then proceed to deploy SilverBullet _properly_ on a server so you can also access it from other devices (like your phone).
@@ -27,14 +27,15 @@ There are three things to take care of, in this order (follow the links in each 
    * [[Install/Docker]] — a docker container
 2. Be sure you enable [[Authentication]] for security
 3. Deploy a [[TLS]] layer front of SilverBullet: browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so _you cannot_ reach a remote SilverBullet server over plain `http://`.
-5. Once that’s all set up, follow [[Getting Started]] to learn the basics of using SilverBullet itself.
-
-Hosting more than one space? Rather than running a separate server process per space, consider [[Multi-Space Mode]]: one process serves any number of spaces, each with its own URL, authentication, and admin UI.
+4. Once that’s all set up, go through the setup flow and then follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud
-While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $1.50 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
+While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
 
 PikaPods contribute a part of their revenue back to the projects they host, so it’s a source of [[Funding]] for SilverBullet itself.
+
+# First run
+When you point the server at an **empty** folder — or one that doesn’t exist yet — it opens a browser-based setup wizard that creates an admin account and your first space — see [[Space Manager]].
 
 # Notes on file systems
 ## Case insensitive file systems (Mac and Windows)

@@ -8,10 +8,10 @@ description: Rudamentary Git integration
 author: Zef Hemel
 uri: https://github.com/zefhemel/silverbullet-libraries/blob/main/Git.md
 ---
-name: Mermaid diagrams
+name: Diagrams
 author: Zef Hemel
-description: Mermaid diagram support
-uri: https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md
+description: Support or (mermaid) diagrams in Sivlerbullet
+uri: https://github.com/silverbulletmd/silverbullet-diagram/blob/main/Mermaid.md
 ---
 name: Excalidraw diagrams
 author: Logesh

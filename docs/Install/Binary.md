@@ -22,42 +22,38 @@ We start by [downloading the `silverbullet-server-*` zip for your platform from 
 
 Unzip this archive somewhere convenient. You’ll get a single `silverbullet` executable.
 
-Then, create a folder to hold your [[Space]] (your notes will live here):
+Then, create a folder to hold your data (your server configuration and space files will live here):
 
 ```bash
-mkdir my-space
+mkdir sb-data
 ```
 
 Run the server, pointing it at that folder:
 ```bash
-./silverbullet my-space
+./silverbullet sb-data
 ```
 
-It listens on `http://localhost:3000` by default. To pick a different port, use `-p`:
+Since `sb-data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Space Manager]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
+
+The server listens on `http://localhost:3000` by default. To pick a different port, use `-p`:
 ```bash
 ./silverbullet -p 3001 my-space
 ```
+
 And to bind on an address other than `127.0.0.1` (e.g. to make it reachable on your LAN), use `-L`:
 ```bash
 ./silverbullet -L 0.0.0.0 my-space
 ```
 
+To force classic single-space behavior add `--single`:
+```bash
+./silverbullet --single my-space
+```
+
 > **note** Note
 > If you want to access SilverBullet from another machine, you need [[TLS]] _and_ you should enable [[Authentication]] first.
 
-Now, open `http://localhost:3000` in your browser and head to [[Getting Started]] to learn the basics.
-
-# Authentication
-By default the server runs **unauthenticated** — anyone who can reach the port can read and write your space. This is fine for `localhost`, but as soon as you expose the server to anything else, set the `SB_USER` environment variable:
-
-```bash
-SB_USER=admin:somepassword ./silverbullet my-space
-```
-
-See [[Authentication]] and [[Install/Configuration]] for the full picture (lockout policy, API tokens, etc.).
-
-# Configuration
-The server is configured primarily through environment variables. The flags `-p` and `-L` above are the only command-line flags. Everything else is in [[Install/Configuration]].
+Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Space Manager]], once that’s all done, head to [[Getting Started]] to learn the basics.
 
 # Upgrading
 You can upgrade your SilverBullet install based on the version you’d like to run.

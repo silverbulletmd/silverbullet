@@ -27,7 +27,6 @@ ${query[[
   order by f.awesomeness desc
   select templates.featureItem(f)
 ]]}
-
 _(The template generating the feature bullet items can be found in [[^Library/Website Templates]])_
 
 Neat huh? A few more use cases.
@@ -60,8 +59,7 @@ Want to see even more? Here is a whole [playlist with instruction videos](https:
 # [[Install]]
 As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
 
-> **note** Note
-> Alternatively, there is now also a [desktop edition](https://silverbullet.plus) named “SilverBullet+“ that you may want to try.
+Want a **pure desktop app experience**? Give [SilverBullet+](https://silverbullet.plus) a try.
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 

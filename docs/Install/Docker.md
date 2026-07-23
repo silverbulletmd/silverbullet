@@ -4,10 +4,9 @@ references:
 - Dockerfile
 - docker-entrypoint.sh
 ---
+Docker is a convenient and secure way to install server applications either locally or on a server you control.
 
-[Docker](https://www.docker.com/) is a convenient and secure way to install server applications either locally or on a server you control. If you don’t have docker already running on your machine and are macOS user, consider giving [OrbStack](https://orbstack.dev/) a try — it’s a super nice docker experience.
-
-Conveniently, SilverBullet is published as a [docker image on GHCR](https://github.com/silverbulletmd/silverbullet/pkgs/container/silverbullet). The image comes in two flavors:
+Conveniently, SilverBullet is published as a [docker image on GHCR](https://github.com/silverbulletmd/silverbullet/pkgs/container/silverbullet). The image comes in a few flavors:
 
 * 64-bit Intel
 * 64-bit ARM (e.g. for Raspberry Pis and Apple Silicon macs)
@@ -17,14 +16,13 @@ Conveniently, SilverBullet is published as a [docker image on GHCR](https://gith
 > To access SilverBullet outside of `localhost` you will need to set up [[TLS]].
 
 # Release channels
-Every release version of SilverBullet is tagged with its version number, but there are two release channels you can use (they automatically update):
+Every release version of SilverBullet is tagged with its version number, but there are two release channels you can use:
 
 * `:latest` always points to the latest _release_
 * `:v2` always points to the latest _edge build_ (the last commit to `main`), use this if you want to live on the bleeding edge.
 
 # Container
 * The container binds to port `3000`, so be sure to port-map that, e.g. via `-p 3000:3000` (note: the first `3000` is the external port)
-* By default SilverBullet runs _unauthenticated_, this is not safe at it allows anybody on your network to access your instance freely. Therefore, in a docker setup **always** set the `SB_USER=username:password` environment variable (see below).
 * The container uses whatever is volume-mapped to `/space` as the space root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/space:/space`
 * SilverBullet will detect the UNIX owner (UID and GID) of the folder mapped into `/space` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables (see [[Install/Configuration]] for details).
 * The Docker image is based on [Alpine](https://alpinelinux.org/). If you'd like to install additional packages into it, see [[#Installing additional packages]] below.
@@ -89,7 +87,6 @@ docker run -d --restart unless-stopped \
   --name silverbullet \
   -p 3000:3000 \
   -v ./space:/space \
-  -e SB_USER=user:password \
   ghcr.io/silverbulletmd/silverbullet:latest
 ```
 

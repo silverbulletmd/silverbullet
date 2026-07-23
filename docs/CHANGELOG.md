@@ -3,33 +3,35 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* **Multi-space mode**: set `SB_MULTI_SPACE=1` (plus `SB_USER` for admin credentials) to serve any number of spaces from one process. Spaces are bound to a URL prefix or hostname. See [[Multi-Space Mode]].
-* **Baked sections**: bake `${...}` Lua expressions and widgets into
-  HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`). See [[Baked Sections]].
+* [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
+* [[Baked Sections]]: bake `${...}` Lua expressions and widgets into
+  HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`).
 * Space Lua: **code complete now shows documentation** (where available), all available via [[API/spacelua]] reflection APIs.
 * Backend and CLI have been ported to Rust ([see background on this](https://no.silverbullet.plus/tech-stacks)), both should be behavior preserving (that is: you shouldn’t really notice):
-  * The server backend (previously written in Go) has now been replaced by an adapted version of SilverBullet+‘s backend written in Rust, more unifying those code bases.
-  * CLI client also reimplemented/backported to Rust as well.
+  * The server backend (previously written in Go) has now been replaced by an adapted version of [SilverBullet+](https://silverbullet.plus/)’s backend written in Rust, more unifying those code bases.
+  * CLI client reimplemented/back-ported to Rust as well.
   * This means the project is now all TypeScript + Rust.
-  * The goal is to make do this without regressions, but watch for any issues.
+* [[Frontmatter]] in the editor now has configurable folding: by default long frontmatter blocks fold automatically, and `frontmatterFolding` options let  you disable auto-folding, always fold frontmatter, or change the line threshold. A subtle right-side marker folds or unfolds the whole block, and folded frontmatter previews any `tags` value as tag chips. This is configurable via the [[Configuration Manager]] as well.
 * Pulling the "this was experimental card" for the CLI: removed the `sb get` command and the `/.runtime/objects/*` REST API, including their dedicated client-side query bridge. Use `sb query`, `sb eval`, or `sb script` for indexed-object access. This added too much complexity and another query language.
 * Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
 * Fix: the service worker precached client assets *through* the browser's HTTP cache, so a stale client could be copied into its cache and then served as though it were the current build — leaving a "A new version of SilverBullet client is available." notification that no reload could clear (only a hard reload, which bypasses the service worker, showed the real client; the next normal reload brought the notification back). Precaching now bypasses the HTTP cache.
-* The server now sets `Cache-Control` on client assets, which matters if you run SilverBullet behind a CDN. Previously it set none at all, so a proxy applied its own default to everything (Cloudflare's is 4 hours) — which was wrong in both directions: `client.js`, `main.css` and `service_worker.js` keep stable filenames and so could be served stale for hours after an upgrade (producing a "new version available" notification that reloading could not clear), while the content-hashed chunks, which can never change without their URL changing, expired every few hours for no reason. Entry points now revalidate (`no-cache`, answered by a cheap 304 when unchanged) and hashed chunks are cached for a year as `immutable`.
-* New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
-* New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.
-* Lua: Space Lua comments are now parsed and retained in the AST instead of being stripped before parsing.
+* The server now sets `Cache-Control` on client assets, which matters if you run SilverBullet behind a CDN.
+* Lua: Space Lua comments are now parsed and retained in the AST instead of being stripped before parsing  (part of the enabler for code complete with documentation).
 * Fix: first-ever load of an authenticated space no longer shows a spurious "Could not process config and no cached copy, please connect to the Internet" alert before redirecting to the login page (the login redirect aborted the remaining boot requests, which were misread as being offline).
 * Fix: frontmatter link live preview now follows the editor's regular markdown preview behavior: raw YAML syntax stays visible when markdown syntax rendering is enabled, and only the link currently being edited is revealed in clean mode.
-* Fix: tags shown in folded frontmatter now navigate to their tag pages instead of unfolding the frontmatter block.
-* Frontmatter in the editor now has configurable folding: by default long frontmatter blocks fold automatically, and `frontmatterFolding` options let  you disable auto-folding, always fold frontmatter, or change the line threshold. A subtle right-side marker folds or unfolds the whole block, and folded frontmatter previews any `tags` value as tag chips.
 * Fix: write-mode commands (those requiring read-write, e.g. the baking commands) are now hidden in the command palette and their keybindings disabled on **per-page** read-only pages (`perm: ro`), not just in fully read-only spaces.
 * Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page‘s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
-* HTML comments (both inline `<!-- ... -->` and block comments, including the baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a subtle gray and slightly smaller font in the editor, like code comments.
 * New [[API/codeWidget]] Lua API: register a renderer for a fenced code block language from Lua (e.g. ` ```mermaid `), previously only possible with plugs. A `render(body)` function receives the code block contents and returns a widget (or markdown/HTML).
+* HTML comments (both inline `<!-- ... -->` and block comments, including the baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a subtle gray and slightly smaller font in the editor, like code comments.
 * Fix: Space Lua now correctly truncates a parenthesized expression to a single value (Lua 5.4 semantics). Previously `(string.gsub(...))` and other parenthesized multi-return calls leaked their extra return values into `return`, call-argument, and assignment positions (e.g. `table.insert(t, (string.gsub(...)))` inserted two elements). Parentheses now yield exactly one value.
+* Fix: Lua pattern matching lost capture groups, because `ipairs` dropped `nil` values from the result table (by [henrikx](https://github.com/henrikx)).
+* Fix: `lintObjects` threw when a page's `pageMeta` was undefined (by [josh-j](https://github.com/josh-j)).
+* Fix: `mq.poll` materialized the entire queue on every poll (by [josh-j](https://github.com/josh-j)).
 * Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
 * Navigating to a page via a link now always opens it fresh (at the top, or at an explicit `#header`/`@pos` pointer in the link) instead of restoring your previous cursor and scroll position. Returning to a page via browser Back/Forward or the [[Page Picker]] still restores where you were. Plugs/Lua can opt into restoring with the new `editor.open` syscall (see [[API/editor]]).
+* Fix: modals now set `box-sizing`, so their padding no longer pushes content past the intended width (by [Federico Scodelaro](https://github.com/pudymody)).
+* Favicon definitions cleaned up and documented following current best practices (by [Jorge Marin](https://github.com/chipironcin)).
+* The server now compresses `GET` responses, reducing transfer sizes over slow connections.
 
 ## 2.9.0
 * New [[Object/relation]] indexed object capturing generalized object-to-object relationships. This is a successor to [[Object/link]], which still exists as a virtual collection built on top of `relation`.
