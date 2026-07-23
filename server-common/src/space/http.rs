@@ -195,8 +195,9 @@ impl HttpSpacePrimitives {
             return Ok(());
         }
         match status {
-            reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN => {
-                Err(SpaceError::Unauthorized)
+            reqwest::StatusCode::UNAUTHORIZED => Err(SpaceError::Unauthorized),
+            reqwest::StatusCode::FORBIDDEN => {
+                Err(SpaceError::ReadOnly(format!("{context} refused: {status}")))
             }
             reqwest::StatusCode::NOT_FOUND => Err(SpaceError::NotFound),
             _ => Err(SpaceError::WriteError(format!(
@@ -208,9 +209,9 @@ impl HttpSpacePrimitives {
     fn map_error(e: reqwest::Error) -> SpaceError {
         if e.status() == Some(reqwest::StatusCode::NOT_FOUND) {
             SpaceError::NotFound
-        } else if e.status() == Some(reqwest::StatusCode::UNAUTHORIZED)
-            || e.status() == Some(reqwest::StatusCode::FORBIDDEN)
-        {
+        } else if e.status() == Some(reqwest::StatusCode::FORBIDDEN) {
+            SpaceError::ReadOnly(e.to_string())
+        } else if e.status() == Some(reqwest::StatusCode::UNAUTHORIZED) {
             SpaceError::Unauthorized
         } else {
             SpaceError::WriteError(e.to_string())

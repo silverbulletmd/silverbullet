@@ -30,6 +30,7 @@ pub(crate) fn space_error_response(e: SpaceError) -> Response {
         SpaceError::NotFound => (StatusCode::NOT_FOUND, "404 page not found\n".to_string()),
         SpaceError::PathOutsideRoot => (StatusCode::FORBIDDEN, e.to_string()),
         SpaceError::Unauthorized => (StatusCode::UNAUTHORIZED, e.to_string()),
+        SpaceError::ReadOnly(_) => (StatusCode::FORBIDDEN, e.to_string()),
         _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     };
     Response::builder()

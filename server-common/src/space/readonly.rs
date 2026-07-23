@@ -29,12 +29,12 @@ impl SpacePrimitives for ReadOnlySpacePrimitives {
         _data: &[u8],
         _meta: Option<&FileMeta>,
     ) -> Result<FileMeta, SpaceError> {
-        Err(SpaceError::WriteError(format!(
+        Err(SpaceError::ReadOnly(format!(
             "Cannot write file {path}: read-only mode"
         )))
     }
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
-        Err(SpaceError::WriteError(format!(
+        Err(SpaceError::ReadOnly(format!(
             "Cannot delete file {path}: read-only mode"
         )))
     }

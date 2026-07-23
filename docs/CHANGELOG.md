@@ -4,6 +4,7 @@ An attempt at documenting the changes/new features introduced in each release.
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
 * [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
+* Fix: writing to a read-only path (anything served from the bundled library, a `SB_READ_ONLY` server) returned a 500, which clients could not tell apart from a temporary server fault — so a syncing client retried it forever. Read-only refusals now return 403, and the sync engine records the path and stops re-attempting it until the local file changes. This most often bit spaces holding a stale copy of a `Library/Std` page that a later release had dropped from the bundle.
 * [[Baked Sections]]: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`).
 * Space Lua: **code complete now shows documentation** (where available), all available via [[API/spacelua]] reflection APIs.

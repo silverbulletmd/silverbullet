@@ -149,13 +149,13 @@ impl SpacePrimitives for ReadOnlyDirSpacePrimitives {
         _data: &[u8],
         _meta: Option<&FileMeta>,
     ) -> Result<FileMeta, SpaceError> {
-        Err(SpaceError::WriteError(format!(
+        Err(SpaceError::ReadOnly(format!(
             "Cannot write to read-only space: {path}"
         )))
     }
 
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
-        Err(SpaceError::WriteError(format!(
+        Err(SpaceError::ReadOnly(format!(
             "Cannot delete from read-only space: {path}"
         )))
     }
@@ -212,7 +212,7 @@ impl SpacePrimitives for FallthroughSpacePrimitives {
         // user-edited override — the write is allowed so it overwrites the
         // shadow rather than getting permanently locked.
         if self.primary.get_file_meta(path).is_err() && self.fallback.get_file_meta(path).is_ok() {
-            return Err(SpaceError::WriteError(format!(
+            return Err(SpaceError::ReadOnly(format!(
                 "Cannot write file {path}: read-only"
             )));
         }
@@ -223,7 +223,7 @@ impl SpacePrimitives for FallthroughSpacePrimitives {
         // Same read-only enforcement as write_file: only reject when the
         // path exists *only* in the fallback layer.
         if self.primary.get_file_meta(path).is_err() && self.fallback.get_file_meta(path).is_ok() {
-            return Err(SpaceError::WriteError(format!(
+            return Err(SpaceError::ReadOnly(format!(
                 "Cannot delete file {path}: read-only"
             )));
         }
@@ -252,12 +252,12 @@ impl SpacePrimitives for EmptySpacePrimitives {
         _data: &[u8],
         _meta: Option<&FileMeta>,
     ) -> Result<FileMeta, SpaceError> {
-        Err(SpaceError::WriteError(format!(
+        Err(SpaceError::ReadOnly(format!(
             "Cannot write file {path}: read-only"
         )))
     }
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
-        Err(SpaceError::WriteError(format!(
+        Err(SpaceError::ReadOnly(format!(
             "Cannot delete file {path}: read-only"
         )))
     }
@@ -314,8 +314,8 @@ mod tests {
             .write_file("LIBRARY/foo.md", b"shadow", None)
             .unwrap_err();
         match err {
-            SpaceError::WriteError(_) => {}
-            other => panic!("expected WriteError, got {other:?}"),
+            SpaceError::ReadOnly(_) => {}
+            other => panic!("expected ReadOnly, got {other:?}"),
         }
         assert!(!primary_td.path().join("LIBRARY/foo.md").exists());
     }
@@ -353,8 +353,8 @@ mod tests {
 
         let err = ft.delete_file("LIBRARY/foo.md").unwrap_err();
         match err {
-            SpaceError::WriteError(_) => {}
-            other => panic!("expected WriteError, got {other:?}"),
+            SpaceError::ReadOnly(_) => {}
+            other => panic!("expected ReadOnly, got {other:?}"),
         }
     }
 

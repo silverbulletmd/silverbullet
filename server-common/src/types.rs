@@ -43,6 +43,8 @@ pub enum SpaceError {
     Unauthorized,
     #[error("Could not write file: {0}")]
     WriteError(String),
+    #[error("Read-only: {0}")]
+    ReadOnly(String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }
