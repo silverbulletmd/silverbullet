@@ -1,16 +1,6 @@
 import type { Binding } from "./types.ts";
 
 /**
- * Lower-cased, filesystem-safe version of a space name for its default folder.
- */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-/**
  * URL-ish display text for a binding; doubles as the link text in the list.
  */
 export function bindingLabel(b: Binding): string {
@@ -25,5 +15,12 @@ export function spaceUrl(b: Binding): string {
   if (b.host) {
     return `//${b.host}${location.port ? `:${location.port}` : ""}/`;
   }
-  return `${b.prefix || ""}/`;
+  // A stored prefix of "/" (a bare-root binding typed literally into the
+  // Prefix field -- server/src/multi/validate.rs accepts it and never
+  // normalizes it before persisting) must not survive into `${prefix}/`: that
+  // would emit "//", a protocol-relative URL with an empty authority that
+  // navigates nowhere useful. Strip any trailing slash(es) first so "", "/",
+  // and "/foo/" all collapse the same way "/foo" would.
+  const trimmed = (b.prefix || "").replace(/\/+$/, "");
+  return `${trimmed}/`;
 }

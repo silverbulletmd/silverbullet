@@ -189,6 +189,7 @@ export type BootConfig = {
   performReset?: boolean;
 
   enableClientEncryption: boolean;
+  accountManaged?: boolean;
   disableServiceWorker?: boolean;
 };
 

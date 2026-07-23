@@ -41,9 +41,12 @@ export async function startReleaseServer(
   const repoRoot = join(import.meta.dirname, "..");
   const binaryPath = join(repoRoot, "target", "release", "silverbullet");
 
+  // A fresh empty temp dir boots into the first-run setup wizard unless we
+  // force single-space mode; both release-embedded scenarios want a single
+  // servable space (the login-flow one additionally sets SB_USER for auth).
   const proc: ChildProcess = spawn(
     binaryPath,
-    [spaceDir, "-p", String(port), "-L", "127.0.0.1"],
+    [spaceDir, "-p", String(port), "-L", "127.0.0.1", "--single"],
     {
       cwd: repoRoot,
       stdio: ["ignore", "pipe", "pipe"],

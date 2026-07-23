@@ -63,10 +63,24 @@ test("first load of an authenticated space redirects to login without alerts", a
   // And logging in still works end to end.
   await page.locator("#username").fill("alice");
   await page.locator("#password").fill("s3cret");
-  await page.getByRole("button", { name: "Login" }).click();
+  await page.getByRole("button", { name: "Log in" }).click();
   await page.waitForURL(`${base}/`);
   await expect(page.locator("#sb-editor .cm-editor")).toBeVisible({
     timeout: 30_000,
   });
   expect(dialogs, `unexpected dialogs: ${dialogs.join(" | ")}`).toEqual([]);
+});
+
+test("the login page's styles actually load", async ({ page }) => {
+  await page.goto(`${base}/`);
+  // auth.html has a second <button id="togglePassword"> for show/hide, so
+  // take the last match — the submit button inside #login.
+  const button = page
+    .locator("#login button[type=submit], #login button")
+    .last();
+  await button.waitFor({ state: "visible" });
+  const bg = await button.evaluate(
+    (el) => getComputedStyle(el).backgroundColor,
+  );
+  expect(bg).toBe("rgb(70, 76, 252)"); // --ui-accent-color #464cfc
 });

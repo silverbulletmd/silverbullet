@@ -74,7 +74,10 @@ test.describe("Release binary: embedded bundle", () => {
     // Log in with the configured credentials.
     await page.locator("#username").fill("alice");
     await page.locator("#password").fill("s3cret");
-    await page.locator("#login").getByRole("button", { name: "Login" }).click();
+    await page
+      .locator("#login")
+      .getByRole("button", { name: "Log in" })
+      .click();
 
     // On success the login script redirects into the app; the editor should
     // become visible once the client has booted (first-load indexing of the

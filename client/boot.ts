@@ -1,4 +1,4 @@
-import { race, safeRun, sleep } from "@silverbulletmd/silverbullet/lib/async";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import {
   notAuthenticatedError,
   offlineError,
@@ -12,9 +12,9 @@ import {
   unregisterServiceWorkers,
 } from "./service_worker/util.ts";
 import "./lib/polyfills.ts";
-import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
+import type { BootConfig } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
-import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
+import { exportKey, importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import "./debug.ts";
 
 // Initialize the runtime-bridge namespace. `??=` preserves any value an
@@ -22,6 +22,48 @@ import "./debug.ts";
 globalThis.sbRuntime ??= {};
 
 const logger = initLogger("[Client]");
+
+/**
+ * Ask every same-origin SilverBullet service worker for an in-memory client
+ * encryption key. Prefix-bound spaces have separate worker scopes, but an
+ * account-managed server deliberately uses one salt and key across them.
+ */
+async function findEncryptionKey(
+  accountManaged: boolean,
+): Promise<CryptoKey | undefined> {
+  if (!navigator.serviceWorker) {
+    return undefined;
+  }
+  const registrations = accountManaged
+    ? await navigator.serviceWorker.getRegistrations()
+    : [await navigator.serviceWorker.getRegistration(document.baseURI)].filter(
+        (registration): registration is ServiceWorkerRegistration =>
+          !!registration,
+      );
+  if (registrations.length === 0) {
+    return undefined;
+  }
+  return await new Promise<CryptoKey | undefined>((resolve) => {
+    let settled = false;
+    const finish = (key?: CryptoKey) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      navigator.serviceWorker.removeEventListener("message", listener);
+      resolve(key);
+    };
+    const listener = (event: MessageEvent) => {
+      if (event.data?.type === "encryption-key" && event.data.key) {
+        void importKey(event.data.key).then(finish);
+      }
+    };
+    const timeout = setTimeout(() => finish(), 250);
+    navigator.serviceWorker.addEventListener("message", listener);
+    for (const registration of registrations) {
+      registration.active?.postMessage({ type: "get-encryption-key" });
+    }
+  });
+}
 
 if (!crypto.subtle) {
   alert(
@@ -63,6 +105,13 @@ safeRun(async () => {
       // A redirect to the login page is already under way; stop booting.
       return;
     }
+    // Anything else (e.g. no space is bound at this URL, so `.config` 404s and
+    // parses as empty) leaves bootConfig undefined. Falling through would throw
+    // an opaque TypeError further down and bury the real cause — stop here and
+    // report what actually failed.
+    console.error("Could not load boot config:", e);
+    alert(`Could not load this space: ${e.message}`);
+    return;
   }
   // Concatenate and evaluate
   try {
@@ -103,42 +152,12 @@ safeRun(async () => {
   ) {
     // Init encryption
     console.log("Initializing encryption");
-    const swController = navigator.serviceWorker.controller;
-    if (swController) {
-      // Service is already running, let's see if has an encryption key for me
-      console.log(
-        "Service worker already running, querying it for an encryption key",
+    console.log("Querying SilverBullet service workers for an encryption key");
+    encryptionKey = await findEncryptionKey(!!bootConfig.accountManaged);
+    if (!encryptionKey) {
+      console.warn(
+        "No client encryption key available, redirecting to auth page",
       );
-      swController.postMessage({
-        type: "get-encryption-key",
-      } as ServiceWorkerTargetMessage);
-      await race([
-        new Promise<void>((resolve) => {
-          function keyListener(e: any) {
-            if (e.data.type === "encryption-key") {
-              navigator.serviceWorker.removeEventListener(
-                "message",
-                keyListener,
-              );
-              void importKey(e.data.key).then((key) => {
-                encryptionKey = key;
-                resolve();
-              });
-            }
-          }
-          navigator.serviceWorker.addEventListener("message", keyListener);
-        }),
-        sleep(200),
-      ]);
-      if (!encryptionKey) {
-        // No encryption key, redirecting to the auth page
-        console.warn("Not authenticated, redirecting to auth page");
-        location.href = ".auth";
-        throw new Error("Not authenticated");
-      }
-    } else {
-      // No service worker, no encryption key, redirecting to the auth page
-      console.warn("Not authenticated, redirecting to auth page");
       location.href = ".auth";
       throw new Error("Not authenticated");
     }
@@ -173,6 +192,20 @@ safeRun(async () => {
   if (!isHeadless && !swDisabled && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
+    const configureWorker = async (registration: ServiceWorkerRegistration) => {
+      const worker = registration.active;
+      if (!worker) return;
+      if (encryptionKey) {
+        worker.postMessage({
+          type: "set-encryption-key",
+          key: await exportKey(encryptionKey),
+        });
+      }
+      worker.postMessage({
+        type: "config",
+        config: bootConfig,
+      });
+    };
     let startNotificationCount = 0;
     let lastStartNotification = 0;
     navigator.serviceWorker.addEventListener("message", (event) => {
@@ -182,12 +215,7 @@ safeRun(async () => {
           "Got notified that service worker has just started, sending config",
           bootConfig,
         );
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.active!.postMessage({
-            type: "config",
-            config: bootConfig,
-          });
-        });
+        navigator.serviceWorker.ready.then(configureWorker);
         // Check for weird restart behavior
         startNotificationCount++;
         if (Date.now() - lastStartNotification > 5000) {
@@ -216,11 +244,9 @@ safeRun(async () => {
       .then((registration) => {
         console.log("Service worker registered...");
 
-        // Send the config
-        registration.active?.postMessage({
-          type: "config",
-          config: bootConfig,
-        });
+        // Send the shared encryption key before configuration initializes the
+        // encrypted data store for this prefix.
+        void configureWorker(registration);
 
         // Set up update detection
         registration.addEventListener("updatefound", () => {
