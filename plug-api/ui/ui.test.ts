@@ -10,6 +10,7 @@ import {
   Progress,
   Select,
   Tabs,
+  UrlPrefixInput,
 } from "./index.ts";
 
 test("Button primary emits both classes and merges consumer class", () => {
@@ -89,4 +90,32 @@ test("Progress clamps value to a width percentage", () => {
   expect(render(h(Progress, { value: 0.5 }))).toMatch(/width:\s*50%/);
   expect(render(h(Progress, { value: 2 }))).toMatch(/width:\s*100%/);
   expect(render(h(Progress, { value: -1 }))).toMatch(/width:\s*0%/);
+});
+
+test("UrlPrefixInput shows the origin it is given, not the ambient one", () => {
+  // The desktop app configures a *remote* sync server, so the origin cannot
+  // be read from `location` the way the server-hosted Space Manager does.
+  const html = render(
+    h(UrlPrefixInput, {
+      origin: "https://sb.example.com",
+      value: "/notes",
+      onInput: () => {},
+    }),
+  );
+  expect(html).toContain("sb-url-input");
+  expect(html).toContain(">https://sb.example.com</span>");
+  expect(html).toContain('value="/notes"');
+});
+
+test("UrlPrefixInput trims a trailing slash off the origin", () => {
+  // Sync server URLs are commonly stored with one; without trimming the
+  // assembled URL reads "https://h//notes".
+  const html = render(
+    h(UrlPrefixInput, {
+      origin: "https://sb.example.com/",
+      value: "/notes",
+      onInput: () => {},
+    }),
+  );
+  expect(html).toContain(">https://sb.example.com</span>");
 });

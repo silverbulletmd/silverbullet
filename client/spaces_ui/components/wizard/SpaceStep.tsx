@@ -1,7 +1,11 @@
 import { Fragment } from "preact";
-import { Button, Input } from "@silverbulletmd/silverbullet/ui";
+import {
+  Button,
+  Input,
+  UrlPrefixInput,
+} from "@silverbulletmd/silverbullet/ui";
 import { FolderPicker } from "../../FolderPicker.tsx";
-import { FieldErrors, UrlPrefixInput } from "../../space_fields.tsx";
+import { FieldErrors } from "../../space_fields.tsx";
 import type { FieldError } from "../../types.ts";
 import {
   defaultFolder,
@@ -84,6 +88,7 @@ export function SpaceStep({
           <label for="setup-prefix">Prefix</label>
           <UrlPrefixInput
             id="setup-prefix"
+            origin={location.origin}
             value={values.prefix}
             onInput={onPrefixChange}
           />

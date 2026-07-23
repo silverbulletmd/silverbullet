@@ -7,14 +7,11 @@ import {
   Checkbox,
   Input,
   Select,
+  UrlPrefixInput,
 } from "@silverbulletmd/silverbullet/ui";
 import { adminApi, listUsers } from "../api.ts";
 import { FolderPicker } from "../FolderPicker.tsx";
-import {
-  FieldErrors,
-  UrlPrefixInput,
-  useSlugDefaults,
-} from "../space_fields.tsx";
+import { FieldErrors, useSlugDefaults } from "../space_fields.tsx";
 import type { Binding, FieldError, SpaceInfo, UserInfo } from "../types.ts";
 
 export function SpaceForm({
@@ -232,6 +229,7 @@ export function SpaceForm({
       {bindType === "prefix" ? (
         <UrlPrefixInput
           id="space-bind-value"
+          origin={location.origin}
           value={prefix}
           onInput={setPrefix}
         />

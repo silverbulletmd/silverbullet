@@ -1,6 +1,5 @@
 import { useState } from "preact/hooks";
-import { Alert, Input } from "@silverbulletmd/silverbullet/ui";
-import { slugify } from "./slugify.ts";
+import { Alert, prefixFromName, slugify } from "@silverbulletmd/silverbullet/ui";
 import type { FieldError } from "./types.ts";
 
 /**
@@ -16,7 +15,7 @@ export function useSlugDefaults(folderTemplate: (slug: string) => string) {
 
   function onNameChange(name: string) {
     const slug = slugify(name);
-    if (!prefixTouched) setPrefix(slug ? `/${slug}` : "");
+    if (!prefixTouched) setPrefix(prefixFromName(name));
     if (!folderTouched) setFolder(slug ? folderTemplate(slug) : "");
   }
 
@@ -34,28 +33,6 @@ export function useSlugDefaults(folderTemplate: (slug: string) => string) {
       setFolderTouched(true);
     },
   };
-}
-
-/** The prefix field, decorated with the origin it will be served from. */
-export function UrlPrefixInput({
-  id,
-  value,
-  onInput,
-}: {
-  id: string;
-  value: string;
-  onInput: (v: string) => void;
-}) {
-  return (
-    <div class="sb-url-input">
-      <span class="sb-url-affix">{location.origin}</span>
-      <Input
-        id={id}
-        value={value}
-        onInput={(e) => onInput(e.currentTarget.value)}
-      />
-    </div>
-  );
 }
 
 /** Server-returned field errors, rendered the same way on every form. */

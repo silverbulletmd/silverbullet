@@ -1,4 +1,4 @@
-import { slugify } from "./slugify.ts";
+import { slugify } from "@silverbulletmd/silverbullet/ui";
 import type { FieldError } from "./types.ts";
 
 /** Where a space is bound: the server root, or a URL prefix under it. */
