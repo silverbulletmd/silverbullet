@@ -15,17 +15,20 @@ import {
   expandMarkdown,
   readTransclusionContent,
 } from "../markdown_renderer/inline.ts";
+import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { parseMarkdown } from "../markdown_parser/parser.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
+import { parse } from "../markdown_parser/parse_tree.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   nameFromTransclusion,
   parseTransclusion,
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+import { buildTranslateUrls } from "./widget_util.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -97,21 +100,32 @@ export function inlineContentPlugin(client: Client) {
                       client.space,
                       transclusion,
                     );
+                    const syntaxExtensions = client.config.get(
+                      "syntaxExtensions",
+                      {},
+                    );
+                    const mdLang =
+                      buildExtendedMarkdownLanguage(syntaxExtensions);
+                    const expandedTree = await expandMarkdown(
+                      client.space,
+                      nameFromTransclusion(transclusion),
+                      parse(mdLang, result.text, result.offset),
+                      client.clientSystem.spaceLuaEnv,
+                      { syntaxExtensions },
+                    );
                     content = {
-                      markdown: renderToText(
-                        await expandMarkdown(
-                          client.space,
-                          nameFromTransclusion(transclusion),
-                          parseMarkdown(result.text, result.offset),
-                          client.clientSystem.spaceLuaEnv,
-                          {
-                            syntaxExtensions: client.config.get(
-                              "syntaxExtensions",
-                              {},
-                            ),
-                          },
-                        ),
+                      html: renderMarkdownToHtml(
+                        expandedTree,
+                        {
+                          shortWikiLinks: client.config.get(
+                            "shortWikiLinks",
+                            true,
+                          ),
+                          translateUrls: buildTranslateUrls(client),
+                        },
+                        client.ui.viewState.allPages,
                       ),
+                      markdown: renderToText(expandedTree),
                     };
                   } catch {
                     const element = createMediaElement(transclusion);
