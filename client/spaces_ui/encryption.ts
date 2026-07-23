@@ -50,27 +50,78 @@ export async function deriveEncryptionKey(
   );
 }
 
+/** Resolve `promise`, or `undefined` if it takes longer than `ms`. */
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | undefined> {
+  return Promise.race([
+    promise,
+    new Promise<undefined>((resolve) =>
+      setTimeout(() => resolve(undefined), ms),
+    ),
+  ]);
+}
+
 /**
- * Hand the key to the service worker(s) that will need it.
+ * Post the key to one worker and wait for it to say it has stored it.
+ *
+ * The acknowledgement is the point: the caller navigates away the moment this
+ * resolves, and the worker stores the key asynchronously (it has to import it
+ * first). A bare postMessage lets the navigation win, and the editor then
+ * boots to "no key" and bounces back to the login page.
+ */
+function deliverKey(
+  registration: ServiceWorkerRegistration,
+  key: string,
+  ms: number,
+): Promise<boolean> {
+  const worker = registration.active;
+  if (!worker) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const settle = (delivered: boolean) => {
+      clearTimeout(timer);
+      channel.port1.close();
+      resolve(delivered);
+    };
+    const timer = setTimeout(() => settle(false), ms);
+    channel.port1.onmessage = () => settle(true);
+    worker.postMessage({ type: "set-encryption-key", key }, [channel.port2]);
+  });
+}
+
+/**
+ * Hand the key to the service worker(s) that will need it, and report whether
+ * the one serving this space actually took it.
  *
  * On an account-managed server one login covers every space, so the key goes
  * to every registration — a space opened later picks it up from whichever
- * worker still holds it. Otherwise only this space's own worker gets it.
+ * worker still holds it. Only this space's own worker gates the result: a
+ * sibling scope we are not about to open must not hold up the login.
  */
 export async function publishEncryptionKey(
   key: string,
   accountManaged: boolean,
+  ms = 10_000,
 ): Promise<boolean> {
   if (!navigator.serviceWorker) return false;
-  const registrations = accountManaged
-    ? await navigator.serviceWorker.getRegistrations()
-    : [await navigator.serviceWorker.getRegistration(document.baseURI)].filter(
-        (registration): registration is ServiceWorkerRegistration =>
-          !!registration,
-      );
-  if (registrations.length === 0) return false;
-  for (const registration of registrations) {
-    registration.active?.postMessage({ type: "set-encryption-key", key });
+
+  // `ready` rather than `getRegistration()`: the login page registers its
+  // worker on mount, so a quick submit — a password manager, or a test — can
+  // arrive while that registration is still installing and its `active` is
+  // still null. Posting to null silently does nothing, and the old code
+  // reported success regardless.
+  const own = await withTimeout(navigator.serviceWorker.ready, ms);
+  if (!own) return false;
+
+  if (accountManaged) {
+    const all = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      all
+        .filter((registration) => registration !== own)
+        .map((registration) => deliverKey(registration, key, ms)),
+    );
   }
-  return true;
+  return await deliverKey(own, key, ms);
 }

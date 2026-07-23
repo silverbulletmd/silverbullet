@@ -129,10 +129,7 @@ async function copyAssets(dist: string) {
   // wordmark). Generated from logo-dock.png — see that file's note in
   // client/images/README.md. The 1024px original is 405 KB for something
   // drawn at ~26 CSS px.
-  await cp(
-    "client/images/logo-dock-96x96.png",
-    `${dist}/logo-dock-96x96.png`,
-  );
+  await cp("client/images/logo-dock-96x96.png", `${dist}/logo-dock-96x96.png`);
 
   // Three stylesheets, all compiled from the same partials so they cannot
   // drift: main.css for the editor, app.css for the standalone pages (login,

@@ -143,6 +143,7 @@ self.addEventListener("message", async (event: any) => {
     case "set-encryption-key": {
       encryptionKeyMemoryStore = await importKey(message.key);
       console.info("Encryption phrase set");
+      event.ports[0]?.postMessage({ type: "encryption-key-set" });
       break;
     }
     case "config": {
