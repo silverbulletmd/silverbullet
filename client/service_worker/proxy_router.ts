@@ -11,15 +11,51 @@ import {
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../plugos/event.ts";
 
-const alwaysProxy = [
-  "/.auth",
-  "/.shell",
-  "/.logout",
-  "/.config",
-  "/.logs",
-  "/.proxy",
-  "/.client/manifest.json",
+// The server surfaces every space carries under its own base path. This worker
+// can answer exactly two of them for its OWN space — `.client` from the
+// install-time precache and `.fs` from locally synced files — and proxies the
+// rest. Both lists below derive from this one, so a new surface is declared
+// once instead of being kept in sync by hand.
+const spaceSurfaces = [
+  "client",
+  "fs",
+  "auth",
+  "config",
+  "logout",
+  "shell",
+  "proxy",
+  "logs",
 ];
+const locallyServed = ["client", "fs"];
+
+// Always straight to the server: the space surfaces we have no local answer
+// for, plus the server-wide ones, which only ever exist at the origin root.
+// Matched as a prefix of the *space-relative* path.
+const alwaysProxy = [
+  ...spaceSurfaces
+    .filter((surface) => !locallyServed.includes(surface))
+    .map((surface) => `/.${surface}`),
+  "/.spaces",
+  "/.setup",
+  "/.instance",
+];
+
+const anotherSpaceSurface = new RegExp(
+  `/[^/]+/\\.(${spaceSurfaces.join("|")})(/|$)`,
+);
+
+/**
+ * Whether a space-relative path belongs to a *different* space on this origin.
+ *
+ * A space bound at "/" registers its worker at scope "/", so it is handed every
+ * sibling space's requests too. A space surface one or more levels down —
+ * "/notes/.client/auth.js" — is by definition not ours, since our own sit
+ * directly under our base. Answering those from our precache is how a sibling's
+ * login page came back as this space's app shell.
+ */
+export function belongsToAnotherSpace(pathname: string): boolean {
+  return anotherSpaceSurface.test(pathname);
+}
 
 export type ProxyRouterEvents = {
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
@@ -179,6 +215,12 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             return await fetch(request);
           }
 
+          // Another space's surface, reachable only because this worker is
+          // scoped at the origin root. Never ours to answer.
+          if (belongsToAnotherSpace(pathname)) {
+            return await fetch(request);
+          }
+
           // Not yet configured (no sync engine / local storage) — must proxy.
           // No local data exists to fall back to.
           if (!this.localSpacePrimitives || !this.syncEngine) {
@@ -227,7 +269,17 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             // Handle /.fs file system APIs
             return this.handleRequest(pathname, request);
           } else {
-            // Fallback to the app shell for all other requests (SPA)
+            // Fallback to the app shell for all other requests (SPA).
+            if (request.mode === "navigate" && this.online) {
+              try {
+                return await fetch(request);
+              } catch (e: any) {
+                if (e.message !== "Offline" && !isNetworkError(e)) {
+                  throw e;
+                }
+                this.online = false;
+              }
+            }
             return (
               (await caches.match(this.precacheFiles["/"])) || fetch(request)
             );
