@@ -20,27 +20,51 @@ fn slug(s: &str) -> String {
 
 /// Build the cookie header value for password-based JWT auth.
 ///
-/// The server names the session cookie `auth_{host}{url_prefix}` (see
-/// `scoped_auth_cookie_name` in the server crate's `auth::cookie`), so that
-/// several prefix-bound spaces sharing a host keep separate sessions. The URL
-/// prefix is the path component of `base_url`, and it MUST be part of the name
-/// here too — deriving from the host alone sends `auth_host=<jwt>` to a server
-/// expecting `auth_host_prefix`, which authenticates cleanly and then 401s on
-/// every subsequent request.
+/// Servers name the session cookie with `scoped_auth_cookie_name` (see the
+/// server crate's `auth::cookie`), but they disagree on what to scope it to,
+/// and the URL alone doesn't say which regime is in play:
+///
+/// * Classic single-space servers pass their deployment prefix, giving
+///   `auth_{host}{url_prefix}`, so several prefix-bound spaces sharing a host
+///   keep separate sessions.
+/// * Account-managed multi-space servers mount each space under a prefix but
+///   deliberately keep one host-wide session — `JwtAuthorizer` gets an empty
+///   `url_prefix` and the login manager is built `.with_server_wide_session()`
+///   — giving plain `auth_{host}`.
+///
+/// Guessing wrong is silent and unrecoverable: the `/.auth` exchange succeeds
+/// (the server always issues a cookie), the JWT then travels under a name the
+/// server never reads, and every request 401s, re-authenticates, and 401s
+/// again forever.
+///
+/// So offer both names. They carry the same JWT, the server matches the one it
+/// expects by exact name, and an unrecognized extra cookie is ignored. At a
+/// root path the two collapse to the same name and only one is emitted.
 ///
 /// A trailing slash is trimmed so `https://h/space/` and `https://h/space`
-/// agree; a root path yields the legacy host-only `auth_{host}` name.
+/// agree.
 pub fn auth_cookie_header(base_url: &str, jwt: &str) -> String {
-    let name_body = reqwest::Url::parse(base_url)
+    let (host_name, scoped_name) = reqwest::Url::parse(base_url)
         .ok()
         .map(|u| {
             let host = u.host_str().unwrap_or("");
             let port_suffix = u.port().map(|p| format!(":{p}")).unwrap_or_default();
-            let prefix = u.path().trim_end_matches('/');
-            format!("{}{}", slug(&format!("{host}{port_suffix}")), slug(prefix))
+            let host_slug = slug(&format!("{host}{port_suffix}"));
+            let prefix = slug(u.path().trim_end_matches('/'));
+            (
+                format!("auth_{host_slug}"),
+                format!("auth_{host_slug}{prefix}"),
+            )
         })
-        .unwrap_or_default();
-    format!("auth_{name_body}={jwt}")
+        .unwrap_or_else(|| ("auth_".to_string(), "auth_".to_string()));
+
+    // Prefix-scoped first: it's the more specific name, and the only one a
+    // classic multi-tenant proxy deployment can safely act on.
+    if scoped_name == host_name {
+        format!("{scoped_name}={jwt}")
+    } else {
+        format!("{scoped_name}={jwt}; {host_name}={jwt}")
+    }
 }
 
 /// Optional re-auth info for password-based auth (username/password stored for JWT refresh).
@@ -428,6 +452,46 @@ mod tests {
         header.split_once('=').unwrap().0.to_string()
     }
 
+    /// Every `name=value` pair carried by a `Cookie` header value.
+    fn cookie_pairs(header: &str) -> Vec<(String, String)> {
+        header
+            .split(';')
+            .filter_map(|p| p.trim().split_once('=').map(|(n, v)| (n.into(), v.into())))
+            .collect()
+    }
+
+    #[test]
+    fn prefixed_url_also_sends_the_host_wide_cookie() {
+        // Account-managed multi-space servers mount each space under a path
+        // prefix but deliberately keep the session cookie host-wide (see
+        // `LoginManager::with_server_wide_session` and the empty `url_prefix`
+        // passed to `JwtAuthorizer` in the server's multi-space instance
+        // builder). Sending only the prefix-scoped name there authenticates
+        // cleanly and then 401s on every subsequent request, forever.
+        //
+        // The client can't tell the two scoping regimes apart from the URL, so
+        // it offers both names; the server matches whichever it expects and
+        // ignores the other.
+        let pairs = cookie_pairs(&auth_cookie_header("https://sb.zef.pub/test", "the.jwt"));
+        assert!(
+            pairs.contains(&("auth_sb_zef_pub_test".into(), "the.jwt".into())),
+            "prefix-scoped name missing (classic single-space servers): {pairs:?}"
+        );
+        assert!(
+            pairs.contains(&("auth_sb_zef_pub".into(), "the.jwt".into())),
+            "host-wide name missing (multi-space servers): {pairs:?}"
+        );
+    }
+
+    #[test]
+    fn root_url_sends_exactly_one_cookie() {
+        // At a root path both candidate names collapse to the same string;
+        // emitting it twice would be pure noise in the header.
+        let header = auth_cookie_header("https://sb.zef.pub/", "j");
+        assert_eq!(cookie_pairs(&header).len(), 1, "{header}");
+        assert_eq!(header, "auth_sb_zef_pub=j");
+    }
+
     #[test]
     fn cookie_name_includes_url_prefix() {
         // A prefix-based space must scope the cookie to its prefix, matching the
@@ -467,9 +531,11 @@ mod tests {
 
     #[test]
     fn cookie_header_carries_jwt_value() {
+        // Both candidate names carry the same JWT; see
+        // `prefixed_url_also_sends_the_host_wide_cookie` for why both are sent.
         assert_eq!(
             auth_cookie_header("https://sb.zef.pub/space", "the.jwt.value"),
-            "auth_sb_zef_pub_space=the.jwt.value"
+            "auth_sb_zef_pub_space=the.jwt.value; auth_sb_zef_pub=the.jwt.value"
         );
     }
 }
