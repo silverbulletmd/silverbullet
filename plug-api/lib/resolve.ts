@@ -63,6 +63,26 @@ export function resolveMarkdownLink(
 }
 
 /**
+ * Computes the file path to pre-fill the "save attachment" prompt with, when
+ * pasting or uploading a file (image or otherwise) on `currentPagePath`.
+ *
+ * `attachmentPath` is the value of the `attachmentPath` config setting and
+ * follows the same absolute/relative convention as `resolveMarkdownLink`: a
+ * leading "/" makes it absolute from the space root (e.g. "/Assets/"),
+ * regardless of the current page; without a leading "/" it's resolved
+ * relative to the current page's folder (e.g. "attachments/"). An empty
+ * `attachmentPath` (the default) leaves the suggested path unchanged from
+ * before this setting existed.
+ */
+export function resolveAttachmentPath(
+  currentPagePath: string,
+  attachmentPath: string,
+  filename: string,
+): string {
+  return resolveMarkdownLink(currentPagePath, `${attachmentPath}${filename}`);
+}
+
+/**
  * Turns an absolute path into a relative path, relative to some base directory. USE WITH CAUTION, definitely buggy
  */
 export function absoluteToRelativePath(base: string, absolute: string): string {
