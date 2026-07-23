@@ -46,7 +46,12 @@
         // Match the line box the old CodeMirror title used so the text stays
         // vertically centred in the bar (a native input defaults to a shorter
         // `line-height: normal`, which pulls the title upward).
-        line-height: 1.4;
+        //
+        // Must leave the row fitting inside #sb-top's 55px: at font-size 28px
+        // this line box plus .inner's 16px of vertical padding is the bar's
+        // whole height, and .main's `overflow-y: auto` turns any excess into a
+        // permanently visible scrollbar. 1.4 overflowed it by 0.2px.
+        line-height: 1.35;
         color: inherit;
         background-color: transparent;
         padding: 0;

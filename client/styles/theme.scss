@@ -1,7 +1,7 @@
+@use "tokens";
+
 html {
-  --ui-accent-color: #464cfc;
   --ui-accent-text-color: var(--ui-accent-color);
-  --ui-accent-contrast-color: #eee;
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #0330cb;
   --link-missing-color: #9e4705;

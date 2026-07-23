@@ -1,0 +1,13 @@
+// Palette custom properties shared by the editor, the Space Manager, the
+// login page and the setup wizard.
+html {
+  --ui-accent-color: #464cfc;
+  --ui-accent-contrast-color: #eee;
+  --primary-button-color: var(--ui-accent-contrast-color);
+  --primary-button-background-color: var(--ui-accent-color);
+  --primary-button-hover-background-color: color-mix(in srgb,
+      var(--primary-button-background-color),
+      black 35%);
+  --primary-button-border-color: transparent;
+  --modal-border-color: rgb(108, 108, 108);
+}
