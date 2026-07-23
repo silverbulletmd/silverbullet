@@ -37,6 +37,7 @@ mod test_support {
                 read_only: false,
                 log_push: false,
                 enable_client_encryption: false,
+                account_managed: false,
                 shell_backend: "local".into(),
                 disable_service_worker: true,
             },

@@ -1,12 +1,16 @@
-import { test as base, type Page } from "@playwright/test";
 import { type ChildProcess, spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
 import { platform, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { test as base, type Page } from "@playwright/test";
 
 /** The platform-appropriate modifier key: Meta on macOS, Control elsewhere. */
 export const mod = platform() === "darwin" ? "Meta" : "Control";
+
+/** The admin account every multi-space e2e test provisions via `silverbullet setup`. */
+export const ADMIN_USER = "admin";
+export const ADMIN_PASSWORD = "adminpw123";
 
 export type SBServer = {
   url: string;
@@ -19,6 +23,7 @@ export type SBServer = {
 type SBFixtures = {
   spaceFiles: Record<string, string>;
   disableServiceWorker: boolean;
+  singleSpace: boolean;
   sbServer: SBServer;
   sbPage: Page;
 };
@@ -56,8 +61,9 @@ export async function waitForServer(
 export const test = base.extend<SBFixtures>({
   spaceFiles: [{}, { option: true }],
   disableServiceWorker: [true, { option: true }],
+  singleSpace: [true, { option: true }],
 
-  sbServer: async ({ spaceFiles, disableServiceWorker }, use) => {
+  sbServer: async ({ spaceFiles, disableServiceWorker, singleSpace }, use) => {
     const spaceDir = await mkdtemp(join(tmpdir(), "sb-e2e-"));
 
     // Seed space with files
@@ -69,22 +75,23 @@ export const test = base.extend<SBFixtures>({
 
     const port = await getFreePort();
 
-    const proc: ChildProcess = spawn(
-      "./target/debug/silverbullet",
-      [spaceDir, "-p", String(port), "-L", "127.0.0.1"],
-      {
-        cwd: join(import.meta.dirname, ".."),
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          // Disable the server-side headless-Chrome runtime API: in
-          // `?headless=1` the client uses its own in-page runtime, so the
-          // e2e servers never need to spawn Chrome (and don't require it).
-          SB_RUNTIME_API: "0",
-          ...(disableServiceWorker ? { SB_DISABLE_SERVICE_WORKER: "1" } : {}),
-        },
+    const args = [spaceDir, "-p", String(port), "-L", "127.0.0.1"];
+    // A fresh empty temp dir boots into the setup wizard unless we force
+    // single-space mode; tests exercising the wizard set `singleSpace: false`.
+    if (singleSpace) args.push("--single");
+
+    const proc: ChildProcess = spawn("./target/debug/silverbullet", args, {
+      cwd: join(import.meta.dirname, ".."),
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        // Disable the server-side headless-Chrome runtime API: in
+        // `?headless=1` the client uses its own in-page runtime, so the
+        // e2e servers never need to spawn Chrome (and don't require it).
+        SB_RUNTIME_API: "0",
+        ...(disableServiceWorker ? { SB_DISABLE_SERVICE_WORKER: "1" } : {}),
       },
-    );
+    });
 
     let serverOutput = "";
     proc.stdout?.on("data", (d: Buffer) => {

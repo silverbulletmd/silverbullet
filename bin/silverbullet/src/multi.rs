@@ -1,15 +1,19 @@
 //! Multi-space mode wiring: env validation, embedded-asset and Chrome-runtime
-//! factories, admin stack construction, and the serve loop.
+//! factories, unified /.spaces surface construction, and the serve loop.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use silverbullet_server::auth::{AuthConfig, Authenticator};
+use silverbullet_server::auth::{Authenticator, MULTI_AUTH_FILE_NAME};
 use silverbullet_server::metrics::Metrics;
-use silverbullet_server::multi::admin_api::{build_admin_router, AdminState};
+use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState};
 use silverbullet_server::multi::dispatch::build_main_router;
-use silverbullet_server::multi::instance::{AssetFactories, InstanceDeps, RuntimeRequest};
+use silverbullet_server::multi::instance::{
+    AssetFactories, InstanceAuth, InstanceDeps, RuntimeRequest,
+};
 use silverbullet_server::multi::manager::MultiManager;
+use silverbullet_server::multi::space_index::{build_spaces_router, SpaceIndexState};
+use silverbullet_server::multi::users::UserStore;
 
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
@@ -27,15 +31,14 @@ const IGNORED_IN_MULTI: &[&str] = &[
     "SB_LOG_PUSH",
     "SB_URL_PREFIX",
     "SB_SHELL_WHITELIST",
+    "SB_USER",
 ];
 
-pub async fn run_multi(config: Config) -> Result<(), String> {
+/// Build the full multi-space serving stack from a provisioned root
+pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String), String> {
     if config.unix_socket.is_some() {
         return Err("SB_UNIX_SOCKET is not supported in multi-space mode".into());
     }
-    let admin_auth = AuthConfig::from_env().map_err(|e| e.0)?.ok_or_else(|| {
-        "multi-space mode requires SB_USER (admin credentials, user:pass format)".to_string()
-    })?;
     for var in IGNORED_IN_MULTI {
         if std::env::var(var).map(|v| !v.is_empty()).unwrap_or(false) {
             tracing::warn!(
@@ -47,14 +50,20 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
     let root = PathBuf::from(&config.space_folder);
     std::fs::create_dir_all(&root).map_err(|e| format!("could not create server root: {e}"))?;
     warn_if_world_readable(&root.join("spaces.json"));
+    warn_if_world_readable(&root.join("users.json"));
+    warn_if_world_readable(&root.join(MULTI_AUTH_FILE_NAME));
 
-    let admin_authenticator = Arc::new(
-        Authenticator::load_or_init(&root, &admin_auth)
-            .map_err(|e| format!("could not initialize admin authentication: {e}"))?,
-    );
-    tracing::info!(
-        "multi-space admin authentication enabled for user {:?}",
-        admin_auth.user
+    let store = UserStore::open(&root)?.ok_or_else(|| {
+        "no users.json found: this folder is not fully provisioned, complete setup first"
+            .to_string()
+    })?;
+    let authenticator = Arc::new(
+        Authenticator::load_or_init_with_stamp_named(
+            &root,
+            "account-managed-session-v1",
+            MULTI_AUTH_FILE_NAME,
+        )
+        .map_err(|e| format!("could not initialize server authentication: {e}"))?,
     );
 
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
@@ -66,13 +75,18 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
         },
         runtime: Box::new(build_space_runtime),
         metrics: metrics.clone(),
-        admin_auth: admin_auth.clone(),
+        auth: InstanceAuth::Accounts {
+            users: store.clone(),
+            authenticator: authenticator.clone(),
+        },
         version: crate::VERSION.to_string(),
         main_port: config.port,
         disable_service_worker: config.disable_service_worker,
+        index_template: crate::DEFAULT_INDEX_MD.to_string(),
     };
 
-    let manager = MultiManager::boot(root, deps)?;
+    let known_users = store.usernames();
+    let manager = MultiManager::boot(root.clone(), deps, known_users)?;
     tracing::info!(
         "SilverBullet multi-space mode: {} space(s) configured",
         manager.registry().current().instances.len()
@@ -105,19 +119,39 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
         });
     }
 
-    // Main listener: admin + prefix/host spaces.
+    // Main listener: the unified /.spaces surface + prefix/host spaces.
     let admin_state = Arc::new(AdminState::new(
         manager.clone(),
-        admin_authenticator,
-        admin_auth,
+        store.clone(),
+        authenticator.clone(),
+    ));
+    let spaces_state = Arc::new(SpaceIndexState::new(
+        manager.clone(),
+        store,
+        authenticator,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
     ));
-    let router = build_main_router(manager, build_admin_router(admin_state));
+    let router = build_main_router(
+        manager,
+        Some(build_spaces_router(
+            spaces_state,
+            build_admin_api_router(admin_state),
+        )),
+        crate::VERSION.to_string(),
+    );
+    let addr = format!("{}:{}", config.bind_host, config.port);
+    let log =
+        format!("SilverBullet multi-space server running: http://{addr} (spaces at /.spaces)");
+    Ok((router, log))
+}
+
+pub async fn run_multi(config: Config) -> Result<(), String> {
+    let (router, log) = build_multi_stack(&config).await?;
     let addr = format!("{}:{}", config.bind_host, config.port);
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
-    tracing::info!("SilverBullet multi-space server running: http://{addr} (admin at /.admin/)");
+    tracing::info!("{log}");
     axum::serve(listener, router)
         .with_graceful_shutdown(crate::server::shutdown_signal())
         .await
@@ -126,7 +160,7 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
 
 /// Per-space headless-Chrome runtime factory (same construction as the
 /// single-space `build_runtime`).
-fn build_space_runtime(
+pub(crate) fn build_space_runtime(
     req: &RuntimeRequest,
 ) -> Option<Box<dyn silverbullet_server::runtime::RuntimeBackend>> {
     let chrome_cfg = silverbullet_server_runtime_chrome::ChromeConfig::from_env(

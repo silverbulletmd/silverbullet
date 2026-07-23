@@ -1,16 +1,8 @@
 //! Boots the binary's server on a real ephemeral port and drives it over HTTP.
 //! (The exhaustive endpoint matrix lands in a follow-up plan.)
 
-use std::net::TcpListener;
-
-/// Find a free port by binding :0 and dropping the listener.
-fn free_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
+mod common;
+use common::free_port;
 
 #[tokio::test]
 async fn boots_and_serves_ping_config_and_bundle() {
@@ -24,7 +16,8 @@ async fn boots_and_serves_ping_config_and_bundle() {
     std::env::set_var("SB_RUNTIME_API", "0");
     let handle = tokio::spawn(async move {
         // `run` blocks until shutdown; the test process exiting tears it down.
-        let _ = silverbullet::server::run(Some("127.0.0.1".into()), Some(port), Some(folder)).await;
+        let _ = silverbullet::server::run(Some("127.0.0.1".into()), Some(port), Some(folder), true)
+            .await;
     });
 
     // Wait for the listener to come up.
@@ -67,13 +60,19 @@ async fn boots_and_serves_ping_config_and_bundle() {
     );
     assert!(!html.contains("{{"), "unresolved placeholder in shell");
 
-    // The empty space was seeded with index.md.
+    // The empty space was seeded with the rich index.md template (parity with
+    // the old single-space-only `DEFAULT_INDEX_MD`), not a bare placeholder.
     let index = client
         .get(format!("{base}/.fs/index.md"))
         .send()
         .await
         .unwrap();
     assert_eq!(index.status(), reqwest::StatusCode::OK);
+    let index_body = index.text().await.unwrap();
+    assert!(
+        index_body.contains("Welcome to the wondrous world of SilverBullet"),
+        "got: {index_body}"
+    );
 
     handle.abort();
 }

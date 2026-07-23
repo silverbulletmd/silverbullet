@@ -2,9 +2,10 @@
 //! (folder accessibility) happen in the manager at apply time.
 
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
+use std::path::{Path, PathBuf};
 
-use crate::multi::config::{Binding, MultiConfig, SpaceAuth};
+use crate::multi::config::{Binding, MultiConfig};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FieldError {
@@ -35,42 +36,30 @@ pub fn normalize_prefix(raw: &str) -> String {
 
 /// Validate the whole config. Empty result = acceptable. Field paths are
 /// `<space-id>.<jsonField>`.
-pub fn validate(config: &MultiConfig) -> Vec<FieldError> {
+pub fn validate(
+    config: &MultiConfig,
+    root: &Path,
+    known_users: &BTreeSet<String>,
+) -> Vec<FieldError> {
     let mut errors = Vec::new();
     let mut seen_prefixes: HashMap<String, String> = HashMap::new(); // normalized -> id
     let mut seen_hosts: HashMap<String, String> = HashMap::new();
-    let mut seen_folders: HashMap<String, String> = HashMap::new(); // folder -> id
 
     for (id, space) in &config.spaces {
+        if space.extra.contains_key("auth") {
+            err(
+                &mut errors,
+                format!("{id}.auth"),
+                "unknown field (use public/members for access)",
+            );
+        }
         if space.name.trim().is_empty() {
             err(&mut errors, format!("{id}.name"), "name must not be empty");
-        }
-        // Two spaces sharing a folder would silently mix their files; catch the
-        // literal-duplicate case (aliasing via symlinks/absolute-vs-relative is
-        // out of scope for this pure check). Empty folders default to a
-        // per-space GUID directory and can't collide.
-        if !space.folder.is_empty() {
-            let key = space.folder.trim_end_matches('/').to_string();
-            if let Some(other) = seen_folders.insert(key, id.clone()) {
-                err(
-                    &mut errors,
-                    format!("{id}.folder"),
-                    format!("folder {:?} already used by space {other}", space.folder),
-                );
-            }
         }
         match &space.binding {
             Binding::Prefix { prefix } => {
                 let norm = normalize_prefix(prefix);
-                if norm.is_empty() {
-                    // A bare "/" (or empty) prefix would claim the whole host;
-                    // spaces must live under a named path segment.
-                    err(
-                        &mut errors,
-                        format!("{id}.binding"),
-                        "prefix must contain at least one path segment (a bare / is not allowed)",
-                    );
-                } else if norm.starts_with("/.") {
+                if norm.starts_with("/.") {
                     err(
                         &mut errors,
                         format!("{id}.binding"),
@@ -80,10 +69,16 @@ pub fn validate(config: &MultiConfig) -> Vec<FieldError> {
                     // Prefixes must be unique AND non-overlapping: a space at
                     // /work and another at /work/sub would fight over URL
                     // space (and their service-worker scopes would overlap).
+                    // "" (bare root, from a "/" prefix) is now valid — it only
+                    // conflicts with another exact "" (never via the overlap
+                    // checks, which would otherwise treat every other prefix
+                    // as "starting with" the empty string).
                     let conflict = seen_prefixes.iter().find(|(other_norm, _)| {
                         *other_norm == &norm
-                            || norm.starts_with(&format!("{other_norm}/"))
-                            || other_norm.starts_with(&format!("{norm}/"))
+                            || (!norm.is_empty()
+                                && !other_norm.is_empty()
+                                && (norm.starts_with(&format!("{other_norm}/"))
+                                    || other_norm.starts_with(&format!("{norm}/"))))
                     });
                     if let Some((other_norm, other_id)) = conflict {
                         let other_name = config
@@ -121,40 +116,59 @@ pub fn validate(config: &MultiConfig) -> Vec<FieldError> {
                 }
             }
         }
-        if let SpaceAuth::Custom {
-            user, pass_hash, ..
-        } = &space.auth
-        {
-            if user.trim().is_empty() {
+        for member in space.members.keys() {
+            if !known_users.contains(member) {
                 err(
                     &mut errors,
-                    format!("{id}.auth.user"),
-                    "custom auth requires a username",
-                );
-            }
-            if !pass_hash.is_empty() && !crate::auth::password::is_valid_phc(pass_hash) {
-                err(
-                    &mut errors,
-                    format!("{id}.auth.passHash"),
-                    "not a valid argon2 PHC hash",
+                    format!("{id}.members"),
+                    format!("unknown user {member:?}"),
                 );
             }
         }
     }
+
+    // Resolved folders must not nest or collide. Resolution mirrors
+    // instance::resolve_folder (empty -> spaces/<id>). Collected after the
+    // per-space loop and compared pairwise since nesting is order-independent.
+    let resolved: Vec<(String, PathBuf)> = config
+        .spaces
+        .iter()
+        .map(|(id, s)| {
+            (
+                id.clone(),
+                crate::multi::instance::resolve_folder(root, id, &s.folder),
+            )
+        })
+        .collect();
+    for (i, (id_a, a)) in resolved.iter().enumerate() {
+        for (id_b, b) in resolved.iter().skip(i + 1) {
+            if a == b || a.starts_with(b) || b.starts_with(a) {
+                err(
+                    &mut errors,
+                    format!("{id_a}.folder"),
+                    format!(
+                        "folder overlaps with the folder of space {id_b} — space folders may not nest"
+                    ),
+                );
+            }
+        }
+    }
+
     errors
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, MultiConfig, SpaceAuth, SpaceConfig};
+    use crate::multi::config::{Binding, MultiConfig, SpaceConfig};
 
     fn space(name: &str, binding: Binding) -> SpaceConfig {
         SpaceConfig {
             name: name.into(),
             folder: String::new(),
             binding,
-            auth: SpaceAuth::Inherit,
+            public: true,
+            members: Default::default(),
             read_only: false,
             shell: Default::default(),
             runtime_api: false,
@@ -177,6 +191,10 @@ mod tests {
         }
     }
 
+    fn users(names: &[&str]) -> BTreeSet<String> {
+        names.iter().map(|s| s.to_string()).collect()
+    }
+
     #[test]
     fn prefix_normalization_rules() {
         assert_eq!(normalize_prefix("/"), "");
@@ -186,6 +204,7 @@ mod tests {
 
     #[test]
     fn valid_config_passes() {
+        let dir = tempfile::tempdir().unwrap();
         let c = cfg(vec![
             (
                 "a",
@@ -206,33 +225,47 @@ mod tests {
                 ),
             ),
         ]);
-        assert!(validate(&c).is_empty());
+        assert!(validate(&c, dir.path(), &users(&[])).is_empty());
     }
 
     #[test]
-    fn root_and_empty_prefixes_rejected() {
-        for raw in ["/", "", "//"] {
-            let c = cfg(vec![(
-                "a",
-                space("A", Binding::Prefix { prefix: raw.into() }),
-            )]);
-            let errs = validate(&c);
-            assert!(
-                errs.iter().any(|e| e.field == "a.binding"),
-                "prefix {raw:?} must be rejected: {errs:?}"
-            );
-        }
+    fn root_prefix_is_allowed_once_and_coexists() {
+        let dir = tempfile::tempdir().unwrap();
+        let c = cfg(vec![
+            ("r", space("Root", Binding::Prefix { prefix: "/".into() })),
+            (
+                "w",
+                space(
+                    "Work",
+                    Binding::Prefix {
+                        prefix: "/work".into(),
+                    },
+                ),
+            ),
+        ]);
+        assert!(validate(&c, dir.path(), &users(&[])).is_empty());
+        // But two root bindings conflict.
+        let c = cfg(vec![
+            ("a", space("A", Binding::Prefix { prefix: "/".into() })),
+            ("b", space("B", Binding::Prefix { prefix: "".into() })),
+        ]);
+        let errs = validate(&c, dir.path(), &users(&[]));
+        assert!(
+            errs.iter().any(|e| e.field.ends_with(".binding")),
+            "{errs:?}"
+        );
     }
 
     #[test]
     fn overlapping_prefixes_rejected() {
+        let dir = tempfile::tempdir().unwrap();
         // Nested prefixes conflict regardless of declaration order.
         for (p1, p2) in [("/work", "/work/sub"), ("/work/sub", "/work")] {
             let c = cfg(vec![
                 ("a", space("A", Binding::Prefix { prefix: p1.into() })),
                 ("b", space("B", Binding::Prefix { prefix: p2.into() })),
             ]);
-            let errs = validate(&c);
+            let errs = validate(&c, dir.path(), &users(&[]));
             assert!(
                 errs.iter().any(|e| e.field.ends_with(".binding")),
                 "{p1} + {p2} must conflict: {errs:?}"
@@ -259,11 +292,52 @@ mod tests {
                 ),
             ),
         ]);
-        assert!(validate(&c).is_empty());
+        assert!(validate(&c, dir.path(), &users(&[])).is_empty());
+    }
+
+    #[test]
+    fn nested_folders_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut a = space(
+            "A",
+            Binding::Prefix {
+                prefix: "/a".into(),
+            },
+        );
+        a.folder = ".".into(); // the data root itself
+        let mut b = space(
+            "B",
+            Binding::Prefix {
+                prefix: "/b".into(),
+            },
+        );
+        b.folder = "spaces/b".into(); // nested inside the data root
+        let errs = validate(&cfg(vec![("a", a), ("b", b)]), dir.path(), &users(&[]));
+        assert!(
+            errs.iter().any(|e| e.field.ends_with(".folder")),
+            "{errs:?}"
+        );
+        // Sibling folders are fine.
+        let mut a = space(
+            "A",
+            Binding::Prefix {
+                prefix: "/a".into(),
+            },
+        );
+        a.folder = "spaces/a".into();
+        let mut b = space(
+            "B",
+            Binding::Prefix {
+                prefix: "/b".into(),
+            },
+        );
+        b.folder = "spaces/b".into();
+        assert!(validate(&cfg(vec![("a", a), ("b", b)]), dir.path(), &users(&[])).is_empty());
     }
 
     #[test]
     fn duplicate_folders_rejected() {
+        let dir = tempfile::tempdir().unwrap();
         let mut a = space(
             "A",
             Binding::Prefix {
@@ -278,7 +352,7 @@ mod tests {
             },
         );
         b.folder = "spaces/notes/".into(); // same after trailing-slash trim
-        let errs = validate(&cfg(vec![("a", a), ("b", b)]));
+        let errs = validate(&cfg(vec![("a", a), ("b", b)]), dir.path(), &users(&[]));
         assert!(
             errs.iter().any(|e| e.field.ends_with(".folder")),
             "{errs:?}"
@@ -304,11 +378,12 @@ mod tests {
                 ),
             ),
         ]);
-        assert!(validate(&c).is_empty());
+        assert!(validate(&c, dir.path(), &users(&[])).is_empty());
     }
 
     #[test]
     fn duplicate_bindings_rejected() {
+        let dir = tempfile::tempdir().unwrap();
         let c = cfg(vec![
             (
                 "a",
@@ -329,7 +404,7 @@ mod tests {
                 ),
             ), // same after normalization
         ]);
-        let errs = validate(&c);
+        let errs = validate(&c, dir.path(), &users(&[]));
         assert!(
             errs.iter().any(|e| e.field.ends_with(".binding")),
             "{errs:?}"
@@ -338,6 +413,7 @@ mod tests {
 
     #[test]
     fn duplicate_hosts_rejected_case_insensitively() {
+        let dir = tempfile::tempdir().unwrap();
         let c = cfg(vec![
             (
                 "a",
@@ -358,7 +434,7 @@ mod tests {
                 ),
             ),
         ]);
-        let errs = validate(&c);
+        let errs = validate(&c, dir.path(), &users(&[]));
         assert!(
             errs.iter().any(|e| e.field.ends_with(".binding")),
             "{errs:?}"
@@ -367,13 +443,14 @@ mod tests {
 
     #[test]
     fn reserved_bindings_and_invalid_hosts_rejected() {
+        let dir = tempfile::tempdir().unwrap();
         let c = cfg(vec![
             (
                 "a",
                 space(
                     "A",
                     Binding::Prefix {
-                        prefix: "/.admin".into(),
+                        prefix: "/.spaces".into(),
                     },
                 ),
             ),
@@ -387,57 +464,38 @@ mod tests {
                 ),
             ),
         ]);
-        let errs = validate(&c);
+        let errs = validate(&c, dir.path(), &users(&[]));
         assert_eq!(errs.len(), 2, "{errs:?}");
     }
 
     #[test]
-    fn custom_auth_requires_user_and_valid_hash() {
+    fn unknown_member_rejected() {
+        let dir = tempfile::tempdir().unwrap();
         let mut s = space(
             "A",
             Binding::Prefix {
                 prefix: "/a".into(),
             },
         );
-        s.auth = SpaceAuth::Custom {
-            user: String::new(),
-            pass_hash: "nonsense".into(),
-            auth_token: String::new(),
-            lockout_limit: 10,
-            lockout_time: 60,
-            remember_me_hours: 168,
-        };
-        let errs = validate(&cfg(vec![("a", s)]));
-        assert!(errs.iter().any(|e| e.field == "a.auth.user"), "{errs:?}");
+        s.members.insert("ghost".into(), Default::default());
+        let errs = validate(&cfg(vec![("a", s.clone())]), dir.path(), &users(&[]));
         assert!(
-            errs.iter().any(|e| e.field == "a.auth.passHash"),
+            errs.iter().any(|e| e.field.ends_with(".members")),
             "{errs:?}"
         );
+        assert!(validate(&cfg(vec![("a", s)]), dir.path(), &users(&["ghost"])).is_empty());
     }
 
     #[test]
-    fn empty_name_rejected_and_empty_custom_hash_allowed() {
-        // Empty passHash is legal (password not set yet — space stays errored
-        // until set), but empty name is not.
-        let mut s = space(
+    fn empty_name_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = space(
             "",
             Binding::Prefix {
                 prefix: "/a".into(),
             },
         );
-        s.auth = SpaceAuth::Custom {
-            user: "u".into(),
-            pass_hash: String::new(),
-            auth_token: String::new(),
-            lockout_limit: 10,
-            lockout_time: 60,
-            remember_me_hours: 168,
-        };
-        let errs = validate(&cfg(vec![("a", s)]));
+        let errs = validate(&cfg(vec![("a", s)]), dir.path(), &users(&[]));
         assert!(errs.iter().any(|e| e.field == "a.name"), "{errs:?}");
-        assert!(
-            !errs.iter().any(|e| e.field == "a.auth.passHash"),
-            "{errs:?}"
-        );
     }
 }

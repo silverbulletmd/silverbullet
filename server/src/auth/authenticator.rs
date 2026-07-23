@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub username: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credential_version: Option<String>,
     /// Expiry, Unix seconds (validated automatically).
     pub exp: usize,
 }
@@ -38,7 +40,13 @@ struct AuthFile {
     salt: String,
 }
 
-const AUTH_FILE_NAME: &str = ".silverbullet.auth.json";
+/// Default signing-secret file, used by single-space servers and by every
+/// multi-space *space* instance (keyed off the space's own folder).
+pub const AUTH_FILE_NAME: &str = ".silverbullet.auth.json";
+
+/// Server-wide signing secret and client-encryption salt for account-managed
+/// multi-space mode. It lives in the server data root rather than a space.
+pub const MULTI_AUTH_FILE_NAME: &str = ".silverbullet.session.json";
 
 impl Authenticator {
     /// Construct from raw secret bytes with an empty salt (test/legacy helper).
@@ -77,8 +85,30 @@ impl Authenticator {
         username: &str,
         exp: usize,
     ) -> Result<String, jsonwebtoken::errors::Error> {
+        self.issue_jwt_with_version_and_exp(username, None, exp)
+    }
+
+    /// Issue an account-managed token whose credential version can be checked
+    /// against the live user store on every request.
+    pub fn issue_jwt_with_version(
+        &self,
+        username: &str,
+        credential_version: String,
+        expiry_secs: u64,
+    ) -> Result<String, jsonwebtoken::errors::Error> {
+        let exp = now_secs().saturating_add(expiry_secs) as usize;
+        self.issue_jwt_with_version_and_exp(username, Some(credential_version), exp)
+    }
+
+    fn issue_jwt_with_version_and_exp(
+        &self,
+        username: &str,
+        credential_version: Option<String>,
+        exp: usize,
+    ) -> Result<String, jsonwebtoken::errors::Error> {
         let claims = Claims {
             username: username.to_string(),
+            credential_version,
             exp,
         };
         encode(
@@ -104,19 +134,42 @@ impl Authenticator {
     }
 
     /// Load the signing secret from `<space_dir>/.silverbullet.auth.json`,
-    /// generating (and persisting) a fresh one when the file is absent or when
-    /// the stored config hash no longer matches `config` (which invalidates all
-    /// previously-issued tokens). The salt is always read from the existing file
-    /// and only regenerated when it is absent — ensuring it survives config
-    /// changes. If the file cannot be written (e.g. a read-only space) a fresh
-    /// ephemeral secret is used and a warning is logged — sessions then do not
-    /// survive a restart.
+    /// deriving the security stamp from `config.security_hash()`.
+    /// See [`Self::load_or_init_with_stamp`] for details.
     pub fn load_or_init(
         space_dir: &Path,
         config: &crate::auth::config::AuthConfig,
     ) -> std::io::Result<Self> {
-        let path = space_dir.join(AUTH_FILE_NAME);
-        let want_hash = config.security_hash();
+        Self::load_or_init_with_stamp(space_dir, &config.security_hash())
+    }
+
+    /// Load the signing secret from `<space_dir>/.silverbullet.auth.json`,
+    /// generating (and persisting) a fresh one when the file is absent or when
+    /// the stored security stamp no longer matches `stamp` (which invalidates all
+    /// previously-issued tokens). The salt is always read from the existing file
+    /// and only regenerated when it is absent — ensuring it survives security
+    /// stamp changes. If the file cannot be written (e.g. a read-only space) a fresh
+    /// ephemeral secret is used and a warning is logged — sessions then do not
+    /// survive a restart.
+    ///
+    /// Parameterized directly over the security stamp instead of deriving it from
+    /// an `AuthConfig`. Lets multi-user (`users.json`-backed) deployments invalidate
+    /// sessions on their own stamp (e.g. a hash of the user store) without needing an
+    /// `AuthConfig` to exist.
+    pub fn load_or_init_with_stamp(space_dir: &Path, stamp: &str) -> std::io::Result<Self> {
+        Self::load_or_init_with_stamp_named(space_dir, stamp, AUTH_FILE_NAME)
+    }
+
+    /// Like [`Self::load_or_init_with_stamp`] but with an explicit secret file
+    /// name under `space_dir`. Account-managed mode uses this to keep its
+    /// server-wide session material distinct from a single-space authenticator.
+    pub fn load_or_init_with_stamp_named(
+        space_dir: &Path,
+        stamp: &str,
+        file_name: &str,
+    ) -> std::io::Result<Self> {
+        let path = space_dir.join(file_name);
+        let want_hash = stamp.to_string();
 
         let existing: Option<AuthFile> = std::fs::read(&path)
             .ok()
@@ -167,9 +220,9 @@ impl Authenticator {
                 .and_then(|b| write_private(&path, &b))
             {
                 Ok(()) => {}
-                Err(e) => tracing::warn!(
-                    "could not persist {AUTH_FILE_NAME}: {e}; using an ephemeral secret"
-                ),
+                Err(e) => {
+                    tracing::warn!("could not persist {file_name}: {e}; using an ephemeral secret")
+                }
             }
         }
         Ok(auth)
@@ -236,6 +289,18 @@ mod tests {
         let token = a.issue_jwt("alice", 3600).unwrap();
         let claims = a.verify_jwt(&token).unwrap();
         assert_eq!(claims.username, "alice");
+        assert!(claims.credential_version.is_none());
+    }
+
+    #[test]
+    fn account_token_round_trips_credential_version() {
+        let a = fresh();
+        let token = a
+            .issue_jwt_with_version("alice", "version-1".into(), 3600)
+            .unwrap();
+        let claims = a.verify_jwt(&token).unwrap();
+        assert_eq!(claims.username, "alice");
+        assert_eq!(claims.credential_version.as_deref(), Some("version-1"));
     }
 
     #[test]
@@ -323,5 +388,19 @@ mod tests {
         let a2 = Authenticator::load_or_init(dir.path(), &cfg("t2")).unwrap();
         assert!(a2.verify_jwt(&token).is_err(), "secret must rotate");
         assert_eq!(a2.salt(), salt1, "salt must be stable");
+    }
+
+    #[test]
+    fn stamp_based_init_regenerates_on_stamp_change() {
+        let dir = tempdir().unwrap();
+        let a1 = Authenticator::load_or_init_with_stamp(dir.path(), "stamp1").unwrap();
+        let jwt = a1.issue_jwt("u", 3600).unwrap();
+        // Same stamp: secret survives.
+        let a2 = Authenticator::load_or_init_with_stamp(dir.path(), "stamp1").unwrap();
+        assert!(a2.verify_jwt(&jwt).is_ok());
+        // Changed stamp: sessions invalidated, salt preserved.
+        let a3 = Authenticator::load_or_init_with_stamp(dir.path(), "stamp2").unwrap();
+        assert!(a3.verify_jwt(&jwt).is_err());
+        assert_eq!(a2.salt(), a3.salt());
     }
 }

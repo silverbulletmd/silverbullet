@@ -2,7 +2,7 @@
 //! Serialized with keys in stable name order; unknown fields are preserved
 //! verbatim so older servers don't destroy newer config.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -45,42 +45,6 @@ impl<'de> Deserialize<'de> for Binding {
     }
 }
 
-/// Per-space authentication. `Inherit` (default) accepts the admin credentials.
-#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
-#[serde(tag = "mode")]
-pub enum SpaceAuth {
-    #[default]
-    #[serde(rename = "inherit")]
-    Inherit,
-    #[serde(rename = "custom", rename_all = "camelCase")]
-    Custom {
-        user: String,
-        /// argon2id PHC string; empty until the first password is set.
-        #[serde(default)]
-        pass_hash: String,
-        #[serde(default, skip_serializing_if = "String::is_empty")]
-        auth_token: String,
-        #[serde(default = "default_lockout_limit")]
-        lockout_limit: u32,
-        #[serde(default = "default_lockout_time")]
-        lockout_time: u64,
-        #[serde(default = "default_remember_me_hours")]
-        remember_me_hours: u64,
-    },
-    #[serde(rename = "none")]
-    None,
-}
-
-fn default_lockout_limit() -> u32 {
-    10
-}
-fn default_lockout_time() -> u64 {
-    60
-}
-fn default_remember_me_hours() -> u64 {
-    168
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ShellSettings {
     pub enabled: bool,
@@ -119,7 +83,10 @@ pub struct SpaceConfig {
     pub folder: String,
     pub binding: Binding,
     #[serde(default)]
-    pub auth: SpaceAuth,
+    pub public: bool,
+    /// username -> per-member options (empty object today; room for roles).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub members: BTreeMap<String, serde_json::Map<String, serde_json::Value>>,
     #[serde(default)]
     pub read_only: bool,
     #[serde(default)]
@@ -211,7 +178,6 @@ mod tests {
             "name": "Alpha",
             "folder": "/abs/path",
             "binding": { "host": "a.example.com" },
-            "auth": { "mode": "custom", "user": "u", "passHash": "$argon2id$x" },
             "readOnly": true,
             "shell": { "enabled": false, "whitelist": ["git"] },
             "runtimeApi": true,
@@ -222,14 +188,11 @@ mod tests {
     }
 
     #[test]
-    fn parses_bindings_auth_and_defaults() {
+    fn parses_bindings_and_defaults() {
         let c: MultiConfig = MultiConfig::from_json(sample_json()).unwrap();
         let a = &c.spaces["id-a"];
         assert_eq!(a.name, "Alpha");
         assert!(matches!(&a.binding, Binding::Host { host } if host == "a.example.com"));
-        assert!(
-            matches!(&a.auth, SpaceAuth::Custom { user, pass_hash, .. } if user == "u" && pass_hash == "$argon2id$x")
-        );
         assert!(a.read_only);
         assert!(!a.shell.enabled);
         assert_eq!(a.index_page, "home");
@@ -237,7 +200,8 @@ mod tests {
 
         let b = &c.spaces["id-b"];
         assert!(matches!(&b.binding, Binding::Prefix { prefix } if prefix == "/b"));
-        assert!(matches!(b.auth, SpaceAuth::Inherit)); // default
+        assert!(!b.public);
+        assert!(b.members.is_empty());
         assert!(!b.read_only);
         assert!(b.shell.enabled); // default on
         assert_eq!(b.index_page, "index");
@@ -315,5 +279,21 @@ mod tests {
         let path = dir.path().join("spaces.json");
         std::fs::write(&path, "{ not json").unwrap();
         assert!(MultiConfig::load(&path).is_err());
+    }
+
+    #[test]
+    fn public_members_roundtrip() {
+        let src = r#"{
+          "id": {
+            "name": "X", "binding": { "prefix": "/x" },
+            "public": false,
+            "members": { "zef": {} }
+          }
+        }"#;
+        let c = MultiConfig::from_json(src).unwrap();
+        let s = &c.spaces["id"];
+        assert!(s.members.contains_key("zef"));
+        let out = c.to_json_string().unwrap();
+        assert!(out.contains("members"), "{out}");
     }
 }

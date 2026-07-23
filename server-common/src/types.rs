@@ -23,6 +23,11 @@ pub struct BootConfig {
     pub read_only: bool,
     pub log_push: bool,
     pub enable_client_encryption: bool,
+    /// True when one account/session and encryption salt span every prefix on
+    /// this server. Clients may then transfer in-memory encryption keys across
+    /// same-origin service-worker scopes.
+    #[serde(default)]
+    pub account_managed: bool,
     pub shell_backend: String,
     pub disable_service_worker: bool,
 }

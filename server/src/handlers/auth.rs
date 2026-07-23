@@ -33,6 +33,7 @@ pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response 
         &state.boot_config.space_name,
         login.salt(),
         login.remember_me_days(),
+        state.boot_config.account_managed,
     );
     ([(axum::http::header::CONTENT_TYPE, "text/html")], body).into_response()
 }
@@ -46,6 +47,7 @@ fn render_auth_page(
     space_name: &str,
     encryption_salt: &str,
     remember_me_days: u64,
+    account_managed: bool,
 ) -> Vec<u8> {
     let shell = String::from_utf8_lossy(shell);
     let mut env = minijinja::Environment::new();
@@ -55,6 +57,7 @@ fn render_auth_page(
         space_name => space_name,
         encryption_salt => encryption_salt,
         remember_me_days => remember_me_days,
+        account_managed => account_managed,
     };
     match env.render_str(&shell, ctx) {
         Ok(rendered) => rendered.into_bytes(),
@@ -110,7 +113,7 @@ pub async fn handle_auth_post(
 
     let host = request_host(&headers);
     let secure = is_secure_request(&headers);
-    let path = format!("{}/", login.host_url_prefix());
+    let path = format!("{}/", login.session_url_prefix());
     let opts = CookieOptions {
         path,
         max_age_secs: Some(secs as i64),
@@ -126,7 +129,7 @@ pub async fn handle_auth_post(
     };
 
     let mut resp = Json(json!({ "status": "ok", "redirect": redirect })).into_response();
-    let cookie_name = crate::auth::scoped_auth_cookie_name(&host, login.host_url_prefix());
+    let cookie_name = crate::auth::scoped_auth_cookie_name(&host, login.session_url_prefix());
     append_cookie(&mut resp, &cookie_name, &jwt, &opts);
     if remember {
         append_cookie(&mut resp, "refreshLogin", "true", &opts);
@@ -147,23 +150,28 @@ fn append_cookie(resp: &mut Response, name: &str, value: &str, opts: &CookieOpti
 
 /// `GET /.logout` — clear the session + refresh cookies and 302 to `/.auth`.
 pub async fn handle_logout(State(state): State<Arc<ServerState>>, headers: HeaderMap) -> Response {
-    let prefix = state
+    let page_prefix = state
         .login
         .as_ref()
         .map(|l| l.host_url_prefix().to_string())
+        .unwrap_or_else(|| state.host_url_prefix.clone());
+    let session_prefix = state
+        .login
+        .as_ref()
+        .map(|l| l.session_url_prefix().to_string())
         .unwrap_or_else(|| state.host_url_prefix.clone());
 
     let host = request_host(&headers);
     let secure = is_secure_request(&headers);
     let del = CookieOptions {
-        path: format!("{prefix}/"),
+        path: format!("{session_prefix}/"),
         max_age_secs: Some(0),
         http_only: true,
         secure,
         same_site: "Lax",
     };
 
-    let location = format!("{prefix}/.auth");
+    let location = format!("{page_prefix}/.auth");
     let mut resp = Response::builder()
         .status(StatusCode::FOUND)
         .header(axum::http::header::LOCATION, location)
@@ -171,7 +179,7 @@ pub async fn handle_logout(State(state): State<Arc<ServerState>>, headers: Heade
         .unwrap();
     append_cookie(
         &mut resp,
-        &crate::auth::scoped_auth_cookie_name(&host, &prefix),
+        &crate::auth::scoped_auth_cookie_name(&host, &session_prefix),
         "",
         &del,
     );
@@ -197,16 +205,58 @@ mod tests {
             "/../client_bundle/client/.client/auth.html"
         );
         let shell = std::fs::read(path).expect("shipped auth.html must exist");
-        let out = super::render_auth_page(&shell, "/prefix", "My Space", "c2FsdA==", 7);
+        let out = super::render_auth_page(&shell, "/prefix", "My Space", "c2FsdA==", 7, false);
         let html = String::from_utf8(out).unwrap();
         assert!(!html.contains("{{"), "leftover placeholder: {html}");
         assert!(html.contains(r#"<base href="/prefix/""#), "{html}");
         assert!(html.contains("My Space"), "space name rendered: {html}");
+
+        // The page is a Preact bundle now; its config crosses over as data
+        // attributes on #root.
         assert!(
-            html.contains(r#"base64Decode("c2FsdA==")"#),
-            "salt injected: {html}"
+            html.contains(r#"data-space-name="My Space""#),
+            "space name attribute: {html}"
         );
-        assert!(html.contains("7 days"), "remember-me days rendered: {html}");
+        assert!(
+            html.contains(r#"data-encryption-salt="c2FsdA==""#),
+            "salt attribute: {html}"
+        );
+        assert!(
+            html.contains(r#"data-remember-me-days="7""#),
+            "remember-me attribute: {html}"
+        );
+        assert!(
+            html.contains(r#"data-account-managed="false""#),
+            "account-managed attribute: {html}"
+        );
+    }
+
+    #[test]
+    fn a_space_name_with_html_and_quotes_cannot_break_out_of_its_attribute() {
+        // A space name is user-controlled and reaches the page twice: the
+        // <title> and #root's data attribute. Neither may let it become markup.
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../client_bundle/client/.client/auth.html"
+        );
+        let shell = std::fs::read(path).expect("shipped auth.html must exist");
+        let nasty = r#"</div><img src=x onerror=alert(1)>"quoted""#;
+        let out = super::render_auth_page(&shell, "", nasty, "c2FsdA==", 7, true);
+        let html = String::from_utf8(out).unwrap();
+
+        assert!(
+            !html.contains("<img src=x"),
+            "raw markup must never reach the page: {html}"
+        );
+        // The quote is what would end the attribute early; it must be escaped.
+        assert!(
+            !html.contains(r#""quoted""#),
+            "an unescaped quote would close the attribute: {html}"
+        );
+        assert!(
+            html.contains(r#"data-account-managed="true""#),
+            "account-managed attribute: {html}"
+        );
     }
 
     fn auth_state(user_pass: &str) -> Arc<ServerState> {
@@ -219,9 +269,11 @@ mod tests {
             .unwrap()
             .unwrap();
         let lockout = LockoutTimer::from_config(config.lockout_time_secs, config.lockout_limit);
+        let remember_me_hours = config.remember_me_hours;
         let login = Arc::new(LoginManager::new(
             authenticator.clone(),
-            config,
+            Arc::new(config),
+            remember_me_hours,
             lockout,
             String::new(),
         ));

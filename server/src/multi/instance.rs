@@ -3,19 +3,25 @@
 //! build failure produces an `Errored` instance (never a crash) so one broken
 //! space can't take the server down.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use silverbullet_server_common::space::{
     DiskSpacePrimitives, FallthroughSpacePrimitives, ReadOnlySpacePrimitives,
 };
-use silverbullet_server_common::{BootConfig, SpacePrimitives};
+use silverbullet_server_common::{BootConfig, FileMeta, SpaceError, SpacePrimitives};
 
 use crate::auth::{
     AuthConfig, Authenticator, HeadlessTokenAuthorizer, JwtAuthorizer, LockoutTimer, LoginManager,
     RequestAuthorizer,
 };
-use crate::multi::config::{Binding, SpaceAuth, SpaceConfig};
+use crate::multi::access::{
+    SpaceUsersAuth, UserTokenAuthorizer, USERS_LOCKOUT_LIMIT, USERS_LOCKOUT_TIME_SECS,
+    USERS_REMEMBER_ME_HOURS,
+};
+use crate::multi::config::{Binding, SpaceConfig};
+use crate::multi::users::UserStore;
 use crate::multi::validate::normalize_prefix;
 use crate::shell::ShellConfig;
 use crate::state::{ServerState, ServerVersion};
@@ -45,11 +51,101 @@ pub struct InstanceDeps {
     pub assets: AssetFactories,
     pub runtime: RuntimeFactory,
     pub metrics: Option<Arc<crate::metrics::Metrics>>,
-    /// Inherit-mode credentials (the admin's).
-    pub admin_auth: AuthConfig,
+    /// Authentication source for every instance built by this manager.
+    pub auth: InstanceAuth,
     pub version: String,
     pub main_port: u16,
     pub disable_service_worker: bool,
+    /// Content seeded into a brand-new empty space's index page. The bin
+    /// crate supplies the rich `space_template/index.md`; test helpers in
+    /// this crate can use any short string.
+    pub index_template: String,
+}
+
+/// Single-space servers retain their classic environment credentials. An
+/// account-managed multi-space server shares one user store, JWT signing
+/// secret, salt, and browser session across all of its spaces.
+pub enum InstanceAuth {
+    Single(Option<AuthConfig>),
+    Accounts {
+        users: Arc<UserStore>,
+        authenticator: Arc<Authenticator>,
+    },
+}
+
+/// Prevent a space deliberately rooted at the multi-space data directory from
+/// reading or mutating the server's account, routing, and session state.
+struct ServerControlFileFilter {
+    inner: Box<dyn SpacePrimitives>,
+}
+
+impl ServerControlFileFilter {
+    fn new(inner: Box<dyn SpacePrimitives>) -> Self {
+        Self { inner }
+    }
+
+    fn reserved(path: &str) -> bool {
+        let mut components = Path::new(path)
+            .components()
+            .filter_map(|component| match component {
+                std::path::Component::Normal(name) => name.to_str(),
+                std::path::Component::CurDir => None,
+                _ => Some(""),
+            });
+        let Some(name) = components.next() else {
+            return false;
+        };
+        components.next().is_none()
+            && matches!(
+                name,
+                "users.json"
+                    | "users.json.tmp"
+                    | "spaces.json"
+                    | "spaces.json.tmp"
+                    | crate::auth::MULTI_AUTH_FILE_NAME
+            )
+    }
+}
+
+impl SpacePrimitives for ServerControlFileFilter {
+    fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+        let mut files = self.inner.fetch_file_list()?;
+        files.retain(|file| !Self::reserved(&file.name));
+        Ok(files)
+    }
+
+    fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
+        if Self::reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.get_file_meta(path)
+    }
+
+    fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        if Self::reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.read_file(path)
+    }
+
+    fn write_file(
+        &self,
+        path: &str,
+        data: &[u8],
+        meta: Option<&FileMeta>,
+    ) -> Result<FileMeta, SpaceError> {
+        if Self::reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.write_file(path, data, meta)
+    }
+
+    fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
+        if Self::reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.delete_file(path)
+    }
 }
 
 /// Whether a space built successfully.
@@ -86,21 +182,35 @@ pub fn resolve_folder(root: &Path, id: &str, folder: &str) -> PathBuf {
     }
 }
 
-/// Create `<index_page>.md` in `folder` when the space has no `.md` files yet.
-/// Mirrors the single-space binary's `ensure_index`, at the fs level.
-pub fn seed_index(folder: &Path, index_page: &str) {
-    let has_md = std::fs::read_dir(folder)
-        .map(|rd| {
-            rd.flatten()
-                .any(|e| e.path().extension().is_some_and(|x| x == "md"))
-        })
-        .unwrap_or(true); // unreadable folder: do nothing
-    if has_md {
-        return;
+/// Create `<index_page>.md` in `folder` (with `content`) when the space has no
+/// `.md` files yet. Mirrors the single-space binary's former `ensure_index`
+/// exactly: emptiness is decided via a recursive `fetch_file_list()` (honoring
+/// `space_ignore` + any `.gitignore` in the folder), not a shallow
+/// `read_dir`, so a space with markdown only in subdirectories isn't treated
+/// as empty. Uses `DiskSpacePrimitives::write_file` for the actual write so
+/// nested index pages (e.g. `notes/index`) get their parent directories
+/// created for free.
+pub fn seed_index(folder: &Path, index_page: &str, content: &str, space_ignore: &str) {
+    let disk = match DiskSpacePrimitives::new(folder, space_ignore) {
+        Err(e) => {
+            // Unreadable/missing folder: do nothing (matches the old
+            // `ensure_index`'s behavior of leaving the space alone on error).
+            tracing::warn!("could not check space state at {}: {e}", folder.display());
+            return;
+        }
+        Ok(disk) => disk,
+    };
+    match disk.fetch_file_list() {
+        Ok(files) if files.iter().any(|f| f.name.ends_with(".md")) => return,
+        Ok(_) => {}
+        Err(e) => {
+            tracing::warn!("could not check space state: {e}");
+            return;
+        }
     }
-    let path = folder.join(format!("{index_page}.md"));
-    if let Err(e) = std::fs::write(&path, "# Welcome to your new space!\n") {
-        tracing::warn!("could not seed index page {}: {e}", path.display());
+    let path = format!("{index_page}.md");
+    if let Err(e) = disk.write_file(&path, content.as_bytes(), None) {
+        tracing::warn!("could not seed index page {path}: {e}");
     }
 }
 
@@ -109,6 +219,61 @@ fn generate_token() -> String {
     let mut bytes = [0u8; 32];
     getrandom::getrandom(&mut bytes).expect("OS RNG must be available");
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// A space's authorizer + login manager (both `None` for an open space).
+type AuthPair = (
+    Option<Arc<dyn RequestAuthorizer>>,
+    Option<Arc<LoginManager>>,
+);
+
+/// Classic single-space authorizer/login pair: one `AuthConfig` drives both
+/// the JWT authorizer (with its bearer token) and the login manager.
+fn build_env_style_auth(
+    folder: &Path,
+    prefix: &str,
+    ac: &AuthConfig,
+    headless_token: &str,
+) -> Result<AuthPair, String> {
+    let authenticator = Arc::new(
+        Authenticator::load_or_init(folder, ac)
+            .map_err(|e| format!("could not initialize authentication: {e}"))?,
+    );
+    let inner: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_prefix(
+        authenticator.clone(),
+        ac.auth_token.clone(),
+        prefix.to_string(),
+    ));
+    let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(HeadlessTokenAuthorizer::new(
+        inner,
+        headless_token.to_string(),
+    ));
+    let lockout = LockoutTimer::from_config(ac.lockout_time_secs, ac.lockout_limit);
+    let login = Arc::new(LoginManager::new(
+        authenticator,
+        Arc::new(ac.clone()),
+        ac.remember_me_hours,
+        lockout,
+        prefix.to_string(),
+    ));
+    Ok((Some(authorizer), Some(login)))
+}
+
+fn member_claims_filter(
+    store: Arc<UserStore>,
+    members: BTreeSet<String>,
+) -> Box<dyn Fn(&crate::auth::authenticator::Claims) -> bool + Send + Sync> {
+    Box::new(move |claims| {
+        store.session_is_current(&claims.username, claims.credential_version.as_deref())
+            && (store.is_admin(&claims.username) || members.contains(&claims.username))
+    })
+}
+
+fn member_name_filter(
+    store: Arc<UserStore>,
+    members: BTreeSet<String>,
+) -> Box<dyn Fn(&str) -> bool + Send + Sync> {
+    Box::new(move |username| store.is_admin(username) || members.contains(username))
 }
 
 pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> SpaceInstance {
@@ -151,65 +316,70 @@ fn try_build_state(
 
     let disk = DiskSpacePrimitives::new(&folder_str, &config.space_ignore)
         .map_err(|e| format!("failed to open space folder {folder_str}: {e}"))?;
+    let mut disk: Box<dyn SpacePrimitives> = Box::new(disk);
+    let account_managed = matches!(&deps.auth, InstanceAuth::Accounts { .. });
+    let folder_is_server_root = folder.canonicalize().ok() == deps.root.canonicalize().ok();
+    if account_managed && folder_is_server_root {
+        disk = Box::new(ServerControlFileFilter::new(disk));
+    }
     let disk: Box<dyn SpacePrimitives> = if config.read_only {
-        Box::new(ReadOnlySpacePrimitives::new(Box::new(disk)))
+        Box::new(ReadOnlySpacePrimitives::new(disk))
     } else {
-        Box::new(disk)
+        disk
     };
     let space: Box<dyn SpacePrimitives> = Box::new(FallthroughSpacePrimitives::new(
         disk,
         (deps.assets.base_fs)(),
     ));
 
-    // Per-space auth config (None = open space).
-    let auth_config: Option<AuthConfig> = match &config.auth {
-        SpaceAuth::Inherit => Some(deps.admin_auth.clone()),
-        SpaceAuth::None => None,
-        SpaceAuth::Custom {
-            user,
-            pass_hash,
-            auth_token,
-            lockout_limit,
-            lockout_time,
-            remember_me_hours,
-        } => {
-            if pass_hash.is_empty() {
-                return Err("custom auth: no password set yet".into());
-            }
-            Some(AuthConfig {
-                user: user.clone(),
-                pass: String::new(),
-                pass_hash: Some(pass_hash.clone()),
-                auth_token: auth_token.clone(),
-                lockout_limit: *lockout_limit,
-                lockout_time_secs: *lockout_time,
-                remember_me_hours: *remember_me_hours,
-            })
-        }
-    };
-
+    // Authentication establishes identity. Account-managed servers share that
+    // identity across every prefix; each space still applies its own live
+    // admin-or-member authorization policy.
     let headless_token = generate_token();
-    let (authorizer, login) = match &auth_config {
-        None => (None, None),
-        Some(ac) => {
-            let authenticator = Arc::new(
-                Authenticator::load_or_init(&folder, ac)
-                    .map_err(|e| format!("could not initialize authentication: {e}"))?,
-            );
-            let inner: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_prefix(
+    let (authorizer, login): AuthPair = match &deps.auth {
+        InstanceAuth::Single(None) => (None, None),
+        InstanceAuth::Single(Some(config)) => {
+            build_env_style_auth(&folder, prefix, config, &headless_token)?
+        }
+        InstanceAuth::Accounts { .. } if config.public => (None, None),
+        InstanceAuth::Accounts {
+            users: store,
+            authenticator,
+        } => {
+            let members: BTreeSet<String> = config.members.keys().cloned().collect();
+            let jwt: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_filter(
                 authenticator.clone(),
-                ac.auth_token.clone(),
-                prefix.to_string(),
+                String::new(),
+                String::new(),
+                member_claims_filter(store.clone(), members.clone()),
+            ));
+            let tokens: Box<dyn RequestAuthorizer> = Box::new(UserTokenAuthorizer::new(
+                jwt,
+                store.clone(),
+                member_name_filter(store.clone(), members.clone()),
             ));
             let authorizer: Arc<dyn RequestAuthorizer> =
-                Arc::new(HeadlessTokenAuthorizer::new(inner, headless_token.clone()));
-            let lockout = LockoutTimer::from_config(ac.lockout_time_secs, ac.lockout_limit);
-            let login = Arc::new(LoginManager::new(
-                authenticator,
-                ac.clone(),
-                lockout,
-                prefix.to_string(),
-            ));
+                Arc::new(HeadlessTokenAuthorizer::new(tokens, headless_token.clone()));
+            let verifier = Arc::new(SpaceUsersAuth {
+                store: store.clone(),
+                members,
+            });
+            let version_store = store.clone();
+            let login = Arc::new(
+                LoginManager::new(
+                    authenticator.clone(),
+                    verifier,
+                    USERS_REMEMBER_ME_HOURS,
+                    LockoutTimer::from_config(USERS_LOCKOUT_TIME_SECS, USERS_LOCKOUT_LIMIT),
+                    prefix.to_string(),
+                )
+                .with_credential_version(Arc::new(move |username| {
+                    version_store
+                        .credential_version(username)
+                        .unwrap_or_default()
+                }))
+                .with_server_wide_session(),
+            );
             (Some(authorizer), Some(login))
         }
     };
@@ -249,6 +419,7 @@ fn try_build_state(
             read_only: config.read_only,
             log_push: config.log_push,
             enable_client_encryption: authorizer.is_some(),
+            account_managed,
             shell_backend: if shell_enabled {
                 "local".into()
             } else {
@@ -276,7 +447,7 @@ fn try_build_state(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceAuth, SpaceConfig};
+    use crate::multi::config::{Binding, SpaceConfig};
     use silverbullet_server_common::space::MemorySpacePrimitives;
 
     fn test_deps(root: &std::path::Path) -> InstanceDeps {
@@ -288,27 +459,25 @@ mod tests {
             },
             runtime: Box::new(|_req| None),
             metrics: None,
-            admin_auth: crate::auth::AuthConfig::try_parse(
-                Some("admin:pw"),
-                None,
-                None,
-                None,
-                None,
-            )
-            .unwrap()
-            .unwrap(),
+            auth: InstanceAuth::Single(Some(
+                crate::auth::AuthConfig::try_parse(Some("admin:pw"), None, None, None, None)
+                    .unwrap()
+                    .unwrap(),
+            )),
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
+            index_template: "# Test space\n".into(),
         }
     }
 
-    fn space(binding: Binding, auth: SpaceAuth, folder: &str) -> SpaceConfig {
+    fn space(binding: Binding, folder: &str) -> SpaceConfig {
         SpaceConfig {
             name: "S".into(),
             folder: folder.into(),
             binding,
-            auth,
+            public: false,
+            members: Default::default(),
             read_only: false,
             shell: Default::default(),
             runtime_api: false,
@@ -335,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    fn builds_running_instance_with_inherit_auth_and_prefix() {
+    fn builds_running_single_instance_with_auth_and_prefix() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
         let folder = dir.path().join("spaces/x");
@@ -344,7 +513,6 @@ mod tests {
             Binding::Prefix {
                 prefix: "/work/".into(),
             },
-            SpaceAuth::Inherit,
             folder.to_str().unwrap(),
         );
         let inst = build_instance("x", &cfg, &deps);
@@ -365,7 +533,6 @@ mod tests {
             Binding::Prefix {
                 prefix: "/x".into(),
             },
-            SpaceAuth::None,
             dir.path().join("nope").to_str().unwrap(),
         );
         let inst = build_instance("x", &cfg, &deps);
@@ -376,42 +543,18 @@ mod tests {
         assert!(inst.router.is_none());
     }
 
-    #[test]
-    fn custom_auth_without_password_is_errored() {
-        let dir = tempfile::tempdir().unwrap();
-        let deps = test_deps(dir.path());
-        let folder = dir.path().join("s");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space(
-            Binding::Prefix {
-                prefix: "/x".into(),
-            },
-            SpaceAuth::Custom {
-                user: "u".into(),
-                pass_hash: String::new(),
-                auth_token: String::new(),
-                lockout_limit: 10,
-                lockout_time: 60,
-                remember_me_hours: 168,
-            },
-            folder.to_str().unwrap(),
-        );
-        let inst = build_instance("x", &cfg, &deps);
-        assert!(matches!(inst.status, InstanceStatus::Errored(_)));
-    }
-
     #[tokio::test]
     async fn auth_none_space_serves_config_openly() {
         use tower::ServiceExt;
         let dir = tempfile::tempdir().unwrap();
-        let deps = test_deps(dir.path());
+        let mut deps = test_deps(dir.path());
+        deps.auth = InstanceAuth::Single(None);
         let folder = dir.path().join("open");
         std::fs::create_dir_all(&folder).unwrap();
         let cfg = space(
             Binding::Prefix {
                 prefix: "/o".into(),
             },
-            SpaceAuth::None,
             folder.to_str().unwrap(),
         );
         let inst = build_instance("o", &cfg, &deps);
@@ -430,7 +573,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn inherit_auth_space_401s_without_credentials() {
+    async fn single_auth_space_401s_without_credentials() {
         use tower::ServiceExt;
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
@@ -440,7 +583,6 @@ mod tests {
             Binding::Prefix {
                 prefix: "/l".into(),
             },
-            SpaceAuth::Inherit,
             folder.to_str().unwrap(),
         );
         let inst = build_instance("l", &cfg, &deps);
@@ -458,14 +600,258 @@ mod tests {
         assert_eq!(resp.status(), axum::http::StatusCode::UNAUTHORIZED);
     }
 
+    fn space_users_model(
+        binding: Binding,
+        public: bool,
+        members: std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>>,
+        folder: &str,
+    ) -> SpaceConfig {
+        SpaceConfig {
+            name: "S".into(),
+            folder: folder.into(),
+            binding,
+            public,
+            members,
+            read_only: false,
+            shell: Default::default(),
+            runtime_api: false,
+            index_page: "index".into(),
+            description: String::new(),
+            theme_color: "#e1e1e1".into(),
+            head_html: String::new(),
+            space_ignore: String::new(),
+            log_push: false,
+            extra: Default::default(),
+        }
+    }
+
+    #[tokio::test]
+    async fn public_space_serves_config_openly() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        deps.auth = InstanceAuth::Accounts {
+            users: store,
+            authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+        };
+        let folder = dir.path().join("pub");
+        std::fs::create_dir_all(&folder).unwrap();
+        let cfg = space_users_model(
+            Binding::Prefix {
+                prefix: "/p".into(),
+            },
+            true,
+            Default::default(),
+            folder.to_str().unwrap(),
+        );
+        let inst = build_instance("p", &cfg, &deps);
+        assert!(
+            matches!(inst.status, InstanceStatus::Running),
+            "{:?}",
+            inst.status
+        );
+        let resp = inst
+            .router
+            .unwrap()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/.config")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), axum::http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn members_backed_space_401s_anon_200s_member_401s_outsider() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        store.create_user("bob", "bobpw12345", false).unwrap();
+        store.create_user("eve", "evepw12345", false).unwrap();
+        let bob_token = store.create_token("bob", "t").unwrap();
+        let eve_token = store.create_token("eve", "t").unwrap();
+        let authenticator = Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into()));
+        deps.auth = InstanceAuth::Accounts {
+            users: store,
+            authenticator,
+        };
+
+        let folder = dir.path().join("members");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut members = std::collections::BTreeMap::new();
+        members.insert("bob".to_string(), serde_json::Map::new());
+        let cfg = space_users_model(
+            Binding::Prefix {
+                prefix: "/m".into(),
+            },
+            false,
+            members,
+            folder.to_str().unwrap(),
+        );
+        let inst = build_instance("m", &cfg, &deps);
+        assert!(
+            matches!(inst.status, InstanceStatus::Running),
+            "{:?}",
+            inst.status
+        );
+        let router = inst.router.unwrap();
+
+        let anon = router
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/.config")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(anon.status(), axum::http::StatusCode::UNAUTHORIZED);
+
+        let member_resp = router
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/.config")
+                    .header("authorization", format!("Bearer {bob_token}"))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(member_resp.status(), axum::http::StatusCode::OK);
+
+        let outsider_resp = router
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/.config")
+                    .header("authorization", format!("Bearer {eve_token}"))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(outsider_resp.status(), axum::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn root_folder_space_cannot_read_server_control_files() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        store.create_user("admin", "adminpw1", true).unwrap();
+        std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
+        std::fs::write(dir.path().join(crate::auth::MULTI_AUTH_FILE_NAME), "secret").unwrap();
+        std::fs::write(dir.path().join("note.md"), "visible").unwrap();
+        let authenticator = Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into()));
+        deps.auth = InstanceAuth::Accounts {
+            users: store.clone(),
+            authenticator: authenticator.clone(),
+        };
+
+        let cfg = space_users_model(
+            Binding::Prefix { prefix: "/".into() },
+            false,
+            Default::default(),
+            dir.path().to_str().unwrap(),
+        );
+        let router = build_instance("root", &cfg, &deps).router.unwrap();
+        let version = store.credential_version("admin").unwrap();
+        let jwt = authenticator
+            .issue_jwt_with_version("admin", version, 3600)
+            .unwrap();
+        let get = |path: &str| {
+            axum::http::Request::builder()
+                .uri(path)
+                .header("host", "localhost")
+                .header("cookie", format!("auth_localhost={jwt}"))
+                .body(axum::body::Body::empty())
+                .unwrap()
+        };
+
+        assert_eq!(
+            router
+                .clone()
+                .oneshot(get("/.fs/note.md"))
+                .await
+                .unwrap()
+                .status(),
+            axum::http::StatusCode::OK
+        );
+        for path in [
+            "/.fs/users.json",
+            "/.fs/spaces.json",
+            "/.fs/.silverbullet.session.json",
+        ] {
+            assert_eq!(
+                router.clone().oneshot(get(path)).await.unwrap().status(),
+                axum::http::StatusCode::NOT_FOUND,
+                "{path} must not expose server control state"
+            );
+        }
+    }
+
     #[test]
     fn seed_index_creates_page_only_in_empty_space() {
         let dir = tempfile::tempdir().unwrap();
-        seed_index(dir.path(), "index");
-        assert!(dir.path().join("index.md").exists());
+        seed_index(dir.path(), "index", "# Hello\n", "");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("index.md")).unwrap(),
+            "# Hello\n"
+        );
         // Non-empty: do not overwrite/add.
         std::fs::write(dir.path().join("other.md"), "x").unwrap();
-        seed_index(dir.path(), "home");
+        seed_index(dir.path(), "home", "# Hello\n", "");
         assert!(!dir.path().join("home.md").exists());
+    }
+
+    #[test]
+    fn seed_index_ignores_markdown_nested_in_subdirectories() {
+        // Regression test: a space with markdown only in subdirectories (e.g.
+        // daily/2026-07-20.md, no top-level .md) must NOT be considered empty
+        // and must NOT get a spurious index page seeded at its root. The old
+        // shallow `read_dir` check missed this; `fetch_file_list()` is
+        // recursive and catches it.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("sub")).unwrap();
+        std::fs::write(dir.path().join("sub/page.md"), "hi").unwrap();
+        seed_index(dir.path(), "index", "# Hello\n", "");
+        assert!(
+            !dir.path().join("index.md").exists(),
+            "space with markdown only in a subdirectory must not be seeded"
+        );
+    }
+
+    #[test]
+    fn seed_index_seeds_when_only_md_is_gitignored() {
+        // Old semantics (former `ensure_index`, backed by
+        // `DiskSpacePrimitives::fetch_file_list`): ignored files are excluded
+        // from the listing used to decide emptiness. So a space whose only
+        // `.md` file is gitignored is still treated as empty and gets seeded.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("ignored.md"), "x").unwrap();
+        seed_index(dir.path(), "index", "# Hello\n", "ignored.md");
+        assert!(
+            dir.path().join("index.md").exists(),
+            "a space whose only .md is gitignored should still be seeded"
+        );
+    }
+
+    #[test]
+    fn seed_index_creates_parent_dirs_for_nested_index_page() {
+        // SB_INDEX_PAGE=notes/index: the seeded file's parent directory must
+        // be created (DiskSpacePrimitives::write_file does this for free).
+        let dir = tempfile::tempdir().unwrap();
+        seed_index(dir.path(), "notes/index", "# Hello\n", "");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("notes/index.md")).unwrap(),
+            "# Hello\n"
+        );
     }
 }

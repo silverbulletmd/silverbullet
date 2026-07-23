@@ -3,7 +3,8 @@
 //! library crate (`src/lib.rs`), this is just the CLI entry point.
 
 use clap::{Parser, Subcommand};
-use silverbullet::{server, VERSION};
+use silverbullet::{server, DEFAULT_INDEX_MD, VERSION};
+use silverbullet_server::multi::setup::{run_setup, FirstSpace, SetupRequest};
 use silverbullet_server_common::upgrade::{self, UpgradeSpec, EDGE_URL_PREFIX, STABLE_URL_PREFIX};
 
 /// The server binary ships as `silverbullet-server-<os>-<arch>.zip`; the
@@ -24,6 +25,9 @@ struct Cli {
     port: Option<u16>,
     /// The space folder to serve (env: SB_FOLDER)
     folder: Option<String>,
+    /// Force single-space mode (classic env-var-configured server)
+    #[arg(long)]
+    single: bool,
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -37,6 +41,23 @@ enum Command {
     /// Upgrade to the latest edge release
     #[command(name = "upgrade-edge")]
     UpgradeEdge,
+    /// Provision a fresh data folder non-interactively, the scriptable twin of the /.setup wizard
+    Setup {
+        /// The data folder to provision
+        folder: String,
+        /// Admin credentials in user:pass form
+        #[arg(long)]
+        admin: String,
+        /// Name of the first space (omit to create no space)
+        #[arg(long)]
+        space: Option<String>,
+        /// URL prefix for the first space ("/" = whole server)
+        #[arg(long, default_value = "/")]
+        at: String,
+        /// Folder for the first space (defaults to spaces/<id> under the data folder)
+        #[arg(long, default_value = "")]
+        space_folder: String,
+    },
 }
 
 fn main() -> std::process::ExitCode {
@@ -74,7 +95,7 @@ fn main() -> std::process::ExitCode {
     };
 
     runtime.block_on(async {
-        match server::run(cli.hostname, cli.port, cli.folder).await {
+        match server::run(cli.hostname, cli.port, cli.folder, cli.single).await {
             Ok(()) => std::process::ExitCode::SUCCESS,
             Err(e) => {
                 // Log the fatal error and also write it to stderr — the
@@ -96,6 +117,13 @@ fn run_subcommand(command: Command) -> std::process::ExitCode {
             println!("{v}");
             return std::process::ExitCode::SUCCESS;
         }
+        Command::Setup {
+            folder,
+            admin,
+            space,
+            at,
+            space_folder,
+        } => return run_setup_subcommand(folder, admin, space, at, space_folder),
         Command::Upgrade => {
             println!("Upgrading silverbullet...");
             STABLE_URL_PREFIX
@@ -112,6 +140,55 @@ fn run_subcommand(command: Command) -> std::process::ExitCode {
         }
         Err(e) => {
             eprintln!("Error: {e}");
+            std::process::ExitCode::FAILURE
+        }
+    }
+}
+
+fn run_setup_subcommand(
+    folder: String,
+    admin: String,
+    space: Option<String>,
+    at: String,
+    space_folder: String,
+) -> std::process::ExitCode {
+    let Some((username, password)) = admin.split_once(':') else {
+        eprintln!("Error: --admin must be in \"user:pass\" form (missing ':')");
+        return std::process::ExitCode::FAILURE;
+    };
+
+    let root = std::path::Path::new(&folder);
+    if let Err(e) = std::fs::create_dir_all(root) {
+        eprintln!("Error: could not create folder {}: {e}", root.display());
+        return std::process::ExitCode::FAILURE;
+    }
+
+    let req = SetupRequest {
+        admin_username: username.to_string(),
+        admin_password: password.to_string(),
+        space: space.map(|name| FirstSpace {
+            name,
+            prefix: at,
+            folder: space_folder,
+        }),
+    };
+
+    match run_setup(root, &req, DEFAULT_INDEX_MD) {
+        Ok(()) => {
+            println!("Setup complete: admin \"{username}\" created");
+            if let Some(space) = &req.space {
+                println!("Space \"{}\" created at \"{}\"", space.name, space.prefix);
+            }
+            std::process::ExitCode::SUCCESS
+        }
+        Err(errors) => {
+            for e in &errors {
+                if e.field.is_empty() {
+                    eprintln!("Error: {}", e.message);
+                } else {
+                    eprintln!("Error: {}: {}", e.field, e.message);
+                }
+            }
             std::process::ExitCode::FAILURE
         }
     }

@@ -1,4 +1,4 @@
-//! The main listener's request dispatcher: `/.admin` is reserved, then Host
+//! The main listener's request dispatcher: `/.spaces` is reserved, then Host
 //! header, then longest prefix. Matched requests are forwarded to the space's
 //! own (unchanged) Core router with the prefix stripped.
 
@@ -14,16 +14,34 @@ use tower::ServiceExt;
 use crate::multi::instance::InstanceStatus;
 use crate::multi::manager::MultiManager;
 
-pub fn build_main_router(manager: Arc<MultiManager>, admin_router: Router) -> Router {
-    // Per-boot instance identity, served on ANY hostname (it's routed before
-    // host/prefix resolution) with permissive CORS. The admin UI probes
+#[derive(Clone)]
+struct MainState {
+    manager: Arc<MultiManager>,
+    /// Whether `/.spaces` is mounted. The fallback only needs to know *if* the
+    /// surface exists (to redirect `/` there), never to invoke it.
+    spaces_mounted: bool,
+}
+
+pub fn build_main_router(
+    manager: Arc<MultiManager>,
+    spaces_router: Option<Router>,
+    version: String,
+) -> Router {
+    // Per-boot instance identity AND liveness, served on ANY hostname (it's
+    // routed before host/prefix resolution) with permissive CORS. Two
+    // consumers: the spaces UI probes
     // `http(s)://<candidate-hostname>:<port>/.instance` from the browser and
     // compares the id against its own origin's to verify that a hostname
-    // binding actually reaches this very server. Discloses nothing but a
-    // random UUID.
+    // binding actually reaches this very server (discloses nothing but a
+    // random UUID), and the Docker HEALTHCHECK uses a 200 here as liveness.
+    // It lives on the main router, before host/prefix resolution, so it is the
+    // one endpoint that exists regardless of which spaces are bound — which is
+    // exactly why the health check uses it instead of the per-space `/.ping`.
+    let spaces_mounted = spaces_router.is_some();
     let instance_id = uuid::Uuid::new_v4().to_string();
+    let body = serde_json::json!({ "instance": instance_id, "version": version }).to_string();
     let instance_handler = move || {
-        let body = format!("{{\"instance\":\"{instance_id}\"}}");
+        let body = body.clone();
         async move {
             (
                 [
@@ -34,34 +52,40 @@ pub fn build_main_router(manager: Arc<MultiManager>, admin_router: Router) -> Ro
             )
         }
     };
-    Router::new()
-        .nest_service("/.admin", admin_router)
-        .route("/.instance", axum::routing::get(instance_handler))
-        .fallback(dispatch)
-        .with_state(manager)
+    let mut router = Router::new().route("/.instance", axum::routing::get(instance_handler));
+    if let Some(spaces) = spaces_router {
+        router = router.nest_service(crate::multi::space_index::SPACES_PREFIX, spaces);
+    }
+    router.fallback(dispatch).with_state(MainState {
+        manager,
+        spaces_mounted,
+    })
 }
 
-async fn dispatch(State(manager): State<Arc<MultiManager>>, req: Request) -> Response {
-    let table = manager.registry().current();
+async fn dispatch(State(state): State<MainState>, req: Request) -> Response {
+    let table = state.manager.registry().current();
     let host = crate::auth::request_host(req.headers());
     let path = req.uri().path().to_string();
 
     let Some((inst, prefix)) = table.resolve_main(&host, &path) else {
         if path == "/" {
-            return Redirect::temporary("/.admin/").into_response();
+            if state.spaces_mounted {
+                return Redirect::temporary(crate::multi::space_index::SPACES_PREFIX)
+                    .into_response();
+            }
+            return (StatusCode::NOT_FOUND, "No space here").into_response();
         }
         return (
             StatusCode::NOT_FOUND,
             [(axum::http::header::CONTENT_TYPE, "text/html")],
-            "<html><body><h1>No space here</h1><p>Manage spaces in the <a href=\"/.admin/\">admin UI</a>.</p></body></html>",
+            "<html><body><h1>No space here</h1><p>Manage spaces in the <a href=\"/.spaces\">spaces UI</a>.</p></body></html>",
         )
             .into_response();
     };
 
     // When the path exactly equals a non-empty prefix (no trailing slash),
-    // redirect to `<prefix>/`. The session cookie's Path is `<prefix>/`, so the
-    // bare URL wouldn't carry the cookie and a logged-in user would see a login
-    // page. Preserve the query string across the redirect.
+    // redirect to `<prefix>/` so relative client URLs and the document base
+    // resolve consistently. Preserve the query string across the redirect.
     if !prefix.is_empty() && path == prefix {
         let target = match req.uri().query() {
             Some(q) => format!("{prefix}/?{q}"),
@@ -115,8 +139,8 @@ fn strip_prefix(mut req: Request, prefix: &str) -> Request<Body> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceAuth, SpaceConfig};
-    use crate::multi::instance::{AssetFactories, InstanceDeps};
+    use crate::multi::config::{Binding, SpaceConfig};
+    use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use crate::multi::manager::MultiManager;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -132,18 +156,11 @@ mod tests {
             },
             runtime: Box::new(|_| None),
             metrics: None,
-            admin_auth: crate::auth::AuthConfig::try_parse(
-                Some("admin:pw"),
-                None,
-                None,
-                None,
-                None,
-            )
-            .unwrap()
-            .unwrap(),
+            auth: InstanceAuth::Single(None),
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
+            index_template: "# Test space\n".into(),
         }
     }
 
@@ -152,7 +169,8 @@ mod tests {
             name: name.into(),
             folder: String::new(),
             binding,
-            auth: SpaceAuth::None,
+            public: false,
+            members: Default::default(),
             read_only: false,
             shell: Default::default(),
             runtime_api: false,
@@ -166,27 +184,38 @@ mod tests {
         }
     }
 
-    /// Manager with a /work space, a root space, and a host-bound space, plus a
-    /// dummy admin router answering 299 (a sentinel status).
+    /// Manager with a /work space and a host-bound space, plus a dummy spaces
+    /// router answering 299 (a sentinel status).
     fn setup(dir: &tempfile::TempDir) -> axum::Router {
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
-        m.create(payload(
-            "Work",
-            Binding::Prefix {
-                prefix: "/work".into(),
-            },
-        ))
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
         .unwrap();
-        m.create(payload(
-            "Hosted",
-            Binding::Host {
-                host: "notes.example.com".into(),
-            },
-        ))
+        m.create(
+            payload(
+                "Work",
+                Binding::Prefix {
+                    prefix: "/work".into(),
+                },
+            ),
+            true,
+        )
         .unwrap();
-        let admin = axum::Router::new()
-            .fallback(|| async { (StatusCode::from_u16(299).unwrap(), "admin") });
-        build_main_router(m, admin)
+        m.create(
+            payload(
+                "Hosted",
+                Binding::Host {
+                    host: "notes.example.com".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let spaces = axum::Router::new()
+            .fallback(|| async { (StatusCode::from_u16(299).unwrap(), "spaces") });
+        build_main_router(m, Some(spaces), "test".to_string())
     }
 
     async fn get(router: &axum::Router, host: &str, uri: &str) -> axum::response::Response {
@@ -249,8 +278,10 @@ mod tests {
             get(&r, "notes.example.com", "/.config").await.status(),
             StatusCode::OK
         );
-        // Root prefixes are rejected by validation, so unprefixed paths on an
-        // unmatched host never reach a space.
+        // `setup()` doesn't bind a root ("/") space, so unprefixed paths on an
+        // unmatched host never reach a space (root prefixes are valid now,
+        // see `root_prefix_binding_is_accepted`, but simply aren't bound
+        // here).
         assert_eq!(
             get(&r, "localhost", "/.config").await.status(),
             StatusCode::NOT_FOUND
@@ -258,25 +289,71 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn root_prefix_binding_is_rejected() {
+    async fn root_prefix_binding_is_accepted() {
         let dir = tempfile::tempdir().unwrap();
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
         assert!(m
-            .create(payload("Root", Binding::Prefix { prefix: "/".into() }))
-            .is_err());
+            .create(
+                payload("Root", Binding::Prefix { prefix: "/".into() }),
+                true
+            )
+            .is_ok());
     }
 
     #[tokio::test]
-    async fn admin_prefix_always_reserved() {
+    async fn spaces_prefix_always_reserved() {
         let dir = tempfile::tempdir().unwrap();
         let r = setup(&dir);
-        // /.admin always routes to the admin router, never to a space.
+        // /.spaces always routes to the spaces router, never to a space.
         assert_eq!(
-            get(&r, "localhost", "/.admin/anything")
+            get(&r, "localhost", "/.spaces/anything")
                 .await
                 .status()
                 .as_u16(),
             299
+        );
+    }
+
+    /// `dispatch` redirects `/` to the bare `SPACES_PREFIX` (no trailing
+    /// slash — see `root_redirects_to_spaces_when_unbound_and_unknown_paths_404`),
+    /// and nothing else in this repo pins that the bare prefix actually
+    /// resolves *into* the nested spaces router rather than falling through
+    /// to `dispatch`'s own catch-all. It works today because axum's
+    /// `nest_service` registers both `prefix` and `prefix/{*rest}` — but
+    /// that's an axum implementation detail, not something this crate
+    /// controls, so pin it with a real request. The nested router below
+    /// answers its root and its fallback with different bodies so a match on
+    /// `/.spaces` provably reached the nested router's `/` handler, not just
+    /// any 200 (and not `dispatch`'s own 404, which would read "No space
+    /// here" instead).
+    #[tokio::test]
+    async fn bare_spaces_prefix_resolves_into_the_nested_router() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        let spaces = axum::Router::new()
+            .route("/", axum::routing::get(|| async { "SPACES-ROOT" }))
+            .fallback(|| async { "spaces-fallback" });
+        let r = build_main_router(m, Some(spaces), "test".to_string());
+
+        let resp = get(&r, "localhost", "/.spaces").await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(
+            &body[..],
+            b"SPACES-ROOT",
+            "bare /.spaces must reach the nested router's root handler"
         );
     }
 
@@ -318,48 +395,96 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn no_match_404_and_root_redirects_to_admin_when_unbound() {
+    async fn instance_endpoint_reports_the_server_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        let r = build_main_router(m, None, "1.2.3-test".to_string());
+        let resp = get(&r, "localhost", "/.instance").await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["version"], "1.2.3-test");
+        // The per-boot id must survive alongside it: the space form compares
+        // this value across origins to verify a hostname binding reaches this
+        // very server.
+        assert!(
+            json["instance"].as_str().is_some_and(|s| !s.is_empty()),
+            "instance id missing: {json}"
+        );
+    }
+
+    #[tokio::test]
+    async fn root_redirects_to_spaces_when_unbound_and_unknown_paths_404() {
         let dir = tempfile::tempdir().unwrap();
         // Manager with NO root space.
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
-        m.create(payload(
-            "Work",
-            Binding::Prefix {
-                prefix: "/work".into(),
-            },
-        ))
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
         .unwrap();
-        let admin = axum::Router::new().fallback(|| async { "admin" });
-        let r = build_main_router(m, admin);
+        m.create(
+            payload(
+                "Work",
+                Binding::Prefix {
+                    prefix: "/work".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let spaces = axum::Router::new().fallback(|| async { "spaces" });
+        let r = build_main_router(m, Some(spaces), "test".to_string());
         let resp = get(&r, "localhost", "/").await;
         assert_eq!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
-        assert_eq!(resp.headers()[axum::http::header::LOCATION], "/.admin/");
+        assert_eq!(resp.headers()["location"], "/.spaces");
         let resp = get(&r, "localhost", "/nothing/here").await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 
+    /// With no spaces surface mounted at all, `/` has nowhere to send the
+    /// browser — it must 404 rather than redirect into a route that isn't
+    /// there.
     #[tokio::test]
-    async fn errored_space_returns_503_with_reason() {
+    async fn root_404s_when_no_spaces_router_is_mounted() {
         let dir = tempfile::tempdir().unwrap();
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
-        let mut p = payload(
-            "Broken",
-            Binding::Prefix {
-                prefix: "/b".into(),
-            },
-        );
-        p.auth = SpaceAuth::Custom {
-            user: "u".into(),
-            pass_hash: String::new(),
-            auth_token: String::new(),
-            lockout_limit: 10,
-            lockout_time: 60,
-            remember_me_hours: 168,
-        };
-        m.create(p).unwrap();
-        let admin = axum::Router::new().fallback(|| async { "admin" });
-        let r = build_main_router(m, admin);
-        let resp = get(&r, "localhost", "/b/.config").await;
-        assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        let r = build_main_router(m, None, "test".to_string());
+        let resp = get(&r, "localhost", "/").await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    /// A space bound at `/` wins over the redirect: the redirect is only the
+    /// fallback for an unresolved root.
+    #[tokio::test]
+    async fn root_serves_the_space_when_one_is_bound() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        m.create(
+            payload("Root", Binding::Prefix { prefix: "/".into() }),
+            true,
+        )
+        .unwrap();
+        let spaces = axum::Router::new().fallback(|| async { "spaces" });
+        let r = build_main_router(m, Some(spaces), "test".to_string());
+        let resp = get(&r, "localhost", "/").await;
+        assert_ne!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
     }
 }

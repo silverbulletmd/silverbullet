@@ -6,7 +6,6 @@
 //! so machines without Chrome skip it cleanly.
 
 use std::io::Read;
-use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -21,14 +20,8 @@ impl Drop for Server {
     }
 }
 
-/// Find a free port by binding :0 and dropping the listener (matches smoke.rs).
-fn free_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
+mod common;
+use common::free_port;
 
 /// Poll `cond` until it returns true or the deadline passes. On timeout, dump the
 /// server's captured stdout/stderr and panic with `msg`.
@@ -80,6 +73,7 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
+        .arg("--single")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .env("SB_CHROME_DATA_DIR", &chrome_data)
         .stdout(Stdio::piped())

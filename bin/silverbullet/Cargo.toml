@@ -26,6 +26,7 @@ clap = { workspace = true }
 rust-embed = { workspace = true }
 mime_guess = { workspace = true }
 tracing = { workspace = true }
+tower = { version = "0.5", features = ["util"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }

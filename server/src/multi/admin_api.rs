@@ -1,179 +1,121 @@
-//! The `/.admin` surface: login (admin credentials from SB_USER), the admin
-//! SPA shell + assets, and the space-management REST API. Sessions use the
-//! `auth_<host>__admin` cookie scoped to Path=/.admin.
+//! The admin-only REST API: space and account management. It carries no shell,
+//! assets or login of its own — it is nested under `/api/admin` on the unified
+//! `/.spaces` surface (see `space_index`), which owns the session. Sessions use
+//! the same host-wide account cookie as every prefix-bound space.
 
 use std::sync::Arc;
 
 use axum::extract::{Path as AxumPath, Request, State};
-use axum::http::{header, StatusCode};
+use axum::http::StatusCode;
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::json;
-use silverbullet_server_common::SpacePrimitives;
 
-use crate::auth::cookie::set_cookie_value;
-use crate::auth::{
-    is_secure_request, request_host, scoped_auth_cookie_name, AuthConfig, Authenticator,
-    CookieOptions, JwtAuthorizer, LockoutTimer, LoginManager, RequestAuthorizer,
-};
+use crate::auth::{Authenticator, JwtAuthorizer, RequestAuthorizer};
+use crate::multi::access::UserTokenAuthorizer;
 use crate::multi::config::SpaceConfig;
 use crate::multi::manager::{ApiError, MultiManager};
+use crate::multi::users::UserStore;
 use crate::router::run_blocking;
-
-pub const ADMIN_PREFIX: &str = "/.admin";
 
 pub struct AdminState {
     pub manager: Arc<MultiManager>,
-    pub login: Arc<LoginManager>,
     pub authorizer: Arc<dyn RequestAuthorizer>,
-    pub client_bundle: Box<dyn SpacePrimitives>,
+    /// Same credentials, without the admin requirement. Used only to tell
+    /// "not logged in" (401) apart from "logged in, but not an admin" (403);
+    /// it never grants access on its own.
+    pub account_authorizer: Arc<dyn RequestAuthorizer>,
+    pub users: Arc<UserStore>,
 }
 
 impl AdminState {
+    /// Uses the same server-wide authenticator as every space. Sessions are
+    /// minted by the unified `/.spaces` surface; this state only *authorizes*,
+    /// and both cookie sessions and bearer tokens are restricted to current
+    /// administrators.
     pub fn new(
         manager: Arc<MultiManager>,
+        users: Arc<UserStore>,
         authenticator: Arc<Authenticator>,
-        auth_config: AuthConfig,
-        client_bundle: Box<dyn SpacePrimitives>,
     ) -> Self {
-        let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(JwtAuthorizer::with_prefix(
+        let is_admin_token = {
+            let store = users.clone();
+            move |u: &str| store.is_admin(u)
+        };
+        let is_admin_session = {
+            let store = users.clone();
+            move |claims: &crate::auth::authenticator::Claims| {
+                store.session_is_current(&claims.username, claims.credential_version.as_deref())
+                    && store.is_admin(&claims.username)
+            }
+        };
+        let jwt = JwtAuthorizer::with_filter(
             authenticator.clone(),
-            auth_config.auth_token.clone(),
-            ADMIN_PREFIX.to_string(),
+            String::new(),
+            String::new(),
+            Box::new(is_admin_session),
+        );
+        let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(UserTokenAuthorizer::new(
+            Box::new(jwt),
+            users.clone(),
+            Box::new(is_admin_token),
         ));
-        let lockout =
-            LockoutTimer::from_config(auth_config.lockout_time_secs, auth_config.lockout_limit);
-        let login = Arc::new(LoginManager::new(
+        let is_current_session = {
+            let store = users.clone();
+            move |claims: &crate::auth::authenticator::Claims| {
+                store.session_is_current(&claims.username, claims.credential_version.as_deref())
+            }
+        };
+        let account_jwt = JwtAuthorizer::with_filter(
             authenticator,
-            auth_config,
-            lockout,
-            ADMIN_PREFIX.to_string(),
+            String::new(),
+            String::new(),
+            Box::new(is_current_session),
+        );
+        let account_authorizer: Arc<dyn RequestAuthorizer> = Arc::new(UserTokenAuthorizer::new(
+            Box::new(account_jwt),
+            users.clone(),
+            Box::new(|user: &str| !user.is_empty()),
         ));
         Self {
             manager,
-            login,
             authorizer,
-            client_bundle,
+            account_authorizer,
+            users,
         }
     }
 }
 
-/// 401 for API routes without a valid admin session.
+/// Gates every admin API route, distinguishing the two failure modes the
+/// client has to treat differently: **401** means there is no valid session,
+/// so the browser should go log in; **403** means the caller *is* signed in
+/// but is not an administrator, which is a dead end — redirecting it to the
+/// login screen would bounce straight back here and loop forever.
 async fn require_admin(State(state): State<Arc<AdminState>>, req: Request, next: Next) -> Response {
-    let authorized = {
+    // `state.authorizer` alone decides pass/fail. `account_authorizer` is only
+    // consulted on the failure path, to choose between 401 and 403 — it must
+    // never be able to admit a request that `state.authorizer` rejected.
+    let rejection = {
         let ctx = crate::auth::AuthContext {
             method: req.method(),
             path: req.uri().path(),
             query: req.uri().query(),
             headers: req.headers(),
         };
-        state.authorizer.is_authorized(&ctx)
-    };
-    if authorized {
-        next.run(req).await
-    } else {
-        (StatusCode::UNAUTHORIZED, "Unauthorized").into_response()
-    }
-}
-
-#[derive(Deserialize)]
-struct LoginBody {
-    username: String,
-    password: String,
-}
-
-async fn handle_login(
-    State(state): State<Arc<AdminState>>,
-    headers: axum::http::HeaderMap,
-    Json(body): Json<LoginBody>,
-) -> Response {
-    if state.login.is_locked() {
-        return Json(
-            json!({ "status": "error", "error": "Too many failed attempts — please wait" }),
-        )
-        .into_response();
-    }
-    if !state.login.authorize(&body.username, &body.password) {
-        state.login.record_failure();
-        return Json(json!({ "status": "error", "error": "Invalid username and/or password" }))
-            .into_response();
-    }
-    let (jwt, secs) = match state.login.issue_session(&body.username, false) {
-        Ok(v) => v,
-        Err(e) => {
-            tracing::error!("failed to mint admin session JWT: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response();
+        if state.authorizer.is_authorized(&ctx) {
+            None
+        } else if state.account_authorizer.is_authorized(&ctx) {
+            Some((StatusCode::FORBIDDEN, "Forbidden"))
+        } else {
+            Some((StatusCode::UNAUTHORIZED, "Unauthorized"))
         }
     };
-    let host = request_host(&headers);
-    let opts = CookieOptions {
-        path: ADMIN_PREFIX.to_string(),
-        max_age_secs: Some(secs as i64),
-        http_only: true,
-        secure: is_secure_request(&headers),
-        same_site: "Lax",
-    };
-    let mut resp = Json(json!({ "status": "ok" })).into_response();
-    let name = scoped_auth_cookie_name(&host, ADMIN_PREFIX);
-    if let Ok(v) = set_cookie_value(&name, &jwt, &opts).parse() {
-        resp.headers_mut().append(header::SET_COOKIE, v);
-    }
-    resp
-}
-
-async fn handle_logout(
-    State(_state): State<Arc<AdminState>>,
-    headers: axum::http::HeaderMap,
-) -> Response {
-    let host = request_host(&headers);
-    let opts = CookieOptions {
-        path: ADMIN_PREFIX.to_string(),
-        max_age_secs: Some(0),
-        http_only: true,
-        secure: is_secure_request(&headers),
-        same_site: "Lax",
-    };
-    let mut resp = Json(json!({ "status": "ok" })).into_response();
-    let name = scoped_auth_cookie_name(&host, ADMIN_PREFIX);
-    if let Ok(v) = set_cookie_value(&name, "", &opts).parse() {
-        resp.headers_mut().append(header::SET_COOKIE, v);
-    }
-    resp
-}
-
-async fn handle_shell(State(state): State<Arc<AdminState>>) -> Response {
-    let s = state.clone();
-    match run_blocking(move || s.client_bundle.read_file(".client/admin.html")).await {
-        Ok((data, _)) => ([(header::CONTENT_TYPE, "text/html")], data).into_response(),
-        Err(_) => (StatusCode::NOT_FOUND, "Admin UI not found in client bundle").into_response(),
-    }
-}
-
-async fn handle_asset(
-    State(state): State<Arc<AdminState>>,
-    AxumPath(file): AxumPath<String>,
-) -> Response {
-    if file.contains("..") || file.contains('/') {
-        return (StatusCode::BAD_REQUEST, "Invalid asset path").into_response();
-    }
-    let s = state.clone();
-    let path = format!(".client/{file}");
-    match run_blocking(move || s.client_bundle.read_file(&path)).await {
-        Ok((data, _)) => {
-            let ctype = match file.rsplit('.').next() {
-                Some("js") => "text/javascript",
-                Some("css") => "text/css",
-                Some("map") | Some("json") => "application/json",
-                Some("svg") => "image/svg+xml",
-                Some("png") => "image/png",
-                _ => "application/octet-stream",
-            };
-            ([(header::CONTENT_TYPE, ctype)], data).into_response()
-        }
-        Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
+    match rejection {
+        None => next.run(req).await,
+        Some(r) => r.into_response(),
     }
 }
 
@@ -202,12 +144,59 @@ fn api_error(e: ApiError) -> Response {
     }
 }
 
+/// Maps `UserStore`'s plain `Err(String)` to a response: a message starting
+/// with "no such" (missing user/token) is 404; everything else — invalid
+/// username, duplicate username/token, the last-admin guards — is 400. The
+/// `field` is derived from the known message prefixes/strings `UserStore`
+/// actually produces (see `multi::users`) so the admin UI can highlight the
+/// right input; anything unrecognized falls back to `""`. The last-admin
+/// guards are matched by their exact strings (not a substring heuristic)
+/// so an unrelated message that happens to mention "admin" doesn't get
+/// mis-tagged.
+fn user_store_error(msg: String) -> Response {
+    if msg.starts_with("no such") {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "errors": [{ "field": "", "message": msg }] })),
+        )
+            .into_response();
+    }
+    let field = if msg.starts_with("invalid username") || msg.starts_with("user ") {
+        "username"
+    } else if msg.starts_with("token ") {
+        "name"
+    } else if msg == "cannot remove the last admin" || msg == "cannot demote the last admin" {
+        "admin"
+    } else {
+        ""
+    };
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({ "errors": [{ "field": field, "message": msg }] })),
+    )
+        .into_response()
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateBody {
+    #[serde(default = "default_true")]
+    seed_index: bool,
+    #[serde(flatten)]
+    config: SpaceConfig,
+}
+
 async fn handle_create(
     State(state): State<Arc<AdminState>>,
-    Json(cfg): Json<SpaceConfig>,
+    Json(body): Json<CreateBody>,
 ) -> Response {
     let manager = state.manager.clone();
-    match run_blocking(move || Ok(manager.create(cfg))).await {
+    let CreateBody { seed_index, config } = body;
+    match run_blocking(move || Ok(manager.create(config, seed_index))).await {
         Ok(Ok(id)) => Json(json!({ "id": id })).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
@@ -227,6 +216,29 @@ async fn handle_update(
     }
 }
 
+async fn handle_get(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(id): AxumPath<String>,
+) -> Response {
+    match state.manager.get(&id) {
+        Some(v) => Json(v).into_response(),
+        None => api_error(ApiError::NotFound),
+    }
+}
+
+async fn handle_patch(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(id): AxumPath<String>,
+    Json(body): Json<serde_json::Map<String, serde_json::Value>>,
+) -> Response {
+    let manager = state.manager.clone();
+    match run_blocking(move || Ok(manager.patch(&id, body))).await {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => api_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 async fn handle_delete(
     State(state): State<Arc<AdminState>>,
     AxumPath(id): AxumPath<String>,
@@ -239,20 +251,155 @@ async fn handle_delete(
     }
 }
 
+// --- Account management (users.json via `UserStore`) ---------------------
+
+async fn handle_list_users(State(state): State<Arc<AdminState>>) -> Response {
+    Json(state.users.list()).into_response()
+}
+
+async fn handle_get_user(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+) -> Response {
+    match state.users.get(&name) {
+        Some(user) => Json(user).into_response(),
+        None => user_store_error(format!("no such user {name:?}")),
+    }
+}
+
+#[derive(Deserialize)]
+struct CreateUserBody {
+    username: String,
+    password: String,
+    #[serde(default)]
+    admin: bool,
+}
+
+async fn handle_create_user(
+    State(state): State<Arc<AdminState>>,
+    Json(body): Json<CreateUserBody>,
+) -> Response {
+    let users = state.users.clone();
+    let result =
+        run_blocking(move || Ok(users.create_user(&body.username, &body.password, body.admin)))
+            .await;
+    match result {
+        Ok(Ok(())) => {
+            state.manager.set_known_users(state.users.usernames());
+            Json(json!({ "status": "ok" })).into_response()
+        }
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+/// Deletes the account first, then atomically sweeps it out of every space's
+/// `members` and shrinks the manager's known-users set to the store's
+/// post-delete usernames.
+async fn handle_delete_user(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+) -> Response {
+    let users = state.users.clone();
+    let name_for_store = name.clone();
+    match run_blocking(move || Ok(users.delete_user(&name_for_store))).await {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => return user_store_error(e),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+    let manager = state.manager.clone();
+    let users_for_sweep = state.users.clone();
+    let name_for_sweep = name;
+    match run_blocking(move || {
+        let new_known_users = users_for_sweep.usernames();
+        Ok(manager.remove_member_everywhere(&name_for_sweep, new_known_users))
+    })
+    .await
+    {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => api_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 #[derive(Deserialize)]
 struct PasswordBody {
     password: String,
 }
 
-async fn handle_set_password(
+async fn handle_set_user_password(
     State(state): State<Arc<AdminState>>,
-    AxumPath(id): AxumPath<String>,
+    AxumPath(name): AxumPath<String>,
     Json(body): Json<PasswordBody>,
 ) -> Response {
-    let manager = state.manager.clone();
-    match run_blocking(move || Ok(manager.set_password(&id, &body.password))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
-        Ok(Err(e)) => api_error(e),
+    let users = state.users.clone();
+    let result = run_blocking(move || Ok(users.set_password(&name, &body.password))).await;
+    match result {
+        Ok(Ok(())) => {
+            state.manager.set_known_users(state.users.usernames());
+            Json(json!({ "status": "ok" })).into_response()
+        }
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct SetAdminBody {
+    admin: bool,
+}
+
+async fn handle_set_admin(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+    Json(body): Json<SetAdminBody>,
+) -> Response {
+    let users = state.users.clone();
+    let result = run_blocking(move || Ok(users.set_admin(&name, body.admin))).await;
+    match result {
+        Ok(Ok(())) => {
+            state.manager.set_known_users(state.users.usernames());
+            Json(json!({ "status": "ok" })).into_response()
+        }
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct CreateTokenBody {
+    name: String,
+}
+
+async fn handle_create_token(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(user): AxumPath<String>,
+    Json(body): Json<CreateTokenBody>,
+) -> Response {
+    let users = state.users.clone();
+    let result = run_blocking(move || Ok(users.create_token(&user, &body.name))).await;
+    match result {
+        Ok(Ok(token)) => {
+            state.manager.set_known_users(state.users.usernames());
+            Json(json!({ "token": token })).into_response()
+        }
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+async fn handle_delete_token(
+    State(state): State<Arc<AdminState>>,
+    AxumPath((user, token_name)): AxumPath<(String, String)>,
+) -> Response {
+    let users = state.users.clone();
+    let result = run_blocking(move || Ok(users.delete_token(&user, &token_name))).await;
+    match result {
+        Ok(Ok(())) => {
+            state.manager.set_known_users(state.users.usernames());
+            Json(json!({ "status": "ok" })).into_response()
+        }
+        Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
 }
@@ -275,9 +422,11 @@ async fn handle_fs_dirs(
     }
 }
 
-/// Path status + subdirectory suggestions for the admin form's folder field.
-/// Relative input resolves against the server root. Directory names only.
-fn dir_completion(root: &std::path::Path, input: &str) -> serde_json::Value {
+/// Path status + subdirectory suggestions for a folder-picker field. Relative
+/// input resolves against the server root; directory names only. Shared with
+/// the setup surface (`GET /.setup/api/fs/dirs`) so both the admin space form
+/// and the first-run wizard drive the same picker off one implementation.
+pub(crate) fn dir_completion(root: &std::path::Path, input: &str) -> serde_json::Value {
     let input_is_absolute = std::path::Path::new(input).is_absolute();
     let resolved = {
         let p = std::path::Path::new(input);
@@ -340,23 +489,43 @@ fn dir_completion(root: &std::path::Path, input: &str) -> serde_json::Value {
     json!({ "status": status, "writable": writable, "suggestions": suggestions })
 }
 
-pub fn build_admin_router(state: Arc<AdminState>) -> Router {
-    let api = Router::new()
-        .route("/api/spaces", get(handle_list).post(handle_create))
-        .route(
-            "/api/spaces/{id}",
-            axum::routing::put(handle_update).delete(handle_delete),
-        )
-        .route("/api/spaces/{id}/password", post(handle_set_password))
-        .route("/api/fs/dirs", get(handle_fs_dirs))
-        .route_layer(middleware::from_fn_with_state(state.clone(), require_admin));
+/// The admin route table. Deliberately returns an UNGATED router: the gate is
+/// applied by the only caller, `build_admin_api_router`. Add new admin routes
+/// here — because this function cannot express a layer, a route added anywhere
+/// in it is gated, with no ordering rule to remember.
+fn admin_api_routes() -> Router<Arc<AdminState>> {
     Router::new()
-        .route("/", get(handle_shell))
-        .route("/index.html", get(handle_shell))
-        .route("/assets/{file}", get(handle_asset))
-        .route("/api/login", post(handle_login))
-        .route("/api/logout", get(handle_logout))
-        .merge(api)
+        .route("/spaces", get(handle_list).post(handle_create))
+        .route(
+            "/spaces/{id}",
+            get(handle_get)
+                .put(handle_update)
+                .patch(handle_patch)
+                .delete(handle_delete),
+        )
+        .route("/fs/dirs", get(handle_fs_dirs))
+        .route("/users", get(handle_list_users).post(handle_create_user))
+        .route(
+            "/users/{name}",
+            get(handle_get_user)
+                .put(handle_set_admin)
+                .delete(handle_delete_user),
+        )
+        .route("/users/{name}/password", post(handle_set_user_password))
+        .route("/users/{name}/tokens", post(handle_create_token))
+        .route(
+            "/users/{name}/tokens/{token_name}",
+            axum::routing::delete(handle_delete_token),
+        )
+}
+
+/// The admin-only API surface, gated by a single `require_admin` layer.
+///
+/// Returned already finalized with its state so it can be nested into a router
+/// carrying a different state type.
+pub fn build_admin_api_router(state: Arc<AdminState>) -> Router {
+    admin_api_routes()
+        .route_layer(middleware::from_fn_with_state(state.clone(), require_admin))
         .layer(axum::extract::DefaultBodyLimit::max(1024 * 1024))
         .with_state(state)
 }
@@ -364,16 +533,23 @@ pub fn build_admin_router(state: Arc<AdminState>) -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::instance::{AssetFactories, InstanceDeps};
+    use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use crate::multi::manager::MultiManager;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use silverbullet_server_common::space::MemorySpacePrimitives;
-    use silverbullet_server_common::SpacePrimitives;
     use std::sync::Arc;
     use tower::ServiceExt;
 
-    fn deps(root: &std::path::Path) -> InstanceDeps {
+    fn test_authenticator() -> Arc<Authenticator> {
+        Arc::new(Authenticator::from_secret_bytes(vec![9; 32], "v1".into()))
+    }
+
+    fn deps(
+        root: &std::path::Path,
+        users: Arc<UserStore>,
+        authenticator: Arc<Authenticator>,
+    ) -> InstanceDeps {
         InstanceDeps {
             root: root.to_path_buf(),
             assets: AssetFactories {
@@ -382,46 +558,57 @@ mod tests {
             },
             runtime: Box::new(|_| None),
             metrics: None,
-            admin_auth: crate::auth::AuthConfig::try_parse(
-                Some("admin:pw"),
-                None,
-                None,
-                None,
-                None,
-            )
-            .unwrap()
-            .unwrap(),
+            auth: InstanceAuth::Accounts {
+                users,
+                authenticator,
+            },
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
+            index_template: "# Test space\n".into(),
         }
     }
 
-    pub(crate) fn admin_router(dir: &tempfile::TempDir) -> (axum::Router, Arc<MultiManager>) {
-        let manager = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
-        let authenticator = Arc::new(crate::auth::Authenticator::from_parts(
-            vec![7u8; 32],
-            "c2FsdA==".into(),
-            "h".into(),
-        ));
-        let auth_config =
-            crate::auth::AuthConfig::try_parse(Some("admin:pw"), None, None, None, None)
-                .unwrap()
-                .unwrap();
-        let bundle = MemorySpacePrimitives::new();
-        bundle
-            .write_file(".client/admin.html", b"<html>ADMIN-SHELL</html>", None)
-            .unwrap();
-        bundle
-            .write_file(".client/admin.js", b"//js", None)
-            .unwrap();
+    pub(crate) fn admin_router(
+        dir: &tempfile::TempDir,
+    ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
+        let users = UserStore::create_empty(dir.path()).unwrap();
+        users.create_user("admin", "adminpw1", true).unwrap();
+        let authenticator = test_authenticator();
+        let manager = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path(), users.clone(), authenticator.clone()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
         let state = Arc::new(AdminState::new(
             manager.clone(),
+            users.clone(),
             authenticator,
-            auth_config,
-            Box::new(bundle),
         ));
-        (build_admin_router(state), manager)
+        // Nested at `/api` so these tests address the same URIs the unified
+        // surface exposes at `/api/admin/...` minus its own prefix.
+        let router = axum::Router::new().nest("/api", build_admin_api_router(state));
+        (router, manager, users)
+    }
+
+    /// The API no longer mints sessions — `/.spaces/api/login` does (see
+    /// `space_index`). `test_authenticator()` is deterministic, so forge the
+    /// very cookie that surface would have set. Reading `credential_version`
+    /// live keeps the forged session subject to revocation exactly as a real
+    /// one is.
+    fn session_cookie(users: &UserStore, username: &str) -> String {
+        let jwt = test_authenticator()
+            .issue_jwt_with_version(
+                username,
+                users.credential_version(username).unwrap_or_default(),
+                3600,
+            )
+            .unwrap();
+        format!(
+            "{}={jwt}",
+            crate::auth::scoped_auth_cookie_name("localhost", "")
+        )
     }
 
     async fn send(router: &axum::Router, req: Request<Body>) -> axum::response::Response {
@@ -436,50 +623,70 @@ mod tests {
             .unwrap()
     }
 
-    async fn login_cookie(router: &axum::Router) -> String {
-        let resp = send(
-            router,
-            Request::builder()
-                .method("POST")
-                .uri("/api/login")
-                .header("host", "localhost")
-                .header("content-type", "application/json")
-                .body(Body::from(r#"{"username":"admin","password":"pw"}"#))
-                .unwrap(),
+    #[test]
+    fn admin_and_spaces_share_one_authenticator() {
+        use crate::multi::config::{Binding, SpaceConfig};
+        use crate::multi::instance::{build_instance, InstanceStatus};
+
+        let dir = tempfile::tempdir().unwrap();
+        let users = UserStore::create_empty(dir.path()).unwrap();
+        users.create_user("admin", "adminpw1", true).unwrap();
+        let authenticator = test_authenticator();
+
+        // The admin surface persists its signing secret to the *admin* file
+        // under the data root.
+        let manager = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path(), users.clone(), authenticator.clone()),
+            std::collections::BTreeSet::new(),
         )
-        .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-        resp.headers()[axum::http::header::SET_COOKIE]
-            .to_str()
-            .unwrap()
-            .split(';')
-            .next()
-            .unwrap()
-            .to_string()
-    }
+        .unwrap();
+        AdminState::new(manager, users.clone(), authenticator.clone());
 
-    #[tokio::test]
-    async fn shell_and_assets_are_open() {
-        let dir = tempfile::tempdir().unwrap();
-        let (r, _) = admin_router(&dir);
-        assert_eq!(send(&r, get("/")).await.status(), StatusCode::OK);
-        assert_eq!(
-            send(&r, get("/assets/admin.js")).await.status(),
-            StatusCode::OK
+        // A private (users-backed) space whose folder resolves to the data
+        // root persists its own secret to the *space* file in that same dir.
+        let cfg = SpaceConfig {
+            name: "Root".into(),
+            folder: dir.path().to_str().unwrap().to_string(),
+            binding: Binding::Prefix { prefix: "/".into() },
+            public: false,
+            members: Default::default(),
+            read_only: false,
+            shell: Default::default(),
+            runtime_api: false,
+            index_page: "index".into(),
+            description: String::new(),
+            theme_color: "#e1e1e1".into(),
+            head_html: String::new(),
+            space_ignore: String::new(),
+            log_push: false,
+            extra: Default::default(),
+        };
+        let inst = build_instance(
+            "root",
+            &cfg,
+            &deps(dir.path(), users.clone(), authenticator.clone()),
         );
+        assert!(
+            matches!(inst.status, InstanceStatus::Running),
+            "{:?}",
+            inst.status
+        );
+
+        assert!(Arc::strong_count(&authenticator) > 1);
     }
 
     #[tokio::test]
-    async fn api_is_gated_and_login_cookie_unlocks_it() {
+    async fn api_is_gated_and_an_admin_session_unlocks_it() {
         let dir = tempfile::tempdir().unwrap();
-        let (r, _) = admin_router(&dir);
+        let (r, _m, users) = admin_router(&dir);
         assert_eq!(
             send(&r, get("/api/spaces")).await.status(),
             StatusCode::UNAUTHORIZED
         );
 
-        let cookie = login_cookie(&r).await;
-        assert!(cookie.starts_with("auth_localhost__admin="), "{cookie}");
+        let cookie = session_cookie(&users, "admin");
+        assert!(cookie.starts_with("auth_localhost="), "{cookie}");
         let resp = send(
             &r,
             Request::builder()
@@ -491,52 +698,81 @@ mod tests {
         )
         .await;
         assert_eq!(resp.status(), StatusCode::OK);
-    }
 
-    #[tokio::test]
-    async fn login_cookie_is_scoped_to_admin_path() {
-        let dir = tempfile::tempdir().unwrap();
-        let (r, _) = admin_router(&dir);
+        // A valid session for a *non-admin* account is still refused — but as
+        // 403, not 401: the caller is signed in, so sending it to the login
+        // screen would only bounce it back here.
+        users.create_user("bob", "pw123456", false).unwrap();
+        let bob = session_cookie(&users, "bob");
         let resp = send(
             &r,
             Request::builder()
-                .method("POST")
-                .uri("/api/login")
+                .uri("/api/spaces")
                 .header("host", "localhost")
-                .header("content-type", "application/json")
-                .body(Body::from(r#"{"username":"admin","password":"pw"}"#))
+                .header("cookie", &bob)
+                .body(Body::empty())
                 .unwrap(),
         )
         .await;
-        let raw = resp.headers()[axum::http::header::SET_COOKIE]
-            .to_str()
-            .unwrap();
-        assert!(raw.contains("Path=/.admin"), "{raw}");
-        assert!(raw.contains("HttpOnly"), "{raw}");
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
     }
 
+    /// The 401/403 split the unified `/.spaces` client depends on: no session
+    /// at all is 401 (go log in), a valid non-admin session is 403 (a dead
+    /// end the client must render as an error, never as a redirect).
     #[tokio::test]
-    async fn bad_credentials_rejected_json() {
+    async fn admin_api_is_401_without_a_session_and_403_for_a_non_admin() {
         let dir = tempfile::tempdir().unwrap();
-        let (r, _) = admin_router(&dir);
-        let resp = send(
+        let (r, _m, users) = admin_router(&dir);
+
+        // No cookie at all.
+        assert_eq!(
+            send(&r, get("/api/spaces")).await.status(),
+            StatusCode::UNAUTHORIZED
+        );
+
+        // A cookie that isn't a valid JWT is equally "not logged in".
+        let garbage = send(
             &r,
             Request::builder()
-                .method("POST")
-                .uri("/api/login")
+                .uri("/api/spaces")
                 .header("host", "localhost")
-                .header("content-type", "application/json")
-                .body(Body::from(r#"{"username":"admin","password":"nope"}"#))
+                .header("cookie", "auth_localhost=not-a-jwt")
+                .body(Body::empty())
                 .unwrap(),
         )
         .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert!(resp.headers().get(axum::http::header::SET_COOKIE).is_none());
-        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(v["status"], "error");
+        assert_eq!(garbage.status(), StatusCode::UNAUTHORIZED);
+
+        // A valid session belonging to a non-admin account.
+        users.create_user("alice", "alicepw12", false).unwrap();
+        let alice = session_cookie(&users, "alice");
+        let forbidden = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("cookie", &alice)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(forbidden.status(), StatusCode::FORBIDDEN);
+
+        // Promoting her flips the same session to allowed, confirming the 403
+        // was about the role and not about the session being unreadable.
+        users.set_admin("alice", true).unwrap();
+        let allowed = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("cookie", &alice)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(allowed.status(), StatusCode::OK);
     }
 
     async fn authed(
@@ -571,18 +807,165 @@ mod tests {
         serde_json::from_slice(&bytes).unwrap()
     }
 
+    /// Create a space through the API and return its id.
+    async fn create_space(router: &axum::Router, cookie: &str, body: &str) -> String {
+        let resp = authed(router, "POST", "/api/spaces", body, cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        body_json(resp).await["id"].as_str().unwrap().to_string()
+    }
+
+    #[tokio::test]
+    async fn get_single_space_returns_the_collection_shape() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let id = create_space(
+            &router,
+            &cookie,
+            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
+        )
+        .await;
+
+        let resp = authed(&router, "GET", &format!("/api/spaces/{id}"), "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let v = body_json(resp).await;
+        assert_eq!(v["name"], "Work");
+        // The live derived status is present, exactly as in the list view.
+        assert!(v.get("status").is_some(), "{v}");
+    }
+
+    #[tokio::test]
+    async fn get_unknown_space_is_404() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let resp = authed(&router, "GET", "/api/spaces/nope", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn patch_carrying_unknown_auth_is_400() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let id = create_space(
+            &router,
+            &cookie,
+            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
+        )
+        .await;
+
+        let resp = authed(
+            &router,
+            "PATCH",
+            &format!("/api/spaces/{id}"),
+            r#"{"auth":{"mode":"inherit"}}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await;
+        assert!(
+            v["errors"][0]["field"].as_str().unwrap().ends_with(".auth"),
+            "{v}"
+        );
+    }
+
+    #[tokio::test]
+    async fn patch_name_only_leaves_other_fields_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let id = create_space(
+            &router,
+            &cookie,
+            r#"{"name":"Work","binding":{"prefix":"/work"},"readOnly":true}"#,
+        )
+        .await;
+
+        let resp = authed(
+            &router,
+            "PATCH",
+            &format!("/api/spaces/{id}"),
+            r#"{"name":"Renamed"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let resp = authed(&router, "GET", &format!("/api/spaces/{id}"), "", &cookie).await;
+        let v = body_json(resp).await;
+        assert_eq!(v["name"], "Renamed");
+        assert_eq!(
+            v["readOnly"], true,
+            "PATCH must not reset unnamed fields: {v}"
+        );
+    }
+
+    #[tokio::test]
+    async fn patch_members_with_an_unknown_user_is_400() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let id = create_space(
+            &router,
+            &cookie,
+            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
+        )
+        .await;
+
+        // Validation is not relaxed for PATCH: an unknown member fails exactly
+        // as it does through PUT. `admin_router` boots with no known users.
+        let resp = authed(
+            &router,
+            "PATCH",
+            &format!("/api/spaces/{id}"),
+            r#"{"members":{"ghost":{}}}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn patch_empty_body_is_a_noop_returning_ok() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let id = create_space(
+            &router,
+            &cookie,
+            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
+        )
+        .await;
+
+        let resp = authed(
+            &router,
+            "PATCH",
+            &format!("/api/spaces/{id}"),
+            "{}",
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let resp = authed(&router, "GET", &format!("/api/spaces/{id}"), "", &cookie).await;
+        let v = body_json(resp).await;
+        assert_eq!(v["name"], "Work");
+    }
+
     #[tokio::test]
     async fn crud_lifecycle_over_http() {
         let dir = tempfile::tempdir().unwrap();
-        let (r, _m) = admin_router(&dir);
-        let cookie = login_cookie(&r).await;
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
 
         // Create.
         let resp = authed(
             &r,
             "POST",
             "/api/spaces",
-            r#"{"name":"Work","binding":{"prefix":"/work"},"auth":{"mode":"none"}}"#,
+            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
             &cookie,
         )
         .await;
@@ -595,9 +978,14 @@ mod tests {
         assert_eq!(v[&id]["status"]["state"], "running");
 
         // Update to a new prefix.
-        let resp = authed(&r, "PUT", &format!("/api/spaces/{id}"),
-            &format!(r#"{{"name":"Work","folder":"spaces/{id}","binding":{{"prefix":"/w2"}},"auth":{{"mode":"none"}}}}"#),
-            &cookie).await;
+        let resp = authed(
+            &r,
+            "PUT",
+            &format!("/api/spaces/{id}"),
+            &format!(r#"{{"name":"Work","folder":"spaces/{id}","binding":{{"prefix":"/w2"}}}}"#),
+            &cookie,
+        )
+        .await;
         assert_eq!(resp.status(), StatusCode::OK);
 
         // Validation error shape.
@@ -605,7 +993,7 @@ mod tests {
             &r,
             "POST",
             "/api/spaces",
-            r#"{"name":"Dup","binding":{"prefix":"/w2"},"auth":{"mode":"none"}}"#,
+            r#"{"name":"Dup","binding":{"prefix":"/w2"}}"#,
             &cookie,
         )
         .await;
@@ -621,49 +1009,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn password_endpoint_hashes_and_redacts() {
-        let dir = tempfile::tempdir().unwrap();
-        let (r, _m) = admin_router(&dir);
-        let cookie = login_cookie(&r).await;
-        let v = body_json(
-            authed(
-                &r,
-                "POST",
-                "/api/spaces",
-                r#"{"name":"C","binding":{"prefix":"/c"},"auth":{"mode":"custom","user":"u"}}"#,
-                &cookie,
-            )
-            .await,
-        )
-        .await;
-        let id = v["id"].as_str().unwrap().to_string();
-        let resp = authed(
-            &r,
-            "POST",
-            &format!("/api/spaces/{id}/password"),
-            r#"{"password":"hunter2"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-        let v = body_json(authed(&r, "GET", "/api/spaces", "", &cookie).await).await;
-        assert_eq!(v[&id]["hasPassword"], true);
-        assert!(v[&id]["auth"].get("passHash").is_none());
-        // Persisted hash on disk is argon2id, not plaintext.
-        let raw = std::fs::read_to_string(dir.path().join("spaces.json")).unwrap();
-        assert!(!raw.contains("hunter2"));
-        assert!(raw.contains("$argon2id$"));
-    }
-
-    #[tokio::test]
     async fn fs_dirs_completion_and_status() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("alpha")).unwrap();
         std::fs::create_dir_all(dir.path().join("alps")).unwrap();
         std::fs::create_dir_all(dir.path().join("beta")).unwrap();
         std::fs::write(dir.path().join("afile"), "x").unwrap();
-        let (r, _m) = admin_router(&dir);
-        let cookie = login_cookie(&r).await;
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
 
         // Unauthenticated: gated.
         assert_eq!(
@@ -715,9 +1068,370 @@ mod tests {
     #[tokio::test]
     async fn port_check_endpoint_does_not_exist() {
         let dir = tempfile::tempdir().unwrap();
-        let (r, _m) = admin_router(&dir);
-        let cookie = login_cookie(&r).await;
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
         let response = authed(&r, "GET", "/api/net/port?port=4000", "", &cookie).await;
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn admin_api_token_of_admin_user_works_and_member_token_does_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir); // helper now also returns the store
+        users.create_user("bob", "pw123456", false).unwrap();
+        let admin_tok = users.create_token("admin", "ci").unwrap();
+        let bob_tok = users.create_token("bob", "ci").unwrap();
+        let ok = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("authorization", format!("Bearer {admin_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(ok.status(), StatusCode::OK);
+        let no = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("authorization", format!("Bearer {bob_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        // Bob's token is a real credential, so this is 403 (authenticated,
+        // not permitted) rather than 401 — same split as cookie sessions.
+        assert_eq!(no.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn user_crud_lifecycle_over_http_incl_last_admin_guard() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        // The sole admin can't be demoted or deleted through itself. (These
+        // are guard failures — the store is untouched, so `cookie` stays a
+        // valid admin session for everything that follows. Actually flipping
+        // `admin`'s own flag would 401 the rest of this test, since
+        // `require_admin` re-checks admin-ness live on every request.)
+        let resp = authed(&r, "PUT", "/api/users/admin", r#"{"admin":false}"#, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await;
+        assert!(
+            v["errors"][0]["message"]
+                .as_str()
+                .unwrap()
+                .contains("last admin"),
+            "{v}"
+        );
+        let resp = authed(&r, "DELETE", "/api/users/admin", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+
+        // Create a non-admin user.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users",
+            r#"{"username":"bob","password":"pw123456","admin":false}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let v = body_json(authed(&r, "GET", "/api/users", "", &cookie).await).await;
+        assert_eq!(v["bob"]["admin"], false);
+        assert_eq!(v["admin"]["admin"], true);
+
+        // A stable user-detail route gets the same redacted shape as one
+        // entry in the collection and never exposes password/token hashes.
+        let v = body_json(authed(&r, "GET", "/api/users/bob", "", &cookie).await).await;
+        assert_eq!(v["admin"], false);
+        assert!(v.get("passwordHash").is_none(), "{v}");
+        let resp = authed(&r, "GET", "/api/users/ghost", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        // Duplicate username is a 400 with a username field.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users",
+            r#"{"username":"bob","password":"pw123456","admin":false}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await;
+        assert_eq!(v["errors"][0]["field"], "username");
+
+        // Promote bob to admin (now two admins: admin + bob).
+        let resp = authed(&r, "PUT", "/api/users/bob", r#"{"admin":true}"#, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let v = body_json(authed(&r, "GET", "/api/users", "", &cookie).await).await;
+        assert_eq!(v["bob"]["admin"], true);
+
+        // With two admins, demoting bob (not `admin`, whose session we're
+        // using) is fine.
+        let resp = authed(&r, "PUT", "/api/users/bob", r#"{"admin":false}"#, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let v = body_json(authed(&r, "GET", "/api/users", "", &cookie).await).await;
+        assert_eq!(v["bob"]["admin"], false);
+
+        // And, being a non-admin now, bob can be deleted outright.
+        let resp = authed(&r, "DELETE", "/api/users/bob", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let v = body_json(authed(&r, "GET", "/api/users", "", &cookie).await).await;
+        assert!(v.get("bob").is_none());
+
+        // Deleting/updating a nonexistent user 404s.
+        let resp = authed(&r, "DELETE", "/api/users/ghost", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+        let resp = authed(&r, "PUT", "/api/users/ghost", r#"{"admin":true}"#, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn token_endpoint_returns_plaintext_once_and_gates_admin_api() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users",
+            r#"{"username":"bob","password":"pw123456","admin":false}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(
+            authed(
+                &r,
+                "POST",
+                "/api/users/admin/tokens",
+                r#"{"name":"ci"}"#,
+                &cookie,
+            )
+            .await,
+        )
+        .await;
+        let admin_tok = v["token"].as_str().unwrap().to_string();
+        assert!(admin_tok.starts_with("sbt_"), "{admin_tok}");
+
+        let v = body_json(
+            authed(
+                &r,
+                "POST",
+                "/api/users/bob/tokens",
+                r#"{"name":"ci"}"#,
+                &cookie,
+            )
+            .await,
+        )
+        .await;
+        let bob_tok = v["token"].as_str().unwrap().to_string();
+
+        let ok = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("authorization", format!("Bearer {admin_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(ok.status(), StatusCode::OK);
+
+        let no = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("authorization", format!("Bearer {bob_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        // Authenticated as bob, just not permitted.
+        assert_eq!(no.status(), StatusCode::FORBIDDEN);
+
+        // Revoking the token removes its authority.
+        let resp = authed(&r, "DELETE", "/api/users/admin/tokens/ci", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let no_more = send(
+            &r,
+            Request::builder()
+                .uri("/api/spaces")
+                .header("host", "localhost")
+                .header("authorization", format!("Bearer {admin_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(no_more.status(), StatusCode::UNAUTHORIZED);
+
+        // Deleting an unknown token 404s.
+        let resp = authed(&r, "DELETE", "/api/users/admin/tokens/nope", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn password_reset_endpoint_revokes_existing_sessions() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/admin/password",
+            r#"{"password":"newpw12345"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // Resetting the password revoked the session that performed the
+        // reset: the JWT still verifies, but its credential version is stale.
+        assert_eq!(
+            authed(&r, "GET", "/api/users", "", &cookie).await.status(),
+            StatusCode::UNAUTHORIZED
+        );
+        // A session minted after the reset is accepted again. (Whether the
+        // *password* itself now works at login is the unified surface's
+        // concern — see `space_index`'s
+        // `password_reset_through_the_admin_api_changes_the_login_result`.)
+        let new_cookie = session_cookie(&users, "admin");
+        assert_eq!(
+            authed(&r, "GET", "/api/users", "", &new_cookie)
+                .await
+                .status(),
+            StatusCode::OK
+        );
+
+        // A nonexistent user 404s.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/ghost/password",
+            r#"{"password":"whatever12"}"#,
+            &new_cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn deleting_user_sweeps_membership_from_spaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users",
+            r#"{"username":"bob","password":"pw123456","admin":false}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(
+            authed(
+                &r,
+                "POST",
+                "/api/spaces",
+                r#"{"name":"Team","binding":{"prefix":"/team"},"members":{"bob":{}}}"#,
+                &cookie,
+            )
+            .await,
+        )
+        .await;
+        let id = v["id"].as_str().unwrap().to_string();
+
+        let v = body_json(authed(&r, "GET", "/api/spaces", "", &cookie).await).await;
+        assert!(
+            v[&id]["members"].as_object().unwrap().contains_key("bob"),
+            "{v}"
+        );
+
+        let resp = authed(&r, "DELETE", "/api/users/bob", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // `members` is omitted entirely once empty (skip_serializing_if), so
+        // "no key" and "key present but without bob" both count as swept.
+        let v = body_json(authed(&r, "GET", "/api/spaces", "", &cookie).await).await;
+        assert!(
+            !v[&id]["members"]
+                .as_object()
+                .is_some_and(|m| m.contains_key("bob")),
+            "{v}"
+        );
+        let v = body_json(authed(&r, "GET", "/api/users", "", &cookie).await).await;
+        assert!(v.get("bob").is_none());
+
+        // Persisted, not just the in-memory view.
+        let raw = std::fs::read_to_string(dir.path().join("spaces.json")).unwrap();
+        assert!(!raw.contains("bob"), "{raw}");
+    }
+
+    #[tokio::test]
+    async fn auth_field_rejected_on_create_and_update() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/spaces",
+            r#"{"name":"Work","binding":{"prefix":"/work"},"auth":{"mode":"none"}}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await;
+        assert!(
+            v["errors"][0]["field"].as_str().unwrap().ends_with(".auth"),
+            "{v}"
+        );
+
+        // A space created without the unknown field can be updated — just not
+        // by introducing it.
+        let v = body_json(
+            authed(
+                &r,
+                "POST",
+                "/api/spaces",
+                r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
+                &cookie,
+            )
+            .await,
+        )
+        .await;
+        let id = v["id"].as_str().unwrap().to_string();
+
+        let resp = authed(
+            &r,
+            "PUT",
+            &format!("/api/spaces/{id}"),
+            &format!(
+                r#"{{"name":"Work","folder":"spaces/{id}","binding":{{"prefix":"/work"}},"auth":{{"mode":"none"}}}}"#
+            ),
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await;
+        assert!(
+            v["errors"][0]["field"].as_str().unwrap().ends_with(".auth"),
+            "{v}"
+        );
     }
 }

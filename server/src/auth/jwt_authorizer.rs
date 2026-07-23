@@ -2,23 +2,28 @@ use std::sync::Arc;
 
 use axum::http::HeaderMap;
 
-use crate::auth::authenticator::Authenticator;
+use crate::auth::authenticator::{Authenticator, Claims};
 use crate::auth::authorizer::{AuthContext, RequestAuthorizer};
 use crate::auth::config::constant_time_eq;
-use crate::auth::cookie::{request_host, scoped_auth_cookie_name};
+use crate::auth::cookie::{cookie_value, request_host, scoped_auth_cookie_name};
+
+/// Additional policy applied after a JWT's signature and expiry validate.
+pub type ClaimsFilter = Box<dyn Fn(&Claims) -> bool + Send + Sync>;
 
 /// The standalone server's authorizer: a request is authorized if it carries the
 /// configured bearer token (constant-time compared) or a valid session JWT in
-/// the scoped auth cookie. The cookie name is derived from the request `Host`
-/// and this authorizer's URL prefix (`auth_<cleanHost><cleanPrefix>`), so
-/// sessions stay separate when multiple spaces share a host under different
-/// prefixes; an empty prefix yields the legacy `auth_<cleanHost>` name.
+/// an auth cookie. Classic single-space servers may scope the cookie to their
+/// configured URL prefix; account-managed multi-space servers pass an empty
+/// prefix and share `auth_<cleanHost>` across every space.
 pub struct JwtAuthorizer {
     authenticator: Arc<Authenticator>,
     /// Optional bearer token (empty disables bearer auth).
     auth_token: String,
     /// URL prefix this authorizer's space is mounted under (cookie scoping).
     url_prefix: String,
+    /// Optional filter applied to verified JWT claims. Bearer-token policy is
+    /// handled independently by the corresponding token authorizer.
+    claims_filter: Option<ClaimsFilter>,
 }
 
 impl JwtAuthorizer {
@@ -35,6 +40,23 @@ impl JwtAuthorizer {
             authenticator,
             auth_token,
             url_prefix,
+            claims_filter: None,
+        }
+    }
+
+    /// Like [`Self::with_prefix`], but rejects JWT sessions whose claims don't
+    /// pass `filter`. The bearer-token path is unaffected.
+    pub fn with_filter(
+        authenticator: Arc<Authenticator>,
+        auth_token: String,
+        url_prefix: String,
+        filter: ClaimsFilter,
+    ) -> Self {
+        Self {
+            authenticator,
+            auth_token,
+            url_prefix,
+            claims_filter: Some(filter),
         }
     }
 }
@@ -50,7 +72,12 @@ impl RequestAuthorizer for JwtAuthorizer {
         }
         let name = scoped_auth_cookie_name(&request_host(ctx.headers), &self.url_prefix);
         if let Some(cookie) = cookie_value(ctx.headers, &name) {
-            if self.authenticator.verify_jwt(&cookie).is_ok() {
+            if let Ok(claims) = self.authenticator.verify_jwt(&cookie) {
+                if let Some(f) = &self.claims_filter {
+                    if !f(&claims) {
+                        return false;
+                    }
+                }
                 return true;
             }
         }
@@ -64,20 +91,6 @@ fn bearer_token(headers: &HeaderMap) -> Option<&str> {
         .get("authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
-}
-
-/// Extract a named cookie value from the `Cookie` header.
-fn cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
-    let header = headers.get("cookie")?.to_str().ok()?;
-    for pair in header.split(';') {
-        let pair = pair.trim();
-        if let Some((k, v)) = pair.split_once('=') {
-            if k == name {
-                return Some(v.to_string());
-            }
-        }
-    }
-    None
 }
 
 #[cfg(test)]
@@ -183,6 +196,36 @@ mod tests {
             "cookie",
             HeaderValue::from_str(&format!("auth_localhost={token}")).unwrap(),
         );
+        assert!(!a.is_authorized(&ctx(&h2)));
+    }
+
+    #[test]
+    fn user_filter_rejects_unlisted_users() {
+        let auth = std::sync::Arc::new(crate::auth::Authenticator::from_parts(
+            vec![2u8; 32],
+            String::new(),
+            "h".into(),
+        ));
+        let jwt_ok = auth.issue_jwt("alice", 3600).unwrap();
+        let jwt_bad = auth.issue_jwt("mallory", 3600).unwrap();
+        let a = JwtAuthorizer::with_filter(
+            auth,
+            String::new(),
+            String::new(),
+            Box::new(|claims| claims.username == "alice"),
+        );
+        let mk = |jwt: &str| {
+            let mut h = HeaderMap::new();
+            h.insert("host", HeaderValue::from_static("localhost"));
+            h.insert(
+                "cookie",
+                HeaderValue::from_str(&format!("auth_localhost={jwt}")).unwrap(),
+            );
+            h
+        };
+        let h1 = mk(&jwt_ok);
+        let h2 = mk(&jwt_bad);
+        assert!(a.is_authorized(&ctx(&h1)));
         assert!(!a.is_authorized(&ctx(&h2)));
     }
 }

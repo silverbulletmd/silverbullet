@@ -15,7 +15,6 @@
 //! (the full conn → api → HTTP → error-mapping chain), not a live Lua result —
 //! exercising the real wire path without requiring a browser in CI.
 
-use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 
@@ -37,14 +36,11 @@ fn server_bin() -> Option<PathBuf> {
     p.exists().then_some(p)
 }
 
-/// Bind :0 to grab a free port, then drop the listener.
-fn free_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
+// Shared with the silverbullet crate's tests; see that file for why the
+// naive "bind :0, read the port, drop the listener" helper is racy.
+#[path = "../../silverbullet/tests/common/mod.rs"]
+mod common;
+use common::free_port;
 
 struct Output {
     code: i32,
@@ -111,6 +107,7 @@ fn start_server(space_dir: &std::path::Path) -> Option<(Child, String)> {
     let child = Command::new(bin)
         .arg(space_dir)
         .args(["-p", &port.to_string(), "-L", "127.0.0.1"])
+        .arg("--single")
         .env("SB_RUNTIME_API", "0")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .spawn()

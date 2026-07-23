@@ -2,6 +2,7 @@
 //! `-L/--hostname` / `-p/--port` CLI flags.
 use std::env;
 
+#[derive(Clone)]
 pub struct Config {
     pub bind_host: String,
     pub port: u16,

@@ -22,14 +22,8 @@ impl Drop for Server {
     }
 }
 
-/// Find a free port by binding :0 and dropping the listener.
-fn free_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
+mod common;
+use common::free_port;
 
 /// Spawn the binary against a fresh temp space with the given extra env, wait
 /// for `/.ping` to answer 200 (up to ~20s), and return the running server, the
@@ -42,6 +36,7 @@ fn start(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String) {
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
     cmd.arg(space.path())
+        .arg("--single")
         .arg("-p")
         .arg(port.to_string())
         .arg("-L")
