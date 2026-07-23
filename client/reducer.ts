@@ -232,5 +232,10 @@ export default function reducer(
         progressPercentage: action.progressPercentage,
         progressType: action.progressType,
       };
+    case "set-page-title":
+      return {
+        ...state,
+        pageTitle: action.pageTitle,
+      };
   }
 }

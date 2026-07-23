@@ -74,6 +74,9 @@ export type AppViewState = {
   confirmMessage?: string;
   confirmDestructive?: boolean;
   confirmCallback?: (value: boolean) => void;
+
+  // Possibly customized page title via a plug
+  pageTitle?: string;
 };
 
 export const initialViewState: AppViewState = {
@@ -111,6 +114,8 @@ export const initialViewState: AppViewState = {
 
   showPrompt: false,
   showConfirm: false,
+
+  pageTitle: "",
 };
 
 export type Action =
@@ -168,7 +173,8 @@ export type Action =
       type: "set-progress";
       progressPercentage?: number;
       progressType?: string;
-    };
+    }
+  | { type: "set-page-title"; pageTitle: string };
 
 /**
  * Client configuration that is set at boot time, doesn't change at runtime

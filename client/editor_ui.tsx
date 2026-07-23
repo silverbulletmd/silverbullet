@@ -30,6 +30,7 @@ import {
   isMarkdownPath,
   isValidName,
   parseToRef,
+  customizePageTitleViaService,
   type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
@@ -286,6 +287,14 @@ export class MainUI {
       "actionButtons",
       [],
     );
+
+    useEffect(() => {
+      // Ask a service to possibly customize the title, or otherwise just use the path.
+      customizePageTitleViaService().then((title) => {
+        this.viewDispatch({ type: "set-page-title", pageTitle: title });
+      });
+    }, [!viewState.current ? "" : viewState.current.path]);
+
     return (
       <>
         {viewState.showPageNavigator && (
@@ -430,9 +439,7 @@ export class MainUI {
           />
         )}
         <TopBar
-          pageName={
-            !viewState.current ? "" : getNameFromPath(viewState.current.path)
-          }
+          pageName={viewState.pageTitle}
           notifications={viewState.notifications}
           onDismissNotification={(id) => {
             dispatch({ type: "dismiss-notification", id });
