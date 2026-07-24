@@ -147,15 +147,27 @@ export class ContentManager {
     });
   }
 
-  async reloadEditor() {
+async reloadEditor() {
     if (!this.client.systemReady) return;
-
     console.log("Reloading editor");
     clearTimeout(this.saveTimeout);
 
     try {
       if (isMarkdownPath(this.client.currentPath())) {
-        await this.loadPage({ path: this.client.currentPath() }, false);
+        const pageName = getNameFromPath(this.client.currentPath());
+        const currentText = this.client.editorView.state.sliceDoc();
+        // Rebuild the editor state in-place using the text already in memory,
+        // avoiding a full loadPage() call which re-dispatches
+        // editor:pageCreating for virtual/new pages (fixes #2012).
+        const currentMeta = this.client.ui.viewState.current?.meta;
+        const isReadOnly = currentMeta?.perm === "ro";
+        const editorState = createEditorState(
+          this.client,
+          pageName,
+          currentText,
+          isReadOnly,
+        );
+        this.client.editorView.setState(editorState);
       } else {
         await this.loadDocumentEditor({ path: this.client.currentPath() });
       }
