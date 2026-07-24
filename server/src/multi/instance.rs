@@ -167,11 +167,13 @@ pub struct SpaceInstance {
     pub router: Option<axum::Router>,
 }
 
-/// Resolve a space's folder: empty -> `<root>/spaces/<id>`, relative -> under
-/// root, absolute -> as-is.
+/// Resolve a space's folder: empty -> `<root>/spaces/<id>`, `"."` -> `<root>`
+/// itself, relative -> under root, absolute -> as-is.
 pub fn resolve_folder(root: &Path, id: &str, folder: &str) -> PathBuf {
     if folder.is_empty() {
         root.join("spaces").join(id)
+    } else if folder == "." {
+        root.to_path_buf()
     } else {
         let p = Path::new(folder);
         if p.is_absolute() {
@@ -495,6 +497,7 @@ mod tests {
     fn resolves_folders_default_relative_absolute() {
         let root = std::path::Path::new("/root");
         assert_eq!(resolve_folder(root, "id1", ""), root.join("spaces/id1"));
+        assert_eq!(resolve_folder(root, "id1", "."), root.to_path_buf());
         assert_eq!(resolve_folder(root, "id1", "sub/dir"), root.join("sub/dir"));
         let abs = if cfg!(windows) { r"C:\abs" } else { "/abs" };
         assert_eq!(
