@@ -604,10 +604,9 @@ function* frontmatterStringEntries(
     let lastKey: string | undefined;
     for (const child of doc.children ?? []) {
       if (child.type === "atom") {
-        lastKey = child.children?.[0]?.text;
+        lastKey = child.children?.[0]?.text?.trim();
       } else if (child.type === "string" && lastKey) {
         yield { key: lastKey, valueNode: child };
-        lastKey = undefined;
       }
     }
   }

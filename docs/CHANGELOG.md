@@ -5,6 +5,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 
 * [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
 * Fix: `SB_SHELL_BACKEND=local` disabled shell command execution instead of enabling it.
+* Fix: only the first entry of a frontmatter list of wiki links formed a [[Object/relation]] (e.g. an `authors:` list of `[[...]]` items), so every entry after the first was missing from [[Object Graph]], linked mentions and rename refactoring.
 * Fix: writing to a read-only path (anything served from the bundled library, a `SB_READ_ONLY` server) returned a 500, which clients could not tell apart from a temporary server fault — so a syncing client retried it forever. Read-only refusals now return 403, and the sync engine records the path and stops re-attempting it until the local file changes. This most often bit spaces holding a stale copy of a `Library/Std` page that a later release had dropped from the bundle.
 * [[Baked Sections]]: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`).

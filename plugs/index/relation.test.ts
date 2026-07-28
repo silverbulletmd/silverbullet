@@ -113,6 +113,99 @@ Body.`;
   expect(text.substring(r!.range![0], r!.range![0] + 2)).toEqual("[[");
 });
 
+test("frontmatter list of wikilinks emits one relation per entry", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("First_author", "");
+  await space.writePage("Second_author", "");
+
+  const text = `---
+authors:
+- "[[First_author]]"
+- "[[Second_author]]"
+---
+Body.`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Some_paper"), fm, tree, text);
+
+  const authors = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "authors",
+  );
+  expect(authors.map((r) => r.to).sort()).toEqual([
+    "First_author",
+    "Second_author",
+  ]);
+  // Each entry gets its own splice-able range pointing at its own `[[`.
+  for (const r of authors) {
+    expect(text.substring(r.range![0], r.range![0] + 2)).toEqual("[[");
+  }
+  expect(new Set(authors.map((r) => r.ref)).size).toEqual(2);
+});
+
+test("frontmatter list of wikilinks works indented and in flow style", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("A", "");
+  await space.writePage("B", "");
+
+  for (const body of [
+    `authors:\n  - "[[A]]"\n  - "[[B]]"`,
+    `authors: ["[[A]]", "[[B]]"]`,
+  ]) {
+    const text = `---\n${body}\n---\nBody.`;
+    const tree = parseMarkdown(text);
+    const fm = extractFrontMatter(tree);
+    const objects = await indexRelations(pageMeta("P"), fm, tree, text);
+    const authors = objects.filter(
+      (o) => o.tag === "relation" && o.kind === "authors",
+    );
+    expect(authors.map((r) => r.to).sort(), `for: ${body}`).toEqual(["A", "B"]);
+  }
+});
+
+test("frontmatter list entries don't leak into the next key", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("A", "");
+  await space.writePage("B", "");
+  await space.writePage("C", "");
+
+  const text = `---
+authors:
+- "[[A]]"
+- "[[B]]"
+publisher: "[[C]]"
+---
+Body.`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("P"), fm, tree, text);
+
+  const byKind = (kind: string) =>
+    objects
+      .filter((o) => o.tag === "relation" && o.kind === kind)
+      .map((r) => r.to)
+      .sort();
+  expect(byKind("authors")).toEqual(["A", "B"]);
+  expect(byKind("publisher")).toEqual(["C"]);
+});
+
+test("nested frontmatter key does not carry its indentation into the kind", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("A", "");
+
+  const text = `---
+meta:
+  author: "[[A]]"
+---
+Body.`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("P"), fm, tree, text);
+
+  const r = objects.find((o) => o.tag === "relation" && o.to === "A");
+  expect(r).toBeDefined();
+  expect(r!.kind).toEqual("author");
+});
+
 test("inline attribute with wikilink value emits typed attribute relation", async () => {
   const { space } = createMockSystem();
   await space.writePage("Jack", "");
