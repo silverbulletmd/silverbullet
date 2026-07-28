@@ -18,6 +18,7 @@ import type { FrontMatter } from "./frontmatter.ts";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
 import { cleanTags, collectTags } from "./tags.ts";
 import { cleanAnchor, collectAnchor } from "./anchor.ts";
+import { stripPositionAttributes } from "./position_attributes.ts";
 
 type HeaderObject = ObjectValue<
   {
@@ -63,7 +64,7 @@ export function indexHeaders(
       page: pageMeta.name,
       pos: n.from!,
       range: [n.from!, n.to!],
-      ...attributes,
+      ...stripPositionAttributes(attributes),
     });
   }
 

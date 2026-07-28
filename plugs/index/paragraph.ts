@@ -14,6 +14,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
+import { stripPositionAttributes } from "./position_attributes.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -81,7 +82,7 @@ export async function indexParagraphs(
         page: pageMeta.name,
         pos,
         range: [p.from!, p.to!],
-        ...attrs,
+        ...stripPositionAttributes(attrs),
       };
       if (tags.length > 0) {
         paragraph.tags = [...tags];

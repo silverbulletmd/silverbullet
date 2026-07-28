@@ -7,6 +7,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { cleanTags, collectTags, updateITags } from "./tags.ts";
 import { cleanAnchor, collectAnchor } from "./anchor.ts";
+import { isPositionAttribute } from "./position_attributes.ts";
 import type { FrontMatter } from "./frontmatter.ts";
 import type {
   ObjectValue,
@@ -177,6 +178,8 @@ export function extractItemFromNode(
   }
 
   for (const [key, value] of Object.entries(attributes)) {
+    // `pos`/`range` are the item's own source offsets, not user data (#2028).
+    if (isPositionAttribute(key)) continue;
     item[key] = value;
   }
 

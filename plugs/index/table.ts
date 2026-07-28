@@ -14,6 +14,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { FrontMatter } from "./frontmatter.ts";
+import { isPositionAttribute } from "./position_attributes.ts";
 
 type TableRowObject = ObjectValue<{
   tableref: string;
@@ -102,7 +103,8 @@ export function indexTables(
         });
         const content = concatChildrenTextsPreserveLinks(c.children!);
         const label = headerLabels[i];
-        tableRow[label!] = content;
+        if (!label || isPositionAttribute(label)) return;
+        tableRow[label] = content;
       });
       result.push(tableRow);
     }

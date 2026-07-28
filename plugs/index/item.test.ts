@@ -151,3 +151,25 @@ test("Test item indexing with nested lists in list items", async () => {
   const regularItem = items.find((i) => i.name === "Regular item");
   expect(regularItem).toBeDefined();
 });
+
+test("user `range` attribute cannot overwrite an item's source offsets", async () => {
+  createMockSystem();
+  const md = `* An item [range: 0, 36]`;
+  const tree = parseMarkdown(md);
+  const frontmatter = extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: "test",
+    name: "test",
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+  const items = await indexItems(pageMeta, frontmatter, tree);
+  const item = items.find((i: any) => i.tag === "item")! as any;
+  expect(item).toBeTruthy();
+  expect(Array.isArray(item.range)).toBe(true);
+  expect(item.range.every((n: unknown) => typeof n === "number")).toBe(true);
+  expect(md.slice(item.range[0], item.range[1])).toContain("An item");
+  expect(typeof item.pos).toBe("number");
+});

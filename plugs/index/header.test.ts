@@ -71,3 +71,23 @@ test("header without anchor keeps Page@pos ref shape", async () => {
   expect(headers.length).toEqual(1);
   expect(headers[0].ref).toMatch(/^MyPage@\d+$/);
 });
+
+test("user `range` attribute cannot overwrite a header's source offsets", async () => {
+  createMockSystem();
+  const md = `# Real header [range: 0, 36]`;
+  const tree = parseMarkdown(md);
+  const frontmatter = extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: "test",
+    name: "test",
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+  const headers = await indexHeaders(pageMeta, frontmatter, tree);
+  const header = headers.find((h: any) => h.tag === "header")! as any;
+  expect(header).toBeTruthy();
+  expect(header.range).toEqual([0, md.length]);
+  expect(typeof header.pos).toBe("number");
+});

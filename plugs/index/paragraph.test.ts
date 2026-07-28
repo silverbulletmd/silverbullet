@@ -86,3 +86,15 @@ test("paragraph without anchor keeps Page@pos ref", async () => {
   const para = objects.find((o) => o.tag === "paragraph")!;
   expect(para.ref).toMatch(/^MyPage@\d+$/);
 });
+
+test("a `range` attribute does not overwrite a paragraph's source offsets", async () => {
+  // Tagged so it is indexed with the default `index.paragraph.all = false`.
+  const paragraphs = await indexParagraphsForTest(
+    "A #noted paragraph with [range: 0, 36] in it.\n",
+  );
+  const p = paragraphs[0] as any;
+  expect(p).toBeTruthy();
+  expect(Array.isArray(p.range)).toBe(true);
+  expect(p.range.every((n: unknown) => typeof n === "number")).toBe(true);
+  expect(typeof p.pos).toBe("number");
+});

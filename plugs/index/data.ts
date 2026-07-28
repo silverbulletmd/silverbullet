@@ -7,6 +7,7 @@ import {
 import type { TagObject } from "./tags.ts";
 import type { FrontMatter } from "./frontmatter.ts";
 import { updateITags } from "./tags.ts";
+import { stripPositionAttributes } from "./position_attributes.ts";
 import type {
   ObjectValue,
   PageMeta,
@@ -77,7 +78,7 @@ export function indexData(
           itags: ["data"],
           pos: docStart,
           range: [docStart, docEnd] as [number, number],
-          ...doc,
+          ...stripPositionAttributes(doc),
           page: pageMeta.name,
         };
         updateITags(dataObj, frontmatter);

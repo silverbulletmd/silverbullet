@@ -142,3 +142,24 @@ describe("range covers the YAML content, not the fence markers", () => {
     expect(md.slice(b.range[0], b.range[1])).toContain("Hank");
   });
 });
+
+test("user `pos`/`range` attributes cannot overwrite the block's source offsets", async () => {
+  createMockSystem();
+  const md = [
+    "```#person",
+    "name: Pete",
+    "range: 0, 36",
+    "pos: nope",
+    "```",
+  ].join("\n");
+  const results = await indexDataForTest(md, "Page");
+  const person = results.find((o) => o.tag === "person")!;
+  expect(person).toBeTruthy();
+  expect(person.range.every((n: unknown) => typeof n === "number")).toBe(true);
+  expect(typeof person.pos).toBe("number");
+  expect(person.range[0]).toBe(md.indexOf("name:"));
+  expect(md.slice(person.range[0], person.range[1])).toContain("Pete");
+  expect(md.slice(person.range[0], person.range[1])).not.toContain("```");
+  // The user's own attributes are still indexed as data, just not as offsets.
+  expect(person.name).toBe("Pete");
+});

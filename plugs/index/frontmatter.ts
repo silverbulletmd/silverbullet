@@ -11,6 +11,7 @@ import YAML from "js-yaml";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { determineTags } from "./cheap_yaml.ts";
+import { stripPositionAttributes } from "./position_attributes.ts";
 import { attributeCompletion } from "./complete.ts";
 
 export type FrontMatter = {
@@ -99,7 +100,10 @@ export function extractFrontMatter(
         const parsedData: any = cleanupJSON(YAML.load(yamlText));
         // console.log("Parsed front matter", parsedData);
         const newData = { ...parsedData };
-        frontmatter = { ...frontmatter, ...parsedData };
+        frontmatter = {
+          ...frontmatter,
+          ...stripPositionAttributes(parsedData),
+        };
         // Make sure we have a tags array
         if (!frontmatter.tags) {
           frontmatter.tags = [];
