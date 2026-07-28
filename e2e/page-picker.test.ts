@@ -198,8 +198,8 @@ test.describe("Page picker anchor mode with a duplicate anchor name", () => {
     // error path and never navigate anywhere. Landing on Beta confirms the
     // picker qualified the ref with the page the clicked row belongs to.
     await expect(modal).not.toBeVisible();
-    await expect(
-      sbPage.locator("#sb-current-page input.sb-input"),
-    ).toHaveValue("Beta");
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "Beta",
+    );
   });
 });

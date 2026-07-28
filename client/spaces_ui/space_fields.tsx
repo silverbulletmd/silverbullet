@@ -1,5 +1,9 @@
 import { useState } from "preact/hooks";
-import { Alert, prefixFromName, slugify } from "@silverbulletmd/silverbullet/ui";
+import {
+  Alert,
+  prefixFromName,
+  slugify,
+} from "@silverbulletmd/silverbullet/ui";
 import type { FieldError } from "./types.ts";
 
 /**

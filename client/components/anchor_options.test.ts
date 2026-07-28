@@ -27,7 +27,10 @@ test("description is the snippet's first line plus the page", () => {
 });
 
 test("description uses only the first line of a multi-line snippet", () => {
-  const multi = { ...base, snippet: "- Item $ii\n  - child one\n  - child two" };
+  const multi = {
+    ...base,
+    snippet: "- Item $ii\n  - child one\n  - child two",
+  };
   expect(anchorDescription(multi)).toBe("- Item $ii — Finances");
 });
 

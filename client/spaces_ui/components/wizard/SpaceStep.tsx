@@ -1,9 +1,5 @@
 import { Fragment } from "preact";
-import {
-  Button,
-  Input,
-  UrlPrefixInput,
-} from "@silverbulletmd/silverbullet/ui";
+import { Button, Input, UrlPrefixInput } from "@silverbulletmd/silverbullet/ui";
 import { FolderPicker } from "../../FolderPicker.tsx";
 import { FieldErrors } from "../../space_fields.tsx";
 import type { FieldError } from "../../types.ts";

@@ -17,10 +17,7 @@ import {
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import {
-  type AnchorObject,
-  anchorsToFilterOptions,
-} from "./anchor_options.ts";
+import { type AnchorObject, anchorsToFilterOptions } from "./anchor_options.ts";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
