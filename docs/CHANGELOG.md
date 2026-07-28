@@ -13,6 +13,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * CLI client reimplemented/back-ported to Rust as well.
   * This means the project is now all TypeScript + Rust.
 * [[Frontmatter]] in the editor now has configurable folding: by default long frontmatter blocks fold automatically, and `frontmatterFolding` options let  you disable auto-folding, always fold frontmatter, or change the line threshold. A subtle right-side marker folds or unfolds the whole block, and folded frontmatter previews any `tags` value as tag chips. This is configurable via the [[Configuration Manager]] as well.
+* [[Page Picker]]: type `$` to switch to [[Markdown/Anchor|anchor]] navigation
 * Pulling the "this was experimental card" for the CLI: removed the `sb get` command and the `/.runtime/objects/*` REST API, including their dedicated client-side query bridge. Use `sb query`, `sb eval`, or `sb script` for indexed-object access. This added too much complexity and another query language.
 * Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
 * Fix: the service worker precached client assets *through* the browser's HTTP cache, so a stale client could be copied into its cache and then served as though it were the current build — leaving a "A new version of SilverBullet client is available." notification that no reload could clear (only a hard reload, which bypasses the service worker, showed the real client; the next normal reload brought the notification back). Precaching now bypasses the HTTP cache.

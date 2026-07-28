@@ -17,6 +17,7 @@ import { indexSpaceStyle } from "./space_style.ts";
 import { indexTags } from "./tags.ts";
 import { index, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import { isValidAnchorName } from "./anchor.ts";
+import { buildLineIndex, extractSnippet, type LineIndex } from "./snippet.ts";
 
 export type IndexerFunction = (
   pageMeta: PageMeta,
@@ -46,8 +47,14 @@ const NON_ANCHORABLE_TAGS = new Set([
  * never pass `isValidAnchorName`, but page/tag refs can — hence the
  * deny-list above.
  */
-function appendAnchorRecords(objects: ObjectValue<any>[]): ObjectValue<any>[] {
+function appendAnchorRecords(
+  objects: ObjectValue<any>[],
+  pageMeta: PageMeta,
+  text: string,
+): ObjectValue<any>[] {
   const anchorRecords: ObjectValue<any>[] = [];
+  // Built at most once per page, and only if the page has any anchors at all.
+  let lineIndex: LineIndex | undefined;
   for (const o of objects) {
     if (
       !NON_ANCHORABLE_TAGS.has(o.tag) &&
@@ -55,12 +62,22 @@ function appendAnchorRecords(objects: ObjectValue<any>[]): ObjectValue<any>[] {
       typeof o.page === "string" &&
       isValidAnchorName(o.ref)
     ) {
-      anchorRecords.push({
+      const record: ObjectValue<any> = {
         tag: "anchor",
         ref: o.ref,
         page: o.page,
         hostTag: o.tag,
-      });
+        pageLastModified: pageMeta.lastModified,
+      };
+      // Reuse the same snippet machinery relation.ts uses, so an anchored
+      // list item pulls in its indented children and nested tasks get a
+      // page ref, rather than us inventing a second truncation scheme.
+      const from = o.range?.[0];
+      if (typeof from === "number") {
+        lineIndex ??= buildLineIndex(text);
+        record.snippet = extractSnippet(pageMeta.name, lineIndex, from);
+      }
+      anchorRecords.push(record);
     }
   }
   return [...objects, ...anchorRecords];
@@ -101,7 +118,7 @@ export async function indexMarkdown(
       .filter((indexer) => indexer !== pageIndexPage)
       .map((indexer) => indexer(pageMeta, frontmatter, tree, text)),
   );
-  return appendAnchorRecords(indexResults.flat());
+  return appendAnchorRecords(indexResults.flat(), pageMeta, text);
 }
 
 export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
@@ -109,5 +126,8 @@ export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   const indexResults = await Promise.all(
     allIndexers.map((indexer) => indexer(meta, frontmatter, tree, text)),
   );
-  await index.indexObjects<any>(name, appendAnchorRecords(indexResults.flat()));
+  await index.indexObjects<any>(
+    name,
+    appendAnchorRecords(indexResults.flat(), meta, text),
+  );
 }

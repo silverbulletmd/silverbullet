@@ -43,6 +43,8 @@ Anchors are referenced from a [[Link]] just like a page or header:
 * `[[Some Page$my-anchor]]` — page-qualified (useful while a duplicate is being resolved, or for explicitness).
 * `![[$my-anchor]]` — [[Transclusions|transcludes]] just the anchored object (paragraph, task, item, etc.), not the whole page.
 
+Anchors are also directly reachable from the [[Page Picker]]: open it and type `$` to search anchors across your space.
+
 # Effect on objects
 The anchor name replaces the default `ref` for the object that contains it. For instance, `* [ ] $tsk1 Pay rent` produces a task object with `ref: "tsk1"` (instead of the usual `Page@<pos>`).
 

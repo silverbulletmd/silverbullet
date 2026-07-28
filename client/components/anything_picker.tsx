@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "preact/hooks";
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
@@ -13,8 +14,13 @@ import {
   getNameFromPath,
   parseToRef,
   type Path,
+  type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  type AnchorObject,
+  anchorsToFilterOptions,
+} from "./anchor_options.ts";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
@@ -23,6 +29,7 @@ export function AnythingPicker({
   allDocuments,
   extensions,
   onNavigate,
+  onNavigateRef,
   onModeSwitch,
   mode,
   darkMode,
@@ -34,12 +41,45 @@ export function AnythingPicker({
   darkMode?: boolean;
   mode: "page" | "meta" | "document" | "all";
   onNavigate: (name: string | null) => void;
+  onNavigateRef: (ref: Ref) => void;
   onModeSwitch: (mode: "page" | "meta" | "document" | "all") => void;
   currentPath: Path;
 }) {
+  const [anchorMode, setAnchorMode] = useState(false);
+  // null = not loaded yet. Loaded at most once per picker lifetime, and
+  // only if the user actually types "$" — costs nothing otherwise.
+  const [anchors, setAnchors] = useState<AnchorObject[] | null>(null);
+  // Tracks whether the load has already been kicked off, independent of
+  // whether it has resolved yet. `anchors` stays null for the whole
+  // duration of the in-flight request, so gating on `anchors !== null`
+  // would let a second query fire if the user toggles anchor mode off
+  // and back on before the first request completes. This ref is set
+  // synchronously before the request starts and never cleared, so at
+  // most one request is ever issued per picker lifetime (a failed load
+  // is not retried either).
+  const loadStarted = useRef(false);
+
+  useEffect(() => {
+    if (!anchorMode || loadStarted.current) {
+      return;
+    }
+    loadStarted.current = true;
+    client
+      .queryLuaObjects<AnchorObject>("anchor", {})
+      .then(setAnchors)
+      .catch((e: Error) => {
+        console.error("Failed to load anchors", e);
+        client.ui.flashNotification(
+          `Failed to load anchors: ${e.message}`,
+          "error",
+        );
+        setAnchors([]);
+      });
+  }, [anchorMode]);
+
   const options: FilterOption[] = [];
 
-  if (mode === "document" || mode === "all") {
+  if (!anchorMode && (mode === "document" || mode === "all")) {
     for (const documentMeta of allDocuments) {
       const isViewable = extensions.has(documentMeta.extension);
 
@@ -75,7 +115,7 @@ export function AnythingPicker({
     }
   }
 
-  if (mode !== "document") {
+  if (!anchorMode && mode !== "document") {
     for (const pageMeta of allPages) {
       // Sanitize the page name
       if (!pageMeta.name) {
@@ -160,6 +200,10 @@ export function AnythingPicker({
     }
   }
 
+  if (anchorMode) {
+    options.push(...anchorsToFilterOptions(anchors ?? []));
+  }
+
   const completePrefix = `${folderName(currentPath) || getNameFromPath(currentPath)}/`;
 
   const allowNew = mode !== "document";
@@ -169,21 +213,36 @@ export function AnythingPicker({
   return (
     <FilterList
       placeholder={
-        mode === "page"
-          ? "Page"
-          : mode === "meta"
-            ? "#meta page"
-            : mode === "document"
-              ? "Document"
-              : "Any page or Document, also hidden"
+        anchorMode
+          ? "Anchor"
+          : mode === "page"
+            ? "Page"
+            : mode === "meta"
+              ? "#meta page"
+              : mode === "document"
+                ? "Document"
+                : "Any page or Document, also hidden"
       }
       label="Open"
       options={options}
       darkMode={darkMode}
-      phrasePreprocessor={(phrase) => {
-        phrase = phrase.replaceAll(tagRegex, "").trim();
-        return phrase;
+      onPhraseChange={(phrase) => {
+        const next = phrase.startsWith("$");
+        // Only touch state at the mode boundary. Setting it on every
+        // keystroke would re-render this component and remap the entire
+        // page list each time.
+        if (next !== anchorMode) {
+          setAnchorMode(next);
+        }
       }}
+      phrasePreprocessor={
+        anchorMode
+          ? undefined
+          : (phrase) => {
+              phrase = phrase.replaceAll(tagRegex, "").trim();
+              return phrase;
+            }
+      }
       onKeyPress={(value, event) => {
         const text = value;
         // Pages cannot start with ^, as documented in Page Name Rules
@@ -206,50 +265,68 @@ export function AnythingPicker({
         }
         return false;
       }}
-      preFilter={(options, phrase) => {
-        if (mode === "page") {
-          const allTags = phrase.match(tagRegex);
-          if (allTags) {
-            // Search phrase contains hash tags, let's pre-filter the results based on this
-            const filterTags = allTags.map((t) => extractHashtag(t));
-            options = options.filter((page) => {
-              if (!page.meta.tags) {
-                return false;
+      preFilter={
+        anchorMode
+          ? undefined
+          : (options, phrase) => {
+              if (mode === "page") {
+                const allTags = phrase.match(tagRegex);
+                if (allTags) {
+                  // Search phrase contains hash tags, let's pre-filter the results based on this
+                  const filterTags = allTags.map((t) => extractHashtag(t));
+                  options = options.filter((page) => {
+                    if (!page.meta.tags) {
+                      return false;
+                    }
+                    return filterTags.every((tag) =>
+                      page.meta.tags.find((itemTag: string) =>
+                        itemTag.startsWith(tag),
+                      ),
+                    );
+                  });
+                }
+                // Remove pages that are tagged as templates or meta
+                options = options.filter((page) => !isMetaPageOption(page));
+              } else if (mode === "meta") {
+                // Filter on pages tagged with "template" or "meta" prefix
+                options = options.filter(isMetaPageOption);
               }
-              return filterTags.every((tag) =>
-                page.meta.tags.find((itemTag: string) =>
-                  itemTag.startsWith(tag),
-                ),
-              );
-            });
-          }
-          // Remove pages that are tagged as templates or meta
-          options = options.filter((page) => !isMetaPageOption(page));
-        } else if (mode === "meta") {
-          // Filter on pages tagged with "template" or "meta" prefix
-          options = options.filter(isMetaPageOption);
-        }
 
-        if (mode !== "all") {
-          // Filter out hidden pages
-          options = options.filter(
-            (page) => !(page.meta.pageDecoration?.hide === true),
-          );
-        }
-        return options;
-      }}
-      allowNew={allowNew}
+              if (mode !== "all") {
+                // Filter out hidden pages
+                options = options.filter(
+                  (page) => !(page.meta.pageDecoration?.hide === true),
+                );
+              }
+              return options;
+            }
+      }
+      allowNew={anchorMode ? false : allowNew}
       helpText={
-        `Press <code>Enter</code> to open the selected ${openablePageNoun}` +
-        (allowNew
-          ? `, or <code>Shift-Enter</code> to create a new ${creatablePageNoun} with this exact name.`
-          : "")
+        anchorMode
+          ? "Press <code>Enter</code> to jump to the selected anchor. If the list below is empty, your space has no anchors yet."
+          : `Press <code>Enter</code> to open the selected ${openablePageNoun}` +
+            (allowNew
+              ? `, or <code>Shift-Enter</code> to create a new ${creatablePageNoun} with this exact name.`
+              : "")
       }
       newHint={`Create ${creatablePageNoun}`}
-      completePrefix={completePrefix}
+      completePrefix={anchorMode ? undefined : completePrefix}
       onSelect={(opt) => {
         if (!opt) {
           onNavigate(null);
+          return;
+        }
+
+        if (opt.type === "anchor") {
+          const anchor = opt.meta as AnchorObject;
+          // Page-qualified on purpose: duplicate anchor names each get
+          // their own row, and this navigates to the one actually picked
+          // instead of tripping the duplicate-anchor error path.
+          onNavigateRef({
+            path: `${anchor.page}.md` as Path,
+            details: { type: "anchor", name: anchor.ref },
+          });
           return;
         }
 

@@ -89,6 +89,7 @@ export async function indexPage(
       ref: frontmatterAnchor,
       page: pageMeta.name,
       hostTag: "page",
+      pageLastModified: pageMeta.lastModified,
     });
   }
 

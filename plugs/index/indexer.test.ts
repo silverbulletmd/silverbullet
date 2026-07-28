@@ -8,7 +8,7 @@ const defaultPageMeta: PageMeta = {
   tag: "page",
   name: "TestPage",
   perm: "rw",
-  lastModified: "",
+  lastModified: "2026-07-01T10:00:00Z",
   created: "",
 };
 
@@ -60,11 +60,49 @@ describe("anchor records", () => {
     });
     const anchors = objects.filter((o: any) => o.tag === "anchor");
     expect(anchors).toHaveLength(1);
-    expect(anchors[0]).toEqual({
+    expect(anchors[0]).toMatchObject({
       tag: "anchor",
       ref: "pete",
       page: "DataPage",
       hostTag: "person",
+      pageLastModified: "2026-07-01T10:00:00Z",
     });
+  });
+
+  test("anchor records carry pageLastModified from the page meta", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(`A paragraph $pp here.\n`, {
+      ...defaultPageMeta,
+      lastModified: "2026-07-02T12:00:00Z",
+    });
+    const anchors = objects.filter((o: any) => o.tag === "anchor");
+    expect(anchors).toHaveLength(1);
+    expect(anchors[0].pageLastModified).toBe("2026-07-02T12:00:00Z");
+  });
+
+  test("list item anchor snippet includes indented child lines", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      `- Item $ii\n  - child one\n  - child two\n`,
+      defaultPageMeta,
+    );
+    const anchors = objects.filter((o: any) => o.tag === "anchor");
+    expect(anchors).toHaveLength(1);
+    // This is the whole point of reusing extractSnippet: a list item's
+    // indented children come along, rather than a bare truncated first line.
+    expect(anchors[0].snippet).toContain("Item $ii");
+    expect(anchors[0].snippet).toContain("child one");
+    expect(anchors[0].snippet).toContain("child two");
+  });
+
+  test("paragraph anchor snippet stops at the paragraph", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      `A paragraph $pp here.\n\nA second unrelated paragraph.\n`,
+      defaultPageMeta,
+    );
+    const anchors = objects.filter((o: any) => o.tag === "anchor");
+    expect(anchors[0].snippet).toContain("A paragraph $pp here.");
+    expect(anchors[0].snippet).not.toContain("second unrelated");
   });
 });

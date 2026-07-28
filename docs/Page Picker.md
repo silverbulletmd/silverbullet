@@ -18,6 +18,8 @@ The main input is the **filter phrase** and can be used to narrow down the list 
 
 If the filter phrase contains `#tags` the results will be filtered based on matching those tags.
 
+If the filter phrase starts with `$`, the picker switches to navigating [[Markdown/Anchor|anchors]] instead of pages: everything after the `$` filters anchor names from across your [[Space]], and each result shows a snippet of the anchored content along with the host page it lives on. Deleting the `$` returns you to the page list. This works from any of the pickers.
+
 > **note** Note
 > Any page tagged with a tag starting with `#meta`, even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Meta Picker]] instead.
 
@@ -25,7 +27,7 @@ If the filter phrase contains `#tags` the results will be filtered based on matc
 > To cycle between the three pickers [[Page Picker]], [[Meta Picker]] and [[Anything Picker]], type `^` in the filter phrase box.
 
 Pressing the `Enter` key will open/create the selected page.
-Pressing `Shift-Enter` will always open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase.
+Pressing `Shift-Enter` will open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase — except in the Document picker and in [[Markdown/Anchor|anchor]] mode, neither of which can create new items this way, so `Shift-Enter` does nothing there.
 
 Therefore, if you _intend to create a new page_, simply type the name of the new page and hit `Shift-Enter`.
 
@@ -36,11 +38,12 @@ When entering a filter phrase, the best matches should appear closer to the top,
 
 # Keyboard shortcuts
 * `Enter`: selects the highlighted page from the list and navigate there. If that page is marked with “Create page” it will create that page.
-* `Shift-Enter`: navigate to the page entered in as the filter phrase.
+* `Shift-Enter`: navigate to the page entered in as the filter phrase, creating it if it doesn't already exist. Does nothing in the Document picker or in anchor mode, where new items can't be created this way.
 * `Space`: with an empty filter phrase will attempt to do something intelligent:
   * If the currently opened page is nested in a [[Folder|folder]], it will auto complete the current folder name in its place.
   * If the currently opened page name starts with an emoji, it will complete that emoji in its place.
   * Otherwise, it will complete the full page name of the currently open page.
+* Typing `$` at the start of the filter phrase switches to [[Markdown/Anchor|anchor]] navigation
 * `ArrowUp`/`ArrowDown`: move up and down the highlighted page list
 * `PageUp`/`PageDown`: move up and down 5 entries in the page list in one go
 * `Home`: moves to the start of the list

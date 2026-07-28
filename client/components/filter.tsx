@@ -16,6 +16,7 @@ export function FilterList({
   label,
   onSelect,
   onKeyPress,
+  onPhraseChange,
   preFilter,
   phrasePreprocessor,
   allowNew = false,
@@ -28,6 +29,7 @@ export function FilterList({
   options: FilterOption[];
   label: string;
   onKeyPress?: (value: string, event: KeyboardEvent) => boolean;
+  onPhraseChange?: (phrase: string) => void;
   onSelect: (option: FilterOption | undefined) => void;
   preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
   phrasePreprocessor?: (phrase: string) => string;
@@ -80,6 +82,10 @@ export function FilterList({
   }, [options, text]);
 
   useEffect(() => {
+    onPhraseChange?.(text);
+  }, [text]);
+
+  useEffect(() => {
     function closer() {
       onSelect(undefined);
     }
@@ -120,7 +126,7 @@ export function FilterList({
             if (e.key === "Enter") {
               e.preventDefault();
               onSelect(
-                e.shiftKey
+                e.shiftKey && allowNew
                   ? { name: text, type: "page" }
                   : matchingOptions[selectedOption],
               );

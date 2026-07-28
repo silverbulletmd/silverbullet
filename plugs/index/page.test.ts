@@ -34,3 +34,30 @@ test("Test page indexing", async () => {
   expect(pm.hello2).toEqual(12);
   expect(pm.itags).toEqual(["page"]);
 });
+
+test("frontmatter $ref anchor record carries pageLastModified", async () => {
+  createMockSystem();
+  const tree = parseMarkdown(`---\n$ref: today\n---\n\nSome text.\n`);
+  const frontmatter = extractFrontMatter(tree);
+
+  const pageMeta: PageMeta = {
+    ref: "Journal",
+    name: "Journal",
+    tag: "page",
+    created: "",
+    lastModified: "2026-07-03T09:00:00Z",
+    perm: "rw",
+  };
+
+  const results = await indexPage(pageMeta, frontmatter, tree);
+  const anchor = results.find((o: any) => o.tag === "anchor");
+  expect(anchor).toMatchObject({
+    tag: "anchor",
+    ref: "today",
+    page: "Journal",
+    hostTag: "page",
+    pageLastModified: "2026-07-03T09:00:00Z",
+  });
+  // Page-level anchors have no host range, so there is nothing to snippet.
+  expect((anchor as any).snippet).toBeUndefined();
+});

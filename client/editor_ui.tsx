@@ -371,6 +371,16 @@ export class MainUI {
                 }
               });
             }}
+            onNavigateRef={(ref) => {
+              dispatch({ type: "stop-navigate" });
+              setTimeout(() => {
+                client.focus();
+              });
+              // client.navigate resolves $-anchor refs to a page + position.
+              safeRun(async () => {
+                await client.navigate(ref);
+              });
+            }}
           />
         )}
         {viewState.showCommandPalette && (
