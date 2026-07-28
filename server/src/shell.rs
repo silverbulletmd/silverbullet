@@ -1,3 +1,28 @@
+/// Whether a `SB_SHELL_BACKEND` value names a backend that actually runs
+/// commands: `local` (also the default when unset) does, anything else fails
+/// safe to disabled. Shared by the single-space env parser and the
+/// multi-space kill switch so the two can't drift apart.
+pub fn backend_enables(backend: Option<&str>) -> bool {
+    backend
+        .map(|b| b.trim().eq_ignore_ascii_case("local"))
+        .unwrap_or(true)
+}
+
+/// Reads `SB_SHELL_BACKEND` and reports whether it disables shell execution
+/// process-wide.
+///
+/// In multi-space mode this is a one-way kill switch: it can force the shell
+/// off for every space, but never turns it *on* for a space whose
+/// `spaces.json` disabled it. That keeps an operator who set
+/// `SB_SHELL_BACKEND=off` on a single-space server from silently gaining
+/// remote command execution when they migrate to multi-space.
+pub fn disabled_by_env() -> bool {
+    let backend = std::env::var("SB_SHELL_BACKEND")
+        .ok()
+        .filter(|v| !v.is_empty());
+    !backend_enables(backend.as_deref())
+}
+
 /// Shell-execution policy. `enabled` reflects whether command running is on at
 /// all; an empty `whitelist` means any command is allowed, otherwise only the
 /// listed command names may run.
@@ -24,10 +49,7 @@ impl ShellConfig {
     /// case-insensitively); any other value fails safe to disabled, and
     /// read-only always disables.
     pub fn parse(backend: Option<&str>, whitelist: Option<&str>, read_only: bool) -> Self {
-        let backend_enables = backend
-            .map(|b| b.trim().eq_ignore_ascii_case("local"))
-            .unwrap_or(true);
-        let enabled = !read_only && backend_enables;
+        let enabled = !read_only && backend_enables(backend);
         let whitelist = whitelist
             .map(|w| w.split_whitespace().map(|s| s.to_string()).collect())
             .unwrap_or_default();

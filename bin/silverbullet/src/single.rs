@@ -125,6 +125,10 @@ pub async fn run_single(config: Config) -> Result<(), String> {
         version: crate::VERSION.to_string(),
         main_port: config.port,
         disable_service_worker: config.disable_service_worker,
+        // Redundant here — `synthesize_config` already folded the env value
+        // into the single space's own `shell.enabled` — but keeping it in sync
+        // means the two modes can't disagree about what the variable means.
+        shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
     };
 
@@ -205,6 +209,7 @@ mod tests {
             index_page: "index".into(),
             space_name: "SilverBullet".into(),
             disable_service_worker: false,
+            shell_disabled: false,
             log_push: false,
             additional_head_html: String::new(),
             theme_color: "#e1e1e1".into(),

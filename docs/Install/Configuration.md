@@ -51,7 +51,7 @@ To force the classic single-space server on an empty folder, pass `--single` (or
 > **note** Note
 > These variables configure authentication for a **single-space** server. In [[Space Manager|multi-space]] mode, these options are enabled at a per-space level from the UI
 
-* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]].
+* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]]. Unlike the other variables in this section, this one still applies in [[Space Manager|multi-space]] mode, where it acts as a server-wide kill switch: setting it to `off` disables shell commands for **every** space regardless of that space's own setting. It can only ever disable — it will not enable the shell for a space that has it turned off.
 * `SB_SHELL_WHITELIST`: Allow only a specific list of shell commands (just the first command name, not arguments). When not set, allows all shell commands. Example: `SB_SHELL_WHITELIST="git pandoc"`
 
 # Docker

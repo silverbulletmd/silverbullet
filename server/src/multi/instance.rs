@@ -56,6 +56,11 @@ pub struct InstanceDeps {
     pub version: String,
     pub main_port: u16,
     pub disable_service_worker: bool,
+    /// Process-global shell kill switch from `SB_SHELL_BACKEND` (see
+    /// `shell::disabled_by_env`). When set, no space runs shell commands
+    /// regardless of its own `spaces.json` settings. It only ever disables:
+    /// a space that turned the shell off stays off.
+    pub shell_disabled: bool,
     /// Content seeded into a brand-new empty space's index page. The bin
     /// crate supplies the rich `space_template/index.md`; test helpers in
     /// this crate can use any short string.
@@ -410,7 +415,7 @@ fn try_build_state(
         None
     };
 
-    let shell_enabled = config.shell.enabled && !config.read_only;
+    let shell_enabled = config.shell.enabled && !config.read_only && !deps.shell_disabled;
     Ok(ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
@@ -449,7 +454,7 @@ fn try_build_state(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceConfig};
+    use crate::multi::config::{Binding, ShellSettings, SpaceConfig};
     use silverbullet_server_common::space::MemorySpacePrimitives;
 
     fn test_deps(root: &std::path::Path) -> InstanceDeps {
@@ -469,6 +474,7 @@ mod tests {
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
+            shell_disabled: false,
             index_template: "# Test space\n".into(),
         }
     }
@@ -526,6 +532,37 @@ mod tests {
         );
         assert_eq!(inst.prefix, "/work");
         assert!(inst.router.is_some());
+    }
+
+    #[test]
+    fn shell_kill_switch_overrides_per_space_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.shell = ShellSettings {
+            enabled: true,
+            whitelist: vec!["git".into()],
+        };
+
+        // Baseline: with no process-global override, spaces.json decides.
+        let mut deps = test_deps(dir.path());
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        assert!(state.shell.enabled);
+        assert_eq!(state.boot_config.shell_backend, "local");
+
+        // `SB_SHELL_BACKEND=off` forces the shell off for every space,
+        // whatever spaces.json says (regression guard: a single-space server
+        // that disabled the shell must keep it disabled after migrating).
+        deps.shell_disabled = true;
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        assert!(!state.shell.enabled);
+        assert_eq!(state.boot_config.shell_backend, "noop");
     }
 
     #[test]

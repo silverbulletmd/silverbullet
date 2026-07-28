@@ -82,6 +82,7 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         version: crate::VERSION.to_string(),
         main_port: config.port,
         disable_service_worker: config.disable_service_worker,
+        shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
     };
 
@@ -91,6 +92,24 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         "SilverBullet multi-space mode: {} space(s) configured",
         manager.registry().current().instances.len()
     );
+    if config.shell_disabled {
+        // Only worth saying when it actually contradicts spaces.json — the
+        // point is to make the override visible to someone wondering why a
+        // space they configured for shell access can't run commands.
+        let overridden = manager
+            .registry()
+            .current()
+            .instances
+            .values()
+            .filter(|instance| instance.config.shell.enabled && !instance.config.read_only)
+            .count();
+        if overridden > 0 {
+            tracing::warn!(
+                "SB_SHELL_BACKEND disables shell command execution server-wide, \
+                 overriding {overridden} space(s) that enable it in spaces.json"
+            );
+        }
+    }
 
     // Metrics on a dedicated port (server-global, aggregated across spaces).
     if let (Some(mport), Some(metrics)) = (config.metrics_port, metrics.clone()) {
