@@ -16,7 +16,7 @@ FROM alpine:latest
 # binary (silverbullet-amd64 / silverbullet-arm64, built on the CI runner).
 ARG TARGETARCH
 
-RUN apk add --no-cache git curl bash tini
+RUN apk add --no-cache git curl bash tini openssh-client
 
 ENV SB_HOSTNAME=0.0.0.0 \
     SB_FOLDER=/space \
