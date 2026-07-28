@@ -158,9 +158,11 @@ class Printer {
       case "TableConstructor":
         return this.tableConstructor(e.fields, depth);
       case "FunctionDefinition":
-        return (
-          "function" + this.functionRest(e.body.parameters, e.body.block, depth)
-        );
+        return `function${this.functionRest(
+          e.body.parameters,
+          e.body.block,
+          depth,
+        )}`;
       case "FunctionCall":
         return this.functionCall(e, depth);
       case "Query": {

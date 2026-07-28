@@ -70,7 +70,7 @@ export const jsApi = new LuaTable({
     callback: async (_sf, path: string) => {
       const base = document.baseURI.replace(/\/*$/, "/");
       const rel = String(path).replace(/^\/+/, "");
-      let m = await import(base + fsEndpoint.slice(1) + "/" + rel);
+      let m = await import(`${base}${fsEndpoint.slice(1)}/${rel}`);
       // Unwrap default if it exists (same contract as `js.import`).
       if (Object.keys(m).length === 1 && m.default) {
         m = m.default;

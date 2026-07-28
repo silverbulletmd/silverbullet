@@ -45,6 +45,7 @@
       "!**/website_build",
       "!**/test-results",
       "!**/.chrome-data",
+      "!target",
       "!**/*.html",
       "!**/*.plug.js",
       "!plugs/*/assets",
