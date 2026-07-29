@@ -23,6 +23,18 @@ impl Drop for Server {
 mod common;
 use common::free_port;
 
+const AUTH_TOKEN: &str = "runtime-e2e-token";
+
+fn chrome_available() -> bool {
+    std::env::var("SB_CHROME_PATH")
+        .ok()
+        .is_some_and(|path| std::path::Path::new(&path).is_file())
+        || std::env::var("CHROMIUM_PATH")
+            .ok()
+            .is_some_and(|path| std::path::Path::new(&path).is_file())
+        || silverbullet_server_runtime_chrome::find_chrome().is_some()
+}
+
 /// Poll `cond` until it returns true or the deadline passes. On timeout, dump the
 /// server's captured stdout/stderr and panic with `msg`.
 fn wait_until(
@@ -58,7 +70,7 @@ fn dump_and_panic(server: &mut Server, msg: &str) -> ! {
 
 #[test]
 fn runtime_api_evaluates_lua_against_headless_chrome() {
-    if silverbullet_server_runtime_chrome::find_chrome().is_none() {
+    if !chrome_available() {
         eprintln!("skipping runtime_e2e: no Chrome/Chromium found on this machine");
         return;
     }
@@ -74,6 +86,8 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
         .arg("-L")
         .arg("127.0.0.1")
         .arg("--single")
+        .env("SB_USER", "runtime-e2e:runtime-e2e-password")
+        .env("SB_AUTH_TOKEN", AUTH_TOKEN)
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .env("SB_CHROME_DATA_DIR", &chrome_data)
         .stdout(Stdio::piped())
@@ -84,6 +98,18 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
 
     let base = format!("http://127.0.0.1:{port}");
     let http = reqwest::blocking::Client::builder()
+        .default_headers({
+            let mut headers = reqwest::header::HeaderMap::new();
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {AUTH_TOKEN}").parse().unwrap(),
+            );
+            headers
+        })
+        .timeout(Duration::from_secs(15))
+        .build()
+        .unwrap();
+    let anonymous_http = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(15))
         .build()
         .unwrap();
@@ -101,7 +127,18 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
         "server never answered /.ping",
     );
 
-    // 2) Runtime ready: /.runtime/lua returns 200 (not 503 bridge_unavailable)
+    // 2) The runtime endpoint itself remains protected.
+    assert_eq!(
+        anonymous_http
+            .post(format!("{base}/.runtime/lua"))
+            .body("1 + 1")
+            .send()
+            .unwrap()
+            .status(),
+        reqwest::StatusCode::UNAUTHORIZED
+    );
+
+    // 3) Runtime ready: /.runtime/lua returns 200 (not 503 bridge_unavailable)
     //    once the headless client has connected. Body `1 + 1` is an expression;
     //    evalLua prepends `return `, so it evaluates to 2.
     let mut lua_result = String::new();
@@ -128,7 +165,7 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
         "1 + 1 should eval to 2"
     );
 
-    // 3) lua_script: a full script (no implicit `return` prepended).
+    // 4) lua_script: a full script (no implicit `return` prepended).
     let script = http
         .post(format!("{base}/.runtime/lua_script"))
         .body("return 1 + 1")

@@ -12,6 +12,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chromiumoxide::browser::{Browser, BrowserConfig};
+use chromiumoxide::cdp::browser_protocol::network::{CookieParam, CookieSameSite};
 use chromiumoxide::cdp::js_protocol::runtime::{
     ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled,
 };
@@ -19,6 +20,7 @@ use chromiumoxide::error::CdpError;
 use chromiumoxide::page::Page;
 use futures::StreamExt;
 use serde_json::Value;
+use silverbullet_server::auth::HEADLESS_AUTH_COOKIE;
 use silverbullet_server::runtime::{LogBuffer, LogEntry, RuntimeError};
 use tokio::sync::{Mutex, Notify};
 
@@ -111,12 +113,40 @@ fn now_millis() -> i64 {
         .unwrap_or(0)
 }
 
-/// Build the headless page URL from the configured server URL, trimming a
-/// trailing slash and appending `?headless=1&token=…`. The token is always
-/// present; an open (no-auth) server simply ignores it.
+/// Build the headless page URL from the configured server URL. Authentication
+/// is carried in a same-origin, HTTP-only cookie seeded through CDP before
+/// navigation rather than in the URL.
 fn page_url(config: &ChromeConfig) -> String {
     let base = config.server_url.trim_end_matches('/');
-    format!("{base}/?headless=1&token={}", config.headless_token)
+    format!("{base}/?headless=1")
+}
+
+fn cookie_path(server_url: &str) -> String {
+    let path = server_url
+        .split_once("://")
+        .and_then(|(_, authority_and_path)| {
+            authority_and_path
+                .find('/')
+                .map(|index| &authority_and_path[index..])
+        })
+        .unwrap_or("/");
+    let path = path.trim_end_matches('/');
+    if path.is_empty() {
+        "/".to_string()
+    } else {
+        path.to_string()
+    }
+}
+
+fn headless_cookie(config: &ChromeConfig) -> Result<CookieParam, String> {
+    CookieParam::builder()
+        .name(HEADLESS_AUTH_COOKIE)
+        .value(&config.headless_token)
+        .url(&config.server_url)
+        .path(cookie_path(&config.server_url))
+        .http_only(true)
+        .same_site(CookieSameSite::Strict)
+        .build()
 }
 
 /// Launch a fresh browser + page, attach console capture, wait for the client
@@ -165,9 +195,16 @@ async fn launch_once(
     });
 
     let page = browser
-        .new_page(page_url(config).as_str())
+        .new_page("about:blank")
         .await
         .map_err(|e| format!("new page: {e}"))?;
+
+    page.set_cookie(headless_cookie(config)?)
+        .await
+        .map_err(|e| format!("headless auth cookie: {e}"))?;
+    page.goto(page_url(config).as_str())
+        .await
+        .map_err(|e| format!("headless page navigation: {e}"))?;
 
     attach_console_capture(&page, logs, config.log_console)
         .await
@@ -343,6 +380,44 @@ pub async fn supervise(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn config(server_url: &str) -> ChromeConfig {
+        ChromeConfig {
+            chrome_path: "/chrome".to_string(),
+            server_url: server_url.to_string(),
+            headless_token: "secret".to_string(),
+            user_data_dir: "/tmp/chrome".to_string(),
+            show: false,
+            log_console: false,
+        }
+    }
+
+    #[test]
+    fn headless_navigation_uses_cookie_instead_of_query_token() {
+        let config = config("http://127.0.0.1:3000");
+        assert_eq!(page_url(&config), "http://127.0.0.1:3000/?headless=1");
+        assert!(!page_url(&config).contains("secret"));
+
+        let cookie = headless_cookie(&config).unwrap();
+        assert_eq!(cookie.name, HEADLESS_AUTH_COOKIE);
+        assert_eq!(cookie.value, "secret");
+        assert_eq!(cookie.url.as_deref(), Some("http://127.0.0.1:3000"));
+        assert_eq!(cookie.path.as_deref(), Some("/"));
+        assert_eq!(cookie.http_only, Some(true));
+        assert_eq!(cookie.same_site, Some(CookieSameSite::Strict));
+        assert_eq!(cookie.expires, None);
+    }
+
+    #[test]
+    fn headless_cookie_is_scoped_to_space_prefix() {
+        let config = config("http://127.0.0.1:3000/spaces/my-space");
+        let cookie = headless_cookie(&config).unwrap();
+        assert_eq!(cookie.path.as_deref(), Some("/spaces/my-space"));
+        assert_eq!(
+            page_url(&config),
+            "http://127.0.0.1:3000/spaces/my-space/?headless=1"
+        );
+    }
 
     #[test]
     fn console_level_maps_severity() {

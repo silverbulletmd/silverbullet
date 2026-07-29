@@ -1,9 +1,15 @@
 use crate::auth::authorizer::{AuthContext, RequestAuthorizer};
 use crate::auth::config::constant_time_eq;
+use crate::auth::cookie::cookie_value;
+
+/// Session cookie used only by the server-managed headless Chrome runtime.
+pub const HEADLESS_AUTH_COOKIE: &str = "silverbullet_headless";
 
 /// Wraps an inner authorizer, additionally accepting any request that carries
-/// `?token=<headless_token>` in its query string (constant-time compared). This
-/// lets the headless browser page authenticate via the URL the server hands it.
+/// the headless token in its query string or dedicated session cookie
+/// (constant-time compared). The query form authenticates the initial page on
+/// older runtime clients; current clients seed the cookie through CDP so every
+/// subsequent same-origin request remains authenticated.
 pub struct HeadlessTokenAuthorizer {
     inner: Box<dyn RequestAuthorizer>,
     token: String,
@@ -28,11 +34,21 @@ impl HeadlessTokenAuthorizer {
         }
         false
     }
+
+    fn cookie_token_matches(&self, headers: &axum::http::HeaderMap) -> bool {
+        if self.token.is_empty() {
+            return false;
+        }
+        cookie_value(headers, HEADLESS_AUTH_COOKIE)
+            .is_some_and(|value| constant_time_eq(value.as_bytes(), self.token.as_bytes()))
+    }
 }
 
 impl RequestAuthorizer for HeadlessTokenAuthorizer {
     fn is_authorized(&self, ctx: &AuthContext) -> bool {
-        self.query_token_matches(ctx.query) || self.inner.is_authorized(ctx)
+        self.query_token_matches(ctx.query)
+            || self.cookie_token_matches(ctx.headers)
+            || self.inner.is_authorized(ctx)
     }
 }
 
@@ -69,6 +85,28 @@ mod tests {
         let a = HeadlessTokenAuthorizer::new(Box::new(DenyAll), "secret".into());
         assert!(a.is_authorized(&ctx(Some("headless=1&token=secret"), &h)));
         assert!(a.is_authorized(&ctx(Some("token=secret"), &h)));
+    }
+
+    #[test]
+    fn accepts_matching_headless_cookie() {
+        let mut h = HeaderMap::new();
+        h.insert(
+            "cookie",
+            "other=value; silverbullet_headless=secret".parse().unwrap(),
+        );
+        let a = HeadlessTokenAuthorizer::new(Box::new(DenyAll), "secret".into());
+        assert!(a.is_authorized(&ctx(None, &h)));
+    }
+
+    #[test]
+    fn rejects_wrong_headless_cookie() {
+        let mut h = HeaderMap::new();
+        h.insert(
+            "cookie",
+            "silverbullet_headless=wrong; other=value".parse().unwrap(),
+        );
+        let a = HeadlessTokenAuthorizer::new(Box::new(DenyAll), "secret".into());
+        assert!(!a.is_authorized(&ctx(None, &h)));
     }
 
     #[test]

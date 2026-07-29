@@ -5,9 +5,8 @@ use std::path::Path;
 pub struct ChromeConfig {
     pub chrome_path: String,
     pub server_url: String,
-    /// Headless auth token, always appended to the page URL as `&token=…`. When
-    /// authentication is disabled the open server ignores it; when enabled, the
-    /// headless-token authorizer accepts it so the headless page is authorized.
+    /// Headless auth token seeded as a same-origin, HTTP-only session cookie
+    /// before the managed browser navigates to the SilverBullet client.
     pub headless_token: String,
     pub user_data_dir: String,
     pub show: bool,
