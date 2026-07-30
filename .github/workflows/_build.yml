@@ -5,11 +5,6 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  # sccache caches compiled objects across Cargo.lock changes (rust-cache alone
-  # invalidates fully on dep changes). Valuable here: each job compiles several
-  # release targets.
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: sccache
 
 jobs:
   build-linux:
@@ -34,24 +29,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: linux-cross
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.10
-
-      # GHA Cache occasionally returns Azure edge errors; if the sccache daemon
-      # can't reach the backend it refuses to start, failing every rustc call.
-      # Probe once and disable for this job on outage — a slow build beats a
-      # failed release.
-      - name: Probe sccache backend, disable on outage
-        shell: bash
-        run: |
-          if sccache --start-server; then
-            echo "sccache backend reachable"
-          else
-            echo "::warning::sccache backend unreachable — disabling for this job"
-            echo "RUSTC_WRAPPER=" >> "$GITHUB_ENV"
-            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
-          fi
+          # GHA scopes cache *writes* to the creating ref, so entries written by
+          # a tag run are never readable again — they only evict main's under the
+          # 10 GB repo cap. Tag runs still restore from the default branch.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install cross-toolchains
         run: |
@@ -69,10 +50,7 @@ jobs:
       - name: Build linux/windows binaries (compile once → raw + zips)
         run: make build-linux-ci
 
-      - name: Build FreeBSD sb CLI
-        # FreeBSD cross is fiddly (clang + sysroot): this step fetches a FreeBSD
-        # base sysroot and cross-builds the `sb` CLI against it. It's a
-        # first-class build like the others — a failure here fails the job.
+      - name: Build FreeBSD server + sb CLI
         run: |
           sudo mkdir -p /opt/freebsd-sysroot
           VER=$(curl -fsSL https://download.freebsd.org/releases/amd64/ \
@@ -80,6 +58,7 @@ jobs:
           echo "Latest FreeBSD release: $VER"
           curl -fsSL "https://download.freebsd.org/releases/amd64/$VER/base.txz" \
             | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
+          make build-server-releases-freebsd
           make build-cli-releases-freebsd
 
       - name: Upload release zips (linux/windows/freebsd)
@@ -121,20 +100,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: macos
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.10
-
-      - name: Probe sccache backend, disable on outage
-        shell: bash
-        run: |
-          if sccache --start-server; then
-            echo "sccache backend reachable"
-          else
-            echo "::warning::sccache backend unreachable — disabling for this job"
-            echo "RUSTC_WRAPPER=" >> "$GITHUB_ENV"
-            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
-          fi
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install npm dependencies
         run: npm ci

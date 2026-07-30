@@ -120,6 +120,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: e2e-debug
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install dependencies
         run: npm ci
@@ -164,6 +165,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: e2e-release
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install dependencies
         run: npm ci
@@ -345,8 +347,6 @@ jobs:
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: "Runtime API: Extract metadata"
         id: rc_meta
@@ -372,8 +372,6 @@ jobs:
             BASE_IMAGE=ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           tags: ${{ steps.rc_meta.outputs.tags }}
           labels: ${{ steps.rc_meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   docker-website:
     needs: [config, docker]
