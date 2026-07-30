@@ -564,3 +564,114 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
         "password changes must revoke existing sessions immediately"
     );
 }
+
+/// The session-policy environment variables are documented for both modes, and
+/// multi-space sessions are server-wide, so `SB_REMEMBER_ME_HOURS` must size
+/// the remember-me window on both account-managed login surfaces: the unified
+/// `/.spaces` JSON login and a space's own `/.auth` form post.
+#[test]
+fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
+    let (_srv, _root, base) = start_multi(&[("SB_REMEMBER_ME_HOURS", "2")]);
+
+    let admin = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap();
+    let login = admin
+        .post(format!("{base}/.spaces/api/login"))
+        .json(&serde_json::json!({
+            "username": ADMIN_USER,
+            "password": ADMIN_PASSWORD,
+            "rememberMe": true
+        }))
+        .send()
+        .unwrap();
+    assert!(login.status().is_success());
+    assert!(
+        max_ages(&login).iter().all(|age| age == "7200"),
+        "/.spaces session must last SB_REMEMBER_ME_HOURS=2, got {:?}",
+        max_ages(&login)
+    );
+
+    let resp = admin
+        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .json(&serde_json::json!({
+            "name": "Private",
+            "binding": { "prefix": "/private" }
+        }))
+        .send()
+        .unwrap();
+    assert!(resp.status().is_success(), "{}", resp.text().unwrap());
+
+    let via_space = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap()
+        .post(format!("{base}/private/.auth"))
+        .form(&[
+            ("username", ADMIN_USER),
+            ("password", ADMIN_PASSWORD),
+            ("rememberMe", "on"),
+            ("from", ""),
+        ])
+        .send()
+        .unwrap();
+    assert!(via_space.status().is_success());
+    assert!(
+        max_ages(&via_space).iter().all(|age| age == "7200"),
+        "space session must last SB_REMEMBER_ME_HOURS=2, got {:?}",
+        max_ages(&via_space)
+    );
+}
+
+/// Same contract for the lockout pair: with a limit of one, the very first bad
+/// password locks the surface, so the next attempt is rejected as locked out
+/// even though its credentials are correct.
+#[test]
+fn lockout_env_vars_apply_in_multi_space_mode() {
+    let (_srv, _root, base) = start_multi(&[
+        ("SB_LOCKOUT_LIMIT", "1"),
+        // A long window so the wall-clock bucket can't roll between the two
+        // requests below (they are milliseconds apart).
+        ("SB_LOCKOUT_TIME", "3600"),
+    ]);
+    let client = reqwest::blocking::Client::new();
+    let attempt = |password: &str| -> String {
+        client
+            .post(format!("{base}/.spaces/api/login"))
+            .json(&serde_json::json!({ "username": ADMIN_USER, "password": password }))
+            .send()
+            .unwrap()
+            .json::<serde_json::Value>()
+            .unwrap()["error"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    };
+    assert!(attempt("wrongpw").contains("Invalid username"));
+    assert!(
+        attempt(ADMIN_PASSWORD).contains("Too many failed attempts"),
+        "SB_LOCKOUT_LIMIT=1 must lock the surface after a single failure"
+    );
+}
+
+/// Every `Max-Age` on the response's `Set-Cookie` headers. Login sets the
+/// session cookie and (on remember-me, single-space style) a `refreshLogin`
+/// marker; both are scoped to the same window.
+fn max_ages(response: &reqwest::blocking::Response) -> Vec<String> {
+    let ages: Vec<String> = response
+        .headers()
+        .get_all(reqwest::header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .filter_map(|cookie| {
+            cookie
+                .split(';')
+                .map(str::trim)
+                .find_map(|part| part.strip_prefix("Max-Age="))
+                .map(str::to_string)
+        })
+        .collect();
+    assert!(!ages.is_empty(), "login set no Max-Age cookie");
+    ages
+}

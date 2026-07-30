@@ -24,13 +24,13 @@ SilverBullet is primarily configured via environment variables. This page gives 
 
 # Authentication
 > **note** Note
-> These variables configure authentication for a **single-space** server. In [[Space Manager|multi-space]] mode, accounts live in `users.json` and access is per space, so setting `SB_USER` alongside a `spaces.json` is an error — see [[Authentication]].
+> The **credentials** here configure a **single-space** server. In multi-space mode, accounts live in `users.json` and access is per space, so setting `SB_USER` alongside a `spaces.json` is an error — see [[Authentication]]. The lockout and session-duration variables apply in **both** modes: in multi-space mode they are server-wide, matching the session, which spans every space.
 
 * `SB_USER` (single-space only): Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
 * `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Space Manager#API tokens|API tokens]].
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
-* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days.
+* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days. Sessions where "Remember me" was left unchecked always last one week.
 
 # Run mode
 * `SB_READ_ONLY`: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.

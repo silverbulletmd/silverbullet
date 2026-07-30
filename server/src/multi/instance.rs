@@ -16,10 +16,7 @@ use crate::auth::{
     AuthConfig, Authenticator, HeadlessTokenAuthorizer, JwtAuthorizer, LockoutTimer, LoginManager,
     RequestAuthorizer,
 };
-use crate::multi::access::{
-    SpaceUsersAuth, UserTokenAuthorizer, USERS_LOCKOUT_LIMIT, USERS_LOCKOUT_TIME_SECS,
-    USERS_REMEMBER_ME_HOURS,
-};
+use crate::multi::access::{SessionPolicy, SpaceUsersAuth, UserTokenAuthorizer};
 use crate::multi::config::{Binding, SpaceConfig};
 use crate::multi::users::UserStore;
 use crate::multi::validate::normalize_prefix;
@@ -69,12 +66,15 @@ pub struct InstanceDeps {
 
 /// Single-space servers retain their classic environment credentials. An
 /// account-managed multi-space server shares one user store, JWT signing
-/// secret, salt, and browser session across all of its spaces.
+/// secret, salt, browser session, and session policy across all of its spaces.
 pub enum InstanceAuth {
     Single(Option<AuthConfig>),
     Accounts {
         users: Arc<UserStore>,
         authenticator: Arc<Authenticator>,
+        /// Remember-me window and lockout thresholds for every space's
+        /// `/.auth`. Server-wide, like the session it issues.
+        session: SessionPolicy,
     },
 }
 
@@ -352,6 +352,7 @@ fn try_build_state(
         InstanceAuth::Accounts {
             users: store,
             authenticator,
+            session,
         } => {
             let members: BTreeSet<String> = config.members.keys().cloned().collect();
             let jwt: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_filter(
@@ -376,8 +377,8 @@ fn try_build_state(
                 LoginManager::new(
                     authenticator.clone(),
                     verifier,
-                    USERS_REMEMBER_ME_HOURS,
-                    LockoutTimer::from_config(USERS_LOCKOUT_TIME_SECS, USERS_LOCKOUT_LIMIT),
+                    session.remember_me_hours,
+                    session.lockout(),
                     prefix.to_string(),
                 )
                 .with_credential_version(Arc::new(move |username| {
@@ -674,6 +675,7 @@ mod tests {
         deps.auth = InstanceAuth::Accounts {
             users: store,
             authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+            session: SessionPolicy::default(),
         };
         let folder = dir.path().join("pub");
         std::fs::create_dir_all(&folder).unwrap();
@@ -719,6 +721,7 @@ mod tests {
         deps.auth = InstanceAuth::Accounts {
             users: store,
             authenticator,
+            session: SessionPolicy::default(),
         };
 
         let folder = dir.path().join("members");
@@ -793,6 +796,7 @@ mod tests {
         deps.auth = InstanceAuth::Accounts {
             users: store.clone(),
             authenticator: authenticator.clone(),
+            session: SessionPolicy::default(),
         };
 
         let cfg = space_users_model(

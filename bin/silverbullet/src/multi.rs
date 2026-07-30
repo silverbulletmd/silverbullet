@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use silverbullet_server::auth::{Authenticator, MULTI_AUTH_FILE_NAME};
 use silverbullet_server::metrics::Metrics;
+use silverbullet_server::multi::access::SessionPolicy;
 use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{
@@ -66,6 +67,11 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         .map_err(|e| format!("could not initialize server authentication: {e}"))?,
     );
 
+    // Server-wide session policy: sessions minted here are valid across every
+    // space, so the remember-me window and lockout thresholds come from the
+    // environment rather than per-space `spaces.json` config.
+    let session = SessionPolicy::from_env();
+
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
     let deps = InstanceDeps {
         root: root.clone(),
@@ -78,6 +84,7 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         auth: InstanceAuth::Accounts {
             users: store.clone(),
             authenticator: authenticator.clone(),
+            session,
         },
         version: crate::VERSION.to_string(),
         main_port: config.port,
@@ -148,6 +155,7 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         manager.clone(),
         store,
         authenticator,
+        session,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
     ));
     let router = build_main_router(

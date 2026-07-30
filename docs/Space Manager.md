@@ -99,4 +99,5 @@ Single-space mode is the “classic” SilverBullet server: one folder, one spac
 # Notes and limitations
 * Spaces share one OS process and user. This mode is built for a household or team of trusted spaces, not hostile multi-tenancy.
 * Authentication is shared across the server, while authorization remains per space. Password changes and account deletion revoke that user's sessions immediately; membership and admin-role changes also take effect on the next request.
+* Because the session is server-wide, so is its policy: `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT` (see [[Install/Configuration#Authentication]]) apply to every space and to the space list itself, and are set as environment variables rather than per space in `spaces.json`.
 * The runtime API (`runtimeApi`) launches one headless Chrome per enabled space, lazily; it is off by default.

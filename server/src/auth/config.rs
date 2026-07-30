@@ -1,3 +1,7 @@
+pub const DEFAULT_LOCKOUT_LIMIT: u32 = 10;
+pub const DEFAULT_LOCKOUT_TIME_SECS: u64 = 60;
+pub const DEFAULT_REMEMBER_ME_HOURS: u64 = 168;
+
 /// Authentication configuration, derived from environment variables. The
 /// absence of a username means authentication is disabled (open server).
 #[derive(Debug, Clone)]
@@ -56,9 +60,15 @@ impl AuthConfig {
             pass: p.to_string(),
             pass_hash: None,
             auth_token: token.unwrap_or("").to_string(),
-            lockout_limit: lockout_limit.and_then(|v| v.parse().ok()).unwrap_or(10),
-            lockout_time_secs: lockout_time.and_then(|v| v.parse().ok()).unwrap_or(60),
-            remember_me_hours: remember_me.and_then(|v| v.parse().ok()).unwrap_or(168),
+            lockout_limit: lockout_limit
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(DEFAULT_LOCKOUT_LIMIT),
+            lockout_time_secs: lockout_time
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(DEFAULT_LOCKOUT_TIME_SECS),
+            remember_me_hours: remember_me
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(DEFAULT_REMEMBER_ME_HOURS),
         }))
     }
 

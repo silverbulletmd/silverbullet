@@ -561,6 +561,7 @@ mod tests {
             auth: InstanceAuth::Accounts {
                 users,
                 authenticator,
+                session: crate::multi::access::SessionPolicy::default(),
             },
             version: "test".into(),
             main_port: 3000,

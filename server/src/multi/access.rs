@@ -3,17 +3,70 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use crate::auth::{AuthContext, Credentials, RequestAuthorizer};
+use crate::auth::config::{
+    DEFAULT_LOCKOUT_LIMIT, DEFAULT_LOCKOUT_TIME_SECS, DEFAULT_REMEMBER_ME_HOURS,
+};
+use crate::auth::{AuthContext, Credentials, LockoutTimer, RequestAuthorizer};
 use crate::multi::users::UserStore;
 
-/// Session policy shared by the `users.json`-backed surfaces — the admin UI
-/// (`admin_api.rs`) and users-model spaces (`instance.rs`). Kept in one place
-/// so both apply the same remember-me window and lockout thresholds.
-///
-/// Sessions expire after a week, matching the standalone default.
-pub const USERS_REMEMBER_ME_HOURS: u64 = 168;
-pub const USERS_LOCKOUT_TIME_SECS: u64 = 60;
-pub const USERS_LOCKOUT_LIMIT: u32 = 10;
+/// Session policy shared by the `users.json`-backed surfaces
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SessionPolicy {
+    pub remember_me_hours: u64,
+    pub lockout_time_secs: u64,
+    pub lockout_limit: u32,
+}
+
+impl Default for SessionPolicy {
+    fn default() -> Self {
+        Self {
+            remember_me_hours: DEFAULT_REMEMBER_ME_HOURS,
+            lockout_time_secs: DEFAULT_LOCKOUT_TIME_SECS,
+            lockout_limit: DEFAULT_LOCKOUT_LIMIT,
+        }
+    }
+}
+
+impl SessionPolicy {
+    /// Read `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME` and `SB_LOCKOUT_LIMIT`
+    /// from the process environment, mirroring `AuthConfig::from_env`.
+    pub fn from_env() -> Self {
+        let get = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
+        Self::parse(
+            get("SB_REMEMBER_ME_HOURS").as_deref(),
+            get("SB_LOCKOUT_TIME").as_deref(),
+            get("SB_LOCKOUT_LIMIT").as_deref(),
+        )
+    }
+
+    /// Parse raw values, falling back to the default for anything absent or
+    /// unparseable — same lenient handling as single-space mode, where a typo
+    /// leaves the documented default in place instead of refusing to boot.
+    pub fn parse(
+        remember_me_hours: Option<&str>,
+        lockout_time_secs: Option<&str>,
+        lockout_limit: Option<&str>,
+    ) -> Self {
+        let default = Self::default();
+        Self {
+            remember_me_hours: remember_me_hours
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(default.remember_me_hours),
+            lockout_time_secs: lockout_time_secs
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(default.lockout_time_secs),
+            lockout_limit: lockout_limit
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(default.lockout_limit),
+        }
+    }
+
+    /// A fresh lockout counter for this policy. Each login surface gets its
+    /// own, so the thresholds are shared but the counters are not.
+    pub fn lockout(&self) -> LockoutTimer {
+        LockoutTimer::from_config(self.lockout_time_secs, self.lockout_limit)
+    }
+}
 
 pub struct SpaceUsersAuth {
     pub store: Arc<UserStore>,
@@ -85,6 +138,52 @@ impl RequestAuthorizer for UserTokenAuthorizer {
 mod tests {
     use super::*;
     use axum::http::{HeaderMap, HeaderValue, Method};
+
+    #[test]
+    fn session_policy_defaults_match_single_space_mode() {
+        let policy = SessionPolicy::parse(None, None, None);
+        assert_eq!(policy, SessionPolicy::default());
+        // The documented single-space defaults: 7 days, 60s, 10 attempts.
+        assert_eq!(policy.remember_me_hours, 168);
+        assert_eq!(policy.lockout_time_secs, 60);
+        assert_eq!(policy.lockout_limit, 10);
+        let env_style = crate::auth::AuthConfig::try_parse(Some("u:p"), None, None, None, None)
+            .unwrap()
+            .unwrap();
+        assert_eq!(policy.remember_me_hours, env_style.remember_me_hours);
+        assert_eq!(policy.lockout_time_secs, env_style.lockout_time_secs);
+        assert_eq!(policy.lockout_limit, env_style.lockout_limit);
+    }
+
+    #[test]
+    fn session_policy_parses_overrides() {
+        let policy = SessionPolicy::parse(Some("48"), Some("30"), Some("5"));
+        assert_eq!(policy.remember_me_hours, 48);
+        assert_eq!(policy.lockout_time_secs, 30);
+        assert_eq!(policy.lockout_limit, 5);
+    }
+
+    /// A typo must not change the policy (and must not refuse to boot) —
+    /// matching how `AuthConfig` treats an unparseable value.
+    #[test]
+    fn session_policy_ignores_unparseable_values() {
+        let policy = SessionPolicy::parse(Some("forever"), Some(""), Some("-1"));
+        assert_eq!(policy, SessionPolicy::default());
+    }
+
+    #[test]
+    fn session_policy_builds_a_lockout_timer_from_its_thresholds() {
+        let timer = SessionPolicy {
+            lockout_limit: 2,
+            lockout_time_secs: 3600,
+            ..SessionPolicy::default()
+        }
+        .lockout();
+        timer.add_count();
+        assert!(!timer.is_locked());
+        timer.add_count();
+        assert!(timer.is_locked());
+    }
 
     /// Temp `UserStore` with admin `root`, member `bob`, outsider `eve`.
     fn store() -> (tempfile::TempDir, Arc<UserStore>) {

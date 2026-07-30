@@ -18,11 +18,9 @@ use silverbullet_server_common::SpacePrimitives;
 use crate::auth::cookie::set_cookie_value;
 use crate::auth::{
     cookie_value, is_secure_request, request_host, scoped_auth_cookie_name, Authenticator,
-    CookieOptions, LockoutTimer, LoginManager,
+    CookieOptions, LoginManager,
 };
-use crate::multi::access::{
-    AnyUserAuth, USERS_LOCKOUT_LIMIT, USERS_LOCKOUT_TIME_SECS, USERS_REMEMBER_ME_HOURS,
-};
+use crate::multi::access::{AnyUserAuth, SessionPolicy};
 use crate::multi::manager::MultiManager;
 use crate::multi::users::UserStore;
 use crate::router::run_blocking;
@@ -42,6 +40,7 @@ impl SpaceIndexState {
         manager: Arc<MultiManager>,
         users: Arc<UserStore>,
         authenticator: Arc<Authenticator>,
+        session: SessionPolicy,
         client_bundle: Box<dyn SpacePrimitives>,
     ) -> Self {
         // Server-wide, not per-account: `LockoutTimer` counts failures across
@@ -55,7 +54,7 @@ impl SpaceIndexState {
         // having a single surface, and was reviewed and accepted as the
         // tradeoff for unifying them — not an oversight. Changing it means
         // per-account lockout, which is a deliberate design change, not a fix.
-        let lockout = LockoutTimer::from_config(USERS_LOCKOUT_TIME_SECS, USERS_LOCKOUT_LIMIT);
+        let lockout = session.lockout();
         let version_store = users.clone();
         let login = Arc::new(
             LoginManager::new(
@@ -63,7 +62,7 @@ impl SpaceIndexState {
                 Arc::new(AnyUserAuth {
                     store: users.clone(),
                 }),
-                USERS_REMEMBER_ME_HOURS,
+                session.remember_me_hours,
                 lockout,
                 String::new(),
             )
@@ -89,8 +88,8 @@ impl SpaceIndexState {
 struct LoginBody {
     username: String,
     password: String,
-    /// Opt into the longer `USERS_REMEMBER_ME_HOURS` session. Absent in older
-    /// clients, so it defaults to a short session rather than a sticky one.
+    /// Opt into the longer `SessionPolicy::remember_me_hours` session. Absent
+    /// in older clients, so it defaults to a short session, not a sticky one.
     #[serde(default)]
     remember_me: bool,
 }
@@ -278,6 +277,10 @@ mod tests {
     }
 
     fn setup() -> (tempfile::TempDir, Router) {
+        setup_with(SessionPolicy::default())
+    }
+
+    fn setup_with(session: SessionPolicy) -> (tempfile::TempDir, Router) {
         let dir = tempfile::tempdir().unwrap();
         let users = UserStore::create_empty(dir.path()).unwrap();
         users.create_user("admin", "adminpw", true).unwrap();
@@ -295,6 +298,7 @@ mod tests {
             auth: InstanceAuth::Accounts {
                 users: users.clone(),
                 authenticator: authenticator.clone(),
+                session,
             },
             version: "test".into(),
             main_port: 3000,
@@ -329,6 +333,7 @@ mod tests {
             manager,
             users,
             authenticator,
+            session,
             Box::new(bundle),
         ));
         (
@@ -543,6 +548,94 @@ mod tests {
         let raw = response.headers()[header::SET_COOKIE].to_str().unwrap();
         assert!(raw.contains("Path=/;"), "{raw}");
         assert!(raw.contains("HttpOnly"), "{raw}");
+    }
+
+    /// The surface's remember-me window comes from the `SessionPolicy` it was
+    /// built with, not a compiled-in constant: an unchecked "remember me" gets
+    /// the fixed one-week session, checking it gets the configured window.
+    #[tokio::test]
+    async fn remember_me_window_follows_the_session_policy() {
+        let (_dir, router) = setup_with(SessionPolicy {
+            remember_me_hours: 2,
+            ..SessionPolicy::default()
+        });
+        let max_age = |remember: bool| {
+            let router = router.clone();
+            async move {
+                let response = send(
+                    &router,
+                    Request::builder()
+                        .method("POST")
+                        .uri("/api/login")
+                        .header("host", "localhost")
+                        .header("content-type", "application/json")
+                        .body(Body::from(
+                            json!({
+                                "username": "admin",
+                                "password": "adminpw",
+                                "rememberMe": remember
+                            })
+                            .to_string(),
+                        ))
+                        .unwrap(),
+                )
+                .await;
+                let raw = response.headers()[header::SET_COOKIE]
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+                raw.split(';')
+                    .map(str::trim)
+                    .find_map(|part| part.strip_prefix("Max-Age="))
+                    .unwrap_or_default()
+                    .to_string()
+            }
+        };
+        assert_eq!(max_age(true).await, "7200");
+        assert_eq!(
+            max_age(false).await,
+            crate::auth::login::SESSION_EXPIRY_SECS.to_string(),
+            "an ordinary session is unaffected by the remember-me window"
+        );
+    }
+
+    /// Same for the lockout thresholds: a limit of one locks the surface after
+    /// a single failure, so even correct credentials are turned away.
+    #[tokio::test]
+    async fn lockout_thresholds_follow_the_session_policy() {
+        let (_dir, router) = setup_with(SessionPolicy {
+            lockout_limit: 1,
+            lockout_time_secs: 3600,
+            ..SessionPolicy::default()
+        });
+        let attempt = |password: &'static str| {
+            let router = router.clone();
+            async move {
+                json_body(
+                    send(
+                        &router,
+                        Request::builder()
+                            .method("POST")
+                            .uri("/api/login")
+                            .header("host", "localhost")
+                            .header("content-type", "application/json")
+                            .body(Body::from(
+                                json!({ "username": "admin", "password": password }).to_string(),
+                            ))
+                            .unwrap(),
+                    )
+                    .await,
+                )
+                .await["error"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string()
+            }
+        };
+        assert!(attempt("wrong").await.contains("Invalid username"));
+        assert!(attempt("adminpw")
+            .await
+            .contains("Too many failed attempts"));
     }
 
     #[tokio::test]
