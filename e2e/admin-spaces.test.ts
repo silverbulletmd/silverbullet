@@ -149,7 +149,9 @@ test("saving an existing space returns to the list showing the change", async ({
   // they just edited carrying its new name, rather than an unchanged-looking
   // form they have to take on trust.
   await expect(page).toHaveURL(`${base}/.spaces/`);
-  await expect(page.getByRole("link", { name: "Feedback Renamed" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Feedback Renamed" }),
+  ).toBeVisible();
 });
 
 test("the shell allow list is editable, and only shown when shell is enabled", async ({

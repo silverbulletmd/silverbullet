@@ -57,7 +57,9 @@ export function SpaceEditor({
       // screen, so its remaining settings are one step away rather than
       // behind another round trip through the list.
       onSaved={(savedId) =>
-        navigate(id ? spacesUrl("/") : spacesUrl(`/${encodeURIComponent(savedId)}`))
+        navigate(
+          id ? spacesUrl("/") : spacesUrl(`/${encodeURIComponent(savedId)}`),
+        )
       }
       onDeleted={() => navigate(spacesUrl("/"))}
       onUnauthorized={onUnauthorized}

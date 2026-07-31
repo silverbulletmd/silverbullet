@@ -75,9 +75,8 @@ export function SpaceForm({
   );
   // Matches the server's own `runtimeApi` default for a fresh space.
   const [runtimeApi, setRuntimeApi] = useState(initial?.runtimeApi ?? true);
-  const [runtimeAvailability, setRuntimeAvailability] = useState<
-    RuntimeAvailability | null
-  >(null);
+  const [runtimeAvailability, setRuntimeAvailability] =
+    useState<RuntimeAvailability | null>(null);
   const [indexPage, setIndexPage] = useState(initial?.indexPage ?? "index");
   const [errors, setErrors] = useState<FieldError[]>([]);
   // Only ever "saving": a successful save navigates away — to the space list
@@ -149,9 +148,8 @@ export function SpaceForm({
       .then((info) => setRuntimeAvailability(info.runtimeApi))
       .catch(() => {});
   }, []);
-  const runtimeApiUnavailable = runtimeApiUnavailableReason(
-    runtimeAvailability,
-  );
+  const runtimeApiUnavailable =
+    runtimeApiUnavailableReason(runtimeAvailability);
 
   return (
     <form
