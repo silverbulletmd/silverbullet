@@ -53,9 +53,18 @@ jobs:
       - name: Build FreeBSD server + sb CLI
         run: |
           sudo mkdir -p /opt/freebsd-sysroot
+          # Link against the OLDEST release still on the mirror, not the newest.
+          # FreeBSD's libc uses symbol versioning (FBSD_1.x) that is only
+          # backward compatible: a binary linked against 15.1 records a
+          # FBSD_1.9 dependency and then refuses to start on 15.0 or 14.x
+          # ("version FBSD_1.9 required by silverbullet not found"), while one
+          # linked against 14.3 (max FBSD_1.8) runs on everything newer too.
+          # The mirror only carries supported releases, so "oldest available"
+          # tracks the support window on its own and never 404s on a pinned
+          # version that got pruned.
           VER=$(curl -fsSL https://download.freebsd.org/releases/amd64/ \
-            | grep -oE '[0-9]+\.[0-9]+-RELEASE' | sort -V | uniq | tail -1)
-          echo "Latest FreeBSD release: $VER"
+            | grep -oE '[0-9]+\.[0-9]+-RELEASE' | sort -V | uniq | head -1)
+          echo "Oldest supported FreeBSD release (sysroot): $VER"
           curl -fsSL "https://download.freebsd.org/releases/amd64/$VER/base.txz" \
             | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
           make build-server-releases-freebsd
