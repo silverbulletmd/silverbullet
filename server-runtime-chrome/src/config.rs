@@ -1,5 +1,31 @@
 use std::path::Path;
 
+/// Why the headless-Chrome runtime could not be configured. The two causes are
+/// kept apart because the Space Manager shows the administrator which one it
+/// hit — "install a browser" and "you turned this off" need different answers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeUnavailable {
+    /// `SB_RUNTIME_API` is `0`/`false`.
+    DisabledByEnv,
+    /// No browser configured, and none found by the platform scan.
+    NoChrome,
+}
+
+/// Precedence for the browser binary: `SB_CHROME_PATH`, then `CHROMIUM_PATH`,
+/// then a platform scan. Split out with the scan injected so the "nothing
+/// found" branch is testable without depending on what is installed on the
+/// machine running the tests.
+fn chrome_path_from(
+    sb_chrome_path: Option<String>,
+    chromium_path: Option<String>,
+    scan: impl FnOnce() -> Option<String>,
+) -> Result<String, RuntimeUnavailable> {
+    sb_chrome_path
+        .or(chromium_path)
+        .or_else(scan)
+        .ok_or(RuntimeUnavailable::NoChrome)
+}
+
 /// Configuration for the single, server-wide headless browser. Resolved once at
 /// startup and shared by every space's page.
 #[derive(Debug, Clone)]
@@ -12,9 +38,9 @@ pub struct ChromeConfig {
 
 impl ChromeConfig {
     /// Build from the process environment. `server_root` is the server's root
-    /// directory, used for the default profile location. Returns `None` when
-    /// the runtime API is disabled or no Chrome can be found.
-    pub fn from_env(server_root: &Path) -> Option<Self> {
+    /// directory, used for the default profile location. The error says which
+    /// of the two ways this can fail actually happened.
+    pub fn from_env(server_root: &Path) -> Result<Self, RuntimeUnavailable> {
         let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
         let runtime_api_enabled =
             !matches!(env("SB_RUNTIME_API").as_deref(), Some("0") | Some("false"));
@@ -44,11 +70,11 @@ impl ChromeConfig {
         show: bool,
         log_console: bool,
         runtime_api_enabled: bool,
-    ) -> Option<Self> {
+    ) -> Result<Self, RuntimeUnavailable> {
         if !runtime_api_enabled {
-            return None;
+            return Err(RuntimeUnavailable::DisabledByEnv);
         }
-        let chrome_path = sb_chrome_path.or(chromium_path).or_else(find_chrome)?;
+        let chrome_path = chrome_path_from(sb_chrome_path, chromium_path, find_chrome)?;
         let user_data_dir = chrome_data_dir
             .filter(|v| !v.is_empty())
             .unwrap_or_else(|| {
@@ -57,7 +83,7 @@ impl ChromeConfig {
                     .to_string_lossy()
                     .into_owned()
             });
-        Some(Self {
+        Ok(Self {
             chrome_path,
             user_data_dir,
             show,
@@ -187,7 +213,10 @@ fn which_on_path(name: &str) -> Option<String> {
 mod tests {
     use super::*;
 
-    fn resolve(root: &str, chrome_data_dir: Option<&str>) -> Option<ChromeConfig> {
+    fn resolve(
+        root: &str,
+        chrome_data_dir: Option<&str>,
+    ) -> Result<ChromeConfig, RuntimeUnavailable> {
         ChromeConfig::resolve(
             Some("/bin/chrome".into()),
             None,
@@ -242,9 +271,11 @@ mod tests {
         assert_eq!(cfg.chrome_path, "/bin/chromium");
     }
 
+    // `unwrap_err`, not `assert_eq!` on the whole `Result`: `ChromeConfig`
+    // derives `Debug` but not `PartialEq`, so the Ok side is not comparable.
     #[test]
-    fn disabled_runtime_api_resolves_to_nothing() {
-        assert!(ChromeConfig::resolve(
+    fn disabled_runtime_api_reports_the_env_opt_out() {
+        let err = ChromeConfig::resolve(
             Some("/bin/chrome".into()),
             None,
             None,
@@ -253,7 +284,35 @@ mod tests {
             true,
             false,
         )
-        .is_none());
+        .unwrap_err();
+        assert_eq!(err, RuntimeUnavailable::DisabledByEnv);
+    }
+
+    // Driven through `chrome_path_from` with an injected scan rather than
+    // `resolve`, so the result does not depend on whether the machine running
+    // the tests happens to have Chrome installed.
+    #[test]
+    fn no_browser_anywhere_reports_no_chrome() {
+        assert_eq!(
+            chrome_path_from(None, None, || None),
+            Err(RuntimeUnavailable::NoChrome),
+        );
+    }
+
+    #[test]
+    fn explicit_path_beats_chromium_path_and_the_scan() {
+        assert_eq!(
+            chrome_path_from(Some("/a".into()), Some("/b".into()), || Some("/c".into())),
+            Ok("/a".to_string()),
+        );
+        assert_eq!(
+            chrome_path_from(None, Some("/b".into()), || Some("/c".into())),
+            Ok("/b".to_string()),
+        );
+        assert_eq!(
+            chrome_path_from(None, None, || Some("/c".into())),
+            Ok("/c".to_string()),
+        );
     }
 
     #[test]

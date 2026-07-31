@@ -1,3 +1,4 @@
+import type { RuntimeAvailability } from "./runtime_availability.ts";
 import type { FieldError, UserInfo } from "./types.ts";
 
 export async function api(
@@ -51,6 +52,11 @@ export function formatApiError(e: unknown): string {
       .join(", ");
   }
   return "Request failed";
+}
+
+/** Server-level facts for admin screens. See `RuntimeAvailability`. */
+export function getServerInfo(): Promise<{ runtimeApi: RuntimeAvailability }> {
+  return adminApi("GET", "server-info");
 }
 
 // --- User management (backed by users.json via the admin API) ------------

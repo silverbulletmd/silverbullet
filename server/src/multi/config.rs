@@ -61,6 +61,9 @@ impl Default for ShellSettings {
     }
 }
 
+fn default_true() -> bool {
+    true
+}
 fn default_index_page() -> String {
     "index".into()
 }
@@ -91,7 +94,7 @@ pub struct SpaceConfig {
     pub read_only: bool,
     #[serde(default)]
     pub shell: ShellSettings,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub runtime_api: bool,
     #[serde(default = "default_index_page")]
     pub index_page: String,
@@ -295,5 +298,24 @@ mod tests {
         assert!(s.members.contains_key("zef"));
         let out = c.to_json_string().unwrap();
         assert!(out.contains("members"), "{out}");
+    }
+
+    #[test]
+    fn runtime_api_defaults_on_and_honours_an_explicit_false() {
+        let c = MultiConfig::from_json(
+            r#"{
+              "id-on":  { "name": "On",  "binding": { "prefix": "/on" } },
+              "id-off": { "name": "Off", "binding": { "prefix": "/off" }, "runtimeApi": false }
+            }"#,
+        )
+        .unwrap();
+        assert!(
+            c.spaces["id-on"].runtime_api,
+            "an absent runtimeApi defaults to on"
+        );
+        assert!(
+            !c.spaces["id-off"].runtime_api,
+            "an explicit false stays off"
+        );
     }
 }

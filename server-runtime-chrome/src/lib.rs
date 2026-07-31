@@ -6,5 +6,5 @@ mod config;
 mod pool;
 mod supervisor;
 
-pub use config::{find_chrome, ChromeConfig, SpacePage};
+pub use config::{find_chrome, ChromeConfig, RuntimeUnavailable, SpacePage};
 pub use pool::{ChromePool, SharedChromeTransport};

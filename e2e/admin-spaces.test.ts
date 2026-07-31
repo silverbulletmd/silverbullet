@@ -121,9 +121,10 @@ test("editing a space preserves fields the form does not manage", async ({
   await page.getByLabel("Name").fill("Renamed");
   await page.getByRole("button", { name: "Save" }).click();
 
-  // Saving stays on the canonical edit URL, which can be refreshed directly.
-  await expect(page).toHaveURL(`${base}/.spaces/${encodeURIComponent(id)}`);
-  await page.reload();
+  // Saving returns to the space list.
+  await expect(page).toHaveURL(`${base}/.spaces/`);
+  // The canonical edit URL still resolves directly, with the saved value.
+  await page.goto(`${base}/.spaces/${encodeURIComponent(id)}`);
   await expect(page.getByLabel("Name")).toHaveValue("Renamed");
 
   const after = await fetchSpaceViaApi(page, id);
@@ -132,7 +133,7 @@ test("editing a space preserves fields the form does not manage", async ({
   expect(after.description).toBe("Custom description");
 });
 
-test("saving an existing space confirms that the change was applied", async ({
+test("saving an existing space returns to the list showing the change", async ({
   page,
 }) => {
   const id = await createSpaceViaApi(page, {
@@ -142,17 +143,13 @@ test("saving an existing space confirms that the change was applied", async ({
 
   await page.goto(`${base}/.spaces/${encodeURIComponent(id)}`);
   await page.getByLabel("Name").fill("Feedback Renamed");
-
-  // Saving an existing space stays on the URL it started on and re-renders an
-  // identical form, so this confirmation is the *only* signal the user gets.
-  const status = page.locator("[role=status]");
-  await expect(status).toBeHidden();
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(status).toHaveText("✓ Saved");
 
-  // And it clears itself, rather than lingering next to fields the user edits
-  // afterwards and claiming those were saved too.
-  await expect(status).toBeHidden({ timeout: 6000 });
+  // Landing back on the list is the confirmation: the admin sees the space
+  // they just edited carrying its new name, rather than an unchanged-looking
+  // form they have to take on trust.
+  await expect(page).toHaveURL(`${base}/.spaces/`);
+  await expect(page.getByRole("link", { name: "Feedback Renamed" })).toBeVisible();
 });
 
 test("the shell allow list is editable, and only shown when shell is enabled", async ({
@@ -179,7 +176,7 @@ test("the shell allow list is editable, and only shown when shell is enabled", a
 
   await allowed.fill("git pandoc");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.locator("[role=status]")).toHaveText("✓ Saved");
+  await expect(page).toHaveURL(`${base}/.spaces/`);
 
   const after = await fetchSpaceViaApi(page, id);
   expect(after.shell).toEqual({ enabled: true, whitelist: ["git", "pandoc"] });

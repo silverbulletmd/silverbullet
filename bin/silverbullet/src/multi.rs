@@ -15,6 +15,7 @@ use silverbullet_server::multi::instance::{
 use silverbullet_server::multi::manager::MultiManager;
 use silverbullet_server::multi::space_index::{build_spaces_router, SpaceIndexState};
 use silverbullet_server::multi::users::UserStore;
+use silverbullet_server::runtime::RuntimeAvailability;
 
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
@@ -73,13 +74,14 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
     let session = SessionPolicy::from_env();
 
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
+    let (runtime, runtime_availability) = space_runtime_factory(&root);
     let deps = InstanceDeps {
         root: root.clone(),
         assets: AssetFactories {
             client_bundle: Box::new(|| Box::new(EmbeddedSpace::<ClientAssets>::new())),
             base_fs: Box::new(|| Box::new(EmbeddedSpace::<BaseFsAssets>::new())),
         },
-        runtime: space_runtime_factory(&root),
+        runtime,
         metrics: metrics.clone(),
         auth: InstanceAuth::Accounts {
             users: store.clone(),
@@ -150,6 +152,7 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         manager.clone(),
         store.clone(),
         authenticator.clone(),
+        runtime_availability,
     ));
     let spaces_state = Arc::new(SpaceIndexState::new(
         manager.clone(),
@@ -185,26 +188,41 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
         .map_err(|e| format!("server error: {e}"))
 }
 
-/// Build the runtime factory for a server rooted at `server_root`.
+/// Build the runtime factory for a server rooted at `server_root`, plus the
+/// availability the Space Manager reports to administrators.
 ///
 /// One `ChromePool` — one Chrome process — serves every space; each space gets
 /// its own page, log buffer, and auth cookie. The pool is created eagerly but
 /// launches nothing until some space's runtime API is first used.
-pub(crate) fn space_runtime_factory(server_root: &std::path::Path) -> RuntimeFactory {
-    let pool = match silverbullet_server_runtime_chrome::ChromeConfig::from_env(server_root) {
-        Some(config) => match silverbullet_server_runtime_chrome::ChromePool::new(config) {
-            Ok(pool) => Some(pool),
-            Err(e) => {
-                tracing::warn!("runtime API disabled: could not create the Chrome pool: {e}");
-                None
+pub(crate) fn space_runtime_factory(
+    server_root: &std::path::Path,
+) -> (RuntimeFactory, RuntimeAvailability) {
+    use silverbullet_server_runtime_chrome::RuntimeUnavailable;
+
+    let (pool, availability) =
+        match silverbullet_server_runtime_chrome::ChromeConfig::from_env(server_root) {
+            Ok(config) => match silverbullet_server_runtime_chrome::ChromePool::new(config) {
+                Ok(pool) => (Some(pool), RuntimeAvailability::Available),
+                Err(e) => {
+                    tracing::warn!("runtime API disabled: could not create the Chrome pool: {e}");
+                    (
+                        None,
+                        RuntimeAvailability::Failed {
+                            message: e.to_string(),
+                        },
+                    )
+                }
+            },
+            Err(RuntimeUnavailable::DisabledByEnv) => {
+                tracing::info!("runtime API disabled by SB_RUNTIME_API=0");
+                (None, RuntimeAvailability::DisabledByEnv)
             }
-        },
-        None => {
-            tracing::info!("runtime API disabled (no Chrome found, or SB_RUNTIME_API=0)");
-            None
-        }
-    };
-    Box::new(move |req: &RuntimeRequest| {
+            Err(RuntimeUnavailable::NoChrome) => {
+                tracing::info!("runtime API disabled: no Chrome or Chromium found");
+                (None, RuntimeAvailability::NoChrome)
+            }
+        };
+    let factory: RuntimeFactory = Box::new(move |req: &RuntimeRequest| {
         let pool = pool.as_ref()?;
         if req.read_only {
             return None;
@@ -219,7 +237,8 @@ pub(crate) fn space_runtime_factory(server_root: &std::path::Path) -> RuntimeFac
         Some(Box::new(silverbullet_server::runtime::ClientRuntime::new(
             transport, logs,
         )))
-    })
+    });
+    (factory, availability)
 }
 
 #[cfg(unix)]

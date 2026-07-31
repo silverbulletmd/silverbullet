@@ -29,6 +29,8 @@ pub struct AdminState {
     /// it never grants access on its own.
     pub account_authorizer: Arc<dyn RequestAuthorizer>,
     pub users: Arc<UserStore>,
+    /// Server-wide, resolved at startup — see `RuntimeAvailability`.
+    pub runtime_availability: crate::runtime::RuntimeAvailability,
 }
 
 impl AdminState {
@@ -40,6 +42,7 @@ impl AdminState {
         manager: Arc<MultiManager>,
         users: Arc<UserStore>,
         authenticator: Arc<Authenticator>,
+        runtime_availability: crate::runtime::RuntimeAvailability,
     ) -> Self {
         let is_admin_token = {
             let store = users.clone();
@@ -85,6 +88,7 @@ impl AdminState {
             authorizer,
             account_authorizer,
             users,
+            runtime_availability,
         }
     }
 }
@@ -422,6 +426,12 @@ async fn handle_fs_dirs(
     }
 }
 
+/// Server-level facts an administrator's screens need. An object rather than a
+/// bare availability so later server-level fields have somewhere to go.
+async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
+    Json(json!({ "runtimeApi": state.runtime_availability })).into_response()
+}
+
 /// Path status + subdirectory suggestions for a folder-picker field. Relative
 /// input resolves against the server root; directory names only. Shared with
 /// the setup surface (`GET /.setup/api/fs/dirs`) so both the admin space form
@@ -504,6 +514,7 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
                 .delete(handle_delete),
         )
         .route("/fs/dirs", get(handle_fs_dirs))
+        .route("/server-info", get(handle_server_info))
         .route("/users", get(handle_list_users).post(handle_create_user))
         .route(
             "/users/{name}",
@@ -574,6 +585,13 @@ mod tests {
     pub(crate) fn admin_router(
         dir: &tempfile::TempDir,
     ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
+        admin_router_with_runtime(dir, crate::runtime::RuntimeAvailability::Available)
+    }
+
+    pub(crate) fn admin_router_with_runtime(
+        dir: &tempfile::TempDir,
+        runtime_availability: crate::runtime::RuntimeAvailability,
+    ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
         let users = UserStore::create_empty(dir.path()).unwrap();
         users.create_user("admin", "adminpw1", true).unwrap();
         let authenticator = test_authenticator();
@@ -587,6 +605,7 @@ mod tests {
             manager.clone(),
             users.clone(),
             authenticator,
+            runtime_availability,
         ));
         // Nested at `/api` so these tests address the same URIs the unified
         // surface exposes at `/api/admin/...` minus its own prefix.
@@ -625,6 +644,25 @@ mod tests {
             .unwrap()
     }
 
+    #[tokio::test]
+    async fn server_info_reports_runtime_availability_and_is_admin_gated() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _manager, users) =
+            admin_router_with_runtime(&dir, crate::runtime::RuntimeAvailability::NoChrome);
+
+        // No session at all: the browser should be sent to log in.
+        let resp = send(&router, get("/api/server-info")).await;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let cookie = session_cookie(&users, "admin");
+        let resp = authed(&router, "GET", "/api/server-info", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            body_json(resp).await,
+            serde_json::json!({ "runtimeApi": { "status": "no_chrome" } }),
+        );
+    }
+
     #[test]
     fn admin_and_spaces_share_one_authenticator() {
         use crate::multi::config::{Binding, SpaceConfig};
@@ -643,7 +681,12 @@ mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        AdminState::new(manager, users.clone(), authenticator.clone());
+        AdminState::new(
+            manager,
+            users.clone(),
+            authenticator.clone(),
+            crate::runtime::RuntimeAvailability::Available,
+        );
 
         // A private (users-backed) space whose folder resolves to the data
         // root persists its own secret to the *space* file in that same dir.

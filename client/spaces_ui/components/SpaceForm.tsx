@@ -9,8 +9,12 @@ import {
   Select,
   UrlPrefixInput,
 } from "@silverbulletmd/silverbullet/ui";
-import { adminApi, listUsers } from "../api.ts";
+import { adminApi, getServerInfo, listUsers } from "../api.ts";
 import { FolderPicker } from "../FolderPicker.tsx";
+import {
+  type RuntimeAvailability,
+  runtimeApiUnavailableReason,
+} from "../runtime_availability.ts";
 import { FieldErrors, useSlugDefaults } from "../space_fields.tsx";
 import type { Binding, FieldError, SpaceInfo, UserInfo } from "../types.ts";
 
@@ -69,27 +73,21 @@ export function SpaceForm({
   const [shellWhitelist, setShellWhitelist] = useState(
     (initial?.shell.whitelist ?? []).join(" "),
   );
-  const [runtimeApi, setRuntimeApi] = useState(initial?.runtimeApi ?? false);
+  // Matches the server's own `runtimeApi` default for a fresh space.
+  const [runtimeApi, setRuntimeApi] = useState(initial?.runtimeApi ?? true);
+  const [runtimeAvailability, setRuntimeAvailability] = useState<
+    RuntimeAvailability | null
+  >(null);
   const [indexPage, setIndexPage] = useState(initial?.indexPage ?? "index");
   const [errors, setErrors] = useState<FieldError[]>([]);
-  // Saving an existing space navigates to the URL it is already on, so without
-  // this the screen is pixel-identical before and after a successful save and
-  // there is no way to tell whether anything happened.
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
-    "idle",
-  );
+  // Only ever "saving": a successful save navigates away — to the space list
+  // when editing, to the new space's own screen when creating — so leaving
+  // this screen *is* the confirmation, and there is no "saved" state left for
+  // this form to render.
+  const [saveState, setSaveState] = useState<"idle" | "saving">("idle");
   const [hostStatus, setHostStatus] = useState<
     "verified" | "mismatch" | "unreachable" | null
   >(null);
-
-  // The confirmation is transient: it answers "did that save?" and then gets
-  // out of the way, rather than lingering next to fields the user has since
-  // edited again.
-  useEffect(() => {
-    if (saveState !== "saved") return;
-    const timer = setTimeout(() => setSaveState("idle"), 3000);
-    return () => clearTimeout(timer);
-  }, [saveState]);
 
   // Live hostname check: probe the candidate hostname from the browser and
   // compare the answering server's per-boot instance id with our own. Proves
@@ -143,6 +141,18 @@ export function SpaceForm({
   };
   useEffect(loadUsers, []);
 
+  // Whether this server can run the Lua runtime at all — decided at server
+  // boot, not per space. A failure here deliberately leaves the checkbox
+  // usable: a transient error should not lock an admin out of a setting.
+  useEffect(() => {
+    getServerInfo()
+      .then((info) => setRuntimeAvailability(info.runtimeApi))
+      .catch(() => {});
+  }, []);
+  const runtimeApiUnavailable = runtimeApiUnavailableReason(
+    runtimeAvailability,
+  );
+
   return (
     <form
       onSubmit={async (e) => {
@@ -177,12 +187,10 @@ export function SpaceForm({
           // for. A full-replace PUT resets them on every save.
           if (id) {
             await adminApi("PATCH", `spaces/${id}`, payload);
-            setSaveState("saved");
+            setSaveState("idle");
             onSaved(id);
           } else {
             const result = await adminApi("POST", "spaces", payload);
-            // Creating navigates to the new space's own edit screen, which is
-            // change enough on its own — no confirmation needed.
             setSaveState("idle");
             onSaved(result.id);
           }
@@ -373,12 +381,21 @@ export function SpaceForm({
             />
           </Fragment>
         )}
+        {/* The stored flag and its availability stay orthogonal: `runtimeApi`
+            means "this space wants the runtime API", availability means "this
+            server can currently provide it". Locking the control does not
+            rewrite the value, so installing Chrome and restarting lights the
+            space up without the admin having to come back here. */}
         <label>
           <Checkbox
             checked={runtimeApi}
+            disabled={runtimeApiUnavailable !== null}
             onChange={(e) => setRuntimeApi(e.currentTarget.checked)}
           />{" "}
           Enable runtime API
+          {runtimeApiUnavailable && (
+            <span class="sb-help-text">{runtimeApiUnavailable}</span>
+          )}
         </label>
         <label for="space-index-page">Index page</label>
         <Input
@@ -398,12 +415,6 @@ export function SpaceForm({
         <a class="sb-button" href={cancelHref}>
           Cancel
         </a>
-        {/* Rendered unconditionally so it is a live region the moment the
-            form mounts: a status element inserted at the same time as its
-            text often goes unannounced. */}
-        <span class="sb-spaces-ok" role="status">
-          {saveState === "saved" ? "✓ Saved" : ""}
-        </span>
       </div>
       {id && (
         <div class="sb-danger-zone">

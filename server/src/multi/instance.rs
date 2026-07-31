@@ -403,7 +403,7 @@ fn try_build_state(
         let server_url = match &config.binding {
             Binding::Prefix { .. } => format!("http://127.0.0.1:{}{prefix}", deps.main_port),
             Binding::Host { .. } => {
-                tracing::warn!("space {id}: runtimeApi unsupported for host bindings, disabled");
+                tracing::debug!("space {id}: runtimeApi unsupported for host bindings, disabled");
                 String::new()
             }
         };

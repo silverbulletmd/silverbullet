@@ -328,6 +328,7 @@ mod tests {
             manager.clone(),
             users.clone(),
             authenticator.clone(),
+            crate::runtime::RuntimeAvailability::Available,
         ));
         let state = Arc::new(SpaceIndexState::new(
             manager,

@@ -3,11 +3,13 @@
 //! crate ships the seam and a fake transport for tests; real transports
 //! (headless Chrome, the App's webview) live elsewhere.
 
+pub mod availability;
 pub mod backend;
 pub mod client;
 pub mod logs;
 pub mod transport;
 
+pub use availability::RuntimeAvailability;
 pub use backend::{RuntimeBackend, RuntimeError};
 pub use client::{build_global_call_js, ClientRuntime};
 pub use logs::{LogBuffer, LogEntry};
