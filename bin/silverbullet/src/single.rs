@@ -119,7 +119,7 @@ pub async fn run_single(config: Config) -> Result<(), String> {
             client_bundle: Box::new(|| Box::new(EmbeddedSpace::<ClientAssets>::new())),
             base_fs: Box::new(|| Box::new(EmbeddedSpace::<BaseFsAssets>::new())),
         },
-        runtime: Box::new(crate::multi::build_space_runtime),
+        runtime: crate::multi::space_runtime_factory(&root),
         metrics: metrics.clone(),
         auth: InstanceAuth::Single(auth),
         version: crate::VERSION.to_string(),

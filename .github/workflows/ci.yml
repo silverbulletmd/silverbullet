@@ -106,6 +106,47 @@ jobs:
           npm run check
           npm test
 
+  # Core's Rust suite, including the headless-Chrome runtime e2e tests. The
+  # client bundle has to exist on disk first: rust-embed serves from disk in
+  # debug builds, so without it the server has no client to hand the headless
+  # page.
+  test-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: test-rust
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build client bundle
+        run: npm run build
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      # The runtime tests skip themselves when no browser is found, which would
+      # silently gut this job. Point them (and the servers they spawn) at
+      # Playwright's chromium explicitly: their skip guard reads CHROMIUM_PATH
+      # with the same precedence the server does, and refuses to skip at all
+      # when CI is set — so this job can no longer pass having exercised nothing.
+      - name: Resolve chromium path
+        run: |
+          echo "CHROMIUM_PATH=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")" >> "$GITHUB_ENV"
+
+      - name: Run Rust tests
+        run: cargo test --workspace --all-features
+
   test-e2e:
     runs-on: ubuntu-latest
     steps:
@@ -197,7 +238,7 @@ jobs:
     secrets: inherit
 
   release:
-    needs: [config, build, test-frontend, test-e2e, test-e2e-release]
+    needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release]
     if: needs.config.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -273,7 +314,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   docker:
-    needs: [config, build, test-frontend, test-e2e, test-e2e-release]
+    needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release]
     if: needs.config.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:

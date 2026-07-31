@@ -13,8 +13,8 @@ use silverbullet_server_common::space::{
 use silverbullet_server_common::{BootConfig, FileMeta, SpaceError, SpacePrimitives};
 
 use crate::auth::{
-    AuthConfig, Authenticator, HeadlessTokenAuthorizer, JwtAuthorizer, LockoutTimer, LoginManager,
-    RequestAuthorizer,
+    headless_cookie_name, AuthConfig, Authenticator, HeadlessTokenAuthorizer, JwtAuthorizer,
+    LockoutTimer, LoginManager, RequestAuthorizer,
 };
 use crate::multi::access::{SessionPolicy, SpaceUsersAuth, UserTokenAuthorizer};
 use crate::multi::config::{Binding, SpaceConfig};
@@ -32,7 +32,7 @@ pub struct AssetFactories {
 
 /// Everything the runtime factory needs to (maybe) build a backend for a space.
 pub struct RuntimeRequest<'a> {
-    pub space_folder: &'a str,
+    pub space_id: &'a str,
     pub server_url: String,
     pub headless_token: &'a str,
     pub read_only: bool,
@@ -237,6 +237,7 @@ type AuthPair = (
 /// Classic single-space authorizer/login pair: one `AuthConfig` drives both
 /// the JWT authorizer (with its bearer token) and the login manager.
 fn build_env_style_auth(
+    space_id: &str,
     folder: &Path,
     prefix: &str,
     ac: &AuthConfig,
@@ -253,6 +254,7 @@ fn build_env_style_auth(
     ));
     let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(HeadlessTokenAuthorizer::new(
         inner,
+        headless_cookie_name(space_id),
         headless_token.to_string(),
     ));
     let lockout = LockoutTimer::from_config(ac.lockout_time_secs, ac.lockout_limit);
@@ -346,7 +348,7 @@ fn try_build_state(
     let (authorizer, login): AuthPair = match &deps.auth {
         InstanceAuth::Single(None) => (None, None),
         InstanceAuth::Single(Some(config)) => {
-            build_env_style_auth(&folder, prefix, config, &headless_token)?
+            build_env_style_auth(id, &folder, prefix, config, &headless_token)?
         }
         InstanceAuth::Accounts { .. } if config.public => (None, None),
         InstanceAuth::Accounts {
@@ -366,8 +368,11 @@ fn try_build_state(
                 store.clone(),
                 member_name_filter(store.clone(), members.clone()),
             ));
-            let authorizer: Arc<dyn RequestAuthorizer> =
-                Arc::new(HeadlessTokenAuthorizer::new(tokens, headless_token.clone()));
+            let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(HeadlessTokenAuthorizer::new(
+                tokens,
+                headless_cookie_name(id),
+                headless_token.clone(),
+            ));
             let verifier = Arc::new(SpaceUsersAuth {
                 store: store.clone(),
                 members,
@@ -406,7 +411,7 @@ fn try_build_state(
             None
         } else {
             (deps.runtime)(&RuntimeRequest {
-                space_folder: &folder_str,
+                space_id: id,
                 server_url,
                 headless_token: &headless_token,
                 read_only: config.read_only,

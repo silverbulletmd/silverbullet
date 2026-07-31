@@ -31,3 +31,11 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+# Only for `find_chrome()`, so the runtime e2e test skips cleanly on machines
+# without a browser instead of failing.
+silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }
+# `cookies` is declared here rather than relied on from workspace feature
+# unification: `bin/silverbullet` enables it, which is enough for a whole-
+# workspace build but leaves `cargo clippy -p sb` without
+# `ClientBuilder::cookie_store` (used by the multi-space runtime e2e test).
+reqwest = { workspace = true, features = ["cookies"] }

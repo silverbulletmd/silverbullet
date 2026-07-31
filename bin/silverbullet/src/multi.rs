@@ -10,7 +10,7 @@ use silverbullet_server::multi::access::SessionPolicy;
 use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{
-    AssetFactories, InstanceAuth, InstanceDeps, RuntimeRequest,
+    AssetFactories, InstanceAuth, InstanceDeps, RuntimeFactory, RuntimeRequest,
 };
 use silverbullet_server::multi::manager::MultiManager;
 use silverbullet_server::multi::space_index::{build_spaces_router, SpaceIndexState};
@@ -79,7 +79,7 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
             client_bundle: Box::new(|| Box::new(EmbeddedSpace::<ClientAssets>::new())),
             base_fs: Box::new(|| Box::new(EmbeddedSpace::<BaseFsAssets>::new())),
         },
-        runtime: Box::new(build_space_runtime),
+        runtime: space_runtime_factory(&root),
         metrics: metrics.clone(),
         auth: InstanceAuth::Accounts {
             users: store.clone(),
@@ -185,27 +185,41 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
         .map_err(|e| format!("server error: {e}"))
 }
 
-/// Per-space headless-Chrome runtime factory (same construction as the
-/// single-space `build_runtime`).
-pub(crate) fn build_space_runtime(
-    req: &RuntimeRequest,
-) -> Option<Box<dyn silverbullet_server::runtime::RuntimeBackend>> {
-    let chrome_cfg = silverbullet_server_runtime_chrome::ChromeConfig::from_env(
-        req.server_url.clone(),
-        req.headless_token.to_string(),
-        req.space_folder,
-        req.read_only,
-    )?;
-    let logs = silverbullet_server::runtime::LogBuffer::new();
-    match silverbullet_server_runtime_chrome::ChromeTransport::launch(chrome_cfg, logs.clone()) {
-        Ok(transport) => Some(Box::new(silverbullet_server::runtime::ClientRuntime::new(
-            transport, logs,
-        ))),
-        Err(e) => {
-            tracing::warn!("runtime disabled for space: could not launch Chrome: {e}");
+/// Build the runtime factory for a server rooted at `server_root`.
+///
+/// One `ChromePool` — one Chrome process — serves every space; each space gets
+/// its own page, log buffer, and auth cookie. The pool is created eagerly but
+/// launches nothing until some space's runtime API is first used.
+pub(crate) fn space_runtime_factory(server_root: &std::path::Path) -> RuntimeFactory {
+    let pool = match silverbullet_server_runtime_chrome::ChromeConfig::from_env(server_root) {
+        Some(config) => match silverbullet_server_runtime_chrome::ChromePool::new(config) {
+            Ok(pool) => Some(pool),
+            Err(e) => {
+                tracing::warn!("runtime API disabled: could not create the Chrome pool: {e}");
+                None
+            }
+        },
+        None => {
+            tracing::info!("runtime API disabled (no Chrome found, or SB_RUNTIME_API=0)");
             None
         }
-    }
+    };
+    Box::new(move |req: &RuntimeRequest| {
+        let pool = pool.as_ref()?;
+        if req.read_only {
+            return None;
+        }
+        let page = silverbullet_server_runtime_chrome::SpacePage {
+            server_url: req.server_url.clone(),
+            headless_token: req.headless_token.to_string(),
+            cookie_name: silverbullet_server::auth::headless_cookie_name(req.space_id),
+        };
+        let logs = silverbullet_server::runtime::LogBuffer::new();
+        let transport = pool.transport_for(page, logs.clone());
+        Some(Box::new(silverbullet_server::runtime::ClientRuntime::new(
+            transport, logs,
+        )))
+    })
 }
 
 #[cfg(unix)]

@@ -3,7 +3,9 @@
 //! Spawns the compiled `silverbullet` binary as a subprocess (so killing the
 //! child cleanly tears down the embedded Chrome), boots it with the runtime
 //! enabled, and drives `/.runtime/*` over HTTP. Gated on Chrome being available
-//! so machines without Chrome skip it cleanly.
+//! so machines without Chrome skip it cleanly — except under `CI`, where a
+//! missing browser fails the test instead (see
+//! `common::chrome_available_or_skip`).
 
 use std::io::Read;
 use std::process::{Child, Command, Stdio};
@@ -21,7 +23,7 @@ impl Drop for Server {
 }
 
 mod common;
-use common::free_port;
+use common::{chrome_available_or_skip, free_port};
 
 /// Poll `cond` until it returns true or the deadline passes. On timeout, dump the
 /// server's captured stdout/stderr and panic with `msg`.
@@ -58,8 +60,7 @@ fn dump_and_panic(server: &mut Server, msg: &str) -> ! {
 
 #[test]
 fn runtime_api_evaluates_lua_against_headless_chrome() {
-    if silverbullet_server_runtime_chrome::find_chrome().is_none() {
-        eprintln!("skipping runtime_e2e: no Chrome/Chromium found on this machine");
+    if !chrome_available_or_skip("runtime_e2e") {
         return;
     }
 

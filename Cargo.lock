@@ -2212,6 +2212,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "silverbullet-server-common",
+ "silverbullet-server-runtime-chrome",
  "tempfile",
  "uuid",
 ]

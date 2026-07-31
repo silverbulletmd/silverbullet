@@ -1,17 +1,19 @@
-//! Browser supervisor: owns the live `Browser` + `Page`, captures console
-//! output into the shared log buffer, waits for the client runtime to signal
+//! Browser launch and per-space page supervision: brings up the shared
+//! `Browser` for the pool, opens a space's `Page` in it, captures console output
+//! into that space's log buffer, waits for the client runtime to signal
 //! readiness, and restarts (with exponential backoff) whenever the page dies.
 //!
-//! The supervisor runs as a single long-lived task on the transport's tokio
-//! runtime. It is deliberately tolerant of a not-yet-listening server: the
-//! transport is constructed *before* the server binds its port, so the first
-//! navigation may fail and is simply retried with backoff.
+//! One supervisor task per space runs on the pool's tokio runtime. It is
+//! deliberately tolerant of a not-yet-listening server: transports are
+//! constructed *before* the server binds its port, so the first navigation may
+//! fail and is simply retried with backoff.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chromiumoxide::browser::{Browser, BrowserConfig};
+use chromiumoxide::cdp::browser_protocol::network::{CookieParam, CookieSameSite};
 use chromiumoxide::cdp::js_protocol::runtime::{
     ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled,
 };
@@ -22,17 +24,7 @@ use serde_json::Value;
 use silverbullet_server::runtime::{LogBuffer, LogEntry, RuntimeError};
 use tokio::sync::{Mutex, Notify};
 
-use crate::config::ChromeConfig;
-
-/// The live browser and its single page, kept together so dropping the pair
-/// (on restart) tears down the old Chrome process cleanly.
-pub struct Live {
-    /// Held purely to keep the Chrome process alive; dropping `Live` (on
-    /// restart) drops this and tears Chrome down. Never read directly.
-    #[allow(dead_code)]
-    pub browser: Browser,
-    pub page: Page,
-}
+use crate::config::{ChromeConfig, SpacePage};
 
 /// Evaluate a raw JS expression in the page with await-promise +
 /// return-by-value semantics, returning its JSON value (`Null` when the
@@ -103,6 +95,18 @@ async fn eval_sync(page: &Page, js: &str) -> Result<Value, RuntimeError> {
     Ok(result.value().cloned().unwrap_or(Value::Null))
 }
 
+/// Bound on the CDP round trips this module makes against a page it has reason
+/// to distrust: the liveness probe, and every `close`.
+///
+/// Nothing here was ever *unbounded* — chromiumoxide gives every command its own
+/// `REQUEST_TIMEOUT` (~30s) and resolves it to `CdpError::Timeout` — but 30s is
+/// the wrong bound for these call sites, and inheriting it from a dependency's
+/// internals leaves the policy invisible. A liveness probe evaluates the literal
+/// `1` and a close is a single command; five seconds is already enormously
+/// generous for either, and the difference between 5s and 30s is paid by the
+/// server (see `page_is_alive`) or by a space's restart latency.
+const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// Current wall-clock time in milliseconds since the Unix epoch.
 fn now_millis() -> i64 {
     SystemTime::now()
@@ -111,30 +115,20 @@ fn now_millis() -> i64 {
         .unwrap_or(0)
 }
 
-/// Build the headless page URL from the configured server URL, trimming a
-/// trailing slash and appending `?headless=1&token=…`. The token is always
-/// present; an open (no-auth) server simply ignores it.
-fn page_url(config: &ChromeConfig) -> String {
-    let base = config.server_url.trim_end_matches('/');
-    format!("{base}/?headless=1&token={}", config.headless_token)
+/// The space's headless auth cookie: HTTP-only, `SameSite=Strict`, scoped by
+/// `Path` to the space prefix, with no expiry (a session cookie).
+pub(crate) fn headless_cookie(page: &SpacePage) -> Result<CookieParam, String> {
+    CookieParam::builder()
+        .name(&page.cookie_name)
+        .value(&page.headless_token)
+        .url(&page.server_url)
+        .path(page.cookie_path())
+        .http_only(true)
+        .same_site(CookieSameSite::Strict)
+        .build()
 }
 
-/// Launch a fresh browser + page, attach console capture, wait for the client
-/// runtime to become ready, then publish the live pair into `live_slot` and
-/// set `ready = true`. Returns `Err(msg)` on any failure (the caller backs off
-/// and retries).
-async fn launch_once(
-    config: &ChromeConfig,
-    live_slot: &Arc<Mutex<Option<Live>>>,
-    ready: &Arc<AtomicBool>,
-    logs: &LogBuffer,
-) -> Result<(), String> {
-    // chromiumoxide's `.args()` expects BARE flag keys (no leading `--`) — it
-    // prepends the dashes itself when building the command line, so a value like
-    // `"--no-sandbox"` is mangled to `----no-sandbox` and silently ignored. Use
-    // the dedicated `.no_sandbox()` method (it emits the correct
-    // `--no-sandbox` + `--disable-setuid-sandbox`, required when running as root,
-    // e.g. inside a container) and pass the remaining flags as bare keys.
+pub(crate) async fn launch_browser(config: &ChromeConfig) -> Result<Browser, String> {
     let mut builder = BrowserConfig::builder()
         .chrome_executable(&config.chrome_path)
         .user_data_dir(&config.user_data_dir)
@@ -164,18 +158,127 @@ async fn launch_once(
         }
     });
 
-    let page = browser
-        .new_page(page_url(config).as_str())
-        .await
-        .map_err(|e| format!("new page: {e}"))?;
+    Ok(browser)
+}
 
-    attach_console_capture(&page, logs, config.log_console)
+/// A page handle whose tab must be closed explicitly rather than dropped.
+///
+/// Abstracted behind a trait for exactly one reason: `PageCloseGuard`'s
+/// behaviour under task cancellation is the thing this module most needs to
+/// test, and `chromiumoxide::Page` cannot be constructed without a live Chrome.
+/// Production only ever instantiates it at `P = Page`.
+///
+/// Declared with an explicit `-> impl Future + Send` rather than `async fn`: the
+/// close is handed to `tokio::spawn`, which needs the `Send` bound stated on the
+/// trait itself.
+trait ClosablePage: Send + 'static {
+    fn close_page(self) -> impl std::future::Future<Output = ()> + Send;
+}
+
+impl ClosablePage for Page {
+    async fn close_page(self) {
+        // Explicitly bounded, rather than leaning on chromiumoxide's ~30s
+        // request timeout: this frequently runs on a page already declared dead.
+        let _ = tokio::time::timeout(PROBE_TIMEOUT, self.close()).await;
+    }
+}
+
+/// Owns a freshly opened page and **closes** it on drop, unless disarmed.
+///
+/// chromiumoxide implements `Drop` for `Browser` but *not* for `Page` —
+/// `Page::close` is an explicit `async fn` — so a dropped `Page` leaves its tab
+/// and renderer process running inside the browser every other space depends
+/// on. This used to be impossible: each attempt owned its own `Browser`, so a
+/// failed attempt took the whole process tree with it. Sharing the browser
+/// removed that implicit cleanup, and this guard replaces it.
+struct PageCloseGuard<P: ClosablePage> {
+    page: Option<P>,
+}
+
+impl<P: ClosablePage> PageCloseGuard<P> {
+    fn new(page: P) -> Self {
+        Self { page: Some(page) }
+    }
+
+    /// The guarded page. Borrowed, never moved out: ownership stays with the
+    /// guard so cancellation at *any* await point still reaches `Drop`.
+    fn page(&self) -> &P {
+        self.page.as_ref().expect("armed until disarmed")
+    }
+
+    /// Give up responsibility for the page. Only correct once the page is
+    /// published somewhere that will close it — i.e. `live`.
+    fn disarm(&mut self) {
+        self.page = None;
+    }
+}
+
+impl<P: ClosablePage> Drop for PageCloseGuard<P> {
+    fn drop(&mut self) {
+        if let Some(page) = self.page.take() {
+            // Fire-and-forget: `Drop` cannot await. See the type-level comment
+            // for why a runtime is guaranteed to be present here.
+            tokio::spawn(page.close_page());
+        }
+    }
+}
+
+/// Open this space's page in the shared browser: blank page, auth cookie,
+/// console capture, navigation, then wait for the client runtime to report
+/// ready. Publishes into `live` and sets `ready` on success.
+///
+/// The tab is owned by a `PageCloseGuard` for the whole of this function, so
+/// every exit — `?`, a returned `Err`, or the task being aborted at any of the
+/// await points — closes it. That is the single mechanism; there is
+/// deliberately no separate close on the error paths. Without it, a space that
+/// keeps timing out in `wait_for_client_ready` (a large space still indexing on
+/// first boot is the likeliest trigger), or one whose supervisor is aborted
+/// mid-launch by an admin API space write, abandons a live renderer per attempt,
+/// forever — the browser never looks dead, so nothing ever retires it.
+///
+/// One residual window is out of reach: an abort landing *inside* `new_page`
+/// itself can leave a target that was created browser-side but whose handle
+/// never reached this task. It is a single CDP round trip rather than a 60s
+/// poll loop, so the exposure is tiny compared to what the guard covers.
+async fn launch_page(
+    browser: &Browser,
+    page_cfg: &SpacePage,
+    log_console: bool,
+    live: &Arc<Mutex<Option<Page>>>,
+    ready: &Arc<AtomicBool>,
+    logs: &LogBuffer,
+) -> Result<(), String> {
+    let mut guard = PageCloseGuard::new(
+        browser
+            .new_page("about:blank")
+            .await
+            .map_err(|e| format!("new page: {e}"))?,
+    );
+    let page = guard.page();
+
+    page.set_cookie(headless_cookie(page_cfg)?)
+        .await
+        .map_err(|e| format!("headless auth cookie: {e}"))?;
+
+    // Console capture is attached *before* navigating: attaching afterwards
+    // deterministically misses the client's earliest boot output, which is
+    // exactly what an operator needs to debug a space that never reaches ready.
+    attach_console_capture(page, logs, log_console)
         .await
         .map_err(|e| format!("console capture: {e}"))?;
 
-    wait_for_client_ready(&page).await?;
+    page.goto(page_cfg.page_url().as_str())
+        .await
+        .map_err(|e| format!("headless page navigation: {e}"))?;
 
-    *live_slot.lock().await = Some(Live { browser, page });
+    wait_for_client_ready(page).await?;
+
+    // Publish first, disarm second, and never await in between: from here on the
+    // supervisor (or `SharedChromeTransport::Drop`) closes the page via `live`.
+    // `Page` is `Clone` and the clones share one underlying tab, so closing any
+    // of them closes it.
+    *live.lock().await = Some(page.clone());
+    guard.disarm();
     ready.store(true, Ordering::Relaxed);
     Ok(())
 }
@@ -267,29 +370,30 @@ async fn wait_for_client_ready(page: &Page) -> Result<(), String> {
     }
 }
 
-/// Is the current page still alive? A trivial eval that errors means the page
-/// (or the whole browser) is gone.
-async fn page_is_alive(live_slot: &Arc<Mutex<Option<Live>>>) -> bool {
-    let guard = live_slot.lock().await;
+/// Is this space's page still alive? A trivial eval that errors — or that never
+/// answers — means the page (or the whole browser) is gone.
+async fn page_is_alive(live: &Arc<Mutex<Option<Page>>>) -> bool {
+    let guard = live.lock().await;
     match guard.as_ref() {
         None => false,
-        Some(live) => eval_sync(&live.page, "1").await.is_ok(),
+        // A timed-out probe reports *not* alive, so the supervisor takes the
+        // restart path rather than waiting on a page that will never answer.
+        Some(page) => matches!(
+            tokio::time::timeout(PROBE_TIMEOUT, eval_sync(page, "1")).await,
+            Ok(Ok(_))
+        ),
     }
 }
 
-/// Supervise the browser for the lifetime of the transport.
-///
-/// Loop shape: each iteration first checks liveness. When the page is dead
-/// (the initial `None` slot, or a crashed page), we mark the runtime not-ready,
-/// drop any stale `Live`, and attempt `launch_once`. On success we reset the
-/// backoff to its floor and continue; on failure we sleep for the current
-/// backoff (2s, doubling up to 120s) before the next attempt. When the page is
-/// alive we sleep ~2s between liveness checks. The browser is launched LAZILY:
-/// the supervisor idles until the first runtime request (`requested`) before its
-/// first `launch_once`, so Chrome never starts while the runtime API is unused.
-pub async fn supervise(
-    config: ChromeConfig,
-    live_slot: Arc<Mutex<Option<Live>>>,
+async fn browser_is_dead(browser: &Browser) -> bool {
+    browser.pages().await.is_err()
+}
+
+/// Supervise one space's page for the lifetime of its transport.
+pub(crate) async fn supervise_space(
+    pool: Arc<crate::pool::ChromePool>,
+    page_cfg: SpacePage,
+    live: Arc<Mutex<Option<Page>>>,
     ready: Arc<AtomicBool>,
     logs: LogBuffer,
     trigger: Arc<Notify>,
@@ -298,41 +402,65 @@ pub async fn supervise(
     const BACKOFF_CAP: Duration = Duration::from_secs(120);
     const LIVENESS_INTERVAL: Duration = Duration::from_secs(2);
 
-    // Lazy launch: park here until the first runtime request, so Chrome is not
-    // started (and emits no CDP noise) while the runtime API is unused. `Notify`
-    // suspends the task with no polling; if the request arrived first,
-    // `notify_one` already stored a permit so this returns immediately.
     trigger.notified().await;
-    tracing::info!(
-        "runtime API used; launching headless Chrome ({})",
-        config.chrome_path
-    );
 
     let mut backoff = BACKOFF_FLOOR;
     let mut has_launched = false;
     loop {
-        if page_is_alive(&live_slot).await {
+        if page_is_alive(&live).await {
             tokio::time::sleep(LIVENESS_INTERVAL).await;
             continue;
         }
 
-        // The page is dead (or never launched): mark not-ready and drop any
-        // stale browser before relaunching. A dead page *after* a successful
-        // launch is a crash/restart, worth flagging distinctly from first boot.
         if has_launched {
-            tracing::warn!("headless Chrome page died; restarting");
+            tracing::warn!("headless page for {} died; restarting", page_cfg.server_url);
         }
         ready.store(false, Ordering::Relaxed);
-        *live_slot.lock().await = None;
+        let stale = live.lock().await.take();
+        if let Some(old) = stale {
+            let _ = tokio::time::timeout(PROBE_TIMEOUT, old.close()).await;
+        }
 
-        match launch_once(&config, &live_slot, &ready, &logs).await {
+        // `browser` is deliberately scoped to this block: the pool holds the
+        // owning handle, and a lingering clone here would keep a dead Chrome
+        // process alive across a relaunch.
+        let attempt = match pool.ensure_browser().await {
+            Ok((generation, browser)) => {
+                let result = launch_page(
+                    &browser,
+                    &page_cfg,
+                    pool.config().log_console,
+                    &live,
+                    &ready,
+                    &logs,
+                )
+                .await;
+                // Retire the browser only when it is genuinely gone. Discarding
+                // on every failed attempt would let one space's persistent
+                // navigation failure keep killing the browser for everyone.
+                let dead = result.is_err() && browser_is_dead(&browser).await;
+                // Drop the transient clone *before* retiring the pool's handle,
+                // so clearing the slot really does release the process tree.
+                drop(browser);
+                if dead {
+                    pool.discard_browser(generation).await;
+                }
+                result
+            }
+            Err(e) => Err(e),
+        };
+
+        match attempt {
             Ok(()) => {
                 has_launched = true;
                 backoff = BACKOFF_FLOOR;
-                tracing::info!("headless Chrome runtime ready");
+                tracing::info!("headless runtime ready for {}", page_cfg.server_url);
             }
             Err(e) => {
-                tracing::warn!("headless chrome launch failed: {e}; retrying in {backoff:?}");
+                tracing::warn!(
+                    "headless page for {} failed to start: {e}; retrying in {backoff:?}",
+                    page_cfg.server_url
+                );
                 tokio::time::sleep(backoff).await;
                 backoff = (backoff * 2).min(BACKOFF_CAP);
             }
@@ -342,7 +470,189 @@ pub async fn supervise(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::AtomicUsize;
+
     use super::*;
+
+    #[derive(Clone)]
+    struct FakePage {
+        closed: Arc<AtomicUsize>,
+    }
+
+    impl ClosablePage for FakePage {
+        async fn close_page(self) {
+            self.closed.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    async fn launch_page_shaped(
+        page: FakePage,
+        live: Arc<Mutex<Option<FakePage>>>,
+        ready: Arc<AtomicBool>,
+        entered: Arc<Notify>,
+        hold: Arc<Notify>,
+    ) {
+        let mut guard = PageCloseGuard::new(page);
+        let page = guard.page();
+        entered.notify_one();
+
+        // set_cookie / attach_console_capture / goto.
+        for _ in 0..3 {
+            tokio::task::yield_now().await;
+        }
+        // wait_for_client_ready.
+        hold.notified().await;
+
+        *live.lock().await = Some(page.clone());
+        guard.disarm();
+        ready.store(true, Ordering::Relaxed);
+    }
+
+    /// Wait (briefly) for the detached close task spawned by `Drop` to run.
+    async fn await_closes(closed: &Arc<AtomicUsize>, want: usize) -> usize {
+        for _ in 0..200 {
+            let n = closed.load(Ordering::SeqCst);
+            if n >= want {
+                return n;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        closed.load(Ordering::SeqCst)
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn aborting_a_launch_mid_flight_closes_the_page() {
+        let closed = Arc::new(AtomicUsize::new(0));
+        let live = Arc::new(Mutex::new(None));
+        let ready = Arc::new(AtomicBool::new(false));
+        let entered = Arc::new(Notify::new());
+        let hold = Arc::new(Notify::new());
+
+        let task = tokio::spawn(launch_page_shaped(
+            FakePage {
+                closed: closed.clone(),
+            },
+            live.clone(),
+            ready.clone(),
+            entered.clone(),
+            hold.clone(),
+        ));
+
+        // Let it reach the readiness wait, then cancel it there.
+        entered.notified().await;
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert_eq!(closed.load(Ordering::SeqCst), 0, "nothing closed yet");
+        task.abort();
+        let _ = task.await;
+
+        assert_eq!(
+            await_closes(&closed, 1).await,
+            1,
+            "a cancelled launch must close its page, not drop the handle"
+        );
+        assert!(live.lock().await.is_none());
+        assert!(!ready.load(Ordering::Relaxed));
+    }
+
+    /// Cancellation before the readiness wait — the earlier await points
+    /// (`set_cookie`, console capture, `goto`) — is covered too.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn aborting_a_launch_during_setup_closes_the_page() {
+        let closed = Arc::new(AtomicUsize::new(0));
+        let live = Arc::new(Mutex::new(None));
+        let entered = Arc::new(Notify::new());
+        let hold = Arc::new(Notify::new());
+
+        let task = tokio::spawn(launch_page_shaped(
+            FakePage {
+                closed: closed.clone(),
+            },
+            live.clone(),
+            Arc::new(AtomicBool::new(false)),
+            entered.clone(),
+            hold,
+        ));
+        // Abort as soon as the guard exists — no sleep — so the cancellation
+        // lands in the setup awaits rather than the readiness wait.
+        entered.notified().await;
+        task.abort();
+        let _ = task.await;
+
+        assert_eq!(await_closes(&closed, 1).await, 1);
+        assert!(live.lock().await.is_none());
+    }
+
+    /// The other half: a launch that *succeeds* must not close the page it just
+    /// published. Ownership moves to `live`, and the supervisor closes it from
+    /// there on restart.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_successful_launch_does_not_close_the_page() {
+        let closed = Arc::new(AtomicUsize::new(0));
+        let live = Arc::new(Mutex::new(None));
+        let ready = Arc::new(AtomicBool::new(false));
+        let entered = Arc::new(Notify::new());
+        let hold = Arc::new(Notify::new());
+
+        let task = tokio::spawn(launch_page_shaped(
+            FakePage {
+                closed: closed.clone(),
+            },
+            live.clone(),
+            ready.clone(),
+            entered,
+            hold.clone(),
+        ));
+        hold.notify_one();
+        task.await.unwrap();
+
+        // Long enough that a stray close task would have landed by now.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert_eq!(closed.load(Ordering::SeqCst), 0);
+        assert!(live.lock().await.is_some());
+        assert!(ready.load(Ordering::Relaxed));
+    }
+
+    /// An `Err` return closes the tab through the same single mechanism — there
+    /// is deliberately no separate close on `launch_page`'s error paths.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn an_error_return_closes_the_page_via_the_guard() {
+        let closed = Arc::new(AtomicUsize::new(0));
+        let c = closed.clone();
+        let task = tokio::spawn(async move {
+            let guard = PageCloseGuard::new(FakePage { closed: c });
+            let _ = guard.page();
+            Err::<(), String>("headless page navigation: boom".to_string())
+        });
+        assert!(task.await.unwrap().is_err());
+        assert_eq!(await_closes(&closed, 1).await, 1);
+    }
+
+    fn page_cfg(server_url: &str) -> SpacePage {
+        SpacePage {
+            server_url: server_url.to_string(),
+            headless_token: "secret".to_string(),
+            cookie_name: "silverbullet_headless_a".to_string(),
+        }
+    }
+
+    #[test]
+    fn headless_cookie_is_http_only_and_named_per_space() {
+        let cookie = headless_cookie(&page_cfg("http://127.0.0.1:3000")).unwrap();
+        assert_eq!(cookie.name, "silverbullet_headless_a");
+        assert_eq!(cookie.value, "secret");
+        assert_eq!(cookie.url.as_deref(), Some("http://127.0.0.1:3000"));
+        assert_eq!(cookie.path.as_deref(), Some("/"));
+        assert_eq!(cookie.http_only, Some(true));
+        assert_eq!(cookie.same_site, Some(CookieSameSite::Strict));
+        // Session cookie: it must not outlive the browser.
+        assert_eq!(cookie.expires, None);
+    }
+
+    #[test]
+    fn headless_cookie_is_scoped_to_the_space_prefix() {
+        let cookie = headless_cookie(&page_cfg("http://127.0.0.1:3000/notes")).unwrap();
+        assert_eq!(cookie.path.as_deref(), Some("/notes"));
+    }
 
     #[test]
     fn console_level_maps_severity() {

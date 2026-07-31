@@ -40,3 +40,40 @@ pub fn free_port() -> u16 {
     }
     panic!("no unused port found after 100 attempts");
 }
+
+/// Guard for the headless-Chrome runtime e2e tests: `true` when the server
+/// they spawn will be able to find a browser, `false` when the test should skip.
+///
+/// The precedence deliberately mirrors `ChromeConfig::from_env` —
+/// `SB_CHROME_PATH`, then `CHROMIUM_PATH`, then auto-detection — because that is
+/// what the *spawned server* uses. A guard that consults only `find_chrome()`
+/// answers a different question: it would skip on a machine where
+/// `CHROMIUM_PATH` points at a perfectly good browser (Playwright installs into
+/// `~/.cache/ms-playwright/…`, which `find_chrome` does not probe), so pointing
+/// CI at Playwright's chromium would not actually stop these tests skipping.
+///
+/// And in CI a skip is fatal, not a courtesy: `release` and `docker` gate on
+/// this job, so a run that skips its way to green would ship code that nothing
+/// exercised. Locally, skipping is still the right behaviour — not every
+/// developer has Chrome.
+///
+/// Not used by every test binary that includes this module, hence the `allow`.
+#[allow(dead_code)]
+pub fn chrome_available_or_skip(test_name: &str) -> bool {
+    let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
+    if env("SB_CHROME_PATH").is_some()
+        || env("CHROMIUM_PATH").is_some()
+        || silverbullet_server_runtime_chrome::find_chrome().is_some()
+    {
+        return true;
+    }
+    if std::env::var("CI").is_ok() {
+        panic!(
+            "{test_name}: no Chrome/Chromium found — SB_CHROME_PATH, CHROMIUM_PATH and \
+             auto-detection all came up empty. Refusing to skip in CI: this job gates the \
+             release and docker publishes, so a skipped run would ship untested code."
+        );
+    }
+    eprintln!("skipping {test_name}: no Chrome/Chromium found on this machine");
+    false
+}

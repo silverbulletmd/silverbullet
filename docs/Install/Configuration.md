@@ -44,7 +44,7 @@ To force the classic single-space server on an empty folder, pass `--single` (or
 * `SB_RUNTIME_API`: The [[Runtime API]] is enabled automatically when Chrome/Chromium is detected on the system. Set to `0` to explicitly disable. Not available in read-only mode.
 * `SB_CHROME_PATH`: Optional explicit path to the Chrome/Chromium binary. Falls back to the `CHROMIUM_PATH` environment variable (pre-set in the `-runtime-api` Docker image), then auto-detection.
 * `SB_CHROME_SHOW`: Set to any non-empty value to run Chrome with a visible window instead of headless (useful for debugging).
-* `SB_CHROME_DATA_DIR`: Path to persist the Chrome user profile between restarts. When not set, defaults to `.chrome-data` inside the space folder.
+* `SB_CHROME_DATA_DIR`: Path to persist the Chrome user profile between restarts. When not set, defaults to `.chrome-data` inside the server root — one profile for the whole server, since one browser serves every space. For a single-space server this is unchanged, because there the root *is* the space folder.
 * `SB_CHROME_LOG_CONSOLE`: Forward the headless Chrome page’s `console.*` output to the server log (so you can see what the runtime is doing). Enabled by default; set to `0` to disable. The same log is also available via `/.runtime/logs` (e.g. `sb logs`).
 
 # Security

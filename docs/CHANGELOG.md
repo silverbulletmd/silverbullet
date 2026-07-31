@@ -5,6 +5,17 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 
 * Fix: the FreeBSD **server** binary is being built and released again
 * Fix: [[Space Manager|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Install/Configuration]] documents.
+* Multi-space servers now share a single headless Chrome across all spaces
+  instead of launching one browser per space. Startup stays lazy: no browser
+  until the Runtime API is first used, and no tab for a space nobody queries.
+* The headless Chrome profile now lives at `<server root>/.chrome-data`.
+  Single-space servers are unaffected (the root *is* the space folder); on a
+  multi-space server the old per-space `.chrome-data` directories are no longer
+  used and can be deleted.
+* Fix: the Runtime API failed to start when authentication was enabled — the
+  headless page authorized only its first request and was then redirected to
+  `/.auth`, leaving `/.runtime/*` answering `bridge_unavailable`. It now
+  authenticates with a session cookie for the whole session. ([#2072](https://github.com/silverbulletmd/silverbullet/pull/2072))
 
 ## 2.10.0
 * [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.

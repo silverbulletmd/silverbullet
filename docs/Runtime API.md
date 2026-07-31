@@ -133,7 +133,7 @@ Status codes used across the Runtime API:
 # How it works
 As documented in [[Architecture]], the vast majority of SilverBullet’s power is implemented in the client. However, there are use cases for programmatically accessing your space with all of SilverBullet (client’s) power.
 
-When the Runtime API is enabled, the server launches a headless (invisible by default) Chrome process upon the first request to an `/.remote` endpoint. This browser loads the full SilverBullet client, exactly like a regular browser tab, but without a visible window (with some memory optimizations). The client boots normally: it loads all plugs, Lua code and navigates to the index page.
+When the Runtime API is enabled, the server launches a single, server-wide headless (invisible by default) Chrome process upon the first request to an `/.remote` endpoint. Each space with the runtime API enabled gets its own page (tab) in that shared browser, opened on that space’s first request. A page loads the full SilverBullet client, exactly like a regular browser tab, but without a visible window (with some memory optimizations). The client boots normally: it loads all plugs, Lua code and navigates to the index page.
 
 Once ready, the server communicates with the browser directly via Chrome DevTools Protocol (CDP). Because Lua code runs inside a real SilverBullet client, it has access to the full API surface — `editor.*`, `space.*`, queries, and everything else available to in-page scripts and widgets. The results reflect live client state.
 
@@ -141,4 +141,4 @@ Once ready, the server communicates with the browser directly via Chrome DevTool
 Set `SB_CHROME_SHOW=1` to run Chrome with a visible window — useful for watching what the headless client is doing. Set `SB_CHROME_DATA_DIR` to a path to persist the Chrome profile between restarts (avoids re-indexing on each restart).
 
 ## Resource usage
-Headless Chrome spawns several processes (browser, network, storage, and renderer). With the full SilverBullet client loaded and indexed, expect roughly **150–200 MB** of total RSS across all Chrome processes. The SilverBullet server itself adds ~30 MB on top of this.
+Headless Chrome spawns several processes (browser, network, storage, and renderer). With the full SilverBullet client loaded and indexed in a single space, expect roughly **150–200 MB** of total RSS across all Chrome processes. Because the browser is shared, additional spaces cost a renderer each rather than a whole browser. The SilverBullet server itself adds ~30 MB on top of this.
