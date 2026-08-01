@@ -52,7 +52,7 @@ config.define("sync", {
     documents = {
       type = "boolean",
       default = false,
-      description = "Sync document files (non-markdown) to the server",
+      description = "Sync document files (non-markdown) locally from the server. Allows access to document files while offline.",
       ui = { category = "Sync", label = "Sync documents", priority = 1 },
     },
     -- In .gitignore format, either in a single string, or as a list of strings
