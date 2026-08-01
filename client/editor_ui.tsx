@@ -111,7 +111,13 @@ export class MainUI {
   }
 
   // Progress circle handling
-  private progressTimeout?: ReturnType<typeof setTimeout>;
+  private progressMap = new Map<
+    "index" | "sync",
+    {
+      percentage: number;
+      timeout: ReturnType<typeof setTimeout>;
+    }
+  >();
 
   viewDispatch: (action: Action) => void = () => {};
 
@@ -152,20 +158,54 @@ export class MainUI {
     }
   }
 
-  showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
-    this.viewDispatch({
-      type: "set-progress",
-      progressPercentage,
-      progressType,
-    });
-    if (this.progressTimeout) {
-      clearTimeout(this.progressTimeout);
+  private dispatchProgressState() {
+    // Hide when nothing is active
+    if (this.progressMap.size === 0) {
+      this.viewDispatch({ type: "set-progress" });
+      return;
     }
-    this.progressTimeout = setTimeout(() => {
+
+    // Sync takes precedence over index so the indicator
+    // doesn't flip between the two when both streams are firing.
+    const progressType: "sync" | "index" = this.progressMap.has("sync")
+      ? "sync"
+      : "index";
+    const entry = this.progressMap.get(progressType);
+    if (entry) {
       this.viewDispatch({
         type: "set-progress",
+        progressPercentage: entry.percentage,
+        progressType,
       });
-    }, 5000);
+    }
+  }
+
+  private removeProgressType(progressType: "index" | "sync") {
+    const entry = this.progressMap.get(progressType);
+    if (entry) {
+      clearTimeout(entry.timeout);
+      this.progressMap.delete(progressType);
+    }
+  }
+
+  showProgress(
+    progressPercentage: number | undefined,
+    progressType: "sync" | "index",
+  ) {
+    this.removeProgressType(progressType);
+
+    if (progressPercentage !== undefined) {
+      const timeout = setTimeout(() => {
+        this.removeProgressType(progressType);
+        this.dispatchProgressState();
+      }, 5000);
+      this.progressMap.set(progressType, {
+        percentage: progressPercentage,
+        timeout,
+      });
+    }
+
+    this.dispatchProgressState();
   }
 
   filterBox(

@@ -65,20 +65,28 @@ async function totalItemsQueued() {
 async function updateIndexProgressInUI() {
   // Let's see if there's anything in the index queue
   let totalQueued = await totalItemsQueued();
+  let lastProgress = -1;
+  let lastProgressAt = 0;
   while (totalQueued > 0) {
     const percentage = Math.round(
       ((maximumObservedQueueSize - totalQueued) / maximumObservedQueueSize) *
         100,
     );
     if (percentage > 0 && percentage <= 99) {
-      await editor.showProgress(percentage, "index");
+      const now = Date.now();
+      if (lastProgress !== percentage || now - lastProgressAt >= 1000) {
+        lastProgress = percentage;
+        lastProgressAt = now;
+        await editor.showProgress(percentage, "index");
+      }
     } else {
-      // Hide progress circle
-      await editor.showProgress();
+      await editor.hideProgress("index");
+      lastProgressAt = 0;
     }
-    await sleep(1000);
+    await sleep(40);
     totalQueued = await totalItemsQueued();
   }
+  await editor.hideProgress("index");
   // Schedule again
   setTimeout(updateIndexProgressInUI, uiUpdateInterval);
 }

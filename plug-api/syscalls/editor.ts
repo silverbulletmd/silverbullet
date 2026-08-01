@@ -298,10 +298,14 @@ export function focus(): Promise<void> {
 }
 
 export function showProgress(
-  progressPercentage?: number,
-  progressType?: string,
+  progressPercentage: number,
+  progressType: "sync" | "index",
 ): Promise<void> {
   return syscall("editor.showProgress", progressPercentage, progressType);
+}
+
+export function hideProgress(progressType: "sync" | "index"): Promise<void> {
+  return syscall("editor.showProgress", undefined, progressType);
 }
 
 /**

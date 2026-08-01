@@ -665,7 +665,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: (
         _ctx,
         progressPercentage?: number,
-        progressType?: "sync" | "index",
+        progressType: "sync" | "index",
       ) => {
         client.ui.showProgress(progressPercentage, progressType);
       },
@@ -683,7 +683,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "progressType",
           type: "sync | index",
           description: "The operation represented by the indicator.",
-          optional: true,
         },
       ],
     },

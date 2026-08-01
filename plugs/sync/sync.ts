@@ -5,6 +5,9 @@ import {
   sync,
 } from "@silverbulletmd/silverbullet/syscalls";
 
+let lastProgress = -1;
+let lastProgressAt = 0;
+
 export async function syncSpaceCommand() {
   await editor.flashNotification("Syncing space...");
   await sync.performSpaceSync();
@@ -48,9 +51,15 @@ export async function updateSyncStatus(event: {
   );
   if (percentage >= 99) {
     // Just hide it
-    await editor.showProgress();
+    await editor.hideProgress("sync");
+    lastProgressAt = 0;
   } else {
-    await editor.showProgress(percentage, "sync");
+    const now = Date.now();
+    if (lastProgress !== percentage || now - lastProgressAt >= 1000) {
+      lastProgress = percentage;
+      lastProgressAt = now;
+      await editor.showProgress(percentage, "sync");
+    }
   }
 }
 
