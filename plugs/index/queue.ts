@@ -77,7 +77,7 @@ async function updateIndexProgressInUI() {
       if (lastProgress !== percentage || now - lastProgressAt >= 1000) {
         lastProgress = percentage;
         lastProgressAt = now;
-        await editor.showProgress(percentage, "index");
+        await editor.showProgress("index", percentage);
       }
     } else {
       await editor.hideProgress("index");

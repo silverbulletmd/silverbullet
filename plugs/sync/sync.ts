@@ -58,7 +58,7 @@ export async function updateSyncStatus(event: {
     if (lastProgress !== percentage || now - lastProgressAt >= 1000) {
       lastProgress = percentage;
       lastProgressAt = now;
-      await editor.showProgress(percentage, "sync");
+      await editor.showProgress("sync", percentage);
     }
   }
 }

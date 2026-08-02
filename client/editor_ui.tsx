@@ -189,8 +189,8 @@ export class MainUI {
   }
 
   showProgress(
-    progressPercentage: number | undefined,
     progressType: "sync" | "index",
+    progressPercentage?: number,
   ) {
     this.removeProgressType(progressType);
 
