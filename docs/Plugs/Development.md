@@ -3,6 +3,7 @@ references:
 - client/plugos/plug_compile.ts
 - plug-api/types/manifest.ts
 - bin/plug-compile.ts
+lastReviewed: 2026-08-03
 ---
 A **plug** is a self-contained JavaScript bundle (`*.plug.js`) that extends SilverBullet. It runs inside a sandboxed [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers), talks to the editor via [[API|syscalls]], and hooks into SilverBullet through commands, events, slash commands, message queues, and more.
 
