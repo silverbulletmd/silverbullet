@@ -1,5 +1,6 @@
 //! `SpacePrimitives` implementations and composition wrappers.
 
+pub mod case;
 pub mod disk;
 pub mod embed;
 pub mod http;

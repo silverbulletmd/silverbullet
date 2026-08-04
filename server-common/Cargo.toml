@@ -29,5 +29,12 @@ tracing = { workspace = true }
 zip = { workspace = true }
 tempfile = { workspace = true }
 
+# `fcntl(F_GETPATH)` is the only cheap way to recover true on-disk casing on
+# macOS; `canonicalize` does not correct casing there. Windows gets the same
+# information from `std::fs::canonicalize` (which uses
+# GetFinalPathNameByHandle), so no dependency is needed there.
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = { workspace = true }
+
 [lints]
 workspace = true

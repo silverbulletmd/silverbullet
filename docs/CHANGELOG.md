@@ -18,6 +18,10 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   headless page authorized only its first request and was then redirected to
   `/.auth`, leaving `/.runtime/*` answering `bridge_unavailable`. It now
   authenticates with a session cookie for the whole session. ([#2072](https://github.com/silverbulletmd/silverbullet/pull/2072))
+* Fixes around casing in page/file names:
+  * Renaming a page or folder to a different casing of the same name now works on case-insensitive filesystems (macOS, Windows)
+  * Renames are now rejected when the new name differs only in casing from an existing page or document, so spaces stay portable between case-sensitive and case-insensitive hosts.
+  * On case-insensitive filesystems, writing a file whose folder differs only in casing from an existing one now re-cases that folder to match — so writing `notes/foo` when the disk holds `Notes/` renames the folder, changing the reported path of every page inside it.
 
 ## 2.10.0
 * [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.

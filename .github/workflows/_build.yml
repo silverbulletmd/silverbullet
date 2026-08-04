@@ -114,6 +114,10 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # The case-insensitive filesystem checks should run on macOS (case insensitive file system)
+      - name: Test (macOS-only filesystem behavior)
+        run: cargo test -p silverbullet-server-common --all-features
+
       - name: Build server + CLI release archives (darwin x2)
         run: |
           make build-server-releases-macos

@@ -23,6 +23,7 @@ thiserror = "2"
 argon2 = { version = "0.5", features = ["std"] }
 walkdir = "2"
 ignore = "0.4"
+libc = "0.2"
 mime_guess = "2"
 chrono = "0.4"
 filetime = "0.2"

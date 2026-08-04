@@ -5,12 +5,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use ignore::gitignore::GitignoreBuilder;
 use walkdir::WalkDir;
 
+use crate::space::case;
 use crate::types::{FileMeta, SpaceError, SpacePrimitives};
 
 /// Filesystem-backed SpacePrimitives over a space folder on disk.
 pub struct DiskSpacePrimitives {
     root_path: PathBuf,
     gitignore_patterns: String,
+    /// Probed once at construction. When false, every case rule below is
+    /// skipped and the backend behaves exactly as it always has.
+    case_insensitive: bool,
 }
 
 impl DiskSpacePrimitives {
@@ -30,6 +34,7 @@ impl DiskSpacePrimitives {
         }
 
         Ok(Self {
+            case_insensitive: case::detect_case_insensitive(&root),
             root_path: root,
             gitignore_patterns: gitignore.to_string(),
         })
@@ -59,6 +64,43 @@ impl DiskSpacePrimitives {
         }
 
         Ok(self.root_path.join(clean))
+    }
+
+    pub fn is_case_insensitive(&self) -> bool {
+        self.case_insensitive
+    }
+
+    /// Lets tests exercise the case-sensitive path on a case-insensitive host.
+    #[cfg(test)]
+    pub(crate) fn force_case_insensitive(&mut self, value: bool) {
+        self.case_insensitive = value;
+    }
+
+    /// Re-case an aliased on-disk entry to match the requested casing. Inert on
+    /// case-sensitive filesystems, where a differently cased path simply
+    /// doesn't resolve and creating a separate entry is correct.
+    fn recase_to_requested(&self, path: &str) {
+        if !self.case_insensitive {
+            return;
+        }
+        let rel = Path::new(path);
+        if let Ok(Some(actual)) = case::true_relative_path(&self.root_path, rel) {
+            if actual.as_path() != rel {
+                case::apply_recase(&case::plan_recase(&self.root_path, &actual, rel));
+            }
+            return;
+        }
+        // The leaf doesn't exist yet: a plain create, or the create half of a
+        // rename whose delete already ran. The parent chain can still be
+        // aliased, and without this the write lands inside the old-cased folder.
+        let Some(parent) = rel.parent().filter(|p| !p.as_os_str().is_empty()) else {
+            return;
+        };
+        if let Ok(Some(actual)) = case::true_relative_path(&self.root_path, parent) {
+            if actual.as_path() != parent {
+                case::apply_recase(&case::plan_recase(&self.root_path, &actual, parent));
+            }
+        }
     }
 
     /// Convert an absolute path back to a relative forward-slash path.
@@ -241,6 +283,10 @@ impl SpacePrimitives for DiskSpacePrimitives {
     ) -> Result<FileMeta, SpaceError> {
         let local_path = self.safe_path(path)?;
 
+        // Without this, a case-insensitive filesystem truncates the aliased
+        // entry but keeps its old name, so the rename never lands.
+        self.recase_to_requested(path);
+
         // Ensure parent directory exists
         if let Some(parent) = local_path.parent() {
             fs::create_dir_all(parent)
@@ -266,6 +312,27 @@ impl SpacePrimitives for DiskSpacePrimitives {
 
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
         let local_path = self.safe_path(path)?;
+
+        // The sync engine emits create and delete as independent, unordered
+        // operations, so without this guard a delete addressed to a stale
+        // casing destroys the file that now lives under the new casing.
+        //
+        // Reports success rather than NotFound on purpose: the client's
+        // `deleteFile` throws on any non-200 and `syncFile` calls it unguarded,
+        // so a 404 here would abort the whole sync round.
+        if self.case_insensitive {
+            let rel = Path::new(path);
+            match case::true_relative_path(&self.root_path, rel) {
+                Ok(Some(actual)) if actual.as_path() != rel => return Ok(()),
+                Ok(_) => {}
+                // Falling through to a real delete here would unlink whatever
+                // this path aliases, which may be the file a paired write just
+                // re-cased. A failed sync round is recoverable; a lost page is
+                // not.
+                Err(e) => return Err(SpaceError::Io(e)),
+            }
+        }
+
         fs::remove_file(&local_path).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
                 SpaceError::NotFound
@@ -361,6 +428,232 @@ mod plan_tests {
         let dir = tempdir().unwrap();
         let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
         crate::space::conformance::run_read_write_conformance(&sp);
+    }
+
+    fn names(sp: &DiskSpacePrimitives) -> Vec<String> {
+        let mut v: Vec<String> = sp
+            .fetch_file_list()
+            .unwrap()
+            .into_iter()
+            .map(|m| m.name)
+            .collect();
+        v.sort();
+        v
+    }
+
+    #[test]
+    fn write_leaves_an_exact_match_alone() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+
+        sp.write_file("Notes/A.md", b"one", None).unwrap();
+        sp.write_file("Notes/A.md", b"two", None).unwrap();
+
+        assert_eq!(names(&sp), vec!["Notes/A.md".to_string()]);
+        assert_eq!(sp.read_file("Notes/A.md").unwrap().0, b"two");
+    }
+
+    /// With the flag off, the backend must behave exactly as it did before this
+    /// change — this is what protects Linux servers.
+    #[test]
+    fn write_does_nothing_special_when_case_sensitive() {
+        let dir = tempdir().unwrap();
+        let mut sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+        sp.force_case_insensitive(false);
+
+        sp.write_file("OldName.md", b"body", None).unwrap();
+        sp.write_file("oldname.md", b"body", None).unwrap();
+
+        let mut found = names(&sp);
+        found.sort();
+        if sp_fs_is_case_insensitive(dir.path()) {
+            // Historical behavior: the alias truncates and the name survives.
+            assert_eq!(found, vec!["OldName.md".to_string()]);
+        } else {
+            assert_eq!(
+                found,
+                vec!["OldName.md".to_string(), "oldname.md".to_string()]
+            );
+        }
+    }
+
+    fn sp_fs_is_case_insensitive(root: &std::path::Path) -> bool {
+        crate::space::case::detect_case_insensitive(root)
+    }
+
+    #[test]
+    fn delete_still_removes_an_exact_match() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+
+        sp.write_file("Notes/A.md", b"body", None).unwrap();
+        sp.delete_file("Notes/A.md").unwrap();
+
+        assert!(names(&sp).is_empty());
+    }
+
+    /// A genuinely missing file must still report NotFound — only a *case
+    /// mismatch* is silently ignored.
+    #[test]
+    fn delete_of_missing_file_still_reports_not_found() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+
+        assert!(matches!(
+            sp.delete_file("nope.md"),
+            Err(crate::types::SpaceError::NotFound)
+        ));
+    }
+
+    /// Tests needing a filesystem that actually aliases casings. Gated to macOS
+    /// so they are absent on Linux rather than present and vacuous.
+    ///
+    /// A case-sensitive APFS volume is possible but opt-in at format time; the
+    /// `is_case_insensitive` guard covers that rare case.
+    #[cfg(target_os = "macos")]
+    mod fs_tests {
+        use super::*;
+
+        #[test]
+        fn write_recases_an_aliased_file() {
+            let dir = tempdir().unwrap();
+            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+            if !sp.is_case_insensitive() {
+                return;
+            }
+
+            sp.write_file("OldName.md", b"body", None).unwrap();
+            sp.write_file("oldname.md", b"body", None).unwrap();
+
+            assert_eq!(names(&sp), vec!["oldname.md".to_string()]);
+        }
+
+        #[test]
+        fn write_recases_an_aliased_folder() {
+            let dir = tempdir().unwrap();
+            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+            if !sp.is_case_insensitive() {
+                return;
+            }
+
+            sp.write_file("Notes/a.md", b"body", None).unwrap();
+            sp.write_file("notes/a.md", b"body", None).unwrap();
+
+            assert_eq!(names(&sp), vec!["notes/a.md".to_string()]);
+        }
+
+        /// A re-case that can't be applied must never fail the user's save —
+        /// the write still lands through the case-insensitive alias.
+        #[test]
+        fn write_succeeds_when_recasing_is_skipped() {
+            let dir = tempdir().unwrap();
+            let outside = tempdir().unwrap();
+            std::os::unix::fs::symlink(outside.path(), dir.path().join("Linked")).unwrap();
+            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+            if !sp.is_case_insensitive() {
+                return;
+            }
+            sp.write_file("Linked/a.md", b"one", None).unwrap();
+
+            sp.write_file("linked/a.md", b"two", None).unwrap();
+
+            // Reads the literal directory entry name rather than doing a
+            // case-insensitive path lookup (`.join("Linked").is_symlink()`) —
+            // on default APFS that lookup would still resolve to a renamed
+            // `linked` entry and pass either way, masking a regression.
+            let entries: Vec<String> = std::fs::read_dir(dir.path())
+                .unwrap()
+                .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+                .collect();
+            assert_eq!(entries, vec!["Linked".to_string()]);
+            assert_eq!(sp.read_file("linked/a.md").unwrap().0, b"two");
+        }
+
+        /// After a re-case, a delete addressed to the *old* casing must not
+        /// touch the file — this is what stops the sync engine's unordered
+        /// create/delete pair from destroying the page.
+        #[test]
+        fn delete_ignores_a_stale_casing() {
+            let dir = tempdir().unwrap();
+            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+            if !sp.is_case_insensitive() {
+                return;
+            }
+
+            sp.write_file("OldName.md", b"body", None).unwrap();
+            sp.write_file("oldname.md", b"body", None).unwrap();
+
+            sp.delete_file("OldName.md").unwrap();
+
+            assert_eq!(names(&sp), vec!["oldname.md".to_string()]);
+            assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
+        }
+
+        /// The sync engine iterates the union of changed paths with no ordering
+        /// guarantee, so a case-only rename reaches the server as an unordered
+        /// create/delete pair. Both orders must end with exactly one file,
+        /// under the new casing, with the right content.
+        #[test]
+        fn sync_pair_converges_create_then_delete() {
+            let dir = tempdir().unwrap();
+            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+            if !sp.is_case_insensitive() {
+                return;
+            }
+            sp.write_file("OldName.md", b"body", None).unwrap();
+
+            sp.write_file("oldname.md", b"body", None).unwrap();
+            sp.delete_file("OldName.md").unwrap();
+
+            assert_eq!(names(&sp), vec!["oldname.md".to_string()]);
+            assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
+        }
+
+        #[test]
+        fn sync_pair_converges_delete_then_create() {
+            let dir = tempdir().unwrap();
+            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+            if !sp.is_case_insensitive() {
+                return;
+            }
+            sp.write_file("OldName.md", b"body", None).unwrap();
+
+            sp.delete_file("OldName.md").unwrap();
+            sp.write_file("oldname.md", b"body", None).unwrap();
+
+            assert_eq!(names(&sp), vec!["oldname.md".to_string()]);
+            assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
+        }
+
+        /// Same property one level up, which is where the whole-path comparison
+        /// matters: the file component matches exactly, only the folder differs.
+        #[test]
+        fn folder_sync_pair_converges_in_both_orders() {
+            for delete_first in [false, true] {
+                let dir = tempdir().unwrap();
+                let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+                if !sp.is_case_insensitive() {
+                    return;
+                }
+                sp.write_file("Notes/a.md", b"body", None).unwrap();
+                sp.write_file("Notes/keep.md", b"keep", None).unwrap();
+
+                if delete_first {
+                    sp.delete_file("Notes/a.md").unwrap();
+                    sp.write_file("notes/a.md", b"body", None).unwrap();
+                } else {
+                    sp.write_file("notes/a.md", b"body", None).unwrap();
+                    sp.delete_file("Notes/a.md").unwrap();
+                }
+
+                assert_eq!(
+                    names(&sp),
+                    vec!["notes/a.md".to_string(), "notes/keep.md".to_string()],
+                    "delete_first={delete_first}"
+                );
+                assert_eq!(sp.read_file("notes/a.md").unwrap().0, b"body");
+            }
+        }
     }
 }
 
