@@ -166,6 +166,70 @@ describe("markdown links (angle-wrapped)", () => {
   });
 });
 
+describe("transclusions (wikilink form with leading `!`)", () => {
+  test("bare transclusion", () => {
+    expect(splice("Embed ![[Old]] here.", "![[Old]]", "Old", "New")).toBe(
+      "Embed ![[New]] here.",
+    );
+  });
+
+  test("transclusion with alias", () => {
+    expect(splice("See ![[Old|alias]].", "![[Old|alias]]", "Old", "New")).toBe(
+      "See ![[New|alias]].",
+    );
+  });
+
+  test("transclusion with dimension alias", () => {
+    expect(
+      splice("See ![[Old|100x200]].", "![[Old|100x200]]", "Old", "New"),
+    ).toBe("See ![[New|100x200]].");
+  });
+
+  test("transclusion with header detail", () => {
+    expect(
+      splice("See ![[Old#Section]].", "![[Old#Section]]", "Old", "New"),
+    ).toBe("See ![[New#Section]].");
+  });
+
+  test("transclusion with position detail", () => {
+    expect(splice("See ![[Old@12]].", "![[Old@12]]", "Old", "New")).toBe(
+      "See ![[New@12]].",
+    );
+  });
+
+  test("transclusion with `.md` suffix is normalized", () => {
+    expect(splice("See ![[Old.md]].", "![[Old.md]]", "Old", "New")).toBe(
+      "See ![[New]].",
+    );
+  });
+
+  test("transclusion at start of line", () => {
+    expect(splice("![[Old]] starts.", "![[Old]]", "Old", "New")).toBe(
+      "![[New]] starts.",
+    );
+  });
+
+  test("transclusion whose target doesn't match oldName is left alone", () => {
+    expect(splice("See ![[Other]].", "![[Other]]", "Old", "New")).toBe(
+      "See ![[Other]].",
+    );
+  });
+});
+
+describe("markdown images (markdown-link form with leading `!`)", () => {
+  test("markdown image link to a page", () => {
+    expect(
+      splice("See ![alt](Old).", "![alt](Old)", "Old", "New", "Editor"),
+    ).toBe("See ![alt](New).");
+  });
+
+  test("markdown image with header detail", () => {
+    expect(
+      splice("See ![alt](Old#sec).", "![alt](Old#sec)", "Old", "New", "Editor"),
+    ).toBe("See ![alt](New#sec).");
+  });
+});
+
 describe("multiple references on one line", () => {
   test("each splice is independent (caller iterates back-to-front)", () => {
     let text = "Two [[Old]] references [[Old]] here.";
