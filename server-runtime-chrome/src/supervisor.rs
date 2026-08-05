@@ -138,7 +138,7 @@ pub(crate) async fn launch_browser(config: &ChromeConfig) -> Result<Browser, Str
             "disable-dev-shm-usage",
             "disable-extensions",
             "disable-gpu",
-            "in-process-gpu",
+            "disable-software-rasterizer",
         ]);
     if config.show {
         builder = builder.with_head();
