@@ -22,7 +22,10 @@ import {
   createEditorState,
   externalUpdate,
 } from "./codemirror/editor_state.ts";
+import { externalSource } from "./codemirror/external_presence.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
+import { computeExternalChanges } from "./external_merge.ts";
+import { parsePageMetaLastModified } from "./lib/page_meta.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
@@ -41,6 +44,14 @@ export class ContentManager {
   documentEditor: DocumentEditor | null = null;
   saveTimeout?: ReturnType<typeof setTimeout>;
   private scrollRestoreCleanup?: () => void;
+  // Last content known to be on disk (base for 3-way external merges)
+  private lastKnownDiskText = "";
+  // lastModified backing lastKnownDiskText, used to reject an apply whose
+  // fetched content is older than what's already applied (out-of-order
+  // resolution of overlapping reloads for the same page)
+  private lastKnownDiskModified?: number;
+  // lastModified of our own most recent write, for echo suppression
+  lastSavedHash?: number;
   debouncedUpdateEvent = throttle(() => {
     this.client.eventHook
       .dispatchEvent("editor:updated")
@@ -95,12 +106,15 @@ export class ContentManager {
               "editor:pageSaving",
               this.client.currentName(),
             );
+            const text = this.client.editorView.state.sliceDoc(0);
             this.client.space
-              .writePage(
-                this.client.currentName(),
-                this.client.editorView.state.sliceDoc(0),
-              )
+              .writePage(this.client.currentName(), text)
               .then(async (meta) => {
+                this.lastKnownDiskText = text;
+                this.lastSavedHash = parsePageMetaLastModified(
+                  meta.lastModified,
+                );
+                this.lastKnownDiskModified = this.lastSavedHash;
                 this.client.ui.viewDispatch({ type: "page-saved" });
                 await this.client.dispatchAppEvent(
                   "editor:pageSaved",
@@ -337,6 +351,8 @@ export class ContentManager {
       }
     }
 
+    this.lastSavedHash = parsePageMetaLastModified(doc.meta.lastModified);
+
     // This could create an invalid editor state, but that doesn't matter, we'll update it later
     this.switchToPageEditor();
 
@@ -355,42 +371,15 @@ export class ContentManager {
       path: path,
     });
 
-    // Fetch the meta which includes the possibly indexed stuff, like page
-    // decorations
-    if (await this.client.objectIndex.hasFullIndexCompleted()) {
-      try {
-        const enrichedMeta =
-          (await this.client.objectIndex.getObjectByRef(
-            pageName,
-            "page",
-            pageName,
-          )) ?? doc.meta;
-
-        const body = document.body;
-        body.removeAttribute("class");
-
-        if (enrichedMeta.pageDecoration?.cssClasses) {
-          body.className = enrichedMeta.pageDecoration.cssClasses
-            .join(" ")
-            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
-        }
-
-        this.client.ui.viewDispatch({
-          type: "update-current-page-meta",
-          meta: enrichedMeta,
-        });
-
-        // Trigger editor re-render to update Lua widgets with the new metadata
-        this.client.editorView.dispatch({});
-      } catch (e: any) {
-        console.log(
-          `There was an error trying to fetch enriched metadata: ${e.message}`,
-        );
-      }
-    }
+    await this.refreshCurrentPageMeta(pageName, doc.meta);
 
     // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
     if (loadingDifferentPath || doc.meta.perm === "ro") {
+      // Fresh state, nothing to diff against yet: doc.text *is* the new base.
+      this.lastKnownDiskText = doc.text;
+      this.lastKnownDiskModified = parsePageMetaLastModified(
+        doc.meta.lastModified,
+      );
       const editorState = createEditorState(
         this.client,
         pageName,
@@ -399,8 +388,13 @@ export class ContentManager {
       );
       this.client.editorView.setState(editorState);
     } else {
-      // Just apply minimal patches so that the cursor is preserved
-      this.applyExternalPatches(doc.text);
+      // Same-page reload: applyExternalPatches diffs against the base from
+      // the *previous* load (this.lastKnownDiskText, untouched above) and
+      // updates it to doc.text itself.
+      this.applyExternalPatches(
+        doc.text,
+        parsePageMetaLastModified(doc.meta.lastModified),
+      );
     }
 
     this.client.space.watchFile(path);
@@ -510,16 +504,137 @@ export class ContentManager {
     });
   }
 
-  // Like setEditorText, but marks the transaction as an external update (e.g.
-  // a page re-fetch from storage) so the save-on-change handler skips it and
-  // we avoid an immediate re-save loop.
-  private applyExternalPatches(newText: string) {
+  // Applies an external (storage-side) content change as a minimal,
+  // cursor-preserving transaction: a 3-way merge against the last known
+  // on-disk text so unsaved local edits survive. The transaction is marked
+  // externalUpdate (skips the save-on-change handler) and isolated in undo
+  // history, so a single undo reverts exactly this external change.
+  // Returns whether a change was actually dispatched, so callers can skip
+  // follow-up work (meta refresh, notifications) for a dropped/no-op apply.
+  private applyExternalPatches(
+    newText: string,
+    modified: number | undefined,
+    source = "external",
+  ): boolean {
+    if (
+      modified !== undefined &&
+      this.lastKnownDiskModified !== undefined &&
+      modified < this.lastKnownDiskModified
+    ) {
+      // Two reloads for this page were in flight and this older one resolved
+      // last (e.g. a direct reloadEditor racing an SSE-triggered
+      // reloadPageContent). Applying it would revert already-applied,
+      // newer content.
+      console.log(
+        "Dropping stale external patch, older than already-applied content",
+        { source, modified, lastKnownDiskModified: this.lastKnownDiskModified },
+      );
+      return false;
+    }
     const currentText = this.client.editorView.state.sliceDoc();
-    const allChanges = diffAndPrepareChanges(currentText, newText);
+    const changes = computeExternalChanges(
+      this.lastKnownDiskText,
+      newText,
+      currentText,
+    );
+    this.lastKnownDiskText = newText;
+    this.lastKnownDiskModified = modified;
+    if (changes.empty) {
+      return false;
+    }
     this.client.editorView.dispatch({
-      changes: allChanges,
-      annotations: [isolateHistory.of("full"), externalUpdate.of(true)],
+      changes,
+      annotations: [
+        isolateHistory.of("full"),
+        externalUpdate.of(true),
+        externalSource.of(source),
+      ],
     });
+    return true;
+  }
+
+  // Fetch the current page's content from storage and apply it as an
+  // external patch -- the live-edit path (no full loadPage, no editor state
+  // rebuild). Still refreshes enriched page meta and dispatches
+  // editor:pageReloaded when a real change was applied, so plugs and
+  // frontmatter-derived UI (page decorations) stay in sync with the file
+  // that changed on disk, per the documented contract of that event.
+  async reloadPageContent(source = "external"): Promise<void> {
+    const path = this.client.currentPath();
+    // Defensive, not currently reachable from the file:changed listener
+    // (which already gates on isMarkdownPath before calling in): kept so
+    // this method stays safe to call directly with an unchecked path, which
+    // future callers (e.g. an SSE push handler) may do.
+    if (!isMarkdownPath(path)) {
+      return this.reloadEditor();
+    }
+    const doc = await this.client.space.readPage(getNameFromPath(path));
+    // The user may have navigated to a different page while this fetch was
+    // in flight. Applying now would diff/merge page-A content against
+    // whatever page is currently open -- bail out rather than corrupt it.
+    if (this.client.currentPath() !== path) {
+      return;
+    }
+    const pageName = getNameFromPath(path);
+    const applied = this.applyExternalPatches(
+      doc.text,
+      parsePageMetaLastModified(doc.meta.lastModified),
+      source,
+    );
+    if (!applied) {
+      return;
+    }
+
+    await this.refreshCurrentPageMeta(pageName, doc.meta);
+
+    // Note: dispatched asynchronously deliberately (not waiting for
+    // results), matching the full-reload path in loadPage.
+    this.client.eventHook
+      .dispatchEvent("editor:pageReloaded", pageName, pageName)
+      .catch(console.error);
+  }
+
+  // Re-fetches enriched (indexed) page meta -- e.g. frontmatter-derived page
+  // decorations -- and pushes it into viewState.current.meta and the body's
+  // decoration classes. Shared by loadPage and the live reloadPageContent
+  // path so an external edit's frontmatter changes show up without
+  // requiring navigation away and back.
+  private async refreshCurrentPageMeta(
+    pageName: string,
+    fallbackMeta: PageMeta,
+  ): Promise<void> {
+    if (!(await this.client.objectIndex.hasFullIndexCompleted())) {
+      return;
+    }
+    try {
+      const enrichedMeta =
+        (await this.client.objectIndex.getObjectByRef(
+          pageName,
+          "page",
+          pageName,
+        )) ?? fallbackMeta;
+
+      const body = document.body;
+      body.removeAttribute("class");
+
+      if (enrichedMeta.pageDecoration?.cssClasses) {
+        body.className = enrichedMeta.pageDecoration.cssClasses
+          .join(" ")
+          .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+      }
+
+      this.client.ui.viewDispatch({
+        type: "update-current-page-meta",
+        meta: enrichedMeta,
+      });
+
+      // Trigger editor re-render to update Lua widgets with the new metadata
+      this.client.editorView.dispatch({});
+    } catch (e: any) {
+      console.log(
+        `There was an error trying to fetch enriched metadata: ${e.message}`,
+      );
+    }
   }
 
   private navigateWithinPage(pageState: LocationState) {
