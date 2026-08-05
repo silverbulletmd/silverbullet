@@ -15,6 +15,7 @@ test.each([
   "/notes/.client/client.js",
   "/notes/.auth",
   "/notes/.fs/index.md",
+  "/notes/.events",
   "/notes/.config",
   "/deeply/nested/prefix/.client/app.css",
 ])("%s belongs to another space", (path) => {
@@ -26,6 +27,7 @@ test.each([
   "/.client/client.js",
   "/.auth",
   "/.fs/index.md",
+  "/.events",
   "/.config",
   // Ordinary pages, including ones that merely look like a prefix.
   "/",

@@ -17,31 +17,32 @@ import { EventEmitter } from "../plugos/event.ts";
 // rest. Both lists below derive from this one, so a new surface is declared
 // once instead of being kept in sync by hand.
 const spaceSurfaces = [
-  "client",
-  "fs",
-  "auth",
-  "config",
-  "logout",
-  "shell",
-  "proxy",
-  "logs",
+  "/.client",
+  "/.fs",
+  "/.events",
+  "/.auth",
+  "/.config",
+  "/.logout",
+  "/.shell",
+  "/.proxy",
+  "/.logs",
 ];
-const locallyServed = ["client", "fs"];
+const locallyServed = ["/.client", "/.fs"];
 
 // Always straight to the server: the space surfaces we have no local answer
 // for, plus the server-wide ones, which only ever exist at the origin root.
 // Matched as a prefix of the *space-relative* path.
 const alwaysProxy = [
-  ...spaceSurfaces
-    .filter((surface) => !locallyServed.includes(surface))
-    .map((surface) => `/.${surface}`),
+  ...spaceSurfaces.filter((surface) => !locallyServed.includes(surface)),
   "/.spaces",
   "/.setup",
   "/.instance",
 ];
 
 const anotherSpaceSurface = new RegExp(
-  `/[^/]+/\\.(${spaceSurfaces.join("|")})(/|$)`,
+  `/[^/]+/\\.(${spaceSurfaces
+    .map((surface) => surface.slice("/.".length))
+    .join("|")})(/|$)`,
 );
 
 /**

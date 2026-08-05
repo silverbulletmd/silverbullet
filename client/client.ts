@@ -52,6 +52,7 @@ import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
+import { RealtimeEvents } from "./realtime_events.ts";
 import { Space } from "./space.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import {
@@ -105,6 +106,7 @@ export class Client {
   clientSystem!: ClientSystem;
   eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
+  realtimeEvents?: RealtimeEvents;
 
   ui!: MainUI;
   ds!: DataStore;
@@ -420,24 +422,26 @@ export class Client {
     this.eventHook.addLocalListener(
       "file:changed",
       (path: string, oldHash: number, newHash: number) => {
-        // Only reload when watching the current page or document (to avoid reloading when switching pages)
         if (
-          this.space.watchInterval &&
-          this.currentPath() === path &&
-          // Avoid reloading if the page was just saved (5s window)
-          (!lastSaveTimestamp || lastSaveTimestamp < Date.now() - 5000) &&
-          // Avoid reloading if the previous hash was undefined (first load)
-          oldHash !== undefined
+          !this.space.watchInterval ||
+          this.currentPath() !== path ||
+          oldHash === undefined
         ) {
-          console.log(
-            "Page changed elsewhere, reloading. Old hash",
-            oldHash,
-            "new hash",
-            newHash,
-          );
-          this.ui.flashNotification(
-            "Page or document changed elsewhere, reloading",
-          );
+          return;
+        }
+        if (isMarkdownPath(path)) {
+          // Live path: precise echo suppression by our own last write's hash;
+          // content-level no-op inside applyExternalPatches covers the rest
+          if (newHash === this.contentManager.lastSavedHash) {
+            return;
+          }
+          this.contentManager.reloadPageContent().catch(console.error);
+        } else if (
+          !lastSaveTimestamp ||
+          lastSaveTimestamp < Date.now() - 5000
+        ) {
+          // Documents (non-markdown) keep the reload path
+          this.ui.flashNotification("Document changed elsewhere, reloading");
           void this.reloadEditor();
         }
       },
@@ -462,6 +466,25 @@ export class Client {
     });
 
     this.space.watch();
+
+    this.realtimeEvents = new RealtimeEvents({
+      probeFile: (name) => this.eventedSpacePrimitives.getFileMeta(name),
+      syncFile: (name) =>
+        this.clientSystem
+          .localSyscall("sync.performFileSync", [name])
+          .catch((e) => console.warn("[realtime] sync nudge failed", e)),
+      syncSpace: () =>
+        this.clientSystem
+          .localSyscall("sync.performSpaceSync", [])
+          .catch((e) => console.warn("[realtime] sync nudge failed", e)),
+      refreshFileList: () =>
+        this.eventedSpacePrimitives.fetchFileListWhenIdle(),
+      serviceWorkerActive: () =>
+        !!globalThis.navigator?.serviceWorker?.controller,
+    });
+    this.realtimeEvents.start(
+      `${document.baseURI.replace(/\/*$/, "")}/.events`,
+    );
   }
 
   currentPath(): Path {
@@ -1237,6 +1260,7 @@ export class Client {
     }
     console.log("Stopping all systems");
     this.space.unwatch();
+    this.realtimeEvents?.stop();
 
     console.log("Clearing data store");
     await this.ds.kv.clear();
