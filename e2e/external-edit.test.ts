@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   gotoSilverBulletPage,
   mod,
+  redoChord,
   spawnServerProcess,
   test,
   waitForServer,
@@ -120,7 +121,7 @@ test("undo after moving the cursor past an external edit restores the user's cur
       selection: { anchor: 3 },
     });
   });
-  await sbPage.keyboard.press(`${mod}+Shift+z`);
+  await sbPage.keyboard.press(redoChord);
   await expect(editor).toContainText("External line");
   const afterRedo = await sbPage.evaluate(
     () => (globalThis as any).client.editorView.state.selection.main.head,

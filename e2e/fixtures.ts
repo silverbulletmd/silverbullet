@@ -8,6 +8,15 @@ import { test as base, type Page } from "@playwright/test";
 /** The platform-appropriate modifier key: Meta on macOS, Control elsewhere. */
 export const mod = platform() === "darwin" ? "Meta" : "Control";
 
+/**
+ * Full redo chord, per the "Editor: Redo" binding in editor_commands.ts:
+ * Cmd-Shift-z on macOS, Ctrl-y elsewhere. `${mod}+Shift+z` is NOT a redo
+ * anywhere but macOS -- it silently does nothing on Linux.
+ */
+export const redoChord = platform() === "darwin"
+  ? "Meta+Shift+z"
+  : "Control+y";
+
 /** The admin account every multi-space e2e test provisions via `silverbullet setup`. */
 export const ADMIN_USER = "admin";
 export const ADMIN_PASSWORD = "adminpw123";
