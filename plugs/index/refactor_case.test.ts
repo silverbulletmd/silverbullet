@@ -24,8 +24,9 @@ test("a folder case change does not conflict with itself", () => {
 });
 
 test("a folder case change still collides with an unrelated file", () => {
-  expect(findRenameConflict([...space, "notes/b.md"], "Notes/a.md", "notes/B.md"))
-    .toBe("notes/b.md");
+  expect(
+    findRenameConflict([...space, "notes/b.md"], "Notes/a.md", "notes/B.md"),
+  ).toBe("notes/b.md");
 });
 
 const dup = ["Foo.md", "foo.md"];
