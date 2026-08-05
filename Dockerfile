@@ -25,8 +25,17 @@ ENV SB_HOSTNAME=0.0.0.0 \
 EXPOSE 3000
 HEALTHCHECK CMD curl --fail "http://localhost:$SB_PORT/.instance" || exit 1
 
+# Wipe the stock Alpine accounts so `docker-entrypoint.sh` can create the
+# `silverbullet` user/group at an arbitrary PUID/PGID without colliding with a
+# built-in entry at the same id (busybox `adduser`/`addgroup` fail on collision).
+RUN echo "" > /etc/group && echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
+
+# Drops privileges to PUID/PGID (defaulting to the owner of $SB_FOLDER) and
+# runs /space/CONTAINER_BOOT.md if present.
+ADD ./docker-entrypoint.sh /docker-entrypoint.sh
+
 COPY silverbullet-${TARGETARCH} /silverbullet
-RUN chmod +x /silverbullet
+RUN chmod +x /silverbullet /docker-entrypoint.sh
 
 # Extra args (e.g. `--user me:letmein`) are appended to the binary invocation.
-ENTRYPOINT ["/sbin/tini", "--", "/silverbullet"]
+ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]

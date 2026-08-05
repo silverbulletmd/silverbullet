@@ -7,6 +7,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * This relies on active file-system, watching which can be configured server-wide with the new `SB_FS_WATCH` environment variable (`auto` (default) / `poll` / `off`): set `poll` when the space lives on a network mount (NFS/SMB) where changes made may not result in FS events.
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off. It only actually runs when the server found a Chrome or Chromium install at startup and only booted upon first use of the API.
 * [[Space Manager]]: saving an edited space now returns to the space list, instead of staying on the edit form with a brief “✓ Saved” confirmation. Creating a space still lands on the new space's own screen.
+* Fix: the docker image ignored `PUID`/`PGID` and space folder ownership, running as `root` and creating root-owned files
 * Fix: the FreeBSD **server** binary is being built and released again
 * Fix: [[Space Manager|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Install/Configuration]] documents.
 * Multi-space servers now share a single headless Chrome across all spaces
