@@ -54,6 +54,6 @@ rustyline = "14"
 uuid = { version = "1", features = ["v4"] }
 aes-gcm = "0.10"
 tempfile = "3"
-zip = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 notify = "8"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
