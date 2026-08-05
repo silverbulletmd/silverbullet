@@ -664,25 +664,24 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.showProgress": {
       callback: (
         _ctx,
+        progressType: "sync" | "index",
         progressPercentage?: number,
-        progressType?: "sync" | "index",
       ) => {
-        client.ui.showProgress(progressPercentage, progressType);
+        client.ui.showProgress(progressType, progressPercentage);
       },
       description:
         "Shows, updates, or hides a sync or indexing progress indicator.",
       parameters: [
         {
+          name: "progressType",
+          type: "sync | index",
+          description: "The operation represented by the indicator.",
+        },
+        {
           name: "progressPercentage",
           type: "number",
           description:
             "Completion percentage, or undefined to hide the indicator.",
-          optional: true,
-        },
-        {
-          name: "progressType",
-          type: "sync | index",
-          description: "The operation represented by the indicator.",
           optional: true,
         },
       ],
