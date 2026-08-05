@@ -396,6 +396,10 @@ jobs:
           images: |
             ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}
             ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
+          # latest=false: the default (latest=auto) appends a bare `latest` tag
+          # for any matching type=semver entry, which would point `latest` at
+          # the fat runtime-api image (it is pushed after the main one).
+          flavor: latest=false
           tags: |
             type=semver,pattern={{raw}}-runtime-api,enable=true
             type=semver,pattern=latest-runtime-api,enable=true
