@@ -83,7 +83,10 @@ fn single_spaces_info_router() -> axum::Router {
     })
 }
 
-pub async fn run_single(config: Config) -> Result<(), String> {
+pub(crate) async fn run_single(
+    config: Config,
+    shutdown: crate::server::Shutdown,
+) -> Result<(), String> {
     let root = PathBuf::from(&config.space_folder);
     // Note: this is a deliberate behavior change from the old single-space
     // binary, not parity — the old binary errored on a missing space folder
@@ -130,6 +133,7 @@ pub async fn run_single(config: Config) -> Result<(), String> {
         // means the two modes can't disagree about what the variable means.
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
+        shutdown: Some(shutdown.rx.clone()),
     };
 
     let mut spaces = HashMap::new();
@@ -185,9 +189,9 @@ pub async fn run_single(config: Config) -> Result<(), String> {
     }
 
     if let Some(socket) = &config.unix_socket {
-        crate::server::serve_unix(socket, router).await
+        crate::server::serve_unix(socket, router, shutdown).await
     } else {
-        crate::server::serve_tcp(&config.bind_host, config.port, router).await
+        crate::server::serve_tcp(&config.bind_host, config.port, router, shutdown).await
     }
 }
 

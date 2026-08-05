@@ -40,7 +40,10 @@ impl SwappableRouter {
 /// bound for the process's whole life: once the wizard's `POST
 /// /.setup/api/complete` provisions the root, a background task builds the full
 /// multi-space stack and swaps it into the live router in place.
-pub async fn run_setup_server(config: crate::config::Config) -> Result<(), String> {
+pub(crate) async fn run_setup_server(
+    config: crate::config::Config,
+    shutdown: crate::server::Shutdown,
+) -> Result<(), String> {
     use silverbullet_server::multi::setup_api::{build_setup_router, SetupState};
 
     use crate::embed::{ClientAssets, EmbeddedSpace};
@@ -73,11 +76,15 @@ pub async fn run_setup_server(config: crate::config::Config) -> Result<(), Strin
 
     let (handle, outer) = SwappableRouter::new(build_setup_router(state));
 
-    // Wait for setup to finish, then hot-swap the multi stack into place.
+    // Wait for setup to finish, then hot-swap the multi stack into place. The
+    // swapped-in stack's spaces need the same shutdown signal as the wizard's
+    // own `with_graceful_shutdown` below, so its `rx` is cloned before
+    // `shutdown.future` is consumed by `axum::serve`.
     let swap_config = config.clone();
+    let swap_shutdown_rx = shutdown.rx.clone();
     tokio::spawn(async move {
         ready.notified().await;
-        match crate::multi::build_multi_stack(&swap_config).await {
+        match crate::multi::build_multi_stack(&swap_config, Some(swap_shutdown_rx)).await {
             Ok((router, log)) => {
                 handle.swap(router);
                 tracing::info!("setup complete: now serving multi-space: {log}");
@@ -96,7 +103,7 @@ pub async fn run_setup_server(config: crate::config::Config) -> Result<(), Strin
         .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
     tracing::info!("SilverBullet setup wizard running: http://{addr}/.setup/");
     axum::serve(listener, outer)
-        .with_graceful_shutdown(crate::server::shutdown_signal())
+        .with_graceful_shutdown(shutdown.future)
         .await
         .map_err(|e| format!("server error: {e}"))
 }
@@ -250,7 +257,7 @@ mod tests {
     async fn run_setup_server_rejects_unix_socket() {
         let dir = tempfile::tempdir().unwrap();
         let config = test_config(dir.path().to_str().unwrap(), Some("/tmp/sb.sock"));
-        let err = run_setup_server(config)
+        let err = run_setup_server(config, crate::server::Shutdown::install())
             .await
             .expect_err("must reject SB_UNIX_SOCKET");
         assert!(err.contains("SB_UNIX_SOCKET"), "{err}");

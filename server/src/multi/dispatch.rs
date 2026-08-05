@@ -162,6 +162,7 @@ mod tests {
             disable_service_worker: true,
             shell_disabled: false,
             index_template: "# Test space\n".into(),
+            shutdown: None,
         }
     }
 

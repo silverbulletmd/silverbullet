@@ -36,8 +36,14 @@ const IGNORED_IN_MULTI: &[&str] = &[
     "SB_USER",
 ];
 
-/// Build the full multi-space serving stack from a provisioned root
-pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String), String> {
+/// Build the full multi-space serving stack from a provisioned root.
+/// `shutdown_rx` is cloned into every space's `ServerState::shutdown`; `None`
+/// (e.g. from a test) means those spaces' `/.events` streams never see a
+/// shutdown signal, matching pre-signal behavior.
+pub async fn build_multi_stack(
+    config: &Config,
+    shutdown_rx: Option<tokio::sync::watch::Receiver<()>>,
+) -> Result<(axum::Router, String), String> {
     if config.unix_socket.is_some() {
         return Err("SB_UNIX_SOCKET is not supported in multi-space mode".into());
     }
@@ -93,6 +99,7 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
         disable_service_worker: config.disable_service_worker,
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
+        shutdown: shutdown_rx,
     };
 
     let known_users = store.usernames();
@@ -175,15 +182,18 @@ pub async fn build_multi_stack(config: &Config) -> Result<(axum::Router, String)
     Ok((router, log))
 }
 
-pub async fn run_multi(config: Config) -> Result<(), String> {
-    let (router, log) = build_multi_stack(&config).await?;
+pub(crate) async fn run_multi(
+    config: Config,
+    shutdown: crate::server::Shutdown,
+) -> Result<(), String> {
+    let (router, log) = build_multi_stack(&config, Some(shutdown.rx.clone())).await?;
     let addr = format!("{}:{}", config.bind_host, config.port);
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
     tracing::info!("{log}");
     axum::serve(listener, router)
-        .with_graceful_shutdown(crate::server::shutdown_signal())
+        .with_graceful_shutdown(shutdown.future)
         .await
         .map_err(|e| format!("server error: {e}"))
 }
