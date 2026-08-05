@@ -58,6 +58,43 @@ export async function waitForServer(
   );
 }
 
+export type SpawnServerOptions = {
+  disableServiceWorker?: boolean;
+  singleSpace?: boolean;
+};
+
+/**
+ * Spawns a `silverbullet` server process against `spaceDir` on `port`, with
+ * stdout/stderr piped (not inherited). Shared by the `sbServer` fixture and
+ * any test that needs to spawn a second/replacement server directly (e.g.
+ * simulating a server restart) -- keeps the binary path, args shape, and env
+ * vars in one place.
+ */
+export function spawnServerProcess(
+  spaceDir: string,
+  port: number,
+  opts: SpawnServerOptions = {},
+): ChildProcess {
+  const { disableServiceWorker = true, singleSpace = true } = opts;
+  const args = [spaceDir, "-p", String(port), "-L", "127.0.0.1"];
+  // A fresh empty temp dir boots into the setup wizard unless we force
+  // single-space mode; tests exercising the wizard pass singleSpace: false.
+  if (singleSpace) args.push("--single");
+
+  return spawn("./target/debug/silverbullet", args, {
+    cwd: join(import.meta.dirname, ".."),
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      // Disable the server-side headless-Chrome runtime API: in
+      // `?headless=1` the client uses its own in-page runtime, so the
+      // e2e servers never need to spawn Chrome (and don't require it).
+      SB_RUNTIME_API: "0",
+      ...(disableServiceWorker ? { SB_DISABLE_SERVICE_WORKER: "1" } : {}),
+    },
+  });
+}
+
 export const test = base.extend<SBFixtures>({
   spaceFiles: [{}, { option: true }],
   disableServiceWorker: [true, { option: true }],
@@ -75,22 +112,9 @@ export const test = base.extend<SBFixtures>({
 
     const port = await getFreePort();
 
-    const args = [spaceDir, "-p", String(port), "-L", "127.0.0.1"];
-    // A fresh empty temp dir boots into the setup wizard unless we force
-    // single-space mode; tests exercising the wizard set `singleSpace: false`.
-    if (singleSpace) args.push("--single");
-
-    const proc: ChildProcess = spawn("./target/debug/silverbullet", args, {
-      cwd: join(import.meta.dirname, ".."),
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        // Disable the server-side headless-Chrome runtime API: in
-        // `?headless=1` the client uses its own in-page runtime, so the
-        // e2e servers never need to spawn Chrome (and don't require it).
-        SB_RUNTIME_API: "0",
-        ...(disableServiceWorker ? { SB_DISABLE_SERVICE_WORKER: "1" } : {}),
-      },
+    const proc: ChildProcess = spawnServerProcess(spaceDir, port, {
+      disableServiceWorker,
+      singleSpace,
     });
 
     let serverOutput = "";

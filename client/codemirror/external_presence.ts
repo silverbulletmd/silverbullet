@@ -21,7 +21,6 @@ import {
 // How long the presence cursor will appear
 const PRESENCE_TTL_MS = 5000;
 
-
 /** Source label of an externally-applied change */
 export const externalSource = Annotation.define<string>();
 
@@ -133,7 +132,9 @@ export const externalUndoField = StateField.define<ExternalUndoState>({
       const topRedo = pendingRedo[pendingRedo.length - 1];
 
       if (
-        tr.isUserEvent("undo") && topUndo && changesEqual(tr.changes, topUndo)
+        tr.isUserEvent("undo") &&
+        topUndo &&
+        changesEqual(tr.changes, topUndo)
       ) {
         pendingUndo = pendingUndo.slice(0, -1).map((cs) => cs.map(tr.changes));
         pendingRedo = [
@@ -142,7 +143,9 @@ export const externalUndoField = StateField.define<ExternalUndoState>({
         ];
         correction = tr.startState.selection.map(tr.changes);
       } else if (
-        tr.isUserEvent("redo") && topRedo && changesEqual(tr.changes, topRedo)
+        tr.isUserEvent("redo") &&
+        topRedo &&
+        changesEqual(tr.changes, topRedo)
       ) {
         pendingRedo = pendingRedo.slice(0, -1).map((cs) => cs.map(tr.changes));
         pendingUndo = [
@@ -151,15 +154,16 @@ export const externalUndoField = StateField.define<ExternalUndoState>({
         ];
         correction = tr.startState.selection.map(tr.changes);
       } else {
-        pendingUndo = pendingUndo.map((cs) => cs.map(tr.changes)).filter((
-          cs,
-        ) => !cs.empty);
-        pendingRedo = pendingRedo.map((cs) => cs.map(tr.changes)).filter((
-          cs,
-        ) => !cs.empty);
+        pendingUndo = pendingUndo
+          .map((cs) => cs.map(tr.changes))
+          .filter((cs) => !cs.empty);
+        pendingRedo = pendingRedo
+          .map((cs) => cs.map(tr.changes))
+          .filter((cs) => !cs.empty);
 
         if (
-          !tr.isUserEvent("undo") && !tr.isUserEvent("redo") &&
+          !tr.isUserEvent("undo") &&
+          !tr.isUserEvent("redo") &&
           tr.annotation(Transaction.addToHistory) !== false
         ) {
           // A genuine new edit invalidates whatever could previously be
@@ -181,8 +185,10 @@ export const externalUndoField = StateField.define<ExternalUndoState>({
     }
 
     if (
-      pendingUndo === value.pendingUndo && pendingRedo === value.pendingRedo &&
-      correction === undefined && value.correction === undefined
+      pendingUndo === value.pendingUndo &&
+      pendingRedo === value.pendingRedo &&
+      correction === undefined &&
+      value.correction === undefined
     ) {
       return value;
     }
