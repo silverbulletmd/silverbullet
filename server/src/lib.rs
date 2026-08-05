@@ -13,9 +13,11 @@ pub mod runtime;
 pub mod shell;
 mod ssr;
 pub mod state;
+pub mod watcher;
 
 pub use router::{build_router, metrics_router};
 pub use state::{ServerState, ServerVersion};
+pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};
 
 #[cfg(test)]
 mod test_support {
@@ -55,6 +57,8 @@ mod test_support {
             },
             metrics: None,
             runtime: None,
+            fs_events: None,
+            shutdown: None,
         }
     }
 }

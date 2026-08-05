@@ -8,6 +8,28 @@ use walkdir::WalkDir;
 use crate::space::case;
 use crate::types::{FileMeta, SpaceError, SpacePrimitives};
 
+/// A snapshot of a space's gitignore-style rules, for checking whether paths
+/// are visible without re-reading `.gitignore` on every call. See
+/// [`DiskSpacePrimitives::gitignore_matcher`].
+pub struct GitignoreMatcher(Option<ignore::gitignore::Gitignore>);
+
+impl GitignoreMatcher {
+    /// Whether `relative` (a forward-slash, space-relative path) is excluded,
+    /// checking the path and all of its parent directories — the same check
+    /// `fetch_file_list` applies to each candidate file.
+    pub fn is_ignored(&self, relative: &str, is_dir: bool) -> bool {
+        self.0
+            .as_ref()
+            .is_some_and(|gi| gi.matched_path_or_any_parents(relative, is_dir).is_ignore())
+    }
+}
+
+/// The "is this a listed space file" rule shared by `fetch_file_list` and
+/// `get_file_meta_if_listable`: not a directory, and has a file extension.
+fn is_listable_file(is_dir: bool, relative: &str) -> bool {
+    !is_dir && Path::new(relative).extension().is_some()
+}
+
 /// Filesystem-backed SpacePrimitives over a space folder on disk.
 pub struct DiskSpacePrimitives {
     root_path: PathBuf,
@@ -141,6 +163,39 @@ impl DiskSpacePrimitives {
         }
     }
 
+    pub fn gitignore_matcher(&self) -> GitignoreMatcher {
+        GitignoreMatcher(self.build_gitignore())
+    }
+
+    pub fn get_file_meta_if_listable(&self, path: &str) -> Result<Option<FileMeta>, SpaceError> {
+        let local_path = self.safe_path(path)?;
+        let metadata = fs::metadata(&local_path).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound || is_syntax_error(&e) {
+                SpaceError::NotFound
+            } else {
+                SpaceError::Io(e)
+            }
+        })?;
+        if !is_listable_file(metadata.is_dir(), path) {
+            return Ok(None);
+        }
+        if self.is_stale_casing(path)? {
+            return Ok(None);
+        }
+        Ok(Some(self.file_info_to_meta(path, &metadata)))
+    }
+
+    fn is_stale_casing(&self, path: &str) -> Result<bool, SpaceError> {
+        if !self.case_insensitive {
+            return Ok(false);
+        }
+        match case::true_relative_path(&self.root_path, Path::new(path)) {
+            Ok(Some(actual)) => Ok(actual.to_string_lossy().replace('\\', "/") != path),
+            Ok(None) => Ok(true),
+            Err(e) => Err(SpaceError::Io(e)),
+        }
+    }
+
     /// Build a gitignore matcher combining the configured space-ignore
     /// patterns with any `.gitignore` file in the space root.
     fn build_gitignore(&self) -> Option<ignore::gitignore::Gitignore> {
@@ -181,11 +236,11 @@ impl DiskSpacePrimitives {
 
 impl SpacePrimitives for DiskSpacePrimitives {
     fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
-        let gitignore = self.build_gitignore();
+        let matcher = self.gitignore_matcher();
         let mut files = Vec::new();
 
         let root_path = self.root_path.clone();
-        let gi_for_filter = gitignore.clone();
+        let gi_for_filter = matcher.0.clone();
         for entry in WalkDir::new(&self.root_path)
             .follow_links(true)
             .into_iter()
@@ -209,31 +264,22 @@ impl SpacePrimitives for DiskSpacePrimitives {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
+            let is_dir = entry.file_type().is_dir();
 
-            // Skip directories
-            if entry.file_type().is_dir() {
-                continue;
-            }
-
-            let file_name = entry.file_name().to_string_lossy();
-
-            // Skip hidden files
-            if file_name.starts_with('.') {
+            // Skip hidden files (hidden directories were already pruned above)
+            if !is_dir && entry.file_name().to_string_lossy().starts_with('.') {
                 continue;
             }
 
             let relative = self.path_to_filename(path);
 
-            // Skip files without extensions
-            if Path::new(&relative).extension().is_none() {
+            if !is_listable_file(is_dir, &relative) {
                 continue;
             }
 
             // Apply gitignore (check the file path and all parent directories)
-            if let Some(ref gi) = gitignore {
-                if gi.matched_path_or_any_parents(&relative, false).is_ignore() {
-                    continue;
-                }
+            if matcher.is_ignored(&relative, false) {
+                continue;
             }
 
             if let Ok(metadata) = entry.metadata() {

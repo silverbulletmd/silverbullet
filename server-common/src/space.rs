@@ -6,7 +6,7 @@ pub mod embed;
 pub mod http;
 pub mod readonly;
 
-pub use disk::DiskSpacePrimitives;
+pub use disk::{DiskSpacePrimitives, GitignoreMatcher};
 pub use embed::{EmptySpacePrimitives, FallthroughSpacePrimitives, ReadOnlyDirSpacePrimitives};
 pub use http::HttpSpacePrimitives;
 pub use readonly::ReadOnlySpacePrimitives;

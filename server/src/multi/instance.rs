@@ -62,6 +62,9 @@ pub struct InstanceDeps {
     /// crate supplies the rich `space_template/index.md`; test helpers in
     /// this crate can use any short string.
     pub index_template: String,
+    /// Process-wide shutdown signal, cloned into every instance's
+    /// `ServerState::shutdown`. See that field's doc comment.
+    pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
 }
 
 /// Single-space servers retain their classic environment credentials. An
@@ -454,6 +457,12 @@ fn try_build_state(
         },
         metrics: deps.metrics.clone(),
         runtime,
+        fs_events: crate::start_watcher(
+            &folder,
+            &config.space_ignore,
+            crate::WatchMode::from_env(),
+        ),
+        shutdown: deps.shutdown.clone(),
     })
 }
 
@@ -482,6 +491,7 @@ mod tests {
             disable_service_worker: true,
             shell_disabled: false,
             index_template: "# Test space\n".into(),
+            shutdown: None,
         }
     }
 
@@ -538,6 +548,22 @@ mod tests {
         );
         assert_eq!(inst.prefix, "/work");
         assert!(inst.router.is_some());
+    }
+
+    #[test]
+    fn wires_fs_watcher_into_state() {
+        let dir = tempfile::tempdir().unwrap();
+        let deps = test_deps(dir.path());
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        assert!(state.fs_events.is_some());
     }
 
     #[test]

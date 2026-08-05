@@ -104,6 +104,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         )
         .route("/.fs/{*path}", put(fs::handle_fs_put))
         .route("/.fs/{*path}", delete(fs::handle_fs_delete))
+        .route("/.events", get(crate::handlers::events::handle_events))
         .route("/.shell", post(crate::handlers::shell::handle_shell))
         .route("/.proxy/{*path}", any(crate::handlers::proxy::handle_proxy))
         .route(

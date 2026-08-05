@@ -82,4 +82,15 @@ pub struct ServerState {
     pub metrics: Option<Arc<Metrics>>,
     /// Lua runtime backend for `/.runtime/*`. May be disabled, when None: those endpoints 503.
     pub runtime: Option<Box<dyn RuntimeBackend>>,
+    /// Broadcast channel of file-system change events, backing `GET /.events`.
+    /// `None` (non-disk backend or watcher unavailable) -> the endpoint 404s
+    /// and clients fall back to polling.
+    pub fs_events: Option<tokio::sync::broadcast::Sender<crate::watcher::FsEvent>>,
+    /// Fires once when the process begins shutting down. `/.events` races its
+    /// SSE stream against this so the response body ends and graceful
+    /// shutdown can drain the connection instead of waiting on it forever.
+    /// `None` (the default for tests and embedders that manage their own
+    /// process lifetime, e.g. the App) means "never fires" -- a stream then
+    /// simply runs until the client disconnects, today's behavior.
+    pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
 }
