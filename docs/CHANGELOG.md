@@ -3,6 +3,8 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* **Live external edits**: changes made to pages by other programs (or users, but don’t rely on this for real-time collaboration) now show up in an open pages almost instantly, instead of waiting for the next sync. The client applies them to the open page as minimal, cursor-preserving edits that land in the undo history, so `Cmd/Ctrl-z` reverts an external edit like any other. The externally inserted text is briefly highlighted with a marker showing where it landed, fading after a few seconds.
+  * This relies on active file-system, watching which can be configured server-wide with the new `SB_FS_WATCH` environment variable (`auto` (default) / `poll` / `off`): set `poll` when the space lives on a network mount (NFS/SMB) where changes made may not result in FS events.
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off. It only actually runs when the server found a Chrome or Chromium install at startup and only booted upon first use of the API.
 * [[Space Manager]]: saving an edited space now returns to the space list, instead of staying on the edit form with a brief “✓ Saved” confirmation. Creating a space still lands on the new space's own screen.
 * Fix: the FreeBSD **server** binary is being built and released again

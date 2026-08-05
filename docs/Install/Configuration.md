@@ -15,6 +15,7 @@ SilverBullet is primarily configured via environment variables. This page gives 
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
 * `SB_LOG_PUSH`: Set to any value to ask clients to push their logs to the server (for debugging purposes)
 * `SB_DISABLE_SERVICE_WORKER`: Set to any value to disable the client-side service worker for all clients. In this mode, [[Sync]] is disabled (so your space is not copied into the browser) and the app will not function when offline. All loads and saves will go directly to the server. 
+* `SB_FS_WATCH`: Controls how the server detects files changed on disk by other programs, for the whole server instance. `auto` (default) watches the space folder natively and pushes changes to open clients, so an externally edited page updates in the editor within moments. `poll` scans for changes (~2s) instead — use it when the space lives on a network mount (NFS/SMB) where writes from *other* machines produce no native file-system events. `off` disables watching entirely: clients fall back to checking for changes periodically, as they did before this existed.
 
 # Network
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local setup, defaults to `0.0.0.0` for docker)
