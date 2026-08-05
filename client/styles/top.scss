@@ -88,14 +88,30 @@
   }
 
   .progress-bar {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    font-size: 8px;
+  }
+
+  .progress-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+  }
+
+  .progress-hole {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background-color: var(--top-background-color);
     display: flex;
     justify-content: center;
     align-items: center;
-
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    font-size: 8px;
   }
 }
 
