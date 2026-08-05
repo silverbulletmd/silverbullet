@@ -89,6 +89,52 @@
     border-right: none;
   }
 
+  .sb-external-gutter .cm-gutterElement {
+    padding: 0 3px;
+  }
+
+  .sb-external-delete-marker {
+    display: block;
+    margin: 0 auto;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--editor-external-caret-color);
+  }
+
+  .sb-external-edit {
+    background-color: var(--editor-external-edit-color);
+    transition: background-color 3s ease-out 1s;
+  }
+
+  .sb-external-caret {
+    position: relative;
+    border-left: 2px solid var(--editor-external-caret-color);
+    margin-left: -1px;
+    animation: sb-external-caret-blink 1s steps(1) infinite;
+
+    &::after {
+      content: attr(data-source);
+      position: absolute;
+      top: -1.1em;
+      left: -2px;
+      font-size: 0.65em;
+      line-height: 1.3;
+      padding: 0 4px;
+      border-radius: 3px;
+      background-color: var(--editor-external-caret-color);
+      color: var(--ui-accent-contrast-color);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+  }
+
+  @keyframes sb-external-caret-blink {
+    50% {
+      border-left-color: transparent;
+    }
+  }
+
   .cm-foldPlaceholder {
     background-color: transparent;
     border: 0;

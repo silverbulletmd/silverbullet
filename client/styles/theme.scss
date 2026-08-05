@@ -125,6 +125,8 @@ html {
   --editor-code-background-color: var(--subtle-background-color);
   --editor-struct-color: darkred;
   --editor-highlight-background-color: var(--highlight-color);
+  --editor-external-edit-color: rgba(255, 191, 71, 0.28);
+  --editor-external-caret-color: #e8a33d;
   --editor-code-comment-color: var(--meta-subtle-color);
   --editor-code-variable-color: #024866;
   --editor-code-typename-color: #038138;
@@ -308,6 +310,8 @@ html[data-theme="dark"] {
   --editor-code-background-color: var(--subtle-background-color);
   --editor-struct-color: #d6222e;
   --editor-highlight-background-color: var(--highlight-color);
+  --editor-external-edit-color: rgba(255, 191, 71, 0.18);
+  --editor-external-caret-color: #d99a2b;
   --editor-code-comment-color: var(--meta-subtle-color);
   --editor-code-variable-color: #41a3ce;
   --editor-code-typename-color: #038138;
