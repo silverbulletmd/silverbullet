@@ -374,4 +374,57 @@ mod tests {
         let p = PathBuf::from("/tmp/./x");
         assert_eq!(normalize_path(&p), PathBuf::from("/tmp/x"));
     }
+
+    // -----------------------------------------------------------------------
+    // extract_zip
+    // -----------------------------------------------------------------------
+
+    /// The `zip` dependency is built with only the `deflate` codec (see the
+    /// workspace manifest), which is what our release archives use. Guards
+    /// against that narrowing silently losing the ability to read them.
+    #[test]
+    fn extract_zip_reads_a_deflate_archive() {
+        use std::io::Write;
+        use zip::write::SimpleFileOptions;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let archive = tmp.path().join("release.zip");
+
+        let mut w = zip::ZipWriter::new(std::fs::File::create(&archive).unwrap());
+        let opts =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        w.start_file("silverbullet", opts).unwrap();
+        w.write_all(b"binary contents").unwrap();
+        w.finish().unwrap();
+
+        let dest = tmp.path().join("out");
+        std::fs::create_dir(&dest).unwrap();
+        extract_zip(&archive, &dest).unwrap();
+
+        let extracted = std::fs::read(dest.join("silverbullet")).unwrap();
+        assert_eq!(extracted, b"binary contents");
+    }
+
+    /// Stored (uncompressed) entries need no codec at all, but they travel the
+    /// same path — cheap to cover, and some zip writers emit them for small files.
+    #[test]
+    fn extract_zip_reads_a_stored_archive() {
+        use std::io::Write;
+        use zip::write::SimpleFileOptions;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let archive = tmp.path().join("release.zip");
+
+        let mut w = zip::ZipWriter::new(std::fs::File::create(&archive).unwrap());
+        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        w.start_file("sb", opts).unwrap();
+        w.write_all(b"hello").unwrap();
+        w.finish().unwrap();
+
+        let dest = tmp.path().join("out");
+        std::fs::create_dir(&dest).unwrap();
+        extract_zip(&archive, &dest).unwrap();
+
+        assert_eq!(std::fs::read(dest.join("sb")).unwrap(), b"hello");
+    }
 }
