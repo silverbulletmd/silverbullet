@@ -76,6 +76,13 @@ export function indexSyscalls(
         "Returns non-meta pages, optionally filtered by an additional tag, as a query collection.",
       signatures: ["index.contentPages(tagName?)"],
     },
+    "index.comments": {
+      callback: (): LuaQueryCollection => {
+        return objectIndex.comments();
+      },
+      description:
+        "Returns all indexed inline comment objects as a query collection. Equivalent to index.tag \"comment\".",
+    },
     "index.metaPages": {
       callback: (): LuaQueryCollection => {
         return objectIndex.metaPages();

@@ -48,6 +48,7 @@ Entry points are:
 * [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers like `index.pages()`, `index.tasks()`, etc.)
 * `index.contentPages(tag?)` — returns only content pages, **excluding [[Meta Page|Meta Pages]]** (pages tagged `meta` or `meta/*`).
 * `index.aspiringPages()` — returns all [[Aspiring Pages]] (pages linked to but not yet created). Useful for finding broken or forward-references.
+* `index.comments()` — returns all [[Comment]] objects, equivalent to `index.tag "comment"`.
 * `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
 
 If a `metatable` is defined for a particular tag with [[API/tag#tag.define(spec)]], the metatable is set for each object for the tag.

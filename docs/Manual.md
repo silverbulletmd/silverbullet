@@ -55,6 +55,7 @@ SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements
     * [[Markdown/Admonition]]
     * [[Task]]
     * [[Markdown/Syntax Highlighting]]
+    * [[Comment]]
     * [[Markdown/Fenced Code Block]]
 * [[Slash Command]]
 * [[Outlines]]

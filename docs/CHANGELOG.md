@@ -5,22 +5,17 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 
 * **Live external edits**: changes made to pages by other programs (or users, but don’t rely on this for real-time collaboration) now show up in an open pages almost instantly, instead of waiting for the next sync. The client applies them to the open page as minimal, cursor-preserving edits that land in the undo history, so `Cmd/Ctrl-z` reverts an external edit like any other. The externally inserted text is briefly highlighted with a marker showing where it landed, fading after a few seconds.
   * This relies on active file-system, watching which can be configured server-wide with the new `SB_FS_WATCH` environment variable (`auto` (default) / `poll` / `off`): set `poll` when the space lives on a network mount (NFS/SMB) where changes made may not result in FS events.
+* **Inline comments** ([[Comment]]): any HTML comment (`<!-- remember this -->`) is now a parsed and rendered as a note.
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off. It only actually runs when the server found a Chrome or Chromium install at startup and only booted upon first use of the API.
 * [[Space Manager]]: saving an edited space now returns to the space list, instead of staying on the edit form with a brief “✓ Saved” confirmation. Creating a space still lands on the new space's own screen.
+* Fix: the [[Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available. Chromium 150 fails to initialize its GPU stack inside a container, which was fatal to the whole browser because it was launched with `--in-process-gpu`. ([#2078](https://github.com/silverbulletmd/silverbullet/issues/2078))
 * Fix: the docker image ignored `PUID`/`PGID` and space folder ownership, running as `root` and creating root-owned files
+* Fix: the `:latest` docker tag pointed at the ~1.2GB Chromium-bearing `-runtime-api` image instead of the ~90MB base image ([#1994](https://github.com/silverbulletmd/silverbullet/issues/1994))
+* Building from source is a little cheaper: the `zip` dependency (used only to unpack our own release archives during self-upgrade) no longer pulls in the zstd, lzma, bzip2 and xz decoders. That drops 18 crates — three of which compile bundled C — for ~25 CPU-seconds off a clean build, and three fewer things to keep working across the cross-compile targets.
 * Fix: the FreeBSD **server** binary is being built and released again
 * Fix: [[Space Manager|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Install/Configuration]] documents.
-* Multi-space servers now share a single headless Chrome across all spaces
-  instead of launching one browser per space. Startup stays lazy: no browser
-  until the Runtime API is first used, and no tab for a space nobody queries.
-* The headless Chrome profile now lives at `<server root>/.chrome-data`.
-  Single-space servers are unaffected (the root *is* the space folder); on a
-  multi-space server the old per-space `.chrome-data` directories are no longer
-  used and can be deleted.
-* Fix: the Runtime API failed to start when authentication was enabled — the
-  headless page authorized only its first request and was then redirected to
-  `/.auth`, leaving `/.runtime/*` answering `bridge_unavailable`. It now
-  authenticates with a session cookie for the whole session. ([#2072](https://github.com/silverbulletmd/silverbullet/pull/2072))
+* Multi-space servers now share a single headless Chrome across all spaces instead of launching one browser per space.
+* Fix: the Runtime API failed to start when authentication was enabled.
 * Fixes around casing in page/file names:
   * Renaming a page or folder to a different casing of the same name now works on case-insensitive filesystems (macOS, Windows)
   * Renames are now rejected when the new name differs only in casing from an existing page or document, so spaces stay portable between case-sensitive and case-insensitive hosts.

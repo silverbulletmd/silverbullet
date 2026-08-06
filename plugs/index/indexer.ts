@@ -10,6 +10,7 @@ import { indexData } from "./data.ts";
 import { indexItems } from "./item.ts";
 import { indexHeaders } from "./header.ts";
 import { indexParagraphs } from "./paragraph.ts";
+import { indexComments } from "./comment.ts";
 import { indexRelations } from "./relation.ts";
 import { indexTables } from "./table.ts";
 import { indexSpaceLua } from "./space_lua.ts";
@@ -89,6 +90,7 @@ export const allIndexers: IndexerFunction[] = [
   indexItems,
   indexHeaders,
   indexParagraphs,
+  indexComments,
   indexRelations,
   indexTables,
   indexSpaceLua,

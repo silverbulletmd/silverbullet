@@ -449,6 +449,17 @@ test("HTML comment is still removed", () => {
   expect(html).toBe("");
 });
 
+test("Conforming inline comment renders to nothing", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "A claim.\n\n<!-- @pete: verify — john, 2026-08-04 -->\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).not.toContain("pete");
+  expect(html).not.toContain("verify");
+  expect(html).not.toContain("<!--");
+});
+
 test("Whitespace between block siblings is dropped (no spurious <br>)", () => {
   const tree = parse(
     extendedMarkdownLanguage,

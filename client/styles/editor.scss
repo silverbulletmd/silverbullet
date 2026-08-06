@@ -823,6 +823,39 @@
     vertical-align: middle;
   }
 
+  .sb-comment-widget {
+    padding: 2px 0;
+  }
+
+  .sb-comment-card {
+    border: 1px solid var(--editor-directive-background-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.9em;
+
+    .sb-comment-quote {
+      color: var(--editor-code-comment-color);
+      font-style: italic;
+      border-left: 2px solid var(--editor-code-comment-color);
+      padding-left: 8px;
+      margin-bottom: 2px;
+    }
+
+    .sb-comment-addressee {
+      font-weight: 600;
+    }
+
+    .sb-comment-sig {
+      color: var(--editor-code-comment-color);
+      font-size: 0.9em;
+    }
+
+    .sb-comment-actions button {
+      font-size: 0.85em;
+      margin-right: 6px;
+    }
+  }
+
   .sb-frontmatter-marker {
     cursor: pointer;
     float: right;
