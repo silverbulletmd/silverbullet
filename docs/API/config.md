@@ -9,7 +9,159 @@ references:
 
 The Config API provides functions for managing configuration values, defining their JSON schemas, and exposing them in the [[Configuration Manager]] UI.
 
-${spacelua.renderApiDocumentation("config")}
+<!--#lua spacelua.renderApiDocumentation("config") -->
+## config.define
+
+`config.define(key, schema)`
+
+Defines a JSON schema for a configuration key.
+
+**Parameters:**
+
+- `key` (`string`) — Configuration key.
+- `schema` (`table`) — JSON Schema definition; default applies a missing value and ui annotations expose it in the Configuration Manager.
+
+**Example:**
+
+```lua
+config.define("shortWikiLinks", {
+  description = "Render short wiki link labels",
+  type = "boolean",
+  default = true,
+  ui = {category = "Editor", label = "Short wiki links", priority = 1},
+})
+```
+
+## config.defineCategory
+
+`config.defineCategory(definition)`
+
+Defines or updates a Configuration Manager UI category.
+
+**Parameters:**
+
+- `definition` (`table`) — Category name, description, and priority.
+
+**Example:**
+
+```lua
+config.defineCategory {
+  name = "Editor",
+  description = "Page editor behavior.",
+  priority = 50,
+}
+```
+
+## config.get
+
+`config.get(path, defaultValue)`
+
+Gets a configuration value by path, with dot notation support.
+
+**Parameters:**
+
+- `path` (`string`) — Configuration path.
+- `defaultValue` — Value returned when the path is absent.
+
+**Returns:**
+
+- Value — Configured value or the supplied default.
+
+**Example:**
+
+```lua
+local theme = config.get("theme", "light")
+```
+
+## config.getCategories
+
+`config.getCategories()`
+
+Gets all Configuration Manager UI categories.
+
+**Returns:**
+
+- `table` — Category definitions keyed by name.
+
+## config.getSchemas
+
+`config.getSchemas()`
+
+Gets all defined configuration schemas.
+
+**Returns:**
+
+- `table` — Schemas keyed by configuration path.
+
+## config.getValues
+
+`config.getValues()`
+
+Gets all configuration values as a single table.
+
+**Returns:**
+
+- `table` — All configuration values.
+
+## config.has
+
+`config.has(path)`
+
+Checks whether a configuration path exists.
+
+**Parameters:**
+
+- `path` (`string`) — Configuration path.
+
+**Returns:**
+
+- `boolean` — Whether the path exists.
+
+## config.insert
+
+`config.insert(path, value)`
+
+Appends a value to the configuration array at a path.
+
+**Parameters:**
+
+- `path` — Configuration path.
+- `value` — Value to append.
+
+## config.set
+
+`config.set(path, value)`
+`config.set(values)`
+
+Sets one configuration value or multiple values at once.
+
+**Parameters:**
+
+- `pathOrValues` — Configuration path or table of values.
+- `value?` — Value to set when a path is supplied.
+
+**Examples:**
+
+```lua
+config.set("theme", "dark")
+```
+
+```lua
+config.set({theme = "dark", fontSize = 14})
+```
+
+## config.setLuaValue
+
+`config.setLuaValue(path, value)`
+`config.setLuaValue(values)`
+
+Sets configuration while preserving the supplied Lua value representation.
+
+**Parameters:**
+
+- `pathOrValues` — Configuration path or table of values.
+- `value?` — Lua value to preserve.
+<!--/lua-->
 
 ## Configuration Manager guide
 
@@ -42,3 +194,4 @@ Nested schemas can carry their own `ui` annotations. When a parent object's chil
 ### Categories
 
 Registered categories appear in descending `priority`, with higher values first. A category's optional `description` appears at the top of the category. Categories referenced by a schema but never registered appear after registered categories in alphabetical order.
+

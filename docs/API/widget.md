@@ -23,7 +23,9 @@ end
 
 Can be used as follows:
 
-${helloWorld("Pete")}
+<!--#lua helloWorld("Pete") -->
+Hello world, *Pete*!
+<!--/lua-->
 
 ## DOM widgets
 To render a custom HTML-based widget, use the [[API/dom]] elements passed as an argument to `widget.html`:
@@ -74,7 +76,9 @@ function clock()
 end
 ```
 
-${clock()}
+<!--#lua clock() -->
+Not supported
+<!--/lua-->
 
 # API
 ## widget.new(spec)
@@ -114,3 +118,4 @@ Keys:
 * `markdown` (Copy-button content)
 * `cssClasses`
 * `display` (defaults to `block`)
+

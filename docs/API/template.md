@@ -26,6 +26,10 @@ Iterates over a collection and renders a template for each item.
 
 Example:
 
-${template.each(query[[from index.pages() limit 3]], template.new[==[
+<!--#lua template.each(query[[from index.pages() limit 3]], template.new[==[
     * ${name}
-]==])}
+]==]) -->
+* ADR
+* ADR/001 Offline-First PWA
+* ADR/002 Sync Engine
+<!--/lua-->

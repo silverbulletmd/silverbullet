@@ -7,7 +7,74 @@ references:
 
 The Service API exposes a simple service registry leveraged by various parts of SilverBullet. See [[Service]].
 
-${spacelua.renderApiDocumentation("service")}
+<!--#lua spacelua.renderApiDocumentation("service") -->
+## service.define
+
+`service.define(spec)`
+
+Defines a service that can be discovered by selector.
+
+**Parameters:**
+
+- `spec` (`table`) — Selector, match rule, and run callback.
+
+**Example:**
+
+```lua
+service.define { selector = "greeter", match = {}, run = function(name) return "Hello " .. name end }
+```
+
+## service.discover
+
+`service.discover(selector, data)`
+
+Discovers matching services sorted by descending priority.
+
+**Parameters:**
+
+- `selector` (`string`) — Service selector.
+- `data` — Value passed to match callbacks.
+
+**Returns:**
+
+- `table` — Matching service descriptors.
+
+## service.invoke
+
+`service.invoke(match, data)`
+
+Invokes a previously discovered service match.
+
+**Parameters:**
+
+- `match` (`table`) — Service match returned by service.discover.
+- `data` — Value passed to the service.
+
+**Returns:**
+
+- Value — Service result.
+
+## service.invokeBestMatch
+
+`service.invokeBestMatch(selector, data)`
+
+Discovers and invokes the highest-priority matching service.
+
+**Parameters:**
+
+- `selector` (`string`) — Service selector.
+- `data` — Value used for matching and invocation.
+
+**Returns:**
+
+- Value — Best matching service result.
+
+**Example:**
+
+```lua
+local greeting = service.invokeBestMatch("greeter", "Pete")
+```
+<!--/lua-->
 
 # Architecture
 
@@ -45,3 +112,4 @@ service.define {
 ```
 
 To invoke: ${service.invokeBestMatch("greeter-service", "Pete")} and ${service.invokeBestMatch("greeter-service", "Hank")}
+

@@ -28,7 +28,7 @@ Addressing a note to someone turns it into a routing mechanism (that can be used
 
 <!-- re: "making a claim"
 @pete: verify this — john, 2026-08-04
-@john:  — 2026-08-06
+@john: on it — 2026-08-06
 -->
 
 * **`@who:`** addresses a message to `who`.
