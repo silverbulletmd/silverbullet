@@ -30,8 +30,14 @@ export type SpliceArgs = {
 
 export function spliceReference(args: SpliceArgs): string {
   const { text, range, oldName, newName, pageToEdit } = args;
-  const [start, end] = range;
-  const slice = text.substring(start, end);
+  let [start, end] = range;
+  let slice = text.substring(start, end);
+
+  // Handle transclusions `![[Page]]`
+  if (slice.startsWith("!")) {
+    start += 1;
+    slice = slice.substring(1);
+  }
 
   if (slice.startsWith("[[")) {
     return spliceWikilink(text, start, end, oldName, newName);

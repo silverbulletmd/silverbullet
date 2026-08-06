@@ -93,11 +93,12 @@ function SyncProgressIndicator({
         className="progress-wrapper"
         title={`${type} progress: ${percentage}%`}
       >
-        <div
-          className="progress-bar"
-          style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--progress-${type}-color) ${percentage}%, var(--progress-background-color) 0);`}
-        >
-          {percentage}
+        <div className="progress-bar">
+          <div
+            className="progress-ring"
+            style={`background: conic-gradient(var(--progress-${type}-color) ${percentage}%, var(--progress-background-color) 0);`}
+          />
+          <div className="progress-hole">{percentage}</div>
         </div>
       </div>
     </div>
