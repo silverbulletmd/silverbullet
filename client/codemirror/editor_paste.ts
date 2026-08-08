@@ -9,9 +9,15 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
+import {
+  defaultAttachmentPath,
+  maximumDocumentSize,
+} from "@silverbulletmd/silverbullet/constants";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  resolveAttachmentPath,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
@@ -280,6 +286,11 @@ export function documentExtension(editor: Client) {
     const maxSize = maximumDocumentSize;
     const invalidPathMessage =
       "Unable to upload file, invalid target filename or path";
+    // Note: duplicate any modifications here to plugs/editor/upload.ts
+    const attachmentPath = editor.config.get(
+      "attachmentPath",
+      defaultAttachmentPath,
+    );
 
     if (file.content.length > maxSize * 1024 * 1024) {
       editor.ui.flashNotification(
@@ -291,8 +302,9 @@ export function documentExtension(editor: Client) {
 
     let desiredFilePath = await editor.ui.prompt(
       "File name for pasted document",
-      resolveMarkdownLink(
+      resolveAttachmentPath(
         client.currentPath(),
+        attachmentPath,
         ensureValidFilenameWithExtension(file.name),
       ),
     );
