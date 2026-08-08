@@ -52,27 +52,30 @@ export async function indexPage(
   }
 
   updateITags(combinedPageMeta, frontmatter);
-
-  // Make sure this page is no (longer) in the aspiring pages list
-  // TODO: This can possibly done more optimally
-  const aspiringPages = await index.queryLuaObjects<AspiringPageObject>(
-    "aspiring-page",
-    {
-      objectVariable: "_",
-      where: await lua.parseExpression(`_.name == pageRef`),
-    },
-    { pageRef: pageMeta.name },
-  );
-  await Promise.all(
-    aspiringPages.map((aspiringPage) => {
-      console.log("Deleting aspiring page", aspiringPage);
-      return index.deleteObject(
-        aspiringPage.page,
-        "aspiring-page",
-        aspiringPage.ref,
-      );
-    }),
-  );
+  
+  // if pageMeta.created is empty string, page is not yet created
+  if (pageMeta.created !== "") {
+    // Make sure this page is no (longer) in the aspiring pages list
+    // TODO: This can possibly done more optimally
+    const aspiringPages = await index.queryLuaObjects<AspiringPageObject>(
+      "aspiring-page",
+      {
+        objectVariable: "_",
+        where: await lua.parseExpression(`_.name == pageRef`),
+      },
+      { pageRef: pageMeta.name },
+    );
+    await Promise.all(
+      aspiringPages.map((aspiringPage) => {
+        console.log("Deleting aspiring page", aspiringPage);
+        return index.deleteObject(
+          aspiringPage.page,
+          "aspiring-page",
+          aspiringPage.ref,
+        );
+      }),
+    );
+  }
 
   // Page-level $anchor: when a page declares `$ref: <name>` in
   // frontmatter, emit a parallel anchor record so [[$name]] resolves
