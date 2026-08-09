@@ -8,6 +8,7 @@ import {
   redoChord,
   spawnServerProcess,
   test,
+  waitForSaveAndReadFromServer,
   waitForServer,
 } from "./fixtures.ts";
 
@@ -158,6 +159,63 @@ test("external edit merges with unsaved local typing", async ({
       timeout: 5000,
     })
     .toContain("LOCAL");
+});
+
+test("the client's own save is not treated as an external change", async ({
+  page,
+  sbServer,
+}) => {
+  // Not what this test is about: an SSE notification makes the client probe
+  // file metadata, and a probe overlapping our own write suppresses that
+  // write's event entirely (operationCount guard in EventedSpacePrimitives),
+  // making the count below timing-dependent.
+  await page.route("**/.events", (route) => route.fulfill({ status: 404 }));
+  await gotoSilverBulletPage(page, sbServer);
+
+  const editor = page.locator(".cm-content");
+  await expect(editor).toContainText("Hello world");
+
+  await editor.click();
+  await page.evaluate(() => {
+    const client = (globalThis as any).client;
+    (globalThis as any).__reloads = 0;
+    (globalThis as any).__ownWriteEvents = 0;
+    client.eventHook.addLocalListener(
+      "file:changed",
+      (name: string, _o: number, _n: number, ownWrite: boolean) => {
+        if (name === "index.md" && ownWrite) {
+          (globalThis as any).__ownWriteEvents++;
+        }
+      },
+    );
+    const cm = client.contentManager;
+    const original = cm.reloadPageContent.bind(cm);
+    cm.reloadPageContent = (...args: unknown[]) => {
+      (globalThis as any).__reloads++;
+      return original(...args);
+    };
+    client.editorView.dispatch({
+      selection: { anchor: client.editorView.state.doc.length },
+    });
+  });
+
+  await page.keyboard.type("typed by me");
+  const saved = await waitForSaveAndReadFromServer(page, sbServer, "index.md");
+  expect(saved).toBe("Hello world\ntyped by me");
+  await page.waitForTimeout(1500);
+
+  // The save was announced, and the announcement said we caused it...
+  expect(
+    await page.evaluate(() => (globalThis as any).__ownWriteEvents),
+  ).toBeGreaterThan(0);
+  // ...so it never reached the path that fetches the page back and merges it.
+  expect(await page.evaluate(() => (globalThis as any).__reloads)).toBe(0);
+  await expect(page.locator(".sb-external-edit")).toHaveCount(0);
+  expect(
+    await page.evaluate(() =>
+      (globalThis as any).client.editorView.state.sliceDoc(),
+    ),
+  ).toBe("Hello world\ntyped by me");
 });
 
 test("undo isolates the external edit from the user's own prior typing", async ({

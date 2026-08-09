@@ -66,6 +66,7 @@ type ReadPageResult = { text: string; meta: PageMeta };
 function makeClientStub(opts: {
   initialDoc: string;
   readPage: () => Promise<ReadPageResult>;
+  writePage?: (name: string, text: string) => Promise<PageMeta>;
   hasFullIndexCompleted?: () => Promise<boolean>;
   getObjectByRef?: () => Promise<PageMeta | undefined>;
 }) {
@@ -89,6 +90,7 @@ function makeClientStub(opts: {
     },
     ui: {
       viewState,
+      flashNotification: () => {},
       viewDispatch: (action: {
         type: string;
         path?: string;
@@ -105,6 +107,8 @@ function makeClientStub(opts: {
     },
     space: {
       readPage: opts.readPage,
+      writePage:
+        opts.writePage ?? (async () => pageMeta("2026-01-01T00:00:00.000")),
       unwatchFile: () => {},
       watchFile: () => {},
     },
@@ -402,5 +406,118 @@ describe("ContentManager.reloadPageContent editor:pageReloaded notification", ()
       (globalThis as unknown as { document: { body: { className: string } } })
         .document.body.className,
     ).toBe("journal-page");
+  });
+});
+
+// The base only moves forward when a write's *response* arrives. A read that
+// resolves before it sees content newer than the base it gets diffed against,
+// and the merge re-inserts the difference into a document that already has it.
+describe("ContentManager merge base vs. in-flight writes (regression: text duplicates while typing)", () => {
+  // Lets the debounced save() timeout fire and promise chains settle.
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  function typeInto(
+    client: ReturnType<typeof makeClientStub>,
+    appended: string,
+  ) {
+    client.editorView.dispatch({
+      changes: { from: client.editorView.state.doc.length, insert: appended },
+    });
+    client.viewState.unsavedChanges = true;
+  }
+
+  test("a fetch that returns content from a save still in flight does not duplicate it", async () => {
+    let resolveRead!: (r: ReadPageResult) => void;
+    let resolveWrite!: (meta: PageMeta) => void;
+    let readCall = 0;
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: () => {
+        readCall++;
+        if (readCall === 1) {
+          return Promise.resolve({
+            text: "one\n",
+            meta: pageMeta("2026-01-01T00:00:00.000"),
+          });
+        }
+        return new Promise<ReadPageResult>((resolve) => {
+          resolveRead = resolve;
+        });
+      },
+      writePage: () =>
+        new Promise<PageMeta>((resolve) => {
+          resolveWrite = resolve;
+        }),
+    });
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+
+    await cm.loadPage({ path: "index.md" }, false);
+    typeInto(client, "two");
+
+    // A foreign change is reported, so a fetch starts. No write in flight yet.
+    const reload = cm.reloadPageContent();
+
+    // Only now does the autosave fire, and the user keeps typing after it.
+    void cm.save(true);
+    await flush();
+    typeInto(client, "three");
+
+    // The fetch returns what that save is putting on disk...
+    resolveRead({
+      text: "one\ntwo",
+      meta: pageMeta("2026-01-01T00:00:05.000"),
+    });
+    await flush();
+    // ...and only then does the write's response carry the base forward.
+    resolveWrite(pageMeta("2026-01-01T00:00:05.000"));
+    await reload;
+
+    expect(client.editorView.state.sliceDoc()).toBe("one\ntwothree");
+  });
+
+  test("two saves acknowledged out of order leave the base on the newer one", async () => {
+    // save() does not wait for the previous write, and nothing orders the two
+    // responses.
+    const resolvers: ((meta: PageMeta) => void)[] = [];
+    let diskText = "one\n";
+    let diskModified = "2026-01-01T00:00:00.000";
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => ({ text: diskText, meta: pageMeta(diskModified) }),
+      writePage: () =>
+        new Promise<PageMeta>((resolve) => {
+          resolvers.push(resolve);
+        }),
+    });
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+
+    await cm.loadPage({ path: "index.md" }, false);
+
+    typeInto(client, "two");
+    void cm.save(true);
+    await flush();
+    typeInto(client, "three");
+    void cm.save(true);
+    await flush();
+    expect(resolvers).toHaveLength(2);
+
+    // The later write is acknowledged first; the earlier one lands after.
+    resolvers[1](pageMeta("2026-01-01T00:00:09.000"));
+    await flush();
+    resolvers[0](pageMeta("2026-01-01T00:00:05.000"));
+    await flush();
+
+    // Keeps the document ahead of disk, so the merge below is a real one
+    // rather than a same-text no-op.
+    typeInto(client, "four");
+
+    // With the base dragged back to the earlier write, this re-inserts "three".
+    diskText = "one\ntwothree";
+    diskModified = "2026-01-01T00:00:09.000";
+    await cm.reloadPageContent();
+
+    expect(client.editorView.state.sliceDoc()).toBe("one\ntwothreefour");
   });
 });

@@ -403,43 +403,21 @@ export class Client {
 
     this.space = space;
 
-    let lastSaveTimestamp: number | undefined;
-
-    const updateLastSaveTimestamp = () => {
-      lastSaveTimestamp = Date.now();
-    };
-
-    this.eventHook.addLocalListener(
-      "editor:pageSaving",
-      updateLastSaveTimestamp,
-    );
-
-    this.eventHook.addLocalListener(
-      "editor:documentSaving",
-      updateLastSaveTimestamp,
-    );
-
     this.eventHook.addLocalListener(
       "file:changed",
-      (path: string, oldHash: number, newHash: number) => {
+      (path: string, oldHash: number, _newHash: number, ownWrite: boolean) => {
         if (
           !this.space.watchInterval ||
           this.currentPath() !== path ||
-          oldHash === undefined
+          oldHash === undefined ||
+          // our own save landing, not somebody else's edit
+          ownWrite
         ) {
           return;
         }
         if (isMarkdownPath(path)) {
-          // Live path: precise echo suppression by our own last write's hash;
-          // content-level no-op inside applyExternalPatches covers the rest
-          if (newHash === this.contentManager.lastSavedHash) {
-            return;
-          }
           this.contentManager.reloadPageContent().catch(console.error);
-        } else if (
-          !lastSaveTimestamp ||
-          lastSaveTimestamp < Date.now() - 5000
-        ) {
+        } else {
           // Documents (non-markdown) keep the reload path
           this.ui.flashNotification("Document changed elsewhere, reloading");
           void this.reloadEditor();

@@ -50,8 +50,8 @@ export class ContentManager {
   // fetched content is older than what's already applied (out-of-order
   // resolution of overlapping reloads for the same page)
   private lastKnownDiskModified?: number;
-  // lastModified of our own most recent write, for echo suppression
-  lastSavedHash?: number;
+  // Resolves once the in-flight write has updated the base above
+  private pendingWrite?: Promise<void>;
   debouncedUpdateEvent = throttle(() => {
     this.client.eventHook
       .dispatchEvent("editor:updated")
@@ -107,14 +107,28 @@ export class ContentManager {
               this.client.currentName(),
             );
             const text = this.client.editorView.state.sliceDoc(0);
-            this.client.space
-              .writePage(this.client.currentName(), text)
+            const writePromise = this.client.space.writePage(
+              this.client.currentName(),
+              text,
+            );
+            // Separate from the promise save() returns: waiters need the base
+            // updated, not the events and meta fetch that follow it.
+            const baseUpdated = writePromise.then(
+              (meta) =>
+                this.adoptOwnWriteAsBase(
+                  text,
+                  parsePageMetaLastModified(meta.lastModified),
+                ),
+              () => {}, // errors are reported by the .catch() below
+            );
+            this.pendingWrite = baseUpdated;
+            void baseUpdated.then(() => {
+              if (this.pendingWrite === baseUpdated) {
+                this.pendingWrite = undefined;
+              }
+            });
+            writePromise
               .then(async (meta) => {
-                this.lastKnownDiskText = text;
-                this.lastSavedHash = parsePageMetaLastModified(
-                  meta.lastModified,
-                );
-                this.lastKnownDiskModified = this.lastSavedHash;
                 this.client.ui.viewDispatch({ type: "page-saved" });
                 await this.client.dispatchAppEvent(
                   "editor:pageSaved",
@@ -159,6 +173,23 @@ export class ContentManager {
         immediate ? 0 : autoSaveInterval,
       );
     });
+  }
+
+  /**
+   * Records the text we just wrote as the new base, unless a newer state was
+   * adopted while this write was in flight: dragging the base backwards would
+   * make the next merge apply that newer change a second time.
+   */
+  private adoptOwnWriteAsBase(text: string, modified: number | undefined) {
+    if (
+      modified !== undefined &&
+      this.lastKnownDiskModified !== undefined &&
+      modified < this.lastKnownDiskModified
+    ) {
+      return;
+    }
+    this.lastKnownDiskText = text;
+    this.lastKnownDiskModified = modified;
   }
 
   async reloadEditor() {
@@ -350,8 +381,6 @@ export class ContentManager {
         );
       }
     }
-
-    this.lastSavedHash = parsePageMetaLastModified(doc.meta.lastModified);
 
     // This could create an invalid editor state, but that doesn't matter, we'll update it later
     this.switchToPageEditor();
@@ -569,6 +598,14 @@ export class ContentManager {
       return this.reloadEditor();
     }
     const doc = await this.client.space.readPage(getNameFromPath(path));
+    // A write that finished during the read left the base behind what the read
+    // returned, so merging now would re-insert our own text. After the read,
+    // not before: it's writes overlapping the *fetch* that strand the base.
+    // Not covered by ownWrite -- a write overlapping another space operation
+    // dispatches no event of its own, and surfaces later via a probe instead.
+    if (this.pendingWrite) {
+      await this.pendingWrite;
+    }
     // The user may have navigated to a different page while this fetch was
     // in flight. Applying now would diff/merge page-A content against
     // whatever page is currently open -- bail out rather than corrupt it.

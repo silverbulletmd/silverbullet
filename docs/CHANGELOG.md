@@ -3,7 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* **Live external edits**: changes made to pages by other programs (or users, but don’t rely on this for real-time collaboration) now show up in an open pages almost instantly, instead of waiting for the next sync. The client applies them to the open page as minimal, cursor-preserving edits that land in the undo history, so `Cmd/Ctrl-z` reverts an external edit like any other. The externally inserted text is briefly highlighted with a marker showing where it landed, fading after a few seconds.
+* **Live external edits**: changes made to pages by other programs (or users, but don’t rely on this for real-time collaboration) now show up in an open pages almost instantly, instead of waiting for the next sync. The client applies them to the open page as minimal, cursor-preserving edits  land in the undo history, so `Cmd/Ctrl-z` reverts an external edit like any other.
   * This relies on active file-system, watching which can be configured server-wide with the new `SB_FS_WATCH` environment variable (`auto` (default) / `poll` / `off`): set `poll` when the space lives on a network mount (NFS/SMB) where changes made may not result in FS events.
 * **Inline comments** ([[Comment]]): any HTML comment (`<!-- remember this -->`) is now a parsed and rendered as a note.
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off. It only actually runs when the server found a Chrome or Chromium install at startup and only booted upon first use of the API.
@@ -23,8 +23,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 
 ## 2.10.0
 * [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
-* [[Baked Sections]]: bake `${...}` Lua expressions and widgets into
-  HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`).
+* [[Baked Sections]]: bake `${...}` Lua expressions and widgets into HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`).
 * Space Lua: **code complete now shows documentation** (where available), all available via [[API/spacelua]] reflection APIs.
 * Backend and CLI have been ported to Rust ([see background on this](https://no.silverbullet.plus/tech-stacks)), both should be behavior preserving (that is: you shouldn’t really notice):
   * The server backend (previously written in Go) has now been replaced by an adapted version of [SilverBullet+](https://silverbullet.plus/)’s backend written in Rust, more unifying those code bases.
@@ -290,8 +289,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the "Linked Tasks" widget now to rely on `ilinks`.
   * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
   * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it.
-  * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
-    To re-enable: `config.set("index.paragraph.all", true)`
+  * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686). To re-enable: `config.set("index.paragraph.all", true)`
   * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
   * The `page:index` event now also receives a `text` and `meta` attributes.
 * [[Transclusions]] improvements:
