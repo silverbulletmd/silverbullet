@@ -1,37 +1,40 @@
-import { Confirm, Prompt } from "./components/basic_modals.tsx";
-import { CommandPalette, keyboardHint } from "./components/command_palette.tsx";
-import { FilterList } from "./components/filter.tsx";
-import { AnythingPicker } from "./components/anything_picker.tsx";
-import { TopBar } from "./components/top_bar.tsx";
-import reducer from "./reducer.ts";
-import {
-  type Action,
-  type AppViewState,
-  initialViewState,
-} from "./types/ui.ts";
-import * as featherIcons from "preact-feather";
-import * as mdi from "./filtered_material_icons.ts";
-import { h, render as preactRender } from "preact";
-import { useEffect, useReducer } from "preact/hooks";
 import { closeSearchPanel } from "@codemirror/search";
 import { runScopeHandlers } from "@codemirror/view";
-import type { Client } from "./client.ts";
-import { Panel } from "./components/panel.tsx";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import {
+  getNameFromPath,
+  getPathExtension,
+  isMarkdownPath,
+  isValidName,
+  type Path,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   FilterOption,
   NotificationAction,
   NotificationType,
 } from "@silverbulletmd/silverbullet/type/client";
 import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
+import { h, render as preactRender } from "preact";
+import { useEffect, useLayoutEffect, useReducer, useRef } from "preact/hooks";
+import * as featherIcons from "preact-feather";
+import type { Client } from "./client.ts";
+import { AnythingPicker } from "./components/anything_picker.tsx";
+import { Confirm, Prompt } from "./components/basic_modals.tsx";
+import { keyboardHint } from "../plug-api/lib/shortcut.ts";
+import { kebabToPascal } from "./lib/feather_icons.ts";
+import { CommandPalette } from "./components/command_palette.tsx";
+import { FilterList } from "./components/filter.tsx";
+import { Panel } from "./components/panel.tsx";
+import { TopBar } from "./components/top_bar.tsx";
+import * as mdi from "./filtered_material_icons.ts";
+import reducer from "./reducer.ts";
 import {
-  getNameFromPath,
-  getPathExtension,
-  isMarkdownPath,
-  isValidName,
-  parseToRef,
-  type Path,
-} from "@silverbulletmd/silverbullet/lib/ref";
+  type Action,
+  type AppViewState,
+  initialViewState,
+  type PanelSlot,
+} from "./types/ui.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -93,7 +96,7 @@ export class MainUI {
       if (ev.touches.length === 2) {
         ev.stopPropagation();
         ev.preventDefault();
-        client.startPageNavigate("page");
+        void client.startPageNavigate("page");
       }
       // Launch the command palette using a three-finger tap
       if (ev.touches.length === 3) {
@@ -188,10 +191,7 @@ export class MainUI {
     }
   }
 
-  showProgress(
-    progressType: "sync" | "index",
-    progressPercentage?: number,
-  ) {
+  showProgress(progressType: "sync" | "index", progressPercentage?: number) {
     this.removeProgressType(progressType);
 
     if (progressPercentage !== undefined) {
@@ -318,14 +318,118 @@ export class MainUI {
         : "off";
     }, [viewState.uiOptions.markdownSyntaxRendering]);
 
+    // A visible keyed lhs/rhs panel (a sidebar dock) reserves top-bar space
+    // the same way the classic keyless panel does, fall back to the keyless
+    // panel's mode when no keyed panel is visible so that behavior is
+    // unchanged for plugs that don't use keyed panels.
+    const sidebarSpacer = (slot: "lhs" | "rhs") => {
+      const keyed = viewState.keyedPanels.find(
+        (p) => p.slot === slot && !p.hidden,
+      );
+      const mode = keyed?.mode ?? viewState.panels[slot].mode;
+      if (!mode) {
+        return false;
+      }
+      return (
+        <div
+          className={"panel" + (keyed ? " sb-keyed-spacer" : "")}
+          style={{ flex: mode }}
+        />
+      );
+    };
+    const sidebarKeyedSignature = viewState.keyedPanels
+      .filter((p) => p.slot === "lhs" || p.slot === "rhs")
+      .map((p) => `${p.key}:${p.hidden}:${p.mode}`)
+      .join(",");
+
     useEffect(() => {
       // Need to dispatch a resize event so that the top_bar can pick it up
       globalThis.dispatchEvent(new Event("resize"));
-    }, [viewState.panels]);
+    }, [viewState.panels, sidebarKeyedSignature]);
+
+    // A visible keyed modal panel covers the screen with a fixed backdrop, and
+    // only code inside its iframe can call hidePanel. If that iframe fails to
+    // boot there is no way out, so answer Escape here too. The iframe swallows
+    // its own keystrokes when focused, so this only fires when it hasn't got
+    // focus — precisely the stuck case.
+    const trappedModalKey = viewState.keyedPanels.find(
+      (p) => p.slot === "modal" && !p.hidden,
+    )?.key;
+
+    // Layout effect, not effect: a plain effect is flushed after paint, which
+    // leaves the modal on screen and focusable for a frame with no Escape
+    // handler attached — long enough for a real keystroke to fall through.
+    useLayoutEffect(() => {
+      if (!trappedModalKey) {
+        return;
+      }
+      const onKeyDown = (ev: KeyboardEvent) => {
+        if (ev.key !== "Escape") {
+          return;
+        }
+        ev.preventDefault();
+        dispatch({ type: "hide-keyed-panel", key: trappedModalKey });
+        client.focus();
+      };
+      globalThis.addEventListener("keydown", onKeyDown);
+      return () => globalThis.removeEventListener("keydown", onKeyDown);
+    }, [trappedModalKey]);
     const actionButtons = client.config.get<ActionButton[]>(
       "actionButtons",
       [],
     );
+
+    const keyedFor = (slot: PanelSlot) =>
+      viewState.keyedPanels
+        .filter((p) => p.slot === slot)
+        .map((p) => (
+          <div
+            key={p.key}
+            className={`sb-keyed-panel sb-keyed-panel-${slot}${
+              p.hidden ? " sb-hidden" : ""
+            }`}
+            style={{ flex: p.mode }}
+          >
+            <Panel config={p} editor={client} />
+          </div>
+        ));
+
+    const keyedModalPanels = viewState.keyedPanels.filter(
+      (p) => p.slot === "modal",
+    );
+    const visibleKeyedModalPanel = keyedModalPanels.find((p) => !p.hidden);
+    const modalVisible =
+      viewState.panels.modal.mode !== undefined ||
+      visibleKeyedModalPanel !== undefined;
+    const modalInset =
+      viewState.panels.modal.mode ?? visibleKeyedModalPanel?.mode;
+    const centeredModal =
+      viewState.panels.modal.mode === undefined &&
+      visibleKeyedModalPanel !== undefined;
+    const modalRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+      const el = modalRef.current;
+      if (!el || !centeredModal) return;
+      const doc = el.querySelector("iframe")?.contentDocument;
+      if (!doc) return;
+      const apply = () => {
+        const height = doc.documentElement.getBoundingClientRect().height;
+        if (height > 0) el.style.height = `${Math.ceil(height)}px`;
+      };
+      apply();
+      const observer = new ResizeObserver(apply);
+      observer.observe(doc.documentElement);
+      return () => observer.disconnect();
+    }, [centeredModal, visibleKeyedModalPanel?.key, modalVisible]);
+
+    const keyedBhsPanels = viewState.keyedPanels.filter(
+      (p) => p.slot === "bhs",
+    );
+    const bhsVisible =
+      viewState.panels.bhs.mode !== undefined ||
+      keyedBhsPanels.some((p) => !p.hidden);
+
     return (
       <>
         {viewState.showPageNavigator && (
@@ -558,10 +662,9 @@ export class MainUI {
               }))
               .sort((a, b) => b.priority - a.priority)
               .map((button) => {
-                const mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
-                let featherIcon = (featherIcons as any)[
-                  kebabToCamel(button.icon)
-                ];
+                const iconName = kebabToPascal(button.icon);
+                const mdiIcon = (mdi as any)[iconName];
+                let featherIcon = (featherIcons as any)[iconName];
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
@@ -596,22 +699,8 @@ export class MainUI {
                 };
               }),
           ]}
-          rhs={
-            !!viewState.panels.rhs.mode && (
-              <div
-                className="panel"
-                style={{ flex: viewState.panels.rhs.mode }}
-              />
-            )
-          }
-          lhs={
-            !!viewState.panels.lhs.mode && (
-              <div
-                className="panel"
-                style={{ flex: viewState.panels.lhs.mode }}
-              />
-            )
-          }
+          rhs={sidebarSpacer("rhs")}
+          lhs={sidebarSpacer("lhs")}
           pageNamePrefix={
             client.currentPageMeta()?.pageDecoration?.prefix ?? ""
           }
@@ -628,6 +717,7 @@ export class MainUI {
           }
         />
         <div id="sb-main">
+          {keyedFor("lhs")}
           {viewState.panels.lhs.mode !== undefined && (
             <Panel config={viewState.panels.lhs} editor={client} />
           )}
@@ -635,20 +725,78 @@ export class MainUI {
           {viewState.panels.rhs.mode !== undefined && (
             <Panel config={viewState.panels.rhs} editor={client} />
           )}
+          {keyedFor("rhs")}
         </div>
-        {viewState.panels.modal.mode !== undefined && (
-          <div className="sb-modal-backdrop">
+        {(viewState.panels.modal.mode !== undefined ||
+          keyedModalPanels.length > 0) && (
+          <div
+            className={"sb-modal-backdrop" + (modalVisible ? "" : " sb-hidden")}
+            onClick={(ev) => {
+              // Only a click on the backdrop itself, and only for keyed panels
+              // — keyless modal panels keep their click-through behavior.
+              if (ev.target !== ev.currentTarget || !visibleKeyedModalPanel) {
+                return;
+              }
+              dispatch({
+                type: "hide-keyed-panel",
+                key: visibleKeyedModalPanel.key,
+              });
+              client.focus();
+            }}
+          >
             <div
-              className="sb-modal"
-              style={{ inset: `${viewState.panels.modal.mode}px` }}
+              ref={modalRef}
+              className={
+                "sb-modal" + (centeredModal ? " sb-modal-centered" : "")
+              }
+              style={(() => {
+                const inset =
+                  typeof modalInset === "number"
+                    ? `${modalInset}px`
+                    : modalInset;
+                return centeredModal
+                  ? {
+                      top: inset,
+                      // The height itself is written by the layout effect
+                      // above; this is only how far it may ever reach.
+                      maxHeight:
+                        typeof modalInset === "number"
+                          ? `calc(100% - ${modalInset * 2}px)`
+                          : undefined,
+                    }
+                  : { inset };
+              })()}
             >
-              <Panel config={viewState.panels.modal} editor={client} />
+              {viewState.panels.modal.mode !== undefined && (
+                <Panel config={viewState.panels.modal} editor={client} />
+              )}
+              {keyedModalPanels.map((p) => (
+                <div
+                  key={p.key}
+                  className={"sb-keyed-panel" + (p.hidden ? " sb-hidden" : "")}
+                  style={{ flex: p.mode }}
+                >
+                  <Panel config={p} editor={client} />
+                </div>
+              ))}
             </div>
           </div>
         )}
-        {viewState.panels.bhs.mode !== undefined && (
-          <div className="sb-bhs">
-            <Panel config={viewState.panels.bhs} editor={client} />
+        {(viewState.panels.bhs.mode !== undefined ||
+          keyedBhsPanels.length > 0) && (
+          <div className={"sb-bhs" + (bhsVisible ? "" : " sb-hidden")}>
+            {viewState.panels.bhs.mode !== undefined && (
+              <Panel config={viewState.panels.bhs} editor={client} />
+            )}
+            {keyedBhsPanels.map((p) => (
+              <div
+                key={p.key}
+                className={"sb-keyed-panel" + (p.hidden ? " sb-hidden" : "")}
+                style={{ flex: p.mode }}
+              >
+                <Panel config={p} editor={client} />
+              </div>
+            ))}
           </div>
         )}
       </>
@@ -721,9 +869,3 @@ type ActionButton = {
   priority?: number;
   run?: () => void;
 };
-
-function kebabToCamel(str: string) {
-  return str
-    .replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-    .replace(/^./, (g) => g.toUpperCase());
-}

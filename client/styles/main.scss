@@ -88,6 +88,9 @@ body {
 
   width: 100%;
 
+  container-type: inline-size;
+  container-name: sb-editor-col;
+
   iframe {
     width: 100%;
     height: 100%;
@@ -108,6 +111,57 @@ body {
 
   .sb-panel {
     height: 100%;
+  }
+}
+
+.sb-keyed-panel {
+  height: 100%;
+}
+
+#sb-main .sb-keyed-panel {
+  flex: 1;
+  // Without this, the nested .sb-panel (itself flex:1, see above) has no
+  // flex container to grow inside -- it falls back to height:auto, and the
+  // iframe inside it collapses to the browser's ~150px replaced-element
+  // default instead of filling the sidebar.
+  display: flex;
+}
+
+.sb-hidden {
+  display: none;
+}
+
+#sb-main .sb-keyed-panel.sb-hidden {
+  display: none;
+}
+
+@media only screen and (max-width: 600px) {
+  #sb-main {
+    position: relative;
+  }
+
+  #sb-main .sb-keyed-panel-lhs,
+  #sb-main .sb-keyed-panel-rhs {
+    position: absolute;
+    inset: 0;
+    // Above the editor, below #sb-top (z-index 20) — the top bar stays on top.
+    z-index: 15;
+  }
+
+  // A drawer spans the screen: there is no edge between it and anything, so
+  // the seam a docked sidebar draws would just be a line down the middle of
+  // nothing.
+  #sb-main .sb-keyed-panel-lhs .sb-panel,
+  #sb-main .sb-keyed-panel-rhs .sb-panel {
+    border: 0;
+    flex: 1 1 100% !important;
+  }
+
+  // The top bar reserves a column beside the page title for each open sidebar.
+  // A drawer overlays instead of taking width, so reserving any would just
+  // squeeze the title for nothing.
+  #sb-top .sb-keyed-spacer {
+    display: none;
   }
 }
 
@@ -136,11 +190,39 @@ body {
     }
   }
 
+  // A keyed modal panel takes its vertical extent from the panel's inset and
+  // its width from here: the same 700px/90% centered column the pre-navigator
+  // `.sb-modal-box` dialogs use, rather than stretching to whatever the
+  // window is wide.
+  &.sb-modal-centered {
+    left: 0;
+    right: 0;
+    width: 700px;
+    max-width: 90%;
+    margin-inline: auto;
+    // Its border counts towards the 700, as it does for `.sb-modal-box`.
+    box-sizing: border-box;
+    // Height comes from the panel's own content (see editor_ui.tsx), so the
+    // box shrinks with it; `bottom` is deliberately unset, and the inline
+    // `max-height` beside it is only the viewport backstop.
+    bottom: auto;
+  }
+
   @media only screen and (max-width: 600px) {
     // On narrow screens override the inline `inset` that plugs pass to
     // showPanel("modal", N) so the modal sits closer to the edges. It keeps
     // its rounded corners since (unlike .sb-modal-box) it isn't edge-to-edge.
     inset: 8px !important;
+
+    &.sb-modal-centered {
+      top: 8px !important;
+      bottom: auto !important;
+      left: 8px !important;
+      right: 8px !important;
+      width: auto;
+      max-width: none;
+      max-height: calc(100% - 16px) !important;
+    }
   }
 }
 
@@ -152,10 +234,14 @@ body {
   padding-top: 3px;
   font-family: var(--ui-font);
   white-space: pre-wrap;
+  height: 36px;
+  line-height: 36px;
+  overflow: hidden;
 }
 
 .sb-panel {
   iframe {
+    display: block;
     background-color: var(--root-background-color);
     border: 0;
     width: 100%;

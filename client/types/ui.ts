@@ -12,10 +12,25 @@ import type {
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SyncStatus } from "../spaces/sync.ts";
 
+export type PanelSlot = "lhs" | "rhs" | "bhs" | "modal";
+
+export type PanelOptions = {
+  key?: string; // stable identity → persistent iframe
+  preload?: boolean; // mount hidden (requires key)
+  events?: string[]; // client events forwarded into the iframe (requires key)
+};
+
 export type PanelConfig = {
   mode?: PanelMode;
   html?: HTMLElement | HTMLElement[] | string;
   script?: string;
+};
+
+export type KeyedPanelConfig = PanelConfig & {
+  key: string;
+  slot: PanelSlot;
+  hidden: boolean;
+  events: string[];
 };
 
 export type AppViewState = {
@@ -41,6 +56,7 @@ export type AppViewState = {
   progressType?: string; // Used for styling
 
   panels: { [key: string]: PanelConfig };
+  keyedPanels: KeyedPanelConfig[];
   commands: Map<string, Command>;
   notifications: Notification[];
 
@@ -97,6 +113,7 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
   },
+  keyedPanels: [],
   allPages: [],
   allDocuments: [],
   commands: new Map(),
@@ -140,6 +157,8 @@ export type Action =
       config: PanelConfig;
     }
   | { type: "hide-panel"; id: string }
+  | { type: "show-keyed-panel"; config: KeyedPanelConfig }
+  | { type: "hide-keyed-panel"; key: string }
   | {
       type: "show-filterbox";
       options: FilterOption[];

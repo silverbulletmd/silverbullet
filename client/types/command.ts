@@ -10,6 +10,20 @@ export type Command = CommandDef & {
   lastRun?: number;
 };
 
+/**
+ * One row of the command palette, flattened for the navigator source that
+ * draws it: no `run`, no manifest fields it never shows, and the key hint
+ * already written the way this platform writes it.
+ */
+export type PaletteCommand = {
+  name: string;
+  priority: number;
+  /** Epoch ms of the last run on this client, absent if never run. */
+  lastRun?: number;
+  /** Prettified key binding, e.g. `⌘K`. */
+  hint?: string;
+};
+
 export type SlashCommand = SlashCommandDef & {
   run: (...args: any[]) => Promise<SlashCompletions>;
 };

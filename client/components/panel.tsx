@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
-import type { PanelConfig } from "../types/ui.ts";
+import { MOBILE_MEDIA_QUERY } from "../lib/mobile.ts";
+import type { KeyedPanelConfig, PanelConfig } from "../types/ui.ts";
 import { panelHtml } from "./panel_html.ts";
 
 export function Panel({
   config,
   editor,
 }: {
-  config: PanelConfig;
+  config: PanelConfig | KeyedPanelConfig;
   editor: Client;
 }) {
   switch (typeof config.html) {
@@ -24,10 +25,12 @@ function IFramePanel({
   config,
   editor,
 }: {
-  config: PanelConfig;
+  config: PanelConfig | KeyedPanelConfig;
   editor: Client;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
+  const wasHidden = useRef<boolean | undefined>(undefined);
+  const initialShownSent = useRef(false);
 
   const html = useMemo(() => {
     return panelHtml.replace("{{.HostPrefix}}", document.baseURI);
@@ -43,26 +46,31 @@ function IFramePanel({
       html: config.html,
       script: config.script,
       theme: document.getElementsByTagName("html")[0].dataset.theme,
+      mobile: globalThis.matchMedia(MOBILE_MEDIA_QUERY).matches,
     });
   }
 
-  useEffect(() => {
-    const iframe = iFrameRef.current;
-    if (!iframe) {
+  function postInitialShownIfNeeded() {
+    if (initialShownSent.current) {
       return;
     }
+    initialShownSent.current = true;
+    // Read the live wasHidden ref (kept current every render by the flip
+    // effect below), not `config` — the `load` listener's closure captures
+    // whatever `config` was current when the content-update effect last ran,
+    // which can be stale by the time `load` actually fires.
+    if (wasHidden.current === false) {
+      iFrameRef.current?.contentWindow?.postMessage({ type: "panel:shown" });
+    }
+  }
 
-    iframe.addEventListener("load", updateContent);
-    updateContent();
-
-    return () => {
-      iframe.removeEventListener("load", updateContent);
-    };
-  }, [config.html, config.script]);
-
-  useEffect(() => {
+  // Declared (and flushed) before the content effect below on purpose: posting
+  // `html` is what boots the panel's script, and the very first thing that
+  // script does is issue syscalls. A syscall that arrives before this listener
+  // exists is dropped, and the panel waits on a promise that never settles.
+  useLayoutEffect(() => {
     const messageListener = (evt: any) => {
-      if (evt.source !== iFrameRef.current!.contentWindow) {
+      if (evt.source !== iFrameRef.current?.contentWindow) {
         return;
       }
       const data = evt.data;
@@ -105,6 +113,91 @@ function IFramePanel({
       globalThis.removeEventListener("message", messageListener);
     };
   }, []);
+
+  // Layout effects for both of the messages below: a plain
+  // effect is flushed *after* paint, so the panel would already be on screen —
+  // and, for a keyed panel, already booted, focused and accepting keystrokes.
+  useLayoutEffect(() => {
+    const iframe = iFrameRef.current;
+    if (!iframe) {
+      return;
+    }
+
+    function onLoad() {
+      updateContent();
+      postInitialShownIfNeeded();
+    }
+
+    iframe.addEventListener("load", onLoad);
+    updateContent();
+
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+    };
+  }, [config.html, config.script]);
+
+  useLayoutEffect(() => {
+    const hidden = (config as KeyedPanelConfig).hidden;
+    if (wasHidden.current !== undefined && wasHidden.current !== hidden) {
+      iFrameRef.current?.contentWindow?.postMessage({
+        type: hidden ? "panel:hidden" : "panel:shown",
+      });
+    }
+    wasHidden.current = hidden;
+  });
+
+  // The theme only rides along with the `html` message, which a long-lived
+  // (keyed/preloaded) panel receives once. Without this, toggling dark mode
+  // leaves every persistent panel iframe on the theme it booted with.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      iFrameRef.current?.contentWindow?.postMessage({
+        type: "theme",
+        theme: document.documentElement.dataset.theme,
+      });
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Crossing the breakpoint mid-session (a rotation, a resized window) changes
+  // how a docked panel is laid out, so it also changes how it should behave.
+  // The boot value rides along with `html` above; this only carries changes.
+  useEffect(() => {
+    const mql = globalThis.matchMedia(MOBILE_MEDIA_QUERY);
+    const onChange = (ev: MediaQueryListEvent) => {
+      iFrameRef.current?.contentWindow?.postMessage({
+        type: "panel:mobile",
+        mobile: ev.matches,
+      });
+    };
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    const events = (config as KeyedPanelConfig).events;
+    if (!events?.length) return;
+    const listeners = events.map((name) => {
+      const listener = (...args: any[]) => {
+        iFrameRef.current?.contentWindow?.postMessage({
+          type: "event",
+          name,
+          args,
+        });
+      };
+      editor.eventHook.addLocalListener(name, listener);
+      return { name, listener };
+    });
+    return () => {
+      for (const { name, listener } of listeners) {
+        editor.eventHook.removeLocalListener(name, listener);
+      }
+    };
+  }, [(config as KeyedPanelConfig).events?.join(",")]);
 
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>
