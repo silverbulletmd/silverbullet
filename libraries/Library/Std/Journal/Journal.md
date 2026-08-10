@@ -143,9 +143,37 @@ if config.get("journal.enabled", true) then
       end
     end,
   }
+  -- Journals are dated paths ("Journal/2026/08/07"), so a tree is the shape
+  -- they already have: a year is a folder, a month is a folder, and reaching
+  -- last March is three keystrokes rather than a phrase.
+  navigator.define {
+    name = "std.journal",
+    title = "Journal",
+    command = "Navigator: Journal",
+    dock = "modal",
+    presentation = {
+      mode = "tree",
+      -- A picker has to open with something to pick: collapsed, this one opens
+      -- as a single "Journal" folder row and nothing else. Expanded, the dates
+      -- are on screen and what you close is what it remembers.
+      expandAll = true,
+      row = {
+        icon = function(obj)
+          if obj.isFolder then return "folder" end
+          return "calendar"
+        end,
+      },
+    },
+    source = function() return journal.entries() end,
+  }
+
   command.update {
     name = "Journal: Picker",
     run = function()
+      if editor.openNavigator("std.journal") then
+        -- The panel focuses its own filter input.
+        return false
+      end
       local entries = journal.entries()
       if #entries == 0 then
         editor.flashNotification("No journal entries yet")

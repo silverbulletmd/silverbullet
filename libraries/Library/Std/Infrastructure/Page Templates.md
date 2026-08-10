@@ -183,10 +183,58 @@ local function cleanName(path)
   return parts[#parts]
 end
 
+-- The second half of picking a template: name the page it makes, then make
+-- it. Shared by the navigator view and the filterBox fallback below, because
+-- the naming step is the part that has to behave identically either way.
+local function instantiateTemplate(fullName, suggestedName, openIfExists)
+  local pageName
+  if suggestedName ~= nil then
+    pageName = (template.new(suggestedName))()
+  end
+  pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
+  if pageName == "" then
+    editor.flashNotification("No page name given for template '" .. cleanName(fullName) .. "', unable to continue.", "error")
+    return
+  end
+  template.createPageFromTemplate(fullName, pageName, openIfExists)
+end
+
+navigator.define {
+  name = "std.pageTemplates",
+  title = "Page templates",
+  command = "Navigator: Page Templates",
+  dock = "modal",
+  presentation = {
+    mode = "list",
+    row = {
+      primary = function(obj) return cleanName(obj.name) end,
+      description = function(obj) return obj.description end,
+      decorations = function(obj)
+        if obj.suggestedName then
+          return { { text = "auto-named", position = "right" } }
+        end
+      end,
+      icon = "file-plus",
+    },
+  },
+  source = function()
+    return query [[from index.pages("meta/template/page") order by _.name]]
+  end,
+  onSelect = function(obj)
+    editor.hidePanel("modal")
+    instantiateTemplate(obj.name, obj.suggestedName, obj.openIfExists)
+    return false
+  end,
+}
+
 command.define {
   name = "Page: From Template",
   key = "Ctrl-q t",
   run = function()
+    if editor.openNavigator("std.pageTemplates") then
+      -- The panel focuses its own filter input.
+      return false
+    end
     local pageTemplates = query[[
       from index.pages("meta/template/page")
       select {
@@ -200,16 +248,7 @@ command.define {
     if not selected then
       return
     end
-    local pageName
-    if selected.suggestedName ~= nil then
-      pageName = (template.new(selected.suggestedName))()
-    end
-    pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
-    if pageName == "" then
-      editor.flashNotification("No page name given for template '" .. cleanName(selected.fullName) .. "', unable to continue.", "error")
-      return
-    end
-    template.createPageFromTemplate(selected.fullName, pageName, selected.openIfExists)
+    instantiateTemplate(selected.fullName, selected.suggestedName, selected.openIfExists)
   end
 }
 ```
