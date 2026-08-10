@@ -259,7 +259,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       return {
         name: "span",
         attrs: {
-          class: "highlight",
+          class: "sb-highlight",
         },
         body: cleanTags(mapRender(t.children!)),
       };
@@ -453,6 +453,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         }
       });
 
+      const hasHtml = t.children!.some((c) => c.type === "HTMLTag");
       return {
         name: "span",
         attrs: {
@@ -461,7 +462,11 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
             ? { "data-external-task-ref": externalTaskRef }
             : {}),
         },
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(
+          hasHtml
+            ? groupInlineHtml(t.children!, options, posPreservingRender)
+            : mapRender(t.children!),
+        ),
       };
     }
     case "TaskState": {

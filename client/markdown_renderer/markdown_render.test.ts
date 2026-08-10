@@ -177,6 +177,17 @@ test("Unmatched HTML tags render as literal text", () => {
   expect(html).toEqual('<span class="p">text &lt;b&gt;unclosed</span>');
 });
 
+test("Inline HTML renders inside task items", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "* [ ] <mark>highlighted</mark> task",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<ul><li><span class="sb-task"><input type="checkbox" data-state=" "> <mark>highlighted</mark> task</span></li></ul>',
+  );
+});
+
 test("CustomSyntaxRenderedHtml renders raw HTML", () => {
   // Directly test the renderer with a synthetic parse tree
   const tree = {
