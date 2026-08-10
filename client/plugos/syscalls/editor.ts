@@ -72,6 +72,7 @@ import type {
   FilterOption,
   NotificationAction,
   NotificationType,
+  PanelMode,
   UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
 import type { VimConfig } from "@silverbulletmd/silverbullet/type/config";
@@ -79,6 +80,9 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
+import { resolveFeatherIcons } from "../../lib/feather_icons.ts";
+import { isNarrowScreen } from "../../lib/mobile.ts";
+import type { PanelOptions, PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
 import type { SysCallMapping } from "../system.ts";
 
@@ -136,6 +140,40 @@ export function editorSyscalls(client: Client): SysCallMapping {
       description:
         "Returns page metadata ordered from most to least recently opened.",
       returns: [{ type: "PageMeta[]", description: "Recently opened pages." }],
+    },
+    "editor.getLastOpenedMap": {
+      callback: (): Record<string, number> => {
+        const out: Record<string, number> = {};
+        for (const pageMeta of client.ui.viewState.allPages) {
+          if (pageMeta.lastOpened) out[pageMeta.name] = pageMeta.lastOpened;
+        }
+        return out;
+      },
+      description: `Returns a map of page name to the time it was last opened (epoch milliseconds), for the pages that have ever been opened on this client. This lives outside the object index.`,
+      returns: [
+        {
+          type: "Record<string, number>",
+          description: "Page name to last-opened timestamp.",
+        },
+      ],
+    },
+    "editor.getViewableExtensions": {
+      callback: (): string[] => {
+        return [
+          ...new Set(
+            Array.from(
+              client.clientSystem.documentEditorHook.documentEditors.values(),
+            ).flatMap(({ extensions }) => extensions),
+          ),
+        ];
+      },
+      description: `Returns the file extensions that have a document editor registered, i.e. the documents this client can actually open. Extensions carry no leading dot. Which editors are loaded depends on the plugs installed, so this is a property of the client rather than of the space.`,
+      returns: [
+        {
+          type: "string[]",
+          description: "Extensions with a registered document editor.",
+        },
+      ],
     },
     "editor.getText": {
       callback: () => {
@@ -597,15 +635,31 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: (
         _ctx,
         id: string,
-        mode: number,
+        mode: PanelMode,
         html: HTMLElement | HTMLElement[] | string,
         script: string,
+        options?: PanelOptions,
       ) => {
-        client.ui.viewDispatch({
-          type: "show-panel",
-          id: id as any,
-          config: { html, script, mode },
-        });
+        if (options?.key) {
+          client.ui.viewDispatch({
+            type: "show-keyed-panel",
+            config: {
+              key: options.key,
+              slot: id as PanelSlot,
+              mode,
+              html,
+              script,
+              hidden: !!options.preload,
+              events: options.events ?? [],
+            },
+          });
+        } else {
+          client.ui.viewDispatch({
+            type: "show-panel",
+            id: id as any,
+            config: { html, script, mode },
+          });
+        }
         setTimeout(() => {
           // Dummy dispatch to rerender the editor and toggle the panel
           client.editorView.dispatch({});
@@ -620,7 +674,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         },
         {
           name: "mode",
-          type: "number",
+          type: "number | string",
           description: "The panel display mode or size.",
         },
         {
@@ -633,6 +687,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
           type: "string",
           description: "A script associated with the panel content.",
         },
+        {
+          name: "options",
+          type: "PanelOptions",
+          description:
+            "Optional keyed-panel options: key for persistent identity, preload to mount hidden, events to forward.",
+          optional: true,
+        },
       ],
     },
     "editor.focus": {
@@ -643,10 +704,20 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.hidePanel": {
       callback: (_ctx, id: string) => {
-        client.ui.viewDispatch({
-          type: "hide-panel",
-          id: id as any,
-        });
+        const visibleKeyed = client.ui.viewState.keyedPanels.find(
+          (p) => p.slot === id && !p.hidden,
+        );
+        if (visibleKeyed) {
+          client.ui.viewDispatch({
+            type: "hide-keyed-panel",
+            key: visibleKeyed.key,
+          });
+        } else {
+          client.ui.viewDispatch({
+            type: "hide-panel",
+            id: id as any,
+          });
+        }
         setTimeout(() => {
           // Dummy dispatch to rerender the editor and toggle the panel
           client.editorView.dispatch({});
@@ -1023,6 +1094,24 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
       returns: [{ type: "any", description: "The option value." }],
     },
+    "editor.resolveFeatherIcons": {
+      callback: (_ctx, names: string[]): Record<string, string> => {
+        return resolveFeatherIcons(names ?? []);
+      },
+      // A single literal, not a concatenation: the metadata-coverage test
+      // reads these descriptions off the AST and only recognizes one.
+      description: `Renders the named Feather icons to SVG markup, so panels can show icons without bundling the icon set themselves. Unknown names are omitted from the result. The markup carries no size or color: it uses a 24x24 viewBox and \`currentColor\`, for CSS to size and paint.`,
+      parameters: [
+        {
+          name: "names",
+          type: "string[]",
+          description: "Feather icon names, e.g. `trash-2`.",
+        },
+      ],
+      returns: [
+        { type: "any", description: "Map of icon name to SVG markup." },
+      ],
+    },
     "editor.setUiOption": {
       callback: (_ctx, key: string, value: any) => {
         client.ui.viewDispatch({
@@ -1142,9 +1231,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.openPageNavigator": {
       callback: (_ctx, mode: "page" | "meta" | "document" | "all" = "page") => {
-        client.startPageNavigate(mode);
+        void client.startPageNavigate(mode);
       },
-      description: "Opens the page navigator in the requested browsing mode.",
+      description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` navigator view; the pre-navigator picker still answers when that view isn't available.`,
       parameters: [
         {
           name: "mode",
@@ -1159,6 +1248,24 @@ export function editorSyscalls(client: Client): SysCallMapping {
         void client.startCommandPalette();
       },
       description: "Opens the command palette.",
+    },
+    "editor.openNavigator": {
+      callback: (
+        _ctx,
+        name: string,
+        opts?: { segment?: string; phrase?: string },
+      ) => client.openNavigatorView(name, opts),
+      description: `Opens a navigator view, returning whether it opened. False means the view isn't there to open -- the space asked for the legacy pickers, or its Space Lua hasn't been indexed yet -- so a caller replacing an older picker can fall back to it.`,
+      parameters: [
+        { name: "name", type: "string", description: "The view's name." },
+        {
+          name: "opts",
+          type: "table",
+          description: "Optional `segment` (segment label) and `phrase`.",
+          optional: true,
+        },
+      ],
+      returns: [{ type: "boolean", description: "Whether a view opened." }],
     },
     "editor.deleteLine": {
       callback: () => {
@@ -1539,6 +1646,23 @@ export function editorSyscalls(client: Client): SysCallMapping {
           type: "boolean",
           description:
             "Whether the editor is running in a mobile-style pointer environment.",
+        },
+      ],
+    },
+
+    // Deliberately separate from `editor.isMobile`: that one answers "what
+    // kind of pointer is this", which is the right question for touch
+    // affordances and the wrong one for layout. A narrow window on a desktop
+    // gets the narrow layout with a mouse attached; a tablet in landscape gets
+    // the wide one without.
+    "editor.isNarrowScreen": {
+      callback: () => isNarrowScreen(),
+      description:
+        "Checks whether the client is currently laid out for a narrow screen, i.e. below the breakpoint where sidebar panels become full-width drawers.",
+      returns: [
+        {
+          type: "boolean",
+          description: "Whether the narrow-screen layout is in effect.",
         },
       ],
     },

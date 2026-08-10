@@ -1,11 +1,13 @@
-import { syscall } from "../syscall.ts";
+import type { PanelOptions } from "../../client/types/ui.ts";
 import type {
   FilterOption,
   NotificationType,
   UploadFile,
 } from "../../plug-api/types/client.ts";
-import type { Path, Ref } from "../lib/ref.ts";
 import type { PageMeta } from "../../plug-api/types/index.ts";
+import type { Path, Ref } from "../lib/ref.ts";
+import { syscall } from "../syscall.ts";
+import type { PanelMode } from "../types/client.ts";
 
 /**
  * Exposes various editor utilities.
@@ -43,6 +45,22 @@ export function getCurrentPath(): Promise<Path> {
  */
 export function getRecentlyOpenedPages(): Promise<PageMeta[]> {
   return syscall("editor.getRecentlyOpenedPages");
+}
+
+/**
+ * Returns a map of page name to the epoch-millisecond time it was last opened
+ * on this client. Only pages that have ever been opened appear in it.
+ */
+export function getLastOpenedMap(): Promise<Record<string, number>> {
+  return syscall("editor.getLastOpenedMap");
+}
+
+/**
+ * Returns the file extensions (without a leading dot) that have a document
+ * editor registered, i.e. the documents this client can open.
+ */
+export function getViewableExtensions(): Promise<string[]> {
+  return syscall("editor.getViewableExtensions");
 }
 
 /**
@@ -163,6 +181,18 @@ export function openCommandPalette(): Promise<void> {
 }
 
 /**
+ * Opens a navigator view by name.
+ * @returns whether a view actually opened. `false` means there was none to
+ * open.
+ */
+export function openNavigator(
+  name: string,
+  opts?: { segment?: string; phrase?: string },
+): Promise<boolean> {
+  return syscall("editor.openNavigator", name, opts);
+}
+
+/**
  * Force reloads the current page
  */
 export function reloadPage(): Promise<void> {
@@ -272,18 +302,23 @@ export function filterBox(
  * @param mode the mode or "size" of the panel
  * @param html the html content of the panel
  * @param script the script content of the panel
+ * @param options optional keyed-panel options: a stable `key` makes the panel
+ * persistent (backed by a long-lived iframe), `preload` mounts it hidden, and
+ * `events` lists client events forwarded into it
  */
 export function showPanel(
   id: "lhs" | "rhs" | "bhs" | "modal",
-  mode: number,
+  mode: PanelMode,
   html: HTMLElement | HTMLElement[] | string,
   script = "",
+  options?: PanelOptions,
 ): Promise<void> {
-  return syscall("editor.showPanel", id, mode, html, script);
+  return syscall("editor.showPanel", id, mode, html, script, options);
 }
 
 /**
- * Hides a panel in the editor
+ * Hides a panel in the editor. If a keyed panel is currently visible in that
+ * location, it is hidden (not unmounted); otherwise behaves as before.
  * @param id the location of the panel to hide
  */
 export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
@@ -430,6 +465,19 @@ export function getUiOption(key: string): Promise<any> {
  */
 export function setUiOption(key: string, value: any): Promise<void> {
   return syscall("editor.setUiOption", key, value);
+}
+
+/**
+ * Render the named Feather icons to SVG markup — for panels and widgets that
+ * want icons without bundling the whole icon set. Unknown names are left out
+ * of the result. The markup carries no size or color of its own (24x24
+ * viewBox, `currentColor`), so CSS at the injection site decides both.
+ * @param names Feather icon names, e.g. `trash-2`
+ */
+export function resolveFeatherIcons(
+  names: string[],
+): Promise<Record<string, string>> {
+  return syscall("editor.resolveFeatherIcons", names);
 }
 
 /**
@@ -699,4 +747,13 @@ export function sendMessage(type: string, data?: any): Promise<void> {
  */
 export function isMobile(): Promise<boolean> {
   return syscall("editor.isMobile");
+}
+
+/**
+ * Whether the client is currently laid out for a narrow screen — the
+ * breakpoint below which sidebar panels render as full-width drawers over the
+ * editor. A layout question, unlike `isMobile`, which asks about the pointer.
+ */
+export function isNarrowScreen(): Promise<boolean> {
+  return syscall("editor.isNarrowScreen");
 }

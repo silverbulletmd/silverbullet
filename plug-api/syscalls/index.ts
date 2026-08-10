@@ -120,6 +120,16 @@ export function tables(tagName?: string): Promise<LuaQueryCollection> {
 }
 
 /**
+ * Whether a full indexing pass has ever completed for this space. False on a
+ * fresh client, and for as long as the first index takes on a large one --
+ * during which every object query answers with whatever has been indexed so
+ * far. Code that has to work in that window reads the space directly instead.
+ */
+export function isAvailable(): Promise<boolean> {
+  return syscall("index.isAvailable");
+}
+
+/**
  * Returns all aspiring (referenced but not yet created) pages as a query collection.
  */
 export function aspiringPages(): Promise<LuaQueryCollection> {

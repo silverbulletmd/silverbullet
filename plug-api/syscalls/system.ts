@@ -36,6 +36,34 @@ export function listCommands(): Promise<Record<string, CommandDef>> {
 }
 
 /**
+ * Lists the commands the command palette would show right now: context- and
+ * mode-filtered, hidden ones dropped, each with its prettified key hint and
+ * the time it was last run on this client.
+ * Note: only available on the client
+ */
+export function listPaletteCommands(): Promise<
+  {
+    name: string;
+    priority: number;
+    lastRun?: number;
+    hint?: string;
+  }[]
+> {
+  return syscall("system.listPaletteCommands");
+}
+
+/**
+ * Runs a command as if it had been picked from the command palette: records
+ * it as the most recently run (which is what orders the palette), then
+ * invokes it.
+ * Note: only available on the client
+ * @returns whatever the command returned
+ */
+export function runPaletteCommand(name: string): Promise<any> {
+  return syscall("system.runPaletteCommand", name);
+}
+
+/**
  * Lists all syscalls available
  * @returns a list of all available syscalls
  */

@@ -16,6 +16,7 @@
     "./lib/ref": "./plug-api/lib/ref.ts",
     "./lib/resolve": "./plug-api/lib/resolve.ts",
     "./lib/dates": "./plug-api/lib/dates.ts",
+    "./lib/fuzzy": "./plug-api/lib/fuzzy.ts",
     "./lib/async": "./plug-api/lib/async.ts",
     "./lib/crypto": "./plug-api/lib/crypto.ts",
     "./lib/limited_map": "./plug-api/lib/limited_map.ts",

@@ -97,6 +97,27 @@ export function systemSyscalls(
       description:
         "Returns a map of every currently available command definition.",
     },
+    "system.listPaletteCommands": {
+      callback: () => client.listPaletteCommands(),
+      description: `Returns the commands the command palette would show right now: context- and mode-filtered, hidden ones dropped, each with its prettified key hint and the time it was last run on this client.`,
+      signatures: ["system.listPaletteCommands()"],
+    },
+    "system.runPaletteCommand": {
+      callback: async (_ctx, name: string) => {
+        await client.registerCommandRun(name);
+        try {
+          return await client.runCommandByName(name);
+        } catch (e: any) {
+          client.reportError(e, "Command invocation");
+          return false;
+        }
+      },
+      description: `Runs a command as if it had been picked from the command palette: records it as the most recently run, then invokes it and returns its result. A command that throws is reported to the user and answered as false, which in this protocol means "do not move focus on my behalf".`,
+      parameters: [
+        { name: "name", type: "string", description: "Command name." },
+      ],
+      returns: [{ description: "Whatever the command returned." }],
+    },
     "system.listSyscalls": {
       callback: (): SyscallMeta[] => {
         const syscalls: SyscallMeta[] = [];

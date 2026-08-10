@@ -81,7 +81,7 @@ export function indexSyscalls(
         return objectIndex.comments();
       },
       description:
-        "Returns all indexed inline comment objects as a query collection. Equivalent to index.tag \"comment\".",
+        'Returns all indexed inline comment objects as a query collection. Equivalent to index.tag "comment".',
     },
     "index.metaPages": {
       callback: (): LuaQueryCollection => {
@@ -150,6 +150,13 @@ export function indexSyscalls(
       description:
         "Returns the raw JSON Schema for a tag, or nil when none is declared.",
       signatures: ["index.tagSchema(tagName)"],
+    },
+    "index.isAvailable": {
+      callback: (): Promise<boolean> => objectIndex.isIndexAvailable(),
+      description: `Whether a full indexing pass has ever completed for this space. False on a fresh client, and for as long as the first index takes on a large one: every object query answers with whatever has been indexed so far, which is nothing to begin with. Code that must work in that window reads the space directly instead.`,
+      returns: [
+        { type: "boolean", description: "Whether the index can be trusted." },
+      ],
     },
     "index.aspiringPages": {
       callback: (): LuaQueryCollection => {
