@@ -6,9 +6,11 @@ import {
   Badge,
   Button,
   Checkbox,
+  Icon,
   Input,
   Progress,
   Select,
+  SegmentedControl,
   Tabs,
   UrlPrefixInput,
 } from "./index.ts";
@@ -105,6 +107,52 @@ test("UrlPrefixInput shows the origin it is given, not the ambient one", () => {
   expect(html).toContain("sb-url-input");
   expect(html).toContain(">https://sb.example.com</span>");
   expect(html).toContain('value="/notes"');
+});
+
+test("SegmentedControl defaults to tabIndex -1, so a caller's own input keeps focus", () => {
+  const items = [{ label: "Pages" }, { label: "Meta" }];
+  const html = render(
+    h(SegmentedControl, { items, activeIndex: 0, onPick: () => {} }),
+  );
+  expect(html).toContain('tabindex="-1"');
+  expect(html).not.toContain('tabindex="0"');
+});
+
+test("SegmentedControl takeFocus makes items ordinary tab stops", () => {
+  const items = [{ label: "A" }];
+  const html = render(
+    h(SegmentedControl, {
+      items,
+      activeIndex: 0,
+      onPick: () => {},
+      takeFocus: true,
+    }),
+  );
+  expect(html).toContain('tabindex="0"');
+});
+
+test("SegmentedControl marks the active item and defaults aria-label to Options", () => {
+  const items = [{ label: "A" }, { label: "B" }];
+  const html = render(
+    h(SegmentedControl, { items, activeIndex: 1, onPick: () => {} }),
+  );
+  expect(html).toContain("sb-segment sb-segment-active");
+  expect(html).toContain('aria-label="Options"');
+});
+
+test("SegmentedControl prefers the caller's tooltip over the label", () => {
+  const items = [{ label: "Anchors", tooltip: "Anchors ($)" }];
+  const html = render(
+    h(SegmentedControl, { items, activeIndex: 0, onPick: () => {} }),
+  );
+  expect(html).toContain('title="Anchors ($)"');
+});
+
+test("Icon renders a span carrying the caller's class", () => {
+  const node = {} as unknown as Element;
+  const html = render(h(Icon, { node, class: "sb-nav-icon" }));
+  expect(html).toContain('class="sb-nav-icon"');
+  expect(html).toMatch(/<span[^>]*><\/span>/);
 });
 
 test("UrlPrefixInput trims a trailing slash off the origin", () => {

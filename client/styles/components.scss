@@ -272,3 +272,274 @@
 .sb-url-affix:last-child {
   border-left: 1px solid #0002;
 }
+
+.sb-segments-wrap {
+  min-width: 0;
+}
+
+.sb-segments {
+  display: inline-flex;
+  // Last resort: a wrap too narrow even for the icons alone (many items,
+  // 160px) wraps them onto a second line rather than clipping the last one.
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 6px;
+  // Same faint tint a section header might use, so the control reads as part
+  // of the same surface family as its surroundings.
+  background-color: color-mix(in srgb,
+      var(--ui-surface-section-background-color) 60%,
+      transparent);
+}
+
+.sb-segment {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--subtle-color);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sb-segment:hover:not(.sb-segment-active) {
+  background-color: var(--ui-surface-hover-background-color);
+  color: var(--modal-color);
+}
+
+// The active item is the selection, and carries the selection's own paired
+// foreground/background -- the same rule rows follow.
+.sb-segment-active {
+  background-color: var(--modal-selected-option-background-color);
+  color: var(--modal-selected-option-color);
+}
+
+.sb-segment-icon {
+  display: flex;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.sb-segment-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+// Too narrow for labels: iconed items keep the icon (the label survives as
+// tooltip and accessible name), label-only ones are never collapsed to
+// nothing.
+.sb-segments-narrow .sb-segment-iconed .sb-segment-label {
+  display: none;
+}
+
+/* Resize handle (`ResizeHandle`). Invisible at rest: whatever border the
+   host draws on the dock is the only line there should be. */
+.sb-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 1;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// The affordance, on hover only: a grip line down the draggable edge.
+.sb-resizer::after {
+  content: "";
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background-color: transparent;
+  transition: background-color 120ms ease-out;
+}
+
+.sb-resizer:hover::after {
+  background-color: var(--ui-surface-border-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-resizer::after {
+    transition: none;
+  }
+}
+
+// Flush with the edge (not straddling it, e.g. `right: -3px`) so the whole
+// hit area stays inside the dock, which is expected to clip via
+// overflow: hidden.
+.sb-resizer-lhs {
+  right: 0;
+}
+
+.sb-resizer-rhs {
+  left: 0;
+}
+
+.sb-row-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px 0 22px;
+  background-color: var(--modal-background-color);
+  background-image: linear-gradient(var(--sb-nav-band, transparent),
+      var(--sb-nav-band, transparent));
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 20px);
+  mask-image: linear-gradient(to right, transparent, #000 20px);
+  pointer-events: none;
+}
+
+.sb-row-action {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--subtle-color);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sb-row-action:hover {
+  color: var(--action-button-hover-color);
+  background-color: var(--ui-surface-hover-background-color);
+}
+
+.sb-row-action-icon {
+  display: flex;
+  width: 15px;
+  height: 15px;
+}
+
+.sb-row-action-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sb-nav-row:hover .sb-row-actions,
+.sb-nav-row.sb-nav-selected .sb-row-actions {
+  display: flex;
+}
+
+.sb-nav-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px;
+  line-height: 20px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.sb-nav-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.sb-nav-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sb-nav-chevron,
+.sb-nav-chevron-spacer {
+  flex: 0 0 auto;
+  width: 1em;
+  text-align: center;
+}
+
+.sb-nav-chevron {
+  cursor: pointer;
+}
+
+.sb-nav-primary {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-nav-description {
+  flex: 1 1 0%;
+  max-width: max-content;
+  min-width: 0;
+  font-size: 75%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-nav-primary mark {
+  background-color: var(--editor-highlight-background-color);
+  color: inherit;
+  line-height: inherit;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  vertical-align: baseline;
+}
+
+.sb-nav-chip {
+  flex: none;
+  padding: 2px 6px;
+  // Pinned rather than left to inherit the row's own `line-height: 20px`
+  // (`.sb-nav-row`, this file): the row's `align-items: baseline` lines a
+  // chip's own text baseline up with its neighbours', and the chip's padding
+  // extends past that shared baseline by an amount that depends on the
+  // *inherited* line-height's ascent/descent -- an engine's own UA default
+  // for "normal", not something this rule controls, unlike a pinned
+  // `line-height: 1`. The App wraps WKWebView on macOS, which this repo's
+  // Chromium-only e2e harness can't exercise, so a chip row reading taller
+  // than its plain neighbours there (not reproduced here) is the failure
+  // mode this guards against -- same defensive-even-without-a-local-repro
+  // call as `.sb-nav-primary mark`'s explicit reset, below.
+  line-height: 1;
+  font-size: 10px;
+  border-radius: 4px;
+  background-color: var(--badge-background-color);
+  color: var(--badge-color);
+}
+
+.sb-nav-empty {
+  padding: 12px 10px;
+  font-size: 0.9em;
+  color: var(--subtle-color);
+}
+
+.sb-tree,
+.sb-tree ul[role="group"] {
+  list-style: none;
+}
