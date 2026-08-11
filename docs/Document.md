@@ -14,7 +14,7 @@ To create a document, you have a few options:
 All options will prompt you for a file name to use to store the document, and then include the document as an embedded image (if it was an image) or link to the file.
 
 # Managment
-Using `Cmd-o`/`Ctrl-o` you can open the document navigator, which will display all documents in your Silverbullet space. You can either:
+Using ${widgets.commandButton("Navigate: Document Picker")} you can open the document navigator, which will display all documents in your Silverbullet space. You can either:
   - Delete or rename documents for which no [[Document Editor]] is available (indicated by the grey hint)
   - Open and view documents for which a [[Document Editor]] is available (indicated by the blue hint)
 

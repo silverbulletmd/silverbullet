@@ -7,7 +7,7 @@ references:
 
 An aspiring page is a [[Page|page]] that does not yet exist, but is already linked to.
 
-Aspiring pages appear in the [[Page Picker]] (with a `Create page` hint) as well as in auto complete when creating [[Link]].
+Aspiring pages appear in the [[Page Picker]] (with a `Create` chip) as well as in auto complete when creating [[Link]].
 
 # Finding dangling links
 Every `[[link]]` to a non-existent page produces an `aspiring-page` object in the [[Object Index]], so you can query them to audit broken or forward-references:

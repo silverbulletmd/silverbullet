@@ -6,7 +6,7 @@ references:
 Document editors allow you to not only view but also edit files other than markdown. By itself they are just [[Plugs|plugs]] which hook into Silverbullet and provide an editor based on the extension of the file. Silverbullet includes an image viewer by itself to view most image files (`jpg`, `png`, ...). If you are missing an editor and want to build your own look at [[#Development]].
 
 # Usage
-To get started, you first need to install a plug that provides a document editor (for examples see [[#Available editors]]). Once installed and loaded, you can open the document navigator using `Cmd-o` (Mac) or `Ctrl-o` (Windows, Linux), which works similarly to the page navigator. The only difference is that files which you can open will have their extension highlighted in blue, files for which no document editor is loaded are gray.
+To get started, you first need to install a plug that provides a document editor (for examples see [[#Available editors]]). Once installed and loaded, you can open the document navigator using ${widgets.commandButton("Navigate: Document Picker")}, which works similarly to the page navigator. The only difference is that files which you can open will have their extension highlighted in blue, files for which no document editor is loaded are gray.
 
 # Available editors
 Currently only two major document editors exist (As well as the built-in image viewer). Both are installable through the [[Configuration Manager#Libraries|Library Manager]].

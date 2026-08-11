@@ -2,7 +2,7 @@
 description: The searchable popup for running commands.
 tags: glossary
 references:
-- client/components/command_palette.tsx
+- plugs/navigator/src/builtins.ts
 ---
 The Command Palette is used to explore SilverBullet’s numerous [[Command]] as well as execute them.
 
