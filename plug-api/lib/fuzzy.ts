@@ -31,61 +31,47 @@ function isWordBoundaryAt(
   return false;
 }
 
-function boundedDamerauLevenshtein(a: string, b: string, max: number): number {
-  // Returns edit distance if <= max, otherwise max + 1.
-  const al = a.length;
-  const bl = b.length;
-  if (Math.abs(al - bl) > max) return max + 1;
+function bestSubstringEditDistance(token: string, candidate: string): number {
+  const tl = token.length;
+  const cl = candidate.length;
+  let prevPrev = new Array(cl + 1).fill(0);
+  let prev = new Array(cl + 1).fill(0);
+  let curr = new Array(cl + 1);
 
-  // Three-row DP with early-exit per row, rotating row references each iteration.
-  let prevPrev = new Array(bl + 1);
-  let prev = new Array(bl + 1);
-  let curr = new Array(bl + 1);
-  for (let j = 0; j <= bl; j++) prev[j] = j;
-
-  for (let i = 1; i <= al; i++) {
+  for (let i = 1; i <= tl; i++) {
     curr[0] = i;
-    let rowMin = curr[0];
-    for (let j = 1; j <= bl; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+    for (let j = 1; j <= cl; j++) {
+      const cost = token[i - 1] === candidate[j - 1] ? 0 : 1;
       let v = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
-      // Damerau transposition
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+      if (
+        i > 1 &&
+        j > 1 &&
+        token[i - 1] === candidate[j - 2] &&
+        token[i - 2] === candidate[j - 1]
+      ) {
         v = Math.min(v, prevPrev[j - 2] + 1);
       }
       curr[j] = v;
-      if (v < rowMin) rowMin = v;
     }
-    if (rowMin > max) return max + 1;
-    // Rotate: prevPrev <- prev, prev <- curr, curr <- old prevPrev (reused as scratch)
     const tmp = prevPrev;
     prevPrev = prev;
     prev = curr;
     curr = tmp;
   }
-  return prev[bl];
+
+  let best = prev[0];
+  for (let j = 1; j <= cl; j++) {
+    if (prev[j] < best) best = prev[j];
+  }
+  return best;
 }
 
-function typoScore(token: string, candidate: string): number {
+export function typoScore(token: string, candidate: string): number {
   if (token.length < 4) return 0;
   const max = Math.min(2, Math.floor(token.length / 4));
   if (max < 1) return 0;
 
-  // Try aligning token against each substring of candidate of length token.length +/- max.
-  let bestDist = max + 1;
-  for (
-    let len = Math.max(1, token.length - max);
-    len <= token.length + max;
-    len++
-  ) {
-    for (let start = 0; start + len <= candidate.length; start++) {
-      const slice = candidate.slice(start, start + len);
-      const d = boundedDamerauLevenshtein(token, slice, bestDist - 1);
-      if (d < bestDist) bestDist = d;
-      if (bestDist === 0) break;
-    }
-    if (bestDist === 0) break;
-  }
+  const bestDist = bestSubstringEditDistance(token, candidate);
   if (bestDist > max) return 0;
   return 0.25 - 0.05 * bestDist; // 0.25 / 0.20 / 0.15
 }
