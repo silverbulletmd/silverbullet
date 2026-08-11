@@ -21,6 +21,7 @@
     "./lib/crypto": "./plug-api/lib/crypto.ts",
     "./lib/limited_map": "./plug-api/lib/limited_map.ts",
     "./lib/tags": "./plug-api/lib/tags.ts",
+    "./lib/collation": "./plug-api/lib/collation.ts",
     "./lib/transclusion": "./plug-api/lib/transclusion.ts",
     "./lib/native_fetch": "./plug-api/lib/native_fetch.ts",
     "./lib/query_expression": "./plug-api/lib/query_expression.ts",
