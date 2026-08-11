@@ -49,6 +49,8 @@ import { registerEditorCommands } from "./editor_commands.ts";
 import { ServiceRegistry } from "./service_registry.ts";
 import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
+import { searchSyscalls } from "./plugos/syscalls/search.ts";
+import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 
 const mqTimeout = 10000; // 10s
 const mqTimeoutRetry = 3;
@@ -179,6 +181,8 @@ export class ClientSystem {
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
       configSyscalls(this.client.config),
+      searchSyscalls(),
+      iconSyscalls(),
     );
 
     if (!this.readOnlyMode) {
