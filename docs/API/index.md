@@ -23,6 +23,14 @@ Returns stored aggregate records as a query collection.
 
 Returns linked but not yet created pages as a query collection.
 
+## index.isAvailable
+
+`index.isAvailable()`
+
+Whether a full indexing pass has ever completed for this space. False on a fresh client, and for as long as the first index takes on a large one: every object query answers with whatever has been indexed so far, which is nothing to begin with. Code that must work in that window reads the space directly instead.
+
+**Returns:** `boolean` — Whether the index can be trusted.
+
 ## index.comments
 
 `index.comments()`

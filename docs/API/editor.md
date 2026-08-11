@@ -360,6 +360,26 @@ Returns the cursor position as a character offset from the start of the document
 
 - `number` — The cursor offset.
 
+## editor.getFocusedPanelSlot
+
+`editor.getFocusedPanelSlot()`
+
+Returns the slot of the panel (keyed or legacy) whose iframe currently holds focus, or undefined if none does.
+
+**Returns:**
+
+- `"lhs" | "rhs" | "bhs" | "modal" | undefined` — The focused panel's slot, or undefined if no panel iframe has focus.
+
+## editor.getLastOpenedMap
+
+`editor.getLastOpenedMap()`
+
+Returns a map of page name to the time it was last opened (epoch milliseconds), for the pages that have ever been opened on this client. This lives outside the object index.
+
+**Returns:**
+
+- `Record<string, number>` — Page name to last-opened timestamp.
+
 ## editor.getRecentlyOpenedPages
 
 `editor.getRecentlyOpenedPages()`
@@ -404,6 +424,16 @@ Returns the current value of an editor UI option.
 
 - `any` — The option value.
 
+## editor.getViewableExtensions
+
+`editor.getViewableExtensions()`
+
+Returns the file extensions that have a document editor registered, i.e. the documents this client can actually open. Extensions carry no leading dot. Which editors are loaded depends on the plugs installed, so this is a property of the client rather than of the space.
+
+**Returns:**
+
+- `string[]` — Extensions with a registered document editor.
+
 ## editor.goHistory
 
 `editor.goHistory(delta)`
@@ -416,13 +446,14 @@ Moves backward or forward through browser history.
 
 ## editor.hidePanel
 
-`editor.hidePanel(id)`
+`editor.hidePanel(id, expectedActivationId?)`
 
 Hides the panel at a specified editor UI location.
 
 **Parameters:**
 
 - `id` (`string`) — The panel location identifier.
+- `expectedActivationId?` (`string | number`) — If given, only hides when the currently visible keyed panel for this slot still carries this activation id (see editor.showPanel's activationId option) -- otherwise a no-op, since something newer has already taken the slot.
 
 ## editor.indentLess
 
@@ -486,6 +517,16 @@ Checks whether the current device lacks a fine pointer and should be treated as 
 **Returns:**
 
 - `boolean` — Whether the editor is running in a mobile-style pointer environment.
+
+## editor.isNarrowScreen
+
+`editor.isNarrowScreen()`
+
+Checks whether the client is currently laid out for a narrow screen, i.e. below the breakpoint where sidebar panels become full-width drawers.
+
+**Returns:**
+
+- `boolean` — Whether the narrow-screen layout is in effect.
 
 ## editor.moveCursor
 
@@ -570,11 +611,26 @@ editor.open("CHANGELOG")
 
 Opens the command palette.
 
+## editor.openNavigator
+
+`editor.openNavigator(name, opts?)`
+
+Opens a navigator view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.
+
+**Parameters:**
+
+- `name` (`string`) — The view's name.
+- `opts?` (`table`) — Optional `segment` (segment label) and `phrase`.
+
+**Returns:**
+
+- `boolean` — Whether a view opened.
+
 ## editor.openPageNavigator
 
 `editor.openPageNavigator(mode?)`
 
-Opens the page navigator in the requested browsing mode.
+Opens the page picker in the requested browsing mode. Each mode maps to a segment of the `std.pages` navigator view.
 
 **Parameters:**
 
@@ -596,6 +652,17 @@ Opens a URL in the browser.
 
 - `url` (`string`) — The URL to open.
 - `existingWindow?` (`boolean`) — Whether to reuse an existing window.
+
+## editor.panelReady
+
+`editor.panelReady(id, activationId?)`
+
+Paint-gated reveal handshake: signals that the keyed panel at the given slot has rendered its first real content for the given activation, so the host can reveal it (see editor.showPanel's gated paintReady).
+
+**Parameters:**
+
+- `id` (`string`) — The panel location identifier.
+- `activationId?` (`string | number`) — The activation this panel is signalling readiness for (see editor.showPanel's activationId option) -- ignored if a newer activation has since taken the slot.
 
 ## editor.prompt
 
@@ -797,16 +864,17 @@ Sets an editor UI option and reloads the editor.
 
 ## editor.showPanel
 
-`editor.showPanel(id, mode, html, script)`
+`editor.showPanel(id, mode, html, script, options?)`
 
 Shows an HTML panel in a specified editor UI location.
 
 **Parameters:**
 
 - `id` (`string`) — The panel location identifier.
-- `mode` (`number`) — The panel display mode or size.
+- `mode` (`number | string`) — The panel display mode or size.
 - `html` (`HTMLElement | HTMLElement[] | string`) — The panel content.
 - `script` (`string`) — A script associated with the panel content.
+- `options?` (`PanelOptions`) — Optional keyed-panel options: key for persistent identity, preload to mount hidden, events to forward, activationId to pair with a later editor.hidePanel call.
 
 ## editor.showProgress
 

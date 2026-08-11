@@ -91,6 +91,12 @@ Deprecated alias for system.invokeFunction.
 
 Returns a map of every currently available command definition.
 
+## system.listPaletteCommands
+
+`system.listPaletteCommands()`
+
+Returns the commands the command palette would show right now: context- and mode-filtered, hidden ones dropped, each with its prettified key hint and the time it was last run on this client.
+
 ## system.listSyscalls
 
 `system.listSyscalls()`
@@ -122,6 +128,18 @@ Deprecated alias for system.loadScripts.
 `system.loadSpaceStyles()`
 
 Reloads custom Space Style definitions.
+
+## system.runPaletteCommand
+
+`system.runPaletteCommand(name)`
+
+Runs a command as if it had been picked from the command palette: records it as the most recently run, then invokes it and returns its result.
+
+**Parameters:**
+
+- `name` (`string`) — Command name.
+
+**Returns:** Whatever the command returned.
 
 ## system.reboot
 

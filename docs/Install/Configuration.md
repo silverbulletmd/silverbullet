@@ -3,10 +3,10 @@ references:
 - bin/silverbullet/src/config.rs
 - bin/silverbullet/src/server.rs
 ---
-SilverBullet is primarily configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Docker|docker-compose file]].
+SilverBullet is partially configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Docker|docker-compose file]].
 
 > **note** Single-space vs. multi-space
-> The environment variables below configure a **single-space** server (one folder, one space). A fresh install pointed at an empty folder instead runs the [[Space Manager|setup wizard]] and stores per-space settings in `spaces.json` — the variables marked _single-space only_ below don’t apply there. Setting any of them (or passing `--single`) selects single-space mode. See [[Space Manager#Boot modes]].
+> The environment variables below configure a **single-space** server. A fresh install pointed at an empty folder instead runs the [[Space Manager|setup wizard]] and stores per-space settings in `spaces.json` — the variables marked _single-space only_ below don’t apply there. Setting any of them (or passing `--single`) selects single-space mode. See [[Space Manager#Boot modes]].
 
 # General configuration
 

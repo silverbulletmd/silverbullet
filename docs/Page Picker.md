@@ -2,7 +2,7 @@
 description: The quick-open dialog for navigating to any page.
 tags: glossary
 references:
-- client/components/anything_picker.tsx
+- plugs/navigator/src/builtins.ts
 - plugs/editor/page.ts
 ---
 The page picker has two main functions:
@@ -23,11 +23,8 @@ If the filter phrase starts with `$`, the picker switches to navigating [[Markdo
 > **note** Note
 > Any page tagged with a tag starting with `#meta`, even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Meta Picker]] instead.
 
-> **note** Pro-tip
-> To cycle between the three pickers [[Page Picker]], [[Meta Picker]] and [[Anything Picker]], type `^` in the filter phrase box.
-
 Pressing the `Enter` key will open/create the selected page.
-Pressing `Shift-Enter` will open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase — except in the Document picker and in [[Markdown/Anchor|anchor]] mode, neither of which can create new items this way, so `Shift-Enter` does nothing there.
+Pressing `Shift-Enter` will open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase. In [[Markdown/Anchor|anchor]] and tag mode there is nothing to create, so it does nothing there.
 
 Therefore, if you _intend to create a new page_, simply type the name of the new page and hit `Shift-Enter`.
 
@@ -37,8 +34,8 @@ When no filter phrase is entered, pages are ordered by either _last opened_, or 
 When entering a filter phrase, the best matches should appear closer to the top, however the second option will always be an option to create a new page with _exactly_ the page name entered as the filter phrase.
 
 # Keyboard shortcuts
-* `Enter`: selects the highlighted page from the list and navigate there. If that page is marked with “Create page” it will create that page.
-* `Shift-Enter`: navigate to the page entered in as the filter phrase, creating it if it doesn't already exist. Does nothing in the Document picker or in anchor mode, where new items can't be created this way.
+* `Enter`: selects the highlighted page from the list and navigate there. If that page is marked with a `Create` chip it will create that page.
+* `Shift-Enter`: navigate to the page entered in as the filter phrase, creating it if it doesn't already exist. Does nothing in anchor or tag mode, where there is nothing to create.
 * `Space`: with an empty filter phrase will attempt to do something intelligent:
   * If the currently opened page is nested in a [[Folder|folder]], it will auto complete the current folder name in its place.
   * If the currently opened page name starts with an emoji, it will complete that emoji in its place.
@@ -48,8 +45,8 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `PageUp`/`PageDown`: move up and down 5 entries in the page list in one go
 * `Home`: moves to the start of the list
 * `End`: moves to the end of the list
-* `Escape`: closes the page picker UI
-* Typing `^` when filter phrase is empty will cycle to the next picker, first [[Meta Picker]], then [[Anything Picker]]
+* `Escape`: clears the filter phrase; on an empty phrase it closes the page picker
+* Typing `^` when the filter phrase is empty switches to the **Meta** segment ([[Meta Picker]]); `Tab`/`Shift-Tab` step through all four segments
 
 # Mouse/touch operation
 You can scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.

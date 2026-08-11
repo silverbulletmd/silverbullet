@@ -22,7 +22,7 @@ Silverbullet supports [admonitions](https://github.com/community/community/discu
 
 Custom admonitions can be added in a [[Space Style]] using the following format:
 
-```space-style
+```css
 /* Replace the keyword with a word or phrase of your choice */
 .sb-admonition[admonition="keyword" i] {
   .sb-admonition-type * { display: none; }
