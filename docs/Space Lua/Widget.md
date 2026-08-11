@@ -86,15 +86,15 @@ ${widgets.commandButton("System: Reload")}
 ## Top and bottom widgets
 These render automatically on every page and can be configured:
 
-* **Table of contents** — shows a table of contents at the top of the page
+* **Table of contents** — shows a table of contents at the top of the page. **Off by default**: the [[Navigator]]'s `Navigator: Table of Contents` (right sidebar) and `Navigator: Outline Picker` (modal) show the same headers as an outline you can call up when you want it, rather than on top of every page.
 * **Linked mentions** — shows pages that link to the current page at the bottom
 * **Linked tasks** — shows incomplete tasks that mention the current page at the top
 
 Configure them in your [[^Library/Std/Config]] page:
 
 ```lua
--- Disable TOC altogether
-config.set("std.widgets.toc.enabled", false)
+-- Put the TOC back at the top of every page
+config.set("std.widgets.toc.enabled", true)
 -- Only render a TOC when there's >= 5 headers
 config.set("std.widgets.toc.minHeaders", 5)
 -- Disable linked mentions

@@ -1,6 +1,5 @@
 ---
 description: A configurable list/tree navigation UI, built with Space Lua and TypeScript built-ins.
-tags: maturity/experimental
 references:
 - plugs/navigator/*
 - libraries/Library/Std/APIs/Navigator.md

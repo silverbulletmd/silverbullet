@@ -14,6 +14,17 @@ To apply the updated styles, either reload the client or run the ${widgets.comma
 
 Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/client/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
 
+For example: modal backdrops (behind pickers, prompts and confirmations) are fully transparent by default. To bring back a dimmed backdrop, set `--modal-backdrop-color`:
+
+```space-style
+html {
+  /*--modal-backdrop-color: rgba(0, 0, 0, 0.15);*/
+}
+html[data-theme="dark"] {
+  /*--modal-backdrop-color: rgba(0, 0, 0, 0.45);*/
+}
+```
+
 # Load order
 You can tweak the CSS load order style by including a `/* priority: number */` comment:
 
