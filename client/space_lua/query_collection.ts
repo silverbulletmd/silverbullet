@@ -33,6 +33,7 @@ import type { DataStore } from "../data/datastore.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 
 import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
+import { compareCollated } from "../../plug-api/lib/collation.ts";
 
 import type { KvKey } from "../../plug-api/types/datastore.ts";
 
@@ -646,19 +647,11 @@ async function sortKeyCompare(
         idx,
       );
       if (cmp !== 0) return cmp;
-    } else if (
-      collation?.enabled &&
-      typeof aVal === "string" &&
-      typeof bVal === "string"
-    ) {
-      const order = collator.compare(aVal, bVal);
+    } else {
+      const order = compareCollated(aVal, bVal, collation, collator);
       if (order !== 0) {
         return desc ? -order : order;
       }
-    } else if (aVal < bVal) {
-      return desc ? 1 : -1;
-    } else if (aVal > bVal) {
-      return desc ? -1 : 1;
     }
   }
   return 0;
