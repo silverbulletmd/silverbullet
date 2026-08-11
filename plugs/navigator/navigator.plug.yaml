@@ -1,0 +1,52 @@
+name: navigator
+build:
+  - in: ./ui/index.tsx
+    out: ./assets/navigator.js
+  - type: sass
+    in: ./ui/navigator.scss
+    out: ./assets/navigator.css
+assets:
+  - "assets/**"
+functions:
+  open:
+    path: ./src/navigator.ts:open
+  openToc:
+    path: ./src/navigator.ts:openToc
+    command:
+      name: "Navigator: Table of Contents"
+  openTocModal:
+    path: ./src/navigator.ts:openTocModal
+    command:
+      name: "Navigator: Outline Picker"
+  openSpaceTree:
+    path: ./src/navigator.ts:openSpaceTree
+    command:
+      name: "Navigator: Tree"
+      key: "Ctrl-o"
+      mac: "Cmd-o"
+  pickOpen:
+    path: ./src/navigator.ts:pickOpen
+  pickSettle:
+    path: ./src/navigator.ts:pickSettle
+  builtin:
+    path: ./src/builtins.ts:builtin
+  preload:
+    path: ./src/navigator.ts:preload
+    events:
+      - editor:init
+  ready:
+    path: ./src/navigator.ts:ready
+    events:
+      - navigator:ready
+  panelHidden:
+    path: ./src/navigator.ts:panelHidden
+    events:
+      - navigator:panelHidden
+  resize:
+    path: ./src/navigator.ts:resize
+    events:
+      - navigator:resize
+  route:
+    path: ./src/navigator.ts:route
+    events:
+      - navigator:route

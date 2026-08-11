@@ -8,6 +8,7 @@ export const builtinPlugNames = [
   "image-viewer",
   "configuration-manager",
   "object-graph",
+  "navigator",
 ];
 
 export const builtinPlugPaths = builtinPlugNames.map(

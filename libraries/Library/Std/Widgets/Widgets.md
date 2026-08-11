@@ -19,7 +19,7 @@ end)}
 ${widgets.commandButton("System: Reload")}
 
 ## Top and bottom widgets
-* Table of contents: shows a table of contents for your page — **off by default**; the `Navigator: Table of Contents` and `Navigator: Outline Picker` commands show the same headers on demand instead (see [[#Outline views]])
+* Table of contents: shows a table of contents for your page — **off by default**; the `Navigator: Table of Contents` and `Navigator: Outline Picker` commands show the same headers on demand instead (see [[Library/Std/APIs/Navigator#Built-in views]])
 * Linked mentions: show a list of links that link to the current page, at the bottom of your page
 * Linked tasks: shows a list of tasks that link to the current page, at the top of the page
 
@@ -263,125 +263,6 @@ if config.get("std.widgets.toc.enabled", false) then
     end
   }
 end
-```
-
-### Outline views
-The same headers as a [[Library/Std/APIs/Navigator|navigator]] tree, on demand: `Navigator: Table of Contents` docks one in the right sidebar, `Navigator: Outline Picker` opens the same outline as a modal. Both are live — they re-read the editor's buffer as you type — and both start fully expanded.
-
-```space-lua
--- priority: 5
-
--- "/" is the tree's own separator, so a header containing one would split into
--- two levels. Only the path is escaped; the row's label is the header verbatim.
-local PATH_SLASH = "∕" -- U+2215 DIVISION SLASH
-
--- The current page's headers as navigator rows, nested by their ancestor
--- chain: the nearest preceding shallower header is the parent, so an H1 -> H3
--- jump nests without inventing an empty H2 between them.
-local function outlineRows()
-  -- A document (or nothing open yet) has no headers -- and no markdown to
-  -- read them out of; `editor.getText()` is whatever the document editor
-  -- shows, not a page buffer. An empty result (not an error) is what lets
-  -- the panel replace the previous page's rows with its normal empty state,
-  -- rather than keeping them on screen (the engine's failed-load behavior
-  -- for a broken source).
-  if string.sub(editor.getCurrentPath(), -3) ~= ".md" then return {} end
-  local pageName = editor.getCurrentPage()
-  local rows = {}
-  local stack = {}
-  local taken = {}
-  for _, header in ipairs(widgets.tocHeaders(editor.getText())) do
-    while #stack > 0 and stack[#stack].level >= header.level do
-      table.remove(stack)
-    end
-    local path = string.gsub(header.name, "/", PATH_SLASH)
-    if #stack > 0 then path = stack[#stack].path .. "/" .. path end
-    -- Two identical sibling headers share a path, and the tree would show one
-    -- row where there are two. `pos` is unique per header and never displayed.
-    while taken[path] do path = path .. " @" .. header.pos end
-    taken[path] = true
-    stack[#stack + 1] = { level = header.level, path = path }
-    rows[#rows + 1] = {
-      name = path,
-      header = header.name,
-      page = pageName,
-      pos = header.pos,
-      level = header.level,
-    }
-  end
-  return rows
-end
-
-local function jumpTo(obj)
-  editor.navigate({ page = obj.page, pos = obj.pos })
-end
-
--- One spec, two docks: an outline is the same thing in either, so the overlay
--- is the whole of the difference between them.
-local function outlineView(over)
-  local spec = {
-    title = "Outline",
-    placeholder = "Header",
-    presentation = {
-      mode = "tree",
-      expandAll = true,
-      -- These paths are one page's header text, so they mean nothing on any
-      -- other page: a collapse lasts while you are on the page and is gone
-      -- when you leave it. Without this, collapsing "Install" here would
-      -- collapse "Install" on every page that has one, forever.
-      expansionScope = "page",
-      -- Document order, always: hoisting the headers that happen to have
-      -- children would reorder the page.
-      foldersFirst = false,
-      -- The path carries escaping and disambiguation; the label is the header.
-      -- The class drops the tree's folder bands (see navigator.scss): all but
-      -- the leaf headers of an outline head a section, so a band on nearly
-      -- every row reads as stripes, and the indentation says it already.
-      row = {
-        primary = "header",
-        label = "header",
-        cssClass = function() return "sb-nav-noband" end,
-      },
-    },
-    -- The buffer rather than the file: `editor.getText()` is what is on screen,
-    -- so the outline follows typing, debounced by the panel. Deliberately no
-    -- row icons, no actions and no filter predicates -- each would add a round
-    -- trip to every one of those refreshes.
-    refreshOn = { "editor:pageModified" },
-    refreshOnOpen = true,
-    onSelect = jumpTo,
-    source = outlineRows,
-  }
-  for key, value in pairs(over) do spec[key] = value end
-  return spec
-end
-
-navigator.define(outlineView {
-  name = "std.toc",
-  command = "Navigator: Table of Contents",
-  dock = "rhs",
-  -- A sidebar is still up after you navigate, so it has to re-source for the
-  -- page that just arrived. The modal is not: it dismisses on selection, and
-  -- `refreshOnOpen` already gives it the current page every time it opens --
-  -- where a `pageLoaded` in its refreshOn would be forwarded to every other
-  -- view that later takes the same dock. `documentLoaded` is the same idea
-  -- for navigating to a non-markdown file: without it the panel never
-  -- re-sources on that navigation at all, and keeps showing the departed
-  -- page's headers.
-  refreshOn = { "editor:pageModified", "editor:pageLoaded", "editor:documentLoaded" },
-  keymap = {
-    -- Peek, as the page tree has it: jump to the header without leaving the
-    -- panel, so the next arrow keeps browsing the outline.
-    [" "] = jumpTo,
-  },
-})
-
-navigator.define(outlineView {
-  name = "std.tocModal",
-  label = "Outline",
-  command = "Navigator: Outline Picker",
-  dock = "modal",
-})
 ```
 
 ## Linked mentions
