@@ -1,14 +1,6 @@
 import { closeSearchPanel } from "@codemirror/search";
 import { runScopeHandlers } from "@codemirror/view";
-import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import {
-  getNameFromPath,
-  getPathExtension,
-  isMarkdownPath,
-  isValidName,
-  type Path,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
+import { getNameFromPath } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   FilterOption,
   NotificationAction,
@@ -19,11 +11,9 @@ import { h, render as preactRender } from "preact";
 import { useEffect, useLayoutEffect, useReducer, useRef } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import type { Client } from "./client.ts";
-import { AnythingPicker } from "./components/anything_picker.tsx";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { kebabToPascal } from "./lib/feather_icons.ts";
-import { CommandPalette } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
@@ -330,9 +320,13 @@ export class MainUI {
       if (!mode) {
         return false;
       }
+      // The keyed spacer deliberately doesn't carry the classic "panel"
+      // class: space styles that target `#sb-top .panel` (a common hack to
+      // neutralize the classic spacer) would otherwise break the title
+      // alignment this spacer exists for.
       return (
         <div
-          className={"panel" + (keyed ? " sb-keyed-spacer" : "")}
+          className={keyed ? "sb-keyed-spacer" : "panel"}
           style={{ flex: mode }}
         />
       );
@@ -390,7 +384,7 @@ export class MainUI {
             }`}
             style={{ flex: p.mode }}
           >
-            <Panel config={p} editor={client} />
+            <Panel config={p} editor={client} slot={slot} />
           </div>
         ));
 
@@ -408,20 +402,49 @@ export class MainUI {
       visibleKeyedModalPanel !== undefined;
     const modalRef = useRef<HTMLDivElement>(null);
 
+    // A `ResizeObserver` watching a *cross-document* target (the iframe's own
+    // `documentElement`, observed from here in the host) isn't tied to this
+    // document's rendering cadence -- measured over a second late here with
+    // nothing else forcing a host repaint, and a single-row picker's reveal
+    // landing on a stale, too-short height is exactly what a lag that size
+    // produces (the row itself renders inside the iframe just fine; the
+    // host's box around it just hasn't grown to match yet). A `requestAnimationFrame`
+    // loop instead re-measures on the *host's* own render cadence, which is
+    // what's actually driving what's on screen -- reliable regardless of
+    // whatever the iframe's document is doing, and self-correcting every
+    // frame rather than waiting on a notification that may not come.
     useLayoutEffect(() => {
       const el = modalRef.current;
       if (!el || !centeredModal) return;
       const doc = el.querySelector("iframe")?.contentDocument;
       if (!doc) return;
+      // `.sb-modal-centered` is `box-sizing: border-box`, so the height this
+      // sets is the *outer* (bordered) box -- but the iframe rendering the
+      // measured content lives inside that border, in the content box. Not
+      // adding the border back in landed the applied height a couple of
+      // pixels short of what the iframe actually needed, clipping the bottom
+      // of the last row by exactly that much (most visible with few rows,
+      // where there's no leftover slack from a taller previous state to hide
+      // it in).
+      const cs = getComputedStyle(el);
+      const borderY = parseFloat(cs.borderTopWidth) +
+        parseFloat(cs.borderBottomWidth);
       const apply = () => {
         const height = doc.documentElement.getBoundingClientRect().height;
-        if (height > 0) el.style.height = `${Math.ceil(height)}px`;
+        if (height > 0) el.style.height = `${Math.ceil(height + borderY)}px`;
       };
       apply();
-      const observer = new ResizeObserver(apply);
-      observer.observe(doc.documentElement);
-      return () => observer.disconnect();
-    }, [centeredModal, visibleKeyedModalPanel?.key, modalVisible]);
+      let frame = requestAnimationFrame(function tick() {
+        apply();
+        frame = requestAnimationFrame(tick);
+      });
+      return () => cancelAnimationFrame(frame);
+    }, [
+      centeredModal,
+      visibleKeyedModalPanel?.key,
+      modalVisible,
+      visibleKeyedModalPanel?.paintReady,
+    ]);
 
     const keyedBhsPanels = viewState.keyedPanels.filter(
       (p) => p.slot === "bhs",
@@ -432,125 +455,6 @@ export class MainUI {
 
     return (
       <>
-        {viewState.showPageNavigator && (
-          <AnythingPicker
-            allDocuments={viewState.allDocuments}
-            allPages={viewState.allPages}
-            extensions={
-              new Set(
-                Array.from(
-                  client.clientSystem.documentEditorHook.documentEditors.values(),
-                ).flatMap(({ extensions }) => extensions),
-              )
-            }
-            currentPath={client.currentPath()}
-            mode={viewState.pageNavigatorMode}
-            darkMode={viewState.uiOptions.darkMode}
-            onModeSwitch={(mode) => {
-              dispatch({ type: "stop-navigate" });
-              setTimeout(() => {
-                dispatch({ type: "start-navigate", mode });
-              });
-            }}
-            onNavigate={(name) => {
-              dispatch({ type: "stop-navigate" });
-              setTimeout(() => {
-                client.focus();
-              });
-
-              if (!name) {
-                return;
-              }
-
-              safeRun(async () => {
-                const ref = parseToRef(name);
-
-                // Check beforhand, because we don't want to allow any link
-                // stuff like #header here. The `!ref` check is just for
-                // Typescript
-                if (!isValidName(name) || !ref) {
-                  // It's not a valid name so either, the user tried to create a
-                  // page or we have an invalid file in the space. Names are
-                  // only unique for files which follow our rules, so we are
-                  // kind of in unknown territory now.
-
-                  if (client.clientSystem.allKnownFiles.has(name)) {
-                    // Try it as a document name === path
-                    await this.promptDocumentOperation(
-                      name as Path,
-                      `'${name}' has an invalid name. You can now modify it`,
-                    );
-                  } else if (
-                    client.clientSystem.allKnownFiles.has(`${name}.md`)
-                  ) {
-                    // Try it as a page
-                    await this.promptDocumentOperation(
-                      `${name}.md`,
-                      `'${name}.md' has an invalid name. You can now modify it`,
-                    );
-                  } else {
-                    this.flashNotification(
-                      `Couldn't create page ${name}, name is invalid`,
-                      "error",
-                    );
-                  }
-
-                  return;
-                }
-
-                if (
-                  !isMarkdownPath(ref.path) &&
-                  !Array.from(
-                    client.clientSystem.documentEditorHook.documentEditors.values(),
-                  ).some(({ extensions }) =>
-                    extensions.includes(getPathExtension(ref.path)),
-                  )
-                ) {
-                  await this.promptDocumentOperation(
-                    ref.path,
-                    "This file cannot be edited, select your desired action.",
-                  );
-                } else {
-                  void client.open(ref);
-                }
-              });
-            }}
-            onNavigateRef={(ref) => {
-              dispatch({ type: "stop-navigate" });
-              setTimeout(() => {
-                client.focus();
-              });
-              // client.navigate resolves $-anchor refs to a page + position.
-              safeRun(async () => {
-                await client.navigate(ref);
-              });
-            }}
-          />
-        )}
-        {viewState.showCommandPalette && (
-          <CommandPalette
-            onTrigger={(cmd) => {
-              safeRun(async () => {
-                dispatch({ type: "hide-palette" });
-                if (cmd) {
-                  await this.client.registerCommandRun(cmd.name);
-                  try {
-                    const returnValue = await cmd.run!();
-                    if (returnValue !== false) {
-                      client.focus();
-                    }
-                  } catch (e: any) {
-                    this.client.reportError(e, "Command invocation");
-                  }
-                } else {
-                  setTimeout(() => client.focus());
-                }
-              });
-            }}
-            commands={client.getCommandsByContext(viewState)}
-            darkMode={viewState.uiOptions.darkMode}
-          />
-        )}
         {viewState.showFilterBox && (
           <FilterList
             label={viewState.filterBoxLabel}
@@ -719,11 +623,11 @@ export class MainUI {
         <div id="sb-main">
           {keyedFor("lhs")}
           {viewState.panels.lhs.mode !== undefined && (
-            <Panel config={viewState.panels.lhs} editor={client} />
+            <Panel config={viewState.panels.lhs} editor={client} slot="lhs" />
           )}
           <div id="sb-editor" />
           {viewState.panels.rhs.mode !== undefined && (
-            <Panel config={viewState.panels.rhs} editor={client} />
+            <Panel config={viewState.panels.rhs} editor={client} slot="rhs" />
           )}
           {keyedFor("rhs")}
         </div>
@@ -747,7 +651,10 @@ export class MainUI {
             <div
               ref={modalRef}
               className={
-                "sb-modal" + (centeredModal ? " sb-modal-centered" : "")
+                "sb-modal" + (centeredModal ? " sb-modal-centered" : "") +
+                (visibleKeyedModalPanel?.paintReady === false
+                  ? " sb-modal-paint-pending"
+                  : "")
               }
               style={(() => {
                 const inset =
@@ -768,7 +675,11 @@ export class MainUI {
               })()}
             >
               {viewState.panels.modal.mode !== undefined && (
-                <Panel config={viewState.panels.modal} editor={client} />
+                <Panel
+                  config={viewState.panels.modal}
+                  editor={client}
+                  slot="modal"
+                />
               )}
               {keyedModalPanels.map((p) => (
                 <div
@@ -776,7 +687,7 @@ export class MainUI {
                   className={"sb-keyed-panel" + (p.hidden ? " sb-hidden" : "")}
                   style={{ flex: p.mode }}
                 >
-                  <Panel config={p} editor={client} />
+                  <Panel config={p} editor={client} slot="modal" />
                 </div>
               ))}
             </div>
@@ -786,7 +697,7 @@ export class MainUI {
           keyedBhsPanels.length > 0) && (
           <div className={"sb-bhs" + (bhsVisible ? "" : " sb-hidden")}>
             {viewState.panels.bhs.mode !== undefined && (
-              <Panel config={viewState.panels.bhs} editor={client} />
+              <Panel config={viewState.panels.bhs} editor={client} slot="bhs" />
             )}
             {keyedBhsPanels.map((p) => (
               <div
@@ -794,7 +705,7 @@ export class MainUI {
                 className={"sb-keyed-panel" + (p.hidden ? " sb-hidden" : "")}
                 style={{ flex: p.mode }}
               >
-                <Panel config={p} editor={client} />
+                <Panel config={p} editor={client} slot="bhs" />
               </div>
             ))}
           </div>
@@ -807,53 +718,6 @@ export class MainUI {
     // const ViewComponent = this.ui.ViewComponent.bind(this.ui);
     container.innerHTML = "";
     preactRender(h(this.ViewComponent.bind(this), {}), container);
-  }
-
-  async promptDocumentOperation(path: Path, msg: string) {
-    const options: string[] = ["View", "Delete", "Rename"];
-
-    const option = await this.filterBox(
-      "Modify",
-      options.map((x) => ({ name: x }) as FilterOption),
-      msg,
-    );
-    if (!option) return;
-
-    switch (option.name) {
-      case "View": {
-        await this.client.open({ path: path });
-        break;
-      }
-      case "Delete": {
-        if (
-          await this.confirm(
-            `Are you sure you would like delete ${getNameFromPath(path)}?`,
-            { destructive: true },
-          )
-        ) {
-          if (isMarkdownPath(path)) {
-            await this.client.space.deletePage(getNameFromPath(path));
-          } else {
-            await this.client.space.deleteDocument(getNameFromPath(path));
-          }
-        }
-        break;
-      }
-      case "Rename": {
-        if (isMarkdownPath(path)) {
-          await this.client.clientSystem.system.invokeFunction(
-            "index.renamePageCommand",
-            [{ oldPage: getNameFromPath(path) }],
-          );
-        } else {
-          await this.client.clientSystem.system.invokeFunction(
-            "index.renameDocumentCommand",
-            [{ oldDocument: getNameFromPath(path) }],
-          );
-        }
-        break;
-      }
-    }
   }
 }
 

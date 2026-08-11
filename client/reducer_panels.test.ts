@@ -87,3 +87,26 @@ test("showing keyed panel in a slot hides other visible keyed panel in that slot
   expect(s.keyedPanels.find((p) => p.key === "a")!.hidden).toEqual(true);
   expect(s.keyedPanels.find((p) => p.key === "b")!.hidden).toEqual(false);
 });
+
+test("activationId is carried through show-keyed-panel untouched", () => {
+  const s1 = reducer(initial, {
+    type: "show-keyed-panel",
+    config: {
+      key: "nav:modal",
+      slot: "modal",
+      mode: 100,
+      html: "a",
+      script: "",
+      hidden: false,
+      events: [],
+      activationId: 7,
+    },
+  });
+  expect(s1.keyedPanels[0].activationId).toEqual(7);
+
+  const s2 = reducer(s1, {
+    type: "show-keyed-panel",
+    config: { ...s1.keyedPanels[0], html: "b", activationId: 8 },
+  });
+  expect(s2.keyedPanels[0].activationId).toEqual(8);
+});

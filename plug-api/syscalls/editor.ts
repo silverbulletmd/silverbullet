@@ -303,8 +303,10 @@ export function filterBox(
  * @param html the html content of the panel
  * @param script the script content of the panel
  * @param options optional keyed-panel options: a stable `key` makes the panel
- * persistent (backed by a long-lived iframe), `preload` mounts it hidden, and
- * `events` lists client events forwarded into it
+ * persistent (backed by a long-lived iframe), `preload` mounts it hidden,
+ * `events` lists client events forwarded into it, and `activationId` is an
+ * opaque identity to pair with a later `hidePanel(id, activationId)` call --
+ * see `hidePanel`
  */
 export function showPanel(
   id: "lhs" | "rhs" | "bhs" | "modal",
@@ -320,9 +322,23 @@ export function showPanel(
  * Hides a panel in the editor. If a keyed panel is currently visible in that
  * location, it is hidden (not unmounted); otherwise behaves as before.
  * @param id the location of the panel to hide
+ * @param expectedActivationId if given, only hides when the currently visible
+ * keyed panel for `id` still carries this activation id (the one passed to
+ * the `showPanel` call that opened it) -- otherwise a no-op, since something
+ * newer has already taken the slot. Omit it to hide unconditionally, as
+ * before. Guards against exactly the race a keyed panel that reuses one key
+ * across activations (a modal picker, say) can hit: a close decided on one
+ * activation whose underlying syscall reaches the host *after* a newer
+ * activation already replaced it would otherwise hide that newer one instead
+ * -- reading "what's currently visible" at hide time can't tell the two
+ * apart on its own, since it is, by construction, always the newer one by
+ * then.
  */
-export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
-  return syscall("editor.hidePanel", id);
+export function hidePanel(
+  id: "lhs" | "rhs" | "bhs" | "modal",
+  expectedActivationId?: string | number,
+): Promise<void> {
+  return syscall("editor.hidePanel", id, expectedActivationId);
 }
 
 /**
@@ -330,6 +346,17 @@ export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
  */
 export function focus(): Promise<void> {
   return syscall("editor.focus");
+}
+
+/**
+ * The slot of the keyed panel whose iframe currently holds focus, or
+ * `undefined` if none does (focus is in the editor, or nowhere in
+ * particular).
+ */
+export function getFocusedPanelSlot(): Promise<
+  "lhs" | "rhs" | "bhs" | "modal" | undefined
+> {
+  return syscall("editor.getFocusedPanelSlot");
 }
 
 export function showProgress(
@@ -465,19 +492,6 @@ export function getUiOption(key: string): Promise<any> {
  */
 export function setUiOption(key: string, value: any): Promise<void> {
   return syscall("editor.setUiOption", key, value);
-}
-
-/**
- * Render the named Feather icons to SVG markup — for panels and widgets that
- * want icons without bundling the whole icon set. Unknown names are left out
- * of the result. The markup carries no size or color of its own (24x24
- * viewBox, `currentColor`), so CSS at the injection site decides both.
- * @param names Feather icon names, e.g. `trash-2`
- */
-export function resolveFeatherIcons(
-  names: string[],
-): Promise<Record<string, string>> {
-  return syscall("editor.resolveFeatherIcons", names);
 }
 
 /**

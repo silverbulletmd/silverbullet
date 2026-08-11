@@ -96,43 +96,6 @@ export default function reducer(
       }
       return newState;
     }
-    case "update-document-list": {
-      return {
-        ...state,
-        allDocuments: action.allDocuments,
-      };
-    }
-    case "start-navigate": {
-      return {
-        ...state,
-        showPageNavigator: true,
-        pageNavigatorMode: action.mode,
-        showCommandPalette: false,
-        showFilterBox: false,
-      };
-    }
-    case "stop-navigate":
-      return {
-        ...state,
-        showPageNavigator: false,
-      };
-
-    case "show-palette": {
-      return {
-        ...state,
-        showCommandPalette: true,
-        showPageNavigator: false,
-        showFilterBox: false,
-        showCommandPaletteContext: action.context,
-        commands: action.commands,
-      };
-    }
-    case "hide-palette":
-      return {
-        ...state,
-        showCommandPalette: false,
-        showCommandPaletteContext: undefined,
-      };
     case "update-commands":
       return {
         ...state,
@@ -173,6 +136,7 @@ export default function reducer(
               ...incoming,
               html: p.html === incoming.html ? p.html : incoming.html,
               script: p.script === incoming.script ? p.script : incoming.script,
+              activationId: incoming.activationId ?? p.activationId,
             }
           : incoming.hidden || p.slot !== incoming.slot
             ? p
@@ -199,6 +163,13 @@ export default function reducer(
           p.key === action.key ? { ...p, hidden: true } : p,
         ),
       };
+    case "mark-panel-ready":
+      return {
+        ...state,
+        keyedPanels: state.keyedPanels.map((p) =>
+          p.key === action.key ? { ...p, paintReady: true } : p,
+        ),
+      };
 
     case "show-filterbox":
       return {
@@ -213,8 +184,6 @@ export default function reducer(
     case "hide-filterbox":
       return {
         ...state,
-        showCommandPalette: false,
-        showPageNavigator: false,
         showFilterBox: false,
         filterBoxOnSelect: () => {},
         filterBoxPlaceHolder: "",

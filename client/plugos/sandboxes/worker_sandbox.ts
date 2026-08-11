@@ -138,5 +138,14 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
       this.worker.terminate();
       this.worker = undefined;
     }
+    // A terminated worker will never post the `invr` that would otherwise
+    // settle these.
+    if (this.outstandingInvocations.size > 0) {
+      const error = new Error("Plug sandbox stopped");
+      for (const { reject } of this.outstandingInvocations.values()) {
+        reject(error);
+      }
+      this.outstandingInvocations.clear();
+    }
   }
 }

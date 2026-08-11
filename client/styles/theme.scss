@@ -42,7 +42,7 @@ html {
   --modal-color: inherit;
   --modal-background-color: #fff;
   --modal-border-color: rgb(108, 108, 108);
-  --modal-backdrop-color: rgba(0, 0, 0, 0.15);
+  --modal-backdrop-color: transparent;
   --modal-header-label-color: var(--ui-accent-text-color);
   --modal-help-background-color: #eee;
   --modal-help-color: #555;
@@ -66,11 +66,9 @@ html {
   --button-color: black;
   --button-border-color: #6c6c6c;
   --primary-button-background-color: var(--ui-accent-color);
-  --primary-button-hover-background-color: color-mix(
-    in srgb,
-    var(--ui-accent-color),
-    black 35%
-  );
+  --primary-button-hover-background-color: color-mix(in srgb,
+      var(--ui-accent-color),
+      black 35%);
   --primary-button-color: var(--ui-accent-contrast-color);
   --primary-button-border-color: transparent;
 
@@ -147,14 +145,10 @@ html {
   --editor-directive-background-color: #ebebeb7d;
 
   --editor-panels-bottom-input-background-color: #fff;
-  --editor-panels-bottom-button-background-image: linear-gradient(
-    #eff1f5,
-    #d9d9df
-  );
-  --editor-panels-bottom-button-active-background-image: linear-gradient(
-    #b4b4b4,
-    #d0d3d6
-  );
+  --editor-panels-bottom-button-background-image: linear-gradient(#eff1f5,
+      #d9d9df);
+  --editor-panels-bottom-button-active-background-image: linear-gradient(#b4b4b4,
+      #d0d3d6);
 
   --ui-font:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
@@ -189,11 +183,9 @@ html[data-theme="dark"] {
 
   --ui-accent-color: #464cfc;
   --ui-accent-text-color: var(--ui-accent-color);
-  --ui-accent-text-color: color-mix(
-    in srgb,
-    var(--ui-accent-color),
-    white 50%
-  );
+  --ui-accent-text-color: color-mix(in srgb,
+      var(--ui-accent-color),
+      white 50%);
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #7e99fc;
   --link-missing-color: #9e4705;
@@ -228,7 +220,7 @@ html[data-theme="dark"] {
   --modal-color: #ccc;
   --modal-background-color: #262626;
   --modal-border-color: #6c6c6c;
-  --modal-backdrop-color: rgba(0, 0, 0, 0.45);
+  --modal-backdrop-color: transparent;
   --modal-header-label-color: var(--ui-accent-text-color);
   --modal-help-background-color: #333;
   --modal-help-color: #ccc;
@@ -252,11 +244,9 @@ html[data-theme="dark"] {
   --button-color: white;
   --button-border-color: #666;
   --primary-button-background-color: var(--ui-accent-color);
-  --primary-button-hover-background-color: color-mix(
-    in srgb,
-    var(--ui-accent-color),
-    black 35%
-  );
+  --primary-button-hover-background-color: color-mix(in srgb,
+      var(--ui-accent-color),
+      black 35%);
   --primary-button-color: var(--ui-accent-contrast-color);
   --primary-button-border-color: transparent;
 
@@ -331,14 +321,10 @@ html[data-theme="dark"] {
   --editor-directive-background-color: #4c4c4c7d;
 
   --editor-panels-bottom-input-background-color: inherit;
-  --editor-panels-bottom-button-background-image: linear-gradient(
-    #393939,
-    #111
-  );
-  --editor-panels-bottom-button-active-background-image: linear-gradient(
-    #111,
-    #333
-  );
+  --editor-panels-bottom-button-background-image: linear-gradient(#393939,
+      #111);
+  --editor-panels-bottom-button-active-background-image: linear-gradient(#111,
+      #333);
 
   /* Shared component tokens */
   --danger-color: #f87171;
@@ -361,15 +347,7 @@ html[data-markdown-syntax-rendering="on"] {
   --editor-meta-color: unset;
   --editor-directive-mark-color: unset;
 
-  #sb-main
-    .cm-editor
-    .sb-lua-directive-block:not(
-      .sb-lua-top-widget
-    ):not(
-      .sb-lua-bottom-widget
-    ):not(
-      .sb-inline-content
-    ) {
+  #sb-main .cm-editor .sb-lua-directive-block:not(.sb-lua-top-widget):not(.sb-lua-bottom-widget):not(.sb-inline-content) {
     margin-top: 0.5em;
   }
 }

@@ -1,19 +1,24 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
 import { MOBILE_MEDIA_QUERY } from "../lib/mobile.ts";
-import type { KeyedPanelConfig, PanelConfig } from "../types/ui.ts";
+import type { KeyedPanelConfig, PanelConfig, PanelSlot } from "../types/ui.ts";
 import { panelHtml } from "./panel_html.ts";
 
 export function Panel({
   config,
   editor,
+  slot,
 }: {
   config: PanelConfig | KeyedPanelConfig;
   editor: Client;
+  /** A keyed config already carries this (`config.slot`); a legacy one
+   * doesn't, so every caller passes it explicitly -- see the iframe's
+   * `data-slot`, `editor.getFocusedPanelSlot`'s only reliable signal. */
+  slot: PanelSlot;
 }) {
   switch (typeof config.html) {
     case "string":
-      return <IFramePanel config={config} editor={editor} />;
+      return <IFramePanel config={config} editor={editor} slot={slot} />;
     case "object":
       return <ShadowPanel config={config} />;
     default:
@@ -24,9 +29,11 @@ export function Panel({
 function IFramePanel({
   config,
   editor,
+  slot,
 }: {
   config: PanelConfig | KeyedPanelConfig;
   editor: Client;
+  slot: PanelSlot;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   const wasHidden = useRef<boolean | undefined>(undefined);
@@ -204,6 +211,7 @@ function IFramePanel({
       <iframe
         srcDoc={html}
         ref={iFrameRef}
+        data-slot={slot}
         style={{ visibility: "hidden" }}
         onLoad={() => (iFrameRef.current!.style.visibility = "visible")}
       />

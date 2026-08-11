@@ -26,10 +26,10 @@ import type {
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
 import type {
-  DocumentMeta,
   FileMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import { keyboardHint } from "../plug-api/lib/shortcut.ts";
 import type { StyleObject } from "../plugs/index/space_style.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
@@ -71,9 +71,8 @@ import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
-import type { Command } from "./types/command.ts";
+import type { Command, PaletteCommand } from "./types/command.ts";
 import type {
-  AppViewState,
   BootConfig,
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
@@ -82,6 +81,23 @@ import { WidgetCache } from "./widget_cache.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
+
+/**
+ * The page navigator's browsing modes, as segments of `std.pages`. "page" is
+ * that view's default segment, so it asks for nothing.
+ */
+function pickerSegment(mode: "page" | "meta" | "document" | "all") {
+  switch (mode) {
+    case "meta":
+      return "Meta";
+    case "document":
+      return "Docs";
+    case "all":
+      return "All";
+    default:
+      return undefined;
+  }
+}
 
 // Runtime API bridge: written by the client when running headless to evaluate Lua in the live client.
 export type SBRuntime = {
@@ -349,9 +365,7 @@ export class Client {
       effects: client.undoHistoryCompartment?.reconfigure([history()]),
     });
 
-    // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
-    this.updateDocumentListCache().catch(console.error);
   }
 
   initSpace() {
@@ -526,12 +540,34 @@ export class Client {
     }
   }
 
-  startPageNavigate(mode: "page" | "meta" | "document" | "all") {
-    // Then show the page navigator
-    this.ui.viewDispatch({ type: "start-navigate", mode });
-    // And update the page list cache asynchronously
-    this.updatePageListCache().catch(console.error);
-    this.updateDocumentListCache().catch(console.error);
+  /**
+   * Opens a navigator view, reporting whether it actually got one.
+   */
+  async openNavigatorView(
+    name: string,
+    opts?: { segment?: string; phrase?: string },
+  ): Promise<boolean> {
+    const plug = this.clientSystem.system.loadedPlugs.get("navigator");
+    if (!plug) return false;
+    try {
+      // `quiet`, because an unknown view here is not an error the user made:
+      // it means the space redefined this picker in Space Lua that hasn't
+      // been indexed yet, and the caller may have a fallback of its own.
+      return (
+        (await plug.invoke("open", [name, { ...opts, quiet: true }])) === true
+      );
+    } catch (e: any) {
+      console.warn("Could not open navigator view", name, e);
+      return false;
+    }
+  }
+
+  async startPageNavigate(
+    mode: "page" | "meta" | "document" | "all",
+  ): Promise<void> {
+    await this.openNavigatorView("std.pages", {
+      segment: pickerSegment(mode),
+    });
   }
 
   queryLuaObjects<T>(
@@ -689,27 +725,37 @@ export class Client {
     }
   }
 
-  async updateDocumentListCache() {
-    console.log("Updating document list cache");
-    const allDocuments = await this.queryLuaObjects<DocumentMeta>(
-      "document",
-      {},
-    );
-
-    this.ui.viewDispatch({
-      type: "update-document-list",
-      allDocuments: allDocuments,
-    });
+  /**
+   * The command palette's data, as data: everything a navigator source needs
+   * to draw and order the palette, with the two things no query can reach
+   * (`lastRun`, and the AST context the cursor is in) already applied.
+   */
+  async listPaletteCommands(): Promise<PaletteCommand[]> {
+    // Built fresh rather than read off `viewState`: that map is only as
+    // current as the last `commandsUpdated` the UI happened to receive, and
+    // Space Lua's commands register after it. The hook is the authority.
+    const commands = this.clientSystem.commandHook.buildAllCommands();
+    await this.commandAugmenter.augmentObjectMap(commands);
+    const out: PaletteCommand[] = [];
+    for (const def of this.getCommandsByContext(
+      commands,
+      this.getContext(),
+    ).values()) {
+      if (def.hide) continue;
+      out.push({
+        name: def.name,
+        priority: Number(def.priority) || 0,
+        lastRun: def.lastRun,
+        // Prettified here rather than in the source: which shortcut applies
+        // (and how it is written) is a property of this client's platform.
+        hint: keyboardHint(def),
+      });
+    }
+    return out;
   }
 
-  async startCommandPalette() {
-    const commands = this.ui.viewState.commands;
-    await this.commandAugmenter.augmentObjectMap(commands);
-    this.ui.viewDispatch({
-      type: "show-palette",
-      commands,
-      context: client.getContext(),
-    });
+  async startCommandPalette(): Promise<void> {
+    await this.openNavigatorView("std.commands");
   }
 
   /**
@@ -879,8 +925,6 @@ export class Client {
     const viewState = this.ui.viewState;
     if (
       [
-        viewState.showCommandPalette,
-        viewState.showPageNavigator,
         viewState.showFilterBox,
         viewState.showConfirm,
         viewState.showPrompt,
@@ -1028,28 +1072,27 @@ export class Client {
   }
 
   async runCommandByName(name: string, args?: any[]) {
-    const cmd = this.ui.viewState.commands.get(name);
-    if (cmd) {
-      if (args) {
-        await cmd.run!(args);
-      } else {
-        await cmd.run!();
-      }
-    } else {
+    // `viewState.commands` is only as current as the last `commandsUpdated`
+    // the UI received; the hook is the authority, and Space Lua's commands in
+    // particular register after that snapshot is taken.
+    const cmd =
+      this.ui.viewState.commands.get(name) ??
+      this.clientSystem.commandHook.buildAllCommands().get(name);
+    if (!cmd) {
       throw new Error(`Command ${name} not found`);
     }
+    return args ? await cmd.run!(args) : await cmd.run!();
   }
 
-  getCommandsByContext(state: AppViewState): Map<string, Command> {
+  getCommandsByContext(
+    allCommands: Map<string, Command>,
+    context?: string,
+  ): Map<string, Command> {
     const currentEditor = client.contentManager.documentEditor?.name;
     const readOnly = this.isReadOnlyMode();
-    const commands = new Map(state.commands);
-    for (const [k, v] of state.commands.entries()) {
-      if (
-        v.contexts &&
-        (!state.showCommandPaletteContext ||
-          !v.contexts.includes(state.showCommandPaletteContext))
-      ) {
+    const commands = new Map(allCommands);
+    for (const [k, v] of allCommands.entries()) {
+      if (v.contexts && (!context || !v.contexts.includes(context))) {
         commands.delete(k);
       }
 

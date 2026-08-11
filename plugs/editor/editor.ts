@@ -1,12 +1,9 @@
 import {
   clientStore,
   codeWidget,
-  config,
   editor,
-  index,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 // Run on "editor:init"
 export async function setEditorMode() {
@@ -49,25 +46,10 @@ export async function setEditorMode() {
 }
 
 export async function openTagNavigator() {
-  // Query all tags with a matching parent
-  const allTags: FilterOption[] = (
-    await index.queryLuaObjects<string>("tag", {
-      select: { type: "Variable", name: "name", ctx: {} as any },
-      distinct: true,
-    })
-  ).map((name) => ({ name }));
-
-  const selectedTag = await editor.filterBox(
-    "Open",
-    allTags,
-    "Press <tt>enter</tt> to go to the tag page of the selected tag.",
-    "Tag",
-  );
-  if (!selectedTag) {
-    return;
-  }
-  const tagPage = await config.get(["tags", selectedTag.name, "tagPage"], null);
-  await editor.navigate(tagPage ?? `tag:${selectedTag.name}`);
+  await editor.openNavigator("std.tags");
+  // The panel focuses its own filter input; false keeps the client from
+  // pulling focus straight back to the editor.
+  return false;
 }
 
 export async function toggleDarkMode() {

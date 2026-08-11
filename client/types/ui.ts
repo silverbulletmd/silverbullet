@@ -18,6 +18,11 @@ export type PanelOptions = {
   key?: string; // stable identity → persistent iframe
   preload?: boolean; // mount hidden (requires key)
   events?: string[]; // client events forwarded into the iframe (requires key)
+  /**
+   * An opaque identity the caller can attach to this show, echoed back into
+   * `KeyedPanelConfig`.
+   */
+  activationId?: string | number;
 };
 
 export type PanelConfig = {
@@ -31,6 +36,15 @@ export type KeyedPanelConfig = PanelConfig & {
   slot: PanelSlot;
   hidden: boolean;
   events: string[];
+  activationId?: string | number;
+  /**
+   * Paint-gated reveal (modal only -- see `editor.showPanel`): `false` while
+   * this activation's iframe hasn't yet signalled (`editor.panelReady`) that
+   * its first real content has rendered, or the reveal timeout has elapsed.
+   * `undefined` for anything that was never gated (a sidebar/bhs dock, or a
+   * preload mount).
+   */
+  paintReady?: boolean;
 };
 
 export type AppViewState = {
@@ -40,14 +54,10 @@ export type AppViewState = {
   };
 
   allPages: PageMeta[];
-  allDocuments: DocumentMeta[];
 
   isLoading: boolean;
   isMobile: boolean;
   isStandalone: boolean;
-  showPageNavigator: boolean;
-  showCommandPalette: boolean;
-  showCommandPaletteContext?: string;
   unsavedChanges: boolean;
   isOnline: boolean;
 
@@ -67,9 +77,6 @@ export type AppViewState = {
     forcedROMode: boolean;
     customStyles?: string;
   };
-
-  // Page navigator mode
-  pageNavigatorMode: "page" | "meta" | "document" | "all";
 
   // Filter box
   showFilterBox: boolean;
@@ -94,9 +101,6 @@ export type AppViewState = {
 
 export const initialViewState: AppViewState = {
   isLoading: false,
-  showPageNavigator: false,
-  showCommandPalette: false,
-  pageNavigatorMode: "page",
   unsavedChanges: false,
   isOnline: true,
   uiOptions: {
@@ -115,7 +119,6 @@ export const initialViewState: AppViewState = {
   },
   keyedPanels: [],
   allPages: [],
-  allDocuments: [],
   commands: new Map(),
 
   notifications: [],
@@ -140,15 +143,10 @@ export type Action =
   | { type: "online-status-change"; isOnline: boolean }
   | { type: "update-current-page-meta"; meta: PageMeta }
   | { type: "update-page-list"; allPages: PageMeta[] }
-  | { type: "update-document-list"; allDocuments: DocumentMeta[] }
-  | { type: "start-navigate"; mode: "page" | "meta" | "document" | "all" }
-  | { type: "stop-navigate" }
   | {
       type: "update-commands";
       commands: Map<string, Command>;
     }
-  | { type: "show-palette"; context?: string; commands: Map<string, Command> }
-  | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
   | {
@@ -159,6 +157,7 @@ export type Action =
   | { type: "hide-panel"; id: string }
   | { type: "show-keyed-panel"; config: KeyedPanelConfig }
   | { type: "hide-keyed-panel"; key: string }
+  | { type: "mark-panel-ready"; key: string }
   | {
       type: "show-filterbox";
       options: FilterOption[];

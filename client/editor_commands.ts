@@ -99,15 +99,7 @@ function withCollapsedBlockSnap(
 }
 
 /**
- * Registers client-side editor commands with the CommandHook. These were
- * previously defined in the editor plug; moving them into the client makes
- * them synchronous (no async round-trip through the plug Web Worker) and
- * avoids losing key events when the user types faster than the worker
- * responds. They are still exposed through the official command mechanism
- * so Lua scripts can rebind them.
- *
- * The `hook` is passed explicitly because this runs from inside the
- * `ClientSystem` constructor, before `client.clientSystem` has been assigned.
+ * Registers client-side editor commands with the CommandHook.
  */
 export function registerEditorCommands(
   client: Client,
@@ -521,7 +513,10 @@ export function registerEditorCommands(
     key: "Ctrl-/",
     mac: "Cmd-/",
     menu: { location: "file", group: "3_palette", label: "Command Palette..." },
-    run: async () => client.startCommandPalette(),
+    run: async () => {
+      await client.startCommandPalette();
+      return false;
+    },
   });
   hook.registerCommand({
     name: "Navigate: Page Picker",
@@ -531,7 +526,10 @@ export function registerEditorCommands(
       { location: "file", group: "1_new", order: 2, label: "Open Page..." },
       { location: "navigate", group: "2_picker", order: 1, label: "Page..." },
     ],
-    run: async () => client.startPageNavigate("page"),
+    run: async () => {
+      await client.startPageNavigate("page");
+      return false;
+    },
   });
   hook.registerCommand({
     name: "Navigate: Meta Picker",
@@ -544,12 +542,13 @@ export function registerEditorCommands(
       order: 4,
       label: "Meta Page...",
     },
-    run: async () => client.startPageNavigate("meta"),
+    run: async () => {
+      await client.startPageNavigate("meta");
+      return false;
+    },
   });
   hook.registerCommand({
     name: "Navigate: Document Picker",
-    key: "Ctrl-o",
-    mac: "Cmd-o",
     priority: 2,
     menu: [
       { location: "file", group: "1_new", order: 3, label: "Open Document..." },
@@ -560,11 +559,17 @@ export function registerEditorCommands(
         label: "Document...",
       },
     ],
-    run: async () => client.startPageNavigate("document"),
+    run: async () => {
+      await client.startPageNavigate("document");
+      return false;
+    },
   });
   hook.registerCommand({
     name: "Navigate: Anything Picker",
-    run: async () => client.startPageNavigate("all"),
+    run: async () => {
+      await client.startPageNavigate("all");
+      return false;
+    },
   });
   hook.registerCommand({
     name: "Editor: Find in Page",

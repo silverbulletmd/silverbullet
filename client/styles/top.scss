@@ -7,20 +7,10 @@
 
   .main {
     flex: 2;
-    // Flex items default to `min-width: auto` (their content's natural
-    // width), which resists shrinking -- explicit so two wide docks can
-    // squeeze this column toward nothing without any of it turning
-    // scrollable; the title inside handles that by ellipsizing instead.
     min-width: 0;
     max-width: 100%;
-    // Never scrollable: the row's height is tuned to the pixel (see
-    // `.sb-page-prefix` and `.sb-input` below) precisely so nothing here
-    // ever needs to scroll -- a stray extra pixel from some future content
-    // must clip silently rather than grow a permanently visible scrollbar
-    // (`overflow-y: auto` + `scrollbar-gutter: stable` did exactly that for
-    // a page-decoration emoji prefix, whose color-emoji line metrics run
-    // taller than the tuned budget; see `.sb-page-prefix`).
     overflow: hidden;
+    scrollbar-gutter: stable;
 
     .inner {
       // Hack to not have SCSS precompile this value but use proper CSS variables
@@ -54,15 +44,6 @@
       .sb-input {
         font-family: var(--ui-font);
         font-size: inherit;
-        // Match the line box the old CodeMirror title used so the text stays
-        // vertically centred in the bar (a native input defaults to a shorter
-        // `line-height: normal`, which pulls the title upward).
-        //
-        // Must leave the row fitting inside #sb-top's 55px: at font-size 28px
-        // this line box plus .inner's 16px of vertical padding is the bar's
-        // whole height. `.main` clips rather than scrolls now, but the fit
-        // still matters for how much of the title is visible. 1.4 overflowed
-        // the budget by 0.2px.
         line-height: 1.35;
         color: inherit;
         background-color: transparent;
@@ -72,8 +53,6 @@
         border-radius: 0;
         outline: none;
         overflow-x: hidden;
-        // A dock squeezing this column narrower than the title truncates it
-        // with an ellipsis instead of a hard clip.
         text-overflow: ellipsis;
         caret-color: var(--editor-caret-color);
 

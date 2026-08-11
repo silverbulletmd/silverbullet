@@ -80,13 +80,30 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
-import { resolveFeatherIcons } from "../../lib/feather_icons.ts";
 import { isNarrowScreen } from "../../lib/mobile.ts";
 import type { PanelOptions, PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
 import type { SysCallMapping } from "../system.ts";
 
+const PAINT_REVEAL_TIMEOUT_MS = 800;
+
 export function editorSyscalls(client: Client): SysCallMapping {
+  function markPanelReady(key: string, expectedActivationId?: string | number) {
+    const panel = client.ui.viewState.keyedPanels.find((p) => p.key === key);
+    // Already gone, already ready, or replaced by a newer activation under
+    // the same key (the modal reuses one).
+    if (
+      !panel ||
+      panel.hidden ||
+      panel.paintReady !== false ||
+      (expectedActivationId !== undefined &&
+        panel.activationId !== expectedActivationId)
+    ) {
+      return;
+    }
+    client.ui.viewDispatch({ type: "mark-panel-ready", key });
+  }
+
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": {
       callback: (): string => {
@@ -641,6 +658,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
         options?: PanelOptions,
       ) => {
         if (options?.key) {
+          const gated = id === "modal" && !options.preload;
+          if (gated) {
+            const activationId = options.activationId;
+            setTimeout(
+              () => markPanelReady(options.key!, activationId),
+              PAINT_REVEAL_TIMEOUT_MS,
+            );
+          }
           client.ui.viewDispatch({
             type: "show-keyed-panel",
             config: {
@@ -651,6 +676,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
               script,
               hidden: !!options.preload,
               events: options.events ?? [],
+              activationId: options.activationId,
+              paintReady: gated ? false : undefined,
             },
           });
         } else {
@@ -691,7 +718,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "options",
           type: "PanelOptions",
           description:
-            "Optional keyed-panel options: key for persistent identity, preload to mount hidden, events to forward.",
+            "Optional keyed-panel options: key for persistent identity, preload to mount hidden, events to forward, activationId to pair with a later editor.hidePanel call.",
           optional: true,
         },
       ],
@@ -702,12 +729,38 @@ export function editorSyscalls(client: Client): SysCallMapping {
       },
       description: "Returns focus to the main editor.",
     },
+    "editor.getFocusedPanelSlot": {
+      callback: (): PanelSlot | undefined => {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLIFrameElement)) return undefined;
+        const slot = active.dataset.slot;
+        return slot === "lhs" || slot === "rhs" || slot === "bhs" ||
+            slot === "modal"
+          ? slot
+          : undefined;
+      },
+      description:
+        "Returns the slot of the panel (keyed or legacy) whose iframe currently holds focus, or undefined if none does.",
+      returns: [
+        {
+          type: "\"lhs\" | \"rhs\" | \"bhs\" | \"modal\" | undefined",
+          description:
+            "The focused panel's slot, or undefined if no panel iframe has focus.",
+        },
+      ],
+    },
     "editor.hidePanel": {
-      callback: (_ctx, id: string) => {
+      callback: (_ctx, id: string, expectedActivationId?: string | number) => {
         const visibleKeyed = client.ui.viewState.keyedPanels.find(
           (p) => p.slot === id && !p.hidden,
         );
         if (visibleKeyed) {
+          if (
+            expectedActivationId !== undefined &&
+            visibleKeyed.activationId !== expectedActivationId
+          ) {
+            return;
+          }
           client.ui.viewDispatch({
             type: "hide-keyed-panel",
             key: visibleKeyed.key,
@@ -729,6 +782,41 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "id",
           type: "string",
           description: "The panel location identifier.",
+        },
+        {
+          name: "expectedActivationId",
+          type: "string | number",
+          description:
+            "If given, only hides when the currently visible keyed panel for this slot still carries this activation id (see editor.showPanel's activationId option) -- otherwise a no-op, since something newer has already taken the slot.",
+          optional: true,
+        },
+      ],
+    },
+    "editor.panelReady": {
+      callback: (
+        _ctx,
+        id: string,
+        activationId?: string | number,
+      ) => {
+        const visibleKeyed = client.ui.viewState.keyedPanels.find(
+          (p) => p.slot === id && !p.hidden,
+        );
+        if (visibleKeyed) markPanelReady(visibleKeyed.key, activationId);
+      },
+      description:
+        "Paint-gated reveal handshake: signals that the keyed panel at the given slot has rendered its first real content for the given activation, so the host can reveal it (see editor.showPanel's gated paintReady).",
+      parameters: [
+        {
+          name: "id",
+          type: "string",
+          description: "The panel location identifier.",
+        },
+        {
+          name: "activationId",
+          type: "string | number",
+          description:
+            "The activation this panel is signalling readiness for (see editor.showPanel's activationId option) -- ignored if a newer activation has since taken the slot.",
+          optional: true,
         },
       ],
     },
@@ -1094,24 +1182,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
       returns: [{ type: "any", description: "The option value." }],
     },
-    "editor.resolveFeatherIcons": {
-      callback: (_ctx, names: string[]): Record<string, string> => {
-        return resolveFeatherIcons(names ?? []);
-      },
-      // A single literal, not a concatenation: the metadata-coverage test
-      // reads these descriptions off the AST and only recognizes one.
-      description: `Renders the named Feather icons to SVG markup, so panels can show icons without bundling the icon set themselves. Unknown names are omitted from the result. The markup carries no size or color: it uses a 24x24 viewBox and \`currentColor\`, for CSS to size and paint.`,
-      parameters: [
-        {
-          name: "names",
-          type: "string[]",
-          description: "Feather icon names, e.g. `trash-2`.",
-        },
-      ],
-      returns: [
-        { type: "any", description: "Map of icon name to SVG markup." },
-      ],
-    },
     "editor.setUiOption": {
       callback: (_ctx, key: string, value: any) => {
         client.ui.viewDispatch({
@@ -1233,7 +1303,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: (_ctx, mode: "page" | "meta" | "document" | "all" = "page") => {
         void client.startPageNavigate(mode);
       },
-      description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` navigator view; the pre-navigator picker still answers when that view isn't available.`,
+      description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` navigator view.`,
       parameters: [
         {
           name: "mode",
@@ -1255,7 +1325,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         name: string,
         opts?: { segment?: string; phrase?: string },
       ) => client.openNavigatorView(name, opts),
-      description: `Opens a navigator view, returning whether it opened. False means the view isn't there to open -- the space asked for the legacy pickers, or its Space Lua hasn't been indexed yet -- so a caller replacing an older picker can fall back to it.`,
+      description: `Opens a navigator view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.`,
       parameters: [
         { name: "name", type: "string", description: "The view's name." },
         {
