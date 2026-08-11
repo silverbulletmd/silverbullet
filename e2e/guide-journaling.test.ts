@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
-import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import { expect, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import { currentPage, runCommandViaPalette } from "./navigator-ui.ts";
 
 // This file exercises the workflow described in docs/Journal.md end-to-end.
 // The Journal feature is built in: the `Journal: Today` command and the
@@ -23,26 +24,13 @@ async function runJournalToday(sbPage: Page): Promise<void> {
   const editor = sbPage.locator("#sb-editor .cm-content");
   await expect(editor).toContainText("Welcome");
 
-  await sbPage.keyboard.press(`${mod}+/`);
-  const modal = sbPage.locator(".sb-modal-box");
-  await expect(modal).toBeVisible();
-
-  const paletteInput = modal.locator("input.sb-input");
-  await paletteInput.click();
-  await sbPage.keyboard.type("Journal: Today", { delay: 30 });
-
-  // The command defined by the Journal template should appear
-  await expect(
-    modal.locator(".sb-option .sb-name", { hasText: "Journal: Today" }),
-  ).toBeVisible();
-
-  await sbPage.keyboard.press("Enter");
-  await expect(modal).not.toBeVisible();
+  // The command defined by the Journal template has to be there to lead the
+  // list, which is what the helper asserts before pressing Enter.
+  await runCommandViaPalette(sbPage, "Journal: Today");
+  await expect(sbPage.locator(".sb-modal")).toBeHidden();
 
   const expectedPage = `Journal/${today()}`;
-  await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
-    expectedPage,
-  );
+  await expect(currentPage(sbPage)).toHaveValue(expectedPage);
 }
 
 test.describe("Guide: Journaling", () => {

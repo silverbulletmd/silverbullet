@@ -5,23 +5,8 @@ import {
   test,
   waitForEditorReady,
 } from "./fixtures.ts";
+import { navInput, navRows, openPicker } from "./navigator-ui.ts";
 
-// Content designed so that indexing produces overlapping ranged objects at the
-// wikilink position:
-//
-//   • `header`    from "# XRay Test" (range: full heading node)
-//   • `paragraph` from the paragraph (range: full paragraph) — only indexed
-//                 when it has a hashtag; #alpha satisfies that condition
-//   • `relation`  from [[Other]]     (range: the wikilink token only). The
-//                 legacy `link` tag is a virtual view on top of `relation`,
-//                 so it doesn't appear as a separately-indexed object in
-//                 X-Ray's raw `allIndexers` output.
-//   • `task`      from the task item   (range: task body)
-//
-// Hovering the rendered wikilink anchor (`.sb-wiki-link`) fires CodeMirror's
-// hoverTooltip at the source position of `[[Other]]`, which falls inside both
-// the `relation` range and the wider `paragraph` range — so the stacked
-// tooltip must contain both `tag: relation` and `tag: paragraph`.
 const XRAY_PAGE = `# XRay Test
 
 This paragraph links to [[Other]] and has a tag. #alpha
@@ -51,54 +36,31 @@ test.describe("X-Ray lens", () => {
     await waitForEditorReady(page);
 
     const runToggle = async () => {
-      await page.keyboard.press(`${mod}+/`);
-      const modal = page.locator(".sb-modal-box");
-      await expect(modal).toBeVisible();
-      const paletteInput = modal.locator("input.sb-input");
-      await paletteInput.click();
-      await page.keyboard.type("Toggle X-Ray", { delay: 30 });
-      const option = modal
-        .locator(".sb-option .sb-name", {
-          hasText: "Toggle X-Ray",
-        })
-        .first();
-      await expect(option).toBeVisible();
-      await option.click();
-      await expect(modal).not.toBeVisible();
+      const frame = await openPicker(page, `${mod}+/`, "Command");
+      await navInput(page).fill("Toggle X-Ray");
+      // By name: a row's text also carries its description and key hint.
+      const name = navRows(frame).filter({ hasText: "Toggle X-Ray" }).first();
+      await expect(name).toBeVisible({ timeout: 20_000 });
+      await name.click();
+      await expect(page.locator(".sb-modal")).toBeHidden();
     };
 
-    // ── 1. Toggle X-Ray on via the command palette ────────────────────────
     await runToggle();
 
-    // ── 2. At least one .sb-xray-range decoration must appear ─────────────
     await expect(page.locator(".sb-xray-range").first()).toBeVisible({
       timeout: 10_000,
     });
 
-    // ── 3. Hover the wikilink and assert the stacked tooltip ──────────────
-    // CodeMirror renders [[Other]] as a widget anchor (<a class="sb-wiki-link">).
-    // Hovering it fires hoverTooltip at the underlying source position, which
-    // falls inside both the `link` range and the outer `paragraph` range —
-    // producing a stacked tooltip with entries for both objects.
     const wikiLink = page
       .locator(".sb-wiki-link", { hasText: "Other" })
       .first();
     await expect(wikiLink).toBeVisible({ timeout: 5_000 });
     await wikiLink.hover({ force: true });
 
-    // X-Ray runs through CodeMirror's lint hover tooltip
-    // (`.cm-tooltip-lint`); CM's hover has a built-in dwell delay, so wait
-    // up to 5 s for it to appear.
     const tooltip = page.locator(".cm-tooltip-lint");
     await expect(tooltip).toBeVisible({ timeout: 5_000 });
-    // Body assertions: the `link` and `paragraph` objects must appear in
-    // the YAML rendered for their respective cards.
     await expect(tooltip).toContainText("tag: relation");
     await expect(tooltip).toContainText("tag: paragraph");
-    // Multi-tag expansion: the paragraph carries `#alpha`, so the index
-    // pipeline emits the same paragraph object once under `paragraph` and
-    // once under `alpha`. Same-object entries collapse into one card whose
-    // header joins the tag names — exactly one `paragraph, alpha` header.
     await expect(
       tooltip.locator(".sb-xray-tooltip-tag", {
         hasText: /^paragraph, alpha$/,

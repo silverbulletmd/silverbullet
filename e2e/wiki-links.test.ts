@@ -1,11 +1,11 @@
 import {
   expect,
   gotoSilverBulletPage,
-  mod,
   test,
   waitForEditorReady,
   waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
+import { createPageViaPagePicker } from "./navigator-ui.ts";
 
 test.describe("Wiki links", () => {
   test.describe("cross-page navigation", () => {
@@ -51,10 +51,7 @@ test.describe("Wiki links", () => {
     await expect(editor).toContainText("Welcome");
 
     // Navigate to a fresh page
-    await sbPage.keyboard.press(`${mod}+k`);
-    await sbPage.locator(".sb-modal-box input.sb-input").click();
-    await sbPage.keyboard.type("Link Source", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
+    await createPageViaPagePicker(sbPage, "Link Source");
     await expect(editor).toHaveText("");
 
     // Wait for the editor to finish loading and any pageLoaded handlers

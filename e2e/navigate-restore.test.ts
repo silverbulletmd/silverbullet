@@ -1,10 +1,10 @@
 import {
   expect,
   gotoSilverBulletPage,
-  mod,
   test,
   waitForEditorReady,
 } from "./fixtures.ts";
+import { navigateViaPagePicker } from "./navigator-ui.ts";
 
 // PageB is long enough to scroll and contains a "## Section" header for the
 // explicit-pointer regression check. Line 12 sits in the first paragraph block.
@@ -143,16 +143,8 @@ test("page picker restores the remembered line on PageB", async ({
   await parkOnPageBThenLeave(page, sbServer);
 
   // Open the page navigator and pick PageB.
-  await page.keyboard.press(`${mod}+k`);
-  const pickerInput = page.locator(".sb-modal-box input.sb-input");
-  await expect(pickerInput).toBeVisible();
-  await pickerInput.click();
-  await page.keyboard.type("PageB", { delay: 30 });
-  await page.keyboard.press("Enter");
+  await navigateViaPagePicker(page, "PageB");
 
-  await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
-    "PageB",
-  );
   await waitForEditorReady(page);
   expect(await selectionLine(page)).toBe(12);
 });

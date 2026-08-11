@@ -1,4 +1,5 @@
 import { expect, mod, test } from "./fixtures.ts";
+import { navInput, navRows, openPicker } from "./navigator-ui.ts";
 
 test.describe("Command palette", () => {
   test("open and close command palette", async ({ sbPage }) => {
@@ -6,13 +7,12 @@ test.describe("Command palette", () => {
     await expect(editor).toContainText("Welcome");
 
     // Open command palette
-    await sbPage.keyboard.press(`${mod}+/`);
-    const modal = sbPage.locator(".sb-modal-box");
-    await expect(modal).toBeVisible();
+    await openPicker(sbPage, `${mod}+/`, "Command");
+    await expect(sbPage.locator(".sb-modal")).toBeVisible();
 
     // Close with Escape
     await sbPage.keyboard.press("Escape");
-    await expect(modal).not.toBeVisible();
+    await expect(sbPage.locator(".sb-modal")).toBeHidden();
   });
 
   test("filter commands by typing", async ({ sbPage }) => {
@@ -20,19 +20,16 @@ test.describe("Command palette", () => {
     await expect(editor).toContainText("Welcome");
 
     // Open command palette
-    await sbPage.keyboard.press(`${mod}+/`);
-    const modal = sbPage.locator(".sb-modal-box");
-    await expect(modal).toBeVisible();
+    const frame = await openPicker(sbPage, `${mod}+/`, "Command");
 
     // Type to filter
-    const paletteInput = modal.locator("input.sb-input");
-    await paletteInput.click();
-    await sbPage.keyboard.type("Stats", { delay: 30 });
+    await navInput(sbPage).fill("Stats");
 
-    // Should show filtered results including "Stats: Show"
+    // Should show filtered results including "Stats: Show". Row *names*: a
+    // row's text also carries its description and key-hint chip.
     await expect(
-      modal.locator(".sb-option .sb-name", { hasText: "Stats" }),
-    ).toBeVisible();
+      navRows(frame).filter({ hasText: "Stats" }).first(),
+    ).toBeVisible({ timeout: 20_000 });
 
     await sbPage.keyboard.press("Escape");
   });
@@ -42,16 +39,16 @@ test.describe("Command palette", () => {
     await expect(editor).toContainText("Welcome");
 
     // Open command palette and run "Stats: Show"
-    await sbPage.keyboard.press(`${mod}+/`);
-    const modal = sbPage.locator(".sb-modal-box");
-    const paletteInput = modal.locator("input.sb-input");
-    await paletteInput.click();
-    await sbPage.keyboard.type("Stats: Show", { delay: 30 });
+    const frame = await openPicker(sbPage, `${mod}+/`, "Command");
+    await navInput(sbPage).fill("Stats: Show");
+    await expect(navRows(frame).first()).toHaveText("Stats: Show", {
+      timeout: 20_000,
+    });
 
     // Select the matching command
     await sbPage.keyboard.press("Enter");
 
-    // The modal should close
-    await expect(modal).not.toBeVisible();
+    // The palette should close
+    await expect(sbPage.locator(".sb-modal")).toBeHidden();
   });
 });

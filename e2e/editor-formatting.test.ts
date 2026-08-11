@@ -1,4 +1,5 @@
 import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import { createPageViaPagePicker } from "./navigator-ui.ts";
 
 test.describe("Editor formatting", () => {
   test("bold text with Mod+B", async ({ sbPage, sbServer }) => {
@@ -6,10 +7,7 @@ test.describe("Editor formatting", () => {
     await expect(editor).toContainText("Welcome");
 
     // Navigate to a fresh page
-    await sbPage.keyboard.press(`${mod}+k`);
-    await sbPage.locator(".sb-modal-box input.sb-input").click();
-    await sbPage.keyboard.type("Formatting Test", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
+    await createPageViaPagePicker(sbPage, "Formatting Test");
     await expect(editor).toHaveText("");
 
     // Type some text
@@ -38,10 +36,7 @@ test.describe("Editor formatting", () => {
     const editor = sbPage.locator("#sb-editor .cm-content");
     await expect(editor).toContainText("Welcome");
 
-    await sbPage.keyboard.press(`${mod}+k`);
-    await sbPage.locator(".sb-modal-box input.sb-input").click();
-    await sbPage.keyboard.type("Italic Test", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
+    await createPageViaPagePicker(sbPage, "Italic Test");
     await expect(editor).toHaveText("");
 
     await editor.click();
@@ -63,10 +58,7 @@ test.describe("Editor formatting", () => {
     const editor = sbPage.locator("#sb-editor .cm-content");
     await expect(editor).toContainText("Welcome");
 
-    await sbPage.keyboard.press(`${mod}+k`);
-    await sbPage.locator(".sb-modal-box input.sb-input").click();
-    await sbPage.keyboard.type("List Test", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
+    await createPageViaPagePicker(sbPage, "List Test");
     await expect(editor).toHaveText("");
 
     // Type multiple lines

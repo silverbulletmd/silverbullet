@@ -13,9 +13,7 @@ export const mod = platform() === "darwin" ? "Meta" : "Control";
  * Cmd-Shift-z on macOS, Ctrl-y elsewhere. `${mod}+Shift+z` is NOT a redo
  * anywhere but macOS -- it silently does nothing on Linux.
  */
-export const redoChord = platform() === "darwin"
-  ? "Meta+Shift+z"
-  : "Control+y";
+export const redoChord = platform() === "darwin" ? "Meta+Shift+z" : "Control+y";
 
 /** The admin account every multi-space e2e test provisions via `silverbullet setup`. */
 export const ADMIN_USER = "admin";
@@ -112,7 +110,6 @@ export const test = base.extend<SBFixtures>({
   sbServer: async ({ spaceFiles, disableServiceWorker, singleSpace }, use) => {
     const spaceDir = await mkdtemp(join(tmpdir(), "sb-e2e-"));
 
-    // Seed space with files
     for (const [path, content] of Object.entries(spaceFiles)) {
       const fullPath = join(spaceDir, path);
       await mkdir(dirname(fullPath), { recursive: true });

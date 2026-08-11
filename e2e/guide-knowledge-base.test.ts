@@ -1,11 +1,11 @@
 import {
   expect,
   gotoSilverBulletPage,
-  mod,
   test,
   waitForEditorReady,
   waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
+import { createPageViaPagePicker } from "./navigator-ui.ts";
 
 // This file exercises the workflow described in docs/Guide/Knowledge Base.md
 // end-to-end. It seeds a small interconnected knowledge base, then verifies
@@ -84,14 +84,7 @@ test.describe("Guide: Knowledge Base", () => {
     await expect(editor).toContainText("Welcome");
 
     // Create a fresh "Atomic Notes" page via the page picker
-    await sbPage.keyboard.press(`${mod}+k`);
-    const modal = sbPage.locator(".sb-modal-box");
-    await expect(modal).toBeVisible();
-    const pickerInput = modal.locator("input.sb-input");
-    await pickerInput.click();
-    await sbPage.keyboard.type("Atomic Notes", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
-    await expect(modal).not.toBeVisible();
+    await createPageViaPagePicker(sbPage, "Atomic Notes");
     await expect(editor).toHaveText("");
 
     // Wait for the editor to finish loading and any pageLoaded handlers

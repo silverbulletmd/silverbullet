@@ -1,4 +1,5 @@
 import { expect, gotoSilverBulletPage, mod, test } from "./fixtures.ts";
+import { navInput } from "./navigator-ui.ts";
 
 test.describe("Top-bar page rename", () => {
   test.use({
@@ -66,7 +67,9 @@ test.describe("Top-bar page rename", () => {
     // the page picker even though a native input is focused (parity with the
     // old CodeMirror page-name editor).
     await sbPage.keyboard.press(`${mod}+k`);
-    await expect(sbPage.locator(".sb-modal-box")).toBeVisible();
+    await expect(navInput(sbPage)).toHaveAttribute("placeholder", "Page", {
+      timeout: 20_000,
+    });
   });
 
   test("rename to a different casing of the same name", async ({

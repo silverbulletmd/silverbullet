@@ -1,4 +1,8 @@
-import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import { expect, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import {
+  createPageViaPagePicker,
+  navigateViaPagePicker,
+} from "./navigator-ui.ts";
 
 test.describe("Page navigation", () => {
   test("create a new page via page picker", async ({ sbPage, sbServer }) => {
@@ -7,30 +11,10 @@ test.describe("Page navigation", () => {
       "Welcome to the wondrous world of SilverBullet",
     );
 
-    // Open page picker
-    await sbPage.keyboard.press(`${mod}+k`);
-    await expect(sbPage.locator(".sb-modal-box")).toBeVisible();
-
-    // Type the new page name (with delay to avoid dropped keystrokes)
-    const pickerInput = sbPage.locator(".sb-modal-box input.sb-input");
-    await pickerInput.click();
-    await sbPage.keyboard.type("My New Page", { delay: 30 });
-
-    // Should see "Create page" hint in the list
-    await expect(
-      sbPage.locator(".sb-option .sb-hint", { hasText: "Create page" }),
-    ).toBeVisible();
-
-    // Shift+Enter to create new page
-    await sbPage.keyboard.press("Shift+Enter");
-
-    // Modal should close
-    await expect(sbPage.locator(".sb-modal-box")).not.toBeVisible();
-
-    // Page name should update in top bar
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
-      "My New Page",
-    );
+    // Open the page picker, type a name nothing matches, and take its create
+    // row -- which asserts the picker offered one, the page name landed in the
+    // top bar, and the picker closed behind it.
+    await createPageViaPagePicker(sbPage, "My New Page");
 
     // Editor should be empty (new page)
     await expect(editor).toHaveText("");
@@ -55,27 +39,10 @@ test.describe("Page navigation", () => {
     );
 
     // First, create and navigate to a new page
-    await sbPage.keyboard.press(`${mod}+k`);
-    const pickerInput = sbPage.locator(".sb-modal-box input.sb-input");
-    await pickerInput.click();
-    await sbPage.keyboard.type("Temporary Page", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
-      "Temporary Page",
-    );
+    await createPageViaPagePicker(sbPage, "Temporary Page");
 
     // Now navigate back to index
-    await sbPage.keyboard.press(`${mod}+k`);
-    await expect(sbPage.locator(".sb-modal-box")).toBeVisible();
-    const pickerInput2 = sbPage.locator(".sb-modal-box input.sb-input");
-    await pickerInput2.click();
-    await sbPage.keyboard.type("index", { delay: 30 });
-    await sbPage.keyboard.press("Enter");
-
-    // Should be back on the index/welcome page
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
-      "index",
-    );
+    await navigateViaPagePicker(sbPage, "index");
     await expect(editor).toContainText(
       "Welcome to the wondrous world of SilverBullet",
     );
@@ -90,17 +57,8 @@ test.describe("Page navigation", () => {
       "Welcome to the wondrous world of SilverBullet",
     );
 
-    // Open page picker and create a page with folder path
-    await sbPage.keyboard.press(`${mod}+k`);
-    const pickerInput = sbPage.locator(".sb-modal-box input.sb-input");
-    await pickerInput.click();
-    await sbPage.keyboard.type("Notes/My Subfolder Page", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
-
     // Page name should show the full path
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
-      "Notes/My Subfolder Page",
-    );
+    await createPageViaPagePicker(sbPage, "Notes/My Subfolder Page");
     await expect(editor).toHaveText("");
 
     // Type something and verify it saves to server

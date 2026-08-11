@@ -1,4 +1,5 @@
-import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import { expect, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import { createPageViaPagePicker } from "./navigator-ui.ts";
 
 test.describe("Rich text paste", () => {
   test("first paste after load converts HTML to markdown", async ({
@@ -9,10 +10,7 @@ test.describe("Rich text paste", () => {
     await expect(editor).toContainText("Welcome");
 
     // Navigate to a fresh page
-    await sbPage.keyboard.press(`${mod}+k`);
-    await sbPage.locator(".sb-modal-box input.sb-input").click();
-    await sbPage.keyboard.type("Paste Test", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
+    await createPageViaPagePicker(sbPage, "Paste Test");
     await expect(editor).toHaveText("");
     await editor.click();
 
@@ -59,10 +57,7 @@ test.describe("Rich text paste", () => {
     const editor = sbPage.locator("#sb-editor .cm-content");
     await expect(editor).toContainText("Welcome");
 
-    await sbPage.keyboard.press(`${mod}+k`);
-    await sbPage.locator(".sb-modal-box input.sb-input").click();
-    await sbPage.keyboard.type("Paste Link Test", { delay: 30 });
-    await sbPage.keyboard.press("Shift+Enter");
+    await createPageViaPagePicker(sbPage, "Paste Link Test");
     await expect(editor).toHaveText("");
     await editor.click();
 
