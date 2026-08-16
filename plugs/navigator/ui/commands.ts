@@ -2,6 +2,7 @@ import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import { datastore } from "@silverbulletmd/silverbullet/syscalls";
 import type { MutableRef } from "preact/hooks";
 import { dispatch } from "./engine.ts";
+import { takeFocus } from "./focus.ts";
 import { defaultSegmentIndex } from "./segments.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import {
@@ -77,7 +78,11 @@ export function createCommands({
     // A cheap, early check: if a newer activation has already reached this
     // iframe (`displayed` updated), skip the round trip entirely rather than
     // asking the host to hide something that's already stale.
-    if (view && displayed.current !== undefined && displayed.current !== view.name) {
+    if (
+      view &&
+      displayed.current !== undefined &&
+      displayed.current !== view.name
+    ) {
       return;
     }
     // The authoritative check: `editor.hidePanel`'s own syscall message can
@@ -88,10 +93,26 @@ export function createCommands({
     // activation was given (see navigator.ts's `show`) lets the host compare
     // against an identity captured *before* that race, rather than
     // re-derived after it, which is what actually closes the gap the
-    // `displayed` check above can't. See task-pick-api-review.md's
-    // Critical 1.
+    // `displayed` check above can't.
     await syscall("editor.hidePanel", slot, handledToken.current);
     await syscall("editor.focus");
+  }
+
+  /**
+   * A modifier chord the panel's own keydown pipeline left unclaimed --
+   * forwarded to the host so a global shortcut (Cmd-/, say) still fires while
+   * this iframe's filter input has focus, which the browser's own event
+   * bubbling can never do across the iframe boundary. Fire-and-forget: an
+   * unbound chord is a no-op on the host side too.
+   */
+  function forwardShortcut(descriptor: {
+    key: string;
+    ctrlKey: boolean;
+    metaKey: boolean;
+    altKey: boolean;
+    shiftKey: boolean;
+  }) {
+    void syscall("editor.forwardKeyboardShortcut", descriptor);
   }
 
   // A mobile drawer covers the editor whole, so it dismisses on a selection
@@ -140,7 +161,7 @@ export function createCommands({
     setSelectedPath(undefined);
     // The panel's whole keyboard contract depends on the input holding focus;
     // a click on a segment must hand it straight back.
-    inputRef.current?.focus();
+    takeFocus(inputRef.current);
   }
 
   /**
@@ -221,23 +242,15 @@ export function createCommands({
     // navigates goes through `client.navigate`, which focuses the editor on
     // the way out. Take it back once the handler has settled -- an action
     // that wants the editor focused calls `editor.focus()` itself, after us.
-    inputRef.current?.focus();
+    takeFocus(inputRef.current);
   }
 
-  /**
-   * `primary` is what a `confirm` message names the row by; the action itself
-   * only ever sees the object.
-   */
-  async function runAction(
-    index: number,
-    obj: Record<string, any>,
-    primary: string,
-  ) {
+  async function runAction(index: number, obj: Record<string, any>) {
     if (!view) return;
-    await engine.action(view.name, index, obj, primary);
+    await engine.action(view.name, index, obj);
     // Same contract as `runKeymap`: the panel keeps focus (a confirm dialog,
     // or an action that navigates, will have taken it in the meantime).
-    inputRef.current?.focus();
+    takeFocus(inputRef.current);
     // An action that renamed or deleted something leaves the view showing what
     // used to be there; the file events would refresh us eventually, but this
     // (debounced, like `moveNode`'s) makes it prompt.
@@ -285,6 +298,7 @@ export function createCommands({
   return {
     ...tree,
     close,
+    forwardShortcut,
     runCreate,
     selectedObj,
     pickSegment,

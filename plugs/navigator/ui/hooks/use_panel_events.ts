@@ -2,6 +2,7 @@ import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import type { MutableRef } from "preact/hooks";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { createActivate } from "../activation.ts";
+import { takeFocus } from "../focus.ts";
 import {
   type ActiveView,
   engine,
@@ -88,7 +89,7 @@ export function usePanelEvents({
     // for the modal always and for a sidebar only when it's coming back with
     // a non-empty phrase already in it.
     function focusInput(select: boolean) {
-      refs.input.current?.focus();
+      takeFocus(refs.input.current);
       if (select) refs.input.current?.select();
     }
 

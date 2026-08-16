@@ -1,6 +1,8 @@
 import { render } from "preact";
+import { NavErrorBoundary } from "./components/nav_error_boundary.tsx";
 import { NavRoot } from "./components/nav_root.tsx";
 import { dispatch } from "./engine.ts";
+import { takeFocus } from "./focus.ts";
 import { navHooks } from "./panel.ts";
 
 declare const __NAVIGATOR_SLOT: string;
@@ -52,9 +54,7 @@ if (!globals.__navigatorListening) {
       slot: __NAVIGATOR_SLOT,
       view: closed?.view,
       token: closed?.token,
-    }).catch((e) =>
-      console.error("navigator: panelHidden notify failed", e),
-    );
+    }).catch((e) => console.error("navigator: panelHidden notify failed", e));
   });
   sbEvent.on("editor:pageLoaded", (pageRef: unknown) =>
     navHooks.pageLoaded?.(pageRef),
@@ -79,7 +79,12 @@ root.setAttribute("tabindex", "-1");
 
 // Always (re-)render: a re-eval follows the host replacing document.body, so
 // the previous tree is detached and this root element is new.
-render(<NavRoot slot={__NAVIGATOR_SLOT} />, root);
+render(
+  <NavErrorBoundary slot={__NAVIGATOR_SLOT}>
+    <NavRoot slot={__NAVIGATOR_SLOT} />
+  </NavErrorBoundary>,
+  root,
+);
 
 // The plug's `navigator:activate` push can be dropped when it fires before
 // this bundle boots, so pull whatever activation it recorded for this slot.
@@ -98,7 +103,7 @@ dispatch("navigator:ready", { slot: __NAVIGATOR_SLOT })
       // keydown (often Escape) is delivered to us rather than to the parent
       // SilverBullet editor. Never for a passive boot restore: the panel is
       // coming back on its own, and the editor's focus is not ours to take.
-      if (!pending.passive) root.focus();
+      if (!pending.passive) takeFocus(root);
       navHooks.activate?.({
         slot: __NAVIGATOR_SLOT,
         view: pending.view,
