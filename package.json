@@ -25,6 +25,8 @@
     "./lib/transclusion": "./plug-api/lib/transclusion.ts",
     "./lib/native_fetch": "./plug-api/lib/native_fetch.ts",
     "./lib/query_expression": "./plug-api/lib/query_expression.ts",
+    "./lib/panel_styles": "./plug-api/lib/panel_styles.ts",
+    "./lib/panel_lifecycle": "./plug-api/lib/panel_lifecycle.ts",
     "./type/client": "./plug-api/types/client.ts",
     "./type/config": "./plug-api/types/config.ts",
     "./type/manifest": "./plug-api/types/manifest.ts",

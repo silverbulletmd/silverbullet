@@ -1,5 +1,5 @@
 import { asset } from "@silverbulletmd/silverbullet/syscalls";
-import { panelStyles } from "@silverbulletmd/silverbullet/ui";
+import { panelStyles } from "@silverbulletmd/silverbullet/lib/panel_styles";
 import type { ConfigurationViewModel } from "./ui/types.ts";
 
 const PLUG_NAME = "configuration-manager";
