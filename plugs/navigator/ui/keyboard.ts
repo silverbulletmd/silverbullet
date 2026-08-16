@@ -128,7 +128,9 @@ export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   }
   if (e.key === "Escape") {
     e.preventDefault();
-    if (phrase) {
+    // Modal: Escape always dismisses, like the pickers it replaced. Docked:
+    // first Escape clears the filter, closing the whole dock only when empty.
+    if (phrase && ctx.view?.meta.dock !== "modal") {
       setPhrase("");
       setSelectedIndex(0);
     } else {
@@ -342,7 +344,7 @@ function treeKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   }
   if (e.key === "Escape") {
     e.preventDefault();
-    if (phrase) {
+    if (phrase && ctx.view?.meta.dock !== "modal") {
       setPhrase("");
       setSelectedPath(undefined);
     } else {
