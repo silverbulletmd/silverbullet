@@ -20,7 +20,7 @@ const DEFAULT_LIMIT = 200;
 // a real object name.
 export const CREATE_PATH = "\u0000create";
 
-// Drag-and-drop is desktop-only this milestone: HTML5 drag events don't fire
+// Drag-and-drop is desktop-only: HTML5 drag events don't fire
 // on touch at all, so a `draggable` row there only breaks scrolling. Queried
 // once -- the panel's iframe doesn't survive a device change anyway.
 const POINTER_FINE =

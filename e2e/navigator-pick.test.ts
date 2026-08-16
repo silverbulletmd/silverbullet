@@ -1,5 +1,10 @@
 import { expect, test } from "./fixtures.ts";
-import { navFrame, navInput, navSegment, runCommandViaPalette } from "./navigator-ui.ts";
+import {
+  navFrame,
+  navInput,
+  navSegment,
+  runCommandViaPalette,
+} from "./navigator-ui.ts";
 import type { Page } from "@playwright/test";
 
 const PICK_CONFIG = `# Pick test fixtures
@@ -116,6 +121,7 @@ navigator.define {
   dock = "modal",
   presentation = { mode = "list" },
   source = function() return { { name = "NamedRow", ref = "NamedRow" } } end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Validation: every navigator.define ("name-world") field navigator.pick
@@ -172,6 +178,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Validation: navigator.define rejects the reserved __pick: prefix, and a
@@ -187,6 +194,7 @@ do
   local normalOk = pcall(navigator.define, {
     name = "pickPrefixNormal",
     source = function() return {} end,
+    onSelect = function() end,
   })
   pickPrefixLog[#pickPrefixLog + 1] = "normal=" .. tostring(normalOk)
   -- navigator.open rejects the same prefix in the other direction -- this
@@ -209,6 +217,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -227,6 +236,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -278,7 +288,9 @@ test("a backdrop dismissal resolves navigator.pick with nil", async ({
 }) => {
   const result = invokePickCommand(sbPage, "Navigator: Pick Basic");
   await waitForPlaceholder(sbPage, "Pick a fruit");
-  await sbPage.locator(".sb-modal-backdrop").click({ position: { x: 5, y: 5 } });
+  await sbPage
+    .locator(".sb-modal-backdrop")
+    .click({ position: { x: 5, y: 5 } });
   await expect(
     sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
   ).toHaveCount(0);
@@ -340,7 +352,9 @@ test("onSelect returning false keeps the pick open and unresolved; a later selec
   await expect(
     sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
   ).toHaveCount(1);
-  await expect(frame.locator(".sb-nav-row", { hasText: "Second" })).toBeVisible();
+  await expect(
+    frame.locator(".sb-nav-row", { hasText: "Second" }),
+  ).toBeVisible();
 
   await frame.locator(".sb-nav-row", { hasText: "Second" }).click();
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
@@ -480,7 +494,9 @@ test("navigator.pick rejects every navigator.define (name-world) field", async (
   await expect(
     frame.locator(".sb-nav-row", { hasText: "name=false" }).first(),
   ).toBeVisible({ timeout: 20_000 });
-  const rows = await frame.locator(".sb-nav-row .sb-nav-primary").allInnerTexts();
+  const rows = await frame
+    .locator(".sb-nav-row .sb-nav-primary")
+    .allInnerTexts();
   const expectFalse = [
     "name",
     "command",
@@ -517,7 +533,9 @@ test("navigator.define and navigator.open both reject the reserved pick prefix",
   await expect(
     frame.locator(".sb-nav-row", { hasText: "reserved=" }).first(),
   ).toBeVisible({ timeout: 20_000 });
-  const rows = await frame.locator(".sb-nav-row .sb-nav-primary").allInnerTexts();
+  const rows = await frame
+    .locator(".sb-nav-row .sb-nav-primary")
+    .allInnerTexts();
   expect(rows).toContain("reserved=false");
   expect(rows).toContain("normal=true");
   expect(rows).toContain("open=false");

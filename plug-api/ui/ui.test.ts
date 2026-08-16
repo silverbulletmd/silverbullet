@@ -69,7 +69,6 @@ test("Tabs marks the active tab and wires per-item onSelect", () => {
   const html = render(h(Tabs, { items }));
   expect(html).toContain("sb-tab sb-active");
   expect(html).toContain('aria-selected="true"');
-  // each tab carries its own handler
   items[0].onSelect();
   expect(picked).toBe("a");
 });

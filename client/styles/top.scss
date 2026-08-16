@@ -116,7 +116,6 @@
     overflow: visible;
   }
 
-  /* Style the menu as a vertical fly-out */
   #sb-top .cm-scroller:has(.hamburger) {
     position: relative;
   }
@@ -136,7 +135,6 @@
       max-height 0.3s ease-in-out,
       box-shadow 0.3s ease-in-out;
 
-    /* Initial collapsed height */
     max-height: 2.2rem;
 
     button {
@@ -162,9 +160,7 @@
       }
     }
 
-    // CSS class for toggling the hamburger menu, so it can be toggled via JS
     &.open:hover {
-      /* Expanded height limited to the viewport height minus some padding */
       max-height: calc(100vh - 24px);
 
       button {
@@ -174,7 +170,6 @@
     }
   }
 
-  /* Style the menu as a bottom bar */
   #sb-top .sb-actions.bottom-bar {
     position: fixed;
     bottom: 0;

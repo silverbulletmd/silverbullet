@@ -32,8 +32,6 @@ export type ActionMeta = {
    */
   icon?: string;
   label: string;
-  /** Confirmation message, `%s` standing in for the row's primary label. */
-  confirm?: string;
   /** Whether the action has a `when` predicate, i.e. needs a mask to show. */
   hasWhen: boolean;
   /** `"rw"` hides the action while the client is in read-only mode. */

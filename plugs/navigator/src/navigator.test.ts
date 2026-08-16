@@ -1,15 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
-/**
- * `resize()`'s guard: `visibleSidebarView` is
- * module-level plug-worker state, while the panel iframe it describes lives
- * on the host side. Anything that recycles the plug worker without also
- * rebuilding the panel wipes the map while the dock stays visibly open --
- * simulated here with `vi.resetModules()` + a fresh dynamic import, which
- * re-runs navigator.ts's top-level module code exactly like a fresh worker
- * instantiation would.
- */
-
 const datastore = {
   get: vi.fn<(key: unknown[]) => Promise<unknown>>(),
   set: vi.fn<(key: unknown[], value: unknown) => Promise<void>>(),
@@ -44,12 +34,9 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
 vi.mock("@silverbulletmd/silverbullet/lib/panel_styles", () => ({
   panelStyles: vi.fn<() => Promise<string>>().mockResolvedValue(""),
 }));
-// The registry is its own unit (registry.test.ts); resize()'s path only
-// needs a stand-in that answers `dock`/`refreshOn` the same way.
 vi.mock("./registry.ts", () => registry);
 
-/** A fresh module instance -- empty `visibleSidebarView` etc., like a
- * just-restarted plug worker. */
+// Resets modules so visibleSidebarView etc. start empty, like a freshly restarted plug worker.
 async function freshNavigator() {
   vi.resetModules();
   return await import("./navigator.ts");
@@ -72,20 +59,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-// a newer activation superseding a still-pending pick must
-// not null it out from under a row the user already clicked -- `select`'s
-// answer, still crossing the bridge, has to land first.
-//
-// a fixed count of microtask ticks here was vacuous -- `show()`
-// has several `await`s (`panelContent`, `showPanel`, `navigator:activate`)
-// between B's `pickOpen` call and the point where its supersede step actually
-// runs, so "not settled after two ticks" held whether or not the guard did
-// anything (confirmed by temporarily neutering `supersede` to a bare
-// `settlePick(name, null)` and re-running this test: it still passed).
-// Waiting for the guard's own consult of `selectInFlight("__pick:A")` --
-// the actual decision point -- instead of a tick count makes the test fail
-// under that same neutering (it never calls `selectInFlight` at all, so the
-// wait below times out) and pass with the real guard restored.
+// A fixed tick count was vacuous here (passed even with the guard removed) -- this waits for the guard's actual selectInFlight consult so a regression would make it fail.
 test("a new pick opening in the same slot waits for a superseded pick's in-flight select before nulling it", async () => {
   const nav = await freshNavigator();
   registry.resolveMeta.mockReturnValue({ dock: "modal", refreshOn: [] });
@@ -104,7 +78,6 @@ test("a new pick opening in the same slot waits for a superseded pick's in-fligh
       firstSettled = true;
       return v;
     });
-  // B's own pick never settles in this test -- only its supersede of A does.
   nav.pickOpen("__pick:B", { dock: "modal" });
 
   await Promise.race([
@@ -183,8 +156,8 @@ test("a resize tick after a real close stays dropped, via the datastore fallback
   const nav = await freshNavigator();
   datastore.get.mockResolvedValue("std.spaceTree");
   await nav.open("std.spaceTree");
-  await nav.panelHidden({ slot: "lhs" }); // real close: clears the map and the datastore key
-  datastore.get.mockResolvedValue(undefined); // reflects panelHidden's datastore.del
+  await nav.panelHidden({ slot: "lhs" });
+  datastore.get.mockResolvedValue(undefined);
   editor.showPanel.mockClear();
 
   await nav.resize({ slot: "lhs", width: 300 });
@@ -192,12 +165,7 @@ test("a resize tick after a real close stays dropped, via the datastore fallback
   expect(editor.showPanel).not.toHaveBeenCalled();
 });
 
-// `resize()` re-seeded
-// `visibleSidebarView` after a wipe but never `slotEvents`, so every
-// post-wipe drag tick fell through to `eventsForView`, re-resolving meta on
-// every rAF frame for as long as the worker stayed wiped -- the resolution
-// storm the brief forbade. `resolveMeta` is a plain map lookup now rather
-// than a Space Lua dispatch, but the same one-tick-only guard still applies.
+// Guards against a resolution storm: without a one-tick-only guard, every post-wipe drag tick re-resolves meta on every rAF frame for as long as the worker stays wiped.
 test("only the first post-wipe tick resolves meta; later ticks don't", async () => {
   const nav = await freshNavigator();
   datastore.get.mockResolvedValue("std.spaceTree");
@@ -211,15 +179,7 @@ test("only the first post-wipe tick resolves meta; later ticks don't", async () 
   expect(registry.resolveMeta).not.toHaveBeenCalled();
 });
 
-// `panelHidden` deletes the map entry
-// and then awaits `datastore.del`. A resize tick landing in that window must
-// not re-derive the still-present datastore key and re-show (and re-arm) the
-// panel that is actually closing. This exercises `resize()`'s *first*
-// `closingSlots` check (navigator.ts, entry to the re-derivation branch,
-// before any of its own awaits): `panelHidden` is invoked and its
-// synchronous prefix (map delete + `closingSlots.add`) has already run to
-// completion before `resize()` is even called, since JS runs synchronously up
-// to the first `await` and nothing here awaits `panelHidden` first.
+// Without this check, a resize landing here would re-derive the still-present datastore key and re-show (and re-arm) a panel that is actually closing.
 test("a resize tick that starts after panelHidden has already marked the slot closing is dropped (first check)", async () => {
   const nav = await freshNavigator();
   datastore.get.mockResolvedValue("std.spaceTree");
@@ -231,8 +191,6 @@ test("a resize tick that starts after panelHidden has already marked the slot cl
   );
   const hiddenPromise = nav.panelHidden({ slot: "lhs" });
 
-  // The key panelHidden is about to delete is (realistically) still readable
-  // as present while its own datastore.del is in flight.
   datastore.get.mockResolvedValue("std.spaceTree");
   editor.showPanel.mockClear();
 
@@ -242,26 +200,12 @@ test("a resize tick that starts after panelHidden has already marked the slot cl
   resolveDel();
   await hiddenPromise;
 
-  // Nor does a later tick resurrect it once the close has fully landed.
   datastore.get.mockResolvedValue(undefined);
   await nav.resize({ slot: "lhs", width: 305 });
   expect(editor.showPanel).not.toHaveBeenCalled();
 });
 
-// the narrower interleaving the *second* `closingSlots`
-// check exists for -- a close that starts and marks the slot *while
-// `resize()`'s own awaits (`datastore.get`, then `viewMeta`) are already in
-// flight*, rather than before `resize()` is even called. `resize()` starts
-// first here (with no `view` in the payload, forcing it through the
-// datastore-fallback path so it has an await for `panelHidden` to interleave
-// into); `panelHidden` starts next, marking `closingSlots` and then itself
-// stalling on `datastore.del`. Both of `resize()`'s own awaits are allowed to
-// resolve while the slot is still marked closing, so by the time it reaches
-// the check right before committing the derived name into
-// `visibleSidebarView` (after `datastore.get` *and* `viewMeta`), the mark is
-// exactly what makes it bail -- the first check (taken before either await)
-// would have passed clean, since `panelHidden` hadn't started yet at that
-// point.
+// Guards the narrower interleaving where panelHidden marks the slot closing while resize()'s own awaits (datastore.get, then viewMeta) are already in flight -- the first check alone would have passed clean here.
 test("a resize tick whose own awaits are interleaved by a mid-flight close is dropped (second check)", async () => {
   const nav = await freshNavigator();
 
@@ -275,13 +219,8 @@ test("a resize tick whose own awaits are interleaved by a mid-flight close is dr
   );
 
   const resizePromise = nav.resize({ slot: "lhs", width: 300 });
-  // Starts, and marks `closingSlots`, while resize's `datastore.get` is still
-  // pending -- resize has already taken its first (clean) check by now.
   const hiddenPromise = nav.panelHidden({ slot: "lhs" });
 
-  // Let resize's datastore.get resolve with a real view name; panelHidden's
-  // own datastore.del stays deliberately unresolved, so closingSlots is still
-  // marked when resize reaches viewMeta and, after that, its second check.
   resolveGet("std.spaceTree");
   await resizePromise;
   expect(editor.showPanel).not.toHaveBeenCalled();
@@ -290,15 +229,8 @@ test("a resize tick whose own awaits are interleaved by a mid-flight close is dr
   await hiddenPromise;
 });
 
-// route() hops are deliberately not
-// persisted to the datastore, so after a wipe the datastore alone would
-// re-derive the pre-hop view. The panel's own reported `view` (from its live
-// React state, sent in the resize payload) is authoritative instead.
 test("resize after a wipe trusts the panel's reported view over a stale (pre-hop) datastore entry", async () => {
   const nav = await freshNavigator();
-  // The datastore still remembers the pre-hop view -- route() never writes
-  // dockedKey -- but the panel reports it is actually showing the routed-to
-  // view.
   datastore.get.mockResolvedValue("std.spaceTree");
 
   await nav.resize({ slot: "lhs", width: 321, view: "std.tagTree" });

@@ -35,9 +35,6 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   system,
   events,
 }));
-// Only reached through builtins.ts's views/tags.ts (a handler that reopens
-// std.pages); unused here, and pulling in the real module would drag the
-// whole panel plug along.
 vi.mock("./navigator.ts", () => ({ open }));
 
 const {
@@ -83,7 +80,6 @@ test("register rejects a name already claimed by a built-in", () => {
   expect(() => register({ meta: luaMeta({ name: "std.pages" }) })).toThrow(
     /std\.pages.*built-in/,
   );
-  // Rejected outright: never makes it into the Lua half of the registry.
   expect(resolveMeta("std.pages")).toEqual(builtinMeta("std.pages"));
 });
 
@@ -135,8 +131,6 @@ test("a non-meta hook for an unknown view never reaches navigator:luaCall", asyn
 });
 
 test("a built-in hook is dispatched directly, without touching navigator:luaCall", async () => {
-  // std.toc's rows come back empty off a non-page path, with nothing else to
-  // mock -- see builtins.test.ts's own version of this case.
   editor.getCurrentPath.mockResolvedValue("assets/logo.png");
 
   const rows = await handle({ view: "std.toc", hook: "rows" });
@@ -164,12 +158,6 @@ test("unregister is a harmless no-op for a name that was never registered", () =
   expect(() => unregister("space.never-registered")).not.toThrow();
 });
 
-/**
- * `selectInFlight` -- what `navigator.ts`'s `supersede` waits on so a newer
- * activation can't null a pick out from under a row the user already
- * clicked. Deferred rather than resolved eagerly, so the
- * test can observe the map populated *while* the dispatch is still pending.
- */
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -186,8 +174,7 @@ test('selectInFlight tracks a "select" hook\'s dispatch, and clears once it sett
   events.dispatchEvent.mockReturnValue(promise);
 
   const call = handle({ view: "space.inflight", hook: "select", args: {} });
-  // The dispatch hasn't settled yet -- give the mocked promise's `.then`
-  // microtask a tick to run before asserting the map is populated.
+  // Gives the mocked promise's .then microtask a tick to run before asserting the map is populated.
   await Promise.resolve();
 
   expect(selectInFlight("space.inflight")).toBeDefined();

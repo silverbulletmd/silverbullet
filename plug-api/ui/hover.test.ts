@@ -49,7 +49,6 @@ test("a drop's coordinates replace the pre-drag ones", () => {
   atPoint.set("10,20", row("Alpha"));
   atPoint.set("10,300", row("Target"));
 
-  // Where the drag began.
   tracker.track(
     { clientX: 10, clientY: 20, target: row("Alpha") } as any,
     rowAt,

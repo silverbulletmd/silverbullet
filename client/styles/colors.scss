@@ -107,12 +107,10 @@
   color: var(--action-button-hover-color);
 }
 
-// Only color the expander button, when the hamburger menu is open
 .sb-actions:not(.open) button.expander:hover {
   color: var(--action-button-color);
 }
 
-/* Modal boxes */
 .sb-modal-box {
   color: var(--modal-color);
   background-color: var(--modal-background-color);
@@ -162,8 +160,6 @@
     }
   }
 }
-
-/* Editor */
 
 #sb-editor {
   .cm-content {
@@ -229,7 +225,6 @@
   .sb-line-h4,
   .sb-line-h5,
   .sb-line-h6 {
-    // background-color: rgba(0, 30, 77, 0.5);
     color: var(--editor-heading-color);
   }
 
@@ -269,7 +264,6 @@
   color: var(--editor-naked-url-color);
 }
 
-/* Color list items when the cursor is on it */
 .sb-li-cursor .sb-meta {
   color: var(--editor-line-meta-color);
 }
@@ -369,8 +363,6 @@ tbody tr:nth-of-type(even) {
   background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));
 }
 
-// Admonitions
-
 .sb-admonition {
   border-left-color: var(--admonition-color);
 }
@@ -384,8 +376,6 @@ tbody tr:nth-of-type(even) {
 .sb-admonition-type::before {
   background-color: var(--admonition-color);
 }
-
-// Frontmatter
 
 .sb-frontmatter {
   background-color: var(--editor-frontmatter-background-color);
@@ -487,5 +477,5 @@ a.sb-wiki-link-invalid,
 }
 
 .sb-line-comment {
-  background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
+  background-color: var(--editor-code-comment-color);
 }

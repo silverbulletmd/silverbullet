@@ -89,7 +89,6 @@ async function fillNavPhrase(
   }).toPass({ timeout: 20_000 });
 }
 
-/** Open an existing page through the page picker. */
 export async function navigateViaPagePicker(page: Page, name: string) {
   const frame = await openPagePicker(page);
   await fillNavPhrase(page, name, () =>
@@ -100,10 +99,7 @@ export async function navigateViaPagePicker(page: Page, name: string) {
   await expect(page.locator(".sb-modal")).toBeHidden();
 }
 
-/**
- * Create a page through the page picker's create row. `Shift-Enter` creates
- * from wherever the selection stands.
- */
+/** `Shift-Enter` creates from wherever the selection stands. */
 export async function createPageViaPagePicker(page: Page, name: string) {
   const frame = await openPagePicker(page);
   // The chip is the sole create signifier now; the primary is just the

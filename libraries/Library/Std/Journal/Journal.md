@@ -149,7 +149,6 @@ if config.get("journal.enabled", true) then
   navigator.define {
     name = "std.journal",
     title = "Journal",
-    command = "Navigator: Journal",
     dock = "modal",
     presentation = {
       mode = "tree",
@@ -165,6 +164,7 @@ if config.get("journal.enabled", true) then
       },
     },
     source = function() return journal.entries() end,
+    onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
   }
 
   command.update {

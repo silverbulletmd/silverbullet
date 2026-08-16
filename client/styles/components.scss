@@ -12,7 +12,7 @@
   font-family: var(--ui-font);
 }
 
-/* Button base (relocated from colors.scss so panels linking components.css get it) */
+/* Button base (so panels linking components.css get it) */
 .sb-button,
 .sb-button-primary {
   --color: var(--button-color);
@@ -43,13 +43,11 @@
   }
 
   &:focus-visible {
-    // Subtle ring just outside the button (replaces the old thick inset ring).
     outline: 2px solid var(--ui-accent-color);
     outline-offset: 2px;
   }
 }
 
-/* Button variants */
 .sb-button-danger {
   background-color: var(--danger-color);
   color: var(--danger-contrast-color);
@@ -94,7 +92,6 @@
   }
 }
 
-/* Inputs & selects */
 .sb-button:disabled,
 .sb-button-primary:disabled,
 .sb-button-danger:disabled,
@@ -130,7 +127,6 @@
   cursor: pointer;
 }
 
-/* Tabs */
 .sb-tabs {
   display: flex;
   gap: 0;
@@ -158,7 +154,6 @@
   }
 }
 
-/* Alerts / banners */
 .sb-alert {
   padding: 8px 12px;
   font-size: 0.85em;
@@ -184,7 +179,6 @@
   border-color: var(--alert-info-border-color);
 }
 
-/* Badge */
 .sb-badge {
   flex-shrink: 0;
   display: inline-flex;
@@ -197,7 +191,6 @@
   border-radius: 4px;
 }
 
-/* Progress bar */
 .sb-progress {
   width: 100%;
   height: 4px;
@@ -212,8 +205,7 @@
   transition: width 150ms ease;
 }
 
-/* Inline keyboard-shortcut hint inside a button, e.g. "Cancel esc" / "Ok ⏎".
-   Subtle and inherits the button's text color. */
+/* Subtle and inherits the button's text color. */
 .sb-kbd {
   margin-left: 0.5em;
   font-size: 0.85em;
@@ -356,7 +348,6 @@
   justify-content: center;
 }
 
-// The affordance, on hover only: a grip line down the draggable edge.
 .sb-resizer::after {
   content: "";
   width: 2px;

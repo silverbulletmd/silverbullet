@@ -251,11 +251,6 @@ html[data-slot="modal"] body {
   background-image: none;
 }
 
-// A folder that is also a page (clicking its name opens that page, where a
-// pure folder's name only expands) carries `.sb-nav-dual` but draws exactly
-// like any other folder heading -- deliberately: the marking that used to be
-// here read as noise on a tree of them. The class stays as a styling hook.
-
 // The row's leading icon slot's layout lives in the shared stylesheet (see
 // `client/styles/components.scss`) since `TreeView` renders the same class;
 // only its dimmed color stays here.

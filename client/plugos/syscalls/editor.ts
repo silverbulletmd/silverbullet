@@ -63,7 +63,7 @@ import {
 import { forceLinting } from "@codemirror/lint";
 import { openSearchPanel } from "@codemirror/search";
 import type { Transaction } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, runScopeHandlers } from "@codemirror/view";
 import {
   coerceAndValidateRef,
   type Ref,
@@ -408,9 +408,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
         },
       ],
     },
-    // Re-evaluate every baked section on the current page and rewrite each body
-    // with its latest output (same as the "Baked Sections: Update" command),
-    // exposed for programmatic use.
     "editor.updateBakedSections": {
       callback: (): Promise<void> => {
         return updateBakedSections(client);
@@ -729,13 +726,52 @@ export function editorSyscalls(client: Client): SysCallMapping {
       },
       description: "Returns focus to the main editor.",
     },
+    "editor.forwardKeyboardShortcut": {
+      callback: (
+        _ctx,
+        descriptor: {
+          key: string;
+          ctrlKey?: boolean;
+          metaKey?: boolean;
+          altKey?: boolean;
+          shiftKey?: boolean;
+        },
+      ) => {
+        // The same scope `editor_ui.tsx`'s own global keydown listener
+        // dispatches through when the editor doesn't have focus -- a panel
+        // iframe's keydown can never reach that listener on its own (the
+        // iframe boundary stops it from bubbling), so this is how a chord
+        // like Cmd-/ still fires while a panel's filter input has focus.
+        const synthetic = new KeyboardEvent("keydown", {
+          key: descriptor.key,
+          ctrlKey: descriptor.ctrlKey,
+          metaKey: descriptor.metaKey,
+          altKey: descriptor.altKey,
+          shiftKey: descriptor.shiftKey,
+          bubbles: true,
+          cancelable: true,
+        });
+        runScopeHandlers(client.editorView, synthetic, "editor");
+      },
+      description:
+        "Dispatches a keyboard chord through the host's global command-key scope, as if pressed with editor focus. For a panel iframe forwarding a shortcut its own keydown pipeline left unclaimed.",
+      parameters: [
+        {
+          name: "descriptor",
+          type: "{ key: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean }",
+          description: "The KeyboardEvent fields the chord is matched on.",
+        },
+      ],
+    },
     "editor.getFocusedPanelSlot": {
       callback: (): PanelSlot | undefined => {
         const active = document.activeElement;
         if (!(active instanceof HTMLIFrameElement)) return undefined;
         const slot = active.dataset.slot;
-        return slot === "lhs" || slot === "rhs" || slot === "bhs" ||
-            slot === "modal"
+        return slot === "lhs" ||
+          slot === "rhs" ||
+          slot === "bhs" ||
+          slot === "modal"
           ? slot
           : undefined;
       },
@@ -743,7 +779,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         "Returns the slot of the panel (keyed or legacy) whose iframe currently holds focus, or undefined if none does.",
       returns: [
         {
-          type: "\"lhs\" | \"rhs\" | \"bhs\" | \"modal\" | undefined",
+          type: '"lhs" | "rhs" | "bhs" | "modal" | undefined',
           description:
             "The focused panel's slot, or undefined if no panel iframe has focus.",
         },
@@ -793,11 +829,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
     },
     "editor.panelReady": {
-      callback: (
-        _ctx,
-        id: string,
-        activationId?: string | number,
-      ) => {
+      callback: (_ctx, id: string, activationId?: string | number) => {
         const visibleKeyed = client.ui.viewState.keyedPanels.find(
           (p) => p.slot === id && !p.hidden,
         );
@@ -986,11 +1018,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.moveCursorToLine": {
       callback: (_ctx, line: number, column = 1, center = false) => {
-        // CodeMirror already keeps information about lines
         const cmLine = client.editorView.state.doc.line(line);
-        // How much to move inside the line, column number starts from 1
         const offset = Math.max(0, Math.min(cmLine.length, column - 1));
-        // Just reuse the implementation above
         const moveCursor = syscalls["editor.moveCursor"];
         const moveCursorCallback =
           typeof moveCursor === "function" ? moveCursor : moveCursor.callback;
@@ -1226,44 +1255,30 @@ export function editorSyscalls(client: Client): SysCallMapping {
           throw new Error("Vim module not loaded.");
         }
         const { Vim } = vimMod;
-        // Override the default "o" binding to be more intelligent and follow the markdown editor's behavior
         Vim.mapCommand("o", "action", "newline-continue-markup", {}, {});
         Vim.mapCommand("O", "action", "back-newline-continue-markup", {}, {});
         Vim.unmap("<C-q>", undefined as any);
         Vim.defineAction("newline-continue-markup", (cm) => {
-          // Append at end of line
           Vim.handleKey(cm, "A", "+input");
-          // Insert newline continuing markup where appropriate
           insertNewlineContinueMarkup(client.editorView) ||
             insertNewlineAndIndent(client.editorView);
         });
         Vim.defineAction("back-newline-continue-markup", (cm) => {
-          // Determine current line
           const pos = client.editorView.state.selection.main.from;
           const line = client.editorView.state.doc.lineAt(pos).number;
           if (line === 1) {
-            // We're on the top line
-            // Go to 0:0
             Vim.handleKey(cm, "0", "+input");
-            // Insert a newline
             insertNewline(client.editorView);
-            // Go up to the new line
             Vim.handleKey(cm, "k", "+input");
-            // Into insert mode
             Vim.handleKey(cm, "i", "+input");
           } else {
-            // We're elsewhere in the document
-            // Go up
             Vim.handleKey(cm, "k", "+input");
-            // Append mode at the end of the line
             Vim.handleKey(cm, "A", "+input");
-            // Insert a newline using the continue markup thing
             insertNewlineContinueMarkup(client.editorView) ||
               insertNewlineAndIndent(client.editorView);
           }
         });
 
-        // Load the config if any
         const config = client.config.get<VimConfig>("vim", {});
         if (config) {
           config.unmap?.forEach((binding) => {
@@ -1398,7 +1413,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       },
       description: "Moves the current line or selected lines downward.",
     },
-    // Folding
     "editor.fold": {
       callback: () => {
         foldCode(client.editorView);
@@ -1441,7 +1455,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       },
       description: "Redoes the most recently undone editor change.",
     },
-    // Cursor motion syscalls
     "editor.cursorCharLeft": {
       callback: () => cursorCharLeft(client.editorView),
       description:
@@ -1486,7 +1499,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: () => cursorDocEnd(client.editorView),
       description: "Moves the cursor to the end of the document.",
     },
-    // Cursor motions that also navigate the completion popup if it's open
     "editor.cursorLineUp": {
       callback: () => {
         const view = client.editorView;
@@ -1523,7 +1535,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       description:
         "Moves completion selection down one page when open, otherwise moves the cursor down one viewport page.",
     },
-    // Selection-extending motions
     "editor.selectCharLeft": {
       callback: () => selectCharLeft(client.editorView),
       description:
@@ -1587,7 +1598,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: () => selectPageDown(client.editorView),
       description: "Extends the selection downward by one viewport page.",
     },
-    // Delete
     "editor.deleteCharBackward": {
       callback: () => deleteCharBackward(client.editorView),
       description: "Deletes the selection or the character before the cursor.",
@@ -1620,7 +1630,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: () => transposeChars(client.editorView),
       description: "Transposes the characters around the cursor.",
     },
-    // Enter: accept completion if popup is open, else newline-and-indent
     "editor.insertNewline": {
       callback: () => {
         const view = client.editorView;
@@ -1630,7 +1639,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       description:
         "Accepts the active completion, or inserts a newline with appropriate indentation.",
     },
-    // Completion popup control
     "editor.acceptCompletion": {
       callback: () => acceptCompletion(client.editorView),
       description:

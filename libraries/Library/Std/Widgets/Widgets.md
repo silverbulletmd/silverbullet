@@ -19,7 +19,7 @@ end)}
 ${widgets.commandButton("System: Reload")}
 
 ## Top and bottom widgets
-* Table of contents: shows a table of contents for your page — **off by default**; the `Navigator: Table of Contents` and `Navigator: Outline Picker` commands show the same headers on demand instead (see [[Library/Std/APIs/Navigator#Built-in views]])
+* Table of contents: shows a table of contents for your page — **off by default**; the `Navigate: Outline` and `Navigate: Outline Picker` commands show the same headers on demand instead (see [[Library/Std/APIs/Navigator#Built-in views]])
 * Linked mentions: show a list of links that link to the current page, at the bottom of your page
 * Linked tasks: shows a list of tasks that link to the current page, at the top of the page
 
@@ -111,7 +111,6 @@ config.defineCategory {
   priority = 45,
 }
 
--- configuration schema
 config.define("std.widgets.toc", {
   type = "object",
   properties = {
@@ -177,7 +176,6 @@ function widgets.toc(options)
     return widget.new{}
   end
 
-  -- Filter headers to display
   local headersToDisplay = {}
   for _, header in ipairs(headers) do
     if not (options.maxHeader and header.level > options.maxHeader or
@@ -186,27 +184,22 @@ function widgets.toc(options)
     end
   end
   
-  -- Find min level
   local minLevel = 6
   for _, header in ipairs(headersToDisplay) do
     minLevel = math.min(minLevel, header.level)
   end
 
-  -- Build a nested ul/li structure based on heading levels
   local function buildTocList(headers)
     local root = dom.ul {  }
     local stack = { { node = root, level = minLevel - 1, lastLi = nil } }
 
     for _, header in ipairs(headers) do
-      -- Pop back up when heading is at same or higher level
       while #stack > 1 and stack[#stack].level >= header.level do
         table.remove(stack)
       end
 
-      -- Open nested <ul>s for deeper headings
       while stack[#stack].level < header.level - 1 do
         local newUl = dom.ul {}
-        -- Attach nested list to the last <li> in the current level, or create one if needed
         local parent = stack[#stack].lastLi or dom.li {}
         if not stack[#stack].lastLi then
           stack[#stack].node.appendChild(parent)
@@ -215,7 +208,6 @@ function widgets.toc(options)
         table.insert(stack, { node = newUl, level = stack[#stack].level + 1, lastLi = nil })
       end
 
-      -- Create the <li> with link
       local li = dom.li {
         dom.a {
           onclick = function()
@@ -276,7 +268,6 @@ ${_.snippet}
 
 ]==]
 
--- configuration schema
 config.define("std.widgets.linkedMentions", {
   type = "object",
   properties = {
@@ -328,7 +319,6 @@ end
 ```space-lua
 -- priority: 10
 
--- configuration schema
 config.define("std.widgets.linkedTasks", {
   type = "object",
   properties = {

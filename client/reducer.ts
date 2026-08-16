@@ -49,13 +49,11 @@ export default function reducer(
       };
     }
     case "update-current-page-meta": {
-      // Update in the allPages list as well
       state.allPages = state.allPages.map((pageMeta) =>
         pageMeta.name === action.meta.name
           ? { ...action.meta, lastOpened: Date.now() }
           : pageMeta,
       );
-      // Can't update page meta if not on a page
       if (!state.current || !isMarkdownPath(state.current.path)) {
         return state;
       }
@@ -73,7 +71,6 @@ export default function reducer(
         isOnline: action.isOnline,
       };
     case "update-page-list": {
-      // Let's move over any "lastOpened" times to the "allPages" list
       const oldPageMeta = new Map(
         [...state.allPages].map((pm) => [pm.name, pm]),
       );

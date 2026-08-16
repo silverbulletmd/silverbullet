@@ -64,7 +64,6 @@ export function resolveHover(
   tracker.set(rowAt(tracker.elementUnderPointer()));
 }
 
-/** Whether the pointer is over this row. */
 export function useHovered(tracker: HoverTracker, key: unknown): boolean {
   const [hovered, setHovered] = useState(() => tracker.get() === key);
   useEffect(() => {

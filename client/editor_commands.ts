@@ -107,7 +107,6 @@ export function registerEditorCommands(
 ): void {
   const view = () => client.editorView;
 
-  // Enter: accept completion if popup is open, else newline-and-indent
   hook.registerCommand({
     name: "Editor: Insert Newline",
     key: "Enter",
@@ -122,7 +121,6 @@ export function registerEditorCommands(
     },
   });
 
-  // Delete
   hook.registerCommand({
     name: "Editor: Delete Char Backward",
     key: ["Backspace", "Ctrl-h"],
@@ -185,7 +183,6 @@ export function registerEditorCommands(
     run: async () => transposeChars(view()),
   });
 
-  // Cursor motions
   hook.registerCommand({
     name: "Editor: Cursor Char Left",
     key: "ArrowLeft",
@@ -315,7 +312,6 @@ export function registerEditorCommands(
     },
   });
 
-  // Selection-extending motions
   hook.registerCommand({
     name: "Editor: Select Char Left",
     key: "Shift-ArrowLeft",
@@ -424,7 +420,6 @@ export function registerEditorCommands(
     run: async () => selectPageDown(view()),
   });
 
-  // Selection / indentation
   hook.registerCommand({
     name: "Editor: Select All",
     key: "Ctrl-a",
@@ -444,7 +439,6 @@ export function registerEditorCommands(
     requireEditor: "page",
     run: async () => {
       const v = view();
-      // Accept completion popup suggestion if open, else indent
       if (acceptCompletion(v)) return true;
       return indentMore({ state: v.state, dispatch: v.dispatch });
     },
@@ -461,7 +455,6 @@ export function registerEditorCommands(
     },
   });
 
-  // Undo / redo
   hook.registerCommand({
     name: "Editor: Undo",
     key: "Ctrl-z",
@@ -481,7 +474,6 @@ export function registerEditorCommands(
     run: async () => redo(view()),
   });
 
-  // Delete line
   hook.registerCommand({
     name: "Delete Line",
     key: "Ctrl-d",
@@ -490,7 +482,6 @@ export function registerEditorCommands(
     run: async () => deleteLine(view()),
   });
 
-  // Completion popup
   hook.registerCommand({
     name: "Editor: Start Completion",
     key: "Ctrl-Space",

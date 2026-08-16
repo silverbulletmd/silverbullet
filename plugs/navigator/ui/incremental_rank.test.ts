@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { rank } from "../../../plug-api/lib/fuzzy.ts";
 import {
   isSafeIncrementalAppend,
@@ -8,17 +8,15 @@ import {
 import type { RankedRow } from "./engine.ts";
 import type { Row } from "./types.ts";
 
-// --- isSafeIncrementalAppend: the tier-bracket boundaries themselves ---
-
 test("safe: append within the same tier bracket", () => {
   // 1->2, 4->5..6->7 (max=1 throughout), 8->9..8->20 (max=2 throughout).
   expect(isSafeIncrementalAppend("a", "ab")).toBe(true);
   expect(isSafeIncrementalAppend("abcd", "abcde")).toBe(true);
   expect(isSafeIncrementalAppend("abcd", "abcdefg")).toBe(true);
   expect(isSafeIncrementalAppend("abcdefgh", "abcdefghi")).toBe(true);
-  expect(
-    isSafeIncrementalAppend("abcdefgh", "abcdefghijklmnopqrst"),
-  ).toBe(true);
+  expect(isSafeIncrementalAppend("abcdefgh", "abcdefghijklmnopqrst")).toBe(
+    true,
+  );
 });
 
 test("unsafe: append crosses a tier gate (2->3, 3->4, 7->8)", () => {
@@ -33,9 +31,7 @@ test("safe: starting a brand new token (space typed)", () => {
   // tier gates, since it started at length 0 this transition.
   expect(isSafeIncrementalAppend("abcd", "abcd e")).toBe(true);
   expect(isSafeIncrementalAppend("abcd ", "abcd e")).toBe(true);
-  expect(isSafeIncrementalAppend("abcd", "abcd etaonrishdlucmfyw")).toBe(
-    true,
-  );
+  expect(isSafeIncrementalAppend("abcd", "abcd etaonrishdlucmfyw")).toBe(true);
 });
 
 test("unsafe: backspace (phrase shrinks)", () => {
@@ -56,8 +52,6 @@ test("unsafe: starting from an empty phrase", () => {
 test("unsafe: unchanged or shorter phrase", () => {
   expect(isSafeIncrementalAppend("abcd", "abcd")).toBe(false);
 });
-
-// --- rankIncrementally: byte-identical to full ranking ---
 
 const FIELDS = { primary: { weight: 1.0, segments: true }, description: 0.5 };
 
@@ -139,7 +133,9 @@ function buildCorpus(rng: () => number, n: number): Row[] {
     // A duplicate-tail tag so plenty of rows genuinely tie in score --
     // the tie-break (orderId) is exactly what the ordering fix protects.
     segs.push(`Item ${i % 20}`);
-    rows.push(makeRow(segs.join("/"), i % 5 === 0 ? "shared description" : undefined));
+    rows.push(
+      makeRow(segs.join("/"), i % 5 === 0 ? "shared description" : undefined),
+    );
   }
   for (let i = 0; i < Math.floor(n * 0.05); i++) {
     let s = "";
@@ -173,8 +169,10 @@ function assertMatchesFullRankAtEveryStep(
     );
     cache = next;
     const expected = summarize(fullRankFn(rows, phrase));
-    expect(summarize(ranked), `mismatch at phrase ${JSON.stringify(phrase)}`)
-      .toEqual(expected);
+    expect(
+      summarize(ranked),
+      `mismatch at phrase ${JSON.stringify(phrase)}`,
+    ).toEqual(expected);
   }
 }
 
@@ -274,10 +272,10 @@ test("property: many random typing sequences (append + backspace) always match f
   const steps = Array.from({ length: target.length }, (_, i) =>
     target.slice(0, i + 1),
   );
-  assertMatchesFullRankAtEveryStep(rows, steps, { trial: "deterministic-8char" });
+  assertMatchesFullRankAtEveryStep(rows, steps, {
+    trial: "deterministic-8char",
+  });
 });
-
-// --- Cache invalidation ---
 
 test("invalidation: a changed filteredRows reference forces a full re-rank", () => {
   const rowA = makeRow("Alpha");
@@ -290,7 +288,9 @@ test("invalidation: a changed filteredRows reference forces a full re-rank", () 
   cache = first.next;
   const second = rankIncrementally(cache, {}, rowsAfter, "al", fullRankFn);
 
-  expect(summarize(second.ranked)).toEqual(summarize(fullRankFn(rowsAfter, "al")));
+  expect(summarize(second.ranked)).toEqual(
+    summarize(fullRankFn(rowsAfter, "al")),
+  );
   expect(second.ranked.some((r) => r.row === rowB)).toBe(true);
 });
 
@@ -310,7 +310,9 @@ test("invalidation: segment change (new filteredRows array, same content) still 
   const first = rankIncrementally(cache, {}, rows, "a", fullRankFn);
   cache = first.next;
   const second = rankIncrementally(cache, {}, rowsCopy, "al", fullRankFn);
-  expect(summarize(second.ranked)).toEqual(summarize(fullRankFn(rowsCopy, "al")));
+  expect(summarize(second.ranked)).toEqual(
+    summarize(fullRankFn(rowsCopy, "al")),
+  );
 });
 
 test("tie-break order matches full ranking exactly (candidate subset preserves filteredRows order)", () => {
@@ -330,6 +332,32 @@ test("tie-break order matches full ranking exactly (candidate subset preserves f
   cache = second.next;
   const third = rankIncrementally(cache, {}, rows, "item z", fullRankFn);
 
-  expect(summarize(second.ranked)).toEqual(summarize(fullRankFn(rows, "item ")));
-  expect(summarize(third.ranked)).toEqual(summarize(fullRankFn(rows, "item z")));
+  expect(summarize(second.ranked)).toEqual(
+    summarize(fullRankFn(rows, "item ")),
+  );
+  expect(summarize(third.ranked)).toEqual(
+    summarize(fullRankFn(rows, "item z")),
+  );
+});
+
+test("an append keystroke ranks only the previous match set, not every filtered row", () => {
+  const matching = [makeRow("Alpha"), makeRow("Alphabet"), makeRow("Alpine")];
+  const nonMatching = Array.from({ length: 50 }, (_, i) => makeRow(`Row ${i}`));
+  const rows = [...matching, ...nonMatching];
+  const rankSpy = vi.fn(fullRankFn);
+  const view = {};
+
+  let cache: RankCacheEntry | undefined;
+  const first = rankIncrementally(cache, view, rows, "a", rankSpy);
+  cache = first.next;
+  expect(rankSpy).toHaveBeenLastCalledWith(rows, "a");
+
+  // "a" -> "al" is a same-tier-bracket append (isSafeIncrementalAppend), so
+  // this call's candidate set has to be the ~3 rows "a" already matched, not
+  // the full 53-row `rows`.
+  rankIncrementally(cache, view, rows, "al", rankSpy);
+  const [candidateRows, phrase] = rankSpy.mock.calls[1];
+  expect(phrase).toBe("al");
+  expect(candidateRows.length).toBeLessThan(rows.length);
+  expect(candidateRows.length).toBeLessThanOrEqual(matching.length);
 });

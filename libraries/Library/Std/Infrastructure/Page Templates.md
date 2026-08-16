@@ -202,8 +202,8 @@ end
 navigator.define {
   name = "std.pageTemplates",
   title = "Page templates",
-  command = "Navigator: Page Templates",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = {
     mode = "list",
     row = {

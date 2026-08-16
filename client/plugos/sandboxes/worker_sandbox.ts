@@ -7,7 +7,6 @@ import { race, timeout } from "@silverbulletmd/silverbullet/lib/async";
 import { fsEndpoint } from "../../spaces/constants.ts";
 
 /**
- * Represents a "safe" execution environment for plug code
  * Effectively this wraps a web worker, the reason to have this split from Plugs is to allow plugs to manage multiple sandboxes, e.g. for performance in the future
  */
 export class WorkerSandbox<HookT> implements Sandbox<HookT> {
@@ -25,7 +24,6 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
     private workerOptions = {},
   ) {}
 
-  /** Factory producing a WorkerSandbox for a plug file at a local space path. */
   static forPath<HookT>(path: string): SandboxFactory<HookT> {
     return (plug) =>
       new WorkerSandbox(
@@ -40,7 +38,6 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
   init(): Promise<void> {
     console.log("Booting up worker from", this.workerUrl.pathname);
     if (this.worker) {
-      // Race condition
       console.warn("Double init of sandbox, ignoring");
       return Promise.resolve();
     }
@@ -58,10 +55,8 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
         this.worker!.onmessage = (ev) => {
           if (ev.data.type === "manifest") {
             this.manifest = ev.data.manifest;
-            // Set manifest in the plug
             this.plug.manifest = this.manifest!;
 
-            // Set assets in the plug
             this.plug.assets = new AssetBundle(
               this.manifest?.assets ? (this.manifest.assets as AssetJson) : {},
             );
@@ -92,7 +87,6 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
               result: result,
             } as WorkerMessage);
         } catch (e: any) {
-          // console.error("Syscall fail", e);
           this.worker &&
             this.worker!.postMessage({
               type: "sysr",
@@ -118,7 +112,6 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
 
   async invoke(name: string, args: any[]): Promise<any> {
     if (!this.worker) {
-      // Lazy initialization
       await this.init();
     }
     this.reqId++;

@@ -251,19 +251,12 @@ navigator.define {
 \`\`\`
 `;
 
-// A recognizable, assertable space style: the panel iframes get the user's
-// space CSS via `panelStyles()`, so a row's outline color is a direct probe
-// for "did the space style reach this panel".
 const SPACE_STYLE = `# Styles
 \`\`\`space-style
 .sb-nav-row { outline-color: rgb(1, 2, 3); }
 \`\`\`
 `;
 
-// This suite reaches its views through the command palette, and asserts on
-// the *mechanisms* rather than on the built-in pickers -- which get their own
-// suite (`navigator-pickers.test.ts`), where `Cmd-k` and friends are asserted
-// for real.
 test.use({
   spaceFiles: {
     "index.md": "Welcome",
@@ -282,17 +275,12 @@ async function runCommand(sbPage: Page, command: string) {
 async function openNavigator(sbPage: Page) {
   await runCommand(sbPage, "Navigator: Pages");
   const frame = sbPage.frameLocator(".sb-modal iframe");
-  // Rows only appear once the ready/activate handshake completes, and
-  // background indexing can deliver them in batches — wait (with retries) for
-  // a page we know the space contains rather than for "some row".
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
   ).toBeVisible();
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Beta" }),
   ).toBeVisible();
-  // Wait for the view's own phrase-reset effect to have already landed, so a
-  // caller's immediate `.fill()` can't race it.
   await expect(navInput(sbPage)).toHaveValue("", { timeout: 20_000 });
   return frame;
 }
@@ -314,20 +302,11 @@ async function openNavigatorView(
   return frame;
 }
 
-// A `.sb-keyed-panel` wrapper never leaves the DOM when hidden -- it's
-// toggled via a CSS class -- so asserting on it directly (not on a
-// `:not(.sb-hidden)` class-presence query, which a CSS specificity bug can
-// satisfy while the element is still visually rendered) is what actually
-// catches a "closed but still showing" regression.
+// Asserts on the class directly, not a :not(.sb-hidden) query, which a CSS specificity bug can satisfy while still visually rendered.
 function sidebarTreePanel(sbPage: Page) {
   return sbPage.locator("#sb-main .sb-keyed-panel-rhs");
 }
 
-/**
- * Closing a sidebar is the header close button (or Escape on an empty
- * phrase) -- running the view's command again re-focuses it, it never
- * toggles the dock closed.
- */
 async function closeSidebar(sbPage: Page, selector = ".sb-keyed-panel-rhs") {
   await sbPage
     .frameLocator(`${selector} iframe`)
@@ -335,11 +314,7 @@ async function closeSidebar(sbPage: Page, selector = ".sb-keyed-panel-rhs") {
     .click();
 }
 
-/**
- * Where focus actually sits, on both sides of the frame boundary: an input
- * can be `document.activeElement` inside its own iframe while the host still
- * has focus somewhere else entirely, in which case keystrokes never reach it.
- */
+// An input can be document.activeElement inside its iframe while the host has focus elsewhere, so keystrokes never reach it.
 function focusState(sbPage: Page, iframeSelector: string) {
   return sbPage.evaluate((sel) => {
     const f = document.querySelector(sel) as HTMLIFrameElement | null;
@@ -367,12 +342,9 @@ test("opens with source-ordered rows and filters in-frame", async ({
   const primaries = await frame.locator(".sb-nav-primary").allInnerTexts();
   expect(primaries).toContain("Projects/Alpha");
   expect(primaries).toContain("Projects/Beta");
-  // `order by _.name` is the source order, and an empty phrase preserves it
   expect([...primaries].sort()).toEqual(primaries);
 
   await navInput(sbPage).fill("alpha");
-  // Fuzzy matching keeps loose subsequence hits, but the exact page wins and
-  // the list shrinks — all without leaving the iframe.
   await expect(frame.locator(".sb-nav-primary").first()).toHaveText(
     "Projects/Alpha",
   );
@@ -419,13 +391,10 @@ test("arrow keys move the selection", async ({ sbPage }) => {
   await expect(selected).toHaveText(second);
 });
 
-test("Escape clears the phrase, then closes the panel", async ({ sbPage }) => {
+test("Escape closes the modal even with a phrase typed", async ({ sbPage }) => {
   await openNavigator(sbPage);
 
   await navInput(sbPage).fill("beta");
-  await navInput(sbPage).press("Escape");
-  await expect(navInput(sbPage)).toHaveValue("");
-
   await navInput(sbPage).press("Escape");
   await expect(
     sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
@@ -457,24 +426,7 @@ test("reopening reuses the same iframe and clears the stale phrase", async ({
   await expect(navInput(sbPage)).toHaveValue("");
 });
 
-// C1 (critical): reopening a modal on the view it
-// already displays took the `else if (!passive)` branch in `createActivate`,
-// which never calls `setView`/`setBootError` -- so `NavRoot`'s paint-timed
-// `useLayoutEffect([view, bootError])` never re-fires, `editor.panelReady`
-// is never sent, and the only thing that ever revealed the panel was the
-// 800ms fallback. Every view without `refreshOnOpen: true` hit this on
-// every reopen -- which is the *default* (`builtins.ts`'s `baseMeta`), so
-// every space-Lua-defined picker plus the built-in `std.anchors`/`std.tags`.
-// A `refreshOnOpen: true` view (the page picker, command palette, outline
-// picker) escaped only incidentally, because its background refresh
-// produces a fresh `view` object and re-fires the effect anyway -- which is
-// exactly why this bug shipped unnoticed: every one of the report's own
-// measurements happened to use a `refreshOnOpen: true` view.
-//
-// Fixed by signalling readiness directly from the activation path itself
-// (`createActivate`'s `signalReady`, `activation.ts`) for a reopen of an
-// already-displayed view -- its content is already settled (nothing new is
-// rendering), so there's nothing to wait for.
+// Reopening an already-displayed view took the `else if (!passive)` branch in `createActivate`, which never called `setView`, so only the 800ms fallback ever revealed the panel.
 test("C1: reopening an already-displayed modal view reveals promptly, not via the 800ms fallback -- for both a refreshOnOpen view and a default (space-Lua) one", async ({
   sbPage,
 }) => {
@@ -492,12 +444,6 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
       (c) => (globalThis as any).client.runCommandByName(c),
       command,
     );
-    // Escape below has to land on the panel's own keydown handler to close
-    // it -- which needs actual DOM focus in the iframe, not just the modal
-    // being visible. `runCommandByName`'s own promise resolves once the
-    // *host* side of opening it is done; the panel's own `focusInput` is a
-    // downstream hop through the activation event forwarding, not
-    // necessarily settled yet by then.
     await expectNavInputFocused(sbPage);
   };
   const close = async () => {
@@ -505,25 +451,19 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
   };
 
-  // View A: "Navigator: Pages" (NAV_CONFIG, space-Lua-defined, no
-  // `refreshOnOpen` -- the default, `false`). This is the class C1 hit.
   const luaFirst = await revealedWithin(() => open("Navigator: Pages"));
   await close();
 
   const luaWarmReopen = await revealedWithin(() => open("Navigator: Pages"));
   await close();
 
-  await open("Navigate: Page Picker"); // switch to a different view...
+  await open("Navigate: Page Picker");
   await close();
   const luaReopenAfterSwitch = await revealedWithin(() =>
     open("Navigator: Pages"),
-  ); // ...and back.
+  );
   await close();
 
-  // View B: "Navigate: Page Picker" (std.pages, TS builtin,
-  // `refreshOnOpen: true`) -- was already fast before the fix, incidentally
-  // (see the report's root-cause note above); pinned here too so a
-  // regression in either path shows.
   const tsFirst = await revealedWithin(() => open("Navigate: Page Picker"));
   await close();
   const tsWarmReopen = await revealedWithin(() =>
@@ -541,8 +481,6 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
       `ts(first=${tsFirst}ms warm=${tsWarmReopen}ms afterSwitch=${tsReopenAfterSwitch}ms)`,
   );
 
-  // The regression guard: a reopen (warm, or after switching away and back)
-  // must never fall back to the 800ms timeout, for either view type.
   for (const ms of [
     luaWarmReopen,
     luaReopenAfterSwitch,
@@ -556,9 +494,6 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
 test("first open of a never-preloaded dock still activates", async ({
   sbPage,
 }) => {
-  // Only the modal is preloaded, so opening an lhs view mounts the panel and
-  // fires `navigator:activate` before the iframe can listen — the boot-time
-  // `navigator:ready` pull is the only thing that populates it.
   await runCommand(sbPage, "Navigator: Sidebar");
   const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
   await expect(frame.locator(".sb-nav-title")).toHaveText("Sidebar");
@@ -576,10 +511,6 @@ test("a failing source renders an error and keeps retrying", async ({
   await expect(navInput(sbPage)).toBeFocused();
   const firstAttempt = await error.innerText();
 
-  // `editor:pageLoaded` is *not* a refresh trigger (it would re-run every
-  // view's source on every navigation); an actual refreshOn event is --
-  // "flaky" declares the same set the space-derived built-ins do, which
-  // includes `file:changed`.
   await writeFile(join(sbServer.spaceDir, "Retry.md"), "# Retry");
   await expect(error).not.toHaveText(firstAttempt, { timeout: 5000 });
   await expect(error).toContainText("source exploded");
@@ -595,11 +526,9 @@ test("switching views in an already-open dock replaces the rows", async ({
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
   ).toBeVisible();
 
-  // The panel keeps focus once shown; hand it back so the palette hotkey lands
   await sbPage.locator("#sb-editor .cm-content").click();
   await runCommand(sbPage, "Navigator: Sidebar Journal");
 
-  // Same panel, same iframe — only the view behind it changed
   await expect(frame.locator(".sb-nav-title")).toHaveText("Sidebar Journal");
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Journal/Today" }),
@@ -612,8 +541,7 @@ test("switching views in an already-open dock replaces the rows", async ({
 test("a keyed modal panel can be dismissed from outside its iframe", async ({
   sbPage,
 }) => {
-  // Without these the user is trapped behind the fixed backdrop whenever the
-  // panel's iframe fails to boot, since only in-iframe code can hidePanel.
+  // Without these the user is trapped behind the fixed backdrop whenever the panel's iframe fails to boot, since only in-iframe code can hidePanel.
   await openNavigator(sbPage);
   await sbPage
     .locator(".sb-modal-backdrop")
@@ -623,7 +551,6 @@ test("a keyed modal panel can be dismissed from outside its iframe", async ({
   ).toHaveCount(0);
 
   await openNavigator(sbPage);
-  // Drop focus out of the iframe, as it would be if the bundle never ran
   await sbPage.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   await sbPage.keyboard.press("Escape");
   await expect(
@@ -636,8 +563,6 @@ test("re-evaluating the panel bundle reuses the booted singletons", async ({
 }) => {
   const frame = await openNavigator(sbPage);
 
-  // The host re-posts `html` (re-running the bundle in a wiped body) whenever
-  // the panel config changes. Handlers and the row cache must not be rebuilt.
   await sbPage.evaluate(() => {
     const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
     const w = f.contentWindow as any;
@@ -666,7 +591,6 @@ test("re-evaluating the panel bundle reuses the booted singletons", async ({
   });
   expect(reused).toEqual({ sameEngine: true, listening: true });
 
-  // And it still filters, so the fresh render is wired to the live handlers
   await navInput(sbPage).fill("alpha");
   await expect(frame.locator(".sb-nav-primary").first()).toHaveText(
     "Projects/Alpha",
@@ -690,17 +614,15 @@ test("tree: keyboard navigation expands and navigates", async ({ sbPage }) => {
   const frame = await openNavigatorView(sbPage, "Navigator: Modal Tree");
   const input = frame.locator("input.sb-nav-input");
 
-  // The first visible row (the "Journal" folder) is selected by default,
-  // same as list mode.
   await expect(frame.locator(".sb-nav-selected")).toHaveAttribute(
     "data-path",
     "Journal",
   );
 
-  await input.press("ArrowRight"); // expand
+  await input.press("ArrowRight");
   await expect(frame.locator("[data-path='Journal/Today']")).toBeVisible();
 
-  await input.press("ArrowDown"); // step into the now-visible child
+  await input.press("ArrowDown");
   await expect(frame.locator(".sb-nav-selected")).toHaveAttribute(
     "data-path",
     "Journal/Today",
@@ -716,10 +638,6 @@ test("tree: filtering prunes, highlights, and restores expansion", async ({
   sbPage,
 }) => {
   const frame = await openNavigatorView(sbPage, "Navigator: Modal Tree");
-  // Background indexing can deliver "Projects"'s children in batches (the
-  // folder row itself appears as soon as either exists) -- wait for both,
-  // same readiness concern openNavigator() documents for list mode, before
-  // filtering on a name that only one of them has.
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
   await expect(frame.locator("[data-path='Projects/Beta']")).toBeVisible();
@@ -733,8 +651,7 @@ test("tree: filtering prunes, highlights, and restores expansion", async ({
   ).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toHaveCount(0);
 
-  await input.press("Escape"); // clears the phrase, not the panel
-  await expect(input).toHaveValue("");
+  await input.fill("");
   await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 });
 
@@ -746,9 +663,7 @@ test("list: typing highlights the matched characters", async ({ sbPage }) => {
   await expect(row.locator("mark")).toBeVisible();
   await expect(row.locator("mark")).toHaveText("Alpha");
 
-  // Same rule as the tree: cleared phrase, no mark.
-  await navInput(sbPage).press("Escape");
-  await expect(navInput(sbPage)).toHaveValue("");
+  await navInput(sbPage).fill("");
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }).locator("mark"),
   ).toHaveCount(0);
@@ -764,10 +679,7 @@ test("sidebar: opens, persists across page navigation, follows editor", async ({
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
-  // Regression guard for a bug where the keyed panel's nested .sb-panel had
-  // no flex container to grow inside, so its iframe collapsed to the
-  // browser's ~150px replaced-element default instead of filling the
-  // sidebar -- must never pass silently again.
+  // Regression guard: the keyed panel's nested .sb-panel once had no flex container to grow inside, so its iframe collapsed to the browser's ~150px replaced-element default instead of filling the sidebar.
   const iframeBox = await sbPage
     .locator(".sb-keyed-panel-rhs iframe")
     .boundingBox();
@@ -776,15 +688,10 @@ test("sidebar: opens, persists across page navigation, follows editor", async ({
   expect(mainBox).not.toBeNull();
   expect(Math.abs(iframeBox!.height - mainBox!.height)).toBeLessThan(5);
 
-  // The panel keeps focus once shown; hand it back so the palette hotkey lands
   await sbPage.locator("#sb-editor .cm-content").click();
 
-  // In-app navigation (page picker), not a full page reload, so the sidebar
-  // panel's iframe survives and follow-editor reacts to `editor:pageLoaded`.
   await navigateViaPagePicker(sbPage, "Projects/Alpha");
 
-  // The panel is still there (persisted across the navigation) and its tree
-  // followed the editor: "Projects" auto-expanded and "Alpha" got selected.
   await expect(
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
@@ -799,7 +706,7 @@ test("sidebar: reopens after being closed", async ({ sbPage }) => {
   await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
 
-  await runCommand(sbPage, "Navigator: Sidebar Tree"); // reopens
+  await runCommand(sbPage, "Navigator: Sidebar Tree");
   await expect(sidebarTreePanel(sbPage)).toBeVisible();
 });
 
@@ -816,11 +723,9 @@ test("sidebar: follow-editor reveal survives being hidden, then reopened", async
   await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
 
-  // Navigate while the sidebar is hidden -- follow-editor must stash the
-  // target instead of touching tree state, and apply it once shown again.
   await navigateViaPagePicker(sbPage, "Projects/Alpha");
 
-  await runCommand(sbPage, "Navigator: Sidebar Tree"); // reopen
+  await runCommand(sbPage, "Navigator: Sidebar Tree");
   await expect(
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
@@ -846,7 +751,6 @@ test("sidebar: resize handle changes width, persists, and restores", async ({
     handleBox.y + handleBox.height / 2,
   );
   await sbPage.mouse.down();
-  // rhs grows to the left: dragging left increases width.
   await sbPage.mouse.move(
     handleBox.x - 100,
     handleBox.y + handleBox.height / 2,
@@ -863,8 +767,6 @@ test("sidebar: resize handle changes width, persists, and restores", async ({
 
   const widened = (await panel.boundingBox())!.width;
 
-  // Close, then reopen: width should be restored from persistence, not reset
-  // to the default.
   await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
   await runCommand(sbPage, "Navigator: Sidebar Tree");
@@ -882,9 +784,7 @@ test("sidebar: the close button hides the panel", async ({ sbPage }) => {
   );
   await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
-  // A `.sb-keyed-panel.sb-hidden` that's actually still rendered (the C1
-  // regression) would keep occupying its flex share, so the editor
-  // wouldn't reclaim the full #sb-main width either.
+  // A .sb-keyed-panel.sb-hidden that's actually still rendered (the C1 regression) would keep occupying its flex share, so the editor wouldn't reclaim the full #sb-main width.
   const editorBox = (await sbPage.locator("#sb-editor").boundingBox())!;
   const mainBox = (await sbPage.locator("#sb-main").boundingBox())!;
   expect(mainBox.width - editorBox.width).toBeLessThan(5);
@@ -899,20 +799,15 @@ test("tree: expandAll opens every depth, and a collapse survives a refresh", asy
     "Navigator: Expand All Tree",
     ".sb-keyed-panel-rhs iframe",
   );
-  // Nobody expanded anything: both depths are simply there.
   await expect(frame.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
   });
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
   await expect(frame.locator("[data-path='Journal/Today']")).toBeVisible();
 
-  // A manual collapse, which is the only thing the view now remembers.
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 
-  // An out-of-band write refreshes the rows wholesale (see the watch test
-  // below). The collapse has to survive it, and the folder that wasn't there
-  // before has to arrive open rather than waiting to be found.
   await mkdir(join(sbServer.spaceDir, "Notes"), { recursive: true });
   await writeFile(join(sbServer.spaceDir, "Notes/Later.md"), "# Later");
 
@@ -939,8 +834,6 @@ test("tree: expandAll auto-expands while filtering, then gives the collapse back
 
   const input = frame.locator("input.sb-nav-input");
   await input.fill("alpha");
-  // A phrase force-expands the pruned tree whichever way the flag is set --
-  // the collapsed set is not consulted while filtering.
   await expect(
     frame.locator("[data-path='Projects/Alpha'] mark"),
   ).toBeVisible();
@@ -952,8 +845,6 @@ test("tree: expandAll auto-expands while filtering, then gives the collapse back
 
 test("tree: a row's label wins over its path segment", async ({ sbPage }) => {
   const frame = await openNavigatorView(sbPage, "Navigator: Label Tree");
-  // The path nests the row; the label is what it reads as -- so a "/" and a
-  // disambiguating suffix can live in one without showing up in the other.
   await expect(frame.locator("[data-path='Top'] .sb-nav-primary")).toHaveText(
     "Top/Level",
   );
@@ -974,26 +865,18 @@ test("watch: out-of-band page creation appears in sidebar tree, preserving expan
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 
-  // Select a node by path -- the refresh below must preserve both this
-  // selection and the folder's expansion, since they're keyed by path, not
-  // by index into the row array.
+  // Selection and expansion are keyed by path, not by index into the row array, so the refresh below must preserve both.
   await frame.locator("[data-path='Projects/Alpha']").click();
   await expect(
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
 
-  // A page written directly to disk, out-of-band -- not through the app.
-  // Reaches the client via its file-watch/push path -> `file:changed` ->
-  // forwarded -> debounced refresh (this view's own `refreshOn` includes
-  // `file:changed`; see `writeFile` usage in e2e/external-edit.test.ts for
-  // why this is more reliable than the `.fs` HTTP endpoint under CI load).
+  // writeFile (not the .fs HTTP endpoint) matches e2e/external-edit.test.ts, which found it more reliable under CI load.
   await writeFile(join(sbServer.spaceDir, "Projects/Gamma.md"), "# Gamma");
 
   await expect(frame.locator("[data-path='Projects/Gamma']")).toBeVisible({
     timeout: 20_000,
   });
-  // The dataset swapped wholesale, but expansion and selection -- both
-  // path-keyed -- survived it untouched.
   await expect(frame.locator("[data-path='Projects/Beta']")).toBeVisible();
   await expect(
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
@@ -1012,14 +895,9 @@ test("watch: hidden panel defers refresh, running the source once when shown", a
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 
-  await closeSidebar(sbPage); // hide
+  await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
 
-  // The keyed panel wrapper (and its iframe/engine singleton) stays mounted
-  // while hidden -- see the comment on `sidebarTreePanel` -- so refreshOn
-  // events keep arriving at it. Count real `engine.refresh()` calls (i.e.
-  // the source actually re-running), not just visible DOM state, so the
-  // assertion below is about the mechanism, not a coincidence of timing.
   await sbPage.evaluate(() => {
     const f = document.querySelector(
       ".sb-keyed-panel-rhs iframe",
@@ -1042,9 +920,7 @@ test("watch: hidden panel defers refresh, running the source once when shown", a
       return (f.contentWindow as any).__refreshCalls as number;
     });
 
-  // A burst of out-of-band writes while hidden -- simulates the startup
-  // indexing storm (mq:emptyQueue:indexQueue firing repeatedly) this
-  // deferral exists for.
+  // Simulates the startup indexing storm (mq:emptyQueue:indexQueue firing repeatedly) this deferral exists for.
   for (let i = 0; i < 6; i++) {
     await writeFile(
       join(sbServer.spaceDir, `Projects/Storm${i}.md`),
@@ -1052,18 +928,13 @@ test("watch: hidden panel defers refresh, running the source once when shown", a
     );
     await sbPage.waitForTimeout(60);
   }
-  // Give any debounce timer time to settle while still hidden.
   await sbPage.waitForTimeout(500);
   expect(await refreshCalls()).toBe(0);
 
-  await runCommand(sbPage, "Navigator: Sidebar Tree"); // show again
+  await runCommand(sbPage, "Navigator: Sidebar Tree");
   await expect(sidebarTreePanel(sbPage)).toBeVisible();
 
-  // The single deferred refresh fires on `panel:shown`. Read the count the
-  // moment it lands rather than after waiting for its rows to paint: an
-  // indexing event arriving inside that (20s) window would be a second,
-  // legitimate refresh, and what is asserted here is that the six writes
-  // above collapsed into one.
+  // Reads the count the moment it lands rather than after waiting for rows to paint: an indexing event inside that window would be a second, legitimate refresh, muddying whether the six writes collapsed into one.
   await expect
     .poll(refreshCalls, { intervals: [10], timeout: 20_000 })
     .toBeGreaterThan(0);
@@ -1072,7 +943,6 @@ test("watch: hidden panel defers refresh, running the source once when shown", a
   await expect(frame.locator("[data-path='Projects/Storm0']")).toBeVisible({
     timeout: 20_000,
   });
-  // Expansion survived the whole hidden period untouched, unprompted.
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 });
 
@@ -1082,8 +952,6 @@ test("command open focuses the filter input in the modal dock", async ({
   await openNavigator(sbPage);
   await expectFilterInputFocused(sbPage, ".sb-modal iframe");
 
-  // Focus that only exists inside the iframe's own document is useless -- type
-  // into the *page* and check it lands in the filter box.
   await sbPage.keyboard.type("alpha", { delay: 20 });
   await expect(navInput(sbPage)).toHaveValue("alpha");
 });
@@ -1099,11 +967,9 @@ test("command open focuses the filter input in a sidebar dock", async ({
   await expect(frame.locator(".sb-tree")).toBeVisible();
   await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
 
-  // followEditor revealed the current page on open (see the re-reveal test).
   const selected = frame.locator(".sb-nav-selected");
   await expect(selected).toHaveAttribute("data-path", "index");
 
-  // Arrow-key navigation is live without clicking anything first.
   await sbPage.keyboard.press("ArrowUp");
   await expect(selected).not.toHaveAttribute("data-path", "index");
 });
@@ -1126,9 +992,6 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
 
   await expect(sidebarTreePanel(sbPage)).toBeVisible();
   await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
-  // A docked view keeps its phrase (and the filtered state derived from it)
-  // across a re-focus -- clearing is modal-only, and Escape stays the
-  // explicit clear.
   await expect(frame.locator("input.sb-nav-input")).toHaveValue("alpha");
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toHaveCount(0);
@@ -1138,11 +1001,6 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
 });
 
-// The phrase itself still isn't cleared
-// (see above) -- it's *selected*, so the refocus a user asks for reads as
-// "let me replace this filter" rather than "resume typing into the middle
-// of it". Arrow/Enter behavior is untouched by this -- selecting text in the
-// input has nothing to do with `selectedIndex`/filtering.
 test("re-focusing a docked view with a phrase selects it, so typing replaces it", async ({
   sbPage,
 }) => {
@@ -1165,7 +1023,6 @@ test("re-focusing a docked view with a phrase selects it, so typing replaces it"
   }));
   expect(selection).toEqual({ start: 0, end: "alpha".length });
 
-  // The actual payoff: the first keystroke replaces the whole phrase.
   await sbPage.keyboard.type("beta");
   await expect(input).toHaveValue("beta");
 });
@@ -1186,16 +1043,12 @@ test("re-opening an unfiltered followEditor sidebar re-reveals the current page"
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
 
-  // Navigate the view away from the current page by hand: collapsing the
-  // ancestor hides the revealed row entirely.
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 
   await sbPage.locator("#sb-editor .cm-content").click();
   await runCommand(sbPage, "Navigator: Sidebar Tree");
 
-  // An explicit re-open of an unfiltered followEditor sidebar re-reveals:
-  // ancestors expanded, current page selected, focus in the filter input.
   await expect(
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
@@ -1213,9 +1066,6 @@ test("re-opening a filtered followEditor sidebar keeps the filter and skips the 
   await expect(frame.locator(".sb-tree")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
 
-  // Current page is `index`, which the phrase below prunes away -- so a
-  // reveal here would have to drag the selection outside the set the user
-  // deliberately filtered down to.
   const input = frame.locator("input.sb-nav-input");
   await input.fill("today");
   await expect(frame.locator("[data-path='Journal/Today']")).toBeVisible();
@@ -1242,15 +1092,13 @@ test("keymap: a view key acts on the selected row without giving up focus", asyn
   await expect(frame.locator(".sb-tree")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
 
-  // followEditor already revealed the current page, so walk back to the top
-  // of the tree first.
   const input = frame.locator("input.sb-nav-input");
   await input.press("Home");
   await expect(frame.locator(".sb-nav-selected")).toHaveAttribute(
     "data-path",
     "Journal",
   );
-  await input.press("ArrowRight"); // expand "Journal"
+  await input.press("ArrowRight");
   await expect(frame.locator("[data-path='Journal/Today']")).toBeVisible();
   await input.press("ArrowDown");
   await expect(frame.locator(".sb-nav-selected")).toHaveAttribute(
@@ -1263,9 +1111,6 @@ test("keymap: a view key acts on the selected row without giving up focus", asyn
   await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
     "Journal/Today",
   );
-  // The whole point: `client.navigate` focuses the editor on its way out, and
-  // the panel takes focus back so arrow-key browsing continues. The claimed
-  // key is also swallowed rather than typed into the filter.
   await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
   await expect(input).toHaveValue("");
 });
@@ -1281,12 +1126,9 @@ test("create: a create row appears for an unmatched phrase and creates on Enter"
 
   await expect(frame.locator(".sb-nav-create")).toHaveCount(0);
 
-  // A phrase matching an existing row exactly offers no create row either
   await input.fill("Projects/Alpha");
   await expect(frame.locator(".sb-nav-create")).toHaveCount(0);
 
-  // A phrase that still fuzzy-matches existing rows: the best match leads and
-  // the create row follows it, rather than being the only option
   await input.fill("Projects/Al");
   await expect(frame.locator(".sb-nav-create .sb-nav-primary")).toHaveText(
     "Projects/Al",
@@ -1298,7 +1140,6 @@ test("create: a create row appears for an unmatched phrase and creates on Enter"
     /sb-nav-create/,
   );
 
-  // Second, right under the top match -- so one ArrowDown lands on it
   await expect(frame.locator(".sb-nav-row").nth(1)).toHaveClass(
     /sb-nav-create/,
   );
@@ -1340,8 +1181,6 @@ test("create: tree mode pins the create row below the tree", async ({
   await expect(frame.locator("[data-path='Projects']")).toBeVisible();
   const input = frame.locator("input.sb-nav-input");
 
-  // A phrase that still leaves tree rows standing: the create row sits past
-  // them, and End walks onto it.
   await input.fill("Projects/Al");
   await expect(
     frame.locator(".sb-nav-create.sb-nav-create-pinned .sb-nav-primary"),
@@ -1359,10 +1198,7 @@ test("create: tree mode pins the create row below the tree", async ({
 test("create: tree mode, Enter creates when the phrase pruned the tree away", async ({
   sbPage,
 }) => {
-  // The regression: with no tree rows left, the selection fell back to index
-  // 0, which resolved to no node and no create row either -- the only thing on
-  // screen looked actionable while Enter did nothing. No End press here: the
-  // create row must already be the selection.
+  // With no tree rows left, selection used to fall back to index 0, which resolved to no node and no create row -- Enter did nothing. No End press here: the create row must already be the selection.
   const frame = await openNavigatorView(sbPage, "Navigator: Create Tree Small");
   await expect(frame.locator("[data-path='Alpha']")).toBeVisible();
   const input = frame.locator("input.sb-nav-input");
@@ -1382,10 +1218,7 @@ test("create: tree mode, Enter creates when the phrase pruned the tree away", as
 test("create: list mode keeps the create row on screen however long the list", async ({
   sbPage,
 }) => {
-  // The reason it renders second rather than after the results: in a list
-  // long enough to scroll, an appended create row starts far below the fold,
-  // and `Shift-Enter` would then create a page the user never saw. Second, it
-  // is on screen from the moment it exists.
+  // If appended after the results, the create row would start far below the fold in a long list, so Shift-Enter could create a page the user never saw.
   const frame = await openNavigatorView(sbPage, "Navigator: Create Bulk");
   await expect(frame.locator(".sb-nav-row").first()).toBeVisible();
 
@@ -1411,7 +1244,6 @@ test("create: list mode keeps the create row on screen however long the list", a
       return row.top >= box.top - 1 && row.bottom <= box.bottom + 1;
     });
 
-  // From the top of the list -- which is where a phrase edit leaves it.
   await body.evaluate((el) => {
     el.scrollTop = 0;
   });
@@ -1448,8 +1280,6 @@ test("scroll: a refresh leaves a manually scrolled tree exactly where it was", a
   const scrolledTo = await body.evaluate((el) => el.scrollTop);
   expect(scrolledTo).toBeGreaterThan(0);
 
-  // Count real source re-runs so a passing assertion can't just mean "no
-  // refresh ever happened".
   await sbPage.evaluate(() => {
     const f = document.querySelector(
       ".sb-keyed-panel-rhs iframe",
@@ -1475,8 +1305,6 @@ test("scroll: a refresh leaves a manually scrolled tree exactly where it was", a
     expect(calls).toBeGreaterThan(0);
   }).toPass({ timeout: 20_000 });
 
-  // The dataset was re-fetched and re-rendered underneath, but the user's
-  // scroll position is untouched.
   expect(await body.evaluate((el) => el.scrollTop)).toBe(scrolledTo);
 });
 
@@ -1496,9 +1324,7 @@ test("scroll: a follow-editor reveal never scrolls the host document", async ({
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
 
-  // `scrollIntoView` inside a same-origin iframe scrolls the host's scrollable
-  // ancestors too; nothing outside the panel's own scroll container may move,
-  // and no host container may end up overflowing.
+  // scrollIntoView inside a same-origin iframe scrolls the host's scrollable ancestors too, so nothing outside the panel's own scroll container may move.
   const host = await sbPage.evaluate(() => {
     const overflow = (sel: string) => {
       const el = document.querySelector(sel);
@@ -1525,7 +1351,6 @@ test("scroll: a follow-editor reveal never scrolls the host document", async ({
   expect(host.main).toEqual({ scrollTop: 0, overflowing: false });
   expect(host.body).toEqual({ scrollTop: 0, overflowing: false });
 
-  // And the panel document itself never scrolls -- only .sb-nav-body does.
   const panelDoc = await sbPage.evaluate(() => {
     const f = document.querySelector(
       ".sb-keyed-panel-rhs iframe",
@@ -1554,9 +1379,6 @@ test("rows are not selectable text", async ({ sbPage }) => {
 });
 
 test("hovering a row does not highlight it", async ({ sbPage }) => {
-  // The highlight is the keyboard selection and nothing else: a second one
-  // following the pointer reads as a second cursor. What the pointer does get
-  // is the row's cursor affordance and its action buttons (below).
   const frame = await openNavigator(sbPage);
   const selected = frame.locator(".sb-nav-row.sb-nav-selected");
   await expect(selected).toBeVisible();
@@ -1583,8 +1405,6 @@ test("panels get the space style, and follow a mid-session theme change", async 
 }) => {
   const frame = await openNavigator(sbPage);
 
-  // Space styles reach the (preloaded) modal panel even though the client
-  // loads them un-awaited, racing the `editor:init` that triggers preload.
   await expect(async () => {
     const outline = await frame
       .locator(".sb-nav-row")
@@ -1615,7 +1435,6 @@ test("panels get the space style, and follow a mid-session theme change", async 
         sameFrame: (f.contentWindow as any).__themeProbe === true,
       };
     });
-    // Flipped in place: no iframe rebuild, so panel state survives.
     expect(after).toEqual({ theme: "dark", sameFrame: true });
   }).toPass();
   expect(before).not.toBe("dark");
@@ -1624,9 +1443,6 @@ test("panels get the space style, and follow a mid-session theme change", async 
 test("keymap: a printable key types while typing and acts while navigating", async ({
   sbPage,
 }) => {
-  // A list view always has a real row selected, so the claimed " " is live
-  // from the moment the panel opens -- which is exactly the state in which it
-  // must NOT swallow spaces out of the phrase.
   const frame = await openNavigatorView(sbPage, "Navigator: Keymap List");
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
@@ -1637,12 +1453,10 @@ test("keymap: a printable key types while typing and acts while navigating", asy
   const currentPage = sbPage.locator("#sb-current-page input.sb-input");
   await expect(currentPage).toHaveValue("index");
 
-  // Typing mode: the space is text, not a command.
   await sbPage.keyboard.type("projects alpha", { delay: 20 });
   await expect(input).toHaveValue("projects alpha");
   await expect(currentPage).toHaveValue("index");
 
-  // Navigating mode: now the same key runs the view's action.
   await input.press("ArrowDown");
   const target = await frame
     .locator(".sb-nav-selected .sb-nav-primary")
@@ -1652,7 +1466,6 @@ test("keymap: a printable key types while typing and acts while navigating", asy
   await expect(input).toHaveValue("projects alpha");
   await expectFilterInputFocused(sbPage, ".sb-modal iframe");
 
-  // Editing the phrase puts it back in typing mode.
   await sbPage.keyboard.type("x", { delay: 20 });
   await expect(input).toHaveValue("projects alphax");
   await sbPage.keyboard.type(" y", { delay: 20 });
@@ -1660,8 +1473,6 @@ test("keymap: a printable key types while typing and acts while navigating", asy
   await expect(currentPage).toHaveValue(target);
 });
 
-// `foldersFirst = false` deliberately (the shipped space tree uses it): drag
-// and drop must not depend on folders being grouped at the top of a level.
 const DND_CONFIG = `# Nav DnD test
 \`\`\`space-lua
 navigator.define {
@@ -1687,11 +1498,8 @@ test.describe("dnd", () => {
       "navtest.md": DND_CONFIG,
       "Projects/Alpha.md": "# Alpha",
       "Journal/Today.md": "# Today",
-      // Same last segment as Projects/Alpha: dropping it on Projects is the
-      // collision case.
       "X/Alpha.md": "# Other Alpha",
       "Archive/Keep.md": "# Keep",
-      // A page that is also a folder: moving it has to take both.
       "Notes.md": "# Notes",
       "Notes/Sub.md": "# Sub",
     },
@@ -1706,11 +1514,6 @@ test.describe("dnd", () => {
     }
   }
 
-  /**
-   * A real HTML5 drag: `dragTo` drives actual mouse input, so the browser
-   * starts (and ends) a native drag rather than us hand-rolling DragEvents
-   * that would never prove the rows are `draggable` in the first place.
-   */
   function dragRow(frame: FrameLocator, from: string, to: string) {
     return frame
       .locator(`[data-path='${from}']`)
@@ -1728,8 +1531,6 @@ test.describe("dnd", () => {
 
     await dragRow(frame, "Journal/Today", "Projects");
 
-    // The drop expands the target folder, so the moved row is visible where
-    // it landed rather than silently vanishing into a collapsed folder.
     await expect(frame.locator("[data-path='Projects/Today']")).toBeVisible({
       timeout: 20_000,
     });
@@ -1755,7 +1556,6 @@ test.describe("dnd", () => {
     await expect(sbPage.locator(".sb-notifications")).toContainText(
       "Projects/Alpha already exists",
     );
-    // Nothing moved: no half-done rename, and the source is untouched.
     expect(await exists(join(sbServer.spaceDir, "X/Alpha.md"))).toBe(true);
     expect(await exists(join(sbServer.spaceDir, "Projects/Alpha.md"))).toBe(
       true,
@@ -1789,8 +1589,7 @@ test.describe("dnd", () => {
     sbPage,
     sbServer,
   }) => {
-    // `renamePrefixCommand` only touches files under `Notes/`, so the dual
-    // needs its own page rename on top of the prefix one.
+    // renamePrefixCommand only touches files under Notes/, so the dual move needs its own page rename on top of the prefix one.
     const frame = await openNavigatorView(sbPage, "Navigator: Move Tree");
     await expect(frame.locator("[data-path='Notes']")).toBeVisible();
     await expect(frame.locator("[data-path='Archive']")).toBeVisible();
@@ -1819,14 +1618,11 @@ test.describe("dnd", () => {
     await expect(source).toBeVisible();
     await expect(frame.locator("[data-path='Archive/Keep']")).toHaveCount(0);
 
-    // A drag held over the target, rather than `dragTo`'s press-move-release:
-    // the whole point is what happens while the pointer lingers.
     await source.hover();
     await sbPage.mouse.down();
     const box = (await target.boundingBox())!;
     const x = box.x + box.width / 2;
     const y = box.y + box.height / 2;
-    // Twice: the first move starts the drag, the second lands on the target.
     await sbPage.mouse.move(x, y, { steps: 5 });
     await sbPage.mouse.move(x, y + 1);
     try {
@@ -1843,12 +1639,8 @@ test.describe("dnd", () => {
     const projects = frame.locator("[data-path='Projects']");
     await expect(projects).toHaveAttribute("draggable", "true");
 
-    // A pruned tree isn't the real structure -- a folder on screen may be
-    // missing most of its children -- so a drop into it would mean something
-    // other than what the user sees.
     const input = frame.locator("input.sb-nav-input");
-    // Retried, not raced: the modal's `panel:shown` reset can still land just
-    // after the panel is populated, wiping a phrase typed that same instant.
+    // Retried, not raced: the modal's panel:shown reset can still land just after the panel is populated, wiping a phrase typed that same instant.
     await expect(async () => {
       await input.fill("alpha");
       await expect(input).toHaveValue("alpha", { timeout: 1000 });
@@ -1996,7 +1788,6 @@ test.describe("actions", () => {
       "navtest.md": ACTION_CONFIG,
       "Projects/Alpha.md": "# Alpha",
       "Journal/Today.md": "# Today",
-      // A page that is also a folder: it heads a section *and* is navigable.
       "Notes.md": "# Notes",
       "Notes/Sub.md": "# Sub",
     },
@@ -2025,18 +1816,14 @@ test.describe("actions", () => {
     const projects = frame.locator("[data-path='Projects']");
     await expect(projects).not.toHaveClass(/sb-nav-selected/);
     const rename = action(frame, "Projects", "Rename");
-    // Not in the DOM at all until the row is the selected or the hovered one:
-    // a long list carries no buttons it isn't about to show.
+    // Not in the DOM at all until the row is the selected or hovered one, not merely CSS-hidden: a long list carries no buttons it isn't about to show.
     await expect(rename).toHaveCount(0);
 
     await projects.hover();
     await expect(rename).toBeVisible();
-    // An icon, not the label-text fallback: numbered feather names ("edit-3")
-    // are exactly what a naive kebab-to-Pascal conversion silently drops.
+    // Numbered feather names ("edit-3") are exactly what a naive kebab-to-Pascal icon conversion silently drops.
     await expect(rename.locator("svg")).toHaveCount(1);
 
-    // The keyboard/touch path: the selected row shows its actions with the
-    // pointer nowhere near it (it's on "Projects" right now).
     const selected = frame.locator(".sb-nav-row.sb-nav-selected");
     await expect(selected).not.toHaveAttribute("data-path", "Projects");
     await expect(selected.locator(".sb-row-action").first()).toBeVisible();
@@ -2045,17 +1832,13 @@ test.describe("actions", () => {
   test("when() decides which actions a row offers", async ({ sbPage }) => {
     const frame = await openTree(sbPage, "Navigator: Action Tree");
 
-    // Hovered, because that (or being selected) is what mounts them at all.
     const actionsOn = async (path: string) => {
       await frame.locator(`[data-path='${path}']`).hover();
       return frame.locator(`[data-path='${path}'] .sb-row-action`);
     };
 
-    // Folder: all three, including the folders-only one.
     await expect(await actionsOn("Projects")).toHaveCount(3);
-    // A page that is also a folder heads a section, so it gets it too.
     await expect(await actionsOn("Notes")).toHaveCount(3);
-    // A plain page doesn't.
     await expect(await actionsOn("index")).toHaveCount(2);
     await expect(action(frame, "index", "New page here")).toHaveCount(0);
     await expect(action(frame, "index", "Rename")).toHaveCount(1);
@@ -2085,8 +1868,6 @@ test.describe("actions", () => {
     await expect(sbPage.locator(".sb-notifications")).toContainText(
       "action star Projects/Alpha",
     );
-    // Clicking the button did not select the row out from under the user: the
-    // modal is still open, on the same page.
     await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
       "index",
     );
@@ -2100,9 +1881,6 @@ test.describe("actions", () => {
 
     const projects = frame.locator("[data-path='Projects']");
     await projects.hover();
-    // Count real source re-runs: this action touches no file, so nothing else
-    // would ever prompt a refresh -- yet a rename or delete action has to
-    // leave the view showing what is actually there now.
     await sbPage.evaluate(() => {
       const f = document.querySelector(
         ".sb-keyed-panel-rhs iframe",
@@ -2122,7 +1900,6 @@ test.describe("actions", () => {
     await expect(sbPage.locator(".sb-notifications")).toContainText(
       "action rename Projects",
     );
-    // The row's own click handler never fired: the folder is still collapsed.
     await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
     await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
 
@@ -2151,10 +1928,7 @@ test.describe("actions", () => {
     await prompt.locator("button", { hasText: "Cancel" }).click();
     await expect(prompt).toHaveCount(0);
 
-    // A notification the decline wrongly produced would race this assertion if
-    // it were checked straight away, so anchor it behind a *later* observable
-    // event: run a different action, wait for its notification, and only then
-    // insist the declined one never appeared.
+    // A notification the decline wrongly produced would race an immediate check, so anchor it behind a later observable event (a different action's own notification) before insisting the declined one never appeared.
     const notifications = sbPage.locator(".sb-notifications");
     await frame.locator("[data-path='Projects']").hover();
     await action(frame, "Projects", "Rename").click();
@@ -2167,7 +1941,6 @@ test.describe("actions", () => {
     await prompt.locator("button", { hasText: "Ok" }).click();
 
     await expect(notifications).toContainText("action delete index");
-    // The confirm dialog took focus on its way in; the panel takes it back.
     await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
   });
 
@@ -2188,7 +1961,6 @@ test.describe("actions", () => {
     await expect(frame.locator("[data-path='Projects']")).toHaveClass(
       /sb-nav-folder/,
     );
-    // A page that is also a folder heads a section too.
     await expect(frame.locator("[data-path='Notes']")).toHaveClass(
       /sb-nav-folder/,
     );
@@ -2204,13 +1976,11 @@ test.describe("actions", () => {
     const pageWeight = await weight("index");
     expect(await weight("Projects")).not.toBe(pageWeight);
     expect(await weight("Notes")).not.toBe(pageWeight);
-    // Text color is *not* what distinguishes them: the band is.
     expect(await color("Projects")).toBe(await color("index"));
     expect(await band("index")).toBe("none");
     expect(await band("Projects")).not.toBe("none");
     expect(await band("Notes")).not.toBe("none");
 
-    // The band is all a hover leaves alone: rows carry no hover highlight.
     const resting = await frame
       .locator("[data-path='Projects']")
       .evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -2221,9 +1991,7 @@ test.describe("actions", () => {
         .evaluate((el) => getComputedStyle(el).backgroundColor),
     ).toBe(resting);
 
-    // The selection is its own opaque surface, band cleared, with the
-    // contrast foreground its background is paired with.
-    await frame.locator("[data-path='Projects']").click(); // selects + expands
+    await frame.locator("[data-path='Projects']").click();
     await expect(
       frame.locator("[data-path='Projects'].sb-nav-selected"),
     ).toBeVisible();
@@ -2245,21 +2013,16 @@ test.describe("actions", () => {
         .locator(`[data-path='${path}'] .sb-nav-icon svg`)
         .evaluate((el) => el.outerHTML);
 
-    // A folder is passed the synthetic folder object, so it can icon
-    // differently from a page -- resolved through the client, not bundled.
     const folderIcon = await svg("Projects");
     const pageIcon = await svg("Notes/Sub");
     expect(folderIcon).toContain("<svg");
     expect(folderIcon).not.toBe(pageIcon);
-    // The dual heads a section, so it icons as a folder.
     expect(await svg("Notes")).toBe(folderIcon);
 
-    // Raw markup goes in verbatim.
     await expect(
       frame.locator("[data-path='index'] .sb-nav-icon svg[data-raw='yes']"),
     ).toHaveCount(1);
 
-    // nil: the slot is still there, so rows at the same depth stay aligned.
     await expect(
       frame.locator("[data-path='Journal/Today'] .sb-nav-icon"),
     ).toHaveCount(1);
@@ -2285,10 +2048,7 @@ test.describe("actions", () => {
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 
-    // The rowState hook only admits a string result, so a table return --
-    // the pre-consolidation escape hatch, still reachable at runtime since
-    // validateRowIcon can't see what a function will return -- leaves the
-    // slot reserved but empty, same as a nil return.
+    // The rowState hook only admits a string result; a table return (the pre-consolidation escape hatch) is still reachable at runtime since validateRowIcon can't see what a function will return.
     await expect(
       frame.locator("[data-path='Projects/Alpha'] .sb-nav-icon"),
     ).toHaveCount(1);
@@ -2296,8 +2056,6 @@ test.describe("actions", () => {
       frame.locator("[data-path='Projects/Alpha'] .sb-nav-icon svg"),
     ).toHaveCount(0);
 
-    // A sibling row's icon still renders -- one bad row doesn't cost the
-    // whole batch.
     await expect(
       frame.locator("[data-path='Projects'] .sb-nav-icon svg"),
     ).toHaveCount(1);
@@ -2315,9 +2073,7 @@ test.describe("actions", () => {
   test("empty actions/keymap tables don't take the view down", async ({
     sbPage,
   }) => {
-    // Lua's `{}` crosses as an object, not an array: `.some`/`.includes` on it
-    // threw, which meant a boot error instead of a view, and a TypeError on
-    // every keystroke.
+    // Lua's {} crosses as an object, not an array: .some/.includes on it threw, meaning a boot error instead of a view, and a TypeError on every keystroke.
     const frame = await openNavigatorView(sbPage, "Navigator: Empty Extras");
     await expect(
       frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
@@ -2338,8 +2094,6 @@ test.describe("actions", () => {
     const frame = await openTree(sbPage, "Navigator: RO Tree");
     const input = frame.locator("input.sb-nav-input");
 
-    // Read-write baseline, so the assertions after the toggle can't pass
-    // vacuously. Hovered, because that is what mounts a row's actions.
     await frame.locator("[data-path='Projects']").hover();
     await expect(action(frame, "Projects", "Delete")).toHaveCount(1);
     await expect(action(frame, "Projects", "Peek")).toHaveCount(1);
@@ -2351,18 +2105,14 @@ test.describe("actions", () => {
     await expect(frame.locator(".sb-nav-create")).toBeVisible();
     await input.fill("");
 
-    // The panel holds focus once shown; hand it back so the palette hotkey lands
     await sbPage.locator("#sb-editor .cm-content").click();
     await runCommand(sbPage, "Editor: Toggle Read Only Mode");
     await expect(sbPage.locator(".sb-notifications")).toContainText(
       "Read-only mode enabled",
     );
 
-    // Live: the panel was never reopened. (The palette took the pointer out of
-    // the panel, so hover the row again to mount what is left of its actions.)
     await frame.locator("[data-path='Projects']").hover();
     await expect(action(frame, "Projects", "Delete")).toHaveCount(0);
-    // ...and only the rw-gated action went away.
     await expect(action(frame, "Projects", "Peek")).toHaveCount(1);
     await expect(frame.locator("[data-path='Projects']")).toHaveAttribute(
       "draggable",
@@ -2376,11 +2126,7 @@ test.describe("actions", () => {
 test("activation: a stale out-of-order arrival can't clobber panel state", async ({
   sbPage,
 }) => {
-  // Each `open()` stamps a monotonic token, and one open reaches the panel
-  // twice (pushed + pulled by the boot handshake). Plug invocations aren't
-  // serialized, so two rapid opens can also arrive out of order -- an older
-  // activation landing after a newer one must be dropped, not just a literal
-  // duplicate of the newest.
+  // An older activation landing after a newer one must be dropped by token order, not merely deduped as a literal duplicate of the newest.
   const dispatchActivate = (view: string, token: number) =>
     sbPage.evaluate(
       ({ view, token }) => {
@@ -2392,29 +2138,23 @@ test("activation: a stale out-of-order arrival can't clobber panel state", async
       { view, token },
     );
 
-  // Two real opens, so the handled token is above 1 and a stale arrival is
-  // distinguishable from a duplicate of the current one.
   await openNavigator(sbPage);
-  await navInput(sbPage).press("Escape"); // empty phrase: closes
+  await navInput(sbPage).press("Escape");
   await expect(
     sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
   ).toHaveCount(0);
-  // The panel hands focus back on its way out; take it explicitly so the
-  // palette hotkey below can't race that round trip.
   await sbPage.locator("#sb-editor .cm-content").click();
   await openNavigator(sbPage);
 
   await navInput(sbPage).fill("alpha");
   await expect(navInput(sbPage)).toHaveValue("alpha");
 
-  // Stale: must be ignored. (Under an equality-only check this passes the
-  // guard and the activation tail clears the phrase.)
+  // Under an equality-only check this stale dispatch would pass the guard and the activation tail would clear the phrase.
   await dispatchActivate("pages", 1);
   await sbPage.waitForTimeout(500);
   await expect(navInput(sbPage)).toHaveValue("alpha");
 
-  // Positive control: a *newer* token still activates, so the assertion above
-  // isn't just measuring a dead dispatch path.
+  // Positive control: a newer token still activates, proving the assertion above isn't just measuring a dead dispatch path.
   await dispatchActivate("pages", 9999);
   await expect(navInput(sbPage)).toHaveValue("");
   await expectFilterInputFocused(sbPage, ".sb-modal iframe");
@@ -2662,8 +2402,6 @@ test.describe("segments", () => {
 
     await navInput(sbPage).fill("beta");
     expect(await primaries()).toEqual(["Projects/Beta"]);
-    // ...and it cannot reach a row the segment excluded, however well it
-    // matches.
     await navInput(sbPage).fill("gamma");
     await expect(frame.locator(".sb-nav-empty")).toBeVisible();
 
@@ -2686,11 +2424,9 @@ test.describe("segments", () => {
     await expect(active).toHaveText(/All/);
     await navInput(sbPage).press("Control+ArrowLeft");
     await expect(active).toHaveText(/Documents/);
-    // Shift is ignored, so the macOS-safe chord works too.
     await navInput(sbPage).press("Control+Shift+ArrowLeft");
     await expect(active).toHaveText(/Pages/);
 
-    // The chord is not text: the phrase is untouched and typing still types.
     await expect(navInput(sbPage)).toHaveValue("");
     await sbPage.keyboard.type("alpha", { delay: 20 });
     await expect(navInput(sbPage)).toHaveValue("alpha");
@@ -2708,8 +2444,6 @@ test.describe("segments", () => {
     await expect(
       sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
     ).toHaveCount(0);
-    // The panel hands focus back on its way out; take it explicitly so the
-    // palette hotkey below can't race that round trip.
     await sbPage.locator("#sb-editor .cm-content").click();
 
     const reopened = await openSegmentList(sbPage);
@@ -2751,8 +2485,6 @@ test.describe("segments", () => {
     await expect(frame.locator(".sb-segment[aria-label='Boom']")).toBeVisible();
     await frame.locator(".sb-segment[aria-label='Boom']").click();
 
-    // The pages the predicate answered for are there; the document it threw on
-    // is not, and the view is not in an error state.
     expect(await frame.locator(".sb-nav-primary").allInnerTexts()).toEqual([
       "Alpha",
       "Projects/Beta",
@@ -2761,8 +2493,6 @@ test.describe("segments", () => {
   });
 
   test("segments keep working in read-only mode", async ({ sbPage }) => {
-    // A sidebar rather than the modal: the toggle goes through the command
-    // palette, which a modal panel's backdrop would swallow.
     const frame = await openNavigatorView(
       sbPage,
       "Navigator: Segment Tree",
@@ -2776,7 +2506,6 @@ test.describe("segments", () => {
       "Read-only mode enabled",
     );
 
-    // Reads, all of them -- nothing here needs the space to be writable.
     await frame.locator(".sb-segment[aria-label='Pages']").click();
     await expect(frame.locator("[data-path='Alpha']")).toBeVisible();
     await expect(frame.locator("[data-path='Settings']")).toHaveCount(0);
@@ -2785,16 +2514,10 @@ test.describe("segments", () => {
   test("typing costs no syscalls, and a switch costs only its persistence", async ({
     sbPage,
   }) => {
-    // The refresh-free twin of segmentlist -- see norefresh in the config: a
-    // background refresh landing mid-test is legitimate, but it is not
-    // something a keystroke paid for, and this counts every syscall the panel
-    // makes over a window several seconds wide.
     const frame = await openNavigatorView(sbPage, "Navigator: No Refresh");
     await expect(segment(frame, "All")).toBeVisible();
     await expect(frame.locator(".sb-nav-row")).toHaveCount(4);
 
-    // Count everything crossing the panel's syscall bridge -- the only way out
-    // of the iframe there is.
     const counted = () =>
       sbPage.evaluate(() => (globalThis as any).__navSyscalls as string[]);
     await sbPage.evaluate(() => {
@@ -2809,15 +2532,11 @@ test.describe("segments", () => {
       };
     });
 
-    // The load-bearing contract: ranking, filtering and rendering all happen
-    // inside the iframe, so a keystroke never leaves it.
     await sbPage.keyboard.type("alpha", { delay: 60 });
     await expect(navInput(sbPage)).toHaveValue("alpha");
     await expect(frame.locator(".sb-nav-primary").first()).toHaveText("Alpha");
     expect(await counted()).toEqual([]);
 
-    // A segment switch is masks-only too -- no source re-run, no rowState
-    // batch. It does persist the choice, which is one write and nothing else.
     await frame.locator(".sb-segment[aria-label='Pages']").click();
     await expect(segment(frame, "Pages")).toHaveAttribute(
       "aria-checked",
@@ -2856,8 +2575,6 @@ test.describe("segments", () => {
       w.__navigatorHooks.refresh();
     });
 
-    // Fail-closed leaves the segment empty, which on its own is
-    // indistinguishable from "nothing matched" -- so it says which it is.
     await expect(frame.locator(".sb-nav-notice")).toBeVisible();
     await expect(frame.locator(".sb-nav-row")).toHaveCount(0);
 
@@ -2869,9 +2586,7 @@ test.describe("segments", () => {
   test("empty refreshOn and filter.fields tables mean 'none', not 'broken'", async ({
     sbPage,
   }) => {
-    // `refreshOn = {}` used to reach the plug as an object and fail the open
-    // outright (`object is not iterable`); `filter = { fields = {} }` used to
-    // survive as a truthy field map and rank every row 0.
+    // refreshOn = {} used to reach the plug as an object and fail the open outright ("object is not iterable"); filter = { fields = {} } used to survive as a truthy field map and rank every row 0.
     const frame = await openNavigatorView(sbPage, "Navigator: Empty Tables");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(4);
 
@@ -2884,8 +2599,6 @@ test.describe("segments", () => {
   test("bad icons, limits, modes and labels are rejected at define time", async ({
     sbPage,
   }) => {
-    // Every one of these would otherwise cross to the panel and quietly draw
-    // nothing (or, for the duplicate label, persist ambiguously).
     const frame = await openNavigatorView(sbPage, "Navigator: Validation");
     await expect(frame.locator(".sb-nav-row").first()).toBeVisible();
     expect(await frame.locator(".sb-nav-primary").allInnerTexts()).toEqual([
@@ -2925,8 +2638,6 @@ test.describe("segments", () => {
     await expect(label).toBeVisible();
     await expect(icon).toBeVisible();
 
-    // Squeezed to the minimum: the icon carries the segment, the label lives
-    // on as the tooltip and the accessible name.
     await dragSidebar(sbPage, frame, 400);
     await expect(label).toBeHidden();
     await expect(icon).toBeVisible();
@@ -2946,9 +2657,7 @@ test.describe("segments", () => {
     await expect(frame.locator(".sb-nav-row").first()).toBeVisible();
     await dragSidebar(sbPage, frame, 400);
 
-    // A name wider than the dock used to run past the pane and stop
-    // mid-glyph, its own ellipsis rendered off-screen where nothing could see
-    // it. Every row's name now ends inside the panel.
+    // A name wider than the dock used to run past the pane and stop mid-glyph, its own ellipsis rendered off-screen where nothing could see it.
     const overrun = await frame.locator(".sb-nav-body").evaluate((body) => {
       const limit = body.getBoundingClientRect().right;
       return [...body.querySelectorAll(".sb-nav-primary")].filter(
@@ -2976,7 +2685,6 @@ test.describe("segments", () => {
   });
 });
 
-/** Drags the rhs sidebar's resize handle by `dx` (positive = narrower). */
 async function dragSidebar(sbPage: Page, frame: FrameLocator, dx: number) {
   const handle = frame.locator(".sb-resizer-rhs");
   const box = (await handle.boundingBox())!;
@@ -2985,8 +2693,6 @@ async function dragSidebar(sbPage: Page, frame: FrameLocator, dx: number) {
   await sbPage.mouse.down();
   await sbPage.mouse.move(box.x + box.width / 2 + dx, y, { steps: 10 });
   await sbPage.mouse.up();
-  // Park the pointer away from the panel: a resize that leaves it hovering a
-  // row would mount that row's actions and confuse a later count.
   await sbPage.mouse.move(5, 5);
 }
 
@@ -3072,27 +2778,18 @@ test.describe("source mode", () => {
     await navInput(sbPage).fill("blue");
     await expect(client.locator(".sb-nav-row")).toHaveCount(2);
     const clientOrder = await client.locator(".sb-nav-primary").allInnerTexts();
-    // First Escape clears the phrase, second closes the panel.
-    await navInput(sbPage).press("Escape");
-    await expect(navInput(sbPage)).toHaveValue("");
     await navInput(sbPage).press("Escape");
     await expect(
       sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
     ).toHaveCount(0);
-    // The panel hands focus back on its way out; take it explicitly so the
-    // palette hotkey below can't race that round trip.
     await sbPage.locator("#sb-editor .cm-content").click();
 
     const frame = await openNavigatorView(sbPage, "Navigator: Source Search");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(5);
 
-    // The phrase is the source's input now: it answers with the subset it
-    // found and ranked itself.
     await navInput(sbPage).fill("blue");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(2);
-    // ...and the panel shows that answer in the order it arrived. The source
-    // hands back what search.rank produced, reversed; had the panel re-ranked,
-    // this would equal clientOrder instead.
+    // The source hands back what search.rank produced, reversed; had the panel re-ranked instead, this would equal clientOrder.
     expect(await frame.locator(".sb-nav-primary").allInnerTexts()).toEqual(
       [...clientOrder].reverse(),
     );
@@ -3121,9 +2818,6 @@ test.describe("source mode", () => {
     const frame = await openNavigatorView(sbPage, "Navigator: Source Search");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(5);
 
-    // Stall the source for one specific phrase, at the panel's own syscall
-    // bridge -- so the request is issued (and tokened) first, and only its
-    // response is late.
     await sbPage.evaluate(() => {
       const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
       const w = f.contentWindow as any;
@@ -3150,8 +2844,6 @@ test.describe("source mode", () => {
     await expect(frame.locator(".sb-nav-primary")).toHaveText("Cobalt");
     await expect(frame.locator(".sb-nav-spinner")).toBeHidden();
 
-    // The stalled response lands about here: it must not replace what the
-    // newer phrase produced.
     await sbPage.waitForTimeout(3500);
     await expect(frame.locator(".sb-nav-row")).toHaveCount(1);
     await expect(frame.locator(".sb-nav-primary")).toHaveText("Cobalt");
@@ -3167,15 +2859,11 @@ test.describe("source mode", () => {
 
     await navInput(sbPage).fill("boom");
     await expect(frame.locator(".sb-nav-error-inline")).toContainText("kaboom");
-    // ...and the rows the user was reading are still there, not an empty panel.
     await expect(frame.locator(".sb-nav-row")).toHaveCount(2);
     expect(await frame.locator(".sb-nav-primary").allInnerTexts()).toEqual(
       expect.arrayContaining(["Bluebird", "Blueprint"]),
     );
 
-    // A phrase it can answer clears the banner. (Count first: a text
-    // assertion over the two rows still on screen is a strict-mode error,
-    // which does not retry.)
     await navInput(sbPage).fill("cobalt");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(1);
     await expect(frame.locator(".sb-nav-primary")).toHaveText("Cobalt");
@@ -3297,10 +2985,6 @@ test.describe("render cap", () => {
     spaceFiles: { "index.md": "Welcome", "navtest.md": BULK_CONFIG },
   });
 
-  /**
-   * How long a keystroke takes to reach the screen, measured inside the panel:
-   * the input event, then the two frames a preact re-render settles in.
-   */
   function typeAndSettle(frame: FrameLocator, phrase: string): Promise<number> {
     return frame
       .locator("input.sb-nav-input")
@@ -3327,14 +3011,11 @@ test.describe("render cap", () => {
       frame.locator(".sb-nav-row", { hasText: "Alpha" }),
     ).toBeVisible();
 
-    // Three of ten, plus the footer -- which is not one of the rows the
-    // selection can reach.
     await expect(frame.locator(".sb-nav-list .sb-nav-row")).toHaveCount(3);
     await expect(frame.locator(".sb-nav-more")).toHaveText(
       "7 more matches — keep typing",
     );
 
-    // End lands on the last *rendered* row, not on the 10th match.
     await navInput(sbPage).press("End");
     await expect(frame.locator(".sb-nav-row.sb-nav-selected")).toHaveText(
       /Charlie/,
@@ -3356,11 +3037,8 @@ test.describe("render cap", () => {
 
     await expect(frame.locator(".sb-nav-list .sb-nav-row")).toHaveCount(200);
     await expect(frame.locator(".sb-nav-more")).toContainText("4800 more");
-    // Actions are mounted for the selected row alone until something is
-    // hovered -- 5000 rows' worth of buttons is exactly what this avoids.
     await expect(frame.locator(".sb-row-action")).toHaveCount(1);
 
-    // Warm the ranker's index, then measure a few keystrokes of narrowing.
     await typeAndSettle(frame, "i");
     const samples: number[] = [];
     for (const phrase of ["it", "ite", "item", "item 1", "item 12"]) {
@@ -3373,14 +3051,9 @@ test.describe("render cap", () => {
         .join("ms, ")}ms (worst ${Math.round(worst)}ms)`,
     );
 
-    // Generously above what the mitigations measure at: this is a guard
-    // against an order-of-magnitude regression, not a millisecond-accurate
-    // budget.
     const budget = process.env.CI ? 2400 : 800;
     expect(worst).toBeLessThan(budget);
 
-    // Switching segments is masks-only: no source re-run and no rowState
-    // batch, just the one datastore write that persists the choice.
     const switched = await frame
       .locator(".sb-segment[aria-label='Even']")
       .evaluate(async (button: HTMLElement) => {
@@ -3394,12 +3067,6 @@ test.describe("render cap", () => {
     console.log(`navigator 5k segment switch: ${Math.round(switched)}ms`);
     expect(switched).toBeLessThan(budget);
 
-    // The ranker on its own, so the attribution in the report is measured
-    // rather than inferred: this is the bulk of a keystroke's cost.
-    // The same keystroke measured as work rather than as frames: microtasks
-    // (preact flushes its render queue in one) plus a forced layout read. The
-    // settle figure above includes up to two frames of cadence -- ~33ms of
-    // waiting that happens whether or not the panel did anything.
     const work = await frame
       .locator("input.sb-nav-input")
       .evaluate(async (input: HTMLInputElement) => {
@@ -3438,12 +3105,6 @@ test.describe("render cap", () => {
     const marker = frame.locator(".sb-nav-list .sb-nav-row").first();
     await expect(marker).toContainText("Marker ");
 
-    /**
-     * One end-to-end refresh: the source re-runs, every `when`/`where`/`icon`
-     * is re-batched over all 5000 objects, and the capped list re-renders.
-     * Measured from the DOM, since that is where the user sees it land -- less
-     * the debounce the trigger deliberately waits out first.
-     */
     const REFRESH_DEBOUNCE_MS = 300;
     async function refreshAndSettle(): Promise<number> {
       const before = await marker.innerText();
@@ -3455,7 +3116,6 @@ test.describe("render cap", () => {
       return Date.now() - started - REFRESH_DEBOUNCE_MS;
     }
 
-    // Warm (first refresh also resolves the two icons), then measure three.
     await refreshAndSettle();
     const samples: number[] = [];
     for (let i = 0; i < 3; i++) samples.push(await refreshAndSettle());
@@ -3466,8 +3126,6 @@ test.describe("render cap", () => {
         .join("ms, ")}ms (worst ${Math.round(worst)}ms)`,
     );
 
-    // The source's own half, for attribution: the query, the row build, and
-    // the batched predicate/icon pass, without the render.
     const engineOnly = await frame
       .locator("input.sb-nav-input")
       .evaluate(async () => {
@@ -3480,10 +3138,7 @@ test.describe("render cap", () => {
       `navigator 5k refresh, engine only: ${Math.round(engineOnly)}ms`,
     );
 
-    // The refresh path is explicitly allowed to be slow -- it happens off the
-    // interaction path -- so this is a guard against an order-of-magnitude
-    // regression (a comparator-driven sort creeping back in, a per-row round
-    // trip), not a millisecond budget.
+    // The refresh path is explicitly allowed to be slow (off the interaction path); this guards against an order-of-magnitude regression (a comparator-driven sort creeping back in, a per-row round trip), not a millisecond budget.
     expect(worst).toBeLessThan(process.env.CI ? 9000 : 3000);
   });
 
@@ -3494,8 +3149,6 @@ test.describe("render cap", () => {
     const frame = await openNavigatorView(sbPage, "Navigator: Bulk Tree");
     await expect(frame.locator("[data-path='Folder01']")).toBeVisible();
 
-    // A phrase every row matches: the filtered tree auto-expands all of them,
-    // which is the widest the hover path ever has to work over.
     await navInput(sbPage).fill("item");
     await expect(frame.locator(".sb-tree [data-path]")).toHaveCount(2040);
 
@@ -3513,9 +3166,6 @@ test.describe("render cap", () => {
               }),
             );
           };
-          // Microtasks plus a forced layout read, not animation frames: two
-          // rAFs are ~33ms of frame cadence on their own, which would swamp
-          // the very work this is measuring.
           const settle = async () => {
             for (let i = 0; i < 5; i++) await Promise.resolve();
             void ul.offsetHeight;
@@ -3541,8 +3191,6 @@ test.describe("render cap", () => {
     );
     expect(worst).toBeLessThan(process.env.CI ? 600 : 200);
 
-    // The transition did what it is for: exactly one hovered row carries
-    // buttons, alongside the selected one.
     await expect(frame.locator(".sb-tree .sb-row-action")).toHaveCount(2);
   });
 
@@ -3555,18 +3203,14 @@ test.describe("render cap", () => {
     ).toBeVisible();
 
     const rows = frame.locator(".sb-nav-list .sb-nav-row");
-    // An even-numbered item, so `when` keeps both of its actions.
     await rows.nth(5).hover();
     const parked = await rows.nth(5).innerText();
     await expect(rows.nth(5).locator(".sb-row-action")).toHaveCount(2);
 
-    // The pointer does not move; the rows do.
     await navInput(sbPage).press("PageDown");
     await navInput(sbPage).press("PageDown");
     await navInput(sbPage).press("PageDown");
 
-    // Whatever is under the pointer now is what carries the buttons -- and it
-    // is not the row that was there before.
     const hovered = frame.locator(
       ".sb-nav-list .sb-nav-row:has(.sb-row-action):not(.sb-nav-selected)",
     );
@@ -3583,12 +3227,9 @@ test.describe("render cap", () => {
     ).toBeVisible();
 
     const rows = frame.locator(".sb-nav-list .sb-nav-row");
-    // The selected row (the first, an odd-numbered item, so `when` keeps one
-    // of its two actions) carries them with no pointer near it.
     await expect(rows.nth(0).locator(".sb-row-action")).toHaveCount(1);
     await expect(rows.nth(3).locator(".sb-row-action")).toHaveCount(0);
 
-    // An even-numbered item: both actions.
     await rows.nth(3).hover();
     await expect(rows.nth(3).locator(".sb-row-action")).toHaveCount(2);
     await expect(rows.nth(3).locator(".sb-row-action").first()).toBeVisible();
@@ -3599,13 +3240,6 @@ test.describe("render cap", () => {
   });
 });
 
-// A space whose shape exercises every default the built-in views ship with: a
-// pure folder (Diagrams), a page that is also a folder (Projects), documents
-// of two kinds, and a meta page for the Meta segment.
-// A plain modal view of the space, defined here rather than reached for
-// among the shipped ones: the built-in pickers live in the plug now, so a
-// Lua-registered `Navigator: ...` command is the thing these tests can drive
-// without asserting anything about which registry answers.
 const MODAL_VIEW = `# Modal view
 \`\`\`space-lua
 navigator.define {
@@ -3632,22 +3266,11 @@ const BUILTIN_FILES = {
   "modalview.md": MODAL_VIEW,
 };
 
-/** The visible (non-hidden) sidebar panel's iframe, whichever side it is on. */
 function sidebarFrame(sbPage: Page, side: "lhs" | "rhs" = "lhs") {
   return sbPage.frameLocator(`.sb-keyed-panel-${side} iframe`);
 }
 
-/**
- * Reboot the client, then wait until boot has reached the navigator's
- * `editor:init` handler -- which preloads the hidden modal panel and *then*
- * restores whatever docks were remembered. The modal panel appearing in the
- * DOM is the signal that the restore either happened or decided not to, which
- * is what "it did not restore" has to be asserted behind.
- *
- * A plain `page.reload()` will not do: navigating inside the app rewrites the
- * URL without the `?headless=1` the fixture booted with, so a reload lands on
- * a client with no runtime hooks and no readiness signal.
- */
+// A plain page.reload() will not do: navigating inside the app rewrites the URL without the ?headless=1 the fixture booted with, landing on a client with no runtime hooks or readiness signal.
 async function reboot(sbPage: Page, sbServer: SBServer, pagePath = "") {
   await gotoSilverBulletPage(sbPage, sbServer, pagePath);
   await expect(
@@ -3655,13 +3278,6 @@ async function reboot(sbPage: Page, sbServer: SBServer, pagePath = "") {
   ).toHaveCount(1);
 }
 
-/**
- * A barrier for asserting that a dock did *not* come back: run a navigator
- * command and wait for its panel. The plug can only serve that after the
- * `editor:init` handler that would have restored the dock has run to
- * completion -- which is a positive signal, unlike waiting a fixed while and
- * hoping.
- */
 async function waitPastRestore(sbPage: Page) {
   const modal = await openNavigatorView(sbPage, "Navigator: Pages Modal");
   await expect(modal.locator(".sb-nav-row").first()).toBeVisible();
@@ -3686,9 +3302,6 @@ test.describe("built-in views", () => {
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await frame.locator("[data-path='Diagrams'] .sb-nav-chevron").click();
 
-    // The display rule, pinned: a page shows without its ".md", a document
-    // shows with the extension its name actually carries. Neither is stripped
-    // or appended by the view -- that is how the index names them.
     await expect(
       frame.locator("[data-path='Projects/Alpha'] .sb-nav-primary"),
     ).toHaveText("Alpha");
@@ -3716,7 +3329,6 @@ test.describe("built-in views", () => {
     const image = await iconOf("Diagrams/flow.png");
 
     expect(new Set([folder, page, document, image]).size).toBe(4);
-    // A page that is also a folder is drawn as the folder it heads.
     expect(await iconOf("Projects")).toBe(folder);
   });
 
@@ -3725,9 +3337,6 @@ test.describe("built-in views", () => {
   }) => {
     const frame = await openSpaceTree(sbPage);
 
-    // A dual carries a class of its own, as a styling hook -- but nothing is
-    // drawn from it: a dual looks exactly like any other folder heading, and
-    // the difference is what its label *does*.
     await expect(frame.locator("[data-path='Projects']")).toHaveClass(
       /sb-nav-dual/,
     );
@@ -3735,8 +3344,6 @@ test.describe("built-in views", () => {
       /sb-nav-dual/,
     );
 
-    // Which is the whole of it: the dual's label opens its page, where the
-    // pure folder's only expands.
     await frame.locator("[data-path='Diagrams'] .sb-nav-primary").click();
     await expect(
       frame.locator("[data-path='Diagrams/flow.png']"),
@@ -3761,14 +3368,7 @@ test.describe("built-in views", () => {
     );
   });
 
-  // Reopening a *closed* dock is a fresh activation, which (unlike a
-  // merely-hidden one, see "sidebar: follow-editor reveal survives being
-  // hidden, then reopened" above) re-fetches the persisted expansion
-  // snapshot -- a sibling async round trip to the reveal's own
-  // ancestor-expansion, with no fixed order between them. Manually expanding
-  // an unrelated folder first gives that snapshot real content (an empty one
-  // happens to not reproduce the race), so this is a real regression guard,
-  // not a coincidence of a pristine space.
+  // A fresh activation re-fetches the persisted expansion snapshot as a sibling async round trip to the reveal's own ancestor-expansion, with no fixed order between them; an empty snapshot happens not to reproduce the race, hence the unrelated folder expanded by hand first.
   test("space tree: reopening a closed dock reveals the current page even with an unrelated folder remembered as expanded", async ({
     sbPage,
   }) => {
@@ -3788,17 +3388,12 @@ test.describe("built-in views", () => {
     await expect(
       reopened.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
     ).toBeVisible();
-    // The remembered folder survives too: the fix merges the reveal's
-    // ancestors into the persisted snapshot rather than picking one over the
-    // other.
     await expect(
       reopened.locator("[data-path='Diagrams/flow.png']"),
     ).toBeVisible();
   });
 
-  // The real Cmd-o binding, all three transitions -- closed -> open+focus
-  // and visible-but-unfocused -> refocus are the pre-existing behavior;
-  // focused -> hide is new (see `show`'s toggle branch in navigator.ts).
+  // closed -> open+focus and unfocused -> refocus are pre-existing behavior; focused -> hide is new (see show's toggle branch in navigator.ts).
   test("Cmd-o toggles the tree dock: closed -> open+focus, unfocused -> refocus, focused -> hide", async ({
     sbPage,
   }) => {
@@ -3816,11 +3411,7 @@ test.describe("built-in views", () => {
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
   });
 
-  // Addendum 7's fallback branch: Cmd-o is Safari-the-app's own reserved
-  // "Open File..." accelerator, claimed at the OS/app level before any web
-  // page ever sees the keydown -- no capture-phase listener can win that
-  // race. Cmd-Shift-o is the same command's secondary binding, unclaimed
-  // there, and must behave identically to Cmd-o in all three transitions.
+  // Cmd-o is Safari-the-app's own reserved "Open File..." accelerator, claimed at the OS/app level before any web page sees the keydown -- no capture-phase listener can win that race, hence this secondary binding.
   test("Cmd-Shift-o (the Safari-workable secondary binding) toggles the tree dock exactly like Cmd-o: closed -> open+focus, unfocused -> refocus, focused -> hide", async ({
     sbPage,
   }) => {
@@ -3841,25 +3432,17 @@ test.describe("built-in views", () => {
   test("Cmd-o and Cmd-Shift-o coexist: either opens the dock, either closes it, interchangeably", async ({
     sbPage,
   }) => {
-    // Opened with the primary binding...
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
     await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
 
-    // ...closed with the secondary one, from the same focused dock.
     await sbPage.keyboard.press(`${mod}+Shift+o`);
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
 
-    // ...and reopened with the primary again: neither binding stepped on
-    // the other's toggle state.
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
   });
 
-  // Addendum 7, item 3: the command palette route was never gated on a
-  // keybinding existing at all -- `system.listPaletteCommands()` lists every
-  // registered command regardless -- so it stays the fallback that works
-  // even somewhere both key bindings were unavailable.
   test("Navigate: Tree is reachable via the command palette independent of either key binding", async ({
     sbPage,
   }) => {
@@ -3868,12 +3451,7 @@ test.describe("built-in views", () => {
     await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
   });
 
-  // `editor.getFocusedPanelSlot` used to detect a slot from an ancestor
-  // class only the sidebar wrapper carries (`sb-keyed-panel-lhs`/`-rhs`) --
-  // the modal wrapper renders plain `sb-keyed-panel`, so a focused modal
-  // picker always answered `undefined`, contradicting the syscall's own
-  // four-slot contract. Fixed via a `data-slot` attribute the iframe itself
-  // carries, on every render path.
+  // Detection used to rely on an ancestor class only the sidebar wrapper carries; the modal wrapper renders plain sb-keyed-panel, so a focused modal picker always answered undefined. Fixed via a data-slot attribute the iframe itself carries.
   test("editor.getFocusedPanelSlot reports the modal, not just lhs/rhs sidebars", async ({
     sbPage,
   }) => {
@@ -3902,8 +3480,6 @@ test.describe("built-in views", () => {
     const segments = frame.locator(".sb-segment");
     await expect(segments).toHaveCount(4);
 
-    // Folder rows are a header by weight and tint, not by case: their names
-    // are the folder's own, verbatim.
     const folder = frame.locator("[data-path='Projects'] .sb-nav-primary");
     await expect(folder).toHaveText("Projects");
     expect(
@@ -3914,9 +3490,6 @@ test.describe("built-in views", () => {
     ).toEqual(["none", "none"]);
 
     await frame.locator(".sb-segment[aria-label='Documents']").click();
-    // Subsetting rebuilds the tree from the rows that survived, so the folders
-    // those documents live in come back on their own -- but a segment is not a
-    // phrase, so nothing is auto-expanded.
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await expect(
       frame.locator("[data-path='Projects/notes.txt']"),
@@ -3928,9 +3501,6 @@ test.describe("built-in views", () => {
     await expect(frame.locator("[data-path='Templates/Thing']")).toBeVisible();
     await expect(frame.locator("[data-path='Projects']")).toHaveCount(0);
 
-    // The default segment leaves pages and documents in (but not meta pages)
-    // -- and expansion is the view's, not the segment's, so Projects is still
-    // open from above.
     await frame.locator(".sb-segment[aria-label='All']").click();
     await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
     await expect(
@@ -3945,15 +3515,10 @@ test.describe("built-in views", () => {
     const frame = await openSpaceTree(sbPage);
     const input = frame.locator("input.sb-nav-input");
 
-    // Prune to one page, so which row the arrow lands on is not a question of
-    // how many library pages the space happens to hold.
     await expect(async () => {
       await input.fill("Projects/Alpha");
       await expect(input).toHaveValue("Projects/Alpha", { timeout: 1000 });
     }).toPass();
-    // Arrow first: a printable key only acts once the selection has been
-    // moved deliberately (see the typing-vs-navigating contract) -- and the
-    // top row of the pruned tree is the folder, not the page.
     await input.press("ArrowDown");
     await expect(frame.locator(".sb-nav-selected")).toHaveAttribute(
       "data-path",
@@ -3964,7 +3529,6 @@ test.describe("built-in views", () => {
     await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
       "Projects/Alpha",
     );
-    // Peeking, not leaving: the phrase and the focus are both still here.
     await expect(input).toHaveValue("Projects/Alpha");
     await expectFilterInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
   });
@@ -3978,8 +3542,6 @@ test.describe("built-in views", () => {
     const doc = frame.locator("[data-path='Diagrams/flow.png']");
     await expect(doc).toBeVisible();
 
-    // Pure folders offer "New page here" and "Rename", never "Delete": a
-    // subtree deletion is not a hover button.
     await frame.locator("[data-path='Diagrams']").hover();
     const folderActions = frame.locator(
       "[data-path='Diagrams'] .sb-row-action",
@@ -4005,11 +3567,6 @@ test.describe("built-in views", () => {
     expect(gone.ok).toBe(false);
   });
 
-  // onMove, through the TS builtin's own "move" hook (-> `moveByRename` in
-  // builtins.ts) -- the generic drag mechanism is already
-  // covered against a synthetic Lua fixture in the "dnd" suite below; this is
-  // the one drop that has to prove the real `std.spaceTree` wiring, document
-  // rename included.
   test("dragging a document onto a folder renames it through the built-in's own onMove", async ({
     sbPage,
     sbServer,
@@ -4044,7 +3601,6 @@ test.describe("boot restore", () => {
     await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
-    // Give the "which view is docked here" write its round trip.
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 
@@ -4052,9 +3608,6 @@ test.describe("boot restore", () => {
 
     const restored = sidebarFrame(sbPage);
     await expect(restored.locator("[data-path='Projects']")).toBeVisible();
-    // No focus steal: the editor holds focus, as it does on any other boot.
-    // (The panel's own boot focus is skipped for a passive restore -- see
-    // ui/index.tsx.)
     expect(
       await sbPage.evaluate(
         () => document.activeElement?.tagName.toLowerCase() ?? "",
@@ -4062,9 +3615,7 @@ test.describe("boot restore", () => {
     ).not.toBe("iframe");
   });
 
-  // Unlike the command/Cmd-o active-open path fixed above, a passive
-  // restore deliberately does not reveal (activation.ts: "a boot restore
-  // isn't an ask") -- pinned here so that stays a decision, not a drift.
+  // Unlike the command/Cmd-o active-open path, a passive restore deliberately does not reveal (activation.ts: "a boot restore isn't an ask") -- pinned here so that stays a decision, not a drift.
   test("a docked view's selection is not auto-revealed on a passive boot restore, by design", async ({
     sbPage,
     sbServer,
@@ -4106,8 +3657,6 @@ test.describe("boot restore", () => {
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toHaveCount(0);
   });
 
-  // Boot restore is name-keyed and content-agnostic -- std.toc, a TS builtin,
-  // has nothing special to ask of it, and this is the proof.
   test("a docked outline (std.toc, a TS builtin) comes back on the next boot, passively", async ({
     sbPage,
     sbServer,
@@ -4162,8 +3711,6 @@ test.describe("openOnStart", () => {
     sbPage,
     sbServer,
   }) => {
-    // The first load is what indexes navtest.md, so the declaration only
-    // exists from the boot after it.
     await reboot(sbPage, sbServer);
 
     const frame = sidebarFrame(sbPage, "rhs");
@@ -4176,7 +3723,6 @@ test.describe("openOnStart", () => {
       ),
     ).not.toBe("iframe");
 
-    // openOnStart is only meaningful on a dock that can stay open.
     const rejected = await sbPage.evaluate(() =>
       (globalThis as any).sbRuntime.evalLua("navigator._openOnStartRejected"),
     );
@@ -4206,9 +3752,6 @@ test.describe("mobile", () => {
     const viewport = sbPage.viewportSize()!;
 
     expect(drawer.width).toBe(viewport.width);
-    // ...and so is the panel inside it, all the way down to the iframe. The
-    // width a sidebar remembers belongs to the desktop column; a drawer that
-    // kept it would leave the editor showing through beside the navigator.
     const panel = (await sbPage
       .locator("#sb-main .sb-keyed-panel-lhs .sb-panel")
       .boundingBox())!;
@@ -4221,7 +3764,6 @@ test.describe("mobile", () => {
     expect(Math.round(drawer.y + drawer.height)).toBe(viewport.height);
     await expect(sbPage.locator("#sb-top")).toBeVisible();
 
-    // Nothing to drag: the drawer is already as wide as the screen.
     await expect(frame.locator(".sb-resizer")).toHaveCount(0);
   });
 
@@ -4239,8 +3781,6 @@ test.describe("mobile", () => {
   });
 
   test("a keyed modal keeps the narrow-screen inset", async ({ sbPage }) => {
-    // Any modal view will do; this one is defined by this suite, so it does
-    // not depend on which registry the built-in pickers live in.
     const frame = await openNavigatorView(sbPage, "Navigator: Pages Modal");
     await expect(
       frame.locator(".sb-nav-row", { hasText: "Projects" }).first(),
@@ -4248,7 +3788,6 @@ test.describe("mobile", () => {
 
     const modal = (await sbPage.locator(".sb-modal").boundingBox())!;
     const viewport = sbPage.viewportSize()!;
-    // main.scss overrides the plug's own inset below 600px.
     expect(Math.round(modal.x)).toBe(8);
     expect(Math.round(modal.width)).toBe(viewport.width - 16);
   });
@@ -4261,8 +3800,6 @@ test.describe("mobile", () => {
 
     await reboot(sbPage, sbServer);
     await waitPastRestore(sbPage);
-    // A drawer covers the editor whole; restoring one would hide the page the
-    // user just opened.
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toHaveCount(0);
   });
 });
@@ -4411,8 +3948,7 @@ test.describe("prefixes and completion", () => {
     return frame.locator(`.sb-segment[aria-label='${label}']`);
   }
 
-  // The create row is a `.sb-nav-row` with a `.sb-nav-primary` of its own, so
-  // an unqualified primary query counts it as a result.
+  // The create row is a .sb-nav-row with a .sb-nav-primary of its own, so an unqualified primary query would count it as a result.
   function rows(frame: FrameLocator) {
     return frame.locator(".sb-nav-row:not(.sb-nav-create) .sb-nav-primary");
   }
@@ -4435,8 +3971,6 @@ test.describe("prefixes and completion", () => {
       "aria-checked",
       "true",
     );
-    // The character is consumed, not filtered on -- a phrase of "^" would
-    // match nothing at all.
     await expect(input).toHaveValue("");
     await expect(rows(frame)).toHaveText(["Settings"]);
 
@@ -4466,7 +4000,6 @@ test.describe("prefixes and completion", () => {
       "true",
     );
 
-    // ...and only the one past the start undoes the prefix.
     await input.press("Backspace");
     await expect(segment(frame, "All")).toHaveAttribute("aria-checked", "true");
     await expect(rows(frame)).toHaveCount(4);
@@ -4490,14 +4023,10 @@ test.describe("prefixes and completion", () => {
     const frame = await openHost(sbPage);
     const input = navInput(sbPage);
 
-    // Pasted rather than typed, so the "carry the rest" half is exercised in
-    // the one input event a paste produces.
     await input.fill("$two");
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Child");
     await expect(input).toHaveValue("two");
     await expect(rows(frame)).toHaveText(["anchor-two"]);
-    // The child has no segments of its own; the host's segmented control goes
-    // with the host.
     await expect(frame.locator(".sb-segment")).toHaveCount(0);
   });
 
@@ -4529,11 +4058,9 @@ test.describe("prefixes and completion", () => {
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Side");
 
     await frame.locator("input.sb-nav-input").press("$");
-    // prefixchild docks "modal", but a hop is a swap in place.
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Child");
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
-    // The modal dock is preloaded (hidden) from boot, so what matters is that
-    // the hop did not surface it.
+    // The modal dock is preloaded (hidden) from boot regardless, so what proves the hop didn't surface it is toBeHidden, not merely its existence.
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
   });
 
@@ -4552,7 +4079,6 @@ test.describe("prefixes and completion", () => {
       "Projects/Beta/Deep",
     ]);
 
-    // Only on an *empty* phrase: a space mid-phrase is a space.
     await sbPage.keyboard.type("Beta D", { delay: 20 });
     await expect(input).toHaveValue("Projects/Beta D");
   });
@@ -4568,12 +4094,8 @@ test.describe("prefixes and completion", () => {
     await expect(input).toHaveValue("Projects");
     await input.press("Alt+ ");
     await expect(input).toHaveValue("Projects/Beta");
-    // ...and keeps going. "Projects/Beta" is now its own best match, so the
-    // top-ranked row has nothing left to offer; the walk moves on to the best
-    // row that can actually extend the phrase rather than stalling there.
     await input.press("Alt+ ");
     await expect(input).toHaveValue("Projects/Beta/Deep");
-    // Nothing deeper: the walk stops when no row extends the phrase.
     await input.press("Alt+ ");
     await expect(input).toHaveValue("Projects/Beta/Deep");
   });
@@ -4587,12 +4109,9 @@ test.describe("prefixes and completion", () => {
     await expect(rows(frame)).toHaveCount(4);
     const input = navInput(sbPage);
 
-    // Typing mode (a fresh open): Space is the completion's.
     await sbPage.keyboard.press(" ");
     await expect(input).toHaveValue("Projects/");
 
-    // Back to an empty phrase, then into navigating mode: Space is the
-    // keymap's, and the phrase is left alone.
     await input.press("Backspace");
     await input.fill("");
     await expect(input).toHaveValue("");
@@ -4612,8 +4131,6 @@ test.describe("prefixes and completion", () => {
     await openHost(sbPage);
     const input = navInput(sbPage);
 
-    // Navigating mode, which is only a yield-to-the-keymap condition -- and
-    // this view claims nothing, so there is nothing to yield to.
     await input.press("ArrowDown");
     await input.press(" ");
     await expect(input).toHaveValue("Projects/");
@@ -4625,12 +4142,7 @@ test.describe("prefixes and completion", () => {
     const frame = await openHost(sbPage);
     const input = navInput(sbPage);
 
-    // Two probes, because a reboot and a rebuild fail differently: the host
-    // wipes `document.body` and re-evals the bundle on an html re-post (which
-    // bumps the boot count but keeps `globalThis`), and replaces the iframe
-    // outright on a key/content change (which resets both). The
-    // `navigator:ready` pull would repopulate the panel either way, so
-    // asserting on what is on screen proves nothing about continuity.
+    // Two probes because a reboot and a rebuild fail differently (re-post bumps boot count but keeps globalThis; a key/content change replaces the iframe and resets both), and navigator:ready would repopulate the panel either way, so on-screen content alone proves nothing about continuity.
     const probe = () =>
       sbPage.evaluate(() => {
         const f = document.querySelector(
@@ -4643,10 +4155,6 @@ test.describe("prefixes and completion", () => {
       const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
       (f.contentWindow as any).__navSentinel = "alive";
     });
-    // The baseline is captured, not asserted: opening a preloaded modal for
-    // the first time legitimately re-posts its html once (the space-style
-    // preamble is only known by then), so what matters is that the hop adds
-    // nothing to it.
     const before = await probe();
     expect(before.sentinel).toBe("alive");
     expect(typeof before.boots).toBe("number");
@@ -4671,14 +4179,11 @@ test.describe("prefixes and completion", () => {
     await expect(input).toHaveValue("#work");
     await expect(rows(frame)).toHaveText(["Alpha", "Projects/Beta"]);
 
-    // The tag is taken out of the phrase before ranking, so what is left
-    // ranks on its own -- and a second tag narrows further.
     await input.fill("#work #meeting");
     await expect(rows(frame)).toHaveText(["Projects/Beta"]);
     await input.fill("#work alpha");
     await expect(rows(frame)).toHaveText(["Alpha"]);
 
-    // ...including for the create row, which offers the stripped phrase.
     await input.fill("#work brand new");
     await expect(frame.locator(".sb-nav-create .sb-nav-primary")).toHaveText(
       "brand new",
@@ -4703,8 +4208,6 @@ test.describe("prefixes and completion", () => {
   });
 });
 
-// The four things a picker over the space needs that a query alone can't give
-// it, composed exactly the way a replacement picker will compose them.
 const SOURCE_DATA_CONFIG = `# Nav source data test
 \`\`\`space-lua
 navigator.define {
@@ -4798,8 +4301,6 @@ test.describe("source-side picker data", () => {
     sbPage,
     sbServer,
   }) => {
-    // Two navigations, so the order is recency and not something the index
-    // happens to agree with.
     await gotoSilverBulletPage(sbPage, sbServer, "Projects/Beta");
     await gotoSilverBulletPage(sbPage, sbServer, "Projects/Alpha");
 
@@ -4817,7 +4318,6 @@ test.describe("source-side picker data", () => {
 
   test("aspiring pages come along as rows of their own", async ({ sbPage }) => {
     const frame = await openPicker(sbPage);
-    // `[[Nowhere]]` in Projects/Alpha, indexed as an aspiring page.
     await expect(row(frame, "Nowhere")).toBeVisible();
     await expect(row(frame, "Nowhere")).toContainText("aspiring");
   });
@@ -4836,7 +4336,6 @@ test.describe("source-side picker data", () => {
     sbPage,
   }) => {
     const frame = await openPicker(sbPage);
-    // png has an editor (the image viewer ships with the client); xyz has none.
     await expect(row(frame, "Diagrams/flow.png")).toContainText("viewable");
     await expect(row(frame, "Diagrams/notes.xyz")).toContainText(
       "not viewable",
@@ -4874,12 +4373,6 @@ navigator.define {
 \`\`\`
 `;
 
-// Single-registry consolidation: every hook a Lua-owned view needs now
-// crosses through one bridge event, `navigator:luaCall` -- down from nine
-// separate `navigator:*` broadcasts. This proves the four interaction hooks
-// (select/action/rowState/move) all still reach a Lua view's own handlers
-// through it; `rows` and `meta` are exercised implicitly by every other test
-// in this file that opens a Lua-defined view at all.
 test.describe("single-registry consolidation", () => {
   test.use({
     spaceFiles: {
@@ -4903,8 +4396,6 @@ test.describe("single-registry consolidation", () => {
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 
-    // rowState: the action's `when` mask -- computed by the "rowState" hook
-    // -- hides Delete on the folder and shows it on the page.
     await frame.locator("[data-path='Projects']").hover();
     await expect(
       frame.locator(
@@ -4917,13 +4408,11 @@ test.describe("single-registry consolidation", () => {
     );
     await expect(deleteAction).toBeVisible();
 
-    // action
     await deleteAction.click();
     await expect(sbPage.locator(".sb-notifications")).toContainText(
       "action delete Projects/Alpha",
     );
 
-    // move (drag-drop -> onMove -> navigator.moveByRename)
     await frame
       .locator("[data-path='Projects/Beta']")
       .dragTo(frame.locator("[data-path='Archive']"));
@@ -4931,7 +4420,6 @@ test.describe("single-registry consolidation", () => {
       timeout: 20_000,
     });
 
-    // select
     await frame.locator("[data-path='Archive/Beta'] .sb-nav-primary").click();
     await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
       "Archive/Beta",
@@ -4939,10 +4427,6 @@ test.describe("single-registry consolidation", () => {
   });
 });
 
-// Single-registry consolidation: `resolveMeta`/`handle` (registry.ts) answer
-// every built-in straight from the plug's own static map, with no Lua
-// registration ever having landed -- proven here by a space that never
-// defines a single navigator view of its own.
 test.describe("builtins with no Space Lua navigator definitions present", () => {
   test.use({
     spaceFiles: {
@@ -4955,19 +4439,14 @@ test.describe("builtins with no Space Lua navigator definitions present", () => 
   test("std.pages, std.commands, std.spaceTree and std.toc all open normally", async ({
     sbPage,
   }) => {
-    // std.pages: a plain client-side key binding, no Lua command involved.
     const pages = await openPicker(sbPage, `${mod}+k`, "Page");
     await expectNavRow(pages, "Projects/Alpha");
     await closePicker(sbPage);
 
-    // std.commands: same key-binding path, a different built-in.
     const commands = await openPicker(sbPage, `${mod}+/`, "Command");
     await expectNavRow(commands, "Navigate: Tree");
     await closePicker(sbPage);
 
-    // std.spaceTree and std.toc: reached through commands the plug itself
-    // registers (navigator.plug.yaml), not a `navigator.define` anywhere in
-    // this space -- there is no Space Lua navigator definition at all here.
     await runCommandViaPalette(sbPage, "Navigate: Tree");
     const tree = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
     await expect(tree.locator("[data-path='Projects']")).toBeVisible({

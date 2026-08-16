@@ -52,16 +52,14 @@ import type { ObjectIndex } from "./data/object_index.ts";
 import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 
-const mqTimeout = 10000; // 10s
+const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
 
 /**
  * Handles the extension-related mechanisms of the client by wrapping a PlugOS System object as well as Space Lua environments
  */
 export class ClientSystem {
-  // PlugOS system
   system!: System<SilverBulletHooks>;
-  // ... and hooks
   commandHook!: CommandHook;
   slashCommandHook!: SlashCommandHook;
   namespaceHook!: PlugNamespaceHook;
@@ -71,17 +69,14 @@ export class ClientSystem {
 
   serviceRegistry!: ServiceRegistry;
 
-  // Space Lua
   spaceLuaEnv: SpaceLuaEnvironment;
   readonly scriptCommands = new Map<string, Command>();
-  // Code widgets registered from Space Lua (language -> definition)
   readonly luaCodeWidgets = new Map<
     string,
     { language: string; render: ILuaFunction }
   >();
   scriptsLoaded: boolean = false;
 
-  // Known files (for UI)
   readonly allKnownFiles = new Set<string>();
   public knownFilesLoaded: boolean = false;
 
@@ -105,23 +100,19 @@ export class ClientSystem {
 
     setInterval(() => {
       mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
-    }, 20000); // Look to requeue every 20s
+    }, 20000);
 
     this.system.addHook(this.eventHook);
 
-    // Plug page namespace hook
     this.namespaceHook = new PlugNamespaceHook();
     this.system.addHook(this.namespaceHook);
 
-    // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
     this.system.addHook(this.codeWidgetHook);
 
-    // Document editor hook
     this.documentEditorHook = new DocumentEditorHook();
     this.system.addHook(this.documentEditorHook);
 
-    // Command hook
     this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
     registerEditorCommands(client, this.commandHook);
     this.commandHook.on({
@@ -130,7 +121,6 @@ export class ClientSystem {
           type: "update-commands",
           commands: commandMap,
         });
-        // Replace the key mapping compartment (keybindings)
         this.client.editorView.dispatch({
           effects: this.client.commandKeyHandlerCompartment?.reconfigure(
             createCommandKeyBindings(this.client),
@@ -141,11 +131,9 @@ export class ClientSystem {
 
     this.slashCommandHook = new SlashCommandHook(this.client);
 
-    // MQ hook
     this.mqHook = new MQHook(this.system, this.mq, this.client.config);
     this.system.addHook(this.mqHook);
 
-    // Syscall hook
     this.system.addHook(new SyscallHook());
 
     this.eventHook.addLocalListener("editor:reloadState", async () => {
@@ -158,7 +146,6 @@ export class ClientSystem {
     this.system.addHook(this.commandHook);
     this.system.addHook(this.slashCommandHook);
 
-    // Syscalls available to all plugs
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook, this.client),
@@ -172,7 +159,6 @@ export class ClientSystem {
       languageSyscalls(),
       jsonschemaSyscalls(),
       indexSyscalls(this.objectIndex, this.client),
-      //commandSyscalls(client),
       luaSyscalls(this.system, () => this.spaceLuaEnv.env),
       mqSyscalls(this.mq),
       serviceRegistrySyscalls(this.serviceRegistry),
@@ -186,9 +172,7 @@ export class ClientSystem {
     );
 
     if (!this.readOnlyMode) {
-      // Write syscalls
       this.system.registerSyscalls([], spaceWriteSyscalls(this.client));
-      // Syscalls that require some additional permissions
       this.system.registerSyscalls(
         ["fetch"],
         sandboxFetchSyscalls(this.client),
@@ -216,7 +200,6 @@ export class ClientSystem {
       console.error("Error loading Lua script:", e.message);
     }
 
-    // Reset the space script commands
     this.scriptCommands.clear();
     for (const [name, command] of Object.entries(
       this.client.config.get<Record<string, Command>>("commands", {}),
@@ -224,7 +207,6 @@ export class ClientSystem {
       this.scriptCommands.set(name, command);
     }
 
-    // Reset + collect Space Lua code widgets
     this.luaCodeWidgets.clear();
     for (const [language, def] of Object.entries(
       this.client.config.get<
@@ -236,7 +218,6 @@ export class ClientSystem {
       }
     }
 
-    // Make scripted (slash) commands available
     this.commandHook.throttledBuildAllCommandsAndEmit();
     this.slashCommandHook.throttledBuildAllCommands();
     this.mqHook.throttledReloadQueues();
@@ -254,9 +235,7 @@ export class ClientSystem {
     await this.system.unloadAll();
 
     let allPlugs = await space.listPlugs();
-    // console.log("All plugs", allPlugs);
     if (this.client.bootConfig.disablePlugs) {
-      // Only keep builtin plugs
       allPlugs = allPlugs.filter(({ name }) => builtinPlugPaths.includes(name));
 
       console.warn("Not loading custom plugs as `disablePlugs` has been set");

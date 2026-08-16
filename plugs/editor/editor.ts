@@ -9,12 +9,9 @@ import {
 export async function setEditorMode() {
   // TODO: Remove at some point: temporary upgrade code
   const allSyscalls = await system.listSyscalls();
-  // console.log("All syscalls", allSyscalls);
   const queryLuaObjects = allSyscalls.find(
     (sc) => sc.name === "index.queryLuaObjects",
   );
-
-  // console.log(readPageWithMetaCall);
 
   if (!queryLuaObjects) {
     await editor.alert(
@@ -83,7 +80,7 @@ export async function moveToPosCommand() {
     return;
   }
   const pos = +posString;
-  await editor.moveCursor(pos, true); // showing the movement for better UX
+  await editor.moveCursor(pos, true);
 }
 
 export async function copyRefCommand() {
@@ -110,7 +107,7 @@ export async function moveToLineCommand() {
     void editor.flashNotification("Must provide a line number.", "error");
     return;
   }
-  // Match sequence of digits at the start, optionally another sequence
+  // Two capture groups: line number, then optional column number
   const numberRegex = /^(\d+)(?:[^\d]+(\d+))?/;
   const match = lineString.match(numberRegex);
   if (!match) {
@@ -125,7 +122,7 @@ export async function moveToLineCommand() {
   if (match[2]) {
     column = parseInt(match[2], 10);
   }
-  await editor.moveCursorToLine(line, column, true); // showing the movement for better UX
+  await editor.moveCursorToLine(line, column, true);
 }
 
 export async function customFlashMessage(_def: any, message: string) {

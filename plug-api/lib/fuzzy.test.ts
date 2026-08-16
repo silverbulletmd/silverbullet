@@ -38,6 +38,29 @@ test("custom fields", () => {
   expect(r[0].title).toEqual("Hello World");
 });
 
+test("an exact whole-field match wins a tie over orderId, even against a candidate whose name is a superset", () => {
+  const objs = [
+    { name: "Navigate: Outline Picker" },
+    { name: "Navigate: Outline" },
+  ];
+  // Every token in "navigate: outline" matches equally well against both
+  // candidates (the superset's extra "picker" word is never penalized), so
+  // without the exact-match tie-break `orderId` alone would decide -- and
+  // here it deliberately favors the wrong (superset) row first.
+  const r = rank(objs, "navigate: outline", {
+    orderId: (o) => (o.name === "Navigate: Outline Picker" ? 0 : 1),
+  });
+  expect(r[0].name).toEqual("Navigate: Outline");
+});
+
+test("no exact match: the tie still falls back to orderId", () => {
+  const objs = [{ name: "Outline Picker" }, { name: "Outline Viewer" }];
+  const r = rank(objs, "outline", {
+    orderId: (o) => (o.name === "Outline Viewer" ? 0 : 1),
+  });
+  expect(r[0].name).toEqual("Outline Viewer");
+});
+
 // --- Equivalence proof: typoScore rewrite vs. pre-rewrite reference ---
 //
 // `typoScoreReference` and `boundedDamerauLevenshteinReference` below are a

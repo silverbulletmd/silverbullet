@@ -4,7 +4,6 @@ const MIN_SIDEBAR_WIDTH = 160;
 const MAX_SIDEBAR_WIDTH = 600;
 
 export type ResizeHandleProps = {
-  /** Which edge of the dock this handle sits on. */
   slot: "lhs" | "rhs";
   onResize: (widthPx: number, commit: boolean) => void;
 };

@@ -61,9 +61,8 @@ export type AppViewState = {
   unsavedChanges: boolean;
   isOnline: boolean;
 
-  // Progress tracker
-  progressPercentage?: number; // Used to show progress circle
-  progressType?: string; // Used for styling
+  progressPercentage?: number;
+  progressType?: string;
 
   panels: { [key: string]: PanelConfig };
   keyedPanels: KeyedPanelConfig[];
@@ -78,7 +77,6 @@ export type AppViewState = {
     customStyles?: string;
   };
 
-  // Filter box
   showFilterBox: boolean;
   filterBoxLabel: string;
   filterBoxPlaceHolder: string;
@@ -86,13 +84,11 @@ export type AppViewState = {
   filterBoxHelpText: string;
   filterBoxOnSelect: (option: FilterOption | undefined) => void;
 
-  // Prompt
   showPrompt: boolean;
   promptMessage?: string;
   promptDefaultValue?: string;
   promptCallback?: (value: string | undefined) => void;
 
-  // Confirm
   showConfirm: boolean;
   confirmMessage?: string;
   confirmDestructive?: boolean;
@@ -196,7 +192,6 @@ export type BootConfig = {
   indexPage: string;
   readOnly: boolean;
   logPush?: boolean;
-  // Sync configuration
   syncDocuments?: boolean;
   syncIgnore?: string;
   // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1

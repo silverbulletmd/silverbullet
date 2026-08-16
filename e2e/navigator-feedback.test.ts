@@ -1,7 +1,9 @@
 import { expect, gotoSilverBulletPage, mod, test } from "./fixtures.ts";
 import {
   expectNavInputFocused,
+  navFrame,
   navInput,
+  navRows,
   navSegment,
   openPagePicker,
   runCommandViaPalette,
@@ -29,6 +31,33 @@ navigator.define {
       { name = "WritableRow", ref = "WritableRow", perm = "rw" },
     }
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
+}
+\`\`\`
+`;
+
+// A render-phase exception, not a data-level one already caught elsewhere:
+// `row.primary` here is a *number*. `highlightMatches` (row_item.tsx) short-
+// circuits on an empty phrase and hands it straight back as a child --
+// preact renders "42" fine, first paint. Typing a character gives it a
+// phrase to search, at which point it calls `.split` on that same number and
+// throws, synchronously, inside the render -- exactly the shape the NavRoot
+// error boundary (Addendum 9) exists to catch.
+const THROW_ON_RENDER_CONFIG = `# Throws on second render
+\`\`\`space-lua
+navigator.define {
+  name = "throwsOnSecondRender",
+  title = "Throws On Second Render",
+  command = "Navigator: Throws On Second Render",
+  dock = "modal",
+  presentation = {
+    mode = "list",
+    row = { primary = function(obj) return obj.n end },
+  },
+  source = function()
+    return { { name = "Row", ref = "Row", n = 42 } }
+  end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -36,18 +65,25 @@ navigator.define {
 const SPACE = {
   "index.md": "Welcome",
   "PermIconTest.md": PERM_ICON_CONFIG,
+  "ThrowsOnSecondRender.md": THROW_ON_RENDER_CONFIG,
   "Projects/Alpha.md": "# Alpha\n\nSome content.\n",
   "Heading.md": "# My Heading\n\nBody text.\n",
-  "Decorated.md": "---\npageDecoration:\n  prefix: \"🎄 \"\n---\n# Decorated\n",
+  "Decorated.md": '---\npageDecoration:\n  prefix: "🎄 "\n---\n# Decorated\n',
   "Outline.md": "# First\n\nBody.\n\n## Second\n\nMore.\n",
   "Diagram.png": "not really a png",
 };
 
 /** Client-side navigation (unlike `gotoSilverBulletPage`, which does a real
  * HTTP navigation and would reboot the whole client, closing any open dock). */
-async function navigateInApp(sbPage: import("@playwright/test").Page, ref: string) {
+async function navigateInApp(
+  sbPage: import("@playwright/test").Page,
+  ref: string,
+) {
   await sbPage.evaluate(
-    (r) => (globalThis as any).sbRuntime.evalLua(`editor.navigate(${JSON.stringify(r)})`),
+    (r) =>
+      (globalThis as any).sbRuntime.evalLua(
+        `editor.navigate(${JSON.stringify(r)})`,
+      ),
     ref,
   );
 }
@@ -107,7 +143,7 @@ test("A: hanging heading marker stays on-screen when a dock narrows the editor",
 }) => {
   await gotoSilverBulletPage(sbPage, sbServer, "Heading");
 
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   const lhsPanel = sbPage.locator("#sb-main .sb-keyed-panel-lhs");
   await expect(lhsPanel).toBeVisible();
 
@@ -157,11 +193,11 @@ test("C: the top bar never scrolls, even with both docks open on a decorated pag
 }) => {
   await gotoSilverBulletPage(sbPage, sbServer, "Decorated");
 
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
   await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
   await sbPage.locator("#sb-editor .cm-content").click();
-  await runCommandViaPalette(sbPage, "Navigator: Table of Contents");
+  await runCommandViaPalette(sbPage, "Navigate: Outline");
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
   await expect(sbPage.locator("#sb-main .sb-keyed-panel-rhs")).toBeVisible();
 
@@ -178,7 +214,6 @@ test("C: the top bar never scrolls, even with both docks open on a decorated pag
   await expect(sbPage.locator("#sb-current-page")).toBeVisible();
 });
 
-
 test("mark highlighting does not shift a row's own geometry", async ({
   sbPage,
 }) => {
@@ -189,10 +224,14 @@ test("mark highlighting does not shift a row's own geometry", async ({
   const beforePrimary = (await row.locator(".sb-nav-primary").boundingBox())!;
 
   await navInput(sbPage).fill("Heading");
-  const highlighted = frame.locator(".sb-nav-row", { hasText: "Heading" }).first();
+  const highlighted = frame
+    .locator(".sb-nav-row", { hasText: "Heading" })
+    .first();
   await expect(highlighted.locator("mark")).toBeVisible();
   const after = (await highlighted.boundingBox())!;
-  const afterPrimary = (await highlighted.locator(".sb-nav-primary").boundingBox())!;
+  const afterPrimary = (await highlighted
+    .locator(".sb-nav-primary")
+    .boundingBox())!;
 
   expect(after.height).toBeCloseTo(before.height, 0);
   expect(afterPrimary.height).toBeCloseTo(beforePrimary.height, 0);
@@ -219,7 +258,7 @@ test("top-bar title left-aligns with the editor body text column", async ({
   await sbPage.setViewportSize({ width: 900, height: 800 });
   expect(await alignmentDelta()).toBeLessThanOrEqual(1);
 
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
   expect(await alignmentDelta()).toBeLessThanOrEqual(1);
 });
@@ -295,7 +334,9 @@ test("a view that never signals ready reveals only once the fallback timeout ela
     const clientSystem = (globalThis as any).client.clientSystem;
     const real = clientSystem.localSyscall.bind(clientSystem);
     clientSystem.localSyscall = (name: string, args: unknown[]) =>
-      name === "editor.panelReady" ? Promise.resolve(undefined) : real(name, args);
+      name === "editor.panelReady"
+        ? Promise.resolve(undefined)
+        : real(name, args);
   });
 
   const pending = () =>
@@ -314,13 +355,12 @@ test("a view that never signals ready reveals only once the fallback timeout ela
   expect(Date.now() - openStart).toBeGreaterThanOrEqual(750);
 });
 
-
 test("E: the outline empties on a document instead of keeping the previous page's headers", async ({
   sbPage,
   sbServer,
 }) => {
   await gotoSilverBulletPage(sbPage, sbServer, "Outline");
-  await runCommandViaPalette(sbPage, "Navigator: Table of Contents");
+  await runCommandViaPalette(sbPage, "Navigate: Outline");
   await expect(sbPage.locator("#sb-main .sb-keyed-panel-rhs")).toBeVisible();
 
   const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-rhs iframe");
@@ -372,12 +412,15 @@ test("F: a perm=ro row renders a distinct (lock) icon from a normal row", async 
 test("G: the space tree dock reads 'Open' with a segment-dependent placeholder", async ({
   sbPage,
 }) => {
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
 
   await expect(frame.locator(".sb-nav-title")).toHaveText("Open");
   // "All" is std.spaceTree's default segment.
-  await expect(navSegment(frame, "All")).toHaveAttribute("aria-checked", "true");
+  await expect(navSegment(frame, "All")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
   await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
     "placeholder",
     "Page or document",
@@ -393,17 +436,121 @@ test("G: the space tree dock reads 'Open' with a segment-dependent placeholder",
     "Page",
   );
 
+  await navSegment(frame, "Documents").click();
+  await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
+    "placeholder",
+    "Document",
+  );
+
   await navSegment(frame, "Meta").click();
   await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
     "placeholder",
     "Meta page",
   );
+});
 
-  await navSegment(frame, "Docs").click();
-  await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
+test("I: Cmd-/ reaches the host from a dock's filter input; native editing chords stay local; Cmd-o toggle still wins", async ({
+  sbPage,
+}) => {
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
+  const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
+  const input = frame.locator("input.sb-nav-input");
+  await expect(input).toBeFocused();
+
+  // Cmd-A/Cmd-C are native input-editing chords: never forwarded, so the
+  // browser's own select-all still applies inside the iframe.
+  await input.fill("Projects");
+  await sbPage.keyboard.press(`${mod}+a`);
+  await sbPage.keyboard.type("Q");
+  await expect(input).toHaveValue("Q");
+
+  // An unclaimed chord (Cmd-/) reaches the host's global shortcut path even
+  // though the dock's own input still has focus -- the iframe boundary would
+  // otherwise swallow it entirely.
+  await sbPage.keyboard.press(`${mod}+/`);
+  const paletteFrame = sbPage.frameLocator(".sb-modal iframe");
+  await expect(paletteFrame.locator("input.sb-nav-input")).toHaveAttribute(
     "placeholder",
-    "Document",
+    "Command",
+    { timeout: 20_000 },
   );
+  await sbPage.keyboard.press("Escape");
+  await expect(sbPage.locator(".sb-modal")).toBeHidden();
+
+  // Cmd-o toggling the tree closed still wins over forwarding -- the panel's
+  // own toggleKey claim runs ahead of the forward-to-host fallback. Where
+  // focus landed once the palette closed is not the point of this test, so
+  // rather than a click (which can still race the backdrop's own hide
+  // transition -- see item H's note on that exact shape) this refocuses the
+  // still-open dock the same way a user would: pressing its own opener again
+  // re-focuses an open-but-unfocused dock (`show`'s own fall-through, unlike
+  // the focused -> close case a second press then hits).
+  await sbPage.keyboard.press(`${mod}+o`);
+  await expect(input).toBeFocused();
+  await sbPage.keyboard.press(`${mod}+o`);
+  await expect(sbPage.locator(".sb-keyed-panel-lhs")).toBeHidden();
+});
+
+/** Arms a one-shot spy on `el`'s own document/window recording whether the
+ * *next* keydown had its default prevented -- read back with
+ * `readDefaultPrevented`. Registered (and awaited) before the key is
+ * pressed, so there is no race between "the listener exists" and "the key
+ * fires": `defaultPrevented` reflects whatever ran before bubble phase
+ * reaches `window`, which for a panel's own `onKeyDown` (fired at the
+ * `<input>` itself, ahead of this) is exactly what matters here. */
+async function armDefaultPreventedSpy(input: ReturnType<typeof navInput>) {
+  await input.evaluate((el) => {
+    (window as any).__lastKeydownPrevented = undefined;
+    el.ownerDocument.defaultView!.addEventListener("keydown", (e) => {
+      (window as any).__lastKeydownPrevented = e.defaultPrevented;
+    });
+  });
+}
+
+async function readDefaultPrevented(input: ReturnType<typeof navInput>) {
+  return await input.evaluate(() => (window as any).__lastKeydownPrevented);
+}
+
+test("K: a host-bound chord forwarded from a dock with no local claim fires its command exactly once, with no browser default", async ({
+  sbPage,
+}) => {
+  await runCommandViaPalette(sbPage, "Navigate: Outline");
+  const outlineFrame = sbPage.frameLocator(
+    "#sb-main .sb-keyed-panel-rhs iframe",
+  );
+  const outlineInput = outlineFrame.locator("input.sb-nav-input");
+  await expect(outlineInput).toBeFocused();
+
+  // std.toc declares no toggleKey, so Cmd-o here falls all the way through
+  // to forwarding -- exactly the shape the manifest-based preventDefault
+  // exists for: "Navigate: Tree" is a real, host-bound command for it, with
+  // a browser default (Cmd-o) that would otherwise fire alongside it.
+  await armDefaultPreventedSpy(outlineInput);
+  await sbPage.keyboard.press(`${mod}+o`);
+  expect(await readDefaultPrevented(outlineInput)).toBe(true);
+
+  // And the command fired exactly once: the tree opened, not toggled
+  // open-then-closed by a duplicate dispatch racing the forward.
+  const treeFrame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
+  await expect(treeFrame.locator("input.sb-nav-input")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(sbPage.locator(".sb-keyed-panel-lhs")).toBeVisible();
+});
+
+test("L: an unbound Cmd-chord from a dock input is never prevented, so it still reaches the browser", async ({
+  sbPage,
+}) => {
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
+  const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
+  const input = frame.locator("input.sb-nav-input");
+  await expect(input).toBeFocused();
+
+  // Nothing in this app binds Cmd-j: forwarding it must not preventDefault,
+  // so it stays a no-op locally the same way it would over the editor.
+  await armDefaultPreventedSpy(input);
+  await sbPage.keyboard.press(`${mod}+j`);
+  expect(await readDefaultPrevented(input)).toBe(false);
 });
 
 test("D: drag-resize survives Plugs: Reload", async ({ sbPage }) => {
@@ -417,7 +564,7 @@ test("D: drag-resize survives Plugs: Reload", async ({ sbPage }) => {
     };
   });
 
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   const panel = sbPage.locator("#sb-main .sb-keyed-panel-lhs");
   await expect(panel).toBeVisible();
 
@@ -469,14 +616,14 @@ test("D: drag-resize survives Plugs: Reload", async ({ sbPage }) => {
     .locator(".sb-nav-close")
     .click();
   await expect(panel).toBeHidden();
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   await expect(panel).toBeVisible();
   const restored = (await panel.boundingBox())!.width;
   expect(Math.abs(restored - widened)).toBeLessThan(10);
 
   await sbPage.locator("#sb-editor .cm-content").click();
 
-  await runCommandViaPalette(sbPage, "Navigator: Table of Contents");
+  await runCommandViaPalette(sbPage, "Navigate: Outline");
   await expect(sbPage.locator("#sb-main .sb-keyed-panel-rhs")).toBeVisible();
 });
 
@@ -493,7 +640,7 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
     };
   });
 
-  await runCommandViaPalette(sbPage, "Navigator: Outline Picker");
+  await runCommandViaPalette(sbPage, "Navigate: Outline Picker");
   await expectNavInputFocused(sbPage);
   await sbPage.keyboard.press("Escape");
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
@@ -508,9 +655,7 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
 
   const start = Date.now();
   await sbPage.evaluate(() =>
-    (globalThis as any).client.runCommandByName(
-      "Navigator: Outline Picker",
-    )
+    (globalThis as any).client.runCommandByName("Navigate: Outline Picker"),
   );
   await sbPage.waitForFunction(() => {
     const el = document.querySelector(".sb-modal");
@@ -518,4 +663,83 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
   });
   const latency = Date.now() - start;
   expect(latency).toBeLessThan(400);
+});
+
+// C2 (single-registry consolidation): the plug worker's own
+// registry (`registry.ts`'s `luaViews`) is in-memory and dies with the
+// worker; `Plugs: Reload` rebuilds the worker but does not re-run Space Lua,
+// so nothing else would re-push what this space has defined. Navigator.md's
+// `plugs:loaded` listener re-syncs from `navigator._views` (client-side Lua
+// state, unaffected by a plug reload) on every worker (re)start.
+//
+// Asks the registry directly (`navigator.handle`'s "meta" hook, the same
+// call the panel itself makes) rather than driving the full open-a-panel UI
+// flow: whether the *view* still resolves is the one thing C2 is about, and
+// it's what this isolates -- opening (and the command palette's own list)
+// bring in unrelated machinery this test has no business depending on.
+test("N: a Space Lua-defined view's meta still resolves after Plugs: Reload", async ({
+  sbPage,
+}) => {
+  // `pcall`ed: right around `Plugs: Reload` itself, the navigator plug can be
+  // momentarily unloaded (mid-swap for the fresh worker), which would
+  // otherwise throw "Plug navigator not found" and abort the poll below
+  // instead of just being one more "not yet" to retry past.
+  async function resolvesMeta(): Promise<boolean> {
+    return await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua(
+        `(function()
+           local ok, result = pcall(
+             system.invokeFunction, "navigator.handle",
+             { view = "permIconTest", hook = "meta" }
+           )
+           return ok and result ~= nil
+         end)()`,
+      ),
+    );
+  }
+
+  // The fixture page defining `permIconTest` may not have finished indexing
+  // the instant the client is ready.
+  await expect.poll(() => resolvesMeta(), { timeout: 20_000 }).toBe(true);
+
+  await runCommandViaPalette(sbPage, "Plugs: Reload");
+  await expect(sbPage.locator(".sb-modal")).toBeHidden();
+
+  // Without the re-sync, this stays nil forever -- `permIconTest`'s own
+  // Space Lua registration (`navigator._views`) survives the reload
+  // untouched, but the plug's own registry has nothing under that name
+  // until something re-pushes it. Polled, not a single check right after
+  // the reload: the `plugs:loaded` listener doing the re-push is itself an
+  // async round trip per view, not necessarily done the instant `Plugs:
+  // Reload`'s own command invocation returns.
+  await expect.poll(() => resolvesMeta(), { timeout: 20_000 }).toBe(true);
+});
+
+test("J: a render-phase exception on the second render shows the fatal-error banner instead of freezing the panel", async ({
+  sbPage,
+}) => {
+  await runCommandViaPalette(sbPage, "Navigator: Throws On Second Render");
+  const frame = navFrame(sbPage);
+
+  await expect(navRows(frame)).toHaveText("42");
+
+  const errors: string[] = [];
+  sbPage.on("pageerror", (e) => errors.push(e.message));
+
+  await navInput(sbPage).fill("4");
+
+  await expect(frame.locator(".sb-nav-error")).toBeVisible({
+    timeout: 5_000,
+  });
+  await expect(frame.locator(".sb-nav-error")).toContainText(
+    /split is not a function/i,
+  );
+  // The frozen-panel incident this addendum exists for: the filter input is
+  // gone, replaced by the boundary's own fallback markup -- not still on
+  // screen silently swallowing keystrokes that go nowhere.
+  await expect(navInput(sbPage)).toHaveCount(0);
+  // Caught, not escaped to the page: a boundary-less crash would re-throw
+  // out of preact's own render loop as a real uncaught exception, which
+  // Playwright surfaces as a `pageerror` on this iframe's own `window`.
+  expect(errors).toEqual([]);
 });

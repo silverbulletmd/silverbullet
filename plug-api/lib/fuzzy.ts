@@ -185,6 +185,34 @@ const DEFAULT_FIELDS: Record<string, number | RankField> = {
   aliases: 0.85,
 };
 
+/**
+ * Whether `phrase` equals one of `obj`'s ranked fields verbatim (normalized).
+ * Per-token scoring (below) never penalizes a candidate for carrying *extra*
+ * words the phrase didn't ask for -- "Foo" and "Foo Bar" score identically
+ * against the phrase "Foo", since each of the phrase's tokens matches
+ * somewhere in either candidate just as well. That leaves same-score ties
+ * exactly where a user's full, exact phrase should still win outright, which
+ * is what this tie-break (see `rank`'s sort) is for.
+ */
+function hasExactFieldMatch<T extends Record<string, any>>(
+  obj: T,
+  normalizedPhrase: string,
+  fields: Record<string, number | RankField>,
+): boolean {
+  for (const fieldName of Object.keys(fields)) {
+    const raw = obj[fieldName];
+    const values: unknown[] = Array.isArray(raw)
+      ? raw
+      : raw != null
+        ? [raw]
+        : [];
+    for (const value of values) {
+      if (normalize(String(value)) === normalizedPhrase) return true;
+    }
+  }
+  return false;
+}
+
 export function rank<T extends Record<string, any>>(
   objects: T[],
   phrase: string,
@@ -192,9 +220,8 @@ export function rank<T extends Record<string, any>>(
 ): (T & { score: number })[] {
   const fields = options.fields ?? DEFAULT_FIELDS;
   const orderId = options.orderId ?? (() => 0);
-  const tokens = normalize(phrase)
-    .split(/\s+/)
-    .filter((t) => t.length > 0);
+  const normalizedPhrase = normalize(phrase);
+  const tokens = normalizedPhrase.split(/\s+/).filter((t) => t.length > 0);
   if (tokens.length === 0) {
     return [...objects]
       .sort(
@@ -242,10 +269,14 @@ export function rank<T extends Record<string, any>>(
       results.push({ ...obj, score: product ** (1 / tokens.length) });
     }
   }
-  return results.sort(
-    (a, b) =>
-      b.score - a.score ||
+  return results.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const aExact = hasExactFieldMatch(a, normalizedPhrase, fields);
+    const bExact = hasExactFieldMatch(b, normalizedPhrase, fields);
+    if (aExact !== bExact) return aExact ? -1 : 1;
+    return (
       orderId(a) - orderId(b) ||
-      String(a.name ?? "").localeCompare(String(b.name ?? "")),
-  );
+      String(a.name ?? "").localeCompare(String(b.name ?? ""))
+    );
+  });
 }

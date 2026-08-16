@@ -17,8 +17,7 @@ function tokenize(normalized: string): string[] {
 // non-boundary substring + subsequence; length 4 turns on the typo tier
 // (max=1); length 8 loosens it to max=2 (and it stays there for any longer
 // token). A token whose length crosses one of these boundaries can gain a
-// match it didn't have one character shorter -- see
-// task-ranker-perf-phase2-report.md for the derivation.
+// match it didn't have one character shorter.
 function tierBracket(len: number): 0 | 1 | 2 | 3 {
   if (len <= 2) return 0;
   if (len === 3) return 1;
@@ -61,7 +60,10 @@ export function isSafeIncrementalAppend(
   // Any tokens past this slot in newTokens are brand new (typing past a
   // space) -- always safe, since a phrase with an extra required token can
   // only match a subset of what it matched without that token.
-  return newAtSlot.startsWith(oldLast) && sameBracket(oldLast.length, newAtSlot.length);
+  return (
+    newAtSlot.startsWith(oldLast) &&
+    sameBracket(oldLast.length, newAtSlot.length)
+  );
 }
 
 export type RankCacheEntry = {

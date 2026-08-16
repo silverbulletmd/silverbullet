@@ -11,7 +11,7 @@ import type { Row, SegmentMeta } from "./types.ts";
 const segments: SegmentMeta[] = [
   { label: "All", hasWhere: false },
   { label: "Pages", hasWhere: true, default: true },
-  { label: "Docs", hasWhere: true },
+  { label: "Documents", hasWhere: true },
 ];
 
 function row(name: string): Row {
@@ -33,7 +33,7 @@ test("the default segment is the flagged one, else the first", () => {
 });
 
 test("a persisted label resolves to its segment, or to nothing", () => {
-  expect(segmentIndexFor(segments, "Docs")).toBe(2);
+  expect(segmentIndexFor(segments, "Documents")).toBe(2);
   expect(segmentIndexFor(segments, "Gone")).toBe(-1);
   expect(segmentIndexFor(segments, undefined)).toBe(-1);
   expect(segmentIndexFor(undefined, "All")).toBe(-1);

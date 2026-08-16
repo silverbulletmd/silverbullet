@@ -24,7 +24,7 @@ test("builds hierarchy with implicit folders", () => {
     "/",
     true,
   );
-  expect(root.children.map((c) => c.path)).toEqual(["Projects", "Top"]); // foldersFirst
+  expect(root.children.map((c) => c.path)).toEqual(["Projects", "Top"]);
   const projects = root.children[0];
   expect(projects.isFolder).toBe(true);
   expect(projects.row).toBeUndefined();
@@ -189,10 +189,10 @@ test("planMove reports a collision instead of moving", () => {
 
 test("planMove declines no-ops and self-descendant drops", () => {
   const root = buildTree([row("A/B/C"), row("D")], "/", true);
-  expect(planMove(root, "A/B/C", "A/B", "/")).toEqual({ kind: "none" }); // already there
+  expect(planMove(root, "A/B/C", "A/B", "/")).toEqual({ kind: "none" });
   expect(planMove(root, "A", "A", "/")).toEqual({ kind: "none" });
-  expect(planMove(root, "A", "A/B", "/")).toEqual({ kind: "none" }); // own subtree
-  expect(planMove(root, "D", "", "/")).toEqual({ kind: "none" }); // already at root
+  expect(planMove(root, "A", "A/B", "/")).toEqual({ kind: "none" });
+  expect(planMove(root, "D", "", "/")).toEqual({ kind: "none" });
   expect(planMove(root, "Gone", "A", "/")).toEqual({ kind: "none" });
 });
 
@@ -228,7 +228,7 @@ test("computeTreeDisplay with scores prunes and force-expands all folders", () =
     rows,
     "/",
     true,
-    { expanded: new Set(), expandAll: false }, // nothing manually expanded
+    { expanded: new Set(), expandAll: false },
     new Map([["A/Match", 1]]),
   );
   expect(display.tree.children.map((c) => c.path)).toEqual(["A"]);

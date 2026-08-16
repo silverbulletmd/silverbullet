@@ -86,7 +86,7 @@ ${widgets.commandButton("System: Reload")}
 ## Top and bottom widgets
 These render automatically on every page and can be configured:
 
-* **Table of contents** — shows a table of contents at the top of the page. **Off by default**: the [[Navigator]]'s `Navigator: Table of Contents` (right sidebar) and `Navigator: Outline Picker` (modal) show the same headers as an outline you can call up when you want it, rather than on top of every page.
+* **Table of contents** — shows a table of contents at the top of the page. **Off by default**: the [[Navigator]]'s `Navigate: Outline` (right sidebar) and `Navigate: Outline Picker` (modal) show the same headers as an outline you can call up when you want it, rather than on top of every page.
 * **Linked mentions** — shows pages that link to the current page at the bottom
 * **Linked tasks** — shows incomplete tasks that mention the current page at the top
 

@@ -33,7 +33,6 @@ export async function buildPlugsAndLibraries(options?: {
     recursive: true,
   });
 
-  // Build the plugs
   await compileManifests(manifests, targetDir, {
     debug: options?.debug,
     info: options?.info,
