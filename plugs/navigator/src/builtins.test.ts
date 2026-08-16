@@ -1,12 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
-/**
- * The pre-index branch, which is the only conditional the cold-boot window
- * actually turns on — and the one thing about that window the e2e harness
- * cannot reach (`gotoSilverBulletPage` waits for widgets-ready, which waits
- * for index completion, so a client can never be observed *before* it).
- */
-
 const index = {
   isAvailable: vi.fn<() => Promise<boolean>>(),
   queryLuaObjects: vi.fn<(tag: string, query: unknown) => Promise<unknown[]>>(),
@@ -33,7 +26,8 @@ const markdown = {
 const config = { get: vi.fn() };
 const system = {
   getMode: vi.fn<() => Promise<string>>(),
-  invokeFunction: vi.fn<(name: string, ...args: unknown[]) => Promise<unknown>>(),
+  invokeFunction:
+    vi.fn<(name: string, ...args: unknown[]) => Promise<unknown>>(),
 };
 const open = vi.fn<(name: string, opts?: unknown) => Promise<boolean>>();
 
@@ -49,8 +43,11 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
 // and pulling in the real module would drag the whole panel plug along.
 vi.mock("./navigator.ts", () => ({ open }));
 
-const { builtin, builtinMeta, spaceContents, pageHeaders, validateKeymaps } =
-  await import("./builtins.ts");
+const { builtinHandle, builtinMeta, validateKeymaps } = await import(
+  "./builtins.ts"
+);
+const { spaceContents } = await import("./views/pages.ts");
+const { pageHeaders } = await import("./views/toc.ts");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -134,10 +131,10 @@ test("a throwing handler is flashed, not left as a rejection", async () => {
   // a modal, one that vanished without acting.
   open.mockRejectedValue(new Error("slot is gone"));
 
-  const result = await builtin({
-    event: "navigator:select",
-    // The tag round-trip: picked from a picker, so it hands the slot back.
-    data: { name: "std.tags", obj: { name: "work" }, from: "std.pages" },
+  // The tag round-trip: picked from a picker, so it hands the slot back.
+  const result = await builtinHandle("std.tags", "select", {
+    obj: { name: "work" },
+    from: "std.pages",
   });
 
   expect(open).toHaveBeenCalledWith("std.pages", { phrase: "#work " });
@@ -153,9 +150,9 @@ test("a throwing handler is flashed, not left as a rejection", async () => {
 test("a handler that succeeds keeps its return value", async () => {
   open.mockResolvedValue(true);
 
-  const result = await builtin({
-    event: "navigator:select",
-    data: { name: "std.tags", obj: { name: "work" }, from: "std.pages" },
+  const result = await builtinHandle("std.tags", "select", {
+    obj: { name: "work" },
+    from: "std.pages",
   });
 
   // `false` is the documented "I took the panel over, don't close it".
@@ -163,10 +160,8 @@ test("a handler that succeeds keeps its return value", async () => {
   expect(editor.flashNotification).not.toHaveBeenCalled();
 });
 
-// --- std.toc / std.tocModal -------------------------------------------------
-
 function builtinRows(name: string) {
-  return builtin({ event: "navigator:rows", data: { name } });
+  return builtinHandle(name, "rows", {});
 }
 
 /** A leaf-text-only `ParseTree` fixture, matching what `markdown.parseMarkdown`
@@ -283,13 +278,9 @@ test("std.toc's meta carries a Space keymap entry; std.tocModal's doesn't", asyn
 });
 
 test("navigator:key runs std.toc's Space entry: jump without closing the panel", async () => {
-  const result = await builtin({
-    event: "navigator:key",
-    data: {
-      name: "std.toc",
-      key: " ",
-      obj: { page: "Projects/Alpha", pos: 42 },
-    },
+  const result = await builtinHandle("std.toc", "key", {
+    key: " ",
+    obj: { page: "Projects/Alpha", pos: 42 },
   });
 
   expect(editor.navigate).toHaveBeenCalledWith({
@@ -304,16 +295,10 @@ test("navigator:key runs std.toc's Space entry: jump without closing the panel",
 
 test("navigator:key is a no-op for a view (or key) with no keymap entry", async () => {
   expect(
-    await builtin({
-      event: "navigator:key",
-      data: { name: "std.tocModal", key: " ", obj: {} },
-    }),
+    await builtinHandle("std.tocModal", "key", { key: " ", obj: {} }),
   ).toBeUndefined();
   expect(
-    await builtin({
-      event: "navigator:key",
-      data: { name: "std.toc", key: "x", obj: {} },
-    }),
+    await builtinHandle("std.toc", "key", { key: "x", obj: {} }),
   ).toBeUndefined();
   expect(editor.navigate).not.toHaveBeenCalled();
 });
@@ -321,9 +306,9 @@ test("navigator:key is a no-op for a view (or key) with no keymap entry", async 
 test("a throwing keymap handler is flashed, not left as a rejection", async () => {
   editor.navigate.mockRejectedValueOnce(new Error("no such page"));
 
-  const result = await builtin({
-    event: "navigator:key",
-    data: { name: "std.toc", key: " ", obj: { page: "Gone", pos: 0 } },
+  const result = await builtinHandle("std.toc", "key", {
+    key: " ",
+    obj: { page: "Gone", pos: 0 },
   });
 
   expect(editor.flashNotification).toHaveBeenCalledWith(
@@ -348,17 +333,12 @@ test("validateKeymaps accepts the real registry (std.toc's Space included)", () 
   ).not.toThrow();
 });
 
-// --- std.spaceTree -----------------------------------------------------
-
 function rowState(name: string, objs: unknown[]) {
-  return builtin({ event: "navigator:rowState", data: { name, objs } });
+  return builtinHandle(name, "rowState", { objs });
 }
 
 function runAction(index: number, obj: unknown, primary?: string) {
-  return builtin({
-    event: "navigator:action",
-    data: { name: "std.spaceTree", index, obj, primary },
-  });
+  return builtinHandle("std.spaceTree", "action", { index, obj, primary });
 }
 
 test("std.spaceTree sources the same content as the space picker, sorted by name", async () => {
@@ -422,21 +402,18 @@ test("std.spaceTree's meta carries hasMove, the three actions, and the Space key
     {
       icon: "plus",
       label: "New page here",
-      confirm: undefined,
       hasWhen: true,
       requireMode: "rw",
     },
     {
       icon: "edit-3",
       label: "Rename",
-      confirm: undefined,
       hasWhen: false,
       requireMode: "rw",
     },
     {
       icon: "trash-2",
       label: "Delete",
-      confirm: "Delete %s?",
       hasWhen: true,
       requireMode: "rw",
     },
@@ -444,8 +421,8 @@ test("std.spaceTree's meta carries hasMove, the three actions, and the Space key
   expect(meta.segments!.map((s) => s.label)).toEqual([
     "All",
     "Pages",
+    "Documents",
     "Meta",
-    "Docs",
   ]);
 });
 
@@ -485,10 +462,7 @@ test("navigator:action New page here prompts, then navigates to the trimmed name
 
   const result = await runAction(1, { name: "Projects", isFolder: true });
 
-  expect(editor.prompt).toHaveBeenCalledWith(
-    "New page name:",
-    "Projects/",
-  );
+  expect(editor.prompt).toHaveBeenCalledWith("New page name:", "Projects/");
   expect(editor.navigate).toHaveBeenCalledWith("Projects/Gamma");
   expect(result).toBeUndefined();
 });
@@ -528,7 +502,11 @@ test("navigator:action Rename on a folder prompts, then renames the prefix and (
 
   expect(system.invokeFunction).toHaveBeenCalledWith(
     "index.renamePrefixCommand",
-    { oldPrefix: "Projects/", newPrefix: "Archive/", disableConfirmation: true },
+    {
+      oldPrefix: "Projects/",
+      newPrefix: "Archive/",
+      disableConfirmation: true,
+    },
   );
   expect(system.invokeFunction).toHaveBeenCalledWith(
     "index.renamePageCommand",
@@ -536,15 +514,12 @@ test("navigator:action Rename on a folder prompts, then renames the prefix and (
   );
 });
 
-test("navigator:action Delete requires confirmation, %s substituted with a function replacer", async () => {
+test("navigator:action Delete confirms via editor.confirm inside the handler, then deletes", async () => {
   editor.confirm.mockResolvedValue(true);
 
-  // A row primary containing replacement-pattern syntax ($&, $1, ...): a
-  // naive String.replace(pattern, primary) would read these as capture
-  // references instead of literal text. The function-replacer form must not.
-  await runAction(3, { tag: "page", name: "Weird", ref: "Weird" }, "$&");
+  await runAction(3, { tag: "page", name: "Weird", ref: "Weird" });
 
-  expect(editor.confirm).toHaveBeenCalledWith("Delete $&?");
+  expect(editor.confirm).toHaveBeenCalledWith("Delete Weird?");
   expect(space.deletePage).toHaveBeenCalledWith("Weird");
 });
 
@@ -572,21 +547,14 @@ test("navigator:action requireMode rw is blocked in read-only mode, before the a
 test("navigator:action for an unknown index or view is a no-op", async () => {
   expect(await runAction(99, { name: "x" })).toBeUndefined();
   expect(
-    await builtin({
-      event: "navigator:action",
-      data: { name: "std.toc", index: 1, obj: {} },
-    }),
+    await builtinHandle("std.toc", "action", { index: 1, obj: {} }),
   ).toBeUndefined();
 });
 
 test("navigator:move (drag-drop) renames a page through the same moveByRename path", async () => {
-  await builtin({
-    event: "navigator:move",
-    data: {
-      name: "std.spaceTree",
-      obj: { tag: "page", name: "Alpha", ref: "Alpha" },
-      newName: "Beta",
-    },
+  await builtinHandle("std.spaceTree", "move", {
+    obj: { tag: "page", name: "Alpha", ref: "Alpha" },
+    newName: "Beta",
   });
 
   expect(system.invokeFunction).toHaveBeenCalledWith(
@@ -596,48 +564,41 @@ test("navigator:move (drag-drop) renames a page through the same moveByRename pa
 });
 
 test("navigator:move moving a folder renames the prefix, not a single page", async () => {
-  await builtin({
-    event: "navigator:move",
-    data: {
-      name: "std.spaceTree",
-      obj: { isFolder: true, name: "Projects" },
-      newName: "Archive",
-    },
+  await builtinHandle("std.spaceTree", "move", {
+    obj: { isFolder: true, name: "Projects" },
+    newName: "Archive",
   });
 
   expect(system.invokeFunction).toHaveBeenCalledWith(
     "index.renamePrefixCommand",
-    { oldPrefix: "Projects/", newPrefix: "Archive/", disableConfirmation: true },
+    {
+      oldPrefix: "Projects/",
+      newPrefix: "Archive/",
+      disableConfirmation: true,
+    },
   );
   expect(system.invokeFunction).toHaveBeenCalledTimes(1);
 });
 
 test("navigator:move is a no-op for a view with no onMove", async () => {
-  const result = await builtin({
-    event: "navigator:move",
-    data: { name: "std.toc", obj: {}, newName: "x" },
+  const result = await builtinHandle("std.toc", "move", {
+    obj: {},
+    newName: "x",
   });
   expect(result).toBeUndefined();
   expect(system.invokeFunction).not.toHaveBeenCalled();
 });
 
 test("navigator:key Space peeks: navigates without closing the panel", async () => {
-  const result = await builtin({
-    event: "navigator:key",
-    data: {
-      name: "std.spaceTree",
-      key: " ",
-      obj: { name: "Alpha", ref: "Alpha" },
-    },
+  const result = await builtinHandle("std.spaceTree", "key", {
+    key: " ",
+    obj: { name: "Alpha", ref: "Alpha" },
   });
   expect(editor.navigate).toHaveBeenCalledWith("Alpha");
   expect(result).toBeUndefined();
 });
 
-test("navigator:create navigates to the phrase, matching Lua's create = true default", async () => {
-  await builtin({
-    event: "navigator:create",
-    data: { name: "std.spaceTree", phrase: "New Page" },
-  });
+test("navigator:create navigates to the phrase", async () => {
+  await builtinHandle("std.spaceTree", "create", { phrase: "New Page" });
   expect(editor.navigate).toHaveBeenCalledWith("New Page");
 });
