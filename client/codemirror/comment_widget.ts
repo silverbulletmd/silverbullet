@@ -51,9 +51,8 @@ export function resolveRange(
   docText: string,
   range: [number, number],
 ): [number, number] {
-  const from = range[0] > 0 && docText[range[0] - 1] === "\n"
-    ? range[0] - 1
-    : range[0];
+  const from =
+    range[0] > 0 && docText[range[0] - 1] === "\n" ? range[0] - 1 : range[0];
   return [from, range[1]];
 }
 
@@ -171,10 +170,7 @@ class CommentCardWidget extends WidgetType {
 
   private resolve() {
     const view = this.client.editorView;
-    const [from, to] = resolveRange(
-      view.state.doc.toString(),
-      this.range,
-    );
+    const [from, to] = resolveRange(view.state.doc.toString(), this.range);
     view.dispatch({ changes: { from, to, insert: "" } });
   }
 

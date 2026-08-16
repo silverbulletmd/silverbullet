@@ -67,7 +67,12 @@ test("a signature mid-continuation closes the message, and a later bare line sta
   const raw = `<!-- @john: line1\nline2 — pete, 2026-08-05\nfollow-up -->`;
   const p = parseCommentBlock(raw)!;
   expect(p.thread).toEqual([
-    { addressee: "john", text: "line1 line2", author: "pete", date: "2026-08-05" },
+    {
+      addressee: "john",
+      text: "line1 line2",
+      author: "pete",
+      date: "2026-08-05",
+    },
     { text: "follow-up" },
   ]);
 });
@@ -79,8 +84,7 @@ test("an unsigned multi-line bare note still joins into a single message", () =>
 });
 
 test("a signed line followed directly by another signed line stays two messages", () => {
-  const raw =
-    `<!-- @pete: first — john, 2026-08-04\n@john: second — pete, 2026-08-05 -->`;
+  const raw = `<!-- @pete: first — john, 2026-08-04\n@john: second — pete, 2026-08-05 -->`;
   const p = parseCommentBlock(raw)!;
   expect(p.thread).toEqual([
     { addressee: "pete", text: "first", author: "john", date: "2026-08-04" },
@@ -95,11 +99,13 @@ test("double-hyphen inside message tolerated", () => {
 
 test("double-dash signature separator is accepted, with author", () => {
   const p = parseCommentBlock(`<!-- get milk -- john, 2026-08-05 -->`)!;
-  expect(p.thread).toEqual([{
-    text: "get milk",
-    author: "john",
-    date: "2026-08-05",
-  }]);
+  expect(p.thread).toEqual([
+    {
+      text: "get milk",
+      author: "john",
+      date: "2026-08-05",
+    },
+  ]);
 });
 
 test("single-dash signature separator is accepted, date-only", () => {
@@ -109,11 +115,13 @@ test("single-dash signature separator is accepted, date-only", () => {
 
 test("en-dash signature separator is accepted", () => {
   const p = parseCommentBlock(`<!-- note – john, 2026-08-05 -->`)!;
-  expect(p.thread).toEqual([{
-    text: "note",
-    author: "john",
-    date: "2026-08-05",
-  }]);
+  expect(p.thread).toEqual([
+    {
+      text: "note",
+      author: "john",
+      date: "2026-08-05",
+    },
+  ]);
 });
 
 // The signature separator is the LAST valid dash-like split on the line,
@@ -125,20 +133,24 @@ test("incidental hyphen earlier in the text doesn't steal the signature split", 
   const p = parseCommentBlock(
     `<!-- draft - then revise - john, 2026-08-05 -->`,
   )!;
-  expect(p.thread).toEqual([{
-    text: "draft - then revise",
-    author: "john",
-    date: "2026-08-05",
-  }]);
+  expect(p.thread).toEqual([
+    {
+      text: "draft - then revise",
+      author: "john",
+      date: "2026-08-05",
+    },
+  ]);
 });
 
 test("leading hyphen (e.g. a list item) doesn't steal the signature split", () => {
   const p = parseCommentBlock(`<!-- - a list item - john, 2026-08-05 -->`)!;
-  expect(p.thread).toEqual([{
-    text: "- a list item",
-    author: "john",
-    date: "2026-08-05",
-  }]);
+  expect(p.thread).toEqual([
+    {
+      text: "- a list item",
+      author: "john",
+      date: "2026-08-05",
+    },
+  ]);
 });
 
 test("a comma inside the message text doesn't get mistaken for the author's trailing comma", () => {
@@ -151,9 +163,11 @@ test("a bare date in prose with no separator character isn't mistaken for a sign
   const p = parseCommentBlock(
     `<!-- the value was set on 2026-08-05 in prose -->`,
   )!;
-  expect(p.thread).toEqual([{
-    text: "the value was set on 2026-08-05 in prose",
-  }]);
+  expect(p.thread).toEqual([
+    {
+      text: "the value was set on 2026-08-05 in prose",
+    },
+  ]);
 });
 
 test("non-conforming comments return null", () => {
@@ -185,9 +199,7 @@ test("scaffold has cursor at the message position, before the signature", () => 
     author: "john",
     date: "2026-08-04",
   });
-  expect(text).toBe(
-    `<!-- re: "some phrase"\n — john, 2026-08-04\n-->`,
-  );
+  expect(text).toBe(`<!-- re: "some phrase"\n — john, 2026-08-04\n-->`);
   expect(text.slice(cursorOffset)).toBe(" — john, 2026-08-04\n-->");
 });
 
@@ -229,11 +241,13 @@ test("unaddressed note with author signature parses as a note-to-self", () => {
     `<!-- rephrase this later — john, 2026-08-05 -->`,
   )!;
   expect(p).not.toBeNull();
-  expect(p.thread).toEqual([{
-    text: "rephrase this later",
-    author: "john",
-    date: "2026-08-05",
-  }]);
+  expect(p.thread).toEqual([
+    {
+      text: "rephrase this later",
+      author: "john",
+      date: "2026-08-05",
+    },
+  ]);
   expect(p.thread[0].addressee).toBeUndefined();
   expect(p.waitingOn).toBeUndefined();
   expect(p.addressees).toEqual([]);
@@ -243,7 +257,9 @@ test("unaddressed note with author signature parses as a note-to-self", () => {
 test("unaddressed note with a date-only signature parses", () => {
   const p = parseCommentBlock(`<!-- rephrase this later — 2026-08-05 -->`)!;
   expect(p).not.toBeNull();
-  expect(p.thread).toEqual([{ text: "rephrase this later", date: "2026-08-05" }]);
+  expect(p.thread).toEqual([
+    { text: "rephrase this later", date: "2026-08-05" },
+  ]);
   expect(p.thread[0].author).toBeUndefined();
   expect(p.waitingOn).toBeUndefined();
 });
@@ -311,8 +327,18 @@ test("parses the new left-aligned, closer-on-its-own-line format", () => {
   const p = parseCommentBlock(raw)!;
   expect(p.quote).toBe("making a claim");
   expect(p.thread).toEqual([
-    { addressee: "pete", text: "verify this", author: "john", date: "2026-08-04" },
-    { addressee: "john", text: "confirmed", author: "pete", date: "2026-08-06" },
+    {
+      addressee: "pete",
+      text: "verify this",
+      author: "john",
+      date: "2026-08-04",
+    },
+    {
+      addressee: "john",
+      text: "confirmed",
+      author: "pete",
+      date: "2026-08-06",
+    },
   ]);
   expect(p.waitingOn).toBe("john");
   expect(p.addressees).toEqual(["pete", "john"]);
@@ -326,8 +352,18 @@ test("a legacy indented block with an inline closer still parses identically", (
   const p = parseCommentBlock(raw)!;
   expect(p.quote).toBe("making a claim");
   expect(p.thread).toEqual([
-    { addressee: "pete", text: "verify this", author: "john", date: "2026-08-04" },
-    { addressee: "john", text: "confirmed", author: "pete", date: "2026-08-06" },
+    {
+      addressee: "pete",
+      text: "verify this",
+      author: "john",
+      date: "2026-08-04",
+    },
+    {
+      addressee: "john",
+      text: "confirmed",
+      author: "pete",
+      date: "2026-08-06",
+    },
   ]);
   expect(p.waitingOn).toBe("john");
   expect(p.addressees).toEqual(["pete", "john"]);

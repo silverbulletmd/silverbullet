@@ -10,8 +10,7 @@ import { expect, mod, test } from "./fixtures.ts";
 test.describe("Comment card rendering", () => {
   test.use({
     spaceFiles: {
-      "index.md":
-        "A claim.\n<!-- @pete: verify — john, 2026-08-04 -->\n",
+      "index.md": "A claim.\n<!-- @pete: verify — john, 2026-08-04 -->\n",
     },
   });
 
@@ -86,6 +85,19 @@ test.describe("Comment: Add command", () => {
 
     await expect(editor).toContainText('<!-- re: "claim worth"');
 
+    // Left-aligned (no indentation), closer on its own line -- a quoted
+    // scaffold is multi-line, so buildCommentScaffold puts `-->` on a third
+    // line (see plug-api/lib/comments.ts).
+    const doc = await sbPage.evaluate(() =>
+      (globalThis as any).client.editorView.state.doc.toString(),
+    );
+    expect(doc).toContain('<!-- re: "claim worth"\n');
+    // trimEnd() because the fixture page's own trailing newline survives
+    // after the inserted block (computeCommentInsertion inserts before it).
+    expect(doc.trimEnd().endsWith("\n-->")).toBe(true);
+    expect(doc).not.toContain("     —");
+    expect(doc).not.toContain("     @");
+
     const result = await sbPage.evaluate(() => {
       const view = (globalThis as any).client.editorView;
       const pos = view.state.selection.main.head;
@@ -106,8 +118,7 @@ test.describe("Comment: Add command", () => {
 test.describe("Comment reply/resolve round-trip", () => {
   test.use({
     spaceFiles: {
-      "index.md":
-        "Some text.\n<!-- @pete: verify — john, 2026-08-04 -->\n",
+      "index.md": "Some text.\n<!-- @pete: verify — john, 2026-08-04 -->\n",
     },
   });
 
@@ -118,13 +129,22 @@ test.describe("Comment reply/resolve round-trip", () => {
 
     const docText = () =>
       sbPage.evaluate(() =>
-        (globalThis as any).client.editorView.state.doc.toString()
+        (globalThis as any).client.editorView.state.doc.toString(),
       );
 
     // Click Reply -> a pre-addressed line is inserted and the cursor lands
     // ready to type the reply body (see CommentCardWidget.reply()).
     await card.locator("button", { hasText: "Reply" }).click();
     await sbPage.keyboard.type("on it");
+
+    // Left-aligned reply line (addressed back to the original message's
+    // author, "john"), and the closer relocated onto its own line -- the
+    // block was single-line with an inline closer before the reply (see
+    // buildReplyInsertion in client/codemirror/comment_widget.ts).
+    const docWhileEditing = await docText();
+    expect(docWhileEditing).toContain("@john: on it");
+    expect(docWhileEditing).not.toContain("     @john: on it");
+    expect(docWhileEditing.trimEnd().endsWith("\n-->")).toBe(true);
 
     // Move the cursor back out of the block to collapse it to a card again.
     await sbPage.evaluate(() => {

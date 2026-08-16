@@ -52,9 +52,7 @@ test("conforming comments are indexed, others are not", async () => {
 });
 
 test("comment inside fenced code is not indexed", async () => {
-  const tree = parseMarkdown(
-    "```\n<!-- @pete: not a real comment -->\n```\n",
-  );
+  const tree = parseMarkdown("```\n<!-- @pete: not a real comment -->\n```\n");
   const objects = await indexComments(pm(), extractFrontMatter(tree), tree);
   expect(objects.length).toBe(0);
 });

@@ -53,8 +53,8 @@ test("unaddressed reply with no configured author still carries a date-only sign
   // appended after the original message, parses as a second, separate
   // message rather than folding into the first -- and the closer ends up
   // on its own line since the block is now multi-line.
-  const rebuilt = noteToSelf.slice(0, r.insertAt) + r.text +
-    noteToSelf.slice(r.insertAt);
+  const rebuilt =
+    noteToSelf.slice(0, r.insertAt) + r.text + noteToSelf.slice(r.insertAt);
   const reparsed = parseCommentBlock(rebuilt)!;
   expect(reparsed.thread.length).toBe(2);
   expect(reparsed.thread[1]).toEqual({ text: "", date: "2026-08-06" });

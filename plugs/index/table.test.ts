@@ -64,3 +64,36 @@ test("a `range` column does not overwrite the row's source offsets", async () =>
   expect(md.slice(row.range[0], row.range[1])).toContain("Frank");
   expect(typeof row.pos).toBe("number");
 });
+
+test("identity columns do not hijack the row object", async () => {
+  createMockSystem();
+  // Baking a query over pages writes its result back as a table, so the
+  // header carries the object's own attribute names. Letting those land on
+  // the row re-types it as a `page` owning `[[ADR]]`'s ref, which overwrites
+  // that page's real `tags` with the string "{}" and breaks every picker.
+  const md = `
+| name | ref | tag | tags | itags |
+|----------|----------|----------|----------|----------|
+| ADR | [[ADR]] | page | {} | page |
+`.trim();
+  const tree = parseMarkdown(md);
+  const frontmatter = extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: "test",
+    name: "test",
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+
+  const rows = await indexTables(pageMeta, frontmatter, tree);
+  expect(rows).toHaveLength(1);
+  const row = rows[0] as any;
+
+  expect(row.name).toEqual("ADR");
+  expect(row.tag).toEqual("table");
+  expect(row.ref).toEqual(`test@${row.pos}`);
+  expect(Array.isArray(row.tags)).toBe(true);
+  expect(row.page).toEqual("test");
+});

@@ -18,9 +18,11 @@ const messageRe = /^@([A-Za-z0-9_-]+):\s*(.*)$/;
 const signatureRe =
   /^(.*)\s*(?<!-)(?:—|–|-{1,2})\s+(?:([^,]+?),\s+)?(\d{4}-\d{2}-\d{2})\s*$/;
 
-function extractSig(
-  raw: string,
-): { text: string; author?: string; date?: string } {
+function extractSig(raw: string): {
+  text: string;
+  author?: string;
+  date?: string;
+} {
   const sig = raw.match(signatureRe);
   if (!sig) {
     return { text: raw.trim() };
@@ -49,9 +51,10 @@ export function parseCommentBlock(raw: string): ParsedComment | null {
   if (directiveRe.test(m[1])) {
     return null;
   }
-  const lines = m[1].split("\n").map((l) => l.trim()).filter((l) =>
-    l.length > 0
-  );
+  const lines = m[1]
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   if (lines.length === 0) {
     return null;
   }
@@ -86,7 +89,11 @@ export function parseCommentBlock(raw: string): ParsedComment | null {
     const msg = line.match(messageRe);
     if (msg) {
       flush();
-      current = { addressee: msg[1], raw: msg[2], closed: hasSignature(msg[2]) };
+      current = {
+        addressee: msg[1],
+        raw: msg[2],
+        closed: hasSignature(msg[2]),
+      };
     } else if (current !== null && !current.closed) {
       // Continuation of the message currently being accumulated
       current.raw = current.raw.length > 0 ? `${current.raw} ${line}` : line;
@@ -105,7 +112,9 @@ export function parseCommentBlock(raw: string): ParsedComment | null {
   }
   const addressees = [
     ...new Set(
-      thread.map((t) => t.addressee).filter((a): a is string => a !== undefined),
+      thread
+        .map((t) => t.addressee)
+        .filter((a): a is string => a !== undefined),
     ),
   ];
   const dates = thread.map((t) => t.date).filter((d): d is string => !!d);
@@ -120,13 +129,19 @@ export function parseCommentBlock(raw: string): ParsedComment | null {
 }
 
 export function sanitizeQuote(s: string): string {
-  return s.replace(/\s+/g, " ").replace(/"/g, "'").replace(/--/g, "–")
-    .trim().slice(0, 80);
+  return s
+    .replace(/\s+/g, " ")
+    .replace(/"/g, "'")
+    .replace(/--/g, "–")
+    .trim()
+    .slice(0, 80);
 }
 
-export function buildCommentScaffold(
-  opts: { quote?: string; author?: string; date: string },
-): { text: string; cursorOffset: number } {
+export function buildCommentScaffold(opts: {
+  quote?: string;
+  author?: string;
+  date: string;
+}): { text: string; cursorOffset: number } {
   // A signature is always present, even without a configured author, so a
   // scaffold with no quote still carries a recognizable marker.
   const sig = opts.author
