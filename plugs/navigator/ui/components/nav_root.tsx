@@ -333,11 +333,7 @@ export function NavRoot({ slot }: { slot: string }) {
             onSelect={cmd.onTreeRowClick}
             onMove={(from, to) => void cmd.moveNode(from, to)}
             onAction={(node, index) =>
-              void cmd.runAction(
-                index,
-                nodeObject(node),
-                node.row?.primary ?? node.path,
-              )
+              void cmd.runAction(index, nodeObject(node))
             }
           />
         ) : view ? (
@@ -368,7 +364,7 @@ export function NavRoot({ slot }: { slot: string }) {
             onSelect={(i) => void cmd.selectRow(i)}
             onAction={(i, index) => {
               const row = listItems[i]?.row;
-              if (row) void cmd.runAction(index, row.obj, row.primary);
+              if (row) void cmd.runAction(index, row.obj);
             }}
           />
         ) : null}
