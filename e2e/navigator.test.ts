@@ -838,8 +838,7 @@ test("tree: expandAll auto-expands while filtering, then gives the collapse back
     frame.locator("[data-path='Projects/Alpha'] mark"),
   ).toBeVisible();
 
-  await input.press("Escape");
-  await expect(input).toHaveValue("");
+  await input.fill("");
   await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 });
 
@@ -996,8 +995,7 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toHaveCount(0);
 
-  await frame.locator("input.sb-nav-input").press("Escape");
-  await expect(frame.locator("input.sb-nav-input")).toHaveValue("");
+  await frame.locator("input.sb-nav-input").fill("");
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
 });
 

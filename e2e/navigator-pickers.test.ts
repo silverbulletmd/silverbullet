@@ -637,7 +637,6 @@ test("typing filters the anchor and tag pickers, with or without the sigil", asy
   await expect(navRows(frame).first()).toHaveText("intro");
   await expect(navRows(frame).first().locator("mark")).toBeVisible();
 
-  await sbPage.keyboard.press("Escape");
   await closePicker(sbPage);
 
   await openPicker(sbPage, "Control+Alt+t", "Tag");

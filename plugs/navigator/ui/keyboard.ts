@@ -128,14 +128,7 @@ export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   }
   if (e.key === "Escape") {
     e.preventDefault();
-    // Modal: Escape always dismisses, like the pickers it replaced. Docked:
-    // first Escape clears the filter, closing the whole dock only when empty.
-    if (phrase && ctx.view?.meta.dock !== "modal") {
-      setPhrase("");
-      setSelectedIndex(0);
-    } else {
-      void cmd.close();
-    }
+    void cmd.close();
     return;
   }
   if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
@@ -344,12 +337,7 @@ function treeKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   }
   if (e.key === "Escape") {
     e.preventDefault();
-    if (phrase && ctx.view?.meta.dock !== "modal") {
-      setPhrase("");
-      setSelectedPath(undefined);
-    } else {
-      void cmd.close();
-    }
+    void cmd.close();
     return;
   }
   if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
