@@ -37,8 +37,8 @@ import { ClientSystem } from "./client_system.ts";
 import {
   buildMarkdownLanguageExtension,
   createEditorState,
-  isValidEditor,
 } from "./codemirror/editor_state.ts";
+import { isValidEditor } from "./lib/command_filters.ts";
 import { withCompletionInfo } from "./codemirror/completion_info.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
@@ -91,7 +91,7 @@ function pickerSegment(mode: "page" | "meta" | "document" | "all") {
     case "meta":
       return "Meta";
     case "document":
-      return "Docs";
+      return "Documents";
     case "all":
       return "All";
     default:
@@ -112,9 +112,7 @@ declare global {
   var sbRuntime: SBRuntime;
 }
 
-// TODO: Clean this up, this has become a god class...
 export class Client {
-  // Event bus used to communicate between components
   eventHook: EventHook;
 
   space!: Space;
@@ -132,7 +130,6 @@ export class Client {
   // Used to store additional command data outside the objects themselves persistent between client rusn (specifically: lastRun)
   commandAugmenter!: Augmenter;
 
-  // CodeMirror editor
   editorView!: EditorView;
   commandKeyHandlerCompartment?: Compartment;
   vimCompartment?: Compartment;
@@ -140,9 +137,7 @@ export class Client {
   undoHistoryCompartment?: Compartment;
   markdownLanguageCompartment?: Compartment;
 
-  // Content manager: handles page/document loading, saving, and editor mode switching
   contentManager!: ContentManager;
-  // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
   private versionMismatchNotified = false;
   // True once we've confirmed the server reports the same publicVersion as
@@ -166,7 +161,6 @@ export class Client {
   private onLoadRef: Ref;
   dbPrefix?: string;
   syncMode = false;
-  // Widget and image height caching
   widgetCache!: WidgetCache;
   objectIndex!: ObjectIndex;
 
@@ -184,7 +178,6 @@ export class Client {
   }
 
   /**
-   * Initialize the client
    * This is a separated from the constructor to allow for async initialization
    */
   async init(encryptionKey?: CryptoKey) {
@@ -194,25 +187,21 @@ export class Client {
       document.baseURI.replace(/\/$/, ""),
       encryptionKey,
     );
-    // Setup the KV (database)
     let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(dbName);
     await (kvPrimitives as IndexedDBKvPrimitives).init();
 
     console.log("Using IndexedDB database", dbName);
 
-    // See if we need to encrypt this
     if (encryptionKey) {
       kvPrimitives = new EncryptedKvPrimitives(kvPrimitives, encryptionKey);
       await (kvPrimitives as EncryptedKvPrimitives).init();
       console.log("Enabled client-side encryption");
     }
-    // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
     this.pageMetaAugmenter = new Augmenter(this.ds, ["aug", "pageMeta"]);
     this.commandAugmenter = new Augmenter(this.ds, ["aug", "command"]);
 
-    // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds, this.eventHook);
 
     this.widgetCache = new WidgetCache(this.ds);
@@ -261,7 +250,6 @@ export class Client {
       }
     });
 
-    // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
       this,
       this.mq,
@@ -320,12 +308,10 @@ export class Client {
       );
     }
 
-    // Load plugs
     await this.loadPlugs();
 
     await this.clientSystem.loadLuaScripts();
     await this.initNavigator();
-    // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
     this.maybeDispatchWidgetsReady();
@@ -344,20 +330,16 @@ export class Client {
 
     this.initHeadlessRuntime();
 
-    // Load space snapshot and enable events
     await this.eventedSpacePrimitives.enable();
 
-    // Kick off a cron event interval
     setInterval(() => {
       void this.dispatchAppEvent("cron:secondPassed");
     }, 1000);
 
-    // We can load custom styles async
     this.loadCustomStyles().catch(console.error);
 
     await this.dispatchAppEvent("editor:init");
 
-    // Reset Undo History after editor initialization.
     client.editorView.dispatch({
       effects: client.undoHistoryCompartment?.reconfigure([]),
     });
@@ -397,7 +379,6 @@ export class Client {
       this.ds,
     );
 
-    // Kick off a regular file listing request to trigger events
     setInterval(() => {
       void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
@@ -424,7 +405,6 @@ export class Client {
           !this.space.watchInterval ||
           this.currentPath() !== path ||
           oldHash === undefined ||
-          // our own save landing, not somebody else's edit
           ownWrite
         ) {
           return;
@@ -432,7 +412,6 @@ export class Client {
         if (isMarkdownPath(path)) {
           this.contentManager.reloadPageContent().catch(console.error);
         } else {
-          // Documents (non-markdown) keep the reload path
           this.ui.flashNotification("Document changed elsewhere, reloading");
           void this.reloadEditor();
         }
@@ -442,14 +421,12 @@ export class Client {
     // Caching a list of known files for the wiki_link highlighter (that checks if a file exists)
     // And keeping it up to date as we go
     this.eventHook.addLocalListener("file:changed", (fileName: string) => {
-      // Make sure this file is in the list of known pages
       this.clientSystem.allKnownFiles.add(fileName);
     });
     this.eventHook.addLocalListener("file:deleted", (fileName: string) => {
       this.clientSystem.allKnownFiles.delete(fileName);
     });
     this.eventHook.addLocalListener("file:listed", (allFiles: FileMeta[]) => {
-      // Update list of known pages
       this.clientSystem.allKnownFiles.clear();
       allFiles.forEach((f) => {
         this.clientSystem.allKnownFiles.add(f.name);
@@ -637,18 +614,12 @@ export class Client {
 
     if (indexAvailable) {
       console.log("Initial index complete, loading full page list via index.");
-      // Fetch indexed pages
       allPages = await this.queryLuaObjects<PageMeta>("page", {});
-      // Overlay augmented meta values
       await this.pageMetaAugmenter.augmentObjectArray(allPages, "ref");
-      // Fetch aspiring pages
       const aspiringPageNames = await this.queryLuaObjects<string>(
         "aspiring-page",
         { select: parseExpressionString("name"), distinct: true },
       );
-      // Fetch any augmented page meta data (for now only lastOpened)
-      // this.clientSystem.ds.query({prefix: })
-      // Map and push aspiring pages directly into allPages
       allPages.push(
         ...aspiringPageNames.map(
           (name): PageMeta => ({
@@ -667,10 +638,8 @@ export class Client {
         "Initial sync not complete or index plug not loaded. Fetching page list directly using space.fetchPageList().",
       );
       try {
-        // Call fetchPageList directly
         allPages = await this.space.fetchPageList();
 
-        // Let's do some heuristic-based post processing
         for (const page of allPages) {
           // These are _mostly_ meta pages, let's add a tag for them
           if (page.name.startsWith("Library/")) {
@@ -679,7 +648,6 @@ export class Client {
         }
       } catch (e) {
         console.error("Failed to list pages directly from space:", e);
-        // Handle error, maybe show notification or leave list empty
         this.ui.flashNotification(
           "Could not fetch page list directly.",
           "error",
@@ -701,7 +669,6 @@ export class Client {
       this.maybeDispatchWidgetsReady();
     }
 
-    // Async kick-off file listing to bring listing up to date
     void this.space.spacePrimitives.fetchFileList();
   }
 
@@ -819,7 +786,6 @@ export class Client {
     }
   }
 
-  // Code completion support
   async completeWithEvent(
     context: CompletionContext,
     eventName: AppEvent,
@@ -829,7 +795,6 @@ export class Client {
     const line = editorState.doc.lineAt(selection.from);
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
-    // Build up list of parent nodes, some completions need this
     const sTree = syntaxTree(editorState);
     const currentNode = sTree.resolveInner(editorState.selection.main.from);
 
@@ -838,7 +803,6 @@ export class Client {
       currentNode,
     );
 
-    // Dispatch the event
     const results = await this.dispatchAppEvent(eventName, {
       pageName: this.currentName(),
       linePrefix,
@@ -846,14 +810,12 @@ export class Client {
       parentNodes,
     } as CompleteEvent);
 
-    // Merge results
     let currentResult: CompletionResult | null = null;
     for (const result of results) {
       if (!result) {
         continue;
       }
       if (currentResult) {
-        // Let's see if we can merge results
         if (currentResult.from !== result.from) {
           console.error(
             "Got completion results from multiple sources with different `from` locators, cannot deal with that",
@@ -866,7 +828,6 @@ export class Client {
           );
           return null;
         } else {
-          // Merge
           currentResult = {
             from: result.from,
             options: [...currentResult.options, ...result.options],
@@ -920,7 +881,6 @@ export class Client {
     return this.contentManager.reloadEditor();
   }
 
-  // Focus the editor
   focus() {
     const viewState = this.ui.viewState;
     if (
@@ -930,7 +890,6 @@ export class Client {
         viewState.showPrompt,
       ].some(Boolean)
     ) {
-      // console.log("not focusing");
       // Some other modal UI element is visible, don't focus editor now
       return;
     }
@@ -1186,7 +1145,6 @@ export class Client {
       }
     }
 
-    // Also dispatch it on the event hook for any other listeners
     await this.eventHook.dispatchEvent(
       `service-worker:${message.type}`,
       message,
@@ -1209,7 +1167,6 @@ export class Client {
       await this.ds.set(["client", "lastOpenedPath"], locationState.path);
     });
 
-    // Initial navigation
     let ref = this.onLoadRef;
 
     if (ref.details?.type === "header" && ref.details.header === "boot") {
@@ -1231,7 +1188,6 @@ export class Client {
   }
 
   async wipeClient() {
-    // Clean out _other_ IndexedDB databases
     console.log("Wiping IndexedDB databses not connected to this space...");
     const dbName = (this.ds.kv as any).dbName;
     const suffix = dbName.replace("sb_data", "");
@@ -1244,9 +1200,7 @@ export class Client {
         }
       }
     }
-    // Instructe service worker to wipe
     if (navigator.serviceWorker?.controller) {
-      // We will attempt to unregister the service worker, best effort
       await new Promise<void>((resolve) => {
         navigator.serviceWorker.addEventListener("message", async (e: any) => {
           const message: ServiceWorkerSourceMessage = e.data;
@@ -1263,7 +1217,6 @@ export class Client {
             resolve();
           }
         });
-        // Send wipe request
         navigator.serviceWorker.getRegistration().then((registration) => {
           console.log(
             "Sending data wipe request to service worker",

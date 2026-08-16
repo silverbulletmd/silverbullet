@@ -11,9 +11,9 @@ The **navigator** is SilverBullet’s generalized navigation UI: it takes any co
 * [[Command Palette]]: `Cmd-/`/`Ctrl-/`. What you ran most recently first, each row showing its key binding.
 * **Anchor picker**: type `$` into the page picker. Every [[Markdown/Anchor]] in the space, with the line it sits on.
 * **Tag picker** — `Ctrl-Alt-t`, or `#` from the page picker. Every tag, with how many things carry it.
-* ${widgets.commandButton("Navigator: Tree")}: `Cmd-o`/`Ctrl-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel.
-* ${widgets.commandButton("Navigator: Table of Contents")}: the current page’s headers as a tree in the right sidebar, fully expanded and live as you type.
-* ${widgets.commandButton("Navigator: Outline Picker")} is the same outline as a modal.
+* ${widgets.commandButton("Navigate: Tree")}: `Cmd-o`/`Ctrl-o`, or `Cmd-Shift-o`/`Ctrl-Shift-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel. On Safari, `Cmd-O` is reserved by the app at the OS level, so web content never even sees the keydown — use `Cmd-Shift-O` there instead; `Cmd-O` works normally in the desktop App and every other browser.
+* ${widgets.commandButton("Navigate: Outline")}: the current page’s headers as a tree in the right sidebar, fully expanded and live as you type.
+* ${widgets.commandButton("Navigate: Outline Picker")} is the same outline as a modal.
 
 # Using a view
 
@@ -59,7 +59,7 @@ navigator.define {
 }
 ```
 
-`name` and `source` are the only required keys, `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `navigator.open("tasks")`.
+`name`, `source` and `onSelect` are the only required keys, `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `navigator.open("tasks")`.
 
 See **[[API/navigator]] for the full field reference**: every key of `spec` and of `presentation`, with what each one does.
 

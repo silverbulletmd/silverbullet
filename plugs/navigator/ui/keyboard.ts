@@ -5,6 +5,12 @@ import { CREATE_PATH, type DerivedView } from "./hooks/use_derived.ts";
 import type { ActiveView, PanelSetters } from "./panel.ts";
 import { ancestorPaths } from "../../../plug-api/ui/tree_model.ts";
 import { isMacLike } from "../../../plug-api/lib/shortcut.ts";
+import type { ChordDescriptor } from "../../../plug-api/lib/shortcut.ts";
+
+/** Pushed by the host ahead of time (`client/components/panel.tsx`) -- see
+ * `forwardGlobalShortcut`, which needs this synchronously, before its own
+ * fire-and-forget forward could ever answer back. */
+declare const sbBoundChords: ChordDescriptor[] | undefined;
 
 // Keys that move the selection, i.e. that put the panel in navigating mode.
 // (Tree mode adds ArrowLeft/ArrowRight; in list mode those move the caret.)
@@ -15,6 +21,23 @@ const NAV_KEYS = new Set([
   "PageDown",
   "Home",
   "End",
+]);
+
+// Native input-editing chords (select-all/copy/paste/cut/undo/redo) and caret
+// movement -- the browser's own handling of these inside the filter input
+// must win, so they are never forwarded to the host (mirrors editor_ui.tsx's
+// `MainUI` constructor, which carves the same set out for the top-bar's own
+// native fields).
+const NATIVE_EDIT_KEYS = new Set(["a", "c", "v", "x", "z", "y"]);
+const CARET_KEYS = new Set([
+  "arrowleft",
+  "arrowright",
+  "arrowup",
+  "arrowdown",
+  "home",
+  "end",
+  "backspace",
+  "delete",
 ]);
 
 export type KeyContext = {
@@ -126,6 +149,7 @@ export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   } else if (e.key === "End") {
     setIndex(lastIndex);
   } else {
+    forwardGlobalShortcut(e, ctx);
     return;
   }
   e.preventDefault();
@@ -160,6 +184,52 @@ function toggleOwnDock(e: KeyboardEvent, ctx: KeyContext): boolean {
   e.preventDefault();
   void cmd.close();
   return true;
+}
+
+/**
+ * Whether the host currently has something bound to this exact chord --
+ * `sbBoundChords`, pushed ahead of time by `client/components/panel.tsx`
+ * (kept current as commands are added/rebound). This is the only way to know
+ * synchronously: the forward below is a fire-and-forget syscall, with no
+ * round trip fast enough to answer before this keydown has to be handled.
+ */
+function isHostBoundChord(e: KeyboardEvent): boolean {
+  const key = e.key.toLowerCase();
+  return !!sbBoundChords?.some(
+    (c) =>
+      c.key === key &&
+      c.ctrlKey === e.ctrlKey &&
+      c.metaKey === e.metaKey &&
+      c.altKey === e.altKey &&
+      c.shiftKey === e.shiftKey,
+  );
+}
+
+/**
+ * Forwards a modifier chord nothing above claimed to the host's own global
+ * shortcut path (e.g. Cmd-/), which the iframe boundary otherwise stops from
+ * ever seeing this keydown at all.
+ *
+ * Prevents the browser's own default for it first, but *only* when the host
+ * actually has it bound -- otherwise a host-bound chord with a browser
+ * default (Cmd-o, say) would fire both the command and the browser's native
+ * action (e.g. Safari's Open File dialog) on top of it. A chord nothing
+ * claims still gets no `preventDefault` here, so it stays a no-op locally,
+ * same as it would over the editor -- matching the browser's own default for
+ * it, whatever that is.
+ */
+function forwardGlobalShortcut(e: KeyboardEvent, ctx: KeyContext) {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const key = e.key.toLowerCase();
+  if (NATIVE_EDIT_KEYS.has(key) || CARET_KEYS.has(key)) return;
+  if (isHostBoundChord(e)) e.preventDefault();
+  ctx.cmd.forwardShortcut({
+    key: e.key,
+    ctrlKey: e.ctrlKey,
+    metaKey: e.metaKey,
+    altKey: e.altKey,
+    shiftKey: e.shiftKey,
+  });
 }
 
 /**
@@ -316,6 +386,7 @@ function treeKeyDown(e: KeyboardEvent, ctx: KeyContext) {
       if (parentPath !== undefined) setSelectedPath(parentPath);
     }
   } else {
+    forwardGlobalShortcut(e, ctx);
     return;
   }
   e.preventDefault();

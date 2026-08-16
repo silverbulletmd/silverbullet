@@ -12,7 +12,7 @@ import { useEffect, useLayoutEffect, useReducer, useRef } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import type { Client } from "./client.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
-import { keyboardHint } from "../plug-api/lib/shortcut.ts";
+import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { kebabToPascal } from "./lib/feather_icons.ts";
 import { FilterList } from "./components/filter.tsx";
 import { Panel } from "./components/panel.tsx";
@@ -30,12 +30,33 @@ export class MainUI {
   viewState: AppViewState = initialViewState;
 
   constructor(private client: Client) {
+    // Safari treats Cmd-O as its own "Open File..." shortcut and wins before
+    // any bubble-phase listener -- including CodeMirror's own keymap and the
+    // bubble-phase fallback right below -- ever sees the keydown. Caught here
+    // at capture phase, ahead of that default, and only prevented when a
+    // handler actually claims it (an unbound Cmd-O still opens Safari's
+    // dialog, same as before). `stopPropagation` keeps the bubble-phase
+    // listeners from also matching the same chord and running it twice.
+    globalThis.addEventListener(
+      "keydown",
+      (ev) => {
+        const cmd = isMacLike ? ev.metaKey : ev.ctrlKey;
+        if (!cmd || ev.altKey || ev.shiftKey || ev.key.toLowerCase() !== "o") {
+          return;
+        }
+        if (runScopeHandlers(client.editorView, ev, "editor")) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
+      },
+      { capture: true },
+    );
+
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!client.editorView.hasFocus) {
         const target = ev.target as HTMLElement;
         if (target.className === "cm-textfield" && ev.key === "Escape") {
-          // Search panel is open, let's close it
           console.log("Closing search panel");
           closeSearchPanel(client.editorView);
           return;
@@ -44,7 +65,6 @@ export class MainUI {
           target.closest(".cm-content") ||
           target.closest(".cm-vim-panel")
         ) {
-          // In some cm element, let's back out
           return;
         } else if (
           target.closest('input, textarea, select, [contenteditable="true"]')
@@ -73,7 +93,6 @@ export class MainUI {
           if (fieldHandlesNatively) {
             return;
           }
-          // Otherwise fall through and forward the shortcut to the editor.
         }
         if (runScopeHandlers(client.editorView, ev, "editor")) {
           ev.preventDefault();
@@ -82,13 +101,11 @@ export class MainUI {
     });
 
     globalThis.addEventListener("touchstart", (ev) => {
-      // Launch the page picker on a two-finger tap
       if (ev.touches.length === 2) {
         ev.stopPropagation();
         ev.preventDefault();
         void client.startPageNavigate("page");
       }
-      // Launch the command palette using a three-finger tap
       if (ev.touches.length === 3) {
         ev.stopPropagation();
         ev.preventDefault();
@@ -103,7 +120,6 @@ export class MainUI {
     });
   }
 
-  // Progress circle handling
   private progressMap = new Map<
     "index" | "sync",
     {
@@ -152,7 +168,6 @@ export class MainUI {
   }
 
   private dispatchProgressState() {
-    // Hide when nothing is active
     if (this.progressMap.size === 0) {
       this.viewDispatch({ type: "set-progress" });
       return;
@@ -427,11 +442,16 @@ export class MainUI {
       // where there's no leftover slack from a taller previous state to hide
       // it in).
       const cs = getComputedStyle(el);
-      const borderY = parseFloat(cs.borderTopWidth) +
-        parseFloat(cs.borderBottomWidth);
+      const borderY =
+        parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
       const apply = () => {
         const height = doc.documentElement.getBoundingClientRect().height;
-        if (height > 0) el.style.height = `${Math.ceil(height + borderY)}px`;
+        if (height <= 0) return;
+        // A write here invalidates layout, so skipping it when the measured
+        // value hasn't moved is what keeps this loop from forcing one on
+        // every single frame for as long as any centered modal sits open.
+        const next = `${Math.ceil(height + borderY)}px`;
+        if (el.style.height !== next) el.style.height = next;
       };
       apply();
       let frame = requestAnimationFrame(function tick() {
@@ -511,7 +531,6 @@ export class MainUI {
               );
             } else {
               if (!newName) {
-                // Always move cursor to the start of the page
                 client.editorView.dispatch({
                   selection: { anchor: 0 },
                 });
@@ -527,7 +546,6 @@ export class MainUI {
             }
           }}
           actionButtons={[
-            // Vertical menu button
             ...(viewState.isMobile &&
             client.config
               .get<string>("mobileMenuStyle", "hamburger")
@@ -538,7 +556,6 @@ export class MainUI {
                     description: "Open Menu",
                     class: "expander",
                     callback: () => {
-                      // Make the expander button open/close the menu via toggling the CSS class "open"
                       document
                         .querySelector("#sb-top .sb-actions.hamburger")
                         ?.classList.toggle("open");
@@ -546,20 +563,15 @@ export class MainUI {
                   },
                 ]
               : []),
-            // Custom action buttons
             ...actionButtons
               .filter(
-                (
-                  // Filter out buttons without icons (invalid) and mobile buttons when not in mobile mode
-                  button,
-                ) =>
+                (button) =>
                   button.icon &&
                   (typeof button.mobile === "undefined" ||
                     button.mobile === viewState.isMobile) &&
                   (typeof button.standalone === "undefined" ||
                     button.standalone === viewState.isStandalone),
               )
-              // Then ensure all buttons have a priority set (by default based on array index)
               .map((button, index) => ({
                 ...button,
                 priority: button.priority ?? actionButtons.length - index,
@@ -572,7 +584,6 @@ export class MainUI {
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
-                // Build description with keyboard shortcut hint
                 let description = button.description || "";
                 if (button.command) {
                   const cmd = viewState.commands.get(button.command);
@@ -651,7 +662,8 @@ export class MainUI {
             <div
               ref={modalRef}
               className={
-                "sb-modal" + (centeredModal ? " sb-modal-centered" : "") +
+                "sb-modal" +
+                (centeredModal ? " sb-modal-centered" : "") +
                 (visibleKeyedModalPanel?.paintReady === false
                   ? " sb-modal-paint-pending"
                   : "")
@@ -715,13 +727,10 @@ export class MainUI {
   }
 
   render(container: Element) {
-    // const ViewComponent = this.ui.ViewComponent.bind(this.ui);
     container.innerHTML = "";
     preactRender(h(this.ViewComponent.bind(this), {}), container);
   }
 }
-
-// TODO: Parking this here for now, this is very similar to the definition in top_bar.tsx
 
 type ActionButton = {
   icon: string;

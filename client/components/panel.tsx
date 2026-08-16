@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
+import { boundChordManifest } from "../lib/bound_chords.ts";
 import { MOBILE_MEDIA_QUERY } from "../lib/mobile.ts";
 import type { KeyedPanelConfig, PanelConfig, PanelSlot } from "../types/ui.ts";
 import { panelHtml } from "./panel_html.ts";
@@ -54,6 +55,7 @@ function IFramePanel({
       script: config.script,
       theme: document.getElementsByTagName("html")[0].dataset.theme,
       mobile: globalThis.matchMedia(MOBILE_MEDIA_QUERY).matches,
+      boundChords: boundChordManifest(editor),
     });
   }
 
@@ -91,7 +93,6 @@ function IFramePanel({
             .localSyscall(name, args)
             .then((result) => {
               if (!iFrameRef.current?.contentWindow) {
-                // iFrame already went away
                 return;
               }
               iFrameRef.current!.contentWindow!.postMessage({
@@ -102,7 +103,6 @@ function IFramePanel({
             })
             .catch((e: any) => {
               if (!iFrameRef.current?.contentWindow) {
-                // iFrame already went away
                 return;
               }
               iFrameRef.current!.contentWindow!.postMessage({
@@ -205,6 +205,39 @@ function IFramePanel({
       }
     };
   }, [(config as KeyedPanelConfig).events?.join(",")]);
+
+  // A panel iframe can't preventDefault a chord's browser default from its
+  // own fire-and-forget forward to the host (no round trip is fast enough) --
+  // so it needs the host's bound-chord set ahead of time, kept current as
+  // commands are added/rebound (a Lua script loading, `Plugs: Reload`, ...)
+  // and as vim mode or the current page's read-only-ness change -- both feed
+  // the same filters `boundChordManifest` applies, without touching commands
+  // themselves or firing `commandsUpdated`.
+  useEffect(() => {
+    const commandHook = editor.clientSystem.commandHook;
+    const pushManifest = () => {
+      iFrameRef.current?.contentWindow?.postMessage({
+        type: "bound-chords",
+        chords: boundChordManifest(editor),
+      });
+    };
+    const handlers = { commandsUpdated: pushManifest };
+    commandHook.on(handlers);
+    const events: [string, () => void][] = [
+      ["editor:modeswitch", pushManifest],
+      ["editor:pageLoaded", pushManifest],
+      ["editor:pageReloaded", pushManifest],
+    ];
+    for (const [name, listener] of events) {
+      editor.eventHook.addLocalListener(name, listener);
+    }
+    return () => {
+      commandHook.off(handlers);
+      for (const [name, listener] of events) {
+        editor.eventHook.removeLocalListener(name, listener);
+      }
+    };
+  }, []);
 
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>
