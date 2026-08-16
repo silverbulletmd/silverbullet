@@ -139,6 +139,7 @@ clean:
 check:
 	npm run check
 	npx biome lint .
+	npm run fmt:check
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets --all-features -- -D warnings
 
