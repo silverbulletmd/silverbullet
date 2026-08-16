@@ -1,10 +1,19 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { FrameLocator, Page } from "@playwright/test";
-import { expect, gotoSilverBulletPage, mod, type SBServer, test } from "./fixtures.ts";
 import {
+  expect,
+  gotoSilverBulletPage,
+  mod,
+  type SBServer,
+  test,
+} from "./fixtures.ts";
+import {
+  closePicker,
   expectNavInputFocused,
+  expectNavRow,
   navigateViaPagePicker,
+  openPicker,
   runCommandViaPalette,
 } from "./navigator-ui.ts";
 
@@ -15,10 +24,12 @@ navigator.define {
   title = "Pages",
   command = "Navigator: Pages",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "list" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator._flakyCalls = navigator._flakyCalls or 0
@@ -27,10 +38,12 @@ navigator.define {
   title = "Flaky",
   command = "Navigator: Flaky",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   source = function()
     navigator._flakyCalls = navigator._flakyCalls + 1
     error("source exploded " .. navigator._flakyCalls)
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -38,10 +51,12 @@ navigator.define {
   title = "Sidebar",
   command = "Navigator: Sidebar",
   dock = "lhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "list" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -49,6 +64,7 @@ navigator.define {
   title = "Sidebar Journal",
   command = "Navigator: Sidebar Journal",
   dock = "lhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "list" },
   source = function()
     local out = {}
@@ -57,6 +73,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -64,10 +81,12 @@ navigator.define {
   title = "Modal Tree",
   command = "Navigator: Modal Tree",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -75,11 +94,13 @@ navigator.define {
   title = "Sidebar Tree",
   command = "Navigator: Sidebar Tree",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   followEditor = true,
   presentation = { mode = "tree" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -87,11 +108,13 @@ navigator.define {
   title = "Create List",
   command = "Navigator: Create List",
   dock = "modal",
-  create = true,
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
+  onCreate = function(name) editor.navigate(name) end,
   presentation = { mode = "list" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -99,11 +122,13 @@ navigator.define {
   title = "Create Tree",
   command = "Navigator: Create Tree",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree" },
   onCreate = function(name) editor.navigate(name) end,
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Synthetic + tiny, so "does this phrase prune the tree to nothing" doesn't
@@ -113,11 +138,12 @@ navigator.define {
   title = "Create Tree Small",
   command = "Navigator: Create Tree Small",
   dock = "modal",
-  create = true,
+  onCreate = function(name) editor.navigate(name) end,
   presentation = { mode = "tree" },
   source = function()
     return { { name = "Alpha", ref = "Alpha" }, { name = "Beta", ref = "Beta" } }
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -125,6 +151,7 @@ navigator.define {
   title = "Keymap Tree",
   command = "Navigator: Keymap Tree",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   followEditor = true,
   presentation = { mode = "tree" },
   keymap = {
@@ -133,6 +160,7 @@ navigator.define {
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -140,6 +168,7 @@ navigator.define {
   title = "Keymap List",
   command = "Navigator: Keymap List",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "list" },
   keymap = {
     [" "] = function(obj) editor.navigate(obj.ref or obj.name) end,
@@ -147,6 +176,7 @@ navigator.define {
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -154,7 +184,7 @@ navigator.define {
   title = "Create Bulk",
   command = "Navigator: Create Bulk",
   dock = "modal",
-  create = true,
+  onCreate = function(name) editor.navigate(name) end,
   presentation = { mode = "list" },
   source = function()
     local out = {}
@@ -164,6 +194,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -171,10 +202,12 @@ navigator.define {
   title = "Expand All Tree",
   command = "Navigator: Expand All Tree",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree", expandAll = true },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -193,6 +226,7 @@ navigator.define {
       { name = "Top/Child", label = "Child @1" },
     }
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Synthetic rows: enough of them to scroll, and identical across refreshes so
@@ -202,6 +236,7 @@ navigator.define {
   title = "Scroll Tree",
   command = "Navigator: Scroll Tree",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree" },
   source = function()
     local out = {}
@@ -211,6 +246,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -400,7 +436,6 @@ test("reopening reuses the same iframe and clears the stale phrase", async ({
   sbPage,
 }) => {
   await openNavigator(sbPage);
-  // Selecting closes the panel with the phrase still in the box
   await navInput(sbPage).fill("beta");
   await navInput(sbPage).press("Enter");
   await expect(
@@ -422,7 +457,7 @@ test("reopening reuses the same iframe and clears the stale phrase", async ({
   await expect(navInput(sbPage)).toHaveValue("");
 });
 
-// Polish round review, C1 (critical): reopening a modal on the view it
+// C1 (critical): reopening a modal on the view it
 // already displays took the `else if (!passive)` branch in `createActivate`,
 // which never calls `setView`/`setBootError` -- so `NavRoot`'s paint-timed
 // `useLayoutEffect([view, bootError])` never re-fires, `editor.panelReady`
@@ -481,7 +516,7 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
   await open("Navigate: Page Picker"); // switch to a different view...
   await close();
   const luaReopenAfterSwitch = await revealedWithin(() =>
-    open("Navigator: Pages")
+    open("Navigator: Pages"),
   ); // ...and back.
   await close();
 
@@ -492,13 +527,13 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
   const tsFirst = await revealedWithin(() => open("Navigate: Page Picker"));
   await close();
   const tsWarmReopen = await revealedWithin(() =>
-    open("Navigate: Page Picker")
+    open("Navigate: Page Picker"),
   );
   await close();
   await open("Navigator: Pages");
   await close();
   const tsReopenAfterSwitch = await revealedWithin(() =>
-    open("Navigate: Page Picker")
+    open("Navigate: Page Picker"),
   );
 
   console.log(
@@ -508,14 +543,12 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
 
   // The regression guard: a reopen (warm, or after switching away and back)
   // must never fall back to the 800ms timeout, for either view type.
-  for (
-    const ms of [
-      luaWarmReopen,
-      luaReopenAfterSwitch,
-      tsWarmReopen,
-      tsReopenAfterSwitch,
-    ]
-  ) {
+  for (const ms of [
+    luaWarmReopen,
+    luaReopenAfterSwitch,
+    tsWarmReopen,
+    tsReopenAfterSwitch,
+  ]) {
     expect(ms).toBeLessThan(400);
   }
 });
@@ -540,14 +573,13 @@ test("a failing source renders an error and keeps retrying", async ({
   const frame = sbPage.frameLocator(".sb-modal iframe");
   const error = frame.locator(".sb-nav-error");
   await expect(error).toContainText("source exploded");
-  // The input stays usable while the error is showing
   await expect(navInput(sbPage)).toBeFocused();
   const firstAttempt = await error.innerText();
 
   // `editor:pageLoaded` is *not* a refresh trigger (it would re-run every
   // view's source on every navigation); an actual refreshOn event is --
-  // "flaky" doesn't override refreshOn, so it inherits the default set,
-  // which includes `file:changed`.
+  // "flaky" declares the same set the space-derived built-ins do, which
+  // includes `file:changed`.
   await writeFile(join(sbServer.spaceDir, "Retry.md"), "# Retry");
   await expect(error).not.toHaveText(firstAttempt, { timeout: 5000 });
   await expect(error).toContainText("source exploded");
@@ -620,7 +652,6 @@ test("re-evaluating the panel bundle reuses the booted singletons", async ({
     });
   });
 
-  // The app comes back up and still shows its view
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
   ).toBeVisible();
@@ -953,7 +984,7 @@ test("watch: out-of-band page creation appears in sidebar tree, preserving expan
 
   // A page written directly to disk, out-of-band -- not through the app.
   // Reaches the client via its file-watch/push path -> `file:changed` ->
-  // forwarded -> debounced refresh (default refreshOn includes
+  // forwarded -> debounced refresh (this view's own `refreshOn` includes
   // `file:changed`; see `writeFile` usage in e2e/external-edit.test.ts for
   // why this is more reliable than the `.fs` HTTP endpoint under CI load).
   await writeFile(join(sbServer.spaceDir, "Projects/Gamma.md"), "# Gamma");
@@ -1087,7 +1118,6 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
-  // Leave the panel, and leave a stale phrase behind
   await frame.locator("input.sb-nav-input").fill("alpha");
   await sbPage.locator("#sb-editor .cm-content").click();
   await expect(sbPage.locator("#sb-editor .cm-content")).toBeFocused();
@@ -1108,7 +1138,7 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
 });
 
-// Item 7 extension (polish round): the phrase itself still isn't cleared
+// The phrase itself still isn't cleared
 // (see above) -- it's *selected*, so the refocus a user asks for reads as
 // "let me replace this filter" rather than "resume typing into the middle
 // of it". Arrow/Enter behavior is untouched by this -- selecting text in the
@@ -1249,7 +1279,6 @@ test("create: a create row appears for an unmatched phrase and creates on Enter"
   ).toBeVisible();
   const input = frame.locator("input.sb-nav-input");
 
-  // No phrase, no create row
   await expect(frame.locator(".sb-nav-create")).toHaveCount(0);
 
   // A phrase matching an existing row exactly offers no create row either
@@ -1295,7 +1324,6 @@ test("create: Shift-Enter creates from anywhere in the list", async ({
 
   const input = frame.locator("input.sb-nav-input");
   await input.fill("Projects/Be");
-  // Selection is still on the first ranked row, not the create row
   await expect(frame.locator(".sb-nav-create")).toBeVisible();
   await expect(frame.locator(".sb-nav-create.sb-nav-selected")).toHaveCount(0);
   await input.press("Shift+Enter");
@@ -1519,7 +1547,6 @@ test("rows are not selectable text", async ({ sbPage }) => {
     .first()
     .evaluate((el) => getComputedStyle(el).userSelect);
   expect(userSelect).toBe("none");
-  // ...but the filter input still is
   const inputSelect = await frame
     .locator("input.sb-nav-input")
     .evaluate((el) => getComputedStyle(el).userSelect);
@@ -1548,7 +1575,6 @@ test("hovering a row does not highlight it", async ({ sbPage }) => {
   const unhovered = await colors(other);
   await other.hover();
   expect(await colors(other)).toEqual(unhovered);
-  // ...and it is still the selected row that carries the highlight.
   expect(await colors(selected)).toEqual(before);
 });
 
@@ -1623,7 +1649,6 @@ test("keymap: a printable key types while typing and acts while navigating", asy
     .innerText();
   await input.press(" ");
   await expect(currentPage).toHaveValue(target);
-  // ...without landing in the phrase, and without giving up focus.
   await expect(input).toHaveValue("projects alpha");
   await expectFilterInputFocused(sbPage, ".sb-modal iframe");
 
@@ -1644,11 +1669,13 @@ navigator.define {
   title = "Move Tree",
   command = "Navigator: Move Tree",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree", foldersFirst = false },
   onMove = navigator.moveByRename,
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -1755,7 +1782,6 @@ test.describe("dnd", () => {
     expect(await exists(join(sbServer.spaceDir, "Projects/Alpha.md"))).toBe(
       false,
     );
-    // The folder it was dropped into kept its own contents.
     expect(await exists(join(sbServer.spaceDir, "Archive/Keep.md"))).toBe(true);
   });
 
@@ -1842,13 +1868,15 @@ navigator.define {
   title = "Action Tree",
   command = "Navigator: Action Tree",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree" },
   actions = {
     { icon = "edit-3", label = "Rename", run = function(obj)
         editor.flashNotification("action rename " .. obj.name)
       end },
-    { icon = "trash-2", label = "Delete", confirm = "Delete %s?",
+    { icon = "trash-2", label = "Delete",
       run = function(obj)
+        if not editor.confirm("Delete " .. obj.name .. "?") then return end
         editor.flashNotification("action delete " .. obj.name)
       end },
     { icon = "folder-plus", label = "New page here",
@@ -1860,6 +1888,7 @@ navigator.define {
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -1867,6 +1896,7 @@ navigator.define {
   title = "Action List",
   command = "Navigator: Action List",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "list" },
   actions = {
     { icon = "edit-3", label = "Rename", run = function(obj)
@@ -1881,6 +1911,7 @@ navigator.define {
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -1888,6 +1919,7 @@ navigator.define {
   title = "Icon Tree",
   command = "Navigator: Icon Tree",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = {
     mode = "tree",
     row = {
@@ -1899,7 +1931,7 @@ navigator.define {
         end
         if obj.name == "Journal/Today" then return nil end
         -- The removed { svg = ... } table, returned at runtime rather than
-        -- assigned statically -- navigator:rowState only admits a string
+        -- assigned statically -- the rowState hook only admits a string
         -- result, so this row gets no icon, quietly.
         if obj.name == "Projects/Alpha" then
           return { svg = "<svg xmlns='http://www.w3.org/2000/svg'></svg>" }
@@ -1911,6 +1943,7 @@ navigator.define {
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- An empty table is not an empty array once it crosses to the panel; both of
@@ -1920,12 +1953,14 @@ navigator.define {
   title = "Empty Extras",
   command = "Navigator: Empty Extras",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "list" },
   actions = {},
   keymap = {},
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -1933,7 +1968,8 @@ navigator.define {
   title = "RO Tree",
   command = "Navigator: RO Tree",
   dock = "rhs",
-  create = true,
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
+  onCreate = function(name) editor.navigate(name) end,
   presentation = { mode = "tree" },
   onMove = navigator.moveByRename,
   actions = {
@@ -1948,6 +1984,7 @@ navigator.define {
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -2248,7 +2285,7 @@ test.describe("actions", () => {
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
 
-    // navigator:rowState only admits a string result, so a table return --
+    // The rowState hook only admits a string result, so a table return --
     // the pre-consolidation escape hatch, still reachable at runtime since
     // validateRowIcon can't see what a function will return -- leaves the
     // slot reserved but empty, same as a nil return.
@@ -2400,7 +2437,7 @@ local kindSegments = {
   { label = "All", icon = "layers", default = true },
   { label = "Pages", icon = "file-text",
     where = function(obj) return obj.kind == "page" end },
-  { label = "Docs", icon = "file",
+  { label = "Documents", icon = "file",
     where = function(obj) return obj.kind == "doc" end },
 }
 
@@ -2412,6 +2449,7 @@ navigator.define {
   presentation = { mode = "list" },
   segments = kindSegments,
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- segmentlist, minus any refresh trigger. The syscall-counting test below
@@ -2427,6 +2465,7 @@ navigator.define {
   segments = kindSegments,
   refreshOn = { "navigator:test:neverFires" },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -2437,6 +2476,7 @@ navigator.define {
   presentation = { mode = "tree" },
   segments = kindSegments,
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- A name far wider than the narrowest dock, on a row that also carries an
@@ -2457,6 +2497,7 @@ navigator.define {
         ref = "Projects/Quarterly Planning Retrospective Notes" },
     }
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Label-only segments: they must never collapse to nothing, however narrow.
@@ -2472,6 +2513,7 @@ navigator.define {
       where = function(obj) return obj.kind == "page" end },
   },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- A predicate that throws: fail-closed, and it must not take the pass whole.
@@ -2489,6 +2531,7 @@ navigator.define {
       end },
   },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Both plausible spellings of "nothing here": an empty Lua table crosses as an
@@ -2504,36 +2547,48 @@ navigator.define {
   refreshOn = {},
   filter = { fields = {} },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
--- Definition-time validation: each of these must be rejected outright.
 navigator._badIcons = {}
+-- Every case also carries a no-op onSelect, so what actually rejects each one
+-- is the field under test, not the separate "onSelect is required" check.
 for _, case in ipairs({
   { what = "segment icon", spec = { name = "bad1", source = things,
+      onSelect = function() end,
       segments = { { label = "A", icon = 42 } } } },
   -- The old { svg = ... } escape hatch: an icon must be a string now.
   { what = "segment icon svg table", spec = { name = "bad2", source = things,
+      onSelect = function() end,
       segments = { { label = "A", icon = { svg = "<svg></svg>" } } } } },
   { what = "action icon", spec = { name = "bad3", source = things,
+      onSelect = function() end,
       actions = { { label = "A", icon = {}, run = function() end } } } },
   { what = "action icon svg table", spec = { name = "bad3b", source = things,
+      onSelect = function() end,
       actions = { { label = "A", icon = { svg = "<svg></svg>" }, run = function() end } } } },
-  -- The old sibling svg attribute: removed outright, not just untyped.
-  { what = "action svg", spec = { name = "bad4", source = things,
-      actions = { { label = "A", svg = "<svg></svg>", run = function() end } } } },
   -- presentation.row.icon: same old escape hatch, its own validator.
   { what = "row icon svg table", spec = { name = "bad4b", source = things,
+      onSelect = function() end,
       presentation = { row = { icon = { svg = "<svg></svg>" } } } } },
   { what = "limit", spec = { name = "bad5", source = things,
+      onSelect = function() end,
       presentation = { limit = 0 } } },
-  { what = "search", spec = { name = "bad6", source = things, search = "fts" } },
+  { what = "search", spec = { name = "bad6", source = things, search = "fts",
+      onSelect = function() end } },
   { what = "duplicate label", spec = { name = "bad7", source = things,
+      onSelect = function() end,
       segments = { { label = "A" }, { label = "A" } } } },
-  { what = "dock", spec = { name = "bad8", source = things, dock = "left" } },
+  { what = "dock", spec = { name = "bad8", source = things, dock = "left",
+      onSelect = function() end } },
   { what = "mode", spec = { name = "bad9", source = things,
+      onSelect = function() end,
       presentation = { mode = "table" } } },
   { what = "hierarchy", spec = { name = "bad10", source = things,
+      onSelect = function() end,
       presentation = { mode = "tree", hierarchy = {} } } },
+  -- \`onSelect\` is required at define time now.
+  { what = "missing onSelect", spec = { name = "bad13", source = things } },
 }) do
   local ok = pcall(navigator.define, case.spec)
   navigator._badIcons[#navigator._badIcons + 1] = case.what .. "=" .. tostring(ok)
@@ -2553,6 +2608,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -2584,7 +2640,6 @@ test.describe("segments", () => {
     const frame = await openSegmentList(sbPage);
     const primaries = () => frame.locator(".sb-nav-primary").allInnerTexts();
 
-    // The default segment: `default = true`, i.e. everything.
     await expect(segment(frame, "All")).toHaveAttribute("aria-checked", "true");
     expect(await primaries()).toEqual([
       "Alpha",
@@ -2603,10 +2658,8 @@ test.describe("segments", () => {
       "false",
     );
     expect(await primaries()).toEqual(["Alpha", "Projects/Beta"]);
-    // Clicking a segment hands focus straight back to the phrase input.
     await expectFilterInputFocused(sbPage, ".sb-modal iframe");
 
-    // The segment subsets, the phrase ranks what is left.
     await navInput(sbPage).fill("beta");
     expect(await primaries()).toEqual(["Projects/Beta"]);
     // ...and it cannot reach a row the segment excluded, however well it
@@ -2614,14 +2667,9 @@ test.describe("segments", () => {
     await navInput(sbPage).fill("gamma");
     await expect(frame.locator(".sb-nav-empty")).toBeVisible();
 
-    await segment(frame, "Docs").click();
+    await segment(frame, "Documents").click();
     expect(await primaries()).toEqual(["Projects/Gamma.png"]);
   });
-
-  // Segment counts (`presentation.filterCounts`) were removed before release
-  // -- the coverage that lived here (totals shown only while the phrase is
-  // empty, hidden rather than removed to keep the control's width) went with
-  // it.
 
   test("Ctrl-Arrow cycles the segments, wrapping both ways", async ({
     sbPage,
@@ -2633,13 +2681,11 @@ test.describe("segments", () => {
     await navInput(sbPage).press("Control+ArrowRight");
     await expect(active).toHaveText(/Pages/);
     await navInput(sbPage).press("Control+ArrowRight");
-    await expect(active).toHaveText(/Docs/);
-    // Wraps around...
+    await expect(active).toHaveText(/Documents/);
     await navInput(sbPage).press("Control+ArrowRight");
     await expect(active).toHaveText(/All/);
-    // ...in both directions.
     await navInput(sbPage).press("Control+ArrowLeft");
-    await expect(active).toHaveText(/Docs/);
+    await expect(active).toHaveText(/Documents/);
     // Shift is ignored, so the macOS-safe chord works too.
     await navInput(sbPage).press("Control+Shift+ArrowLeft");
     await expect(active).toHaveText(/Pages/);
@@ -2652,8 +2698,8 @@ test.describe("segments", () => {
 
   test("the active segment is remembered per view", async ({ sbPage }) => {
     const frame = await openSegmentList(sbPage);
-    await segment(frame, "Docs").click();
-    await expect(segment(frame, "Docs")).toHaveAttribute(
+    await segment(frame, "Documents").click();
+    await expect(segment(frame, "Documents")).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -2667,7 +2713,7 @@ test.describe("segments", () => {
     await sbPage.locator("#sb-editor .cm-content").click();
 
     const reopened = await openSegmentList(sbPage);
-    await expect(segment(reopened, "Docs")).toHaveAttribute(
+    await expect(segment(reopened, "Documents")).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -2687,8 +2733,7 @@ test.describe("segments", () => {
     await expect(frame.locator("[data-path='Alpha']")).toBeVisible();
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 
-    await frame.locator(".sb-segment[aria-label='Docs']").click();
-    // The folder its only match hangs off is rebuilt; the pages are gone.
+    await frame.locator(".sb-segment[aria-label='Documents']").click();
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
     await expect(frame.locator("[data-path='Alpha']")).toHaveCount(0);
     await expect(frame.locator("[data-path='Settings']")).toHaveCount(0);
@@ -2782,7 +2827,6 @@ test.describe("segments", () => {
       expect(await counted()).toEqual(["datastore.set"]);
     }).toPass();
 
-    // ...and typing after the switch is still free.
     await sbPage.keyboard.type("bet", { delay: 60 });
     await expect(navInput(sbPage)).toHaveValue("alphabet");
     expect(await counted()).toEqual(["datastore.set"]);
@@ -2795,13 +2839,16 @@ test.describe("segments", () => {
     await frame.locator(".sb-segment[aria-label='Pages']").click();
     await expect(frame.locator(".sb-nav-row")).toHaveCount(2);
 
-    // Break the batch that carries the `where` results, then refresh.
     await sbPage.evaluate(() => {
       const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
       const w = f.contentWindow as any;
       const orig = w.syscall;
       w.syscall = (name: string, ...args: any[]) => {
-        if (name === "event.dispatch" && args[0] === "navigator:rowState") {
+        if (
+          name === "system.invokeFunction" &&
+          args[0] === "navigator.handle" &&
+          args[1]?.hook === "rowState"
+        ) {
           return Promise.reject(new Error("no state for you"));
         }
         return orig(name, ...args);
@@ -2814,7 +2861,6 @@ test.describe("segments", () => {
     await expect(frame.locator(".sb-nav-notice")).toBeVisible();
     await expect(frame.locator(".sb-nav-row")).toHaveCount(0);
 
-    // The pass-through segment still works, and the notice goes with it.
     await frame.locator(".sb-segment[aria-label='All']").click();
     await expect(frame.locator(".sb-nav-row")).toHaveCount(4);
     await expect(frame.locator(".sb-nav-notice")).toHaveCount(0);
@@ -2847,7 +2893,6 @@ test.describe("segments", () => {
       "segment icon svg table=false",
       "action icon=false",
       "action icon svg table=false",
-      "action svg=false",
       "row icon svg table=false",
       "limit=false",
       "search=false",
@@ -2855,6 +2900,7 @@ test.describe("segments", () => {
       "dock=false",
       "mode=false",
       "hierarchy=false",
+      "missing onSelect=false",
     ]);
   });
 
@@ -2875,7 +2921,6 @@ test.describe("segments", () => {
       .locator(".sb-segment[aria-label='Pages'] .sb-segment-icon")
       .first();
 
-    // Widened: labels fit, so they show.
     await dragSidebar(sbPage, frame, -220);
     await expect(label).toBeVisible();
     await expect(icon).toBeVisible();
@@ -2889,11 +2934,6 @@ test.describe("segments", () => {
       frame.locator(".sb-segment[aria-label='Pages']").first(),
     ).toHaveAttribute("title", "Pages");
   });
-
-  // "a dock too narrow even for the icons drops the counts, never wraps" is
-  // gone: segment counts (`presentation.filterCounts`) were removed before
-  // release, and that test's whole premise was the responsive-fit tier that
-  // dropped them.
 
   test("a name too long for its dock ellipsizes inside it", async ({
     sbPage,
@@ -2997,6 +3037,7 @@ navigator.define {
     for i = #ranked, 1, -1 do out[#out + 1] = ranked[i] end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- The same data, ranked by the panel: the control for the ordering assertion.
@@ -3011,6 +3052,7 @@ navigator.define {
     for _, name in ipairs(NAMES) do out[#out + 1] = { name = name, ref = name } end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -3023,7 +3065,6 @@ test.describe("source mode", () => {
   test("the source answers each phrase, and its order is authoritative", async ({
     sbPage,
   }) => {
-    // The control: the same data, ranked by the panel itself.
     const client = await openNavigatorView(sbPage, "Navigator: Client Search");
     await expect(
       client.locator(".sb-nav-row", { hasText: "Anchor" }),
@@ -3043,7 +3084,6 @@ test.describe("source mode", () => {
     await sbPage.locator("#sb-editor .cm-content").click();
 
     const frame = await openNavigatorView(sbPage, "Navigator: Source Search");
-    // No phrase: the source's plain listing.
     await expect(frame.locator(".sb-nav-row")).toHaveCount(5);
 
     // The phrase is the source's input now: it answers with the subset it
@@ -3061,9 +3101,6 @@ test.describe("source mode", () => {
     await expect(frame.locator(".sb-nav-row")).toHaveCount(1);
     await expect(frame.locator(".sb-nav-primary")).toHaveText("Cobalt");
   });
-
-  // "counts are suppressed in source mode, even when asked for" is gone:
-  // segment counts (`presentation.filterCounts`) were removed before release.
 
   test("the active segment reaches the source as a label", async ({
     sbPage,
@@ -3094,9 +3131,10 @@ test.describe("source mode", () => {
       w.syscall = async (name: string, ...args: any[]) => {
         const result = await orig(name, ...args);
         if (
-          name === "event.dispatch" &&
-          args[0] === "navigator:rows" &&
-          args[1]?.ctx?.phrase === "blue"
+          name === "system.invokeFunction" &&
+          args[0] === "navigator.handle" &&
+          args[1]?.hook === "rows" &&
+          args[1]?.args?.ctx?.phrase === "blue"
         ) {
           await new Promise((r) => setTimeout(r, 3000));
         }
@@ -3105,7 +3143,6 @@ test.describe("source mode", () => {
     });
 
     await navInput(sbPage).fill("blue");
-    // Outstanding long enough to say so.
     await expect(frame.locator(".sb-nav-spinner")).toBeVisible();
 
     await navInput(sbPage).fill("cobalt");
@@ -3128,7 +3165,6 @@ test.describe("source mode", () => {
     await navInput(sbPage).fill("blue");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(2);
 
-    // The source cannot answer this phrase at all.
     await navInput(sbPage).fill("boom");
     await expect(frame.locator(".sb-nav-error-inline")).toContainText("kaboom");
     // ...and the rows the user was reading are still there, not an empty panel.
@@ -3176,10 +3212,9 @@ navigator.define {
       run = function() end },
   },
   source = bulk,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
--- Ten well-separated names: "matches exactly one" has to survive the ranker's
--- typo tolerance, which numbered siblings (Item01/Item02/...) do not.
 -- A deep, wide tree: a phrase that matches everything auto-expands the lot,
 -- which is the shape a hover transition is most expensive over.
 navigator.define {
@@ -3201,6 +3236,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- The load path rather than the keystroke path: every refresh re-runs the
@@ -3234,6 +3270,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator.define {
@@ -3250,6 +3287,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -3302,7 +3340,6 @@ test.describe("render cap", () => {
       /Charlie/,
     );
 
-    // Narrow it down and the footer goes away.
     await navInput(sbPage).fill("Foxtrot");
     await expect(frame.locator(".sb-nav-list .sb-nav-row")).toHaveCount(1);
     await expect(frame.locator(".sb-nav-more")).toHaveCount(0);
@@ -3317,7 +3354,6 @@ test.describe("render cap", () => {
       frame.locator(".sb-nav-row", { hasText: "Item 0001" }),
     ).toBeVisible();
 
-    // The default cap, not 5000 rows of markup.
     await expect(frame.locator(".sb-nav-list .sb-nav-row")).toHaveCount(200);
     await expect(frame.locator(".sb-nav-more")).toContainText("4800 more");
     // Actions are mounted for the selected row alone until something is
@@ -3337,9 +3373,9 @@ test.describe("render cap", () => {
         .join("ms, ")}ms (worst ${Math.round(worst)}ms)`,
     );
 
-    // Generously above what the mitigations measure at (see the round's
-    // report): this is a guard against an order-of-magnitude regression, not a
-    // millisecond-accurate budget.
+    // Generously above what the mitigations measure at: this is a guard
+    // against an order-of-magnitude regression, not a millisecond-accurate
+    // budget.
     const budget = process.env.CI ? 2400 : 800;
     expect(worst).toBeLessThan(budget);
 
@@ -3494,7 +3530,6 @@ test.describe("render cap", () => {
         [from, to],
       );
 
-    // Warm, then five row-to-row transitions.
     await move(3, 4);
     const samples: number[] = [];
     for (let i = 0; i < 5; i++) samples.push(await move(10 + i, 11 + i));
@@ -3557,10 +3592,8 @@ test.describe("render cap", () => {
     await rows.nth(3).hover();
     await expect(rows.nth(3).locator(".sb-row-action")).toHaveCount(2);
     await expect(rows.nth(3).locator(".sb-row-action").first()).toBeVisible();
-    // Still only those two rows' worth in the whole list.
     await expect(frame.locator(".sb-row-action")).toHaveCount(3);
 
-    // Leaving the list takes them back down.
     await frame.locator("input.sb-nav-input").hover();
     await expect(rows.nth(3).locator(".sb-row-action")).toHaveCount(0);
   });
@@ -3580,9 +3613,11 @@ navigator.define {
   title = "Pages Modal",
   command = "Navigator: Pages Modal",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -3636,7 +3671,7 @@ test.describe("built-in views", () => {
   test.use({ spaceFiles: BUILTIN_FILES });
 
   async function openSpaceTree(sbPage: Page) {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
     await expect(frame.locator("[data-path='Diagrams']")).toBeVisible();
@@ -3680,7 +3715,6 @@ test.describe("built-in views", () => {
     const document = await iconOf("Projects/notes.txt");
     const image = await iconOf("Diagrams/flow.png");
 
-    // Four distinct feather icons: folder / file-text / file / image.
     expect(new Set([folder, page, document, image]).size).toBe(4);
     // A page that is also a folder is drawn as the folder it heads.
     expect(await iconOf("Projects")).toBe(folder);
@@ -3727,10 +3761,10 @@ test.describe("built-in views", () => {
     );
   });
 
-  // Polish round item 6: reopening a *closed* dock is a fresh activation,
-  // which (unlike a merely-hidden one, see "sidebar: follow-editor reveal
-  // survives being hidden, then reopened" above) re-fetches the persisted
-  // expansion snapshot -- a sibling async round trip to the reveal's own
+  // Reopening a *closed* dock is a fresh activation, which (unlike a
+  // merely-hidden one, see "sidebar: follow-editor reveal survives being
+  // hidden, then reopened" above) re-fetches the persisted expansion
+  // snapshot -- a sibling async round trip to the reveal's own
   // ancestor-expansion, with no fixed order between them. Manually expanding
   // an unrelated folder first gives that snapshot real content (an empty one
   // happens to not reproduce the race), so this is a real regression guard,
@@ -3740,14 +3774,16 @@ test.describe("built-in views", () => {
   }) => {
     const frame = await openSpaceTree(sbPage);
     await frame.locator("[data-path='Diagrams'] .sb-nav-chevron").click();
-    await expect(frame.locator("[data-path='Diagrams/flow.png']")).toBeVisible();
+    await expect(
+      frame.locator("[data-path='Diagrams/flow.png']"),
+    ).toBeVisible();
 
     await closeSidebar(sbPage, ".sb-keyed-panel-lhs");
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
 
     await navigateViaPagePicker(sbPage, "Projects/Alpha");
 
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const reopened = sidebarFrame(sbPage);
     await expect(
       reopened.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
@@ -3760,10 +3796,9 @@ test.describe("built-in views", () => {
     ).toBeVisible();
   });
 
-  // Polish round item 7 (Addendum 4): the real Cmd-o binding, all three
-  // transitions -- closed -> open+focus and visible-but-unfocused -> refocus
-  // are the pre-existing behavior; focused -> hide is new (see `show`'s
-  // toggle branch in navigator.ts).
+  // The real Cmd-o binding, all three transitions -- closed -> open+focus
+  // and visible-but-unfocused -> refocus are the pre-existing behavior;
+  // focused -> hide is new (see `show`'s toggle branch in navigator.ts).
   test("Cmd-o toggles the tree dock: closed -> open+focus, unfocused -> refocus, focused -> hide", async ({
     sbPage,
   }) => {
@@ -3772,24 +3807,73 @@ test.describe("built-in views", () => {
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
     await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
 
-    // Steal focus back to the editor without closing the dock, then press
-    // Cmd-o again on the now-unfocused-but-visible dock.
     await sbPage.locator("#sb-editor .cm-content").click();
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
     await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
 
-    // Focused: the same key now hides it.
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
   });
 
-  // Polish round review, I2: `editor.getFocusedPanelSlot` used to detect a
-  // slot from an ancestor class only the sidebar wrapper carries
-  // (`sb-keyed-panel-lhs`/`-rhs`) -- the modal wrapper renders plain
-  // `sb-keyed-panel`, so a focused modal picker always answered `undefined`,
-  // contradicting the syscall's own four-slot contract. Fixed via a
-  // `data-slot` attribute the iframe itself carries, on every render path.
+  // Addendum 7's fallback branch: Cmd-o is Safari-the-app's own reserved
+  // "Open File..." accelerator, claimed at the OS/app level before any web
+  // page ever sees the keydown -- no capture-phase listener can win that
+  // race. Cmd-Shift-o is the same command's secondary binding, unclaimed
+  // there, and must behave identically to Cmd-o in all three transitions.
+  test("Cmd-Shift-o (the Safari-workable secondary binding) toggles the tree dock exactly like Cmd-o: closed -> open+focus, unfocused -> refocus, focused -> hide", async ({
+    sbPage,
+  }) => {
+    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    const frame = sidebarFrame(sbPage);
+    await expect(frame.locator("[data-path='Projects']")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+
+    await sbPage.locator("#sb-editor .cm-content").click();
+    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+
+    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
+  });
+
+  test("Cmd-o and Cmd-Shift-o coexist: either opens the dock, either closes it, interchangeably", async ({
+    sbPage,
+  }) => {
+    // Opened with the primary binding...
+    await sbPage.keyboard.press(`${mod}+o`);
+    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+
+    // ...closed with the secondary one, from the same focused dock.
+    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
+
+    // ...and reopened with the primary again: neither binding stepped on
+    // the other's toggle state.
+    await sbPage.keyboard.press(`${mod}+o`);
+    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
+  });
+
+  // Addendum 7, item 3: the command palette route was never gated on a
+  // keybinding existing at all -- `system.listPaletteCommands()` lists every
+  // registered command regardless -- so it stays the fallback that works
+  // even somewhere both key bindings were unavailable.
+  test("Navigate: Tree is reachable via the command palette independent of either key binding", async ({
+    sbPage,
+  }) => {
+    await runCommand(sbPage, "Navigate: Tree");
+    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+  });
+
+  // `editor.getFocusedPanelSlot` used to detect a slot from an ancestor
+  // class only the sidebar wrapper carries (`sb-keyed-panel-lhs`/`-rhs`) --
+  // the modal wrapper renders plain `sb-keyed-panel`, so a focused modal
+  // picker always answered `undefined`, contradicting the syscall's own
+  // four-slot contract. Fixed via a `data-slot` attribute the iframe itself
+  // carries, on every render path.
   test("editor.getFocusedPanelSlot reports the modal, not just lhs/rhs sidebars", async ({
     sbPage,
   }) => {
@@ -3829,7 +3913,7 @@ test.describe("built-in views", () => {
       ]),
     ).toEqual(["none", "none"]);
 
-    await frame.locator(".sb-segment[aria-label='Docs']").click();
+    await frame.locator(".sb-segment[aria-label='Documents']").click();
     // Subsetting rebuilds the tree from the rows that survived, so the folders
     // those documents live in come back on their own -- but a segment is not a
     // phrase, so nothing is auto-expanded.
@@ -3837,7 +3921,6 @@ test.describe("built-in views", () => {
     await expect(
       frame.locator("[data-path='Projects/notes.txt']"),
     ).toBeVisible();
-    // The pages under that same folder are gone.
     await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 
     await frame.locator(".sb-segment[aria-label='Meta']").click();
@@ -3845,13 +3928,15 @@ test.describe("built-in views", () => {
     await expect(frame.locator("[data-path='Templates/Thing']")).toBeVisible();
     await expect(frame.locator("[data-path='Projects']")).toHaveCount(0);
 
-    // The default segment leaves everything in -- and expansion is the view's,
-    // not the segment's, so Projects is still open from above.
+    // The default segment leaves pages and documents in (but not meta pages)
+    // -- and expansion is the view's, not the segment's, so Projects is still
+    // open from above.
     await frame.locator(".sb-segment[aria-label='All']").click();
     await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
     await expect(
       frame.locator("[data-path='Projects/notes.txt']"),
     ).toBeVisible();
+    await expect(frame.locator("[data-path='Templates/Thing']")).toHaveCount(0);
   });
 
   test("Space peeks at a row without giving up the panel's focus", async ({
@@ -3920,8 +4005,8 @@ test.describe("built-in views", () => {
     expect(gone.ok).toBe(false);
   });
 
-  // onMove, through the TS builtin's own dispatch (`navigator:move` ->
-  // `moveByRename` in builtins.ts) -- the generic drag mechanism is already
+  // onMove, through the TS builtin's own "move" hook (-> `moveByRename` in
+  // builtins.ts) -- the generic drag mechanism is already
   // covered against a synthetic Lua fixture in the "dnd" suite below; this is
   // the one drop that has to prove the real `std.spaceTree` wiring, document
   // rename included.
@@ -3931,15 +4016,17 @@ test.describe("built-in views", () => {
   }) => {
     const frame = await openSpaceTree(sbPage);
     await frame.locator("[data-path='Diagrams'] .sb-nav-chevron").click();
-    await expect(frame.locator("[data-path='Diagrams/flow.png']")).toBeVisible();
+    await expect(
+      frame.locator("[data-path='Diagrams/flow.png']"),
+    ).toBeVisible();
 
     await frame
       .locator("[data-path='Diagrams/flow.png']")
       .dragTo(frame.locator("[data-path='Projects']"));
 
-    await expect(frame.locator("[data-path='Projects/flow.png']")).toBeVisible(
-      { timeout: 20_000 },
-    );
+    await expect(frame.locator("[data-path='Projects/flow.png']")).toBeVisible({
+      timeout: 20_000,
+    });
     const moved = await fetch(`${sbServer.url}/.fs/Projects/flow.png`);
     expect(moved.ok).toBe(true);
     const gone = await fetch(`${sbServer.url}/.fs/Diagrams/flow.png`);
@@ -3954,7 +4041,7 @@ test.describe("boot restore", () => {
     sbPage,
     sbServer,
   }) => {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
     // Give the "which view is docked here" write its round trip.
@@ -3975,15 +4062,14 @@ test.describe("boot restore", () => {
     ).not.toBe("iframe");
   });
 
-  // Polish round item 6, the boot-restore half: unlike the command/Cmd-o
-  // active-open path fixed above, a passive restore deliberately does not
-  // reveal (activation.ts: "a boot restore isn't an ask") -- pinned here so
-  // that stays a decision, not a drift.
+  // Unlike the command/Cmd-o active-open path fixed above, a passive
+  // restore deliberately does not reveal (activation.ts: "a boot restore
+  // isn't an ask") -- pinned here so that stays a decision, not a drift.
   test("a docked view's selection is not auto-revealed on a passive boot restore, by design", async ({
     sbPage,
     sbServer,
   }) => {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await frame.locator("[data-path='Projects/Alpha'] .sb-nav-primary").click();
@@ -4004,7 +4090,7 @@ test.describe("boot restore", () => {
   });
 
   test("closing a dock un-remembers it", async ({ sbPage, sbServer }) => {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 
@@ -4026,7 +4112,7 @@ test.describe("boot restore", () => {
     sbPage,
     sbServer,
   }) => {
-    await runCommand(sbPage, "Navigator: Table of Contents");
+    await runCommand(sbPage, "Navigate: Outline");
     const frame = sidebarFrame(sbPage, "rhs");
     await expect(frame.locator(".sb-nav-title")).toHaveText("Outline");
 
@@ -4044,11 +4130,13 @@ navigator.define {
   title = "Startup Sidebar",
   command = "Navigator: Startup Sidebar",
   dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   openOnStart = true,
   presentation = { mode = "list" },
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 navigator._openOnStartRejected = false
@@ -4058,6 +4146,7 @@ local ok = pcall(function()
     dock = "modal",
     openOnStart = true,
     source = function() return {} end,
+    onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
   }
 end)
 navigator._openOnStartRejected = not ok
@@ -4106,7 +4195,7 @@ test.describe("mobile", () => {
   test("a sidebar dock is a full-width drawer below the top bar", async ({
     sbPage,
   }) => {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 
@@ -4128,7 +4217,6 @@ test.describe("mobile", () => {
       .boundingBox())!;
     expect(Math.round(panel.width)).toBe(viewport.width);
     expect(Math.round(inner.width)).toBe(viewport.width);
-    // Full height below the top bar, which stays visible above it.
     expect(Math.round(drawer.y)).toBe(Math.round(top.y + top.height));
     expect(Math.round(drawer.y + drawer.height)).toBe(viewport.height);
     await expect(sbPage.locator("#sb-top")).toBeVisible();
@@ -4138,7 +4226,7 @@ test.describe("mobile", () => {
   });
 
   test("selecting closes the drawer and navigates", async ({ sbPage }) => {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 
@@ -4166,7 +4254,7 @@ test.describe("mobile", () => {
   });
 
   test("drawers never restore on boot", async ({ sbPage, sbServer }) => {
-    await runCommand(sbPage, "Navigator: Tree");
+    await runCommand(sbPage, "Navigate: Tree");
     await expect(
       sidebarFrame(sbPage).locator("[data-path='Projects']"),
     ).toBeVisible();
@@ -4199,7 +4287,7 @@ navigator.define {
   title = "Prefix Host",
   command = "Navigator: Prefix Host",
   dock = "modal",
-  create = true,
+  onCreate = function(name) editor.navigate(name) end,
   presentation = { mode = "list" },
   filter = {
     pathCompletion = true,
@@ -4211,6 +4299,7 @@ navigator.define {
   },
   prefixViews = { ["$"] = "prefixchild" },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- No command of its own: the only way in is the host's "$" prefix, which is
@@ -4226,6 +4315,7 @@ navigator.define {
       { name = "anchor-two", ref = "anchor-two" },
     }
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- A sidebar host: the child docks "modal", so routing from here proves the
@@ -4238,6 +4328,7 @@ navigator.define {
   presentation = { mode = "list" },
   prefixViews = { ["$"] = "prefixchild" },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
 -- Path completion next to a keymap that claims Space: the two must not fight.
@@ -4252,27 +4343,36 @@ navigator.define {
     [" "] = function(obj) editor.navigate(obj.ref or obj.name) end,
   },
   source = things,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
--- Definition-time validation: each of these must be rejected outright.
 navigator._badPrefixes = {}
+-- Every case also carries a no-op onSelect, so what actually rejects each one
+-- is the field under test, not the separate "onSelect is required" check.
 for _, case in ipairs({
   { what = "two chars", spec = { name = "pbad1", source = things,
+      onSelect = function() end,
       segments = { { label = "A", prefix = "^^" } } } },
   { what = "not a string", spec = { name = "pbad2", source = things,
+      onSelect = function() end,
       segments = { { label = "A", prefix = 42 } } } },
   { what = "whitespace", spec = { name = "pbad3", source = things,
+      onSelect = function() end,
       segments = { { label = "A", prefix = " " } } } },
   { what = "claimed twice", spec = { name = "pbad4", source = things,
+      onSelect = function() end,
       segments = { { label = "A", prefix = "^" } },
       prefixViews = { ["^"] = "prefixchild" } } },
   { what = "keymap collision", spec = { name = "pbad5", source = things,
+      onSelect = function() end,
       segments = { { label = "A", prefix = "r" } },
       keymap = { r = function() end } } },
   { what = "view not a name", spec = { name = "pbad6", source = things,
+      onSelect = function() end,
       prefixViews = { ["$"] = 7 } } },
   -- ...and a legitimate one, so the cases above aren't passing by accident.
   { what = "good", spec = { name = "pgood", source = things,
+      onSelect = function() end,
       segments = { { label = "A", prefix = "^" } },
       prefixViews = { ["$"] = "prefixchild" }, keymap = { r = function() end } } },
 }) do
@@ -4293,6 +4393,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -4339,7 +4440,6 @@ test.describe("prefixes and completion", () => {
     await expect(input).toHaveValue("");
     await expect(rows(frame)).toHaveText(["Settings"]);
 
-    // Whatever is typed after it is an ordinary phrase within the segment.
     await sbPage.keyboard.type("set", { delay: 20 });
     await expect(input).toHaveValue("set");
     await expect(rows(frame)).toHaveText(["Settings"]);
@@ -4358,7 +4458,6 @@ test.describe("prefixes and completion", () => {
     );
     await expect(input).toHaveValue("se");
 
-    // Deleting the phrase itself is ordinary editing...
     await input.press("Backspace");
     await input.press("Backspace");
     await expect(input).toHaveValue("");
@@ -4552,12 +4651,10 @@ test.describe("prefixes and completion", () => {
     expect(before.sentinel).toBe("alive");
     expect(typeof before.boots).toBe("number");
 
-    // A -> B ...
     await sbPage.keyboard.type("$");
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Child");
     expect(await probe()).toEqual(before);
 
-    // ... and back again.
     await input.press("Backspace");
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Host");
     await expect(segment(frame, "All")).toBeVisible();
@@ -4615,6 +4712,7 @@ navigator.define {
   title = "Space Picker",
   command = "Navigator: Space Picker",
   dock = "modal",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = {
     mode = "list",
     row = {
@@ -4668,6 +4766,7 @@ navigator.define {
     end
     return out
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -4743,12 +4842,141 @@ test.describe("source-side picker data", () => {
       "not viewable",
     );
 
-    // ...and the one nothing can open sorts behind the one something can.
     const primaries = await frame
       .locator(".sb-nav-row:not(.sb-nav-create) .sb-nav-primary")
       .allInnerTexts();
     expect(primaries.indexOf("Diagrams/flow.png")).toBeLessThan(
       primaries.indexOf("Diagrams/notes.xyz"),
     );
+  });
+});
+
+const LUACALL_CONFIG = `# LuaCall round-trip test
+\`\`\`space-lua
+navigator.define {
+  name = "luacalltree",
+  title = "LuaCall Tree",
+  command = "Navigator: LuaCall Tree",
+  dock = "rhs",
+  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
+  presentation = { mode = "tree" },
+  actions = {
+    { icon = "trash-2", label = "Delete",
+      when = function(obj) return obj.isFolder ~= true end,
+      run = function(obj) editor.flashNotification("action delete " .. obj.name) end },
+  },
+  onMove = navigator.moveByRename,
+  source = function()
+    return query [[from index.tag "page" order by _.name]]
+  end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
+}
+\`\`\`
+`;
+
+// Single-registry consolidation: every hook a Lua-owned view needs now
+// crosses through one bridge event, `navigator:luaCall` -- down from nine
+// separate `navigator:*` broadcasts. This proves the four interaction hooks
+// (select/action/rowState/move) all still reach a Lua view's own handlers
+// through it; `rows` and `meta` are exercised implicitly by every other test
+// in this file that opens a Lua-defined view at all.
+test.describe("single-registry consolidation", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "navtest.md": LUACALL_CONFIG,
+      "Projects/Alpha.md": "# Alpha",
+      "Projects/Beta.md": "# Beta",
+      "Archive/Keep.md": "# Keep",
+    },
+  });
+
+  test("a Lua-only view round-trips select, action, rowState and move through navigator:luaCall", async ({
+    sbPage,
+  }) => {
+    const frame = await openNavigatorView(
+      sbPage,
+      "Navigator: LuaCall Tree",
+      ".sb-keyed-panel-rhs iframe",
+    );
+    await expect(frame.locator("[data-path='Projects']")).toBeVisible();
+    await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
+    await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
+
+    // rowState: the action's `when` mask -- computed by the "rowState" hook
+    // -- hides Delete on the folder and shows it on the page.
+    await frame.locator("[data-path='Projects']").hover();
+    await expect(
+      frame.locator(
+        "[data-path='Projects'] .sb-row-action[aria-label='Delete']",
+      ),
+    ).toHaveCount(0);
+    await frame.locator("[data-path='Projects/Alpha']").hover();
+    const deleteAction = frame.locator(
+      "[data-path='Projects/Alpha'] .sb-row-action[aria-label='Delete']",
+    );
+    await expect(deleteAction).toBeVisible();
+
+    // action
+    await deleteAction.click();
+    await expect(sbPage.locator(".sb-notifications")).toContainText(
+      "action delete Projects/Alpha",
+    );
+
+    // move (drag-drop -> onMove -> navigator.moveByRename)
+    await frame
+      .locator("[data-path='Projects/Beta']")
+      .dragTo(frame.locator("[data-path='Archive']"));
+    await expect(frame.locator("[data-path='Archive/Beta']")).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // select
+    await frame.locator("[data-path='Archive/Beta'] .sb-nav-primary").click();
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "Archive/Beta",
+    );
+  });
+});
+
+// Single-registry consolidation: `resolveMeta`/`handle` (registry.ts) answer
+// every built-in straight from the plug's own static map, with no Lua
+// registration ever having landed -- proven here by a space that never
+// defines a single navigator view of its own.
+test.describe("builtins with no Space Lua navigator definitions present", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "Projects/Alpha.md": "# Alpha",
+      "Projects/notes.txt": "plain text",
+    },
+  });
+
+  test("std.pages, std.commands, std.spaceTree and std.toc all open normally", async ({
+    sbPage,
+  }) => {
+    // std.pages: a plain client-side key binding, no Lua command involved.
+    const pages = await openPicker(sbPage, `${mod}+k`, "Page");
+    await expectNavRow(pages, "Projects/Alpha");
+    await closePicker(sbPage);
+
+    // std.commands: same key-binding path, a different built-in.
+    const commands = await openPicker(sbPage, `${mod}+/`, "Command");
+    await expectNavRow(commands, "Navigate: Tree");
+    await closePicker(sbPage);
+
+    // std.spaceTree and std.toc: reached through commands the plug itself
+    // registers (navigator.plug.yaml), not a `navigator.define` anywhere in
+    // this space -- there is no Space Lua navigator definition at all here.
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    const tree = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
+    await expect(tree.locator("[data-path='Projects']")).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await sbPage.locator("#sb-editor .cm-content").click();
+    await runCommandViaPalette(sbPage, "Navigate: Outline");
+    const outline = sbPage.frameLocator(".sb-keyed-panel-rhs iframe");
+    await expect(outline.locator(".sb-nav-title")).toHaveText("Outline");
   });
 });

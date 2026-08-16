@@ -41,18 +41,20 @@ function meta(overrides: Partial<ViewMeta> = {}): ViewMeta {
   };
 }
 
-/** Answers `navigator:meta` with `viewMeta` and `navigator:rows` with `rows`. */
+/** Answers the "meta" hook with `viewMeta` and "rows" with `rows`. */
 function bridge(viewMeta: ViewMeta, rows: unknown[]) {
-  syscall.mockImplementation((name: string, event: string) => {
-    if (name !== "event.dispatch") return Promise.resolve(undefined);
-    if (event === "navigator:meta") return Promise.resolve([viewMeta]);
-    if (event === "navigator:rows") return Promise.resolve([rows]);
-    return Promise.resolve([]);
+  syscall.mockImplementation((name: string, fn: string, payload: any) => {
+    if (name !== "system.invokeFunction" || fn !== "navigator.handle") {
+      return Promise.resolve(undefined);
+    }
+    if (payload.hook === "meta") return Promise.resolve(viewMeta);
+    if (payload.hook === "rows") return Promise.resolve(rows);
+    return Promise.resolve(undefined);
   });
 }
 
 /**
- * Like `bridge`, but also answers `navigator:rowState` -- for icon-resolution
+ * Like `bridge`, but also answers the "rowState" hook -- for icon-resolution
  * tests, which need `hasRowIcon` rows to reach `loadRowState` at all.
  */
 function bridgeWithRowState(
@@ -60,13 +62,14 @@ function bridgeWithRowState(
   rows: unknown[],
   rowStates: unknown[],
 ) {
-  syscall.mockImplementation((name: string, ...args: unknown[]) => {
-    if (name !== "event.dispatch") return Promise.resolve(undefined);
-    const [event] = args;
-    if (event === "navigator:meta") return Promise.resolve([viewMeta]);
-    if (event === "navigator:rows") return Promise.resolve([rows]);
-    if (event === "navigator:rowState") return Promise.resolve([rowStates]);
-    return Promise.resolve([]);
+  syscall.mockImplementation((name: string, fn: string, payload: any) => {
+    if (name !== "system.invokeFunction" || fn !== "navigator.handle") {
+      return Promise.resolve(undefined);
+    }
+    if (payload.hook === "meta") return Promise.resolve(viewMeta);
+    if (payload.hook === "rows") return Promise.resolve(rows);
+    if (payload.hook === "rowState") return Promise.resolve(rowStates);
+    return Promise.resolve(undefined);
   });
 }
 
@@ -146,9 +149,6 @@ test("parseIcon reports an unrecognized namespace, not a Feather name", () => {
 });
 
 test("parseIcon trims leading whitespace before scanning for a namespace colon", () => {
-  // The colon scan used to run on the untrimmed string, so leading
-  // whitespace on a namespaced (or bare) name made it miss the "feather:"
-  // prefix and warn about an "unknown" one instead.
   expect(parseIcon("  \tfeather:lock")).toEqual({
     kind: "feather",
     name: "lock",
@@ -200,27 +200,28 @@ test("an unrecognized icon namespace resolves nothing and warns once per prefix,
 // produces.
 test("a rejected icon.resolveFeather syscall still completes the render, without icons, warning once", async () => {
   const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-  syscall.mockImplementation((name: string, ...args: unknown[]) => {
+  syscall.mockImplementation((name: string, fn?: string, payload?: any) => {
     if (name === "icon.resolveFeather") {
-      return Promise.reject(new Error("Unregistered syscall icon.resolveFeather"));
+      return Promise.reject(
+        new Error("Unregistered syscall icon.resolveFeather"),
+      );
     }
-    if (name !== "event.dispatch") return Promise.resolve(undefined);
-    const [event] = args;
-    if (event === "navigator:meta") {
-      return Promise.resolve([meta({ hasRowIcon: true })]);
+    if (name !== "system.invokeFunction" || fn !== "navigator.handle") {
+      return Promise.resolve(undefined);
     }
-    if (event === "navigator:rows") {
+    if (payload.hook === "meta") {
+      return Promise.resolve(meta({ hasRowIcon: true }));
+    }
+    if (payload.hook === "rows") {
       return Promise.resolve([
-        [
-          { obj: { name: "a" }, primary: "a" },
-          { obj: { name: "b" }, primary: "b" },
-        ],
+        { obj: { name: "a" }, primary: "a" },
+        { obj: { name: "b" }, primary: "b" },
       ]);
     }
-    if (event === "navigator:rowState") {
-      return Promise.resolve([[{ icon: "lock" }, { icon: "file" }]]);
+    if (payload.hook === "rowState") {
+      return Promise.resolve([{ icon: "lock" }, { icon: "file" }]);
     }
-    return Promise.resolve([]);
+    return Promise.resolve(undefined);
   });
 
   const state = await new NavigatorEngine().activate("v");
@@ -252,6 +253,100 @@ test("dropIfEphemeral is a no-op for an ordinary (non-ephemeral) view", async ()
 
   engine.dropIfEphemeral("v");
   expect(engine.isLoaded("v")).toBe(true);
+});
+
+/**
+ * "Re-resolve-per-open" (the consolidation round): a Lua-owned view's meta
+ * can change between opens (a space-lua redefinition, upserted at
+ * `navigator.define` time), so `activate` asks again every time. A built-in's
+ * meta is a static map lookup and gets cached indefinitely instead -- see the
+ * `meta.builtin` flag `registry.ts`'s `builtinMeta` sets.
+ */
+
+test("a Lua-owned view's meta is re-resolved on every activate, picking up a redefinition without a reload", async () => {
+  let title = "First";
+  syscall.mockImplementation((name: string, fn?: string, payload?: any) => {
+    if (name !== "system.invokeFunction" || fn !== "navigator.handle") {
+      return Promise.resolve(undefined);
+    }
+    if (payload.hook === "meta") return Promise.resolve(meta({ title }));
+    if (payload.hook === "rows") return Promise.resolve([]);
+    return Promise.resolve(undefined);
+  });
+  const engine = new NavigatorEngine();
+
+  const first = await engine.activate("v");
+  expect(first.meta.title).toBe("First");
+
+  title = "Redefined";
+  const second = await engine.activate("v");
+  expect(second.meta.title).toBe("Redefined");
+});
+
+/**
+ * `dropIfRedefined` -- what `activation.ts` calls instead of `activate` when
+ * reopening the view an iframe already displays (a cached hit that
+ * `activate` alone would leave untouched): it has to detect a redefinition
+ * on that path too, not just on a fresh load.
+ */
+
+test("dropIfRedefined drops a cached Lua view whose meta changed, and reports true", async () => {
+  bridge(meta({ title: "First" }), []);
+  const engine = new NavigatorEngine();
+  await engine.activate("v");
+
+  bridge(meta({ title: "Redefined" }), []);
+  expect(await engine.dropIfRedefined("v")).toBe(true);
+  expect(engine.isLoaded("v")).toBe(false);
+
+  const reloaded = await engine.activate("v");
+  expect(reloaded.meta.title).toBe("Redefined");
+});
+
+test("dropIfRedefined is a no-op when the resolved meta is unchanged", async () => {
+  bridge(meta({ title: "Same" }), []);
+  const engine = new NavigatorEngine();
+  await engine.activate("v");
+
+  expect(await engine.dropIfRedefined("v")).toBe(false);
+  expect(engine.isLoaded("v")).toBe(true);
+});
+
+test("dropIfRedefined never touches a cached built-in view", async () => {
+  bridge(meta({ builtin: true }), []);
+  const engine = new NavigatorEngine();
+  await engine.activate("v");
+
+  bridge(meta({ builtin: true, title: "Would-be redefinition" }), []);
+  expect(await engine.dropIfRedefined("v")).toBe(false);
+  expect(engine.isLoaded("v")).toBe(true);
+});
+
+test("dropIfRedefined is a no-op for a view that was never activated", async () => {
+  const engine = new NavigatorEngine();
+  expect(await engine.dropIfRedefined("never-activated")).toBe(false);
+});
+
+test("a built-in's meta is resolved once and never asked for again on later activations", async () => {
+  let metaCalls = 0;
+  syscall.mockImplementation((name: string, fn?: string, payload?: any) => {
+    if (name !== "system.invokeFunction" || fn !== "navigator.handle") {
+      return Promise.resolve(undefined);
+    }
+    if (payload.hook === "meta") {
+      metaCalls++;
+      return Promise.resolve(meta({ builtin: true }));
+    }
+    if (payload.hook === "rows") return Promise.resolve([]);
+    return Promise.resolve(undefined);
+  });
+  const engine = new NavigatorEngine();
+
+  await engine.activate("v");
+  await engine.activate("v");
+  await engine.activate("v");
+
+  expect(metaCalls).toBe(1);
 });
 
 test("a row.icon crossing the bridge as a table (not a string) draws nothing and never throws or warns", async () => {

@@ -135,17 +135,21 @@ export function createActivate(deps: ActivationDeps) {
     // Only a `prefixViews` hop carries a `from`, so an ordinary open (which
     // has none) is also what forgets the way back.
     returnTo.current = from;
-    // A built-in this panel has already shown may have been replaced by the
-    // space's own Lua since -- which, before the first index completes, is
-    // what is *expected* to happen. Re-load it from scratch when it has.
-    // Gated on a synchronous check so only a cached built-in pays the round
-    // trip, and re-guarded after it: this is the one await between claiming
-    // the token and claiming `displayed`, so without the re-check a newer
-    // open could overtake us here and then be clobbered by our tail.
-    if (engine.isBuiltin(name)) {
-      const superseded = await engine.dropIfSuperseded(name);
+    // Reopening the view this iframe already displays reuses the cached
+    // entry below (see the `else` branch) rather than reloading -- correct
+    // for a built-in (whose meta never changes) but not for a Lua-owned one,
+    // which can have been redefined since (a space-lua edit, re-run through
+    // `navigator.define`). Re-check it here, so a redefinition takes effect
+    // on this exact "same view, reopened" path too, not just a switch away
+    // and back. Gated on a synchronous check so only a cached, non-built-in
+    // view pays the round trip, and re-guarded after it: this is the one
+    // await between claiming the token and claiming `displayed`, so without
+    // the re-check a newer open could overtake us here and then be
+    // clobbered by our tail.
+    if (displayed.current === name) {
+      const redefined = await engine.dropIfRedefined(name);
       if (handledToken.current !== token) return;
-      if (superseded) displayed.current = undefined;
+      if (redefined) displayed.current = undefined;
     }
     if (displayed.current !== name) {
       // A pick losing the slot to whatever is activating now -- no `panel:
@@ -279,7 +283,9 @@ export function createActivate(deps: ActivationDeps) {
         setSegmentIndex(index);
       }
     } else if (
-      segmentForced.current && active?.meta.segments && !active.meta.ephemeral
+      segmentForced.current &&
+      active?.meta.segments &&
+      !active.meta.ephemeral
     ) {
       // A plain open after one that named a segment: back to the segment
       // this view actually remembers, not the one a command borrowed it for.

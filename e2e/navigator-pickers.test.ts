@@ -49,6 +49,7 @@ navigator.define {
       { name = "PlainRow", ref = "PlainRow", kind = "plain" },
     }
   end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 \`\`\`
 `;
@@ -70,9 +71,9 @@ const SPACE = {
     "---\ndescription: A long description that competes with the name for row width.\n---\nBody\n",
   // A *short* name paired with a description that alone is still long enough
   // to want more room than the row has -- the pair that catches a name
-  // truncating when it shouldn't (item 9, polish round): a name this short
-  // was never close to its own overflow point, so any of it clipping at all
-  // means the description crowded it, not genuine lack of room.
+  // truncating when it shouldn't: a name this short was never close to its
+  // own overflow point, so any of it clipping at all means the description
+  // crowded it, not genuine lack of room.
   "Zap.md":
     "---\ndescription: A description on its own long enough to want more width than a narrow row has to give.\n---\nBody\n",
   "Settings Page.md": "---\ntags: meta\n---\n\nA meta page.\n",
@@ -132,14 +133,13 @@ test("Cmd-k opens the page picker, on its Pages segment", async ({
   const frame = await openPicker(sbPage, `${mod}+k`, "Page");
   await expectNavRow(frame, "Projects/Alpha");
 
-  // Pages is the default segment -- a picker is opened to find a page.
   await expect(navSegment(frame, "Pages")).toHaveAttribute(
     "aria-checked",
     "true",
   );
   // ...and the other three are there, with no row count -- segments no
   // longer carry one.
-  for (const label of ["Meta", "Docs", "All"]) {
+  for (const label of ["Meta", "Documents", "All"]) {
     await expect(navSegment(frame, label)).toBeVisible();
   }
   await expect(navSegment(frame, "Pages")).toHaveText("Pages");
@@ -182,7 +182,7 @@ test("Cmd-Shift-k and the document picker command open the same view on another 
     "Document",
     { timeout: 20_000 },
   );
-  await expect(navSegment(frame, "Docs")).toHaveAttribute(
+  await expect(navSegment(frame, "Documents")).toHaveAttribute(
     "aria-checked",
     "true",
   );
@@ -340,8 +340,7 @@ test("# routes to the tag picker, which hands the picker back filtered", async (
   );
   await expectNavRow(frame, "work");
 
-  // Picked from a picker, a tag means "narrow that picker to this tag" --
-  // what a leading `#` used to do in place.
+  // Picked from a picker, a tag means "narrow that picker to this tag".
   await navInput(sbPage).fill("work");
   await expect(navRows(frame).first()).toHaveText("work");
   await sbPage.keyboard.press("Enter");
@@ -410,8 +409,6 @@ test("Cmd-/ opens the command palette, with key hints, and runs a command", asyn
   await navInput(sbPage).fill("Navigate: Anything Picker");
   await expect(navRows(frame).first()).toHaveText("Navigate: Anything Picker");
   await sbPage.keyboard.press("Enter");
-  // The command ran: the palette is gone and the picker it opens is up, on
-  // the segment that command asks for.
   await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
     "placeholder",
     "Page or document",
@@ -526,13 +523,11 @@ test("Ctrl-q t picks a template, then asks for the page name", async ({
   // The last path segment, not the library path it lives at.
   await navInput(sbPage).fill("Zeta");
   await expect(navRows(frame).first()).toHaveText("Zeta");
-  // ...and the template's own description.
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Zeta" }).first(),
   ).toContainText("A test template");
 
   await sbPage.keyboard.press("Enter");
-  // The chained prompt, which is the half of the old flow worth keeping.
   const prompt = sbPage.locator(".sb-modal-box input.sb-input");
   await expect(prompt).toBeVisible({ timeout: 20_000 });
   await prompt.fill("From Template");
@@ -598,7 +593,7 @@ test("Tab steps through the segments and never leaves the input", async ({
     "true",
   );
   await input.press("Tab");
-  await expect(navSegment(frame, "Docs")).toHaveAttribute(
+  await expect(navSegment(frame, "Documents")).toHaveAttribute(
     "aria-checked",
     "true",
   );
@@ -607,7 +602,6 @@ test("Tab steps through the segments and never leaves the input", async ({
     "aria-checked",
     "true",
   );
-  // ...and wraps.
   await input.press("Tab");
   await expect(navSegment(frame, "Pages")).toHaveAttribute(
     "aria-checked",
@@ -736,8 +730,10 @@ function contains(
   outer: { y: number; height: number },
   inner: { y: number; height: number },
 ): boolean {
-  return inner.y >= outer.y - 0.5 &&
-    inner.y + inner.height <= outer.y + outer.height + 0.5;
+  return (
+    inner.y >= outer.y - 0.5 &&
+    inner.y + inner.height <= outer.y + outer.height + 0.5
+  );
 }
 
 test("the modal is as tall as its content, capped like the old result list", async ({
@@ -783,11 +779,13 @@ test("the modal is as tall as its content, capped like the old result list", asy
   // iframe just fine, the host's box around it just hadn't grown/shrunk to
   // match by the time it was revealed). The single remaining row must be
   // entirely inside the modal's own box, not straddling its bottom edge.
-  await expect.poll(async () => {
-    const row = (await frame.locator(".sb-nav-row").first().boundingBox())!;
-    const box = (await modal.boundingBox())!;
-    return contains(box, row);
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const row = (await frame.locator(".sb-nav-row").first().boundingBox())!;
+      const box = (await modal.boundingBox())!;
+      return contains(box, row);
+    })
+    .toBe(true);
 });
 
 // Item 12 (polish round): a create-only row (no matches, a phrase typed) is
@@ -803,11 +801,13 @@ test("item 12: a create-only row (no matches) is never clipped by the modal", as
   await expect(frame.locator(".sb-nav-row")).toHaveCount(1);
 
   const modal = sbPage.locator(".sb-modal");
-  await expect.poll(async () => {
-    const r = (await row.boundingBox())!;
-    const box = (await modal.boundingBox())!;
-    return contains(box, r) && r.height >= 34;
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const r = (await row.boundingBox())!;
+      const box = (await modal.boundingBox())!;
+      return contains(box, r) && r.height >= 34;
+    })
+    .toBe(true);
 });
 
 // Item 12 (polish round): the boundary between "a couple of rows" and "the
@@ -823,15 +823,17 @@ test("item 12: a 2-3 row boundary case is never clipped by the modal", async ({
   await expect(rows).toHaveCount(3, { timeout: 20_000 });
 
   const modal = sbPage.locator(".sb-modal");
-  await expect.poll(async () => {
-    const box = (await modal.boundingBox())!;
-    const count = await rows.count();
-    for (let i = 0; i < count; i++) {
-      const r = (await rows.nth(i).boundingBox())!;
-      if (!contains(box, r)) return false;
-    }
-    return true;
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const box = (await modal.boundingBox())!;
+      const count = await rows.count();
+      for (let i = 0; i < count; i++) {
+        const r = (await rows.nth(i).boundingBox())!;
+        if (!contains(box, r)) return false;
+      }
+      return true;
+    })
+    .toBe(true);
 });
 
 test.describe("narrow viewport", () => {
@@ -859,12 +861,11 @@ test.describe("narrow viewport", () => {
         hasDescription: !!description,
       };
     });
-    // The name is short enough to fit whatever else is on the row.
     expect(widths.primaryClipped).toBe(false);
     expect(widths.hasDescription).toBe(true);
   });
 
-  // Item 9 (polish round): a short name must never clip, however long its
+  // A short name must never clip, however long its
   // description is competing for the same row -- `.sb-nav-description`'s
   // `flex-basis: 0` means it can only ever take leftover space, never any of
   // the name's, down to fully hidden. A weighted-`flex-shrink` approach (the
@@ -1021,7 +1022,9 @@ test("item 11: key-hint chips, tag chips, and mark highlighting never change a r
   sbPage,
 }) => {
   const rowHeight = async (frame: FrameLocator, text: string) =>
-    (await frame.locator(".sb-nav-row", { hasText: text }).first()
+    (await frame
+      .locator(".sb-nav-row", { hasText: text })
+      .first()
       .boundingBox())!.height;
 
   const paletteFrame = await openPicker(sbPage, `${mod}+/`, "Command");
@@ -1054,7 +1057,9 @@ test("item 11: key-hint chips, tag chips, and mark highlighting never change a r
   await expectNavRow(frame, "HintRow");
 
   const rowHeight = async (text: string) =>
-    (await frame.locator(".sb-nav-row", { hasText: text }).first()
+    (await frame
+      .locator(".sb-nav-row", { hasText: text })
+      .first()
       .boundingBox())!.height;
 
   const hintChipHeight = await rowHeight("HintRow");
@@ -1079,7 +1084,7 @@ test("Space Lua opens a built-in picker by name, with options", async ({
   // opener that only knew about the Lua one would reject exactly them.
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(
-      `navigator.open("std.pages", { segment = "Docs" })`,
+      `navigator.open("std.pages", { segment = "Documents" })`,
     ),
   );
 
@@ -1090,7 +1095,7 @@ test("Space Lua opens a built-in picker by name, with options", async ({
     { timeout: 20_000 },
   );
   // The `segment` option reached the view it named.
-  await expect(navSegment(frame, "Docs")).toHaveAttribute(
+  await expect(navSegment(frame, "Documents")).toHaveAttribute(
     "aria-checked",
     "true",
   );
@@ -1098,20 +1103,32 @@ test("Space Lua opens a built-in picker by name, with options", async ({
   await closePicker(sbPage);
 });
 
-test("a Lua redefinition takes over a built-in that already answered", async ({
+/** Runs `code` (wrapped in a `pcall`) and returns whether it succeeded and,
+ * either way, the stringified result/error. */
+async function evalPcall(sbPage: Page, code: string) {
+  return (await sbPage.evaluate(
+    (script) =>
+      (globalThis as any).sbRuntime.evalLuaScript(`
+        local ok, result = pcall(function() ${script} end)
+        return { ok = ok, result = tostring(result) }
+      `),
+    code,
+  )) as { ok: boolean; result: string };
+}
+
+test("defining a view named std.pages surfaces the collision error, and the built-in keeps answering unshadowed", async ({
   sbPage,
 }) => {
-  // The exact cold-boot sequence this round exists to serve: the plug's
-  // built-in answers for `std.pages` first (Space Lua is evaluated from the
-  // index, so a space's own version registers later), and when it does it has
-  // to take over. `navigator.define` at runtime stands in for "the space's
-  // Lua finished indexing" without waiting on an indexer.
   const frame = await openPicker(sbPage, `${mod}+k`, "Page");
   await expectNavRow(frame, "Projects/Alpha");
+  await expect(navSegment(frame, "Pages")).toBeVisible();
   await closePicker(sbPage);
 
-  await sbPage.evaluate(async () => {
-    await (globalThis as any).sbRuntime.evalLuaScript(`
+  // A single-registry world reserves built-in names outright: no shadowing,
+  // no supersede -- `navigator.define` throws at definition time instead.
+  const collision = await evalPcall(
+    sbPage,
+    `
       navigator.define {
         name = "std.pages",
         title = "Redefined",
@@ -1120,18 +1137,72 @@ test("a Lua redefinition takes over a built-in that already answered", async ({
         source = function()
           return { { name = "Only Mine", ref = "Only Mine" } }
         end,
+        onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
       }
-    `);
-  });
+    `,
+  );
+  expect(collision.ok).toBe(false);
+  expect(collision.result).toContain("std.pages");
 
-  // Same key, same view name, same session, same iframe: the panel must
-  // notice it is no longer the one answering.
-  const redefined = await openPicker(sbPage, `${mod}+k`, "Redefined page");
-  await expect(redefined.locator(".sb-nav-title")).toHaveText("Find");
-  await expect(navRows(redefined)).toHaveText(["Only Mine"]);
-  // ...and the segments went with the built-in, rather than the slot keeping
-  // one view's chrome over another view's rows.
-  await expect(redefined.locator(".sb-segment")).toHaveCount(0);
+  // Same key, same view name, same session, same iframe: still the real
+  // picker -- the rejected `define` never touched the registry.
+  const stillBuiltin = await openPicker(sbPage, `${mod}+k`, "Page");
+  await expectNavRow(stillBuiltin, "Projects/Alpha");
+  await expect(navSegment(stillBuiltin, "Pages")).toBeVisible();
+});
+
+test("a Lua view redefined by a space-lua edit shows its new definition on next open, without a reload", async ({
+  sbPage,
+}) => {
+  await sbPage.evaluate(() =>
+    (globalThis as any).sbRuntime.evalLuaScript(`
+      navigator.define {
+        name = "test.redefinable",
+        title = "Original",
+        dock = "modal",
+        source = function()
+          return { { name = "Original Row", ref = "Original Row" } }
+        end,
+        onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
+      }
+    `),
+  );
+  await sbPage.evaluate(() =>
+    (globalThis as any).sbRuntime.evalLuaScript(
+      `navigator.open("test.redefinable")`,
+    ),
+  );
+  const frame = navFrame(sbPage);
+  await expect(frame.locator(".sb-nav-title")).toHaveText("Original");
+  await expectNavRow(frame, "Original Row");
+  await closePicker(sbPage);
+
+  // What a full Space Lua reload does: re-run `define`, which upserts by
+  // name -- the ordinary (non-built-in) case, unaffected by the collision
+  // rule above.
+  await sbPage.evaluate(() =>
+    (globalThis as any).sbRuntime.evalLuaScript(`
+      navigator.define {
+        name = "test.redefinable",
+        title = "Redefined",
+        dock = "modal",
+        source = function()
+          return { { name = "Redefined Row", ref = "Redefined Row" } }
+        end,
+        onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
+      }
+    `),
+  );
+
+  // Same name, same session, same iframe, no reload: the next open resolves
+  // the new definition.
+  await sbPage.evaluate(() =>
+    (globalThis as any).sbRuntime.evalLuaScript(
+      `navigator.open("test.redefinable")`,
+    ),
+  );
+  await expect(frame.locator(".sb-nav-title")).toHaveText("Redefined");
+  await expectNavRow(frame, "Redefined Row");
 });
 
 /**
@@ -1156,7 +1227,7 @@ test("the outline picker nests a page's headers, fully expanded", async ({
   await navigateViaPagePicker(sbPage, "Outline Page");
   const frame = await openOutline(
     sbPage,
-    "Navigator: Outline Picker",
+    "Navigate: Outline Picker",
     NAV_MODAL_IFRAME,
   );
 
@@ -1185,7 +1256,6 @@ test("the outline picker nests a page's headers, fully expanded", async ({
   ).toBeVisible();
   await expect(frame.locator("[data-path='Reference/Install']")).toBeVisible();
 
-  // Picking a header jumps to it and dismisses the modal, as any picker does.
   await frame.locator("[data-path='Getting started/Install/macOS']").click();
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
   await expect(currentPage(sbPage)).toHaveValue("Outline Page");
@@ -1207,7 +1277,7 @@ test("the outline sidebar follows the buffer, keeping collapses", async ({
   await navigateViaPagePicker(sbPage, "Outline Page");
   const frame = await openOutline(
     sbPage,
-    "Navigator: Table of Contents",
+    "Navigate: Outline",
     ".sb-keyed-panel-rhs iframe",
   );
   await expect(
@@ -1244,7 +1314,7 @@ test("an outline collapse belongs to the page, not to the view", async ({
   await navigateViaPagePicker(sbPage, "Outline Page");
   const frame = await openOutline(
     sbPage,
-    "Navigator: Table of Contents",
+    "Navigate: Outline",
     ".sb-keyed-panel-rhs iframe",
   );
   await expect(
@@ -1284,7 +1354,7 @@ test("Space peeks at a header without leaving the outline sidebar", async ({
   await navigateViaPagePicker(sbPage, "Outline Page");
   const frame = await openOutline(
     sbPage,
-    "Navigator: Table of Contents",
+    "Navigate: Outline",
     ".sb-keyed-panel-rhs iframe",
   );
   const input = frame.locator("input.sb-nav-input");
@@ -1325,7 +1395,7 @@ test("the outline drops the tree's folder bands; the space tree keeps them", asy
   await navigateViaPagePicker(sbPage, "Outline Page");
   const outline = await openOutline(
     sbPage,
-    "Navigator: Table of Contents",
+    "Navigate: Outline",
     ".sb-keyed-panel-rhs iframe",
   );
   const band = (frame: ReturnType<typeof navFrame>, path: string) =>
@@ -1347,7 +1417,7 @@ test("the outline drops the tree's folder bands; the space tree keeps them", asy
   // Focus sits in the outline's own iframe, where the palette binding never
   // arrives -- hand it back to the editor before asking for a command.
   await sbPage.locator("#sb-editor .cm-content").click();
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   const tree = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
   await expect(tree.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
@@ -1361,7 +1431,7 @@ test("the outline picker re-sources for the page it is opened on", async ({
   await navigateViaPagePicker(sbPage, "Outline Page");
   const frame = await openOutline(
     sbPage,
-    "Navigator: Outline Picker",
+    "Navigate: Outline Picker",
     NAV_MODAL_IFRAME,
   );
   await expect(frame.locator("[data-path='Reference']")).toBeVisible({
@@ -1373,7 +1443,7 @@ test("the outline picker re-sources for the page it is opened on", async ({
   // from `refreshOnOpen` rather than from a pageLoaded refresh -- and a page
   // with no headers is simply the view's own empty state, not a crash.
   await navigateViaPagePicker(sbPage, "index");
-  await openOutline(sbPage, "Navigator: Outline Picker", NAV_MODAL_IFRAME);
+  await openOutline(sbPage, "Navigate: Outline Picker", NAV_MODAL_IFRAME);
   await expect(frame.locator(".sb-nav-empty")).toBeVisible({ timeout: 20_000 });
 });
 
@@ -1392,7 +1462,7 @@ test("std.toc/std.tocModal answer on a page loaded directly, before anything els
 
   const modal = await openOutline(
     page,
-    "Navigator: Outline Picker",
+    "Navigate: Outline Picker",
     NAV_MODAL_IFRAME,
   );
   await expect(navRows(modal).first()).toHaveText("Getting started", {
@@ -1403,7 +1473,7 @@ test("std.toc/std.tocModal answer on a page loaded directly, before anything els
   await page.locator("#sb-editor .cm-content").click();
   const sidebar = await openOutline(
     page,
-    "Navigator: Table of Contents",
+    "Navigate: Outline",
     ".sb-keyed-panel-rhs iframe",
   );
   await expect(
@@ -1411,30 +1481,24 @@ test("std.toc/std.tocModal answer on a page loaded directly, before anything els
   ).toBeVisible({ timeout: 20_000 });
 });
 
-test("a Lua redefinition takes over a moved built-in (std.tocModal)", async ({
+test("the collision error also covers a moved built-in (std.tocModal)", async ({
   sbPage,
 }) => {
-  // `navigator.define` at runtime stands in for "the space's own Lua
-  // finished indexing" without waiting on an indexer, same as the
-  // `std.pages` case above -- the point being that a *moved* built-in still
-  // has to yield the instant a same-named Lua view exists.
   await navigateViaPagePicker(sbPage, "Outline Page");
   const frame = await openOutline(
     sbPage,
-    "Navigator: Outline Picker",
+    "Navigate: Outline Picker",
     NAV_MODAL_IFRAME,
   );
-  // The title (the plug's own `label`) confirms this first answer really did
-  // come from the built-in registry, not a Lua `std.tocModal` that happened
-  // to exist already -- there is none yet at this point in the test.
   await expect(frame.locator(".sb-nav-title")).toHaveText("Outline");
   await expect(navRows(frame).first()).toHaveText("Getting started", {
     timeout: 20_000,
   });
   await closePicker(sbPage);
 
-  await sbPage.evaluate(async () => {
-    await (globalThis as any).sbRuntime.evalLuaScript(`
+  const collision = await evalPcall(
+    sbPage,
+    `
       navigator.define {
         name = "std.tocModal",
         title = "Redefined Outline",
@@ -1442,24 +1506,23 @@ test("a Lua redefinition takes over a moved built-in (std.tocModal)", async ({
         source = function()
           return { { name = "Only Mine", ref = "Only Mine" } }
         end,
+        onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
       }
-    `);
-  });
+    `,
+  );
+  expect(collision.ok).toBe(false);
+  expect(collision.result).toContain("std.tocModal");
 
-  // Same command, same session, same iframe: the panel must notice it is no
-  // longer the plug's own view that answers for this name.
-  const redefined = await openOutline(
+  // Same command, same session, same iframe: still the plug's own view.
+  const stillBuiltin = await openOutline(
     sbPage,
-    "Navigator: Outline Picker",
+    "Navigate: Outline Picker",
     NAV_MODAL_IFRAME,
   );
-  await expect(redefined.locator(".sb-nav-title")).toHaveText(
-    "Redefined Outline",
-  );
-  await expect(navRows(redefined)).toHaveText(["Only Mine"]);
+  await expect(stillBuiltin.locator(".sb-nav-title")).toHaveText("Outline");
 });
 
-test("Navigator: Tree answers on a page loaded directly, before anything else touches the navigator", async ({
+test("Navigate: Tree answers on a page loaded directly, before anything else touches the navigator", async ({
   sbServer,
   page,
 }) => {
@@ -1470,33 +1533,31 @@ test("Navigator: Tree answers on a page loaded directly, before anything else to
   // family of moves exists to fix.
   await gotoSilverBulletPage(page, sbServer, "Projects/Alpha");
 
-  await runCommandViaPalette(page, "Navigator: Tree");
+  await runCommandViaPalette(page, "Navigate: Tree");
   const frame = page.frameLocator(".sb-keyed-panel-lhs iframe");
   // The top-level listing, not a reveal into "Projects" -- followEditor's
-  // own reveal-on-open behavior is a different round's surface (a known race
-  // with the tree's initial paint); what this test is for is proving the
-  // view answers with the space's real content immediately.
+  // own reveal-on-open behavior has a known race with the tree's initial
+  // paint; what this test is for is proving the view answers with the
+  // space's real content immediately.
   await expect(frame.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
   });
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
 });
 
-test("a Lua redefinition takes over a moved built-in (std.spaceTree)", async ({
+test("the collision error also covers a sidebar-docked built-in (std.spaceTree)", async ({
   sbPage,
 }) => {
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
   const frame = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
   await expect(frame.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
   });
-  // The title (the plug's own `label`) confirms this first answer really did
-  // come from the built-in registry, not a Lua `std.spaceTree` that happened
-  // to exist already -- there is none yet at this point in the test.
   await expect(frame.locator(".sb-nav-title")).toHaveText("Open");
 
-  await sbPage.evaluate(async () => {
-    await (globalThis as any).sbRuntime.evalLuaScript(`
+  const collision = await evalPcall(
+    sbPage,
+    `
       navigator.define {
         name = "std.spaceTree",
         title = "Redefined Tree",
@@ -1504,19 +1565,21 @@ test("a Lua redefinition takes over a moved built-in (std.spaceTree)", async ({
         source = function()
           return { { name = "Only Mine", ref = "Only Mine" } }
         end,
+        onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
       }
-    `);
-  });
+    `,
+  );
+  expect(collision.ok).toBe(false);
+  expect(collision.result).toContain("std.spaceTree");
 
   // The sidebar holds the keyboard once it is open, so the palette binding
   // has to be handed back to the editor before it means anything.
   await sbPage.locator("#sb-editor .cm-content").click();
 
-  // Same command, same dock: the panel must notice it is no longer the
-  // plug's own view that answers for this name.
-  await runCommandViaPalette(sbPage, "Navigator: Tree");
-  await expect(frame.locator(".sb-nav-title")).toHaveText("Redefined Tree");
-  await expect(navRows(frame)).toHaveText(["Only Mine"]);
+  // Same command, same dock: still the plug's own view, unshadowed.
+  await runCommandViaPalette(sbPage, "Navigate: Tree");
+  await expect(frame.locator(".sb-nav-title")).toHaveText("Open");
+  await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 });
 
 test("Cmd-o/Ctrl-o opens the space tree, not the (now keyless) document picker", async ({

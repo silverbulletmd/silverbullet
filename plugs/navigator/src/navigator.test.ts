@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
 /**
- * `resize()`'s guard (item D, feedback round 2): `visibleSidebarView` is
+ * `resize()`'s guard: `visibleSidebarView` is
  * module-level plug-worker state, while the panel iframe it describes lives
  * on the host side. Anything that recycles the plug worker without also
  * rebuilding the panel wipes the map while the dock stays visibly open --
@@ -27,17 +27,26 @@ const asset = {
   readAsset: vi.fn<(plug: string, path: string) => Promise<string>>(),
 };
 
+const registry = {
+  resolveMeta: vi.fn<(name: string) => unknown>(),
+  openOnStartViews: vi.fn<() => { name: string; dock: string }[]>(),
+  unregister: vi.fn<(name: string) => void>(),
+  register: vi.fn<(data: { meta: unknown }) => void>(),
+  selectInFlight: vi.fn<(view: string) => Promise<unknown> | undefined>(),
+};
+
 vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   asset,
   datastore,
   editor,
   events,
 }));
-vi.mock("@silverbulletmd/silverbullet/ui", () => ({
+vi.mock("@silverbulletmd/silverbullet/lib/panel_styles", () => ({
   panelStyles: vi.fn<() => Promise<string>>().mockResolvedValue(""),
 }));
-// Only referenced from builtins.ts, which resize()'s path doesn't reach.
-vi.mock("./builtins.ts", () => ({ builtinMeta: vi.fn() }));
+// The registry is its own unit (registry.test.ts); resize()'s path only
+// needs a stand-in that answers `dock`/`refreshOn` the same way.
+vi.mock("./registry.ts", () => registry);
 
 /** A fresh module instance -- empty `visibleSidebarView` etc., like a
  * just-restarted plug worker. */
@@ -50,7 +59,82 @@ beforeEach(() => {
   vi.clearAllMocks();
   asset.readAsset.mockResolvedValue("");
   editor.isNarrowScreen.mockResolvedValue(false);
-  events.dispatchEvent.mockResolvedValue([{ dock: "lhs", refreshOn: [] }]);
+  registry.resolveMeta.mockReturnValue({ dock: "lhs", refreshOn: [] });
+  registry.openOnStartViews.mockReturnValue([]);
+  registry.selectInFlight.mockReturnValue(undefined);
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+// a newer activation superseding a still-pending pick must
+// not null it out from under a row the user already clicked -- `select`'s
+// answer, still crossing the bridge, has to land first.
+//
+// a fixed count of microtask ticks here was vacuous -- `show()`
+// has several `await`s (`panelContent`, `showPanel`, `navigator:activate`)
+// between B's `pickOpen` call and the point where its supersede step actually
+// runs, so "not settled after two ticks" held whether or not the guard did
+// anything (confirmed by temporarily neutering `supersede` to a bare
+// `settlePick(name, null)` and re-running this test: it still passed).
+// Waiting for the guard's own consult of `selectInFlight("__pick:A")` --
+// the actual decision point -- instead of a tick count makes the test fail
+// under that same neutering (it never calls `selectInFlight` at all, so the
+// wait below times out) and pass with the real guard restored.
+test("a new pick opening in the same slot waits for a superseded pick's in-flight select before nulling it", async () => {
+  const nav = await freshNavigator();
+  registry.resolveMeta.mockReturnValue({ dock: "modal", refreshOn: [] });
+  const { promise: inFlight, resolve: resolveInFlight } = deferred<unknown[]>();
+  const { promise: consulted, resolve: markConsulted } = deferred<void>();
+  registry.selectInFlight.mockImplementation((view: string) => {
+    if (view !== "__pick:A") return undefined;
+    markConsulted();
+    return inFlight;
+  });
+
+  let firstSettled = false;
+  const first = nav
+    .pickOpen("__pick:A", { dock: "modal" })
+    .then((v: unknown) => {
+      firstSettled = true;
+      return v;
+    });
+  // B's own pick never settles in this test -- only its supersede of A does.
+  nav.pickOpen("__pick:B", { dock: "modal" });
+
+  await Promise.race([
+    consulted,
+    new Promise((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error('supersede never consulted selectInFlight("__pick:A")'),
+          ),
+        1000,
+      ),
+    ),
+  ]);
+  expect(firstSettled).toBe(false);
+
+  resolveInFlight([]);
+  expect(await first).toBeNull();
+  expect(firstSettled).toBe(true);
+});
+
+test("a new pick opening in the same slot with no in-flight select for the previous one nulls it immediately", async () => {
+  const nav = await freshNavigator();
+  registry.resolveMeta.mockReturnValue({ dock: "modal", refreshOn: [] });
+  registry.selectInFlight.mockReturnValue(undefined);
+
+  const first = nav.pickOpen("__pick:A", { dock: "modal" });
+  nav.pickOpen("__pick:B", { dock: "modal" });
+
+  expect(await first).toBeNull();
 });
 
 test("resize re-derives the docked view from the datastore when module state is empty", async () => {
@@ -108,27 +192,26 @@ test("a resize tick after a real close stays dropped, via the datastore fallback
   expect(editor.showPanel).not.toHaveBeenCalled();
 });
 
-// D-1 (feedback round 2, fix round 1): before this fix, `resize()` re-seeded
+// `resize()` re-seeded
 // `visibleSidebarView` after a wipe but never `slotEvents`, so every
-// post-wipe drag tick fell through to `eventsForView`, dispatching
-// `navigator:meta` (a Space Lua syscall) on every rAF frame for as long as
-// the worker stayed wiped -- the syscall storm the brief forbade.
-test("only the first post-wipe tick dispatches navigator:meta; later ticks don't", async () => {
+// post-wipe drag tick fell through to `eventsForView`, re-resolving meta on
+// every rAF frame for as long as the worker stayed wiped -- the resolution
+// storm the brief forbade. `resolveMeta` is a plain map lookup now rather
+// than a Space Lua dispatch, but the same one-tick-only guard still applies.
+test("only the first post-wipe tick resolves meta; later ticks don't", async () => {
   const nav = await freshNavigator();
   datastore.get.mockResolvedValue("std.spaceTree");
 
   await nav.resize({ slot: "lhs", width: 300 });
-  const metaDispatches = () =>
-    events.dispatchEvent.mock.calls.filter(([name]) => name === "navigator:meta");
-  expect(metaDispatches()).toHaveLength(1);
+  expect(registry.resolveMeta).toHaveBeenCalledTimes(1);
 
-  events.dispatchEvent.mockClear();
+  registry.resolveMeta.mockClear();
   await nav.resize({ slot: "lhs", width: 305 });
   await nav.resize({ slot: "lhs", width: 310 });
-  expect(metaDispatches()).toHaveLength(0);
+  expect(registry.resolveMeta).not.toHaveBeenCalled();
 });
 
-// D-3(a) (feedback round 2, fix round 1): `panelHidden` deletes the map entry
+// `panelHidden` deletes the map entry
 // and then awaits `datastore.del`. A resize tick landing in that window must
 // not re-derive the still-present datastore key and re-show (and re-arm) the
 // panel that is actually closing. This exercises `resize()`'s *first*
@@ -165,7 +248,7 @@ test("a resize tick that starts after panelHidden has already marked the slot cl
   expect(editor.showPanel).not.toHaveBeenCalled();
 });
 
-// D-3(a), fix round 2: the narrower interleaving the *second* `closingSlots`
+// the narrower interleaving the *second* `closingSlots`
 // check exists for -- a close that starts and marks the slot *while
 // `resize()`'s own awaits (`datastore.get`, then `viewMeta`) are already in
 // flight*, rather than before `resize()` is even called. `resize()` starts
@@ -207,7 +290,7 @@ test("a resize tick whose own awaits are interleaved by a mid-flight close is dr
   await hiddenPromise;
 });
 
-// D-3(b) (feedback round 2, fix round 1): route() hops are deliberately not
+// route() hops are deliberately not
 // persisted to the datastore, so after a wipe the datastore alone would
 // re-derive the pre-hop view. The panel's own reported `view` (from its live
 // React state, sent in the resize payload) is authoritative instead.
@@ -248,9 +331,7 @@ test("openToc opens std.toc and returns false, keeping the panel focused", async
   expect(editor.showPanel).toHaveBeenCalled();
   // Pins the view: a wrapper that opened any other view would still return
   // false and call showPanel, so those two alone don't prove which view.
-  expect(events.dispatchEvent).toHaveBeenCalledWith("navigator:meta", {
-    name: "std.toc",
-  });
+  expect(registry.resolveMeta).toHaveBeenCalledWith("std.toc");
   expect(datastore.set).toHaveBeenCalledWith(
     ["navigator", "docked", "lhs"],
     "std.toc",
@@ -264,9 +345,7 @@ test("openSpaceTree opens std.spaceTree and returns false, keeping the panel foc
   expect(editor.showPanel).toHaveBeenCalled();
   // Pins the view: passes verbatim if openSpaceTree were openCommand("std.toc")
   // without this, since both return false and both call showPanel.
-  expect(events.dispatchEvent).toHaveBeenCalledWith("navigator:meta", {
-    name: "std.spaceTree",
-  });
+  expect(registry.resolveMeta).toHaveBeenCalledWith("std.spaceTree");
   expect(datastore.set).toHaveBeenCalledWith(
     ["navigator", "docked", "lhs"],
     "std.spaceTree",

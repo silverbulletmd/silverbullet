@@ -15,6 +15,21 @@ export type FilterFields = Record<
 >;
 
 /**
+ * One `navigator.handle` call's hook, matching the panel's four kinds of
+ * bridge round trip (chrome, rows, per-row state, and the five interaction
+ * callbacks) down to one name each.
+ */
+export type NavigatorHook =
+  | "meta"
+  | "rows"
+  | "select"
+  | "create"
+  | "key"
+  | "action"
+  | "rowState"
+  | "move";
+
+/**
  * One entry of the ad-hoc segmented control, minus its Lua `where` predicate:
  * like `ActionMeta`, the panel only ever knows what to draw and which index to
  * hand back.
@@ -159,4 +174,17 @@ export type ViewMeta = {
    * being the slot's active view (see `engine.ts`'s `dropIfEphemeral`).
    */
   ephemeral?: boolean;
+  /**
+   * Whether a sidebar dock should be forced open at boot, overriding
+   * whatever was last docked there. Space Lua-only: `navigator.define`
+   * rejects it on a modal view, since a modal has nowhere to stay open.
+   */
+  openOnStart?: boolean;
+  /**
+   * Set by the plug's registry when this meta came from the built-in TS
+   * registry rather than a Space Lua registration -- never set from Lua.
+   * Lets the panel cache built-in meta indefinitely instead of re-resolving
+   * it (a static map lookup, unlike a Lua registration) on every activation.
+   */
+  builtin?: boolean;
 };

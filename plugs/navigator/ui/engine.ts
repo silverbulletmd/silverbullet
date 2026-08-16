@@ -7,7 +7,13 @@ import {
 } from "../../../plug-api/ui/tree_model.ts";
 import type { RowState, RowStates } from "../../../plug-api/ui/tree_types.ts";
 import { defaultSegmentIndex, type SegmentMasks } from "./segments.ts";
-import type { FilterFields, Row, SourceCtx, ViewMeta } from "./types.ts";
+import type {
+  FilterFields,
+  NavigatorHook,
+  Row,
+  SourceCtx,
+  ViewMeta,
+} from "./types.ts";
 
 // Re-exported so the rest of the plug can keep importing these from
 // "./engine.ts" -- the shapes themselves live in the shared UI library
@@ -20,16 +26,15 @@ export async function dispatch(name: string, data: any): Promise<any> {
 }
 
 /**
- * The same bridge call, aimed at the plug's own built-in registry instead of
- * the space's Lua one. Which of the two a view lives in is decided once, when
- * its metadata is resolved (see `activate`), and every later call for that
- * view goes the same way -- so a Lua handler that legitimately returns
- * nothing is never mistaken for "not mine".
+ * The one bridge call for every view, built-in or Lua-owned alike -- the
+ * plug's own registry (`registry.ts`) decides which and routes accordingly,
+ * so the panel never needs to know.
  */
-function dispatchBuiltin(event: string, data: any): Promise<any> {
-  return syscall("system.invokeFunction", "navigator.builtin", {
-    event,
-    data,
+function handle(view: string, hook: NavigatorHook, args?: any): Promise<any> {
+  return syscall("system.invokeFunction", "navigator.handle", {
+    view,
+    hook,
+    args,
   });
 }
 
@@ -48,7 +53,7 @@ const DEFAULT_FILTER_FIELDS: FilterFields = {
  */
 type IconRef = string;
 
-/** One `navigator:rowState` entry, exactly as Lua returns it. */
+/** One `"rowState"` hook entry, exactly as the registry returns it. */
 type RawRowState = {
   icon?: string;
   actions?: boolean[];
@@ -60,9 +65,9 @@ type ParsedIcon =
   | { kind: "feather"; name: string }
   | { kind: "unknown"; prefix: string }
   /**
-   * Not a string at all -- e.g. a legacy `{ svg = ... }` table that should
-   * have been caught at definition time (`rejectLegacySvg`/`validateRowIcon`
-   * in the library page) but reached here anyway, from a `row.icon` function
+   * Not a string at all -- e.g. a table that should have been
+   * caught at definition time (`validateRowIcon` in the library page)
+   * but reached here anyway, from a `row.icon` function
    * whose *return value* can't be checked until it runs. Resolves nothing,
    * same as "unknown", but isn't a namespace typo worth warning about.
    */
@@ -109,17 +114,22 @@ export type ViewState = {
   ctx?: SourceCtx;
   /** Identifies the newest row load for this view; older ones are dropped. */
   loadToken?: number;
-  /**
-   * Whether this view came from the plug's built-in registry rather than from
-   * Space Lua. Fixed when the view is resolved, and what every later bridge
-   * call for it is routed by.
-   */
   builtin?: boolean;
 };
 
 export type RankedRow = { row: Row; score: number };
 
 type IndexedRow = Record<string, any> & { __row: Row; __idx: number };
+
+/**
+ * Whether a Lua-owned view's meta actually changed -- key-order-sensitive
+ * (two serializations of an identical Lua table could in principle differ),
+ * which only costs one avoidable reload on a false positive, never a missed
+ * redefinition.
+ */
+function metaChanged(a: ViewMeta, b: ViewMeta): boolean {
+  return JSON.stringify(a) !== JSON.stringify(b);
+}
 
 export class NavigatorEngine {
   private cache = new Map<string, ViewState>();
@@ -144,42 +154,87 @@ export class NavigatorEngine {
   private tokens = 0;
   activeName?: string;
 
+  /**
+   * A view's meta, freshly resolved and normalized. `undefined` for an
+   * unknown name -- a Lua view a space has stopped defining (or hasn't
+   * defined yet), or a plain typo.
+   */
+  private async resolveMeta(viewName: string): Promise<ViewMeta | undefined> {
+    const meta: ViewMeta | undefined = await handle(viewName, "meta");
+    if (!meta) return undefined;
+    // An empty Lua table (`actions = {}`, `keymap = {}`, `segments = {}`)
+    // crosses as `{}`, not `[]`; normalizing here keeps every `.some`/
+    // `.includes` below (and in the components) from throwing on it.
+    if (!Array.isArray(meta.actions)) meta.actions = undefined;
+    if (!Array.isArray(meta.keys)) meta.keys = undefined;
+    if (!Array.isArray(meta.segments)) meta.segments = undefined;
+    return meta;
+  }
+
+  /**
+   * Built-in meta is a static map lookup -- resolved once and cached for the
+   * rest of the session. A Lua-owned view's meta can change on the space's
+   * own terms (a redefinition, upserted at `navigator.define` time), so it is
+   * re-resolved on every activation instead -- one cheap round trip, same as
+   * every other bridge call this makes. A redefinition that actually changed
+   * anything drops the cached entry and falls through to a full fresh load
+   * (new rows and ctx, not just new chrome over old ones) -- the same check
+   * `dropIfRedefined` makes for the one path that bypasses this method
+   * entirely (see there).
+   */
   async activate(viewName: string): Promise<ViewState> {
     this.activeName = viewName;
-    let entry = this.cache.get(viewName);
-    if (!entry) {
-      // Space Lua first, so a space that redefines a built-in by name still
-      // replaces it; the plug's registry answers for the rest -- which,
-      // before this space has ever been indexed, is every built-in there is.
-      let builtin = false;
-      let meta: ViewMeta = await dispatch("navigator:meta", {
-        name: viewName,
-      });
-      if (!meta) {
-        meta = await dispatchBuiltin("navigator:meta", { name: viewName });
-        builtin = true;
+    let cached = this.cache.get(viewName);
+    if (cached?.builtin) {
+      if (cached.error) {
+        await this.loadRows(cached, cached.ctx ?? this.initialCtx(cached.meta));
       }
-      if (!meta) {
-        throw new Error(`No navigator view named "${viewName}"`);
+      return cached;
+    }
+    const meta = await this.resolveMeta(viewName);
+    if (!meta) {
+      this.cache.delete(viewName);
+      if (this.activeName === viewName) this.activeName = undefined;
+      throw new Error(`No navigator view named "${viewName}"`);
+    }
+    if (cached && metaChanged(cached.meta, meta)) {
+      this.cache.delete(viewName);
+      cached = undefined;
+    }
+    let entry = cached;
+    if (entry) {
+      entry.meta = meta;
+      if (entry.error) {
+        await this.loadRows(entry, entry.ctx ?? this.initialCtx(meta));
       }
-      // An empty Lua table (`actions = {}`, `keymap = {}`, `segments = {}`)
-      // crosses as `{}`, not `[]`; normalizing here keeps every `.some`/
-      // `.includes` below (and in the components) from throwing on it.
-      if (!Array.isArray(meta.actions)) meta.actions = undefined;
-      if (!Array.isArray(meta.keys)) meta.keys = undefined;
-      if (!Array.isArray(meta.segments)) meta.segments = undefined;
-      entry = { meta, rows: [], builtin };
+    } else {
+      entry = { meta, rows: [], builtin: meta.builtin === true };
       this.cache.set(viewName, entry);
       await this.loadRows(entry, this.initialCtx(meta));
-    } else if (entry.error) {
-      await this.loadRows(entry, entry.ctx ?? this.initialCtx(entry.meta));
     }
     return entry;
   }
 
-  /** Whether the cached entry for this view came from the plug's registry. */
-  isBuiltin(viewName: string): boolean {
-    return this.cache.get(viewName)?.builtin === true;
+  /**
+   * Drops a cached, Lua-owned view's entry if its meta no longer matches
+   * what the registry currently answers -- a space-lua redefinition since it
+   * was last resolved -- so the next `activate` reloads it fresh. Only
+   * `activation.ts`'s "reopening the view already displayed" path needs
+   * this: that one short-circuits `activate` entirely for a cache hit, so
+   * it's the one case `activate`'s own `metaChanged` check (above) never
+   * runs for. A no-op for a built-in (whose meta never changes) or an
+   * unresolved name.
+   *
+   * @returns whether the entry was dropped.
+   */
+  async dropIfRedefined(viewName: string): Promise<boolean> {
+    const entry = this.cache.get(viewName);
+    if (!entry || entry.builtin) return false;
+    const fresh = await this.resolveMeta(viewName);
+    if (!fresh || !metaChanged(entry.meta, fresh)) return false;
+    this.cache.delete(viewName);
+    if (this.activeName === viewName) this.activeName = undefined;
+    return true;
   }
 
   /**
@@ -193,32 +248,6 @@ export class NavigatorEngine {
   isLoaded(viewName: string): boolean {
     const entry = this.cache.get(viewName);
     return !!entry && !entry.error;
-  }
-
-  /**
-   * Drops a cached view whose *built-in* definition has since been superseded
-   * by a Space Lua one of the same name, so the next `activate` re-resolves
-   * it. Called per activation by the panel, because in the one window this
-   * whole arrangement exists for, being superseded is the normal case: Space
-   * Lua is evaluated from the object index, so a space's own redefinition of
-   * `std.pages` registers only after the plug's version has already answered
-   * for it -- and `navigator.ts`'s `viewMeta` re-resolves per open regardless,
-   * so pinning this side would leave the slot's dock and refreshOn (Lua's)
-   * over rows from the plug's.
-   *
-   * A Lua-owned entry is never re-checked: nothing can supersede it, and the
-   * cost would be a dispatch per open for every view in the space.
-   *
-   * @returns whether the entry was dropped.
-   */
-  async dropIfSuperseded(viewName: string): Promise<boolean> {
-    const entry = this.cache.get(viewName);
-    if (!entry?.builtin) return false;
-    const fromLua = await dispatch("navigator:meta", { name: viewName });
-    if (!fromLua) return false;
-    this.cache.delete(viewName);
-    if (this.activeName === viewName) this.activeName = undefined;
-    return true;
   }
 
   /**
@@ -270,13 +299,6 @@ export class NavigatorEngine {
     return this.activeName ? this.cache.get(this.activeName) : undefined;
   }
 
-  /** A bridge call for `viewName`, sent to whichever registry owns it. */
-  private send(viewName: string, event: string, data: any): Promise<any> {
-    return this.cache.get(viewName)?.builtin
-      ? dispatchBuiltin(event, { name: viewName, ...data })
-      : dispatch(event, { name: viewName, ...data });
-  }
-
   rankRows(rows: Row[], phrase: string, meta: ViewMeta): RankedRow[] {
     const ranked = rank(this.index(rows), phrase, {
       fields: meta.filterFields ?? DEFAULT_FILTER_FIELDS,
@@ -295,15 +317,15 @@ export class NavigatorEngine {
     obj: Record<string, any>,
     from?: string,
   ): Promise<any> {
-    return this.send(viewName, "navigator:select", { obj, from });
+    return handle(viewName, "select", { obj, from });
   }
 
   create(viewName: string, phrase: string): Promise<any> {
-    return this.send(viewName, "navigator:create", { phrase });
+    return handle(viewName, "create", { phrase });
   }
 
   key(viewName: string, key: string, obj: Record<string, any>): Promise<any> {
-    return this.send(viewName, "navigator:key", { key, obj });
+    return handle(viewName, "key", { key, obj });
   }
 
   move(
@@ -311,20 +333,18 @@ export class NavigatorEngine {
     obj: Record<string, any>,
     newName: string,
   ): Promise<any> {
-    return this.send(viewName, "navigator:move", { obj, newName });
+    return handle(viewName, "move", { obj, newName });
   }
 
   action(
     viewName: string,
     index: number,
     obj: Record<string, any>,
-    primary: string,
   ): Promise<any> {
-    return this.send(viewName, "navigator:action", {
+    return handle(viewName, "action", {
       // Lua's `actions` table is 1-based; `index` is the JS array index.
       index: index + 1,
       obj,
-      primary,
     });
   }
 
@@ -341,9 +361,7 @@ export class NavigatorEngine {
     let rows: Row[] = [];
     let error: string | undefined;
     try {
-      const result = await this.send(entry.meta.name, "navigator:rows", {
-        ctx,
-      });
+      const result = await handle(entry.meta.name, "rows", { ctx });
       rows = Array.isArray(result) ? result : [];
       error = result?.error;
     } catch (e: any) {
@@ -406,9 +424,7 @@ export class NavigatorEngine {
         ? nodes.map(nodeObject)
         : entry.rows.map((row) => row.obj);
       try {
-        const result = await this.send(meta.name, "navigator:rowState", {
-          objs,
-        });
+        const result = await handle(meta.name, "rowState", { objs });
         raw = Array.isArray(result) ? result : [];
       } catch (e) {
         // Leaves every `when` action hidden (and every `where` segment empty),
@@ -498,8 +514,7 @@ export class NavigatorEngine {
           .filter((icon): icon is string => !!icon)
           .map((icon) => parseIcon(icon))
           .filter(
-            (p): p is { kind: "feather"; name: string } =>
-              p.kind === "feather",
+            (p): p is { kind: "feather"; name: string } => p.kind === "feather",
           )
           .map((p) => p.name)
           .filter((name) => !this.iconCache.has(name)),

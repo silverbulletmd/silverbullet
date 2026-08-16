@@ -9,10 +9,10 @@ The `navigator` API defines and opens [[Navigator]] views: filterable list or tr
 ## navigator.define(spec)
 `navigator.define(spec)`
 
-Registers a view, and optionally a [[Command]] that opens it. `name` and `source` are required; everything else is optional. Re-defining a view under the same `name` replaces it, which is how you replace a built-in.
+Registers a view, and optionally a [[Command]] that opens it. `name`, `source` and `onSelect` are required; everything else is optional. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.toc`, `std.tocModal`, `std.spaceTree`) is reserved and cannot be redefined: `navigator.define` throws instead. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Command]] (or key) to it, rather than trying to redefine the built-in's name.
 
 ### Identity and chrome
-* `name`: (globally) unique identifier for the navigator view.
+* `name`: (globally) unique identifier for the navigator view; reserved names (the built-ins above, and anything starting with `__pick:`) throw at definition time.
 * `title`: panel title.
 * `label`: a short verb shown where the title goes (`"Open"`, `"Run"`), for picker chrome.
 * `placeholder`: the filter input’s placeholder, naming what is being picked.
@@ -36,7 +36,7 @@ On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over 
 ### Data source
 * `source`: takes `{ phrase, segment }` as an argument and returns the objects to show.
 * `search`: `"client"` (default: the source runs once, the panel ranks) or `"source"` (typing re-invokes the source, whose order wins).
-* `refreshOn`: event names that re-run the source. Defaults to `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }`.
+* `refreshOn`: event names that re-run the source. Defaults to none. For a view over the space (a page/document listing, a tree), the recommended set is `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }` -- the built-in pickers and the space tree all declare it explicitly.
 * `refreshOnOpen`: re-run the source on every open, for a view whose rows are a fact about *now*.
 * `followEditor`: a sidebar view tracks the page you navigate to.
 
@@ -100,9 +100,8 @@ presentation = {
 ```
 
 ### Callbacks and interaction modes
-* `onSelect`: `(obj, ctx)` for the picked row. Defaults to `editor.navigate(obj.ref or obj.name)`. Returning `false` keeps the panel open.
-* `onCreate`: takes the typed phrase, for the create row.
-* `create`: shorthand for the default `onCreate` (navigate to the phrase as a page name).
+* `onSelect`: `(obj, ctx)` for the picked row. **Required.** Returning `false` keeps the panel open.
+* `onCreate`: takes the typed phrase, for the create row. The create row appears iff `onCreate` is defined.
 * `onMove`:`(obj, newName)`, when defined makes a tree drag-and-drop capable.
 * `keymap`: key name to function map of the selected row’s object. Navigation keys are rejected.
 * `actions`: per-row buttons.
@@ -117,6 +116,12 @@ The create row only appears while the phrase is non-empty and matches no row exa
 * `ctx.from`: the view a [[#Prefix routing|prefix]] arrived from, if this view was reached that way, the view to hand the slot back to.
 
 Returning `false` **keeps the panel open**. A modal otherwise dismisses itself the moment a row is picked, which would shut the panel an `onSelect` that re-opened the navigator itself just put up.
+
+A common body, for a view whose rows are pages or page-like objects:
+
+```lua
+onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
+```
 
 #### Keymaps
 `keymap` gives a view its own key actions on top of the built-in navigation:
@@ -140,8 +145,11 @@ Printable keys (a single character, like `" "` or `"r"`) only act while you are 
 actions = {
   { icon = "edit-3", label = "Rename", requireMode = "rw",
     run = function(obj) ... end },
-  { icon = "trash-2", label = "Delete", confirm = "Delete %s?",
-    requireMode = "rw", run = function(obj) ... end },
+  { icon = "trash-2", label = "Delete", requireMode = "rw",
+    run = function(obj)
+      if not editor.confirm("Delete " .. obj.name .. "?") then return end
+      ...
+    end },
   { icon = "plus", label = "New page here", requireMode = "rw",
     when = function(obj) return obj.isFolder end,
     run = function(obj) ... end },
@@ -149,10 +157,9 @@ actions = {
 ```
 
 * `label`: tooltip and accessible name.
-* `run`: function invoked with the row's object.
+* `run`: function invoked with the row's object. Confirm inside it (`editor.confirm(...)`, as above) if the action needs it -- there is no declarative `confirm` key.
 * `icon`: see [[#Row icons]] for the three accepted forms.
 * `when` (optional): predicate deciding whether the action applies to an object.
-* `confirm` (optional) — confirmation message shown before `run`, with `%s` replaced by the row's primary label.
 * `requireMode` (optional): `"rw"` hides the action while the client is in read-only mode.
 
 In a tree, actions appear on folder rows too: a folder reaches `run` as `{ name = <path>, isFolder = true }`, and a page that also has children carries both its own fields and `isFolder`, the same object `onMove` gets.
@@ -167,7 +174,7 @@ segments = {
   { label = "All", icon = "layers", default = true },
   { label = "Pages", icon = "file-text",
     where = function(obj) return obj.tag == "page" end },
-  { label = "Docs", icon = "file",
+  { label = "Documents", icon = "file",
     where = function(obj) return obj.tag == "document" end },
 }
 ```

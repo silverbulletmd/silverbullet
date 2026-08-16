@@ -10,8 +10,6 @@ APIs to define navigator views: filterable/tree panels (modal, left- or right-ha
 navigator = navigator or {}
 navigator._views = navigator._views or {}
 
-local defaultRefreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }
-
 -- navigator.pick registers its ephemeral, one-shot views under a name in this
 -- namespace, so navigator.define has to keep out of it.
 local RESERVED_PICK_PREFIX = "__pick:"
@@ -134,23 +132,11 @@ local function validateIcon(icon, what)
     "(a string starting with \"<svg\")")
 end
 
--- The old `svg` attribute and the `{ svg = ... }` icon table are both gone --
--- folded into `icon`'s three string forms. A leftover `svg` field is almost
--- always a spec ported from the old shape, so it gets the same named-forms
--- error `validateIcon` gives, rather than being silently ignored like a truly
--- unknown key.
-local function rejectLegacySvg(holder, what)
-  if holder.svg == nil then return end
-  error("navigator.define: " .. what .. ".svg was removed -- use icon: " ..
-    "an icon name (\"lock\"), a namespaced name (\"feather:lock\"), or " ..
-    "literal SVG markup (a string starting with \"<svg\")")
-end
-
 -- Like validateIcon, but presentation.row.icon also accepts a function (an
 -- icon computed per object) -- what it returns at runtime isn't known here,
--- so navigator:rowState is what actually enforces the string contract on a
--- function's result (a non-string return there just leaves the row without
--- an icon, silently, same as a nil one).
+-- so the "rowState" hook (luaHandlers.rowState below) is what actually
+-- enforces the string contract on a function's result (a non-string return
+-- there just leaves the row without an icon, silently, same as a nil one).
 local function validateRowIcon(icon, what)
   if icon == nil then return end
   if type(icon) == "string" then return end
@@ -178,11 +164,9 @@ local function actionMeta(spec)
       error("navigator.define: actions[" .. i .. "].requireMode must be \"rw\"")
     end
     validateIcon(action.icon, "actions[" .. i .. "].icon")
-    rejectLegacySvg(action, "actions[" .. i .. "]")
     out[i] = {
       icon = action.icon,
       label = action.label,
-      confirm = action.confirm,
       hasWhen = action.when ~= nil,
       requireMode = action.requireMode,
     }
@@ -211,7 +195,6 @@ local function segmentMeta(spec)
       error("navigator.define: segments[" .. i .. "].where must be a function")
     end
     validateIcon(segment.icon, "segments[" .. i .. "].icon")
-    rejectLegacySvg(segment, "segments[" .. i .. "]")
     out[i] = {
       label = segment.label,
       icon = segment.icon,
@@ -312,10 +295,11 @@ local function hierarchy(spec)
 end
 
 -- The events that re-run the source, on top of the ones the panel always
--- listens for. `{}` is a plausible spelling of "no refresh, thanks" and has to
+-- listens for. No default: a view that wants liveness declares its own
+-- events. `{}` is a plausible spelling of "no refresh, thanks" and has to
 -- become `nil` to mean it: see keymapKeys, and the plug spreads this list.
 local function refreshOnEvents(spec)
-  if spec.refreshOn == nil then return defaultRefreshOn end
+  if spec.refreshOn == nil then return nil end
   if type(spec.refreshOn) ~= "table" then
     error("navigator.define: refreshOn must be a list of event names")
   end
@@ -342,12 +326,58 @@ local function readOnlyMode()
   return system.getMode() == "ro" or editor.getUiOption("forcedROMode") == true
 end
 
+-- Everything the panel needs to draw and open this view, built once at
+-- registration time (not per activation) and pushed to the plug's registry
+-- below -- `navigator.handle`'s "meta" hook just hands this straight back.
+local function wireMeta(spec)
+  local p = spec.presentation or {}
+  local f = spec.filter or {}
+  return {
+    name = spec.name,
+    title = spec.title or spec.name,
+    -- Picker chrome: a verb in place of the title, and a placeholder naming
+    -- what is being picked. A docked view can set both too -- they just
+    -- default to unset.
+    label = spec.label,
+    placeholder = spec.placeholder,
+    stripPrefix = f.stripPrefix,
+    createIcon = p.createIcon,
+    mode = presentationMode(spec),
+    dock = dockSlot(spec),
+    hierarchy = hierarchy(spec),
+    foldersFirst = p.foldersFirst ~= false,
+    expandAll = expandAll(spec),
+    expansionScope = expansionScope(spec),
+    filterFields = filterFields(spec),
+    followEditor = spec.followEditor == true,
+    refreshOn = refreshOnEvents(spec),
+    hasMove = spec.onMove ~= nil,
+    hasCreate = spec.onCreate ~= nil,
+    refreshOnOpen = spec.refreshOnOpen == true,
+    keys = keymapKeys(spec),
+    actions = actionMeta(spec),
+    segments = segmentMeta(spec),
+    limit = renderLimit(spec),
+    search = searchMode(spec),
+    hasRowIcon = (p.row or {}).icon ~= nil,
+    prefixViews = prefixViewsMeta(spec),
+    pathCompletion = f.pathCompletion == true,
+    hashtagFilter = f.hashtagFilter == true,
+    ephemeral = spec.ephemeral == true,
+    openOnStart = spec.openOnStart == true,
+  }
+end
+
 -- Everything navigator.define and navigator.pick both check: the "content"
 -- fields (source, filter, segments, presentation, the interaction handlers)
 -- that make a view a view, regardless of whether it also has a name a
 -- command can open. `caller` is only for error messages -- so a bad
 -- `presentation.row.icon` in a navigator.pick spec still names the field
 -- correctly, even though the validators below are shared code.
+--
+-- Validation only -- does not touch `navigator._views` or push to the plug's
+-- registry. Callers do both themselves, in that order, once this returns
+-- without erroring (see navigator.define/navigator.pick).
 local function registerViewSpec(spec, caller)
   if not spec.name then error(caller .. ": name is required") end
   if not spec.source then error(caller .. ": source is required") end
@@ -367,10 +397,6 @@ local function registerViewSpec(spec, caller)
   filterFields(spec)
   expandAll(spec)
   expansionScope(spec)
-  if spec.create == true and not spec.onCreate then
-    spec.onCreate = function(name) editor.navigate(name) end
-  end
-  navigator._views[spec.name] = spec
 end
 
 function navigator.define(spec)
@@ -378,6 +404,9 @@ function navigator.define(spec)
     string.sub(spec.name, 1, #RESERVED_PICK_PREFIX) == RESERVED_PICK_PREFIX then
     error("navigator.define: names starting with '" .. RESERVED_PICK_PREFIX ..
       "' are reserved for navigator.pick")
+  end
+  if type(spec.onSelect) ~= "function" then
+    error("navigator.define: onSelect is required")
   end
   if (spec.key or spec.mac) and not spec.command then
     error("navigator.define: key/mac require command")
@@ -388,6 +417,13 @@ function navigator.define(spec)
     error("navigator.define: openOnStart requires dock \"lhs\" or \"rhs\"")
   end
   registerViewSpec(spec, "navigator.define")
+  -- Synchronous from this call's point of view: a name colliding with a
+  -- built-in throws here (`registry.ts`'s `register`), surfacing at
+  -- `navigator.define` time rather than as a silent no-op -- before
+  -- `navigator._views` is touched, so a rejected define never leaves the
+  -- two registries disagreeing.
+  system.invokeFunction("navigator.register", { meta = wireMeta(spec) })
+  navigator._views[spec.name] = spec
   if spec.command then
     command.define {
       name = spec.command,
@@ -428,7 +464,7 @@ local pickRejectedFields = {
 -- outright (see pickRejectedFields).
 local pickContentFields = {
   "source", "filter", "segments", "presentation", "placeholder", "title",
-  "label", "search", "create", "onCreate", "actions", "keymap",
+  "label", "search", "onCreate", "actions", "keymap",
 }
 
 local pickCounter = 0
@@ -452,9 +488,9 @@ end
 --- before anything was picked, or the panel's own plug worker restarted out
 --- from under it (`Plugs: Reload` and similar). Accepts the same content
 --- fields as navigator.define (source required; filter, segments,
---- presentation, placeholder, title, label, search, create/onCreate,
---- actions, keymap) -- see [[API/navigator#navigator.pick(spec)]] for the
---- full field reference.
+--- presentation, placeholder, title, label, search, onCreate, actions,
+--- keymap) -- see [[API/navigator#navigator.pick(spec)]] for the full field
+--- reference.
 function navigator.pick(spec)
   if type(spec) ~= "table" then error("navigator.pick: spec must be a table") end
   for _, field in ipairs(pickRejectedFields) do
@@ -481,6 +517,7 @@ function navigator.pick(spec)
     system.invokeFunction("navigator.pickSettle", name, obj)
   end
   registerViewSpec(internal, "navigator.pick")
+  navigator._views[name] = internal
   -- Suspends here until the plug resolves it: the row that was picked, or
   -- nil for a dismissal or a supersede (see navigator.ts's pickOpen/
   -- pickSettle and Escape/backdrop's route through panelHidden). Wrapped in
@@ -489,7 +526,14 @@ function navigator.pick(spec)
   -- specifically) -- `invoke` then rejects rather than ever resolving, and
   -- without the pcall that would surface as a raw thrown error instead of
   -- the nil a dismissal already means.
-  local ok, result = pcall(system.invokeFunction, "navigator.pickOpen", name)
+  --
+  -- The registration itself rides along as this same call's payload
+  -- (`pickOpen` registers before it opens) rather than a separate
+  -- `navigator.register` round trip first: a `__pick:` name can never
+  -- collide, so there is nothing a second trip could catch.
+  local ok, result = pcall(
+    system.invokeFunction, "navigator.pickOpen", name, wireMeta(internal)
+  )
   -- Deregister regardless of how it resolved (or failed) -- the panel's own
   -- per-name cache is dropped independently, client-side, the moment this
   -- view stops being the active one for its slot (see engine.ts's
@@ -565,59 +609,6 @@ local function resolveField(fieldOrFn, obj)
   return obj[fieldOrFn]
 end
 
-event.listen { name = "navigator:meta", run = function(e)
-  local spec = navigator._views[e.data.name]
-  if not spec then return nil end
-  local p = spec.presentation or {}
-  local f = spec.filter or {}
-  return {
-    name = spec.name,
-    title = spec.title or spec.name,
-    -- Picker chrome: a verb in place of the title, and a placeholder naming
-    -- what is being picked. A docked view can set both too -- they just
-    -- default to unset.
-    label = spec.label,
-    placeholder = spec.placeholder,
-    stripPrefix = f.stripPrefix,
-    createIcon = p.createIcon,
-    mode = presentationMode(spec),
-    dock = dockSlot(spec),
-    hierarchy = hierarchy(spec),
-    foldersFirst = p.foldersFirst ~= false,
-    expandAll = expandAll(spec),
-    expansionScope = expansionScope(spec),
-    filterFields = filterFields(spec),
-    followEditor = spec.followEditor == true,
-    refreshOn = refreshOnEvents(spec),
-    hasMove = spec.onMove ~= nil,
-    hasCreate = spec.onCreate ~= nil,
-    refreshOnOpen = spec.refreshOnOpen == true,
-    keys = keymapKeys(spec),
-    actions = actionMeta(spec),
-    segments = segmentMeta(spec),
-    limit = renderLimit(spec),
-    search = searchMode(spec),
-    hasRowIcon = (p.row or {}).icon ~= nil,
-    prefixViews = prefixViewsMeta(spec),
-    pathCompletion = f.pathCompletion == true,
-    hashtagFilter = f.hashtagFilter == true,
-    ephemeral = spec.ephemeral == true,
-  }
-end }
-
--- Which views ask to be docked at boot regardless of what was last open. The
--- plug reads this once, at editor init, and it overrides the remembered
--- slot -> view map for the sides it names.
-event.listen { name = "navigator:startup", run = function()
-  local out = {}
-  for name, spec in pairs(navigator._views) do
-    if spec.openOnStart == true then
-      out[#out + 1] = { name = name, dock = spec.dock }
-    end
-  end
-  return out
-end }
-
 local function buildRows(spec, ctx)
   local p = spec.presentation or {}
   local row = p.row or {}
@@ -638,83 +629,70 @@ local function buildRows(spec, ctx)
   return rows
 end
 
-event.listen { name = "navigator:rows", run = function(e)
-  local spec = navigator._views[e.data.name]
-  if not spec then return {} end
+-- One `navigator.handle` hook each, dispatched by `navigator:luaCall` below.
+-- `meta` isn't here: the plug answers it straight from the `wireMeta` it
+-- already has cached from registration, without asking Lua at all.
+local luaHandlers = {}
+
+luaHandlers.rows = function(spec, args)
   -- A Lua table of its own rather than the incoming JS object, so `source`
   -- always sees the same shape however the panel sent it.
-  local incoming = e.data.ctx or {}
+  local incoming = args.ctx or {}
   local ctx = { phrase = incoming.phrase or "", segment = incoming.segment }
-  -- The event bus swallows listener exceptions, so a failing source has to
-  -- come back as data for the panel to be able to show it.
+  -- Exceptions have to come back as data for the panel to be able to show
+  -- them -- unlike the other hooks, a throwing source leaves nothing else on
+  -- screen to fall back to.
   local ok, result = pcall(buildRows, spec, ctx)
   if not ok then return { error = tostring(result) } end
   return result
-end }
+end
 
-event.listen { name = "navigator:select", run = function(e)
-  local spec = navigator._views[e.data.name]
-  if not spec then return end
-  local obj = e.data.obj
+luaHandlers.select = function(spec, args)
   -- `from` is the view a prefixViews hop came from, so an onSelect can hand
   -- the slot back to it. Returning false is how it says "I took the panel
   -- over, don't close it".
-  local ctx = { from = e.data.from }
-  return runHandler("onSelect", function()
-    if spec.onSelect then return spec.onSelect(obj, ctx) end
-    editor.navigate(obj.ref or obj.name)
-  end)
-end }
+  local ctx = { from = args.from }
+  -- Always a function: navigator.define requires it, and navigator.pick
+  -- wraps whatever the caller passed (nil included) into one of its own.
+  return runHandler("onSelect", function() return spec.onSelect(args.obj, ctx) end)
+end
 
-event.listen { name = "navigator:create", run = function(e)
-  local spec = navigator._views[e.data.name]
-  if not spec or not spec.onCreate then return end
-  runHandler("onCreate", function() spec.onCreate(e.data.phrase) end)
-end }
+luaHandlers.create = function(spec, args)
+  if not spec.onCreate then return end
+  runHandler("onCreate", function() spec.onCreate(args.phrase) end)
+end
 
-event.listen { name = "navigator:key", run = function(e)
-  local spec = navigator._views[e.data.name]
-  local fn = spec and spec.keymap and spec.keymap[e.data.key]
+luaHandlers.key = function(spec, args)
+  local fn = spec.keymap and spec.keymap[args.key]
   if not fn then return end
-  runHandler("keymap", function() fn(e.data.obj) end)
-end }
+  runHandler("keymap", function() fn(args.obj) end)
+end
 
-event.listen { name = "navigator:action", run = function(e)
-  local spec = navigator._views[e.data.name]
-  local action = spec and spec.actions and spec.actions[e.data.index]
+luaHandlers.action = function(spec, args)
+  local action = spec.actions and spec.actions[args.index]
   if not action then return end
   -- The panel already hides these, but the click and the mode change could
-  -- always have crossed in flight -- and a bridge event is reachable without
-  -- the panel at all.
+  -- always have crossed in flight -- and this hook is reachable without the
+  -- panel at all.
   if action.requireMode == "rw" and readOnlyMode() then
     editor.flashNotification(
       "navigator: " .. action.label .. " is unavailable in read-only mode", "error")
     return
   end
   runHandler("action", function()
-    if action.confirm then
-      -- A function replacement, so a `%` in the row's own name isn't read as
-      -- a capture reference.
-      local message = string.gsub(action.confirm, "%%s", function()
-        return e.data.primary or ""
-      end)
-      if not editor.confirm(message) then return end
-    end
-    action.run(e.data.obj)
+    action.run(args.obj)
   end)
-end }
+end
 
 -- One pass over the whole batch, dispatched by the panel when its rows load
 -- (never on hover, never per keystroke): every `when` predicate, every `where`
 -- predicate and every row icon, for every object the panel may draw --
 -- including the folder objects it synthesizes, which no `source` ever returns.
-event.listen { name = "navigator:rowState", run = function(e)
-  local spec = navigator._views[e.data.name]
-  if not spec then return {} end
+luaHandlers.rowState = function(spec, args)
   local icon = (spec.presentation or {}).row
   icon = icon and icon.icon
   local out = {}
-  for i, obj in ipairs(e.data.objs) do
+  for i, obj in ipairs(args.objs) do
     local entry = {}
     if spec.actions then
       local mask = {}
@@ -761,11 +739,37 @@ event.listen { name = "navigator:rowState", run = function(e)
     out[i] = entry
   end
   return out
+end
+
+luaHandlers.move = function(spec, args)
+  if not spec.onMove then return end
+  runHandler("onMove", function() spec.onMove(args.obj, args.newName) end)
+end
+
+-- The one hook-dispatch bridge event: every hook `navigator.handle`
+-- (`registry.ts`) routes to a Lua-owned view lands here, keyed by
+-- `e.data.hook`.
+event.listen { name = "navigator:luaCall", run = function(e)
+  local spec = navigator._views[e.data.view]
+  if not spec then return nil end
+  local handler = luaHandlers[e.data.hook]
+  if not handler then return nil end
+  return handler(spec, e.data.args or {})
 end }
 
-event.listen { name = "navigator:move", run = function(e)
-  local spec = navigator._views[e.data.name]
-  if not spec or not spec.onMove then return end
-  runHandler("onMove", function() spec.onMove(e.data.obj, e.data.newName) end)
+-- Lifecycle re-registration, not a hook-RPC stub -- the plug worker's own
+-- `luaViews` (`registry.ts`) is in-memory, and `Plugs: Reload` (or any
+-- server-side sandbox recycle) rebuilds that worker from scratch without
+-- re-running Space Lua, so nothing else re-pushes what this space has
+-- already defined. `pcall` per entry: a `__pick:` name is skipped outright
+-- (its pick has long since finished, one way or another, by the time a
+-- reload happens), and a stale entry under a name that would now collide
+-- with a built-in must not abort the rest of the loop.
+event.listen { name = "plugs:loaded", run = function()
+  for name, spec in pairs(navigator._views) do
+    if string.sub(name, 1, #RESERVED_PICK_PREFIX) ~= RESERVED_PICK_PREFIX then
+      pcall(system.invokeFunction, "navigator.register", { meta = wireMeta(spec) })
+    end
+  end
 end }
 ```

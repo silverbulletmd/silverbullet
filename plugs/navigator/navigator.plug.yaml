@@ -13,23 +13,29 @@ functions:
   openToc:
     path: ./src/navigator.ts:openToc
     command:
-      name: "Navigator: Table of Contents"
+      name: "Navigate: Outline"
   openTocModal:
     path: ./src/navigator.ts:openTocModal
     command:
-      name: "Navigator: Outline Picker"
+      name: "Navigate: Outline Picker"
   openSpaceTree:
     path: ./src/navigator.ts:openSpaceTree
     command:
-      name: "Navigator: Tree"
-      key: "Ctrl-o"
-      mac: "Cmd-o"
+      name: "Navigate: Tree"
+      key:
+        - "Ctrl-o"
+        - "Ctrl-Shift-o" # For Safari
+      mac:
+        - "Cmd-o"
+        - "Cmd-Shift-o"
   pickOpen:
     path: ./src/navigator.ts:pickOpen
   pickSettle:
     path: ./src/navigator.ts:pickSettle
-  builtin:
-    path: ./src/builtins.ts:builtin
+  register:
+    path: ./src/registry.ts:register
+  handle:
+    path: ./src/registry.ts:handle
   preload:
     path: ./src/navigator.ts:preload
     events:
