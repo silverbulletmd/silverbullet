@@ -8,7 +8,7 @@ import type { ViewMeta } from "./types.ts";
  * opposite thing -- the folders the user *closed* -- and reading one as the
  * other would invert a whole tree the first time a view flipped the flag.
  *
- * The `["navigator", …]` namespace is this plug's own datastore convention
+ * The `["navigator", …]` namespace is the navigator's own datastore convention
  * (the same one `activation.ts` uses for the remembered segment), which is
  * why this stays navigator-side rather than in the shared tree model.
  */

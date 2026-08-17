@@ -1,8 +1,16 @@
-import { events } from "@silverbulletmd/silverbullet/syscalls";
 import { builtinHandle, builtinMeta } from "./builtins.ts";
-import type { NavigatorHook, ViewMeta } from "../ui/types.ts";
+import { luaHandle, RESERVED_PICK_PREFIX, type ViewSpec } from "./lua_views.ts";
+import type { LuaEnv } from "../space_lua/runtime.ts";
+import type { NavigatorHook, ViewMeta } from "./ui/types.ts";
 
-const luaViews = new Map<string, ViewMeta>();
+export type LuaView = {
+  meta: ViewMeta;
+  spec: ViewSpec;
+  /** Set on a `navigator.pick` view: what a settling selection resolves. */
+  onPick?: (obj: any) => void;
+};
+
+const luaViews = new Map<string, LuaView>();
 
 // supersede waits for an in-flight select rather than nulling it out from under an already-clicked row
 const inFlightSelects = new Map<string, Promise<any>>();
@@ -11,7 +19,7 @@ export function selectInFlight(view: string): Promise<any> | undefined {
   return inFlightSelects.get(view);
 }
 
-export function register(data: { meta: ViewMeta }): void {
+export function register(data: LuaView): void {
   const meta = data?.meta;
   if (!meta || typeof meta.name !== "string" || !meta.name) {
     throw new Error("navigator.register: meta.name is required");
@@ -21,22 +29,33 @@ export function register(data: { meta: ViewMeta }): void {
       `navigator.register: "${meta.name}" is a built-in navigator view and cannot be redefined`,
     );
   }
-  luaViews.set(meta.name, meta);
+  luaViews.set(meta.name, data);
 }
 
 export function unregister(name: string): void {
   luaViews.delete(name);
 }
 
-export function resolveMeta(name: string): ViewMeta | undefined {
-  return builtinMeta(name) ?? luaViews.get(name);
+/** Retires everything Space Lua defined, ahead of a script reload re-defining
+ * it. Pending picks are left alone: their caller is still awaiting them. */
+export function clearScriptViews(): void {
+  for (const name of [...luaViews.keys()]) {
+    if (!name.startsWith(RESERVED_PICK_PREFIX)) luaViews.delete(name);
+  }
 }
 
-export async function handle(data: {
-  view: string;
-  hook: NavigatorHook;
-  args?: any;
-}): Promise<any> {
+export function resolveMeta(name: string): ViewMeta | undefined {
+  return builtinMeta(name) ?? luaViews.get(name)?.meta;
+}
+
+export async function handle(
+  data: {
+    view: string;
+    hook: NavigatorHook;
+    args?: any;
+  },
+  luaEnv?: LuaEnv,
+): Promise<any> {
   const { view, hook, args } = data;
   const builtin = builtinMeta(view);
   if (builtin) {
@@ -46,12 +65,8 @@ export async function handle(data: {
   }
   const lua = luaViews.get(view);
   if (!lua) return undefined;
-  if (hook === "meta") return lua;
-  const dispatched = events.dispatchEvent("navigator:luaCall", {
-    view,
-    hook,
-    args: args ?? {},
-  });
+  if (hook === "meta") return lua.meta;
+  const dispatched = luaHandle(lua.spec, hook, args ?? {}, luaEnv, lua.onPick);
   if (hook === "select") {
     inFlightSelects.set(view, dispatched);
     // .catch only suppresses the unhandled-rejection warning on this chain; the real error is still awaited and surfaced below
@@ -62,14 +77,13 @@ export async function handle(data: {
       })
       .catch(() => {});
   }
-  const [result] = await dispatched;
-  return result;
+  return await dispatched;
 }
 
 export function openOnStartViews(): { name: string; dock: string }[] {
   const out: { name: string; dock: string }[] = [];
-  for (const [name, meta] of luaViews) {
-    if (meta.openOnStart) out.push({ name, dock: meta.dock });
+  for (const [name, view] of luaViews) {
+    if (view.meta.openOnStart) out.push({ name, dock: view.meta.dock });
   }
   return out;
 }

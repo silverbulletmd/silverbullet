@@ -1,8 +1,8 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
 /**
- * The generic panel-slot lifecycle extracted from the navigator plug (see
- * `plugs/navigator/src/navigator.ts` for the reference consumer, and its own
+ * The generic panel-slot lifecycle extracted from the navigator (see
+ * `client/navigator/navigator.ts` for the reference consumer, and its own
  * `navigator.test.ts` for the content-specific pinning of these same
  * behaviors through navigator's wrappers). These tests exercise
  * `createPanelLifecycle` directly, against a minimal fake `config`, so the

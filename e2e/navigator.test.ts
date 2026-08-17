@@ -2561,11 +2561,7 @@ test.describe("segments", () => {
       const w = f.contentWindow as any;
       const orig = w.syscall;
       w.syscall = (name: string, ...args: any[]) => {
-        if (
-          name === "system.invokeFunction" &&
-          args[0] === "navigator.handle" &&
-          args[1]?.hook === "rowState"
-        ) {
+        if (name === "navigator.handle" && args[0]?.hook === "rowState") {
           return Promise.reject(new Error("no state for you"));
         }
         return orig(name, ...args);
@@ -2584,7 +2580,7 @@ test.describe("segments", () => {
   test("empty refreshOn and filter.fields tables mean 'none', not 'broken'", async ({
     sbPage,
   }) => {
-    // refreshOn = {} used to reach the plug as an object and fail the open outright ("object is not iterable"); filter = { fields = {} } used to survive as a truthy field map and rank every row 0.
+    // refreshOn = {} used to reach the panel as an object and fail the open outright ("object is not iterable"); filter = { fields = {} } used to survive as a truthy field map and rank every row 0.
     const frame = await openNavigatorView(sbPage, "Navigator: Empty Tables");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(4);
 
@@ -2823,10 +2819,9 @@ test.describe("source mode", () => {
       w.syscall = async (name: string, ...args: any[]) => {
         const result = await orig(name, ...args);
         if (
-          name === "system.invokeFunction" &&
-          args[0] === "navigator.handle" &&
-          args[1]?.hook === "rows" &&
-          args[1]?.args?.ctx?.phrase === "blue"
+          name === "navigator.handle" &&
+          args[0]?.hook === "rows" &&
+          args[0]?.args?.ctx?.phrase === "blue"
         ) {
           await new Promise((r) => setTimeout(r, 3000));
         }
@@ -4382,7 +4377,7 @@ test.describe("single-registry consolidation", () => {
     },
   });
 
-  test("a Lua-only view round-trips select, action, rowState and move through navigator:luaCall", async ({
+  test("a Lua-only view round-trips select, action, rowState and move through its own closures", async ({
     sbPage,
   }) => {
     const frame = await openNavigatorView(

@@ -1,10 +1,10 @@
 /**
  * The content-agnostic half of a dock/panel content manager: activation
  * tokens, sidebar/modal show-hide-resize plumbing, boot restore, and a
- * preamble-keyed content cache. Extracted from the navigator plug so a
- * future dock consumer (anything that wants a persistent, resizable,
+ * preamble-keyed content cache. Extracted from the navigator so a future
+ * dock consumer (anything that wants a persistent, resizable,
  * keyed-panel-backed slot) can reuse it without navigator's own Lua/pick
- * vocabulary. See `plugs/navigator/src/navigator.ts` for the reference
+ * vocabulary. See `client/navigator/navigator.ts` for the reference
  * consumer.
  */
 

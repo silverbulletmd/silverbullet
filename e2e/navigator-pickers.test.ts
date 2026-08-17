@@ -964,9 +964,8 @@ test("item 11: key-hint chips, tag chips, and mark highlighting never change a r
 test("Space Lua opens a built-in picker by name, with options", async ({
   sbPage,
 }) => {
-  // The four shipped pickers live in the plug's registry, not in
-  // `navigator._views`, so an opener that only knew about Lua-defined views
-  // would reject exactly them.
+  // The four shipped pickers are built-ins, not Space Lua definitions, so an
+  // opener that only knew about Lua-defined views would reject exactly them.
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(
       `navigator.open("std.pages", { segment = "Documents" })`,
@@ -1299,10 +1298,10 @@ test("std.toc/std.tocModal answer on a page loaded directly, before anything els
   sbServer,
   page,
 }) => {
-  // Both outline views are TS builtins registered from the plug's own
-  // manifest rather than a `navigator.define` call, unlike `std.journal`/
-  // `std.pageTemplates` -- so unlike those, they need no Space Lua to have
-  // run first, and this tab's very first navigation has none.
+  // Both outline views are TS builtins rather than `navigator.define` calls,
+  // unlike `std.journal`/`std.pageTemplates` -- so unlike those, they need no
+  // Space Lua to have run first, and this tab's very first navigation has
+  // none.
   await gotoSilverBulletPage(page, sbServer, "Outline Page");
 
   const modal = await openOutline(

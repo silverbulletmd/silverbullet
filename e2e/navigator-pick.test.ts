@@ -130,10 +130,10 @@ navigator.define {
 --
 -- These pcall()s run at space-lua *load* time, which is only safe because
 -- every case here is expected to be rejected before navigator.pick ever
--- reaches its suspending call (system.invokeFunction("navigator.pickOpen",
--- ...)). If a rejection ever regressed to actually opening a picker, this
--- script would suspend waiting for a user who isn't there, and the whole
--- file would time out on load instead of failing with a readable assertion.
+-- opens anything. If a rejection ever regressed to actually opening a
+-- picker, this script would suspend waiting for a user who isn't there, and
+-- the whole file would time out on load instead of failing with a readable
+-- assertion.
 local rejectFieldCases = {
   { field = "name", value = "x" },
   { field = "command", value = "X" },
@@ -198,8 +198,7 @@ do
   })
   pickPrefixLog[#pickPrefixLog + 1] = "normal=" .. tostring(normalOk)
   -- navigator.open rejects the same prefix in the other direction -- this
-  -- errors synchronously, before ever reaching the plug, so pcall catches it
-  -- without suspending.
+  -- errors before anything opens, so pcall catches it without suspending.
   local openOk = pcall(navigator.open, "__pick:probe")
   pickPrefixLog[#pickPrefixLog + 1] = "open=" .. tostring(openOk)
 end
@@ -375,7 +374,7 @@ test("a stale close from an already-resolved pick can never resolve or hide the 
     const w = f.contentWindow as any;
     const orig = w.syscall;
     w.syscall = (name: string, ...args: any[]) => {
-      if (name === "event.dispatch" && args[0] === "navigator:panelHidden") {
+      if (name === "navigator.panelHidden") {
         return new Promise((resolve) => {
           setTimeout(() => resolve(orig(name, ...args)), 500);
         });
@@ -396,7 +395,10 @@ test("a stale close from an already-resolved pick can never resolve or hide the 
   expect(await second).toBe("OnlyB");
 });
 
-test("a plug reload mid-pick resolves navigator.pick with nil, not a hang or a raw error", async ({
+// The navigator's registry and its pending-pick bookkeeping are client-side
+// state now: a plug reload no longer has anything to tear out from under an
+// open picker, so the pick stays live and still resolves normally.
+test("a plug reload mid-pick leaves the picker standing", async ({
   sbPage,
 }) => {
   await sbPage.evaluate(() => {
@@ -425,7 +427,9 @@ test("a plug reload mid-pick resolves navigator.pick with nil, not a hang or a r
     { timeout: 20_000 },
   );
 
-  expect(await result).toBeNull();
+  const frame = navFrame(sbPage);
+  await frame.locator(".sb-nav-row", { hasText: "Banana" }).click();
+  expect(await result).toBe("Banana");
 });
 
 test("the create row runs onCreate and resolves navigator.pick with nil", async ({

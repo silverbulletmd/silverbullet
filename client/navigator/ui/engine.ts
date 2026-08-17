@@ -17,17 +17,13 @@ import type {
 
 export type { RowState, RowStates };
 
-export async function dispatch(name: string, data: any): Promise<any> {
-  const responses = await syscall("event.dispatch", name, data);
-  return responses?.[0];
+/** Every call this panel makes to the navigator on the host side. */
+export function host(fn: string, data: any): Promise<any> {
+  return syscall(`navigator.${fn}`, data);
 }
 
 function handle(view: string, hook: NavigatorHook, args?: any): Promise<any> {
-  return syscall("system.invokeFunction", "navigator.handle", {
-    view,
-    hook,
-    args,
-  });
+  return host("handle", { view, hook, args });
 }
 
 const DEFAULT_FILTER_FIELDS: FilterFields = {

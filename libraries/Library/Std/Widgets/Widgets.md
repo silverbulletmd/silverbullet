@@ -19,7 +19,7 @@ end)}
 ${widgets.commandButton("System: Reload")}
 
 ## Top and bottom widgets
-* Table of contents: shows a table of contents for your page — **off by default**; the `Navigate: Outline` and `Navigate: Outline Picker` commands show the same headers on demand instead (see [[Library/Std/APIs/Navigator#Built-in views]])
+* Table of contents: shows a table of contents for your page — **off by default**; the `Navigate: Outline` and `Navigate: Outline Picker` commands show the same headers on demand instead
 * Linked mentions: show a list of links that link to the current page, at the bottom of your page
 * Linked tasks: shows a list of tasks that link to the current page, at the top of the page
 

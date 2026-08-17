@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { NavErrorBoundary } from "./components/nav_error_boundary.tsx";
 import { NavRoot } from "./components/nav_root.tsx";
-import { dispatch } from "./engine.ts";
+import { host } from "./engine.ts";
 import { takeFocus } from "./focus.ts";
 import { navHooks } from "./panel.ts";
 
@@ -17,7 +17,7 @@ const globals = globalThis as unknown as {
    * `document.body` and re-evals whenever it re-posts the panel HTML, so this
    * is the one observable that separates "the panel kept running" from "the
    * panel was rebuilt and pulled its state back" -- which otherwise look
-   * identical from outside (see the `navigator:ready` handshake below).
+   * identical from outside (see the `navigator.ready` handshake below).
    */
   __navBootCount?: number;
 };
@@ -45,12 +45,12 @@ if (!globals.__navigatorListening) {
   sbEvent.on("panel:shown", () => navHooks.shown?.());
   sbEvent.on("panel:hidden", () => {
     const closed = navHooks.hidden?.();
-    // Tells the plug this slot is no longer showing anything, so a resize
+    // Tells the host this slot is no longer showing anything, so a resize
     // tick that lands after the panel closed doesn't re-show it -- and, via
     // `view`/`token`, exactly which activation this close belonged to, so a
     // late-arriving notification can't be mistaken for a newer one's (see
     // `navigator.ts`'s `panelHidden`).
-    dispatch("navigator:panelHidden", {
+    host("panelHidden", {
       slot: __NAVIGATOR_SLOT,
       view: closed?.view,
       token: closed?.token,
@@ -86,9 +86,9 @@ render(
   root,
 );
 
-// The plug's `navigator:activate` push can be dropped when it fires before
+// The host's `navigator:activate` push can be dropped when it fires before
 // this bundle boots, so pull whatever activation it recorded for this slot.
-dispatch("navigator:ready", { slot: __NAVIGATOR_SLOT })
+host("ready", { slot: __NAVIGATOR_SLOT })
   .then(
     (pending?: {
       view: string;

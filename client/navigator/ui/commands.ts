@@ -1,7 +1,7 @@
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import { datastore } from "@silverbulletmd/silverbullet/syscalls";
 import type { MutableRef } from "preact/hooks";
-import { dispatch } from "./engine.ts";
+import { host } from "./engine.ts";
 import { takeFocus } from "./focus.ts";
 import { defaultSegmentIndex } from "./segments.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
@@ -166,13 +166,13 @@ export function createCommands({
 
   /**
    * A `prefixViews` hop: the sibling view takes this slot, carrying whatever
-   * followed the prefix. Routed through the plug rather than swapped in here,
+   * followed the prefix. Routed through the host rather than swapped in here,
    * so the slot's bookkeeping (which view a resize belongs to, which events
    * the host forwards, the activation token) stays in one place. The datasets
    * themselves are already cached in the engine, so the swap is a re-render.
    */
   function routeToView(target: string, carried: string, from?: string) {
-    void dispatch("navigator:route", {
+    void host("route", {
       slot,
       view: target,
       phrase: carried,

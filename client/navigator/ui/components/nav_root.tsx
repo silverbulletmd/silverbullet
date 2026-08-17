@@ -12,7 +12,7 @@ import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import { createCommands } from "../commands.ts";
-import { dispatch } from "../engine.ts";
+import { host } from "../engine.ts";
 import { useDerived } from "../hooks/use_derived.ts";
 import { usePanelEvents } from "../hooks/use_panel_events.ts";
 import { useSourceQuery } from "../hooks/use_source_query.ts";
@@ -400,7 +400,7 @@ export function NavRoot({ slot }: { slot: string }) {
             // across a route() hop too) -- lets the backend recover after its
             // own module state is wiped without trusting a possibly-stale
             // datastore entry. See navigator.ts's `resize`.
-            void dispatch("navigator:resize", {
+            void host("resize", {
               slot,
               width,
               commit,

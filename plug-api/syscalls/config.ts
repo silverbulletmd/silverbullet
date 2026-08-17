@@ -15,14 +15,14 @@ export function get<T>(path: string | string[], defaultValue: T): Promise<T> {
  * @param path The path to set the value at
  * @param value The value to set
  */
-export function set<T>(path: string, value: T): Promise<void>;
+export function set<T>(path: string | string[], value: T): Promise<void>;
 /**
  * Sets multiple config values at once.
  * @param values An object containing key-value pairs to set
  */
 export function set(values: Record<string, any>): Promise<void>;
 export function set<T>(
-  pathOrValues: string | Record<string, any>,
+  pathOrValues: string | string[] | Record<string, any>,
   value?: T,
 ): Promise<void> {
   return syscall("config.set", pathOrValues, value);

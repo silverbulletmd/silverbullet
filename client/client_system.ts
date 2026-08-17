@@ -51,6 +51,10 @@ import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
 import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
+import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
+import { registerNavigatorCommands } from "./navigator/commands.ts";
+import { preload as preloadNavigator } from "./navigator/navigator.ts";
+import { clearScriptViews } from "./navigator/registry.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -115,6 +119,7 @@ export class ClientSystem {
 
     this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
     registerEditorCommands(client, this.commandHook);
+    registerNavigatorCommands(this.commandHook);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
@@ -139,12 +144,19 @@ export class ClientSystem {
     this.eventHook.addLocalListener("editor:reloadState", async () => {
       await this.reloadState();
     });
+
+    this.eventHook.addLocalListener("editor:init", () => preloadNavigator());
   }
 
   init() {
     // Init is called after the editor is initialized, so we can safely add the command hook
     this.system.addHook(this.commandHook);
     this.system.addHook(this.slashCommandHook);
+
+    // Client code reusing plug-facing helpers (the navigator's panel lifecycle
+    // and built-in views) reaches syscalls through plug-api's late-bound global.
+    (globalThis as any).syscall = (name: string, ...args: any[]) =>
+      this.system.localSyscall(name, args);
 
     this.system.registerSyscalls(
       [],
@@ -169,6 +181,7 @@ export class ClientSystem {
       configSyscalls(this.client.config),
       searchSyscalls(),
       iconSyscalls(),
+      navigatorSyscalls(() => this.spaceLuaEnv.env),
     );
 
     if (!this.readOnlyMode) {
@@ -194,6 +207,7 @@ export class ClientSystem {
       return;
     }
     this.client.config.clear();
+    clearScriptViews();
     try {
       await this.spaceLuaEnv.reload();
     } catch (e: any) {

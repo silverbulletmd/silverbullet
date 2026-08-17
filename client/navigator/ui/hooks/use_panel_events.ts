@@ -71,7 +71,7 @@ export function usePanelEvents({
   // View name `applyReveal` last ran for, so `activate`'s tail can tell
   // whether `shown` already revealed this exact view -- their arrival order
   // isn't guaranteed (`shown` is a client-local postMessage from a
-  // hidden->visible prop transition, `navigator:activate` is plug-dispatched
+  // hidden->visible prop transition, `navigator:activate` is host-dispatched
   // and does a worker round-trip, so `shown` often lands first).
   const revealedFor = useRef<string | undefined>(undefined);
   // Page `applyReveal` last ran for. `editor:pageLoaded` also fires for

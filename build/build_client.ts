@@ -95,6 +95,25 @@ export async function buildClient(): Promise<void> {
         splitting: false,
       },
     ],
+    // The navigator panel runs inside a panel iframe, which `eval`s it: its
+    // own single-file iife bundle, fetched at runtime rather than imported.
+    [
+      "navigator panel",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/navigator/ui/index.tsx",
+            out: ".client/navigator",
+          },
+        ],
+        format: "iife",
+        splitting: false,
+        // `eval`d, so a sourceMappingURL would only resolve against the
+        // iframe's own base and 404.
+        sourcemap: false,
+      },
+    ],
   ];
 
   for (const [buildName, buildConfig] of buildConfigs) {
@@ -148,6 +167,20 @@ async function copyAssets(dist: string) {
     });
     await writeFile(`${dist}/${output}`, compiled.css, "utf-8");
   }
+
+  // The navigator panel's own stylesheet, alongside its iife bundle above.
+  const navigatorScss = await readFile(
+    "client/navigator/ui/navigator.scss",
+    "utf-8",
+  );
+  await writeFile(
+    `${dist}/navigator.css`,
+    sass.compileString(navigatorScss, {
+      loadPaths: ["client/navigator/ui"],
+      style: "compressed",
+    }).css,
+    "utf-8",
+  );
 
   // HACK: Patch the JS by removing an invalid regex
   let bundleJs = await readFile(`${dist}/client.js`, "utf-8");

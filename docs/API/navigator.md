@@ -1,8 +1,7 @@
 ---
 tags: api/space-lua
 references:
-- libraries/Library/Std/APIs/Navigator.md
-- plugs/navigator/src/navigator.ts
+- client/navigator/navigator.ts
 ---
 The `navigator` API defines and opens [[Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
 

@@ -6,7 +6,8 @@
  */
 
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
-import type { NavigatorHook, Row, ViewMeta } from "../ui/types.ts";
+import { RESERVED_KEYS } from "./lua_views.ts";
+import type { NavigatorHook, Row, ViewMeta } from "./ui/types.ts";
 import { anchorPicker } from "./views/anchors.ts";
 import { commandPalette } from "./views/commands.ts";
 import { pagePicker } from "./views/pages.ts";
@@ -34,25 +35,10 @@ const views: Record<string, BuiltinView<any>> = {
   "std.spaceTree": spaceTreeView,
 };
 
-// Mirrors Lua's own `reservedKeys` (`navigator.define`, Navigator.md): a
-// built-in claiming one of these would silently shadow panel navigation
+// A built-in claiming one of these would silently shadow panel navigation
 // (`keyboard.ts`'s `tryKeymap` runs ahead of it), with no error anywhere to
-// say so. Lua rejects this at definition time; this is the TS registry's
-// equivalent, at module load instead, since there is no per-call `define`.
-const RESERVED_KEYS = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "Enter",
-  "Escape",
-  "PageUp",
-  "PageDown",
-  "Home",
-  "End",
-  "Tab",
-]);
-
+// say so. `navigator.define` rejects it per call; a built-in has no `define`
+// to reject, so this runs at module load instead.
 export function validateKeymaps(
   registry: Record<string, Pick<BuiltinView, "keymap">>,
 ): void {

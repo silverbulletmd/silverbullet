@@ -1,8 +1,8 @@
 ---
 description: A configurable list/tree navigation UI, built with Space Lua and TypeScript built-ins.
+tags: maturity/beta
 references:
-- plugs/navigator/*
-- libraries/Library/Std/APIs/Navigator.md
+- client/navigator/*
 ---
 The **navigator** is SilverBullet’s generalized navigation UI: it takes any collection of [[Object|objects]] and shows it as a fuzzy-filterable **list** or **tree**, either as a modal overlay or as a sidebar that stays open. The [[Page Picker]], the [[Command Palette]], and many others are all built on this abstraction.
 

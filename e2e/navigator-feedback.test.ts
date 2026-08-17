@@ -474,6 +474,9 @@ test("I: Cmd-/ reaches the host from a dock's filter input; native editing chord
     "Command",
     { timeout: 20_000 },
   );
+  // Drawn is not focused: Escape before the palette has taken focus would
+  // reach the dock this was forwarded from and close *that* instead.
+  await expectNavInputFocused(sbPage);
   await sbPage.keyboard.press("Escape");
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
 
@@ -665,12 +668,9 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
   expect(latency).toBeLessThan(400);
 });
 
-// C2 (single-registry consolidation): the plug worker's own
-// registry (`registry.ts`'s `luaViews`) is in-memory and dies with the
-// worker; `Plugs: Reload` rebuilds the worker but does not re-run Space Lua,
-// so nothing else would re-push what this space has defined. Navigator.md's
-// `plugs:loaded` listener re-syncs from `navigator._views` (client-side Lua
-// state, unaffected by a plug reload) on every worker (re)start.
+// C2 (single-registry consolidation): the navigator's registry is client-side
+// state now, so `Plugs: Reload` -- which rebuilds the plug workers and does
+// not re-run Space Lua -- has nothing to take away from it.
 //
 // Asks the registry directly (`navigator.handle`'s "meta" hook, the same
 // call the panel itself makes) rather than driving the full open-a-panel UI
@@ -680,20 +680,10 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
 test("N: a Space Lua-defined view's meta still resolves after Plugs: Reload", async ({
   sbPage,
 }) => {
-  // `pcall`ed: right around `Plugs: Reload` itself, the navigator plug can be
-  // momentarily unloaded (mid-swap for the fresh worker), which would
-  // otherwise throw "Plug navigator not found" and abort the poll below
-  // instead of just being one more "not yet" to retry past.
   async function resolvesMeta(): Promise<boolean> {
     return await sbPage.evaluate(() =>
       (globalThis as any).sbRuntime.evalLua(
-        `(function()
-           local ok, result = pcall(
-             system.invokeFunction, "navigator.handle",
-             { view = "permIconTest", hook = "meta" }
-           )
-           return ok and result ~= nil
-         end)()`,
+        `navigator.handle { view = "permIconTest", hook = "meta" } ~= nil`,
       ),
     );
   }
@@ -705,13 +695,6 @@ test("N: a Space Lua-defined view's meta still resolves after Plugs: Reload", as
   await runCommandViaPalette(sbPage, "Plugs: Reload");
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
 
-  // Without the re-sync, this stays nil forever -- `permIconTest`'s own
-  // Space Lua registration (`navigator._views`) survives the reload
-  // untouched, but the plug's own registry has nothing under that name
-  // until something re-pushes it. Polled, not a single check right after
-  // the reload: the `plugs:loaded` listener doing the re-push is itself an
-  // async round trip per view, not necessarily done the instant `Plugs:
-  // Reload`'s own command invocation returns.
   await expect.poll(() => resolvesMeta(), { timeout: 20_000 }).toBe(true);
 });
 

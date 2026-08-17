@@ -6,7 +6,7 @@ import {
 } from "@silverbulletmd/silverbullet/syscalls";
 import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import type { Decoration } from "../../ui/types.ts";
+import type { Decoration } from "../ui/types.ts";
 import { baseMeta, type BuiltinView, INDEX_REFRESH_EVENTS } from "./types.ts";
 
 /** A page or document from the index (or its pre-index file-listing
