@@ -196,8 +196,7 @@ impl DiskSpacePrimitives {
         }
     }
 
-    /// Build a gitignore matcher combining the configured space-ignore
-    /// patterns with any `.gitignore` file in the space root.
+    /// Build a gitignore matcher from the configured space-ignore patterns.
     fn build_gitignore(&self) -> Option<ignore::gitignore::Gitignore> {
         let mut builder = GitignoreBuilder::new(&self.root_path);
         let mut has_pattern = false;
@@ -207,10 +206,6 @@ impl DiskSpacePrimitives {
                 let _ = builder.add_line(None, line);
                 has_pattern = true;
             }
-        }
-        let dot_gitignore = self.root_path.join(".gitignore");
-        if dot_gitignore.is_file() && builder.add(&dot_gitignore).is_none() {
-            has_pattern = true;
         }
         if !has_pattern {
             return None;
@@ -474,6 +469,23 @@ mod plan_tests {
         let dir = tempdir().unwrap();
         let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
         crate::space::conformance::run_read_write_conformance(&sp);
+    }
+
+    #[test]
+    fn ignores_configured_patterns_without_reading_space_gitignore() {
+        let dir = tempdir().unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "Library/\n").unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "Configured/").unwrap();
+
+        sp.write_file("Library/visible.md", b"visible", None)
+            .unwrap();
+        sp.write_file("Configured/hidden.md", b"hidden", None)
+            .unwrap();
+
+        let matcher = sp.gitignore_matcher();
+        assert!(!matcher.is_ignored("Library/visible.md", false));
+        assert!(matcher.is_ignored("Configured/hidden.md", false));
+        assert_eq!(names(&sp), vec!["Library/visible.md".to_string()]);
     }
 
     fn names(sp: &DiskSpacePrimitives) -> Vec<String> {

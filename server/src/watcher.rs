@@ -78,8 +78,8 @@ const ABANDONMENT_CHECK_INTERVAL: Duration = Duration::from_secs(2);
 
 /// Start watching `root`. Returns the broadcast sender (subscribe for events),
 /// or None if the watcher is off or could not be started (callers degrade to
-/// polling). `gitignore` must match what the space's DiskSpacePrimitives was
-/// built with, so watcher visibility agrees with the /.fs API.
+/// polling). `gitignore` must match the space's configured ignore rules, so
+/// watcher visibility agrees with the /.fs API.
 pub fn start_watcher(
     root: &Path,
     gitignore: &str,
@@ -242,13 +242,12 @@ fn debounce_loop(
             continue;
         }
         // Built once per flush (not per path): cheap enough for a handful of
-        // ready paths, and still picks up `.gitignore` edits promptly, same
-        // as fetch_file_list rebuilding on every call.
+        // ready paths and keeps the watcher aligned with fetch_file_list.
         let gitignore = validator.gitignore_matcher();
         // Resolve every ready path into the event it would produce *before*
         // deciding whether this is a flood: otherwise the flood count
         // includes paths that were never visible over /.fs in the first
-        // place (a whole gitignored directory churning, e.g. node_modules/,
+        // place (a whole configured-ignored directory churning, e.g. node_modules/,
         // shouldn't be able to trigger a Resync that makes every client
         // refetch its file list). get_file_meta_if_listable folds in the
         // same directory/no-extension rules fetch_file_list applies, in one
