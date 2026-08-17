@@ -6,6 +6,7 @@ import {
   gotoSilverBulletPage,
   mod,
   type SBServer,
+  shiftChord,
   test,
 } from "./fixtures.ts";
 import {
@@ -3434,26 +3435,26 @@ test.describe("built-in views", () => {
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await sbPage.keyboard.press(shiftChord("o"));
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
     await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
 
     await sbPage.locator("#sb-editor .cm-content").click();
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await sbPage.keyboard.press(shiftChord("o"));
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
     await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
 
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await sbPage.keyboard.press(shiftChord("o"));
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
     // Interchangeably: opened with one chord, closed with the other, both ways
     // round.
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await sbPage.keyboard.press(shiftChord("o"));
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
+    await sbPage.keyboard.press(shiftChord("o"));
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
     await sbPage.keyboard.press(`${mod}+o`);
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();

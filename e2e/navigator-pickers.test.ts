@@ -1,5 +1,11 @@
 import type { Locator, Page } from "@playwright/test";
-import { expect, gotoSilverBulletPage, mod, test } from "./fixtures.ts";
+import {
+  expect,
+  gotoSilverBulletPage,
+  mod,
+  shiftChord,
+  test,
+} from "./fixtures.ts";
 import {
   closePicker,
   currentPage,
@@ -140,7 +146,7 @@ test("Enter opens the selected page and dismisses the picker", async ({
 test("Cmd-Shift-k and the document picker command open the same view on another segment", async ({
   sbPage,
 }) => {
-  let frame = await openPicker(sbPage, `${mod}+Shift+k`, "Meta page");
+  let frame = await openPicker(sbPage, shiftChord("k"), "Meta page");
   await expect(navSegment(frame, "Meta")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -165,7 +171,7 @@ test("Cmd-Shift-k and the document picker command open the same view on another 
 test("opening on a segment doesn't become the segment it opens on", async ({
   sbPage,
 }) => {
-  await openPicker(sbPage, `${mod}+Shift+k`, "Meta page");
+  await openPicker(sbPage, shiftChord("k"), "Meta page");
   await expect(navSegment(navFrame(sbPage), "Meta")).toHaveAttribute(
     "aria-checked",
     "true",
