@@ -1,4 +1,5 @@
-import { syscall } from "@silverbulletmd/silverbullet/syscall";
+import { icon } from "@silverbulletmd/silverbullet/syscalls";
+import { handle as runHook } from "../registry.ts";
 import { rank } from "../../../plug-api/lib/fuzzy.ts";
 import {
   allNodes,
@@ -13,18 +14,15 @@ import type {
   Row,
   SourceCtx,
   ViewMeta,
-} from "./types.ts";
+} from "../types.ts";
 
 export type { RowState, RowStates };
 
-/** Every call this panel makes to the navigator on the host side. */
-export function host(fn: string, data: any): Promise<any> {
-  return syscall(`navigator.${fn}`, data);
-}
-
-function handle(view: string, hook: NavigatorHook, args?: any): Promise<any> {
-  return host("handle", { view, hook, args });
-}
+export type HookRunner = (data: {
+  view: string;
+  hook: NavigatorHook;
+  args?: any;
+}) => Promise<any>;
 
 const DEFAULT_FILTER_FIELDS: FilterFields = {
   primary: { weight: 1.0, segments: true },
@@ -81,6 +79,13 @@ function metaChanged(a: ViewMeta, b: ViewMeta): boolean {
 }
 
 export class NavigatorEngine {
+  /** How a view's hooks are run. A property so a test can wrap it. */
+  runHook: HookRunner = runHook;
+
+  private handle(view: string, hook: NavigatorHook, args?: any): Promise<any> {
+    return this.runHook({ view, hook, args });
+  }
+
   private cache = new Map<string, ViewState>();
   private indexCache = new WeakMap<Row[], IndexedRow[]>();
   private iconCache = new Map<string, string | undefined>();
@@ -91,7 +96,7 @@ export class NavigatorEngine {
   activeName?: string;
 
   private async resolveMeta(viewName: string): Promise<ViewMeta | undefined> {
-    const meta: ViewMeta | undefined = await handle(viewName, "meta");
+    const meta: ViewMeta | undefined = await this.handle(viewName, "meta");
     if (!meta) return undefined;
     if (!Array.isArray(meta.actions)) meta.actions = undefined;
     if (!Array.isArray(meta.keys)) meta.keys = undefined;
@@ -175,11 +180,6 @@ export class NavigatorEngine {
     };
   }
 
-  activeRows(): Row[] {
-    const entry = this.activeName && this.cache.get(this.activeName);
-    return entry ? entry.rows : [];
-  }
-
   activeState(): ViewState | undefined {
     return this.activeName ? this.cache.get(this.activeName) : undefined;
   }
@@ -197,15 +197,15 @@ export class NavigatorEngine {
     obj: Record<string, any>,
     from?: string,
   ): Promise<any> {
-    return handle(viewName, "select", { obj, from });
+    return this.handle(viewName, "select", { obj, from });
   }
 
   create(viewName: string, phrase: string): Promise<any> {
-    return handle(viewName, "create", { phrase });
+    return this.handle(viewName, "create", { phrase });
   }
 
   key(viewName: string, key: string, obj: Record<string, any>): Promise<any> {
-    return handle(viewName, "key", { key, obj });
+    return this.handle(viewName, "key", { key, obj });
   }
 
   move(
@@ -213,7 +213,7 @@ export class NavigatorEngine {
     obj: Record<string, any>,
     newName: string,
   ): Promise<any> {
-    return handle(viewName, "move", { obj, newName });
+    return this.handle(viewName, "move", { obj, newName });
   }
 
   action(
@@ -221,7 +221,7 @@ export class NavigatorEngine {
     index: number,
     obj: Record<string, any>,
   ): Promise<any> {
-    return handle(viewName, "action", {
+    return this.handle(viewName, "action", {
       index: index + 1,
       obj,
     });
@@ -235,7 +235,7 @@ export class NavigatorEngine {
     let rows: Row[] = [];
     let error: string | undefined;
     try {
-      const result = await handle(entry.meta.name, "rows", { ctx });
+      const result = await this.handle(entry.meta.name, "rows", { ctx });
       rows = Array.isArray(result) ? result : [];
       error = result?.error;
     } catch (e: any) {
@@ -277,7 +277,7 @@ export class NavigatorEngine {
         ? nodes.map(nodeObject)
         : entry.rows.map((row) => row.obj);
       try {
-        const result = await handle(meta.name, "rowState", { objs });
+        const result = await this.handle(meta.name, "rowState", { objs });
         raw = Array.isArray(result) ? result : [];
       } catch (e) {
         console.error("navigator: row state failed", e);
@@ -363,10 +363,7 @@ export class NavigatorEngine {
       return;
     }
     try {
-      const resolved: Record<string, string> = await syscall(
-        "icon.resolveFeather",
-        missing,
-      );
+      const resolved = await icon.resolveFeather(missing);
       for (const name of missing) this.iconCache.set(name, resolved?.[name]);
     } catch (e) {
       for (const name of missing) this.iconCache.set(name, undefined);
@@ -394,4 +391,23 @@ export class NavigatorEngine {
     }
     return indexed;
   }
+}
+
+// One engine per slot, outliving the panel it belongs to: a dock the user
+// closes and reopens comes back on its cached rows, and two slots showing the
+// same view keep their own row state (which is what a modal picker over an
+// already-docked view expects).
+const engines = new Map<string, NavigatorEngine>();
+
+// Reachable from the page for the e2e suite, which instruments a slot's
+// engine to count how often its source actually runs.
+(globalThis as any).__navigatorEngines = engines;
+
+export function engineFor(slot: string): NavigatorEngine {
+  let engine = engines.get(slot);
+  if (!engine) {
+    engine = new NavigatorEngine();
+    engines.set(slot, engine);
+  }
+  return engine;
 }

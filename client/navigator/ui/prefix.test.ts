@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { resolvePrefix, segmentFor } from "./prefix.ts";
-import type { SegmentMeta, ViewMeta } from "./types.ts";
+import type { SegmentMeta, ViewMeta } from "../types.ts";
 
 const segments: SegmentMeta[] = [
   { label: "All", hasWhere: false, default: true },

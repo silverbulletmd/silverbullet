@@ -1,4 +1,5 @@
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
+import { hide } from "../navigator.ts";
 import { baseMeta, type BuiltinView } from "./types.ts";
 
 /** A row here is a registered command, not an indexed object -- no
@@ -55,7 +56,7 @@ export const commandPalette: BuiltinView<CommandRow> = {
     // The palette has to be out of the way *before* the command runs: a
     // command that opens another navigator view would otherwise have its
     // panel closed again by this one's own dismissal.
-    await editor.hidePanel("modal");
+    await hide("modal");
     // Records the run (which is what orders the palette) and then runs it. A
     // command returning false is one that took the focus deliberately.
     if ((await system.runPaletteCommand(obj.name)) !== false) {

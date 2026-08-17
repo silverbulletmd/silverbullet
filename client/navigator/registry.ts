@@ -1,7 +1,7 @@
 import { builtinHandle, builtinMeta } from "./builtins.ts";
 import { luaHandle, RESERVED_PICK_PREFIX, type ViewSpec } from "./lua_views.ts";
 import type { LuaEnv } from "../space_lua/runtime.ts";
-import type { NavigatorHook, ViewMeta } from "./ui/types.ts";
+import type { NavigatorHook, ViewMeta } from "./types.ts";
 
 export type LuaView = {
   meta: ViewMeta;
@@ -11,6 +11,14 @@ export type LuaView = {
 };
 
 const luaViews = new Map<string, LuaView>();
+
+// The Space Lua environment a view's own hooks run in. Supplied by
+// `client_system.ts`, which owns it and rebuilds it on every script reload.
+let luaEnvSource: (() => LuaEnv) | undefined;
+
+export function setLuaEnvSource(source: () => LuaEnv): void {
+  luaEnvSource = source;
+}
 
 // supersede waits for an in-flight select rather than nulling it out from under an already-clicked row
 const inFlightSelects = new Map<string, Promise<any>>();
@@ -48,15 +56,13 @@ export function resolveMeta(name: string): ViewMeta | undefined {
   return builtinMeta(name) ?? luaViews.get(name)?.meta;
 }
 
-export async function handle(
-  data: {
-    view: string;
-    hook: NavigatorHook;
-    args?: any;
-  },
-  luaEnv?: LuaEnv,
-): Promise<any> {
+export async function handle(data: {
+  view: string;
+  hook: NavigatorHook;
+  args?: any;
+}): Promise<any> {
   const { view, hook, args } = data;
+  const luaEnv = luaEnvSource?.();
   const builtin = builtinMeta(view);
   if (builtin) {
     return hook === "meta"

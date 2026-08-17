@@ -1,6 +1,5 @@
 import { config, system } from "@silverbulletmd/silverbullet/syscalls";
-import { panelStyles } from "@silverbulletmd/silverbullet/lib/panel_styles";
-import { createPanelLifecycle } from "@silverbulletmd/silverbullet/lib/panel_lifecycle";
+import { createPanelLifecycle } from "./panel_lifecycle.ts";
 import {
   openOnStartViews,
   register,
@@ -17,52 +16,6 @@ import {
   type ViewSpec,
   wireMeta,
 } from "./lua_views.ts";
-
-const NAMESPACE = "navigator";
-const MODAL_MODE = 100;
-const MIN_WIDTH = 160;
-const MAX_WIDTH = 600;
-const DEFAULT_WIDTH = 260;
-
-let assetBundle: Promise<{ css: string; js: string }> | undefined;
-
-async function fetchAsset(path: string): Promise<string> {
-  const response = await fetch(path);
-  if (!response.ok) {
-    throw new Error(`navigator: could not load ${path} (${response.status})`);
-  }
-  return await response.text();
-}
-
-function assets(): Promise<{ css: string; js: string }> {
-  if (!assetBundle) {
-    const pending = Promise.all([
-      fetchAsset(".client/navigator.css"),
-      fetchAsset(".client/navigator.js"),
-    ]).then(([css, js]) => ({ css, js }));
-    // Drop a rejected read from the memo, guarded on identity so a retry already in flight wins.
-    void pending.catch(() => {
-      if (assetBundle === pending) assetBundle = undefined;
-    });
-    assetBundle = pending;
-  }
-  return assetBundle;
-}
-
-function buildEvents(refreshOn: string[] | undefined): string[] {
-  return [
-    ...new Set([
-      ...(refreshOn ?? []),
-      "editor:pageLoaded",
-      "editor:pageReloaded",
-      "navigator:activate",
-    ]),
-  ];
-}
-
-export function viewMeta(name: string): any | undefined {
-  return resolveMeta(name);
-}
 
 export type OpenOptions = {
   segment?: string;
@@ -81,71 +34,20 @@ function settlePick(name: string, value: unknown) {
   resolve(value);
 }
 
-let drainCounter = 0;
-
-/**
- * Resolves behind every message already queued for this window. The panel
- * posts its syscalls with `postMessage`, and a same-window post lands on the
- * same task source, which the event loop drains in order -- so a select the
- * panel dispatched before this call is guaranteed to have been handled by the
- * time this resolves.
- */
-function afterQueuedMessages(): Promise<void> {
-  const token = `navigator:drain:${++drainCounter}`;
-  return new Promise((resolve) => {
-    const listener = (event: MessageEvent) => {
-      if (event.data !== token) return;
-      globalThis.removeEventListener("message", listener);
-      resolve();
-    };
-    globalThis.addEventListener("message", listener);
-    globalThis.postMessage(token);
-  });
-}
-
-function settleAfterSelect(name: string, inFlight: Promise<any>) {
-  void inFlight.finally(() => settlePick(name, null));
-}
-
-// Waits for an in-flight select before nulling the pick, so the bridge answer isn't raced out from under it -- including one the panel has posted but the host hasn't handled yet, which is what the drain waits out.
+// Waits for an in-flight select before nulling the pick, so a user's async
+// `onSelect` still gets to answer the pick it was handed.
 function supersede(name: string) {
   const inFlight = selectInFlight(name);
-  if (inFlight) {
-    settleAfterSelect(name, inFlight);
-    return;
-  }
-  void afterQueuedMessages().then(() => {
-    const late = selectInFlight(name);
-    if (late) settleAfterSelect(name, late);
-    else settlePick(name, null);
-  });
+  if (inFlight) void inFlight.finally(() => settlePick(name, null));
+  else settlePick(name, null);
 }
 
 const lifecycle = createPanelLifecycle({
-  namespace: NAMESPACE,
-  widthBounds: { min: MIN_WIDTH, max: MAX_WIDTH, default: DEFAULT_WIDTH },
-  modalMode: MODAL_MODE,
-  notFoundLabel: "navigator view",
-  getMeta: viewMeta,
-  buildEvents,
-  content: {
-    preamble: () => panelStyles(),
-    build: async (slot, preamble) => {
-      const { css, js } = await assets();
-      return {
-        html: `${preamble}<style>${css}</style><div id="navigator-root" tabindex="-1"></div>`,
-        script: `var __NAVIGATOR_SLOT = ${JSON.stringify(slot)};\n${js}`,
-      };
-    },
-  },
+  getMeta: resolveMeta,
   getForcedOpens: openOnStartViews,
   onSuperseded: supersede,
   onSlotClosedWithoutSuccessor: (view) => settlePick(view, null),
 });
-
-export function ready(data: { slot: string }) {
-  return lifecycle.ready(data);
-}
 
 export function open(name: string, opts?: OpenOptions): Promise<boolean> {
   return lifecycle.open(name, {
@@ -184,12 +86,8 @@ export function pickOpen(
   });
 }
 
-export function panelHidden(data: {
-  slot: string;
-  view?: string;
-  token?: number;
-}): Promise<void> {
-  return lifecycle.panelHidden(data);
+export function hide(slot: string, expectedToken?: number): Promise<void> {
+  return lifecycle.hide(slot, expectedToken);
 }
 
 export async function route(data: {
@@ -211,15 +109,12 @@ export function resize(data: {
   slot: string;
   width: number;
   commit?: boolean;
-  // Authoritative right after a route() hop, whose target isn't persisted, so the datastore alone would recover the pre-hop view instead.
-  view?: string;
 }): Promise<void> {
   return lifecycle.resize(data);
 }
 
-export async function preload() {
-  await lifecycle.preloadModal();
-  await lifecycle.restoreDocks();
+export function restoreDocks(): Promise<void> {
+  return lifecycle.restoreDocks();
 }
 
 export async function defineView(spec: ViewSpec): Promise<void> {

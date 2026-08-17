@@ -6,7 +6,7 @@ import {
   rankIncrementally,
 } from "./incremental_rank.ts";
 import type { RankedRow } from "./engine.ts";
-import type { Row } from "./types.ts";
+import type { Row } from "../types.ts";
 
 test("safe: append within the same tier bracket", () => {
   // 1->2, 4->5..6->7 (max=1 throughout), 8->9..8->20 (max=2 throughout).

@@ -63,7 +63,7 @@ import {
 import { forceLinting } from "@codemirror/lint";
 import { openSearchPanel } from "@codemirror/search";
 import type { Transaction } from "@codemirror/state";
-import { EditorView, runScopeHandlers } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import {
   coerceAndValidateRef,
   type Ref,
@@ -81,29 +81,12 @@ import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
 import { isNarrowScreen } from "../../lib/mobile.ts";
-import type { PanelOptions, PanelSlot } from "../../types/ui.ts";
+import { hide as hideNavigatorSlot } from "../../navigator/navigator.ts";
+import type { PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
 import type { SysCallMapping } from "../system.ts";
 
-const PAINT_REVEAL_TIMEOUT_MS = 800;
-
 export function editorSyscalls(client: Client): SysCallMapping {
-  function markPanelReady(key: string, expectedActivationId?: string | number) {
-    const panel = client.ui.viewState.keyedPanels.find((p) => p.key === key);
-    // Already gone, already ready, or replaced by a newer activation under
-    // the same key (the modal reuses one).
-    if (
-      !panel ||
-      panel.hidden ||
-      panel.paintReady !== false ||
-      (expectedActivationId !== undefined &&
-        panel.activationId !== expectedActivationId)
-    ) {
-      return;
-    }
-    client.ui.viewDispatch({ type: "mark-panel-ready", key });
-  }
-
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": {
       callback: (): string => {
@@ -646,44 +629,22 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
     },
     "editor.showPanel": {
-      callback: (
+      callback: async (
         _ctx,
         id: string,
         mode: PanelMode,
         html: HTMLElement | HTMLElement[] | string,
         script: string,
-        options?: PanelOptions,
       ) => {
-        if (options?.key) {
-          const gated = id === "modal" && !options.preload;
-          if (gated) {
-            const activationId = options.activationId;
-            setTimeout(
-              () => markPanelReady(options.key!, activationId),
-              PAINT_REVEAL_TIMEOUT_MS,
-            );
-          }
-          client.ui.viewDispatch({
-            type: "show-keyed-panel",
-            config: {
-              key: options.key,
-              slot: id as PanelSlot,
-              mode,
-              html,
-              script,
-              hidden: !!options.preload,
-              events: options.events ?? [],
-              activationId: options.activationId,
-              paintReady: gated ? false : undefined,
-            },
-          });
-        } else {
-          client.ui.viewDispatch({
-            type: "show-panel",
-            id: id as any,
-            config: { html, script, mode },
-          });
-        }
+        // The other half of "one modal at a time" (see editor_ui.tsx): a plug
+        // opening the modal closes the navigator's, rather than landing
+        // underneath it.
+        if (id === "modal") await hideNavigatorSlot(id);
+        client.ui.viewDispatch({
+          type: "show-panel",
+          id: id as any,
+          config: { html, script, mode },
+        });
         setTimeout(() => {
           // Dummy dispatch to rerender the editor and toggle the panel
           client.editorView.dispatch({});
@@ -711,13 +672,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
           type: "string",
           description: "A script associated with the panel content.",
         },
-        {
-          name: "options",
-          type: "PanelOptions",
-          description:
-            "Optional keyed-panel options: key for persistent identity, preload to mount hidden, events to forward, activationId to pair with a later editor.hidePanel call.",
-          optional: true,
-        },
       ],
     },
     "editor.focus": {
@@ -725,43 +679,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
         client.focus();
       },
       description: "Returns focus to the main editor.",
-    },
-    "editor.forwardKeyboardShortcut": {
-      callback: (
-        _ctx,
-        descriptor: {
-          key: string;
-          ctrlKey?: boolean;
-          metaKey?: boolean;
-          altKey?: boolean;
-          shiftKey?: boolean;
-        },
-      ) => {
-        // The same scope `editor_ui.tsx`'s own global keydown listener
-        // dispatches through when the editor doesn't have focus -- a panel
-        // iframe's keydown can never reach that listener on its own (the
-        // iframe boundary stops it from bubbling), so this is how a chord
-        // like Cmd-/ still fires while a panel's filter input has focus.
-        const synthetic = new KeyboardEvent("keydown", {
-          key: descriptor.key,
-          ctrlKey: descriptor.ctrlKey,
-          metaKey: descriptor.metaKey,
-          altKey: descriptor.altKey,
-          shiftKey: descriptor.shiftKey,
-          bubbles: true,
-          cancelable: true,
-        });
-        runScopeHandlers(client.editorView, synthetic, "editor");
-      },
-      description:
-        "Dispatches a keyboard chord through the host's global command-key scope, as if pressed with editor focus. For a panel iframe forwarding a shortcut its own keydown pipeline left unclaimed.",
-      parameters: [
-        {
-          name: "descriptor",
-          type: "{ key: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean }",
-          description: "The KeyboardEvent fields the chord is matched on.",
-        },
-      ],
     },
     "editor.getFocusedPanelSlot": {
       callback: (): PanelSlot | undefined => {
@@ -786,27 +703,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
     },
     "editor.hidePanel": {
-      callback: (_ctx, id: string, expectedActivationId?: string | number) => {
-        const visibleKeyed = client.ui.viewState.keyedPanels.find(
-          (p) => p.slot === id && !p.hidden,
-        );
-        if (visibleKeyed) {
-          if (
-            expectedActivationId !== undefined &&
-            visibleKeyed.activationId !== expectedActivationId
-          ) {
-            return;
-          }
-          client.ui.viewDispatch({
-            type: "hide-keyed-panel",
-            key: visibleKeyed.key,
-          });
-        } else {
-          client.ui.viewDispatch({
-            type: "hide-panel",
-            id: id as any,
-          });
-        }
+      callback: async (_ctx, id: string) => {
+        // The navigator owns this slot whenever it is the thing showing
+        // there, so "hide the panel at this location" has to reach it too.
+        await hideNavigatorSlot(id);
+        client.ui.viewDispatch({
+          type: "hide-panel",
+          id: id as any,
+        });
         setTimeout(() => {
           // Dummy dispatch to rerender the editor and toggle the panel
           client.editorView.dispatch({});
@@ -818,37 +722,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "id",
           type: "string",
           description: "The panel location identifier.",
-        },
-        {
-          name: "expectedActivationId",
-          type: "string | number",
-          description:
-            "If given, only hides when the currently visible keyed panel for this slot still carries this activation id (see editor.showPanel's activationId option) -- otherwise a no-op, since something newer has already taken the slot.",
-          optional: true,
-        },
-      ],
-    },
-    "editor.panelReady": {
-      callback: (_ctx, id: string, activationId?: string | number) => {
-        const visibleKeyed = client.ui.viewState.keyedPanels.find(
-          (p) => p.slot === id && !p.hidden,
-        );
-        if (visibleKeyed) markPanelReady(visibleKeyed.key, activationId);
-      },
-      description:
-        "Paint-gated reveal handshake: signals that the keyed panel at the given slot has rendered its first real content for the given activation, so the host can reveal it (see editor.showPanel's gated paintReady).",
-      parameters: [
-        {
-          name: "id",
-          type: "string",
-          description: "The panel location identifier.",
-        },
-        {
-          name: "activationId",
-          type: "string | number",
-          description:
-            "The activation this panel is signalling readiness for (see editor.showPanel's activationId option) -- ignored if a newer activation has since taken the slot.",
-          optional: true,
         },
       ],
     },

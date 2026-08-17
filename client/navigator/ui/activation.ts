@@ -1,34 +1,37 @@
-import { syscall } from "@silverbulletmd/silverbullet/syscall";
-import { datastore } from "@silverbulletmd/silverbullet/syscalls";
+import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { defaultSegmentIndex, segmentIndexFor } from "./segments.ts";
 import {
-  type ActivationData,
   type ActiveView,
   ctxKey,
-  engine,
   type EventRefs,
-  listenForRefresh,
   type PanelSetters,
 } from "./panel.ts";
+import type { NavigatorEngine } from "./engine.ts";
+import type { NavActivation } from "./slots.ts";
 import { expansionKey } from "./expansion.ts";
 import { withExpanded } from "../../../plug-api/ui/tree_model.ts";
 
 export type ActivationDeps = {
   slot: string;
+  engine: NavigatorEngine;
   refs: EventRefs;
+  /** Subscribes this panel to a view's own `refreshOn` events. */
+  listenForRefresh: (names: string[]) => void;
   set: PanelSetters;
   publish: () => void;
   syncReadOnly: () => Promise<void>;
   applyReveal: (name: string, active?: ActiveView) => void;
   focusInput: (select: boolean) => void;
-  // Called when a paint effect won't fire to signal readiness itself — a reopen of the already-displayed view, or a dropped/superseded activation — since both show already-settled content.
+  // Called when a paint effect won't fire to signal readiness itself — a reopen of the already-displayed view, which shows already-settled content.
   signalReady: (token: number) => void;
 };
 
 export function createActivate(deps: ActivationDeps) {
   const {
     slot,
+    engine,
     refs,
+    listenForRefresh,
     set,
     publish,
     syncReadOnly,
@@ -40,9 +43,6 @@ export function createActivate(deps: ActivationDeps) {
     displayed,
     handledToken,
     segmentForced,
-    stale: staleRef,
-    hidden: hiddenRef,
-    pendingReveal,
     revealedFor,
     revealedPage,
     view: viewRef,
@@ -63,8 +63,7 @@ export function createActivate(deps: ActivationDeps) {
     setExpanded,
   } = set;
 
-  function refreshOnOpen(wanted: boolean | undefined) {
-    if (!wanted) return;
+  function refreshOnce() {
     void engine
       .refresh()
       .then(publish)
@@ -72,24 +71,16 @@ export function createActivate(deps: ActivationDeps) {
   }
 
   return async ({
-    slot: target,
     view: name,
     token,
     passive,
     phrase: carried,
     from,
     segment: wantedSegment,
-  }: ActivationData) => {
-    if (target !== slot) return;
+  }: NavActivation) => {
     void syncReadOnly();
-    // Tokens are monotonic but invocations aren't serialized, so this is a freshness check (<=), not equality — an older activation landing after a newer one must still be dropped.
     if (typeof token !== "number") {
       console.warn("navigator: activation without a token, ignoring", name);
-      return;
-    }
-    if (handledToken.current !== undefined && token <= handledToken.current) {
-      // editor.showPanel already gated the panel on this token before this event arrived, so it must be lifted directly here — nothing else will produce a fresh render to do it.
-      signalReady(token);
       return;
     }
     handledToken.current = token;
@@ -101,8 +92,11 @@ export function createActivate(deps: ActivationDeps) {
       if (redefined) displayed.current = undefined;
     }
     if (displayed.current !== name) {
-      // No panel:hidden fires when a pick loses the slot to a new activation (the iframe stays visible) — this is the only place that supersede is caught.
+      // A pick that loses the slot to a new activation is never unmounted (the panel stays up, showing the newcomer) — this is the only place that supersede is caught.
       if (displayed.current) engine.dropIfEphemeral(displayed.current);
+      // Nothing displayed yet means this panel has just mounted -- see the
+      // cached-rows refresh below.
+      const remounted = displayed.current === undefined;
       displayed.current = name;
       // Read before the await: activate() below is what fills the cache, so isLoaded must be captured before calling it.
       const cached = engine.isLoaded(name);
@@ -136,7 +130,6 @@ export function createActivate(deps: ActivationDeps) {
           });
         }
         revealedPage.current = undefined;
-        staleRef.current = false;
         const key =
           state.meta.mode === "tree"
             ? expansionKey(name, state.meta)
@@ -153,7 +146,14 @@ export function createActivate(deps: ActivationDeps) {
             );
           });
         }
-        if (cached && !passive) refreshOnOpen(state.meta.refreshOnOpen);
+        // A remount showing cached rows: this panel wasn't there to hear
+        // whatever changed while it was closed, so the source runs once, in
+        // place, under what's already on screen. A panel that stayed up did
+        // hear it, so a hop into a view it has cached re-runs the source only
+        // if the view asked for that.
+        if (cached && !passive && (remounted || state.meta.refreshOnOpen)) {
+          refreshOnce();
+        }
       } catch (e: any) {
         if (displayed.current !== name) return;
         displayed.current = undefined;
@@ -162,7 +162,7 @@ export function createActivate(deps: ActivationDeps) {
     } else if (!passive) {
       // No pending render for NavRoot's paint-timed effect to catch here (view/bootError won't change), so signal directly rather than relying on the 800ms fallback.
       signalReady(token);
-      refreshOnOpen(engine.activeState()?.meta.refreshOnOpen);
+      if (engine.activeState()?.meta.refreshOnOpen) refreshOnce();
     }
     const state = engine.activeState();
     const active: ActiveView | undefined =
@@ -195,7 +195,6 @@ export function createActivate(deps: ActivationDeps) {
         if (index >= 0) setSegmentIndex(index);
       });
     }
-    hiddenRef.current = false;
     interaction.current = "typing";
     if (passive) return;
     if (carried !== undefined) {
@@ -205,10 +204,8 @@ export function createActivate(deps: ActivationDeps) {
     } else if (isModal) {
       setPhrase("");
       setSelectedIndex(0);
-      // A reveal may already be queued or have just landed (shown won the race) — only reset the selection when neither is true, or this would clobber it.
-      if (pendingReveal.current === undefined && revealedFor.current !== name) {
-        setSelectedPath(undefined);
-      }
+      // A reveal may already have landed for this view -- resetting the selection would clobber it.
+      if (revealedFor.current !== name) setSelectedPath(undefined);
     }
     focusInput(
       carried === undefined && (isModal || phraseRef.current.trim() !== ""),
@@ -219,7 +216,7 @@ export function createActivate(deps: ActivationDeps) {
       !phraseRef.current.trim() &&
       active?.meta.followEditor
     ) {
-      const current: string = await syscall("editor.getCurrentPage");
+      const current = await editor.getCurrentPage();
       // A newer activation started while we awaited: it owns the view.
       if (displayed.current !== name) return;
       applyReveal(current, active);

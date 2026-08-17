@@ -8,13 +8,15 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
 import { h, render as preactRender } from "preact";
-import { useEffect, useLayoutEffect, useReducer, useRef } from "preact/hooks";
+import { useEffect, useReducer } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import type { Client } from "./client.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { kebabToPascal } from "./lib/feather_icons.ts";
 import { FilterList } from "./components/filter.tsx";
+import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
+import { useNavigatorSlot } from "./navigator/ui/slots.ts";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import * as mdi from "./filtered_material_icons.ts";
@@ -23,7 +25,6 @@ import {
   type Action,
   type AppViewState,
   initialViewState,
-  type PanelSlot,
 } from "./types/ui.ts";
 
 export class MainUI {
@@ -275,6 +276,12 @@ export class MainUI {
 
     const client = this.client;
 
+    const navSlots = {
+      lhs: useNavigatorSlot("lhs"),
+      rhs: useNavigatorSlot("rhs"),
+      modal: useNavigatorSlot("modal"),
+    };
+
     useEffect(() => {
       if (viewState.current) {
         document.title =
@@ -323,155 +330,53 @@ export class MainUI {
         : "off";
     }, [viewState.uiOptions.markdownSyntaxRendering]);
 
-    // A visible keyed lhs/rhs panel (a sidebar dock) reserves top-bar space
-    // the same way the classic keyless panel does, fall back to the keyless
-    // panel's mode when no keyed panel is visible so that behavior is
-    // unchanged for plugs that don't use keyed panels.
+    // A navigator dock reserves top-bar space the same way a plug's own
+    // sidebar panel does, falling back to that panel's mode when no dock is
+    // open so nothing changes for a plug that has one.
     const sidebarSpacer = (slot: "lhs" | "rhs") => {
-      const keyed = viewState.keyedPanels.find(
-        (p) => p.slot === slot && !p.hidden,
-      );
-      const mode = keyed?.mode ?? viewState.panels[slot].mode;
+      const mode = navSlots[slot]?.mode ?? viewState.panels[slot].mode;
       if (!mode) {
         return false;
       }
-      // The keyed spacer deliberately doesn't carry the classic "panel"
+      // The navigator's spacer deliberately doesn't carry the classic "panel"
       // class: space styles that target `#sb-top .panel` (a common hack to
       // neutralize the classic spacer) would otherwise break the title
       // alignment this spacer exists for.
       return (
         <div
-          className={keyed ? "sb-keyed-spacer" : "panel"}
+          className={navSlots[slot] ? "sb-nav-spacer" : "panel"}
           style={{ flex: mode }}
         />
       );
     };
-    const sidebarKeyedSignature = viewState.keyedPanels
-      .filter((p) => p.slot === "lhs" || p.slot === "rhs")
-      .map((p) => `${p.key}:${p.hidden}:${p.mode}`)
+    const navDockSignature = (["lhs", "rhs"] as const)
+      .map((slot) => `${slot}:${navSlots[slot]?.mode ?? ""}`)
       .join(",");
 
     useEffect(() => {
       // Need to dispatch a resize event so that the top_bar can pick it up
       globalThis.dispatchEvent(new Event("resize"));
-    }, [viewState.panels, sidebarKeyedSignature]);
+    }, [viewState.panels, navDockSignature]);
 
-    // A visible keyed modal panel covers the screen with a fixed backdrop, and
-    // only code inside its iframe can call hidePanel. If that iframe fails to
-    // boot there is no way out, so answer Escape here too. The iframe swallows
-    // its own keystrokes when focused, so this only fires when it hasn't got
-    // focus — precisely the stuck case.
-    const trappedModalKey = viewState.keyedPanels.find(
-      (p) => p.slot === "modal" && !p.hidden,
-    )?.key;
-
-    // Layout effect, not effect: a plain effect is flushed after paint, which
-    // leaves the modal on screen and focusable for a frame with no Escape
-    // handler attached — long enough for a real keystroke to fall through.
-    useLayoutEffect(() => {
-      if (!trappedModalKey) {
-        return;
-      }
-      const onKeyDown = (ev: KeyboardEvent) => {
-        if (ev.key !== "Escape") {
-          return;
-        }
-        ev.preventDefault();
-        dispatch({ type: "hide-keyed-panel", key: trappedModalKey });
-        client.focus();
-      };
-      globalThis.addEventListener("keydown", onKeyDown);
-      return () => globalThis.removeEventListener("keydown", onKeyDown);
-    }, [trappedModalKey]);
     const actionButtons = client.config.get<ActionButton[]>(
       "actionButtons",
       [],
     );
 
-    const keyedFor = (slot: PanelSlot) =>
-      viewState.keyedPanels
-        .filter((p) => p.slot === slot)
-        .map((p) => (
-          <div
-            key={p.key}
-            className={`sb-keyed-panel sb-keyed-panel-${slot}${
-              p.hidden ? " sb-hidden" : ""
-            }`}
-            style={{ flex: p.mode }}
-          >
-            <Panel config={p} editor={client} slot={slot} />
-          </div>
-        ));
+    // One modal at a time, last open wins: a navigator modal taking the slot
+    // closes the plug panel that had it, the way the keyed-panel reducer case
+    // used to. Both on screen means two stacked backdrops, with the
+    // navigator's (and the focus it took) hidden under the plug's.
+    const plugModalMode = viewState.panels.modal.mode;
+    useEffect(() => {
+      if (navSlots.modal && plugModalMode !== undefined) {
+        dispatch({ type: "hide-panel", id: "modal" });
+      }
+    }, [navSlots.modal, plugModalMode]);
+    const modalVisible = plugModalMode !== undefined && !navSlots.modal;
+    const modalInset = plugModalMode;
 
-    const keyedModalPanels = viewState.keyedPanels.filter(
-      (p) => p.slot === "modal",
-    );
-    const visibleKeyedModalPanel = keyedModalPanels.find((p) => !p.hidden);
-    const modalVisible =
-      viewState.panels.modal.mode !== undefined ||
-      visibleKeyedModalPanel !== undefined;
-    const modalInset =
-      viewState.panels.modal.mode ?? visibleKeyedModalPanel?.mode;
-    const centeredModal =
-      viewState.panels.modal.mode === undefined &&
-      visibleKeyedModalPanel !== undefined;
-    const modalRef = useRef<HTMLDivElement>(null);
-
-    // A `ResizeObserver` watching a *cross-document* target (the iframe's own
-    // `documentElement`, observed from here in the host) isn't tied to this
-    // document's rendering cadence -- measured over a second late here with
-    // nothing else forcing a host repaint, and a single-row picker's reveal
-    // landing on a stale, too-short height is exactly what a lag that size
-    // produces (the row itself renders inside the iframe just fine; the
-    // host's box around it just hasn't grown to match yet). A `requestAnimationFrame`
-    // loop instead re-measures on the *host's* own render cadence, which is
-    // what's actually driving what's on screen -- reliable regardless of
-    // whatever the iframe's document is doing, and self-correcting every
-    // frame rather than waiting on a notification that may not come.
-    useLayoutEffect(() => {
-      const el = modalRef.current;
-      if (!el || !centeredModal) return;
-      const doc = el.querySelector("iframe")?.contentDocument;
-      if (!doc) return;
-      // `.sb-modal-centered` is `box-sizing: border-box`, so the height this
-      // sets is the *outer* (bordered) box -- but the iframe rendering the
-      // measured content lives inside that border, in the content box. Not
-      // adding the border back in landed the applied height a couple of
-      // pixels short of what the iframe actually needed, clipping the bottom
-      // of the last row by exactly that much (most visible with few rows,
-      // where there's no leftover slack from a taller previous state to hide
-      // it in).
-      const cs = getComputedStyle(el);
-      const borderY =
-        parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-      const apply = () => {
-        const height = doc.documentElement.getBoundingClientRect().height;
-        if (height <= 0) return;
-        // A write here invalidates layout, so skipping it when the measured
-        // value hasn't moved is what keeps this loop from forcing one on
-        // every single frame for as long as any centered modal sits open.
-        const next = `${Math.ceil(height + borderY)}px`;
-        if (el.style.height !== next) el.style.height = next;
-      };
-      apply();
-      let frame = requestAnimationFrame(function tick() {
-        apply();
-        frame = requestAnimationFrame(tick);
-      });
-      return () => cancelAnimationFrame(frame);
-    }, [
-      centeredModal,
-      visibleKeyedModalPanel?.key,
-      modalVisible,
-      visibleKeyedModalPanel?.paintReady,
-    ]);
-
-    const keyedBhsPanels = viewState.keyedPanels.filter(
-      (p) => p.slot === "bhs",
-    );
-    const bhsVisible =
-      viewState.panels.bhs.mode !== undefined ||
-      keyedBhsPanels.some((p) => !p.hidden);
+    const bhsVisible = viewState.panels.bhs.mode !== undefined;
 
     return (
       <>
@@ -632,7 +537,7 @@ export class MainUI {
           }
         />
         <div id="sb-main">
-          {keyedFor("lhs")}
+          <NavigatorDock slot="lhs" state={navSlots.lhs} client={client} />
           {viewState.panels.lhs.mode !== undefined && (
             <Panel config={viewState.panels.lhs} editor={client} slot="lhs" />
           )}
@@ -640,86 +545,31 @@ export class MainUI {
           {viewState.panels.rhs.mode !== undefined && (
             <Panel config={viewState.panels.rhs} editor={client} slot="rhs" />
           )}
-          {keyedFor("rhs")}
+          <NavigatorDock slot="rhs" state={navSlots.rhs} client={client} />
         </div>
-        {(viewState.panels.modal.mode !== undefined ||
-          keyedModalPanels.length > 0) && (
-          <div
-            className={"sb-modal-backdrop" + (modalVisible ? "" : " sb-hidden")}
-            onClick={(ev) => {
-              // Only a click on the backdrop itself, and only for keyed panels
-              // — keyless modal panels keep their click-through behavior.
-              if (ev.target !== ev.currentTarget || !visibleKeyedModalPanel) {
-                return;
-              }
-              dispatch({
-                type: "hide-keyed-panel",
-                key: visibleKeyedModalPanel.key,
-              });
-              client.focus();
-            }}
-          >
+        <NavigatorModal state={navSlots.modal} client={client} />
+        {modalVisible && (
+          <div className="sb-modal-backdrop">
             <div
-              ref={modalRef}
-              className={
-                "sb-modal" +
-                (centeredModal ? " sb-modal-centered" : "") +
-                (visibleKeyedModalPanel?.paintReady === false
-                  ? " sb-modal-paint-pending"
-                  : "")
-              }
-              style={(() => {
-                const inset =
+              className="sb-modal"
+              style={{
+                inset:
                   typeof modalInset === "number"
                     ? `${modalInset}px`
-                    : modalInset;
-                return centeredModal
-                  ? {
-                      top: inset,
-                      // The height itself is written by the layout effect
-                      // above; this is only how far it may ever reach.
-                      maxHeight:
-                        typeof modalInset === "number"
-                          ? `calc(100% - ${modalInset * 2}px)`
-                          : undefined,
-                    }
-                  : { inset };
-              })()}
+                    : modalInset,
+              }}
             >
-              {viewState.panels.modal.mode !== undefined && (
-                <Panel
-                  config={viewState.panels.modal}
-                  editor={client}
-                  slot="modal"
-                />
-              )}
-              {keyedModalPanels.map((p) => (
-                <div
-                  key={p.key}
-                  className={"sb-keyed-panel" + (p.hidden ? " sb-hidden" : "")}
-                  style={{ flex: p.mode }}
-                >
-                  <Panel config={p} editor={client} slot="modal" />
-                </div>
-              ))}
+              <Panel
+                config={viewState.panels.modal}
+                editor={client}
+                slot="modal"
+              />
             </div>
           </div>
         )}
-        {(viewState.panels.bhs.mode !== undefined ||
-          keyedBhsPanels.length > 0) && (
-          <div className={"sb-bhs" + (bhsVisible ? "" : " sb-hidden")}>
-            {viewState.panels.bhs.mode !== undefined && (
-              <Panel config={viewState.panels.bhs} editor={client} slot="bhs" />
-            )}
-            {keyedBhsPanels.map((p) => (
-              <div
-                key={p.key}
-                className={"sb-keyed-panel" + (p.hidden ? " sb-hidden" : "")}
-                style={{ flex: p.mode }}
-              >
-                <Panel config={p} editor={client} slot="bhs" />
-              </div>
-            ))}
+        {bhsVisible && (
+          <div className="sb-bhs">
+            <Panel config={viewState.panels.bhs} editor={client} slot="bhs" />
           </div>
         )}
       </>

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "preact/hooks";
 import { HoverTracker, resolveHover } from "../../../../plug-api/ui/hover.ts";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import type { RankedRow, RowStates } from "../engine.ts";
-import type { ActionMeta } from "../types.ts";
+import type { ActionMeta } from "../../types.ts";
 import { RowItem } from "./row_item.tsx";
 
 export function ListView({

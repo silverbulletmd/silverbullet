@@ -1,17 +1,9 @@
-import { syscall } from "@silverbulletmd/silverbullet/syscall";
-import { datastore } from "@silverbulletmd/silverbullet/syscalls";
-import type { MutableRef } from "preact/hooks";
-import { host } from "./engine.ts";
-import { takeFocus } from "./focus.ts";
+import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
+import { hide, route } from "../navigator.ts";
+import type { NavigatorEngine } from "./engine.ts";
 import { defaultSegmentIndex } from "./segments.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
-import {
-  type ActiveView,
-  engine,
-  navHooks,
-  type PanelSetters,
-  type SharedRefs,
-} from "./panel.ts";
+import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
 import {
   completeSegment,
   completionCandidate,
@@ -23,6 +15,7 @@ import { createTreeCommands } from "./tree_commands.ts";
 export type CommandDeps = {
   slot: string;
   view?: ActiveView;
+  engine: NavigatorEngine;
   /** Whether the host is below its mobile breakpoint -- see `closesOnSelect`. */
   mobile: boolean;
   phrase: string;
@@ -30,11 +23,8 @@ export type CommandDeps = {
   derived: DerivedView;
   refs: SharedRefs;
   set: PanelSetters;
-  /** The view this slot's iframe currently believes is displayed -- see
-   * `close`, which won't hide the panel for a view that's no longer it. */
-  displayed: MutableRef<string | undefined>;
-  /** That same view's activation token -- see `close`. */
-  handledToken: MutableRef<number | undefined>;
+  /** The debounced source re-run -- see `runAction`. */
+  refresh: () => void;
 };
 
 export type Commands = ReturnType<typeof createCommands>;
@@ -48,16 +38,22 @@ export type Commands = ReturnType<typeof createCommands>;
 export function createCommands({
   slot,
   view,
+  engine,
   mobile,
   phrase,
   segmentIndex,
   derived,
   refs,
   set,
-  displayed,
-  handledToken,
+  refresh,
 }: CommandDeps) {
-  const { input: inputRef, returnTo, segmentDirty } = refs;
+  const {
+    input: inputRef,
+    returnTo,
+    segmentDirty,
+    displayed,
+    handledToken,
+  } = refs;
   const { setPhrase, setSegmentIndex, setSelectedIndex, setSelectedPath } = set;
   const {
     segments,
@@ -72,12 +68,19 @@ export function createCommands({
     visible,
     activeTreeNode,
   } = derived;
-  const tree = createTreeCommands({ view, derived, refs, set });
+  const tree = createTreeCommands({
+    view,
+    engine,
+    derived,
+    refs,
+    set,
+    refresh,
+  });
 
   async function close() {
-    // A cheap, early check: if a newer activation has already reached this
-    // iframe (`displayed` updated), skip the round trip entirely rather than
-    // asking the host to hide something that's already stale.
+    // A newer activation may already have taken this slot, in which case this
+    // close belongs to nothing: the token it was handed is what the lifecycle
+    // compares against the slot's current occupant before closing anything.
     if (
       view &&
       displayed.current !== undefined &&
@@ -85,34 +88,8 @@ export function createCommands({
     ) {
       return;
     }
-    // The authoritative check: `editor.hidePanel`'s own syscall message can
-    // still arrive at the host *after* a newer activation's `show` does --
-    // an iframe -> host round trip racing a worker -> host one for the same
-    // key has no ordering guarantee -- even though `displayed` above hadn't
-    // caught up yet when this call started. Handing over the token this
-    // activation was given (see navigator.ts's `show`) lets the host compare
-    // against an identity captured *before* that race, rather than
-    // re-derived after it, which is what actually closes the gap the
-    // `displayed` check above can't.
-    await syscall("editor.hidePanel", slot, handledToken.current);
-    await syscall("editor.focus");
-  }
-
-  /**
-   * A modifier chord the panel's own keydown pipeline left unclaimed --
-   * forwarded to the host so a global shortcut (Cmd-/, say) still fires while
-   * this iframe's filter input has focus, which the browser's own event
-   * bubbling can never do across the iframe boundary. Fire-and-forget: an
-   * unbound chord is a no-op on the host side too.
-   */
-  function forwardShortcut(descriptor: {
-    key: string;
-    ctrlKey: boolean;
-    metaKey: boolean;
-    altKey: boolean;
-    shiftKey: boolean;
-  }) {
-    void syscall("editor.forwardKeyboardShortcut", descriptor);
+    await hide(slot, handledToken.current);
+    await editor.focus();
   }
 
   // A mobile drawer covers the editor whole, so it dismisses on a selection
@@ -161,18 +138,18 @@ export function createCommands({
     setSelectedPath(undefined);
     // The panel's whole keyboard contract depends on the input holding focus;
     // a click on a segment must hand it straight back.
-    takeFocus(inputRef.current);
+    inputRef.current?.focus();
   }
 
   /**
    * A `prefixViews` hop: the sibling view takes this slot, carrying whatever
-   * followed the prefix. Routed through the host rather than swapped in here,
-   * so the slot's bookkeeping (which view a resize belongs to, which events
-   * the host forwards, the activation token) stays in one place. The datasets
-   * themselves are already cached in the engine, so the swap is a re-render.
+   * followed the prefix. Routed through the lifecycle rather than swapped in
+   * here, so the slot's bookkeeping (which view a resize belongs to, the
+   * activation token) stays in one place. The datasets themselves are already
+   * cached in the engine, so the swap is a re-render.
    */
   function routeToView(target: string, carried: string, from?: string) {
-    void host("route", {
+    void route({
       slot,
       view: target,
       phrase: carried,
@@ -187,7 +164,7 @@ export function createCommands({
    */
   async function completeFolder() {
     try {
-      const path: string = await syscall("editor.getCurrentPath");
+      const path = await editor.getCurrentPath();
       setPhrase(folderPrefix(path));
       setSelectedIndex(0);
       setSelectedPath(undefined);
@@ -242,7 +219,7 @@ export function createCommands({
     // navigates goes through `client.navigate`, which focuses the editor on
     // the way out. Take it back once the handler has settled -- an action
     // that wants the editor focused calls `editor.focus()` itself, after us.
-    takeFocus(inputRef.current);
+    inputRef.current?.focus();
   }
 
   async function runAction(index: number, obj: Record<string, any>) {
@@ -250,11 +227,11 @@ export function createCommands({
     await engine.action(view.name, index, obj);
     // Same contract as `runKeymap`: the panel keeps focus (a confirm dialog,
     // or an action that navigates, will have taken it in the meantime).
-    takeFocus(inputRef.current);
+    inputRef.current?.focus();
     // An action that renamed or deleted something leaves the view showing what
     // used to be there; the file events would refresh us eventually, but this
     // (debounced, like `moveNode`'s) makes it prompt.
-    navHooks.refresh?.();
+    refresh();
   }
 
   async function selectRow(index: number) {
@@ -298,7 +275,6 @@ export function createCommands({
   return {
     ...tree,
     close,
-    forwardShortcut,
     runCreate,
     selectedObj,
     pickSegment,

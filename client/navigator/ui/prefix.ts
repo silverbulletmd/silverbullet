@@ -14,7 +14,7 @@
  * resolved here is a formality rather than a precedence rule.
  */
 
-import type { SegmentMeta, ViewMeta } from "./types.ts";
+import type { SegmentMeta, ViewMeta } from "../types.ts";
 
 export type PrefixTarget =
   | { kind: "segment"; index: number; rest: string }

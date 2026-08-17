@@ -124,50 +124,6 @@ export default function reducer(
           [action.id]: {},
         },
       };
-    case "show-keyed-panel": {
-      const incoming = action.config;
-      const keyedPanels = state.keyedPanels.map((p) =>
-        p.key === incoming.key
-          ? {
-              ...p,
-              ...incoming,
-              html: p.html === incoming.html ? p.html : incoming.html,
-              script: p.script === incoming.script ? p.script : incoming.script,
-              activationId: incoming.activationId ?? p.activationId,
-            }
-          : incoming.hidden || p.slot !== incoming.slot
-            ? p
-            : { ...p, hidden: true },
-      );
-      if (!keyedPanels.some((p) => p.key === incoming.key)) {
-        keyedPanels.push(incoming);
-      }
-      return {
-        ...state,
-        keyedPanels,
-        panels: incoming.hidden
-          ? state.panels
-          : {
-              ...state.panels,
-              [incoming.slot]: {},
-            },
-      };
-    }
-    case "hide-keyed-panel":
-      return {
-        ...state,
-        keyedPanels: state.keyedPanels.map((p) =>
-          p.key === action.key ? { ...p, hidden: true } : p,
-        ),
-      };
-    case "mark-panel-ready":
-      return {
-        ...state,
-        keyedPanels: state.keyedPanels.map((p) =>
-          p.key === action.key ? { ...p, paintReady: true } : p,
-        ),
-      };
-
     case "show-filterbox":
       return {
         ...state,

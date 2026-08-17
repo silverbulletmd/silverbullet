@@ -24,45 +24,11 @@ globalThis.syscall = async (name, ...args) => {
 let oldHeight = undefined;
 let heightChecks = 0;
 
-const eventHandlers = new Map();
-globalThis.sbEvent = {
-  on(name, cb) {
-    if (!eventHandlers.has(name)) eventHandlers.set(name, []);
-    eventHandlers.get(name).push(cb);
-  },
-};
-
-// Whether the host is below its mobile breakpoint
-globalThis.sbMobile = false;
-
-// Ctrl/Cmd(-ish) chords the host currently has a command bound to, pushed
-// ahead of time so a panel can preventDefault a chord's browser default
-// synchronously -- its own forward to the host is fire-and-forget and can't
-// answer back in time to do it. See client/lib/bound_chords.ts.
-globalThis.sbBoundChords = [];
-
-function dispatchPanelEvent(name, args) {
-  for (const cb of eventHandlers.get(name) || []) {
-    try {
-      cb(...(args || []));
-    } catch (e) {
-      console.error("sbEvent handler error", e);
-    }
-  }
-}
-
 globalThis.addEventListener("message", (message) => {
   const data = message.data;
   switch (data.type) {
     case "html":
       document.body.innerHTML = data.html;
-      // Before the script is eval'd below, so a panel can read it on boot.
-      if (typeof data.mobile === "boolean") {
-        globalThis.sbMobile = data.mobile;
-      }
-      if (Array.isArray(data.boundChords)) {
-        globalThis.sbBoundChords = data.boundChords;
-      }
       if(data.theme) {
         document.getElementsByTagName("html")[0].setAttribute("data-theme", data.theme);
       }
@@ -101,24 +67,10 @@ globalThis.addEventListener("message", (message) => {
       }
 
       break;
-    case "event":
-      dispatchPanelEvent(data.name, data.args);
-      break;
     case "theme":
       if (data.theme) {
         document.documentElement.setAttribute("data-theme", data.theme);
       }
-      break;
-    case "panel:mobile":
-      globalThis.sbMobile = !!data.mobile;
-      dispatchPanelEvent("panel:mobile", [globalThis.sbMobile]);
-      break;
-    case "bound-chords":
-      globalThis.sbBoundChords = data.chords || [];
-      break;
-    case "panel:shown":
-    case "panel:hidden":
-      dispatchPanelEvent(data.type, []);
       break;
   }
 });

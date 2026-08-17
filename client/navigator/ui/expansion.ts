@@ -1,4 +1,4 @@
-import type { ViewMeta } from "./types.ts";
+import type { ViewMeta } from "../types.ts";
 
 /**
  * Where a view's tree state is persisted, or `undefined` for a view whose

@@ -6,12 +6,16 @@ const datastore = {
   del: vi.fn<(key: unknown[]) => Promise<void>>(),
 };
 const editor = {
-  showPanel: vi.fn<(...args: unknown[]) => Promise<void>>(),
+  focus: vi.fn<() => Promise<void>>(),
   flashNotification: vi.fn<(msg: string, kind?: string) => Promise<void>>(),
-  isNarrowScreen: vi.fn<() => Promise<boolean>>(),
 };
-const events = {
-  dispatchEvent: vi.fn<(name: string, data?: unknown) => Promise<unknown[]>>(),
+const slots = {
+  showSlot: vi.fn<(...args: unknown[]) => void>(),
+  hideSlot: vi.fn<(slot: string) => void>(),
+  focusedSlot: vi.fn<() => string | undefined>(),
+};
+const mobile = {
+  isNarrowScreen: vi.fn<() => boolean>(),
 };
 const config = {
   set: vi.fn<(key: unknown, value: unknown) => Promise<void>>(),
@@ -33,12 +37,10 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   config,
   datastore,
   editor,
-  events,
   system,
 }));
-vi.mock("@silverbulletmd/silverbullet/lib/panel_styles", () => ({
-  panelStyles: vi.fn<() => Promise<string>>().mockResolvedValue(""),
-}));
+vi.mock("./ui/slots.ts", () => slots);
+vi.mock("../lib/mobile.ts", () => mobile);
 vi.mock("./registry.ts", () => registry);
 
 // Resets modules so visibleSidebarView etc. start empty, like a freshly booted client.
@@ -47,31 +49,10 @@ async function freshNavigator() {
   return await import("./navigator.ts");
 }
 
-// Node has neither of these on the main thread; `afterQueuedMessages` needs a
-// window-shaped pair that delivers a post as its own task, like a browser.
-function stubWindowMessaging() {
-  const listeners = new Set<(event: { data: unknown }) => void>();
-  vi.stubGlobal("addEventListener", (type: string, fn: any) => {
-    if (type === "message") listeners.add(fn);
-  });
-  vi.stubGlobal("removeEventListener", (type: string, fn: any) => {
-    if (type === "message") listeners.delete(fn);
-  });
-  vi.stubGlobal("postMessage", (data: unknown) => {
-    setTimeout(() => {
-      for (const listener of [...listeners]) listener({ data });
-    });
-  });
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => new Response("")),
-  );
-  stubWindowMessaging();
-  editor.isNarrowScreen.mockResolvedValue(false);
+  mobile.isNarrowScreen.mockReturnValue(false);
+  slots.focusedSlot.mockReturnValue(undefined);
   registry.resolveMeta.mockReturnValue({ dock: "lhs", refreshOn: [] });
   registry.openOnStartViews.mockReturnValue([]);
   registry.selectInFlight.mockReturnValue(undefined);
@@ -136,193 +117,55 @@ test("a new pick opening in the same slot with no in-flight select for the previ
   expect(await first).toBeNull();
 });
 
-// A modal activation is all microtasks, so it can reach the supersede before
-// the host's message loop has even delivered the select the panel dispatched
-// first. The first consult therefore has to be allowed to miss: only a
-// re-check behind the queued messages sees the select that is already on its
-// way, and without one the pick is nulled out from under an answer.
-test("a select that only registers after the first consult still wins the supersede", async () => {
-  const nav = await freshNavigator();
-  registry.resolveMeta.mockReturnValue({ dock: "modal", refreshOn: [] });
-  const { promise: inFlight, resolve: resolveInFlight } = deferred<unknown[]>();
-  let consults = 0;
-  registry.selectInFlight.mockImplementation((view: string) => {
-    if (view !== "__pick:A") return undefined;
-    consults++;
-    return consults === 1 ? undefined : inFlight;
-  });
-
-  let firstSettled = false;
-  const first = nav
-    .pickOpen("__pick:A", { dock: "modal" }, {})
-    .then((v: unknown) => {
-      firstSettled = true;
-      return v;
-    });
-  nav.pickOpen("__pick:B", { dock: "modal" }, {});
-
-  await new Promise((resolve) => setTimeout(resolve, 50));
-  expect(consults).toBeGreaterThan(1);
-  expect(firstSettled).toBe(false);
-
-  resolveInFlight([]);
-  expect(await first).toBeNull();
-  expect(firstSettled).toBe(true);
-});
-
 test("a pick whose view never opens resolves nil", async () => {
   const nav = await freshNavigator();
   registry.resolveMeta.mockReturnValue(undefined);
 
   expect(await nav.pickOpen("__pick:A", { dock: "modal" }, {})).toBeNull();
-  expect(editor.showPanel).not.toHaveBeenCalled();
+  expect(slots.showSlot).not.toHaveBeenCalled();
   expect(registry.unregister).toHaveBeenCalledWith("__pick:A");
 });
 
-test("resize re-derives the docked view from the datastore when module state is empty", async () => {
+test("resize re-shows the dock at the dragged width, and a commit persists it", async () => {
   const nav = await freshNavigator();
-  datastore.get.mockResolvedValue("std.spaceTree");
+  await nav.open("std.spaceTree");
+  slots.showSlot.mockClear();
 
   await nav.resize({ slot: "lhs", width: 300 });
-
-  expect(editor.showPanel).toHaveBeenCalledWith(
+  expect(slots.showSlot).toHaveBeenCalledWith(
     "lhs",
     "0 0 300px",
-    expect.any(String),
-    expect.any(String),
-    expect.objectContaining({ key: "navigator:lhs" }),
+    expect.objectContaining({ view: "std.spaceTree" }),
   );
-});
-
-test("a stray resize with nothing docked in the slot (datastore agrees) is dropped", async () => {
-  const nav = await freshNavigator();
-  datastore.get.mockResolvedValue(undefined);
-
-  await nav.resize({ slot: "lhs", width: 300 });
-
-  expect(editor.showPanel).not.toHaveBeenCalled();
-});
-
-test("only the first post-wipe tick pays for the datastore read", async () => {
-  const nav = await freshNavigator();
-  datastore.get.mockResolvedValue("std.spaceTree");
-
-  await nav.resize({ slot: "lhs", width: 300 });
-  expect(datastore.get).toHaveBeenCalledTimes(1);
-
-  await nav.resize({ slot: "lhs", width: 320 });
-  expect(datastore.get).toHaveBeenCalledTimes(1);
-  expect(editor.showPanel).toHaveBeenLastCalledWith(
-    "lhs",
-    "0 0 320px",
-    expect.any(String),
-    expect.any(String),
-    expect.any(Object),
-  );
-});
-
-test("a resize tick after a real close stays dropped, via the datastore fallback too", async () => {
-  const nav = await freshNavigator();
-  datastore.get.mockResolvedValue("std.spaceTree");
-  await nav.open("std.spaceTree");
-  await nav.panelHidden({ slot: "lhs" });
-  datastore.get.mockResolvedValue(undefined);
-  editor.showPanel.mockClear();
-
-  await nav.resize({ slot: "lhs", width: 300 });
-
-  expect(editor.showPanel).not.toHaveBeenCalled();
-});
-
-// Guards against a resolution storm: without a one-tick-only guard, every post-wipe drag tick re-resolves meta on every rAF frame for as long as the worker stays wiped.
-test("only the first post-wipe tick resolves meta; later ticks don't", async () => {
-  const nav = await freshNavigator();
-  datastore.get.mockResolvedValue("std.spaceTree");
-
-  await nav.resize({ slot: "lhs", width: 300 });
-  expect(registry.resolveMeta).toHaveBeenCalledTimes(1);
-
-  registry.resolveMeta.mockClear();
-  await nav.resize({ slot: "lhs", width: 305 });
-  await nav.resize({ slot: "lhs", width: 310 });
-  expect(registry.resolveMeta).not.toHaveBeenCalled();
-});
-
-// Without this check, a resize landing here would re-derive the still-present datastore key and re-show (and re-arm) a panel that is actually closing.
-test("a resize tick that starts after panelHidden has already marked the slot closing is dropped (first check)", async () => {
-  const nav = await freshNavigator();
-  datastore.get.mockResolvedValue("std.spaceTree");
-  await nav.open("std.spaceTree");
-
-  let resolveDel!: () => void;
-  datastore.del.mockImplementation(
-    () => new Promise<void>((resolve) => (resolveDel = resolve)),
-  );
-  const hiddenPromise = nav.panelHidden({ slot: "lhs" });
-
-  datastore.get.mockResolvedValue("std.spaceTree");
-  editor.showPanel.mockClear();
-
-  await nav.resize({ slot: "lhs", width: 300 });
-  expect(editor.showPanel).not.toHaveBeenCalled();
-
-  resolveDel();
-  await hiddenPromise;
-
-  datastore.get.mockResolvedValue(undefined);
-  await nav.resize({ slot: "lhs", width: 305 });
-  expect(editor.showPanel).not.toHaveBeenCalled();
-});
-
-// Guards the narrower interleaving where panelHidden marks the slot closing while resize()'s own awaits (datastore.get, then viewMeta) are already in flight -- the first check alone would have passed clean here.
-test("a resize tick whose own awaits are interleaved by a mid-flight close is dropped (second check)", async () => {
-  const nav = await freshNavigator();
-
-  let resolveGet!: (value: unknown) => void;
-  datastore.get.mockImplementation(
-    () => new Promise((resolve) => (resolveGet = resolve)),
-  );
-  let resolveDel!: () => void;
-  datastore.del.mockImplementation(
-    () => new Promise<void>((resolve) => (resolveDel = resolve)),
+  expect(datastore.set).not.toHaveBeenCalledWith(
+    ["navigator", "std.spaceTree", "width"],
+    300,
   );
 
-  const resizePromise = nav.resize({ slot: "lhs", width: 300 });
-  const hiddenPromise = nav.panelHidden({ slot: "lhs" });
-
-  resolveGet("std.spaceTree");
-  await resizePromise;
-  expect(editor.showPanel).not.toHaveBeenCalled();
-
-  resolveDel();
-  await hiddenPromise;
-});
-
-test("resize after a wipe trusts the panel's reported view over a stale (pre-hop) datastore entry", async () => {
-  const nav = await freshNavigator();
-  datastore.get.mockResolvedValue("std.spaceTree");
-
-  await nav.resize({ slot: "lhs", width: 321, view: "std.tagTree" });
-
-  expect(datastore.get).not.toHaveBeenCalled();
-  expect(editor.showPanel).toHaveBeenCalledWith(
-    "lhs",
-    "0 0 321px",
-    expect.any(String),
-    expect.any(String),
-    expect.any(Object),
-  );
-
-  await nav.resize({
-    slot: "lhs",
-    width: 321,
-    commit: true,
-    view: "std.tagTree",
-  });
+  await nav.resize({ slot: "lhs", width: 321, commit: true });
   expect(datastore.set).toHaveBeenCalledWith(
-    ["navigator", "std.tagTree", "width"],
+    ["navigator", "std.spaceTree", "width"],
     321,
   );
+});
+
+test("a stray resize with nothing docked in the slot is dropped", async () => {
+  const nav = await freshNavigator();
+
+  await nav.resize({ slot: "lhs", width: 300 });
+
+  expect(slots.showSlot).not.toHaveBeenCalled();
+});
+
+test("a resize tick after a real close stays dropped", async () => {
+  const nav = await freshNavigator();
+  await nav.open("std.spaceTree");
+  await nav.hide("lhs");
+  slots.showSlot.mockClear();
+
+  await nav.resize({ slot: "lhs", width: 300 });
+
+  expect(slots.showSlot).not.toHaveBeenCalled();
 });
 
 async function registeredCommands() {
@@ -343,7 +186,7 @@ test.each([
   const commands = await registeredCommands();
 
   expect(await commands.get(command).run()).toBe(false);
-  expect(editor.showPanel).toHaveBeenCalled();
+  expect(slots.showSlot).toHaveBeenCalled();
   // Pins the view: any of these wrappers would return false and call
   // showPanel, so those two alone don't prove which view was opened.
   expect(registry.resolveMeta).toHaveBeenCalledWith(view);

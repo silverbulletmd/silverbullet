@@ -6,7 +6,7 @@ import {
   matchesTags,
   splitHashtags,
 } from "./phrase.ts";
-import type { Row } from "./types.ts";
+import type { Row } from "../types.ts";
 
 function row(tags?: unknown): Row {
   return { obj: { name: "x", tags }, primary: "x" };

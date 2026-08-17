@@ -124,9 +124,11 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
--- Validation: every navigator.define ("name-world") field navigator.pick
--- rejects outright, plus the exact message for one of them (the rest just
--- check pass/fail, like the existing prefix-validation suite does).
+-- Validation: navigator.define rejects the reserved __pick: prefix, and a
+-- normal name right next to it still works (so the rejection is about the
+-- prefix, not a coincidental break in navigator.define itself). Plus one
+-- name-world field arriving at navigator.pick as a real Lua table -- the
+-- whole set of them, with exact messages, is pinned in lua_views.test.ts.
 --
 -- These pcall()s run at space-lua *load* time, which is only safe because
 -- every case here is expected to be rejected before navigator.pick ever
@@ -134,58 +136,14 @@ navigator.define {
 -- picker, this script would suspend waiting for a user who isn't there, and
 -- the whole file would time out on load instead of failing with a readable
 -- assertion.
-local rejectFieldCases = {
-  { field = "name", value = "x" },
-  { field = "command", value = "X" },
-  { field = "key", value = "k" },
-  { field = "mac", value = "k" },
-  { field = "menu", value = "File" },
-  { field = "menuMac", value = "File" },
-  { field = "menuWindows", value = "File" },
-  { field = "menuLinux", value = "File" },
-  { field = "hide", value = true },
-  { field = "dock", value = "lhs" },
-  { field = "openOnStart", value = true },
-  { field = "refreshOn", value = {} },
-  { field = "refreshOnOpen", value = true },
-  { field = "followEditor", value = true },
-  { field = "onMove", value = function() end },
-  { field = "prefixViews", value = { ["$"] = "somewhere" } },
-}
-pickRejectLog = {}
-for _, case in ipairs(rejectFieldCases) do
-  local spec = { source = function() return {} end }
-  spec[case.field] = case.value
-  local ok = pcall(navigator.pick, spec)
-  pickRejectLog[#pickRejectLog + 1] = case.field .. "=" .. tostring(ok)
-end
-local nameOk, nameErr = pcall(navigator.pick, {
-  name = "x",
-  source = function() return {} end,
-})
-pickRejectLog[#pickRejectLog + 1] = "name.error=" .. tostring(nameErr)
-
-navigator.define {
-  name = "pickRejectView",
-  title = "Pick Reject Fields",
-  command = "Navigator: Pick Reject Fields",
-  dock = "modal",
-  presentation = { mode = "list" },
-  source = function()
-    local out = {}
-    for _, line in ipairs(pickRejectLog) do
-      out[#out + 1] = { name = line, ref = line }
-    end
-    return out
-  end,
-  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
-}
-
--- Validation: navigator.define rejects the reserved __pick: prefix, and a
--- normal name right next to it still works (so the rejection is about the
--- prefix, not a coincidental break in navigator.define itself).
 pickPrefixLog = {}
 do
+  local dockOk, dockErr = pcall(navigator.pick, {
+    source = function() return {} end,
+    dock = "lhs",
+  })
+  pickPrefixLog[#pickPrefixLog + 1] = "dock=" .. tostring(dockOk)
+  pickPrefixLog[#pickPrefixLog + 1] = "dock.error=" .. tostring(dockErr)
   local reservedOk = pcall(navigator.define, {
     name = "__pick:oops",
     source = function() return {} end,
@@ -369,17 +327,18 @@ test("a stale close from an already-resolved pick can never resolve or hide the 
   const first = invokePickCommand(sbPage, "Navigator: Pick Super A");
   await waitForPlaceholder(sbPage, "Super A");
 
+  // Holds the panel's close behind the *next* pick's open: the close then
+  // arrives naming an activation the slot no longer has, which is exactly the
+  // stale close that must not settle (or hide) the pick now occupying it.
   await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    const w = f.contentWindow as any;
-    const orig = w.syscall;
-    w.syscall = (name: string, ...args: any[]) => {
-      if (name === "navigator.panelHidden") {
-        return new Promise((resolve) => {
-          setTimeout(() => resolve(orig(name, ...args)), 500);
-        });
+    const engine = (globalThis as any).__navigatorEngines.get("modal");
+    const orig = engine.runHook;
+    engine.runHook = async (data: any) => {
+      const result = await orig(data);
+      if (data.hook === "select") {
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      return orig(name, ...args);
+      return result;
     };
   });
 
@@ -465,13 +424,14 @@ test("switching segments inside a pick writes nothing to the datastore", async (
   await expect(frame.locator(".sb-nav-row", { hasText: "One" })).toBeVisible();
 
   await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    const w = f.contentWindow as any;
+    const w = globalThis as any;
     const log: string[] = [];
-    (globalThis as any).__pickSyscalls = log;
+    w.__pickSyscalls = log;
     const orig = w.syscall;
     w.syscall = (name: string, ...args: unknown[]) => {
-      log.push(name);
+      // The navigator's own datastore keys only: the editor writes plenty of
+      // others, and none of them are what this pick must not be persisting.
+      if (Array.isArray(args[0]) && args[0][0] === "navigator") log.push(name);
       return orig(name, ...args);
     };
   });
@@ -490,46 +450,7 @@ test("switching segments inside a pick writes nothing to the datastore", async (
   expect(await result).toBe("One");
 });
 
-test("navigator.pick rejects every navigator.define (name-world) field", async ({
-  sbPage,
-}) => {
-  await runCommandViaPalette(sbPage, "Navigator: Pick Reject Fields");
-  const frame = navFrame(sbPage);
-  await expect(
-    frame.locator(".sb-nav-row", { hasText: "name=false" }).first(),
-  ).toBeVisible({ timeout: 20_000 });
-  const rows = await frame
-    .locator(".sb-nav-row .sb-nav-primary")
-    .allInnerTexts();
-  const expectFalse = [
-    "name",
-    "command",
-    "key",
-    "mac",
-    "menu",
-    "menuMac",
-    "menuWindows",
-    "menuLinux",
-    "hide",
-    "dock",
-    "openOnStart",
-    "refreshOn",
-    "refreshOnOpen",
-    "followEditor",
-    "onMove",
-    "prefixViews",
-  ];
-  for (const field of expectFalse) {
-    expect(rows).toContain(`${field}=false`);
-  }
-  const nameError = rows.find((r) => r.startsWith("name.error="));
-  expect(nameError).toBeDefined();
-  expect(nameError).toContain("navigator.define");
-  expect(nameError).toContain("'name'");
-  await sbPage.keyboard.press("Escape");
-});
-
-test("navigator.define and navigator.open both reject the reserved pick prefix", async ({
+test("navigator.define and navigator.open both reject the reserved pick prefix, and navigator.pick rejects a define field", async ({
   sbPage,
 }) => {
   await runCommandViaPalette(sbPage, "Navigator: Pick Prefix Validation");
@@ -543,5 +464,10 @@ test("navigator.define and navigator.open both reject the reserved pick prefix",
   expect(rows).toContain("reserved=false");
   expect(rows).toContain("normal=true");
   expect(rows).toContain("open=false");
+  expect(rows).toContain("dock=false");
+  const dockError = rows.find((r) => r.startsWith("dock.error="));
+  expect(dockError).toBeDefined();
+  expect(dockError).toContain("navigator.define");
+  expect(dockError).toContain("'dock'");
   await sbPage.keyboard.press("Escape");
 });

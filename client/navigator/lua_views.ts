@@ -13,7 +13,7 @@ import type {
   NavigatorHook,
   SegmentMeta,
   ViewMeta,
-} from "./ui/types.ts";
+} from "./types.ts";
 
 export const RESERVED_PICK_PREFIX = "__pick:";
 

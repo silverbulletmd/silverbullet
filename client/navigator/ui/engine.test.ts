@@ -1,11 +1,13 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import type { Row, ViewMeta } from "./types.ts";
+import type { Row, ViewMeta } from "../types.ts";
 
 const syscall = vi.fn<(name: string, ...args: any[]) => Promise<any>>();
+const handle = vi.fn<(data: any) => Promise<any>>();
 
 vi.mock("@silverbulletmd/silverbullet/syscall", () => ({
   syscall: (name: string, ...args: any[]) => syscall(name, ...args),
 }));
+vi.mock("../registry.ts", () => ({ handle: (data: any) => handle(data) }));
 
 const { NavigatorEngine, parseIcon } = await import("./engine.ts");
 
@@ -34,8 +36,7 @@ function meta(overrides: Partial<ViewMeta> = {}): ViewMeta {
 }
 
 function bridge(viewMeta: ViewMeta, rows: unknown[]) {
-  syscall.mockImplementation((name: string, payload: any) => {
-    if (name !== "navigator.handle") return Promise.resolve(undefined);
+  handle.mockImplementation((payload: any) => {
     if (payload.hook === "meta") return Promise.resolve(viewMeta);
     if (payload.hook === "rows") return Promise.resolve(rows);
     return Promise.resolve(undefined);
@@ -47,8 +48,7 @@ function bridgeWithRowState(
   rows: unknown[],
   rowStates: unknown[],
 ) {
-  syscall.mockImplementation((name: string, payload: any) => {
-    if (name !== "navigator.handle") return Promise.resolve(undefined);
+  handle.mockImplementation((payload: any) => {
     if (payload.hook === "meta") return Promise.resolve(viewMeta);
     if (payload.hook === "rows") return Promise.resolve(rows);
     if (payload.hook === "rowState") return Promise.resolve(rowStates);
@@ -166,13 +166,15 @@ test("an unrecognized icon namespace resolves nothing and warns once per prefix,
 // The real-world trigger is a client one version stale against its host during a rolling upgrade, where icon.resolveFeather doesn't exist yet and the syscall rejects.
 test("a rejected icon.resolveFeather syscall still completes the render, without icons, warning once", async () => {
   const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-  syscall.mockImplementation((name: string, payload?: any) => {
+  syscall.mockImplementation((name: string) => {
     if (name === "icon.resolveFeather") {
       return Promise.reject(
         new Error("Unregistered syscall icon.resolveFeather"),
       );
     }
-    if (name !== "navigator.handle") return Promise.resolve(undefined);
+    return Promise.resolve(undefined);
+  });
+  handle.mockImplementation((payload: any) => {
     if (payload.hook === "meta") {
       return Promise.resolve(meta({ hasRowIcon: true }));
     }
@@ -221,8 +223,7 @@ test("dropIfEphemeral is a no-op for an ordinary (non-ephemeral) view", async ()
 
 test("a Lua-owned view's meta is re-resolved on every activate, picking up a redefinition without a reload", async () => {
   let title = "First";
-  syscall.mockImplementation((name: string, payload?: any) => {
-    if (name !== "navigator.handle") return Promise.resolve(undefined);
+  handle.mockImplementation((payload: any) => {
     if (payload.hook === "meta") return Promise.resolve(meta({ title }));
     if (payload.hook === "rows") return Promise.resolve([]);
     return Promise.resolve(undefined);
@@ -277,8 +278,7 @@ test("dropIfRedefined is a no-op for a view that was never activated", async () 
 
 test("a built-in's meta is resolved once and never asked for again on later activations", async () => {
   let metaCalls = 0;
-  syscall.mockImplementation((name: string, payload?: any) => {
-    if (name !== "navigator.handle") return Promise.resolve(undefined);
+  handle.mockImplementation((payload: any) => {
     if (payload.hook === "meta") {
       metaCalls++;
       return Promise.resolve(meta({ builtin: true }));

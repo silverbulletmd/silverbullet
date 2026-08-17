@@ -1,32 +1,21 @@
 // Visual language mirrors `.sb-modal-box` / `.sb-result-list` in
-// `client/styles/modals.scss` so a docked navigator reads as the same widget
-// family as the command palette and page picker. Colors come from the modal
-// tokens in components.css, which `panelStyles()` links into the iframe.
+// `modals.scss` so a docked navigator reads as the same widget family as the
+// command palette and page picker.
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  height: 100%;
-  // The panel document itself must never scroll: scrolling stays inside
-  // .sb-nav-body, and a document-level scroll here would be visible in the
-  // host as a stray scrollbar over the sidebar.
-  overflow: hidden;
-  font-family: var(--ui-font);
-  font-size: 16px;
-  background: var(--modal-background-color);
-  color: var(--modal-color);
-}
-
-#navigator-root {
-  position: absolute;
-  inset: 0;
-  outline: none;
-}
-
-// ...except in a modal, where nothing may be taken out of flow: the document's
-// own height is what the host sizes the modal to.
-html[data-slot="modal"] #navigator-root {
-  position: static;
+// The panel's own reset, scoped to it: it renders inside the editor document
+// now, where a global one would reach everything else on the page. `:where`
+// keeps the scoping free of specificity -- at (0,1,0) it would tie every
+// `.sb-nav-*` rule in components.scss and, sitting later in the stylesheet,
+// win: every row, chip and segment inside the panel would lose its padding.
+:where(
+  .sb-nav-root,
+  .sb-nav-root *,
+  .sb-nav-root *::before,
+  .sb-nav-root *::after
+) {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 // Every dimmed thing *inside a row* -- icons, chevrons, an aspiring page's
@@ -45,23 +34,19 @@ html[data-slot="modal"] #navigator-root {
   display: flex;
   flex-direction: column;
   height: 100%;
+  // Scrolling stays inside .sb-nav-body; a scrollbar on the panel itself
+  // would read as a stray one down the side of the dock.
   overflow: hidden;
+  font-family: var(--ui-font);
+  font-size: 16px;
+  background: var(--modal-background-color);
+  color: var(--modal-color);
 }
 
 // A modal is a picker, and a picker is its chrome plus a capped list -- never
-// a column stretched toward the viewport. So this document sizes to its
-// content and the host reads that height back off it, giving the modal
-// exactly that (see `.sb-modal-centered` in the client's main.scss).
-//
-// Nothing here may be sized against the viewport: the viewport *is* the height
-// the host derived from this document, and the two would chase each other down
-// to nothing. The list's own cap below is what bounds the content instead.
-html[data-slot="modal"],
-html[data-slot="modal"] body {
-  height: auto;
-  overflow: hidden;
-}
-
+// a column stretched toward the viewport. It sizes to its content, and the
+// box around it (`.sb-modal-centered` in main.scss) follows; the list's own
+// cap below is what bounds that content.
 .sb-nav-root-modal {
   height: auto;
 }
@@ -91,14 +76,14 @@ html[data-slot="modal"] body {
   color: var(--modal-header-label-color);
 }
 
-// Room for the handle beside the scrollbar rather than on top of it: with
-// classic (non-overlay) scrollbars the two occupy the same strip otherwise,
-// which reads as one clunky double-wide band.
-.sb-nav-root-lhs .sb-nav-body {
+// Room for the drag handle beside the scrollbar rather than on top of it:
+// with classic (non-overlay) scrollbars the two occupy the same strip
+// otherwise, which reads as one clunky double-wide band.
+.sb-nav-root-lhs.sb-nav-resizable .sb-nav-body {
   margin-right: 6px;
 }
 
-.sb-nav-root-rhs .sb-nav-body {
+.sb-nav-root-rhs.sb-nav-resizable .sb-nav-body {
   margin-left: 6px;
 }
 
@@ -300,10 +285,9 @@ html[data-slot="modal"] body {
 // chip variants, keyed off `decoration.cssClass`/local markup rather than
 // anything a shared component renders by name.
 
-// Tags drawn the way SilverBullet draws them everywhere else. The rules are
-// mirrored rather than reused: `components_bundle.scss` (what panel iframes
-// link) carries the theme tokens but not `colors.scss`/`editor.scss`, where
-// `.sb-hashtag` actually lives. Keep in step with those two.
+// Tags drawn the way SilverBullet draws them everywhere else -- the sizing
+// `.sb-hashtag` gets in `editor.scss` is CodeMirror-specific, so a chip
+// restates the parts of it that make a pill.
 .sb-nav-chip.sb-hashtag {
   color: var(--editor-hashtag-color);
   background-color: var(--editor-hashtag-background-color);

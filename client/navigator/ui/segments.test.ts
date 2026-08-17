@@ -6,7 +6,7 @@ import {
   type SegmentMasks,
   segmentIndexFor,
 } from "./segments.ts";
-import type { Row, SegmentMeta } from "./types.ts";
+import type { Row, SegmentMeta } from "../types.ts";
 
 const segments: SegmentMeta[] = [
   { label: "All", hasWhere: false },

@@ -1,8 +1,8 @@
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import type { Decoration, Row, ViewMeta } from "../ui/types.ts";
+import type { Decoration, Row, ViewMeta } from "../types.ts";
 
 // Re-exported so views importing shapes from "./types.ts" don't also need
-// "../ui/types.ts" directly.
+// "../types.ts" directly.
 export type { Decoration, Row, ViewMeta };
 
 /**

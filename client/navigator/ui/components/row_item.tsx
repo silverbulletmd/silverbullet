@@ -7,7 +7,7 @@ import {
 import { Icon } from "../../../../plug-api/ui/icon.tsx";
 import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
 import type { RowState } from "../engine.ts";
-import type { ActionMeta, Decoration, Row } from "../types.ts";
+import type { ActionMeta, Decoration, Row } from "../../types.ts";
 
 function Chip({ decoration }: { decoration: Decoration }) {
   return (

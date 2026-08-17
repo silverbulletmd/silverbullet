@@ -53,8 +53,8 @@ import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
 import { registerNavigatorCommands } from "./navigator/commands.ts";
-import { preload as preloadNavigator } from "./navigator/navigator.ts";
-import { clearScriptViews } from "./navigator/registry.ts";
+import { restoreDocks } from "./navigator/navigator.ts";
+import { clearScriptViews, setLuaEnvSource } from "./navigator/registry.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -145,7 +145,7 @@ export class ClientSystem {
       await this.reloadState();
     });
 
-    this.eventHook.addLocalListener("editor:init", () => preloadNavigator());
+    this.eventHook.addLocalListener("editor:init", () => restoreDocks());
   }
 
   init() {
@@ -153,10 +153,12 @@ export class ClientSystem {
     this.system.addHook(this.commandHook);
     this.system.addHook(this.slashCommandHook);
 
-    // Client code reusing plug-facing helpers (the navigator's panel lifecycle
-    // and built-in views) reaches syscalls through plug-api's late-bound global.
+    // Client code reusing plug-facing helpers (the navigator's built-in
+    // views) reaches syscalls through plug-api's late-bound global.
     (globalThis as any).syscall = (name: string, ...args: any[]) =>
       this.system.localSyscall(name, args);
+
+    setLuaEnvSource(() => this.spaceLuaEnv.env);
 
     this.system.registerSyscalls(
       [],
@@ -181,7 +183,7 @@ export class ClientSystem {
       configSyscalls(this.client.config),
       searchSyscalls(),
       iconSyscalls(),
-      navigatorSyscalls(() => this.spaceLuaEnv.env),
+      navigatorSyscalls(),
     );
 
     if (!this.readOnlyMode) {

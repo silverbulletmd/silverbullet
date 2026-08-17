@@ -5,13 +5,11 @@
  */
 
 import { extractHashtag } from "../../../plug-api/lib/tags.ts";
-import type { Row } from "./types.ts";
+import type { Row } from "../types.ts";
 
-// The markdown tag syntax. Copied rather than imported from
-// `client/markdown_parser/constants.ts`, which the panel bundle must not reach
-// into -- it is client code, and pulling it in would drag the markdown parser
-// across the iframe boundary to read one regex. `extractHashtag` above has no
-// such problem: it lives in plug-api, which is exactly what this side may use.
+// The markdown tag syntax, copied rather than imported from
+// `client/markdown_parser/constants.ts` so reading one regex doesn't pull the
+// markdown parser into the panel.
 const TAG_SOURCE =
   /#(?:(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*)|(?:<[^>\n]+>))/
     .source;

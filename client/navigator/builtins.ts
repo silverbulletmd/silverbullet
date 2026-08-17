@@ -7,7 +7,7 @@
 
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { RESERVED_KEYS } from "./lua_views.ts";
-import type { NavigatorHook, Row, ViewMeta } from "./ui/types.ts";
+import type { NavigatorHook, Row, ViewMeta } from "./types.ts";
 import { anchorPicker } from "./views/anchors.ts";
 import { commandPalette } from "./views/commands.ts";
 import { pagePicker } from "./views/pages.ts";

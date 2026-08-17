@@ -2,7 +2,8 @@ import { useMemo, useRef } from "preact/hooks";
 import type { RankedRow } from "../engine.ts";
 import { type RankCacheEntry, rankIncrementally } from "../incremental_rank.ts";
 import { applySegment } from "../segments.ts";
-import { type ActiveView, engine } from "../panel.ts";
+import type { NavigatorEngine } from "../engine.ts";
+import type { ActiveView } from "../panel.ts";
 import { matchesTags, splitHashtags } from "../phrase.ts";
 import {
   computeTreeDisplay,
@@ -10,7 +11,7 @@ import {
   type TreeNode,
   type VisibleRow,
 } from "../../../../plug-api/ui/tree_model.ts";
-import type { SegmentMeta } from "../types.ts";
+import type { SegmentMeta } from "../../types.ts";
 
 /** Rendered rows when the view doesn't set `presentation.limit`. */
 const DEFAULT_LIMIT = 200;
@@ -21,8 +22,7 @@ const DEFAULT_LIMIT = 200;
 export const CREATE_PATH = "\u0000create";
 
 // Drag-and-drop is desktop-only: HTML5 drag events don't fire
-// on touch at all, so a `draggable` row there only breaks scrolling. Queried
-// once -- the panel's iframe doesn't survive a device change anyway.
+// on touch at all, so a `draggable` row there only breaks scrolling.
 const POINTER_FINE =
   globalThis.matchMedia?.("(pointer: fine)").matches ?? false;
 
@@ -64,6 +64,7 @@ export type DerivedView = {
 };
 
 export function useDerived({
+  engine,
   view,
   bootError,
   phrase,
@@ -73,6 +74,7 @@ export function useDerived({
   expanded,
   readOnly,
 }: {
+  engine: NavigatorEngine;
   view?: ActiveView;
   bootError?: string;
   phrase: string;

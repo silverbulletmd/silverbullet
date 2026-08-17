@@ -6,6 +6,10 @@
 @use "top";
 @use "xray";
 @use "components";
+// After `components`: the shared `.sb-nav-*` rules live there, and the
+// navigator's own overrides of them (a hint chip's font size, a selected
+// row's colours) win on source order, not specificity.
+@use "navigator";
 
 @font-face {
   font-family: "iA-Mono";
@@ -114,45 +118,25 @@ body {
   }
 }
 
-.sb-keyed-panel {
-  height: 100%;
-}
-
-#sb-main .sb-keyed-panel {
-  flex: 1;
-  // Without this, the nested .sb-panel (itself flex:1, see above) has no
-  // flex container to grow inside -- it falls back to height:auto, and the
-  // iframe inside it collapses to the browser's ~150px replaced-element
-  // default instead of filling the sidebar.
-  display: flex;
-}
-
 .sb-hidden {
   display: none;
 }
 
-#sb-main .sb-keyed-panel.sb-hidden {
-  display: none;
-}
-
+// Keep 600px in step with `MOBILE_MEDIA_QUERY` in `client/lib/mobile.ts`.
 @media only screen and (max-width: 600px) {
   #sb-main {
     position: relative;
   }
 
-  #sb-main .sb-keyed-panel-lhs,
-  #sb-main .sb-keyed-panel-rhs {
+  // A dock becomes a drawer over the editor, spanning the screen: there is no
+  // edge between it and anything, so the seam a docked sidebar draws would
+  // just be a line down the middle of nothing.
+  #sb-main .sb-nav-root-lhs,
+  #sb-main .sb-nav-root-rhs {
     position: absolute;
     inset: 0;
     // Above the editor, below #sb-top (z-index 20) — the top bar stays on top.
     z-index: 15;
-  }
-
-  // A drawer spans the screen: there is no edge between it and anything, so
-  // the seam a docked sidebar draws would just be a line down the middle of
-  // nothing.
-  #sb-main .sb-keyed-panel-lhs .sb-panel,
-  #sb-main .sb-keyed-panel-rhs .sb-panel {
     border: 0;
     flex: 1 1 100% !important;
   }
@@ -160,7 +144,7 @@ body {
   // The top bar reserves a column beside the page title for each open sidebar.
   // A drawer overlays instead of taking width, so reserving any would just
   // squeeze the title for nothing.
-  #sb-top .sb-keyed-spacer {
+  #sb-top .sb-nav-spacer {
     display: none;
   }
 }
@@ -182,8 +166,12 @@ body {
   // Match the .sb-modal-box drop shadow so plug modals look consistent.
   box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
 
+  // Not `visibility: hidden`: the panel focuses its own filter input as it
+  // activates, and an element in a visibility-hidden subtree can't take
+  // focus at all.
   &.sb-modal-paint-pending {
-    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .sb-panel {
@@ -194,7 +182,7 @@ body {
     }
   }
 
-  // A keyed modal panel takes its vertical extent from the panel's inset and
+  // The navigator's modal takes its vertical extent from its own inset and
   // its width from here: the same 700px/90% centered column the
   // `.sb-modal-box` dialogs use, rather than stretching to whatever the
   // window is wide.
@@ -206,10 +194,11 @@ body {
     margin-inline: auto;
     // Its border counts towards the 700, as it does for `.sb-modal-box`.
     box-sizing: border-box;
-    // Height comes from the panel's own content (see editor_ui.tsx), so the
-    // box shrinks with it; `bottom` is deliberately unset, and the inline
-    // `max-height` beside it is only the viewport backstop.
+    // Height comes from the panel's own content, so the box shrinks with it;
+    // `bottom` is deliberately unset, and the inline `max-height` beside it
+    // is only the viewport backstop.
     bottom: auto;
+    height: auto;
   }
 
   @media only screen and (max-width: 600px) {

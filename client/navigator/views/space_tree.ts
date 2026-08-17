@@ -184,7 +184,6 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     mode: "tree",
     followEditor: true,
     hasCreate: true,
-    toggleKey: "o",
     foldersFirst: false,
     refreshOn: INDEX_REFRESH_EVENTS,
   }),

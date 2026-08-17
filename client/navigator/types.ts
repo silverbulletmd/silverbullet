@@ -2,7 +2,7 @@ import type {
   ActionMeta,
   Decoration,
   Row,
-} from "../../../plug-api/ui/tree_types.ts";
+} from "../../plug-api/ui/tree_types.ts";
 
 export type { ActionMeta, Decoration, Row };
 
@@ -43,7 +43,6 @@ export type ViewMeta = {
   stripPrefix?: string;
   mode: "list" | "tree";
   dock: "modal" | "lhs" | "rhs";
-  toggleKey?: string;
   hierarchy: { field: string; separator: string };
   foldersFirst: boolean;
   expandAll: boolean;

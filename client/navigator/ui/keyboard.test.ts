@@ -3,6 +3,7 @@ import type { Commands } from "./commands.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import { handleKeyDown, type KeyContext } from "./keyboard.ts";
 import type { ActiveView } from "./panel.ts";
+import type { TreeNode } from "../../../plug-api/ui/tree_model.ts";
 
 /** What the dispatch did, in the order it did it. */
 type Trace = string[];
@@ -11,7 +12,8 @@ function makeCmd(trace: Trace, selectable: boolean): Commands {
   const record =
     (name: string, result?: any) =>
     (...args: any[]) => {
-      trace.push(args.length ? `${name}(${args.join(",")})` : name);
+      const shown = args.map((arg) => arg?.path ?? arg).join(",");
+      trace.push(args.length ? `${name}(${shown})` : name);
       return result;
     };
   return {
@@ -196,5 +198,151 @@ describe("keyboard dispatch order", () => {
     const trace: Trace = [];
     handleKeyDown(press({ key: "Enter", isComposing: true }).e, makeCtx(trace));
     expect(trace).toEqual([]);
+  });
+});
+
+function treeNode(
+  path: string,
+  { folder = false, page = false }: { folder?: boolean; page?: boolean } = {},
+): TreeNode {
+  return {
+    path,
+    segment: path.split("/").pop()!,
+    children: [],
+    isFolder: folder,
+    row: page ? ({ obj: { name: path } } as any) : undefined,
+  };
+}
+
+function makeTreeCtx(
+  trace: Trace,
+  {
+    nodes,
+    selected,
+    expanded = [],
+    treeFiltering = false,
+    createSelectedInTree = false,
+  }: {
+    nodes: TreeNode[];
+    selected: string;
+    expanded?: string[];
+    treeFiltering?: boolean;
+    createSelectedInTree?: boolean;
+  },
+): KeyContext {
+  const ctx = makeCtx(trace);
+  const index = nodes.findIndex((node) => node.path === selected);
+  return {
+    ...ctx,
+    view: {
+      name: "tree",
+      meta: { hierarchy: { separator: "/" } },
+    } as unknown as ActiveView,
+    derived: {
+      ...ctx.derived,
+      isTreeMode: true,
+      treeVisible: nodes.map((node) => ({ node, depth: 0 })),
+      treeLastIndex: nodes.length - 1,
+      activeTreeIndex: index,
+      activeTreeNode: nodes[index],
+      treeDisplay: { effectiveExpanded: new Set(expanded) },
+      treeFiltering,
+      createSelectedInTree,
+    } as unknown as DerivedView,
+  };
+}
+
+describe("tree keys", () => {
+  const nodes = [
+    treeNode("Journal", { folder: true }),
+    treeNode("Journal/Today", { page: true }),
+    treeNode("Projects", { folder: true, page: true }),
+    treeNode("Projects/Sub", { folder: true }),
+  ];
+
+  it("collapses an expanded folder on ArrowLeft", () => {
+    const trace: Trace = [];
+    const ctx = makeTreeCtx(trace, {
+      nodes,
+      selected: "Journal",
+      expanded: ["Journal"],
+    });
+    const { e, prevented } = press({ key: "ArrowLeft" });
+    handleKeyDown(e, ctx);
+    expect(trace).toEqual(["toggleExpanded(Journal)"]);
+    expect(prevented()).toBe(true);
+  });
+
+  it("steps out to the parent on ArrowLeft from a child row", () => {
+    const trace: Trace = [];
+    handleKeyDown(
+      press({ key: "ArrowLeft" }).e,
+      makeTreeCtx(trace, {
+        nodes,
+        selected: "Journal/Today",
+        expanded: ["Journal"],
+      }),
+    );
+    expect(trace).toEqual(["setSelectedPath(Journal)"]);
+  });
+
+  it("steps out to the parent on ArrowLeft from a collapsed folder", () => {
+    const trace: Trace = [];
+    handleKeyDown(
+      press({ key: "ArrowLeft" }).e,
+      makeTreeCtx(trace, {
+        nodes,
+        selected: "Projects/Sub",
+        expanded: ["Projects"],
+      }),
+    );
+    expect(trace).toEqual(["setSelectedPath(Projects)"]);
+  });
+
+  it("steps out rather than collapsing while the tree is filtered", () => {
+    const trace: Trace = [];
+    handleKeyDown(
+      press({ key: "ArrowLeft" }).e,
+      makeTreeCtx(trace, {
+        nodes,
+        selected: "Projects/Sub",
+        expanded: ["Projects", "Projects/Sub"],
+        treeFiltering: true,
+      }),
+    );
+    expect(trace).toEqual(["setSelectedPath(Projects)"]);
+  });
+
+  it("leaves a collapsed root folder alone on ArrowLeft", () => {
+    const trace: Trace = [];
+    const { e, prevented } = press({ key: "ArrowLeft" });
+    handleKeyDown(e, makeTreeCtx(trace, { nodes, selected: "Journal" }));
+    expect(trace).toEqual([]);
+    expect(prevented()).toBe(true);
+  });
+
+  it("hands the selected node to selectTreeNode on Enter, folder or page", () => {
+    const trace: Trace = [];
+    handleKeyDown(
+      press({ key: "Enter" }).e,
+      makeTreeCtx(trace, { nodes, selected: "Journal" }),
+    );
+    handleKeyDown(
+      press({ key: "Enter" }).e,
+      makeTreeCtx(trace, { nodes, selected: "Projects" }),
+    );
+    handleKeyDown(
+      press({ key: "Enter" }).e,
+      makeTreeCtx(trace, {
+        nodes,
+        selected: "Journal",
+        createSelectedInTree: true,
+      }),
+    );
+    expect(trace).toEqual([
+      "selectTreeNode(Journal)",
+      "selectTreeNode(Projects)",
+      "runCreate",
+    ]);
   });
 });

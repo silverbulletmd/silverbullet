@@ -2,16 +2,6 @@ export const isMacLike =
   typeof navigator !== "undefined" &&
   /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 
-/** A single simultaneous keydown, in the shape a panel iframe can compare a
- * real `KeyboardEvent` against synchronously. */
-export type ChordDescriptor = {
-  key: string;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  altKey: boolean;
-  shiftKey: boolean;
-};
-
 /**
  * The key hint a command shows: its platform-appropriate binding(s),
  * prettified. Several bindings for one command are joined with `|`.

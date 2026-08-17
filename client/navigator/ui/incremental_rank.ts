@@ -1,5 +1,5 @@
 import type { RankedRow } from "./engine.ts";
-import type { Row } from "./types.ts";
+import type { Row } from "../types.ts";
 
 function normalizePhrase(s: string): string {
   return s

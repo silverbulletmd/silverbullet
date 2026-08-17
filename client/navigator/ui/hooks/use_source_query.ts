@@ -1,27 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import type { NavigatorEngine } from "../engine.ts";
 import {
   type ActiveView,
   ctxKey,
-  engine,
   type PanelSetters,
   type SharedRefs,
 } from "../panel.ts";
-import type { SegmentMeta, SourceCtx } from "../types.ts";
+import type { SegmentMeta, SourceCtx } from "../../types.ts";
 
 // Source-mode only: how long typing has to settle before the source runs
 // again, and how long a request may be outstanding before it is worth saying
-// so. Client-mode views never reach either -- they don't leave the iframe.
+// so. Client-mode views never reach either -- they filter in place.
 const SOURCE_DEBOUNCE_MS = 200;
 const LOADING_AFTER_MS = 150;
 
 /**
  * Source search mode: the phrase and the segment are the source's input, so
  * they re-invoke it -- debounced, and dropped if overtaken. Client mode never
- * gets here; its hot path stays inside the iframe.
+ * gets here; its hot path never leaves the panel.
  *
  * @returns whether a request has been outstanding long enough to say so.
  */
 export function useSourceQuery({
+  engine,
   view,
   sourceMode,
   phrase,
@@ -31,6 +32,7 @@ export function useSourceQuery({
   set,
   publish,
 }: {
+  engine: NavigatorEngine;
   view?: ActiveView;
   sourceMode: boolean;
   phrase: string;

@@ -1,8 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
-import { boundChordManifest } from "../lib/bound_chords.ts";
-import { MOBILE_MEDIA_QUERY } from "../lib/mobile.ts";
-import type { KeyedPanelConfig, PanelConfig, PanelSlot } from "../types/ui.ts";
+import type { PanelConfig, PanelSlot } from "../types/ui.ts";
 import { panelHtml } from "./panel_html.ts";
 
 export function Panel({
@@ -10,11 +8,8 @@ export function Panel({
   editor,
   slot,
 }: {
-  config: PanelConfig | KeyedPanelConfig;
+  config: PanelConfig;
   editor: Client;
-  /** A keyed config already carries this (`config.slot`); a legacy one
-   * doesn't, so every caller passes it explicitly -- see the iframe's
-   * `data-slot`, `editor.getFocusedPanelSlot`'s only reliable signal. */
   slot: PanelSlot;
 }) {
   switch (typeof config.html) {
@@ -32,13 +27,11 @@ function IFramePanel({
   editor,
   slot,
 }: {
-  config: PanelConfig | KeyedPanelConfig;
+  config: PanelConfig;
   editor: Client;
   slot: PanelSlot;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
-  const wasHidden = useRef<boolean | undefined>(undefined);
-  const initialShownSent = useRef(false);
 
   const html = useMemo(() => {
     return panelHtml.replace("{{.HostPrefix}}", document.baseURI);
@@ -54,23 +47,7 @@ function IFramePanel({
       html: config.html,
       script: config.script,
       theme: document.getElementsByTagName("html")[0].dataset.theme,
-      mobile: globalThis.matchMedia(MOBILE_MEDIA_QUERY).matches,
-      boundChords: boundChordManifest(editor),
     });
-  }
-
-  function postInitialShownIfNeeded() {
-    if (initialShownSent.current) {
-      return;
-    }
-    initialShownSent.current = true;
-    // Read the live wasHidden ref (kept current every render by the flip
-    // effect below), not `config` — the `load` listener's closure captures
-    // whatever `config` was current when the content-update effect last ran,
-    // which can be stale by the time `load` actually fires.
-    if (wasHidden.current === false) {
-      iFrameRef.current?.contentWindow?.postMessage({ type: "panel:shown" });
-    }
   }
 
   // Declared (and flushed) before the content effect below on purpose: posting
@@ -121,41 +98,25 @@ function IFramePanel({
     };
   }, []);
 
-  // Layout effects for both of the messages below: a plain
-  // effect is flushed *after* paint, so the panel would already be on screen —
-  // and, for a keyed panel, already booted, focused and accepting keystrokes.
+  // A layout effect: a plain one is flushed *after* paint, so the panel would
+  // already be on screen with nothing in it.
   useLayoutEffect(() => {
     const iframe = iFrameRef.current;
     if (!iframe) {
       return;
     }
 
-    function onLoad() {
-      updateContent();
-      postInitialShownIfNeeded();
-    }
-
-    iframe.addEventListener("load", onLoad);
+    iframe.addEventListener("load", updateContent);
     updateContent();
 
     return () => {
-      iframe.removeEventListener("load", onLoad);
+      iframe.removeEventListener("load", updateContent);
     };
   }, [config.html, config.script]);
 
-  useLayoutEffect(() => {
-    const hidden = (config as KeyedPanelConfig).hidden;
-    if (wasHidden.current !== undefined && wasHidden.current !== hidden) {
-      iFrameRef.current?.contentWindow?.postMessage({
-        type: hidden ? "panel:hidden" : "panel:shown",
-      });
-    }
-    wasHidden.current = hidden;
-  });
-
   // The theme only rides along with the `html` message, which a long-lived
-  // (keyed/preloaded) panel receives once. Without this, toggling dark mode
-  // leaves every persistent panel iframe on the theme it booted with.
+  // panel receives once. Without this, toggling dark mode leaves every
+  // persistent panel iframe on the theme it booted with.
   useEffect(() => {
     const observer = new MutationObserver(() => {
       iFrameRef.current?.contentWindow?.postMessage({
@@ -168,75 +129,6 @@ function IFramePanel({
       attributeFilter: ["data-theme"],
     });
     return () => observer.disconnect();
-  }, []);
-
-  // Crossing the breakpoint mid-session (a rotation, a resized window) changes
-  // how a docked panel is laid out, so it also changes how it should behave.
-  // The boot value rides along with `html` above; this only carries changes.
-  useEffect(() => {
-    const mql = globalThis.matchMedia(MOBILE_MEDIA_QUERY);
-    const onChange = (ev: MediaQueryListEvent) => {
-      iFrameRef.current?.contentWindow?.postMessage({
-        type: "panel:mobile",
-        mobile: ev.matches,
-      });
-    };
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
-    const events = (config as KeyedPanelConfig).events;
-    if (!events?.length) return;
-    const listeners = events.map((name) => {
-      const listener = (...args: any[]) => {
-        iFrameRef.current?.contentWindow?.postMessage({
-          type: "event",
-          name,
-          args,
-        });
-      };
-      editor.eventHook.addLocalListener(name, listener);
-      return { name, listener };
-    });
-    return () => {
-      for (const { name, listener } of listeners) {
-        editor.eventHook.removeLocalListener(name, listener);
-      }
-    };
-  }, [(config as KeyedPanelConfig).events?.join(",")]);
-
-  // A panel iframe can't preventDefault a chord's browser default from its
-  // own fire-and-forget forward to the host (no round trip is fast enough) --
-  // so it needs the host's bound-chord set ahead of time, kept current as
-  // commands are added/rebound (a Lua script loading, `Plugs: Reload`, ...)
-  // and as vim mode or the current page's read-only-ness change -- both feed
-  // the same filters `boundChordManifest` applies, without touching commands
-  // themselves or firing `commandsUpdated`.
-  useEffect(() => {
-    const commandHook = editor.clientSystem.commandHook;
-    const pushManifest = () => {
-      iFrameRef.current?.contentWindow?.postMessage({
-        type: "bound-chords",
-        chords: boundChordManifest(editor),
-      });
-    };
-    const handlers = { commandsUpdated: pushManifest };
-    commandHook.on(handlers);
-    const events: [string, () => void][] = [
-      ["editor:modeswitch", pushManifest],
-      ["editor:pageLoaded", pushManifest],
-      ["editor:pageReloaded", pushManifest],
-    ];
-    for (const [name, listener] of events) {
-      editor.eventHook.addLocalListener(name, listener);
-    }
-    return () => {
-      commandHook.off(handlers);
-      for (const [name, listener] of events) {
-        editor.eventHook.removeLocalListener(name, listener);
-      }
-    };
   }, []);
 
   return (

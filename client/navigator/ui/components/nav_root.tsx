@@ -5,39 +5,44 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { syscall } from "@silverbulletmd/silverbullet/syscall";
+import type { Client } from "../../../client.ts";
+import { resize } from "../../navigator.ts";
 import { ResizeHandle } from "../../../../plug-api/ui/resize_handle.tsx";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import { createCommands } from "../commands.ts";
-import { host } from "../engine.ts";
+import { engineFor } from "../engine.ts";
 import { useDerived } from "../hooks/use_derived.ts";
 import { usePanelEvents } from "../hooks/use_panel_events.ts";
 import { useSourceQuery } from "../hooks/use_source_query.ts";
 import { handleKeyDown } from "../keyboard.ts";
-import {
-  type ActiveView,
-  engine,
-  type PanelSetters,
-  type SharedRefs,
-} from "../panel.ts";
+import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
+import { markSlotReady, type NavActivation } from "../slots.ts";
 import { resolvePrefix } from "../prefix.ts";
 import { CreateRow } from "./create_row.tsx";
 import { ListView } from "./list_view.tsx";
 
 /**
  * The panel itself: the input state a view is browsed with, wired to the
- * pieces that act on it -- `usePanelEvents` (everything the host drives),
- * `useDerived` (everything shown), `createCommands` (everything done) and
- * `handleKeyDown` (the one keyboard pipeline).
- *
- * The singletons all of them share -- the engine, and the hook slots the
- * host's `sbEvent` subscriptions forward into -- live in `panel.ts`, which
- * documents why they hang off globalThis rather than off a module.
+ * pieces that act on it -- `usePanelEvents` (everything outside its own
+ * keystrokes drives), `useDerived` (everything shown), `createCommands`
+ * (everything done) and `handleKeyDown` (the one keyboard pipeline).
  */
-export function NavRoot({ slot }: { slot: string }) {
+export function NavRoot({
+  slot,
+  client,
+  activation,
+  mode,
+}: {
+  slot: string;
+  client: Client;
+  activation: NavActivation;
+  /** The flex mode for a dock; the modal sizes to its own content. */
+  mode?: number | string;
+}) {
+  const engine = engineFor(slot);
   const [view, setView] = useState<ActiveView | undefined>(undefined);
   const [bootError, setBootError] = useState<string | undefined>(undefined);
   const [phrase, setPhrase] = useState("");
@@ -62,6 +67,9 @@ export function NavRoot({ slot }: { slot: string }) {
   const segmentDirty = useRef(false);
   const expandedDirty = useRef(false);
   const lastQueried = useRef<string | undefined>(undefined);
+  const displayed = useRef<string | undefined>(undefined);
+  const handledToken = useRef<number | undefined>(undefined);
+  const readySignaledToken = useRef<number | undefined>(undefined);
 
   const refs: SharedRefs = {
     view: viewRef,
@@ -72,6 +80,9 @@ export function NavRoot({ slot }: { slot: string }) {
     segmentDirty,
     expandedDirty,
     lastQueried,
+    displayed,
+    handledToken,
+    readySignaledToken,
   };
   const set: PanelSetters = {
     setView,
@@ -88,31 +99,29 @@ export function NavRoot({ slot }: { slot: string }) {
     if (state) setView({ name: state.meta.name, ...state });
   }, []);
 
-  const { readOnly, mobile, displayed, handledToken, readySignaledToken } =
-    usePanelEvents({
-      slot,
-      refs,
-      set,
-      publish,
-    });
+  const { readOnly, mobile, refresh } = usePanelEvents({
+    slot,
+    client,
+    engine,
+    activation,
+    refs,
+    set,
+    publish,
+  });
 
-  // Paint-gated reveal handshake (see `editor.showPanel`'s `paintReady`):
-  // once this activation has *something* to show -- rows, an error, "no
-  // results", doesn't matter which -- tell the host, so it can lift a modal
-  // it's holding invisible rather than reveal it empty and let it grow. Only
-  // reached by a *fresh* load or a source refresh, both of which genuinely
-  // change `view`/`bootError` -- a reopen of an already-displayed view has
-  // its own, immediate signal from `createActivate` instead (nothing here
-  // would ever change for it to react to). `readySignaledToken` is shared
-  // with that path, so whichever of the two reaches a given activation first
-  // is the one that counts.
+  // Paint-gated reveal (see `slots.ts`'s `paintReady`): once this activation
+  // has *something* to show -- rows, an error, "no results", doesn't matter
+  // which -- lift the modal that is being held invisible rather than reveal
+  // it empty and let it grow. Only reached by a *fresh* load or a source
+  // refresh, both of which genuinely change `view`/`bootError` -- a reopen of
+  // an already-displayed view has its own, immediate signal from
+  // `createActivate` instead. `readySignaledToken` is shared with that path,
+  // so whichever reaches a given activation first is the one that counts.
   // A `useLayoutEffect`, not a plain one, so this fires before the browser's
-  // next paint of the settled content, not after -- the host would otherwise
-  // still catch a frame of the (already-real, already grown) DOM unrevealed
-  // for no reason. Keyed on `handledToken.current` via the ref rather than a
-  // dependency (it isn't reactive state), read fresh each time `view`/
-  // `bootError` change, which is what actually means "this activation
-  // rendered something".
+  // next paint of the settled content, not after. Keyed on
+  // `handledToken.current` via the ref rather than a dependency (it isn't
+  // reactive state), read fresh each time `view`/`bootError` change, which is
+  // what actually means "this activation rendered something".
   useLayoutEffect(() => {
     const token = handledToken.current;
     if (
@@ -123,10 +132,11 @@ export function NavRoot({ slot }: { slot: string }) {
       return;
     }
     readySignaledToken.current = token;
-    void syscall("editor.panelReady", slot, token);
+    markSlotReady(slot, token);
   }, [view, bootError]);
 
   const derived = useDerived({
+    engine,
     view,
     bootError,
     phrase,
@@ -145,6 +155,7 @@ export function NavRoot({ slot }: { slot: string }) {
   }, [phrase, segmentIndex]);
 
   const loading = useSourceQuery({
+    engine,
     view,
     sourceMode: derived.sourceMode,
     phrase,
@@ -167,14 +178,14 @@ export function NavRoot({ slot }: { slot: string }) {
   const cmd = createCommands({
     slot,
     view,
+    engine,
     mobile,
     phrase,
     segmentIndex,
     derived,
     refs,
     set,
-    displayed,
-    handledToken,
+    refresh: () => refresh.current(),
   });
 
   const {
@@ -211,10 +222,11 @@ export function NavRoot({ slot }: { slot: string }) {
   return (
     <div
       className={
-        "sb-nav-root" +
-        (showResizer ? ` sb-nav-root-${slot}` : "") +
-        (slot === "modal" ? " sb-nav-root-modal" : "")
+        `sb-nav-root sb-nav-root-${slot}` +
+        (showResizer ? " sb-nav-resizable" : "")
       }
+      data-slot={slot}
+      style={mode === undefined ? undefined : { flex: mode }}
     >
       <div className="sb-nav-header">
         <div className="sb-nav-header-row">
@@ -395,18 +407,7 @@ export function NavRoot({ slot }: { slot: string }) {
       {showResizer && (
         <ResizeHandle
           slot={slot as "lhs" | "rhs"}
-          onResize={(width, commit) =>
-            // `view?.name` is the view this panel is live showing (accurate
-            // across a route() hop too) -- lets the backend recover after its
-            // own module state is wiped without trusting a possibly-stale
-            // datastore entry. See navigator.ts's `resize`.
-            void host("resize", {
-              slot,
-              width,
-              commit,
-              view: view?.name,
-            })
-          }
+          onResize={(width, commit) => void resize({ slot, width, commit })}
         />
       )}
     </div>

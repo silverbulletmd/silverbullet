@@ -1,4 +1,4 @@
-import type { Row, SegmentMeta } from "./types.ts";
+import type { Row, SegmentMeta } from "../types.ts";
 
 /** Per-row `where` results, parallel to `meta.segments`. */
 export type SegmentMasks = WeakMap<Row, boolean[]>;

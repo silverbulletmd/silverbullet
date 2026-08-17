@@ -1,13 +1,7 @@
-import { syscall } from "@silverbulletmd/silverbullet/syscall";
-import { datastore } from "@silverbulletmd/silverbullet/syscalls";
+import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import type { DerivedView } from "./hooks/use_derived.ts";
-import {
-  type ActiveView,
-  engine,
-  navHooks,
-  type PanelSetters,
-  type SharedRefs,
-} from "./panel.ts";
+import type { NavigatorEngine } from "./engine.ts";
+import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
 import { planMove, withExpanded } from "../../../plug-api/ui/tree_model.ts";
 import { expansionKey } from "./expansion.ts";
 
@@ -19,14 +13,18 @@ import { expansionKey } from "./expansion.ts";
  */
 export function createTreeCommands({
   view,
+  engine,
   derived,
   refs,
   set,
+  refresh,
 }: {
   view?: ActiveView;
+  engine: NavigatorEngine;
   derived: DerivedView;
   refs: SharedRefs;
   set: PanelSetters;
+  refresh: () => void;
 }) {
   const { expandedDirty } = refs;
   const { setExpanded } = set;
@@ -82,18 +80,13 @@ export function createTreeCommands({
     );
     if (plan.kind === "none") return;
     if (plan.kind === "collision") {
-      await syscall(
-        "editor.flashNotification",
-        `${plan.newName} already exists`,
-        "error",
-      );
+      await editor.flashNotification(`${plan.newName} already exists`, "error");
       return;
     }
     try {
       await engine.move(view.name, plan.obj, plan.newName);
     } catch (e: any) {
-      await syscall(
-        "editor.flashNotification",
+      await editor.flashNotification(
         `Move failed: ${e?.message ?? e}`,
         "error",
       );
@@ -102,7 +95,7 @@ export function createTreeCommands({
     // Otherwise a drop on a collapsed folder just makes the row vanish.
     if (targetFolder) expandPath(targetFolder);
     // The rename's file events refresh us anyway; this only makes it prompt.
-    navHooks.refresh?.();
+    refresh();
   }
 
   return { toggleExpanded, moveNode };

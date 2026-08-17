@@ -9,7 +9,7 @@ import {
   type LuaTable,
 } from "../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
-import type { ViewMeta } from "./ui/types.ts";
+import type { ViewMeta } from "./types.ts";
 
 const index = {
   isAvailable: vi.fn<() => Promise<boolean>>(),
@@ -236,8 +236,11 @@ test('selectInFlight tracks a "select" hook while it runs, and clears once it se
   );
 
   const call = handle({ view: "space.inflight", hook: "select", args: {} });
-  await Promise.resolve();
 
+  // Synchronously, with no tick in between: a supersede that consults this
+  // right after the panel dispatched a select has to see it. That used to be
+  // covered by a drain that waited out the postMessage queue the select
+  // crossed; direct calls replaced the drain with this ordering.
   expect(selectInFlight("space.inflight")).toBeDefined();
 
   resolve({ picked: true });

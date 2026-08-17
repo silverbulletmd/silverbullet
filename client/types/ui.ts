@@ -14,37 +14,10 @@ import type { SyncStatus } from "../spaces/sync.ts";
 
 export type PanelSlot = "lhs" | "rhs" | "bhs" | "modal";
 
-export type PanelOptions = {
-  key?: string; // stable identity → persistent iframe
-  preload?: boolean; // mount hidden (requires key)
-  events?: string[]; // client events forwarded into the iframe (requires key)
-  /**
-   * An opaque identity the caller can attach to this show, echoed back into
-   * `KeyedPanelConfig`.
-   */
-  activationId?: string | number;
-};
-
 export type PanelConfig = {
   mode?: PanelMode;
   html?: HTMLElement | HTMLElement[] | string;
   script?: string;
-};
-
-export type KeyedPanelConfig = PanelConfig & {
-  key: string;
-  slot: PanelSlot;
-  hidden: boolean;
-  events: string[];
-  activationId?: string | number;
-  /**
-   * Paint-gated reveal (modal only -- see `editor.showPanel`): `false` while
-   * this activation's iframe hasn't yet signalled (`editor.panelReady`) that
-   * its first real content has rendered, or the reveal timeout has elapsed.
-   * `undefined` for anything that was never gated (a sidebar/bhs dock, or a
-   * preload mount).
-   */
-  paintReady?: boolean;
 };
 
 export type AppViewState = {
@@ -65,7 +38,6 @@ export type AppViewState = {
   progressType?: string;
 
   panels: { [key: string]: PanelConfig };
-  keyedPanels: KeyedPanelConfig[];
   commands: Map<string, Command>;
   notifications: Notification[];
 
@@ -113,7 +85,6 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
   },
-  keyedPanels: [],
   allPages: [],
   commands: new Map(),
 
@@ -151,9 +122,6 @@ export type Action =
       config: PanelConfig;
     }
   | { type: "hide-panel"; id: string }
-  | { type: "show-keyed-panel"; config: KeyedPanelConfig }
-  | { type: "hide-keyed-panel"; key: string }
-  | { type: "mark-panel-ready"; key: string }
   | {
       type: "show-filterbox";
       options: FilterOption[];
