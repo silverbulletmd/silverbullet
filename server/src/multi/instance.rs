@@ -194,12 +194,12 @@ pub fn resolve_folder(root: &Path, id: &str, folder: &str) -> PathBuf {
 
 /// Create `<index_page>.md` in `folder` (with `content`) when the space has no
 /// `.md` files yet. Mirrors the single-space binary's former `ensure_index`
-/// exactly: emptiness is decided via a recursive `fetch_file_list()` (honoring
-/// `space_ignore`), not a shallow
-/// `read_dir`, so a space with markdown only in subdirectories isn't treated
-/// as empty. Uses `DiskSpacePrimitives::write_file` for the actual write so
-/// nested index pages (e.g. `notes/index`) get their parent directories
-/// created for free.
+/// exactly: emptiness is decided by a recursive walk (honoring `space_ignore`),
+/// not a shallow `read_dir`, so a space with markdown only in subdirectories
+/// isn't treated as empty. The walk stops at the first `.md` file, so an
+/// already-populated space costs O(1), not a full listing, on every boot. Uses
+/// `DiskSpacePrimitives::write_file` for the actual write so nested index
+/// pages (e.g. `notes/index`) get their parent directories created for free.
 pub fn seed_index(folder: &Path, index_page: &str, content: &str, space_ignore: &str) {
     let disk = match DiskSpacePrimitives::new(folder, space_ignore) {
         Err(e) => {
@@ -210,13 +210,8 @@ pub fn seed_index(folder: &Path, index_page: &str, content: &str, space_ignore: 
         }
         Ok(disk) => disk,
     };
-    match disk.fetch_file_list() {
-        Ok(files) if files.iter().any(|f| f.name.ends_with(".md")) => return,
-        Ok(_) => {}
-        Err(e) => {
-            tracing::warn!("could not check space state: {e}");
-            return;
-        }
+    if disk.has_file_with_suffix(".md") {
+        return;
     }
     let path = format!("{index_page}.md");
     if let Err(e) = disk.write_file(&path, content.as_bytes(), None) {

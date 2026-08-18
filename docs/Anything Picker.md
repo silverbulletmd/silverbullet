@@ -1,6 +1,6 @@
 ---
 references:
-- plugs/navigator/src/builtins.ts
+- client/navigator/builtins.ts
 - plugs/editor/complete.ts
 ---
 The anything picker can be used to open any page, including [[Meta Page]] and pages hidden with [[Page Decorations]]. Otherwise it’s equivalent to the [[Page Picker]].

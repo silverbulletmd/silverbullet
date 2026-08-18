@@ -1,4 +1,5 @@
 use std::fs;
+use std::ops::ControlFlow;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -213,26 +214,13 @@ impl DiskSpacePrimitives {
         builder.build().ok()
     }
 
-    /// Remove empty parent directories up to (but not including) root_path.
-    fn clean_orphaned(&self, deleted_file: &Path) {
-        let mut current = deleted_file.parent().map(Path::to_path_buf);
-        while let Some(dir) = current {
-            if dir == self.root_path || !dir.starts_with(&self.root_path) {
-                break;
-            }
-            if fs::remove_dir(&dir).is_err() {
-                // Directory not empty or other error — stop
-                break;
-            }
-            current = dir.parent().map(Path::to_path_buf);
-        }
-    }
-}
-
-impl SpacePrimitives for DiskSpacePrimitives {
-    fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+    /// Walk every listable, non-ignored file (the same traversal and filters
+    /// as `fetch_file_list`), stopping early when `visit` breaks.
+    fn walk_listable<T>(
+        &self,
+        mut visit: impl FnMut(String, &walkdir::DirEntry) -> ControlFlow<T>,
+    ) -> Option<T> {
         let matcher = self.gitignore_matcher();
-        let mut files = Vec::new();
 
         let root_path = self.root_path.clone();
         let gi_for_filter = matcher.0.clone();
@@ -277,11 +265,51 @@ impl SpacePrimitives for DiskSpacePrimitives {
                 continue;
             }
 
+            if let ControlFlow::Break(value) = visit(relative, &entry) {
+                return Some(value);
+            }
+        }
+        None
+    }
+
+    /// Whether any listed file's name ends with `suffix`, without walking the
+    /// whole space: stops at the first match.
+    pub fn has_file_with_suffix(&self, suffix: &str) -> bool {
+        self.walk_listable(|relative, _| {
+            if relative.ends_with(suffix) {
+                ControlFlow::Break(())
+            } else {
+                ControlFlow::Continue(())
+            }
+        })
+        .is_some()
+    }
+
+    /// Remove empty parent directories up to (but not including) root_path.
+    fn clean_orphaned(&self, deleted_file: &Path) {
+        let mut current = deleted_file.parent().map(Path::to_path_buf);
+        while let Some(dir) = current {
+            if dir == self.root_path || !dir.starts_with(&self.root_path) {
+                break;
+            }
+            if fs::remove_dir(&dir).is_err() {
+                // Directory not empty or other error — stop
+                break;
+            }
+            current = dir.parent().map(Path::to_path_buf);
+        }
+    }
+}
+
+impl SpacePrimitives for DiskSpacePrimitives {
+    fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+        let mut files = Vec::new();
+        self.walk_listable::<()>(|relative, entry| {
             if let Ok(metadata) = entry.metadata() {
                 files.push(self.file_info_to_meta(&relative, &metadata));
             }
-        }
-
+            ControlFlow::Continue(())
+        });
         Ok(files)
     }
 
@@ -437,6 +465,22 @@ mod plan_tests {
             sp.read_file("notes/a.md"),
             Err(crate::types::SpaceError::NotFound) | Err(crate::types::SpaceError::Io(_))
         ));
+    }
+
+    #[test]
+    fn has_file_with_suffix_matches_fetch_file_list_semantics() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "ignored.md").unwrap();
+
+        assert!(!sp.has_file_with_suffix(".md"));
+
+        sp.write_file("ignored.md", b"x", None).unwrap();
+        sp.write_file(".hidden.md", b"x", None).unwrap();
+        assert!(!sp.has_file_with_suffix(".md"));
+
+        sp.write_file("notes/deep/a.md", b"x", None).unwrap();
+        assert!(sp.has_file_with_suffix(".md"));
+        assert!(!sp.has_file_with_suffix(".txt"));
     }
 
     #[test]

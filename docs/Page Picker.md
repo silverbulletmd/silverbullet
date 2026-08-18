@@ -2,7 +2,7 @@
 description: The quick-open dialog for navigating to any page.
 tags: glossary
 references:
-- plugs/navigator/src/builtins.ts
+- client/navigator/builtins.ts
 - plugs/editor/page.ts
 ---
 The page picker has two main functions:

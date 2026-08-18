@@ -1,8 +1,8 @@
 ---
 description: A configurable list/tree navigation UI, built with Space Lua and TypeScript built-ins.
+tags: maturity/beta
 references:
-- plugs/navigator/*
-- libraries/Library/Std/APIs/Navigator.md
+- client/navigator/*
 ---
 The **navigator** is SilverBullet’s generalized navigation UI: it takes any collection of [[Object|objects]] and shows it as a fuzzy-filterable **list** or **tree**, either as a modal overlay or as a sidebar that stays open. The [[Page Picker]], the [[Command Palette]], and many others are all built on this abstraction.
 
@@ -18,7 +18,7 @@ The **navigator** is SilverBullet’s generalized navigation UI: it takes any co
 # Using a view
 
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
-* `Enter` opens the selected row. `Escape` clears the phrase, on an empty phrase it closes the panel.
+* `Enter` opens the selected row. `Escape` closes the panel, whether or not you have typed anything.
 * Typing ranks rows fuzzily, highlighting the matched characters in each row’s name, list or tree alike.
 * In a tree, `Right` expands (or steps into) a folder and `Left` collapses it (or steps out to its parent). `Enter` on a plain folder expands it, on a folder that is *also* a page it opens the page.
 * `Tab` / `Shift-Tab` step through the segments.

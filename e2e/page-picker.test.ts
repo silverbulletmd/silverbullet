@@ -40,9 +40,7 @@ test.describe("Page picker keyboard control", () => {
     await input.press("Control+n");
     expect((await selected.innerText()).trim()).toBe(second);
 
-    // Escape on a phrase clears the phrase; the next one closes the picker.
-    await input.press("Escape");
-    await expect(input).toHaveValue("");
+    // Escape closes the picker immediately, even with a phrase typed.
     await input.press("Escape");
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
   });

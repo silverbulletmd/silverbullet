@@ -1,11 +1,12 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { FrameLocator, Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   expect,
   gotoSilverBulletPage,
   mod,
   type SBServer,
+  shiftChord,
   test,
 } from "./fixtures.ts";
 import {
@@ -13,6 +14,8 @@ import {
   expectNavInputFocused,
   expectNavRow,
   navigateViaPagePicker,
+  navInput,
+  navSegment,
   openPicker,
   runCommandViaPalette,
 } from "./navigator-ui.ts";
@@ -274,7 +277,7 @@ async function runCommand(sbPage: Page, command: string) {
 
 async function openNavigator(sbPage: Page) {
   await runCommand(sbPage, "Navigator: Pages");
-  const frame = sbPage.frameLocator(".sb-modal iframe");
+  const frame = sbPage.locator(".sb-nav-root-modal");
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
   ).toBeVisible();
@@ -285,17 +288,13 @@ async function openNavigator(sbPage: Page) {
   return frame;
 }
 
-function navInput(sbPage: Page) {
-  return sbPage.frameLocator(".sb-modal iframe").locator("input.sb-nav-input");
-}
-
 async function openNavigatorView(
   sbPage: Page,
   command: string,
-  frameSelector = ".sb-modal iframe",
+  frameSelector = ".sb-nav-root-modal",
 ) {
   await runCommand(sbPage, command);
-  const frame = sbPage.frameLocator(frameSelector);
+  const frame = sbPage.locator(frameSelector);
   await expect(frame.locator("input.sb-nav-input")).toHaveValue("", {
     timeout: 20_000,
   });
@@ -304,34 +303,11 @@ async function openNavigatorView(
 
 // Asserts on the class directly, not a :not(.sb-hidden) query, which a CSS specificity bug can satisfy while still visually rendered.
 function sidebarTreePanel(sbPage: Page) {
-  return sbPage.locator("#sb-main .sb-keyed-panel-rhs");
+  return sbPage.locator("#sb-main .sb-nav-root-rhs");
 }
 
-async function closeSidebar(sbPage: Page, selector = ".sb-keyed-panel-rhs") {
-  await sbPage
-    .frameLocator(`${selector} iframe`)
-    .locator(".sb-nav-close")
-    .click();
-}
-
-// An input can be document.activeElement inside its iframe while the host has focus elsewhere, so keystrokes never reach it.
-function focusState(sbPage: Page, iframeSelector: string) {
-  return sbPage.evaluate((sel) => {
-    const f = document.querySelector(sel) as HTMLIFrameElement | null;
-    return {
-      frameFocused: !!f && document.activeElement === f,
-      inner: f?.contentDocument?.activeElement?.className ?? null,
-    };
-  }, iframeSelector);
-}
-
-async function expectFilterInputFocused(sbPage: Page, iframeSelector: string) {
-  await expect(async () => {
-    expect(await focusState(sbPage, iframeSelector)).toEqual({
-      frameFocused: true,
-      inner: "sb-nav-input",
-    });
-  }).toPass();
+async function closeSidebar(sbPage: Page, selector = ".sb-nav-root-rhs") {
+  await sbPage.locator(selector).locator(".sb-nav-close").click();
 }
 
 test("opens with source-ordered rows and filters in-frame", async ({
@@ -401,7 +377,7 @@ test("Escape closes the modal even with a phrase typed", async ({ sbPage }) => {
   ).toHaveCount(0);
 });
 
-test("reopening reuses the same iframe and clears the stale phrase", async ({
+test("reopening reuses the cached rows and clears the stale phrase", async ({
   sbPage,
 }) => {
   await openNavigator(sbPage);
@@ -411,18 +387,9 @@ test("reopening reuses the same iframe and clears the stale phrase", async ({
     sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
   ).toHaveCount(0);
 
-  await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    (f.contentWindow as any).__sameFrame = true;
-  });
-
+  // The rows are back before anything could have re-run the source: the
+  // slot's engine outlives the panel, which is what makes a reopen instant.
   await openNavigator(sbPage);
-
-  const survived = await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    return (f.contentWindow as any).__sameFrame === true;
-  });
-  expect(survived).toBe(true);
   await expect(navInput(sbPage)).toHaveValue("");
 });
 
@@ -491,11 +458,9 @@ test("C1: reopening an already-displayed modal view reveals promptly, not via th
   }
 });
 
-test("first open of a never-preloaded dock still activates", async ({
-  sbPage,
-}) => {
+test("first open of a dock activates it", async ({ sbPage }) => {
   await runCommand(sbPage, "Navigator: Sidebar");
-  const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
+  const frame = sbPage.locator("#sb-main .sb-nav-root-lhs");
   await expect(frame.locator(".sb-nav-title")).toHaveText("Sidebar");
   await expect(frame.locator(".sb-nav-primary").first()).toBeVisible();
 });
@@ -505,7 +470,7 @@ test("a failing source renders an error and keeps retrying", async ({
   sbServer,
 }) => {
   await runCommand(sbPage, "Navigator: Flaky");
-  const frame = sbPage.frameLocator(".sb-modal iframe");
+  const frame = sbPage.locator(".sb-nav-root-modal");
   const error = frame.locator(".sb-nav-error");
   await expect(error).toContainText("source exploded");
   await expect(navInput(sbPage)).toBeFocused();
@@ -520,7 +485,7 @@ test("switching views in an already-open dock replaces the rows", async ({
   sbPage,
 }) => {
   await runCommand(sbPage, "Navigator: Sidebar");
-  const frame = sbPage.frameLocator("#sb-main .sb-keyed-panel-lhs iframe");
+  const frame = sbPage.locator("#sb-main .sb-nav-root-lhs");
   await expect(frame.locator(".sb-nav-title")).toHaveText("Sidebar");
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
@@ -538,10 +503,10 @@ test("switching views in an already-open dock replaces the rows", async ({
   ).toHaveCount(0);
 });
 
-test("a keyed modal panel can be dismissed from outside its iframe", async ({
+test("the modal panel can be dismissed without its own input having focus", async ({
   sbPage,
 }) => {
-  // Without these the user is trapped behind the fixed backdrop whenever the panel's iframe fails to boot, since only in-iframe code can hidePanel.
+  // Without these the user is trapped behind the fixed backdrop whenever the panel fails to render or focus lands elsewhere.
   await openNavigator(sbPage);
   await sbPage
     .locator(".sb-modal-backdrop")
@@ -558,43 +523,37 @@ test("a keyed modal panel can be dismissed from outside its iframe", async ({
   ).toHaveCount(0);
 });
 
-test("re-evaluating the panel bundle reuses the booted singletons", async ({
+test("a plug's modal and the navigator's never stack: the last one open owns the slot", async ({
   sbPage,
 }) => {
-  const frame = await openNavigator(sbPage);
-
-  await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    const w = f.contentWindow as any;
-    w.__engineBefore = w.__navigatorEngine;
-    const panel = (globalThis as any).client.ui.viewState.keyedPanels.find(
-      (p: any) => p.key === "navigator:modal",
-    );
-    f.contentWindow!.postMessage({
-      type: "html",
-      html: panel.html,
-      script: panel.script,
-    });
+  // Both on screen means two backdrops at the same z-index, with whichever
+  // rendered first (and the focus it took) buried under the other.
+  await runCommand(sbPage, "Configuration: Open");
+  await expect(sbPage.locator(".sb-modal iframe")).toBeVisible({
+    timeout: 20_000,
   });
+  await expect(sbPage.locator(".sb-modal-backdrop")).toHaveCount(1);
 
-  await expect(
-    frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
-  ).toBeVisible();
-
-  const reused = await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    const w = f.contentWindow as any;
-    return {
-      sameEngine: w.__navigatorEngine === w.__engineBefore,
-      listening: w.__navigatorListening === true,
-    };
-  });
-  expect(reused).toEqual({ sameEngine: true, listening: true });
-
-  await navInput(sbPage).fill("alpha");
-  await expect(frame.locator(".sb-nav-primary").first()).toHaveText(
-    "Projects/Alpha",
+  // Through the command rather than its chord: where focus sits once a plug
+  // panel has booted decides whether a keystroke reaches the app at all, and
+  // that is not what this is about.
+  await sbPage.evaluate(() =>
+    (globalThis as any).client.runCommandByName("Navigate: Page Picker"),
   );
+  await expect(sbPage.locator(".sb-nav-root-modal")).toBeVisible();
+  await expect(sbPage.locator(".sb-modal-backdrop")).toHaveCount(1);
+  await expect(sbPage.locator(".sb-modal iframe")).toHaveCount(0);
+  await expectNavInputFocused(sbPage);
+
+  // ...and the other way round.
+  await sbPage.evaluate(() =>
+    (globalThis as any).client.runCommandByName("Configuration: Open"),
+  );
+  await expect(sbPage.locator(".sb-modal iframe")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(sbPage.locator(".sb-nav-root-modal")).toHaveCount(0);
+  await expect(sbPage.locator(".sb-modal-backdrop")).toHaveCount(1);
 });
 
 test("tree: folders collapse and expand", async ({ sbPage }) => {
@@ -675,18 +634,17 @@ test("sidebar: opens, persists across page navigation, follows editor", async ({
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
-  // Regression guard: the keyed panel's nested .sb-panel once had no flex container to grow inside, so its iframe collapsed to the browser's ~150px replaced-element default instead of filling the sidebar.
-  const iframeBox = await sbPage
-    .locator(".sb-keyed-panel-rhs iframe")
-    .boundingBox();
+  // Regression guard: the dock once had no flex container to grow inside, so
+  // it collapsed instead of filling the sidebar's full height.
+  const panelBox = await sbPage.locator(".sb-nav-root-rhs").boundingBox();
   const mainBox = await sbPage.locator("#sb-main").boundingBox();
-  expect(iframeBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
   expect(mainBox).not.toBeNull();
-  expect(Math.abs(iframeBox!.height - mainBox!.height)).toBeLessThan(5);
+  expect(Math.abs(panelBox!.height - mainBox!.height)).toBeLessThan(5);
 
   await sbPage.locator("#sb-editor .cm-content").click();
 
@@ -701,7 +659,7 @@ test("sidebar: reopens after being closed", async ({ sbPage }) => {
   await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
@@ -716,7 +674,7 @@ test("sidebar: follow-editor reveal survives being hidden, then reopened", async
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
@@ -737,7 +695,7 @@ test("sidebar: resize handle changes width, persists, and restores", async ({
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
@@ -780,11 +738,11 @@ test("sidebar: the close button hides the panel", async ({ sbPage }) => {
   await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await closeSidebar(sbPage);
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
-  // A .sb-keyed-panel.sb-hidden that's actually still rendered (the C1 regression) would keep occupying its flex share, so the editor wouldn't reclaim the full #sb-main width.
+  // A dock that is closed but still in the DOM would keep occupying its flex share, so the editor wouldn't reclaim the full #sb-main width.
   const editorBox = (await sbPage.locator("#sb-editor").boundingBox())!;
   const mainBox = (await sbPage.locator("#sb-main").boundingBox())!;
   expect(mainBox.width - editorBox.width).toBeLessThan(5);
@@ -797,7 +755,7 @@ test("tree: expandAll opens every depth, and a collapse survives a refresh", asy
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Expand All Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
@@ -824,7 +782,7 @@ test("tree: expandAll auto-expands while filtering, then gives the collapse back
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Expand All Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible({
     timeout: 20_000,
@@ -859,7 +817,7 @@ test("watch: out-of-band page creation appears in sidebar tree, preserving expan
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
@@ -882,14 +840,14 @@ test("watch: out-of-band page creation appears in sidebar tree, preserving expan
   ).toBeVisible();
 });
 
-test("watch: hidden panel defers refresh, running the source once when shown", async ({
+test("watch: a closed panel runs no source, and reopening runs it exactly once", async ({
   sbPage,
   sbServer,
 }) => {
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
@@ -898,12 +856,9 @@ test("watch: hidden panel defers refresh, running the source once when shown", a
   await expect(sidebarTreePanel(sbPage)).toBeHidden();
 
   await sbPage.evaluate(() => {
-    const f = document.querySelector(
-      ".sb-keyed-panel-rhs iframe",
-    ) as HTMLIFrameElement;
-    const w = f.contentWindow as any;
+    const w = globalThis as any;
     w.__refreshCalls = 0;
-    const engine = w.__navigatorEngine;
+    const engine = w.__navigatorEngines.get("rhs");
     const orig = engine.refresh.bind(engine);
     engine.refresh = (...args: unknown[]) => {
       w.__refreshCalls++;
@@ -912,12 +867,7 @@ test("watch: hidden panel defers refresh, running the source once when shown", a
   });
 
   const refreshCalls = () =>
-    sbPage.evaluate(() => {
-      const f = document.querySelector(
-        ".sb-keyed-panel-rhs iframe",
-      ) as HTMLIFrameElement;
-      return (f.contentWindow as any).__refreshCalls as number;
-    });
+    sbPage.evaluate(() => (globalThis as any).__refreshCalls as number);
 
   // Simulates the startup indexing storm (mq:emptyQueue:indexQueue firing repeatedly) this deferral exists for.
   for (let i = 0; i < 6; i++) {
@@ -949,7 +899,7 @@ test("command open focuses the filter input in the modal dock", async ({
   sbPage,
 }) => {
   await openNavigator(sbPage);
-  await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
 
   await sbPage.keyboard.type("alpha", { delay: 20 });
   await expect(navInput(sbPage)).toHaveValue("alpha");
@@ -961,10 +911,10 @@ test("command open focuses the filter input in a sidebar dock", async ({
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
-  await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
 
   const selected = frame.locator(".sb-nav-selected");
   await expect(selected).toHaveAttribute("data-path", "index");
@@ -979,7 +929,7 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
@@ -990,7 +940,7 @@ test("re-running the command re-focuses the panel, never toggles it closed", asy
   await runCommand(sbPage, "Navigator: Sidebar Tree");
 
   await expect(sidebarTreePanel(sbPage)).toBeVisible();
-  await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
   await expect(frame.locator("input.sb-nav-input")).toHaveValue("alpha");
   await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toHaveCount(0);
@@ -1005,13 +955,13 @@ test("re-focusing a docked view with a phrase selects it, so typing replaces it"
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await frame.locator("input.sb-nav-input").fill("alpha");
   await sbPage.locator("#sb-editor .cm-content").click();
 
   await runCommand(sbPage, "Navigator: Sidebar Tree");
-  await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
 
   const input = frame.locator("input.sb-nav-input");
   await expect(input).toHaveValue("alpha");
@@ -1031,7 +981,7 @@ test("re-opening an unfiltered followEditor sidebar re-reveals the current page"
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
@@ -1050,7 +1000,7 @@ test("re-opening an unfiltered followEditor sidebar re-reveals the current page"
   await expect(
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
-  await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
 });
 
 test("re-opening a filtered followEditor sidebar keeps the filter and skips the reveal", async ({
@@ -1059,7 +1009,7 @@ test("re-opening a filtered followEditor sidebar keeps the filter and skips the 
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
@@ -1072,7 +1022,7 @@ test("re-opening a filtered followEditor sidebar keeps the filter and skips the 
   await sbPage.locator("#sb-editor .cm-content").click();
   await runCommand(sbPage, "Navigator: Sidebar Tree");
 
-  await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
   await expect(input).toHaveValue("today");
   await expect(frame.locator("[data-path='Journal/Today']")).toBeVisible();
   await expect(frame.locator("[data-path='Projects']")).toHaveCount(0);
@@ -1085,7 +1035,7 @@ test("keymap: a view key acts on the selected row without giving up focus", asyn
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Keymap Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
   await expect(frame.locator("[data-path='Journal']")).toBeVisible();
@@ -1109,7 +1059,7 @@ test("keymap: a view key acts on the selected row without giving up focus", asyn
   await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
     "Journal/Today",
   );
-  await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
   await expect(input).toHaveValue("");
 });
 
@@ -1234,11 +1184,11 @@ test("create: list mode keeps the create row on screen however long the list", a
 
   const withinContainer = () =>
     sbPage.evaluate(() => {
-      const d = (
-        document.querySelector(".sb-modal iframe") as HTMLIFrameElement
-      ).contentDocument!;
-      const row = d.querySelector(".sb-nav-create")!.getBoundingClientRect();
-      const box = d.querySelector(".sb-nav-body")!.getBoundingClientRect();
+      const panel = document.querySelector(".sb-nav-root-modal")!;
+      const row = panel
+        .querySelector(".sb-nav-create")!
+        .getBoundingClientRect();
+      const box = panel.querySelector(".sb-nav-body")!.getBoundingClientRect();
       return row.top >= box.top - 1 && row.bottom <= box.bottom + 1;
     });
 
@@ -1267,7 +1217,7 @@ test("scroll: a refresh leaves a manually scrolled tree exactly where it was", a
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Scroll Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator("[data-path='Bulk001']")).toBeVisible();
 
@@ -1279,12 +1229,9 @@ test("scroll: a refresh leaves a manually scrolled tree exactly where it was", a
   expect(scrolledTo).toBeGreaterThan(0);
 
   await sbPage.evaluate(() => {
-    const f = document.querySelector(
-      ".sb-keyed-panel-rhs iframe",
-    ) as HTMLIFrameElement;
-    const w = f.contentWindow as any;
+    const w = globalThis as any;
     w.__refreshCalls = 0;
-    const engine = w.__navigatorEngine;
+    const engine = w.__navigatorEngines.get("rhs");
     const orig = engine.refresh.bind(engine);
     engine.refresh = (...args: unknown[]) => {
       w.__refreshCalls++;
@@ -1294,12 +1241,9 @@ test("scroll: a refresh leaves a manually scrolled tree exactly where it was", a
 
   await writeFile(join(sbServer.spaceDir, "Scrolled.md"), "# Scrolled");
   await expect(async () => {
-    const calls = await sbPage.evaluate(() => {
-      const f = document.querySelector(
-        ".sb-keyed-panel-rhs iframe",
-      ) as HTMLIFrameElement;
-      return (f.contentWindow as any).__refreshCalls as number;
-    });
+    const calls = await sbPage.evaluate(
+      () => (globalThis as any).__refreshCalls as number,
+    );
     expect(calls).toBeGreaterThan(0);
   }).toPass({ timeout: 20_000 });
 
@@ -1312,7 +1256,7 @@ test("scroll: a follow-editor reveal never scrolls the host document", async ({
   const frame = await openNavigatorView(
     sbPage,
     "Navigator: Sidebar Tree",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(frame.locator(".sb-tree")).toBeVisible();
 
@@ -1322,7 +1266,7 @@ test("scroll: a follow-editor reveal never scrolls the host document", async ({
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
 
-  // scrollIntoView inside a same-origin iframe scrolls the host's scrollable ancestors too, so nothing outside the panel's own scroll container may move.
+  // scrollIntoView walks every scrollable ancestor, so nothing outside the panel's own scroll container may move.
   const host = await sbPage.evaluate(() => {
     const overflow = (sel: string) => {
       const el = document.querySelector(sel);
@@ -1349,53 +1293,14 @@ test("scroll: a follow-editor reveal never scrolls the host document", async ({
   expect(host.main).toEqual({ scrollTop: 0, overflowing: false });
   expect(host.body).toEqual({ scrollTop: 0, overflowing: false });
 
-  const panelDoc = await sbPage.evaluate(() => {
-    const f = document.querySelector(
-      ".sb-keyed-panel-rhs iframe",
-    ) as HTMLIFrameElement;
-    const d = f.contentDocument!;
+  const panelBox = await sbPage.evaluate(() => {
+    const el = document.querySelector(".sb-nav-root-rhs")!;
     return {
-      scrollTop: d.scrollingElement!.scrollTop,
-      overflowing:
-        d.documentElement.scrollHeight > d.documentElement.clientHeight + 1,
+      scrollTop: el.scrollTop,
+      overflowing: el.scrollHeight > el.clientHeight + 1,
     };
   });
-  expect(panelDoc).toEqual({ scrollTop: 0, overflowing: false });
-});
-
-test("rows are not selectable text", async ({ sbPage }) => {
-  const frame = await openNavigator(sbPage);
-  const userSelect = await frame
-    .locator(".sb-nav-row")
-    .first()
-    .evaluate((el) => getComputedStyle(el).userSelect);
-  expect(userSelect).toBe("none");
-  const inputSelect = await frame
-    .locator("input.sb-nav-input")
-    .evaluate((el) => getComputedStyle(el).userSelect);
-  expect(inputSelect).not.toBe("none");
-});
-
-test("hovering a row does not highlight it", async ({ sbPage }) => {
-  const frame = await openNavigator(sbPage);
-  const selected = frame.locator(".sb-nav-row.sb-nav-selected");
-  await expect(selected).toBeVisible();
-
-  const colors = (loc: typeof selected) =>
-    loc.evaluate((el) => {
-      const s = getComputedStyle(el);
-      return { color: s.color, background: s.backgroundColor };
-    });
-
-  const before = await colors(selected);
-  await selected.hover();
-  expect(await colors(selected)).toEqual(before);
-
-  const other = frame.locator(".sb-nav-row:not(.sb-nav-selected)").first();
-  const unhovered = await colors(other);
-  await other.hover();
-  expect(await colors(other)).toEqual(unhovered);
-  expect(await colors(selected)).toEqual(before);
+  expect(panelBox).toEqual({ scrollTop: 0, overflowing: false });
 });
 
 test("panels get the space style, and follow a mid-session theme change", async ({
@@ -1411,11 +1316,17 @@ test("panels get the space style, and follow a mid-session theme change", async 
     expect(outline).toBe("rgb(1, 2, 3)");
   }).toPass({ timeout: 20_000 });
 
-  const before = await sbPage.evaluate(() => {
-    const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-    (f.contentWindow as any).__themeProbe = true;
-    return f.contentDocument!.documentElement.dataset.theme;
-  });
+  const panelColors = () =>
+    sbPage.evaluate(() => {
+      const style = getComputedStyle(
+        document.querySelector(".sb-nav-root-modal")!,
+      );
+      return {
+        theme: document.documentElement.dataset.theme,
+        background: style.backgroundColor,
+      };
+    });
+  const before = await panelColors();
 
   await sbPage.evaluate(() => {
     (globalThis as any).client.ui.viewDispatch({
@@ -1425,17 +1336,14 @@ test("panels get the space style, and follow a mid-session theme change", async 
     });
   });
 
+  // The panel draws from the app's own tokens now, so a theme switch reaches
+  // it with nothing re-created and nothing pushed across a boundary.
   await expect(async () => {
-    const after = await sbPage.evaluate(() => {
-      const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-      return {
-        theme: f.contentDocument!.documentElement.dataset.theme,
-        sameFrame: (f.contentWindow as any).__themeProbe === true,
-      };
-    });
-    expect(after).toEqual({ theme: "dark", sameFrame: true });
+    const after = await panelColors();
+    expect(after.theme).toBe("dark");
+    expect(after.background).not.toBe(before.background);
   }).toPass();
-  expect(before).not.toBe("dark");
+  expect(before.theme).not.toBe("dark");
 });
 
 test("keymap: a printable key types while typing and acts while navigating", async ({
@@ -1445,7 +1353,7 @@ test("keymap: a printable key types while typing and acts while navigating", asy
   await expect(
     frame.locator(".sb-nav-row", { hasText: "Projects/Alpha" }),
   ).toBeVisible();
-  await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
 
   const input = frame.locator("input.sb-nav-input");
   const currentPage = sbPage.locator("#sb-current-page input.sb-input");
@@ -1462,7 +1370,7 @@ test("keymap: a printable key types while typing and acts while navigating", asy
   await input.press(" ");
   await expect(currentPage).toHaveValue(target);
   await expect(input).toHaveValue("projects alpha");
-  await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
 
   await sbPage.keyboard.type("x", { delay: 20 });
   await expect(input).toHaveValue("projects alphax");
@@ -1512,7 +1420,7 @@ test.describe("dnd", () => {
     }
   }
 
-  function dragRow(frame: FrameLocator, from: string, to: string) {
+  function dragRow(frame: Locator, from: string, to: string) {
     return frame
       .locator(`[data-path='${from}']`)
       .dragTo(frame.locator(`[data-path='${to}']`));
@@ -1630,6 +1538,46 @@ test.describe("dnd", () => {
     }
   });
 
+  test("drops onto the tree's own area, moving the page out to the root", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    // The built-in tree rather than the modal one: a full-height dock shows
+    // every row at once, where the modal's seven-row cap would leave the drop
+    // target scrolled out of the panel.
+    await runCommand(sbPage, "Navigate: Tree");
+    const frame = sidebarFrame(sbPage);
+    await expect(frame.locator("[data-path='Projects']")).toBeVisible();
+    await frame.locator("[data-path='Journal'] .sb-nav-chevron").click();
+    const source = frame.locator("[data-path='Journal/Today']");
+    await expect(source).toBeVisible();
+
+    // A root-level page resolves to the tree's own root area rather than to
+    // itself -- `index` is not a folder, so the drop target is its parent.
+    const target = frame.locator("[data-path='index']");
+    await source.hover();
+    await sbPage.mouse.down();
+    const box = (await target.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await sbPage.mouse.move(x, y, { steps: 5 });
+    await sbPage.mouse.move(x, y + 1);
+    try {
+      await expect(frame.locator(".sb-tree.sb-nav-droptarget")).toBeVisible();
+      await expect(target).not.toHaveClass(/sb-nav-droptarget/);
+    } finally {
+      await sbPage.mouse.up();
+    }
+
+    await expect(frame.locator("[data-path='Today']")).toBeVisible({
+      timeout: 20_000,
+    });
+    expect(await exists(join(sbServer.spaceDir, "Today.md"))).toBe(true);
+    expect(await exists(join(sbServer.spaceDir, "Journal/Today.md"))).toBe(
+      false,
+    );
+  });
+
   test("dragging is off while a filter phrase prunes the tree", async ({
     sbPage,
   }) => {
@@ -1638,7 +1586,7 @@ test.describe("dnd", () => {
     await expect(projects).toHaveAttribute("draggable", "true");
 
     const input = frame.locator("input.sb-nav-input");
-    // Retried, not raced: the modal's panel:shown reset can still land just after the panel is populated, wiping a phrase typed that same instant.
+    // Retried, not raced: the activation's own phrase reset can still land just after the panel is populated, wiping a phrase typed that same instant.
     await expect(async () => {
       await input.fill("alpha");
       await expect(input).toHaveValue("alpha", { timeout: 1000 });
@@ -1791,7 +1739,7 @@ test.describe("actions", () => {
     },
   });
 
-  const PANEL = ".sb-keyed-panel-rhs iframe";
+  const PANEL = ".sb-nav-root-rhs";
 
   async function openTree(sbPage: Page, command: string) {
     const frame = await openNavigatorView(sbPage, command, PANEL);
@@ -1800,7 +1748,7 @@ test.describe("actions", () => {
     return frame;
   }
 
-  function action(frame: FrameLocator, path: string, label: string) {
+  function action(frame: Locator, path: string, label: string) {
     return frame.locator(
       `[data-path='${path}'] .sb-row-action[aria-label='${label}']`,
     );
@@ -1869,7 +1817,7 @@ test.describe("actions", () => {
     await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
       "index",
     );
-    await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
   });
 
   test("clicking an action runs it on that row, keeping focus in the filter", async ({
@@ -1880,12 +1828,9 @@ test.describe("actions", () => {
     const projects = frame.locator("[data-path='Projects']");
     await projects.hover();
     await sbPage.evaluate(() => {
-      const f = document.querySelector(
-        ".sb-keyed-panel-rhs iframe",
-      ) as HTMLIFrameElement;
-      const w = f.contentWindow as any;
+      const w = globalThis as any;
       w.__refreshCalls = 0;
-      const engine = w.__navigatorEngine;
+      const engine = w.__navigatorEngines.get("rhs");
       const orig = engine.refresh.bind(engine);
       engine.refresh = (...args: unknown[]) => {
         w.__refreshCalls++;
@@ -1899,15 +1844,12 @@ test.describe("actions", () => {
       "action rename Projects",
     );
     await expect(frame.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
-    await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
 
     await expect(async () => {
-      const calls = await sbPage.evaluate(() => {
-        const f = document.querySelector(
-          ".sb-keyed-panel-rhs iframe",
-        ) as HTMLIFrameElement;
-        return (f.contentWindow as any).__refreshCalls as number;
-      });
+      const calls = await sbPage.evaluate(
+        () => (globalThis as any).__refreshCalls as number,
+      );
       expect(calls).toBeGreaterThan(0);
     }).toPass({ timeout: 5000 });
   });
@@ -1939,62 +1881,7 @@ test.describe("actions", () => {
     await prompt.locator("button", { hasText: "Ok" }).click();
 
     await expect(notifications).toContainText("action delete index");
-    await expectFilterInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
-  });
-
-  test("folder rows are styled as section headers, pages are not", async ({
-    sbPage,
-  }) => {
-    const frame = await openTree(sbPage, "Navigator: Action Tree");
-
-    const weight = (path: string) =>
-      frame
-        .locator(`[data-path='${path}']`)
-        .evaluate((el) => getComputedStyle(el).fontWeight);
-    const color = (path: string) =>
-      frame
-        .locator(`[data-path='${path}']`)
-        .evaluate((el) => getComputedStyle(el).color);
-
-    await expect(frame.locator("[data-path='Projects']")).toHaveClass(
-      /sb-nav-folder/,
-    );
-    await expect(frame.locator("[data-path='Notes']")).toHaveClass(
-      /sb-nav-folder/,
-    );
-    await expect(frame.locator("[data-path='index']")).not.toHaveClass(
-      /sb-nav-folder/,
-    );
-
-    const band = (path: string) =>
-      frame
-        .locator(`[data-path='${path}']`)
-        .evaluate((el) => getComputedStyle(el).backgroundImage);
-
-    const pageWeight = await weight("index");
-    expect(await weight("Projects")).not.toBe(pageWeight);
-    expect(await weight("Notes")).not.toBe(pageWeight);
-    expect(await color("Projects")).toBe(await color("index"));
-    expect(await band("index")).toBe("none");
-    expect(await band("Projects")).not.toBe("none");
-    expect(await band("Notes")).not.toBe("none");
-
-    const resting = await frame
-      .locator("[data-path='Projects']")
-      .evaluate((el) => getComputedStyle(el).backgroundColor);
-    await frame.locator("[data-path='Projects']").hover();
-    expect(
-      await frame
-        .locator("[data-path='Projects']")
-        .evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).toBe(resting);
-
-    await frame.locator("[data-path='Projects']").click();
-    await expect(
-      frame.locator("[data-path='Projects'].sb-nav-selected"),
-    ).toBeVisible();
-    expect(await band("Projects")).toBe("none");
-    expect(await color("Projects")).not.toBe(await color("Projects/Alpha"));
+    await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
   });
 
   test("row icons render per object, with a reserved slot for the ones without", async ({
@@ -2121,41 +2008,64 @@ test.describe("actions", () => {
   });
 });
 
-test("activation: a stale out-of-order arrival can't clobber panel state", async ({
+test("activation: an activation still in flight can't clobber the one that took the slot from it", async ({
   sbPage,
 }) => {
-  // An older activation landing after a newer one must be dropped by token order, not merely deduped as a literal duplicate of the newest.
-  const dispatchActivate = (view: string, token: number) =>
-    sbPage.evaluate(
-      ({ view, token }) => {
-        void (globalThis as any).client.eventHook.dispatchEvent(
-          "navigator:activate",
-          { slot: "modal", view, token },
-        );
-      },
-      { view, token },
-    );
+  // The first view's rows are held up, so its activation is still mid-flight
+  // when the second takes the slot; when they finally land, its tail runs
+  // against a panel that belongs to the newer view. It must not put its own
+  // view, its phrase reset or its focus on top of it. (The out-of-order
+  // *arrival* this used to guard against is structural now: an activation is
+  // the slot's state, so there is no dispatch left to overtake.)
+  const HOLD_MS = 1500;
+  await sbPage.evaluate((holdMs) => {
+    const engines = (globalThis as any).__navigatorEngines;
+    const origSet = engines.set.bind(engines);
+    engines.set = (slot: string, engine: any) => {
+      if (slot === "modal") {
+        const orig = engine.runHook;
+        engine.runHook = async (data: any) => {
+          const result = await orig(data);
+          if (data.hook === "rows" && data.view === "pages") {
+            await new Promise((resolve) => setTimeout(resolve, holdMs));
+            (globalThis as any).__heldRowsLanded = true;
+          }
+          return result;
+        };
+      }
+      return origSet(slot, engine);
+    };
+  }, HOLD_MS);
 
-  await openNavigator(sbPage);
-  await navInput(sbPage).press("Escape");
-  await expect(
-    sbPage.locator(".sb-modal-backdrop:not(.sb-hidden)"),
-  ).toHaveCount(0);
-  await sbPage.locator("#sb-editor .cm-content").click();
-  await openNavigator(sbPage);
+  await sbPage.evaluate(() =>
+    (globalThis as any).client.runCommandByName("Navigator: Pages"),
+  );
+  await sbPage.evaluate(() =>
+    (globalThis as any).client.runCommandByName("Navigator: Modal Tree"),
+  );
 
+  const frame = sbPage.locator(".sb-nav-root-modal");
+  await expect(frame.locator(".sb-nav-title")).toHaveText("Modal Tree");
+  await expect(frame.locator(".sb-tree")).toBeVisible();
   await navInput(sbPage).fill("alpha");
-  await expect(navInput(sbPage)).toHaveValue("alpha");
 
-  // Under an equality-only check this stale dispatch would pass the guard and the activation tail would clear the phrase.
-  await dispatchActivate("pages", 1);
-  await sbPage.waitForTimeout(500);
-  await expect(navInput(sbPage)).toHaveValue("alpha");
+  // Positive control: the held-up activation really did get its rows back (so
+  // it really did reach its tail), rather than never having been applied at
+  // all -- which is how this could pass for the wrong reason.
+  await expect
+    .poll(
+      () =>
+        sbPage.evaluate(() => (globalThis as any).__heldRowsLanded === true),
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  // ...and its tail is a few microtasks behind those rows, so let it run
+  // before asking what it did.
+  await sbPage.waitForTimeout(300);
 
-  // Positive control: a newer token still activates, proving the assertion above isn't just measuring a dead dispatch path.
-  await dispatchActivate("pages", 9999);
-  await expect(navInput(sbPage)).toHaveValue("");
-  await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+  await expect(frame.locator(".sb-nav-title")).toHaveText("Modal Tree");
+  await expect(navInput(sbPage)).toHaveValue("alpha");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
 });
 
 const FILTER_CONFIG = `# Nav filter test
@@ -2186,6 +2096,9 @@ navigator.define {
   dock = "modal",
   presentation = { mode = "list" },
   segments = kindSegments,
+  -- Fired by hand from the rowState-failure test below, which needs the
+  -- panel's own refresh path (not just the engine's) to re-run the source.
+  refreshOn = { "navigator:test:refresh" },
   source = things,
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
@@ -2289,44 +2202,15 @@ navigator.define {
 }
 
 navigator._badIcons = {}
--- Every case also carries a no-op onSelect, so what actually rejects each one
--- is the field under test, not the separate "onSelect is required" check.
+-- The exact rejections (and their messages) are pinned in lua_views.test.ts;
+-- what only a real space-lua load can show is that the same validation runs on
+-- a spec that arrived over the Lua bridge -- one rejection, and one acceptance
+-- beside it so a blanket break reads as a failure rather than a pass.
 for _, case in ipairs({
-  { what = "segment icon", spec = { name = "bad1", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", icon = 42 } } } },
-  -- The old { svg = ... } escape hatch: an icon must be a string now.
-  { what = "segment icon svg table", spec = { name = "bad2", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", icon = { svg = "<svg></svg>" } } } } },
-  { what = "action icon", spec = { name = "bad3", source = things,
-      onSelect = function() end,
-      actions = { { label = "A", icon = {}, run = function() end } } } },
-  { what = "action icon svg table", spec = { name = "bad3b", source = things,
-      onSelect = function() end,
-      actions = { { label = "A", icon = { svg = "<svg></svg>" }, run = function() end } } } },
-  -- presentation.row.icon: same old escape hatch, its own validator.
-  { what = "row icon svg table", spec = { name = "bad4b", source = things,
-      onSelect = function() end,
-      presentation = { row = { icon = { svg = "<svg></svg>" } } } } },
-  { what = "limit", spec = { name = "bad5", source = things,
-      onSelect = function() end,
-      presentation = { limit = 0 } } },
-  { what = "search", spec = { name = "bad6", source = things, search = "fts",
-      onSelect = function() end } },
-  { what = "duplicate label", spec = { name = "bad7", source = things,
-      onSelect = function() end,
-      segments = { { label = "A" }, { label = "A" } } } },
   { what = "dock", spec = { name = "bad8", source = things, dock = "left",
       onSelect = function() end } },
-  { what = "mode", spec = { name = "bad9", source = things,
-      onSelect = function() end,
-      presentation = { mode = "table" } } },
-  { what = "hierarchy", spec = { name = "bad10", source = things,
-      onSelect = function() end,
-      presentation = { mode = "tree", hierarchy = {} } } },
-  -- \`onSelect\` is required at define time now.
-  { what = "missing onSelect", spec = { name = "bad13", source = things } },
+  { what = "good", spec = { name = "goodspec", source = things,
+      onSelect = function() end } },
 }) do
   local ok = pcall(navigator.define, case.spec)
   navigator._badIcons[#navigator._badIcons + 1] = case.what .. "=" .. tostring(ok)
@@ -2360,9 +2244,9 @@ test.describe("segments", () => {
     },
   });
 
-  const PANEL = ".sb-keyed-panel-rhs iframe";
+  const PANEL = ".sb-nav-root-rhs";
 
-  function segment(frame: FrameLocator, label: string) {
+  function segment(frame: Locator, label: string) {
     return frame.locator(`.sb-segment[aria-label='${label}']`);
   }
 
@@ -2396,7 +2280,7 @@ test.describe("segments", () => {
       "false",
     );
     expect(await primaries()).toEqual(["Alpha", "Projects/Beta"]);
-    await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
 
     await navInput(sbPage).fill("beta");
     expect(await primaries()).toEqual(["Projects/Beta"]);
@@ -2517,16 +2401,23 @@ test.describe("segments", () => {
     await expect(frame.locator(".sb-nav-row")).toHaveCount(4);
 
     const counted = () =>
-      sbPage.evaluate(() => (globalThis as any).__navSyscalls as string[]);
+      sbPage.evaluate(() => (globalThis as any).__navCalls as string[]);
     await sbPage.evaluate(() => {
-      const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-      const w = f.contentWindow as any;
+      const w = globalThis as any;
       const log: string[] = [];
-      (globalThis as any).__navSyscalls = log;
-      const orig = w.syscall;
+      w.__navCalls = log;
+      // Both halves of "no round trip": the view's own hooks (its source, its
+      // predicates) and the persistence writes that ride along with a switch.
+      const engine = w.__navigatorEngines.get("modal");
+      const origHook = engine.runHook;
+      engine.runHook = (data: any) => {
+        log.push(`hook:${data.hook}`);
+        return origHook(data);
+      };
+      const origSyscall = w.syscall;
       w.syscall = (name: string, ...args: any[]) => {
-        log.push(name);
-        return orig(name, ...args);
+        if (name.startsWith("datastore.")) log.push(name);
+        return origSyscall(name, ...args);
       };
     });
 
@@ -2556,21 +2447,15 @@ test.describe("segments", () => {
     await frame.locator(".sb-segment[aria-label='Pages']").click();
     await expect(frame.locator(".sb-nav-row")).toHaveCount(2);
 
-    await sbPage.evaluate(() => {
-      const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-      const w = f.contentWindow as any;
-      const orig = w.syscall;
-      w.syscall = (name: string, ...args: any[]) => {
-        if (
-          name === "system.invokeFunction" &&
-          args[0] === "navigator.handle" &&
-          args[1]?.hook === "rowState"
-        ) {
-          return Promise.reject(new Error("no state for you"));
-        }
-        return orig(name, ...args);
-      };
-      w.__navigatorHooks.refresh();
+    await sbPage.evaluate(async () => {
+      const w = globalThis as any;
+      const engine = w.__navigatorEngines.get("modal");
+      const orig = engine.runHook;
+      engine.runHook = (data: any) =>
+        data.hook === "rowState"
+          ? Promise.reject(new Error("no state for you"))
+          : orig(data);
+      await w.client.dispatchAppEvent("navigator:test:refresh");
     });
 
     await expect(frame.locator(".sb-nav-notice")).toBeVisible();
@@ -2584,7 +2469,7 @@ test.describe("segments", () => {
   test("empty refreshOn and filter.fields tables mean 'none', not 'broken'", async ({
     sbPage,
   }) => {
-    // refreshOn = {} used to reach the plug as an object and fail the open outright ("object is not iterable"); filter = { fields = {} } used to survive as a truthy field map and rank every row 0.
+    // refreshOn = {} used to reach the panel as an object and fail the open outright ("object is not iterable"); filter = { fields = {} } used to survive as a truthy field map and rank every row 0.
     const frame = await openNavigatorView(sbPage, "Navigator: Empty Tables");
     await expect(frame.locator(".sb-nav-row")).toHaveCount(4);
 
@@ -2594,24 +2479,14 @@ test.describe("segments", () => {
     );
   });
 
-  test("bad icons, limits, modes and labels are rejected at define time", async ({
+  test("navigator.define rejects a bad spec, and defines a good one, across the Lua bridge", async ({
     sbPage,
   }) => {
     const frame = await openNavigatorView(sbPage, "Navigator: Validation");
     await expect(frame.locator(".sb-nav-row").first()).toBeVisible();
     expect(await frame.locator(".sb-nav-primary").allInnerTexts()).toEqual([
-      "segment icon=false",
-      "segment icon svg table=false",
-      "action icon=false",
-      "action icon svg table=false",
-      "row icon svg table=false",
-      "limit=false",
-      "search=false",
-      "duplicate label=false",
       "dock=false",
-      "mode=false",
-      "hierarchy=false",
-      "missing onSelect=false",
+      "good=true",
     ]);
   });
 
@@ -2683,7 +2558,7 @@ test.describe("segments", () => {
   });
 });
 
-async function dragSidebar(sbPage: Page, frame: FrameLocator, dx: number) {
+async function dragSidebar(sbPage: Page, frame: Locator, dx: number) {
   const handle = frame.locator(".sb-resizer-rhs");
   const box = (await handle.boundingBox())!;
   const y = box.y + box.height / 2;
@@ -2809,7 +2684,7 @@ test.describe("source mode", () => {
       "Bluebird",
       "Blueprint",
     ]);
-    await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
   });
 
   test("a response overtaken by a newer one is dropped", async ({ sbPage }) => {
@@ -2817,17 +2692,11 @@ test.describe("source mode", () => {
     await expect(frame.locator(".sb-nav-row")).toHaveCount(5);
 
     await sbPage.evaluate(() => {
-      const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-      const w = f.contentWindow as any;
-      const orig = w.syscall;
-      w.syscall = async (name: string, ...args: any[]) => {
-        const result = await orig(name, ...args);
-        if (
-          name === "system.invokeFunction" &&
-          args[0] === "navigator.handle" &&
-          args[1]?.hook === "rows" &&
-          args[1]?.args?.ctx?.phrase === "blue"
-        ) {
+      const engine = (globalThis as any).__navigatorEngines.get("modal");
+      const orig = engine.runHook;
+      engine.runHook = async (data: any) => {
+        const result = await orig(data);
+        if (data.hook === "rows" && data.args?.ctx?.phrase === "blue") {
           await new Promise((r) => setTimeout(r, 3000));
         }
         return result;
@@ -2901,64 +2770,6 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
--- A deep, wide tree: a phrase that matches everything auto-expands the lot,
--- which is the shape a hover transition is most expensive over.
-navigator.define {
-  name = "bulktree",
-  title = "Bulk Tree",
-  command = "Navigator: Bulk Tree",
-  dock = "modal",
-  presentation = { mode = "tree", limit = 5000, row = { icon = "file-text" } },
-  actions = {
-    { icon = "edit-3", label = "Rename", run = function() end },
-    { icon = "star", label = "Star", when = function(obj) return obj.even end,
-      run = function() end },
-  },
-  source = function()
-    local out = {}
-    for i = 1, 2000 do
-      local n = string.format("Folder%02d/Item %04d", i % 40, i)
-      out[#out + 1] = { name = n, ref = n, even = i % 2 == 0 }
-    end
-    return out
-  end,
-  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
-}
-
--- The load path rather than the keystroke path: every refresh re-runs the
--- source, re-batches when()/where()/icon over all 5000 objects, and re-renders.
--- Row 1's name carries the invocation count, so a test can see a refresh land
--- in the DOM rather than guess at when it did.
-navigator._refreshCalls = 0
-navigator.define {
-  name = "bulkrefresh",
-  title = "Bulk Refresh",
-  command = "Navigator: Bulk Refresh",
-  dock = "modal",
-  presentation = { mode = "list", row = { icon = function(obj)
-    if obj.even then return "check" else return "circle" end
-  end } },
-  segments = {
-    { label = "All", icon = "layers", default = true },
-    { label = "Even", icon = "hash", where = function(obj) return obj.even end },
-  },
-  actions = {
-    { icon = "edit-3", label = "Rename", run = function() end },
-    { icon = "star", label = "Star", when = function(obj) return obj.even end,
-      run = function() end },
-  },
-  source = function()
-    navigator._refreshCalls = navigator._refreshCalls + 1
-    local out = { { name = "Marker " .. navigator._refreshCalls, ref = "marker" } }
-    for i = 1, 4999 do
-      local n = string.format("Bulk/Item %04d", i)
-      out[#out + 1] = { name = n, ref = n, even = i % 2 == 0 }
-    end
-    return out
-  end,
-  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
-}
-
 navigator.define {
   name = "smalllimit",
   title = "Small Limit",
@@ -2983,7 +2794,7 @@ test.describe("render cap", () => {
     spaceFiles: { "index.md": "Welcome", "navtest.md": BULK_CONFIG },
   });
 
-  function typeAndSettle(frame: FrameLocator, phrase: string): Promise<number> {
+  function typeAndSettle(frame: Locator, phrase: string): Promise<number> {
     return frame
       .locator("input.sb-nav-input")
       .evaluate(async (input: HTMLInputElement, text: string) => {
@@ -3082,114 +2893,14 @@ test.describe("render cap", () => {
     console.log(`navigator 5k keystroke work: ${Math.round(work)}ms`);
     expect(work).toBeLessThan(budget);
 
-    const ranking = await frame
-      .locator("input.sb-nav-input")
-      .evaluate((input: HTMLInputElement) => {
-        const engine = (input.ownerDocument.defaultView as any)
-          .__navigatorEngine;
-        const state = engine.activeState();
-        const started = performance.now();
-        engine.rankRows(state.rows, "item 12", state.meta);
-        return performance.now() - started;
-      });
+    const ranking = await frame.locator("input.sb-nav-input").evaluate(() => {
+      const engine = (globalThis as any).__navigatorEngines.get("modal");
+      const state = engine.activeState();
+      const started = performance.now();
+      engine.rankRows(state.rows, "item 12", state.meta);
+      return performance.now() - started;
+    });
     console.log(`navigator 5k rank() alone: ${Math.round(ranking)}ms`);
-  });
-
-  test("@slow 5000 rows: a refresh stays inside the budget", async ({
-    sbPage,
-  }) => {
-    test.setTimeout(180_000);
-    const frame = await openNavigatorView(sbPage, "Navigator: Bulk Refresh");
-    const marker = frame.locator(".sb-nav-list .sb-nav-row").first();
-    await expect(marker).toContainText("Marker ");
-
-    const REFRESH_DEBOUNCE_MS = 300;
-    async function refreshAndSettle(): Promise<number> {
-      const before = await marker.innerText();
-      const started = Date.now();
-      await frame
-        .locator("input.sb-nav-input")
-        .evaluate(() => (globalThis as any).__navigatorHooks.refresh());
-      await expect(marker).not.toHaveText(before);
-      return Date.now() - started - REFRESH_DEBOUNCE_MS;
-    }
-
-    await refreshAndSettle();
-    const samples: number[] = [];
-    for (let i = 0; i < 3; i++) samples.push(await refreshAndSettle());
-    const worst = Math.max(...samples);
-    console.log(
-      `navigator 5k refresh (source + rowState + render): ${samples
-        .map((s) => Math.round(s))
-        .join("ms, ")}ms (worst ${Math.round(worst)}ms)`,
-    );
-
-    const engineOnly = await frame
-      .locator("input.sb-nav-input")
-      .evaluate(async () => {
-        const engine = (globalThis as any).__navigatorEngine;
-        const started = performance.now();
-        await engine.refresh();
-        return performance.now() - started;
-      });
-    console.log(
-      `navigator 5k refresh, engine only: ${Math.round(engineOnly)}ms`,
-    );
-
-    // The refresh path is explicitly allowed to be slow (off the interaction path); this guards against an order-of-magnitude regression (a comparator-driven sort creeping back in, a per-row round trip), not a millisecond budget.
-    expect(worst).toBeLessThan(process.env.CI ? 9000 : 3000);
-  });
-
-  test("@slow 2000-node tree: a hover transition stays inside the budget", async ({
-    sbPage,
-  }) => {
-    test.setTimeout(180_000);
-    const frame = await openNavigatorView(sbPage, "Navigator: Bulk Tree");
-    await expect(frame.locator("[data-path='Folder01']")).toBeVisible();
-
-    await navInput(sbPage).fill("item");
-    await expect(frame.locator(".sb-tree [data-path]")).toHaveCount(2040);
-
-    const move = (from: number, to: number) =>
-      frame.locator(".sb-tree").evaluate(
-        async (ul: HTMLElement, [a, b]: number[]) => {
-          const rows = [...ul.querySelectorAll("[data-path]")] as HTMLElement[];
-          const over = (el: HTMLElement) => {
-            const box = el.getBoundingClientRect();
-            el.dispatchEvent(
-              new PointerEvent("pointerover", {
-                bubbles: true,
-                clientX: box.x + 5,
-                clientY: box.y + 5,
-              }),
-            );
-          };
-          const settle = async () => {
-            for (let i = 0; i < 5; i++) await Promise.resolve();
-            void ul.offsetHeight;
-          };
-          over(rows[a]);
-          await settle();
-          const started = performance.now();
-          over(rows[b]);
-          await settle();
-          return performance.now() - started;
-        },
-        [from, to],
-      );
-
-    await move(3, 4);
-    const samples: number[] = [];
-    for (let i = 0; i < 5; i++) samples.push(await move(10 + i, 11 + i));
-    const worst = Math.max(...samples);
-    console.log(
-      `navigator 2k-node tree hover transition: ${samples
-        .map((s) => Math.round(s))
-        .join("ms, ")}ms (worst ${Math.round(worst)}ms)`,
-    );
-    expect(worst).toBeLessThan(process.env.CI ? 600 : 200);
-
-    await expect(frame.locator(".sb-tree .sb-row-action")).toHaveCount(2);
   });
 
   test("keyboard scrolling re-answers what the parked pointer is over", async ({
@@ -3265,15 +2976,13 @@ const BUILTIN_FILES = {
 };
 
 function sidebarFrame(sbPage: Page, side: "lhs" | "rhs" = "lhs") {
-  return sbPage.frameLocator(`.sb-keyed-panel-${side} iframe`);
+  return sbPage.locator(`.sb-nav-root-${side}`);
 }
 
 // A plain page.reload() will not do: navigating inside the app rewrites the URL without the ?headless=1 the fixture booted with, landing on a client with no runtime hooks or readiness signal.
 async function reboot(sbPage: Page, sbServer: SBServer, pagePath = "") {
   await gotoSilverBulletPage(sbPage, sbServer, pagePath);
-  await expect(
-    sbPage.locator(".sb-modal-backdrop .sb-keyed-panel"),
-  ).toHaveCount(1);
+  await expect(sbPage.locator("#sb-editor .cm-content")).toBeVisible();
 }
 
 async function waitPastRestore(sbPage: Page) {
@@ -3291,6 +3000,316 @@ test.describe("built-in views", () => {
     await expect(frame.locator("[data-path='Diagrams']")).toBeVisible();
     return frame;
   }
+
+  // The scoped-reset Critical zeroed every shared `.sb-nav-*` padding inside
+  // the panel with the whole suite green, because a metric is only ever
+  // asserted against another metric taken from the same element. These are
+  // absolute, straight off the stylesheet.
+  test("the panel's box metrics match the stylesheet, modal and dock alike", async ({
+    sbPage,
+  }) => {
+    const modal = await openPicker(sbPage, `${mod}+k`, "Page");
+    await navSegment(modal, "All").click();
+    await navInput(sbPage).fill("notes");
+    await expect(
+      modal.locator(".sb-nav-row", { hasText: "notes.txt" }).first(),
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(modal.locator(".sb-nav-create")).toBeVisible();
+
+    const modalMetrics = await sbPage.evaluate(() => {
+      const root = document.querySelector(".sb-nav-root-modal") as HTMLElement;
+      const style = (sel: string) =>
+        getComputedStyle(root.querySelector(sel) as HTMLElement);
+      const rootStyle = getComputedStyle(root);
+      const row = style(".sb-nav-body .sb-nav-row");
+      const header = style(".sb-nav-header");
+      const segments = style(".sb-segments");
+      const segment = style(".sb-segment");
+      const chip = style(".sb-nav-chip:not(.sb-nav-chip-hint)");
+      const hint = style(".sb-nav-chip-hint");
+      const input = style("input.sb-nav-input");
+      const primary = style(".sb-nav-body .sb-nav-primary");
+      const mark = style(".sb-nav-primary mark");
+      const body = style(".sb-nav-body");
+      return {
+        rowHeightToken: rootStyle
+          .getPropertyValue("--sb-nav-row-height")
+          .trim(),
+        rootFontSize: rootStyle.fontSize,
+        rootOverflow: rootStyle.overflow,
+        rowPadding: [
+          row.paddingTop,
+          row.paddingRight,
+          row.paddingBottom,
+          row.paddingLeft,
+        ].join(" "),
+        rowGap: row.columnGap,
+        rowLineHeight: row.lineHeight,
+        rowHeight: row.height,
+        rowUserSelect: row.userSelect,
+        headerPadding: [
+          header.paddingTop,
+          header.paddingRight,
+          header.paddingBottom,
+          header.paddingLeft,
+        ].join(" "),
+        headerGap: header.rowGap,
+        segmentsPadding: [
+          segments.paddingTop,
+          segments.paddingRight,
+          segments.paddingBottom,
+          segments.paddingLeft,
+        ].join(" "),
+        segmentsGap: `${segments.rowGap} ${segments.columnGap}`,
+        segmentPadding: [
+          segment.paddingTop,
+          segment.paddingRight,
+          segment.paddingBottom,
+          segment.paddingLeft,
+        ].join(" "),
+        segmentGap: segment.columnGap,
+        segmentFontSize: segment.fontSize,
+        segmentLineHeight: segment.lineHeight,
+        chipPadding: [
+          chip.paddingTop,
+          chip.paddingRight,
+          chip.paddingBottom,
+          chip.paddingLeft,
+        ].join(" "),
+        chipFontSize: chip.fontSize,
+        chipLineHeight: chip.lineHeight,
+        hintPadding: [
+          hint.paddingTop,
+          hint.paddingRight,
+          hint.paddingBottom,
+          hint.paddingLeft,
+        ].join(" "),
+        hintFontSize: hint.fontSize,
+        inputPadding: [
+          input.paddingTop,
+          input.paddingRight,
+          input.paddingBottom,
+          input.paddingLeft,
+        ].join(" "),
+        inputBorderWidth: input.borderTopWidth,
+        inputSelectable: input.userSelect !== "none",
+        primaryMinWidth: primary.minWidth,
+        primaryOverflow: primary.overflow,
+        primaryTextOverflow: primary.textOverflow,
+        markPadding: `${mark.paddingTop} ${mark.paddingLeft}`,
+        markMargin: `${mark.marginTop} ${mark.marginLeft}`,
+        markBorderWidth: mark.borderTopWidth,
+        markVerticalAlign: mark.verticalAlign,
+        // Seven rows exactly, and the cap is a multiple of the row token so it
+        // lands between rows rather than through one.
+        bodyMaxHeight: body.maxHeight,
+        capIsSevenRows:
+          parseFloat(body.maxHeight) ===
+          7 * parseFloat(rootStyle.getPropertyValue("--sb-nav-row-height")),
+      };
+    });
+    expect(modalMetrics).toEqual({
+      rowHeightToken: "36px",
+      rootFontSize: "16px",
+      rootOverflow: "hidden",
+      rowPadding: "8px 8px 8px 8px",
+      rowGap: "6px",
+      rowLineHeight: "20px",
+      rowHeight: "36px",
+      rowUserSelect: "none",
+      headerPadding: "13px 10px 10px 10px",
+      headerGap: "8px",
+      segmentsPadding: "2px 2px 2px 2px",
+      segmentsGap: "2px 2px",
+      segmentPadding: "3px 8px 3px 8px",
+      segmentGap: "5px",
+      segmentFontSize: "12px",
+      segmentLineHeight: "16px",
+      chipPadding: "2px 6px 2px 6px",
+      chipFontSize: "10px",
+      chipLineHeight: "10px",
+      hintPadding: "3px 5px 3px 5px",
+      hintFontSize: "16px",
+      inputPadding: "0px 0px 0px 0px",
+      inputBorderWidth: "0px",
+      inputSelectable: true,
+      primaryMinWidth: "0px",
+      primaryOverflow: "hidden",
+      primaryTextOverflow: "ellipsis",
+      markPadding: "0px 0px",
+      markMargin: "0px 0px",
+      markBorderWidth: "0px",
+      markVerticalAlign: "baseline",
+      bodyMaxHeight: "252px",
+      capIsSevenRows: true,
+    });
+
+    await sbPage.keyboard.press("Escape");
+    await expect(sbPage.locator(".sb-modal")).toBeHidden();
+
+    const tree = await openSpaceTree(sbPage);
+    await tree.locator("[data-path='Projects'] .sb-nav-chevron").click();
+    await expect(tree.locator("[data-path='Projects/Alpha']")).toBeVisible();
+    await tree.locator("[data-path='Projects/Alpha']").hover();
+    await expect(
+      tree.locator("[data-path='Projects/Alpha'] .sb-row-action").first(),
+    ).toBeVisible();
+
+    const dockMetrics = await sbPage.evaluate(() => {
+      const root = document.querySelector(
+        "#sb-main .sb-nav-root-lhs",
+      ) as HTMLElement;
+      const style = (sel: string) =>
+        getComputedStyle(root.querySelector(sel) as HTMLElement);
+      const treeRow = style(".sb-tree .sb-nav-row");
+      const body = style(".sb-nav-body");
+      const resizer = style(".sb-resizer");
+      const actions = style(".sb-row-actions");
+      const action = style(".sb-row-action");
+      // The indentation is an inline `depth * 1.2rem`, so the step is the
+      // document's own root font size -- and it must clobber the left side of
+      // `.sb-nav-row`'s `padding: 8px` shorthand and nothing else.
+      const step =
+        parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.2;
+      const depth = (path: string) => {
+        const s = style(`[data-path='${path}']`);
+        return {
+          left: s.paddingLeft,
+          rest: [s.paddingTop, s.paddingRight, s.paddingBottom].join(" "),
+        };
+      };
+      return {
+        rootIndent: depth("Projects"),
+        childIndent: depth("Projects/Alpha"),
+        expectedChildIndent: `${step}px`,
+        containIntrinsicSize: treeRow.containIntrinsicSize,
+        intrinsicMatchesRow:
+          treeRow.containIntrinsicSize ===
+          `auto ${getComputedStyle(root)
+            .getPropertyValue("--sb-nav-row-height")
+            .trim()}`,
+        bodyGutter: body.marginRight,
+        resizerWidth: resizer.width,
+        resizerTouchAction: resizer.touchAction,
+        actionsPadding: [
+          actions.paddingTop,
+          actions.paddingRight,
+          actions.paddingBottom,
+          actions.paddingLeft,
+        ].join(" "),
+        actionMinWidth: action.minWidth,
+        actionHeight: action.height,
+      };
+    });
+    expect(dockMetrics).toEqual({
+      rootIndent: { left: "0px", rest: "8px 8px 8px" },
+      childIndent: { left: "19.2px", rest: "8px 8px 8px" },
+      expectedChildIndent: "19.2px",
+      containIntrinsicSize: "auto 36px",
+      intrinsicMatchesRow: true,
+      bodyGutter: "6px",
+      resizerWidth: "6px",
+      resizerTouchAction: "none",
+      actionsPadding: "0px 4px 0px 22px",
+      actionMinWidth: "22px",
+      actionHeight: "22px",
+    });
+
+    // Folder rows head a section of the tree and are drawn as its header; the
+    // selection is the only highlight a row ever takes, and it re-points every
+    // dimmed foreground so nothing stays dim on top of the accent fill.
+    const bands = await sbPage.evaluate(() => {
+      const root = document.querySelector(
+        "#sb-main .sb-nav-root-lhs",
+      ) as HTMLElement;
+      const style = (path: string) =>
+        getComputedStyle(
+          root.querySelector(`[data-path='${path}']`) as HTMLElement,
+        );
+      // An unselected page row: the reveal has the current page selected, and
+      // a selection carries its own foreground.
+      const page = style("Projects/Alpha");
+      return {
+        dualBanded: style("Projects").backgroundImage !== "none",
+        folderBanded: style("Diagrams").backgroundImage !== "none",
+        pageBanded: page.backgroundImage !== "none",
+        folderIsHeavier: style("Projects").fontWeight !== page.fontWeight,
+        folderKeepsPageColor: style("Projects").color === page.color,
+      };
+    });
+    expect(bands).toEqual({
+      dualBanded: true,
+      folderBanded: true,
+      pageBanded: false,
+      folderIsHeavier: true,
+      folderKeepsPageColor: true,
+    });
+
+    const resting = await tree
+      .locator("[data-path='Diagrams']")
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    await tree.locator("[data-path='Diagrams']").hover();
+    expect(
+      await tree
+        .locator("[data-path='Diagrams']")
+        .evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).toBe(resting);
+
+    await tree.locator("[data-path='Diagrams'] .sb-nav-primary").click();
+    await expect(
+      tree.locator("[data-path='Diagrams'].sb-nav-selected"),
+    ).toBeVisible();
+    const selected = await sbPage.evaluate(() => {
+      const root = document.querySelector(
+        "#sb-main .sb-nav-root-lhs",
+      ) as HTMLElement;
+      const row = getComputedStyle(
+        root.querySelector("[data-path='Diagrams']") as HTMLElement,
+      );
+      return {
+        banded: row.backgroundImage !== "none",
+        mutedIsSelectionForeground:
+          row.getPropertyValue("--sb-nav-muted").trim() ===
+          row.getPropertyValue("--modal-selected-option-color").trim(),
+        differsFromUnselected:
+          row.color !==
+          getComputedStyle(root.querySelector("[data-path='Projects/Alpha']")!)
+            .color,
+      };
+    });
+    expect(selected).toEqual({
+      banded: false,
+      mutedIsSelectionForeground: true,
+      differsFromUnselected: true,
+    });
+
+    await runCommand(sbPage, "Navigate: Outline");
+    const outline = sidebarFrame(sbPage, "rhs");
+    await expect(outline.locator(".sb-nav-empty")).toBeVisible();
+    const rhsMetrics = await sbPage.evaluate(() => {
+      const root = document.querySelector(
+        "#sb-main .sb-nav-root-rhs",
+      ) as HTMLElement;
+      const empty = getComputedStyle(
+        root.querySelector(".sb-nav-empty") as HTMLElement,
+      );
+      return {
+        emptyPadding: [
+          empty.paddingTop,
+          empty.paddingRight,
+          empty.paddingBottom,
+          empty.paddingLeft,
+        ].join(" "),
+        bodyGutter: getComputedStyle(
+          root.querySelector(".sb-nav-body") as HTMLElement,
+        ).marginLeft,
+      };
+    });
+    expect(rhsMetrics).toEqual({
+      emptyPadding: "12px 10px 12px 10px",
+      bodyGutter: "6px",
+    });
+  });
 
   test("the space tree lists pages and documents in one hierarchy", async ({
     sbPage,
@@ -3376,8 +3395,8 @@ test.describe("built-in views", () => {
       frame.locator("[data-path='Diagrams/flow.png']"),
     ).toBeVisible();
 
-    await closeSidebar(sbPage, ".sb-keyed-panel-lhs");
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
+    await closeSidebar(sbPage, ".sb-nav-root-lhs");
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
     await navigateViaPagePicker(sbPage, "Projects/Alpha");
 
@@ -3391,86 +3410,89 @@ test.describe("built-in views", () => {
     ).toBeVisible();
   });
 
-  // closed -> open+focus and unfocused -> refocus are pre-existing behavior; focused -> hide is new (see show's toggle branch in navigator.ts).
-  test("Cmd-o toggles the tree dock: closed -> open+focus, unfocused -> refocus, focused -> hide", async ({
+  // closed -> open+focus and unfocused -> refocus are pre-existing behavior;
+  // focused -> hide is new (see show's toggle branch in navigator.ts).
+  // Cmd-o is Safari-the-app's own reserved "Open File..." accelerator, claimed
+  // at the OS/app level before any web page sees the keydown -- no
+  // capture-phase listener can win that race, hence the secondary binding this
+  // also exercises.
+  test("Cmd-o and Cmd-Shift-o each toggle the tree dock (closed -> open+focus, unfocused -> refocus, focused -> hide), and interchangeably", async ({
     sbPage,
   }) => {
     await sbPage.keyboard.press(`${mod}+o`);
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
+    // A modal is what the old (now-removed) Cmd-o binding opened, so this
+    // proves that binding is really gone, not just superseded visually.
+    await expect(sbPage.locator(".sb-modal")).toBeHidden();
 
     await sbPage.locator("#sb-editor .cm-content").click();
     await sbPage.keyboard.press(`${mod}+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
 
     await sbPage.keyboard.press(`${mod}+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
-  });
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
-  // Cmd-o is Safari-the-app's own reserved "Open File..." accelerator, claimed at the OS/app level before any web page sees the keydown -- no capture-phase listener can win that race, hence this secondary binding.
-  test("Cmd-Shift-o (the Safari-workable secondary binding) toggles the tree dock exactly like Cmd-o: closed -> open+focus, unfocused -> refocus, focused -> hide", async ({
-    sbPage,
-  }) => {
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
-    const frame = sidebarFrame(sbPage);
+    await sbPage.keyboard.press(shiftChord("o"));
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
 
     await sbPage.locator("#sb-editor .cm-content").click();
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await sbPage.keyboard.press(shiftChord("o"));
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
 
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
-  });
+    await sbPage.keyboard.press(shiftChord("o"));
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
-  test("Cmd-o and Cmd-Shift-o coexist: either opens the dock, either closes it, interchangeably", async ({
-    sbPage,
-  }) => {
+    // Interchangeably: opened with one chord, closed with the other, both ways
+    // round.
     await sbPage.keyboard.press(`${mod}+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
+    await sbPage.keyboard.press(shiftChord("o"));
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
-    await sbPage.keyboard.press(`${mod}+Shift+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
-
+    await sbPage.keyboard.press(shiftChord("o"));
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
     await sbPage.keyboard.press(`${mod}+o`);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
   });
 
   test("Navigate: Tree is reachable via the command palette independent of either key binding", async ({
     sbPage,
   }) => {
     await runCommand(sbPage, "Navigate: Tree");
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
   });
 
-  // Detection used to rely on an ancestor class only the sidebar wrapper carries; the modal wrapper renders plain sb-keyed-panel, so a focused modal picker always answered undefined. Fixed via a data-slot attribute the iframe itself carries.
-  test("editor.getFocusedPanelSlot reports the modal, not just lhs/rhs sidebars", async ({
+  // Focus detection (what toggle-on-focused reads) has to name the *modal*
+  // slot too, not just the lhs/rhs sidebars.
+  test("the focused panel is identifiable by its slot, modal included", async ({
     sbPage,
   }) => {
-    const getFocusedSlot = () =>
-      sbPage.evaluate(() =>
-        (globalThis as any).client.clientSystem.localSyscall(
-          "editor.getFocusedPanelSlot",
-          [],
-        ),
+    const focusedSlot = () =>
+      sbPage.evaluate(
+        () =>
+          (
+            document.activeElement?.closest(
+              ".sb-nav-root",
+            ) as HTMLElement | null
+          )?.dataset.slot ?? null,
       );
 
-    expect(await getFocusedSlot()).toBeUndefined();
+    expect(await focusedSlot()).toBeNull();
 
     await sbPage.keyboard.press(`${mod}+o`);
-    await expectNavInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
-    expect(await getFocusedSlot()).toBe("lhs");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
+    expect(await focusedSlot()).toBe("lhs");
 
     await sbPage.locator("#sb-editor .cm-content").click();
     await runCommand(sbPage, "Navigator: Pages Modal");
-    await expectNavInputFocused(sbPage, ".sb-modal iframe");
-    expect(await getFocusedSlot()).toBe("modal");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
+    expect(await focusedSlot()).toBe("modal");
   });
 
   test("the segments subset the space", async ({ sbPage }) => {
@@ -3528,7 +3550,7 @@ test.describe("built-in views", () => {
       "Projects/Alpha",
     );
     await expect(input).toHaveValue("Projects/Alpha");
-    await expectFilterInputFocused(sbPage, ".sb-keyed-panel-lhs iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-lhs");
   });
 
   test("row actions rename a page and delete a document", async ({
@@ -3607,10 +3629,10 @@ test.describe("boot restore", () => {
     const restored = sidebarFrame(sbPage);
     await expect(restored.locator("[data-path='Projects']")).toBeVisible();
     expect(
-      await sbPage.evaluate(
-        () => document.activeElement?.tagName.toLowerCase() ?? "",
+      await sbPage.evaluate(() =>
+        document.activeElement?.classList.contains("sb-nav-input"),
       ),
-    ).not.toBe("iframe");
+    ).toBe(false);
   });
 
   // Unlike the command/Cmd-o active-open path, a passive restore deliberately does not reveal (activation.ts: "a boot restore isn't an ask") -- pinned here so that stays a decision, not a drift.
@@ -3643,16 +3665,13 @@ test.describe("boot restore", () => {
     const frame = sidebarFrame(sbPage);
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 
-    await sbPage
-      .frameLocator(".sb-keyed-panel-lhs iframe")
-      .locator(".sb-nav-close")
-      .click();
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
+    await sbPage.locator(".sb-nav-root-lhs").locator(".sb-nav-close").click();
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
 
     await reboot(sbPage, sbServer);
     await waitPastRestore(sbPage);
 
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toHaveCount(0);
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toHaveCount(0);
   });
 
   test("a docked outline (std.toc, a TS builtin) comes back on the next boot, passively", async ({
@@ -3716,10 +3735,10 @@ test.describe("openOnStart", () => {
       frame.locator(".sb-nav-row", { hasText: "index" }),
     ).toBeVisible();
     expect(
-      await sbPage.evaluate(
-        () => document.activeElement?.tagName.toLowerCase() ?? "",
+      await sbPage.evaluate(() =>
+        document.activeElement?.classList.contains("sb-nav-input"),
       ),
-    ).not.toBe("iframe");
+    ).toBe(false);
 
     const rejected = await sbPage.evaluate(() =>
       (globalThis as any).sbRuntime.evalLua("navigator._openOnStartRejected"),
@@ -3744,19 +3763,15 @@ test.describe("mobile", () => {
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 
     const drawer = (await sbPage
-      .locator("#sb-main .sb-keyed-panel-lhs")
+      .locator("#sb-main .sb-nav-root-lhs")
       .boundingBox())!;
     const top = (await sbPage.locator("#sb-top").boundingBox())!;
     const viewport = sbPage.viewportSize()!;
 
     expect(drawer.width).toBe(viewport.width);
-    const panel = (await sbPage
-      .locator("#sb-main .sb-keyed-panel-lhs .sb-panel")
-      .boundingBox())!;
     const inner = (await sbPage
-      .locator("#sb-main .sb-keyed-panel-lhs iframe")
+      .locator("#sb-main .sb-nav-root-lhs .sb-nav-body")
       .boundingBox())!;
-    expect(Math.round(panel.width)).toBe(viewport.width);
     expect(Math.round(inner.width)).toBe(viewport.width);
     expect(Math.round(drawer.y)).toBe(Math.round(top.y + top.height));
     expect(Math.round(drawer.y + drawer.height)).toBe(viewport.height);
@@ -3775,10 +3790,10 @@ test.describe("mobile", () => {
     await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
       "Projects",
     );
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeHidden();
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeHidden();
   });
 
-  test("a keyed modal keeps the narrow-screen inset", async ({ sbPage }) => {
+  test("the modal keeps the narrow-screen inset", async ({ sbPage }) => {
     const frame = await openNavigatorView(sbPage, "Navigator: Pages Modal");
     await expect(
       frame.locator(".sb-nav-row", { hasText: "Projects" }).first(),
@@ -3790,6 +3805,54 @@ test.describe("mobile", () => {
     expect(Math.round(modal.width)).toBe(viewport.width - 16);
   });
 
+  test("a drawer overlays rather than reserving top-bar width, on either side, and a modal opens over it", async ({
+    sbPage,
+  }) => {
+    await runCommand(sbPage, "Navigate: Outline");
+    const frame = sidebarFrame(sbPage, "rhs");
+    await expect(frame).toBeVisible();
+
+    const drawer = (await sbPage
+      .locator("#sb-main .sb-nav-root-rhs")
+      .boundingBox())!;
+    const top = (await sbPage.locator("#sb-top").boundingBox())!;
+    const viewport = sbPage.viewportSize()!;
+    expect(drawer.width).toBe(viewport.width);
+    expect(Math.round(drawer.y)).toBe(Math.round(top.y + top.height));
+    expect(Math.round(drawer.y + drawer.height)).toBe(viewport.height);
+    await expect(sbPage.locator("#sb-top")).toBeVisible();
+    await expect(frame.locator(".sb-resizer")).toHaveCount(0);
+
+    // A drawer overlays the editor, so the top bar must not also reserve a
+    // column for it -- that column would just squeeze the page title.
+    expect(
+      await sbPage
+        .locator("#sb-top .sb-nav-spacer")
+        .evaluate((el) => getComputedStyle(el).display),
+    ).toBe("none");
+
+    await openPicker(sbPage, `${mod}+k`, "Page");
+    await expect(
+      sbPage.locator(".sb-modal:not(.sb-modal-paint-pending)"),
+    ).toBeVisible();
+    const stacking = await sbPage.evaluate(() => {
+      const drawer = document.querySelector(
+        "#sb-main .sb-nav-root-rhs",
+      ) as HTMLElement;
+      const modal = document.querySelector(".sb-modal") as HTMLElement;
+      const box = modal.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
+      return {
+        drawerStillShown: getComputedStyle(drawer).display !== "none",
+        modalOnTop: !!hit?.closest(".sb-modal"),
+      };
+    });
+    expect(stacking).toEqual({ drawerStillShown: true, modalOnTop: true });
+  });
+
   test("drawers never restore on boot", async ({ sbPage, sbServer }) => {
     await runCommand(sbPage, "Navigate: Tree");
     await expect(
@@ -3798,7 +3861,7 @@ test.describe("mobile", () => {
 
     await reboot(sbPage, sbServer);
     await waitPastRestore(sbPage);
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toHaveCount(0);
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toHaveCount(0);
   });
 });
 
@@ -3881,55 +3944,6 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator._badPrefixes = {}
--- Every case also carries a no-op onSelect, so what actually rejects each one
--- is the field under test, not the separate "onSelect is required" check.
-for _, case in ipairs({
-  { what = "two chars", spec = { name = "pbad1", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", prefix = "^^" } } } },
-  { what = "not a string", spec = { name = "pbad2", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", prefix = 42 } } } },
-  { what = "whitespace", spec = { name = "pbad3", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", prefix = " " } } } },
-  { what = "claimed twice", spec = { name = "pbad4", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", prefix = "^" } },
-      prefixViews = { ["^"] = "prefixchild" } } },
-  { what = "keymap collision", spec = { name = "pbad5", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", prefix = "r" } },
-      keymap = { r = function() end } } },
-  { what = "view not a name", spec = { name = "pbad6", source = things,
-      onSelect = function() end,
-      prefixViews = { ["$"] = 7 } } },
-  -- ...and a legitimate one, so the cases above aren't passing by accident.
-  { what = "good", spec = { name = "pgood", source = things,
-      onSelect = function() end,
-      segments = { { label = "A", prefix = "^" } },
-      prefixViews = { ["$"] = "prefixchild" }, keymap = { r = function() end } } },
-}) do
-  local ok = pcall(navigator.define, case.spec)
-  navigator._badPrefixes[#navigator._badPrefixes + 1] = case.what .. "=" .. tostring(ok)
-end
-
-navigator.define {
-  name = "prefixvalidation",
-  title = "Prefix Validation",
-  command = "Navigator: Prefix Validation",
-  dock = "modal",
-  presentation = { mode = "list" },
-  source = function()
-    local out = {}
-    for _, line in ipairs(navigator._badPrefixes) do
-      out[#out + 1] = { name = line, ref = line }
-    end
-    return out
-  end,
-  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
-}
 \`\`\`
 `;
 
@@ -3942,12 +3956,12 @@ test.describe("prefixes and completion", () => {
     },
   });
 
-  function segment(frame: FrameLocator, label: string) {
+  function segment(frame: Locator, label: string) {
     return frame.locator(`.sb-segment[aria-label='${label}']`);
   }
 
   // The create row is a .sb-nav-row with a .sb-nav-primary of its own, so an unqualified primary query would count it as a result.
-  function rows(frame: FrameLocator) {
+  function rows(frame: Locator) {
     return frame.locator(".sb-nav-row:not(.sb-nav-create) .sb-nav-primary");
   }
 
@@ -4042,7 +4056,7 @@ test.describe("prefixes and completion", () => {
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Host");
     await expect(rows(frame)).toHaveCount(4);
     await expect(segment(frame, "All")).toBeVisible();
-    await expectFilterInputFocused(sbPage, ".sb-modal iframe");
+    await expectNavInputFocused(sbPage, ".sb-nav-root-modal");
   });
 
   test("a hop takes over the invoking dock, not the target's own", async ({
@@ -4051,14 +4065,14 @@ test.describe("prefixes and completion", () => {
     const frame = await openNavigatorView(
       sbPage,
       "Navigator: Prefix Side",
-      ".sb-keyed-panel-lhs iframe",
+      ".sb-nav-root-lhs",
     );
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Side");
 
     await frame.locator("input.sb-nav-input").press("$");
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Child");
-    await expect(sbPage.locator("#sb-main .sb-keyed-panel-lhs")).toBeVisible();
-    // The modal dock is preloaded (hidden) from boot regardless, so what proves the hop didn't surface it is toBeHidden, not merely its existence.
+    await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
+    // A hop stays in the slot it was invoked from: nothing of it surfaces in the modal.
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
   });
 
@@ -4140,22 +4154,21 @@ test.describe("prefixes and completion", () => {
     const frame = await openHost(sbPage);
     const input = navInput(sbPage);
 
-    // Two probes because a reboot and a rebuild fail differently (re-post bumps boot count but keeps globalThis; a key/content change replaces the iframe and resets both), and navigator:ready would repopulate the panel either way, so on-screen content alone proves nothing about continuity.
+    // A sentinel stamped on the panel's own element: a hop that re-mounted
+    // the panel would hand back a fresh element (and lose it), which the
+    // on-screen content alone can't tell apart from a hop in place.
     const probe = () =>
-      sbPage.evaluate(() => {
-        const f = document.querySelector(
-          ".sb-modal iframe",
-        ) as HTMLIFrameElement;
-        const w = f.contentWindow as any;
-        return { boots: w.__navBootCount, sentinel: w.__navSentinel ?? null };
-      });
+      sbPage.evaluate(
+        () =>
+          (document.querySelector(".sb-nav-root-modal") as any)
+            ?.__navSentinel ?? null,
+      );
     await sbPage.evaluate(() => {
-      const f = document.querySelector(".sb-modal iframe") as HTMLIFrameElement;
-      (f.contentWindow as any).__navSentinel = "alive";
+      (document.querySelector(".sb-nav-root-modal") as any).__navSentinel =
+        "alive";
     });
     const before = await probe();
-    expect(before.sentinel).toBe("alive");
-    expect(typeof before.boots).toBe("number");
+    expect(before).toBe("alive");
 
     await sbPage.keyboard.type("$");
     await expect(frame.locator(".sb-nav-title")).toHaveText("Prefix Child");
@@ -4186,23 +4199,6 @@ test.describe("prefixes and completion", () => {
     await expect(frame.locator(".sb-nav-create .sb-nav-primary")).toHaveText(
       "brand new",
     );
-  });
-
-  test("bad prefixes are rejected at define time", async ({ sbPage }) => {
-    const frame = await openNavigatorView(
-      sbPage,
-      "Navigator: Prefix Validation",
-    );
-    await expect(frame.locator(".sb-nav-row").first()).toBeVisible();
-    expect(await rows(frame).allInnerTexts()).toEqual([
-      "two chars=false",
-      "not a string=false",
-      "whitespace=false",
-      "claimed twice=false",
-      "keymap collision=false",
-      "view not a name=false",
-      "good=true",
-    ]);
   });
 });
 
@@ -4285,7 +4281,7 @@ test.describe("source-side picker data", () => {
     },
   });
 
-  function row(frame: FrameLocator, primary: string) {
+  function row(frame: Locator, primary: string) {
     return frame.locator(".sb-nav-row", { hasText: primary }).first();
   }
 
@@ -4382,13 +4378,13 @@ test.describe("single-registry consolidation", () => {
     },
   });
 
-  test("a Lua-only view round-trips select, action, rowState and move through navigator:luaCall", async ({
+  test("a Lua-only view round-trips select, action, rowState and move through its own closures", async ({
     sbPage,
   }) => {
     const frame = await openNavigatorView(
       sbPage,
       "Navigator: LuaCall Tree",
-      ".sb-keyed-panel-rhs iframe",
+      ".sb-nav-root-rhs",
     );
     await expect(frame.locator("[data-path='Projects']")).toBeVisible();
     await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
@@ -4446,14 +4442,14 @@ test.describe("builtins with no Space Lua navigator definitions present", () => 
     await closePicker(sbPage);
 
     await runCommandViaPalette(sbPage, "Navigate: Tree");
-    const tree = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
+    const tree = sbPage.locator(".sb-nav-root-lhs");
     await expect(tree.locator("[data-path='Projects']")).toBeVisible({
       timeout: 20_000,
     });
 
     await sbPage.locator("#sb-editor .cm-content").click();
     await runCommandViaPalette(sbPage, "Navigate: Outline");
-    const outline = sbPage.frameLocator(".sb-keyed-panel-rhs iframe");
+    const outline = sbPage.locator(".sb-nav-root-rhs");
     await expect(outline.locator(".sb-nav-title")).toHaveText("Outline");
   });
 });

@@ -1,4 +1,3 @@
-import type { PanelOptions } from "../../client/types/ui.ts";
 import type {
   FilterOption,
   NotificationType,
@@ -212,43 +211,17 @@ export function filterBox(
   return syscall("editor.filterBox", label, options, helpText, placeHolder);
 }
 
-/**
- * @param options optional keyed-panel options: a stable `key` makes the panel
- * persistent (backed by a long-lived iframe), `preload` mounts it hidden,
- * `events` lists client events forwarded into it, and `activationId` is an
- * opaque identity to pair with a later `hidePanel(id, activationId)` call --
- * see `hidePanel`
- */
 export function showPanel(
   id: "lhs" | "rhs" | "bhs" | "modal",
   mode: PanelMode,
   html: HTMLElement | HTMLElement[] | string,
   script = "",
-  options?: PanelOptions,
 ): Promise<void> {
-  return syscall("editor.showPanel", id, mode, html, script, options);
+  return syscall("editor.showPanel", id, mode, html, script);
 }
 
-/**
- * Hides a panel in the editor. If a keyed panel is currently visible in that
- * location, it is hidden (not unmounted); otherwise behaves as before.
- * @param expectedActivationId if given, only hides when the currently visible
- * keyed panel for `id` still carries this activation id (the one passed to
- * the `showPanel` call that opened it) -- otherwise a no-op, since something
- * newer has already taken the slot. Omit it to hide unconditionally, as
- * before. Guards against exactly the race a keyed panel that reuses one key
- * across activations (a modal picker, say) can hit: a close decided on one
- * activation whose underlying syscall reaches the host *after* a newer
- * activation already replaced it would otherwise hide that newer one instead
- * -- reading "what's currently visible" at hide time can't tell the two
- * apart on its own, since it is, by construction, always the newer one by
- * then.
- */
-export function hidePanel(
-  id: "lhs" | "rhs" | "bhs" | "modal",
-  expectedActivationId?: string | number,
-): Promise<void> {
-  return syscall("editor.hidePanel", id, expectedActivationId);
+export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
+  return syscall("editor.hidePanel", id);
 }
 
 export function focus(): Promise<void> {
@@ -256,9 +229,8 @@ export function focus(): Promise<void> {
 }
 
 /**
- * The slot of the keyed panel whose iframe currently holds focus, or
- * `undefined` if none does (focus is in the editor, or nowhere in
- * particular).
+ * The slot of the panel whose iframe currently holds focus, or `undefined`
+ * if none does (focus is in the editor, or nowhere in particular).
  */
 export function getFocusedPanelSlot(): Promise<
   "lhs" | "rhs" | "bhs" | "modal" | undefined

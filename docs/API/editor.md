@@ -364,7 +364,7 @@ Returns the cursor position as a character offset from the start of the document
 
 `editor.getFocusedPanelSlot()`
 
-Returns the slot of the panel (keyed or legacy) whose iframe currently holds focus, or undefined if none does.
+Returns the slot of the panel whose iframe currently holds focus, or undefined if none does.
 
 **Returns:**
 
@@ -446,14 +446,13 @@ Moves backward or forward through browser history.
 
 ## editor.hidePanel
 
-`editor.hidePanel(id, expectedActivationId?)`
+`editor.hidePanel(id)`
 
 Hides the panel at a specified editor UI location.
 
 **Parameters:**
 
 - `id` (`string`) — The panel location identifier.
-- `expectedActivationId?` (`string | number`) — If given, only hides when the currently visible keyed panel for this slot still carries this activation id (see editor.showPanel's activationId option) -- otherwise a no-op, since something newer has already taken the slot.
 
 ## editor.indentLess
 
@@ -652,17 +651,6 @@ Opens a URL in the browser.
 
 - `url` (`string`) — The URL to open.
 - `existingWindow?` (`boolean`) — Whether to reuse an existing window.
-
-## editor.panelReady
-
-`editor.panelReady(id, activationId?)`
-
-Paint-gated reveal handshake: signals that the keyed panel at the given slot has rendered its first real content for the given activation, so the host can reveal it (see editor.showPanel's gated paintReady).
-
-**Parameters:**
-
-- `id` (`string`) — The panel location identifier.
-- `activationId?` (`string | number`) — The activation this panel is signalling readiness for (see editor.showPanel's activationId option) -- ignored if a newer activation has since taken the slot.
 
 ## editor.prompt
 
@@ -864,7 +852,7 @@ Sets an editor UI option and reloads the editor.
 
 ## editor.showPanel
 
-`editor.showPanel(id, mode, html, script, options?)`
+`editor.showPanel(id, mode, html, script)`
 
 Shows an HTML panel in a specified editor UI location.
 
@@ -874,7 +862,6 @@ Shows an HTML panel in a specified editor UI location.
 - `mode` (`number | string`) — The panel display mode or size.
 - `html` (`HTMLElement | HTMLElement[] | string`) — The panel content.
 - `script` (`string`) — A script associated with the panel content.
-- `options?` (`PanelOptions`) — Optional keyed-panel options: key for persistent identity, preload to mount hidden, events to forward, activationId to pair with a later editor.hidePanel call.
 
 ## editor.showProgress
 

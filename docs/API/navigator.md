@@ -1,8 +1,7 @@
 ---
 tags: api/space-lua
 references:
-- libraries/Library/Std/APIs/Navigator.md
-- plugs/navigator/src/navigator.ts
+- client/navigator/navigator.ts
 ---
 The `navigator` API defines and opens [[Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
 
@@ -37,18 +36,20 @@ On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over 
 * `source`: takes `{ phrase, segment }` as an argument and returns the objects to show.
 * `search`: `"client"` (default: the source runs once, the panel ranks) or `"source"` (typing re-invokes the source, whose order wins).
 * `refreshOn`: event names that re-run the source. Defaults to none. For a view over the space (a page/document listing, a tree), the recommended set is `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }` -- the built-in pickers and the space tree all declare it explicitly.
-* `refreshOnOpen`: re-run the source on every open, for a view whose rows are a fact about *now*.
+* `refreshOnOpen`: re-run the source every time the view is activated in a panel that is already open, for a view whose rows are a fact about *now*.
 * `followEditor`: a sidebar view tracks the page you navigate to.
 
 #### Search modes
 `source` is handed a context table: `{ phrase = <what is typed>, segment = <active segment's label, or nil> }`. What it does with it is what `search` decides.
 
-`search = "client"` (the default) runs the source once per load, hands it the state at that moment, and does everything else in the panel: the phrase ranks fuzzily and the segments subset by `where`, both without leaving the iframe. Sources that ignore `ctx` entirely — the common case — are exactly this mode.
+`search = "client"` (the default) runs the source once per load, hands it the state at that moment, and does everything else in the panel: the phrase ranks fuzzily and the segments subset by `where`, both without leaving the panel. Sources that ignore `ctx` entirely — the common case — are exactly this mode.
 
 `search = "source"` makes the source the search. Typing or switching segments re-invokes it (debounced, and a response overtaken by a newer request is dropped), and the order it returns is the order shown — the panel does no ranking of its own, and `where` predicates are never consulted. Use it when the data set is too large to hand over whole, or when something else already does the searching.
 
 #### Re-opening a view
-A view's rows are loaded once and then kept, refreshed by its `refreshOn` events. Re-opening it shows what it already has — which is right for a tree of the space, and wrong for anything whose order or membership is a fact about *now*: recency, the page you are currently on, which commands the cursor's context allows. `refreshOnOpen = true` re-runs `source` on every open.
+A view's rows are loaded once and then kept, refreshed by its `refreshOn` events.
+
+Opening a panel that was closed re-runs `source` once, since a closed panel hears none of its `refreshOn` events. Everything else reuses what the view already has: re-activating the view a panel is already showing, or hopping to a sibling it has visited before. That is right for a tree of the space, and wrong for anything whose order or membership is a fact about *now*: recency, the page you are currently on, which commands the cursor's context allows. `refreshOnOpen = true` re-runs `source` for those activations too.
 
 ### Filter
 `filter` is a table of everything about how the phrase matches:

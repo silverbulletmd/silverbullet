@@ -51,6 +51,7 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
+import { open as openNavigatorView } from "./navigator/navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import { RealtimeEvents } from "./realtime_events.ts";
 import { Space } from "./space.ts";
@@ -524,15 +525,11 @@ export class Client {
     name: string,
     opts?: { segment?: string; phrase?: string },
   ): Promise<boolean> {
-    const plug = this.clientSystem.system.loadedPlugs.get("navigator");
-    if (!plug) return false;
     try {
       // `quiet`, because an unknown view here is not an error the user made:
       // it means the space redefined this picker in Space Lua that hasn't
       // been indexed yet, and the caller may have a fallback of its own.
-      return (
-        (await plug.invoke("open", [name, { ...opts, quiet: true }])) === true
-      );
+      return (await openNavigatorView(name, { ...opts, quiet: true })) === true;
     } catch (e: any) {
       console.warn("Could not open navigator view", name, e);
       return false;

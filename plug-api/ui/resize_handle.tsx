@@ -8,7 +8,11 @@ export type ResizeHandleProps = {
   onResize: (widthPx: number, commit: boolean) => void;
 };
 
-/** A sidebar's draggable edge, for a caller whose dock grows/shrinks by width. */
+/**
+ * A sidebar's draggable edge, for a caller whose dock grows/shrinks by width.
+ * Rendered as a child of the dock it resizes -- that parent's width is what a
+ * drag starts from.
+ */
 export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
   const dragging = useRef<{ startX: number; startWidth: number } | null>(null);
   const raf = useRef<number | undefined>(undefined);
@@ -67,11 +71,10 @@ export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
 
   function onPointerDown(e: PointerEvent) {
     if (e.button !== 0) return; // primary button (or touch) only
-    // The document is sized to exactly match the dock's current width, so
-    // its own width doubles as the drag's starting width.
+    const dock = (e.currentTarget as HTMLElement).parentElement;
     dragging.current = {
       startX: e.clientX,
-      startWidth: document.documentElement.clientWidth,
+      startWidth: dock?.getBoundingClientRect().width ?? MIN_SIDEBAR_WIDTH,
     };
     // Pointer capture (rather than a plain global mousemove listener) keeps
     // delivering move/up events to this element even once the cursor leaves

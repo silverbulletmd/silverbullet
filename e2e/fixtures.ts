@@ -15,6 +15,15 @@ export const mod = platform() === "darwin" ? "Meta" : "Control";
  */
 export const redoChord = platform() === "darwin" ? "Meta+Shift+z" : "Control+y";
 
+/**
+ * Chord for `mod`+Shift+<letter>. The letter must be UPPERCASE: with a
+ * lowercase letter Playwright's Linux layout dispatches `key: "k"` with
+ * shiftKey set, and CodeMirror then resolves "Ctrl-k" before "Shift-Ctrl-k",
+ * running the wrong command. A real browser reports `key: "K"`.
+ */
+export const shiftChord = (letter: string) =>
+  `${mod}+Shift+${letter.toUpperCase()}`;
+
 /** The admin account every multi-space e2e test provisions via `silverbullet setup`. */
 export const ADMIN_USER = "admin";
 export const ADMIN_PASSWORD = "adminpw123";

@@ -1,11 +1,17 @@
-import type { FrameLocator, Page } from "@playwright/test";
-import { expect, gotoSilverBulletPage, mod, test } from "./fixtures.ts";
+import type { Locator, Page } from "@playwright/test";
+import {
+  expect,
+  gotoSilverBulletPage,
+  mod,
+  shiftChord,
+  test,
+} from "./fixtures.ts";
 import {
   closePicker,
   currentPage,
   expectNavInputFocused,
   expectNavRow,
-  NAV_MODAL_IFRAME,
+  NAV_MODAL_ROOT,
   navFrame,
   navInput,
   navigateViaPagePicker,
@@ -140,7 +146,7 @@ test("Enter opens the selected page and dismisses the picker", async ({
 test("Cmd-Shift-k and the document picker command open the same view on another segment", async ({
   sbPage,
 }) => {
-  let frame = await openPicker(sbPage, `${mod}+Shift+k`, "Meta page");
+  let frame = await openPicker(sbPage, shiftChord("k"), "Meta page");
   await expect(navSegment(frame, "Meta")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -165,7 +171,7 @@ test("Cmd-Shift-k and the document picker command open the same view on another 
 test("opening on a segment doesn't become the segment it opens on", async ({
   sbPage,
 }) => {
-  await openPicker(sbPage, `${mod}+Shift+k`, "Meta page");
+  await openPicker(sbPage, shiftChord("k"), "Meta page");
   await expect(navSegment(navFrame(sbPage), "Meta")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -355,17 +361,32 @@ test("Cmd-/ opens the command palette, with key hints, and runs a command", asyn
       const chip = el.querySelector(".sb-nav-chip-key") as HTMLElement;
       const primary = el.querySelector(".sb-nav-primary") as HTMLElement;
       return {
+        // The 8 is the declared padding, not this row's own: read the padding
+        // off the element under test and a regression to `0px` keeps the gap
+        // at ~0 while the chip sits flush against the panel edge.
         gapToRowEdge:
           el.getBoundingClientRect().right -
-          parseFloat(getComputedStyle(el).paddingRight) -
+          8 -
           chip.getBoundingClientRect().right,
         sameFontSize:
           getComputedStyle(chip).fontSize ===
           getComputedStyle(primary).fontSize,
+        // Absolute, not relative to whatever padding happens to be there: the
+        // panel's own reset is a whole stylesheet away from the shared
+        // `.sb-nav-row` rule it must not out-rank, and a row whose text sits
+        // flush against the panel edge is what losing that tie looks like.
+        rowPaddingLeft: getComputedStyle(el).paddingLeft,
+        rowPaddingRight: getComputedStyle(el).paddingRight,
+        primaryInsetFromRow:
+          primary.getBoundingClientRect().left -
+          el.getBoundingClientRect().left,
       };
     });
   expect(Math.abs(hint.gapToRowEdge)).toBeLessThan(1.5);
   expect(hint.sameFontSize).toBe(true);
+  expect(hint.rowPaddingLeft).toBe("8px");
+  expect(hint.rowPaddingRight).toBe("8px");
+  expect(hint.primaryInsetFromRow).toBeGreaterThanOrEqual(8);
 
   await navInput(sbPage).fill("Navigate: Anything Picker");
   await expect(navRows(frame).first()).toHaveText("Navigate: Anything Picker");
@@ -680,6 +701,13 @@ test("the modal is as tall as its content, capped like the old result list", asy
   // rows do.
   const height = async () => (await modal.boundingBox())!.height;
   const viewport = sbPage.viewportSize()!;
+  // Seven rows of 36px, exactly as declared: a cap loose enough to admit
+  // anything from one row to thirteen is no cap at all.
+  expect(
+    await frame
+      .locator(".sb-nav-body")
+      .evaluate((el) => getComputedStyle(el).maxHeight),
+  ).toBe("252px");
   await expect.poll(height).toBeLessThan(250 + 250);
   const full = await height();
   expect(full).toBeLessThan(viewport.height * 0.75);
@@ -822,10 +850,13 @@ test.describe("narrow viewport", () => {
       const chip = el.querySelector(".sb-nav-chip-hint") as HTMLElement;
       return {
         primaryClipped: primary.scrollWidth > primary.clientWidth + 1,
+        // Against the declared 8px, not this row's own padding -- see the
+        // command-palette hint test.
         gapToRowEdge:
           el.getBoundingClientRect().right -
-          parseFloat(getComputedStyle(el).paddingRight) -
+          8 -
           chip.getBoundingClientRect().right,
+        rowPaddingRight: getComputedStyle(el).paddingRight,
         sameFontSize:
           getComputedStyle(chip).fontSize ===
           getComputedStyle(primary).fontSize,
@@ -833,6 +864,7 @@ test.describe("narrow viewport", () => {
     });
     expect(measured.primaryClipped).toBe(false);
     expect(Math.abs(measured.gapToRowEdge)).toBeLessThan(1.5);
+    expect(measured.rowPaddingRight).toBe("8px");
     expect(measured.sameFontSize).toBe(true);
   });
 
@@ -840,7 +872,12 @@ test.describe("narrow viewport", () => {
     sbPage,
   }) => {
     const frame = await openPicker(sbPage, `${mod}+k`, "Page");
-    await navInput(sbPage).fill("Catalog/Quarterly Planning Retrospective No");
+    // Long enough that the name overflows the row at the app's own metrics,
+    // with room to spare -- the shorter prefix this used to type lands within
+    // a pixel of the available width.
+    await navInput(sbPage).fill(
+      "Catalog/Quarterly Planning Retrospective Notes And",
+    );
     const aspiring = frame.locator(".sb-nav-row.sb-nav-aspiring").first();
     await expect(aspiring).toBeVisible({ timeout: 20_000 });
     const create = frame.locator(".sb-nav-row.sb-nav-create");
@@ -852,15 +889,18 @@ test.describe("narrow viewport", () => {
         const chip = el.querySelector(".sb-nav-chip-hint") as HTMLElement;
         const rowBox = el.getBoundingClientRect();
         const chipBox = chip.getBoundingClientRect();
-        const padding = parseFloat(getComputedStyle(el).paddingRight);
         return {
           nameEllipsized:
             primary.scrollWidth > primary.clientWidth + 1 &&
             getComputedStyle(primary).textOverflow === "ellipsis",
           chipWhole: chip.scrollWidth <= chip.clientWidth + 1,
+          // The declared 8px again: measured against this row's own padding,
+          // a padding regressed to `0px` keeps the chip "inside" the row while
+          // it sits flush against its edge.
           chipInsideRow:
             chipBox.left >= rowBox.left &&
-            chipBox.right <= rowBox.right - padding + 1,
+            chipBox.right <= rowBox.right - 8 + 1,
+          rowPaddingRight: getComputedStyle(el).paddingRight,
           chipWidth: chipBox.width,
         };
       });
@@ -870,6 +910,7 @@ test.describe("narrow viewport", () => {
       expect(m.nameEllipsized).toBe(true);
       expect(m.chipWhole).toBe(true);
       expect(m.chipInsideRow).toBe(true);
+      expect(m.rowPaddingRight).toBe("8px");
       expect(m.chipWidth).toBeGreaterThan(20);
     }
   });
@@ -890,12 +931,10 @@ test.describe("narrow viewport", () => {
     const fits = async () =>
       await sbPage.evaluate(() => {
         const el = document.querySelector(".sb-modal") as HTMLElement;
-        const doc = (
-          document.querySelector(".sb-modal iframe") as HTMLIFrameElement
-        ).contentDocument!;
+        const panel = document.querySelector(".sb-nav-root-modal")!;
         return {
           modal: el.getBoundingClientRect().height,
-          content: doc.documentElement.getBoundingClientRect().height,
+          content: panel.getBoundingClientRect().height,
         };
       });
     // The <4px tolerance covers the modal's own 1px border on each side,
@@ -910,7 +949,7 @@ test.describe("narrow viewport", () => {
 test("item 11: key-hint chips, tag chips, and mark highlighting never change a row's height (list)", async ({
   sbPage,
 }) => {
-  const rowHeight = async (frame: FrameLocator, text: string) =>
+  const rowHeight = async (frame: Locator, text: string) =>
     (await frame
       .locator(".sb-nav-row", { hasText: text })
       .first()
@@ -964,9 +1003,8 @@ test("item 11: key-hint chips, tag chips, and mark highlighting never change a r
 test("Space Lua opens a built-in picker by name, with options", async ({
   sbPage,
 }) => {
-  // The four shipped pickers live in the plug's registry, not in
-  // `navigator._views`, so an opener that only knew about Lua-defined views
-  // would reject exactly them.
+  // The four shipped pickers are built-ins, not Space Lua definitions, so an
+  // opener that only knew about Lua-defined views would reject exactly them.
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(
       `navigator.open("std.pages", { segment = "Documents" })`,
@@ -1080,9 +1118,9 @@ test("a Lua view redefined by a space-lua edit shows its new definition on next 
   await expectNavRow(frame, "Redefined Row");
 });
 
-async function openOutline(sbPage: Page, command: string, iframe: string) {
+async function openOutline(sbPage: Page, command: string, panel: string) {
   await runCommandViaPalette(sbPage, command);
-  const frame = sbPage.frameLocator(iframe);
+  const frame = sbPage.locator(panel);
   await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
     "placeholder",
     "Header",
@@ -1098,7 +1136,7 @@ test("the outline picker nests a page's headers, fully expanded", async ({
   const frame = await openOutline(
     sbPage,
     "Navigate: Outline Picker",
-    NAV_MODAL_IFRAME,
+    NAV_MODAL_ROOT,
   );
 
   await expect(navRows(frame)).toHaveText([
@@ -1145,7 +1183,7 @@ test("the outline sidebar follows the buffer, keeping collapses", async ({
   const frame = await openOutline(
     sbPage,
     "Navigate: Outline",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(
     frame.locator("[data-path='Getting started/Install']"),
@@ -1179,7 +1217,7 @@ test("an outline collapse belongs to the page, not to the view", async ({
   const frame = await openOutline(
     sbPage,
     "Navigate: Outline",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(
     frame.locator("[data-path='Getting started/Install']"),
@@ -1212,7 +1250,7 @@ test("Space peeks at a header without leaving the outline sidebar", async ({
   const frame = await openOutline(
     sbPage,
     "Navigate: Outline",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   const input = frame.locator("input.sb-nav-input");
   await expect(
@@ -1237,7 +1275,7 @@ test("Space peeks at a header without leaving the outline sidebar", async ({
     ).toBe("## Install");
   }).toPass();
   await expect(input).toHaveValue("");
-  await expectNavInputFocused(sbPage, ".sb-keyed-panel-rhs iframe");
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
 });
 
 test("the outline drops the tree's folder bands; the space tree keeps them", async ({
@@ -1247,7 +1285,7 @@ test("the outline drops the tree's folder bands; the space tree keeps them", asy
   const outline = await openOutline(
     sbPage,
     "Navigate: Outline",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   const band = (frame: ReturnType<typeof navFrame>, path: string) =>
     frame
@@ -1267,7 +1305,7 @@ test("the outline drops the tree's folder bands; the space tree keeps them", asy
 
   await sbPage.locator("#sb-editor .cm-content").click();
   await runCommandViaPalette(sbPage, "Navigate: Tree");
-  const tree = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
+  const tree = sbPage.locator(".sb-nav-root-lhs");
   await expect(tree.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
   });
@@ -1281,7 +1319,7 @@ test("the outline picker re-sources for the page it is opened on", async ({
   const frame = await openOutline(
     sbPage,
     "Navigate: Outline Picker",
-    NAV_MODAL_IFRAME,
+    NAV_MODAL_ROOT,
   );
   await expect(frame.locator("[data-path='Reference']")).toBeVisible({
     timeout: 20_000,
@@ -1291,7 +1329,7 @@ test("the outline picker re-sources for the page it is opened on", async ({
   // A modal is never open across a navigation, so it has to pick up the
   // current page from `refreshOnOpen` rather than a pageLoaded refresh.
   await navigateViaPagePicker(sbPage, "index");
-  await openOutline(sbPage, "Navigate: Outline Picker", NAV_MODAL_IFRAME);
+  await openOutline(sbPage, "Navigate: Outline Picker", NAV_MODAL_ROOT);
   await expect(frame.locator(".sb-nav-empty")).toBeVisible({ timeout: 20_000 });
 });
 
@@ -1299,16 +1337,16 @@ test("std.toc/std.tocModal answer on a page loaded directly, before anything els
   sbServer,
   page,
 }) => {
-  // Both outline views are TS builtins registered from the plug's own
-  // manifest rather than a `navigator.define` call, unlike `std.journal`/
-  // `std.pageTemplates` -- so unlike those, they need no Space Lua to have
-  // run first, and this tab's very first navigation has none.
+  // Both outline views are TS builtins rather than `navigator.define` calls,
+  // unlike `std.journal`/`std.pageTemplates` -- so unlike those, they need no
+  // Space Lua to have run first, and this tab's very first navigation has
+  // none.
   await gotoSilverBulletPage(page, sbServer, "Outline Page");
 
   const modal = await openOutline(
     page,
     "Navigate: Outline Picker",
-    NAV_MODAL_IFRAME,
+    NAV_MODAL_ROOT,
   );
   await expect(navRows(modal).first()).toHaveText("Getting started", {
     timeout: 20_000,
@@ -1319,7 +1357,7 @@ test("std.toc/std.tocModal answer on a page loaded directly, before anything els
   const sidebar = await openOutline(
     page,
     "Navigate: Outline",
-    ".sb-keyed-panel-rhs iframe",
+    ".sb-nav-root-rhs",
   );
   await expect(
     sidebar.locator("[data-path='Getting started/Install']"),
@@ -1333,7 +1371,7 @@ test("the collision error also covers a moved built-in (std.tocModal)", async ({
   const frame = await openOutline(
     sbPage,
     "Navigate: Outline Picker",
-    NAV_MODAL_IFRAME,
+    NAV_MODAL_ROOT,
   );
   await expect(frame.locator(".sb-nav-title")).toHaveText("Outline");
   await expect(navRows(frame).first()).toHaveText("Getting started", {
@@ -1361,7 +1399,7 @@ test("the collision error also covers a moved built-in (std.tocModal)", async ({
   const stillBuiltin = await openOutline(
     sbPage,
     "Navigate: Outline Picker",
-    NAV_MODAL_IFRAME,
+    NAV_MODAL_ROOT,
   );
   await expect(stillBuiltin.locator(".sb-nav-title")).toHaveText("Outline");
 });
@@ -1373,7 +1411,7 @@ test("Navigate: Tree answers on a page loaded directly, before anything else tou
   await gotoSilverBulletPage(page, sbServer, "Projects/Alpha");
 
   await runCommandViaPalette(page, "Navigate: Tree");
-  const frame = page.frameLocator(".sb-keyed-panel-lhs iframe");
+  const frame = page.locator(".sb-nav-root-lhs");
   // Checks the top-level listing, not a reveal into "Projects": followEditor's
   // own reveal-on-open behavior has a known race with the tree's initial
   // paint, so this proves the view answers with real content immediately
@@ -1388,7 +1426,7 @@ test("the collision error also covers a sidebar-docked built-in (std.spaceTree)"
   sbPage,
 }) => {
   await runCommandViaPalette(sbPage, "Navigate: Tree");
-  const frame = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
+  const frame = sbPage.locator(".sb-nav-root-lhs");
   await expect(frame.locator("[data-path='Projects']")).toBeVisible({
     timeout: 20_000,
   });
@@ -1416,27 +1454,4 @@ test("the collision error also covers a sidebar-docked built-in (std.spaceTree)"
   await runCommandViaPalette(sbPage, "Navigate: Tree");
   await expect(frame.locator(".sb-nav-title")).toHaveText("Open");
   await expect(frame.locator("[data-path='Projects']")).toBeVisible();
-});
-
-test("Cmd-o/Ctrl-o opens the space tree, not the (now keyless) document picker", async ({
-  sbPage,
-}) => {
-  await sbPage.keyboard.press(`${mod}+o`);
-
-  const frame = sbPage.frameLocator(".sb-keyed-panel-lhs iframe");
-  await expect(frame.locator("[data-path='Projects']")).toBeVisible({
-    timeout: 20_000,
-  });
-  // A modal is what the old (now-removed) Cmd-o/Ctrl-o binding opened, so
-  // this proves that binding is really gone, not just superseded visually.
-  await expect(sbPage.locator(".sb-modal")).toBeHidden();
-
-  await sbPage.locator("#sb-editor .cm-content").click();
-
-  await runCommandViaPalette(sbPage, "Navigate: Document Picker");
-  await expect(navFrame(sbPage).locator("input.sb-nav-input")).toHaveAttribute(
-    "placeholder",
-    "Document",
-    { timeout: 20_000 },
-  );
 });

@@ -34,8 +34,6 @@
 
 #sb-main {
 
-  // Scoped to a direct child (`>`) so these don't also match the nested
-  // .sb-panel inside a .sb-keyed-panel wrapper.
   >.sb-panel:last-child {
     border-left: 1px solid var(--panel-border-color);
   }
@@ -48,15 +46,15 @@
     background-color: var(--panel-background-color);
   }
 
-  // Not `--panel-border-color`: that is white in the light theme (the legacy
+  // Not `--panel-border-color`: that is white in the light theme (the plug
   // panels sit on their own surface and want no visible seam), which left a
   // docked sidebar running straight into the editor with nothing between
   // them.
-  .sb-keyed-panel-lhs .sb-panel {
+  .sb-nav-root-lhs {
     border-right: 1px solid var(--ui-surface-border-color);
   }
 
-  .sb-keyed-panel-rhs .sb-panel {
+  .sb-nav-root-rhs {
     border-left: 1px solid var(--ui-surface-border-color);
   }
 }

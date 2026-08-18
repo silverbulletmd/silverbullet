@@ -1,22 +1,22 @@
-import type { FrameLocator, Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, mod } from "./fixtures.ts";
 
-/** The navigator modal's iframe -- the dock every built-in picker opens in. */
-export const NAV_MODAL_IFRAME = ".sb-modal iframe";
+/** The navigator modal's panel -- the dock every built-in picker opens in. */
+export const NAV_MODAL_ROOT = ".sb-nav-root-modal";
 
-export function navFrame(page: Page): FrameLocator {
-  return page.frameLocator(NAV_MODAL_IFRAME);
+export function navFrame(page: Page): Locator {
+  return page.locator(NAV_MODAL_ROOT);
 }
 
 export function navInput(page: Page) {
   return navFrame(page).locator("input.sb-nav-input");
 }
 
-export function navRows(frame: FrameLocator) {
+export function navRows(frame: Locator) {
   return frame.locator(".sb-nav-row .sb-nav-primary");
 }
 
-export function navSegment(frame: FrameLocator, label: string) {
+export function navSegment(frame: Locator, label: string) {
   return frame.locator(`.sb-segment[aria-label^="${label}"]`);
 }
 
@@ -28,7 +28,7 @@ export async function openPicker(
   page: Page,
   key: string,
   placeholder: string,
-): Promise<FrameLocator> {
+): Promise<Locator> {
   await page.keyboard.press(key);
   const frame = navFrame(page);
   await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
@@ -39,26 +39,28 @@ export async function openPicker(
   return frame;
 }
 
-export async function expectNavRow(frame: FrameLocator, text: string) {
+export async function expectNavRow(frame: Locator, text: string) {
   await expect(
     frame.locator(".sb-nav-row", { hasText: text }).first(),
   ).toBeVisible({ timeout: 20_000 });
 }
 
+/** The panel's filter input holds the document's focus -- i.e. keystrokes
+ * actually reach it, which its own `activeElement` alone wouldn't prove. */
 export async function expectNavInputFocused(
   page: Page,
-  iframeSelector: string = NAV_MODAL_IFRAME,
+  panelSelector: string = NAV_MODAL_ROOT,
 ) {
   await expect(async () => {
     expect(
       await page.evaluate((sel) => {
-        const f = document.querySelector(sel) as HTMLIFrameElement | null;
+        const active = document.activeElement;
         return {
-          frameFocused: !!f && document.activeElement === f,
-          inner: f?.contentDocument?.activeElement?.className ?? null,
+          inPanel: !!active?.closest(sel),
+          inner: active?.className ?? null,
         };
-      }, iframeSelector),
-    ).toEqual({ frameFocused: true, inner: "sb-nav-input" });
+      }, panelSelector),
+    ).toEqual({ inPanel: true, inner: "sb-nav-input" });
   }).toPass();
 }
 
@@ -69,14 +71,13 @@ export async function closePicker(page: Page) {
 }
 
 /** `Cmd-k`: the page picker, on its default Pages segment. */
-export function openPagePicker(page: Page): Promise<FrameLocator> {
+export function openPagePicker(page: Page): Promise<Locator> {
   return openPicker(page, `${mod}+k`, "Page");
 }
 
 /**
  * Fills the picker's phrase, retrying: a fill landing right after a modal
- * reopen (the iframe is reused) can be undone by the view's own
- * phrase-reset effect firing after it.
+ * reopen can be undone by the view's own phrase-reset effect firing after it.
  */
 async function fillNavPhrase(
   page: Page,
