@@ -332,7 +332,7 @@ test("a marker spacer has a client rect with real height", async ({
   const heights = await page.evaluate(() =>
     [...document.querySelectorAll(".sb-quote-spacer")].map(
       (s) => s.getBoundingClientRect().height,
-    )
+    ),
   );
   expect(heights.length).toBeGreaterThan(0);
   for (const h of heights) expect(h).toBeGreaterThan(0);
