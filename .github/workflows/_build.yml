@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
 
       - name: Setup Rust (linux musl + windows-gnu + freebsd targets)
         uses: dtolnay/rust-toolchain@stable
@@ -102,6 +103,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
