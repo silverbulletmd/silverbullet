@@ -242,8 +242,7 @@ fn debounce_loop(
             continue;
         }
         // Built once per flush (not per path): cheap enough for a handful of
-        // ready paths, and still picks up `.gitignore` edits promptly, same
-        // as fetch_file_list rebuilding on every call.
+        // ready paths, same as fetch_file_list rebuilding on every call.
         let gitignore = validator.gitignore_matcher();
         // Resolve every ready path into the event it would produce *before*
         // deciding whether this is a flood: otherwise the flood count

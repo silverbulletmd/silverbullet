@@ -9,8 +9,8 @@ use walkdir::WalkDir;
 use crate::space::case;
 use crate::types::{FileMeta, SpaceError, SpacePrimitives};
 
-/// A snapshot of a space's gitignore-style rules, for checking whether paths
-/// are visible without re-reading `.gitignore` on every call. See
+/// A snapshot of a space's gitignore-style ignore rules, for checking whether
+/// paths are visible without rebuilding the matcher on every call. See
 /// [`DiskSpacePrimitives::gitignore_matcher`].
 pub struct GitignoreMatcher(Option<ignore::gitignore::Gitignore>);
 
@@ -197,8 +197,10 @@ impl DiskSpacePrimitives {
         }
     }
 
-    /// Build a gitignore matcher combining the configured space-ignore
-    /// patterns with any `.gitignore` file in the space root.
+    /// Build a matcher from the configured space-ignore patterns. A
+    /// `.gitignore` file in the space is deliberately *not* consulted: it's an
+    /// ordinary space file that happens to be about git, not configuration for
+    /// SilverBullet.
     fn build_gitignore(&self) -> Option<ignore::gitignore::Gitignore> {
         let mut builder = GitignoreBuilder::new(&self.root_path);
         let mut has_pattern = false;
@@ -208,10 +210,6 @@ impl DiskSpacePrimitives {
                 let _ = builder.add_line(None, line);
                 has_pattern = true;
             }
-        }
-        let dot_gitignore = self.root_path.join(".gitignore");
-        if dot_gitignore.is_file() && builder.add(&dot_gitignore).is_none() {
-            has_pattern = true;
         }
         if !has_pattern {
             return None;
@@ -486,6 +484,29 @@ mod plan_tests {
         sp.write_file("notes/deep/a.md", b"x", None).unwrap();
         assert!(sp.has_file_with_suffix(".md"));
         assert!(!sp.has_file_with_suffix(".txt"));
+    }
+
+    #[test]
+    fn dot_gitignore_in_the_space_is_not_applied() {
+        // Regression (#2074): a `.gitignore` in the space root is a user's git
+        // config, not SilverBullet's — only SB_SPACE_IGNORE/spaceIgnore hides
+        // files. Its own name still starts with a dot, so it stays unlisted.
+        let dir = tempdir().unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "Library/\n_plug/\n").unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+
+        sp.write_file("Library/Std/Config.md", b"x", None).unwrap();
+        sp.write_file("_plug/foo.plug.js", b"x", None).unwrap();
+
+        let names: Vec<String> = sp
+            .fetch_file_list()
+            .unwrap()
+            .into_iter()
+            .map(|m| m.name)
+            .collect();
+        assert!(names.contains(&"Library/Std/Config.md".to_string()));
+        assert!(names.contains(&"_plug/foo.plug.js".to_string()));
+        assert!(!names.contains(&".gitignore".to_string()));
     }
 
     #[test]

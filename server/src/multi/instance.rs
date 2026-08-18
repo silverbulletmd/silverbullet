@@ -194,11 +194,10 @@ pub fn resolve_folder(root: &Path, id: &str, folder: &str) -> PathBuf {
 
 /// Create `<index_page>.md` in `folder` (with `content`) when the space has no
 /// `.md` files yet. Mirrors the single-space binary's former `ensure_index`
-/// exactly: emptiness is decided by a recursive walk (honoring `space_ignore`
-/// and any `.gitignore` in the folder), not a shallow `read_dir`, so a space
-/// with markdown only in subdirectories isn't treated as empty. The walk
-/// stops at the first `.md` file, so an already-populated space costs O(1),
-/// not a full listing, on every boot. Uses `DiskSpacePrimitives::write_file`
+/// exactly: emptiness is decided by a recursive walk (honoring `space_ignore`),
+/// not a shallow `read_dir`, so a space with markdown only in subdirectories
+/// isn't treated as empty. The walk stops at the first `.md` file, so an
+/// already-populated space costs O(1), not a full listing, on every boot. Uses `DiskSpacePrimitives::write_file`
 /// for the actual write so nested index pages (e.g. `notes/index`) get their
 /// parent directories created for free.
 pub fn seed_index(folder: &Path, index_page: &str, content: &str, space_ignore: &str) {
