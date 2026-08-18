@@ -1,206 +1,145 @@
-import { expect, mod, test } from "./fixtures.ts";
+import { expect, gotoSilverBulletPage, test } from "./fixtures.ts";
 
-// Inline comments: signed HTML-comment notes (`<!-- message — author, YYYY-MM-DD -->`),
-// optionally `@addressee:`-addressed to hand a question off, that render as a
-// card widget when the cursor is outside them, and as raw markdown when the
-// cursor overlaps the block. See plug-api/lib/comments.ts,
-// plugs/index/comment.ts, client/codemirror/comment_widget.ts, and
-// plugs/editor/comments.ts.
+// HTML comments are ordinary markdown: the body is parsed and rendered live,
+// the `<!--`/`-->` markers are hidden while the cursor is elsewhere, and a
+// Resolve button on the closing line deletes the whole block. See
+// client/markdown_parser/html_block.ts and client/codemirror/comment_region.ts.
 
-test.describe("Comment card rendering", () => {
-  test.use({
-    spaceFiles: {
-      "index.md": "A claim.\n<!-- @pete: verify — john, 2026-08-04 -->\n",
-    },
-  });
-
-  test("conforming comment renders as card; cursor reveals raw", async ({
-    sbPage,
-  }) => {
-    const editor = sbPage.locator("#sb-editor .cm-content");
-    const card = editor.locator(".sb-comment-card");
-
-    // Cursor starts at doc position 0, outside the comment block, so it
-    // should already render as a card.
-    await expect(card).toBeVisible();
-    await expect(card).toContainText("@pete");
-    await expect(card).toContainText("verify");
-    await expect(editor).not.toContainText("<!-- @pete:");
-
-    // Move the cursor into the paragraph line (still outside the block) --
-    // an explicit "elsewhere" placement before we walk into the block.
-    await editor.locator(".cm-line").first().click();
-    await expect(card).toBeVisible();
-
-    // Mouse clicks on the widget itself don't move the *document* cursor
-    // into it (CodeMirror's own click-to-cursor mapping on a block-replace
-    // widget lands at its edge, and the decorator field explicitly skips
-    // recomputation for "select.pointer" transactions -- see
-    // decoratorStateField in client/codemirror/util.ts -- to avoid the card
-    // flickering away under a plain click). Walking in with the keyboard is
-    // a real, distinct transaction and does trigger recomputation.
-    await sbPage.keyboard.press("End");
-    await sbPage.keyboard.press("ArrowDown");
-
-    await expect(card).toHaveCount(0);
-    await expect(editor).toContainText("<!-- @pete:");
-    await expect(editor).toContainText("verify");
-  });
-
-  test("alt-click on the card reveals raw source", async ({ sbPage }) => {
-    const editor = sbPage.locator("#sb-editor .cm-content");
-    const card = editor.locator(".sb-comment-card");
-    await expect(card).toBeVisible();
-
-    await card.click({ modifiers: ["Alt"] });
-
-    await expect(card).toHaveCount(0);
-    await expect(editor).toContainText("<!-- @pete:");
-  });
+test.use({
+  spaceFiles: {
+    "Code.md": [
+      "```javascript",
+      "const x = 1;",
+      "```",
+      "",
+      "Some prose.",
+      "",
+    ].join("\n"),
+    "Commented.md": [
+      "Before.",
+      "",
+      "<!--",
+      "",
+      "* [ ] Hello",
+      "",
+      "-->",
+      "",
+      "<!-- TODO: fix this -->",
+      "",
+      "After.",
+      "",
+    ].join("\n"),
+  },
 });
 
-test.describe("Comment: Add command", () => {
-  test.use({
-    spaceFiles: {
-      "index.md": "Some claim worth quoting.\n",
-    },
+const editorText = (page: any) =>
+  page.evaluate(
+    () => (document.querySelector(".cm-content") as HTMLElement).innerText,
+  );
+
+const docText = (page: any) =>
+  page.evaluate(() =>
+    (globalThis as any).client.editorView.state.doc.toString(),
+  );
+
+test("a comment renders its body as live markdown with hidden markers", async ({
+  sbServer,
+  page,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Commented");
+  await page.waitForSelector(".sb-comment-block");
+
+  const visible = await editorText(page);
+  expect(visible).not.toContain("<!--\n");
+  expect(visible).not.toContain("\n-->");
+  expect(visible).toContain("Hello");
+
+  // The task inside the comment is a real, rendered task.
+  expect(
+    await page.locator(".sb-comment-block input[type=checkbox]").count(),
+  ).toBe(1);
+});
+
+test("a one-liner keeps its markers visible", async ({ sbServer, page }) => {
+  await gotoSilverBulletPage(page, sbServer, "Commented");
+  await page.waitForSelector(".sb-comment-block");
+
+  // An inline marker is never replaced -- hiding it would shift the text
+  // sideways as the cursor moves in and out.
+  expect(await editorText(page)).toContain("<!-- TODO: fix this -->");
+});
+
+test("putting the cursor inside reveals the raw markers", async ({
+  sbServer,
+  page,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Commented");
+  await page.waitForSelector(".sb-comment-block");
+
+  await page.evaluate(() => {
+    const client = (globalThis as any).client;
+    const doc = client.editorView.state.doc.toString();
+    client.editorView.dispatch({
+      selection: { anchor: doc.indexOf("Hello") },
+    });
   });
 
-  test("Comment: Add inserts scaffold with quoted selection", async ({
-    sbPage,
-  }) => {
-    const editor = sbPage.locator("#sb-editor .cm-content");
-    await expect(editor).toContainText("Some claim worth quoting.");
+  await page.waitForFunction(() =>
+    (document.querySelector(".cm-content") as HTMLElement).innerText.includes(
+      "<!--\n",
+    ),
+  );
+});
 
-    // Select "claim worth" (offsets 5..16 in "Some claim worth quoting.").
-    await editor.click();
-    await sbPage.evaluate(() => {
+test("Resolve deletes the whole comment", async ({ sbServer, page }) => {
+  await gotoSilverBulletPage(page, sbServer, "Commented");
+  await page.waitForSelector(".sb-comment-resolve");
+
+  await page.locator(".sb-comment-resolve").first().click();
+
+  await page.waitForFunction(() => {
+    const doc = (globalThis as any).client.editorView.state.doc.toString();
+    return !doc.includes("Hello");
+  });
+  const doc = await docText(page);
+  expect(doc).toContain("Before.");
+  expect(doc).toContain("After.");
+  // Only the block comment went; the one-liner is untouched.
+  expect(doc).toContain("<!-- TODO: fix this -->");
+});
+
+test("Comment: Selection uses the language's own syntax inside fenced code", async ({
+  sbServer,
+  page,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Code");
+  await page.waitForSelector(".sb-line-fenced-code");
+
+  const runOn = async (needle: string) => {
+    await page.evaluate((needle: string) => {
       const view = (globalThis as any).client.editorView;
-      view.dispatch({ selection: { anchor: 5, head: 16 } });
-    });
-
-    // Run "Comment: Add" via its keybinding (Cmd-Alt-c on mac, Ctrl-Alt-c
-    // elsewhere -- see plugs/editor/editor.plug.yaml).
-    await sbPage.keyboard.press(`${mod}+Alt+c`);
-
-    await expect(editor).toContainText('<!-- re: "claim worth"');
-
-    // Left-aligned (no indentation), closer on its own line -- a quoted
-    // scaffold is multi-line, so buildCommentScaffold puts `-->` on a third
-    // line (see plug-api/lib/comments.ts).
-    const doc = await sbPage.evaluate(() =>
-      (globalThis as any).client.editorView.state.doc.toString(),
+      const at = view.state.doc.toString().indexOf(needle);
+      view.dispatch({ selection: { anchor: at, head: at + needle.length } });
+    }, needle);
+    await page.evaluate(() =>
+      (globalThis as any).client.runCommandByName("Comment: Selection")
     );
-    expect(doc).toContain('<!-- re: "claim worth"\n');
-    // trimEnd() because the fixture page's own trailing newline survives
-    // after the inserted block (computeCommentInsertion inserts before it).
-    expect(doc.trimEnd().endsWith("\n-->")).toBe(true);
-    expect(doc).not.toContain("     —");
-    expect(doc).not.toContain("     @");
+  };
+  const doc = () =>
+    page.evaluate(() =>
+      (globalThis as any).client.editorView.state.doc.toString()
+    );
 
-    const result = await sbPage.evaluate(() => {
-      const view = (globalThis as any).client.editorView;
-      const pos = view.state.selection.main.head;
-      return {
-        // Nothing has been typed yet, so the message position sits right
-        // before the signature's leading " — ".
-        afterCursor: view.state.doc.sliceString(pos, pos + 15),
-      };
-    });
-    // Cursor lands at the message position, before the " — <date>" signature
-    // -- there's no "@" addressee slot to land in any more (addressing is
-    // optional; see plug-api/lib/comments.ts buildCommentScaffold).
-    expect(result.afterCursor.trimStart().startsWith("—")).toBe(true);
-    await expect(editor).not.toContainText("@:");
-  });
+  await runOn("const x = 1;");
+  await expect.poll(doc).toContain("// const x = 1;");
+  // An HTML comment inside a code block would just be code.
+  expect(await doc()).not.toContain("<!--\nconst x");
+
+  // Running it again uncomments, as CodeMirror's toggle does.
+  await runOn("// const x = 1;");
+  await expect.poll(doc).not.toContain("// const x = 1;");
+
+  // Prose outside the block still gets an HTML comment.
+  await runOn("Some prose.");
+  await expect.poll(doc).toContain("<!--\nSome prose.\n-->");
 });
-
-test.describe("Comment reply/resolve round-trip", () => {
-  test.use({
-    spaceFiles: {
-      "index.md": "Some text.\n<!-- @pete: verify — john, 2026-08-04 -->\n",
-    },
-  });
-
-  test("reply and resolve round-trip with undo", async ({ sbPage }) => {
-    const editor = sbPage.locator("#sb-editor .cm-content");
-    const card = editor.locator(".sb-comment-card");
-    await expect(card).toBeVisible();
-
-    const docText = () =>
-      sbPage.evaluate(() =>
-        (globalThis as any).client.editorView.state.doc.toString(),
-      );
-
-    // Click Reply -> a pre-addressed line is inserted and the cursor lands
-    // ready to type the reply body (see CommentCardWidget.reply()).
-    await card.locator("button", { hasText: "Reply" }).click();
-    await sbPage.keyboard.type("on it");
-
-    // Left-aligned reply line (addressed back to the original message's
-    // author, "john"), and the closer relocated onto its own line -- the
-    // block was single-line with an inline closer before the reply (see
-    // buildReplyInsertion in client/codemirror/comment_widget.ts).
-    const docWhileEditing = await docText();
-    expect(docWhileEditing).toContain("@john: on it");
-    expect(docWhileEditing).not.toContain("     @john: on it");
-    expect(docWhileEditing.trimEnd().endsWith("\n-->")).toBe(true);
-
-    // Move the cursor back out of the block to collapse it to a card again.
-    await sbPage.evaluate(() => {
-      (globalThis as any).client.editorView.dispatch({
-        selection: { anchor: 0 },
-      });
-    });
-
-    await expect(card).toBeVisible();
-    await expect(card.locator(".sb-comment-message")).toHaveCount(2);
-    await expect(card).toContainText("on it");
-
-    // Click Resolve -> the whole comment block is removed from the document.
-    await card.locator("button", { hasText: "Resolve" }).click();
-    await expect.poll(docText).not.toContain("<!-- @pete:");
-
-    // Undo restores the comment block into the document model (whether it
-    // re-renders as a card or as raw text depends on where undo leaves the
-    // cursor, so assert on the document content rather than the DOM).
-    await editor.click();
-    await sbPage.keyboard.press(`${mod}+z`);
-    await expect.poll(docText).toContain("<!-- @pete:");
-    await expect.poll(docText).toContain("on it");
-  });
-});
-
-test.describe("Comment on an unaddressed note", () => {
-  test.use({
-    spaceFiles: {
-      "index.md":
-        'A claim.\n<!-- re: "the surrounding text"\n     Commenting on a specific phrase — 2026-08-05 -->\n',
-    },
-  });
-
-  // Reply only makes sense when there's someone to reply to -- an
-  // unaddressed note offers Resolve but no Reply button (see
-  // CommentCardWidget.toDOM() in client/codemirror/comment_widget.ts).
-  // buildReplyInsertion's unaddressed fallback path stays in place as a
-  // safeguard for mixed threads (addressed earlier, unaddressed last), but
-  // that path is no longer reachable from this card's UI.
-  test("an unaddressed note's card offers Resolve but no Reply button", async ({
-    sbPage,
-  }) => {
-    const editor = sbPage.locator("#sb-editor .cm-content");
-    const card = editor.locator(".sb-comment-card");
-    await expect(card).toBeVisible();
-    await expect(card.locator(".sb-comment-message")).toHaveCount(1);
-
-    await expect(card.locator("button", { hasText: "Resolve" })).toBeVisible();
-    await expect(card.locator("button", { hasText: "Reply" })).toHaveCount(0);
-  });
-});
-
-// "published render hides comments": there is no e2e-reachable surface for
-// rendered/published HTML in this app (no share/preview route -- the client
-// only ever shows the editable CodeMirror view). Per the brief, the fallback
-// lives as a vitest case in client/markdown_renderer/markdown_render.test.ts
-// ("Conforming inline comment renders to nothing"), asserting CommentBlock
-// renders to null (empty HTML) for a conforming comment.

@@ -187,7 +187,7 @@ export function createEditorState(
         { selector: "ATXHeading5", class: "sb-line-h5" },
         { selector: "ATXHeading6", class: "sb-line-h6" },
         { selector: "ListItem", class: "sb-line-li", nesting: true },
-        { selector: "Blockquote", class: "sb-line-blockquote" },
+        { selector: "Blockquote", class: "sb-line-blockquote", nesting: true },
         { selector: "Task", class: "sb-line-task" },
         { selector: "CodeBlock", class: "sb-line-code" },
         { selector: "FencedCode", class: "sb-line-fenced-code" },

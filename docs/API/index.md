@@ -31,12 +31,6 @@ Whether a full indexing pass has ever completed for this space. False on a fresh
 
 **Returns:** `boolean` — Whether the index can be trusted.
 
-## index.comments
-
-`index.comments()`
-
-Returns all indexed inline comment objects as a query collection. Equivalent to index.tag "comment".
-
 ## index.contentPages
 
 `index.contentPages(tagName?)`

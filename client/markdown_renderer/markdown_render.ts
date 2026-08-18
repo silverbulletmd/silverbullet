@@ -70,6 +70,7 @@ const blockTypes = new Set([
   "HTMLBlock",
   "LuaDirective",
   "CommentBlock",
+  "CommentMarkerBlock",
   "FrontMatter",
 ]);
 
@@ -175,7 +176,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     case "FrontMatter":
       return null;
     case "CommentBlock":
-      // Remove, for now
+    case "CommentMarkerBlock":
       return null;
     case "ATXHeading1":
       return {

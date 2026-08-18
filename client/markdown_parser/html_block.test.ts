@@ -19,6 +19,16 @@ function collectTypes(tree: ParseTree): (string | undefined)[] {
   return result;
 }
 
+/** Depth-first search for the first node of a given type. */
+function findNode(tree: ParseTree, type: string): ParseTree | undefined {
+  if (tree.type === type) return tree;
+  for (const child of tree.children ?? []) {
+    const hit = findNode(child, type);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
 /** Get the first child of the Document node. */
 function topNode(tree: ParseTree): ParseTree {
   return tree.children![0];
@@ -257,4 +267,79 @@ test("data-table-empty attribute on table", () => {
   expect(block.type).toBe("HTMLBlock");
   const openTag = block.children!.find((c) => c.type === "HTMLOpenTag")!;
   expect(nodeText(openTag)).toContain("data-table-empty");
+});
+
+// ── Comment bodies parsed as markdown ───────────────────────────────
+
+test("a comment body is parsed as markdown", () => {
+  const tree = parseHtml("<!--\n\n* [ ] Hello\n\n-->\n");
+  const node = topNode(tree);
+  expect(node.type).toBe("CommentBlock");
+  const types = collectTypes(node);
+  expect(types).toContain("BulletList");
+  expect(types).toContain("Task");
+  expect(types).toContain("CommentMarker");
+});
+
+test("a single-line comment parses its body too", () => {
+  const tree = parseHtml("<!-- TODO: fix this -->\n");
+  const node = topNode(tree);
+  expect(node.type).toBe("CommentBlock");
+  expect(collectTypes(node)).toContain("Paragraph");
+  expect(nodeText(node)).toBe("<!-- TODO: fix this -->");
+});
+
+test("marker comments stay flat", () => {
+  for (const src of ["<!--#lua 3 + 4 -->\n", "<!--/lua-->\n"]) {
+    const node = topNode(parseHtml(src));
+    expect(node.type).toBe("CommentMarkerBlock");
+    expect(collectTypes(node)).not.toContain("Paragraph");
+  }
+});
+
+test("an unclosed comment consumes the rest of the document", () => {
+  const tree = parseHtml("before\n\n<!--\nstill inside\n");
+  const node = tree.children![tree.children!.length - 1];
+  expect(node.type).toBe("CommentBlock");
+  expect(nodeText(node)).toContain("still inside");
+});
+
+// Known limitation, deliberately pinned: the sub-parse receives the raw lines,
+// enclosing prefixes and all, so a comment nested in a blockquote or indented
+// deep in a list item has those prefixes reparsed as structure. Offsets stay
+// inside the real text; only the node types are wrong. Changing this should be
+// a deliberate act, which is what these two cases are here to force.
+test("a quoted comment reparses its own quote markers", () => {
+  const doc = "> <!--\n> * item\n> -->\n";
+  const tree = parseHtml(doc);
+  const comment = findNode(tree, "CommentBlock")!;
+  expect(collectTypes(comment)).toContain("Blockquote");
+  expect(doc.slice(comment.from!, comment.to!)).toBe("<!--\n> * item\n> -->");
+});
+
+test("a deeply indented comment reparses its indent as a code block", () => {
+  const doc = "* outer\n\n    <!--\n    * inner\n    -->\n";
+  const tree = parseHtml(doc);
+  const comment = findNode(tree, "CommentBlock")!;
+  const types = collectTypes(comment);
+  expect(types).toContain("CodeBlock");
+  expect(types).not.toContain("BulletList");
+  const code = findNode(comment, "CodeText")!;
+  expect(doc.slice(code.from!, code.to!)).toBe("* inner");
+});
+
+test("spliced children keep document offsets", () => {
+  const doc = "lead\n\n<!--\n* item\n-->\n";
+  const tree = parseHtml(doc);
+  const comment = tree.children!.find((c) => c.type === "CommentBlock")!;
+  const findItem = (t: typeof tree): typeof tree | undefined => {
+    if (t.type === "ListItem") return t;
+    for (const child of t.children ?? []) {
+      const hit = findItem(child);
+      if (hit) return hit;
+    }
+    return undefined;
+  };
+  const item = findItem(comment)!;
+  expect(doc.slice(item.from!, item.to!)).toBe("* item");
 });

@@ -13,13 +13,25 @@ import type {
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex } from "../../client/markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
-import { index } from "@silverbulletmd/silverbullet/syscalls";
+import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 
 export type TagObject = ObjectValue<{
   name: string;
   page: string;
   parent: string;
 }>;
+
+/**
+ * A node's own range when it sits inside a comment, undefined otherwise. Only
+ * an object carrying a range can be flagged as commented (see indexer.ts), and
+ * a tag has just one record per page, so it counts as commented out only when
+ * every occurrence of it is.
+ */
+export function commentedRange(node: ParseTree): [number, number] | undefined {
+  return findParentMatching(node, (n) => n.type === "CommentBlock")
+    ? [node.from!, node.to!]
+    : undefined;
+}
 
 /**
  * Handles indexing of page, item and task level tags, data tags are handled in data.ts
@@ -29,26 +41,38 @@ export function indexTags(
   frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
-  const tags = new Set<string>(); // name:parent
+  // name:parent -> the range of a commented occurrence, undefined once the tag
+  // has been seen outside a comment
+  const tags = new Map<string, [number, number] | undefined>();
   const pageTags: string[] = frontmatter.tags || [];
   for (const pageTag of pageTags) {
-    tags.add(`${pageTag}:page`);
+    tags.set(`${pageTag}:page`, undefined);
   }
   collectNodesOfType(tree, "Hashtag").forEach((h) => {
     const tagName = extractHashtag(h.children![0].text!);
+    let key: string | undefined;
     // Check if this occurs in the context of a task
     if (findParentMatching(h, (n) => n.type === "Task")) {
-      tags.add(`${tagName}:task`);
+      key = `${tagName}:task`;
     } else if (findParentMatching(h, (n) => n.type === "ListItem")) {
       // Or an item
-      tags.add(`${tagName}:item`);
+      key = `${tagName}:item`;
     } else if (findParentMatching(h, (n) => n.type === "Paragraph")) {
       // Still indexing this as a page tag
-      tags.add(`${tagName}:page`);
+      key = `${tagName}:page`;
+    }
+    if (!key) {
+      return;
+    }
+    const range = commentedRange(h);
+    if (!range) {
+      tags.set(key, undefined);
+    } else if (!tags.has(key)) {
+      tags.set(key, range);
     }
   });
   return Promise.resolve(
-    [...tags].map((tag) => {
+    [...tags].map(([tag, range]) => {
       const [tagName, parent] = tag.split(":");
       return {
         ref: tag,
@@ -56,9 +80,19 @@ export function indexTags(
         name: tagName,
         page: pageMeta.name,
         parent,
+        ...(range ? { range } : {}),
       };
     }),
   );
+}
+
+/** Every tag name that occurs outside a comment somewhere in the space. */
+async function liveTagsQuery() {
+  return {
+    distinct: true,
+    select: { type: "Variable", name: "name", ctx: {} as any } as const,
+    where: await lua.parseExpression("not _.inComment"),
+  };
 }
 
 export async function tagComplete(completeEvent: CompleteEvent) {
@@ -84,10 +118,10 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   }
 
   // Query all tags with a matching parent
-  const allTags: string[] = await index.queryLuaObjects<string>("tag", {
-    distinct: true,
-    select: { type: "Variable", name: "name", ctx: {} as any },
-  });
+  const allTags: string[] = await index.queryLuaObjects<string>(
+    "tag",
+    await liveTagsQuery(),
+  );
 
   return {
     from: completeEvent.pos - match[0].length,
@@ -151,10 +185,10 @@ export async function frontmatterTagComplete(completeEvent: CompleteEvent) {
     prefix = listItemMatch[1];
   }
 
-  const allTags: string[] = await index.queryLuaObjects<string>("tag", {
-    distinct: true,
-    select: { type: "Variable", name: "name", ctx: {} as any },
-  });
+  const allTags: string[] = await index.queryLuaObjects<string>(
+    "tag",
+    await liveTagsQuery(),
+  );
 
   return {
     from: completeEvent.pos - prefix.length,

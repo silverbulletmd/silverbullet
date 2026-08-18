@@ -30,11 +30,6 @@ config.defineCategory {
   priority = 40,
 }
 config.defineCategory {
-  name = "Comments",
-  description = "Inline comments",
-  priority = 35,
-}
-config.defineCategory {
   name = "Sync",
   description = "Control how this client synchronizes pages and documents with the server.",
   priority = 30,
@@ -208,20 +203,6 @@ config.define("smartQuotes", {
     },
   },
   additionalProperties = false
-})
-
-config.define("comments", {
-  description = "Configure inline comments",
-  type = "object",
-  properties = {
-    author = {
-      type = "string",
-      default = "",
-      description = "Signature identity for comments you write, leave empty for date-only signatures.",
-      ui = { category = "Comments", label = "Author name", priority = 2 },
-    },
-  },
-  additionalProperties = false,
 })
 
 config.define("mobileMenuStyle", {

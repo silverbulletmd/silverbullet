@@ -106,3 +106,61 @@ describe("anchor records", () => {
     expect(anchors[0].snippet).not.toContain("second unrelated");
   });
 });
+
+describe("inComment", () => {
+  test("objects inside a comment are marked, others are not", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      "* [ ] Live task\n\n<!--\n\n* [ ] Commented task\n\n-->\n",
+      defaultPageMeta,
+    );
+    const tasks = objects.filter((o: any) => o.tag === "task");
+    const live = tasks.find((t: any) => t.name === "Live task");
+    const commented = tasks.find((t: any) => t.name === "Commented task");
+    expect(live).toBeDefined();
+    expect(live.inComment).toBeUndefined();
+    expect(commented).toBeDefined();
+    expect(commented.inComment).toBe(true);
+  });
+
+  test("space-lua and space-style inside a comment are dropped", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      "<!--\n\n```space-lua\nx = 1\n```\n\n```space-style\nbody { color: red }\n```\n\n-->\n",
+      defaultPageMeta,
+    );
+    expect(objects.some((o: any) => o.tag === "space-lua")).toBe(false);
+    expect(objects.some((o: any) => o.tag === "space-style")).toBe(false);
+  });
+
+  test("the same blocks outside a comment are still indexed", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      "```space-lua\nx = 1\n```\n",
+      defaultPageMeta,
+    );
+    expect(objects.some((o: any) => o.tag === "space-lua")).toBe(true);
+  });
+
+  test("anchor records inherit the flag from their host", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      "<!--\n\n* A commented item $anchorname\n\n-->\n",
+      defaultPageMeta,
+    );
+    const anchor = objects.find((o: any) => o.tag === "anchor");
+    expect(anchor).toBeDefined();
+    expect(anchor.inComment).toBe(true);
+  });
+
+  test("user attributes cannot forge the flag outside a comment", async () => {
+    createMockSystem();
+    const objects = await indexMarkdown(
+      "* An item [inComment: true]\n",
+      defaultPageMeta,
+    );
+    const item = objects.find((o: any) => o.tag === "item");
+    expect(item).toBeDefined();
+    expect(item.inComment).toBeUndefined();
+  });
+});

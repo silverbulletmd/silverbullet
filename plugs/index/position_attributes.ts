@@ -36,7 +36,15 @@ export function isPositionAttribute(name: string): boolean {
  * `tags`, so this set only applies where a row/item object is synthesized and
  * user-supplied labels are merged onto it afterwards.
  */
-const IDENTITY_ATTRIBUTES = ["ref", "tag", "tags", "itags", "tableref", "page"];
+const IDENTITY_ATTRIBUTES = [
+  "ref",
+  "tag",
+  "tags",
+  "itags",
+  "tableref",
+  "page",
+  "inComment",
+];
 
 /**
  * Whether `name` would collide with a synthesized object's own identity or

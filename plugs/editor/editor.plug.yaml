@@ -67,21 +67,6 @@ functions:
     events:
       - editor:complete
 
-  # Comments
-  addComment:
-    path: "./comments.ts:addComment"
-    command:
-      name: "Comment: Add"
-      key: "Ctrl-Alt-c"
-      mac: "Cmd-Alt-c"
-      requireMode: rw
-      requireEditor: page
-  insertCommentSlash:
-    path: "./comments.ts:insertCommentSlash"
-    slashCommand:
-      name: comment
-      description: "Insert a new comment"
-
   # Create page under cursor
   createPageUnderCursorCommand:
     path: "./navigate.ts:createPageUnderCursorCommand"
@@ -248,6 +233,22 @@ functions:
       key: "Ctrl-Alt-l"
       requireMode: rw
       requireEditor: page
+  # Comments
+  addComment:
+    path: "./comments.ts:addComment"
+    command:
+      name: "Comment: Add"
+      key: "Ctrl-Alt-c"
+      mac: "Cmd-Alt-c"
+      requireMode: rw
+      requireEditor: page
+  commentSelection:
+    path: "./comments.ts:commentSelection"
+    command:
+      name: "Comment: Selection"
+      requireMode: rw
+      requireEditor: page
+
   # Debug commands
   parseCommand:
     path: ./system.ts:parsePageCommand

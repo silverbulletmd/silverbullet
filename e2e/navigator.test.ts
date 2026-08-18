@@ -3031,6 +3031,10 @@ test.describe("built-in views", () => {
       const primary = style(".sb-nav-body .sb-nav-primary");
       const mark = style(".sb-nav-primary mark");
       const body = style(".sb-nav-body");
+      // Safari only knows the prefixed property.
+      const userSelect = (s: CSSStyleDeclaration) =>
+        s.getPropertyValue("user-select") ||
+        s.getPropertyValue("-webkit-user-select");
       return {
         rowHeightToken: rootStyle
           .getPropertyValue("--sb-nav-row-height")
@@ -3046,7 +3050,7 @@ test.describe("built-in views", () => {
         rowGap: row.columnGap,
         rowLineHeight: row.lineHeight,
         rowHeight: row.height,
-        rowUserSelect: row.userSelect,
+        rowUserSelect: userSelect(row),
         headerPadding: [
           header.paddingTop,
           header.paddingRight,
@@ -3092,7 +3096,7 @@ test.describe("built-in views", () => {
           input.paddingLeft,
         ].join(" "),
         inputBorderWidth: input.borderTopWidth,
-        inputSelectable: input.userSelect !== "none",
+        inputSelectable: userSelect(input) !== "none",
         primaryMinWidth: primary.minWidth,
         primaryOverflow: primary.overflow,
         primaryTextOverflow: primary.textOverflow,
@@ -3174,7 +3178,8 @@ test.describe("built-in views", () => {
       const depth = (path: string) => {
         const s = style(`[data-path='${path}']`);
         return {
-          left: s.paddingLeft,
+          // Safari serializes the computed 1.2rem as 19.200001px.
+          left: `${Math.round(parseFloat(s.paddingLeft) * 100) / 100}px`,
           rest: [s.paddingTop, s.paddingRight, s.paddingBottom].join(" "),
         };
       };
@@ -3751,8 +3756,12 @@ test.describe("mobile", () => {
   test.use({
     spaceFiles: BUILTIN_FILES,
     viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    isMobile: true,
+    // Playwright's Firefox rejects both options; the narrow layout is driven
+    // purely by the viewport width (MOBILE_MEDIA_QUERY), so it still applies.
+    hasTouch: async ({ browserName }, use) =>
+      await use(browserName !== "firefox"),
+    isMobile: async ({ browserName }, use) =>
+      await use(browserName !== "firefox"),
   });
 
   test("a sidebar dock is a full-width drawer below the top bar", async ({

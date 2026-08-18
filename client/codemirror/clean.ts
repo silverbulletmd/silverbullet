@@ -2,7 +2,7 @@ import type { Extension } from "@codemirror/state";
 import type { Client } from "../client.ts";
 import { blockquotePlugin } from "./block_quote.ts";
 import { admonitionPlugin } from "./admonition.ts";
-import { commentPlugin } from "./comment_widget.ts";
+import { commentRegionPlugin } from "./comment_region.ts";
 import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
 import { linkPlugin } from "./link.ts";
@@ -41,7 +41,7 @@ export function cleanModePlugins(client: Client) {
     linkPlugin(client),
     blockquotePlugin(),
     admonitionPlugin(),
-    commentPlugin(client),
+    commentRegionPlugin(client),
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),

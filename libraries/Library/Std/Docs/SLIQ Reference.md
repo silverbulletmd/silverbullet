@@ -18,7 +18,7 @@ Clauses can appear in any order. Only `from` is required.
 Always use variable binding: `from p = index.pages()` (not `from index.pages()`).
 Type-specific helpers: `index.pages(tag?)`, `index.contentPages()`, `index.metaPages()`,
 `index.aspiringPages()`, `index.tasks(tag?)`, `index.headers(tag?)`, `index.items(tag?)`,
-`index.paragraphs(tag?)`, `index.tables(tag?)`, `index.comments()`; otherwise `index.objects("tag")`.
+`index.paragraphs(tag?)`, `index.tables(tag?)`; otherwise `index.objects("tag")`.
 
 Operators: ==, ~= (not equal), <, >, <=, >=, and, or, not
 String: s:startsWith("x"), s:endsWith("x"), s:contains("x")

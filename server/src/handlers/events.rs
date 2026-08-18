@@ -76,6 +76,13 @@ pub async fn handle_events(State(state): State<Arc<ServerState>>) -> Response {
             )),
         },
     );
+    // Gecko and WebKit leave EventSource at CONNECTING until the first body
+    // byte arrives, so without this comment `onopen` waits for the first real
+    // event (or the 30s keep-alive) -- and until it fires the client cannot
+    // tell a dropped connection from an unsupported endpoint, and skips its
+    // reconnect catch-up.
+    let stream =
+        tokio_stream::once(Ok::<Event, Infallible>(Event::default().comment("open"))).chain(stream);
     let stream = EndOnShutdown {
         stream: Box::pin(stream),
         shutdown: Box::pin(wait_for_shutdown(state.shutdown.clone())),
@@ -185,6 +192,25 @@ mod tests {
             text.contains(r#"{"name":"","action":"resync","lastModified":0}"#),
             "body was: {text}"
         );
+    }
+
+    #[tokio::test]
+    async fn stream_leads_with_a_comment_so_open_fires_right_away() {
+        let mut state = test_state();
+        let (tx, _keep) = broadcast::channel::<FsEvent>(16);
+        state.fs_events = Some(tx);
+        let app = build_router(Arc::new(state));
+
+        let resp = app
+            .oneshot(Request::get("/.events").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let text = String::from_utf8_lossy(&body);
+        assert!(text.starts_with(':'), "body was: {text}");
     }
 
     /// The browser `EventSource` API cannot set an `Authorization` header, so

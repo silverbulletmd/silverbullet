@@ -2,6 +2,29 @@
   outline: none !important;
 }
 
+// An unregistered custom property inherits as an unresolved token stream, so a
+// `ch` inside one re-resolves against every element that references it — 1.5x
+// wider on a heading line, tilting a quoted heading out of its own quote's
+// column. Registering them as lengths pins both to the font of the element
+// that declares them.
+@property --editor-column {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --editor-base-font {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --blockquote-step {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 #sb-main .cm-editor {
   font-size: 18px;
   height: 100%;
@@ -12,6 +35,13 @@
     margin-right: auto;
     max-width: var(--#{"editor-width"});
     padding: 5px 20px;
+
+    // A column, the body size and a `> ` in the editor's own font, which is
+    // set on this element.
+    --editor-column: 1ch;
+    --editor-base-font: 1em;
+    --blockquote-bar: 2px;
+    --blockquote-step: 2ch;
   }
 
   .cm-line {
@@ -159,8 +189,8 @@
   }
 
   .sb-line-comment {
-    text-indent: -1 * 3ch;
-    padding-left: 3ch;
+    text-indent: calc(-3 * var(--editor-column));
+    padding-left: calc(3 * var(--editor-column));
   }
 
   .cm-list-bullet {
@@ -429,13 +459,43 @@
     color: transparent;
   }
 
+  // The indent is the marker spacer in the text flow, not CSS, so it composes
+  // with the inline `padding-left` listIndentPlugin puts on list lines. Each bar
+  // paints over the spacer of its own level, standing in for the `>` it
+  // replaced; border-box origin anchors them to the line's left edge rather than
+  // letting a list item's padding drag them along.
   .sb-line-blockquote {
-    text-indent: -2ch;
+    min-height: 1em;
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--editor-blockquote-border-color) 0,
+      var(--editor-blockquote-border-color) var(--blockquote-bar),
+      transparent var(--blockquote-bar),
+      transparent var(--blockquote-step)
+    );
+    background-origin: border-box;
+    background-repeat: no-repeat;
+    background-size: var(--blockquote-step) 100%;
   }
 
-  .sb-blockquote-outside {
-    text-indent: -1ch;
-    min-height: 1em;
+  .sb-quote-spacer {
+    display: inline;
+  }
+
+  // A revealed marker is real text, so on a heading line it would be 1.5x the
+  // spacer it stands in for and shift the line as the caret arrives. Pinned to
+  // the body size it measures the same two columns either way.
+  .sb-quote-mark {
+    font-size: var(--editor-base-font);
+  }
+
+  // A line inside a nested quote carries the class of every level it sits in,
+  // so the deepest rule — declared last — supplies the whole indent and the
+  // matching number of bars. Past level 6 a line keeps level 6's gutter.
+  @for $depth from 2 through 6 {
+    .sb-line-blockquote-#{$depth} {
+      background-size: calc(#{$depth} * var(--blockquote-step)) 100%;
+    }
   }
 
   .sb-line-table-outside {
@@ -802,14 +862,11 @@
     }
   }
 
-  .sb-line-blockquote.sb-line-ul.sb-line-li>.sb-quote.sb-meta:first-child {
-    margin-left: -1ch;
-  }
-
   .sb-admonition {
     border-left-width: 4px !important;
     border-left-style: solid;
     padding-left: 5px;
+    background-image: none;
   }
 
   .sb-admonition-type::before {
@@ -827,37 +884,76 @@
     vertical-align: middle;
   }
 
-  .sb-comment-widget {
-    padding: 2px 0;
+  .sb-comment-block {
+    // The indent is a border rather than padding because list lines inside a
+    // comment carry an inline `padding-left` from listIndentPlugin: a border
+    // adds to that instead of losing to it. The bar is a background gradient
+    // over the border box for the same reason an inset box-shadow won't do —
+    // that is clipped to the padding box and would land a step in. Widths are
+    // shared with the blockquote gutter so the two systems stay aligned.
+    border-left-width: var(--blockquote-step);
+    border-left-style: solid;
+    background-color: var(--editor-blockquote-background-color);
+    background-image: linear-gradient(
+      to right,
+      var(--editor-code-comment-color) 0,
+      var(--editor-code-comment-color) var(--blockquote-bar),
+      transparent var(--blockquote-bar)
+    );
+    background-origin: border-box;
+    background-repeat: no-repeat;
   }
 
-  .sb-comment-card {
-    border: 1px solid var(--editor-directive-background-color);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 0.9em;
+  // A quote inside a comment sits in both gutters: the comment's bar stays at
+  // the edge and the quote's bars start one step in. The combined selector
+  // outranks both single-class rules, so their order no longer matters.
+  .sb-comment-block.sb-line-blockquote {
+    background-image: linear-gradient(
+        to right,
+        var(--editor-code-comment-color) 0,
+        var(--editor-code-comment-color) var(--blockquote-bar),
+        transparent var(--blockquote-bar)
+      ),
+      repeating-linear-gradient(
+        to right,
+        var(--editor-blockquote-border-color) 0,
+        var(--editor-blockquote-border-color) var(--blockquote-bar),
+        transparent var(--blockquote-bar),
+        transparent var(--blockquote-step)
+      );
+    background-position: 0 0, var(--blockquote-step) 0;
+  }
 
-    .sb-comment-quote {
-      color: var(--editor-code-comment-color);
-      font-style: italic;
-      border-left: 2px solid var(--editor-code-comment-color);
-      padding-left: 8px;
-      margin-bottom: 2px;
+  @for $depth from 1 through 6 {
+    .sb-comment-block.sb-line-blockquote-#{$depth} {
+      background-size: var(--blockquote-step) 100%,
+        calc(#{$depth} * var(--blockquote-step)) 100%;
     }
+  }
 
-    .sb-comment-addressee {
-      font-weight: 600;
-    }
+  .sb-comment-resolve {
+    // Floated rather than right-aligning the line, so the button sits right in
+    // both states without dragging a revealed `-->` across with it.
+    float: right;
+    font-size: 80%;
+    // line-height 1 on an 80% font keeps the inline box well inside the line
+    // box, so neither the padding nor the border can grow the line.
+    line-height: 1;
+    padding: 1px 8px;
+    margin-right: 7px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 4px;
+    cursor: pointer;
+  }
 
-    .sb-comment-sig {
-      color: var(--editor-code-comment-color);
-      font-size: 0.9em;
-    }
-
-    .sb-comment-actions button {
-      font-size: 0.85em;
-      margin-right: 6px;
-    }
+  .sb-comment-label {
+    float: right;
+    font-size: 80%;
+    padding-right: 7px;
+    // Safari still drops the unprefixed property.
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .sb-frontmatter-marker {

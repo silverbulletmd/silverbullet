@@ -163,3 +163,25 @@ test("user `pos`/`range` attributes cannot overwrite the block's source offsets"
   // The user's own attributes are still indexed as data, just not as offsets.
   expect(person.name).toBe("Pete");
 });
+
+test("a data type occurring only in a comment is marked as commented", async () => {
+  createMockSystem();
+  const md = [
+    "```#person",
+    "name: Live",
+    "```",
+    "",
+    "<!--",
+    "",
+    "```#ghost",
+    "name: Dead",
+    "```",
+    "",
+    "-->",
+  ].join("\n");
+  const results = await indexDataForTest(md, "Page");
+  const tagOf = (name: string) =>
+    results.find((o) => o.tag === "tag" && o.name === name)!;
+  expect(tagOf("person").range).toBeUndefined();
+  expect(tagOf("ghost").range).toBeTruthy();
+});

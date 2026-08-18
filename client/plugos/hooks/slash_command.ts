@@ -70,7 +70,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     // the user is referring to preceding text, not what comes after.
     const currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos, -1);
     if (
-      currentNode.type.name === "CommentBlock" ||
+      currentNode.type.name === "CommentMarkerBlock" ||
       currentNode.type.name === "Link"
     ) {
       return null;

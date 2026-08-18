@@ -24,6 +24,11 @@ export function extractSpaceLuaFromPageText(text: string): string {
   const tree = parseMarkdown(text);
   const codes: string[] = [];
   traverseTree(tree, (node) => {
+    // Commenting a script out is how it gets disabled, which has to hold for
+    // the boot-time pages too, not just for what the indexer picks up.
+    if (node.type === "CommentBlock") {
+      return true;
+    }
     if (node.type === "FencedCode") {
       const codeInfo = findNodeOfType(node, "CodeInfo");
       if (codeInfo?.children?.[0].text !== "space-lua") {

@@ -16,5 +16,5 @@ Run ${widgets.commandButton "Editor: Toggle X-Ray"}. The setting is sticky, it p
 * Understanding the indexer: if you do fancy thing with e.g. [[API/tag#tag.define(spec)]], this where you can easily debug the effects.
 
 # Limitations
-* `range`-less objects (`page`, `tag`, `aspiring-page`, `anchor`) aren't shown.
+* `range`-less objects (`page`, `tag`, `aspiring-page`, `anchor`) aren't shown — except a tag that occurs only inside a comment, which the indexer gives a range, so X-Ray underlines it (and its card won't show `inComment`, since `xrayInfo` calls the indexers directly, skipping the comment-marking pass).
 * Constructs that the editor renders as a widget may not always show the underline. Hover still works, the tooltip will appear.

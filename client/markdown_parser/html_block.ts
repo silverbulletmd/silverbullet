@@ -4,6 +4,7 @@ import type {
   Line,
   MarkdownConfig,
 } from "@lezer/markdown";
+import { NodeType, Tree } from "@lezer/common";
 
 // CommonMark spec §4.6 — the same block-level element names that
 // the built-in lezer HTMLBlock parser recognises (type 6).
@@ -17,6 +18,9 @@ const scriptPreStyleEndRe = /<\/(?:script|pre|style)>/i;
 // Type 2: <!-- comment -->
 const commentStartRe = /^\s*<!--/;
 const commentEndRe = /-->/;
+// `<!--#…-->` / `<!--/…-->` are inert delimiters (Baked Sections uses
+// `<!--#lua …-->` and `<!--/lua-->`); they carry no markdown body.
+const markerCommentRe = /^\s*<!--[ \t]*[#/]/;
 
 // Type 3: <?processing instruction?>
 const processingStartRe = /^\s*<\?/;
@@ -58,6 +62,43 @@ function parseRawHtmlBlock(
   cx.nextLine();
   const to = cx.prevLineEnd();
   cx.addElement(cx.elt(nodeType, from, to));
+  return true;
+}
+
+function parseCommentBlock(cx: BlockContext, line: Line): true {
+  const from = cx.lineStart + line.pos;
+  let raw = line.text.slice(line.pos);
+  while (!commentEndRe.test(line.text) && cx.nextLine()) {
+    raw += `\n${line.text}`;
+  }
+  cx.nextLine();
+  const to = cx.prevLineEnd();
+
+  const openFrom = raw.indexOf("<!--");
+  const openTo = openFrom + 4;
+  const closeFrom = raw.indexOf("-->", openTo);
+  const bodyTo = closeFrom === -1 ? raw.length : closeFrom;
+  const bodyText = raw.slice(openTo, bodyTo);
+
+  const children = [cx.elt("CommentMarker", from + openFrom, from + openTo)];
+  if (bodyText.trim()) {
+    const parsed = cx.parser.parse(bodyText);
+    // The sub-parse is rooted at Document; re-wrap it anonymously so the body's
+    // blocks mount directly under CommentBlock instead of under a nested doc.
+    const body = new Tree(
+      NodeType.none,
+      parsed.children,
+      parsed.positions,
+      parsed.length,
+    );
+    children.push(cx.elt(body, from + openTo));
+  }
+  if (closeFrom !== -1) {
+    children.push(
+      cx.elt("CommentMarker", from + closeFrom, from + closeFrom + 3),
+    );
+  }
+  cx.addElement(cx.elt("CommentBlock", from, to, children));
   return true;
 }
 
@@ -149,9 +190,11 @@ function parseStructuredHtmlBlock(cx: BlockContext, line: Line): true {
 /**
  * Custom block parser that replaces the built-in HTMLBlock.
  *
- * For comments, CDATA, script/pre/style, and processing instructions it
- * emits flat nodes (CommentBlock, ProcessingInstructionBlock, HTMLBlock)
+ * For CDATA, script/pre/style, processing instructions and marker comments it
+ * emits flat nodes (CommentMarkerBlock, ProcessingInstructionBlock, HTMLBlock)
  * just like the built-in parser.
+ *
+ * Regular comments become a CommentBlock whose body is parsed as markdown.
  *
  * For regular block-level HTML (type 6/7) it produces a structured tree
  * with HTMLOpenTag / HTMLCloseTag / HTMLSelfClosingTag children and
@@ -171,7 +214,10 @@ const htmlBlockParser: BlockParser = {
 
     // Type 2: <!-- comment -->
     if (commentStartRe.test(lineText)) {
-      return parseRawHtmlBlock(cx, line, commentEndRe, "CommentBlock");
+      if (markerCommentRe.test(lineText)) {
+        return parseRawHtmlBlock(cx, line, commentEndRe, "CommentMarkerBlock");
+      }
+      return parseCommentBlock(cx, line);
     }
 
     // Type 3: <?processing instruction?>
@@ -212,6 +258,8 @@ export const HTMLBlockParsing: MarkdownConfig = {
     { name: "HTMLCloseTag" },
     { name: "HTMLSelfClosingTag" },
     { name: "CommentBlock", block: true },
+    { name: "CommentMarkerBlock", block: true },
+    { name: "CommentMarker" },
     { name: "ProcessingInstructionBlock", block: true },
   ],
   parseBlock: [htmlBlockParser],

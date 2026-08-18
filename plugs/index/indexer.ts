@@ -3,14 +3,16 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  collectNodesOfType,
+  type ParseTree,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexData } from "./data.ts";
 import { indexItems } from "./item.ts";
 import { indexHeaders } from "./header.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { indexComments } from "./comment.ts";
 import { indexRelations } from "./relation.ts";
 import { indexTables } from "./table.ts";
 import { indexSpaceLua } from "./space_lua.ts";
@@ -38,6 +40,38 @@ const NON_ANCHORABLE_TAGS = new Set([
   "space-lua",
   "space-style",
 ]);
+
+// Scripts and stylesheets are the one thing a comment must genuinely disable:
+// commenting a block out is how people turn it off.
+const INERT_IN_COMMENT_TAGS = new Set(["space-lua", "space-style"]);
+
+/** `inComment` is reserved in position_attributes.ts, but no indexer consults that reservation, so a user-written one is dropped here. */
+function markCommentedObjects(
+  objects: ObjectValue<any>[],
+  tree: ParseTree,
+): ObjectValue<any>[] {
+  const ranges = collectNodesOfType(tree, "CommentBlock").map(
+    (n) => [n.from!, n.to!] as [number, number],
+  );
+  const result: ObjectValue<any>[] = [];
+  for (const o of objects) {
+    const from = o.range?.[0];
+    const inside =
+      typeof from === "number" &&
+      ranges.some(([rFrom, rTo]) => from >= rFrom && from < rTo);
+    if (!inside) {
+      if ("inComment" in o) {
+        const { inComment: _drop, ...rest } = o;
+        result.push(rest as ObjectValue<any>);
+      } else {
+        result.push(o);
+      }
+    } else if (!INERT_IN_COMMENT_TAGS.has(o.tag)) {
+      result.push({ ...o, inComment: true });
+    }
+  }
+  return result;
+}
 
 /**
  * Post-processes the combined object list and appends one dedicated
@@ -69,6 +103,7 @@ function appendAnchorRecords(
         page: o.page,
         hostTag: o.tag,
         pageLastModified: pageMeta.lastModified,
+        ...(o.inComment ? { inComment: true } : {}),
       };
       // Reuse the same snippet machinery relation.ts uses, so an anchored
       // list item pulls in its indented children and nested tasks get a
@@ -90,7 +125,6 @@ export const allIndexers: IndexerFunction[] = [
   indexItems,
   indexHeaders,
   indexParagraphs,
-  indexComments,
   indexRelations,
   indexTables,
   indexSpaceLua,
@@ -120,7 +154,11 @@ export async function indexMarkdown(
       .filter((indexer) => indexer !== pageIndexPage)
       .map((indexer) => indexer(pageMeta, frontmatter, tree, text)),
   );
-  return appendAnchorRecords(indexResults.flat(), pageMeta, text);
+  return appendAnchorRecords(
+    markCommentedObjects(indexResults.flat(), tree),
+    pageMeta,
+    text,
+  );
 }
 
 export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
@@ -130,6 +168,10 @@ export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   );
   await index.indexObjects<any>(
     name,
-    appendAnchorRecords(indexResults.flat(), meta, text),
+    appendAnchorRecords(
+      markCommentedObjects(indexResults.flat(), tree),
+      meta,
+      text,
+    ),
   );
 }

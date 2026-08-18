@@ -278,7 +278,10 @@ tbody tr:nth-of-type(even) {
 .sb-line-blockquote {
   background-color: var(--editor-blockquote-background-color);
   color: var(--editor-blockquote-color);
-  border-left: 1px solid var(--editor-blockquote-border-color);
+}
+
+.sb-comment-block {
+  border-left-color: transparent;
 }
 
 .sb-line-code {
@@ -344,10 +347,34 @@ tbody tr:nth-of-type(even) {
   color: var(--editor-meta-color);
 }
 
-// HTML comments (inline `Comment` + block `CommentBlock`, e.g. baked-section
-// `<!--#lua … -->` markers) render in a subtle gray, like code comments. The
-// fenced-code-scoped rule above keeps comments inside code blocks code-sized.
+// HTML comments (inline `Comment` + block `CommentMarkerBlock`, e.g.
+// baked-section `<!--#lua … -->` markers) render in a subtle gray, like code
+// comments. The fenced-code-scoped rule above keeps comments inside code blocks
+// code-sized.
 .sb-comment {
+  color: var(--editor-code-comment-color);
+}
+
+// The `<!--` / `-->` delimiters of a comment whose body is parsed as markdown:
+// the body styles itself, so only the markers get the comment colour.
+// An opaque surface, so the button reads as a control rather than dissolving
+// into the region's own tint.
+.sb-comment-resolve {
+  color: var(--subtle-color);
+  background-color: var(--root-background-color);
+  border-color: var(--subtle-color);
+}
+
+.sb-comment-resolve:hover {
+  background-color: var(--editor-widget-background-color);
+  color: var(--editor-text-color);
+}
+
+.sb-comment-label {
+  color: var(--editor-code-comment-color);
+}
+
+.sb-comment-marker {
   color: var(--editor-code-comment-color);
 }
 
@@ -363,9 +390,6 @@ tbody tr:nth-of-type(even) {
 
 .sb-admonition {
   border-left-color: var(--admonition-color);
-}
-
-.sb-admonition-title {
   background-color: color-mix(in srgb,
       var(--admonition-color),
       transparent 90%);

@@ -188,10 +188,6 @@ export class ObjectIndex {
     return this.filteredTag("page", notMeta);
   }
 
-  comments(): LuaQueryCollection {
-    return this.objectsWithTag("comment");
-  }
-
   metaPages(): LuaQueryCollection {
     return this.filteredTag(
       "page",

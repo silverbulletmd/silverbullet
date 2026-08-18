@@ -254,6 +254,8 @@
   color: var(--subtle-color);
   font-size: 0.9em;
   white-space: nowrap;
+  // Safari still drops the unprefixed property.
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -443,6 +445,8 @@
   padding: 8px;
   line-height: 20px;
   cursor: pointer;
+  // Safari still drops the unprefixed property.
+  -webkit-user-select: none;
   user-select: none;
   position: relative;
 }

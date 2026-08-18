@@ -33,6 +33,7 @@ The following attributes are predefined, you can expect all objects to have them
 In addition, most objects will also contain:
 * `tags`: an optional set of additional, explicitly assigned tags.
 * `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_.
+* `inComment`: `true` on any object that originates inside an HTML [[Markdown/Comment]]. Absent otherwise.
 
 Beside these, any number of additional tag-specific and custom [[Attribute|Attributes]] can be defined. It is also possible to restrict this set of attributes via [[Schema]].
 

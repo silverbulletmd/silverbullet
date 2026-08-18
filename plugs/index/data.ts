@@ -6,7 +6,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { TagObject } from "./tags.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { updateITags } from "./tags.ts";
+import { commentedRange, updateITags } from "./tags.ts";
 import { stripPositionAttributes } from "./position_attributes.ts";
 import type {
   ObjectValue,
@@ -85,13 +85,18 @@ export function indexData(
         dataObjects.push(dataObj);
         cursor += docs[i].length + separator.length;
       }
-      tagObjects.set(dataType, {
-        ref: dataType,
-        tag: "tag",
-        name: dataType,
-        page: pageMeta.name,
-        parent: "data",
-      });
+      const range = commentedRange(t);
+      const existing = tagObjects.get(dataType);
+      if (!existing || (existing.range && !range)) {
+        tagObjects.set(dataType, {
+          ref: dataType,
+          tag: "tag",
+          name: dataType,
+          page: pageMeta.name,
+          parent: "data",
+          ...(range ? { range } : {}),
+        });
+      }
     } catch (e) {
       console.error("Could not parse data", codeText, "error:", e);
       return;

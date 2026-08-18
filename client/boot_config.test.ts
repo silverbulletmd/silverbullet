@@ -16,6 +16,12 @@ test("Test boot config", () => {
   expect(
     extractSpaceLuaFromPageText("Hello\n\n```lua\ntest()\n```\nMore"),
   ).toEqual("");
+  // A commented-out block is disabled
+  expect(
+    extractSpaceLuaFromPageText(
+      "```space-lua\nlive = 1\n```\n\n<!--\n\n```space-lua\ncommented = 2\n```\n\n-->\n",
+    ),
+  ).toEqual("live = 1");
 });
 
 test("Test CONFIG lua eval", async () => {
