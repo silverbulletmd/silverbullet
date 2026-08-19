@@ -1,3 +1,13 @@
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
+import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  addParentPointers,
+  findNodeOfType,
+  findParentMatching,
+  nodeAtPos,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import {
   editor,
   index,
@@ -6,22 +16,9 @@ import {
   mq,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { getTextualBackRelations, type RelationObject } from "./relation.ts";
-import { spliceReference } from "./refactor_splice.ts";
 import { findRenameConflict, shouldDeleteOldPath } from "./refactor_case.ts";
-import {
-  absoluteToRelativePath,
-  folderName,
-} from "@silverbulletmd/silverbullet/lib/resolve";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  addParentPointers,
-  findNodeOfType,
-  findParentMatching,
-  nodeAtPos,
-} from "@silverbulletmd/silverbullet/lib/tree";
-import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
-import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import { spliceReference } from "./refactor_splice.ts";
+import { getTextualBackRelations, type RelationObject } from "./relation.ts";
 
 /**
  * Renames a single page.
@@ -213,13 +210,15 @@ async function renamePage(oldName: string, newName: string) {
   if (oldFolder !== newFolder) {
     // Pull every relation on this page that points at a page or file —
     // these are the candidates whose relative-path form may need to be
-    // rewritten when the page moves between folders.
+    // rewritten when the page moves between folders. `at-mention` ranges
+    // cover literal `@nickname` text rather than link syntax, so they're
+    // excluded up front (spliceReference would leave them untouched anyway).
     const relsInPage = await index.queryLuaObjects<RelationObject>(
       "relation",
       {
         objectVariable: "_",
         where: await lua.parseExpression(
-          `_.page == oldName and _.kind ~= "co-mention" and _.toTag ~= "url"`,
+          `_.page == oldName and _.kind ~= "co-mention" and _.kind ~= "at-mention" and _.toTag ~= "url"`,
         ),
       },
       { oldName },
@@ -249,14 +248,13 @@ async function renamePage(oldName: string, newName: string) {
       // name and need no path rewrite when the source page moves.
       if (text.substring(pos, pos + 2) === "[[") continue;
 
-      const newLink = absoluteToRelativePath(newName, rel.to);
-      let newTail = text
-        .substring(pos)
-        .replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
-      if (newLink.includes(" ")) {
-        newTail = `<${newTail.replace(")", ">)")}`;
-      }
-      text = text.substring(0, pos) + newTail;
+      text = spliceReference({
+        text,
+        range: rel.range,
+        oldName: rel.to,
+        newName: rel.to,
+        pageToEdit: newName,
+      });
     }
   }
 
@@ -476,11 +474,12 @@ async function updateBacklinks(
       continue;
     }
 
-    let text = await space.readPage(pageToEdit);
-    if (!text) {
+    const original = await space.readPage(pageToEdit);
+    if (!original) {
       // Page likely does not exist, but at least we can skip it
       continue;
     }
+    let text = original;
 
     // Apply in descending range order so earlier splices don't shift
     // later positions.
@@ -498,7 +497,11 @@ async function updateBacklinks(
       });
       if (text !== before) updatedReferences++;
     }
-    await space.writePage(pageToEdit, text);
+    // Nothing changed (every splice was a no-op): don't churn the file's
+    // mtime with a byte-identical write.
+    if (text !== original) {
+      await space.writePage(pageToEdit, text);
+    }
   }
   return updatedReferences;
 }
