@@ -1,4 +1,13 @@
 import {
+  getNameFromPath,
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
@@ -6,27 +15,19 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
 import { index, lua, space } from "@silverbulletmd/silverbullet/syscalls";
-import type { FrontMatter } from "./frontmatter.ts";
-import {
-  getNameFromPath,
-  isMarkdownPath,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { buildLineIndex, extractSnippet } from "./snippet.ts";
 import {
   mdLinkRegex,
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
+import type { FrontMatter } from "./frontmatter.ts";
+import { fetchRecipientRegistry, RECIPIENT_PREFIX } from "./recipient.ts";
+import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
 
@@ -222,9 +223,16 @@ export async function indexRelations(
   const pageFrom = pageMeta.name;
   const pageFromTag = "page";
 
+  const atMentionNodes: ParseTree[] = [];
+
   traverseTree(
     tree,
     (n) => {
+      if (n.type === "AtMention") {
+        atMentionNodes.push(n);
+        return true;
+      }
+
       if (n.type === "WikiLink") {
         const wikiLinkPage = findNodeOfType(n, "WikiLinkPage");
         if (!wikiLinkPage) return true;
@@ -410,6 +418,28 @@ export async function indexRelations(
 
   emitCoMentions(ctx, tree);
   await emitAspiringPages(ctx);
+
+  if (atMentionNodes.length > 0) {
+    const registry = await fetchRecipientRegistry();
+    for (const n of atMentionNodes) {
+      const nickname = renderToText(n).slice(1);
+      const entry = registry.byNickname.get(nickname.toLowerCase());
+      const { from, fromTag } = innermostContainer(n, pageMeta.name);
+      // No registry entry makes the mention an implicit recipient: the
+      // target is a namespaced identifier (lowercased, so @Bob and @bob
+      // converge), not a page. Tagging a page later upgrades it on reindex.
+      emitTextualEdge(ctx, {
+        kind: "at-mention",
+        from,
+        fromTag,
+        to: entry ? entry.target : RECIPIENT_PREFIX + nickname.toLowerCase(),
+        toTag: entry ? "page" : "recipient",
+        range: [n.from!, n.to!],
+        alias: nickname,
+      });
+    }
+  }
+
   return ctx.out;
 }
 
@@ -588,8 +618,10 @@ export async function getTextualBackRelations(
     "relation",
     {
       objectVariable: "_",
+      // at-mentions are excluded: their range covers literal `@nickname`
+      // text, which the rename refactor never rewrites.
       where: await lua.parseExpression(
-        `_.to == name and _.kind ~= "co-mention" and _.toTag ~= "url"`,
+        `_.to == name and _.kind ~= "co-mention" and _.kind ~= "at-mention" and _.toTag ~= "url"`,
       ),
     },
     { name: to },

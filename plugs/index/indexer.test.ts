@@ -1,7 +1,11 @@
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import { describe, expect, test } from "vitest";
+import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import { indexMarkdown } from "./indexer.ts";
+import { indexMarkdown, indexPage } from "./indexer.ts";
 
 const defaultPageMeta: PageMeta = {
   ref: "",
@@ -11,6 +15,30 @@ const defaultPageMeta: PageMeta = {
   lastModified: "2026-07-01T10:00:00Z",
   created: "",
 };
+
+async function runIndexPageForTest(
+  name: string,
+  text: string,
+): Promise<ObjectValue<any>[]> {
+  const meta: PageMeta = { ...defaultPageMeta, ref: name, name };
+  const tree = parseMarkdown(text);
+  const originalSyscall = (globalThis as any).syscall;
+  let captured: ObjectValue<any>[] = [];
+  (globalThis as any).syscall = (syscallName: string, ...args: any[]) => {
+    if (syscallName === "index.indexObjects") {
+      // ObjectIndex.indexObjects drains this array in place (objects.shift()),
+      // so snapshot before it gets consumed.
+      captured = [...args[1]];
+    }
+    return originalSyscall(syscallName, ...args);
+  };
+  try {
+    await indexPage({ name, tree, meta, text });
+  } finally {
+    (globalThis as any).syscall = originalSyscall;
+  }
+  return captured;
+}
 
 describe("anchor records", () => {
   test("emits one anchor record per anchored host", async () => {
@@ -162,5 +190,50 @@ describe("inComment", () => {
     const item = objects.find((o: any) => o.tag === "item");
     expect(item).toBeDefined();
     expect(item.inComment).toBeUndefined();
+  });
+});
+
+describe("recipients", () => {
+  test("recipients stamped on hosts", async () => {
+    createMockSystem();
+    await (globalThis as any).syscall(
+      "index.indexObjects",
+      "People/Pete Smith",
+      [
+        {
+          ref: "People/Pete Smith",
+          tag: "page",
+          name: "People/Pete Smith",
+          tags: ["recipient"],
+          aliases: ["PeteSmith"],
+        },
+      ],
+    );
+
+    const text = [
+      "---",
+      'recipients: ["petesmith", "[[People/Alice]]", "Sales"]',
+      "---",
+      "Hello @PeteSmith in a paragraph.",
+      "",
+      "* [ ] A task for @PeteSmith",
+      "* An item for @PeteSmith",
+    ].join("\n");
+    const objects = await runIndexPageForTest("TestPage", text);
+
+    const page = objects.find((o: any) => o.tag === "page");
+    // An unregistered frontmatter nickname stamps its implicit recipient:
+    // identifier, like an inline @mention of it would.
+    expect(page.recipients).toEqual([
+      "People/Alice",
+      "People/Pete Smith",
+      "recipient:sales",
+    ]);
+    const task = objects.find((o: any) => o.tag === "task");
+    expect(task.recipients).toEqual(["People/Pete Smith"]);
+    const item = objects.find((o: any) => o.tag === "item");
+    expect(item.recipients).toEqual(["People/Pete Smith"]);
+    const rel = objects.find((o: any) => o.tag === "relation");
+    expect(rel.recipients).toBeUndefined();
   });
 });

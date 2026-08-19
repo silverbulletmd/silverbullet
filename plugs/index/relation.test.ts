@@ -1,10 +1,10 @@
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { indexRelations } from "./relation.ts";
 import { indexMarkdown } from "./indexer.ts";
+import { indexRelations } from "./relation.ts";
 
 function pageMeta(name = "Test"): PageMeta {
   return {
@@ -554,6 +554,56 @@ test("document markdown link emits document relation", async () => {
   expect(r!.kind).toEqual("mention");
   expect(r!.toTag).toEqual("document");
   expect(r!.to).toEqual("attachment.pdf");
+});
+
+test("at-mentions index as relations", async () => {
+  createMockSystem();
+  await (globalThis as any).syscall("index.indexObjects", "People/Pete Smith", [
+    {
+      ref: "People/Pete Smith",
+      tag: "page",
+      name: "People/Pete Smith",
+      tags: ["recipient"],
+      aliases: ["PeteSmith"],
+    },
+  ]);
+
+  const text = [
+    "Talked to @PeteSmith today.",
+    "",
+    "* [ ] Follow up @petesmith @Petra",
+    "",
+    "And @nobody is captured too.",
+  ].join("\n");
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Test"), fm, tree, text);
+  const atMentions = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "at-mention",
+  );
+  expect(atMentions.length).toBe(4);
+  expect(atMentions[0].to).toBe("People/Pete Smith");
+  expect(atMentions[0].toTag).toBe("page");
+  expect(atMentions[0].fromTag).toBe("page");
+  expect(atMentions[0].alias).toBe("PeteSmith");
+  // Case-insensitive resolution, task container
+  expect(atMentions[1].to).toBe("People/Pete Smith");
+  expect(atMentions[1].fromTag).toBe("task");
+  expect(atMentions[1].alias).toBe("petesmith");
+  // Unregistered nicknames are implicit recipients: a lowercased
+  // recipient: identifier, tagged "recipient" rather than "page"
+  expect(atMentions[2].to).toBe("recipient:petra");
+  expect(atMentions[2].toTag).toBe("recipient");
+  expect(atMentions[2].alias).toBe("Petra");
+  expect(atMentions[3].to).toBe("recipient:nobody");
+  expect(atMentions[3].toTag).toBe("recipient");
+  // A recipient: identifier is not a page target: no aspiring page
+  expect(
+    objects.filter(
+      (o) =>
+        o.tag === "aspiring-page" && (o as any).name.startsWith("recipient:"),
+    ).length,
+  ).toBe(0);
 });
 
 test("relation records flow through indexMarkdown", async () => {

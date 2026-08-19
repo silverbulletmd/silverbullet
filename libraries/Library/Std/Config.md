@@ -399,6 +399,14 @@ config.define("taskStates", {
   },
 })
 
+-- Recipients
+config.define("recipients.tag", {
+  type = "string",
+  default = "recipient",
+  description = "Tag that marks a page as a recipient, addressable with @nickname. After changing it, run Space: Reindex so existing mentions re-resolve.",
+  ui = { category = "Indexing", label = "Recipient tag", priority = 0 },
+})
+
 -- Don't use directly, WIP
 config.define("tags", {
   type = "object",

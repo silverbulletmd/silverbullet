@@ -1,10 +1,24 @@
-import { describe, expect, test } from "vitest";
+import type { LintEvent } from "@silverbulletmd/silverbullet/type/client";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { describe, expect, test, vi } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import type { LintEvent } from "@silverbulletmd/silverbullet/type/client";
-import { lintAnchors } from "./lint.ts";
 import { indexMarkdown } from "./indexer.ts";
+import type { RecipientRegistry } from "./recipient.ts";
+
+const mockRecipientRegistry: RecipientRegistry = {
+  byNickname: new Map([
+    ["petesmith", { nickname: "PeteSmith", target: "People/Pete Smith" }],
+    ["pete", { nickname: "pete", target: "People/Pete Smith" }],
+  ]),
+  ambiguous: new Set(["pete"]),
+};
+
+vi.mock("./recipient.ts", () => ({
+  fetchRecipientRegistry: vi.fn(async () => mockRecipientRegistry),
+}));
+
+const { lintAnchors, lintAtMentions } = await import("./lint.ts");
 
 const defaultPageMeta: PageMeta = {
   ref: "TestPage",
@@ -205,5 +219,32 @@ describe("lintAnchors", () => {
       /anchor not found|ambiguous|duplicate/i.test(d.message),
     );
     expect(anchorDiags).toHaveLength(0);
+  });
+});
+
+function lintEventFor(text: string): LintEvent {
+  return {
+    tree: parseMarkdown(text),
+    name: defaultPageMeta.name,
+    pageMeta: defaultPageMeta,
+    text,
+  };
+}
+
+describe("lintAtMentions", () => {
+  test("lints ambiguous mentions; unregistered nicknames are legal", async () => {
+    const diags = await lintAtMentions(
+      lintEventFor("Hi @PeteSmith, @pete and @nobody"),
+    );
+    // @nobody is an implicit recipient now, not a lint finding
+    expect(diags.length).toBe(1);
+    expect(diags[0].severity).toBe("warning");
+    expect(diags[0].message).toContain("Ambiguous");
+    expect(diags[0].message).toContain("@pete");
+  });
+
+  test("no mentions — no diagnostics", async () => {
+    const diags = await lintAtMentions(lintEventFor("Just a paragraph."));
+    expect(diags).toEqual([]);
   });
 });

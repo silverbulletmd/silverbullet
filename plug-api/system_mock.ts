@@ -4,6 +4,7 @@ import { MemoryKvPrimitives } from "../client/data/memory_kv_primitives.ts";
 import { DataStoreMQ } from "../client/data/mq.datastore.ts";
 import { ObjectIndex } from "../client/data/object_index.ts";
 import { EventHook } from "../client/plugos/hooks/event.ts";
+import { configSyscalls } from "../client/plugos/syscalls/config.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
@@ -64,6 +65,7 @@ export function createMockSystem() {
     languageSyscalls(),
     jsonschemaSyscalls(),
     indexSyscalls(objectIndex, clientMock),
+    configSyscalls(config),
     luaSyscalls(system, () => clientSystemMock.spaceLuaEnv.env),
     mqSyscalls(mq),
     dataStoreReadSyscalls(ds, clientSystemMock),

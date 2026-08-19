@@ -1,24 +1,25 @@
-import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
-import {
-  findNodeOfType,
-  renderToText,
-  traverseTree,
-  traverseTreeAsync,
-} from "@silverbulletmd/silverbullet/lib/tree";
-import type {
-  LintDiagnostic,
-  LintEvent,
-} from "@silverbulletmd/silverbullet/type/client";
 import {
   getNameFromPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { isValidAnchorName } from "./anchor.ts";
-import { resolveAnchor, type ResolveAnchorResult } from "./api.ts";
-
+import {
+  findNodeOfType,
+  type ParseTree,
+  renderToText,
+  traverseTree,
+  traverseTreeAsync,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
+import type {
+  LintDiagnostic,
+  LintEvent,
+} from "@silverbulletmd/silverbullet/type/client";
 import YAML from "js-yaml";
+import { isValidAnchorName } from "./anchor.ts";
+import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { allIndexers } from "./indexer.ts";
+import { fetchRecipientRegistry } from "./recipient.ts";
 
 /**
  * Lint YAML syntax in frontmatter and fenced code blocks
@@ -450,5 +451,37 @@ export async function lintAnchors({
     }
   }
 
+  return diagnostics;
+}
+
+export async function lintAtMentions({
+  tree,
+}: LintEvent): Promise<LintDiagnostic[]> {
+  const mentionNodes: ParseTree[] = [];
+  traverseTree(tree, (n) => {
+    if (n.type === "AtMention") {
+      mentionNodes.push(n);
+      return true;
+    }
+    return false;
+  });
+  if (mentionNodes.length === 0) {
+    return [];
+  }
+  const registry = await fetchRecipientRegistry();
+  const diagnostics: LintDiagnostic[] = [];
+  for (const n of mentionNodes) {
+    const nickname = renderToText(n).slice(1);
+    const key = nickname.toLowerCase();
+    const entry = registry.byNickname.get(key);
+    if (entry && registry.ambiguous.has(key)) {
+      diagnostics.push({
+        from: n.from!,
+        to: n.to!,
+        severity: "warning",
+        message: `Ambiguous recipient "@${nickname}" — currently resolves to "${entry.target}"`,
+      });
+    }
+  }
   return diagnostics;
 }
