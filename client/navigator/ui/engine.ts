@@ -8,7 +8,9 @@ import {
 } from "../../../plug-api/ui/tree_model.ts";
 import type { RowState, RowStates } from "../../../plug-api/ui/tree_types.ts";
 import { defaultSegmentIndex, type SegmentMasks } from "./segments.ts";
+import type { DropdownMasks } from "./dropdown.ts";
 import type {
+  DropdownOption,
   FilterFields,
   NavigatorHook,
   Row,
@@ -62,6 +64,8 @@ export type ViewState = {
   error?: string;
   rowState?: RowStates;
   segmentMasks?: SegmentMasks;
+  dropdownOptions?: DropdownOption[];
+  dropdownMasks?: DropdownMasks;
   actionIcons?: (Element | undefined)[];
   segmentIcons?: (Element | undefined)[];
   createIcon?: Element;
@@ -101,6 +105,9 @@ export class NavigatorEngine {
     if (!Array.isArray(meta.actions)) meta.actions = undefined;
     if (!Array.isArray(meta.keys)) meta.keys = undefined;
     if (!Array.isArray(meta.segments)) meta.segments = undefined;
+    if (meta.dropdown !== undefined && typeof meta.dropdown !== "object") {
+      meta.dropdown = undefined;
+    }
     return meta;
   }
 
@@ -258,6 +265,8 @@ export class NavigatorEngine {
   private async loadRowState(entry: ViewState, token: number): Promise<void> {
     entry.rowState = undefined;
     entry.segmentMasks = undefined;
+    entry.dropdownOptions = undefined;
+    entry.dropdownMasks = undefined;
     const meta = entry.meta;
     const needsSegments =
       meta.search !== "source" && !!meta.segments?.some((s) => s.hasWhere);
@@ -265,17 +274,40 @@ export class NavigatorEngine {
       needsSegments ||
       meta.hasRowIcon ||
       !!meta.actions?.some((a) => a.hasWhen);
+    const needsDropdown = !!meta.dropdown;
     const nodes =
-      needsState && meta.mode === "tree"
+      (needsState || needsDropdown) && meta.mode === "tree"
         ? allNodes(
             buildTree(entry.rows, meta.hierarchy.separator, meta.foldersFirst),
           )
         : undefined;
+    const objs = nodes
+      ? nodes.map(nodeObject)
+      : entry.rows.map((row) => row.obj);
+    // Ahead of the rowState batch, so a failure there doesn't take the
+    // dropdown down with it. A failure *here* leaves the options absent (the
+    // select shows only "All") and a selected value with no masks fails
+    // closed, like a segment whose masks never arrived.
+    if (needsDropdown) {
+      try {
+        const result = await this.handle(meta.name, "dropdown", { objs });
+        if (entry.loadToken !== token) return;
+        if (result && Array.isArray(result.options)) {
+          entry.dropdownOptions = result.options;
+          const masks: DropdownMasks = new WeakMap();
+          const put = (row: Row | undefined, mask: unknown) => {
+            if (row) masks.set(row, Array.isArray(mask) ? mask : []);
+          };
+          if (nodes) nodes.forEach((n, i) => put(n.row, result.masks?.[i]));
+          else entry.rows.forEach((row, i) => put(row, result.masks?.[i]));
+          entry.dropdownMasks = masks;
+        }
+      } catch (e) {
+        console.error("navigator: dropdown state failed", e);
+      }
+    }
     let raw: RawRowState[] = [];
     if (needsState) {
-      const objs = nodes
-        ? nodes.map(nodeObject)
-        : entry.rows.map((row) => row.obj);
       try {
         const result = await this.handle(meta.name, "rowState", { objs });
         raw = Array.isArray(result) ? result : [];

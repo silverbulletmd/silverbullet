@@ -1,17 +1,17 @@
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { MutableRef } from "preact/hooks";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
-import type { Client } from "../../../client.ts";
-import { MOBILE_MEDIA_QUERY, isNarrowScreen } from "../../../lib/mobile.ts";
-import { createActivate } from "../activation.ts";
-import type { NavigatorEngine } from "../engine.ts";
-import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
-import { markSlotReady, type NavActivation } from "../slots.ts";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import {
   ancestorPaths,
   withExpanded,
 } from "../../../../plug-api/ui/tree_model.ts";
+import type { Client } from "../../../client.ts";
+import { isNarrowScreen, MOBILE_MEDIA_QUERY } from "../../../lib/mobile.ts";
+import { createActivate } from "../activation.ts";
+import type { NavigatorEngine } from "../engine.ts";
+import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
+import { markSlotReady, type NavActivation } from "../slots.ts";
 
 /**
  * Everything that drives the panel from outside its own keystrokes:
@@ -51,6 +51,7 @@ export function usePanelEvents({
   const [mobile, setMobile] = useState<boolean>(isNarrowScreen);
 
   const segmentForced = useRef(false);
+  const dropdownForced = useRef(false);
   // View name `applyReveal` last ran for, so `activate`'s tail can tell
   // whether this exact view was already revealed.
   const revealedFor = useRef<string | undefined>(undefined);
@@ -195,7 +196,13 @@ export function usePanelEvents({
     activate.current = createActivate({
       slot,
       engine,
-      refs: { ...refs, segmentForced, revealedFor, revealedPage },
+      refs: {
+        ...refs,
+        segmentForced,
+        dropdownForced,
+        revealedFor,
+        revealedPage,
+      },
       listenForRefresh: (names) => {
         for (const name of names) listen(name, triggerRefresh);
       },

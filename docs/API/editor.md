@@ -619,7 +619,7 @@ Opens a navigator view, returning whether it opened. False means the view isn't 
 **Parameters:**
 
 - `name` (`string`) — The view's name.
-- `opts?` (`table`) — Optional `segment` (segment label) and `phrase`.
+- `opts?` (`table`) — Optional `segment` (segment label), `phrase`, `dropdown` (dropdown value to select), and `focus` (`false` opens without taking focus). See [[API/navigator#navigator.open(name, opts?)]] for the full option semantics.
 
 **Returns:**
 

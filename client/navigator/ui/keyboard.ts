@@ -1,9 +1,9 @@
 import type { MutableRef } from "preact/hooks";
+import { ancestorPaths } from "../../../plug-api/ui/tree_model.ts";
 import type { Commands } from "./commands.ts";
-import { cycleSegmentIndex } from "./segments.ts";
 import { CREATE_PATH, type DerivedView } from "./hooks/use_derived.ts";
 import type { ActiveView, PanelSetters } from "./panel.ts";
-import { ancestorPaths } from "../../../plug-api/ui/tree_model.ts";
+import { cycleSegmentIndex } from "./segments.ts";
 
 // Keys that move the selection, i.e. that put the panel in navigating mode.
 // (Tree mode adds ArrowLeft/ArrowRight; in list mode those move the caret.)
@@ -49,6 +49,19 @@ export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   if (e.isComposing) return;
   if (tryKeymap(e, ctx)) return;
   if (cycleSegment(e, ctx)) return;
+  // A filterless view (`filter = false`) has no phrase: a printable key would
+  // type into the hidden input and invisibly filter the rows, so it is
+  // swallowed here instead.
+  if (
+    view?.meta.noFilter &&
+    e.key.length === 1 &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey
+  ) {
+    e.preventDefault();
+    return;
+  }
   // Ahead of `updateInteraction`, which would otherwise read the Alt chord
   // below as ordinary typing.
   if (view?.meta.pathCompletion && e.code === "Space") {

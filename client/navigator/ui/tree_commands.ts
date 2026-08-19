@@ -1,9 +1,9 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
-import type { DerivedView } from "./hooks/use_derived.ts";
-import type { NavigatorEngine } from "./engine.ts";
-import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
 import { planMove, withExpanded } from "../../../plug-api/ui/tree_model.ts";
+import type { NavigatorEngine } from "./engine.ts";
 import { expansionKey } from "./expansion.ts";
+import type { DerivedView } from "./hooks/use_derived.ts";
+import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
 
 /**
  * What tree mode does to the tree itself: the expansion set (persisted per
@@ -26,7 +26,7 @@ export function createTreeCommands({
   set: PanelSetters;
   refresh: () => void;
 }) {
-  const { expandedDirty } = refs;
+  const { expandedDirty, input: inputRef } = refs;
   const { setExpanded } = set;
   const { treeFiltering, treeDisplay } = derived;
 
@@ -41,6 +41,10 @@ export function createTreeCommands({
   }
 
   function toggleExpanded(path: string) {
+    // Tree rows are drag sources, so they are exempt from the panel-wide
+    // mousedown suppression (see NavRoot); a chevron click blurs the input,
+    // and this hands it back. A no-op for the keyboard path.
+    inputRef.current?.focus();
     // Filtering force-expands every pruned folder; a manual toggle in that
     // state would just be overridden on the next render, so skip it (and the
     // datastore write) rather than have it silently do nothing visible.
@@ -71,6 +75,8 @@ export function createTreeCommands({
 
   /** A completed drag: `targetFolder` is `""` for a drop on the root area. */
   async function moveNode(draggedPath: string, targetFolder: string) {
+    // The drag's own mousedown blurred the input (same exemption as above).
+    inputRef.current?.focus();
     if (!view || !treeDisplay) return;
     const plan = planMove(
       treeDisplay.tree,

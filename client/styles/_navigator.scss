@@ -147,6 +147,35 @@
   padding: 0;
 }
 
+// A filterless view (`filter = false`): the input stays in the DOM as the
+// panel's focus home -- the whole keyboard pipeline hangs off it -- but shows
+// nothing and takes no space.
+.sb-nav-no-filter .sb-nav-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sb-nav-no-filter .sb-nav-close {
+  margin-left: auto;
+}
+
+// The dropdown filter (`navigator.define`'s `dropdown`), sharing the header
+// column with the segmented control. `.sb-select` supplies the chrome; the
+// width is the header's, so a long option label ellipsizes instead of
+// widening a dock.
+.sb-nav-dropdown {
+  max-width: 100%;
+  align-self: flex-start;
+  font-family: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .sb-nav-body {
   flex: 1 1 auto;
   min-height: 0;

@@ -96,6 +96,68 @@ test("the empty-table meta fields are normalized to absent", async () => {
   expect(state.meta.segments).toBeUndefined();
 });
 
+test("a dropdown view loads its options and per-row masks with every load", async () => {
+  const rows = [
+    { obj: { name: "a", target: "p" }, primary: "a" },
+    { obj: { name: "b", target: "q" }, primary: "b" },
+  ];
+  let dropdownCalls = 0;
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") {
+      return Promise.resolve(meta({ dropdown: { placeholder: "Recipient" } }));
+    }
+    if (payload.hook === "rows") return Promise.resolve(rows);
+    if (payload.hook === "dropdown") {
+      dropdownCalls++;
+      expect(payload.args.objs).toEqual(rows.map((r) => r.obj));
+      return Promise.resolve({
+        options: [{ label: "Pete", value: "p" }],
+        masks: [[true], [false]],
+      });
+    }
+    return Promise.resolve(undefined);
+  });
+  const engine = new NavigatorEngine();
+
+  const state = await engine.activate("v");
+
+  expect(state.dropdownOptions).toEqual([{ label: "Pete", value: "p" }]);
+  expect(state.dropdownMasks?.get(state.rows[0])).toEqual([true]);
+  expect(state.dropdownMasks?.get(state.rows[1])).toEqual([false]);
+
+  // The refreshOn/refreshOnOpen cycle goes through refresh(): the options are
+  // re-evaluated with the rows, not once at define time.
+  await engine.refresh();
+  expect(dropdownCalls).toBe(2);
+});
+
+test("a failing dropdown hook leaves options absent without breaking the load", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") {
+      return Promise.resolve(meta({ dropdown: {} }));
+    }
+    if (payload.hook === "rows") {
+      return Promise.resolve([{ obj: { name: "a" }, primary: "a" }]);
+    }
+    if (payload.hook === "dropdown") {
+      return Promise.reject(new Error("kaboom"));
+    }
+    return Promise.resolve(undefined);
+  });
+
+  const state = await new NavigatorEngine().activate("v");
+
+  expect(state.rows.length).toBe(1);
+  expect(state.dropdownOptions).toBeUndefined();
+  expect(state.dropdownMasks).toBeUndefined();
+  expect(errorSpy).toHaveBeenCalledWith(
+    "navigator: dropdown state failed",
+    expect.anything(),
+  );
+  errorSpy.mockRestore();
+});
+
 test("parseIcon reads a bare name as a Feather name", () => {
   expect(parseIcon("lock")).toEqual({ kind: "feather", name: "lock" });
 });

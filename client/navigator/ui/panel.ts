@@ -1,7 +1,7 @@
 import type { RefObject } from "preact";
 import type { Dispatch, MutableRef, StateUpdater } from "preact/hooks";
-import type { ViewState } from "./engine.ts";
 import type { SourceCtx } from "../types.ts";
+import type { ViewState } from "./engine.ts";
 
 export type ActiveView = ViewState & { name: string };
 
@@ -40,6 +40,8 @@ export type SharedRefs = {
    * clobbering the interim edit. Reset per activation.
    */
   segmentDirty: MutableRef<boolean>;
+  /** Same, for the persisted dropdown value. */
+  dropdownDirty: MutableRef<boolean>;
   /** Same, for the persisted expansion set. */
   expandedDirty: MutableRef<boolean>;
   /**
@@ -73,6 +75,12 @@ export type EventRefs = SharedRefs & {
    * that doesn't has to put the view back on the segment it remembers.
    */
   segmentForced: MutableRef<boolean>;
+  /**
+   * Same, for a `dropdown` value carried by an open. That value belongs to
+   * the one activation that carried it (never persisted), so the next open
+   * without one puts the view back on the remembered selection (or All).
+   */
+  dropdownForced: MutableRef<boolean>;
   /** View name `applyReveal` last ran for -- see `usePanelEvents`. */
   revealedFor: MutableRef<string | undefined>;
   /** Page `applyReveal` last ran for. */
@@ -85,6 +93,8 @@ export type PanelSetters = {
   setBootError: Dispatch<StateUpdater<string | undefined>>;
   setPhrase: Dispatch<StateUpdater<string>>;
   setSegmentIndex: Dispatch<StateUpdater<number>>;
+  /** The selected dropdown option's value; undefined is the built-in "All". */
+  setDropdownValue: Dispatch<StateUpdater<unknown>>;
   setSelectedIndex: Dispatch<StateUpdater<number>>;
   setSelectedPath: Dispatch<StateUpdater<string | undefined>>;
   setExpanded: Dispatch<StateUpdater<Set<string>>>;

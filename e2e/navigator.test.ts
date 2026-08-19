@@ -13,8 +13,8 @@ import {
   closePicker,
   expectNavInputFocused,
   expectNavRow,
-  navigateViaPagePicker,
   navInput,
+  navigateViaPagePicker,
   navSegment,
   openPicker,
   runCommandViaPalette,
@@ -921,6 +921,42 @@ test("command open focuses the filter input in a sidebar dock", async ({
 
   await sbPage.keyboard.press("ArrowUp");
   await expect(selected).not.toHaveAttribute("data-path", "index");
+});
+
+test("panel keys survive clicks on a folder chevron and the panel background", async ({
+  sbPage,
+}) => {
+  const frame = await openNavigatorView(
+    sbPage,
+    "Navigator: Sidebar Tree",
+    ".sb-nav-root-rhs",
+  );
+  await expect(frame.locator(".sb-tree")).toBeVisible();
+  const selected = frame.locator(".sb-nav-selected");
+  await expect(selected).toHaveAttribute("data-path", "index");
+
+  // A chevron toggle hands focus straight back to the filter input...
+  await frame.locator("[data-path='Projects'] .sb-nav-chevron").click();
+  await expect(frame.locator("[data-path='Projects/Alpha']")).toBeVisible();
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
+
+  // ...so the arrow keys keep working.
+  await sbPage.keyboard.press("ArrowUp");
+  await expect(selected).not.toHaveAttribute("data-path", "index");
+
+  // Same for a click landing on no row at all: the title, and the body's
+  // empty space below the rows.
+  await frame.locator(".sb-nav-title").click();
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
+
+  const body = frame.locator(".sb-nav-body");
+  const box = await body.boundingBox();
+  await body.click({ position: { x: 10, y: box!.height - 5 } });
+  await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
+
+  const before = await selected.getAttribute("data-path");
+  await sbPage.keyboard.press("ArrowUp");
+  await expect(selected).not.toHaveAttribute("data-path", before!);
 });
 
 test("re-running the command re-focuses the panel, never toggles it closed", async ({

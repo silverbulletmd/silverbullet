@@ -132,7 +132,12 @@ export function openCommandPalette(): Promise<void> {
  */
 export function openNavigator(
   name: string,
-  opts?: { segment?: string; phrase?: string },
+  opts?: {
+    segment?: string;
+    phrase?: string;
+    dropdown?: unknown;
+    focus?: boolean;
+  },
 ): Promise<boolean> {
   return syscall("editor.openNavigator", name, opts);
 }

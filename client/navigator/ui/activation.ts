@@ -1,15 +1,15 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
-import { defaultSegmentIndex, segmentIndexFor } from "./segments.ts";
+import { withExpanded } from "../../../plug-api/ui/tree_model.ts";
+import type { NavigatorEngine } from "./engine.ts";
+import { expansionKey } from "./expansion.ts";
 import {
   type ActiveView,
   ctxKey,
   type EventRefs,
   type PanelSetters,
 } from "./panel.ts";
-import type { NavigatorEngine } from "./engine.ts";
+import { defaultSegmentIndex, segmentIndexFor } from "./segments.ts";
 import type { NavActivation } from "./slots.ts";
-import { expansionKey } from "./expansion.ts";
-import { withExpanded } from "../../../plug-api/ui/tree_model.ts";
 
 export type ActivationDeps = {
   slot: string;
@@ -50,6 +50,8 @@ export function createActivate(deps: ActivationDeps) {
     interaction,
     returnTo,
     segmentDirty,
+    dropdownDirty,
+    dropdownForced,
     expandedDirty,
     lastQueried,
   } = refs;
@@ -58,6 +60,7 @@ export function createActivate(deps: ActivationDeps) {
     setBootError,
     setPhrase,
     setSegmentIndex,
+    setDropdownValue,
     setSelectedIndex,
     setSelectedPath,
     setExpanded,
@@ -77,6 +80,8 @@ export function createActivate(deps: ActivationDeps) {
     phrase: carried,
     from,
     segment: wantedSegment,
+    dropdown: wantedDropdown,
+    focus,
   }: NavActivation) => {
     void syncReadOnly();
     if (typeof token !== "number") {
@@ -127,6 +132,26 @@ export function createActivate(deps: ActivationDeps) {
             if (displayed.current !== name || segmentDirty.current) return;
             const index = segmentIndexFor(state.meta.segments, saved);
             if (index >= 0) setSegmentIndex(index);
+          });
+        }
+        setDropdownValue(undefined);
+        dropdownDirty.current = false;
+        // A carried dropdown value is applied in the shared tail below;
+        // dropdownDirty is what keeps this remembered-value read from
+        // landing on top of it.
+        if (
+          wantedDropdown === undefined &&
+          state.meta.dropdown &&
+          !state.meta.ephemeral
+        ) {
+          // Same guard again -- and a remembered value the freshly loaded
+          // options no longer carry stays on the built-in "All".
+          void datastore.get(["navigator", name, "dropdown"]).then((saved) => {
+            if (displayed.current !== name || dropdownDirty.current) return;
+            if (saved === undefined || saved === null) return;
+            if (state.dropdownOptions?.some((o) => o.value === saved)) {
+              setDropdownValue(saved);
+            }
           });
         }
         revealedPage.current = undefined;
@@ -195,6 +220,32 @@ export function createActivate(deps: ActivationDeps) {
         if (index >= 0) setSegmentIndex(index);
       });
     }
+    // A carried dropdown value overrides the remembered one for this one
+    // activation only -- never persisted, so the next open that doesn't
+    // carry one goes back to the remembered (hand-picked) selection or All
+    // (the `dropdownForced` reset below). Applied whether or not the value
+    // is among the loaded options yet: an absent value filters as "All"
+    // until a refresh brings its option in.
+    if (wantedDropdown !== undefined && active?.meta.dropdown) {
+      dropdownDirty.current = true;
+      dropdownForced.current = true;
+      setDropdownValue(wantedDropdown);
+    } else if (
+      dropdownForced.current &&
+      active?.meta.dropdown &&
+      !active.meta.ephemeral
+    ) {
+      dropdownForced.current = false;
+      dropdownDirty.current = false;
+      setDropdownValue(undefined);
+      void datastore.get(["navigator", name, "dropdown"]).then((saved) => {
+        if (displayed.current !== name || dropdownDirty.current) return;
+        if (saved === undefined || saved === null) return;
+        if (active.dropdownOptions?.some((o) => o.value === saved)) {
+          setDropdownValue(saved);
+        }
+      });
+    }
     interaction.current = "typing";
     if (passive) return;
     if (carried !== undefined) {
@@ -207,9 +258,13 @@ export function createActivate(deps: ActivationDeps) {
       // A reveal may already have landed for this view -- resetting the selection would clobber it.
       if (revealedFor.current !== name) setSelectedPath(undefined);
     }
-    focusInput(
-      carried === undefined && (isModal || phraseRef.current.trim() !== ""),
-    );
+    // `focus = false` skips only the focus grab: everything else about a
+    // user-asked open (refresh, phrase/selection reset) happened above.
+    if (focus !== false) {
+      focusInput(
+        carried === undefined && (isModal || phraseRef.current.trim() !== ""),
+      );
+    }
     if (
       !isModal &&
       carried === undefined &&

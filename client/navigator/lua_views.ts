@@ -1,15 +1,17 @@
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
+import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
   type ILuaFunction,
-  LuaEnv,
+  type LuaEnv,
   LuaStackFrame,
   LuaTable,
   luaTypeOf,
   luaValueToJS,
 } from "../space_lua/runtime.ts";
-import { isTaggedFloat } from "../space_lua/numeric.ts";
 import type {
   ActionMeta,
+  DropdownMeta,
+  DropdownOption,
   NavigatorHook,
   SegmentMeta,
   ViewMeta,
@@ -289,6 +291,32 @@ function segmentMeta(spec: ViewSpec): SegmentMeta[] | undefined {
   return out;
 }
 
+function dropdownMeta(spec: ViewSpec): DropdownMeta | undefined {
+  const dropdown = field(spec, "dropdown");
+  if (!truthy(dropdown)) return undefined;
+  if (luaType(dropdown) !== "table") {
+    throw new Error("navigator.define: dropdown must be a table");
+  }
+  const options = luaType(field(dropdown, "options"));
+  if (options !== "function" && options !== "table") {
+    throw new Error(
+      "navigator.define: dropdown.options must be a function or list",
+    );
+  }
+  if (luaType(field(dropdown, "where")) !== "function") {
+    throw new Error("navigator.define: dropdown.where must be a function");
+  }
+  const placeholder = field(dropdown, "placeholder");
+  if (present(placeholder) && luaType(placeholder) !== "string") {
+    throw new Error("navigator.define: dropdown.placeholder must be a string");
+  }
+  const allLabel = field(dropdown, "allLabel");
+  if (present(allLabel) && luaType(allLabel) !== "string") {
+    throw new Error("navigator.define: dropdown.allLabel must be a string");
+  }
+  return { placeholder: toJS(placeholder), allLabel: toJS(allLabel) };
+}
+
 function renderLimit(spec: ViewSpec): number {
   const limit = field(or(field(spec, "presentation"), {}), "limit");
   if (limit === undefined || limit === null) return 200;
@@ -393,6 +421,18 @@ function refreshOnEvents(spec: ViewSpec): string[] | undefined {
   return toJS(refreshOn);
 }
 
+/** `filter = false` turns the phrase filter off entirely; a table configures
+ * it; anything else is a spelling mistake worth rejecting. */
+function noFilter(spec: ViewSpec): boolean {
+  const filter = field(spec, "filter");
+  if (filter === undefined || filter === null) return false;
+  if (filter === false) return true;
+  if (luaType(filter) !== "table") {
+    throw new Error("navigator.define: filter must be a table or false");
+  }
+  return false;
+}
+
 // An empty map is *not* the same as none: the panel would rank every row against zero fields, score them all 0, and empty the list on the first keystroke.
 function filterFields(spec: ViewSpec): Record<string, any> | undefined {
   const filter = field(spec, "filter");
@@ -424,6 +464,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     expandAll: expandAll(spec),
     expansionScope: expansionScope(spec),
     filterFields: filterFields(spec),
+    noFilter: noFilter(spec),
     followEditor: field(spec, "followEditor") === true,
     refreshOn: refreshOnEvents(spec),
     hasMove: present(field(spec, "onMove")),
@@ -432,6 +473,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     keys: keymapKeys(spec),
     actions: actionMeta(spec),
     segments: segmentMeta(spec),
+    dropdown: dropdownMeta(spec),
     limit: renderLimit(spec),
     search: searchMode(spec),
     hasRowIcon: present(field(or(field(p, "row"), {}), "icon")),
@@ -460,6 +502,7 @@ export function validateViewSpec(spec: ViewSpec, caller: string) {
   keymapKeys(spec);
   actionMeta(spec);
   segmentMeta(spec);
+  dropdownMeta(spec);
   prefixViewsMeta(spec);
   validatePrefixes(spec);
   renderLimit(spec);
@@ -468,6 +511,7 @@ export function validateViewSpec(spec: ViewSpec, caller: string) {
   presentationMode(spec);
   hierarchy(spec);
   refreshOnEvents(spec);
+  noFilter(spec);
   filterFields(spec);
   expandAll(spec);
   expansionScope(spec);
@@ -521,6 +565,7 @@ const PICK_CONTENT_FIELDS = [
   "source",
   "filter",
   "segments",
+  "dropdown",
   "presentation",
   "placeholder",
   "title",
@@ -720,6 +765,47 @@ async function rowState(
 }
 
 /**
+ * One batch per load, like rowState: the options are re-evaluated here (not
+ * at define time, so a dynamic set stays fresh), and every row is masked
+ * against every option's value, failing predicates closed.
+ */
+async function dropdownState(
+  sf: LuaStackFrame,
+  spec: ViewSpec,
+  args: any,
+): Promise<{ options: DropdownOption[]; masks: boolean[][] } | undefined> {
+  const dropdown = field(spec, "dropdown");
+  if (!truthy(dropdown)) return undefined;
+  const listed =
+    luaType(field(dropdown, "options")) === "function"
+      ? await callLua(sf, field(dropdown, "options") as ILuaFunction)
+      : field(dropdown, "options");
+  const options: DropdownOption[] = [];
+  for (const entry of sequence(listed)) {
+    const label = field(entry, "label");
+    const value = field(entry, "value");
+    if (luaType(label) !== "string" || label === "" || !present(value)) {
+      continue;
+    }
+    options.push({ label, value: toJS(value) });
+  }
+  const where = field(dropdown, "where") as ILuaFunction;
+  const masks: boolean[][] = [];
+  for (const obj of args.objs ?? []) {
+    const mask: boolean[] = [];
+    for (const option of options) {
+      try {
+        mask.push((await callLua(sf, where, obj, option.value)) === true);
+      } catch {
+        mask.push(false);
+      }
+    }
+    masks.push(mask);
+  }
+  return { options, masks };
+}
+
+/**
  * Run one panel hook against a Lua view's spec. `onPick` is the pick
  * bookkeeping a `navigator.pick` view carries: its user `onSelect` gets a
  * veto (returning `false`), and anything else settles the pick.
@@ -798,6 +884,8 @@ export async function luaHandle(
     }
     case "rowState":
       return await rowState(sf, spec, args);
+    case "dropdown":
+      return await dropdownState(sf, spec, args);
     case "move": {
       const onMove = field(spec, "onMove");
       if (!truthy(onMove)) return undefined;

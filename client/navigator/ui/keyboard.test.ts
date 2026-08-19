@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { TreeNode } from "../../../plug-api/ui/tree_model.ts";
 import type { Commands } from "./commands.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import { handleKeyDown, type KeyContext } from "./keyboard.ts";
 import type { ActiveView } from "./panel.ts";
-import type { TreeNode } from "../../../plug-api/ui/tree_model.ts";
 
 /** What the dispatch did, in the order it did it. */
 type Trace = string[];
@@ -44,6 +44,7 @@ function makeCtx(
     keys,
     segments,
     pathCompletion,
+    noFilter,
     phrase = "",
     interaction = "typing",
     /** Whether there is an object under the selection for a keymap to act on. */
@@ -52,6 +53,7 @@ function makeCtx(
     keys?: string[];
     segments?: { label: string }[];
     pathCompletion?: boolean;
+    noFilter?: boolean;
     phrase?: string;
     interaction?: "typing" | "navigating";
     selectable?: boolean;
@@ -59,7 +61,7 @@ function makeCtx(
 ): KeyContext {
   const view = {
     name: "test",
-    meta: { keys, pathCompletion: !!pathCompletion },
+    meta: { keys, pathCompletion: !!pathCompletion, noFilter: !!noFilter },
   } as unknown as ActiveView;
   return {
     view,
@@ -192,6 +194,27 @@ describe("keyboard dispatch order", () => {
       "setSelectedIndex(1)",
       "setSelectedIndex(1)",
     ]);
+  });
+
+  it("swallows printable keys in a filterless view, leaving navigation alone", () => {
+    const trace: Trace = [];
+    const ctx = makeCtx(trace, { noFilter: true });
+    const { e, prevented } = press({ key: "a" });
+    handleKeyDown(e, ctx);
+    expect(trace).toEqual([]);
+    expect(prevented()).toBe(true);
+
+    // Navigation and selection still work...
+    handleKeyDown(press({ key: "ArrowDown" }).e, ctx);
+    handleKeyDown(press({ key: "Enter" }).e, ctx);
+    expect(trace).toEqual(["setSelectedIndex(1)", "selectRow(0)"]);
+
+    // ...and a modifier chord is not text, so it still bubbles out.
+    trace.length = 0;
+    const chord = press({ key: "k", metaKey: true });
+    handleKeyDown(chord.e, ctx);
+    expect(trace).toEqual([]);
+    expect(chord.prevented()).toBe(false);
   });
 
   it("ignores a keystroke that is still composing", () => {

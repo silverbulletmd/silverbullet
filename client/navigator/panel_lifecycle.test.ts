@@ -164,6 +164,34 @@ test("open on an already-focused sidebar slot toggles it closed instead of re-op
   expect(slots.showSlot).not.toHaveBeenCalled();
 });
 
+test("a focus=false open never takes the toggle-closed branch, and carries its opts into the activation", async () => {
+  // Falsifiability: without the focus guard, a mention click that re-opens
+  // an already-focused Mention Inbox to preset its dropdown would close it
+  // instead.
+  const { config, getMeta } = makeConfig();
+  getMeta.mockReturnValue({ dock: "lhs" });
+  const lc = createPanelLifecycle(config);
+
+  await lc.open("a");
+  slots.focusedSlot.mockReturnValue("lhs");
+  slots.showSlot.mockClear();
+
+  expect(await lc.open("a", { focus: false, dropdown: "People/Pete" })).toBe(
+    true,
+  );
+  expect(slots.hideSlot).not.toHaveBeenCalled();
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "lhs",
+    expect.anything(),
+    expect.objectContaining({
+      view: "a",
+      focus: false,
+      dropdown: "People/Pete",
+    }),
+    false,
+  );
+});
+
 test("restoreDocks' passive restore never takes the toggle-closed branch, even if the slot reports focused", async () => {
   // Falsifiability: without the `!passive` guard, a boot restore landing on
   // a slot the editor reports as focused would hide the panel it's meant to

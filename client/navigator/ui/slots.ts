@@ -20,6 +20,12 @@ export type NavActivation = {
   from?: string;
   /** Segment label to activate, overriding the remembered one. */
   segment?: string;
+  /** Dropdown value to select, overriding the remembered one. */
+  dropdown?: unknown;
+  /** `false`: the panel opens without taking focus from the editor. Unlike
+   * `passive` (a boot restore), only the focus grab is skipped -- the rows
+   * still refresh and phrase/selection reset as for any user-asked open. */
+  focus?: boolean;
 };
 
 export type NavSlotState = {

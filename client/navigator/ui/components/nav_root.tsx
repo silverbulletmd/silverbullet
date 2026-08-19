@@ -5,13 +5,13 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import type { Client } from "../../../client.ts";
-import { resize } from "../../navigator.ts";
 import { ResizeHandle } from "../../../../plug-api/ui/resize_handle.tsx";
-import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
+import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
+import type { Client } from "../../../client.ts";
+import { resize } from "../../navigator.ts";
 import { createCommands } from "../commands.ts";
 import { engineFor } from "../engine.ts";
 import { useDerived } from "../hooks/use_derived.ts";
@@ -19,8 +19,8 @@ import { usePanelEvents } from "../hooks/use_panel_events.ts";
 import { useSourceQuery } from "../hooks/use_source_query.ts";
 import { handleKeyDown } from "../keyboard.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
-import { markSlotReady, type NavActivation } from "../slots.ts";
 import { resolvePrefix } from "../prefix.ts";
+import { markSlotReady, type NavActivation } from "../slots.ts";
 import { CreateRow } from "./create_row.tsx";
 import { ListView } from "./list_view.tsx";
 
@@ -47,6 +47,7 @@ export function NavRoot({
   const [bootError, setBootError] = useState<string | undefined>(undefined);
   const [phrase, setPhrase] = useState("");
   const [segmentIndex, setSegmentIndex] = useState(0);
+  const [dropdownValue, setDropdownValue] = useState<unknown>(undefined);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | undefined>(
@@ -65,6 +66,7 @@ export function NavRoot({
   phraseRef.current = phrase;
   const returnTo = useRef<string | undefined>(undefined);
   const segmentDirty = useRef(false);
+  const dropdownDirty = useRef(false);
   const expandedDirty = useRef(false);
   const lastQueried = useRef<string | undefined>(undefined);
   const displayed = useRef<string | undefined>(undefined);
@@ -78,6 +80,7 @@ export function NavRoot({
     interaction,
     returnTo,
     segmentDirty,
+    dropdownDirty,
     expandedDirty,
     lastQueried,
     displayed,
@@ -89,6 +92,7 @@ export function NavRoot({
     setBootError,
     setPhrase,
     setSegmentIndex,
+    setDropdownValue,
     setSelectedIndex,
     setSelectedPath,
     setExpanded,
@@ -141,18 +145,19 @@ export function NavRoot({
     bootError,
     phrase,
     segmentIndex,
+    dropdownValue,
     selectedIndex,
     selectedPath,
     expanded,
     readOnly,
   });
 
-  // A phrase edit or a segment switch is a deliberate change of what's on
-  // screen, so the list goes back to the top -- unlike a refresh, which must
-  // leave scroll alone.
+  // A phrase edit, a segment switch or a dropdown pick is a deliberate change
+  // of what's on screen, so the list goes back to the top -- unlike a
+  // refresh, which must leave scroll alone.
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0 });
-  }, [phrase, segmentIndex]);
+  }, [phrase, segmentIndex, dropdownValue]);
 
   const loading = useSourceQuery({
     engine,
@@ -190,6 +195,7 @@ export function NavRoot({
 
   const {
     segments,
+    dropdownIndex,
     rankPhrase,
     trimmedPhrase,
     listItems,
@@ -201,6 +207,7 @@ export function NavRoot({
     error,
     fatalError,
     segmentUnavailable,
+    dropdownUnavailable,
     isTreeMode,
     treeFiltering,
     treeDisplay,
@@ -214,6 +221,7 @@ export function NavRoot({
   // "Meta page" or "Document" depending on which subset is active.
   const placeholder =
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
+  const noFilter = !!view?.meta.noFilter;
 
   // A drawer has no draggable edge, so it needs no room reserved beside its
   // scrollbar either -- the class that reserves it goes with the handle.
@@ -227,8 +235,26 @@ export function NavRoot({
       }
       data-slot={slot}
       style={mode === undefined ? undefined : { flex: mode }}
+      // The panel's whole keyboard contract depends on the input holding
+      // focus (see commands.ts), so no mousedown anywhere in the panel may
+      // move it. Exempt: the input itself (caret placement, drag-selection),
+      // the select (must take focus to open natively), draggable tree rows
+      // (a canceled mousedown cancels the drag itself in Firefox -- their
+      // handlers hand focus back instead), and the body's scrollbar gutter
+      // (never moves focus, and canceling can block native scrollbar drags).
+      onMouseDownCapture={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("input, select, [draggable='true']")) return;
+        if (
+          target === bodyRef.current &&
+          (e.offsetX >= target.clientWidth || e.offsetY >= target.clientHeight)
+        ) {
+          return;
+        }
+        e.preventDefault();
+      }}
     >
-      <div className="sb-nav-header">
+      <div className={`sb-nav-header${noFilter ? " sb-nav-no-filter" : ""}`}>
         <div className="sb-nav-header-row">
           {view && (
             <label className="sb-nav-title">
@@ -239,9 +265,21 @@ export function NavRoot({
             ref={inputRef}
             className="sb-nav-input"
             type="text"
-            placeholder={placeholder}
+            placeholder={noFilter ? undefined : placeholder}
+            // Invisible but focused (it is the panel's focus home), so it
+            // can't be aria-hidden -- a name is what keeps a screen reader
+            // oriented on it instead.
+            aria-label={
+              noFilter ? (view?.meta.label ?? view?.meta.title) : undefined
+            }
             value={phrase}
             onInput={(e) => {
+              // Whatever slipped past the keydown swallow (paste, IME) would
+              // invisibly filter the rows of a filterless view.
+              if (noFilter) {
+                e.currentTarget.value = "";
+                return;
+              }
               interaction.current = "typing";
               const value = e.currentTarget.value;
               // Prefix routing, resolved on the input rather than the keydown
@@ -314,6 +352,33 @@ export function NavRoot({
             ariaLabel="Segments"
           />
         )}
+        {view?.meta.dropdown && (
+          <select
+            className="sb-select sb-nav-dropdown"
+            aria-label={view.meta.dropdown.placeholder ?? "Filter"}
+            // Options are addressed by index: an option's value need not be a
+            // string, and the DOM attribute would flatten it into one.
+            value={dropdownIndex >= 0 ? String(dropdownIndex) : ""}
+            onChange={(e) => {
+              const picked = e.currentTarget.value;
+              cmd.pickDropdown(picked === "" ? -1 : Number(picked));
+            }}
+            // A dismissed select (Escape, click-away, re-picking the same
+            // option) never fires onChange, so `pickDropdown`'s focus handback
+            // never runs -- and Tab interception lives on the input, so focus
+            // stranded here would let Tab walk out of the panel.
+            onBlur={() => inputRef.current?.focus()}
+          >
+            {/* The built-in "All": no filtering. allLabel names it explicitly;
+                absent that, it's always "All". */}
+            <option value="">{view.meta.dropdown.allLabel ?? "All"}</option>
+            {(view.dropdownOptions ?? []).map((o, i) => (
+              <option key={i} value={String(i)}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <div className="sb-nav-body" ref={bodyRef}>
         {error && !fatalError && (
@@ -322,6 +387,11 @@ export function NavRoot({
         {segmentUnavailable && (
           <div className="sb-nav-notice">
             This segment is unavailable right now
+          </div>
+        )}
+        {dropdownUnavailable && (
+          <div className="sb-nav-notice">
+            This selection is unavailable right now
           </div>
         )}
         {fatalError ? (

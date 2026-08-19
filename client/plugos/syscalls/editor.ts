@@ -1211,7 +1211,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: (
         _ctx,
         name: string,
-        opts?: { segment?: string; phrase?: string },
+        opts?: {
+          segment?: string;
+          phrase?: string;
+          dropdown?: unknown;
+          focus?: boolean;
+        },
       ) => client.openNavigatorView(name, opts),
       description: `Opens a navigator view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.`,
       parameters: [
@@ -1219,7 +1224,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
         {
           name: "opts",
           type: "table",
-          description: "Optional `segment` (segment label) and `phrase`.",
+          description:
+            "Optional `segment` (segment label), `phrase`, `dropdown` (dropdown value to select), and `focus` (`false` opens without taking focus).",
           optional: true,
         },
       ],

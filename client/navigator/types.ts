@@ -19,6 +19,7 @@ export type NavigatorHook =
   | "key"
   | "action"
   | "rowState"
+  | "dropdown"
   | "move";
 
 export type SegmentMeta = {
@@ -28,6 +29,17 @@ export type SegmentMeta = {
   default?: boolean;
   prefix?: string;
   placeholder?: string;
+};
+
+export type DropdownMeta = {
+  placeholder?: string;
+  allLabel?: string;
+};
+
+/** One selectable entry of a view's dropdown, as its `options` produced it. */
+export type DropdownOption = {
+  label: string;
+  value: any;
 };
 
 export type SourceCtx = {
@@ -48,6 +60,9 @@ export type ViewMeta = {
   expandAll: boolean;
   expansionScope: "view" | "page";
   filterFields?: FilterFields;
+  /** `filter = false`: no phrase filtering; the input is hidden but stays the
+   * panel's focus home so the keyboard pipeline keeps working. */
+  noFilter?: boolean;
   followEditor: boolean;
   refreshOn: string[];
   hasMove: boolean;
@@ -56,6 +71,7 @@ export type ViewMeta = {
   keys?: string[];
   actions?: ActionMeta[];
   segments?: SegmentMeta[];
+  dropdown?: DropdownMeta;
   limit: number;
   search: "client" | "source";
   hasRowIcon: boolean;

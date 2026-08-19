@@ -1,10 +1,10 @@
-import type { SysCallMapping } from "../system.ts";
 import {
   defineView,
   moveByRename,
   openView,
   pickView,
 } from "../../navigator/navigator.ts";
+import type { SysCallMapping } from "../system.ts";
 
 /** The navigator's Space Lua API. Everything the panel itself needs is a
  * direct call into `client/navigator/`, not a syscall. */
@@ -20,7 +20,8 @@ export function navigatorSyscalls(): SysCallMapping {
         {
           name: "opts",
           type: "table",
-          description: "Optional segment, phrase and quiet flags.",
+          description:
+            "Optional segment, phrase, dropdown, focus and quiet flags.",
           optional: true,
         },
       ],

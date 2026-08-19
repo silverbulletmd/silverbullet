@@ -1,10 +1,4 @@
 import { useMemo, useRef } from "preact/hooks";
-import type { RankedRow } from "../engine.ts";
-import { type RankCacheEntry, rankIncrementally } from "../incremental_rank.ts";
-import { applySegment } from "../segments.ts";
-import type { NavigatorEngine } from "../engine.ts";
-import type { ActiveView } from "../panel.ts";
-import { matchesTags, splitHashtags } from "../phrase.ts";
 import {
   computeTreeDisplay,
   type TreeDisplay,
@@ -12,6 +6,12 @@ import {
   type VisibleRow,
 } from "../../../../plug-api/ui/tree_model.ts";
 import type { SegmentMeta } from "../../types.ts";
+import { applyDropdown, dropdownIndexFor } from "../dropdown.ts";
+import type { NavigatorEngine, RankedRow } from "../engine.ts";
+import { type RankCacheEntry, rankIncrementally } from "../incremental_rank.ts";
+import type { ActiveView } from "../panel.ts";
+import { matchesTags, splitHashtags } from "../phrase.ts";
+import { applySegment } from "../segments.ts";
 
 /** Rendered rows when the view doesn't set `presentation.limit`. */
 const DEFAULT_LIMIT = 200;
@@ -35,6 +35,8 @@ const POINTER_FINE =
 export type DerivedView = {
   sourceMode: boolean;
   segments?: SegmentMeta[];
+  /** The option the selected dropdown value names; -1 is the built-in "All". */
+  dropdownIndex: number;
   /** The phrase ranking runs on: no hashtags, no `stripPrefix` sigil. */
   rankPhrase: string;
   trimmedPhrase: string;
@@ -52,6 +54,7 @@ export type DerivedView = {
   error?: string;
   fatalError: boolean;
   segmentUnavailable: boolean;
+  dropdownUnavailable: boolean;
   isTreeMode: boolean;
   treeFiltering: boolean;
   truncated: number;
@@ -69,6 +72,7 @@ export function useDerived({
   bootError,
   phrase,
   segmentIndex,
+  dropdownValue,
   selectedIndex,
   selectedPath,
   expanded,
@@ -79,6 +83,7 @@ export function useDerived({
   bootError?: string;
   phrase: string;
   segmentIndex: number;
+  dropdownValue: unknown;
   selectedIndex: number;
   selectedPath?: string;
   expanded: Set<string>;
@@ -112,19 +117,30 @@ export function useDerived({
   // phrase below, so switching segments costs no round trip. A source-mode
   // view subsets in its own source, off the label it was handed, so its rows
   // arrive already filtered -- and no masks are computed to filter them with.
+  // The dropdown's masks are batched at load like the segments' are, so a
+  // selection is also mask-lookup cheap. Unlike segments it applies in source
+  // mode too: the source knows nothing of the dropdown, so its subsetting is
+  // always the panel's.
+  const dropdownIndex = dropdownIndexFor(view?.dropdownOptions, dropdownValue);
+
   const filteredRows = useMemo(() => {
     if (!view) return [];
-    if (sourceMode) return view.rows;
-    const rows = applySegment(
-      view.rows,
-      segmentIndex,
-      view.meta.segments,
-      view.segmentMasks,
+    const rows = applyDropdown(
+      sourceMode
+        ? view.rows
+        : applySegment(
+            view.rows,
+            segmentIndex,
+            view.meta.segments,
+            view.segmentMasks,
+          ),
+      dropdownIndex,
+      view.dropdownMasks,
     );
-    if (!tagKey) return rows;
+    if (sourceMode || !tagKey) return rows;
     const wanted = tagKey.split("\u0000");
     return rows.filter((row) => matchesTags(row, wanted));
-  }, [view, sourceMode, segmentIndex, tagKey]);
+  }, [view, sourceMode, segmentIndex, dropdownIndex, tagKey]);
 
   const rankCacheRef = useRef<RankCacheEntry>();
   const ranked = useMemo(() => {
@@ -197,6 +213,10 @@ export function useDerived({
   // only fail closed -- which on its own looks exactly like "nothing matched".
   const segmentUnavailable =
     !sourceMode && !!segments?.[segmentIndex]?.hasWhere && !view?.segmentMasks;
+  // Same failure shape for the dropdown: a selected option whose masks never
+  // arrived fails closed, indistinguishable from "nothing matched" without
+  // saying so.
+  const dropdownUnavailable = dropdownIndex >= 0 && !view?.dropdownMasks;
 
   const isTreeMode = view?.meta.mode === "tree";
   const treeFiltering = isTreeMode && phrase.trim().length > 0;
@@ -260,6 +280,7 @@ export function useDerived({
   return {
     sourceMode,
     segments,
+    dropdownIndex,
     rankPhrase,
     trimmedPhrase,
     visible,
@@ -274,6 +295,7 @@ export function useDerived({
     error,
     fatalError,
     segmentUnavailable,
+    dropdownUnavailable,
     isTreeMode,
     treeFiltering,
     truncated,

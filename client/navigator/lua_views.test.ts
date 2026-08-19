@@ -132,6 +132,41 @@ const rejections: [string, string, string][] = [
     'navigator.define: segments[1].icon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
   ],
   [
+    "dropdown that is not a table",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = "nope"`,
+    "navigator.define: dropdown must be a table",
+  ],
+  [
+    "dropdown without options",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { where = function() return true end }`,
+    "navigator.define: dropdown.options must be a function or list",
+  ],
+  [
+    "dropdown options that are neither function nor list",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = "nope", where = function() return true end }`,
+    "navigator.define: dropdown.options must be a function or list",
+  ],
+  [
+    "dropdown without a where",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {} }`,
+    "navigator.define: dropdown.where must be a function",
+  ],
+  [
+    "dropdown where that is not a function",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = true }`,
+    "navigator.define: dropdown.where must be a function",
+  ],
+  [
+    "dropdown placeholder that is not a string",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = function() return true end, placeholder = 7 }`,
+    "navigator.define: dropdown.placeholder must be a string",
+  ],
+  [
+    "dropdown allLabel that is not a string",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = function() return true end, allLabel = 7 }`,
+    "navigator.define: dropdown.allLabel must be a string",
+  ],
+  [
     "prefixViews that is not a table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, prefixViews = "nope"`,
     "navigator.define: prefixViews must be a table",
@@ -207,6 +242,16 @@ const rejections: [string, string, string][] = [
     "navigator.define: filter.fields must be a table",
   ],
   [
+    "filter that is neither a table nor false",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, filter = "off"`,
+    "navigator.define: filter must be a table or false",
+  ],
+  [
+    "filter = true",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, filter = true`,
+    "navigator.define: filter must be a table or false",
+  ],
+  [
     "expandAll that is not a boolean",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "tree", expandAll = "yes" }`,
     "navigator.define: presentation.expandAll must be a boolean",
@@ -251,6 +296,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     expandAll: false,
     expansionScope: "view",
     filterFields: undefined,
+    noFilter: false,
     followEditor: false,
     refreshOn: undefined,
     hasMove: false,
@@ -268,6 +314,22 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     ephemeral: false,
     openOnStart: false,
   });
+});
+
+test("filter = false projects noFilter, a filter table does not", () => {
+  const off = wireMeta(
+    luaSpec(`{ name = "v", ${SOURCE}, ${ON_SELECT}, filter = false }`),
+  );
+  expect(off.noFilter).toBe(true);
+  expect(off.filterFields).toBeUndefined();
+
+  const on = wireMeta(
+    luaSpec(
+      `{ name = "v", ${SOURCE}, ${ON_SELECT}, filter = { fields = { name = 1.0 } } }`,
+    ),
+  );
+  expect(on.noFilter).toBe(false);
+  expect(on.filterFields).toEqual({ name: 1 });
 });
 
 // Both plausible spellings of "nothing here": each has to become absent, or
@@ -369,6 +431,98 @@ test("declared chrome projects into the meta the panel draws from", () => {
       },
       { label: "Pages", prefix: "^", default: false, hasWhere: true },
     ],
+  });
+});
+
+test("a dropdown projects its placeholder and allLabel into the meta, options staying behind", () => {
+  const withFn = wireMeta(
+    luaSpec(`{ name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = {
+      placeholder = "Recipient",
+      allLabel = "All Recipients",
+      options = function() return { { label = "Pete", value = "p" } } end,
+      where = function(obj, value) return obj.target == value end,
+    } }`),
+  );
+  expect(withFn.dropdown).toEqual({
+    placeholder: "Recipient",
+    allLabel: "All Recipients",
+  });
+
+  // A static list is as good as a function, and both labels are optional.
+  const withList = wireMeta(
+    luaSpec(`{ name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = {
+      options = { { label = "Pete", value = "p" } },
+      where = function(obj, value) return obj.target == value end,
+    } }`),
+  );
+  expect(withList.dropdown).toEqual({
+    placeholder: undefined,
+    allLabel: undefined,
+  });
+
+  expect(
+    wireMeta(luaSpec(`{ name = "v", ${SOURCE}, ${ON_SELECT} }`)).dropdown,
+  ).toBeUndefined();
+});
+
+test("the dropdown hook evaluates options fresh and masks rows per option, failing predicates closed", async () => {
+  const spec = luaSpec(`{
+    name = "v",
+    ${SOURCE},
+    ${ON_SELECT},
+    dropdown = {
+      options = function()
+        return {
+          { label = "Pete", value = "People/Pete" },
+          { label = "Boom", value = "People/Boom" },
+        }
+      end,
+      where = function(obj, value)
+        if value == "People/Boom" then error("no") end
+        return obj.target == value
+      end,
+    },
+  }`);
+
+  const state = await luaHandle(spec, "dropdown", {
+    objs: [{ target: "People/Pete" }, { target: "People/Else" }],
+  });
+
+  expect(state).toEqual({
+    options: [
+      { label: "Pete", value: "People/Pete" },
+      { label: "Boom", value: "People/Boom" },
+    ],
+    masks: [
+      [true, false],
+      [false, false],
+    ],
+  });
+});
+
+test("the dropdown hook takes a static options list and skips malformed entries", async () => {
+  const spec = luaSpec(`{
+    name = "v",
+    ${SOURCE},
+    ${ON_SELECT},
+    dropdown = {
+      options = {
+        { label = "Pete", value = "p" },
+        { label = "", value = "empty" },
+        { label = "Valueless" },
+        { value = "labelless" },
+      },
+      where = function(obj, value) return obj.target == value end,
+    },
+  }`);
+
+  const state = await luaHandle(spec, "dropdown", {
+    objs: [{ target: "p" }],
+  });
+
+  expect(state).toEqual({
+    options: [{ label: "Pete", value: "p" }],
+    masks: [[true]],
   });
 });
 

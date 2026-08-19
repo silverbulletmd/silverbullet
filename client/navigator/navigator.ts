@@ -1,4 +1,13 @@
 import { config, system } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  buildPickSpec,
+  commandDefinition,
+  nextPickName,
+  RESERVED_PICK_PREFIX,
+  type ViewSpec,
+  validateDefineSpec,
+  wireMeta,
+} from "./lua_views.ts";
 import { createPanelLifecycle } from "./panel_lifecycle.ts";
 import {
   openOnStartViews,
@@ -7,20 +16,13 @@ import {
   selectInFlight,
   unregister,
 } from "./registry.ts";
-import {
-  buildPickSpec,
-  commandDefinition,
-  nextPickName,
-  RESERVED_PICK_PREFIX,
-  validateDefineSpec,
-  type ViewSpec,
-  wireMeta,
-} from "./lua_views.ts";
 
 export type OpenOptions = {
   segment?: string;
   phrase?: string;
   quiet?: boolean;
+  dropdown?: unknown;
+  focus?: boolean;
 };
 
 // Keyed by the view's __pick: name, not slot, so a settle can never race a same-slot reassignment.
@@ -54,6 +56,8 @@ export function open(name: string, opts?: OpenOptions): Promise<boolean> {
     quiet: opts?.quiet,
     phrase: opts?.phrase,
     segment: opts?.segment,
+    dropdown: opts?.dropdown,
+    focus: opts?.focus,
   });
 }
 

@@ -34,12 +34,11 @@ import type { StyleObject } from "../plugs/index/space_style.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
 import { ClientSystem } from "./client_system.ts";
+import { withCompletionInfo } from "./codemirror/completion_info.ts";
 import {
   buildMarkdownLanguageExtension,
   createEditorState,
 } from "./codemirror/editor_state.ts";
-import { isValidEditor } from "./lib/command_filters.ts";
-import { withCompletionInfo } from "./codemirror/completion_info.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
@@ -50,8 +49,9 @@ import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
-import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
+import { isValidEditor } from "./lib/command_filters.ts";
 import { open as openNavigatorView } from "./navigator/navigator.ts";
+import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import { RealtimeEvents } from "./realtime_events.ts";
 import { Space } from "./space.ts";
@@ -523,7 +523,12 @@ export class Client {
    */
   async openNavigatorView(
     name: string,
-    opts?: { segment?: string; phrase?: string },
+    opts?: {
+      segment?: string;
+      phrase?: string;
+      dropdown?: unknown;
+      focus?: boolean;
+    },
   ): Promise<boolean> {
     try {
       // `quiet`, because an unknown view here is not an error the user made:

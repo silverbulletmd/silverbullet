@@ -59,6 +59,8 @@ Opening a panel that was closed re-runs `source` once, since a closed panel hear
 * `hashtagFilter`: read a `#tag` in the phrase as a tag filter.
 * `stripPrefix`: a leading character dropped before ranking, for rows named without a sigil people type.
 
+`filter = false` turns the phrase filter off entirely: the input is hidden, and printable keys do nothing. Everything else about the panel's keyboard contract is unchanged — the arrows, `Enter`, `Escape`, `Tab` and a view's own `keymap` all keep working. For views whose rows are short snippets and whose scoping happens elsewhere (a `dropdown`, `segments`).
+
 #### Path completion
 `filter.pathCompletion = true` adds two completion features:
 
@@ -72,7 +74,7 @@ Opening a panel that was closed re-runs `source` once, since a closed panel hear
 `presentation` is a table of:
 
 * `mode`: `"list"` (default) or `"tree"`.
-* `hierarchy`: `{ field, separator }`, defaults to `{ "name", "/" }`. Tree only.
+* `hierarchy`: `{ field, separator }`, defaults to `{ "name", "/" }`. Tree only. The field's value is the row's path and thus its identity: it must be unique per row — rows sharing a path collapse onto a single tree node.
 * `foldersFirst`: group folders above everything else. Tree only. Default on.
 * `expandAll`: every folder starts open, and what is remembered is what you *closed*. Tree only.
 * `expansionScope`: `"view"` (default, persisted per view) or `"page"` (kept only while you are on the page, for a tree of the current page's own content). Tree only.
@@ -107,6 +109,7 @@ presentation = {
 * `keymap`: key name to function map of the selected row’s object. Navigation keys are rejected.
 * `actions`: per-row buttons.
 * `segments`: segmented control entries.
+* `dropdown`: an in-panel select subsetting the rows by a value.
 * `prefixViews`: single character mappings to the name of a sibling view it routes to.
 
 The create row only appears while the phrase is non-empty and matches no row exactly. Pick it with `Enter` while it is selected, or with `Shift-Enter` from anywhere in the list.
@@ -191,7 +194,34 @@ Filtering composes with the phrase: the segment subsets the rows, then the phras
 
 The active segment is remembered per view and restored when it is reopened.
 
-`Tab` is claimed by the panel whether or not it has segments: focus lives in the filter input for the panel’s whole life, and letting `Tab` walk the browser's focus order would strand the user somewhere they cannot type.
+`Tab` is claimed by the panel whether or not it has segments: focus lives in the filter input for the panel’s whole life, and letting `Tab` walk the browser's focus order would strand the user somewhere they cannot type. Pointer interactions hold to the same contract: clicking a row, a folder chevron, a segment, an action or the panel’s own background never moves focus off the filter input (or hands it straight back), so the panel’s keys keep working after any click — the one exception is a drag canceled mid-gesture (Escape, or a drop somewhere invalid), which can leave focus stranded until the next interaction.
+
+#### Dropdown
+`dropdown` puts a select control in the panel header: a subset of the view’s rows picked from a list of values, for value sets too large or too dynamic for segments.
+
+```lua
+dropdown = {
+  placeholder = "Recipient",
+  options = function()
+    return {
+      { label = "PeteSmith", value = "People/Pete Smith" },
+      { label = "AnnaJones", value = "People/Anna Jones" },
+    }
+  end,
+  where = function(obj, value) return obj.target == value end,
+}
+```
+
+* `options`: a function returning a list of `{ label, value }` entries, or such a list directly. The function is re-evaluated **every time the view’s source loads or refreshes** (the `refreshOn`/`refreshOnOpen` cycle), not once at define time, so a dynamic option set stays fresh.
+* `where`: predicate callback deciding whether an object belongs under the selected `value`.
+* `placeholder` (optional): what the select reads as while nothing is selected -- and, absent `allLabel`, the built-in "All" option's label too.
+* `allLabel` (optional): label of the built-in "All" option, overriding `placeholder` for that one entry. Defaults to "All" if not given.
+
+The first entry is always a built-in **All** — no filtering — and it is the default. Filtering composes with everything else the panel does: the active segment (if the view has both) subsets the rows, the dropdown selection subsets them further, and the phrase ranks what is left.
+
+The active selection is remembered per view and restored when it is reopened, like the active segment — falling back to All when it was never touched, or when the remembered value is no longer among the options.
+
+The select is a pointer affordance: picking a value hands focus straight back to the filter input, and `Tab` stays the panel’s (see above).
 
 #### Prefix routing
 A character typed as the *first* thing into an empty phrase can mean something other than itself. Two mechanisms share that gesture, and the difference between them is what they reach:
@@ -237,7 +267,7 @@ It’s the successor to `editor.filterBox` for a rich, filterable, optionally-se
 ## navigator.open(name, opts?)
 `navigator.open(name, opts?)`
 
-Opens the view registered under `name`, and returns whether a panel came up. Opening a view whose dock is already visible re-focuses its filter input.
+Opens the view registered under `name`, and returns whether a panel came up. Opening a view whose dock is already visible re-focuses its filter input (unless `focus = false`).
 
 **Parameters:**
 
@@ -245,4 +275,6 @@ Opens the view registered under `name`, and returns whether a panel came up. Ope
 * `opts?`:
   * `segment`: the label of the segment to open on, overriding both the view's `default` segment and the one it remembers
   * `phrase`: the phrase to open with.
+  * `dropdown`: the [[#Dropdown|dropdown]] value to open selected, overriding the remembered one for this open only — it is never persisted, so the next open without one restores the remembered (hand-picked) selection or All. A value not (yet) among the loaded options filters as the built-in "All" until a refresh brings its option in.
+  * `focus`: `false` opens the panel without taking keyboard focus — the editor keeps it. Only the focus grab is skipped: the rows still refresh and the phrase/selection reset like any other open (unlike a boot restore, which is fully passive). Such an open also never toggles an already-focused panel closed.
 

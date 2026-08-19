@@ -1,7 +1,7 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
+import { nodeObject, type TreeNode } from "../../../plug-api/ui/tree_model.ts";
 import { hide, route } from "../navigator.ts";
 import type { NavigatorEngine } from "./engine.ts";
-import { defaultSegmentIndex } from "./segments.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
 import {
@@ -9,7 +9,7 @@ import {
   completionCandidate,
   folderPrefix,
 } from "./phrase.ts";
-import { nodeObject, type TreeNode } from "../../../plug-api/ui/tree_model.ts";
+import { defaultSegmentIndex } from "./segments.ts";
 import { createTreeCommands } from "./tree_commands.ts";
 
 export type CommandDeps = {
@@ -51,10 +51,17 @@ export function createCommands({
     input: inputRef,
     returnTo,
     segmentDirty,
+    dropdownDirty,
     displayed,
     handledToken,
   } = refs;
-  const { setPhrase, setSegmentIndex, setSelectedIndex, setSelectedPath } = set;
+  const {
+    setPhrase,
+    setSegmentIndex,
+    setDropdownValue,
+    setSelectedIndex,
+    setSelectedPath,
+  } = set;
   const {
     segments,
     canCreate,
@@ -138,6 +145,22 @@ export function createCommands({
     setSelectedPath(undefined);
     // The panel's whole keyboard contract depends on the input holding focus;
     // a click on a segment must hand it straight back.
+    inputRef.current?.focus();
+  }
+
+  /** The dropdown counterpart of `pickSegment`; index -1 is the built-in
+   * "All". Persisted as the option's value, not its index, so a reordered
+   * option set restores to the same choice. */
+  function pickDropdown(index: number) {
+    if (!view?.meta.dropdown) return;
+    const value = index >= 0 ? view.dropdownOptions?.[index]?.value : undefined;
+    setDropdownValue(value);
+    dropdownDirty.current = true;
+    if (!view.meta.ephemeral) {
+      void datastore.set(["navigator", view.name, "dropdown"], value ?? null);
+    }
+    setSelectedIndex(0);
+    setSelectedPath(undefined);
     inputRef.current?.focus();
   }
 
@@ -268,6 +291,10 @@ export function createCommands({
   }
 
   function onTreeRowClick(node: TreeNode) {
+    // Tree rows are drag sources, exempt from the panel-wide mousedown
+    // suppression (see NavRoot), so the click blurred the input; take focus
+    // back before the selection possibly hands it on to the editor.
+    inputRef.current?.focus();
     setSelectedPath(node.path);
     void selectTreeNode(node);
   }
@@ -278,6 +305,7 @@ export function createCommands({
     runCreate,
     selectedObj,
     pickSegment,
+    pickDropdown,
     routeToView,
     completeFolder,
     completeNextSegment,

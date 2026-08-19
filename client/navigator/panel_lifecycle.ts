@@ -35,6 +35,10 @@ export type OpenOpts = {
   phrase?: string;
   from?: string;
   segment?: string;
+  /** Dropdown value the panel arrives with selected. */
+  dropdown?: unknown;
+  /** `false` opens the panel without taking focus (see `NavActivation`). */
+  focus?: boolean;
 };
 
 const NAMESPACE = "navigator";
@@ -124,8 +128,12 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     // ahead of any of that. Modal is exempt: a picker already resets and
     // re-focuses on every open by design, and has its own dismissal (Escape,
     // backdrop, a pick) rather than a re-press-to-close gesture.
+    // A focus-less open never toggles: it is an "arrange this panel" call
+    // (e.g. a mention click presetting the dropdown), not a re-press of the
+    // panel's own open gesture.
     if (
       !passive &&
+      opts?.focus !== false &&
       slot !== MODAL_SLOT &&
       visibleSidebarView.get(slot) === name &&
       focusedSlot() === slot
