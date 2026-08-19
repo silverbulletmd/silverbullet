@@ -122,12 +122,12 @@ test("Comment: Selection uses the language's own syntax inside fenced code", asy
       view.dispatch({ selection: { anchor: at, head: at + needle.length } });
     }, needle);
     await page.evaluate(() =>
-      (globalThis as any).client.runCommandByName("Comment: Selection")
+      (globalThis as any).client.runCommandByName("Comment: Selection"),
     );
   };
   const doc = () =>
     page.evaluate(() =>
-      (globalThis as any).client.editorView.state.doc.toString()
+      (globalThis as any).client.editorView.state.doc.toString(),
     );
 
   await runOn("const x = 1;");
