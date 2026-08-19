@@ -165,7 +165,7 @@ describe("RealtimeEvents connection lifecycle", () => {
     globalThis.EventSource = originalEventSource;
   });
 
-  it("does not retry a never-connected source the browser reports as fatally closed (e.g. 404)", async () => {
+  it("retries a never-connected fatally-closed source on a slow cadence", async () => {
     const rt = new RealtimeEvents(hooks);
     rt.start("http://localhost/.events");
     expect(instances).toHaveLength(1);
@@ -174,9 +174,10 @@ describe("RealtimeEvents connection lifecycle", () => {
     // CLOSED by the time onerror fires.
     instances[0].readyState = FakeEventSource.CLOSED;
     instances[0].onerror?.();
-    await vi.runAllTimersAsync();
-
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(instances).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(instances).toHaveLength(2);
   });
 
   it("retries a never-connected source that failed transiently (readyState still CONNECTING)", async () => {
@@ -190,5 +191,55 @@ describe("RealtimeEvents connection lifecycle", () => {
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(instances).toHaveLength(2);
+  });
+
+  it("reconnects immediately on the online event, resetting backoff", async () => {
+    const listeners = new Map<string, () => void>();
+    const origAdd = (globalThis as any).addEventListener;
+    const origRemove = (globalThis as any).removeEventListener;
+    (globalThis as any).addEventListener = (name: string, fn: () => void) => {
+      listeners.set(name, fn);
+    };
+    (globalThis as any).removeEventListener = (name: string) => {
+      listeners.delete(name);
+    };
+    try {
+      const rt = new RealtimeEvents(hooks);
+      rt.start("http://localhost/.events");
+      instances[0].onerror?.();
+      expect(instances).toHaveLength(1);
+
+      listeners.get("online")?.();
+      expect(instances).toHaveLength(2);
+
+      rt.stop();
+      expect(listeners.has("online")).toBe(false);
+    } finally {
+      (globalThis as any).addEventListener = origAdd;
+      (globalThis as any).removeEventListener = origRemove;
+    }
+  });
+
+  it("online event while healthily connected does not spawn a duplicate connection", async () => {
+    const listeners = new Map<string, () => void>();
+    const origAdd = (globalThis as any).addEventListener;
+    const origRemove = (globalThis as any).removeEventListener;
+    (globalThis as any).addEventListener = (name: string, fn: () => void) => {
+      listeners.set(name, fn);
+    };
+    (globalThis as any).removeEventListener = (name: string) => {
+      listeners.delete(name);
+    };
+    try {
+      const rt = new RealtimeEvents(hooks);
+      rt.start("http://localhost/.events");
+      instances[0].onopen?.();
+      listeners.get("online")?.();
+      expect(instances).toHaveLength(1);
+      rt.stop();
+    } finally {
+      (globalThis as any).addEventListener = origAdd;
+      (globalThis as any).removeEventListener = origRemove;
+    }
   });
 });

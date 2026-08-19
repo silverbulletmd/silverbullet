@@ -3,7 +3,9 @@
  * and uses it as a poll accelerator: events trigger the existing single-file
  * sync (service-worker mode) and the existing getFileMeta snapshot probe,
  * which fires file:changed and everything downstream. When the endpoint is
- * unavailable, nothing happens -- the client's polling remains the backstop.
+ * unavailable, the subscriber keeps probing in the background every 60s and
+ * reconnects immediately on the browser's 'online' event, with the client's
+ * polling as the backstop in the meantime.
  */
 
 export type RealtimeFsEvent = {
@@ -30,6 +32,7 @@ export type RealtimeHooks = {
 const BATCH_WINDOW_MS = 250;
 const BATCH_THRESHOLD = 4;
 const MAX_RETRY_MS = 30_000;
+const UNSUPPORTED_RETRY_MS = 60_000;
 
 export class RealtimeEvents {
   private source?: EventSource;
@@ -38,22 +41,50 @@ export class RealtimeEvents {
   private stopped = false;
   private pending = new Map<string, RealtimeFsEvent>();
   private flushTimer?: ReturnType<typeof setTimeout>;
+  private url?: string;
+  private retryTimer?: ReturnType<typeof setTimeout>;
+  private loggedUnsupported = false;
 
   constructor(private hooks: RealtimeHooks) {}
 
   start(url: string) {
     this.stopped = false;
+    this.url = url;
+    (globalThis as any).addEventListener?.("online", this.onOnline);
     this.connect(url);
   }
 
   stop() {
     this.stopped = true;
+    (globalThis as any).removeEventListener?.("online", this.onOnline);
     this.source?.close();
     this.source = undefined;
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = undefined;
+    }
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = undefined;
     }
+  }
+
+  private onOnline = () => {
+    // Only act when a reconnect is pending: a healthy connection needs no
+    // help, and this must never spawn a second EventSource next to one.
+    if (this.stopped || !this.url || !this.retryTimer) return;
+    clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
+    this.retryDelay = 1000;
+    this.connect(this.url);
+  };
+
+  private scheduleReconnect(delay: number) {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      this.connect(this.url!);
+    }, delay);
   }
 
   private connect(url: string) {
@@ -78,18 +109,24 @@ export class RealtimeEvents {
     source.onerror = () => {
       // A fatal error (404, wrong content-type) sets readyState to CLOSED
       // before onerror fires; a transient one (connection refused, DNS
-      // hiccup, server not warmed up yet) leaves it at CONNECTING. Only the
-      // former, on a connection that never succeeded, means "unsupported" --
-      // must be read before close() below, which forces CLOSED either way.
+      // hiccup, server not warmed up yet) leaves it at CONNECTING. A hard
+      // offline failure can land in either bucket depending on the engine,
+      // so "unsupported" only slows the retry down -- it never ends it.
       const unsupported =
         !this.everConnected && source.readyState === EventSource.CLOSED;
       source.close();
       if (this.stopped) return;
       if (unsupported) {
-        console.info("[realtime] /.events unavailable, relying on polling");
+        if (!this.loggedUnsupported) {
+          console.info(
+            "[realtime] /.events unavailable, polling remains primary; will keep probing",
+          );
+          this.loggedUnsupported = true;
+        }
+        this.scheduleReconnect(UNSUPPORTED_RETRY_MS);
         return;
       }
-      setTimeout(() => this.connect(url), this.retryDelay);
+      this.scheduleReconnect(this.retryDelay);
       this.retryDelay = Math.min(this.retryDelay * 2, MAX_RETRY_MS);
     };
   }

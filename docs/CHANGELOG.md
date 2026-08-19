@@ -6,7 +6,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * **Completely revamped [[Navigator]] UX:** one configurable navigation UI that presents any object collection as a fuzzy-filterable list **or tree**, either as a modal or as a sidebar. A lot of views have been rebuilt on this. I suppose I buried the lede here: one new instance of this is a ${widgets.commandButton("Navigate: Tree")} 🤯
 * **Live external edits**: changes made to pages by other programs (or users, but don’t rely on this for real-time collaboration) now show up in an open pages almost instantly, instead of waiting for the next sync. The client applies them to the open page as minimal, cursor-preserving edits that land in the undo history, so `Cmd/Ctrl-z` reverts an external edit like any other. The externally inserted text is briefly highlighted with a marker showing where it landed, fading after a few seconds.
   * This relies on active file-system, watching which can be configured server-wide with the new `SB_FS_WATCH` environment variable (`auto` (default) / `poll` / `off`): set `poll` when the space lives on a network mount (NFS/SMB) where changes made may not result in FS events.
-* **At-mentions and Recipients** ([[Recipient]]): mention people, teams, or anything else with `@nickname`. Mentions are indexed, autocompleted, and listed in a Mention Inbox sidebar (${widgets.commandButton("Navigate: Mentions")}).
+* **At-mentions and Recipients** ([[Recipient]]): mention people, teams, or anything else with `@nickname`. Mentions are indexed, autocompleted, and listed in a Mention Inbox sidebar (${widgets.commandButton("Navigate: Mentions")}). 
 * **HTML comments are markdown** ([[Markdown/Comment]]): the body of a `<!-- ... -->` block is now parsed and rendered as ordinary markdown. Everything indexed inside a comment carries `inComment = true`.
 * [[API/index#index.relations]] is the canonical accessor for `relation` objects, alongside `index.tasks()`, `index.items()`, and friends: `index.relations()` for all of them, `index.relations("at-mention")` to filter to one kind.
 * Blockquote rendering fixes:
@@ -30,6 +30,10 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * Renaming a page or folder to a different casing of the same name now works on case-insensitive filesystems (macOS, Windows)
   * Renames are now rejected when the new name differs only in casing from an existing page or document, so spaces stay portable between case-sensitive and case-insensitive hosts.
   * On case-insensitive filesystems, writing a file whose folder differs only in casing from an existing one now re-cases that folder to match — so writing `notes/foo` when the disk holds `Notes/` renames the folder, changing the reported path of every page inside it.
+* The realtime `/.events` subscription now recovers when the client starts or
+  wakes up offline: instead of permanently falling back to polling after a
+  failed first connection, it keeps retrying in the background and reconnects
+  immediately when the browser reports connectivity is back.
 
 ## 2.10.0
 * [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
