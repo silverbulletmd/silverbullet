@@ -143,11 +143,11 @@
     margin-left: -1px;
     animation: sb-external-caret-blink 1s steps(1) infinite;
 
-    &::after {
-      content: attr(data-source);
+    .sb-external-caret-label {
       position: absolute;
       top: -1.1em;
       left: -2px;
+      text-indent: 0;
       font-size: 0.65em;
       line-height: 1.3;
       padding: 0 4px;
@@ -474,13 +474,11 @@
   // letting a list item's padding drag them along.
   .sb-line-blockquote {
     min-height: 1em;
-    background-image: repeating-linear-gradient(
-      to right,
-      var(--editor-blockquote-border-color) 0,
-      var(--editor-blockquote-border-color) var(--blockquote-bar),
-      transparent var(--blockquote-bar),
-      transparent var(--blockquote-step)
-    );
+    background-image: repeating-linear-gradient(to right,
+        var(--editor-blockquote-border-color) 0,
+        var(--editor-blockquote-border-color) var(--blockquote-bar),
+        transparent var(--blockquote-bar),
+        transparent var(--blockquote-step));
     background-origin: border-box;
     background-repeat: no-repeat;
     background-size: var(--blockquote-step) 100%;
@@ -902,12 +900,10 @@
     border-left-width: var(--blockquote-step);
     border-left-style: solid;
     background-color: var(--editor-blockquote-background-color);
-    background-image: linear-gradient(
-      to right,
-      var(--editor-code-comment-color) 0,
-      var(--editor-code-comment-color) var(--blockquote-bar),
-      transparent var(--blockquote-bar)
-    );
+    background-image: linear-gradient(to right,
+        var(--editor-code-comment-color) 0,
+        var(--editor-code-comment-color) var(--blockquote-bar),
+        transparent var(--blockquote-bar));
     background-origin: border-box;
     background-repeat: no-repeat;
   }
@@ -916,26 +912,22 @@
   // the edge and the quote's bars start one step in. The combined selector
   // outranks both single-class rules, so their order no longer matters.
   .sb-comment-block.sb-line-blockquote {
-    background-image: linear-gradient(
-        to right,
+    background-image: linear-gradient(to right,
         var(--editor-code-comment-color) 0,
         var(--editor-code-comment-color) var(--blockquote-bar),
-        transparent var(--blockquote-bar)
-      ),
-      repeating-linear-gradient(
-        to right,
+        transparent var(--blockquote-bar)),
+      repeating-linear-gradient(to right,
         var(--editor-blockquote-border-color) 0,
         var(--editor-blockquote-border-color) var(--blockquote-bar),
         transparent var(--blockquote-bar),
-        transparent var(--blockquote-step)
-      );
+        transparent var(--blockquote-step));
     background-position: 0 0, var(--blockquote-step) 0;
   }
 
   @for $depth from 1 through 6 {
     .sb-comment-block.sb-line-blockquote-#{$depth} {
       background-size: var(--blockquote-step) 100%,
-        calc(#{$depth} * var(--blockquote-step)) 100%;
+      calc(#{$depth} * var(--blockquote-step)) 100%;
     }
   }
 

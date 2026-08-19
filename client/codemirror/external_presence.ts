@@ -13,8 +13,8 @@ import {
   Decoration,
   type DecorationSet,
   EditorView,
-  gutter,
   GutterMarker,
+  gutter,
   WidgetType,
 } from "@codemirror/view";
 
@@ -229,6 +229,13 @@ class GhostCaretWidget extends WidgetType {
     const el = document.createElement("span");
     el.className = "sb-external-caret";
     el.setAttribute("data-source", this.source);
+    // A real child element rather than CSS `content: attr(data-source)`,
+    // so tests can assert the label and styling bugs (like the inherited
+    // text-indent one fixed in editor.scss) stay debuggable in the DOM.
+    const label = document.createElement("span");
+    label.className = "sb-external-caret-label";
+    label.textContent = this.source;
+    el.appendChild(label);
     return el;
   }
 }

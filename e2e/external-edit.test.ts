@@ -57,6 +57,9 @@ test("external disk edit appears live, preserves cursor, and is undoable", async
     "data-source",
     "external",
   );
+  await expect(sbPage.locator(".sb-external-caret-label")).toHaveText(
+    "external",
+  );
 
   // Undo reverts the external edit...
   await editor.click();
