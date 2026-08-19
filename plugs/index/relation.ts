@@ -26,7 +26,7 @@ import {
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { fetchRecipientRegistry, RECIPIENT_PREFIX } from "./recipient.ts";
+import { RECIPIENT_PREFIX } from "./recipient.ts";
 import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
@@ -419,25 +419,23 @@ export async function indexRelations(
   emitCoMentions(ctx, tree);
   await emitAspiringPages(ctx);
 
-  if (atMentionNodes.length > 0) {
-    const registry = await fetchRecipientRegistry();
-    for (const n of atMentionNodes) {
-      const nickname = renderToText(n).slice(1);
-      const entry = registry.byNickname.get(nickname.toLowerCase());
-      const { from, fromTag } = innermostContainer(n, pageMeta.name);
-      // No registry entry makes the mention an implicit recipient: the
-      // target is a namespaced identifier (lowercased, so @Bob and @bob
-      // converge), not a page. Tagging a page later upgrades it on reindex.
-      emitTextualEdge(ctx, {
-        kind: "at-mention",
-        from,
-        fromTag,
-        to: entry ? entry.target : RECIPIENT_PREFIX + nickname.toLowerCase(),
-        toTag: entry ? "page" : "recipient",
-        range: [n.from!, n.to!],
-        alias: nickname,
-      });
-    }
+  // A mention records the nickname only, as the namespaced identifier
+  // `recipient:<lowercased nickname>` (so @Bob and @bob converge). Which
+  // page — if any — claims that nickname is joined at read time, because
+  // resolving it here would depend on whether the recipient's page happened
+  // to be indexed first.
+  for (const n of atMentionNodes) {
+    const nickname = renderToText(n).slice(1);
+    const { from, fromTag } = innermostContainer(n, pageMeta.name);
+    emitTextualEdge(ctx, {
+      kind: "at-mention",
+      from,
+      fromTag,
+      to: RECIPIENT_PREFIX + nickname.toLowerCase(),
+      toTag: "recipient",
+      range: [n.from!, n.to!],
+      alias: nickname,
+    });
   }
 
   return ctx.out;

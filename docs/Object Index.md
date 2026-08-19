@@ -41,6 +41,8 @@ The indexObject API looks at the `tags` of the found objects, and for each tag:
 * If the tag spec defines a `transform` callback, it is invoked, see [[API/tag#Index augmentation]] for details.
 * Stores the resulting objects with for the given tag
 
+Pages are indexed **concurrently**, so an indexer must never resolve one page's markup against another page's index entry: whether that entry exists yet depends on queue order, and two pages could end up disagreeing. Such joins belong at query time instead. [[Recipient|At-mentions]] work this way: the mention records the nickname, and the page claiming it is joined when mentions are read.
+
 # Query
 The Object Index is generally queried using [[Space Lua/Integrated Query]]. 
 

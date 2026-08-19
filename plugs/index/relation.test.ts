@@ -582,16 +582,16 @@ test("at-mentions index as relations", async () => {
     (o) => o.tag === "relation" && o.kind === "at-mention",
   );
   expect(atMentions.length).toBe(4);
-  expect(atMentions[0].to).toBe("People/Pete Smith");
-  expect(atMentions[0].toTag).toBe("page");
+  // Every mention records the nickname, never the page claiming it: which
+  // page that is gets joined at read time, so index order can't change it.
+  expect(atMentions[0].to).toBe("recipient:petesmith");
+  expect(atMentions[0].toTag).toBe("recipient");
   expect(atMentions[0].fromTag).toBe("page");
   expect(atMentions[0].alias).toBe("PeteSmith");
-  // Case-insensitive resolution, task container
-  expect(atMentions[1].to).toBe("People/Pete Smith");
+  // Case-insensitive: a differently cased spelling converges, task container
+  expect(atMentions[1].to).toBe("recipient:petesmith");
   expect(atMentions[1].fromTag).toBe("task");
   expect(atMentions[1].alias).toBe("petesmith");
-  // Unregistered nicknames are implicit recipients: a lowercased
-  // recipient: identifier, tagged "recipient" rather than "page"
   expect(atMentions[2].to).toBe("recipient:petra");
   expect(atMentions[2].toTag).toBe("recipient");
   expect(atMentions[2].alias).toBe("Petra");

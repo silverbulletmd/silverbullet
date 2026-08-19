@@ -403,7 +403,7 @@ config.define("taskStates", {
 config.define("recipients.tag", {
   type = "string",
   default = "recipient",
-  description = "Tag that marks a page as a recipient, addressable with @nickname. After changing it, run Space: Reindex so existing mentions re-resolve.",
+  description = "Tag that marks a page as a recipient, addressable with @nickname.",
   ui = { category = "Indexing", label = "Recipient tag", priority = 0 },
 })
 

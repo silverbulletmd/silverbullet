@@ -15,7 +15,7 @@ import { indexHeaders } from "./header.ts";
 import { indexItems } from "./item.ts";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { fetchRecipientRegistry, RECIPIENT_PREFIX } from "./recipient.ts";
+import { RECIPIENT_PREFIX } from "./recipient.ts";
 import { indexRelations } from "./relation.ts";
 import { buildLineIndex, extractSnippet, type LineIndex } from "./snippet.ts";
 import { indexSpaceLua } from "./space_lua.ts";
@@ -120,10 +120,10 @@ function appendAnchorRecords(
   return [...objects, ...anchorRecords];
 }
 
-async function stampRecipients(
+function stampRecipients(
   objects: ObjectValue<any>[],
   frontmatter: FrontMatter,
-): Promise<ObjectValue<any>[]> {
+): ObjectValue<any>[] {
   const mentions = objects.filter(
     (o) => o.tag === "relation" && o.kind === "at-mention",
   );
@@ -131,22 +131,15 @@ async function stampRecipients(
     ? frontmatter.recipients
     : [];
   const pageTargets = new Set<string>();
-  if (fmList.length > 0) {
-    const registry = await fetchRecipientRegistry();
-    for (const raw of fmList) {
-      const wikiMatch = /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(
-        String(raw).trim(),
-      );
-      if (wikiMatch) {
-        pageTargets.add(wikiMatch[1]);
-        continue;
-      }
-      const nickname = String(raw).trim().toLowerCase();
-      const entry = registry.byNickname.get(nickname);
-      // Unregistered nicknames stamp their implicit recipient: identifier,
-      // matching what an inline @mention of the same nickname would stamp.
-      pageTargets.add(entry ? entry.target : RECIPIENT_PREFIX + nickname);
+  for (const raw of fmList) {
+    const wikiMatch = /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(String(raw).trim());
+    // A wiki link names a page directly, so it stamps that page; a nickname
+    // stamps its recipient: identifier, like an inline @mention would.
+    if (wikiMatch) {
+      pageTargets.add(wikiMatch[1]);
+      continue;
     }
+    pageTargets.add(RECIPIENT_PREFIX + String(raw).trim().toLowerCase());
   }
   const byHost = new Map<string, Set<string>>();
   for (const m of mentions) {
@@ -227,7 +220,7 @@ export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   );
   await index.indexObjects<any>(
     name,
-    await stampRecipients(
+    stampRecipients(
       appendAnchorRecords(
         markCommentedObjects(indexResults.flat(), tree),
         meta,

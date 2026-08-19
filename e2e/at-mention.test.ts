@@ -11,6 +11,8 @@ test.use({
     "People/Pete Smith.md": [
       "---",
       "tags: recipient",
+      "aliases:",
+      "- pete",
       "---",
       "",
       "Pete's page.",
@@ -24,6 +26,8 @@ test.use({
       "",
       "Ping @Sales for approval.",
       "",
+      "Also pinged @pete about it.",
+      "",
       "Ship the deck to @Ops and @Design today.",
       "",
     ].join("\n"),
@@ -35,15 +39,6 @@ test("a page-backed mention navigates and opens the Mention Inbox filtered, with
   sbServer,
 }) => {
   await gotoSilverBulletPage(page, sbServer, "Notes");
-
-  // The initial space index can process Notes.md before People/Pete Smith.md,
-  // in which case @PeteSmith is captured as an implicit recipient
-  // (recipient:petesmith) — registration is an upgrade-on-reindex by design.
-  // Force one so the page-backed assertions below are deterministic.
-  await runCommandViaPalette(page, "Space: Reindex");
-  await expect(page.locator(".sb-notifications")).toContainText(
-    "Done with page index!",
-  );
 
   const mention = page.locator("a.sb-at-mention").first();
   await expect(mention).toHaveText("@PeteSmith");
@@ -72,14 +67,13 @@ test("a page-backed mention navigates and opens the Mention Inbox filtered, with
   await expect(page.locator("#sb-editor .cm-content")).toBeFocused();
 });
 
-test("an implicit mention opens the filtered Mention Inbox without navigating or taking focus", async ({
+test("a pageless mention opens the filtered Mention Inbox without navigating or taking focus", async ({
   page,
   sbServer,
 }) => {
   await gotoSilverBulletPage(page, sbServer, "Notes");
 
-  // @Sales has no page anywhere: an implicit recipient, captured at first
-  // index with no reindex needed.
+  // @Sales has no page anywhere: a pageless recipient.
   const salesMention = page.locator("a.sb-at-mention", { hasText: "Sales" });
   await expect(salesMention).toBeVisible({ timeout: 10_000 });
   await salesMention.click();
@@ -89,7 +83,7 @@ test("an implicit mention opens the filtered Mention Inbox without navigating or
     "Notes",
   );
 
-  // ...while the Mention Inbox opens filtered on the implicit recipient.
+  // ...while the Mention Inbox opens filtered on the pageless recipient.
   const inbox = page.locator(".sb-nav-root-rhs");
   await expect(inbox.locator(".sb-nav-title")).toHaveText("Mention Inbox");
   const salesRow = inbox.locator(".sb-nav-row", {
@@ -114,6 +108,40 @@ test("an implicit mention opens the filtered Mention Inbox without navigating or
   await expect(
     salesRow.locator(".sb-row-action[aria-label='Remove mention']"),
   ).toBeVisible();
+});
+
+test("every spelling of one recipient filters as that one person", async ({
+  page,
+  sbServer,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Notes");
+
+  // @pete is an alias of People/Pete Smith: clicking it navigates to the
+  // same page @PeteSmith does...
+  // Anchored regex: a plain "pete" would also match the @PeteSmith pills.
+  const aliasMention = page.locator("a.sb-at-mention", { hasText: /^@pete$/ });
+  await expect(aliasMention).toBeVisible({ timeout: 10_000 });
+  await aliasMention.click();
+  await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
+    "People/Pete Smith",
+  );
+
+  // ...and the inbox opens filtered on the person, not on the spelling, so
+  // mentions written either way are listed together.
+  const inbox = page.locator(".sb-nav-root-rhs");
+  const dropdown = inbox.locator("select.sb-nav-dropdown");
+  await expect(dropdown.locator("option:checked")).toHaveText("PeteSmith");
+  await expect(
+    inbox.locator(".sb-nav-row", { hasText: "Also pinged @pete about it." }),
+  ).toBeVisible({ timeout: 20_000 });
+  await expect(
+    inbox.locator(".sb-nav-row", {
+      hasText: "Talked to @PeteSmith about the launch.",
+    }),
+  ).toBeVisible();
+  await expect(
+    inbox.locator(".sb-nav-row", { hasText: "Ping @Sales for approval." }),
+  ).toHaveCount(0);
 });
 
 test("two mentions in one paragraph filter and list independently", async ({
@@ -153,15 +181,6 @@ test("mention inbox lists open mentions and resolve rewrites", async ({
   sbServer,
 }) => {
   await gotoSilverBulletPage(page, sbServer, "Notes");
-
-  // Resolve-to-link only shows on page-backed mentions, so @PeteSmith must
-  // be indexed against People/Pete Smith.md's registry entry — reindex to
-  // sidestep initial-index ordering (see the first test).
-  await runCommandViaPalette(page, "Space: Reindex");
-  await expect(page.locator(".sb-notifications")).toContainText(
-    "Done with page index!",
-  );
-
   await runCommandViaPalette(page, "Navigate: Mentions");
 
   const inbox = page.locator(".sb-nav-root-rhs");
@@ -176,9 +195,13 @@ test("mention inbox lists open mentions and resolve rewrites", async ({
   const salesRow = inbox.locator(".sb-nav-row", {
     hasText: "Ping @Sales for approval.",
   });
+  const aliasRow = inbox.locator(".sb-nav-row", {
+    hasText: "Also pinged @pete about it.",
+  });
   await expect(paragraphRow).toBeVisible({ timeout: 20_000 });
   await expect(taskRow).toBeVisible();
   await expect(salesRow).toBeVisible();
+  await expect(aliasRow).toBeVisible();
   await expect(
     inbox.locator(".sb-nav-row", { hasText: "Old task @PeteSmith" }),
   ).toHaveCount(0);
@@ -186,15 +209,27 @@ test("mention inbox lists open mentions and resolve rewrites", async ({
   // icon, so it's stripped from the displayed snippet.
   await expect(taskRow).not.toContainText("[ ]");
 
-  // The dropdown unions page-backed recipients with implicit ones.
+  // The dropdown unions page-backed recipients with pageless ones.
   const dropdown = inbox.locator("select.sb-nav-dropdown");
   await expect(
     dropdown.locator("option", { hasText: "All Recipients" }),
   ).toHaveCount(1);
   await expect(dropdown.locator("option", { hasText: "Sales" })).toHaveCount(1);
+  // One entry per person, not per spelling: @pete and @PeteSmith are the
+  // same recipient, so "pete" is not offered separately.
+  await expect(
+    dropdown.locator("option", { hasText: "PeteSmith" }),
+  ).toHaveCount(1);
+  await expect(dropdown.locator("option", { hasText: /^pete$/ })).toHaveCount(
+    0,
+  );
+  // Filtering on the person lists every spelling's mentions. Reaching these
+  // page-backed assertions without any reindex is what proves the mention
+  // no longer depends on which page the index queue processed first.
   await dropdown.selectOption({ label: "PeteSmith" });
   await expect(paragraphRow).toBeVisible();
   await expect(taskRow).toBeVisible();
+  await expect(aliasRow).toBeVisible();
   await expect(salesRow).toHaveCount(0);
   await dropdown.selectOption({ label: "All Recipients" });
   await expect(salesRow).toBeVisible();

@@ -94,11 +94,7 @@ export async function fetchRecipientRegistry(): Promise<RecipientRegistry> {
   return buildRecipientRegistry(pages);
 }
 
-/** At-mention relations whose nickname had no registry entry when the
- * mentioning page was indexed: the implicit recipients. */
-async function queryImplicitMentions(): Promise<
-  { to: string; alias?: string }[]
-> {
+async function queryMentions(): Promise<{ to: string; alias?: string }[]> {
   return await index.queryLuaObjects<{ to: string; alias?: string }>(
     "relation",
     {
@@ -110,45 +106,69 @@ async function queryImplicitMentions(): Promise<
   );
 }
 
-export async function listRecipients(): Promise<
-  { nickname: string; target: string }[]
-> {
+export type RecipientListing = {
+  nickname: string;
+  nicknames: string[];
+  target: string;
+  page?: string;
+  ids: string[];
+};
+
+/** Every recipient the space knows about: one entry per `#recipient` page,
+ * plus one per mentioned nickname no page claims. `target` is the grouping
+ * key consumers filter on — the page for a page-backed recipient, so all of
+ * its spellings group together, and the `recipient:` identifier otherwise.
+ * `nicknames` are the spellings as written (`nickname` being the one to
+ * label the recipient with); `ids` are those same spellings in the
+ * identifier form mentions carry, which is how a mention is joined back onto
+ * its recipient at read time. */
+export async function listRecipients(): Promise<RecipientListing[]> {
   const registry = await fetchRecipientRegistry();
-  const taken = new Set<string>();
-  const seen = new Set<string>();
-  const result: { nickname: string; target: string }[] = [];
-  for (const entry of registry.byNickname.values()) {
-    taken.add(entry.nickname.toLowerCase());
-    const key = `${entry.nickname}\0${entry.target}`;
-    if (seen.has(key)) {
-      continue;
+  const byPage = new Map<string, { nicknames: string[]; ids: string[] }>();
+  for (const [key, entry] of registry.byNickname) {
+    let group = byPage.get(entry.target);
+    if (!group) {
+      group = { nicknames: [], ids: [] };
+      byPage.set(entry.target, group);
     }
-    seen.add(key);
-    result.push({ nickname: entry.nickname, target: entry.target });
+    group.nicknames.push(entry.nickname);
+    group.ids.push(RECIPIENT_PREFIX + key);
   }
-  // Aliases per implicit target, so the label can be the most common
-  // spelling actually typed rather than the lowercased identifier.
+  const result: RecipientListing[] = [];
+  for (const [page, group] of byPage) {
+    const derived = deriveNickname(page).toLowerCase();
+    const nicknames = [...group.nicknames].sort((a, b) => a.localeCompare(b));
+    result.push({
+      nickname:
+        nicknames.find((n) => n.toLowerCase() === derived) ?? nicknames[0],
+      nicknames,
+      target: page,
+      page,
+      ids: [...group.ids].sort(),
+    });
+  }
+  // Aliases per mentioned identifier, so a pageless nickname is labelled
+  // with the most common spelling actually typed rather than lowercased.
   const aliasCounts = new Map<string, Map<string, number>>();
-  for (const m of await queryImplicitMentions()) {
-    if (!m.alias) continue;
-    let counts = aliasCounts.get(m.to);
+  for (const m of await queryMentions()) {
+    const key = m.to.slice(RECIPIENT_PREFIX.length);
+    if (registry.byNickname.has(key)) continue;
+    let counts = aliasCounts.get(key);
     if (!counts) {
       counts = new Map();
-      aliasCounts.set(m.to, counts);
+      aliasCounts.set(key, counts);
     }
-    counts.set(m.alias, (counts.get(m.alias) ?? 0) + 1);
+    const alias = m.alias ?? key;
+    counts.set(alias, (counts.get(alias) ?? 0) + 1);
   }
-  for (const [target, counts] of aliasCounts) {
+  for (const [key, counts] of aliasCounts) {
     const nickname = [...counts.entries()].sort(
       (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
     )[0][0];
-    // Page-backed entries win a nickname; an implicit one that still shares
-    // it is a stale mention awaiting reindex.
-    if (taken.has(nickname.toLowerCase())) continue;
-    result.push({ nickname, target });
+    const target = RECIPIENT_PREFIX + key;
+    result.push({ nickname, nicknames: [nickname], target, ids: [target] });
   }
-  result.sort((a, b) => a.nickname.localeCompare(b.nickname));
-  return result;
+  return result.sort((a, b) => a.nickname.localeCompare(b.nickname));
 }
 
 export async function atMentionComplete(completeEvent: CompleteEvent) {
@@ -156,30 +176,15 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
   if (!match) {
     return null;
   }
-  const registry = await fetchRecipientRegistry();
-  const seen = new Set<string>();
   const options: Completion[] = [];
-  for (const entry of registry.byNickname.values()) {
-    if (seen.has(entry.nickname.toLowerCase())) {
-      continue;
+  for (const entry of await listRecipients()) {
+    for (const nickname of entry.nicknames) {
+      options.push({
+        label: nickname,
+        type: "at-mention",
+        detail: entry.target,
+      });
     }
-    seen.add(entry.nickname.toLowerCase());
-    options.push({
-      label: entry.nickname,
-      type: "at-mention",
-      detail: entry.target,
-    });
-  }
-  for (const m of await queryImplicitMentions()) {
-    if (!m.alias || seen.has(m.alias.toLowerCase())) {
-      continue;
-    }
-    seen.add(m.alias.toLowerCase());
-    options.push({
-      label: m.alias,
-      type: "at-mention",
-      detail: m.to,
-    });
   }
   return {
     from: completeEvent.pos - match[1].length,
@@ -305,24 +310,19 @@ export function spliceAtMention(args: {
 
 export async function resolveRecipient(
   nickname: string,
-): Promise<{ ok: true; target: string; hasPage: boolean }> {
+): Promise<{ ok: true; target: string; page?: string }> {
   const registry = await fetchRecipientRegistry();
   const entry = registry.byNickname.get(nickname.toLowerCase());
-  if (entry) {
-    return { ok: true, target: entry.target, hasPage: true };
-  }
-  return {
-    ok: true,
-    target: RECIPIENT_PREFIX + nickname.toLowerCase(),
-    hasPage: false,
-  };
+  const target = RECIPIENT_PREFIX + nickname.toLowerCase();
+  return entry
+    ? { ok: true, target, page: entry.target }
+    : { ok: true, target };
 }
 
 export async function resolveAtMention(
   pageName: string,
   range: [number, number],
   nickname: string,
-  target: string,
   mode: MentionMode = "link",
 ): Promise<boolean> {
   const doneMessage =
@@ -333,6 +333,20 @@ export async function resolveAtMention(
         : `Deleted @${nickname} mention`;
   const staleMessage =
     "Page changed since indexing — reopen the mention and try again";
+  let target = "";
+  if (mode === "link") {
+    // The page claiming this nickname is whatever claims it now, not
+    // whatever was indexed alongside the mention.
+    const resolved = await resolveRecipient(nickname);
+    if (!resolved.page) {
+      await editor.flashNotification(
+        `@${nickname} has no page to link to`,
+        "error",
+      );
+      return false;
+    }
+    target = resolved.page;
+  }
   if ((await editor.getCurrentPage()) === pageName) {
     const text = await editor.getText();
     const edit = computeMentionEdit({ text, range, nickname, target, mode });

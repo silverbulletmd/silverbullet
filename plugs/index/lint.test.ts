@@ -236,7 +236,7 @@ describe("lintAtMentions", () => {
     const diags = await lintAtMentions(
       lintEventFor("Hi @PeteSmith, @pete and @nobody"),
     );
-    // @nobody is an implicit recipient now, not a lint finding
+    // @nobody is a recipient with no page, not a lint finding
     expect(diags.length).toBe(1);
     expect(diags[0].severity).toBe("warning");
     expect(diags[0].message).toContain("Ambiguous");

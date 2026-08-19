@@ -22,6 +22,18 @@ end
 
 local function inboxRows()
   local rows = {}
+  -- A mention only records the nickname it was written with, so the
+  -- recipient it belongs to is joined here, once per load. Every spelling a
+  -- page claims maps to that page, which is what groups rows by person
+  -- rather than by spelling.
+  local pageByMention = {}
+  for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
+    if r.page then
+      for _, id in ipairs(r.ids) do
+        pageByMention[id] = r.page
+      end
+    end
+  end
   local mentions = query[[
     from index.relations "at-mention"
   ]]
@@ -49,9 +61,9 @@ local function inboxRows()
         page = m.page,
         range = m.range,
         nickname = m.alias,
-        target = m.to,
+        target = pageByMention[m.to] or m.to,
         fromTag = m.fromTag,
-        hasPage = m.toTag == "page",
+        hasPage = pageByMention[m.to] ~= nil,
       })
     end
   end
@@ -109,19 +121,19 @@ navigator.define {
     where = function(obj, value) return obj.target == value end,
   },
   actions = {
-    -- An implicit recipient has no page to link to, so pageless mentions
+    -- A recipient with no page has nothing to link to, so those mentions
     -- only offer Remove/Delete.
     { icon = "link", label = "Resolve to link", requireMode = "rw",
       when = function(obj) return not obj.isFolder and obj.hasPage end,
       run = function(obj)
         system.invokeFunction("index.resolveAtMention",
-          obj.page, obj.range, obj.nickname, obj.target, "link")
+          obj.page, obj.range, obj.nickname, "link")
       end },
     { icon = "x", label = "Remove mention", requireMode = "rw",
       when = function(obj) return not obj.isFolder end,
       run = function(obj)
         system.invokeFunction("index.resolveAtMention",
-          obj.page, obj.range, obj.nickname, obj.target, "remove")
+          obj.page, obj.range, obj.nickname, "remove")
       end },
     { icon = "trash-2", label = "Delete task/item/paragraph", requireMode = "rw",
       when = function(obj) return not obj.isFolder end,
@@ -132,7 +144,7 @@ navigator.define {
           return
         end
         system.invokeFunction("index.resolveAtMention",
-          obj.page, obj.range, obj.nickname, obj.target, "delete-host")
+          obj.page, obj.range, obj.nickname, "delete-host")
       end },
   },
   onSelect = function(obj)

@@ -122,14 +122,16 @@ async function actionClickOrActionEnter(
         "index.resolveRecipient",
         nickname,
       );
-      // Every mention resolves: page-backed recipients navigate to their
-      // page, and either way the Mention Inbox opens filtered on the
+      // Every mention resolves: a nickname claimed by a page navigates
+      // there, and either way the Mention Inbox opens filtered on the
       // recipient, without pulling focus out of the editor.
-      if (result.hasPage) {
-        await editor.navigate(result.target, false, inNewWindow);
+      if (result.page) {
+        await editor.navigate(result.page, false, inNewWindow);
       }
       await editor.openNavigator("inbox", {
-        dropdown: result.target,
+        // Mentions group by recipient, not by spelling: the page is the key
+        // for anyone who has one.
+        dropdown: result.page ?? result.target,
         focus: false,
       });
       break;

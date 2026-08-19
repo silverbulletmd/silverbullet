@@ -81,10 +81,7 @@ async function indexRecipientPage(name: string, aliases?: string[]) {
   ]);
 }
 
-async function indexImplicitMentions(
-  page: string,
-  aliases: string[],
-): Promise<void> {
+async function indexMentions(page: string, aliases: string[]): Promise<void> {
   await (globalThis as any).syscall(
     "index.indexObjects",
     page,
@@ -128,13 +125,21 @@ test("the recipient tag is configurable via recipients.tag", async () => {
   ]);
 
   const result = await listRecipients();
-  expect(result).toEqual([{ nickname: "Anna", target: "People/Anna" }]);
+  expect(result).toEqual([
+    {
+      nickname: "Anna",
+      nicknames: ["Anna"],
+      target: "People/Anna",
+      page: "People/Anna",
+      ids: ["recipient:anna"],
+    },
+  ]);
 });
 
-test("atMentionComplete offers page-backed and implicit recipients", async () => {
+test("atMentionComplete offers page-backed and pageless recipients", async () => {
   createMockSystem();
-  await indexRecipientPage("People/Pete Smith", ["PeteSmith"]);
-  await indexImplicitMentions("Notes", ["Sales"]);
+  await indexRecipientPage("People/Pete Smith", ["pete"]);
+  await indexMentions("Notes", ["Sales"]);
 
   const result = await atMentionComplete({
     pageName: "test",
@@ -145,7 +150,9 @@ test("atMentionComplete offers page-backed and implicit recipients", async () =>
   expect(result).not.toBeNull();
   expect(result!.from).toBe(7); // right after the @
   const labels = result!.options.map((o) => o.label);
+  // Every spelling completes, not just the one labelling the recipient
   expect(labels).toContain("PeteSmith");
+  expect(labels).toContain("pete");
   expect(labels).toContain("Sales");
   // No completion glued to a word (emails)
   expect(
@@ -158,54 +165,101 @@ test("atMentionComplete offers page-backed and implicit recipients", async () =>
   ).toBeNull();
 });
 
-test("listRecipients returns the winning target per nickname, deduped and sorted", async () => {
+test("listRecipients lists one entry per page, holding all of its spellings", async () => {
   createMockSystem();
   await indexRecipientPage("People/Pete Smith", ["pete"]);
   await indexRecipientPage("Aardvark/Pete");
 
   const result = await listRecipients();
 
-  // "pete" is claimed by both People/Pete Smith (explicit nickname) and
-  // Aardvark/Pete (derived) -- only the winning target is listed, not both.
-  const peteEntries = result.filter((r) => r.nickname === "pete");
-  expect(peteEntries).toHaveLength(1);
-  expect(peteEntries[0].target).toBe("People/Pete Smith");
-
-  // Sorted by nickname.
-  expect(result.map((r) => r.nickname)).toEqual(
-    [...result.map((r) => r.nickname)].sort((a, b) => a.localeCompare(b)),
-  );
+  // Both spellings belong to one person, so they are one entry keyed by the
+  // page -- filtering on it must not split @pete from @PeteSmith. Its label
+  // is the page's own derived nickname.
+  expect(result).toEqual([
+    {
+      nickname: "PeteSmith",
+      nicknames: ["pete", "PeteSmith"],
+      target: "People/Pete Smith",
+      page: "People/Pete Smith",
+      ids: ["recipient:pete", "recipient:petesmith"],
+    },
+  ]);
+  // "pete" is claimed by both People/Pete Smith (explicit alias) and
+  // Aardvark/Pete (derived) -- only the winning page is listed, not both.
+  expect(result.some((r) => r.page === "Aardvark/Pete")).toBe(false);
 });
 
-test("listRecipients unions in implicit recipients, page-backed entries winning", async () => {
+test("listRecipients labels a page by an alias when the page name yields none", async () => {
+  createMockSystem();
+  await indexRecipientPage("People/Pete Smith", ["pete"]);
+  await indexRecipientPage("Aardvark/PeteSmith");
+
+  // Aardvark/PeteSmith takes the derived "petesmith" nickname, leaving
+  // People/Pete Smith with only its explicit alias to be labelled by.
+  const result = await listRecipients();
+  expect(result.find((r) => r.page === "People/Pete Smith")).toEqual({
+    nickname: "pete",
+    nicknames: ["pete"],
+    target: "People/Pete Smith",
+    page: "People/Pete Smith",
+    ids: ["recipient:pete"],
+  });
+});
+
+test("listRecipients joins mentioned nicknames with the pages claiming them", async () => {
   createMockSystem();
   await indexRecipientPage("People/Pete Smith");
-  // Two spellings of the same implicit recipient: the most common one labels it
-  await indexImplicitMentions("Notes", ["Sales", "Sales"]);
-  await indexImplicitMentions("Other", ["sales"]);
-  // A stale mention of a now page-backed nickname: the page entry wins
-  await indexImplicitMentions("Stale", ["petesmith"]);
+  // Two spellings of the same pageless recipient: the most common one labels it
+  await indexMentions("Notes", ["Sales", "Sales"]);
+  await indexMentions("Other", ["sales"]);
+  // Mentions of a page-backed nickname record the same identifier, and join
+  // onto the claiming page -- one entry, whatever order things were indexed in
+  await indexMentions("Stale", ["petesmith"]);
 
   const result = await listRecipients();
   expect(result).toEqual([
-    { nickname: "PeteSmith", target: "People/Pete Smith" },
-    { nickname: "Sales", target: "recipient:sales" },
+    {
+      nickname: "PeteSmith",
+      nicknames: ["PeteSmith"],
+      target: "People/Pete Smith",
+      page: "People/Pete Smith",
+      ids: ["recipient:petesmith"],
+    },
+    {
+      nickname: "Sales",
+      nicknames: ["Sales"],
+      target: "recipient:sales",
+      ids: ["recipient:sales"],
+    },
   ]);
 });
 
-test("resolveRecipient falls back to an implicit recipient: identifier", async () => {
+test("listRecipients lists a mentioned nickname with no page at all", async () => {
+  createMockSystem();
+  await indexMentions("Notes", ["Sales"]);
+
+  expect(await listRecipients()).toEqual([
+    {
+      nickname: "Sales",
+      nicknames: ["Sales"],
+      target: "recipient:sales",
+      ids: ["recipient:sales"],
+    },
+  ]);
+});
+
+test("resolveRecipient always returns the recipient: identifier, page when claimed", async () => {
   createMockSystem();
   await indexRecipientPage("People/Pete Smith");
 
   expect(await resolveRecipient("petesmith")).toEqual({
     ok: true,
-    target: "People/Pete Smith",
-    hasPage: true,
+    target: "recipient:petesmith",
+    page: "People/Pete Smith",
   });
   expect(await resolveRecipient("Sales")).toEqual({
     ok: true,
     target: "recipient:sales",
-    hasPage: false,
   });
 });
 
