@@ -1,16 +1,16 @@
-import type { SysCallMapping } from "../system.ts";
-import type {
-  LuaCollectionQuery,
-  LuaQueryCollection,
-} from "../../space_lua/query_collection.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type { Client } from "../../client.ts";
 
 import {
   type ObjectIndex,
   ObjectValidationError,
 } from "../../data/object_index.ts";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import type { Client } from "../../client.ts";
+import type {
+  LuaCollectionQuery,
+  LuaQueryCollection,
+} from "../../space_lua/query_collection.ts";
 import type { LuaTable } from "../../space_lua/runtime.ts";
+import type { SysCallMapping } from "../system.ts";
 import { describeSchemas, tagSchema } from "./schema_introspection.ts";
 
 export function indexSyscalls(
@@ -63,10 +63,12 @@ export function indexSyscalls(
       description: "Returns all indexed links as a query collection.",
     },
     "index.relations": {
-      callback: (): LuaQueryCollection => {
-        return objectIndex.objectsWithTag("relation");
+      callback: (_ctx, kind?: string): LuaQueryCollection => {
+        return objectIndex.relations(kind);
       },
-      description: "Returns all indexed relations as a query collection.",
+      description:
+        "Returns all indexed relations, optionally filtered by kind, as a query collection.",
+      signatures: ["index.relations(kind?)"],
     },
     "index.contentPages": {
       callback: (_ctx, tagName?: string): LuaQueryCollection => {

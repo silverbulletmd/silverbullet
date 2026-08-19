@@ -1,5 +1,15 @@
+import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { relationToLink } from "../../plugs/index/link.ts";
 import type { Config } from "../config.ts";
+import type { EventHook } from "../plugos/hooks/event.ts";
+import { validateObject } from "../plugos/syscalls/jsonschema.ts";
+import type { Space } from "../space.ts";
+import {
+  getAggregateSpec,
+  getBuiltinAggregateEntries,
+} from "../space_lua/aggregates.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
 import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
@@ -11,18 +21,8 @@ import {
   LuaStackFrame,
   LuaTable,
 } from "../space_lua/runtime.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
 import type { DataStore } from "./datastore.ts";
-import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
-import type { EventHook } from "../plugos/hooks/event.ts";
 import type { DataStoreMQ } from "./mq.datastore.ts";
-import type { Space } from "../space.ts";
-import { validateObject } from "../plugos/syscalls/jsonschema.ts";
-import {
-  getAggregateSpec,
-  getBuiltinAggregateEntries,
-} from "../space_lua/aggregates.ts";
-import { relationToLink } from "../../plugs/index/link.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -198,6 +198,16 @@ export class ObjectIndex {
 
   aspiringPages(): LuaQueryCollection {
     return this.objectsWithTag("aspiring-page");
+  }
+
+  relations(kind?: string): LuaQueryCollection {
+    if (kind) {
+      return this.filteredTag(
+        "relation",
+        (varName) => `${varName}.kind == ${JSON.stringify(kind)}`,
+      );
+    }
+    return this.objectsWithTag("relation");
   }
 
   rootTaggedObjects(rootTag: string, tag?: string): LuaQueryCollection {

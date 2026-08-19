@@ -1,8 +1,8 @@
+import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../../client/space_lua/query_collection.ts";
-import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import type { ObjectValue } from "../../plug-api/types/index.ts";
 /**
  * Exposes the SilverBullet object indexing system
@@ -78,10 +78,10 @@ export function links(): Promise<LuaQueryCollection> {
 }
 
 /**
- * Returns all relation objects as a query collection.
+ * Returns all relation objects, optionally filtered by kind, as a query collection.
  */
-export function relations(): Promise<LuaQueryCollection> {
-  return syscall("index.relations");
+export function relations(kind?: string): Promise<LuaQueryCollection> {
+  return syscall("index.relations", kind);
 }
 
 /**
@@ -196,6 +196,7 @@ export type {
   AnchorHit,
   ResolveAnchorResult,
 } from "../../plugs/index/types.ts";
+
 import type { ResolveAnchorResult } from "../../plugs/index/types.ts";
 
 /**

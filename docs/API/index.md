@@ -186,9 +186,9 @@ Rebuilds the object index for the entire space.
 
 ## index.relations
 
-`index.relations()`
+`index.relations(kind?)`
 
-Returns all indexed relations as a query collection.
+Returns all indexed relations, optionally filtered by kind, as a query collection.
 
 ## index.resolveAnchor
 

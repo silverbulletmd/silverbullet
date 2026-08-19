@@ -9,7 +9,7 @@ Relation objects represent typed and untyped relationships between indexed [[Obj
 * `from`: ref to the source object: the innermost indexed object that contains the markup producing the edge (page, item, nested item, or fenced `#tag` block object). When the source item carries a `$anchor` the anchor name is used (matching the item's own ref), otherwise the source's byte-offset form (`page@pos`) is used.
 * `fromTag`: tag of the source object, denormalized for graph queries.
 * `to`: ref to the target object.
-* `toTag`: the target type — one of `page`, `anchor`, `document`, `url`. Set for every resolved edge (absent for unresolved refs). `url` is a built-in target tag, like `document` (a real object type) and `anchor` (a meta-tag).
+* `toTag`: the target type — one of `page`, `anchor`, `document`, `url`, `recipient`. Set for every resolved edge (absent for unresolved refs). `url` is a built-in target tag, like `document` (a real object type), `anchor` (a meta-tag) and `recipient` (an implicit [[Recipient]]'s namespaced `recipient:` identifier).
 * `kind`: the edge label. Either a reserved structural value — `mention` or `co-mention` — or a user predicate (e.g. `spouse`, `team`) taken from a frontmatter key, inline `[key: ...]` attribute, or `#tag` data block key. See [[#Kinds]] below.
 * `via`: for `co-mention` entries only: ref to the containing item or paragraph that scopes the co-occurrence.
 * `page`: page where the edge was discovered (used for invalidation).
@@ -20,6 +20,7 @@ Relation objects represent typed and untyped relationships between indexed [[Obj
 
 ## Kinds
 * `mention`: a plain wikilink or markdown link (to a page, file, anchor, or external URL — see `toTag`).
+* `at-mention`: a `@nickname` [[Recipient]] mention; `to` is the recipient's page (`toTag: "page"`) or a `recipient:` identifier (`toTag: "recipient"`).
 * `co-mention`: two refs co-occurring in the same item (with its nested children) or paragraph. Emitted in both directions and dedup'd at the innermost shared scope.
 * *user predicates*: any other `kind` value is a typed attribute edge whose label is the key (e.g. `spouse`). `from`/`fromTag` indicate whether it came from frontmatter, an inline attribute, or a data block.
 
