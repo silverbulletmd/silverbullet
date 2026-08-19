@@ -244,6 +244,17 @@
   cursor: pointer;
 }
 
+.sb-at-mention {
+  color: var(--editor-at-mention-color);
+  background-color: var(--editor-at-mention-background-color);
+  border: 1px solid var(--editor-at-mention-border-color);
+  cursor: pointer;
+}
+
+.sb-at-mention-mark {
+  opacity: 0.6;
+}
+
 // Anchor styling — mark and text colored independently so themes can
 // diverge them later. Default: both get the link color.
 .sb-named-anchor {

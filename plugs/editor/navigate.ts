@@ -1,9 +1,9 @@
+import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import {
-  config,
-  editor,
-  markdown,
-  space,
-} from "@silverbulletmd/silverbullet/syscalls";
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -11,15 +11,17 @@ import {
   findParentMatching,
   nodeAtPos,
   type ParseTree,
+  renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
-import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
-import { tagPrefix } from "../index/constants.ts";
+  config,
+  editor,
+  markdown,
+  space,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { tagPrefix } from "../index/constants.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -36,6 +38,7 @@ async function actionClickOrActionEnter(
       "Autolink",
       "NakedURL",
       "Hashtag",
+      "AtMention",
       "FootnoteRef",
     ].includes(t.type!);
   if (!navigationNodeFinder(mdTree)) {
@@ -111,6 +114,24 @@ async function actionClickOrActionEnter(
         false,
         inNewWindow,
       );
+      break;
+    }
+    case "AtMention": {
+      const nickname = renderToText(mdTree).slice(1);
+      const result = await system.invokeFunction(
+        "index.resolveRecipient",
+        nickname,
+      );
+      // Every mention resolves: page-backed recipients navigate to their
+      // page, and either way the Mention Inbox opens filtered on the
+      // recipient, without pulling focus out of the editor.
+      if (result.hasPage) {
+        await editor.navigate(result.target, false, inNewWindow);
+      }
+      await editor.openNavigator("inbox", {
+        dropdown: result.target,
+        focus: false,
+      });
       break;
     }
     case "FootnoteRef": {

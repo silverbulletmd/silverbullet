@@ -96,6 +96,9 @@ html {
   --editor-hashtag-background-color: #002b6aad;
   --editor-hashtag-color: #e2e9ff;
   --editor-hashtag-border-color: #0120416b;
+  --editor-at-mention-color: #1a56b0;
+  --editor-at-mention-background-color: #e8f0fe;
+  --editor-at-mention-border-color: #c4d7f5;
   --editor-ruler-color: rgb(76, 75, 75);
   --editor-naked-url-color: var(--link-color);
   --editor-code-color: #7c828e;
@@ -273,6 +276,9 @@ html[data-theme="dark"] {
   --editor-hashtag-background-color: #004bbb;
   --editor-hashtag-color: #e2e9ff;
   --editor-hashtag-border-color: #007bff6b;
+  --editor-at-mention-color: #8ab4f8;
+  --editor-at-mention-background-color: rgba(138, 180, 248, 0.15);
+  --editor-at-mention-border-color: rgba(138, 180, 248, 0.35);
   --editor-ruler-color: rgb(76, 75, 75);
   --editor-naked-url-color: var(--link-color);
   --editor-link-color: var(--link-color);
