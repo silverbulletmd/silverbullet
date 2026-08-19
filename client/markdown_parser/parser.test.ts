@@ -361,6 +361,34 @@ A $100 dollar bill (digit-leading is not an anchor).
   expect(anchors).toEqual(["$toc1", "$tasks/7", "$work-1", "$sec1"]);
 });
 
+test("AtMention parsing", () => {
+  let tree = parseMarkdown("Hello @PeteSmith and @ops-team!");
+  let mentions = collectNodesOfType(tree, "AtMention");
+  expect(mentions.length).toBe(2);
+  expect(renderToText(mentions[0])).toBe("@PeteSmith");
+  expect(renderToText(mentions[1])).toBe("@ops-team");
+  expect(mentions[0].children![0].type).toBe("AtMentionMark");
+
+  // Emails and glued @ do not parse as mentions
+  tree = parseMarkdown("Mail pete@example.com or x@@y");
+  expect(collectNodesOfType(tree, "AtMention").length).toBe(0);
+
+  // Mentions parse in tasks and inside comment blocks
+  tree = parseMarkdown(
+    "* [ ] Review @PeteSmith\n\n<!--\n\nPing @petra\n\n-->\n",
+  );
+  mentions = collectNodesOfType(tree, "AtMention");
+  expect(mentions.length).toBe(2);
+
+  // Start-of-line mention
+  tree = parseMarkdown("@petra look at this");
+  expect(collectNodesOfType(tree, "AtMention").length).toBe(1);
+
+  // Bare @ is not a mention
+  tree = parseMarkdown("email me @ home");
+  expect(collectNodesOfType(tree, "AtMention").length).toBe(0);
+});
+
 test("Test mdLinkRegex with escaped square brackets", () => {
   // Normal link
   mdLinkRegex.lastIndex = 0;

@@ -17,6 +17,9 @@ export const AttributeValueTag = Tag.define();
 export const NamedAnchorTag = Tag.define();
 export const NamedAnchorMarkTag = Tag.define();
 
+export const AtMentionTag = Tag.define();
+export const AtMentionMarkTag = Tag.define();
+
 export const TaskTag = Tag.define();
 export const TaskMarkTag = Tag.define();
 export const TaskStateTag = Tag.define();

@@ -584,3 +584,12 @@ test("Paragraph between two blocks keeps its surrounding breaks where needed", (
       "<h1>H2</h1>",
   );
 });
+
+test("renders at-mentions as plain styled text", () => {
+  const tree = parse(extendedMarkdownLanguage, "Hello @PeteSmith");
+  const html = renderMarkdownToHtml(tree);
+  expect(html).toContain(
+    `<span class="sb-at-mention"><span class="sb-at-mention-mark">@</span>PeteSmith</span>`,
+  );
+  expect(html).not.toContain("<a");
+});

@@ -49,6 +49,8 @@ export default function highlightStyles() {
     { tag: ct.HashtagTag, class: "sb-hashtag-text" },
     { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },
     { tag: ct.NamedAnchorMarkTag, class: "sb-named-anchor-mark" },
+    { tag: ct.AtMentionTag, class: "sb-at-mention-text" },
+    { tag: ct.AtMentionMarkTag, class: "sb-at-mention-mark" },
     { tag: ct.NakedURLTag, class: "sb-naked-url" },
     { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
     { tag: ct.SubscriptTag, class: "sb-sub" },

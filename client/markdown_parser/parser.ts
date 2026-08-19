@@ -15,6 +15,7 @@ import { Table } from "./table_parser.ts";
 import { FootnoteDefinition, FootnoteRef, InlineFootnote } from "./footnote.ts";
 import {
   anchorRegex,
+  atMentionRegex,
   nakedUrlRegex,
   pWikiLinkRegex,
   tagRegex,
@@ -328,6 +329,40 @@ const NamedAnchor: MarkdownConfig = {
   ],
 };
 
+// AtMention: @nickname with the leading `@` exposed as an AtMentionMark
+// child node. Guarded on the preceding character so emails
+// (pete@example.com) never parse as mentions.
+const pAtMentionRegex = new RegExp(`^${atMentionRegex.source}`);
+const AtMention: MarkdownConfig = {
+  defineNodes: ["AtMention", "AtMentionMark"],
+  parseInline: [
+    {
+      name: "AtMention",
+      parse(cx, next, pos) {
+        if (next !== 64 /* @ */) {
+          return -1;
+        }
+        if (pos > cx.offset) {
+          const prev = cx.slice(pos - 1, pos);
+          if (/[\w.@+-]/.test(prev)) {
+            return -1;
+          }
+        }
+        const match = pAtMentionRegex.exec(cx.slice(pos, cx.end));
+        if (!match) {
+          return -1;
+        }
+        const end = pos + match[0].length;
+        return cx.addElement(
+          cx.elt("AtMention", pos, end, [
+            cx.elt("AtMentionMark", pos, pos + 1),
+          ]),
+        );
+      },
+    },
+  ],
+};
+
 // FrontMatter parser
 
 const yamlLang = StreamLanguage.define(yamlLanguage);
@@ -411,6 +446,7 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
   NakedURL,
   Hashtag,
   NamedAnchor,
+  AtMention,
   Superscript,
   Subscript,
   {
@@ -448,6 +484,8 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         NakedURL: ct.NakedURLTag,
         NamedAnchor: ct.NamedAnchorTag,
         NamedAnchorMark: ct.NamedAnchorMarkTag,
+        AtMention: ct.AtMentionTag,
+        AtMentionMark: ct.AtMentionMarkTag,
       }),
     ],
   },

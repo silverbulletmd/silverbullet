@@ -438,6 +438,17 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         ],
       };
     }
+    case "AtMention": {
+      const literal = renderToText(t);
+      return {
+        name: "span",
+        attrs: { class: "sb-at-mention" },
+        body: [
+          { name: "span", attrs: { class: "sb-at-mention-mark" }, body: "@" },
+          literal.slice(1),
+        ],
+      };
+    }
     case "Task": {
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {

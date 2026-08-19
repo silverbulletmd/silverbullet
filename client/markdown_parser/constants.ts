@@ -4,6 +4,8 @@ export const mdLinkRegex =
   /!?\[(?<title>[^\]\\]*(?:\\.[^\]\\]*)*)\]\((?<url>.+)\)/g;
 export const tagRegex =
   /#(?:(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*)|(?:<[^>\n]+>))/;
+export const atMentionRegex =
+  /@(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*)/;
 export const nakedUrlRegex =
   /(^https?:\/\/([-a-zA-Z0-9@:%_+~#=]|(?:[.](?!(\s|$)))){1,256})(([-a-zA-Z0-9(@:%_+~#?&=/]|(?:[.,:;)](?!(\s|$))))*)/;
 export const frontmatterQuotesRegex = /["'].*["']/g;
