@@ -2,9 +2,9 @@ import {
   Annotation,
   type ChangeSet,
   type EditorSelection,
+  type EditorState,
   type Extension,
   type Range,
-  RangeSet,
   StateEffect,
   StateField,
   Transaction,
@@ -13,8 +13,6 @@ import {
   Decoration,
   type DecorationSet,
   EditorView,
-  GutterMarker,
-  gutter,
   WidgetType,
 } from "@codemirror/view";
 
@@ -256,24 +254,57 @@ class GhostCaretWidget extends WidgetType {
   }
 }
 
-class DeletionGutterMarker extends GutterMarker {
+/** Exported so tests can assert the dot lands as a real element. */
+export function buildDeletionMarkerElement(): HTMLElement {
+  const el = document.createElement("span");
+  el.className = "sb-external-delete-marker";
+  // The anchor stays zero-width so it can't reflow the line; the dot itself
+  // is drawn out of flow, in the left padding of the text column.
+  const dot = document.createElement("span");
+  dot.className = "sb-external-delete-dot";
+  el.appendChild(dot);
+  return el;
+}
+
+class DeletionMarkerWidget extends WidgetType {
+  override eq() {
+    return true;
+  }
+
   override toDOM() {
-    const el = document.createElement("span");
-    el.className = "sb-external-delete-marker";
-    return el;
+    return buildDeletionMarkerElement();
   }
 }
 
-const deletionMarker = new DeletionGutterMarker();
+const deletionMarkerWidget = new DeletionMarkerWidget();
 
-function buildDecorations(state: PresenceState): DecorationSet {
-  if (state.hunks.length === 0) {
+// A pure deletion collapses to a zero-width hunk (fromB === toB in
+// tr.changes.iterChanges), so we mark the line it landed on rather than
+// drawing an inline artifact for text that's no longer there.
+function deletedLineStarts(
+  state: EditorState,
+  hunks: PresenceHunk[],
+): number[] {
+  const starts = new Set<number>();
+  for (const h of hunks) {
+    if (h.to !== h.from) {
+      continue;
+    }
+    const pos = Math.min(Math.max(h.from, 0), state.doc.length);
+    starts.add(state.doc.lineAt(pos).from);
+  }
+  return [...starts];
+}
+
+function buildDecorations(state: EditorState): DecorationSet {
+  const { hunks } = state.field(externalPresenceField);
+  if (hunks.length === 0) {
     return Decoration.none;
   }
 
   const decos: Range<Decoration>[] = [];
   let newest: PresenceHunk | undefined;
-  for (const h of state.hunks) {
+  for (const h of hunks) {
     if (h.to > h.from) {
       decos.push(
         Decoration.mark({ class: "sb-external-edit" }).range(h.from, h.to),
@@ -282,6 +313,11 @@ function buildDecorations(state: PresenceState): DecorationSet {
     if (!newest || h.time >= newest.time) {
       newest = h;
     }
+  }
+  for (const from of deletedLineStarts(state, hunks)) {
+    decos.push(
+      Decoration.widget({ widget: deletionMarkerWidget, side: -1 }).range(from),
+    );
   }
   if (newest) {
     decos.push(
@@ -292,34 +328,6 @@ function buildDecorations(state: PresenceState): DecorationSet {
     );
   }
   return Decoration.set(decos, true);
-}
-
-// A pure deletion collapses to a zero-width hunk (fromB === toB in
-// tr.changes.iterChanges), so we mark the line it landed on rather than
-// drawing an inline artifact for text that's no longer there.
-function buildDeletionMarkers(view: EditorView): RangeSet<GutterMarker> {
-  const { hunks } = view.state.field(externalPresenceField);
-  if (hunks.length === 0) {
-    return RangeSet.empty;
-  }
-
-  const docLength = view.state.doc.length;
-  const lineStarts = new Set<number>();
-  for (const h of hunks) {
-    if (h.to !== h.from) {
-      continue;
-    }
-    const pos = Math.min(Math.max(h.from, 0), docLength);
-    lineStarts.add(view.state.doc.lineAt(pos).from);
-  }
-  if (lineStarts.size === 0) {
-    return RangeSet.empty;
-  }
-
-  const ranges = [...lineStarts]
-    .sort((a, b) => a - b)
-    .map((pos) => deletionMarker.range(pos));
-  return RangeSet.of(ranges);
 }
 
 // Runs once per relevant update rather than off a single owned interval;
@@ -346,12 +354,8 @@ export function externalPresence(): Extension {
   return [
     externalPresenceField,
     EditorView.decorations.compute([externalPresenceField], (state) =>
-      buildDecorations(state.field(externalPresenceField)),
+      buildDecorations(state),
     ),
-    gutter({
-      class: "sb-external-gutter",
-      markers: buildDeletionMarkers,
-    }),
     presenceExpiry,
     externalUndoField,
     externalUndoCursorFix,

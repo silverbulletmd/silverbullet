@@ -119,17 +119,24 @@
     border-right: none;
   }
 
-  .sb-external-gutter .cm-gutterElement {
-    padding: 0 3px;
-  }
-
   .sb-external-delete-marker {
-    display: block;
-    margin: 0 auto;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: var(--editor-external-caret-color);
+    position: relative;
+    display: inline-block;
+    width: 0;
+    height: 0;
+
+    // Anchored to the text baseline and drawn out of flow in the column's
+    // left padding, so a deletion marker never reflows the line it marks.
+    .sb-external-delete-dot {
+      position: absolute;
+      left: -10px;
+      bottom: 0.2em;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--editor-external-caret-color);
+      pointer-events: none;
+    }
   }
 
   .sb-external-edit {
