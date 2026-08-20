@@ -27,6 +27,16 @@ The space file system is exposed under the `/.fs` prefix:
 * `PUT /.fs/*`: The same as `GET` except that it takes the body of the request and _writes_ it to a file.
 * `DELETE /.fs/*`: Again the same, except this will _delete_ the given file.
 
+## Conditional writes
+`GET`/`PUT` responses carry an `ETag` (`"sha256:<hash>"`) reflecting the file’s current content. `PUT` and `DELETE` accept the standard conditional headers to guard against overwriting a change you haven’t seen:
+
+* `If-Match: "sha256:<hash>"`: only write/delete if the file’s current content still matches that hash.
+* `If-None-Match: *`: only write if the file doesn’t exist yet (create-only).
+
+A precondition that doesn't hold returns `412 Precondition Failed` instead of silently overwriting or deleting whatever is actually there.
+
+This is the same mechanism the built-in clients use to drive the automatic merging and conflict handling described in [[Collaboration]].
+
 # RPC
 Some functionality is exposed as RPC-style calls
 

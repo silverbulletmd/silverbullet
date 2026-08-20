@@ -11,9 +11,7 @@ SilverBullet is an offline-first web application. Therefore it keeps a copy of y
 
 Sync happens:
 * For the entire space: roughly every 20 seconds
-* For the currently open file: every 4-5 seconds
-
-In addition, you can use the ${widgets.commandButton "Sync: Space"} and ${widgets.commandButton "Sync: File"} commands to trigger these manually.
+* For the currently open file: every 2-3 seconds
 
 Sync runs in a service worker and therefore only runs when the service worker is active. The service worker is automatically kept active for as long as you have a SilverBullet tab or window open. Some browsers slow web apps down when they are in the background or not in an active tab. This may also affect whether sync happens in the background. Most browsers (including mobile ones), keep service workers running for a little while (perhaps up to a minute), even when e.g. the screen is locked, or another app is activated.
 
@@ -21,7 +19,7 @@ Sync runs in a service worker and therefore only runs when the service worker is
 If sync takes longer than a second, a black circle progress indicator will appear in the [[Top Bar]].
 
 ## Conflicts
-When you use multiple clients and make changes to the same files simultaneously conflicts may happen. SilverBullet will not attempt to try to merge these conflicts, but rather create a conflicting copy when this happens. You will be notified in the UI when this occurs.
+When multiple clients change the same file around the same time, the server merges them automatically where it safely can; when it can’t (both sides touched the same words), it writes the file with a resolvable in-editor conflict, and you will be notified in the UI when this happens. See [[Collaboration]] for the full picture.
 
 ## Configuration
 You can tweak what files are synced locally via a few `config.*` configuration options.
