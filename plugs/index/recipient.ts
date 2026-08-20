@@ -94,13 +94,15 @@ export async function fetchRecipientRegistry(): Promise<RecipientRegistry> {
   return buildRecipientRegistry(pages);
 }
 
+/** Every reference to a recipient by nickname: inline `@mentions` and the
+ * nickname form of `recipients:` frontmatter alike. */
 async function queryMentions(): Promise<{ to: string; alias?: string }[]> {
   return await index.queryLuaObjects<{ to: string; alias?: string }>(
     "relation",
     {
       objectVariable: "_",
       where: await lua.parseExpression(
-        `_.kind == "at-mention" and _.toTag == "recipient"`,
+        `(_.kind == "at-mention" or _.kind == "recipients") and _.toTag == "recipient"`,
       ),
     },
   );

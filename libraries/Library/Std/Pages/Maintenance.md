@@ -12,14 +12,3 @@ ${some(query[[
     * [[${ref}]]: broken link to [[${name}]]
 ]==](a)
 ]]) or "No aspiring pages, all good!"}
-
-# Conflicting copies
-These are pages that have conflicting copies (as a result of sync). Have a look at them as well as their original (non-conflicting) versions and decide which one to keep.
-
-${some(query[[
-  from p = index.pages()
-  where p.name:find("%.conflicted:")
-  select template.new[==[
-    * [[${name:gsub("%.conflicted:.+$", "")}]]: conflict copy [[${name}]]
-]==](p)
-]]) or "No conflicting pages!"}

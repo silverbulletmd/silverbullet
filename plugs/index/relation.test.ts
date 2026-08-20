@@ -613,3 +613,60 @@ test("relation records flow through indexMarkdown", async () => {
   const relations = objects.filter((o: any) => o.tag === "relation");
   expect(relations.length).toBeGreaterThan(0);
 });
+
+test("a frontmatter recipients nickname emits a recipient relation", async () => {
+  createMockSystem();
+  const text = [
+    "---",
+    "recipients:",
+    "- zef",
+    "- Pete Smith",
+    "---",
+    "Yo there",
+  ].join("\n");
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
+  const declared = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "recipients",
+  );
+  expect(declared.length).toBe(2);
+  expect(declared[0].to).toBe("recipient:zef");
+  expect(declared[0].toTag).toBe("recipient");
+  expect(declared[0].from).toBe("Notes");
+  expect(declared[0].fromTag).toBe("page");
+  expect(declared[0].alias).toBe("zef");
+  expect(declared[0].range).toBeUndefined();
+  // Spaces are stripped the same way an alias-derived nickname is, so
+  // `Pete Smith` and `@PeteSmith` converge.
+  expect(declared[1].to).toBe("recipient:petesmith");
+  expect(declared[1].alias).toBe("PeteSmith");
+  // Each entry needs its own ref, or the second overwrites the first
+  expect(declared[0].ref).not.toBe(declared[1].ref);
+});
+
+test("a frontmatter recipients wikilink stays a page relation", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("Team/Operations", "");
+  const text = [
+    "---",
+    "recipients:",
+    "- zef",
+    '- "[[Team/Operations]]"',
+    "---",
+    "Yo there",
+  ].join("\n");
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
+  const declared = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "recipients",
+  );
+  expect(declared.length).toBe(2);
+  const page = declared.find((o) => o.toTag === "page")!;
+  expect(page.to).toBe("Team/Operations");
+  // The wikilink form keeps its range: unlike a nickname it is link syntax
+  // the rename refactor rewrites.
+  expect(page.range).toBeDefined();
+  expect(declared.filter((o) => o.toTag === "recipient").length).toBe(1);
+});

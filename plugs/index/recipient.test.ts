@@ -382,3 +382,24 @@ test("spliceAtMention verifies before splicing", () => {
     }),
   ).toBe("Xxllo @PeteSmith!");
 });
+
+test("a frontmatter-declared nickname is a known recipient", async () => {
+  createMockSystem();
+  await (globalThis as any).syscall("index.indexObjects", "Notes", [
+    {
+      ref: "Notes@recipients/sales",
+      tag: "relation",
+      kind: "recipients",
+      from: "Notes",
+      fromTag: "page",
+      to: "recipient:sales",
+      toTag: "recipient",
+      alias: "sales",
+      page: "Notes",
+      pageLastModified: "",
+    },
+  ]);
+  const listing = await listRecipients();
+  expect(listing.map((r) => r.nickname)).toEqual(["sales"]);
+  expect(listing[0].target).toBe("recipient:sales");
+});

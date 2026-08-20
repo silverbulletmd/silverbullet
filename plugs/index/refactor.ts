@@ -20,6 +20,9 @@ import { findRenameConflict, shouldDeleteOldPath } from "./refactor_case.ts";
 import { spliceReference } from "./refactor_splice.ts";
 import { getTextualBackRelations, type RelationObject } from "./relation.ts";
 
+/** A relation known to span page text, which is what a rewrite needs. */
+type RangedRelation = RelationObject & { range: [number, number] };
+
 /**
  * Renames a single page.
  * @param cmdDef Optional command arguments
@@ -210,21 +213,22 @@ async function renamePage(oldName: string, newName: string) {
   if (oldFolder !== newFolder) {
     // Pull every relation on this page that points at a page or file —
     // these are the candidates whose relative-path form may need to be
-    // rewritten when the page moves between folders. `at-mention` ranges
-    // cover literal `@nickname` text rather than link syntax, so they're
-    // excluded up front (spliceReference would leave them untouched anyway).
-    const relsInPage = await index.queryLuaObjects<RelationObject>(
+    // rewritten when the page moves between folders. A `recipient:` target
+    // is never one: its range covers literal `@nickname` text rather than
+    // link syntax, or it has no range at all (a `recipients:` frontmatter
+    // nickname), so those are excluded up front.
+    const relsInPage = await index.queryLuaObjects<RangedRelation>(
       "relation",
       {
         objectVariable: "_",
         where: await lua.parseExpression(
-          `_.page == oldName and _.kind ~= "co-mention" and _.kind ~= "at-mention" and _.toTag ~= "url"`,
+          `_.page == oldName and _.kind ~= "co-mention" and _.toTag ~= "recipient" and _.toTag ~= "url" and _.range ~= nil`,
         ),
       },
       { oldName },
     );
 
-    const linksToUpdate: RelationObject[] = [];
+    const linksToUpdate: RangedRelation[] = [];
     for (const rel of relsInPage) {
       if (rel.toTag === "document" && folderName(rel.to) === oldFolder) {
         const backRels = await getTextualBackRelations(rel.to);

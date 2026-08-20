@@ -67,6 +67,23 @@ local function inboxRows()
       })
     end
   end
+  -- Recipients declared in `recipients:` frontmatter address the whole page,
+  -- so they have no `@nickname` span to act on: the row navigates and that's
+  -- all. Its own `ref` uniquifies the tree path, the way a range does above.
+  local declared = query[[
+    from index.relations "recipients"
+  ]]
+  for _, d in ipairs(declared) do
+    local label = d.alias and ("@" .. d.alias) or d.to
+    table.insert(rows, {
+      name = d.page .. SEP .. label .. "\30" .. d.ref,
+      snippet = label,
+      ref = d.page,
+      page = d.page,
+      target = pageByMention[d.to] or d.to,
+      declared = true,
+    })
+  end
   return rows
 end
 
@@ -98,6 +115,9 @@ navigator.define {
         if obj.isFolder then
           return "file-text"
         end
+        if obj.declared then
+          return "at-sign"
+        end
         if obj.fromTag == "task" then
           return "check-square"
         end
@@ -122,21 +142,24 @@ navigator.define {
   },
   actions = {
     -- A recipient with no page has nothing to link to, so those mentions
-    -- only offer Remove/Delete.
+    -- only offer Remove/Delete. A declared recipient has no `@nickname` in
+    -- the text at all, so it offers none of the three.
     { icon = "link", label = "Resolve to link", requireMode = "rw",
-      when = function(obj) return not obj.isFolder and obj.hasPage end,
+      when = function(obj)
+        return not obj.isFolder and not obj.declared and obj.hasPage
+      end,
       run = function(obj)
         system.invokeFunction("index.resolveAtMention",
           obj.page, obj.range, obj.nickname, "link")
       end },
     { icon = "x", label = "Remove mention", requireMode = "rw",
-      when = function(obj) return not obj.isFolder end,
+      when = function(obj) return not obj.isFolder and not obj.declared end,
       run = function(obj)
         system.invokeFunction("index.resolveAtMention",
           obj.page, obj.range, obj.nickname, "remove")
       end },
     { icon = "trash-2", label = "Delete task/item/paragraph", requireMode = "rw",
-      when = function(obj) return not obj.isFolder end,
+      when = function(obj) return not obj.isFolder and not obj.declared end,
       run = function(obj)
         if not editor.confirm(
           "Delete the entire task/item/paragraph containing this mention?"

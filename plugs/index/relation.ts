@@ -26,7 +26,7 @@ import {
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { RECIPIENT_PREFIX } from "./recipient.ts";
+import { deriveAliasNickname, RECIPIENT_PREFIX } from "./recipient.ts";
 import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
@@ -50,7 +50,9 @@ export type RelationObject = ObjectValue<{
   kind: string;
   via?: string;
   page: string;
-  range: [number, number];
+  /** Absent on records with no span in the page text, e.g. a `recipients:`
+   * frontmatter nickname. */
+  range?: [number, number];
   alias?: string;
   snippet?: string;
   pageLastModified: string;
@@ -438,7 +440,41 @@ export async function indexRelations(
     });
   }
 
+  emitDeclaredRecipients(ctx, frontmatter);
+
   return ctx.out;
+}
+
+/**
+ * `recipients:` frontmatter entries written as a bare nickname. The wikilink
+ * form is already covered by the frontmatter pass above, which resolves it
+ * to a page; a nickname resolves to nothing at index time, so it takes the
+ * same `recipient:` identifier an inline `@mention` does.
+ *
+ * These carry no range: unlike a mention there is no `@nickname` in the text
+ * to rewrite, so nothing downstream may treat them as an editable span.
+ */
+function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
+  if (!Array.isArray(frontmatter.recipients)) return;
+  for (const raw of frontmatter.recipients) {
+    const entry = String(raw).trim();
+    wikiLinkRegex.lastIndex = 0;
+    if (wikiLinkRegex.exec(entry)) continue;
+    const nickname = deriveAliasNickname(entry);
+    if (nickname === "") continue;
+    ctx.out.push({
+      ref: `${ctx.pageMeta.name}@recipients/${nickname.toLowerCase()}`,
+      tag: "relation",
+      kind: "recipients",
+      from: ctx.pageMeta.name,
+      fromTag: "page",
+      to: RECIPIENT_PREFIX + nickname.toLowerCase(),
+      toTag: "recipient",
+      page: ctx.pageMeta.name,
+      alias: nickname,
+      pageLastModified: ctx.pageMeta.lastModified,
+    });
+  }
 }
 
 // Emits one `aspiring-page` record per (page-targeted) ref that does

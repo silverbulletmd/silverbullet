@@ -18,6 +18,15 @@ test.use({
       "Pete's page.",
       "",
     ].join("\n"),
+    "Handoff.md": [
+      "---",
+      "recipients:",
+      "- pete",
+      "---",
+      "",
+      "The whole page is for Pete.",
+      "",
+    ].join("\n"),
     "Notes.md": [
       "Talked to @PeteSmith about the launch.",
       "",
@@ -316,4 +325,43 @@ test("delete task/item/paragraph removes the whole host line after confirming", 
   expect(text).not.toContain("Review the doc");
   // Only the one line goes: its sibling task stays.
   expect(text).toContain("* [x] Old task @PeteSmith");
+});
+
+test("a frontmatter-declared recipient is listed without mention actions", async ({
+  page,
+  sbServer,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Notes");
+  await runCommandViaPalette(page, "Navigate: Mentions");
+
+  const inbox = page.locator(".sb-nav-root-rhs");
+  const dropdown = inbox.locator("select.sb-nav-dropdown");
+  await expect(
+    inbox.locator(".sb-nav-row", { hasText: "Talked to @PeteSmith" }),
+  ).toBeVisible({ timeout: 20_000 });
+
+  // Handoff.md never says "@pete" in its body: the declaration alone puts it
+  // in the inbox, grouped with Pete's inline mentions.
+  await dropdown.selectOption({ label: "PeteSmith" });
+  const declaredRow = inbox.locator(".sb-nav-row", { hasText: /^@pete$/ });
+  await expect(declaredRow).toBeVisible();
+
+  // It addresses the whole page, so there is no `@nickname` span to rewrite
+  // and none of the three mention actions are offered.
+  await declaredRow.hover();
+  for (const label of [
+    "Resolve to link",
+    "Remove mention",
+    "Delete task/item/paragraph",
+  ]) {
+    await expect(
+      declaredRow.locator(`.sb-row-action[aria-label='${label}']`),
+    ).toHaveCount(0);
+  }
+
+  // Selecting it opens the declaring page.
+  await declaredRow.click();
+  await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
+    "Handoff",
+  );
 });
