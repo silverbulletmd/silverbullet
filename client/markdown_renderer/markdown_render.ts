@@ -178,6 +178,8 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     case "CommentBlock":
     case "CommentMarkerBlock":
       return null;
+    case "ConflictMarker":
+      return renderToText(t);
     case "ATXHeading1":
       return {
         name: "h1",

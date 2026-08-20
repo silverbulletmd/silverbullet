@@ -5,6 +5,7 @@ export const WikiLinkPartTag = Tag.define();
 export const CodeInfoTag = Tag.define();
 export const CommentTag = Tag.define();
 export const CommentMarkerTag = Tag.define();
+export const ConflictMarkerTag = Tag.define();
 export const BulletList = Tag.define();
 export const OrderedList = Tag.define();
 export const Highlight = Tag.define();

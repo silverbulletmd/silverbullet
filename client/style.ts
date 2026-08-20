@@ -22,6 +22,7 @@ export default function highlightStyles() {
     { tag: ct.CodeInfoTag, class: "sb-code-info" },
     { tag: ct.CommentTag, class: "sb-comment" },
     { tag: ct.CommentMarkerTag, class: "sb-comment-marker" },
+    { tag: ct.ConflictMarkerTag, class: "sb-conflict-marker" },
     { tag: ct.Highlight, class: "sb-highlight" },
     { tag: t.emphasis, class: "sb-emphasis" },
     { tag: t.strong, class: "sb-strong" },

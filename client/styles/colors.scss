@@ -389,6 +389,10 @@ tbody tr:nth-of-type(even) {
   color: var(--editor-code-comment-color);
 }
 
+.sb-conflict-marker {
+  color: var(--editor-code-comment-color);
+}
+
 .sb-deleted {
   color: var(--editor-code-deleted-color, #dc2626);
   background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));

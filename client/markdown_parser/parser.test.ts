@@ -437,3 +437,88 @@ test("Test mdLinkRegex with escaped square brackets", () => {
   expect(match).not.toBeNull();
   expect(match!.groups!.title).toBe("");
 });
+
+const hashA = "a".repeat(64);
+const hashB = "b".repeat(64);
+const hashC = "c".repeat(64);
+
+const conflictSample = `Before the conflict
+
+<<<<<<< SB sha256:${hashA}
+My local version
+||||||| SB BASE sha256:${hashB}
+The base version
+=======
+Their remote version
+>>>>>>> SB sha256:${hashC}
+Innocent paragraph after the conflict.`;
+
+test("Conflict markers parse as inert ConflictMarker blocks", () => {
+  const tree = parseMarkdown(conflictSample);
+  expect(renderToText(tree)).toEqual(conflictSample);
+
+  const markers = collectNodesOfType(tree, "ConflictMarker");
+  expect(markers.length).toEqual(4);
+  expect(renderToText(markers[0])).toEqual(`<<<<<<< SB sha256:${hashA}`);
+  expect(renderToText(markers[1])).toEqual(`||||||| SB BASE sha256:${hashB}`);
+  expect(renderToText(markers[2])).toEqual("=======");
+  expect(renderToText(markers[3])).toEqual(`>>>>>>> SB sha256:${hashC}`);
+
+  // The `>>>>>>>` line must not open a blockquote that lazily swallows the
+  // following paragraph.
+  expect(collectNodesOfType(tree, "Blockquote").length).toEqual(0);
+  expect(findNodeOfType(tree, "SetextHeading1")).toBeNull();
+  expect(findNodeOfType(tree, "SetextHeading2")).toBeNull();
+
+  const paragraphs = collectNodesOfType(tree, "Paragraph").map(renderToText);
+  expect(paragraphs).toEqual([
+    "Before the conflict",
+    "My local version",
+    "The base version",
+    "Their remote version",
+    "Innocent paragraph after the conflict.",
+  ]);
+});
+
+test("Conflict markers directly adjacent to paragraphs", () => {
+  const tight = `Text right above
+<<<<<<< SB sha256:${hashA}
+Mine
+||||||| SB BASE sha256:${hashB}
+Base
+=======
+Theirs
+>>>>>>> SB sha256:${hashC}
+Text right below`;
+  const tree = parseMarkdown(tight);
+  expect(renderToText(tree)).toEqual(tight);
+  expect(collectNodesOfType(tree, "ConflictMarker").length).toEqual(4);
+  expect(collectNodesOfType(tree, "Blockquote").length).toEqual(0);
+  expect(findNodeOfType(tree, "SetextHeading1")).toBeNull();
+  expect(collectNodesOfType(tree, "Paragraph").map(renderToText)).toEqual([
+    "Text right above",
+    "Mine",
+    "Base",
+    "Theirs",
+    "Text right below",
+  ]);
+});
+
+test("Non-SB conflict-like lines keep their markdown meaning", () => {
+  // A plain git marker (no `SB sha256:`) stays a blockquote
+  const gitMarker = parseMarkdown(">>>>>>> HEAD\n");
+  expect(collectNodesOfType(gitMarker, "ConflictMarker").length).toEqual(0);
+  expect(findNodeOfType(gitMarker, "Blockquote")).not.toBeNull();
+
+  // `=======` outside a conflict block is still a setext underline
+  const setext = parseMarkdown("A heading\n=======\n\nBody");
+  expect(collectNodesOfType(setext, "ConflictMarker").length).toEqual(0);
+  expect(findNodeOfType(setext, "SetextHeading1")).not.toBeNull();
+
+  // ...and that stays true after a conflict block has been closed
+  const afterHunk = parseMarkdown(
+    `<<<<<<< SB sha256:${hashA}\nMine\n||||||| SB BASE sha256:${hashB}\nBase\n=======\nTheirs\n>>>>>>> SB sha256:${hashC}\n\nA heading\n=======\n`,
+  );
+  expect(collectNodesOfType(afterHunk, "ConflictMarker").length).toEqual(4);
+  expect(findNodeOfType(afterHunk, "SetextHeading1")).not.toBeNull();
+});

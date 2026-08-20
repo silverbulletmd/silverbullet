@@ -237,3 +237,71 @@ describe("recipients", () => {
     expect(rel.recipients).toBeUndefined();
   });
 });
+
+describe("conflict documents", () => {
+  const conflictText = [
+    "---",
+    "tags: [secret]",
+    "aliases: [SecretPage]",
+    "displayName: Secret Page",
+    "description: A page about secrets",
+    "---",
+    "",
+    "Some paragraph #inline.",
+    "",
+    "<<<<<<< SB sha256:aaaa1111",
+    "first version line",
+    "||||||| SB BASE sha256:base1111",
+    "base line",
+    "=======",
+    "second version line",
+    ">>>>>>> SB sha256:bbbb2222",
+    "",
+  ].join("\n");
+
+  test("skips frontmatter/tag indexing for a conflicted page", async () => {
+    createMockSystem();
+    const objects = await runIndexPageForTest("TestPage", conflictText);
+
+    // No other indexer ran: no frontmatter-derived "tag" objects.
+    expect(objects.some((o: any) => o.tag === "tag")).toBe(false);
+  });
+
+  test("still returns from a page query, with its bare file-meta fields", async () => {
+    createMockSystem();
+    const objects = await runIndexPageForTest("TestPage", conflictText);
+
+    const page = objects.find((o: any) => o.tag === "page");
+    expect(page).toMatchObject({
+      tag: "page",
+      ref: "TestPage",
+      name: "TestPage",
+      lastModified: defaultPageMeta.lastModified,
+      perm: defaultPageMeta.perm,
+    });
+    expect(page.itags).toContain("page");
+  });
+
+  test("the page object carries no frontmatter-derived fields", async () => {
+    createMockSystem();
+    const objects = await runIndexPageForTest("TestPage", conflictText);
+
+    const page = objects.find((o: any) => o.tag === "page");
+    expect(page).toBeDefined();
+    expect(page.tags ?? []).not.toContain("secret");
+    expect(page.aliases).toBeUndefined();
+    expect(page.displayName).toBeUndefined();
+    expect(page.description).toBeUndefined();
+    expect(page.pageDecoration).toBeUndefined();
+  });
+
+  test("indexParagraphs still runs, without frontmatter tags leaking in", async () => {
+    createMockSystem();
+    const objects = await runIndexPageForTest("TestPage", conflictText);
+
+    const paragraph = objects.find((o: any) => o.tag === "paragraph");
+    expect(paragraph).toBeDefined();
+    expect(paragraph.tags).toEqual(["inline"]);
+    expect(paragraph.itags).toEqual(["paragraph", "inline"]);
+  });
+});

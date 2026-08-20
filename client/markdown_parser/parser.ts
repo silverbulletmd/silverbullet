@@ -21,6 +21,7 @@ import {
   tagRegex,
 } from "./constants.ts";
 import { HTMLBlockParsing } from "./html_block.ts";
+import { ConflictMarkers } from "./conflict_marker.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import { luaLanguage } from "../space_lua/parse.ts";
@@ -432,6 +433,7 @@ export const FrontMatter: MarkdownConfig = {
 
 const baseMarkdownExtensions: MarkdownConfig[] = [
   HTMLBlockParsing,
+  ConflictMarkers,
   WikiLink,
   Attribute,
   FrontMatter,

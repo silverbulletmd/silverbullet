@@ -1,4 +1,5 @@
 import {
+  addParentPointers,
   collectNodesOfType,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
@@ -9,6 +10,7 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import { isValidAnchorName } from "./anchor.ts";
+import { containsConflictMarkers } from "./conflict.ts";
 import { indexData } from "./data.ts";
 import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
 import { indexHeaders } from "./header.ts";
@@ -21,7 +23,7 @@ import { buildLineIndex, extractSnippet, type LineIndex } from "./snippet.ts";
 import { indexSpaceLua } from "./space_lua.ts";
 import { indexSpaceStyle } from "./space_style.ts";
 import { indexTables } from "./table.ts";
-import { indexTags } from "./tags.ts";
+import { indexTags, updateITags } from "./tags.ts";
 
 export type IndexerFunction = (
   pageMeta: PageMeta,
@@ -214,6 +216,25 @@ export async function indexMarkdown(
 }
 
 export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
+  if (containsConflictMarkers(text)) {
+    // Frontmatter and attributes in a conflicted file may be half-merged
+    // garbage, so only full-text search (indexParagraphs) runs;
+    // extractFrontMatter is skipped entirely rather than
+    // run-and-discarded, but indexParagraphs still needs the parent
+    // pointers it would normally have supplied as a side effect.
+    addParentPointers(tree);
+    const paragraphs = await indexParagraphs(meta, { tags: [] }, tree);
+    // `meta` is already the bare file-metadata PageMeta (see
+    // fileMetaToPageMeta): ref/name/tag/created/lastModified/perm, no
+    // frontmatter content. Indexing it as-is keeps a conflicted page in
+    // the page picker and space tree, which are index-driven and would
+    // otherwise lose it the moment file:changed clears its old entry.
+    const pageObject: ObjectValue<any> = { ...meta };
+    updateITags(pageObject, { tags: [] });
+    await index.indexObjects<any>(name, [pageObject, ...paragraphs]);
+    return;
+  }
+
   const frontmatter = extractFrontMatter(tree);
   const indexResults = await Promise.all(
     allIndexers.map((indexer) => indexer(meta, frontmatter, tree, text)),

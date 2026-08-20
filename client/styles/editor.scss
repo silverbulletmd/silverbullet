@@ -844,6 +844,102 @@
     border-radius: 0;
   }
 
+  .sb-conflict-widget {
+    display: block;
+    margin: 10px 0;
+    border: 1px solid var(--alert-warning-border-color);
+    border-radius: 5px;
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  .sb-conflict-button-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background-color: var(--alert-warning-background-color);
+
+    button {
+      border: 1px solid var(--button-border-color);
+      border-radius: 4px;
+      background: var(--button-background-color);
+      color: var(--button-color);
+      cursor: pointer;
+      padding: 3px 8px;
+      font-family: var(--editor-font);
+      font-size: 0.85em;
+      white-space: nowrap;
+
+      &:hover {
+        background: var(--button-hover-background-color);
+      }
+    }
+
+    // Same corner-label look as frontmatter/comment, pushed via flex auto-margin instead of their line-float since this bar is already the widget's top strip.
+    .sb-comment-label {
+      margin-left: auto;
+      float: none;
+    }
+  }
+
+  .sb-conflict-prompt {
+    padding: 6px 8px 0;
+    font-size: 0.8em;
+    color: var(--editor-meta-color);
+  }
+
+  .sb-conflict-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background-color: var(--editor-widget-background-color);
+  }
+
+  .sb-conflict-section {
+    min-width: 0;
+    padding: 6px 8px;
+    background-color: var(--root-background-color);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--hover-background-color);
+      outline: 1px solid var(--action-button-hover-color);
+      outline-offset: -1px;
+    }
+  }
+
+  .sb-conflict-section-header {
+    margin-bottom: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--editor-meta-color);
+  }
+
+  .sb-conflict-section-hash {
+    margin-left: 6px;
+    font-weight: normal;
+    font-family: var(--editor-monospace-font, monospace);
+    font-size: 0.9em;
+    opacity: 0.6;
+  }
+
+  .sb-conflict-section-body {
+    margin: 0;
+    padding: 4px 6px;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--editor-monospace-font, monospace);
+    font-size: 0.85em;
+    color: var(--editor-code-color);
+    background-color: var(--editor-code-background-color);
+    border-radius: 3px;
+  }
+
   .sb-inline-content>div>.content>* {
     max-width: 100%;
     display: block;
@@ -873,6 +969,14 @@
     border-left-style: solid;
     padding-left: 5px;
     background-image: none;
+
+    // The border stands in for the marker of the quote this is, so the spacer
+    // holding that marker's columns has nothing left to reserve: it would only
+    // push a line's first row a step right of the rows it wraps into. Narrowed
+    // rather than removed, so it keeps the inline box posAtCoords expects.
+    >.sb-quote-spacer {
+      padding-left: 0 !important;
+    }
   }
 
   .sb-admonition-type::before {
