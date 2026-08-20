@@ -1,0 +1,12 @@
+[package]
+name = "silverbullet-server-merge"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+similar = "2"
+sha2 = { workspace = true }
+
+[lints]
+workspace = true

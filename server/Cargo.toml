@@ -9,9 +9,10 @@ workspace = true
 
 [dependencies]
 silverbullet-server-common = { path = "../server-common" }
+silverbullet-server-merge = { path = "../server-merge" }
 axum = { workspace = true }
 tower-http = { workspace = true, features = ["compression-gzip", "compression-br"] }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 jsonwebtoken = { workspace = true }
@@ -35,5 +36,5 @@ tokio-stream = { workspace = true }
 
 [dev-dependencies]
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }
 tempfile = "3"

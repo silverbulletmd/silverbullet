@@ -2375,6 +2375,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "silverbullet-server-common",
+ "silverbullet-server-merge",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
@@ -2400,11 +2401,20 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror 2.0.18",
  "tracing",
  "walkdir",
  "zip",
+]
+
+[[package]]
+name = "silverbullet-server-merge"
+version = "0.0.0"
+dependencies = [
+ "sha2",
+ "similar",
 ]
 
 [[package]]
@@ -2424,6 +2434,12 @@ name = "simd-adler32"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
+
+[[package]]
+name = "similar"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "simple_asn1"
