@@ -93,4 +93,9 @@ pub struct ServerState {
     /// process lifetime, e.g. the App) means "never fires" -- a stream then
     /// simply runs until the client disconnects, today's behavior.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
+    /// Per-space content-hash cache, per-path mutation locks, and the
+    /// expected-write attribution map for conditional `/.fs` writes. Shared
+    /// (`Arc`) with the space's fs watcher, which consults the same map to
+    /// enrich the events it emits.
+    pub fs_guard: Arc<crate::fs_guard::FsGuard>,
 }

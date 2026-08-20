@@ -420,6 +420,7 @@ fn try_build_state(
     };
 
     let shell_enabled = config.shell.enabled && !config.read_only && !deps.shell_disabled;
+    let fs_guard = Arc::new(crate::fs_guard::FsGuard::default());
     Ok(ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
@@ -437,6 +438,7 @@ fn try_build_state(
                 "noop".into()
             },
             disable_service_worker: deps.disable_service_worker,
+            sync_protocol_version: 2,
         },
         space_folder_path: folder_str,
         version: ServerVersion::Static(deps.version.clone()),
@@ -456,8 +458,10 @@ fn try_build_state(
             &folder,
             &config.space_ignore,
             crate::WatchMode::from_env(),
+            fs_guard.clone(),
         ),
         shutdown: deps.shutdown.clone(),
+        fs_guard,
     })
 }
 

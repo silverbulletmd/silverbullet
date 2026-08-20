@@ -1,6 +1,6 @@
 use axum::http::HeaderMap;
 
-use crate::auth::authorizer::{AuthContext, RequestAuthorizer};
+use crate::auth::authorizer::{AuthContext, AuthOutcome, RequestAuthorizer};
 use crate::auth::config::constant_time_eq;
 use crate::auth::cookie::cookie_value;
 
@@ -44,8 +44,11 @@ impl HeadlessTokenAuthorizer {
 }
 
 impl RequestAuthorizer for HeadlessTokenAuthorizer {
-    fn is_authorized(&self, ctx: &AuthContext) -> bool {
-        self.cookie_token_matches(ctx.headers) || self.inner.is_authorized(ctx)
+    fn authorize(&self, ctx: &AuthContext) -> Option<AuthOutcome> {
+        if self.cookie_token_matches(ctx.headers) {
+            return Some(AuthOutcome { username: None });
+        }
+        self.inner.authorize(ctx)
     }
 }
 
@@ -56,14 +59,14 @@ mod tests {
 
     struct DenyAll;
     impl RequestAuthorizer for DenyAll {
-        fn is_authorized(&self, _ctx: &AuthContext) -> bool {
-            false
+        fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
+            None
         }
     }
     struct AllowAll;
     impl RequestAuthorizer for AllowAll {
-        fn is_authorized(&self, _ctx: &AuthContext) -> bool {
-            true
+        fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
+            Some(AuthOutcome { username: None })
         }
     }
 

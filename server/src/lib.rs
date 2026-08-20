@@ -5,6 +5,7 @@
 //! additional routes on top of it.
 
 pub mod auth;
+pub mod fs_guard;
 pub mod handlers;
 pub mod metrics;
 pub mod multi;
@@ -15,6 +16,7 @@ mod ssr;
 pub mod state;
 pub mod watcher;
 
+pub use fs_guard::FsGuard;
 pub use router::{build_router, metrics_router};
 pub use state::{ServerState, ServerVersion};
 pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};
@@ -42,6 +44,7 @@ mod test_support {
                 account_managed: false,
                 shell_backend: "local".into(),
                 disable_service_worker: true,
+                sync_protocol_version: 2,
             },
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
@@ -59,6 +62,7 @@ mod test_support {
             runtime: None,
             fs_events: None,
             shutdown: None,
+            fs_guard: Default::default(),
         }
     }
 }

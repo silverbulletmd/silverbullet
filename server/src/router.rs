@@ -34,36 +34,45 @@ where
 
 /// Reject unauthorized requests to protected routes with 401. When no
 /// authorizer is configured the server is open and every request passes.
+/// Either way, inserts an `Extension<Actor>` carrying the verified identity
+/// (if any) so downstream handlers can attribute writes to it.
 async fn require_authorization(
     axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Response {
     let Some(authorizer) = state.authorizer.clone() else {
+        req.extensions_mut().insert(crate::auth::Actor::default());
         return next.run(req).await;
     };
-    let authorized = {
+    let outcome = {
         let ctx = crate::auth::AuthContext {
             method: req.method(),
             path: req.uri().path(),
             query: req.uri().query(),
             headers: req.headers(),
         };
-        authorizer.is_authorized(&ctx)
+        authorizer.authorize(&ctx)
     };
-    if authorized {
-        next.run(req).await
-    } else {
-        // The client's boot code follows this `Location` to the login page; all
-        // protected routes are `/.`-prefixed, hence the 401-with-Location
-        // branch.
-        let location = format!("{}/.auth", state.host_url_prefix);
-        (
-            axum::http::StatusCode::UNAUTHORIZED,
-            [(axum::http::header::LOCATION, location)],
-            "Unauthorized",
-        )
-            .into_response()
+    match outcome {
+        Some(outcome) => {
+            req.extensions_mut().insert(crate::auth::Actor {
+                username: outcome.username,
+            });
+            next.run(req).await
+        }
+        None => {
+            // The client's boot code follows this `Location` to the login page;
+            // all protected routes are `/.`-prefixed, hence the
+            // 401-with-Location branch.
+            let location = format!("{}/.auth", state.host_url_prefix);
+            (
+                axum::http::StatusCode::UNAUTHORIZED,
+                [(axum::http::header::LOCATION, location)],
+                "Unauthorized",
+            )
+                .into_response()
+        }
     }
 }
 
@@ -104,6 +113,10 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         )
         .route("/.fs/{*path}", put(fs::handle_fs_put))
         .route("/.fs/{*path}", delete(fs::handle_fs_delete))
+        .route(
+            "/.fs/{*path}",
+            post(fs::handle_fs_reconcile).layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
+        )
         .route("/.events", get(crate::handlers::events::handle_events))
         .route("/.shell", post(crate::handlers::shell::handle_shell))
         .route("/.proxy/{*path}", any(crate::handlers::proxy::handle_proxy))
@@ -176,7 +189,7 @@ async fn handle_metrics(
 
 #[cfg(test)]
 mod auth_tests {
-    use crate::auth::{AuthContext, RequestAuthorizer};
+    use crate::auth::{Actor, AuthContext, AuthOutcome, RequestAuthorizer};
     use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
@@ -186,8 +199,8 @@ mod auth_tests {
 
     struct Always(bool);
     impl RequestAuthorizer for Always {
-        fn is_authorized(&self, _ctx: &AuthContext) -> bool {
-            self.0
+        fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
+            self.0.then_some(AuthOutcome { username: None })
         }
     }
 
@@ -294,6 +307,89 @@ mod auth_tests {
             .await
             .unwrap();
         assert_eq!(r.status(), StatusCode::OK);
+    }
+
+    /// An authenticated JWT (cookie session) request's verified username
+    /// reaches downstream handlers via `Extension<Actor>`.
+    #[tokio::test]
+    async fn jwt_cookie_session_exposes_username_via_actor_extension() {
+        use crate::auth::authenticator::Authenticator;
+        use crate::auth::JwtAuthorizer;
+        use axum::routing::get;
+        use axum::Extension;
+
+        async fn probe(Extension(actor): Extension<Actor>) -> String {
+            actor.username.unwrap_or_default()
+        }
+
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![5u8; 32], "h".into()));
+        let token = auth.issue_jwt("alice", 3600).unwrap();
+        let authz = JwtAuthorizer::new(auth, "tok".into());
+        let st = state_with(Some(Arc::new(authz)));
+
+        let probe_router = axum::Router::new()
+            .route("/probe", get(probe))
+            .route_layer(axum::middleware::from_fn_with_state(
+                st.clone(),
+                super::require_authorization,
+            ))
+            .with_state(st);
+
+        let resp = probe_router
+            .oneshot(
+                Request::builder()
+                    .uri("/probe")
+                    .header("host", "localhost")
+                    .header("cookie", format!("auth_localhost={token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"alice");
+    }
+
+    /// Bearer-token auth is a valid credential but carries no verified
+    /// identity (constraint 4): `Actor.username` is `None`.
+    #[tokio::test]
+    async fn bearer_token_auth_yields_actor_with_no_username() {
+        use crate::auth::authenticator::Authenticator;
+        use crate::auth::JwtAuthorizer;
+        use axum::routing::get;
+        use axum::Extension;
+
+        async fn probe(Extension(actor): Extension<Actor>) -> StatusCode {
+            assert_eq!(actor.username, None);
+            StatusCode::OK
+        }
+
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![5u8; 32], "h".into()));
+        let authz = JwtAuthorizer::new(auth, "tok".into());
+        let st = state_with(Some(Arc::new(authz)));
+
+        let probe_router = axum::Router::new()
+            .route("/probe", get(probe))
+            .route_layer(axum::middleware::from_fn_with_state(
+                st.clone(),
+                super::require_authorization,
+            ))
+            .with_state(st);
+
+        let resp = probe_router
+            .oneshot(
+                Request::builder()
+                    .uri("/probe")
+                    .header("authorization", "Bearer tok")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     /// Regression guard: every write method on `/.fs`, and even an undeclared

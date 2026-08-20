@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use notify::{Event, EventKind, RecursiveMode, Watcher};
@@ -14,7 +14,9 @@ use serde::Serialize;
 use tokio::sync::broadcast;
 
 use silverbullet_server_common::space::disk::DiskSpacePrimitives;
-use silverbullet_server_common::SpaceError;
+use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
+
+use crate::fs_guard::{ExpectedWrite, FsGuard};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct FsEvent {
@@ -22,6 +24,153 @@ pub struct FsEvent {
     pub action: FsAction,
     #[serde(rename = "lastModified")]
     pub last_modified: i64,
+    /// Content revision, when known. Absent for a change event the guard
+    /// couldn't hash, and for most deletes (see [`enrich_event`]).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<EventRevision>,
+    /// Best-effort attribution, when known. Never load-bearing (constraint 3).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin: Option<EventOrigin>,
+}
+
+impl FsEvent {
+    fn change(name: String, last_modified: i64) -> Self {
+        Self {
+            name,
+            action: FsAction::Change,
+            last_modified,
+            revision: None,
+            origin: None,
+        }
+    }
+
+    fn delete(name: String) -> Self {
+        Self {
+            name,
+            action: FsAction::Delete,
+            last_modified: 0,
+            revision: None,
+            origin: None,
+        }
+    }
+
+    /// The single construction path for a resync event, shared by the
+    /// watcher's flood-control path and the SSE handler's lagged-subscriber
+    /// path so the two can never emit different JSON for the same thing.
+    pub fn resync() -> Self {
+        Self {
+            name: String::new(),
+            action: FsAction::Resync,
+            last_modified: 0,
+            revision: None,
+            origin: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct EventRevision {
+    pub algorithm: String,
+    pub hash: String,
+    pub size: i64,
+    #[serde(rename = "lastModified")]
+    pub last_modified: i64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum EventOriginKind {
+    User,
+    External,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EventOrigin {
+    pub kind: EventOriginKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+}
+
+/// Fill in `revision`/`origin` for a change/delete event, best-effort and
+/// never load-bearing (constraint 3): a hashing error just leaves `revision`
+/// (and `origin`) unset rather than failing or blocking the event.
+///
+/// For a change event, the current content is hashed via `guard.hash_for`
+/// (stat-keyed, so this is cheap on the common case of no other reader having
+/// raced a rehash) and looked up in the expected-write map; a hit means this
+/// process's own write produced the event, a miss means some other process
+/// touched the file.
+///
+/// For a delete, the vanished content can't be rehashed, so attribution falls
+/// back to the freshest expected write recorded for that path (there's
+/// normally at most one live one, since path_lock serializes writes). A
+/// `revision` is only emitted when every field is truthful: the map's
+/// `size`/`last_modified` are `None` unless the recording write handler had
+/// them in hand (`FsGuard::record_expected_write_with_meta`), so a match
+/// lacking them still gets an `origin` but no fabricated `revision`.
+fn enrich_event(
+    mut event: FsEvent,
+    meta: Option<&FileMeta>,
+    guard: &FsGuard,
+    space: &dyn SpacePrimitives,
+) -> FsEvent {
+    match event.action {
+        FsAction::Change => {
+            let Ok(hash) = guard.hash_for(space, &event.name) else {
+                return event;
+            };
+            let size = meta.map(|m| m.size).unwrap_or(0);
+            let last_modified = event.last_modified;
+            event.revision = Some(EventRevision {
+                algorithm: "sha256".to_string(),
+                hash: hash.clone(),
+                size,
+                last_modified,
+            });
+            event.origin = Some(origin_for(guard.lookup_expected_write(&event.name, &hash)));
+        }
+        FsAction::Delete => {
+            if let Some((hash, expected)) = guard.latest_expected_write_for_path(&event.name) {
+                if let (Some(size), Some(last_modified)) = (expected.size, expected.last_modified) {
+                    event.revision = Some(EventRevision {
+                        algorithm: "sha256".to_string(),
+                        hash,
+                        size,
+                        last_modified,
+                    });
+                }
+                event.origin = Some(origin_for(Some(expected)));
+            }
+        }
+        FsAction::Resync => {}
+    }
+    event
+}
+
+/// A map hit is "user" origin regardless of whether the write carried a
+/// verified identity (constraint 3: anonymous auth degrades to an origin with
+/// no `displayName`, not to `external`) -- `external` is reserved for a
+/// write this process never recorded at all.
+fn origin_for(hit: Option<ExpectedWrite>) -> EventOrigin {
+    match hit {
+        Some(expected) => EventOrigin {
+            kind: EventOriginKind::User,
+            display_name: expected.actor,
+            client_id: expected.client_id,
+            source: expected.source,
+        },
+        None => EventOrigin {
+            kind: EventOriginKind::External,
+            display_name: None,
+            client_id: None,
+            source: None,
+        },
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq)]
@@ -84,6 +233,7 @@ pub fn start_watcher(
     root: &Path,
     gitignore: &str,
     mode: WatchMode,
+    fs_guard: Arc<FsGuard>,
 ) -> Option<broadcast::Sender<FsEvent>> {
     if mode == WatchMode::Off {
         return None;
@@ -190,7 +340,7 @@ pub fn start_watcher(
         .spawn(move || {
             // Keep the OS watcher alive for the lifetime of this thread
             let _watcher = watcher;
-            debounce_loop(&root, &validator, raw_rx, weak_out);
+            debounce_loop(&root, &validator, raw_rx, weak_out, &fs_guard);
         })
         .ok()?;
 
@@ -202,6 +352,7 @@ fn debounce_loop(
     validator: &DiskSpacePrimitives,
     rx: mpsc::Receiver<PathBuf>,
     out: broadcast::WeakSender<FsEvent>,
+    guard: &FsGuard,
 ) {
     // Pending space-relative paths, with the time they last fired
     let mut pending: HashMap<String, Instant> = HashMap::new();
@@ -244,16 +395,19 @@ fn debounce_loop(
         // Built once per flush (not per path): cheap enough for a handful of
         // ready paths, same as fetch_file_list rebuilding on every call.
         let gitignore = validator.gitignore_matcher();
-        // Resolve every ready path into the event it would produce *before*
-        // deciding whether this is a flood: otherwise the flood count
-        // includes paths that were never visible over /.fs in the first
-        // place (a whole gitignored directory churning, e.g. node_modules/,
-        // shouldn't be able to trigger a Resync that makes every client
-        // refetch its file list). get_file_meta_if_listable folds in the
-        // same directory/no-extension rules fetch_file_list applies, in one
-        // stat call, so this is exactly the set of events fetch_file_list
-        // would agree exist.
-        let mut events = Vec::new();
+        // Resolve every ready path into the (unenriched) event it would
+        // produce *before* deciding whether this is a flood: otherwise the
+        // flood count includes paths that were never visible over /.fs in
+        // the first place (a whole gitignored directory churning, e.g.
+        // node_modules/, shouldn't be able to trigger a Resync that makes
+        // every client refetch its file list). get_file_meta_if_listable
+        // folds in the same directory/no-extension rules fetch_file_list
+        // applies, in one stat call, so this is exactly the set of events
+        // fetch_file_list would agree exist. Deliberately NOT enriched here:
+        // enrichment hashes file contents (`FsGuard::hash_for`), and a flood
+        // (bulk import, git checkout) must never pay that cost per file only
+        // to discard it all for one Resync -- see `resolved` below.
+        let mut resolved: Vec<(FsEvent, Option<FileMeta>)> = Vec::new();
         for name in ready {
             pending.remove(&name);
             if gitignore.is_ignored(&name, false) {
@@ -266,32 +420,28 @@ fn debounce_loop(
             // before the watch started), so the raw event kind alone is not
             // a reliable signal.
             match validator.get_file_meta_if_listable(&name) {
-                Ok(Some(meta)) => events.push(FsEvent {
-                    name,
-                    action: FsAction::Change,
-                    last_modified: meta.last_modified,
-                }),
+                Ok(Some(meta)) => {
+                    let event = FsEvent::change(name, meta.last_modified);
+                    resolved.push((event, Some(meta)));
+                }
                 Ok(None) => {} // directory, extensionless, or a stale casing: not a space file
-                Err(SpaceError::NotFound) => events.push(FsEvent {
-                    name,
-                    action: FsAction::Delete,
-                    last_modified: 0,
-                }),
+                Err(SpaceError::NotFound) => {
+                    resolved.push((FsEvent::delete(name), None));
+                }
                 Err(_) => {}
             }
         }
-        if events.len() > FLOOD_THRESHOLD {
-            // Flood: tell clients to re-list instead of replaying each event
-            let _ = sender.send(FsEvent {
-                name: String::new(),
-                action: FsAction::Resync,
-                last_modified: 0,
-            });
+        if resolved.len() > FLOOD_THRESHOLD {
+            // Flood: tell clients to re-list instead of replaying each event.
+            // No enrichment (hashing) happened above, so this is cheap
+            // regardless of how many/how large the flooded files are.
+            let _ = sender.send(FsEvent::resync());
             continue;
         }
-        for ev in events {
+        for (event, meta) in resolved {
+            let event = enrich_event(event, meta.as_ref(), guard, validator);
             // Err just means no subscribers; fine
-            let _ = sender.send(ev);
+            let _ = sender.send(event);
         }
     }
 }
@@ -335,9 +485,10 @@ mod tests {
         // broadcast Sender is gone via the WeakSender, not from
         // mpsc::RecvTimeoutError::Disconnected.
         let thread_mpsc_tx = raw_tx.clone();
+        let guard = FsGuard::default();
         let handle = std::thread::spawn(move || {
             let _keep_alive = thread_mpsc_tx;
-            debounce_loop(&root, &validator, raw_rx, weak_out);
+            debounce_loop(&root, &validator, raw_rx, weak_out, &guard);
         });
 
         drop(broadcast_tx);
@@ -356,7 +507,13 @@ mod tests {
     #[tokio::test]
     async fn emits_change_event_for_new_file() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).expect("watcher should start");
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .expect("watcher should start");
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("test.md"), b"hello").unwrap();
         let ev = tokio::time::timeout(Duration::from_secs(3), rx.recv())
@@ -371,7 +528,13 @@ mod tests {
     #[tokio::test]
     async fn ignores_hidden_files() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join(".hidden"), b"x").unwrap();
         let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
@@ -382,7 +545,13 @@ mod tests {
     async fn ignores_gitignored_paths() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("build")).unwrap();
-        let tx = start_watcher(dir.path(), "build/", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "build/",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("build/output.js"), b"x").unwrap();
         let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
@@ -392,7 +561,13 @@ mod tests {
     #[tokio::test]
     async fn ignores_new_directories() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::create_dir(dir.path().join("subdir")).unwrap();
         let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
@@ -402,7 +577,13 @@ mod tests {
     #[tokio::test]
     async fn ignores_extensionless_files() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("Makefile"), b"x").unwrap();
         let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
@@ -414,7 +595,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("gone.md");
         std::fs::write(&p, b"x").unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::remove_file(&p).unwrap();
         // Drain until we see the delete (creation may race in on some platforms)
@@ -441,7 +628,7 @@ mod tests {
         std::os::unix::fs::symlink(real.path(), &link).unwrap();
         // Watch via the symlink; write via the symlink; expect the event to
         // arrive with a correctly-relativized name (canonicalization at work)
-        let tx = start_watcher(&link, "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(&link, "", WatchMode::Auto, Arc::new(FsGuard::default())).unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(link.join("linked.md"), b"via symlink").unwrap();
         let ev = tokio::time::timeout(Duration::from_secs(3), rx.recv())
@@ -468,7 +655,13 @@ mod tests {
         }
         std::fs::write(dir.path().join("Foo.md"), b"x").unwrap();
 
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::rename(dir.path().join("Foo.md"), dir.path().join("foo.md")).unwrap();
 
@@ -499,7 +692,13 @@ mod tests {
     #[tokio::test]
     async fn poll_mode_detects_changes() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Poll).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Poll,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("polled.md"), b"hello").unwrap();
         // Poll interval is ~2s; allow two cycles
@@ -514,13 +713,21 @@ mod tests {
     #[tokio::test]
     async fn off_mode_returns_none() {
         let dir = tempfile::tempdir().unwrap();
-        assert!(start_watcher(dir.path(), "", WatchMode::Off).is_none());
+        assert!(
+            start_watcher(dir.path(), "", WatchMode::Off, Arc::new(FsGuard::default())).is_none()
+        );
     }
 
     #[tokio::test]
     async fn flood_collapses_into_resync() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         for i in 0..40 {
             std::fs::write(dir.path().join(format!("f{i}.md")), b"x").unwrap();
@@ -543,10 +750,54 @@ mod tests {
         }
     }
 
+    /// Pins the ordering fix: enrichment (which hashes file contents via
+    /// `FsGuard::hash_for`) must run only on flushes that survive the flood
+    /// check, never on the flushed-away paths of a flood -- otherwise a bulk
+    /// import would read and hash every file only to discard it all for one
+    /// Resync. A handful of individual (non-flood) events may legitimately
+    /// precede the flood settling, and each of those does call `hash_for`
+    /// once; the call count must never approach the full 40 files.
+    #[tokio::test]
+    async fn flood_does_not_hash_files_before_collapsing_into_resync() {
+        let dir = tempfile::tempdir().unwrap();
+        let guard = Arc::new(FsGuard::default());
+        let tx = start_watcher(dir.path(), "", WatchMode::Auto, guard.clone()).unwrap();
+        let mut rx = tx.subscribe();
+        for i in 0..40 {
+            std::fs::write(dir.path().join(format!("flood{i}.md")), b"x").unwrap();
+        }
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        let mut individual = 0;
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            let ev = tokio::time::timeout(remaining, rx.recv())
+                .await
+                .expect("timed out waiting for resync")
+                .unwrap();
+            if ev.action == FsAction::Resync {
+                break;
+            }
+            individual += 1;
+            assert!(individual < 40, "flood was fully enumerated, no resync");
+        }
+        assert!(
+            guard.hash_for_call_count() <= individual,
+            "flood must not hash files before collapsing into Resync: {} hash_for calls for {} individual events",
+            guard.hash_for_call_count(),
+            individual
+        );
+    }
+
     #[tokio::test]
     async fn coalesces_rapid_writes() {
         let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto).unwrap();
+        let tx = start_watcher(
+            dir.path(),
+            "",
+            WatchMode::Auto,
+            Arc::new(FsGuard::default()),
+        )
+        .unwrap();
         let mut rx = tx.subscribe();
         for i in 0..5 {
             std::fs::write(dir.path().join("burst.md"), format!("v{i}")).unwrap();
@@ -565,5 +816,224 @@ mod tests {
             extra += 1;
         }
         assert!(extra < 4, "expected coalescing, got {extra} extra events");
+    }
+
+    fn memory_space_with(
+        path: &str,
+        content: &[u8],
+    ) -> silverbullet_server_common::space::MemorySpacePrimitives {
+        let space = silverbullet_server_common::space::MemorySpacePrimitives::new();
+        space.write_file(path, content, None).unwrap();
+        space
+    }
+
+    #[test]
+    fn enrich_event_attributes_an_expected_write_as_user_origin() {
+        let space = memory_space_with("a.md", b"hello");
+        let guard = FsGuard::default();
+        let hash = silverbullet_server_common::revision::sha256_hex(b"hello");
+        guard.record_expected_write(
+            "a.md",
+            &hash,
+            Some("alice".into()),
+            Some("client-1".into()),
+            Some("editor".into()),
+        );
+
+        let ev = enrich_event(FsEvent::change("a.md".into(), 123), None, &guard, &space);
+
+        let revision = ev.revision.expect("revision present");
+        assert_eq!(revision.hash, hash);
+        assert_eq!(revision.algorithm, "sha256");
+        let origin = ev.origin.expect("origin present");
+        assert_eq!(origin.kind, EventOriginKind::User);
+        assert_eq!(origin.display_name.as_deref(), Some("alice"));
+        assert_eq!(origin.client_id.as_deref(), Some("client-1"));
+        assert_eq!(origin.source.as_deref(), Some("editor"));
+    }
+
+    #[test]
+    fn enrich_event_change_revision_size_and_last_modified_come_from_the_live_meta() {
+        let space = memory_space_with("a.md", b"hello world");
+        let guard = FsGuard::default();
+        let meta = FileMeta {
+            name: "a.md".into(),
+            created: 100,
+            last_modified: 456,
+            content_type: "text/markdown".into(),
+            size: 11,
+            perm: "rw".into(),
+        };
+
+        let ev = enrich_event(
+            FsEvent::change("a.md".into(), meta.last_modified),
+            Some(&meta),
+            &guard,
+            &space,
+        );
+
+        let revision = ev.revision.expect("revision present");
+        assert_eq!(revision.size, meta.size);
+        assert_eq!(revision.last_modified, meta.last_modified);
+    }
+
+    #[test]
+    fn enrich_event_unexpected_change_is_external_but_still_carries_a_revision() {
+        let space = memory_space_with("a.md", b"hello");
+        let guard = FsGuard::default();
+
+        let ev = enrich_event(FsEvent::change("a.md".into(), 123), None, &guard, &space);
+
+        assert!(ev.revision.is_some(), "revision should still be computed");
+        assert_eq!(ev.origin.unwrap().kind, EventOriginKind::External);
+    }
+
+    #[test]
+    fn enrich_event_anonymous_expected_write_is_user_origin_without_a_display_name() {
+        // constraint 3: anonymous auth (bearer token) degrades to an origin
+        // with no displayName, not to kind="external" -- the write WAS
+        // recognized, it just carries no verified identity.
+        let space = memory_space_with("a.md", b"hello");
+        let guard = FsGuard::default();
+        let hash = silverbullet_server_common::revision::sha256_hex(b"hello");
+        guard.record_expected_write(
+            "a.md",
+            &hash,
+            None,
+            Some("client-1".into()),
+            Some("sync".into()),
+        );
+
+        let ev = enrich_event(FsEvent::change("a.md".into(), 123), None, &guard, &space);
+
+        let origin = ev.origin.expect("origin present");
+        assert_eq!(origin.kind, EventOriginKind::User);
+        assert_eq!(origin.display_name, None);
+        assert_eq!(origin.client_id.as_deref(), Some("client-1"));
+    }
+
+    #[test]
+    fn enrich_event_hash_error_emits_without_revision_or_origin() {
+        // Never load-bearing (constraint 3): a hashing failure (file absent
+        // from `space`) must not block the event, just leave it unenriched.
+        let space = silverbullet_server_common::space::MemorySpacePrimitives::new();
+        let guard = FsGuard::default();
+
+        let ev = enrich_event(
+            FsEvent::change("missing.md".into(), 0),
+            None,
+            &guard,
+            &space,
+        );
+
+        assert!(ev.revision.is_none());
+        assert!(ev.origin.is_none());
+    }
+
+    #[test]
+    fn enrich_event_delete_attributes_via_the_last_expected_write_for_the_path() {
+        let space = silverbullet_server_common::space::MemorySpacePrimitives::new();
+        let guard = FsGuard::default();
+        guard.record_expected_write_with_meta(
+            "gone.md",
+            "deadbeef",
+            Some("alice".into()),
+            None,
+            Some("editor".into()),
+            5,
+            999,
+        );
+
+        let ev = enrich_event(FsEvent::delete("gone.md".into()), None, &guard, &space);
+
+        let revision = ev.revision.expect("revision present for a known delete");
+        assert_eq!(revision.hash, "deadbeef");
+        assert_eq!(revision.size, 5);
+        assert_eq!(revision.last_modified, 999);
+        let origin = ev.origin.expect("origin present");
+        assert_eq!(origin.kind, EventOriginKind::User);
+        assert_eq!(origin.display_name.as_deref(), Some("alice"));
+    }
+
+    #[test]
+    fn enrich_event_delete_without_a_known_size_omits_revision_but_keeps_origin() {
+        // The matched expected write was recorded without meta (e.g. via the
+        // plain `record_expected_write`, not `..._with_meta`): the map can
+        // still attribute WHO, but not a truthful size/lastModified, so
+        // `revision` must stay absent rather than fabricate one.
+        let space = silverbullet_server_common::space::MemorySpacePrimitives::new();
+        let guard = FsGuard::default();
+        guard.record_expected_write(
+            "gone.md",
+            "deadbeef",
+            Some("alice".into()),
+            None,
+            Some("editor".into()),
+        );
+
+        let ev = enrich_event(FsEvent::delete("gone.md".into()), None, &guard, &space);
+
+        assert!(ev.revision.is_none());
+        let origin = ev.origin.expect("origin present");
+        assert_eq!(origin.kind, EventOriginKind::User);
+        assert_eq!(origin.display_name.as_deref(), Some("alice"));
+    }
+
+    #[test]
+    fn enrich_event_delete_with_no_known_hash_carries_no_revision() {
+        let space = silverbullet_server_common::space::MemorySpacePrimitives::new();
+        let guard = FsGuard::default();
+
+        let ev = enrich_event(FsEvent::delete("gone.md".into()), None, &guard, &space);
+
+        assert!(ev.revision.is_none());
+        assert!(ev.origin.is_none());
+    }
+
+    #[test]
+    fn resync_construction_is_byte_compatible_with_the_legacy_literal() {
+        let json = serde_json::to_string(&FsEvent::resync()).unwrap();
+        assert_eq!(json, r#"{"name":"","action":"resync","lastModified":0}"#);
+    }
+
+    #[test]
+    fn fs_event_without_attribution_is_byte_compatible_with_the_legacy_shape() {
+        let ev = FsEvent {
+            name: "a.md".into(),
+            action: FsAction::Change,
+            last_modified: 42,
+            revision: None,
+            origin: None,
+        };
+        assert_eq!(
+            serde_json::to_string(&ev).unwrap(),
+            r#"{"name":"a.md","action":"change","lastModified":42}"#
+        );
+    }
+
+    #[test]
+    fn fs_event_with_attribution_serializes_the_new_optional_fields() {
+        let ev = FsEvent {
+            name: "a.md".into(),
+            action: FsAction::Change,
+            last_modified: 42,
+            revision: Some(EventRevision {
+                algorithm: "sha256".into(),
+                hash: "deadbeef".into(),
+                size: 5,
+                last_modified: 42,
+            }),
+            origin: Some(EventOrigin {
+                kind: EventOriginKind::User,
+                display_name: Some("alice".into()),
+                client_id: Some("client-1".into()),
+                source: Some("editor".into()),
+            }),
+        };
+        let json = serde_json::to_string(&ev).unwrap();
+        assert_eq!(
+            json,
+            r#"{"name":"a.md","action":"change","lastModified":42,"revision":{"algorithm":"sha256","hash":"deadbeef","size":5,"lastModified":42},"origin":{"kind":"user","displayName":"alice","clientId":"client-1","source":"editor"}}"#
+        );
     }
 }

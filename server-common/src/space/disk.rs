@@ -31,6 +31,13 @@ fn is_listable_file(is_dir: bool, relative: &str) -> bool {
     !is_dir && Path::new(relative).extension().is_some()
 }
 
+/// Disambiguates concurrent writers within one process: `DiskSpacePrimitives`
+/// is `Arc`-shared across request handlers, so two same-path writes can be in
+/// flight at once. Without a per-call-unique suffix, both would target the
+/// same temp file and one writer's `fs::write` could truncate the other's
+/// in-progress temp file out from under it.
+static WRITE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 /// Filesystem-backed SpacePrimitives over a space folder on disk.
 pub struct DiskSpacePrimitives {
     root_path: PathBuf,
@@ -365,18 +372,34 @@ impl SpacePrimitives for DiskSpacePrimitives {
                 .map_err(|e| SpaceError::WriteError(format!("{path}: {e}")))?;
         }
 
-        // Write file
-        fs::write(&local_path, data).map_err(|e| SpaceError::WriteError(format!("{path}: {e}")))?;
-
-        // Set modification time if provided
-        if let Some(m) = meta {
-            if m.last_modified > 0 {
-                let mtime = filetime::FileTime::from_unix_time(
-                    m.last_modified / 1000,
-                    ((m.last_modified % 1000) * 1_000_000) as u32,
-                );
-                let _ = filetime::set_file_mtime(&local_path, mtime);
+        // Atomic replace: write a dot-prefixed sibling (invisible to /.fs and
+        // the watcher), stamp its mtime, then rename over the target so no
+        // reader or watcher ever observes a partial file or an mtime flap.
+        let file_name = local_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(|| SpaceError::WriteError(format!("{path}: invalid name")))?;
+        let counter = WRITE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let tmp_path = local_path.with_file_name(format!(
+            ".{file_name}.sb-write-{}-{counter}",
+            std::process::id()
+        ));
+        let write_result = (|| -> std::io::Result<()> {
+            fs::write(&tmp_path, data)?;
+            if let Some(m) = meta {
+                if m.last_modified > 0 {
+                    let mtime = filetime::FileTime::from_unix_time(
+                        m.last_modified / 1000,
+                        ((m.last_modified % 1000) * 1_000_000) as u32,
+                    );
+                    let _ = filetime::set_file_mtime(&tmp_path, mtime);
+                }
             }
+            fs::rename(&tmp_path, &local_path)
+        })();
+        if let Err(e) = write_result {
+            let _ = fs::remove_file(&tmp_path);
+            return Err(SpaceError::WriteError(format!("{path}: {e}")));
         }
 
         self.get_file_meta(path)
@@ -419,20 +442,43 @@ impl SpacePrimitives for DiskSpacePrimitives {
 
 /// Determine MIME type from file extension.
 pub fn lookup_content_type(path: &str) -> String {
-    // Custom mappings (override mime_guess defaults)
     let ext = Path::new(path)
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
 
+    // Merge eligibility treats this table as its sole authority, so the types
+    // it depends on are pinned here rather than left to mime_guess version
+    // drift.
     match ext.as_str() {
         "md" => "text/markdown".to_string(),
-        "heic" | "heif" => "image/heic".to_string(),
+        "lua" => "text/x-lua".to_string(),
         _ => mime_guess::from_path(path)
             .first_or_octet_stream()
             .to_string(),
     }
+}
+
+/// Largest file size, in bytes, eligible for three-way reconciliation.
+pub const MERGE_SIZE_LIMIT: usize = 1_048_576;
+
+/// Whether `path` is a text-ish file under `MERGE_SIZE_LIMIT` and thus a
+/// candidate for three-way reconciliation.
+pub fn is_merge_eligible(path: &str, size: usize) -> bool {
+    if size > MERGE_SIZE_LIMIT {
+        return false;
+    }
+    let ext = Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if matches!(ext.as_str(), "lua" | "yaml" | "yml" | "toml") {
+        return true;
+    }
+    let content_type = lookup_content_type(path);
+    content_type.starts_with("text/") || content_type == "application/json"
 }
 
 /// Check if an IO error is due to invalid filename syntax (e.g., colons on some OSes).
@@ -539,6 +585,32 @@ mod plan_tests {
         let dir = tempdir().unwrap();
         let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
         crate::space::conformance::run_read_write_conformance(&sp);
+    }
+
+    #[test]
+    fn write_is_atomic_and_leaves_no_temp_files() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+        sp.write_file("note.md", b"v1", None).unwrap();
+        let meta = FileMeta {
+            name: "note.md".to_string(),
+            created: 0,
+            last_modified: 1_700_000_000_000,
+            content_type: "text/markdown".to_string(),
+            size: 2,
+            perm: "rw".to_string(),
+        };
+        let written = sp.write_file("note.md", b"v2", Some(&meta)).unwrap();
+        assert_eq!(written.last_modified, 1_700_000_000_000);
+        let (data, _) = sp.read_file("note.md").unwrap();
+        assert_eq!(&data, b"v2");
+        let leftovers: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.contains("sb-write"))
+            .collect();
+        assert!(leftovers.is_empty(), "temp files left: {leftovers:?}");
     }
 
     fn names(sp: &DiskSpacePrimitives) -> Vec<String> {
@@ -765,6 +837,27 @@ mod plan_tests {
                 assert_eq!(sp.read_file("notes/a.md").unwrap().0, b"body");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod merge_eligible_tests {
+    use super::*;
+
+    #[test]
+    fn truth_table() {
+        assert!(is_merge_eligible("a.md", 3));
+        assert!(is_merge_eligible("a.lua", 3));
+        assert!(is_merge_eligible("a.json", 3));
+        assert!(is_merge_eligible("a.yaml", 3));
+        assert!(!is_merge_eligible("a.png", 3));
+        assert!(!is_merge_eligible("a.bin", 3));
+    }
+
+    #[test]
+    fn size_boundary() {
+        assert!(is_merge_eligible("a.md", MERGE_SIZE_LIMIT));
+        assert!(!is_merge_eligible("a.md", MERGE_SIZE_LIMIT + 1));
     }
 }
 

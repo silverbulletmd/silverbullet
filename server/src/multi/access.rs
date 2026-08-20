@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::auth::config::{
     DEFAULT_LOCKOUT_LIMIT, DEFAULT_LOCKOUT_TIME_SECS, DEFAULT_REMEMBER_ME_HOURS,
 };
-use crate::auth::{AuthContext, Credentials, LockoutTimer, RequestAuthorizer};
+use crate::auth::{AuthContext, AuthOutcome, Credentials, LockoutTimer, RequestAuthorizer};
 use crate::multi::users::UserStore;
 
 /// Session policy shared by the `users.json`-backed surfaces
@@ -119,7 +119,7 @@ impl UserTokenAuthorizer {
 }
 
 impl RequestAuthorizer for UserTokenAuthorizer {
-    fn is_authorized(&self, ctx: &AuthContext) -> bool {
+    fn authorize(&self, ctx: &AuthContext) -> Option<AuthOutcome> {
         if let Some(token) = ctx
             .headers
             .get(axum::http::header::AUTHORIZATION)
@@ -127,10 +127,16 @@ impl RequestAuthorizer for UserTokenAuthorizer {
             .and_then(|v| v.strip_prefix("Bearer "))
         {
             if let Some(user) = self.store.resolve_token(token) {
-                return (self.allow)(&user);
+                return if (self.allow)(&user) {
+                    Some(AuthOutcome {
+                        username: Some(user),
+                    })
+                } else {
+                    None
+                };
             }
         }
-        self.inner.is_authorized(ctx)
+        self.inner.authorize(ctx)
     }
 }
 
@@ -225,8 +231,8 @@ mod tests {
 
     struct DenyAll;
     impl RequestAuthorizer for DenyAll {
-        fn is_authorized(&self, _ctx: &AuthContext) -> bool {
-            false
+        fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
+            None
         }
     }
 

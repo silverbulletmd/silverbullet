@@ -1,11 +1,13 @@
 //! `SpacePrimitives` implementations and composition wrappers.
 
 pub mod case;
+pub mod conditional;
 pub mod disk;
 pub mod embed;
 pub mod http;
 pub mod readonly;
 
+pub use conditional::{ConditionalSpacePrimitives, WritePrecondition};
 pub use disk::{DiskSpacePrimitives, GitignoreMatcher};
 pub use embed::{EmptySpacePrimitives, FallthroughSpacePrimitives, ReadOnlyDirSpacePrimitives};
 pub use http::HttpSpacePrimitives;

@@ -1,5 +1,8 @@
 use std::sync::RwLock;
 
+use crate::reconcile::{ReconcileRequest, ReconcileResponse};
+use crate::revision::{etag_for_hash, hash_from_etag};
+use crate::space::conditional::{ConditionalSpacePrimitives, WritePrecondition};
 use crate::types::{FileMeta, SpaceError, SpacePrimitives};
 
 /// How to authenticate HTTP requests to the remote server.
@@ -82,6 +85,8 @@ pub struct HttpSpacePrimitives {
     base_url: String,
     credential: RwLock<Option<AuthCredential>>,
     re_auth: Option<ReAuthInfo>,
+    client_id: Option<String>,
+    source: Option<String>,
 }
 
 impl HttpSpacePrimitives {
@@ -96,7 +101,36 @@ impl HttpSpacePrimitives {
             base_url: base_url.trim_end_matches('/').to_string(),
             credential: RwLock::new(credential),
             re_auth: None,
+            client_id: None,
+            source: None,
         }
+    }
+
+    /// Attach a client id and/or source, sent as `X-Client-Id`/`X-Source` on
+    /// every mutating request (PUT/DELETE/reconcile POST), never on GETs.
+    /// Best-effort attribution only (constraint 3) — never validated
+    /// client-side, since the server tolerates and ignores malformed values.
+    pub fn with_client_headers(
+        mut self,
+        client_id: Option<String>,
+        source: Option<String>,
+    ) -> Self {
+        self.client_id = client_id;
+        self.source = source;
+        self
+    }
+
+    fn apply_client_headers(
+        &self,
+        mut req: reqwest::blocking::RequestBuilder,
+    ) -> reqwest::blocking::RequestBuilder {
+        if let Some(client_id) = &self.client_id {
+            req = req.header("X-Client-Id", client_id);
+        }
+        if let Some(source) = &self.source {
+            req = req.header("X-Source", source);
+        }
+        req
     }
 
     /// Create with re-authentication support for password-based auth.
@@ -122,6 +156,8 @@ impl HttpSpacePrimitives {
                 username: username.to_string(),
                 password: password.to_string(),
             }),
+            client_id: None,
+            source: None,
         }
     }
 
@@ -189,6 +225,13 @@ impl HttpSpacePrimitives {
         }
     }
 
+    fn hash_from_response(headers: &reqwest::header::HeaderMap) -> Option<String> {
+        headers
+            .get(reqwest::header::ETAG)
+            .and_then(|v| v.to_str().ok())
+            .and_then(hash_from_etag)
+    }
+
     /// Check a response status code and return the appropriate error.
     fn check_response_status(status: reqwest::StatusCode, context: &str) -> Result<(), SpaceError> {
         if status.is_success() {
@@ -200,6 +243,7 @@ impl HttpSpacePrimitives {
                 Err(SpaceError::ReadOnly(format!("{context} refused: {status}")))
             }
             reqwest::StatusCode::NOT_FOUND => Err(SpaceError::NotFound),
+            reqwest::StatusCode::PRECONDITION_FAILED => Err(SpaceError::PreconditionFailed),
             _ => Err(SpaceError::WriteError(format!(
                 "{context} failed: {status}"
             ))),
@@ -358,33 +402,7 @@ impl SpacePrimitives for HttpSpacePrimitives {
     }
 
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
-        let resp = self
-            .request(reqwest::Method::GET, path)
-            .header("Accept", "application/octet-stream")
-            .send()
-            .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "read_file") {
-            if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = self
-                    .request(reqwest::Method::GET, path)
-                    .header("Accept", "application/octet-stream")
-                    .send()
-                    .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "read_file")?;
-                let meta = Self::parse_file_meta(path, resp.headers());
-                let data = resp
-                    .bytes()
-                    .map_err(|e| SpaceError::WriteError(e.to_string()))?
-                    .to_vec();
-                return Ok((data, meta));
-            }
-            return Err(e);
-        }
-        let meta = Self::parse_file_meta(path, resp.headers());
-        let data = resp
-            .bytes()
-            .map_err(|e| SpaceError::WriteError(e.to_string()))?
-            .to_vec();
+        let (data, meta, _hash) = self.read_file_with_hash(path)?;
         Ok((data, meta))
     }
 
@@ -394,6 +412,23 @@ impl SpacePrimitives for HttpSpacePrimitives {
         data: &[u8],
         meta: Option<&FileMeta>,
     ) -> Result<FileMeta, SpaceError> {
+        self.write_file_conditional(path, data, meta, None)
+            .map(|(meta, _hash)| meta)
+    }
+
+    fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
+        self.delete_file_conditional(path, None)
+    }
+}
+
+impl ConditionalSpacePrimitives for HttpSpacePrimitives {
+    fn write_file_conditional(
+        &self,
+        path: &str,
+        data: &[u8],
+        meta: Option<&FileMeta>,
+        precondition: Option<WritePrecondition>,
+    ) -> Result<(FileMeta, Option<String>), SpaceError> {
         let build_req = |this: &Self| {
             let mut req = this
                 .request(reqwest::Method::PUT, path)
@@ -404,43 +439,147 @@ impl SpacePrimitives for HttpSpacePrimitives {
                     .header("X-Last-Modified", m.last_modified.to_string())
                     .header("X-Perm", &m.perm);
             }
-            req
+            req = this.apply_client_headers(req);
+            match &precondition {
+                Some(WritePrecondition::MatchesHash(hash)) => {
+                    req.header("If-Match", etag_for_hash(hash))
+                }
+                Some(WritePrecondition::NotExists) => req.header("If-None-Match", "*"),
+                None => req,
+            }
         };
         let resp = build_req(self)
             .body(data.to_vec())
             .send()
             .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "write_file") {
+        if let Err(e) = Self::check_response_status(resp.status(), "write_file_conditional") {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
                 let resp = build_req(self)
                     .body(data.to_vec())
                     .send()
                     .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "write_file")?;
-                return Ok(Self::parse_file_meta(path, resp.headers()));
+                Self::check_response_status(resp.status(), "write_file_conditional")?;
+                let hash = Self::hash_from_response(resp.headers());
+                return Ok((Self::parse_file_meta(path, resp.headers()), hash));
             }
             return Err(e);
         }
-        Ok(Self::parse_file_meta(path, resp.headers()))
+        let hash = Self::hash_from_response(resp.headers());
+        Ok((Self::parse_file_meta(path, resp.headers()), hash))
     }
 
-    fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
-        let resp = self
-            .request(reqwest::Method::DELETE, path)
-            .send()
-            .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "delete_file") {
+    fn delete_file_conditional(
+        &self,
+        path: &str,
+        expected_hash: Option<&str>,
+    ) -> Result<(), SpaceError> {
+        let build_req = |this: &Self| {
+            let req = this.apply_client_headers(this.request(reqwest::Method::DELETE, path));
+            match expected_hash {
+                Some(hash) => req.header("If-Match", etag_for_hash(hash)),
+                None => req,
+            }
+        };
+        let resp = build_req(self).send().map_err(Self::map_error)?;
+        if let Err(e) = Self::check_response_status(resp.status(), "delete_file_conditional") {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = self
-                    .request(reqwest::Method::DELETE, path)
-                    .send()
-                    .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "delete_file")?;
+                let resp = build_req(self).send().map_err(Self::map_error)?;
+                Self::check_response_status(resp.status(), "delete_file_conditional")?;
                 return Ok(());
             }
             return Err(e);
         }
         Ok(())
+    }
+
+    fn read_file_with_hash(
+        &self,
+        path: &str,
+    ) -> Result<(Vec<u8>, FileMeta, Option<String>), SpaceError> {
+        let resp = self
+            .request(reqwest::Method::GET, path)
+            .header("Accept", "application/octet-stream")
+            .send()
+            .map_err(Self::map_error)?;
+        if let Err(e) = Self::check_response_status(resp.status(), "read_file_with_hash") {
+            if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
+                let resp = self
+                    .request(reqwest::Method::GET, path)
+                    .header("Accept", "application/octet-stream")
+                    .send()
+                    .map_err(Self::map_error)?;
+                Self::check_response_status(resp.status(), "read_file_with_hash")?;
+                let meta = Self::parse_file_meta(path, resp.headers());
+                let hash = Self::hash_from_response(resp.headers());
+                let data = resp
+                    .bytes()
+                    .map_err(|e| SpaceError::WriteError(e.to_string()))?
+                    .to_vec();
+                return Ok((data, meta, hash));
+            }
+            return Err(e);
+        }
+        let meta = Self::parse_file_meta(path, resp.headers());
+        let hash = Self::hash_from_response(resp.headers());
+        let data = resp
+            .bytes()
+            .map_err(|e| SpaceError::WriteError(e.to_string()))?
+            .to_vec();
+        Ok((data, meta, hash))
+    }
+
+    fn reconcile(
+        &self,
+        path: &str,
+        request: &ReconcileRequest,
+    ) -> Result<Option<ReconcileResponse>, SpaceError> {
+        let body =
+            serde_json::to_vec(request).map_err(|e| SpaceError::WriteError(e.to_string()))?;
+        let build_req = |this: &Self| {
+            let req = this
+                .request(reqwest::Method::POST, path)
+                .header("Content-Type", "application/json");
+            this.apply_client_headers(req)
+        };
+        let resp = build_req(self)
+            .body(body.clone())
+            .send()
+            .map_err(Self::map_error)?;
+        let status = resp.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED && self.try_reauth() {
+            let resp = build_req(self).body(body).send().map_err(Self::map_error)?;
+            return Self::parse_reconcile_response(resp);
+        }
+        Self::parse_reconcile_response(resp)
+    }
+}
+
+impl HttpSpacePrimitives {
+    fn parse_reconcile_response(
+        resp: reqwest::blocking::Response,
+    ) -> Result<Option<ReconcileResponse>, SpaceError> {
+        match resp.status() {
+            reqwest::StatusCode::OK => {
+                let parsed: ReconcileResponse = resp
+                    .json()
+                    .map_err(|e| SpaceError::WriteError(e.to_string()))?;
+                Ok(Some(parsed))
+            }
+            reqwest::StatusCode::NOT_FOUND | reqwest::StatusCode::METHOD_NOT_ALLOWED => Ok(None),
+            reqwest::StatusCode::CONFLICT | reqwest::StatusCode::PAYLOAD_TOO_LARGE => {
+                Err(SpaceError::ReconcileIneligible)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => Err(SpaceError::Unauthorized),
+            // Only 404/405 mean "no reconciliation endpoint here"; an
+            // unexpected 2xx is an error so the caller falls back this once
+            // instead of latching reconciliation off for the session.
+            status => match Self::check_response_status(status, "reconcile") {
+                Err(e) => Err(e),
+                Ok(()) => Err(SpaceError::WriteError(format!(
+                    "reconcile returned unexpected status: {status}"
+                ))),
+            },
+        }
     }
 }
 

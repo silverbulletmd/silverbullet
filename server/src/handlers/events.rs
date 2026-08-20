@@ -12,13 +12,19 @@ use std::time::Duration;
 
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::response::sse::{Event, Sse};
 use axum::response::{IntoResponse, Response};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::{Stream, StreamExt};
 
 use crate::state::ServerState;
+
+/// Must stay below the clients' 45s realtime-health TTLs, which this is what
+/// refreshes on a quiet stream: `realtimeHealthTtlMs` in
+/// `client/service_worker/sync_engine.ts` and `REALTIME_HEALTH_TTL` in the
+/// App's `src/sync/remote_events.rs`.
+const PING_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Ends `stream` the moment `shutdown` fires (or never, if it's `None`) so a
 /// live `/.events` connection's response body completes on shutdown instead
@@ -51,6 +57,34 @@ impl<Item> Stream for EndOnShutdown<Item> {
     }
 }
 
+/// Emits a named `ping` event whenever `stream` has been idle for
+/// `PING_INTERVAL`. A keep-alive comment would do for the wire, but browser
+/// `EventSource` never surfaces comments, so a client watching a quiet stream
+/// would have no way to tell traffic still flows; a named event is delivered
+/// only to `addEventListener("ping")`, leaving `onmessage` consumers (old
+/// clients included) untouched. Ends exactly when `stream` ends -- a plain
+/// `merge` with an interval stream would never terminate.
+struct WithPing {
+    stream: Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>>,
+    interval: tokio::time::Interval,
+}
+
+impl Stream for WithPing {
+    type Item = Result<Event, Infallible>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.get_mut();
+        if let Poll::Ready(item) = this.stream.as_mut().poll_next(cx) {
+            this.interval.reset();
+            return Poll::Ready(item);
+        }
+        match this.interval.poll_tick(cx) {
+            Poll::Ready(_) => Poll::Ready(Some(Ok(Event::default().event("ping").data("{}")))),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
 async fn wait_for_shutdown(mut shutdown: Option<tokio::sync::watch::Receiver<()>>) {
     match &mut shutdown {
         Some(rx) => {
@@ -70,17 +104,20 @@ pub async fn handle_events(State(state): State<Arc<ServerState>>) -> Response {
                 Event::default().data(serde_json::to_string(&ev).expect("FsEvent serializes")),
             )),
             // Lagged: this consumer overflowed the broadcast buffer and lost
-            // events; hand it a resync instead of losing them silently
-            Err(BroadcastStreamRecvError::Lagged(_)) => Some(Ok(
-                Event::default().data(r#"{"name":"","action":"resync","lastModified":0}"#)
-            )),
+            // events; hand it a resync instead of losing them silently. Built
+            // through the same `FsEvent::resync()` constructor the watcher's
+            // own flood-control path uses, so the two can't diverge.
+            Err(BroadcastStreamRecvError::Lagged(_)) => Some(Ok(Event::default().data(
+                serde_json::to_string(&crate::watcher::FsEvent::resync())
+                    .expect("FsEvent serializes"),
+            ))),
         },
     );
     // Gecko and WebKit leave EventSource at CONNECTING until the first body
     // byte arrives, so without this comment `onopen` waits for the first real
-    // event (or the 30s keep-alive) -- and until it fires the client cannot
-    // tell a dropped connection from an unsupported endpoint, and skips its
-    // reconnect catch-up.
+    // event (or the 30s ping) -- and until it fires the client cannot tell a
+    // dropped connection from an unsupported endpoint, and skips its reconnect
+    // catch-up.
     let stream =
         tokio_stream::once(Ok::<Event, Infallible>(Event::default().comment("open"))).chain(stream);
     let stream = EndOnShutdown {
@@ -88,9 +125,14 @@ pub async fn handle_events(State(state): State<Arc<ServerState>>) -> Response {
         shutdown: Box::pin(wait_for_shutdown(state.shutdown.clone())),
         shutdown_fired: false,
     };
-    Sse::new(stream)
-        .keep_alive(KeepAlive::new().interval(Duration::from_secs(30)))
-        .into_response()
+    let stream = WithPing {
+        stream: Box::pin(stream),
+        interval: tokio::time::interval_at(
+            tokio::time::Instant::now() + PING_INTERVAL,
+            PING_INTERVAL,
+        ),
+    };
+    Sse::new(stream).into_response()
 }
 
 #[cfg(test)]
@@ -131,6 +173,8 @@ mod tests {
                 name: "test.md".to_string(),
                 action: FsAction::Change,
                 last_modified: 42,
+                revision: None,
+                origin: None,
             })
             .unwrap();
             drop(tx); // ends the stream so the body can be collected
@@ -173,6 +217,8 @@ mod tests {
                     name: format!("f{i}.md"),
                     action: FsAction::Change,
                     last_modified: i,
+                    revision: None,
+                    origin: None,
                 })
                 .unwrap();
             }
@@ -211,6 +257,37 @@ mod tests {
             .unwrap();
         let text = String::from_utf8_lossy(&body);
         assert!(text.starts_with(':'), "body was: {text}");
+    }
+
+    /// Browsers cannot observe SSE comments, so a quiet stream must carry a
+    /// named event for the client to see that traffic is still flowing.
+    #[tokio::test(start_paused = true)]
+    async fn quiet_stream_carries_named_ping_events() {
+        use tokio_stream::StreamExt as _;
+
+        let mut state = test_state();
+        let (tx, _keep) = broadcast::channel::<FsEvent>(16);
+        // Held for the whole test: dropping the last sender would end the
+        // stream, and this one is about what a *live* but quiet stream sends.
+        state.fs_events = Some(tx.clone());
+        let app = build_router(Arc::new(state));
+
+        let resp = app
+            .oneshot(Request::get("/.events").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let mut frames = resp.into_body().into_data_stream();
+        let opening = frames.next().await.unwrap().unwrap();
+        assert!(String::from_utf8_lossy(&opening).starts_with(':'));
+
+        let ping = tokio::time::timeout(Duration::from_secs(60), frames.next())
+            .await
+            .expect("no ping arrived on an otherwise quiet stream")
+            .unwrap()
+            .unwrap();
+        assert_eq!(String::from_utf8_lossy(&ping), "event: ping\ndata: {}\n\n");
+        drop(tx);
     }
 
     /// The browser `EventSource` API cannot set an `Authorization` header, so
