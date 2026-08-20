@@ -55,12 +55,12 @@ mod tests {
             base_text: "base".into(),
             proposed_hash: "cd".into(),
             proposed_text: "proposed".into(),
-            source: Some("agent".into()),
+            source: Some("editor".into()),
         };
         let json = serde_json::to_string(&req).unwrap();
         assert_eq!(
             json,
-            r#"{"baseHash":"ab","baseText":"base","proposedHash":"cd","proposedText":"proposed","source":"agent"}"#
+            r#"{"baseHash":"ab","baseText":"base","proposedHash":"cd","proposedText":"proposed","source":"editor"}"#
         );
         let back: ReconcileRequest = serde_json::from_str(&json).unwrap();
         assert_eq!(back.base_hash, "ab");

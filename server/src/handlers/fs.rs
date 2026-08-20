@@ -19,7 +19,7 @@ use crate::state::ServerState;
 
 /// `X-Source` values a mutation may declare (constraint 5); anything else is
 /// ignored rather than rejected, since attribution is never load-bearing.
-const VALID_WRITE_SOURCES: [&str; 4] = ["editor", "sync", "agent", "external"];
+const VALID_WRITE_SOURCES: [&str; 3] = ["editor", "sync", "external"];
 
 /// Opaque client identifier from `X-Client-Id`, or `None` if absent or over
 /// the 64-character limit. Never trusted for identity (constraint 4) --
