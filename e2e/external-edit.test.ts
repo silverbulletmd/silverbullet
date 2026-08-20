@@ -511,3 +511,51 @@ test("reconnect after a genuine server restart refreshes the file list (catch-up
     });
   }
 });
+
+test("a conflict landing on the cursor's line still renders the widget, not raw markers", async ({
+  sbPage,
+  sbServer,
+}) => {
+  const editor = sbPage.locator(".cm-content");
+  await expect(editor).toContainText("Hello world");
+
+  // Cursor on the line that is about to become a conflict hunk.
+  await editor.click();
+  await sbPage.evaluate(() => {
+    (globalThis as any).client.editorView.dispatch({
+      selection: { anchor: 5 },
+    });
+  });
+
+  const h = (c: string) => c.repeat(64);
+  await writeFile(
+    join(sbServer.spaceDir, "index.md"),
+    [
+      `<<<<<<< SB sha256:${h("a")}`,
+      "Hello world one",
+      `||||||| SB BASE sha256:${h("b")}`,
+      "Hello world",
+      "=======",
+      "Hello world two",
+      `>>>>>>> SB sha256:${h("c")}`,
+      "Trailing line",
+      "",
+    ].join("\n"),
+  );
+
+  // The update replaces the cursor's line with the hunk. The widget must
+  // win: the cursor is hopped past the hunk instead of pinning the raw
+  // markers open.
+  await expect(sbPage.locator(".sb-conflict-widget")).toBeVisible({
+    timeout: 5000,
+  });
+  const cursor = await sbPage.evaluate(
+    () => (globalThis as any).client.editorView.state.selection.main.head,
+  );
+  const hunkEnd = await sbPage.evaluate(() =>
+    (globalThis as any).client.editorView.state
+      .sliceDoc()
+      .indexOf("Trailing line"),
+  );
+  expect(cursor).toBeGreaterThanOrEqual(hunkEnd);
+});
