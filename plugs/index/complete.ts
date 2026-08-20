@@ -1,6 +1,6 @@
+import type { Completion } from "@codemirror/autocomplete";
 import { config, index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
-import type { Completion } from "@codemirror/autocomplete";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 export async function attributeCompletion(
@@ -32,6 +32,62 @@ export async function attributeCompletion(
   }
 
   return completions;
+}
+
+const VALUE_STOP_CHARS = `\\s!@$%^&*(),.?":{}|<>\\\\[\\]`;
+
+/**
+ * The prefix typed so far inside a frontmatter key's value, or null when the
+ * cursor isn't there. Covers both shapes a list is written in: inline after
+ * the key (`key: a, b`, `key: [a, b`) and one `- item` per line under it.
+ *
+ * `sigil` is a character a value may be written with but that YAML would
+ * choke on unquoted (`@` on a recipient). It counts as part of the prefix, so
+ * completing replaces it rather than appending after it.
+ */
+export function frontmatterValuePrefix(
+  completeEvent: CompleteEvent,
+  key: string,
+  sigil?: string,
+): string | null {
+  const frontmatterNode = completeEvent.parentNodes.find((n) =>
+    n.startsWith("FrontMatter:"),
+  );
+  if (!frontmatterNode) {
+    return null;
+  }
+
+  const stop = sigil ? VALUE_STOP_CHARS.replace(sigil, "") : VALUE_STOP_CHARS;
+  const inlineMatch = new RegExp(
+    `${key}:\\s+\\[?(?:.*[,\\s]\\s*)?([^${stop}]*)$`,
+  ).exec(completeEvent.linePrefix);
+  if (inlineMatch) {
+    return inlineMatch[1];
+  }
+
+  // A block sequence under a key is as often written flush-left as indented.
+  const listItemMatch = new RegExp(`^\\s*-\\s+([^${stop}]*)$`).exec(
+    completeEvent.linePrefix,
+  );
+  if (!listItemMatch) {
+    return null;
+  }
+
+  // Which key's list is this? The nearest `key:` line above the cursor.
+  const cursorLineText = completeEvent.linePrefix.trimEnd();
+  let inSection = false;
+  for (const line of frontmatterNode
+    .substring("FrontMatter:".length)
+    .split("\n")) {
+    const kvMatch = /^\s*(\w+):/.exec(line);
+    if (kvMatch) {
+      inSection = kvMatch[1] === key;
+    }
+    if (inSection && line.trimEnd() === cursorLineText) {
+      return listItemMatch[1];
+    }
+  }
+  return null;
 }
 
 function humanReadableSchemaType(type: any): string {

@@ -17,7 +17,11 @@ import { indexHeaders } from "./header.ts";
 import { indexItems } from "./item.ts";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { RECIPIENT_PREFIX } from "./recipient.ts";
+import {
+  deriveAliasNickname,
+  parseDeclaredRecipients,
+  RECIPIENT_PREFIX,
+} from "./recipient.ts";
 import { indexRelations } from "./relation.ts";
 import { buildLineIndex, extractSnippet, type LineIndex } from "./snippet.ts";
 import { indexSpaceLua } from "./space_lua.ts";
@@ -129,19 +133,18 @@ function stampRecipients(
   const mentions = objects.filter(
     (o) => o.tag === "relation" && o.kind === "at-mention",
   );
-  const fmList: string[] = Array.isArray(frontmatter.recipients)
-    ? frontmatter.recipients
-    : [];
   const pageTargets = new Set<string>();
-  for (const raw of fmList) {
-    const wikiMatch = /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(String(raw).trim());
+  for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
+    const wikiMatch = /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(entry);
     // A wiki link names a page directly, so it stamps that page; a nickname
     // stamps its recipient: identifier, like an inline @mention would.
     if (wikiMatch) {
       pageTargets.add(wikiMatch[1]);
       continue;
     }
-    pageTargets.add(RECIPIENT_PREFIX + String(raw).trim().toLowerCase());
+    pageTargets.add(
+      RECIPIENT_PREFIX + deriveAliasNickname(entry).toLowerCase(),
+    );
   }
   const byHost = new Map<string, Set<string>>();
   for (const m of mentions) {

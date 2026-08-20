@@ -670,3 +670,46 @@ test("a frontmatter recipients wikilink stays a page relation", async () => {
   expect(page.range).toBeDefined();
   expect(declared.filter((o) => o.toTag === "recipient").length).toBe(1);
 });
+
+test("a recipients declaration is summarised by the page's opening line", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("Team/Operations", "");
+  const text = [
+    "---",
+    "recipients:",
+    "- zef",
+    '- "[[Team/Operations]]"',
+    "---",
+    "",
+    "Please review the launch plan",
+    "before Friday.",
+    "",
+    "A second paragraph.",
+  ].join("\n");
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Handoff"), fm, tree, text);
+  const declared = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "recipients",
+  );
+  expect(declared.length).toBe(2);
+  // Both forms: the frontmatter line a declaration was written on says
+  // nothing about the page it addresses.
+  for (const d of declared) {
+    expect(d.snippet).toBe("Please review the launch plan");
+  }
+});
+
+test("a recipients declaration on a page with no paragraph has no snippet", async () => {
+  createMockSystem();
+  const text = ["---", "recipients:", "- zef", "---", "# Just a heading"].join(
+    "\n",
+  );
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Bare"), fm, tree, text);
+  const declared = objects.find(
+    (o) => o.tag === "relation" && o.kind === "recipients",
+  )!;
+  expect(declared.snippet).toBeUndefined();
+});

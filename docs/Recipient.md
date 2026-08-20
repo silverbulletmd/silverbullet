@@ -46,7 +46,7 @@ The Mention Inbox is a sidebar view listing open `@mention`s, grouped by page. O
 
 If the page changed since it was last indexed, these actions leave the text untouched and show a notification instead of risking a bad edit.
 
-Recipients declared in `recipients:` frontmatter (see below) are listed too, under their page and marked with an `@` icon. They address the whole page rather than a spot in it, so they carry none of the three actions above — selecting one just opens the page.
+Recipients declared in `recipients:` frontmatter (see below) are listed too, under their page and marked with an `@` icon. Such a declaration addresses the whole page rather than a spot in it, so the row shows the page's opening line, with the recipient it names as a chip beside it, and it carries none of the three actions above — selecting one just opens the page.
 
 # The `recipients` attribute
 Every mention also sets a `recipients` attribute onto the object that hosts it. It holds identifiers in either of two forms: a `recipient:` identifier for a nickname, and a plain page name where a page was named directly (see the frontmatter form below).
@@ -60,6 +60,16 @@ Inline `@mentions` always stamp the `recipient:` form, since a mention is a nick
 recipients: ["petesmith", "[[Team/Operations]]"]
 ---
 ```
+
+Like `tags`, the value can also be written as a plain string, cut on whitespace — one recipient each — and a leading `@` is optional either way:
+
+```yaml
+---
+recipients: petesmith sales
+---
+```
+
+Autocomplete covers both halves: `recipients` is offered as an attribute name, and every known recipient is offered as a value. Note that an **unquoted `@` is a YAML syntax error** (the same trap `#` is for tags), so write `"@petesmith"` if you want to keep the sigil — completing a value drops it for you.
 
 A declared nickname counts as a mention of that recipient everywhere else too: it makes the nickname a known recipient for autocomplete, and it shows up in the Mention Inbox's recipient dropdown.
 

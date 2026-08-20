@@ -8,6 +8,7 @@ import {
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { frontmatterValuePrefix } from "./complete.ts";
 
 export const RECIPIENT_PREFIX = "recipient:";
 
@@ -29,6 +30,26 @@ export function deriveNickname(pageName: string): string {
  * isn't a page path the way a page name is. */
 export function deriveAliasNickname(alias: string): string {
   return alias.replaceAll(" ", "");
+}
+
+// One entry of a `recipients:` frontmatter value: a wikilink (kept whole, so
+// a page name with spaces survives) or a run of non-space characters.
+const declaredRecipientRegex = /\[\[[^\]]*\]\]|\S+/g;
+
+/** The entries of a `recipients:` frontmatter value. A list gives one entry
+ * per item; a plain string is cut on whitespace, so `recipients: zef sales`
+ * names two. A leading `@` is optional either way, the way a leading `#` is
+ * on a tag. */
+export function parseDeclaredRecipients(value: unknown): string[] {
+  const entries =
+    typeof value === "string"
+      ? (value.match(declaredRecipientRegex) ?? [])
+      : Array.isArray(value)
+        ? value.map((entry) => String(entry))
+        : [];
+  return entries
+    .map((entry) => entry.trim().replace(/^@/, ""))
+    .filter((entry) => entry !== "");
 }
 
 export function buildRecipientRegistry(
@@ -174,6 +195,11 @@ export async function listRecipients(): Promise<RecipientListing[]> {
 }
 
 export async function atMentionComplete(completeEvent: CompleteEvent) {
+  // Frontmatter is YAML, where an unquoted `@` is a syntax error rather than
+  // a mention: `recipients:` has its own completion there.
+  if (completeEvent.parentNodes.some((n) => n.startsWith("FrontMatter:"))) {
+    return null;
+  }
   const match = /(?:^|[\s([{])@([^\s@]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
@@ -190,6 +216,39 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
   }
   return {
     from: completeEvent.pos - match[1].length,
+    options,
+  };
+}
+
+/** Recipient completion inside a `recipients:` frontmatter value, the
+ * counterpart of `@mention` completion in the body. A typed `@` is part of
+ * the prefix and so is replaced: unquoted, it is a YAML syntax error. */
+export async function frontmatterRecipientComplete(
+  completeEvent: CompleteEvent,
+) {
+  const prefix = frontmatterValuePrefix(completeEvent, "recipients", "@");
+  if (prefix === null) {
+    return null;
+  }
+  // The `@` is inside the replaced range, so CodeMirror's own filter would
+  // measure `@ze` against a bare `zef` and reject it: the matching is ours.
+  const typed = prefix.replace(/^@/, "").toLowerCase();
+  const options: Completion[] = [];
+  for (const entry of await listRecipients()) {
+    for (const nickname of entry.nicknames) {
+      if (!nickname.toLowerCase().includes(typed)) {
+        continue;
+      }
+      options.push({
+        label: nickname,
+        type: "at-mention",
+        detail: entry.target,
+      });
+    }
+  }
+  return {
+    from: completeEvent.pos - prefix.length,
+    filter: false,
     options,
   };
 }

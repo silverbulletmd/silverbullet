@@ -5,7 +5,9 @@ import {
   buildRecipientRegistry,
   deriveAliasNickname,
   deriveNickname,
+  frontmatterRecipientComplete,
   listRecipients,
+  parseDeclaredRecipients,
   resolveRecipient,
   spliceAtMention,
 } from "./recipient.ts";
@@ -403,3 +405,109 @@ test("a frontmatter-declared nickname is a known recipient", async () => {
   expect(listing.map((r) => r.nickname)).toEqual(["sales"]);
   expect(listing[0].target).toBe("recipient:sales");
 });
+
+test("parseDeclaredRecipients accepts a list, a plain string, and @ notation", () => {
+  expect(parseDeclaredRecipients(["zef", "Pete Smith"])).toEqual([
+    "zef",
+    "Pete Smith",
+  ]);
+  // A plain string is cut on whitespace: one recipient each, like tags
+  expect(parseDeclaredRecipients("zef sales")).toEqual(["zef", "sales"]);
+  expect(parseDeclaredRecipients("@zef @sales")).toEqual(["zef", "sales"]);
+  expect(parseDeclaredRecipients(["@zef"])).toEqual(["zef"]);
+  // A wikilink survives the cut whole, spaces and all
+  expect(parseDeclaredRecipients("[[Team/Ops Squad]] zef")).toEqual([
+    "[[Team/Ops Squad]]",
+    "zef",
+  ]);
+  expect(parseDeclaredRecipients("  ")).toEqual([]);
+  expect(parseDeclaredRecipients(undefined)).toEqual([]);
+});
+
+function frontmatterCompleteEvent(linePrefix: string, fmContent: string) {
+  return {
+    linePrefix,
+    pos: linePrefix.length,
+    pageName: "TestPage",
+    parentNodes: [`FrontMatter:${fmContent}`],
+  } as any;
+}
+
+test("frontmatterRecipientComplete offers nicknames inside a recipients value", async () => {
+  createMockSystem();
+  await indexRecipientPage("People/Pete Smith", ["pete"]);
+
+  const inline = await frontmatterRecipientComplete(
+    frontmatterCompleteEvent("recipients: ", "recipients: "),
+  );
+  expect(inline!.options.map((o: any) => o.label).sort()).toEqual([
+    "PeteSmith",
+    "pete",
+  ]);
+  expect(inline!.from).toBe("recipients: ".length);
+
+  // A typed @ is part of the prefix, so completing replaces it: unquoted, an
+  // @ is a YAML syntax error. Matching it against the bare nicknames is ours
+  // to do, since the @ would fail CodeMirror's own filter.
+  const afterAt = await frontmatterRecipientComplete(
+    frontmatterCompleteEvent("recipients: @pe", "recipients: @pe"),
+  );
+  expect(afterAt!.from).toBe("recipients: ".length);
+  expect(afterAt!.filter).toBe(false);
+  expect(afterAt!.options.map((o: any) => o.label).sort()).toEqual([
+    "PeteSmith",
+    "pete",
+  ]);
+  // ...and a prefix matching nothing offers nothing
+  const noMatch = await frontmatterRecipientComplete(
+    frontmatterCompleteEvent("recipients: @zzz", "recipients: @zzz"),
+  );
+  expect(noMatch!.options).toEqual([]);
+
+  // The list form, one `- item` per line under the key
+  const listForm = await frontmatterRecipientComplete(
+    frontmatterCompleteEvent("- pe", "recipients:\n- pe"),
+  );
+  expect(listForm!.from).toBe("- ".length);
+
+  // A list under some other key is not a recipients list
+  expect(
+    await frontmatterRecipientComplete(
+      frontmatterCompleteEvent("- pe", "aliases:\n- pe"),
+    ),
+  ).toBeNull();
+
+  // Outside frontmatter entirely
+  expect(
+    await frontmatterRecipientComplete({
+      linePrefix: "recipients: ",
+      pos: 12,
+      pageName: "TestPage",
+      parentNodes: [],
+    } as any),
+  ).toBeNull();
+});
+
+test("atMentionComplete stays out of frontmatter", async () => {
+  createMockSystem();
+  await indexRecipientPage("People/Pete Smith", ["pete"]);
+  const inBody = await atMentionComplete(
+    makeCompleteEvent("Talked to @pe") as any,
+  );
+  expect(inBody!.options.length).toBeGreaterThan(0);
+  // Same line prefix, but inside frontmatter: recipients: owns the @ there
+  expect(
+    await atMentionComplete(
+      frontmatterCompleteEvent("recipients: @pe", "recipients: @pe"),
+    ),
+  ).toBeNull();
+});
+
+function makeCompleteEvent(linePrefix: string) {
+  return {
+    linePrefix,
+    pos: linePrefix.length,
+    pageName: "TestPage",
+    parentNodes: [],
+  };
+}

@@ -14,7 +14,8 @@ const mockRecipientRegistry: RecipientRegistry = {
   ambiguous: new Set(["pete"]),
 };
 
-vi.mock("./recipient.ts", () => ({
+vi.mock("./recipient.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./recipient.ts")>()),
   fetchRecipientRegistry: vi.fn(async () => mockRecipientRegistry),
 }));
 

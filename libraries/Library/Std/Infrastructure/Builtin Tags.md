@@ -64,6 +64,14 @@ tag.define {
         items = schema.string(),
         nullable = true,
       },
+      recipients = {
+        description = "Who this page is for: nicknames or [[wiki links]]",
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+        nullable = true,
+      },
       created = readOnlyType("string"),
       contentType = readOnlyType("string"),
       size = readOnlyType("number"),

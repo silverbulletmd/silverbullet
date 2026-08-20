@@ -1,4 +1,4 @@
-import type { FrontMatter } from "./frontmatter.ts";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesOfType,
   findParentMatching,
@@ -6,14 +6,15 @@ import {
   replaceNodesMatching,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex } from "../../client/markdown_parser/constants.ts";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
-import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
+import { frontmatterValuePrefix } from "./complete.ts";
+import type { FrontMatter } from "./frontmatter.ts";
 
 export type TagObject = ObjectValue<{
   name: string;
@@ -133,56 +134,9 @@ export async function tagComplete(completeEvent: CompleteEvent) {
 }
 
 export async function frontmatterTagComplete(completeEvent: CompleteEvent) {
-  // Only trigger inside frontmatter
-  const frontmatterNode = completeEvent.parentNodes.find((n) =>
-    n.startsWith("FrontMatter:"),
-  );
-  if (!frontmatterNode) {
+  const prefix = frontmatterValuePrefix(completeEvent, "tags");
+  if (prefix === null) {
     return null;
-  }
-
-  const fmContent = frontmatterNode.substring("FrontMatter:".length);
-
-  // Determine if the cursor line is within a tags section
-  // Pattern 1: tags: value or tags: [v1, v2, partial (comma or space separated)
-  const tagsLineMatch =
-    /tags:\s+\[?(?:.*[,\s]\s*)?([^\s!@$%^&*(),.?":{}|<>\\[\]]*)$/.exec(
-      completeEvent.linePrefix,
-    );
-
-  let prefix = "";
-  if (tagsLineMatch) {
-    prefix = tagsLineMatch[1];
-  } else {
-    // Pattern 2: list item under a tags: key (e.g. "  - partial")
-    const listItemMatch = /^\s+-\s+([^\s!@$%^&*(),.?":{}|<>\\[\]]*)$/.exec(
-      completeEvent.linePrefix,
-    );
-    if (!listItemMatch) {
-      return null;
-    }
-
-    // Check if this list item is under the tags: key using cheap YAML parsing
-    const lines = fmContent.split("\n");
-    const cursorLineText = completeEvent.linePrefix;
-    let inTagsSection = false;
-    let foundCursorInTags = false;
-
-    for (const line of lines) {
-      const kvMatch = /^\s*(\w+):/.exec(line);
-      if (kvMatch) {
-        inTagsSection = kvMatch[1] === "tags";
-      }
-      if (inTagsSection && line.trimEnd() === cursorLineText.trimEnd()) {
-        foundCursorInTags = true;
-        break;
-      }
-    }
-
-    if (!foundCursorInTags) {
-      return null;
-    }
-    prefix = listItemMatch[1];
   }
 
   const allTags: string[] = await index.queryLuaObjects<string>(

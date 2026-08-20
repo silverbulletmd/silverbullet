@@ -135,6 +135,11 @@ functions:
     events:
       - editor:complete
 
+  frontmatterRecipientComplete:
+    path: recipient.ts:frontmatterRecipientComplete
+    events:
+      - editor:complete
+
   frontmatterComplete:
     path: frontmatter.ts:frontmatterComplete
     events:

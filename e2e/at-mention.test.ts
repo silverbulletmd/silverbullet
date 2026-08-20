@@ -341,10 +341,16 @@ test("a frontmatter-declared recipient is listed without mention actions", async
   ).toBeVisible({ timeout: 20_000 });
 
   // Handoff.md never says "@pete" in its body: the declaration alone puts it
-  // in the inbox, grouped with Pete's inline mentions.
+  // in the inbox, grouped with Pete's inline mentions, and the row is shown
+  // by the page's opening line rather than by the nickname.
   await dropdown.selectOption({ label: "PeteSmith" });
-  const declaredRow = inbox.locator(".sb-nav-row", { hasText: /^@pete$/ });
+  const declaredRow = inbox.locator(".sb-nav-row", {
+    hasText: "The whole page is for Pete.",
+  });
   await expect(declaredRow).toBeVisible();
+  // Which recipient it names rides along as a chip: two declarations on one
+  // page share the opening line and would otherwise read as the same row.
+  await expect(declaredRow.locator(".sb-nav-chip")).toHaveText("@pete");
 
   // It addresses the whole page, so there is no `@nickname` span to rewrite
   // and none of the three mention actions are offered.

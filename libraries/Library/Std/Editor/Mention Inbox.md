@@ -74,10 +74,12 @@ local function inboxRows()
     from index.relations "recipients"
   ]]
   for _, d in ipairs(declared) do
-    local label = d.alias and ("@" .. d.alias) or d.to
+    local recipient = d.alias and ("@" .. d.alias) or d.to
+    local label = d.snippet or recipient
     table.insert(rows, {
       name = d.page .. SEP .. label .. "\30" .. d.ref,
       snippet = label,
+      recipient = recipient,
       ref = d.page,
       page = d.page,
       target = pageByMention[d.to] or d.to,
@@ -110,6 +112,11 @@ navigator.define {
       -- here carries the uniquifying range suffix).
       label = function(obj)
         return obj.snippet
+      end,
+      decorations = function(obj)
+        if obj.declared then
+          return { { text = obj.recipient, position = "right" } }
+        end
       end,
       icon = function(obj)
         if obj.isFolder then

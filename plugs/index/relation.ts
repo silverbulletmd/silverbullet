@@ -11,6 +11,7 @@ import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
+  findParentMatching,
   type ParseTree,
   renderToText,
   traverseTree,
@@ -26,7 +27,11 @@ import {
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { deriveAliasNickname, RECIPIENT_PREFIX } from "./recipient.ts";
+import {
+  deriveAliasNickname,
+  parseDeclaredRecipients,
+  RECIPIENT_PREFIX,
+} from "./recipient.ts";
 import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
@@ -442,7 +447,37 @@ export async function indexRelations(
 
   emitDeclaredRecipients(ctx, frontmatter);
 
+  // A `recipients:` declaration addresses the whole page, so the frontmatter
+  // line it happens to be written on identifies nothing. Every form of it —
+  // nickname or wikilink — is shown by the page's opening line instead.
+  const summary = firstParagraphSnippet(ctx, tree);
+  if (summary) {
+    for (const rec of ctx.out) {
+      if (rec.kind === "recipients") {
+        rec.snippet = summary;
+      }
+    }
+  }
+
   return ctx.out;
+}
+
+/** The page's first top-level paragraph, snippet-truncated. */
+function firstParagraphSnippet(
+  ctx: EmitCtx,
+  tree: ParseTree,
+): string | undefined {
+  let first: ParseTree | undefined;
+  traverseTree(tree, (n) => {
+    if (first) return true;
+    if (n.type !== "Paragraph") return false;
+    if (findParentMatching(n, (p) => p.type === "ListItem")) return true;
+    first = n;
+    return true;
+  });
+  return first
+    ? extractSnippet(ctx.pageMeta.name, ctx.lineIndex, first.from!)
+    : undefined;
 }
 
 /**
@@ -455,9 +490,7 @@ export async function indexRelations(
  * to rewrite, so nothing downstream may treat them as an editable span.
  */
 function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
-  if (!Array.isArray(frontmatter.recipients)) return;
-  for (const raw of frontmatter.recipients) {
-    const entry = String(raw).trim();
+  for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
     wikiLinkRegex.lastIndex = 0;
     if (wikiLinkRegex.exec(entry)) continue;
     const nickname = deriveAliasNickname(entry);
