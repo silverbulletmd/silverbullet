@@ -1,4 +1,4 @@
-import type { Command } from "./command.ts";
+import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   FilterOption,
   Notification,
@@ -9,8 +9,8 @@ import type {
   DocumentMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SyncStatus } from "../spaces/sync.ts";
+import type { Command } from "./command.ts";
 
 export type PanelSlot = "lhs" | "rhs" | "bhs" | "modal";
 
@@ -172,6 +172,7 @@ export type BootConfig = {
   enableClientEncryption: boolean;
   accountManaged?: boolean;
   disableServiceWorker?: boolean;
+  syncProtocolVersion?: number;
 };
 
 /**
@@ -185,11 +186,20 @@ export type ServiceWorkerTargetMessage =
   | { type: "flush-cache" }
   | { type: "shutdown" }
   | { type: "wipe-data" }
-  | { type: "perform-file-sync"; path: string }
+  | {
+      type: "perform-file-sync";
+      path: string;
+      remoteLastModified?: number;
+      remoteRevisionHash?: string;
+    }
   | { type: "perform-space-sync" }
+  | { type: "declare-divergent-base"; path: string; baseText: string }
+  | { type: "realtime-status"; connected: boolean }
   | { type: "force-connection-status"; enabled: boolean }
   | { type: "get-encryption-key" }
-  | { type: "set-encryption-key"; key: string };
+  | { type: "set-encryption-key"; key: string }
+  | { type: "list-safety" }
+  | { type: "get-safety"; hash: string };
 /**
  * Events received from the service worker -> client
  */
@@ -200,6 +210,10 @@ export type ServiceWorkerSourceMessage =
     }
   | {
       type: "sync-conflict";
+      path: string;
+    }
+  | {
+      type: "suppressed-deletion";
       path: string;
     }
   | {
@@ -241,4 +255,32 @@ export type ServiceWorkerSourceMessage =
   | {
       type: "server-version";
       serverVersion: string;
+    }
+  | {
+      type: "safety-list";
+      entries: { hash: string; size: number; ts: number; binary: boolean }[];
+    }
+  | {
+      type: "safety-content";
+      hash: string;
+      data: Uint8Array | null;
     };
+
+export function syncMessageNotification(
+  msg: ServiceWorkerSourceMessage,
+): { style: "error" | "info"; text: string } | null {
+  switch (msg.type) {
+    case "sync-conflict":
+      return {
+        style: "error",
+        text: `Sync conflict in ${msg.path} — open the page to resolve`,
+      };
+    case "suppressed-deletion":
+      return {
+        style: "info",
+        text: `Deletion of ${msg.path} was suppressed — it was edited elsewhere`,
+      };
+    default:
+      return null;
+  }
+}

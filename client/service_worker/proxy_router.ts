@@ -1,15 +1,15 @@
-import { fsEndpoint } from "../spaces/constants.ts";
-import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-import type { SpacePrimitives } from "../spaces/space_primitives.ts";
-import { fileMetaToHeaders, headersToFileMeta } from "../lib/util.ts";
 import {
   isNetworkError,
   notFoundError,
   offlineError,
   pingInterval,
 } from "@silverbulletmd/silverbullet/constants";
-import type { SyncEngine } from "./sync_engine.ts";
+import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
+import { fileMetaToHeaders, headersToFileMeta } from "../lib/util.ts";
 import { EventEmitter } from "../plugos/event.ts";
+import { fsEndpoint } from "../spaces/constants.ts";
+import type { SpacePrimitives } from "../spaces/space_primitives.ts";
+import type { SyncEngine } from "./sync_engine.ts";
 
 // The server surfaces every space carries under its own base path. This worker
 // can answer exactly two of them for its OWN space — `.client` from the
@@ -420,30 +420,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           // Note: there are going to be many cases where no meta is supplied in the request, this is ok, in that case this argument will be undefined
           headersToFileMeta(path, request.headers),
         );
-        // Attempt immediate sync
-        try {
-          const operations = await this.syncEngine.syncSingleFile(path);
-          if (operations === -1) {
-            console.info("File sync delayed for", path);
-            // Sync was in progress, will sync later
-            return new Response("Delayed", {
-              status: 202,
-              headers: fileMetaToHeaders(meta),
-            });
-          }
-        } catch (e: any) {
-          console.error(
-            "File sync delayed for",
-            path,
-            "due to error",
-            e.message,
-          );
-          // Sync failed (could be offline or other reason)
-          return new Response(e.message, {
-            status: 202,
-            headers: fileMetaToHeaders(meta),
-          });
-        }
+        this.syncEngine.requestFileSync(path, { type: "local" });
 
         return new Response("OK", {
           status: 200,

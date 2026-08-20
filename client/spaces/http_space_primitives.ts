@@ -10,8 +10,56 @@ import {
   wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
 import { headersToFileMeta } from "../lib/util.ts";
+import { etagForHash, hashFromEtag } from "./revision.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
+
+export type WritePrecondition =
+  | { type: "matchesHash"; hash: string }
+  | { type: "notExists" };
+
+export class PreconditionFailedError extends Error {}
+
+export type ReconcileRequest = {
+  baseHash: string;
+  baseText: string;
+  proposedHash: string;
+  proposedText: string;
+  source?: string;
+};
+
+export type ReconcileRevision = {
+  algorithm: string;
+  hash: string;
+  size: number;
+  lastModified: number;
+};
+
+export type ReconcileResponse =
+  | {
+      status: "applied" | "merged" | "conflicted";
+      revision: ReconcileRevision;
+      text: string;
+    }
+  | { status: "retry"; revision: ReconcileRevision };
+
+export class ReconcileIneligibleError extends Error {}
+
+export function parseReconcileResponse(
+  status: number,
+  body: unknown,
+): ReconcileResponse | null {
+  if (status === 404 || status === 405) {
+    return null;
+  }
+  if (status === 409 || status === 413) {
+    throw new ReconcileIneligibleError(`Reconcile ineligible: ${status}`);
+  }
+  if (status !== 200) {
+    throw new Error(`Failed to reconcile: ${status}`);
+  }
+  return body as ReconcileResponse;
+}
 
 // WebKit (Safari, WKWebView) strips custom response headers (X-Last-Modified,
 // etc.) when it recognizes a file extension in the URL. Encoding the last dot
@@ -50,7 +98,18 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     readonly expectedSpacePath: string,
     private authErrorCallback: (message: string, ...args: any[]) => void,
     private bearerToken?: string,
+    // Best-effort attribution (never load-bearing): sent as X-Client-Id/
+    // X-Source on mutating requests only (PUT/DELETE/reconcile), never GETs.
+    private clientId?: string,
+    private source?: string,
   ) {}
+
+  private clientHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (this.clientId) headers["X-Client-Id"] = this.clientId;
+    if (this.source) headers["X-Source"] = this.source;
+    return headers;
+  }
 
   public async authenticatedFetch(
     url: string,
@@ -179,6 +238,13 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    const { data, meta } = await this.readFileWithHash(path);
+    return { data, meta };
+  }
+
+  async readFileWithHash(
+    path: string,
+  ): Promise<{ data: Uint8Array; meta: FileMeta; remoteHash?: string }> {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodePageURI(path)}`,
       {
@@ -195,6 +261,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return {
       data: new Uint8Array(await res.arrayBuffer()),
       meta: headersToFileMeta(path, res.headers)!,
+      remoteHash: hashFromEtag(res.headers.get("ETag")),
     };
   }
 
@@ -203,13 +270,35 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     data: Uint8Array,
     meta?: FileMeta,
   ): Promise<FileMeta> {
+    const { meta: resultMeta } = await this.writeFileConditional(
+      path,
+      data,
+      meta,
+    );
+    return resultMeta;
+  }
+
+  async writeFileConditional(
+    path: string,
+    data: Uint8Array,
+    meta?: FileMeta,
+    precondition?: WritePrecondition,
+  ): Promise<{ meta: FileMeta; remoteHash?: string }> {
     const headers: Record<string, string> = {
       "Content-Type": "application/octet-stream",
+      ...this.clientHeaders(),
     };
     if (meta) {
       headers["X-Created"] = `${meta.created}`;
       headers["X-Last-Modified"] = `${meta.lastModified}`;
       headers["X-Perm"] = `${meta.perm}`;
+    }
+    if (precondition) {
+      if (precondition.type === "matchesHash") {
+        headers["If-Match"] = etagForHash(precondition.hash);
+      } else {
+        headers["If-None-Match"] = "*";
+      }
     }
 
     const res = await this.authenticatedFetch(
@@ -222,16 +311,56 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
       0, // No timeout for uploads — transfer time depends on file size and connection speed
     );
-    return headersToFileMeta(path, res.headers)!;
+    if (res.status === 412) {
+      throw new PreconditionFailedError(`Precondition failed for ${path}`);
+    }
+    return {
+      meta: headersToFileMeta(path, res.headers)!,
+      remoteHash: hashFromEtag(res.headers.get("ETag")),
+    };
+  }
+
+  async reconcile(
+    path: string,
+    req: ReconcileRequest,
+  ): Promise<ReconcileResponse | null> {
+    const res = await this.authenticatedFetch(
+      `${this.url}/${encodePageURI(path)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...this.clientHeaders(),
+        },
+        body: JSON.stringify(req),
+      },
+    );
+    const body = res.status === 200 ? await res.json() : undefined;
+    return parseReconcileResponse(res.status, body);
   }
 
   async deleteFile(path: string): Promise<void> {
+    await this.deleteFileConditional(path);
+  }
+
+  async deleteFileConditional(
+    path: string,
+    expectedHash?: string,
+  ): Promise<void> {
+    const headers: Record<string, string> = { ...this.clientHeaders() };
+    if (expectedHash !== undefined) {
+      headers["If-Match"] = etagForHash(expectedHash);
+    }
     const req = await this.authenticatedFetch(
       `${this.url}/${encodePageURI(path)}`,
       {
         method: "DELETE",
+        headers,
       },
     );
+    if (req.status === 412) {
+      throw new PreconditionFailedError(`Precondition failed for ${path}`);
+    }
     if (req.status !== 200) {
       throw Error(`Failed to delete file: ${req.statusText}`);
     }

@@ -1,5 +1,5 @@
-import type { SysCallMapping } from "../system.ts";
 import type { Client } from "../../client.ts";
+import type { SysCallMapping } from "../system.ts";
 
 export function syncSyscalls(client: Client): SysCallMapping {
   const syncTimeoutMs = 30000;
@@ -71,10 +71,17 @@ export function syncSyscalls(client: Client): SysCallMapping {
       ],
     },
     "sync.performFileSync": {
-      callback: async (_ctx, path: string): Promise<void> => {
+      callback: async (
+        _ctx,
+        path: string,
+        remoteLastModified?: number,
+        remoteRevisionHash?: string,
+      ): Promise<void> => {
         await client.postServiceWorkerMessage({
           type: "perform-file-sync",
           path,
+          remoteLastModified,
+          remoteRevisionHash,
         });
         // postServiceWorkerMessage returns silently if no SW, so only wait if SW is active
         const registration = await navigator.serviceWorker.getRegistration();
@@ -89,6 +96,20 @@ export function syncSyscalls(client: Client): SysCallMapping {
           name: "path",
           type: "string",
           description: "Space-relative file path.",
+        },
+        {
+          name: "remoteLastModified",
+          type: "number",
+          optional: true,
+          description:
+            "lastModified of the remote change event, used for echo suppression.",
+        },
+        {
+          name: "remoteRevisionHash",
+          type: "string",
+          optional: true,
+          description:
+            "Content revision the remote change event reported, which tells a same-millisecond change from an echo.",
         },
       ],
       examples: [{ code: 'sync.performFileSync("notes/important.md")' }],

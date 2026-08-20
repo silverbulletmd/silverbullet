@@ -15,9 +15,20 @@ export function hasInitialSyncCompleted(): Promise<boolean> {
 /**
  * Syncs a file immediately. Sync would happen automatically, but this prioritizes the file.
  * @param path the path to the file to sync
+ * @param remoteLastModified lastModified of the remote change event, used for echo suppression
+ * @param remoteRevisionHash content revision the remote change event reported, which tells a same-millisecond change from an echo
  */
-export function performFileSync(path: string): Promise<void> {
-  return syscall("sync.performFileSync", path);
+export function performFileSync(
+  path: string,
+  remoteLastModified?: number,
+  remoteRevisionHash?: string,
+): Promise<void> {
+  return syscall(
+    "sync.performFileSync",
+    path,
+    remoteLastModified,
+    remoteRevisionHash,
+  );
 }
 
 /**
