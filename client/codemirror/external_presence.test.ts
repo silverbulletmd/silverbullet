@@ -1,11 +1,62 @@
-import { describe, expect, it } from "vitest";
 import { EditorState, Transaction } from "@codemirror/state";
+import { describe, expect, it } from "vitest";
 import {
+  buildGhostCaretElement,
   expirePresence,
   externalPresenceField,
   externalSource,
   externalUndoField,
+  originLabel,
 } from "./external_presence.ts";
+
+describe("originLabel", () => {
+  it("prefers a displayName when present", () => {
+    expect(originLabel({ kind: "user", displayName: "zef" })).toBe("zef");
+  });
+
+  it("falls back to 'external' with no origin at all", () => {
+    expect(originLabel(undefined)).toBe("external");
+  });
+
+  it("falls back to 'external' for a nameless origin regardless of source", () => {
+    expect(originLabel({ kind: "external", source: "sync" })).toBe("external");
+  });
+
+  it("falls back to 'external' for an empty origin object", () => {
+    expect(originLabel({})).toBe("external");
+  });
+});
+
+describe("buildGhostCaretElement", () => {
+  class FakeElement {
+    className = "";
+    textContent = "";
+    attributes: Record<string, string> = {};
+    children: FakeElement[] = [];
+    setAttribute(name: string, value: string) {
+      this.attributes[name] = value;
+    }
+    appendChild(child: FakeElement) {
+      this.children.push(child);
+    }
+  }
+
+  it("assigns a hostile origin displayName via textContent, never as markup", () => {
+    (globalThis as unknown as { document: unknown }).document = {
+      createElement: () => new FakeElement(),
+    };
+
+    const label = originLabel({
+      displayName: "<img src=x onerror=alert(1)>",
+    });
+    const el = buildGhostCaretElement(label) as unknown as FakeElement;
+    const labelEl = el.children[0];
+
+    expect(labelEl.textContent).toBe("<img src=x onerror=alert(1)>");
+    // A real child element, not innerHTML: nothing parsed it into markup.
+    expect(labelEl.children).toHaveLength(0);
+  });
+});
 
 function stateWithDoc(doc: string) {
   return EditorState.create({ doc, extensions: [externalPresenceField] });

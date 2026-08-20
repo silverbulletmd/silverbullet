@@ -8,22 +8,55 @@
  * polling as the backstop in the meantime.
  */
 
+export type RealtimeFsEventRevision = {
+  algorithm: string;
+  hash: string;
+  size: number;
+  lastModified: number;
+};
+
+export type RealtimeFsEventOrigin = {
+  kind: "user" | "external";
+  displayName?: string;
+  clientId?: string;
+  source?: string;
+};
+
 export type RealtimeFsEvent = {
   name: string;
   action: "change" | "delete" | "resync";
   lastModified: number;
+  /**
+   * The revision the server now holds. Passed on to the sync engine, which
+   * needs it to tell a change made in the same millisecond as the last one it
+   * recorded from an echo of its own push.
+   */
+  revision?: RealtimeFsEventRevision;
+  origin?: RealtimeFsEventOrigin;
 };
 
 export type RealtimeHooks = {
+  /**
+   * Records a change event's attribution before any sync/probe work starts.
+   * Called eagerly because the file:changed dispatch this origin will label
+   * can be triggered by ANY concurrent metadata fetch, not just probeFile's.
+   */
+  noteOrigin: (name: string, origin: RealtimeFsEventOrigin) => void;
   /** getFileMeta through EventedSpacePrimitives (fires file:changed) */
   probeFile: (name: string) => Promise<unknown>;
   /** sync.performFileSync syscall */
-  syncFile: (name: string) => Promise<unknown>;
+  syncFile: (
+    name: string,
+    lastModified: number,
+    revisionHash?: string,
+  ) => Promise<unknown>;
   /** sync.performSpaceSync syscall */
   syncSpace: () => Promise<unknown>;
   /** fetchFileListWhenIdle (dispatches deletion/list events) */
   refreshFileList: () => Promise<unknown>;
   serviceWorkerActive: () => boolean;
+  /** Reports event-stream health to the service worker; sent as a heartbeat (not a one-shot flag) because a closed tab sends no disconnect, so the receiving end must decay it via TTL rather than rely on a sticky flag. Only ever refreshed by traffic actually received: a half-open connection stays "open" indefinitely while delivering nothing, and health claimed from connection state alone would keep the polling backstop suppressed. */
+  notifyStatus: (connected: boolean) => void;
 };
 
 // Transport-level batching: this window exists to minimize crossings of the
@@ -33,6 +66,11 @@ const BATCH_WINDOW_MS = 250;
 const BATCH_THRESHOLD = 4;
 const MAX_RETRY_MS = 30_000;
 const UNSUPPORTED_RETRY_MS = 60_000;
+// A chatty stream would otherwise post a status message per event. Kept well
+// under the server's 30s ping so a relay suppressed just after one tick is
+// always followed by a relayed one on the next: 5s < 30s < the receiver's 45s
+// TTL, which bounds the gap between relays at ~35s rather than ~40s.
+const HEARTBEAT_THROTTLE_MS = 5_000;
 
 export class RealtimeEvents {
   private source?: EventSource;
@@ -44,6 +82,7 @@ export class RealtimeEvents {
   private url?: string;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private loggedUnsupported = false;
+  private lastHeartbeatAt = 0;
 
   constructor(private hooks: RealtimeHooks) {}
 
@@ -67,6 +106,20 @@ export class RealtimeEvents {
       clearTimeout(this.flushTimer);
       this.flushTimer = undefined;
     }
+    this.reportDown();
+  }
+
+  /** Reports health, at most once per throttle window. */
+  private onReceipt = () => {
+    const now = Date.now();
+    if (now - this.lastHeartbeatAt < HEARTBEAT_THROTTLE_MS) return;
+    this.lastHeartbeatAt = now;
+    this.hooks.notifyStatus(true);
+  };
+
+  private reportDown() {
+    this.lastHeartbeatAt = 0;
+    this.hooks.notifyStatus(false);
   }
 
   private onOnline = () => {
@@ -98,14 +151,20 @@ export class RealtimeEvents {
         void this.hooks.refreshFileList().catch(console.error);
       }
       this.everConnected = true;
+      this.onReceipt();
     };
     source.onmessage = (msg) => {
+      this.onReceipt();
       try {
         this.handleEvent(JSON.parse(msg.data));
       } catch (e) {
         console.warn("[realtime] Could not parse event", msg.data, e);
       }
     };
+    // The server's keep-alive: a named event because EventSource never
+    // surfaces SSE comments, so on a quiet stream this is the only proof of
+    // liveness the browser gets. Carries no payload.
+    source.addEventListener("ping", this.onReceipt);
     source.onerror = () => {
       // A fatal error (404, wrong content-type) sets readyState to CLOSED
       // before onerror fires; a transient one (connection refused, DNS
@@ -115,6 +174,7 @@ export class RealtimeEvents {
       const unsupported =
         !this.everConnected && source.readyState === EventSource.CLOSED;
       source.close();
+      this.reportDown();
       if (this.stopped) return;
       if (unsupported) {
         if (!this.loggedUnsupported) {
@@ -157,6 +217,11 @@ export class RealtimeEvents {
     const resync = batch.some((e) => e.action === "resync");
     const deletes = batch.filter((e) => e.action === "delete");
     const changes = batch.filter((e) => e.action === "change");
+    for (const ev of changes) {
+      if (ev.origin) {
+        this.hooks.noteOrigin(ev.name, ev.origin);
+      }
+    }
     try {
       if (resync || changes.length >= BATCH_THRESHOLD) {
         // Flood/resync: one space sync (SW mode) + one list fetch, whose
@@ -171,7 +236,15 @@ export class RealtimeEvents {
       for (const ev of changes) {
         try {
           if (this.hooks.serviceWorkerActive()) {
-            await this.hooks.syncFile(ev.name);
+            await this.hooks.syncFile(
+              ev.name,
+              ev.lastModified,
+              // Only sha256, which is what the sync engine can compare local
+              // content against; anything else is no evidence at all.
+              ev.revision?.algorithm === "sha256"
+                ? ev.revision.hash
+                : undefined,
+            );
           }
           await this.hooks.probeFile(ev.name);
         } catch (e) {

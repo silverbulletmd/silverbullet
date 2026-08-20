@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Text } from "@codemirror/state";
-import { computeExternalChanges } from "./external_merge.ts";
+import {
+  computeExternalChanges,
+  type ExternalMerge,
+} from "./external_merge.ts";
 
-function apply(
-  current: string,
-  cs: ReturnType<typeof computeExternalChanges>,
-): string {
-  return cs.apply(Text.of(current.split("\n"))).toString();
+function apply(current: string, merge: ExternalMerge): string {
+  return merge.changes.apply(Text.of(current.split("\n"))).toString();
 }
 
 describe("computeExternalChanges", () => {
@@ -21,7 +21,7 @@ describe("computeExternalChanges", () => {
     const base = "One\n";
     const disk = "One\nTwo\n";
     const cs = computeExternalChanges(base, disk, disk);
-    expect(cs.empty).toBe(true);
+    expect(cs.changes.empty).toBe(true);
     expect(apply(disk, cs)).toBe(disk);
   });
 
@@ -57,7 +57,7 @@ describe("computeExternalChanges", () => {
     const base = "stable\n";
     const current = "stable\nlocal\n";
     const cs = computeExternalChanges(base, base, current);
-    expect(cs.empty).toBe(true);
+    expect(cs.changes.empty).toBe(true);
     expect(apply(current, cs)).toBe(current);
   });
 
@@ -89,6 +89,167 @@ describe("computeExternalChanges", () => {
     const current = "line1\nLINE2\nline3\n"; // unrelated local edit in the middle
     const cs = computeExternalChanges(base, disk, current);
     expect(apply(current, cs)).toBe("line1\nLINE2\nline3\nline4\n");
+  });
+
+  describe("colliding local and external rewrites", () => {
+    it("never splices two rewrites of the same line into fabricated text", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const disk = "Line1\nLine2 changed by Remote\nLine3\n";
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      const merged = apply(
+        current,
+        computeExternalChanges(base, disk, current),
+      );
+      // The pre-fix result was "Line2 changed by Remchaned by Tteb1": both
+      // sides' fragments concatenated in position order. Whatever this
+      // merge does, every line must be text somebody actually wrote.
+      for (const line of merged.split("\n")) {
+        expect(["Line1", "Line3", ""]).toContain(
+          line.startsWith("Line2") ? "" : line,
+        );
+      }
+      expect(merged).toBe(current);
+    });
+
+    it("defers the whole external update, not just the colliding hunk", () => {
+      // A character diff of two rewrites of one line straddles line
+      // boundaries, so the surviving hunks can't be salvaged individually:
+      // here the append is entangled with the line-2 rewrite. Deferring
+      // costs a moment's freshness; the reconciled document brings it all.
+      const base = "Line1\nLine2 original\nLine3\n";
+      const disk = "Line1\nLine2 changed by Remote\nLine3\nLine4 remote\n";
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("still applies a remote append made alongside an unrelated local rewrite", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const disk = "Line1\nLine2 original\nLine3\nLine4 remote\n";
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(apply(current, cs)).toBe(
+        "Line1\nLine2 changed by Tab1\nLine3\nLine4 remote\n",
+      );
+    });
+
+    it("reports an empty change set when the external update is deferred", () => {
+      const base = "one\n";
+      const disk = "two\n";
+      const current = "three\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.changes.empty).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    // ContentManager keys a whole reconciliation path off this flag, and an
+    // empty change set alone can't carry it: "nothing to do" and "withheld,
+    // the buffer is now a sibling of what's on disk" are both empty.
+    it("flags a deferral distinctly from an ordinary no-op", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const disk = "Line1\nLine2 changed by Remote\nLine3\n";
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      expect(computeExternalChanges(base, disk, current).deferred).toBe(true);
+      // Same-text echo: empty, but nothing was withheld.
+      expect(computeExternalChanges(base, disk, disk).deferred).toBe(false);
+      // Disk never moved: empty, but nothing was withheld.
+      expect(computeExternalChanges(base, base, current).deferred).toBe(false);
+      // A clean merge is not a deferral either.
+      expect(
+        computeExternalChanges(base, `${base}Line4 remote\n`, current).deferred,
+      ).toBe(false);
+    });
+  });
+
+  describe("incoming conflict-marker documents", () => {
+    const markerDoc = (first: string, base: string, second: string) =>
+      [
+        "<<<<<<< SB sha256:aaaaaaaa",
+        first,
+        "||||||| SB BASE sha256:bbbbbbbb",
+        base,
+        "=======",
+        second,
+        ">>>>>>> SB sha256:cccccccc",
+      ].join("\n");
+
+    it("applies the marker document verbatim when it embeds the buffer's own edit", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      const disk =
+        "Line1\n" +
+        markerDoc(
+          "Line2 changed by Remote",
+          "Line2 original",
+          "Line2 changed by Tab1",
+        ) +
+        "\nLine3\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(apply(current, cs)).toBe(disk);
+    });
+
+    it("applies the marker document verbatim when local edits are unrelated", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const current = "LINE1\nLine2 changed by Tab1\nLine3\n";
+      const disk =
+        "Line1\n" +
+        markerDoc(
+          "Line2 changed by Remote",
+          "Line2 original",
+          "Line2 changed by Tab1",
+        ) +
+        "\nLine3\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(apply(current, cs)).toBe(disk);
+    });
+
+    it("stays a no-op when the marker document is already the base", () => {
+      const base = "a\n" + markerDoc("x", "o", "y") + "\nb\n";
+      const current = "a\nlocal\n" + markerDoc("x", "o", "y") + "\nb\n";
+      const cs = computeExternalChanges(base, base, current);
+      expect(cs.changes.empty).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("stays a no-op when the buffer already holds the marker document", () => {
+      const base = "a\nb\n";
+      const disk = "a\n" + markerDoc("x", "o", "y") + "\nb\n";
+      const cs = computeExternalChanges(base, disk, disk);
+      expect(cs.changes.empty).toBe(true);
+    });
+
+    it("ignores an incomplete marker-looking line and keeps the 3-way merge", () => {
+      const base = "intro\nbody\n";
+      const disk = "intro\n<<<<<<< SB sha256:deadbeef\nbody\n"; // no closing marker
+      const current = "intro\nbody\nlocal tail\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(apply(current, cs)).toBe(
+        "intro\n<<<<<<< SB sha256:deadbeef\nbody\nlocal tail\n",
+      );
+    });
+
+    // A git-style hunk is ordinary content to this merge — only SB's own
+    // grammar is the merge kernel's authoritative output. Without the
+    // kind === "sb" restriction, this would wrongly take the wholesale-
+    // replace branch instead of deferring the genuine same-line collision.
+    it("does not treat a git-style hunk in disk as the authoritative marker document", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const disk = [
+        "Line1",
+        "Line2 changed by Remote",
+        "<<<<<<< HEAD",
+        "someone pasted",
+        "=======",
+        "an actual git example",
+        ">>>>>>> feature",
+        "Line3",
+        "",
+      ].join("\n");
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(cs.changes.empty).toBe(true);
+    });
   });
 
   it("applies multiple sequential external changes correctly (base tracking)", () => {

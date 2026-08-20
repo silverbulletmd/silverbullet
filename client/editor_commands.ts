@@ -1,4 +1,10 @@
 import {
+  acceptCompletion,
+  closeCompletion,
+  moveCompletionSelection,
+  startCompletion,
+} from "@codemirror/autocomplete";
+import {
   cursorCharLeft,
   cursorCharRight,
   cursorDocEnd,
@@ -42,23 +48,24 @@ import {
   transposeChars,
   undo,
 } from "@codemirror/commands";
-import {
-  acceptCompletion,
-  closeCompletion,
-  moveCompletionSelection,
-  startCompletion,
-} from "@codemirror/autocomplete";
 import { openSearchPanel } from "@codemirror/search";
 import { EditorSelection } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { reloadAllWidgets } from "./codemirror/code_widget.ts";
-import { broadcastReload } from "./components/widget_sandbox_iframe.ts";
-import type { Client } from "./client.ts";
-import type { CommandHook } from "./plugos/hooks/command.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import {
   unbakeSectionAtCursor,
   updateBakedSections,
 } from "./baked_sections/bake.ts";
+import type { Client } from "./client.ts";
+import { reloadAllWidgets } from "./codemirror/code_widget.ts";
+import { broadcastReload } from "./components/widget_sandbox_iframe.ts";
+import type { CommandHook } from "./plugos/hooks/command.ts";
+import {
+  decodeSafetyText,
+  formatSafetyLabel,
+  requestSafetyContent,
+  requestSafetyList,
+} from "./sync_recovery.ts";
 
 /**
  * Block widgets (queries, tables, …) hide their multi-line source via
@@ -611,6 +618,75 @@ export function registerEditorCommands(
     run: () => {
       unbakeSectionAtCursor(client);
       return Promise.resolve();
+    },
+  });
+  hook.registerCommand({
+    name: "Sync: Recover Stale Revision",
+    requireMode: "rw",
+    requireEditor: "page",
+    run: async () => {
+      if (!globalThis.navigator?.serviceWorker?.controller) {
+        client.ui.flashNotification(
+          "Sync recovery requires the service worker to be active",
+          "error",
+        );
+        return;
+      }
+      const entries = await requestSafetyList(client);
+      if (entries === undefined) {
+        client.ui.flashNotification("Sync engine did not respond", "error");
+        return;
+      }
+      if (entries.length === 0) {
+        client.ui.flashNotification("No stale revisions found");
+        return;
+      }
+      const options: FilterOption[] = entries.map((entry) => ({
+        name: formatSafetyLabel(entry),
+        hash: entry.hash,
+        binary: entry.binary,
+      }));
+      const selected = await client.ui.filterBox(
+        "Recover stale revision",
+        options,
+        "Select a stale revision to insert into the current page",
+      );
+      if (!selected) {
+        return;
+      }
+      if (selected.binary) {
+        client.ui.flashNotification(
+          "This revision is binary and can't be inserted as text",
+          "error",
+        );
+        return;
+      }
+      const data = await requestSafetyContent(client, selected.hash);
+      if (data === undefined) {
+        client.ui.flashNotification("Sync engine did not respond", "error");
+        return;
+      }
+      if (!data) {
+        client.ui.flashNotification(
+          "Could not load the selected revision",
+          "error",
+        );
+        return;
+      }
+      const text = decodeSafetyText(data);
+      if (text === null) {
+        client.ui.flashNotification(
+          "This revision is binary and can't be inserted as text",
+          "error",
+        );
+        return;
+      }
+      const from = view().state.selection.main.from;
+      view().dispatch({
+        changes: { insert: text, from },
+        selection: { anchor: from + text.length },
+      });
+      client.focus();
     },
   });
 }

@@ -22,7 +22,7 @@ describe("external patch transaction shape (headless EditorState)", () => {
     disk: string,
   ): EditorState {
     const current = state.sliceDoc();
-    const changes = computeExternalChanges(base, disk, current);
+    const { changes } = computeExternalChanges(base, disk, current);
     return state.update({
       changes,
       annotations: [isolateHistory.of("full")],
@@ -79,7 +79,7 @@ describe("external patch transaction shape (headless EditorState)", () => {
     const disk = "Hello world\nExternal line\n";
     // Simulate our own write already having landed in the editor (echo)
     const current = disk;
-    const changes = computeExternalChanges(base, disk, current);
+    const { changes } = computeExternalChanges(base, disk, current);
     expect(changes.empty).toBe(true);
   });
 });
@@ -94,7 +94,7 @@ describe("undo/redo of an external edit preserves the user's cursor (regression)
     disk: string,
   ): EditorState {
     const current = state.sliceDoc();
-    const changes = computeExternalChanges(base, disk, current);
+    const { changes } = computeExternalChanges(base, disk, current);
     return state.update({
       changes,
       annotations: [isolateHistory.of("full"), externalSource.of("external")],

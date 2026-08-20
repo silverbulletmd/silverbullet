@@ -1,4 +1,5 @@
 import { EditorView } from "@codemirror/view";
+import type { ChangeSet, Text } from "@codemirror/state";
 import { isolateHistory } from "@codemirror/commands";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import {
@@ -24,6 +25,10 @@ import {
 } from "./codemirror/editor_state.ts";
 import { externalSource } from "./codemirror/external_presence.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
+import {
+  type ConflictHunk,
+  findConflictHunks,
+} from "./codemirror/conflict_markers.ts";
 import { computeExternalChanges } from "./external_merge.ts";
 import { parsePageMetaLastModified } from "./lib/page_meta.ts";
 import { DocumentEditor } from "./document_editor.ts";
@@ -33,6 +38,17 @@ import type { Client } from "./client.ts";
 import type { LocationState } from "./navigator.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
+
+/** The conflict hunk the selection head sits in, if any. */
+function selectionHunk(state: {
+  doc: Text;
+  selection: { main: { head: number } };
+}): ConflictHunk | undefined {
+  const head = state.selection.main.head;
+  return findConflictHunks(state.doc).find(
+    (h) => head >= h.from && head <= h.to,
+  );
+}
 
 const autoSaveInterval = 1000;
 
@@ -50,6 +66,15 @@ export class ContentManager {
   // fetched content is older than what's already applied (out-of-order
   // resolution of overlapping reloads for the same page)
   private lastKnownDiskModified?: number;
+  // An external update computeExternalChanges withheld because it collided
+  // with unsaved local edits. The base above deliberately stays put while
+  // this is set: the buffer still descends from it, not from the withheld
+  // revision.
+  private pendingExternal?: {
+    text: string;
+    modified: number | undefined;
+    source: string;
+  };
   // Resolves once the in-flight write has updated the base above
   private pendingWrite?: Promise<void>;
   debouncedUpdateEvent = throttle(() => {
@@ -67,7 +92,7 @@ export class ContentManager {
         clearTimeout(this.saveTimeout);
       }
       this.saveTimeout = setTimeout(
-        () => {
+        async () => {
           if (
             !this.client.ui.viewState.unsavedChanges ||
             this.client.isReadOnlyMode()
@@ -101,16 +126,30 @@ export class ContentManager {
               return resolve();
             }
 
-            console.log("Saving page", this.client.currentPath());
-            void this.client.dispatchAppEvent(
-              "editor:pageSaving",
-              this.client.currentName(),
-            );
+            // Captured before the await below: clearTimeout can't cancel a
+            // callback that already suspended, so without pinning these a
+            // save resuming after a navigation would write this buffer under
+            // the *next* page's name.
+            const path = this.client.currentPath();
+            const pageName = getNameFromPath(path);
+
+            const divergentBase = this.settlePendingExternal();
+            if (divergentBase !== undefined) {
+              await this.client
+                .declareDivergentBase(path, divergentBase)
+                .catch((e) =>
+                  console.error("Could not declare divergent base", e),
+                );
+              if (this.client.currentPath() !== path) {
+                console.log("Page changed while saving, dropping write", path);
+                return resolve();
+              }
+            }
+
+            console.log("Saving page", path);
+            void this.client.dispatchAppEvent("editor:pageSaving", pageName);
             const text = this.client.editorView.state.sliceDoc(0);
-            const writePromise = this.client.space.writePage(
-              this.client.currentName(),
-              text,
-            );
+            const writePromise = this.client.space.writePage(pageName, text);
             // Separate from the promise save() returns: waiters need the base
             // updated, not the events and meta fetch that follow it.
             const baseUpdated = writePromise.then(
@@ -405,6 +444,7 @@ export class ContentManager {
     // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
     if (loadingDifferentPath || doc.meta.perm === "ro") {
       // Fresh state, nothing to diff against yet: doc.text *is* the new base.
+      this.pendingExternal = undefined;
       this.lastKnownDiskText = doc.text;
       this.lastKnownDiskModified = parsePageMetaLastModified(
         doc.meta.lastModified,
@@ -545,10 +585,14 @@ export class ContentManager {
     modified: number | undefined,
     source = "external",
   ): boolean {
+    // A withheld update is newer than the base, so it -- not the base -- is
+    // the high-water mark while one is outstanding.
+    const seenModified =
+      this.pendingExternal?.modified ?? this.lastKnownDiskModified;
     if (
       modified !== undefined &&
-      this.lastKnownDiskModified !== undefined &&
-      modified < this.lastKnownDiskModified
+      seenModified !== undefined &&
+      modified < seenModified
     ) {
       // Two reloads for this page were in flight and this older one resolved
       // last (e.g. a direct reloadEditor racing an SSE-triggered
@@ -556,22 +600,34 @@ export class ContentManager {
       // newer content.
       console.log(
         "Dropping stale external patch, older than already-applied content",
-        { source, modified, lastKnownDiskModified: this.lastKnownDiskModified },
+        { source, modified, seenModified },
       );
       return false;
     }
     const currentText = this.client.editorView.state.sliceDoc();
-    const changes = computeExternalChanges(
+    const { changes, deferred } = computeExternalChanges(
       this.lastKnownDiskText,
       newText,
       currentText,
     );
+    if (deferred) {
+      this.pendingExternal = { text: newText, modified, source };
+      return false;
+    }
+    this.pendingExternal = undefined;
     this.lastKnownDiskText = newText;
     this.lastKnownDiskModified = modified;
     if (changes.empty) {
       return false;
     }
-    this.client.editorView.dispatch({
+    this.dispatchExternal(changes, source);
+    return true;
+  }
+
+  private dispatchExternal(changes: ChangeSet, source: string) {
+    const view = this.client.editorView;
+    const hadCursorInHunk = selectionHunk(view.state);
+    view.dispatch({
       changes,
       annotations: [
         isolateHistory.of("full"),
@@ -579,30 +635,64 @@ export class ContentManager {
         externalSource.of(source),
       ],
     });
-    return true;
+    if (!hadCursorInHunk) {
+      const hunk = selectionHunk(view.state);
+      if (hunk) {
+        // The widget-vs-source check treats both hunk bounds as inclusive,
+        // so the cursor must land strictly past the hunk (or before it when
+        // the hunk runs to the end of the document).
+        const docLen = view.state.doc.length;
+        const anchor =
+          hunk.to + 1 <= docLen ? hunk.to + 1 : Math.max(hunk.from - 1, 0);
+        view.dispatch({
+          selection: { anchor },
+          scrollIntoView: true,
+        });
+      }
+    }
   }
 
-  // Fetch the current page's content from storage and apply it as an
-  // external patch -- the live-edit path (no full loadPage, no editor state
-  // rebuild). Still refreshes enriched page meta and dispatches
-  // editor:pageReloaded when a real change was applied, so plugs and
-  // frontmatter-derived UI (page decorations) stay in sync with the file
-  // that changed on disk, per the documented contract of that event.
+  /**
+   * Re-attempts an external update withheld earlier, right before the buffer
+   * is written. The retry is what resolves the common case: by save time the
+   * local edit has often moved off the contested line, and the update then
+   * merges in cleanly instead of costing a round trip through the server.
+   *
+   * Returns the revision the buffer still descends from when the collision
+   * persists, for SyncEngine.declareDivergentBase to reconcile the write
+   * against.
+   */
+  private settlePendingExternal(): string | undefined {
+    const pending = this.pendingExternal;
+    if (!pending) {
+      return undefined;
+    }
+    // Cleared either way: after the write the base moves to what was written,
+    // which leaves this text with no common ancestor to be merged against.
+    this.pendingExternal = undefined;
+    const base = this.lastKnownDiskText;
+    const { changes, deferred } = computeExternalChanges(
+      base,
+      pending.text,
+      this.client.editorView.state.sliceDoc(),
+    );
+    if (deferred) {
+      return base;
+    }
+    this.lastKnownDiskText = pending.text;
+    this.lastKnownDiskModified = pending.modified;
+    if (!changes.empty) {
+      this.dispatchExternal(changes, pending.source);
+    }
+    return undefined;
+  }
+
   async reloadPageContent(source = "external"): Promise<void> {
     const path = this.client.currentPath();
-    // Defensive, not currently reachable from the file:changed listener
-    // (which already gates on isMarkdownPath before calling in): kept so
-    // this method stays safe to call directly with an unchecked path, which
-    // future callers (e.g. an SSE push handler) may do.
     if (!isMarkdownPath(path)) {
       return this.reloadEditor();
     }
     const doc = await this.client.space.readPage(getNameFromPath(path));
-    // A write that finished during the read left the base behind what the read
-    // returned, so merging now would re-insert our own text. After the read,
-    // not before: it's writes overlapping the *fetch* that strand the base.
-    // Not covered by ownWrite -- a write overlapping another space operation
-    // dispatches no event of its own, and surfaces later via a probe instead.
     if (this.pendingWrite) {
       await this.pendingWrite;
     }
@@ -631,11 +721,6 @@ export class ContentManager {
       .catch(console.error);
   }
 
-  // Re-fetches enriched (indexed) page meta -- e.g. frontmatter-derived page
-  // decorations -- and pushes it into viewState.current.meta and the body's
-  // decoration classes. Shared by loadPage and the live reloadPageContent
-  // path so an external edit's frontmatter changes show up without
-  // requiring navigation away and back.
   private async refreshCurrentPageMeta(
     pageName: string,
     fallbackMeta: PageMeta,

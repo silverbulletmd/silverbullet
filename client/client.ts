@@ -39,6 +39,7 @@ import {
   buildMarkdownLanguageExtension,
   createEditorState,
 } from "./codemirror/editor_state.ts";
+import { originLabel } from "./codemirror/external_presence.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
@@ -53,7 +54,10 @@ import { isValidEditor } from "./lib/command_filters.ts";
 import { open as openNavigatorView } from "./navigator/navigator.ts";
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
-import { RealtimeEvents } from "./realtime_events.ts";
+import {
+  RealtimeEvents,
+  type RealtimeFsEventOrigin,
+} from "./realtime_events.ts";
 import { Space } from "./space.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import {
@@ -69,6 +73,7 @@ import {
 } from "./space_lua/runtime.ts";
 import { resolveASTReference } from "./space_lua.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
+import { getOrCreateClientId } from "./spaces/client_id.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
@@ -78,10 +83,15 @@ import type {
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
+import { syncMessageNotification } from "./types/ui.ts";
 import { WidgetCache } from "./widget_cache.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
+
+// Cap on waiting for the sync engine to record a divergent base: a wedged
+// worker must delay a save, never block it indefinitely.
+const declareDivergentBaseTimeout = 5000;
 
 /**
  * The page navigator's browsing modes, as segments of `std.pages`. "page" is
@@ -113,6 +123,14 @@ declare global {
   var sbRuntime: SBRuntime;
 }
 
+// How long a realtime event's attribution stays usable while the sync
+// round-trip it describes completes; matches the performFileSync timeout so
+// an origin can't outlive the sync it belongs to.
+const REALTIME_ORIGIN_TTL_MS = 30_000;
+
+// Window within which an identical sync notification is shown only once.
+const SYNC_FLASH_DEDUP_MS = 5_000;
+
 export class Client {
   eventHook: EventHook;
 
@@ -122,6 +140,17 @@ export class Client {
   eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
   realtimeEvents?: RealtimeEvents;
+  // Attribution for recently-received realtime change events, keyed by path.
+  // A map with a TTL rather than a single "pending" slot: between the SSE
+  // event and the file:changed dispatch sit a sync round-trip and an
+  // EventedSpacePrimitives whose operationCount gate makes it unpredictable
+  // WHICH concurrent metadata fetch ends up dispatching the event — a slot
+  // tied to one call's lifetime loses the origin whenever calls overlap.
+  private realtimeOrigins = new Map<
+    string,
+    { origin: RealtimeFsEventOrigin; time: number }
+  >();
+  private recentSyncFlashes = new Map<string, number>();
 
   ui!: MainUI;
   ds!: DataStore;
@@ -260,7 +289,7 @@ export class Client {
       this.bootConfig.readOnly,
     );
 
-    this.initSpace();
+    await this.initSpace();
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
@@ -351,7 +380,8 @@ export class Client {
     this.updatePageListCache().catch(console.error);
   }
 
-  initSpace() {
+  async initSpace() {
+    const clientId = await getOrCreateClientId(this.ds.kv);
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, "") + fsEndpoint,
       this.bootConfig.spaceFolderPath,
@@ -369,6 +399,10 @@ export class Client {
       // HttpSpacePrimitives in its default cookie-only auth mode.
       (globalThis as { silverbullet?: { bearerToken?: string } }).silverbullet
         ?.bearerToken,
+      clientId,
+      // These fetches only actually reach the network when the service
+      // worker isn't intercepting them.
+      "editor",
     );
 
     this.eventedSpacePrimitives = new EventedSpacePrimitives(
@@ -410,8 +444,16 @@ export class Client {
         ) {
           return;
         }
+        const entry = this.realtimeOrigins.get(path);
+        this.realtimeOrigins.delete(path);
+        const origin =
+          entry && Date.now() - entry.time < REALTIME_ORIGIN_TTL_MS
+            ? entry.origin
+            : undefined;
         if (isMarkdownPath(path)) {
-          this.contentManager.reloadPageContent().catch(console.error);
+          this.contentManager
+            .reloadPageContent(originLabel(origin))
+            .catch(console.error);
         } else {
           this.ui.flashNotification("Document changed elsewhere, reloading");
           void this.reloadEditor();
@@ -438,10 +480,23 @@ export class Client {
     this.space.watch();
 
     this.realtimeEvents = new RealtimeEvents({
+      noteOrigin: (name, origin) => {
+        const now = Date.now();
+        for (const [k, v] of this.realtimeOrigins) {
+          if (now - v.time >= REALTIME_ORIGIN_TTL_MS) {
+            this.realtimeOrigins.delete(k);
+          }
+        }
+        this.realtimeOrigins.set(name, { origin, time: now });
+      },
       probeFile: (name) => this.eventedSpacePrimitives.getFileMeta(name),
-      syncFile: (name) =>
+      syncFile: (name, lastModified, revisionHash) =>
         this.clientSystem
-          .localSyscall("sync.performFileSync", [name])
+          .localSyscall("sync.performFileSync", [
+            name,
+            lastModified,
+            revisionHash,
+          ])
           .catch((e) => console.warn("[realtime] sync nudge failed", e)),
       syncSpace: () =>
         this.clientSystem
@@ -451,6 +506,12 @@ export class Client {
         this.eventedSpacePrimitives.fetchFileListWhenIdle(),
       serviceWorkerActive: () =>
         !!globalThis.navigator?.serviceWorker?.controller,
+      notifyStatus: (connected) => {
+        void this.postServiceWorkerMessage({
+          type: "realtime-status",
+          connected,
+        });
+      },
     });
     this.realtimeEvents.start(
       `${document.baseURI.replace(/\/*$/, "")}/.events`,
@@ -1083,6 +1144,18 @@ export class Client {
   }
 
   async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {
+    const notification = syncMessageNotification(message);
+    if (notification) {
+      // One conflict can surface through more than one reconcile site (the
+      // background sync cycle and the save path), each broadcasting its own
+      // report — show the identical flash once, not per site.
+      const now = Date.now();
+      const lastShown = this.recentSyncFlashes.get(notification.text);
+      if (lastShown === undefined || now - lastShown > SYNC_FLASH_DEDUP_MS) {
+        this.recentSyncFlashes.set(notification.text, now);
+        this.ui.flashNotification(notification.text, notification.style);
+      }
+    }
     switch (message.type) {
       case "space-sync-complete": {
         const isFirstSync = !this.fullSyncCompleted;
@@ -1250,5 +1323,49 @@ export class Client {
       return;
     }
     registration.active.postMessage(message);
+  }
+
+  /**
+   * Tells the sync engine that the page about to be written descends from
+   * `baseText` rather than from whatever the local replica holds now (see
+   * SyncEngine.declareDivergentBase for what it does with that).
+   */
+  public async declareDivergentBase(
+    path: string,
+    baseText: string,
+  ): Promise<void> {
+    const worker = (
+      await globalThis.navigator?.serviceWorker?.getRegistration()
+    )?.active;
+    if (!worker) {
+      return;
+    }
+    const channel = new MessageChannel();
+    const acknowledged = new Promise<boolean>((resolve) => {
+      const settle = (delivered: boolean) => {
+        clearTimeout(timer);
+        channel.port1.close();
+        resolve(delivered);
+      };
+      const timer = setTimeout(
+        () => settle(false),
+        declareDivergentBaseTimeout,
+      );
+      channel.port1.onmessage = () => settle(true);
+      worker.postMessage(
+        {
+          type: "declare-divergent-base",
+          path,
+          baseText,
+        } as ServiceWorkerTargetMessage,
+        [channel.port2],
+      );
+    });
+    if (!(await acknowledged)) {
+      console.warn(
+        "Service worker did not acknowledge divergent base, saving anyway:",
+        path,
+      );
+    }
   }
 }

@@ -24,6 +24,17 @@ const PRESENCE_TTL_MS = 5000;
 /** Source label of an externally-applied change */
 export const externalSource = Annotation.define<string>();
 
+export type PresenceOrigin = {
+  kind?: string;
+  displayName?: string;
+  source?: string;
+};
+
+/** Ghost-caret label for an externally-applied change. */
+export function originLabel(origin?: PresenceOrigin): string {
+  return origin?.displayName || "external";
+}
+
 export type PresenceHunk = {
   from: number;
   to: number;
@@ -216,6 +227,21 @@ const externalUndoCursorFix = EditorView.updateListener.of((update) => {
   });
 });
 
+/** Exported so tests can assert the label lands as text, not markup. */
+export function buildGhostCaretElement(source: string): HTMLElement {
+  const el = document.createElement("span");
+  el.className = "sb-external-caret";
+  el.setAttribute("data-source", source);
+  // A real child element rather than CSS `content: attr(data-source)`,
+  // so tests can assert the label and styling bugs (like the inherited
+  // text-indent one fixed in editor.scss) stay debuggable in the DOM.
+  const label = document.createElement("span");
+  label.className = "sb-external-caret-label";
+  label.textContent = source;
+  el.appendChild(label);
+  return el;
+}
+
 class GhostCaretWidget extends WidgetType {
   constructor(readonly source: string) {
     super();
@@ -226,17 +252,7 @@ class GhostCaretWidget extends WidgetType {
   }
 
   override toDOM() {
-    const el = document.createElement("span");
-    el.className = "sb-external-caret";
-    el.setAttribute("data-source", this.source);
-    // A real child element rather than CSS `content: attr(data-source)`,
-    // so tests can assert the label and styling bugs (like the inherited
-    // text-indent one fixed in editor.scss) stay debuggable in the DOM.
-    const label = document.createElement("span");
-    label.className = "sb-external-caret-label";
-    label.textContent = this.source;
-    el.appendChild(label);
-    return el;
+    return buildGhostCaretElement(this.source);
   }
 }
 

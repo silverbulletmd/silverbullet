@@ -82,9 +82,22 @@ function makeClientStub(opts: {
   const dispatchedEvents: { name: string; args: unknown[] }[] = [];
   const viewDispatched: { type: string; [key: string]: unknown }[] = [];
 
+  const declaredBases: { path: string; baseText: string }[] = [];
+  // Set by a test that needs the declare to stay in flight while it does
+  // something else (e.g. navigate away).
+  let blockDeclare: Promise<void> | undefined;
+
   const client = {
     editorView,
     viewState,
+    declaredBases,
+    set blockDeclareOn(p: Promise<void>) {
+      blockDeclare = p;
+    },
+    declareDivergentBase: async (path: string, baseText: string) => {
+      declaredBases.push({ path, baseText });
+      if (blockDeclare) await blockDeclare;
+    },
     set currentPathValue(v: string) {
       currentPathValue = v;
     },
@@ -519,5 +532,222 @@ describe("ContentManager merge base vs. in-flight writes (regression: text dupli
     await cm.reloadPageContent();
 
     expect(client.editorView.state.sliceDoc()).toBe("one\ntwothreefour");
+  });
+});
+
+describe("ContentManager conflict-marker documents (regression)", () => {
+  const markerDoc = [
+    "Line1",
+    "<<<<<<< SB sha256:aaaaaaaa",
+    "Line2 changed by Remote",
+    "||||||| SB BASE sha256:bbbbbbbb",
+    "Line2 original",
+    "=======",
+    "Line2 changed by Tab1",
+    ">>>>>>> SB sha256:cccccccc",
+    "Line3",
+    "",
+  ].join("\n");
+
+  test("a marker document lands verbatim on an editor holding its own side of the conflict", async () => {
+    let diskText = "Line1\nLine2 original\nLine3\n";
+    let diskModified = "2026-01-01T00:00:00.000";
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => ({ text: diskText, meta: pageMeta(diskModified) }),
+    });
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+
+    await cm.loadPage({ path: "index.md" }, false);
+
+    // The user's own unsaved edit -- the same text the server embeds as one
+    // side of the conflict hunk below.
+    client.editorView.dispatch({
+      changes: {
+        from: "Line1\nLine2 ".length,
+        to: "Line1\nLine2 original".length,
+        insert: "changed by Tab1",
+      },
+    });
+    expect(client.editorView.state.sliceDoc()).toBe(
+      "Line1\nLine2 changed by Tab1\nLine3\n",
+    );
+
+    diskText = markerDoc;
+    diskModified = "2026-01-01T00:00:05.000";
+    await cm.reloadPageContent("sync");
+
+    expect(client.editorView.state.sliceDoc()).toBe(markerDoc);
+  });
+});
+
+// The autosave clobber: an external update that couldn't be merged was
+// withheld, leaving the buffer a *sibling* of what storage holds rather than
+// a descendant. Writing it plainly makes the sync engine push it as a clean
+// fast-forward, and the withheld revision is gone with no conflict raised.
+describe("ContentManager save after a withheld external update", () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const BASE = "Line1\nLine2 original\nLine3\n";
+  const REMOTE = "Line1\nLine2 changed by Remote\nLine3\n";
+  const LOCAL = "Line1\nLine2 changed by Tab1\nLine3\n";
+
+  function rewriteLine2(
+    client: ReturnType<typeof makeClientStub>,
+    text: string,
+  ) {
+    client.editorView.dispatch({
+      changes: {
+        from: "Line1\n".length,
+        to: client.editorView.state.doc.line(2).to,
+        insert: text,
+      },
+    });
+    client.viewState.unsavedChanges = true;
+  }
+
+  async function setUpCollision() {
+    let diskText = BASE;
+    let diskModified = "2026-01-01T00:00:00.000";
+    const written: string[] = [];
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => ({ text: diskText, meta: pageMeta(diskModified) }),
+      writePage: async (_name, text) => {
+        written.push(text);
+        diskText = text;
+        diskModified = "2026-01-01T00:00:10.000";
+        return pageMeta(diskModified);
+      },
+    });
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+    await cm.loadPage({ path: "index.md" }, false);
+
+    rewriteLine2(client, "Line2 changed by Tab1");
+    expect(client.editorView.state.sliceDoc()).toBe(LOCAL);
+
+    // The remote's rewrite of the same line reaches storage and is pulled in.
+    const setDisk = (text: string, modified: string) => {
+      diskText = text;
+      diskModified = modified;
+    };
+    setDisk(REMOTE, "2026-01-01T00:00:05.000");
+    await cm.reloadPageContent();
+    // Withheld, exactly as external_merge decided: the buffer keeps its own
+    // line rather than being spliced with the remote's.
+    expect(client.editorView.state.sliceDoc()).toBe(LOCAL);
+
+    return { client, cm, written, setDisk };
+  }
+
+  test("declares the base the buffer descends from before writing over the pulled revision", async () => {
+    const { client, cm, written } = await setUpCollision();
+
+    await cm.save(true);
+    await flush();
+
+    // Not the pulled revision, and not the buffer either: the last revision
+    // both sides shared, which is what makes the write reconcilable.
+    expect(client.declaredBases).toEqual([
+      { path: "index.md", baseText: BASE },
+    ]);
+    expect(written).toEqual([LOCAL]);
+  });
+
+  test("declares nothing for an ordinary save with no update outstanding", async () => {
+    let diskText = "hello\n";
+    const written: string[] = [];
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => ({
+        text: diskText,
+        meta: pageMeta("2026-01-01T00:00:00.000"),
+      }),
+      writePage: async (_name, text) => {
+        written.push(text);
+        diskText = text;
+        return pageMeta("2026-01-01T00:00:10.000");
+      },
+    });
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+    await cm.loadPage({ path: "index.md" }, false);
+
+    client.editorView.dispatch({
+      changes: { from: client.editorView.state.doc.length, insert: "more" },
+    });
+    client.viewState.unsavedChanges = true;
+    await cm.save(true);
+    await flush();
+
+    expect(client.declaredBases).toEqual([]);
+    expect(written).toEqual(["hello\nmore"]);
+  });
+
+  test("applies the withheld update instead once the collision is gone", async () => {
+    const { client, cm, written } = await setUpCollision();
+
+    // The user backs their edit out before the autosave fires, so the two
+    // sides no longer contest the line.
+    rewriteLine2(client, "Line2 original");
+    expect(client.editorView.state.sliceDoc()).toBe(BASE);
+
+    await cm.save(true);
+    await flush();
+
+    // Retried at save time and merged in, so no round trip through the
+    // server is needed and the editor is already current.
+    expect(client.editorView.state.sliceDoc()).toBe(REMOTE);
+    expect(client.declaredBases).toEqual([]);
+    expect(written).toEqual([REMOTE]);
+  });
+
+  test("keeps merging a later external change against the base the buffer knows", async () => {
+    const { client, cm, setDisk } = await setUpCollision();
+
+    // A genuine second revision: the remote's contested rewrite plus an
+    // appended line. The base must still be the one the buffer descends from
+    // -- diffing against the withheld revision instead would treat the
+    // remote's rewritten line as common ground the buffer never had, and the
+    // collision would go unnoticed.
+    setDisk(`${REMOTE}Line4 remote\n`, "2026-01-01T00:00:07.000");
+    await cm.reloadPageContent();
+    expect(client.editorView.state.sliceDoc()).toBe(LOCAL);
+
+    await cm.save(true);
+    await flush();
+    expect(client.declaredBases).toEqual([
+      { path: "index.md", baseText: BASE },
+    ]);
+  });
+
+  // clearTimeout can't cancel a save callback that already suspended on the
+  // declare, and leaveCurrentPage's own save(true) reschedules rather than
+  // waiting for it -- so the stale callback resumes after the new page has
+  // been loaded.
+  test("drops the write when the page changes while the declare is in flight", async () => {
+    const { client, cm, written } = await setUpCollision();
+
+    let releaseDeclare!: () => void;
+    client.blockDeclareOn = new Promise<void>((resolve) => {
+      releaseDeclare = resolve;
+    });
+
+    const saving = cm.save(true);
+    await flush();
+    expect(client.declaredBases).toHaveLength(1);
+
+    // The user navigates away while the declare is still outstanding.
+    client.currentPathValue = "other.md";
+    client.editorView.setState(EditorState.create({ doc: "other page\n" }));
+
+    releaseDeclare();
+    await saving;
+    await flush();
+
+    // Neither under the old name (the buffer is gone) nor -- the actual
+    // hazard -- under the new one.
+    expect(written).toEqual([]);
   });
 });
