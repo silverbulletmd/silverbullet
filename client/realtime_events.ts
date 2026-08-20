@@ -66,10 +66,6 @@ const BATCH_WINDOW_MS = 250;
 const BATCH_THRESHOLD = 4;
 const MAX_RETRY_MS = 30_000;
 const UNSUPPORTED_RETRY_MS = 60_000;
-// A chatty stream would otherwise post a status message per event. Kept well
-// under the server's 30s ping so a relay suppressed just after one tick is
-// always followed by a relayed one on the next: 5s < 30s < the receiver's 45s
-// TTL, which bounds the gap between relays at ~35s rather than ~40s.
 const HEARTBEAT_THROTTLE_MS = 5_000;
 
 export class RealtimeEvents {

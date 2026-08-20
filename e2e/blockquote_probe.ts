@@ -28,6 +28,7 @@ export async function lineProbe(page: any) {
         classes: [...line.classList],
         background: style.backgroundColor,
         borderLeft: Number.parseFloat(style.borderLeftWidth),
+        paddingLeft: Number.parseFloat(style.paddingLeft),
         backgroundSize: style.backgroundSize,
         /** Where the line's own gutter ends — no text may start left of it. */
         gutterEnd: Math.round(left + Number.parseFloat(style.borderLeftWidth)),

@@ -337,3 +337,18 @@ test("a marker spacer has a client rect with real height", async ({
   expect(heights.length).toBeGreaterThan(0);
   for (const h of heights) expect(h).toBeGreaterThan(0);
 });
+
+test("an admonition's text starts at its own gutter", async ({
+  sbServer,
+  page,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Quotes");
+  await page.waitForSelector(".sb-admonition");
+  const lines = await lineProbe(page);
+  const body = lines.find((l: any) =>
+    l.text.includes("Second line of the note"),
+  )!;
+  // The bar is a border here, so nothing may reserve the marker's columns:
+  // that would indent a line's first row past the rows it wraps into.
+  expect(body.x).toBe(body.gutterEnd + body.paddingLeft);
+});
