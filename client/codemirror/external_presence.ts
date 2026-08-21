@@ -319,7 +319,10 @@ function buildDecorations(state: EditorState): DecorationSet {
       Decoration.widget({ widget: deletionMarkerWidget, side: -1 }).range(from),
     );
   }
-  if (newest) {
+  // An anonymous write gets the highlight only: a caret labeled "external"
+  // says nothing worth the visual noise. The caret appears when there is an
+  // actual name to show.
+  if (newest && newest.source !== "external") {
     decos.push(
       Decoration.widget({
         widget: new GhostCaretWidget(newest.source),

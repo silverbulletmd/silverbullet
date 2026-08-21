@@ -51,15 +51,10 @@ test("external disk edit appears live, preserves cursor, and is undoable", async
   expect(state.marker).toBe(true);
   expect(state.cursor).toBe(11);
 
-  // Presence artifacts render
+  // The highlight renders; an anonymous ("external") write gets no caret —
+  // a label that names nobody is just noise.
   await expect(sbPage.locator(".sb-external-edit").first()).toBeVisible();
-  await expect(sbPage.locator(".sb-external-caret")).toHaveAttribute(
-    "data-source",
-    "external",
-  );
-  await expect(sbPage.locator(".sb-external-caret-label")).toHaveText(
-    "external",
-  );
+  await expect(sbPage.locator(".sb-external-caret")).toHaveCount(0);
 
   // Undo reverts the external edit...
   await editor.click();
@@ -303,7 +298,7 @@ test("cursor position maps correctly around an external edit landing before it",
   expect(result.after).toBe("rld\n");
 });
 
-test("presence highlight and ghost caret expire after the TTL window", async ({
+test("presence highlight expires after the TTL window", async ({
   sbPage,
   sbServer,
 }) => {
@@ -317,14 +312,11 @@ test("presence highlight and ghost caret expire after the TTL window", async ({
   await expect(editor).toContainText("External line", { timeout: 2500 });
 
   const highlight = sbPage.locator(".sb-external-edit");
-  const caret = sbPage.locator(".sb-external-caret");
   await expect(highlight.first()).toBeVisible();
-  await expect(caret).toBeVisible();
 
   // Decorations carry a ~5s TTL. Give the sweep real margin on both sides
   // instead of asserting right at the boundary.
   await expect(highlight).toHaveCount(0, { timeout: 8000 });
-  await expect(caret).toHaveCount(0, { timeout: 8000 });
 });
 
 test("forced reload applies a pending disk change instead of clobbering the merge base", async ({
