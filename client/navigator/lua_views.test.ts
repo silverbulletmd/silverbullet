@@ -646,6 +646,22 @@ test("a throwing source comes back as data, not a rejection", async () => {
   });
 });
 
+// A `decorations` returning one bare chip instead of a list of them used to
+// vanish without a word, since only arrays reach the renderer.
+test("a decorations function returning a single chip is an error, not a silent drop", async () => {
+  const spec = luaSpec(`{
+    name = "v",
+    source = function() return { { name = "a" } } end,
+    ${ON_SELECT},
+    presentation = { row = { decorations = function() return { text = "hi" } end } },
+  }`);
+
+  await expect(luaHandle(spec, "rows", {})).resolves.toEqual({
+    error:
+      "navigator: presentation.row.decorations must return a list of chips",
+  });
+});
+
 test("rowState masks segments and actions per row, failing predicates closed", async () => {
   const spec = luaSpec(`{
     name = "v",

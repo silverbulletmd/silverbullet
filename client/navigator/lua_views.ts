@@ -645,7 +645,6 @@ async function readOnlyMode(): Promise<boolean> {
   return (await editor.getUiOption("forcedROMode")) === true;
 }
 
-// See keymapKeys: a `decorations` function returning `{}` for an undecorated row would arrive at the panel as an object, and the chips are drawn off an array.
 async function resolveDecorations(
   sf: LuaStackFrame,
   fn: unknown,
@@ -653,8 +652,15 @@ async function resolveDecorations(
 ): Promise<any> {
   if (fn === undefined || fn === null) return undefined;
   const out = await callLua(sf, fn as ILuaFunction, obj);
-  if (!Array.isArray(out) || out.length === 0) return undefined;
-  return out;
+  if (out === undefined || out === null) return undefined;
+  if (Array.isArray(out)) return out.length === 0 ? undefined : out;
+  // An empty Lua table has no array part and arrives as an object: that is "no chips", not a shape mistake.
+  if (luaType(out) === "table" && Object.keys(out as object).length === 0) {
+    return undefined;
+  }
+  throw new Error(
+    "navigator: presentation.row.decorations must return a list of chips",
+  );
 }
 
 async function resolveField(

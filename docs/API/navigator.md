@@ -74,13 +74,34 @@ Opening a panel that was closed re-runs `source` once, since a closed panel hear
 `presentation` is a table of:
 
 * `mode`: `"list"` (default) or `"tree"`.
-* `hierarchy`: `{ field, separator }`, defaults to `{ "name", "/" }`. Tree only. The field's value is the row's path and thus its identity: it must be unique per row — rows sharing a path collapse onto a single tree node.
+* `hierarchy`: `{ field = <string>, separator = <string> }` (a table of named keys, not a positional pair), defaults to `{ field = "name", separator = "/" }`. Tree only. The field's value is the row's path and thus its identity: it must be unique per row — rows sharing a path collapse onto a single tree node.
 * `foldersFirst`: group folders above everything else. Tree only. Default on.
 * `expandAll`: every folder starts open, and what is remembered is what you *closed*. Tree only.
 * `expansionScope`: `"view"` (default, persisted per view) or `"page"` (kept only while you are on the page, for a tree of the current page's own content). Tree only.
 * `limit`: (default 200) rows rendered before the `N more matches` footer.
 * `createIcon`: the create row's icon (see [[#Row icons]] for the accepted forms), resolved once for the view since its "object" is whatever is being typed.
 * `row`: `{ primary, label, description, decorations, cssClass, icon }`. `primary`/`label`/`description`/`cssClass` are each either a field name or a function of the object; `cssClass` adds classes to the row element itself; `icon` is described under [[#Row icons]].
+
+#### Row decorations
+`presentation.row.decorations` puts chips on a row. It is a function of the object returning a **list** of chips — a single chip has to be wrapped in a list of one — or `nil` for an undecorated row.
+
+```lua
+presentation = {
+  row = {
+    decorations = function(obj)
+      return { { text = obj.text, cssClass = "sb-hashtag", position = "right" } }
+    end,
+  },
+}
+```
+
+A chip is `{ text?, icon?, cssClass?, position?, title? }`:
+
+* `text`: the chip's label.
+* `icon`: see [[#Row icons]] for the three accepted forms.
+* `cssClass`: yours to pick — `"sb-hashtag"` gets SilverBullet’s own tag pill, and `"sb-nav-chip-hint"` the **hint slot**: right-aligned at the row's edge.
+* `position`: `"left"` or `"right"` (default), which end of the row the chip sits at.
+* `title`: native tooltip, for a chip whose text is deliberately imprecise.
 
 #### Row icons
 `presentation.row.icon` puts an icon at the start of every row — a string, or a function of the object returning one; `nil` (or a function returning `nil`) means no icon. A string is one of three forms:
@@ -167,8 +188,6 @@ actions = {
 * `requireMode` (optional): `"rw"` hides the action while the client is in read-only mode.
 
 In a tree, actions appear on folder rows too: a folder reaches `run` as `{ name = <path>, isFolder = true }`, and a page that also has children carries both its own fields and `isFolder`, the same object `onMove` gets.
-
-Row decorations are chips: `{ text?, icon?, cssClass?, position? }`. The `cssClass` is yours to pick — `"sb-hashtag"` gets SilverBullet’s own tag pill, and `"sb-nav-chip-hint"` the **hint slot**: right-aligned at the row's edge.
 
 #### Segments
 `segments` puts a segmented control under the phrase input: named subsets of the view’s own rows, switchable without re-running the source.
