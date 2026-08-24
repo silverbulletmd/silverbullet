@@ -444,6 +444,10 @@
 // The revision preview overlay. Column layout so the footer stays put and
 // only the body scrolls, however long the diff is.
 .sb-revision-preview {
+  // `.sb-modal` paints no background of its own: every other user of it holds
+  // either a plug iframe or a nav panel, each of which paints its own.
+  background: var(--ui-surface-background-color);
+  color: var(--ui-surface-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -460,6 +464,19 @@
   gap: 8px;
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+// The title takes the squeeze, not the control beside it: `.sb-segments-wrap`
+// sets `min-width: 0` and would otherwise wrap its buttons onto a second line.
+.sb-revision-preview-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-revision-preview-header .sb-segments-wrap {
+  flex: none;
 }
 
 .sb-revision-preview-message {
@@ -497,4 +514,11 @@
 .sb-revision-diff-hunk {
   color: var(--ui-surface-subtle-color);
   font-weight: 600;
+}
+
+.sb-revision-preview-footer {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

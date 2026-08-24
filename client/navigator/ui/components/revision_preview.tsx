@@ -65,7 +65,7 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
   return (
     <>
       <div class="sb-revision-preview-header">
-        <span>{preview.header}</span>
+        <span class="sb-revision-preview-title">{preview.header}</span>
         {diff !== undefined && canShowContent && (
           <SegmentedControl
             items={MODES}
@@ -140,7 +140,9 @@ export function RevisionPreviewModal() {
         if (ev.target === ev.currentTarget) close(preview.dock);
       }}
     >
-      <div class="sb-modal sb-modal-centered sb-revision-preview">
+      {/* Same inset the preview used as a plug modal, and the definite
+          height the scrolling body needs. */}
+      <div class="sb-modal sb-revision-preview" style={{ inset: "100px" }}>
         {/* Keyed so a new preview remounts rather than inheriting the previous
             one's fetch state -- what the old iframe needed a render-id guard for. */}
         <PreviewBody key={preview.token} preview={preview} />

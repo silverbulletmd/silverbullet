@@ -172,6 +172,36 @@ test.describe("Page History preview", () => {
 
     await expect(page.locator(".sb-modal-backdrop")).toBeVisible();
     const preview = modalPreview(page);
+
+    // `.sb-modal` paints no background and sets no height of its own -- every
+    // other user of it holds an iframe or a nav panel that does. Without these
+    // the page shows through the preview and its footer falls off-screen, and
+    // every other assertion in this file still passes.
+    await expect(preview).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    const box = (await preview.boundingBox())!;
+    const viewport = page.viewportSize()!;
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+
+    // The header's control stays on one row: `.sb-segments-wrap` sets
+    // `min-width: 0`, so a title that refuses to shrink pushes it to wrap.
+    const segTops = await preview
+      .locator(".sb-segment")
+      .evaluateAll((els) =>
+        els.map((e) => Math.round(e.getBoundingClientRect().top)),
+      );
+    expect(new Set(segTops).size).toBe(1);
+
+    // Footer buttons: right-aligned, in order, not overlapping.
+    const closeBox = (await preview
+      .getByRole("button", { name: "Close" })
+      .boundingBox())!;
+    const restoreBox = (await preview
+      .getByRole("button", { name: "Restore" })
+      .boundingBox())!;
+    expect(closeBox.x + closeBox.width).toBeLessThanOrEqual(restoreBox.x);
+    expect(restoreBox.x + restoreBox.width).toBeGreaterThan(
+      box.x + box.width - 40,
+    );
     await expect(
       preview.locator(".sb-revision-diff-hunk").first(),
     ).toBeVisible();
