@@ -3,6 +3,8 @@ export type Decoration = {
   icon?: string;
   cssClass?: string;
   position?: "left" | "right";
+  /** Native tooltip, for a chip whose text is deliberately imprecise. */
+  title?: string;
 };
 
 export type Row = {

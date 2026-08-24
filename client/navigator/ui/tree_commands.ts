@@ -104,5 +104,5 @@ export function createTreeCommands({
     refresh();
   }
 
-  return { toggleExpanded, moveNode };
+  return { toggleExpanded, expandPath, moveNode };
 }

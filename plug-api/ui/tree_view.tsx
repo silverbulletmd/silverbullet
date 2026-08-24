@@ -14,7 +14,10 @@ const DRAG_MIME = "application/x-sb-nav-path";
 
 function Chip({ decoration }: { decoration: Decoration }) {
   return (
-    <span class={"sb-nav-chip " + (decoration.cssClass ?? "")}>
+    <span
+      class={"sb-nav-chip " + (decoration.cssClass ?? "")}
+      title={decoration.title}
+    >
       {decoration.text ?? decoration.icon}
     </span>
   );
@@ -343,6 +346,9 @@ function TreeItem({
               reader must never see -- see `Row.label`. */}
           {highlightMatches(node.row?.label ?? node.segment, phrase)}
         </span>
+        {node.row?.description && (
+          <span class="sb-nav-description">{node.row.description}</span>
+        )}
         {decorations.map((d, i) => (
           <Chip key={i} decoration={d} />
         ))}
