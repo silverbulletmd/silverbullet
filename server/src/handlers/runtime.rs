@@ -206,7 +206,7 @@ mod tests {
 
     fn state_with_runtime(backend: Option<Box<dyn RuntimeBackend>>) -> Arc<ServerState> {
         let mut s = test_state();
-        s.runtime = backend;
+        s.runtime = backend.map(Arc::from);
         Arc::new(s)
     }
 

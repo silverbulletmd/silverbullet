@@ -81,7 +81,7 @@ pub struct ServerState {
     /// Request metrics. `None` disables counting and `/metrics`.
     pub metrics: Option<Arc<Metrics>>,
     /// Lua runtime backend for `/.runtime/*`. May be disabled, when None: those endpoints 503.
-    pub runtime: Option<Box<dyn RuntimeBackend>>,
+    pub runtime: Option<Arc<dyn RuntimeBackend>>,
     /// Broadcast channel of file-system change events, backing `GET /.events`.
     /// `None` (non-disk backend or watcher unavailable) -> the endpoint 404s
     /// and clients fall back to polling.
@@ -98,4 +98,11 @@ pub struct ServerState {
     /// (`Arc`) with the space's fs watcher, which consults the same map to
     /// enrich the events it emits.
     pub fs_guard: Arc<crate::fs_guard::FsGuard>,
+    /// Git-backed revision history for this space. `None` when revisions are
+    /// disabled, or when `Managed` mode could not initialize a repo.
+    pub revisions: Option<Arc<crate::revisions::RevisionEngine>>,
+    /// Turns a request's verified username into a full identity (see
+    /// `auth::IdentityResolver`). `username_only()` for a server with no
+    /// profile store behind it.
+    pub identity: Arc<dyn crate::auth::IdentityResolver>,
 }

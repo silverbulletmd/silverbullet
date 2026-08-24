@@ -9,6 +9,7 @@ pub mod fs_guard;
 pub mod handlers;
 pub mod metrics;
 pub mod multi;
+pub mod revisions;
 pub mod router;
 pub mod runtime;
 pub mod shell;
@@ -25,7 +26,7 @@ pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};
 mod test_support {
     use crate::state::ServerState;
     use silverbullet_server_common::space::MemorySpacePrimitives;
-    use silverbullet_server_common::BootConfig;
+    use silverbullet_server_common::{BootConfig, RevisionsMode};
 
     /// An `ServerState` backed by a fresh in-memory space and a fresh in-memory
     /// "bundle" (also a MemorySpacePrimitives). Tests seed files as needed.
@@ -45,6 +46,7 @@ mod test_support {
                 shell_backend: "local".into(),
                 disable_service_worker: true,
                 sync_protocol_version: 2,
+                revisions: RevisionsMode::Disabled,
             },
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
@@ -63,6 +65,8 @@ mod test_support {
             fs_events: None,
             shutdown: None,
             fs_guard: Default::default(),
+            revisions: None,
+            identity: crate::auth::username_only(),
         }
     }
 }

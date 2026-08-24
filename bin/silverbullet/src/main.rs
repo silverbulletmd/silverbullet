@@ -166,6 +166,8 @@ fn run_setup_subcommand(
     let req = SetupRequest {
         admin_username: username.to_string(),
         admin_password: password.to_string(),
+        admin_full_name: String::new(),
+        admin_email: String::new(),
         space: space.map(|name| FirstSpace {
             name,
             prefix: at,

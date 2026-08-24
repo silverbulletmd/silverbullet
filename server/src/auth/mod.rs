@@ -8,6 +8,7 @@ pub mod authorizer;
 pub mod config;
 pub mod cookie;
 pub mod headless_token;
+pub mod identity;
 pub mod jwt_authorizer;
 pub mod lockout;
 pub mod login;
@@ -21,6 +22,7 @@ pub use cookie::{
     CookieOptions,
 };
 pub use headless_token::{headless_cookie_name, HeadlessTokenAuthorizer};
+pub use identity::{clean_email, clean_full_name, username_only, IdentityResolver, UserProfile};
 pub use jwt_authorizer::JwtAuthorizer;
 pub use lockout::LockoutTimer;
 pub use login::LoginManager;

@@ -308,7 +308,7 @@ pub async fn handle_fs_put(
             state_inner.fs_guard.record_expected_write_with_meta(
                 &path_inner,
                 &body_hash,
-                actor.username,
+                actor.clone(),
                 client_id,
                 source,
                 result_meta.size,
@@ -380,7 +380,7 @@ pub async fn handle_fs_delete(
                 Some(meta) => state_inner.fs_guard.record_expected_write_with_meta(
                     &path_inner,
                     &hash,
-                    actor.username,
+                    actor.clone(),
                     client_id,
                     source,
                     meta.size,
@@ -389,7 +389,7 @@ pub async fn handle_fs_delete(
                 None => state_inner.fs_guard.record_expected_write(
                     &path_inner,
                     &hash,
-                    actor.username,
+                    actor.clone(),
                     client_id,
                     source,
                 ),
@@ -427,7 +427,7 @@ pub async fn handle_fs_reconcile(
     body: axum::body::Bytes,
 ) -> impl IntoResponse {
     let attribution = WriteAttribution {
-        actor: actor.username,
+        actor,
         client_id: client_id_header(&headers),
         source: source_header(&headers),
     };
@@ -516,7 +516,7 @@ fn revision_of(meta: &FileMeta, hash: String) -> ReconcileRevision {
 /// A single reconcile call can write more than once across its retry loop,
 /// so this is threaded through rather than read from headers at each site.
 struct WriteAttribution {
-    actor: Option<String>,
+    actor: Actor,
     client_id: Option<String>,
     source: Option<String>,
 }
@@ -1085,7 +1085,7 @@ mod tests {
         assert_eq!(ew.source.as_deref(), Some("editor"));
         // No authorizer configured in `test_state`, so `Actor.username` is
         // `None` (open server, never a fabricated identity).
-        assert_eq!(ew.actor, None);
+        assert_eq!(ew.actor.username, None);
     }
 
     #[tokio::test]
@@ -1167,7 +1167,7 @@ mod tests {
             .fs_guard
             .lookup_expected_write("note.md", &hash)
             .expect("expected write recorded");
-        assert_eq!(ew.actor.as_deref(), Some("alice"));
+        assert_eq!(ew.actor.username.as_deref(), Some("alice"));
     }
 
     #[tokio::test]

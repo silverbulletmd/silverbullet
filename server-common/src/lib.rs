@@ -9,4 +9,4 @@ pub mod space;
 pub mod types;
 pub mod upgrade;
 
-pub use types::{BootConfig, FileMeta, SpaceError, SpacePrimitives};
+pub use types::{BootConfig, FileMeta, RevisionsMode, SpaceError, SpacePrimitives};

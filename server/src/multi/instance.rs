@@ -81,6 +81,26 @@ pub enum InstanceAuth {
     },
 }
 
+struct AccountIdentity(Arc<UserStore>);
+
+impl crate::auth::IdentityResolver for AccountIdentity {
+    fn resolve(&self, username: Option<&str>) -> crate::auth::UserProfile {
+        let Some(username) = username else {
+            return crate::auth::UserProfile::default();
+        };
+        let profile = self.0.profile(username).unwrap_or_default();
+        crate::auth::UserProfile {
+            username: Some(username.to_string()),
+            full_name: profile.full_name,
+            email: profile.email,
+        }
+    }
+}
+
+fn account_identity(users: Arc<UserStore>) -> Arc<dyn crate::auth::IdentityResolver> {
+    Arc::new(AccountIdentity(users))
+}
+
 /// Prevent a space deliberately rooted at the multi-space data directory from
 /// reading or mutating the server's account, routing, and session state.
 struct ServerControlFileFilter {
@@ -418,9 +438,24 @@ fn try_build_state(
     } else {
         None
     };
+    let runtime: Option<Arc<dyn crate::runtime::RuntimeBackend>> = runtime.map(Arc::from);
 
     let shell_enabled = config.shell.enabled && !config.read_only && !deps.shell_disabled;
     let fs_guard = Arc::new(crate::fs_guard::FsGuard::default());
+    let fs_events = crate::start_watcher(
+        &folder,
+        &config.space_ignore,
+        crate::WatchMode::from_env(),
+        fs_guard.clone(),
+    );
+    let revisions = crate::revisions::RevisionStore::open(&folder, config.revisions).map(|store| {
+        crate::revisions::RevisionEngine::start(store, fs_events.as_ref().map(|tx| tx.subscribe()))
+    });
+
+    if let (Some(revisions), Some(runtime)) = (&revisions, &runtime) {
+        crate::revisions::spawn_author_config_lookup(revisions, runtime);
+    }
+
     Ok(ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
@@ -439,6 +474,7 @@ fn try_build_state(
             },
             disable_service_worker: deps.disable_service_worker,
             sync_protocol_version: 2,
+            revisions: config.revisions,
         },
         space_folder_path: folder_str,
         version: ServerVersion::Static(deps.version.clone()),
@@ -454,14 +490,14 @@ fn try_build_state(
         },
         metrics: deps.metrics.clone(),
         runtime,
-        fs_events: crate::start_watcher(
-            &folder,
-            &config.space_ignore,
-            crate::WatchMode::from_env(),
-            fs_guard.clone(),
-        ),
+        fs_events,
         shutdown: deps.shutdown.clone(),
         fs_guard,
+        revisions,
+        identity: match &deps.auth {
+            InstanceAuth::Accounts { users, .. } => account_identity(users.clone()),
+            InstanceAuth::Single(_) => crate::auth::username_only(),
+        },
     })
 }
 
@@ -469,6 +505,7 @@ fn try_build_state(
 mod tests {
     use super::*;
     use crate::multi::config::{Binding, ShellSettings, SpaceConfig};
+    use crate::multi::users::Profile;
     use silverbullet_server_common::space::MemorySpacePrimitives;
 
     fn test_deps(root: &std::path::Path) -> InstanceDeps {
@@ -510,6 +547,7 @@ mod tests {
             head_html: String::new(),
             space_ignore: String::new(),
             log_push: false,
+            revisions: Default::default(),
             extra: Default::default(),
         }
     }
@@ -563,6 +601,40 @@ mod tests {
         );
         let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
         assert!(state.fs_events.is_some());
+    }
+
+    #[test]
+    fn managed_revisions_inits_git_and_starts_the_engine() {
+        let dir = tempfile::tempdir().unwrap();
+        let deps = test_deps(dir.path());
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.revisions = silverbullet_server_common::RevisionsMode::Managed;
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        assert!(folder.join(".git").exists());
+        assert!(state.revisions.is_some());
+    }
+
+    #[test]
+    fn disabled_revisions_yields_no_engine() {
+        let dir = tempfile::tempdir().unwrap();
+        let deps = test_deps(dir.path());
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        assert!(state.revisions.is_none());
     }
 
     #[test]
@@ -692,6 +764,7 @@ mod tests {
             head_html: String::new(),
             space_ignore: String::new(),
             log_push: false,
+            revisions: Default::default(),
             extra: Default::default(),
         }
     }
@@ -743,8 +816,12 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut deps = test_deps(dir.path());
         let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
-        store.create_user("bob", "bobpw12345", false).unwrap();
-        store.create_user("eve", "evepw12345", false).unwrap();
+        store
+            .create_user("bob", "bobpw12345", false, Profile::default())
+            .unwrap();
+        store
+            .create_user("eve", "evepw12345", false, Profile::default())
+            .unwrap();
         let bob_token = store.create_token("bob", "t").unwrap();
         let eve_token = store.create_token("eve", "t").unwrap();
         let authenticator = Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into()));
@@ -818,7 +895,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut deps = test_deps(dir.path());
         let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
-        store.create_user("admin", "adminpw1", true).unwrap();
+        store
+            .create_user("admin", "adminpw1", true, Profile::default())
+            .unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
         std::fs::write(dir.path().join(crate::auth::MULTI_AUTH_FILE_NAME), "secret").unwrap();
         std::fs::write(dir.path().join("note.md"), "visible").unwrap();
@@ -927,5 +1006,40 @@ mod tests {
             std::fs::read_to_string(dir.path().join("notes/index.md")).unwrap(),
             "# Hello\n"
         );
+    }
+
+    #[test]
+    fn account_resolver_fills_the_profile_for_a_known_user() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        store
+            .create_user(
+                "ada",
+                "pw123456",
+                true,
+                crate::multi::users::Profile {
+                    full_name: Some("Ada Lovelace".into()),
+                    email: Some("ada@example.org".into()),
+                },
+            )
+            .unwrap();
+        let resolver = account_identity(store);
+        assert_eq!(
+            resolver.resolve(Some("ada")),
+            crate::auth::UserProfile {
+                username: Some("ada".into()),
+                full_name: Some("Ada Lovelace".into()),
+                email: Some("ada@example.org".into()),
+            }
+        );
+        // An unknown or absent user degrades to username-only, never an error.
+        assert_eq!(
+            resolver.resolve(Some("ghost")),
+            crate::auth::UserProfile {
+                username: Some("ghost".into()),
+                ..Default::default()
+            }
+        );
+        assert_eq!(resolver.resolve(None), crate::auth::UserProfile::default());
     }
 }

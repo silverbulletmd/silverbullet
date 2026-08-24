@@ -18,7 +18,7 @@ use crate::auth::{Authenticator, JwtAuthorizer, RequestAuthorizer};
 use crate::multi::access::UserTokenAuthorizer;
 use crate::multi::config::SpaceConfig;
 use crate::multi::manager::{ApiError, MultiManager};
-use crate::multi::users::UserStore;
+use crate::multi::users::{Profile, UserStore};
 use crate::router::run_blocking;
 
 pub struct AdminState {
@@ -167,6 +167,10 @@ fn user_store_error(msg: String) -> Response {
     }
     let field = if msg.starts_with("invalid username") || msg.starts_with("user ") {
         "username"
+    } else if msg.starts_with("full name") {
+        "fullName"
+    } else if msg.starts_with("email") {
+        "email"
     } else if msg.starts_with("token ") {
         "name"
     } else if msg == "cannot remove the last admin" || msg == "cannot demote the last admin" {
@@ -272,26 +276,62 @@ async fn handle_get_user(
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct CreateUserBody {
     username: String,
     password: String,
     #[serde(default)]
     admin: bool,
+    #[serde(default)]
+    full_name: String,
+    #[serde(default)]
+    email: String,
 }
 
 async fn handle_create_user(
     State(state): State<Arc<AdminState>>,
     Json(body): Json<CreateUserBody>,
 ) -> Response {
+    let profile = match Profile::parse(&body.full_name, &body.email) {
+        Ok(profile) => profile,
+        Err(e) => return user_store_error(e),
+    };
     let users = state.users.clone();
-    let result =
-        run_blocking(move || Ok(users.create_user(&body.username, &body.password, body.admin)))
-            .await;
+    let result = run_blocking(move || {
+        Ok(users.create_user(&body.username, &body.password, body.admin, profile))
+    })
+    .await;
     match result {
         Ok(Ok(())) => {
             state.manager.set_known_users(state.users.usernames());
             Json(json!({ "status": "ok" })).into_response()
         }
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProfileBody {
+    #[serde(default)]
+    full_name: String,
+    #[serde(default)]
+    email: String,
+}
+
+async fn handle_set_user_profile(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+    Json(body): Json<ProfileBody>,
+) -> Response {
+    let profile = match Profile::parse(&body.full_name, &body.email) {
+        Ok(profile) => profile,
+        Err(e) => return user_store_error(e),
+    };
+    let users = state.users.clone();
+    match run_blocking(move || Ok(users.set_profile(&name, profile))).await {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -523,6 +563,10 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
                 .delete(handle_delete_user),
         )
         .route("/users/{name}/password", post(handle_set_user_password))
+        .route(
+            "/users/{name}/profile",
+            axum::routing::put(handle_set_user_profile),
+        )
         .route("/users/{name}/tokens", post(handle_create_token))
         .route(
             "/users/{name}/tokens/{token_name}",
@@ -594,7 +638,9 @@ mod tests {
         runtime_availability: crate::runtime::RuntimeAvailability,
     ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
         let users = UserStore::create_empty(dir.path()).unwrap();
-        users.create_user("admin", "adminpw1", true).unwrap();
+        users
+            .create_user("admin", "adminpw1", true, Profile::default())
+            .unwrap();
         let authenticator = test_authenticator();
         let manager = MultiManager::boot(
             dir.path().to_path_buf(),
@@ -671,7 +717,9 @@ mod tests {
 
         let dir = tempfile::tempdir().unwrap();
         let users = UserStore::create_empty(dir.path()).unwrap();
-        users.create_user("admin", "adminpw1", true).unwrap();
+        users
+            .create_user("admin", "adminpw1", true, Profile::default())
+            .unwrap();
         let authenticator = test_authenticator();
 
         // The admin surface persists its signing secret to the *admin* file
@@ -706,6 +754,7 @@ mod tests {
             head_html: String::new(),
             space_ignore: String::new(),
             log_push: false,
+            revisions: Default::default(),
             extra: Default::default(),
         };
         let inst = build_instance(
@@ -748,7 +797,9 @@ mod tests {
         // A valid session for a *non-admin* account is still refused — but as
         // 403, not 401: the caller is signed in, so sending it to the login
         // screen would only bounce it back here.
-        users.create_user("bob", "pw123456", false).unwrap();
+        users
+            .create_user("bob", "pw123456", false, Profile::default())
+            .unwrap();
         let bob = session_cookie(&users, "bob");
         let resp = send(
             &r,
@@ -791,7 +842,9 @@ mod tests {
         assert_eq!(garbage.status(), StatusCode::UNAUTHORIZED);
 
         // A valid session belonging to a non-admin account.
-        users.create_user("alice", "alicepw12", false).unwrap();
+        users
+            .create_user("alice", "alicepw12", false, Profile::default())
+            .unwrap();
         let alice = session_cookie(&users, "alice");
         let forbidden = send(
             &r,
@@ -1124,7 +1177,9 @@ mod tests {
     async fn admin_api_token_of_admin_user_works_and_member_token_does_not() {
         let dir = tempfile::tempdir().unwrap();
         let (r, _m, users) = admin_router(&dir); // helper now also returns the store
-        users.create_user("bob", "pw123456", false).unwrap();
+        users
+            .create_user("bob", "pw123456", false, Profile::default())
+            .unwrap();
         let admin_tok = users.create_token("admin", "ci").unwrap();
         let bob_tok = users.create_token("bob", "ci").unwrap();
         let ok = send(
@@ -1236,6 +1291,40 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
         let resp = authed(&r, "PUT", "/api/users/ghost", r#"{"admin":true}"#, &cookie).await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn create_user_stores_the_profile() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let body = r#"{"username":"ada","password":"pw123456","admin":false,
+                       "fullName":"Ada Lovelace","email":"ada@example.org"}"#;
+        let resp = authed(&r, "POST", "/api/users", body, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            users.profile("ada").unwrap().email.as_deref(),
+            Some("ada@example.org")
+        );
+    }
+
+    #[tokio::test]
+    async fn set_profile_rejects_a_git_ident_breaker() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        users
+            .create_user("ada", "pw123456", false, Profile::default())
+            .unwrap();
+        let resp = authed(
+            &r,
+            "PUT",
+            "/api/users/ada/profile",
+            r#"{"fullName":"Ada <ada@example.org>","email":""}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]

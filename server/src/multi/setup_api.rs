@@ -155,6 +155,7 @@ pub fn build_setup_router(state: Arc<SetupState>) -> Router {
 mod tests {
     use super::*;
     use crate::multi::setup::is_configured;
+    use crate::multi::users::UserStore;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use silverbullet_server_common::space::MemorySpacePrimitives;
@@ -256,6 +257,22 @@ mod tests {
         assert!(is_configured(dir.path()), "users.json should now exist");
         assert!(dir.path().join("spaces.json").exists());
         assert!(flag.load(Ordering::SeqCst), "on_complete must have fired");
+    }
+
+    #[tokio::test]
+    async fn setup_stores_the_admin_profile() {
+        let dir = tempfile::tempdir().unwrap();
+        let r = build_setup_router(state(&dir, true, Arc::new(AtomicBool::new(false))));
+        let body = r#"{"adminUsername":"admin","adminPassword":"adminpw123",
+                       "adminFullName":"Ada Lovelace","adminEmail":"ada@example.org"}"#;
+
+        let resp = send(&r, post_json("/.setup/api/complete", body)).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let store = UserStore::open(dir.path()).unwrap().unwrap();
+        let profile = store.profile("admin").unwrap();
+        assert_eq!(profile.full_name.as_deref(), Some("Ada Lovelace"));
+        assert_eq!(profile.email.as_deref(), Some("ada@example.org"));
     }
 
     #[tokio::test]

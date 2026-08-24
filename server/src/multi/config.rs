@@ -108,6 +108,8 @@ pub struct SpaceConfig {
     pub space_ignore: String,
     #[serde(default)]
     pub log_push: bool,
+    #[serde(default)]
+    pub revisions: silverbullet_server_common::RevisionsMode,
     /// Fields written by newer versions, preserved verbatim.
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -316,6 +318,33 @@ mod tests {
         assert!(
             !c.spaces["id-off"].runtime_api,
             "an explicit false stays off"
+        );
+    }
+
+    #[test]
+    fn revisions_round_trips_and_defaults_to_disabled() {
+        let c = MultiConfig::from_json(
+            r#"{
+              "id-managed": { "name": "M", "binding": { "prefix": "/m" }, "revisions": "managed" },
+              "id-default": { "name": "D", "binding": { "prefix": "/d" } }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(
+            c.spaces["id-managed"].revisions,
+            silverbullet_server_common::RevisionsMode::Managed
+        );
+        assert_eq!(
+            c.spaces["id-default"].revisions,
+            silverbullet_server_common::RevisionsMode::Disabled
+        );
+
+        let out = c.to_json_string().unwrap();
+        assert!(out.contains("\"revisions\": \"managed\""), "{out}");
+        let again = MultiConfig::from_json(&out).unwrap();
+        assert_eq!(
+            again.spaces["id-managed"].revisions,
+            silverbullet_server_common::RevisionsMode::Managed
         );
     }
 }

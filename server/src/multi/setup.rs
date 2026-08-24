@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::multi::config::{MultiConfig, SpaceConfig};
 use crate::multi::instance::{resolve_folder, seed_index};
-use crate::multi::users::{UserEntry, UsersConfig, USERS_FILE};
+use crate::multi::users::{Profile, UserEntry, UsersConfig, USERS_FILE};
 use crate::multi::validate::{validate, FieldError};
 
 const SPACES_FILE: &str = "spaces.json";
@@ -34,6 +34,10 @@ pub struct FirstSpace {
 pub struct SetupRequest {
     pub admin_username: String,
     pub admin_password: String,
+    #[serde(default)]
+    pub admin_full_name: String,
+    #[serde(default)]
+    pub admin_email: String,
     #[serde(default)]
     pub space: Option<FirstSpace>,
 }
@@ -126,6 +130,11 @@ pub fn run_setup(
     if req.admin_password.is_empty() {
         return Err(err("adminPassword", "password must not be empty"));
     }
+    let profile = Profile {
+        full_name: crate::auth::clean_full_name(&req.admin_full_name)
+            .map_err(|e| err("adminFullName", e))?,
+        email: crate::auth::clean_email(&req.admin_email).map_err(|e| err("adminEmail", e))?,
+    };
 
     let spaces_path = root.join(SPACES_FILE);
     let mut spaces = MultiConfig::load(&spaces_path).map_err(|e| err("", e))?;
@@ -138,6 +147,8 @@ pub fn run_setup(
         UserEntry {
             password_hash,
             admin: true,
+            full_name: profile.full_name,
+            email: profile.email,
             tokens: BTreeMap::new(),
             extra: Default::default(),
         },
@@ -222,8 +233,10 @@ mod tests {
 
     fn req(space: Option<FirstSpace>) -> SetupRequest {
         SetupRequest {
-            admin_username: "zef".into(),
+            admin_username: "ada".into(),
             admin_password: "hunter22".into(),
+            admin_full_name: String::new(),
+            admin_email: String::new(),
             space,
         }
     }
@@ -251,8 +264,8 @@ mod tests {
         assert_0600(&users_path);
 
         let store = UserStore::open(dir.path()).unwrap().unwrap();
-        assert!(store.verify_password("zef", "hunter22"));
-        assert!(store.is_admin("zef"));
+        assert!(store.verify_password("ada", "hunter22"));
+        assert!(store.is_admin("ada"));
 
         let spaces_path = dir.path().join(SPACES_FILE);
         assert!(spaces_path.exists());
@@ -371,6 +384,23 @@ mod tests {
         request.admin_password = "".into();
         let errs = run_setup(dir.path(), &request, "x").unwrap_err();
         assert!(errs.iter().any(|e| e.field == "adminPassword"), "{errs:?}");
+        assert!(!is_configured(dir.path()));
+    }
+
+    #[test]
+    fn a_bad_profile_field_is_reported_against_that_field() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let mut request = req(None);
+        request.admin_full_name = "Ada <Lovelace>".into();
+        let errs = run_setup(dir.path(), &request, "x").unwrap_err();
+        assert_eq!(errs[0].field, "adminFullName", "{errs:?}");
+
+        let mut request = req(None);
+        request.admin_email = "ada @example.org".into();
+        let errs = run_setup(dir.path(), &request, "x").unwrap_err();
+        assert_eq!(errs[0].field, "adminEmail", "{errs:?}");
+
         assert!(!is_configured(dir.path()));
     }
 

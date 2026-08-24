@@ -143,6 +143,7 @@ impl RequestAuthorizer for UserTokenAuthorizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::multi::users::Profile;
     use axum::http::{HeaderMap, HeaderValue, Method};
 
     #[test]
@@ -195,9 +196,15 @@ mod tests {
     fn store() -> (tempfile::TempDir, Arc<UserStore>) {
         let dir = tempfile::tempdir().unwrap();
         let store = UserStore::create_empty(dir.path()).unwrap();
-        store.create_user("root", "rootpw123", true).unwrap();
-        store.create_user("bob", "bobpw12345", false).unwrap();
-        store.create_user("eve", "evepw12345", false).unwrap();
+        store
+            .create_user("root", "rootpw123", true, Profile::default())
+            .unwrap();
+        store
+            .create_user("bob", "bobpw12345", false, Profile::default())
+            .unwrap();
+        store
+            .create_user("eve", "evepw12345", false, Profile::default())
+            .unwrap();
         (dir, store)
     }
 

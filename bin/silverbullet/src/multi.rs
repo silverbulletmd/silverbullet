@@ -34,6 +34,7 @@ const IGNORED_IN_MULTI: &[&str] = &[
     "SB_URL_PREFIX",
     "SB_SHELL_WHITELIST",
     "SB_USER",
+    "SB_REVISIONS",
 ];
 
 /// Build the full multi-space serving stack from a provisioned root.

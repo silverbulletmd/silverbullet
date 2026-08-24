@@ -101,6 +101,7 @@ mod tests {
                 head_html: String::new(),
                 space_ignore: String::new(),
                 log_push: false,
+                revisions: Default::default(),
                 extra: Default::default(),
             },
             prefix,

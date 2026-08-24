@@ -22,7 +22,7 @@ use crate::auth::{
 };
 use crate::multi::access::{AnyUserAuth, SessionPolicy};
 use crate::multi::manager::MultiManager;
-use crate::multi::users::UserStore;
+use crate::multi::users::{Profile, UserStore};
 use crate::router::run_blocking;
 
 pub const SPACES_PREFIX: &str = "/.spaces";
@@ -169,6 +169,62 @@ async fn handle_session(State(state): State<Arc<SpaceIndexState>>, headers: Head
     Json(json!({ "username": username, "admin": admin })).into_response()
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProfileBody {
+    #[serde(default)]
+    full_name: String,
+    #[serde(default)]
+    email: String,
+}
+
+async fn handle_get_profile(
+    State(state): State<Arc<SpaceIndexState>>,
+    headers: HeaderMap,
+) -> Response {
+    let Some(username) = current_username(&state, &headers) else {
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+    let profile = state.users.profile(&username).unwrap_or_default();
+    Json(json!({
+        "username": username,
+        "admin": state.users.is_admin(&username),
+        "fullName": profile.full_name,
+        "email": profile.email,
+    }))
+    .into_response()
+}
+
+/// The username comes from the session cookie only, never from the request
+/// body — this is what stops a caller from naming another account.
+async fn handle_put_profile(
+    State(state): State<Arc<SpaceIndexState>>,
+    headers: HeaderMap,
+    Json(body): Json<ProfileBody>,
+) -> Response {
+    let Some(username) = current_username(&state, &headers) else {
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+    let profile = match Profile::parse(&body.full_name, &body.email) {
+        Ok(profile) => profile,
+        Err(e) => return profile_error(e),
+    };
+    let users = state.users.clone();
+    match run_blocking(move || Ok(users.set_profile(&username, profile))).await {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => profile_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+fn profile_error(message: String) -> Response {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({ "errors": [{ "field": "", "message": message }] })),
+    )
+        .into_response()
+}
+
 async fn handle_list(State(state): State<Arc<SpaceIndexState>>, headers: HeaderMap) -> Response {
     let Some(username) = current_username(&state, &headers) else {
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
@@ -232,6 +288,10 @@ pub fn build_spaces_router(state: Arc<SpaceIndexState>, admin_api: Router) -> Ro
         .route("/{id}", get(handle_shell))
         .route("/assets/{file}", get(handle_asset))
         .route("/api/session", get(handle_session))
+        .route(
+            "/api/profile",
+            get(handle_get_profile).put(handle_put_profile),
+        )
         .route("/api/spaces", get(handle_list))
         .route("/api/login", post(handle_login))
         .route("/api/logout", get(handle_logout))
@@ -246,6 +306,7 @@ mod tests {
     use super::*;
     use crate::multi::config::{Binding, SpaceConfig};
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
+    use crate::multi::users::Profile;
     use axum::body::Body;
     use axum::http::Request;
     use silverbullet_server_common::space::MemorySpacePrimitives;
@@ -272,6 +333,7 @@ mod tests {
             head_html: String::new(),
             space_ignore: String::new(),
             log_push: false,
+            revisions: Default::default(),
             extra: Default::default(),
         }
     }
@@ -283,9 +345,15 @@ mod tests {
     fn setup_with(session: SessionPolicy) -> (tempfile::TempDir, Router) {
         let dir = tempfile::tempdir().unwrap();
         let users = UserStore::create_empty(dir.path()).unwrap();
-        users.create_user("admin", "adminpw", true).unwrap();
-        users.create_user("alice", "alicepw", false).unwrap();
-        users.create_user("bob", "bobpw", false).unwrap();
+        users
+            .create_user("admin", "adminpw", true, Profile::default())
+            .unwrap();
+        users
+            .create_user("alice", "alicepw", false, Profile::default())
+            .unwrap();
+        users
+            .create_user("bob", "bobpw", false, Profile::default())
+            .unwrap();
         let authenticator = Arc::new(Authenticator::from_secret_bytes(vec![7; 32], "v1".into()));
         let deps = InstanceDeps {
             root: dir.path().to_path_buf(),
@@ -509,6 +577,62 @@ mod tests {
         )
         .await;
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn profile_get_and_put_operate_on_the_caller() {
+        let (dir, router) = setup();
+        let cookie = login(&router, "alice", "alicepw").await;
+
+        let resp = send(
+            &router,
+            Request::builder()
+                .method("PUT")
+                .uri("/api/profile")
+                .header("host", "localhost")
+                .header("Cookie", &cookie)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"fullName":"Alice Smith","email":"alice@example.org"}"#,
+                ))
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let resp = send(
+            &router,
+            Request::builder()
+                .uri("/api/profile")
+                .header("host", "localhost")
+                .header("Cookie", &cookie)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        let body = json_body(resp).await;
+        assert_eq!(body["username"], "alice");
+        assert_eq!(body["fullName"], "Alice Smith");
+        assert_eq!(body["email"], "alice@example.org");
+
+        // The write went to alice, never to anyone else.
+        let users = UserStore::open(dir.path()).unwrap().unwrap();
+        assert_eq!(users.profile("bob").unwrap(), Profile::default());
+    }
+
+    #[tokio::test]
+    async fn profile_requires_a_session() {
+        let (_dir, router) = setup();
+        let resp = send(
+            &router,
+            Request::builder()
+                .uri("/api/profile")
+                .header("host", "localhost")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]

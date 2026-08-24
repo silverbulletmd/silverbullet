@@ -9,7 +9,7 @@ use axum::Router;
 use silverbullet_server_common::SpaceError;
 use tower_http::compression::CompressionLayer;
 
-use crate::handlers::{bundle, control, fs};
+use crate::handlers::{bundle, control, fs, profile, revisions};
 use crate::state::ServerState;
 
 /// Run a synchronous `SpacePrimitives` operation on the blocking thread pool so
@@ -42,7 +42,8 @@ async fn require_authorization(
     next: Next,
 ) -> Response {
     let Some(authorizer) = state.authorizer.clone() else {
-        req.extensions_mut().insert(crate::auth::Actor::default());
+        let profile = state.identity.resolve(None);
+        req.extensions_mut().insert(actor_from(profile));
         return next.run(req).await;
     };
     let outcome = {
@@ -56,9 +57,8 @@ async fn require_authorization(
     };
     match outcome {
         Some(outcome) => {
-            req.extensions_mut().insert(crate::auth::Actor {
-                username: outcome.username,
-            });
+            let profile = state.identity.resolve(outcome.username.as_deref());
+            req.extensions_mut().insert(actor_from(profile));
             next.run(req).await
         }
         None => {
@@ -73,6 +73,14 @@ async fn require_authorization(
             )
                 .into_response()
         }
+    }
+}
+
+fn actor_from(profile: crate::auth::UserProfile) -> crate::auth::Actor {
+    crate::auth::Actor {
+        username: profile.username,
+        full_name: profile.full_name,
+        email: profile.email,
     }
 }
 
@@ -95,6 +103,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     // Protected: require authorization (when an authorizer is configured).
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
+        .route("/.profile", get(profile::handle_profile))
         // Gzip/brotli-compress file reads (Accept-Encoding aware). Big text
         // assets like a self-hosted mermaid.min.js (~3.3 MB) transfer at
         // ~0.9 MB. Scoped to GET so writes are untouched. The `x-content-length`
@@ -118,6 +127,16 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             post(fs::handle_fs_reconcile).layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
         )
         .route("/.events", get(crate::handlers::events::handle_events))
+        .route(
+            "/.revisions/",
+            get(revisions::handle_space_log)
+                .post(revisions::handle_snapshot)
+                .layer(CompressionLayer::new()),
+        )
+        .route(
+            "/.revisions/{*path}",
+            get(revisions::handle_file_revisions).layer(CompressionLayer::new()),
+        )
         .route("/.shell", post(crate::handlers::shell::handle_shell))
         .route("/.proxy/{*path}", any(crate::handlers::proxy::handle_proxy))
         .route(
@@ -258,6 +277,17 @@ mod auth_tests {
         assert_eq!(status(st, "/.config").await, StatusCode::OK);
     }
 
+    /// `/.profile` emits the caller's identity, so an unauthenticated request
+    /// must never reach it.
+    #[tokio::test]
+    async fn profile_requires_authorization() {
+        let st = state_with(Some(Arc::new(Always(false))));
+        assert_eq!(status(st, "/.profile").await, StatusCode::UNAUTHORIZED);
+
+        let st = state_with(Some(Arc::new(Always(true))));
+        assert_eq!(status(st, "/.profile").await, StatusCode::OK);
+    }
+
     #[tokio::test]
     async fn ping_stays_open_even_when_authorizer_denies_all() {
         let st = state_with(Some(Arc::new(Always(false))));
@@ -351,6 +381,61 @@ mod auth_tests {
             .await
             .unwrap();
         assert_eq!(&body[..], b"alice");
+    }
+
+    /// The resolver runs on every request, including on an open server
+    /// (`state.authorizer == None`) -- see `ServerState.identity`.
+    #[tokio::test]
+    async fn actor_carries_the_resolved_profile() {
+        use axum::routing::get;
+        use axum::Extension;
+
+        struct FixedProfile;
+        impl crate::auth::IdentityResolver for FixedProfile {
+            fn resolve(&self, username: Option<&str>) -> crate::auth::UserProfile {
+                crate::auth::UserProfile {
+                    username: username.map(str::to_string),
+                    full_name: Some("Ada Lovelace".into()),
+                    email: Some("ada@example.org".into()),
+                }
+            }
+        }
+
+        async fn probe(Extension(actor): Extension<Actor>) -> String {
+            format!(
+                "{}|{}",
+                actor.full_name.unwrap_or_default(),
+                actor.email.unwrap_or_default()
+            )
+        }
+
+        let mut s = test_state();
+        s.authorizer = None;
+        s.identity = Arc::new(FixedProfile);
+        let st = Arc::new(s);
+
+        let probe_router = axum::Router::new()
+            .route("/probe", get(probe))
+            .route_layer(axum::middleware::from_fn_with_state(
+                st.clone(),
+                super::require_authorization,
+            ))
+            .with_state(st);
+
+        let resp = probe_router
+            .oneshot(
+                Request::builder()
+                    .uri("/probe")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"Ada Lovelace|ada@example.org");
     }
 
     /// Bearer-token auth is a valid credential but carries no verified
@@ -677,7 +762,7 @@ mod metrics_tests {
         let metrics = Arc::new(Metrics::new());
         let mut s = test_state();
         s.metrics = Some(metrics.clone());
-        s.runtime = Some(Box::new(Noop));
+        s.runtime = Some(Arc::new(Noop));
         let state = Arc::new(s);
 
         let before = metrics.runtime_api_requests.get();

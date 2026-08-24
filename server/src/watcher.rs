@@ -90,29 +90,16 @@ pub struct EventOrigin {
     pub kind: EventOriginKind,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
+    /// Never serialized: the revision engine needs it in-process, and a space
+    /// member has no business receiving every other member's email address.
+    #[serde(skip)]
+    pub email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
 }
 
-/// Fill in `revision`/`origin` for a change/delete event, best-effort and
-/// never load-bearing (constraint 3): a hashing error just leaves `revision`
-/// (and `origin`) unset rather than failing or blocking the event.
-///
-/// For a change event, the current content is hashed via `guard.hash_for`
-/// (stat-keyed, so this is cheap on the common case of no other reader having
-/// raced a rehash) and looked up in the expected-write map; a hit means this
-/// process's own write produced the event, a miss means some other process
-/// touched the file.
-///
-/// For a delete, the vanished content can't be rehashed, so attribution falls
-/// back to the freshest expected write recorded for that path (there's
-/// normally at most one live one, since path_lock serializes writes). A
-/// `revision` is only emitted when every field is truthful: the map's
-/// `size`/`last_modified` are `None` unless the recording write handler had
-/// them in hand (`FsGuard::record_expected_write_with_meta`), so a match
-/// lacking them still gets an `origin` but no fabricated `revision`.
 fn enrich_event(
     mut event: FsEvent,
     meta: Option<&FileMeta>,
@@ -152,21 +139,19 @@ fn enrich_event(
     event
 }
 
-/// A map hit is "user" origin regardless of whether the write carried a
-/// verified identity (constraint 3: anonymous auth degrades to an origin with
-/// no `displayName`, not to `external`) -- `external` is reserved for a
-/// write this process never recorded at all.
 fn origin_for(hit: Option<ExpectedWrite>) -> EventOrigin {
     match hit {
         Some(expected) => EventOrigin {
             kind: EventOriginKind::User,
-            display_name: expected.actor,
+            display_name: expected.actor.full_name.or(expected.actor.username),
+            email: expected.actor.email,
             client_id: expected.client_id,
             source: expected.source,
         },
         None => EventOrigin {
             kind: EventOriginKind::External,
             display_name: None,
+            email: None,
             client_id: None,
             source: None,
         },
@@ -184,11 +169,6 @@ pub enum FsAction {
     Resync,
 }
 
-/// Watcher backend selection, from `SB_FS_WATCH`.
-/// `Auto` = native OS watcher (inotify/FSEvents/Windows). `Poll` = notify's
-/// PollWatcher (~2s mtime scan) for network mounts (NFS/SMB/FUSE) where writes
-/// from other machines produce no native events. `Off` = no watcher; the
-/// /.events endpoint 404s and clients rely on their own polling.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WatchMode {
     Auto,
@@ -326,14 +306,6 @@ pub fn start_watcher(
         WatchMode::Off => unreachable!(),
     };
 
-    // A *weak* handle, not a clone: the notify Watcher captured below (via
-    // event_handler) owns the only remaining mpsc::Sender clone once this
-    // function returns, so the mpsc channel this thread reads from can never
-    // disconnect on its own — if this were a strong Sender clone, dropping
-    // the Sender this function returns would do nothing, and every watcher
-    // ever started would leak its thread and OS watch for the life of the
-    // process. debounce_loop instead notices abandonment by finding no
-    // strong Sender left to upgrade to.
     let weak_out = broadcast_tx.downgrade();
     std::thread::Builder::new()
         .name("sb-fs-watcher".into())
@@ -357,15 +329,6 @@ fn debounce_loop(
     // Pending space-relative paths, with the time they last fired
     let mut pending: HashMap<String, Instant> = HashMap::new();
     loop {
-        // The mpsc channel above never disconnects on its own: the notify
-        // Watcher that keeps this thread's OS watch alive holds the only
-        // other clone of its Sender, and that Watcher lives on *this same
-        // thread* (see start_watcher). So this upgrade is the only signal
-        // this thread gets that the caller dropped the Sender it was
-        // returned (e.g. its ServerState was rebuilt or torn down) and it's
-        // time to exit, releasing the OS watch with it. The upgraded Sender
-        // is only held for this one iteration — reobtained every loop so a
-        // held clone here never itself props up the strong count.
         let Some(sender) = out.upgrade() else {
             return;
         };
@@ -392,33 +355,14 @@ fn debounce_loop(
         if ready.is_empty() {
             continue;
         }
-        // Built once per flush (not per path): cheap enough for a handful of
-        // ready paths, same as fetch_file_list rebuilding on every call.
         let gitignore = validator.gitignore_matcher();
-        // Resolve every ready path into the (unenriched) event it would
-        // produce *before* deciding whether this is a flood: otherwise the
-        // flood count includes paths that were never visible over /.fs in
-        // the first place (a whole gitignored directory churning, e.g.
-        // node_modules/, shouldn't be able to trigger a Resync that makes
-        // every client refetch its file list). get_file_meta_if_listable
-        // folds in the same directory/no-extension rules fetch_file_list
-        // applies, in one stat call, so this is exactly the set of events
-        // fetch_file_list would agree exist. Deliberately NOT enriched here:
-        // enrichment hashes file contents (`FsGuard::hash_for`), and a flood
-        // (bulk import, git checkout) must never pay that cost per file only
-        // to discard it all for one Resync -- see `resolved` below.
+
         let mut resolved: Vec<(FsEvent, Option<FileMeta>)> = Vec::new();
         for name in ready {
             pending.remove(&name);
             if gitignore.is_ignored(&name, false) {
                 continue;
             }
-            // Change vs. Delete is decided from current on-disk state, not
-            // from which notify::EventKind fired: native backends can
-            // reorder or replay events (e.g. macOS FSEvents re-delivering a
-            // stale Modify after a genuine Remove for a path that existed
-            // before the watch started), so the raw event kind alone is not
-            // a reliable signal.
             match validator.get_file_meta_if_listable(&name) {
                 Ok(Some(meta)) => {
                     let event = FsEvent::change(name, meta.last_modified);
@@ -432,9 +376,6 @@ fn debounce_loop(
             }
         }
         if resolved.len() > FLOOD_THRESHOLD {
-            // Flood: tell clients to re-list instead of replaying each event.
-            // No enrichment (hashing) happened above, so this is cheap
-            // regardless of how many/how large the flooded files are.
             let _ = sender.send(FsEvent::resync());
             continue;
         }
@@ -446,8 +387,6 @@ fn debounce_loop(
     }
 }
 
-/// Absolute path -> space-relative path with forward slashes, or None for
-/// paths outside the root or with hidden (dot-prefixed) components.
 fn to_space_path(root: &Path, abs: &Path) -> Option<String> {
     let rel = abs.strip_prefix(root).ok()?;
     let mut parts = Vec::new();
@@ -467,6 +406,7 @@ fn to_space_path(root: &Path, abs: &Path) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth::Actor;
     use std::time::Duration;
 
     #[test]
@@ -478,12 +418,6 @@ mod tests {
         let (broadcast_tx, _) = broadcast::channel::<FsEvent>(16);
         let weak_out = broadcast_tx.downgrade();
 
-        // Mirrors start_watcher's real ownership shape: the thread also
-        // holds its own clone of the mpsc sender (standing in for notify's
-        // Watcher/event-handler closure), so the mpsc channel can never
-        // disconnect on its own — termination has to come from noticing the
-        // broadcast Sender is gone via the WeakSender, not from
-        // mpsc::RecvTimeoutError::Disconnected.
         let thread_mpsc_tx = raw_tx.clone();
         let guard = FsGuard::default();
         let handle = std::thread::spawn(move || {
@@ -638,13 +572,6 @@ mod tests {
         assert_eq!(ev.name, "linked.md");
     }
 
-    /// A case-only rename delivers OS events for both the old and new
-    /// casing on a case-insensitive filesystem, and `fs::metadata` still
-    /// resolves the old casing through the alias. The watcher must not
-    /// report the stale casing, since `fetch_file_list` (which walks true
-    /// directory entries) will never list it — that mismatch is what lets a
-    /// client's snapshot grow a phantom file. Gated to macOS so the test is
-    /// absent rather than vacuous where it can't exercise the aliasing.
     #[cfg(target_os = "macos")]
     #[tokio::test]
     async fn case_only_rename_never_emits_the_stale_casing() {
@@ -835,7 +762,10 @@ mod tests {
         guard.record_expected_write(
             "a.md",
             &hash,
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             Some("client-1".into()),
             Some("editor".into()),
         );
@@ -899,7 +829,7 @@ mod tests {
         guard.record_expected_write(
             "a.md",
             &hash,
-            None,
+            Actor::default(),
             Some("client-1".into()),
             Some("sync".into()),
         );
@@ -937,7 +867,10 @@ mod tests {
         guard.record_expected_write_with_meta(
             "gone.md",
             "deadbeef",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             Some("editor".into()),
             5,
@@ -966,7 +899,10 @@ mod tests {
         guard.record_expected_write(
             "gone.md",
             "deadbeef",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             Some("editor".into()),
         );
@@ -1026,6 +962,7 @@ mod tests {
             origin: Some(EventOrigin {
                 kind: EventOriginKind::User,
                 display_name: Some("alice".into()),
+                email: None,
                 client_id: Some("client-1".into()),
                 source: Some("editor".into()),
             }),
@@ -1035,5 +972,48 @@ mod tests {
             json,
             r#"{"name":"a.md","action":"change","lastModified":42,"revision":{"algorithm":"sha256","hash":"deadbeef","size":5,"lastModified":42},"origin":{"kind":"user","displayName":"alice","clientId":"client-1","source":"editor"}}"#
         );
+    }
+
+    #[test]
+    fn origin_display_name_prefers_the_full_name_and_never_serializes_the_email() {
+        let guard = FsGuard::default();
+        guard.record_expected_write(
+            "a.md",
+            "hash1",
+            Actor {
+                username: Some("ada".into()),
+                full_name: Some("Ada Lovelace".into()),
+                email: Some("ada@example.org".into()),
+            },
+            None,
+            None,
+        );
+        let origin = origin_for(guard.lookup_expected_write("a.md", "hash1"));
+        assert_eq!(origin.display_name.as_deref(), Some("Ada Lovelace"));
+        assert_eq!(origin.email.as_deref(), Some("ada@example.org"));
+
+        let json = serde_json::to_string(&origin).unwrap();
+        assert!(
+            !json.contains("ada@example.org"),
+            "email must not reach clients: {json}"
+        );
+        assert!(json.contains("Ada Lovelace"), "{json}");
+    }
+
+    #[test]
+    fn origin_display_name_falls_back_to_the_username() {
+        let guard = FsGuard::default();
+        guard.record_expected_write(
+            "a.md",
+            "hash1",
+            Actor {
+                username: Some("ada".into()),
+                ..Default::default()
+            },
+            None,
+            None,
+        );
+        let origin = origin_for(guard.lookup_expected_write("a.md", "hash1"));
+        assert_eq!(origin.display_name.as_deref(), Some("ada"));
     }
 }

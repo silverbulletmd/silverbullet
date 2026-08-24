@@ -35,10 +35,31 @@ pub struct BootConfig {
     /// deserializing configs produced by older servers.
     #[serde(default = "default_sync_protocol_version")]
     pub sync_protocol_version: u32,
+    #[serde(default)]
+    pub revisions: RevisionsMode,
 }
 
 fn default_sync_protocol_version() -> u32 {
     1
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RevisionsMode {
+    Managed,
+    Unmanaged,
+    #[default]
+    Disabled,
+}
+
+impl RevisionsMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RevisionsMode::Managed => "managed",
+            RevisionsMode::Unmanaged => "unmanaged",
+            RevisionsMode::Disabled => "disabled",
+        }
+    }
 }
 
 /// Errors returned by SpacePrimitives operations.

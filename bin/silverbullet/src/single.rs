@@ -59,6 +59,7 @@ fn synthesize(config: &Config, shell_env: ShellConfig) -> SpaceConfig {
         head_html: config.additional_head_html.clone(),
         space_ignore: config.gitignore.clone(),
         log_push: config.log_push,
+        revisions: config.revisions,
         extra: Default::default(),
     }
 }
@@ -220,6 +221,7 @@ mod tests {
             space_description: "Powerful and programmable note taking app".into(),
             host_url_prefix: String::new(),
             http_logging: false,
+            revisions: silverbullet_server_common::RevisionsMode::Unmanaged,
         }
     }
 

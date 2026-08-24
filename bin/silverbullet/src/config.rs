@@ -2,6 +2,8 @@
 //! `-L/--hostname` / `-p/--port` CLI flags.
 use std::env;
 
+use silverbullet_server_common::RevisionsMode;
+
 #[derive(Clone)]
 pub struct Config {
     pub bind_host: String,
@@ -21,6 +23,7 @@ pub struct Config {
     pub space_description: String,
     pub host_url_prefix: String,
     pub http_logging: bool,
+    pub revisions: RevisionsMode,
 }
 
 /// An env var read as a non-empty string.
@@ -98,6 +101,15 @@ impl Config {
                 .unwrap_or_else(|| "Powerful and programmable note taking app".to_string()),
             host_url_prefix: normalize_prefix(&env::var("SB_URL_PREFIX").unwrap_or_default()),
             http_logging: env_nonempty("SB_HTTP_LOGGING").is_some(),
+            revisions: match env::var("SB_REVISIONS").as_deref() {
+                Ok("managed") => RevisionsMode::Managed,
+                Ok("unmanaged") | Err(_) => RevisionsMode::Unmanaged,
+                Ok("disabled") => RevisionsMode::Disabled,
+                Ok(other) => {
+                    tracing::warn!("Unknown SB_REVISIONS value {other:?}, using unmanaged");
+                    RevisionsMode::Unmanaged
+                }
+            },
         })
     }
 }

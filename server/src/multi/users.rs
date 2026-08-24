@@ -10,6 +10,8 @@ use std::sync::{Arc, RwLock};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::auth::{clean_email, clean_full_name};
+
 pub const USERS_FILE: &str = "users.json";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -28,6 +30,10 @@ pub struct UserEntry {
     pub password_hash: String,
     #[serde(default)]
     pub admin: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub full_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub tokens: BTreeMap<String, TokenEntry>,
     /// Fields written by newer versions, preserved verbatim.
@@ -38,6 +44,23 @@ pub struct UserEntry {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct UsersConfig {
     pub users: BTreeMap<String, UserEntry>,
+}
+
+/// The human identity attached to an account: who commits are attributed to,
+/// and what other clients see as a presence label.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Profile {
+    pub full_name: Option<String>,
+    pub email: Option<String>,
+}
+
+impl Profile {
+    pub fn parse(full_name: &str, email: &str) -> Result<Profile, String> {
+        Ok(Profile {
+            full_name: clean_full_name(full_name)?,
+            email: clean_email(email)?,
+        })
+    }
 }
 
 impl UsersConfig {
@@ -237,7 +260,13 @@ impl UserStore {
         None
     }
 
-    pub fn create_user(&self, name: &str, password: &str, admin: bool) -> Result<(), String> {
+    pub fn create_user(
+        &self,
+        name: &str,
+        password: &str,
+        admin: bool,
+        profile: Profile,
+    ) -> Result<(), String> {
         let name = name.trim();
         if name.is_empty() || name.contains(':') || name.contains('/') {
             return Err("invalid username".into());
@@ -255,11 +284,32 @@ impl UserStore {
                 UserEntry {
                     password_hash,
                     admin,
+                    full_name: profile.full_name.clone(),
+                    email: profile.email.clone(),
                     tokens: BTreeMap::new(),
                     extra: Default::default(),
                 },
             );
             Ok(())
+        })
+    }
+
+    pub fn set_profile(&self, name: &str, profile: Profile) -> Result<(), String> {
+        self.mutate(|c| {
+            let entry = c
+                .users
+                .get_mut(name)
+                .ok_or_else(|| format!("no such user {name:?}"))?;
+            entry.full_name = profile.full_name.clone();
+            entry.email = profile.email.clone();
+            Ok(())
+        })
+    }
+
+    pub fn profile(&self, name: &str) -> Option<Profile> {
+        self.read().users.get(name).map(|u| Profile {
+            full_name: u.full_name.clone(),
+            email: u.email.clone(),
         })
     }
 
@@ -370,7 +420,12 @@ fn user_json(user: &UserEntry) -> serde_json::Value {
             )
         })
         .collect();
-    serde_json::json!({ "admin": user.admin, "tokens": tokens })
+    serde_json::json!({
+        "admin": user.admin,
+        "fullName": user.full_name,
+        "email": user.email,
+        "tokens": tokens,
+    })
 }
 
 #[cfg(test)]
@@ -379,7 +434,8 @@ mod tests {
 
     fn store(dir: &std::path::Path) -> std::sync::Arc<UserStore> {
         let s = UserStore::create_empty(dir).unwrap();
-        s.create_user("zef", "hunter22", true).unwrap();
+        s.create_user("ada", "hunter22", true, Profile::default())
+            .unwrap();
         s
     }
 
@@ -403,47 +459,53 @@ mod tests {
     fn create_user_hashes_password_and_persists() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        assert!(s.verify_password("zef", "hunter22"));
-        assert!(!s.verify_password("zef", "wrong"));
+        assert!(s.verify_password("ada", "hunter22"));
+        assert!(!s.verify_password("ada", "wrong"));
         assert!(!s.verify_password("nobody", "hunter22"));
-        assert!(s.is_admin("zef"));
+        assert!(s.is_admin("ada"));
         // Reload from disk: same result, and no plaintext on disk.
         let raw = std::fs::read_to_string(dir.path().join("users.json")).unwrap();
         assert!(!raw.contains("hunter22"));
         assert!(raw.contains("$argon2id$"));
         let s2 = UserStore::open(dir.path()).unwrap().unwrap();
-        assert!(s2.verify_password("zef", "hunter22"));
+        assert!(s2.verify_password("ada", "hunter22"));
     }
 
     #[test]
     fn duplicate_username_rejected() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        assert!(s.create_user("zef", "pw123456", false).is_err());
+        assert!(s
+            .create_user("ada", "pw123456", false, Profile::default())
+            .is_err());
     }
 
     #[test]
     fn empty_password_rejected_on_create_and_set() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        let err = s.create_user("nopass", "", false).unwrap_err();
+        let err = s
+            .create_user("nopass", "", false, Profile::default())
+            .unwrap_err();
         assert!(err.contains("must not be empty"), "{err}");
-        assert!(s.set_password("zef", "").is_err());
+        assert!(s.set_password("ada", "").is_err());
         // Any non-empty password is fine — no length floor.
-        assert!(s.create_user("okuser", "x", false).is_ok());
+        assert!(s
+            .create_user("okuser", "x", false, Profile::default())
+            .is_ok());
     }
 
     #[test]
     fn tokens_roundtrip_and_are_stored_hashed() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        let tok = s.create_token("zef", "provisioning").unwrap();
+        let tok = s.create_token("ada", "provisioning").unwrap();
         assert!(tok.starts_with("sbt_"), "{tok}");
-        assert_eq!(s.resolve_token(&tok).as_deref(), Some("zef"));
+        assert_eq!(s.resolve_token(&tok).as_deref(), Some("ada"));
         assert!(s.resolve_token("sbt_bogus").is_none());
         let raw = std::fs::read_to_string(dir.path().join("users.json")).unwrap();
         assert!(!raw.contains(&tok), "plaintext token must not be persisted");
-        s.delete_token("zef", "provisioning").unwrap();
+        s.delete_token("ada", "provisioning").unwrap();
         assert!(s.resolve_token(&tok).is_none());
     }
 
@@ -451,17 +513,19 @@ mod tests {
     fn cannot_remove_last_admin() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        assert!(s.delete_user("zef").is_err());
-        assert!(s.set_admin("zef", false).is_err());
-        s.create_user("other", "pw123456", true).unwrap();
-        s.set_admin("zef", false).unwrap(); // now fine
+        assert!(s.delete_user("ada").is_err());
+        assert!(s.set_admin("ada", false).is_err());
+        s.create_user("other", "pw123456", true, Profile::default())
+            .unwrap();
+        s.set_admin("ada", false).unwrap(); // now fine
     }
 
     #[test]
     fn credential_version_changes_on_password() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        s.create_user("bob", "pw123456", false).unwrap();
+        s.create_user("bob", "pw123456", false, Profile::default())
+            .unwrap();
         let a = s.credential_version("bob").unwrap();
         assert!(s.session_is_current("bob", Some(&a)));
         s.set_password("bob", "newpw12345").unwrap();
@@ -473,11 +537,95 @@ mod tests {
     fn list_redacts_hashes() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
-        s.create_token("zef", "t1").unwrap();
+        s.create_token("ada", "t1").unwrap();
         let v = s.list();
-        assert_eq!(v["zef"]["admin"], true);
-        assert!(v["zef"].get("passwordHash").is_none());
-        assert!(v["zef"]["tokens"]["t1"].get("tokenHash").is_none());
-        assert!(v["zef"]["tokens"]["t1"].get("createdAt").is_some());
+        assert_eq!(v["ada"]["admin"], true);
+        assert!(v["ada"].get("passwordHash").is_none());
+        assert!(v["ada"]["tokens"]["t1"].get("tokenHash").is_none());
+        assert!(v["ada"]["tokens"]["t1"].get("createdAt").is_some());
+    }
+
+    #[test]
+    fn profile_parse_trims_blanks_to_none() {
+        assert_eq!(Profile::parse("  ", "").unwrap(), Profile::default());
+        assert_eq!(
+            Profile::parse(" Ada Lovelace ", " ada@example.org ").unwrap(),
+            Profile {
+                full_name: Some("Ada Lovelace".into()),
+                email: Some("ada@example.org".into()),
+            }
+        );
+    }
+
+    #[test]
+    fn profile_parse_rejects_git_ident_breakers() {
+        for bad in ["a<b", "a>b", "a\nb", "a\rb"] {
+            assert!(Profile::parse(bad, "").is_err(), "name {bad:?}");
+            assert!(Profile::parse("", bad).is_err(), "email {bad:?}");
+        }
+        assert!(Profile::parse("", "ada @example.org").is_err());
+        assert!(Profile::parse("Ada Lovelace", "ada@example.org").is_ok());
+    }
+
+    #[test]
+    fn profile_round_trips_through_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = UserStore::create_empty(dir.path()).unwrap();
+        let profile = Profile {
+            full_name: Some("Ada Lovelace".into()),
+            email: Some("ada@example.org".into()),
+        };
+        s.create_user("ada", "hunter22", true, profile.clone())
+            .unwrap();
+        assert_eq!(s.profile("ada"), Some(profile.clone()));
+
+        let raw = std::fs::read_to_string(dir.path().join("users.json")).unwrap();
+        assert!(raw.contains("\"fullName\""), "{raw}");
+
+        let s2 = UserStore::open(dir.path()).unwrap().unwrap();
+        assert_eq!(s2.profile("ada"), Some(profile));
+
+        s2.set_profile("ada", Profile::default()).unwrap();
+        assert_eq!(s2.profile("ada"), Some(Profile::default()));
+        let raw = std::fs::read_to_string(dir.path().join("users.json")).unwrap();
+        assert!(
+            !raw.contains("fullName"),
+            "unset fields must not persist: {raw}"
+        );
+    }
+
+    #[test]
+    fn users_json_without_profile_fields_still_loads() {
+        let legacy = r#"{"ada":{"passwordHash":"$argon2id$x","admin":true}}"#;
+        let config = UsersConfig::from_json(legacy).unwrap();
+        let entry = config.users.get("ada").unwrap();
+        assert_eq!(entry.full_name, None);
+        assert_eq!(entry.email, None);
+    }
+
+    #[test]
+    fn set_profile_on_missing_user_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        assert!(s.set_profile("nobody", Profile::default()).is_err());
+    }
+
+    #[test]
+    fn list_includes_profile_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = UserStore::create_empty(dir.path()).unwrap();
+        s.create_user(
+            "ada",
+            "hunter22",
+            true,
+            Profile {
+                full_name: Some("Ada Lovelace".into()),
+                email: None,
+            },
+        )
+        .unwrap();
+        let v = s.list();
+        assert_eq!(v["ada"]["fullName"], "Ada Lovelace");
+        assert!(v["ada"]["email"].is_null());
     }
 }

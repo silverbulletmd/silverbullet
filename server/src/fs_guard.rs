@@ -5,6 +5,8 @@ use std::time::{Duration, Instant};
 use silverbullet_server_common::revision::sha256_hex;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 
+use crate::auth::Actor;
+
 /// Above this many distinct paths, `path_lock` sweeps out entries nobody else
 /// holds a reference to, so a space that churns through many paths over its
 /// lifetime doesn't grow the map without bound.
@@ -17,7 +19,7 @@ const EXPECTED_WRITE_TTL: Duration = Duration::from_secs(30);
 /// out expired ones -- same spirit as `LOCK_SWEEP_THRESHOLD`.
 const EXPECTED_WRITE_SWEEP_THRESHOLD: usize = 10_000;
 
-/// Attribution recorded for a write this process just made, keyed by
+/// The resolved identity of a write this process just made, keyed by
 /// `(path, content hash)` so the watcher can match it up against the
 /// filesystem event it later produces. Best-effort only (constraint 3): never
 /// consulted on any error path.
@@ -28,7 +30,7 @@ const EXPECTED_WRITE_SWEEP_THRESHOLD: usize = 10_000;
 /// (see `enrich_event`) so it never reports a fabricated size/timestamp.
 #[derive(Debug, Clone)]
 pub struct ExpectedWrite {
-    pub actor: Option<String>,
+    pub actor: Actor,
     pub client_id: Option<String>,
     pub source: Option<String>,
     pub size: Option<i64>,
@@ -106,7 +108,7 @@ impl FsGuard {
         &self,
         path: &str,
         hash: &str,
-        actor: Option<String>,
+        actor: Actor,
         client_id: Option<String>,
         source: Option<String>,
     ) {
@@ -132,7 +134,7 @@ impl FsGuard {
         &self,
         path: &str,
         hash: &str,
-        actor: Option<String>,
+        actor: Actor,
         client_id: Option<String>,
         source: Option<String>,
         size: i64,
@@ -155,7 +157,7 @@ impl FsGuard {
         &self,
         path: &str,
         hash: &str,
-        actor: Option<String>,
+        actor: Actor,
         client_id: Option<String>,
         source: Option<String>,
         size: Option<i64>,
@@ -215,7 +217,7 @@ impl FsGuard {
         &self,
         path: &str,
         hash: &str,
-        actor: Option<String>,
+        actor: Actor,
         client_id: Option<String>,
         source: Option<String>,
         recorded_at: Instant,
@@ -243,14 +245,17 @@ mod tests {
         guard.record_expected_write(
             "a.md",
             "hash1",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             Some("client-1".into()),
             Some("editor".into()),
         );
         let ew = guard
             .lookup_expected_write("a.md", "hash1")
             .expect("expected write recorded");
-        assert_eq!(ew.actor.as_deref(), Some("alice"));
+        assert_eq!(ew.actor.username.as_deref(), Some("alice"));
         assert_eq!(ew.client_id.as_deref(), Some("client-1"));
         assert_eq!(ew.source.as_deref(), Some("editor"));
     }
@@ -261,7 +266,10 @@ mod tests {
         guard.record_expected_write_with_meta(
             "a.md",
             "hash1",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             None,
             5,
@@ -275,7 +283,16 @@ mod tests {
     #[test]
     fn record_without_meta_leaves_size_and_last_modified_unknown() {
         let guard = FsGuard::default();
-        guard.record_expected_write("a.md", "hash1", Some("alice".into()), None, None);
+        guard.record_expected_write(
+            "a.md",
+            "hash1",
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
+            None,
+            None,
+        );
         let ew = guard.lookup_expected_write("a.md", "hash1").unwrap();
         assert_eq!(ew.size, None);
         assert_eq!(ew.last_modified, None);
@@ -284,7 +301,16 @@ mod tests {
     #[test]
     fn lookup_misses_on_wrong_path_or_wrong_hash() {
         let guard = FsGuard::default();
-        guard.record_expected_write("a.md", "hash1", Some("alice".into()), None, None);
+        guard.record_expected_write(
+            "a.md",
+            "hash1",
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
+            None,
+            None,
+        );
         assert!(guard.lookup_expected_write("a.md", "hash2").is_none());
         assert!(guard.lookup_expected_write("b.md", "hash1").is_none());
     }
@@ -296,7 +322,10 @@ mod tests {
         guard.record_expected_write_with_time(
             "a.md",
             "hash1",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             None,
             old,
@@ -311,7 +340,10 @@ mod tests {
         guard.record_expected_write_with_time(
             "a.md",
             "hash1",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             None,
             recent,
@@ -326,18 +358,30 @@ mod tests {
         guard.record_expected_write_with_time(
             "a.md",
             "hash1",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             None,
             older,
         );
-        guard.record_expected_write("a.md", "hash2", Some("bob".into()), None, None);
+        guard.record_expected_write(
+            "a.md",
+            "hash2",
+            Actor {
+                username: Some("bob".into()),
+                ..Default::default()
+            },
+            None,
+            None,
+        );
 
         let (hash, ew) = guard
             .latest_expected_write_for_path("a.md")
             .expect("an entry for a.md");
         assert_eq!(hash, "hash2");
-        assert_eq!(ew.actor.as_deref(), Some("bob"));
+        assert_eq!(ew.actor.username.as_deref(), Some("bob"));
     }
 
     #[test]
@@ -347,7 +391,10 @@ mod tests {
         guard.record_expected_write_with_time(
             "a.md",
             "hash1",
-            Some("alice".into()),
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
             None,
             None,
             old,
@@ -358,7 +405,16 @@ mod tests {
     #[test]
     fn latest_expected_write_for_path_misses_an_unknown_path() {
         let guard = FsGuard::default();
-        guard.record_expected_write("a.md", "hash1", Some("alice".into()), None, None);
+        guard.record_expected_write(
+            "a.md",
+            "hash1",
+            Actor {
+                username: Some("alice".into()),
+                ..Default::default()
+            },
+            None,
+            None,
+        );
         assert!(guard.latest_expected_write_for_path("b.md").is_none());
     }
 
