@@ -15,7 +15,7 @@ How you authenticate depends on how the server is running (see [[Space Manager#B
 # Accounts
 When the server runs in the default [[Space Manager|multi-space]] mode, authentication is account-based:
 
-* Every person has an **account** (username + password).
+* Every person has an **account** (username + password), plus an optional **Full name** and **Email** — set by an admin when creating the account or on its detail page, or by the account holder on their own **Profile** page. Both are used to attribute [[Revisions#Automatic commits|revision-history commits]] and as the presence label other clients see for concurrent edits.
 * Each [[Space]] is either **public** (no login) or requires login, and lists the **members** allowed in. Admins can reach every space and the admin UI.
 * Accounts, spaces, and access are all managed in the `/.spaces` surface, which every account can open (admins additionally get the Users tab and space create/edit screens).
 * When no space is bound to `/`, the server root provides an account-facing index of the spaces available to the current user.

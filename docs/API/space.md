@@ -9,6 +9,12 @@ references:
 The Space API provides functions for interacting with pages, documents, and files in the space.
 
 <!--#lua spacelua.renderApiDocumentation("space") -->
+## space.createRevisionSnapshot
+
+`space.createRevisionSnapshot()`
+
+Commits everything outstanding as a revision now, rather than waiting for the automatic commit. False if there was nothing to commit.
+
 ## space.deleteDocument
 
 `space.deleteDocument(name)`
@@ -59,6 +65,24 @@ Returns metadata for an arbitrary space file.
 
 Returns metadata for a page.
 
+## space.getRevision
+
+`space.getRevision(path, rev)`
+
+Reads the text of a file as it was at a given revision.
+
+## space.getRevisionDiff
+
+`space.getRevisionDiff(path, rev)`
+
+Reads a unified diff of a revision's own change (vs its parent).
+
+## space.getSpaceLog
+
+`space.getSpaceLog(before?)`
+
+Lists the space-wide commit log.
+
 ## space.listAttachments
 
 `space.listAttachments()`
@@ -90,6 +114,12 @@ Lists all pages in the space.
 `space.listPlugs()`
 
 Lists all plug files in the space.
+
+## space.listRevisions
+
+`space.listRevisions(path, before?)`
+
+Lists the revision history of a file.
 
 ## space.pageExists
 

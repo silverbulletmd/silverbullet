@@ -15,9 +15,11 @@ A **recipient** is anything worth addressing directly: a team mate, a team, a pr
 In turn, the ${widgets.commandButton("Navigate: Mentions")} provides a convenient way to find where specific subjects are addressed this way.
 
 # `@nickname` syntax
-Type `@` followed by a name with no spaces, e.g. @zef. While typing, autocomplete offers every known recipient: both ad-hoc used as well as any page tagged with `#recipient` (see below).
+Type `@` followed by a name with no spaces, e.g. @ada. While typing, autocomplete offers every known recipient: both ad-hoc used as well as any page tagged with `#recipient` (see below).
 
 **Any nickname is a valid mention.** Nothing needs declaring up front: mentioning @sales makes `sales` a recipient. A mention renders as a small pill in the editor, clicking it opens the [[#The Mention Inbox|Mention Inbox]] filtered on that recipient.
+
+Your own name always completes too, labelled "you", even in a space where nobody has been mentioned yet and no `#recipient` page exists. In a deployment without accounts that name is `me`.
 
 # Page-backed recipients
 Tag any page `#recipient`, either in its frontmatter or as a body hashtag, to give a recipient a page of its own. Its default nickname is the last segment of the page name with spaces stripped, matched case-insensitively.

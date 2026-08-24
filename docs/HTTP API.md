@@ -2,6 +2,9 @@
 references:
 - bin/silverbullet/src/server.rs
 - server-common/src/space/http.rs
+- server/src/handlers/revisions.rs
+- server/src/multi/space_index.rs
+- server/src/multi/admin_api.rs
 ---
 The server API is relatively small. The client primarily communicates with the server for file “CRUD” (Create, Read, Update, Delete) style operations.
 
@@ -14,6 +17,17 @@ When authentication is enabled, most endpoints require a valid session cookie (J
 * `POST /.auth`: Authenticates a user. Expects form fields: `username`, `password`, `rememberMe` (optional), `from` (optional redirect path). Returns JSON `{"status":"ok","redirect":"..."}` on success or `{"status":"error","error":"..."}` on failure. Implements lockout after repeated failed attempts.
 * `GET /.logout`: Clears authentication cookies and redirects to `/.auth`.
 * **Bearer token**: When [[Install/Configuration#Authentication|SB_AUTH_TOKEN]] is set, requests can authenticate via the `Authorization: Bearer <token>` header instead of cookies.
+
+# Accounts (multi-space mode)
+In [[Space Manager|multi-space mode]] every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.spaces` prefix and require the session cookie described in [[Space Manager#Space index]].
+
+* `GET /.spaces/api/profile`: The caller's own profile: `{"username", "admin", "fullName", "email"}`. `fullName`/`email` are `null` until set. `401` without a session.
+* `PUT /.spaces/api/profile`: Sets the caller's own profile. Body: `{"fullName": string, "email": string}`. The username always comes from the session — there is no way to address another account through this endpoint. An empty string clears a field. `400` with `{"errors":[{"field", "message"}]}` if a value contains `<`, `>`, a line break, or (for `email`) whitespace.
+* `POST /.spaces/api/admin/users` (admin only): Creates an account. Body: `{"username", "password", "admin", "fullName", "email"}` — `fullName`/`email` are optional, validated the same way.
+* `PUT /.spaces/api/admin/users/<name>/profile` (admin only): Sets another account's profile. Same body and validation as `PUT /.spaces/api/profile`.
+
+# Profile
+* `GET /.profile`: The caller's own identity, as resolved by whatever authentication is configured: `{"username", "fullName", "email"}`. Any of the three may be `null` — on a server with no authorizer configured, all three are.
 
 # File system
 The space file system is exposed under the `/.fs` prefix:
@@ -36,6 +50,16 @@ The space file system is exposed under the `/.fs` prefix:
 A precondition that doesn't hold returns `412 Precondition Failed` instead of silently overwriting or deleting whatever is actually there.
 
 This is the same mechanism the built-in clients use to drive the automatic merging and conflict handling described in [[Collaboration]].
+
+# Revisions
+Present when [[Revisions]] are enabled for the space: every endpoint below answers `404` with `{"error": "revisions disabled"}` when they are not. A `rev` is always a full 40-character commit hash — anything else is a `404`.
+
+* `GET /.revisions/`: The space-wide commit log as JSON: `mode`, `commits` (each with `rev`, `timestamp`, `author`, `message`, `files`, `added` and `removed`), `uncommitted` (paths differing from HEAD right now) and `more`. Takes optional `before` (page back from this revision) and `limit` (default 50, capped at 200) query parameters.
+* `POST /.revisions/`: Commits everything outstanding immediately. Takes no body, returns `{"committed": true|false}`. Returns `409` for a space that is not in Managed mode.
+* `GET /.revisions/<path>`: One file's revisions as JSON: `mode`, `uncommitted` (whether what is on disk differs from the last commit), `revisions` and `more`. Takes the same `before`/`limit` parameters.
+* `GET /.revisions/<path>?rev=<hash>`: The content of that file as it was at that revision, served with the file's own content type.
+* `GET /.revisions/<path>?rev=<hash>&format=diff`: A unified diff of what that revision changed in that file, as `text/plain`. `404` when the revision has nothing to diff against a parent (a merge commit).
+* `GET /.revisions/<path>?format=diff`: With no `rev`, the *uncommitted* change instead — HEAD versus what is on disk, as `text/plain`. A file that has never been committed reads as wholly added. `404` when it matches HEAD after all.
 
 # RPC
 Some functionality is exposed as RPC-style calls

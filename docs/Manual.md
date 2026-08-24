@@ -37,6 +37,7 @@ These are the core concepts used in SilverBullet (also see the [[Glossary]]):
 * [[Folder]]
 * [[Library]]
 * [[Collaboration]]
+* [[Revisions]]
 
 # User interface
 SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements and how to use them.

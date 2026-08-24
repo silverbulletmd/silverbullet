@@ -20,7 +20,7 @@ When a server boots with an empty data folder it will run in set mode. Setup mod
 Once finished, the server writes `users.json` and `spaces.json` and redirects you to your newly created space. To return to the space manager, simply open the `/.spaces` URL.
 
 # Accounts
-Each account has a username, password, admin flag and any number of API tokens.
+Each account has a username, password, admin flag, any number of API tokens, and a profile — an optional full name and email used for attribution — which the account holder can edit themselves, or an admin can set on their behalf. See [[HTTP API#Accounts (multi-space mode)]] for the profile endpoints.
 
 * **Admins** can reach the admin UI and manage spaces, accounts, and tokens. They can also log into *every* space.
 * **Non-admin accounts** are ordinary users: they can log into any space they are a member of (see [[#Access]]).
@@ -77,6 +77,8 @@ silverbullet setup /var/lib/silverbullet \
 {
   "adminUsername": "admin",
   "adminPassword": "s3cretpw",
+  "adminFullName": "",
+  "adminEmail": "",
   "space": { "name": "Notes", "prefix": "/", "folder": "" }
 }
 ```

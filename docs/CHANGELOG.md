@@ -8,11 +8,15 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * **Near real-time content updates**: if multiple clients/process edit the same page, SilverBullet will do its best to reconcile those changes with local ones. In cases of unresolvable conflicts a new _conflict widget_ will show helping you to resolve the conflict.
   * **At-mentions and Recipients** ([[Recipient]]): mention people, teams, or anything else with `@nickname`. Mentions are indexed, autocompleted, and listed in a Mention Inbox sidebar (${widgets.commandButton("Navigate: Mentions")}). 
   * **HTML comments are now parsed as markdown** ([[Markdown/Comment]]): the body of a `<!-- ... -->` block is now parsed and rendered as ordinary markdown. This enables a communication channel (likely using [[Recipient|recipients]]) to communicate between team members.
+  * Beginning of [[Revisions]]: In three modes: **Managed** (SilverBullet commits your changes for you), **Unmanaged** (an existing git repository’s history is read, but SilverBullet never commits to it) or **Disabled**.
+  * Accounts now carry a full name and email, used to attribute revision commits and shown as the presence label for concurrent edits.
+  * Every user gets a **Profile** page ([[Authentication#Accounts]]) to set their own full name and email.
 * **Completely revamped [[Navigator]] UX (includes a file tree!):** one configurable navigation UI that presents any object collection as a fuzzy-filterable list **or tree**, either as a modal or as a sidebar. A lot of views have been rebuilt on this. Oh yeah: ${widgets.commandButton("Navigate: Tree")} 🤯
 * [[API/index#index.relations]] is the canonical accessor for `relation` objects, alongside `index.tasks()`, `index.items()`, and friends: `index.relations()` for all of them, `index.relations("at-mention")` to filter to one kind.
 * Blockquote rendering fixes:
   * Nested blockquotes now draw one accent bar per level, with real per-level indentation. Previously every level shared a single bar and the indent was an accident of the whitespace left behind by hidden quote markers.
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off.
+* [[Space Manager|Multi-space]] mode: a space's settings no longer hide half of themselves behind an **Advanced** disclosure — every option is visible as soon as the form opens.
 * The table-of-contents widget **is off by default**: replaced by two [[Navigator]] **outline** views over the same headers. The ToC widgets caused a lot of “content jiggling” on (first) load, which was quite distracting.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.
 * Fix: the [[Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available.

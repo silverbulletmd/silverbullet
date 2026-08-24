@@ -235,10 +235,11 @@ dropdown = {
 * `where`: predicate callback deciding whether an object belongs under the selected `value`.
 * `placeholder` (optional): what the select reads as while nothing is selected -- and, absent `allLabel`, the built-in "All" option's label too.
 * `allLabel` (optional): label of the built-in "All" option, overriding `placeholder` for that one entry. Defaults to "All" if not given.
+* `default` (optional): the value to open on — a string, or a function returning one, re-evaluated on the same cycle as `options`. Ignored when it is not among the options that cycle resolved, and overridden by a value the user last picked.
 
-The first entry is always a built-in **All** — no filtering — and it is the default. Filtering composes with everything else the panel does: the active segment (if the view has both) subsets the rows, the dropdown selection subsets them further, and the phrase ranks what is left.
+The first entry is always a built-in **All** — no filtering — and it is what the view opens on unless a `default` says otherwise. Filtering composes with everything else the panel does: the active segment (if the view has both) subsets the rows, the dropdown selection subsets them further, and the phrase ranks what is left.
 
-The active selection is remembered per view and restored when it is reopened, like the active segment — falling back to All when it was never touched, or when the remembered value is no longer among the options.
+The active selection is remembered per view and restored when it is reopened, like the active segment — falling back to `default`, and then to All, when it was never touched, or when the remembered value is no longer among the options.
 
 The select is a pointer affordance: picking a value hands focus straight back to the filter input, and `Tab` stays the panel’s (see above).
 
