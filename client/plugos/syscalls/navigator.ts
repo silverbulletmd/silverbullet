@@ -1,5 +1,6 @@
 import {
   defineView,
+  focusPanel,
   moveByRename,
   openView,
   pickView,
@@ -29,6 +30,24 @@ export function navigatorSyscalls(): SysCallMapping {
         { type: "boolean", description: "Whether the view actually opened." },
       ],
       examples: [{ code: 'navigator.open("std.spaceTree")' }],
+    },
+    "navigator.focus": {
+      callback: (_ctx, slot?: string) => focusPanel(slot),
+      description:
+        "Returns focus to an open navigator panel's input, keeping its current selection.",
+      parameters: [
+        {
+          name: "slot",
+          type: "string",
+          description:
+            "Which panel: modal, lhs or rhs. Defaults to any open one.",
+          optional: true,
+        },
+      ],
+      returns: [
+        { type: "boolean", description: "Whether a panel was there to focus." },
+      ],
+      examples: [{ code: 'navigator.focus("rhs")' }],
     },
     "navigator.moveByRename": {
       callback: (_ctx, obj: any, newName: string) => {

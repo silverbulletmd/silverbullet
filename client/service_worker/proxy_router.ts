@@ -26,6 +26,7 @@ const spaceSurfaces = [
   "/.shell",
   "/.proxy",
   "/.logs",
+  "/.revisions",
 ];
 const locallyServed = ["/.client", "/.fs"];
 

@@ -24,6 +24,12 @@ const system = {
   invokeFunction:
     vi.fn<(name: string, ...args: unknown[]) => Promise<unknown>>(),
 };
+const space = {
+  createRevisionSnapshot: vi.fn<() => Promise<boolean>>(),
+};
+const events = {
+  dispatchEvent: vi.fn<(name: string, data: unknown) => Promise<unknown[]>>(),
+};
 
 const registry = {
   resolveMeta: vi.fn<(name: string) => unknown>(),
@@ -37,6 +43,8 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   config,
   datastore,
   editor,
+  events,
+  space,
   system,
 }));
 vi.mock("./ui/slots.ts", () => slots);
@@ -168,13 +176,16 @@ test("a resize tick after a real close stays dropped", async () => {
   expect(slots.showSlot).not.toHaveBeenCalled();
 });
 
-async function registeredCommands() {
+async function registeredCommands(revisionsEnabled = true) {
   await freshNavigator();
   const { registerNavigatorCommands } = await import("./commands.ts");
   const commands = new Map<string, any>();
-  registerNavigatorCommands({
-    registerCommand: (command: any) => commands.set(command.name, command),
-  } as any);
+  registerNavigatorCommands(
+    {
+      registerCommand: (command: any) => commands.set(command.name, command),
+    } as any,
+    revisionsEnabled,
+  );
   return commands;
 }
 
@@ -182,6 +193,8 @@ test.each([
   ["Navigate: Outline", "std.toc"],
   ["Navigate: Outline Picker", "std.tocModal"],
   ["Navigate: Tree", "std.spaceTree"],
+  ["Revision: Page History", "std.pageHistory"],
+  ["Revision: Space History", "std.spaceLog"],
 ])("%s opens %s and returns false, keeping the panel focused", async (command, view) => {
   const commands = await registeredCommands();
 
@@ -190,6 +203,54 @@ test.each([
   // Pins the view: any of these wrappers would return false and call
   // showPanel, so those two alone don't prove which view was opened.
   expect(registry.resolveMeta).toHaveBeenCalledWith(view);
+});
+
+test("the revision commands are absent when revisions are disabled", async () => {
+  const commands = await registeredCommands(false);
+
+  expect(commands.has("Revision: Page History")).toBe(false);
+  expect(commands.has("Revision: Space History")).toBe(false);
+  expect(commands.has("Revision: Create snapshot")).toBe(false);
+  // Unaffected by the flag.
+  expect(commands.has("Navigate: Tree")).toBe(true);
+});
+
+test("Revision: Create snapshot commits now and refreshes the open views", async () => {
+  space.createRevisionSnapshot.mockResolvedValue(true);
+  const commands = await registeredCommands();
+
+  await commands.get("Revision: Create snapshot").run();
+
+  expect(space.createRevisionSnapshot).toHaveBeenCalled();
+  expect(editor.flashNotification).toHaveBeenCalledWith("Snapshot created");
+  expect(events.dispatchEvent).toHaveBeenCalledWith("revisions:snapshot", {});
+});
+
+test("Revision: Create snapshot says so when there was nothing to commit", async () => {
+  space.createRevisionSnapshot.mockResolvedValue(false);
+  const commands = await registeredCommands();
+
+  await commands.get("Revision: Create snapshot").run();
+
+  expect(editor.flashNotification).toHaveBeenCalledWith("Nothing to snapshot");
+});
+
+// An unmanaged space (or one whose sync remote doesn't manage revisions) is
+// only knowable from the server's answer, so the command exists there too and
+// has to surface the refusal rather than silently doing nothing.
+test("Revision: Create snapshot surfaces a server refusal as an error", async () => {
+  space.createRevisionSnapshot.mockRejectedValue(
+    new Error("Revisions are not managed for this space"),
+  );
+  const commands = await registeredCommands();
+
+  await commands.get("Revision: Create snapshot").run();
+
+  expect(editor.flashNotification).toHaveBeenCalledWith(
+    "Revisions are not managed for this space",
+    "error",
+  );
+  expect(events.dispatchEvent).not.toHaveBeenCalled();
 });
 
 test("the space tree keeps both of its chords, on either platform", async () => {

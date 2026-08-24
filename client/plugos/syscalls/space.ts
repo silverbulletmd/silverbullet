@@ -1,12 +1,42 @@
-import { parseToRef, type Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  encodePageURI,
+  parseToRef,
+  type Ref,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../../client.ts";
 import type { SysCallMapping } from "../system.ts";
+import { fsEndpoint } from "../../spaces/constants.ts";
 
 import type {
   DocumentMeta,
   FileMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  FileRevisions,
+  SpaceLog,
+} from "@silverbulletmd/silverbullet/type/revisions";
+
+function revisionsUrl(client: Client, suffix: string): string {
+  return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.revisions/${suffix}`;
+}
+
+async function fetchRevisionsJson(
+  client: Client,
+  suffix: string,
+): Promise<any> {
+  const resp = await client.httpSpacePrimitives.authenticatedFetch(
+    revisionsUrl(client, suffix),
+    { method: "GET", headers: { Accept: "application/json" } },
+  );
+  if (resp.status === 404) {
+    throw new Error("Revisions are not available for this space");
+  }
+  if (!resp.ok) {
+    throw new Error(`Revisions request failed: ${resp.status}`);
+  }
+  return resp.json();
+}
 
 export function spaceReadSyscalls(client: Client): SysCallMapping {
   return {
@@ -147,6 +177,57 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       description: "Checks whether an arbitrary file exists in the space.",
       signatures: ["space.fileExists(name)"],
     },
+    // History
+    "space.listRevisions": {
+      callback: (_ctx, path: string, before?: string): Promise<FileRevisions> =>
+        fetchRevisionsJson(
+          client,
+          `${encodePageURI(path)}${before ? `?before=${before}` : ""}`,
+        ),
+      description: "Lists the revision history of a file.",
+      signatures: ["space.listRevisions(path, before?)"],
+    },
+    "space.getRevision": {
+      callback: async (_ctx, path: string, rev: string): Promise<string> => {
+        const resp = await client.httpSpacePrimitives.authenticatedFetch(
+          revisionsUrl(client, `${encodePageURI(path)}?rev=${rev}`),
+          { method: "GET" },
+        );
+        if (!resp.ok) {
+          throw new Error(`Could not load revision: ${resp.status}`);
+        }
+        return resp.text();
+      },
+      description: "Reads the text of a file as it was at a given revision.",
+      signatures: ["space.getRevision(path, rev)"],
+    },
+    "space.getRevisionDiff": {
+      callback: async (_ctx, path: string, rev?: string): Promise<string> => {
+        const resp = await client.httpSpacePrimitives.authenticatedFetch(
+          revisionsUrl(
+            client,
+            `${encodePageURI(path)}?${rev ? `rev=${rev}&` : ""}format=diff`,
+          ),
+          { method: "GET" },
+        );
+        if (!resp.ok) {
+          throw Object.assign(
+            new Error(`Could not load revision diff: ${resp.status}`),
+            { status: resp.status },
+          );
+        }
+        return resp.text();
+      },
+      description:
+        "Reads a unified diff of a revision's own change (vs its parent), or of the uncommitted change when no revision is given.",
+      signatures: ["space.getRevisionDiff(path, rev?)"],
+    },
+    "space.getSpaceLog": {
+      callback: (_ctx, before?: string): Promise<SpaceLog> =>
+        fetchRevisionsJson(client, before ? `?before=${before}` : ""),
+      description: "Lists the space-wide commit log.",
+      signatures: ["space.getSpaceLog(before?)"],
+    },
   };
 }
 
@@ -190,6 +271,27 @@ export function spaceWriteSyscalls(editor: Client): SysCallMapping {
         editor.space.spacePrimitives.deleteFile(name),
       description: "Deletes an arbitrary file from the space.",
       signatures: ["space.deleteFile(name)"],
+    },
+    "space.createRevisionSnapshot": {
+      callback: async (): Promise<boolean> => {
+        const resp = await editor.httpSpacePrimitives.authenticatedFetch(
+          revisionsUrl(editor, ""),
+          { method: "POST", headers: { Accept: "application/json" } },
+        );
+        if (resp.status === 404) {
+          throw new Error("Revisions are not available for this space");
+        }
+        if (resp.status === 409) {
+          throw new Error("Revisions are not managed for this space");
+        }
+        if (!resp.ok) {
+          throw new Error(`Snapshot request failed: ${resp.status}`);
+        }
+        return (await resp.json()).committed === true;
+      },
+      description:
+        "Commits everything outstanding as a revision now, rather than waiting for the automatic commit. False if there was nothing to commit.",
+      signatures: ["space.createRevisionSnapshot()"],
     },
   };
 }

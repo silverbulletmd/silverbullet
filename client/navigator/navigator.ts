@@ -61,6 +61,24 @@ export function open(name: string, opts?: OpenOptions): Promise<boolean> {
   });
 }
 
+/**
+ * Hand focus back to a panel's input -- its focus home, and what the whole
+ * keyboard contract runs through -- after something outside the panel (a
+ * modal `editor.showPanel`) took it away. Reopening the view would do it too,
+ * but that resets the selection, losing the row the user was on.
+ */
+export function focusPanel(slot?: string): boolean {
+  const selector = slot
+    ? `.sb-nav-root[data-slot="${CSS.escape(slot)}"]`
+    : ".sb-nav-root";
+  const input = document
+    .querySelector(selector)
+    ?.querySelector("input.sb-nav-input");
+  if (!(input instanceof HTMLElement)) return false;
+  input.focus();
+  return true;
+}
+
 export function openCommand(name: string) {
   return async (): Promise<boolean | undefined> => {
     if (await open(name)) return false;

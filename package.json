@@ -32,6 +32,7 @@
     "./type/namespace": "./plug-api/types/namespace.ts",
     "./type/datastore": "./plug-api/types/datastore.ts",
     "./type/event": "./plug-api/types/event.ts",
+    "./type/revisions": "./plug-api/types/revisions.ts",
     "./type/index": "./plug-api/types/index.ts"
   },
   "bin": {

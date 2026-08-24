@@ -16,6 +16,7 @@ import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { kebabToPascal } from "./lib/feather_icons.ts";
 import { FilterList } from "./components/filter.tsx";
 import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
+import { RevisionPreviewModal } from "./navigator/ui/components/revision_preview.tsx";
 import { useNavigatorSlot } from "./navigator/ui/slots.ts";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
@@ -548,6 +549,7 @@ export class MainUI {
           <NavigatorDock slot="rhs" state={navSlots.rhs} client={client} />
         </div>
         <NavigatorModal state={navSlots.modal} client={client} />
+        <RevisionPreviewModal />
         {modalVisible && (
           <div className="sb-modal-backdrop">
             <div

@@ -10,6 +10,7 @@ import {
   folderPrefix,
 } from "./phrase.ts";
 import { defaultSegmentIndex } from "./segments.ts";
+import { EXPAND_ROW } from "../views/types.ts";
 import { createTreeCommands } from "./tree_commands.ts";
 
 export type CommandDeps = {
@@ -284,6 +285,10 @@ export function createCommands({
         node.row.obj,
         returnTo.current,
       );
+      if (kept === EXPAND_ROW) {
+        tree.expandPath(node.path);
+        return;
+      }
       if (closesOnSelect && kept !== false) await close();
     } else {
       tree.toggleExpanded(node.path);

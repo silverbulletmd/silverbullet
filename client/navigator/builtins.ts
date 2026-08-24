@@ -10,6 +10,7 @@ import { RESERVED_KEYS } from "./lua_views.ts";
 import type { NavigatorHook, Row, ViewMeta } from "./types.ts";
 import { anchorPicker } from "./views/anchors.ts";
 import { commandPalette } from "./views/commands.ts";
+import { pageHistoryView, spaceLogView } from "./views/revisions.ts";
 import { pagePicker } from "./views/pages.ts";
 import { spaceTreeView } from "./views/space_tree.ts";
 import { tagPicker } from "./views/tags.ts";
@@ -33,6 +34,8 @@ const views: Record<string, BuiltinView<any>> = {
   "std.toc": tocView,
   "std.tocModal": tocModalView,
   "std.spaceTree": spaceTreeView,
+  "std.pageHistory": pageHistoryView,
+  "std.spaceLog": spaceLogView,
 };
 
 // A built-in claiming one of these would silently shadow panel navigation
@@ -55,9 +58,21 @@ export function validateKeymaps(
 
 validateKeymaps(views);
 
+let revisionsAvailable = false;
+
+const REVISION_VIEWS = new Set(["std.pageHistory", "std.spaceLog"]);
+
+export function setRevisionsAvailable(available: boolean): void {
+  revisionsAvailable = available;
+}
+
+function hidden(name: string): boolean {
+  return REVISION_VIEWS.has(name) && !revisionsAvailable;
+}
+
 export function builtinMeta(name: string): ViewMeta | undefined {
   const view = views[name];
-  if (!view) return undefined;
+  if (!view || hidden(name)) return undefined;
   return {
     ...view.meta,
     name,
@@ -185,6 +200,7 @@ export async function builtinHandle(
   hook: NavigatorHook,
   args: any,
 ): Promise<any> {
+  if (hidden(name)) return undefined;
   switch (hook) {
     case "rows":
       return await builtinRows(name);

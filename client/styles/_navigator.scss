@@ -440,3 +440,61 @@
 // `.sb-nav-primary mark` (matched-character highlighting, tree and list
 // alike -- see `highlight.tsx`) moved to the shared stylesheet along with
 // `TreeView`.
+
+// The revision preview overlay. Column layout so the footer stays put and
+// only the body scrolls, however long the diff is.
+.sb-revision-preview {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: var(--ui-font);
+}
+
+.sb-revision-preview-header {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.sb-revision-preview-message {
+  flex: none;
+  color: var(--ui-surface-subtle-color);
+  margin: 0 0 12px 0;
+}
+
+.sb-revision-preview-body {
+  flex: 1;
+  // Without this a flex child refuses to shrink below its content.
+  min-height: 0;
+  overflow: auto;
+  margin: 0 0 12px 0;
+  background: var(--ui-surface-section-background-color);
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: 0.5em;
+  padding: 12px;
+  font-family: var(--editor-font), monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.sb-revision-diff-add {
+  color: var(--editor-code-inserted-color, #16a34a);
+  background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));
+}
+
+.sb-revision-diff-del {
+  color: var(--editor-code-deleted-color, #dc2626);
+  background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));
+}
+
+.sb-revision-diff-hunk {
+  color: var(--ui-surface-subtle-color);
+  font-weight: 600;
+}

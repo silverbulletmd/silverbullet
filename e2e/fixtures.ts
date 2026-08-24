@@ -40,6 +40,8 @@ type SBFixtures = {
   spaceFiles: Record<string, string>;
   disableServiceWorker: boolean;
   singleSpace: boolean;
+  /** Extra env vars for the spawned server, e.g. `{ SB_REVISIONS: "managed" }`. */
+  serverEnv: Record<string, string>;
   sbServer: SBServer;
   sbPage: Page;
 };
@@ -77,6 +79,7 @@ export async function waitForServer(
 export type SpawnServerOptions = {
   disableServiceWorker?: boolean;
   singleSpace?: boolean;
+  env?: Record<string, string>;
 };
 
 /**
@@ -91,7 +94,7 @@ export function spawnServerProcess(
   port: number,
   opts: SpawnServerOptions = {},
 ): ChildProcess {
-  const { disableServiceWorker = true, singleSpace = true } = opts;
+  const { disableServiceWorker = true, singleSpace = true, env = {} } = opts;
   const args = [spaceDir, "-p", String(port), "-L", "127.0.0.1"];
   // A fresh empty temp dir boots into the setup wizard unless we force
   // single-space mode; tests exercising the wizard pass singleSpace: false.
@@ -107,6 +110,7 @@ export function spawnServerProcess(
       // e2e servers never need to spawn Chrome (and don't require it).
       SB_RUNTIME_API: "0",
       ...(disableServiceWorker ? { SB_DISABLE_SERVICE_WORKER: "1" } : {}),
+      ...env,
     },
   });
 }
@@ -115,8 +119,12 @@ export const test = base.extend<SBFixtures>({
   spaceFiles: [{}, { option: true }],
   disableServiceWorker: [true, { option: true }],
   singleSpace: [true, { option: true }],
+  serverEnv: [{}, { option: true }],
 
-  sbServer: async ({ spaceFiles, disableServiceWorker, singleSpace }, use) => {
+  sbServer: async (
+    { spaceFiles, disableServiceWorker, singleSpace, serverEnv },
+    use,
+  ) => {
     const spaceDir = await mkdtemp(join(tmpdir(), "sb-e2e-"));
 
     for (const [path, content] of Object.entries(spaceFiles)) {
@@ -130,6 +138,7 @@ export const test = base.extend<SBFixtures>({
     const proc: ChildProcess = spawnServerProcess(spaceDir, port, {
       disableServiceWorker,
       singleSpace,
+      env: serverEnv,
     });
 
     let serverOutput = "";

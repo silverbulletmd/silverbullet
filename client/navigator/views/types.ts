@@ -47,7 +47,10 @@ export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
   actions?: ActionSpec<T>[];
   row: RowSpec<T>;
   source: () => Promise<T[]>;
-  /** @returns `false` to keep the panel open (see the Lua `onSelect` docs). */
+  /**
+   * @returns `false` to keep the panel open (see the Lua `onSelect` docs), or
+   * {@link EXPAND_ROW} for a tree row that should open rather than act.
+   */
   onSelect: (obj: T, ctx: { from?: string }) => Promise<any>;
   onCreate?: (phrase: string) => Promise<any>;
   /** Keyed by `KeyboardEvent.key`; see `navigator.define`'s `keymap` field. */
@@ -65,6 +68,12 @@ export const INDEX_REFRESH_EVENTS = [
 ];
 
 /** Everything a view leaves at its defaults, so each one only says what differs. */
+/**
+ * `onSelect` sentinel: expand this tree row (if it isn't already) and leave
+ * the panel open. For a parent row whose own selection has no other meaning.
+ */
+export const EXPAND_ROW = "navigator:expand";
+
 export function baseMeta(over: Partial<ViewMeta>): BuiltinView["meta"] {
   return {
     title: over.title ?? "",

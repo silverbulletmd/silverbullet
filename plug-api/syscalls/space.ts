@@ -5,6 +5,10 @@ import type {
   FileMeta,
   PageMeta,
 } from "../../plug-api/types/index.ts";
+import type {
+  FileRevisions,
+  SpaceLog,
+} from "../../plug-api/types/revisions.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 /**
@@ -202,4 +206,52 @@ export function deleteFile(name: string): Promise<void> {
 
 export function fileExists(name: string): Promise<boolean> {
   return syscall("space.fileExists", name);
+}
+
+/**
+ * Lists the revision history of a file.
+ * @param path the path of the file to list revisions for
+ * @param before list revisions older than this revision id
+ */
+export function listRevisions(
+  path: string,
+  before?: string,
+): Promise<FileRevisions> {
+  return syscall("space.listRevisions", path, before);
+}
+
+/**
+ * Reads the text of a file as it was at a given revision.
+ * @param path the path of the file to read
+ * @param rev the revision id to read
+ */
+export function getRevision(path: string, rev: string): Promise<string> {
+  return syscall("space.getRevision", path, rev);
+}
+
+/**
+ * Reads a unified diff of a revision's own change (vs its parent; a root
+ * commit reads as fully added).
+ * @param path the path of the file to diff
+ * @param rev the revision id to diff; omitted, diffs the uncommitted change
+ */
+export function getRevisionDiff(path: string, rev?: string): Promise<string> {
+  return syscall("space.getRevisionDiff", path, rev);
+}
+
+/**
+ * Lists the space-wide commit log.
+ * @param before list commits older than this revision id
+ */
+export function getSpaceLog(before?: string): Promise<SpaceLog> {
+  return syscall("space.getSpaceLog", before);
+}
+
+/**
+ * Commits everything outstanding as a revision now, rather than waiting for
+ * the automatic commit.
+ * @returns false if there was nothing to commit
+ */
+export function createRevisionSnapshot(): Promise<boolean> {
+  return syscall("space.createRevisionSnapshot");
 }

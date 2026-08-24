@@ -173,6 +173,7 @@ export type BootConfig = {
   accountManaged?: boolean;
   disableServiceWorker?: boolean;
   syncProtocolVersion?: number;
+  revisions?: "managed" | "unmanaged" | "disabled";
 };
 
 /**

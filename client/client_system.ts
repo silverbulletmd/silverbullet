@@ -52,6 +52,7 @@ import type { ObjectIndex } from "./data/object_index.ts";
 import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
+import { setRevisionsAvailable } from "./navigator/builtins.ts";
 import { registerNavigatorCommands } from "./navigator/commands.ts";
 import { restoreDocks } from "./navigator/navigator.ts";
 import { clearScriptViews, setLuaEnvSource } from "./navigator/registry.ts";
@@ -119,7 +120,13 @@ export class ClientSystem {
 
     this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
     registerEditorCommands(client, this.commandHook);
-    registerNavigatorCommands(this.commandHook);
+    // Read-only spaces get no revision surface at all
+    const revisionsAvailable =
+      !this.readOnlyMode &&
+      !!this.client.bootConfig.revisions &&
+      this.client.bootConfig.revisions !== "disabled";
+    setRevisionsAvailable(revisionsAvailable);
+    registerNavigatorCommands(this.commandHook, revisionsAvailable);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
