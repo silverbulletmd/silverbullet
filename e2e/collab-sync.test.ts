@@ -49,6 +49,18 @@ let proc: ChildProcess;
 let spaceDir: string;
 let base: string;
 
+/**
+ * Every describe below is chromium-only, and Playwright still runs an
+ * `afterAll` whose `beforeAll` was skipped -- so on another engine the space
+ * dir was never created. Same tolerance the `context?.close()`/`proc?.kill()`
+ * lines around each call already have.
+ */
+async function rmSpaceDir(dir: string | undefined): Promise<void> {
+  if (dir) {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
 async function readViaContext(page: Page, pagePath: string): Promise<string> {
   return await page.evaluate(async (p) => {
     // Without this header the SW's proxy router treats a bare `.md` /.fs
@@ -258,7 +270,7 @@ test.describe("Two-context live-SW collaboration sync", () => {
     await contextA?.close();
     await contextB?.close();
     proc?.kill("SIGTERM");
-    await rm(spaceDir, { recursive: true, force: true });
+    await rmSpaceDir(spaceDir);
   });
 
   /**
@@ -422,7 +434,7 @@ test.describe("Two tabs sharing one service worker", () => {
   test.afterAll(async () => {
     await context?.close();
     proc2?.kill("SIGTERM");
-    await rm(spaceDir2, { recursive: true, force: true });
+    await rmSpaceDir(spaceDir2);
   });
 
   /** A raw write straight to the server, bypassing both tabs and their shared SW. */
@@ -616,7 +628,7 @@ test.describe("Autosave landing on top of a pulled remote revision", () => {
   test.afterAll(async () => {
     await context3?.close();
     proc3?.kill("SIGTERM");
-    await rm(spaceDir3, { recursive: true, force: true });
+    await rmSpaceDir(spaceDir3);
   });
 
   test("both edits survive when the autosave fires after the pull", async () => {
@@ -779,7 +791,7 @@ test.describe("Offline rejoin: edits merge after reconnecting", () => {
     await contextA4?.close();
     await contextB4?.close();
     proc4?.kill("SIGTERM");
-    await rm(spaceDir4, { recursive: true, force: true });
+    await rmSpaceDir(spaceDir4);
   });
 
   async function expectConverged4(
@@ -963,7 +975,7 @@ test.describe("Laggy connection: repeated edits still converge cleanly", () => {
     await contextA5?.close();
     await contextB5?.close();
     proc5?.kill("SIGTERM");
-    await rm(spaceDir5, { recursive: true, force: true });
+    await rmSpaceDir(spaceDir5);
   });
 
   // This test used to reproduce silent data loss: under injected latency,
@@ -1074,7 +1086,7 @@ test.describe("Flaky connection: intermittent failures recover", () => {
     await contextA6?.close();
     await contextB6?.close();
     proc6?.kill("SIGTERM");
-    await rm(spaceDir6, { recursive: true, force: true });
+    await rmSpaceDir(spaceDir6);
   });
 
   test("edits made through intermittent failures converge, then realtime recovers", async () => {
