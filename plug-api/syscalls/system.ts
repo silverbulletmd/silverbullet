@@ -1,6 +1,7 @@
 import { syscall } from "../syscall.ts";
 import type { CommandDef } from "../types/manifest.ts";
 import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
+import type { ClientProfile } from "../types/profile.ts";
 
 /**
  * System level syscalls
@@ -127,6 +128,14 @@ export function getBaseURI(): Promise<string> {
  */
 export function getVersion(): Promise<string> {
   return syscall("system.getVersion");
+}
+
+/**
+ * The current user's identity. `username` falls back to "me" when the
+ * deployment has no accounts.
+ */
+export function getProfile(): Promise<ClientProfile> {
+  return syscall("system.getProfile");
 }
 
 export function getConfig<T = any>(

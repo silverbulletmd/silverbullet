@@ -139,7 +139,10 @@ test("the recipient tag is configurable via recipients.tag", async () => {
 });
 
 test("atMentionComplete offers page-backed and pageless recipients", async () => {
-  createMockSystem();
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "me" }),
+  });
   await indexRecipientPage("People/Pete Smith", ["pete"]);
   await indexMentions("Notes", ["Sales"]);
 
@@ -407,18 +410,18 @@ test("a frontmatter-declared nickname is a known recipient", async () => {
 });
 
 test("parseDeclaredRecipients accepts a list, a plain string, and @ notation", () => {
-  expect(parseDeclaredRecipients(["zef", "Pete Smith"])).toEqual([
-    "zef",
+  expect(parseDeclaredRecipients(["ada", "Pete Smith"])).toEqual([
+    "ada",
     "Pete Smith",
   ]);
   // A plain string is cut on whitespace: one recipient each, like tags
-  expect(parseDeclaredRecipients("zef sales")).toEqual(["zef", "sales"]);
-  expect(parseDeclaredRecipients("@zef @sales")).toEqual(["zef", "sales"]);
-  expect(parseDeclaredRecipients(["@zef"])).toEqual(["zef"]);
+  expect(parseDeclaredRecipients("ada sales")).toEqual(["ada", "sales"]);
+  expect(parseDeclaredRecipients("@ada @sales")).toEqual(["ada", "sales"]);
+  expect(parseDeclaredRecipients(["@ada"])).toEqual(["ada"]);
   // A wikilink survives the cut whole, spaces and all
-  expect(parseDeclaredRecipients("[[Team/Ops Squad]] zef")).toEqual([
+  expect(parseDeclaredRecipients("[[Team/Ops Squad]] ada")).toEqual([
     "[[Team/Ops Squad]]",
-    "zef",
+    "ada",
   ]);
   expect(parseDeclaredRecipients("  ")).toEqual([]);
   expect(parseDeclaredRecipients(undefined)).toEqual([]);
@@ -434,14 +437,20 @@ function frontmatterCompleteEvent(linePrefix: string, fmContent: string) {
 }
 
 test("frontmatterRecipientComplete offers nicknames inside a recipients value", async () => {
-  createMockSystem();
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "me" }),
+  });
   await indexRecipientPage("People/Pete Smith", ["pete"]);
 
   const inline = await frontmatterRecipientComplete(
     frontmatterCompleteEvent("recipients: ", "recipients: "),
   );
+  // Nothing typed yet, so the current user ("me" -- no accounts here) is
+  // offered alongside the known nicknames.
   expect(inline!.options.map((o: any) => o.label).sort()).toEqual([
     "PeteSmith",
+    "me",
     "pete",
   ]);
   expect(inline!.from).toBe("recipients: ".length);
@@ -489,7 +498,10 @@ test("frontmatterRecipientComplete offers nicknames inside a recipients value", 
 });
 
 test("atMentionComplete stays out of frontmatter", async () => {
-  createMockSystem();
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "me" }),
+  });
   await indexRecipientPage("People/Pete Smith", ["pete"]);
   const inBody = await atMentionComplete(
     makeCompleteEvent("Talked to @pe") as any,
@@ -511,3 +523,56 @@ function makeCompleteEvent(linePrefix: string) {
     parentNodes: [],
   };
 }
+
+test("at-mention completion always offers the current user", async () => {
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "ada" }),
+  });
+  const result = await atMentionComplete(makeCompleteEvent("@") as any);
+  expect(result!.options.map((o: any) => o.label)).toContain("ada");
+});
+
+test("the current user's own username is offered under their real name", async () => {
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "ada", fullName: "Ada Lovelace" }),
+  });
+  const result = await atMentionComplete(makeCompleteEvent("@") as any);
+  const own = result!.options.find((o: any) => o.label === "ada");
+  expect(own).toBeDefined();
+  expect(own!.detail).toBe("you");
+});
+
+test("an existing recipient entry for you is not duplicated", async () => {
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "ada", fullName: "Ada Lovelace" }),
+  });
+  await indexRecipientPage("People/Ada", ["ada"]);
+  const result = await atMentionComplete(makeCompleteEvent("@") as any);
+  expect(result!.options.filter((o: any) => o.label === "ada")).toHaveLength(1);
+});
+
+test("an existing recipient entry for you is not duplicated in frontmatter", async () => {
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "ada", fullName: "Ada Lovelace" }),
+  });
+  await indexRecipientPage("People/Ada", ["ada"]);
+  const result = await frontmatterRecipientComplete(
+    frontmatterCompleteEvent("recipients: ad", "recipients: ad"),
+  );
+  expect(result!.options.filter((o: any) => o.label === "ada")).toHaveLength(1);
+});
+
+test("frontmatter recipient completion offers the current user too", async () => {
+  const { system } = createMockSystem();
+  system.registerSyscalls([], {
+    "system.getProfile": () => ({ username: "ada" }),
+  });
+  const result = await frontmatterRecipientComplete(
+    frontmatterCompleteEvent("recipients: ", "recipients: "),
+  );
+  expect(result!.options.map((o: any) => o.label)).toContain("ada");
+});

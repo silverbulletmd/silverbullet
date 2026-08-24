@@ -22,7 +22,7 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
 
 const { createActivate } = await import("./activation.ts");
 
-function makeHarness(remembered: unknown) {
+function makeHarness(remembered: unknown, dropdownDefault?: string) {
   datastore.get.mockReset();
   datastore.set.mockReset();
   datastore.get.mockImplementation((key: unknown[]) =>
@@ -37,6 +37,7 @@ function makeHarness(remembered: unknown) {
       { label: "Pete", value: "People/Pete" },
       { label: "Sales", value: "recipient:sales" },
     ],
+    dropdownDefault,
   };
   const engine = {
     dropIfRedefined: vi.fn(async () => false),
@@ -134,5 +135,70 @@ test("without a remembered value, the open after a carried one is back on All", 
   await activate({ view: "inbox", token: 2 });
   await settled();
   // Nothing remembered: the reset to the built-in "All" is the last word.
+  expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
+});
+
+test("dropdown.default applies when nothing is remembered", async () => {
+  const { activate, setDropdownValue } = makeHarness(
+    undefined,
+    "recipient:sales",
+  );
+
+  await activate({ view: "inbox", token: 1 });
+  await settled();
+  expect(setDropdownValue).toHaveBeenLastCalledWith("recipient:sales");
+});
+
+test("a remembered value wins over dropdown.default", async () => {
+  const { activate, setDropdownValue } = makeHarness(
+    "People/Pete",
+    "recipient:sales",
+  );
+
+  await activate({ view: "inbox", token: 1 });
+  await settled();
+  expect(setDropdownValue).toHaveBeenLastCalledWith("People/Pete");
+});
+
+test("a dropdown.default that is not among the options is ignored", async () => {
+  const { activate, setDropdownValue } = makeHarness(
+    undefined,
+    "recipient:ghost",
+  );
+
+  await activate({ view: "inbox", token: 1 });
+  await settled();
+  expect(setDropdownValue).not.toHaveBeenCalledWith("recipient:ghost");
+  expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
+});
+
+test("the open after a carried value falls back to dropdown.default", async () => {
+  const { activate, setDropdownValue } = makeHarness(
+    undefined,
+    "recipient:sales",
+  );
+
+  await activate({
+    view: "inbox",
+    token: 1,
+    dropdown: "People/Pete",
+    focus: false,
+  });
+  await settled();
+
+  setDropdownValue.mockClear();
+  await activate({ view: "inbox", token: 2 });
+  await settled();
+  expect(setDropdownValue).toHaveBeenLastCalledWith("recipient:sales");
+});
+
+test("a remembered 'All' outranks dropdown.default", async () => {
+  // `pickDropdown` persists the built-in All as null, distinct from the
+  // undefined of a view whose dropdown was never touched.
+  const { activate, setDropdownValue } = makeHarness(null, "recipient:sales");
+
+  await activate({ view: "inbox", token: 1 });
+  await settled();
+  expect(setDropdownValue).not.toHaveBeenCalledWith("recipient:sales");
   expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
 });

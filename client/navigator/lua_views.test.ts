@@ -167,6 +167,11 @@ const rejections: [string, string, string][] = [
     "navigator.define: dropdown.allLabel must be a string",
   ],
   [
+    "dropdown default that is neither string nor function",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = function() return true end, default = 42 }`,
+    "navigator.define: dropdown.default must be a string or a function",
+  ],
+  [
     "prefixViews that is not a table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, prefixViews = "nope"`,
     "navigator.define: prefixViews must be a table",
@@ -524,6 +529,78 @@ test("the dropdown hook takes a static options list and skips malformed entries"
     options: [{ label: "Pete", value: "p" }],
     masks: [[true]],
   });
+});
+
+test("the dropdown hook resolves a default, from a function or a string", async () => {
+  const fromFunction = await luaHandle(
+    luaSpec(`{
+      name = "v",
+      ${SOURCE},
+      ${ON_SELECT},
+      dropdown = {
+        placeholder = "Recipient",
+        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
+        default = function() return "recipient:ada" end,
+        where = function(obj, value) return obj.target == value end,
+      },
+    }`),
+    "dropdown",
+    { objs: [] },
+  );
+  expect(fromFunction.default).toBe("recipient:ada");
+
+  const fromString = await luaHandle(
+    luaSpec(`{
+      name = "v",
+      ${SOURCE},
+      ${ON_SELECT},
+      dropdown = {
+        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
+        default = "recipient:ada",
+        where = function(obj, value) return obj.target == value end,
+      },
+    }`),
+    "dropdown",
+    { objs: [] },
+  );
+  expect(fromString.default).toBe("recipient:ada");
+});
+
+test("the dropdown hook drops a default that is not among the options", async () => {
+  const state = await luaHandle(
+    luaSpec(`{
+      name = "v",
+      ${SOURCE},
+      ${ON_SELECT},
+      dropdown = {
+        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
+        default = function() return "recipient:ghost" end,
+        where = function(obj, value) return obj.target == value end,
+      },
+    }`),
+    "dropdown",
+    { objs: [] },
+  );
+  expect(state.default).toBeUndefined();
+});
+
+test("a throwing dropdown default costs the default, not the options", async () => {
+  const state = await luaHandle(
+    luaSpec(`{
+      name = "v",
+      ${SOURCE},
+      ${ON_SELECT},
+      dropdown = {
+        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
+        default = function() error("boom") end,
+        where = function(obj, value) return obj.target == value end,
+      },
+    }`),
+    "dropdown",
+    { objs: [] },
+  );
+  expect(state.options).toEqual([{ label: "Ada", value: "recipient:ada" }]);
+  expect(state.default).toBeUndefined();
 });
 
 test("navigator.pick rejects every navigator.define field", () => {

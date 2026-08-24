@@ -11,7 +11,7 @@ import {
 
 describe("originLabel", () => {
   it("prefers a displayName when present", () => {
-    expect(originLabel({ kind: "user", displayName: "zef" })).toBe("zef");
+    expect(originLabel({ kind: "user", displayName: "ada" })).toBe("ada");
   });
 
   it("falls back to 'external' with no origin at all", () => {

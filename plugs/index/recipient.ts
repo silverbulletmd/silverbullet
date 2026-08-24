@@ -5,6 +5,7 @@ import {
   index,
   lua,
   space,
+  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
@@ -37,7 +38,7 @@ export function deriveAliasNickname(alias: string): string {
 const declaredRecipientRegex = /\[\[[^\]]*\]\]|\S+/g;
 
 /** The entries of a `recipients:` frontmatter value. A list gives one entry
- * per item; a plain string is cut on whitespace, so `recipients: zef sales`
+ * per item; a plain string is cut on whitespace, so `recipients: ada sales`
  * names two. A leading `@` is optional either way, the way a leading `#` is
  * on a tag. */
 export function parseDeclaredRecipients(value: unknown): string[] {
@@ -194,6 +195,18 @@ export async function listRecipients(): Promise<RecipientListing[]> {
   return result.sort((a, b) => a.nickname.localeCompare(b.nickname));
 }
 
+/** Your own name is always completable, even in a space where nobody has been
+ * mentioned yet and no `#recipient` page exists. */
+async function ownCompletion(
+  taken: Set<string>,
+): Promise<Completion | undefined> {
+  const { username } = await system.getProfile();
+  if (taken.has(username.toLowerCase())) {
+    return undefined;
+  }
+  return { label: username, type: "at-mention", detail: "you" };
+}
+
 export async function atMentionComplete(completeEvent: CompleteEvent) {
   // Frontmatter is YAML, where an unquoted `@` is a syntax error rather than
   // a mention: `recipients:` has its own completion there.
@@ -205,8 +218,10 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
     return null;
   }
   const options: Completion[] = [];
+  const taken = new Set<string>();
   for (const entry of await listRecipients()) {
     for (const nickname of entry.nicknames) {
+      taken.add(nickname.toLowerCase());
       options.push({
         label: nickname,
         type: "at-mention",
@@ -214,6 +229,8 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
       });
     }
   }
+  const own = await ownCompletion(taken);
+  if (own) options.push(own);
   return {
     from: completeEvent.pos - match[1].length,
     options,
@@ -231,11 +248,13 @@ export async function frontmatterRecipientComplete(
     return null;
   }
   // The `@` is inside the replaced range, so CodeMirror's own filter would
-  // measure `@ze` against a bare `zef` and reject it: the matching is ours.
+  // measure `@ad` against a bare `ada` and reject it: the matching is ours.
   const typed = prefix.replace(/^@/, "").toLowerCase();
   const options: Completion[] = [];
+  const taken = new Set<string>();
   for (const entry of await listRecipients()) {
     for (const nickname of entry.nicknames) {
+      taken.add(nickname.toLowerCase());
       if (!nickname.toLowerCase().includes(typed)) {
         continue;
       }
@@ -245,6 +264,10 @@ export async function frontmatterRecipientComplete(
         detail: entry.target,
       });
     }
+  }
+  const own = await ownCompletion(taken);
+  if (own?.label.toLowerCase().includes(typed)) {
+    options.push(own);
   }
   return {
     from: completeEvent.pos - prefix.length,

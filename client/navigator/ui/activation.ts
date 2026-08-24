@@ -1,6 +1,6 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { withExpanded } from "../../../plug-api/ui/tree_model.ts";
-import type { NavigatorEngine } from "./engine.ts";
+import type { NavigatorEngine, ViewState } from "./engine.ts";
 import { expansionKey } from "./expansion.ts";
 import {
   type ActiveView,
@@ -25,6 +25,22 @@ export type ActivationDeps = {
   // Called when a paint effect won't fire to signal readiness itself — a reopen of the already-displayed view, which shows already-settled content.
   signalReady: (token: number) => void;
 };
+
+/** A hand-picked value the view still offers wins; failing that the view's own
+ * `dropdown.default`; failing that the built-in "All" already on screen. */
+function pickDropdownValue(
+  saved: unknown,
+  state: Pick<ViewState, "dropdownOptions" | "dropdownDefault">,
+): any {
+  // A remembered `null` is an explicitly picked "All" (`undefined` is untouched), so it outranks the default.
+  if (saved === null) return undefined;
+  const options = state.dropdownOptions;
+  if (options?.some((o) => o.value === saved)) return saved;
+  if (options?.some((o) => o.value === state.dropdownDefault)) {
+    return state.dropdownDefault;
+  }
+  return undefined;
+}
 
 export function createActivate(deps: ActivationDeps) {
   const {
@@ -144,14 +160,12 @@ export function createActivate(deps: ActivationDeps) {
           state.meta.dropdown &&
           !state.meta.ephemeral
         ) {
-          // Same guard again -- and a remembered value the freshly loaded
-          // options no longer carry stays on the built-in "All".
+          // Same guard again -- and a value the freshly loaded options no
+          // longer carry (remembered or defaulted) stays on the built-in "All".
           void datastore.get(["navigator", name, "dropdown"]).then((saved) => {
             if (displayed.current !== name || dropdownDirty.current) return;
-            if (saved === undefined || saved === null) return;
-            if (state.dropdownOptions?.some((o) => o.value === saved)) {
-              setDropdownValue(saved);
-            }
+            const value = pickDropdownValue(saved, state);
+            if (value !== undefined) setDropdownValue(value);
           });
         }
         revealedPage.current = undefined;
@@ -240,10 +254,8 @@ export function createActivate(deps: ActivationDeps) {
       setDropdownValue(undefined);
       void datastore.get(["navigator", name, "dropdown"]).then((saved) => {
         if (displayed.current !== name || dropdownDirty.current) return;
-        if (saved === undefined || saved === null) return;
-        if (active.dropdownOptions?.some((o) => o.value === saved)) {
-          setDropdownValue(saved);
-        }
+        const value = pickDropdownValue(saved, active);
+        if (value !== undefined) setDropdownValue(value);
       });
     }
     interaction.current = "typing";

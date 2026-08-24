@@ -1,6 +1,6 @@
 #meta
 
-Surfaces open recipient mentions in the right-hand sidebar. Open the Mention Inbox with ${widgets.commandButton("Navigate: Mentions")} and pick a recipient from the dropdown to narrow the list, or leave it on All Recipients to see every open mention.
+Surfaces open recipient mentions in the right-hand sidebar. Open the Mention Inbox with ${widgets.commandButton("Navigate: Mentions")}.
 
 # Implementation
 ```space-lua
@@ -89,6 +89,20 @@ local function inboxRows()
   return rows
 end
 
+-- The recipient the current user is: their own `#recipient` page when one
+-- claims their name, and the bare mention identifier otherwise.
+local function ownTarget()
+  local profile = system.getProfile()
+  local username = (profile and profile.username or "me"):lower()
+  for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
+    for _, nickname in ipairs(r.nicknames) do
+      if nickname:lower() == username then
+        return r.target
+      end
+    end
+  end
+end
+
 navigator.define {
   name = "inbox",
   title = "Mention Inbox",
@@ -145,6 +159,7 @@ navigator.define {
       end
       return result
     end,
+    default = ownTarget,
     where = function(obj, value) return obj.target == value end,
   },
   actions = {

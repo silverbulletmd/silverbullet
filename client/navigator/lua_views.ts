@@ -314,6 +314,16 @@ function dropdownMeta(spec: ViewSpec): DropdownMeta | undefined {
   if (present(allLabel) && luaType(allLabel) !== "string") {
     throw new Error("navigator.define: dropdown.allLabel must be a string");
   }
+  const defaultValue = field(dropdown, "default");
+  if (
+    present(defaultValue) &&
+    luaType(defaultValue) !== "string" &&
+    luaType(defaultValue) !== "function"
+  ) {
+    throw new Error(
+      "navigator.define: dropdown.default must be a string or a function",
+    );
+  }
   return { placeholder: toJS(placeholder), allLabel: toJS(allLabel) };
 }
 
@@ -779,7 +789,10 @@ async function dropdownState(
   sf: LuaStackFrame,
   spec: ViewSpec,
   args: any,
-): Promise<{ options: DropdownOption[]; masks: boolean[][] } | undefined> {
+): Promise<
+  | { options: DropdownOption[]; masks: boolean[][]; default?: string }
+  | undefined
+> {
   const dropdown = field(spec, "dropdown");
   if (!truthy(dropdown)) return undefined;
   const listed =
@@ -795,6 +808,17 @@ async function dropdownState(
     }
     options.push({ label, value: toJS(value) });
   }
+  const declared = field(dropdown, "default");
+  let resolved: any;
+  try {
+    resolved = toJS(
+      luaType(declared) === "function"
+        ? await callLua(sf, declared as ILuaFunction)
+        : declared,
+    );
+  } catch {
+    resolved = undefined;
+  }
   const where = field(dropdown, "where") as ILuaFunction;
   const masks: boolean[][] = [];
   for (const obj of args.objs ?? []) {
@@ -808,7 +832,11 @@ async function dropdownState(
     }
     masks.push(mask);
   }
-  return { options, masks };
+  return {
+    options,
+    masks,
+    default: options.some((o) => o.value === resolved) ? resolved : undefined,
+  };
 }
 
 /**

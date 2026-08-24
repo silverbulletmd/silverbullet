@@ -65,6 +65,7 @@ export type ViewState = {
   rowState?: RowStates;
   segmentMasks?: SegmentMasks;
   dropdownOptions?: DropdownOption[];
+  dropdownDefault?: string;
   dropdownMasks?: DropdownMasks;
   actionIcons?: (Element | undefined)[];
   segmentIcons?: (Element | undefined)[];
@@ -266,6 +267,7 @@ export class NavigatorEngine {
     entry.rowState = undefined;
     entry.segmentMasks = undefined;
     entry.dropdownOptions = undefined;
+    entry.dropdownDefault = undefined;
     entry.dropdownMasks = undefined;
     const meta = entry.meta;
     const needsSegments =
@@ -294,6 +296,7 @@ export class NavigatorEngine {
         if (entry.loadToken !== token) return;
         if (result && Array.isArray(result.options)) {
           entry.dropdownOptions = result.options;
+          entry.dropdownDefault = result.default;
           const masks: DropdownMasks = new WeakMap();
           const put = (row: Row | undefined, mask: unknown) => {
             if (row) masks.set(row, Array.isArray(mask) ? mask : []);

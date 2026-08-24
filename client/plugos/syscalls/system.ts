@@ -3,6 +3,8 @@ import type { Client } from "../../client.ts";
 import { version as publicVersion } from "../../../version.json";
 import type { CommandDef } from "@silverbulletmd/silverbullet/type/manifest";
 import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
+import { loadProfile } from "../../profile.ts";
+import type { ClientProfile } from "../../../plug-api/types/profile.ts";
 
 export function systemSyscalls(
   client: Client,
@@ -246,6 +248,12 @@ export function systemSyscalls(
     "system.getVersion": {
       callback: () => publicVersion,
       description: "Returns the running SilverBullet version.",
+    },
+    "system.getProfile": {
+      callback: (): Promise<ClientProfile> => loadProfile(client),
+      description:
+        'The current user\'s identity. `username` is "me" when the server has no account for this session.',
+      signatures: ["system.getProfile()"],
     },
     "system.getConfig": {
       callback: (_ctx, key: string, defaultValue: any = undefined) =>
