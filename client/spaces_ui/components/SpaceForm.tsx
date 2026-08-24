@@ -16,7 +16,13 @@ import {
   runtimeApiUnavailableReason,
 } from "../runtime_availability.ts";
 import { FieldErrors, useSlugDefaults } from "../space_fields.tsx";
-import type { Binding, FieldError, SpaceInfo, UserInfo } from "../types.ts";
+import type {
+  Binding,
+  FieldError,
+  RevisionsMode,
+  SpaceInfo,
+  UserInfo,
+} from "../types.ts";
 
 export function SpaceForm({
   id,
@@ -75,6 +81,9 @@ export function SpaceForm({
   );
   // Matches the server's own `runtimeApi` default for a fresh space.
   const [runtimeApi, setRuntimeApi] = useState(initial?.runtimeApi ?? true);
+  const [revisions, setRevisions] = useState<RevisionsMode>(
+    initial?.revisions ?? "disabled",
+  );
   const [runtimeAvailability, setRuntimeAvailability] =
     useState<RuntimeAvailability | null>(null);
   const [indexPage, setIndexPage] = useState(initial?.indexPage ?? "index");
@@ -175,6 +184,7 @@ export function SpaceForm({
             whitelist: shellWhitelist.split(/\s+/).filter(Boolean),
           },
           runtimeApi,
+          revisions,
           indexPage,
         };
         setErrors([]);
@@ -329,79 +339,94 @@ export function SpaceForm({
             </label>
           ))}
       </fieldset>
-      <details>
-        <summary>Advanced</summary>
-        <label>
-          <Checkbox
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.currentTarget.checked)}
-          />{" "}
-          Public (no login required)
-        </label>
-        {/* Kept next to the toggle that causes it: a warning about the
-            selected combination is useless where you cannot see the
-            checkboxes it refers to. */}
-        {isPublic && !readOnly && (
-          <Alert variant="warning">
-            Anyone can read AND EDIT this space without logging in — intended
-            for auth-proxy deployments.
-          </Alert>
+      <h3>Revisions</h3>
+      <label for="space-revisions">Mode</label>
+      <Select
+        id="space-revisions"
+        value={revisions}
+        onChange={(e) => setRevisions(e.currentTarget.value as RevisionsMode)}
+      >
+        <option value="disabled">
+          Disabled — revision support switched off entirely
+        </option>
+        <option value="managed">
+          Managed — SilverBullet periodically commits automatically
+        </option>
+        <option value="unmanaged">
+          Unmanaged — show revisions only, no auto commit
+        </option>
+      </Select>
+      <h3>Options</h3>
+      <label>
+        <Checkbox
+          checked={isPublic}
+          onChange={(e) => setIsPublic(e.currentTarget.checked)}
+        />{" "}
+        Public (no login required)
+      </label>
+      {/* Kept next to the toggle that causes it: a warning about the
+          selected combination is useless where you cannot see the
+          checkboxes it refers to. */}
+      {isPublic && !readOnly && (
+        <Alert variant="warning">
+          Anyone can read AND EDIT this space without logging in — intended for
+          auth-proxy deployments.
+        </Alert>
+      )}
+      <label>
+        <Checkbox
+          checked={readOnly}
+          onChange={(e) => setReadOnly(e.currentTarget.checked)}
+        />{" "}
+        Read-only
+      </label>
+      <label>
+        <Checkbox
+          checked={shellEnabled}
+          onChange={(e) => setShellEnabled(e.currentTarget.checked)}
+        />{" "}
+        Enable shell commands
+      </label>
+      {/* Only meaningful while shell commands are on, so it appears with
+          them rather than sitting there greyed out. */}
+      {shellEnabled && (
+        <Fragment>
+          <label for="space-shell-whitelist">
+            Allowed commands
+            <span class="sb-help-text">
+              Space-separated. Leave empty to allow every command.
+            </span>
+          </label>
+          <Input
+            id="space-shell-whitelist"
+            value={shellWhitelist}
+            placeholder="git pandoc"
+            onInput={(e) => setShellWhitelist(e.currentTarget.value)}
+          />
+        </Fragment>
+      )}
+      {/* The stored flag and its availability stay orthogonal: `runtimeApi`
+          means "this space wants the runtime API", availability means "this
+          server can currently provide it". Locking the control does not
+          rewrite the value, so installing Chrome and restarting lights the
+          space up without the admin having to come back here. */}
+      <label>
+        <Checkbox
+          checked={runtimeApi}
+          disabled={runtimeApiUnavailable !== null}
+          onChange={(e) => setRuntimeApi(e.currentTarget.checked)}
+        />{" "}
+        Enable runtime API
+        {runtimeApiUnavailable && (
+          <span class="sb-help-text">{runtimeApiUnavailable}</span>
         )}
-        <label>
-          <Checkbox
-            checked={readOnly}
-            onChange={(e) => setReadOnly(e.currentTarget.checked)}
-          />{" "}
-          Read-only
-        </label>
-        <label>
-          <Checkbox
-            checked={shellEnabled}
-            onChange={(e) => setShellEnabled(e.currentTarget.checked)}
-          />{" "}
-          Enable shell commands
-        </label>
-        {/* Only meaningful while shell commands are on, so it appears with
-            them rather than sitting there greyed out. */}
-        {shellEnabled && (
-          <Fragment>
-            <label for="space-shell-whitelist">
-              Allowed commands
-              <span class="sb-help-text">
-                Space-separated. Leave empty to allow every command.
-              </span>
-            </label>
-            <Input
-              id="space-shell-whitelist"
-              value={shellWhitelist}
-              placeholder="git pandoc"
-              onInput={(e) => setShellWhitelist(e.currentTarget.value)}
-            />
-          </Fragment>
-        )}
-        {/* The stored flag and its availability stay orthogonal: `runtimeApi`
-            means "this space wants the runtime API", availability means "this
-            server can currently provide it". Locking the control does not
-            rewrite the value, so installing Chrome and restarting lights the
-            space up without the admin having to come back here. */}
-        <label>
-          <Checkbox
-            checked={runtimeApi}
-            disabled={runtimeApiUnavailable !== null}
-            onChange={(e) => setRuntimeApi(e.currentTarget.checked)}
-          />{" "}
-          Enable runtime API
-          {runtimeApiUnavailable && (
-            <span class="sb-help-text">{runtimeApiUnavailable}</span>
-          )}
-        </label>
-        <label for="space-index-page">Index page</label>
-        <Input
-          id="space-index-page"
-          value={indexPage}
-          onInput={(e) => setIndexPage(e.currentTarget.value)}
-        />
-      </details>
+      </label>
+      <label for="space-index-page">Index page</label>
+      <Input
+        id="space-index-page"
+        value={indexPage}
+        onInput={(e) => setIndexPage(e.currentTarget.value)}
+      />
       <div class="row">
         <Button
           type="submit"

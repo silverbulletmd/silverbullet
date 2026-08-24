@@ -61,6 +61,12 @@ test("static segments beat the space-id catch-all", async () => {
   });
 });
 
+test("parses the profile route", async () => {
+  expect((await load("/.spaces/profile")).parseSpacesRoute()).toEqual({
+    screen: "profile",
+  });
+});
+
 test("a bare single segment is a space id", async () => {
   expect((await load("/.spaces/abc-123")).parseSpacesRoute()).toEqual({
     screen: "space",

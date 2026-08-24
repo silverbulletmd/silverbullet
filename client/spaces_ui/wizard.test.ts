@@ -8,7 +8,13 @@ import {
   validateSpace,
 } from "./wizard.ts";
 
-const ADMIN = { username: "alice", password: "hunter2", password2: "hunter2" };
+const ADMIN = {
+  username: "alice",
+  password: "hunter2",
+  password2: "hunter2",
+  fullName: "",
+  email: "",
+};
 const SPACE = {
   name: "Notes",
   hosting: "prefix" as const,
@@ -78,9 +84,15 @@ test("validateAdmin rejects a mismatched repeat", () => {
 });
 
 test("validateAdmin reports one problem at a time, in field order", () => {
-  expect(validateAdmin({ username: "", password: "", password2: "x" })).toEqual(
-    [{ field: "adminUsername", message: "username is required" }],
-  );
+  expect(
+    validateAdmin({
+      username: "",
+      password: "",
+      password2: "x",
+      fullName: "",
+      email: "",
+    }),
+  ).toEqual([{ field: "adminUsername", message: "username is required" }]);
 });
 
 test("validateSpace accepts a complete prefix-bound space", () => {

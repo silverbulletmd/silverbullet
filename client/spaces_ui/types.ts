@@ -1,3 +1,5 @@
+export type RevisionsMode = "managed" | "unmanaged" | "disabled";
+
 export type Binding =
   | { prefix: string; host?: never }
   | { host: string; prefix?: never };
@@ -19,6 +21,7 @@ export type SpaceInfo = {
   readOnly: boolean;
   shell: { enabled: boolean; whitelist: string[] };
   runtimeApi: boolean;
+  revisions?: RevisionsMode;
   indexPage: string;
   status: { state: "running" | "errored"; reason?: string };
 };
@@ -26,7 +29,17 @@ export type SpaceInfo = {
 /** GET /api/users entry: `{ "<username>": UserInfo }`. */
 export interface UserInfo {
   admin: boolean;
+  fullName: string | null;
+  email: string | null;
   tokens: Record<string, { createdAt: string }>;
+}
+
+/** GET/PUT `api/profile`: the caller's own account. */
+export interface ProfileInfo {
+  username: string;
+  admin: boolean;
+  fullName: string | null;
+  email: string | null;
 }
 
 /**

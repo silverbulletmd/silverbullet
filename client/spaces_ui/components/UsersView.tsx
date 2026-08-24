@@ -16,6 +16,7 @@ import {
   listUsers,
   setUserAdmin,
   setUserPassword,
+  setUserProfile,
 } from "../api.ts";
 import { useNavigate } from "../navigation.ts";
 import { spacesUrl } from "../routes.ts";
@@ -109,12 +110,14 @@ export function NewUser({ onUnauthorized }: { onUnauthorized: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [admin, setAdmin] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        createUser(username, password, admin)
+        createUser(username, password, admin, fullName, email)
           .then(() =>
             navigate(
               spacesUrl(`/users/${encodeURIComponent(username.trim())}`),
@@ -148,6 +151,19 @@ export function NewUser({ onUnauthorized }: { onUnauthorized: () => void }) {
         />{" "}
         Admin
       </label>
+      <label for="new-user-full-name">Full name</label>
+      <Input
+        id="new-user-full-name"
+        value={fullName}
+        onInput={(event) => setFullName(event.currentTarget.value)}
+      />
+      <label for="new-user-email">Email</label>
+      <Input
+        id="new-user-email"
+        value={email}
+        onInput={(event) => setEmail(event.currentTarget.value)}
+      />
+      <p class="sb-help-text">Used to attribute changes in revision history.</p>
       <div class="row">
         <Button type="submit" variant="primary">
           Create user
@@ -177,11 +193,16 @@ export function UserDetail({
   const [password, setPassword] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [shownToken, setShownToken] = useState<string | undefined>();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const isSelf = username === currentUsername;
 
   async function reload() {
     try {
-      setUser(await getUser(username));
+      const user = await getUser(username);
+      setUser(user);
+      setFullName(user.fullName ?? "");
+      setEmail(user.email ?? "");
       setError("");
     } catch (error: any) {
       if (error.unauthorized) onUnauthorized();
@@ -251,6 +272,36 @@ export function UserDetail({
           />{" "}
           Administrator
         </label>
+      </section>
+      <section>
+        <h2>Profile</h2>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void run(async () => {
+              await setUserProfile(username, fullName, email);
+              await reload();
+            });
+          }}
+        >
+          <label for="user-detail-full-name">Full name</label>
+          <Input
+            id="user-detail-full-name"
+            value={fullName}
+            onInput={(event) => setFullName(event.currentTarget.value)}
+          />
+          <label for="user-detail-email">Email</label>
+          <Input
+            id="user-detail-email"
+            value={email}
+            onInput={(event) => setEmail(event.currentTarget.value)}
+          />
+          <div class="row">
+            <Button type="submit" variant="primary">
+              Save
+            </Button>
+          </div>
+        </form>
       </section>
       <section>
         <h2>Password</h2>

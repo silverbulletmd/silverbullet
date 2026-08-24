@@ -9,6 +9,8 @@ export type AdminValues = {
   username: string;
   password: string;
   password2: string;
+  fullName: string;
+  email: string;
 };
 
 /** What the first-space step collects. */

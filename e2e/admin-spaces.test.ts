@@ -104,13 +104,12 @@ async function admin(
 test("editing a space preserves fields the form does not manage", async ({
   page,
 }) => {
-  // Create a space via the API with a non-default themeColor and
-  // description, which the edit form has no inputs for.
   const id = await createSpaceViaApi(page, {
     name: "Work",
     binding: { prefix: "/work" },
     themeColor: "#ff0000",
     description: "Custom description",
+    revisions: "managed",
   });
 
   await page.goto(`${base}/.spaces`);
@@ -131,6 +130,7 @@ test("editing a space preserves fields the form does not manage", async ({
   expect(after.name).toBe("Renamed");
   expect(after.themeColor).toBe("#ff0000");
   expect(after.description).toBe("Custom description");
+  expect(after.revisions).toBe("managed");
 });
 
 test("saving an existing space returns to the list showing the change", async ({
@@ -164,7 +164,6 @@ test("the shell allow list is editable, and only shown when shell is enabled", a
   });
 
   await page.goto(`${base}/.spaces/${encodeURIComponent(id)}`);
-  await page.locator("summary", { hasText: "Advanced" }).click();
 
   const allowed = page.getByLabel("Allowed commands");
   await expect(allowed).toHaveValue("git");
@@ -289,11 +288,16 @@ test("a non-admin sees only their spaces and no admin affordances", async ({
 
   await expect(page.locator(".sb-space-list li")).toHaveCount(1);
   await expect(page.locator("text=Members Only")).toBeVisible();
-  // No Users tab, no create button.
-  await expect(page.locator(".sb-tabs")).toHaveCount(0);
+  // Every account reaches its own Profile tab; Spaces and Users stay
+  // admin-only entries within the same tab bar.
+  const tabs = page.locator(".sb-tabs");
+  await expect(
+    tabs.getByRole("link", { name: "member's Profile" }),
+  ).toBeVisible();
+  await expect(tabs.getByRole("link", { name: "Spaces" })).toHaveCount(0);
+  await expect(tabs.getByRole("link", { name: "Users" })).toHaveCount(0);
   await expect(page.locator("text=Create space")).toHaveCount(0);
-  // With no tab bar to name the screen, the heading is what labels it — it is
-  // dropped only where a tab already says "Spaces".
+  // No tab names this screen "Spaces", so the heading still does.
   await expect(page.getByRole("heading", { name: "Spaces" })).toBeVisible();
 
   // Typing an admin URL yields the not-found screen, not the user list.

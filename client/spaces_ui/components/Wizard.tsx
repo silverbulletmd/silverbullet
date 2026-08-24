@@ -37,6 +37,8 @@ export function Wizard() {
     username: "",
     password: "",
     password2: "",
+    fullName: "",
+    email: "",
   });
 
   const [spaceName, setSpaceName] = useState("Notes");
@@ -96,6 +98,8 @@ export function Wizard() {
       await api("POST", "api/complete", {
         adminUsername: admin.username,
         adminPassword: admin.password,
+        adminFullName: admin.fullName,
+        adminEmail: admin.email,
         space: spacePayload(space),
       });
       setStep("done");

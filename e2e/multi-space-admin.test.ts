@@ -88,9 +88,7 @@ test("first run: login, create a space, open it, edit a page", async ({
   await expect(page.locator("#space-folder")).toHaveValue("spaces/playground");
   await expect(page.getByRole("button", { name: "Browse…" })).toBeVisible();
   // Access model is public/members now (no more per-space auth dropdown). Make
-  // it public so the space opens below without a separate space login. The
-  // toggle lives under "Advanced", which is collapsed by default.
-  await page.locator("summary", { hasText: "Advanced" }).click();
+  // it public so the space opens below without a separate space login.
   await page.getByLabel("Public (no login required)").check();
   await page.getByRole("button", { name: "Create" }).click();
 

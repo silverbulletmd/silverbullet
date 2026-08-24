@@ -11,6 +11,7 @@ import { loginUrl, safeSpacesDestination, spacesUrl } from "../routes.ts";
 import type { SpacesRoute } from "../routes.ts";
 import type { AuthState } from "../types.ts";
 import { Login } from "./Login.tsx";
+import { ProfileView } from "./ProfileView.tsx";
 import { SpaceEditor } from "./SpaceEditor.tsx";
 import { SpaceList } from "./SpaceList.tsx";
 import { NewUser, UserDetail, UserList } from "./UsersView.tsx";
@@ -51,6 +52,9 @@ const UserDetailScreen = ({ route, auth, onUnauthorized }: ScreenProps) => (
     onUnauthorized={onUnauthorized}
   />
 );
+const ProfileScreen = ({ onUnauthorized }: ScreenProps) => (
+  <ProfileView onUnauthorized={onUnauthorized} />
+);
 
 // Keyed on SpacesRoute["screen"], so TypeScript requires an entry for every
 // route variant: adding a route without deciding its admin requirement is a
@@ -65,6 +69,7 @@ const SCREENS: Record<SpacesRoute["screen"], Screen | undefined> = {
   users: { view: UserListScreen, admin: true },
   "user-new": { view: UserNewScreen, admin: true },
   user: { view: UserDetailScreen, admin: true },
+  profile: { view: ProfileScreen, admin: false },
   login: undefined, // handled by the auth gate before this table is consulted
   "not-found": undefined,
 };
@@ -129,6 +134,7 @@ export function App() {
   const onUnauthorized = () => location.replace(loginUrl());
   const onSpacesTab = route.screen.startsWith("space");
   const onUsersTab = route.screen.startsWith("user");
+  const onProfileTab = route.screen === "profile";
   return (
     <NavigateProvider value={navigate}>
       <div class="sb-spaces-header">
@@ -145,24 +151,33 @@ export function App() {
           {/* The active tab is what names the current screen — the list screens
               dropped their headings rather than repeat it — so it carries
               `aria-current` and not just a highlight class. */}
-          {auth.admin && (
-            <nav class="sb-tabs" aria-label="Administration">
-              <a
-                class={`sb-tab ${onSpacesTab ? "sb-active" : ""}`}
-                aria-current={onSpacesTab ? "page" : undefined}
-                href={spacesUrl("/")}
-              >
-                Spaces
-              </a>
-              <a
-                class={`sb-tab ${onUsersTab ? "sb-active" : ""}`}
-                aria-current={onUsersTab ? "page" : undefined}
-                href={spacesUrl("/users")}
-              >
-                Users
-              </a>
-            </nav>
-          )}
+          <nav class="sb-tabs" aria-label="Sections">
+            {auth.admin && (
+              <>
+                <a
+                  class={`sb-tab ${onSpacesTab ? "sb-active" : ""}`}
+                  aria-current={onSpacesTab ? "page" : undefined}
+                  href={spacesUrl("/")}
+                >
+                  Spaces
+                </a>
+                <a
+                  class={`sb-tab ${onUsersTab ? "sb-active" : ""}`}
+                  aria-current={onUsersTab ? "page" : undefined}
+                  href={spacesUrl("/users")}
+                >
+                  Users
+                </a>
+              </>
+            )}
+            <a
+              class={`sb-tab ${onProfileTab ? "sb-active" : ""}`}
+              aria-current={onProfileTab ? "page" : undefined}
+              href={spacesUrl("/profile")}
+            >
+              {auth.username}'s Profile
+            </a>
+          </nav>
         </div>
         <button
           type="button"

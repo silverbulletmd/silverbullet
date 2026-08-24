@@ -41,8 +41,9 @@ export function SpaceList({
     <div>
       {/* Admins reach this screen through the tab bar, which already names it;
           a heading repeating "Spaces" directly under the active tab is pure
-          duplication. Non-admins get no tab bar, so for them the heading is
-          the only thing labelling the page — and the only screen they have. */}
+          duplication. Non-admins have a tab bar too (Profile), but no tab of
+          theirs says "Spaces" -- so the heading is still what labels this
+          screen for them. */}
       {!admin && <h1>Spaces</h1>}
       {error && <Alert variant="error">{error}</Alert>}
       {!loaded && <p>Loading…</p>}

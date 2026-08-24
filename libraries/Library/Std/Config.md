@@ -407,6 +407,14 @@ config.define("recipients.tag", {
   ui = { category = "Indexing", label = "Recipient tag", priority = 0 },
 })
 
+-- Revisions
+config.define("revisions.authorEmailDomain", {
+  type = "string",
+  default = "silverbullet.local",
+  description = "Domain used for synthetic commit author emails in managed revision history",
+  ui = { category = "Revisions", label = "Author email domain", priority = 0 },
+})
+
 -- Don't use directly, WIP
 config.define("tags", {
   type = "object",

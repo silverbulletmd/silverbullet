@@ -11,6 +11,7 @@ export type SpacesRoute =
   | { screen: "users" }
   | { screen: "user-new" }
   | { screen: "user"; username: string }
+  | { screen: "profile" }
   | { screen: "not-found" };
 
 export function spacesUrl(path: string): string {
@@ -46,6 +47,9 @@ export function parseSpacesRoute(): SpacesRoute {
   }
   if (segments[0] === "new" && segments.length === 1) {
     return { screen: "space-new" };
+  }
+  if (segments[0] === "profile" && segments.length === 1) {
+    return { screen: "profile" };
   }
   if (segments[0] === "users") {
     if (segments.length === 1) return { screen: "users" };

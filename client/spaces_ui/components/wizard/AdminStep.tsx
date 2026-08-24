@@ -57,6 +57,22 @@ export function AdminStep({
         value={values.password2}
         onInput={(e) => onChange({ password2: e.currentTarget.value })}
       />
+      <label for="setup-full-name">Full name</label>
+      <Input
+        id="setup-full-name"
+        value={values.fullName}
+        onInput={(e) => onChange({ fullName: e.currentTarget.value })}
+      />
+      <label for="setup-email">Email</label>
+      <Input
+        id="setup-email"
+        value={values.email}
+        onInput={(e) => onChange({ email: e.currentTarget.value })}
+      />
+      <p class="sb-help-text">
+        Full name and email are used to attribute changes in revision history
+        only.
+      </p>
       <div class="row">
         <Button type="submit" variant="primary" disabled={busy}>
           Continue

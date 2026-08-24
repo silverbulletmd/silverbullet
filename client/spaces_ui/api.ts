@@ -1,5 +1,5 @@
 import type { RuntimeAvailability } from "./runtime_availability.ts";
-import type { FieldError, UserInfo } from "./types.ts";
+import type { FieldError, ProfileInfo, UserInfo } from "./types.ts";
 
 export async function api(
   method: string,
@@ -77,8 +77,16 @@ export function createUser(
   username: string,
   password: string,
   admin: boolean,
+  fullName: string,
+  email: string,
 ): Promise<void> {
-  return adminApi("POST", "users", { username, password, admin });
+  return adminApi("POST", "users", {
+    username,
+    password,
+    admin,
+    fullName,
+    email,
+  });
 }
 
 export function deleteUser(name: string): Promise<void> {
@@ -93,6 +101,25 @@ export function setUserPassword(name: string, password: string): Promise<void> {
 
 export function setUserAdmin(name: string, admin: boolean): Promise<void> {
   return adminApi("PUT", `users/${encodeURIComponent(name)}`, { admin });
+}
+
+export function setUserProfile(
+  name: string,
+  fullName: string,
+  email: string,
+): Promise<void> {
+  return adminApi("PUT", `users/${encodeURIComponent(name)}/profile`, {
+    fullName,
+    email,
+  });
+}
+
+export function getProfile(): Promise<ProfileInfo> {
+  return api("GET", "api/profile");
+}
+
+export function setProfile(fullName: string, email: string): Promise<void> {
+  return api("PUT", "api/profile", { fullName, email });
 }
 
 export async function createToken(user: string, name: string): Promise<string> {
