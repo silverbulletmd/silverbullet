@@ -1,0 +1,57 @@
+# Multi-stage Dockerfile for SilverBullet with OIDC feature.
+# Builds a static musl binary from source.
+#
+# Build context: the silverbullet/ repo root.
+#   podman build -f e2e/oidc/Dockerfile.silverbullet -t silverbullet:oidc .
+
+# ── Stage 1: Client bundle ──────────────────────────────────────────────────
+FROM node:22-alpine AS client
+RUN apk add --no-cache git
+WORKDIR /src
+COPY . .
+RUN npm ci --prefer-offline
+RUN npm run build
+
+# ── Stage 2: Server binary (static musl) ───────────────────────────────────
+FROM rust:1-bookworm AS server
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      musl-tools pkg-config libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+COPY . .
+
+# Remove repo rust-toolchain.toml so the image's toolchain is used.
+# Override the musl linker: Debian's musl-gcc links against Debian's musl which
+# mismatches Alpine's.  We keep musl-gcc only as CC (for ring's C code).
+RUN rm -f rust-toolchain.toml && \
+    sed -i 's/^linker = "musl-gcc"$/# linker removed by Dockerfile/' .cargo/config.toml && \
+    rustup target add x86_64-unknown-linux-musl
+
+COPY --from=client /src/client_bundle/ client_bundle/
+RUN test -f version.json || echo '{"version":"dev"}' > version.json
+
+ENV CC_x86_64_unknown_linux_musl=musl-gcc
+RUN cargo build --release -p silverbullet --features oidc \
+      --target x86_64-unknown-linux-musl
+
+# ── Stage 3: Runtime ───────────────────────────────────────────────────────
+FROM alpine:3.20
+RUN apk add --no-cache git curl bash tini openssh-client
+
+ENV SB_HOSTNAME=0.0.0.0 \
+    SB_FOLDER=/space \
+    SB_PORT=3000
+
+EXPOSE 3000
+HEALTHCHECK CMD curl --fail "http://localhost:$SB_PORT/.instance" || exit 1
+
+RUN echo "" > /etc/group && echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY e2e/oidc/wait-for-oidc.sh /wait-for-oidc.sh
+COPY --from=server /src/target/x86_64-unknown-linux-musl/release/silverbullet /silverbullet
+RUN chmod +x /silverbullet /docker-entrypoint.sh /wait-for-oidc.sh
+
+ENTRYPOINT ["/sbin/tini", "--", "/wait-for-oidc.sh"]
+CMD ["/docker-entrypoint.sh"]

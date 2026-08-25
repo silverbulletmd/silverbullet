@@ -1,0 +1,64 @@
+# Podman/Docker Compose: local OIDC integration environment (Dex + SilverBullet).
+#
+# Usage (see `make test-oidc-integration` for the orchestrated run):
+#   podman compose -f e2e/oidc/compose-dex.yaml up -d --build
+#   podman compose -f e2e/oidc/compose-dex.yaml logs -f sb
+#   podman compose -f e2e/oidc/compose-dex.yaml down -v
+#
+# Networking:
+#   SilverBullet uses host networking so it can reach Dex at localhost:5556
+#   for OIDC discovery. The issuer URL (http://localhost:5556/dex) resolves
+#   correctly for both the server-side discovery call and the browser-facing
+#   authorization redirect.
+#
+# Dex test user: admin@example.com / password
+
+services:
+  # ── OIDC Provider (Dex) ──────────────────────────────────────────────────
+  dex:
+    image: dexidp/dex:latest
+    ports:
+      - "5556:5556"
+      - "5558:5558"
+    volumes:
+      - ./dex-config.yaml:/etc/dex/config.yaml:ro
+      - dex-data:/var/dex
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
+             "http://localhost:5558/healthz/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # ── SilverBullet ─────────────────────────────────────────────────────────
+  sb:
+    build:
+      context: ..
+      dockerfile: e2e/oidc/Dockerfile.silverbullet
+    image: silverbullet:oidc
+    network_mode: host
+    depends_on:
+      dex:
+        condition: service_healthy
+    environment:
+      SB_FOLDER: /space
+      SB_PORT: "3000"
+      SB_HOSTNAME: "0.0.0.0"
+      SB_OIDC_ISSUER: "http://localhost:5556/dex"
+      SB_OIDC_CLIENT_ID: "silverbullet"
+      SB_OIDC_CLIENT_SECRET: "secret"
+      SB_OIDC_REDIRECT_BASE: "http://localhost:3000"
+      SB_OIDC_AUTO_PROVISION: "true"
+      SB_OIDC_DISCOVERY_URL: "http://localhost:5556/dex/.well-known/openid-configuration"
+      PUID: "0"
+      PGID: "0"
+      SB_DISABLE_SERVICE_WORKER: "1"
+      SB_RUNTIME_API: "0"
+    volumes:
+      - sb-space:/space
+
+volumes:
+  dex-data:
+  sb-space:

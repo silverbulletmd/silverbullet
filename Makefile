@@ -1,9 +1,9 @@
-.PHONY: build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-server-releases-freebsd build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-e2e-all test-e2e-release bench generate website install uninstall bundle build-rs build-rs-cli run-rs
+.PHONY: check-no-features build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-server-releases-freebsd build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-e2e-release test-oidc-integration bench generate website install uninstall bundle build-rs build-rs-cli run-rs
 
 build:
 	npm run build
 	npm run build:plug-compile
-	cargo build --release -p silverbullet
+	cargo build --release -p silverbullet --features oidc
 	cargo build --release -p sb
 
 # Fast build for the e2e suite: a debug server (rust-embed reads the client
@@ -12,7 +12,7 @@ build:
 # the debug e2e suite. The embedded-bundle path is covered by `test-e2e-release`.
 build-e2e:
 	npm run build
-	cargo build -p silverbullet
+	cargo build -p silverbullet --features oidc
 
 setup:
 	npm install
@@ -32,11 +32,11 @@ uninstall:
 
 build-for-docker:
 	npm run build
-	cargo build --release -p silverbullet --target aarch64-unknown-linux-musl
+	cargo build --release -p silverbullet --features oidc --target aarch64-unknown-linux-musl
 	cp target/aarch64-unknown-linux-musl/release/silverbullet silverbullet-arm64
-	cargo build --release -p silverbullet --target x86_64-unknown-linux-musl
+	cargo build --release -p silverbullet --features oidc --target x86_64-unknown-linux-musl
 	cp target/x86_64-unknown-linux-musl/release/silverbullet silverbullet-amd64
-	cargo build --release -p silverbullet --target armv7-unknown-linux-musleabihf
+	cargo build --release -p silverbullet --features oidc --target armv7-unknown-linux-musleabihf
 	cp target/armv7-unknown-linux-musleabihf/release/silverbullet silverbullet-arm
 
 # CI: compile each Linux target ONCE, emitting BOTH the raw docker binaries
@@ -50,7 +50,7 @@ build-linux-ci: build-for-docker
 	cp silverbullet-arm64 silverbullet && zip silverbullet-server-linux-aarch64.zip silverbullet && rm silverbullet
 	cp silverbullet-arm   silverbullet && zip silverbullet-server-linux-armv7.zip   silverbullet && rm silverbullet
 	# Windows server (no docker image for windows → no raw copy kept)
-	cargo build --release -p silverbullet --target x86_64-pc-windows-gnu
+	cargo build --release -p silverbullet --features oidc --target x86_64-pc-windows-gnu
 	cp target/x86_64-pc-windows-gnu/release/silverbullet.exe silverbullet.exe && zip silverbullet-server-windows-x86_64.zip silverbullet.exe && rm silverbullet.exe
 	# sb CLI release zips (musl x3 + windows)
 	$(MAKE) build-cli-releases-rust
@@ -68,32 +68,32 @@ docker: build-for-docker
 # output is a static musl binary. (rustup target add the four triples below first.)
 build-server-releases:
 	npm run build
-	cargo build --release -p silverbullet --target x86_64-unknown-linux-musl
+	cargo build --release -p silverbullet --features oidc --target x86_64-unknown-linux-musl
 	cp target/x86_64-unknown-linux-musl/release/silverbullet silverbullet && zip silverbullet-server-linux-x86_64.zip silverbullet && rm silverbullet
-	cargo build --release -p silverbullet --target aarch64-unknown-linux-musl
+	cargo build --release -p silverbullet --features oidc --target aarch64-unknown-linux-musl
 	cp target/aarch64-unknown-linux-musl/release/silverbullet silverbullet && zip silverbullet-server-linux-aarch64.zip silverbullet && rm silverbullet
-	cargo build --release -p silverbullet --target armv7-unknown-linux-musleabihf
+	cargo build --release -p silverbullet --features oidc --target armv7-unknown-linux-musleabihf
 	cp target/armv7-unknown-linux-musleabihf/release/silverbullet silverbullet && zip silverbullet-server-linux-armv7.zip silverbullet && rm silverbullet
-	cargo build --release -p silverbullet --target x86_64-pc-windows-gnu
+	cargo build --release -p silverbullet --features oidc --target x86_64-pc-windows-gnu
 	cp target/x86_64-pc-windows-gnu/release/silverbullet.exe silverbullet.exe && zip silverbullet-server-windows-x86_64.zip silverbullet.exe && rm silverbullet.exe
 
 # macOS server release archives — run on a macOS host (native SDK), builds both arches.
 build-server-releases-macos:
 	npm run build
 	rustup target add aarch64-apple-darwin x86_64-apple-darwin
-	cargo build --release -p silverbullet --target aarch64-apple-darwin
+	cargo build --release -p silverbullet --features oidc --target aarch64-apple-darwin
 	cp target/aarch64-apple-darwin/release/silverbullet silverbullet && zip silverbullet-server-darwin-aarch64.zip silverbullet && rm silverbullet
-	cargo build --release -p silverbullet --target x86_64-apple-darwin
+	cargo build --release -p silverbullet --features oidc --target x86_64-apple-darwin
 	cp target/x86_64-apple-darwin/release/silverbullet silverbullet && zip silverbullet-server-darwin-x86_64.zip silverbullet && rm silverbullet
 
 build-server-releases-freebsd:
-	cargo build --release -p silverbullet --target x86_64-unknown-freebsd
+	cargo build --release -p silverbullet --features oidc --target x86_64-unknown-freebsd
 	cp target/x86_64-unknown-freebsd/release/silverbullet silverbullet && zip silverbullet-server-freebsd-x86_64.zip silverbullet && rm silverbullet
 
 # --- Rust standalone server binary (bin/silverbullet) -----------------------
 build-rs:
 	npm run build
-	cargo build --release -p silverbullet
+	cargo build --release -p silverbullet --features oidc
 	@echo "Built: target/release/silverbullet"
 
 # --- Rust standalone CLI client (bin/sb) ------------------------------------
@@ -142,6 +142,19 @@ check:
 	npm run fmt:check
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets --all-features -- -D warnings
+	# Feature-optional guard: the tree must also compile with the optional
+	# features (oidc) OFF — the default build must never regress.
+	$(MAKE) check-no-features
+	# Feature-optional guard: everything must also compile with the optional
+	# features (oidc) disabled — the default build must never regress.
+	cargo check --workspace --all-targets
+
+# The feature-optionality contract, by name: workspace default features plus
+# the server crate explicitly with defaults OFF (oidc is opt-in).
+check-no-features:
+	cargo check --workspace --all-targets
+	cargo check -p silverbullet-server --no-default-features
+
 
 fmt:
 	npx biome format --write .
@@ -166,6 +179,22 @@ test-e2e-all: build-e2e
 # `test-e2e` so the fast suite isn't blocked on a release build.
 test-e2e-release: build-rs
 	npx playwright test --project=release
+
+# Provider-in-the-loop OIDC suite: builds the feature-enabled image, boots a
+# local Dex + SilverBullet stack, drives the real redirect flows headlessly
+# (success/replay/sanitize/errors + claim inspection), then tears down.
+# The expiry check waits 615 s (state-cookie TTL is 600 s), so the full run
+# takes ~12 minutes. See e2e/oidc/README.md.
+test-oidc-integration:
+	podman compose -f e2e/oidc/compose-dex.yaml up -d --build
+	@until curl -sf http://localhost:5556/dex/.well-known/openid-configuration >/dev/null 2>&1; do sleep 2; done
+	@until curl -sf http://localhost:3000/.ping >/dev/null 2>&1; do sleep 2; done
+	node e2e/oidc/flow.mjs dex happy /
+	node e2e/oidc/flow.mjs dex sanitize
+	node e2e/oidc/flow.mjs dex errors
+	node e2e/oidc/claims.mjs dex
+	node e2e/oidc/expiry.mjs dex --wait 615
+	podman compose -f test-env/compose-dex.yaml down -v
 
 bench:
 	npm run bench
