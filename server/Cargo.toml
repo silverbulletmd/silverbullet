@@ -35,9 +35,13 @@ tower = { version = "0.5", features = ["util"] }
 notify = { workspace = true }
 tokio-stream = { workspace = true }
 openidconnect = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
 
 [features]
+# hmac is unconditional (Authenticator's signing primitives); the oidc
+# feature additionally pulls the provider machinery.
 oidc = ["dep:openidconnect"]
+openapi = ["dep:utoipa"]
 
 [dev-dependencies]
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }

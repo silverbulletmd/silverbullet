@@ -33,6 +33,7 @@ pub struct SpaceIndexState {
     authenticator: Arc<Authenticator>,
     users: Arc<UserStore>,
     client_bundle: Box<dyn SpacePrimitives>,
+    oidc_configured: bool,
 }
 
 impl SpaceIndexState {
@@ -42,6 +43,7 @@ impl SpaceIndexState {
         authenticator: Arc<Authenticator>,
         session: SessionPolicy,
         client_bundle: Box<dyn SpacePrimitives>,
+        oidc_configured: bool,
     ) -> Self {
         // Server-wide, not per-account: `LockoutTimer` counts failures across
         // every login attempt against this surface regardless of username
@@ -79,6 +81,7 @@ impl SpaceIndexState {
             authenticator,
             users,
             client_bundle,
+            oidc_configured,
         }
     }
 }
@@ -166,7 +169,8 @@ async fn handle_session(State(state): State<Arc<SpaceIndexState>>, headers: Head
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
     };
     let admin = state.users.is_admin(&username);
-    Json(json!({ "username": username, "admin": admin })).into_response()
+    Json(json!({ "username": username, "admin": admin, "oidcConfigured": state.oidc_configured }))
+        .into_response()
 }
 
 #[derive(Deserialize)]
@@ -235,8 +239,22 @@ async fn handle_list(State(state): State<Arc<SpaceIndexState>>, headers: HeaderM
 
 async fn handle_shell(State(state): State<Arc<SpaceIndexState>>) -> Response {
     let bundle = state.clone();
+    let oidc_configured = state.oidc_configured;
     match run_blocking(move || bundle.client_bundle.read_file(".client/spaces.html")).await {
-        Ok((data, _)) => ([(header::CONTENT_TYPE, "text/html")], data).into_response(),
+        Ok((data, _)) => {
+            let shell = String::from_utf8_lossy(&data);
+            let mut env = minijinja::Environment::new();
+            env.set_auto_escape_callback(|_| minijinja::AutoEscape::Html);
+            let ctx = minijinja::context! { oidc_configured => oidc_configured };
+            let body = match env.render_str(&shell, ctx) {
+                Ok(rendered) => rendered.into_bytes(),
+                Err(err) => {
+                    tracing::error!("spaces.html template render failed: {err}");
+                    data
+                }
+            };
+            ([(header::CONTENT_TYPE, "text/html")], body).into_response()
+        }
         Err(_) => (
             StatusCode::NOT_FOUND,
             "Spaces UI not found in client bundle",
@@ -403,6 +421,7 @@ mod tests {
             users.clone(),
             authenticator.clone(),
             crate::runtime::RuntimeAvailability::Available,
+            false,
         ));
         let state = Arc::new(SpaceIndexState::new(
             manager,
@@ -410,6 +429,7 @@ mod tests {
             authenticator,
             session,
             Box::new(bundle),
+            false,
         ));
         (
             dir,

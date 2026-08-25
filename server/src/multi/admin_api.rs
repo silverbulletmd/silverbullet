@@ -31,6 +31,8 @@ pub struct AdminState {
     pub users: Arc<UserStore>,
     /// Server-wide, resolved at startup — see `RuntimeAvailability`.
     pub runtime_availability: crate::runtime::RuntimeAvailability,
+    /// Whether OIDC is configured, surfaced in server-info for the admin UI.
+    pub oidc_configured: bool,
 }
 
 impl AdminState {
@@ -43,6 +45,7 @@ impl AdminState {
         users: Arc<UserStore>,
         authenticator: Arc<Authenticator>,
         runtime_availability: crate::runtime::RuntimeAvailability,
+        oidc_configured: bool,
     ) -> Self {
         let is_admin_token = {
             let store = users.clone();
@@ -89,6 +92,7 @@ impl AdminState {
             account_authorizer,
             users,
             runtime_availability,
+            oidc_configured,
         }
     }
 }
@@ -529,7 +533,11 @@ async fn handle_fs_dirs(
 /// Server-level facts an administrator's screens need. An object rather than a
 /// bare availability so later server-level fields have somewhere to go.
 async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
-    Json(json!({ "runtimeApi": state.runtime_availability })).into_response()
+    Json(json!({
+        "runtimeApi": state.runtime_availability,
+        "oidcConfigured": state.oidc_configured,
+    }))
+    .into_response()
 }
 
 /// Path status + subdirectory suggestions for a folder-picker field. Relative
@@ -718,6 +726,7 @@ mod tests {
             users.clone(),
             authenticator,
             runtime_availability,
+            false,
         ));
         // Nested at `/api` so these tests address the same URIs the unified
         // surface exposes at `/api/admin/...` minus its own prefix.
@@ -771,7 +780,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             body_json(resp).await,
-            serde_json::json!({ "runtimeApi": { "status": "no_chrome" } }),
+            serde_json::json!({ "runtimeApi": { "status": "no_chrome" }, "oidcConfigured": false }),
         );
     }
 
@@ -800,6 +809,7 @@ mod tests {
             users.clone(),
             authenticator.clone(),
             crate::runtime::RuntimeAvailability::Available,
+            false,
         );
 
         // A private (users-backed) space whose folder resolves to the data

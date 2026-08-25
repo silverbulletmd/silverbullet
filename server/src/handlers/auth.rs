@@ -34,6 +34,10 @@ pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response 
         login.salt(),
         login.remember_me_days(),
         state.boot_config.account_managed,
+        #[cfg(feature = "oidc")]
+        state.oidc_deps.is_some(),
+        #[cfg(not(feature = "oidc"))]
+        false,
     );
     ([(axum::http::header::CONTENT_TYPE, "text/html")], body).into_response()
 }
@@ -48,6 +52,7 @@ fn render_auth_page(
     encryption_salt: &str,
     remember_me_days: u64,
     account_managed: bool,
+    oidc_configured: bool,
 ) -> Vec<u8> {
     let shell = String::from_utf8_lossy(shell);
     let mut env = minijinja::Environment::new();
@@ -58,6 +63,7 @@ fn render_auth_page(
         encryption_salt => encryption_salt,
         remember_me_days => remember_me_days,
         account_managed => account_managed,
+        oidc_configured => oidc_configured,
     };
     match env.render_str(&shell, ctx) {
         Ok(rendered) => rendered.into_bytes(),
@@ -205,7 +211,8 @@ mod tests {
             "/../client_bundle/client/.client/auth.html"
         );
         let shell = std::fs::read(path).expect("shipped auth.html must exist");
-        let out = super::render_auth_page(&shell, "/prefix", "My Space", "c2FsdA==", 7, false);
+        let out =
+            super::render_auth_page(&shell, "/prefix", "My Space", "c2FsdA==", 7, false, true);
         let html = String::from_utf8(out).unwrap();
         assert!(!html.contains("{{"), "leftover placeholder: {html}");
         assert!(html.contains(r#"<base href="/prefix/""#), "{html}");
@@ -229,6 +236,10 @@ mod tests {
             html.contains(r#"data-account-managed="false""#),
             "account-managed attribute: {html}"
         );
+        assert!(
+            html.contains(r#"data-oidc-configured="true""#),
+            "oidc-configured attribute: {html}"
+        );
     }
 
     #[test]
@@ -241,7 +252,7 @@ mod tests {
         );
         let shell = std::fs::read(path).expect("shipped auth.html must exist");
         let nasty = r#"</div><img src=x onerror=alert(1)>"quoted""#;
-        let out = super::render_auth_page(&shell, "", nasty, "c2FsdA==", 7, true);
+        let out = super::render_auth_page(&shell, "", nasty, "c2FsdA==", 7, true, false);
         let html = String::from_utf8(out).unwrap();
 
         assert!(
@@ -256,6 +267,10 @@ mod tests {
         assert!(
             html.contains(r#"data-account-managed="true""#),
             "account-managed attribute: {html}"
+        );
+        assert!(
+            html.contains(r#"data-oidc-configured="false""#),
+            "oidc-configured attribute: {html}"
         );
     }
 

@@ -59,3 +59,4 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 notify = "8"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 openidconnect = { version = "4.0.1", default-features = false }
+utoipa = { version = "5", default-features = false, features = ["macros"] }
