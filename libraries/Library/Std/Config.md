@@ -121,6 +121,13 @@ config.define("shortWikiLinks", {
   ui = { category = "Editor", label = "Short wiki links", priority = 1 },
 })
 
+config.define("attachmentPath", {
+  description = "Default folder prefix used to pre-fill the file name prompt when pasting or uploading an attachment (image or other file). Leave empty (the default) to keep today's behavior of suggesting the current page's folder. A leading '/' makes the prefix absolute from the space root regardless of which page you're on, e.g. '/Assets/'. Without a leading '/', the prefix is resolved relative to the current page's folder, e.g. 'attachments/'.",
+  type = "string",
+  default = "",
+  ui = { category = "Editor", label = "Attachment path", priority = 2 },
+})
+
 config.define("frontmatterFolding", {
   description = "Configure folding behavior for YAML frontmatter at the top of pages",
   type = "object",
