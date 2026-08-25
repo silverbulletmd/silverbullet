@@ -87,7 +87,7 @@ pub async fn build_multi_stack(
     #[cfg(feature = "oidc")]
     let oidc_state: Option<Arc<silverbullet_server::auth::oidc::OidcState>> =
         match OidcConfig::from_env() {
-            Some(cfg) => {
+            Ok(Some(cfg)) => {
                 let http_client = reqwest::Client::builder()
                     .timeout(std::time::Duration::from_secs(15))
                     .build()
@@ -103,7 +103,11 @@ pub async fn build_multi_stack(
                     }
                 }
             }
-            None => None,
+            Ok(None) => None,
+            Err(e) => {
+                tracing::warn!("OIDC configuration invalid: {e} — OIDC login disabled");
+                None
+            }
         };
 
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
