@@ -7,7 +7,7 @@ use axum::response::{IntoResponse, Response};
 
 use crate::handlers::http_date;
 use crate::router::run_blocking;
-use crate::ssr::{convert_wiki_links, render_markdown};
+use crate::ssr::{convert_wiki_links, render_markdown, SpaceLinks};
 use crate::state::ServerState;
 
 /// Cache policy for a bundle asset, keyed on whether its filename pins its
@@ -188,10 +188,18 @@ async fn server_side_content(state: &Arc<ServerState>, path: &str) -> (String, S
 
     let md_path = format!("{page_name}.md");
     let s = state.clone();
-    let content = match run_blocking(move || s.space.read_file(&md_path)).await {
+    let p = md_path.clone();
+    let content = match run_blocking(move || s.space.read_file(&p)).await {
         Ok((data, _)) => {
+            let s = state.clone();
+            let links = run_blocking(move || s.space.fetch_file_list())
+                .await
+                .ok()
+                .map(|files| {
+                    SpaceLinks::new(files.into_iter().map(|f| f.name), &state.host_url_prefix)
+                });
             let text = String::from_utf8_lossy(&data);
-            render_markdown(&convert_wiki_links(&text))
+            render_markdown(&convert_wiki_links(&text, &md_path, links.as_ref()))
         }
         Err(_) => String::new(),
     };

@@ -7,6 +7,7 @@
 pub mod auth;
 pub mod fs_guard;
 pub mod handlers;
+pub mod link_resolve;
 pub mod metrics;
 pub mod multi;
 pub mod revisions;
