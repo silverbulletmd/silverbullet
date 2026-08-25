@@ -195,7 +195,6 @@ export class Space {
           new TextEncoder().encode(text),
         ),
       );
-      // Note: we don't do very elaborate cache invalidation work here, quite quickly the cache will be flushed anyway
       return pageMeta;
     } finally {
       this.saving = false;

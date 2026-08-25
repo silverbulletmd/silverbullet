@@ -2,7 +2,7 @@ import type { Hook } from "./types.ts";
 import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
-import { InMemoryManifestCache, type ManifestCache } from "./manifest_cache.ts";
+import type { ManifestCache } from "./manifest_cache.ts";
 import {
   builtinPlugNames,
   builtinPlugPaths,
@@ -55,7 +55,12 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   ) {
     super();
     if (!options.manifestCache) {
-      options.manifestCache = new InMemoryManifestCache();
+      options.manifestCache = {
+        async getManifest(plug) {
+          await plug.sandbox.init();
+          return plug.sandbox.manifest!;
+        },
+      };
     }
   }
 
