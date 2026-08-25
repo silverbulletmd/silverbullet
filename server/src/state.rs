@@ -105,4 +105,8 @@ pub struct ServerState {
     /// `auth::IdentityResolver`). `username_only()` for a server with no
     /// profile store behind it.
     pub identity: Arc<dyn crate::auth::IdentityResolver>,
+    /// Shared OIDC client (issuer, provider metadata, PKCE state). `None` when
+    /// the `oidc` feature is disabled or `SB_OIDC_ISSUER` is unset.
+    #[cfg(feature = "oidc")]
+    pub oidc: Option<Arc<crate::auth::oidc::OidcState>>,
 }

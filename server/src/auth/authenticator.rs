@@ -69,6 +69,7 @@ impl Authenticator {
     }
 
     /// HMAC-SHA256 signature of `message`, used to sign the OIDC state cookie.
+    #[cfg(feature = "oidc")]
     pub(crate) fn sign_hmac(&self, message: &[u8]) -> Vec<u8> {
         use hmac::{Hmac, Mac};
         use sha2::Sha256;

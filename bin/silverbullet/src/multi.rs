@@ -4,6 +4,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[cfg(feature = "oidc")]
+use silverbullet_server::auth::oidc::OidcConfig;
 use silverbullet_server::auth::{Authenticator, MULTI_AUTH_FILE_NAME};
 use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::access::SessionPolicy;
@@ -80,6 +82,30 @@ pub async fn build_multi_stack(
     // environment rather than per-space `spaces.json` config.
     let session = SessionPolicy::from_env();
 
+    // OIDC: discover provider metadata and build the shared client. Absent
+    // when `SB_OIDC_ISSUER` is unset or the feature is disabled.
+    #[cfg(feature = "oidc")]
+    let oidc_state: Option<Arc<silverbullet_server::auth::oidc::OidcState>> =
+        match OidcConfig::from_env() {
+            Some(cfg) => {
+                let http_client = reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(15))
+                    .build()
+                    .map_err(|e| format!("could not build HTTP client for OIDC: {e}"))?;
+                match silverbullet_server::auth::oidc::OidcState::new(cfg, http_client).await {
+                    Ok(state) => {
+                        tracing::info!("OIDC provider discovered successfully");
+                        Some(state)
+                    }
+                    Err(e) => {
+                        tracing::warn!("OIDC discovery failed: {e} — OIDC login disabled");
+                        None
+                    }
+                }
+            }
+            None => None,
+        };
+
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
     let (runtime, runtime_availability) = space_runtime_factory(&root);
     let deps = InstanceDeps {
@@ -101,6 +127,8 @@ pub async fn build_multi_stack(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: shutdown_rx,
+        #[cfg(feature = "oidc")]
+        oidc: oidc_state.clone(),
     };
 
     let known_users = store.usernames();
@@ -168,6 +196,7 @@ pub async fn build_multi_stack(
         authenticator,
         session,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
+
     ));
     let router = build_main_router(
         manager,

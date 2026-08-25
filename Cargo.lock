@@ -3046,7 +3046,6 @@ dependencies = [
  "clap",
  "getrandom 0.2.17",
  "mime_guess",
- "openidconnect",
  "reqwest 0.12.28",
  "rust-embed",
  "serde_json",

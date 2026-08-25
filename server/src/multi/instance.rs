@@ -65,6 +65,9 @@ pub struct InstanceDeps {
     /// Process-wide shutdown signal, cloned into every instance's
     /// `ServerState::shutdown`. See that field's doc comment.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
+    /// Shared OIDC state, threaded into every instance's per-space auth.
+    #[cfg(feature = "oidc")]
+    pub oidc: Option<Arc<crate::auth::oidc::OidcState>>,
 }
 
 /// Single-space servers retain their classic environment credentials. An
@@ -528,6 +531,8 @@ fn try_build_state(
             InstanceAuth::Accounts { users, .. } => account_identity(users.clone(), members),
             InstanceAuth::Single(_) => crate::auth::username_only(),
         },
+        #[cfg(feature = "oidc")]
+        oidc: deps.oidc.clone(),
     })
 }
 
@@ -558,6 +563,8 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
+            #[cfg(feature = "oidc")]
+            oidc: None,
         }
     }
 

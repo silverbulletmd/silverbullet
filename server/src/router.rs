@@ -84,6 +84,27 @@ fn actor_from(profile: crate::auth::UserProfile) -> crate::auth::Actor {
     }
 }
 
+/// Redirect to the centralized `/.oidc/login` with this space's prefix as the
+/// return target. The OIDC callback URL is always `/.oidc/callback` (one
+/// redirect_uri registered with the IdP); after the session is issued, the
+/// callback redirects back to `/{prefix}/`.
+#[cfg(feature = "oidc")]
+async fn handle_per_space_oidc_login(
+    axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
+) -> Response {
+    let return_mount = if state.host_url_prefix.is_empty() {
+        "/".to_string()
+    } else {
+        format!("{}/", state.host_url_prefix)
+    };
+    let location = format!("/.oidc/login?return={return_mount}");
+    (
+        axum::http::StatusCode::FOUND,
+        [(axum::http::header::LOCATION, location.as_str())],
+    )
+        .into_response()
+}
+
 /// Increment the HTTP request counter when metrics are enabled, then continue.
 /// A no-op (apart from the cheap `Option` check) when metrics are off.
 async fn count_requests(
@@ -166,6 +187,9 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
                 .post(crate::handlers::auth::handle_auth_post),
         )
         .route("/.logout", get(crate::handlers::auth::handle_logout));
+
+    #[cfg(feature = "oidc")]
+    let open = open.route("/.oidc/login", get(handle_per_space_oidc_login));
 
     open.merge(protected)
         .fallback(get(bundle::handle_client_bundle))
