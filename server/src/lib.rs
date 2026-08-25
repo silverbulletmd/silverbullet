@@ -68,6 +68,8 @@ mod test_support {
             fs_guard: Default::default(),
             revisions: None,
             identity: crate::auth::username_only(),
+            #[cfg(feature = "oidc")]
+            oidc_deps: None,
         }
     }
 }

@@ -174,6 +174,49 @@ pub(crate) async fn run_single(
         manager,
         Some(single_spaces_info_router()),
         crate::VERSION.to_string(),
+        {
+            use silverbullet_server::ServerState;
+            use silverbullet_server_common::space::EmptySpacePrimitives;
+            use silverbullet_server_common::BootConfig;
+            Arc::new(ServerState {
+                space: Box::new(EmptySpacePrimitives),
+                client_bundle: Box::new(EmptySpacePrimitives),
+                boot_config: BootConfig {
+                    space_folder_path: "/".into(),
+                    space_name: String::new(),
+                    index_page: "index".into(),
+                    read_only: false,
+                    log_push: false,
+                    enable_client_encryption: false,
+                    account_managed: false,
+                    shell_backend: "noop".into(),
+                    disable_service_worker: false,
+                    revisions: Default::default(),
+                    sync_protocol_version: 0,
+                },
+                space_folder_path: String::new(),
+                version: crate::VERSION.into(),
+                host_url_prefix: String::new(),
+                additional_head_html: String::new(),
+                theme_color: "#e1e1e1".into(),
+                space_description: String::new(),
+                authorizer: None,
+                login: None,
+                shell: ShellConfig {
+                    enabled: false,
+                    whitelist: vec![],
+                },
+                metrics: None,
+                runtime: None,
+                fs_events: None,
+                shutdown: None,
+                fs_guard: Default::default(),
+                revisions: None,
+                identity: silverbullet_server::auth::username_only(),
+                #[cfg(feature = "oidc")]
+                oidc_deps: None,
+            })
+        },
     );
     let router = if config.http_logging {
         router.layer(

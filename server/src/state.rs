@@ -7,6 +7,16 @@ use crate::metrics::Metrics;
 use crate::runtime::RuntimeBackend;
 use crate::shell::ShellConfig;
 
+/// Shared dependencies for the OIDC flow, threaded from `InstanceDeps` into
+/// `ServerState` so the main-router OIDC handlers can access them without
+/// reaching into the spaces router's private state.
+#[cfg(feature = "oidc")]
+pub struct OidcDeps {
+    pub oidc: Arc<crate::auth::oidc::OidcState>,
+    pub users: Arc<crate::multi::users::UserStore>,
+    pub authenticator: Arc<crate::auth::authenticator::Authenticator>,
+}
+
 /// The version string reported at `/.ping` (`X-Server-Version`). Normally
 /// `Static`. The standalone binary uses `Dynamic` in debug builds so the
 /// reported version follows a live-rebuilt client bundle (served from disk)
@@ -105,8 +115,10 @@ pub struct ServerState {
     /// `auth::IdentityResolver`). `username_only()` for a server with no
     /// profile store behind it.
     pub identity: Arc<dyn crate::auth::IdentityResolver>,
-    /// Shared OIDC client (issuer, provider metadata, PKCE state). `None` when
-    /// the `oidc` feature is disabled or `SB_OIDC_ISSUER` is unset.
+    /// Per-space OIDC dependencies (provider client + account store +
+    /// authenticator). `None` when the `oidc` feature is disabled,
+    /// `SB_OIDC_ISSUER` is unset, discovery failed, or the space is not
+    /// accounts-managed.
     #[cfg(feature = "oidc")]
-    pub oidc: Option<Arc<crate::auth::oidc::OidcState>>,
+    pub oidc_deps: Option<OidcDeps>,
 }

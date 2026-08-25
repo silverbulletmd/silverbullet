@@ -192,12 +192,10 @@ pub async fn build_multi_stack(
     ));
     let spaces_state = Arc::new(SpaceIndexState::new(
         manager.clone(),
-        store,
-        authenticator,
+        store.clone(),
+        authenticator.clone(),
         session,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
-        #[cfg(feature = "oidc")]
-        oidc_state.clone(),
     ));
     let router = build_main_router(
         manager,
@@ -206,6 +204,63 @@ pub async fn build_multi_stack(
             build_admin_api_router(admin_state),
         )),
         crate::VERSION.to_string(),
+        {
+            use silverbullet_server::ServerState;
+            use silverbullet_server_common::space::EmptySpacePrimitives;
+            use silverbullet_server_common::BootConfig;
+            #[allow(unused_variables)]
+            let oidc_deps = {
+                #[cfg(feature = "oidc")]
+                {
+                    use silverbullet_server::state::OidcDeps;
+                    oidc_state.as_ref().map(|oidc| OidcDeps {
+                        oidc: oidc.clone(),
+                        users: store.clone(),
+                        authenticator: authenticator.clone(),
+                    })
+                }
+                #[cfg(not(feature = "oidc"))]
+                None::<()>
+            };
+            Arc::new(ServerState {
+                space: Box::new(EmptySpacePrimitives),
+                client_bundle: Box::new(EmptySpacePrimitives),
+                boot_config: BootConfig {
+                    space_folder_path: "/".into(),
+                    space_name: String::new(),
+                    index_page: "index".into(),
+                    read_only: false,
+                    log_push: false,
+                    enable_client_encryption: false,
+                    account_managed: true,
+                    shell_backend: "noop".into(),
+                    disable_service_worker: false,
+                    revisions: Default::default(),
+                    sync_protocol_version: 0,
+                },
+                space_folder_path: String::new(),
+                version: crate::VERSION.into(),
+                host_url_prefix: String::new(),
+                additional_head_html: String::new(),
+                theme_color: "#e1e1e1".into(),
+                space_description: String::new(),
+                authorizer: None,
+                login: None,
+                shell: silverbullet_server::shell::ShellConfig {
+                    enabled: false,
+                    whitelist: vec![],
+                },
+                metrics: None,
+                runtime: None,
+                fs_events: Default::default(),
+                shutdown: None,
+                fs_guard: Default::default(),
+                revisions: None,
+                identity: silverbullet_server::auth::username_only(),
+                #[cfg(feature = "oidc")]
+                oidc_deps,
+            })
+        },
     );
     let addr = format!("{}:{}", config.bind_host, config.port);
     let log =

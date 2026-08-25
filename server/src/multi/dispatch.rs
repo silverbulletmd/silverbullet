@@ -26,6 +26,7 @@ pub fn build_main_router(
     manager: Arc<MultiManager>,
     spaces_router: Option<Router>,
     version: String,
+    #[cfg_attr(not(feature = "oidc"), allow(unused_variables))] server: Arc<crate::ServerState>,
 ) -> Router {
     // Per-boot instance identity AND liveness, served on ANY hostname (it's
     // routed before host/prefix resolution) with permissive CORS. Two
@@ -55,6 +56,24 @@ pub fn build_main_router(
     let mut router = Router::new().route("/.instance", axum::routing::get(instance_handler));
     if let Some(spaces) = spaces_router {
         router = router.nest_service(crate::multi::space_index::SPACES_PREFIX, spaces);
+    }
+    // OIDC endpoints live at server root so they work on every deployment
+    // topology (host binding, prefix binding, or behind a proxy that only
+    // forwards one mount). Gated on the feature and merged with the shared
+    // `Arc<ServerState>` as state, separate from `MainState`.
+    #[cfg(feature = "oidc")]
+    {
+        let oidc_router = Router::new()
+            .route(
+                "/.oidc/login",
+                axum::routing::get(crate::router::oidc_login),
+            )
+            .route(
+                "/.oidc/callback",
+                axum::routing::get(crate::router::oidc_callback),
+            )
+            .with_state(server.clone());
+        router = router.merge(oidc_router);
     }
     router.fallback(dispatch).with_state(MainState {
         manager,
@@ -163,6 +182,8 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
+            #[cfg(feature = "oidc")]
+            oidc: None,
         }
     }
 
@@ -218,7 +239,7 @@ mod tests {
         .unwrap();
         let spaces = axum::Router::new()
             .fallback(|| async { (StatusCode::from_u16(299).unwrap(), "spaces") });
-        build_main_router(m, Some(spaces), "test".to_string())
+        build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()))
     }
 
     async fn get(router: &axum::Router, host: &str, uri: &str) -> axum::response::Response {
@@ -346,7 +367,7 @@ mod tests {
         let spaces = axum::Router::new()
             .route("/", axum::routing::get(|| async { "SPACES-ROOT" }))
             .fallback(|| async { "spaces-fallback" });
-        let r = build_main_router(m, Some(spaces), "test".to_string());
+        let r = build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()));
 
         let resp = get(&r, "localhost", "/.spaces").await;
         assert_eq!(resp.status(), StatusCode::OK);
@@ -406,7 +427,7 @@ mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        let r = build_main_router(m, None, "1.2.3-test".to_string());
+        let r = build_main_router(m, None, "1.2.3-test".to_string(), Arc::new(crate::test_support::test_state()));
         let resp = get(&r, "localhost", "/.instance").await;
         assert_eq!(resp.status(), StatusCode::OK);
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
@@ -444,7 +465,7 @@ mod tests {
         )
         .unwrap();
         let spaces = axum::Router::new().fallback(|| async { "spaces" });
-        let r = build_main_router(m, Some(spaces), "test".to_string());
+        let r = build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()));
         let resp = get(&r, "localhost", "/").await;
         assert_eq!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
         assert_eq!(resp.headers()["location"], "/.spaces");
@@ -464,7 +485,7 @@ mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        let r = build_main_router(m, None, "test".to_string());
+        let r = build_main_router(m, None, "test".to_string(), Arc::new(crate::test_support::test_state()));
         let resp = get(&r, "localhost", "/").await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
@@ -486,7 +507,7 @@ mod tests {
         )
         .unwrap();
         let spaces = axum::Router::new().fallback(|| async { "spaces" });
-        let r = build_main_router(m, Some(spaces), "test".to_string());
+        let r = build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()));
         let resp = get(&r, "localhost", "/").await;
         assert_ne!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
     }

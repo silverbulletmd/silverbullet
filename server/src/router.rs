@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::DefaultBodyLimit;
+use axum::http::{header, HeaderMap, StatusCode};
 use axum::extract::Request;
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
@@ -103,6 +104,136 @@ async fn handle_per_space_oidc_login(
         [(axum::http::header::LOCATION, location.as_str())],
     )
         .into_response()
+}
+
+/// Centralized OIDC login handler at `/.oidc/login`. Builds the authorization
+/// URL, sets the signed state cookie, and redirects to the IdP. Mounted on the
+/// main router (before host/prefix dispatch) so it is reachable on any
+/// deployment topology.
+#[cfg(feature = "oidc")]
+pub(crate) async fn oidc_login(
+    axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
+    headers: HeaderMap,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    let Some(deps) = &state.oidc_deps else {
+        return (StatusCode::NOT_FOUND, "OIDC not configured").into_response();
+    };
+    let return_mount = params.get("return").map(|s| s.as_str()).unwrap_or("/");
+    match crate::auth::oidc::start_login(&deps.oidc, return_mount, &deps.authenticator, &headers) {
+        Ok((auth_url, cookie)) => {
+            let mut response =
+                (StatusCode::FOUND, [(header::LOCATION, auth_url.as_str())]).into_response();
+            if let Ok(value) = cookie.parse() {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            response
+        }
+        Err(e) => {
+            tracing::error!("OIDC login setup failed: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "SSO login failed").into_response()
+        }
+    }
+}
+
+/// Centralized OIDC callback handler at `/.oidc/callback`. Uses the raw query
+/// string to avoid percent-encoding issues with authorization codes (e.g. `+`
+/// characters). Clears the OIDC state cookie on both success and failure.
+/// Mounted on the main router alongside `oidc_login`.
+#[cfg(feature = "oidc")]
+pub(crate) async fn oidc_callback(
+    axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
+    req: axum::extract::OriginalUri,
+    headers: HeaderMap,
+) -> Response {
+    let Some(deps) = &state.oidc_deps else {
+        return (StatusCode::NOT_FOUND, "OIDC not configured").into_response();
+    };
+    // Pass the raw query string through without re-encoding: axum decodes
+    // the query when parsing the URI, but handle_callback needs the original
+    // form-urlencoded bytes to avoid double-decoding (e.g. '+' → space).
+    let query_string = req.query().unwrap_or("").to_string();
+    let credential_version = {
+        let users = deps.users.clone();
+        Some(
+            Arc::new(move |username: &str| users.credential_version(username).unwrap_or_default())
+                as crate::auth::oidc::CredentialVersionFn,
+        )
+    };
+    let result = crate::auth::oidc::handle_callback(
+        &deps.oidc,
+        &query_string,
+        &headers,
+        &deps.authenticator,
+        credential_version,
+        &deps.users,
+    )
+    .await;
+
+    let oidc_cookie_clear = crate::auth::cookie::CookieOptions {
+        path: "/".to_string(),
+        max_age_secs: Some(0),
+        http_only: true,
+        secure: crate::auth::cookie::is_secure_request(&headers),
+        same_site: "Lax",
+    };
+
+    match result {
+        Ok((jwt, secs, return_mount)) => {
+            let options = crate::auth::cookie::CookieOptions {
+                path: "/".to_string(),
+                max_age_secs: Some(secs as i64),
+                http_only: true,
+                secure: crate::auth::cookie::is_secure_request(&headers),
+                same_site: "Lax",
+            };
+            // Validate return_mount: must start with /, no double-slash, no scheme.
+            let safe_return = if return_mount.starts_with('/')
+                && !return_mount.starts_with("//")
+                && !return_mount.contains("://")
+            {
+                return_mount
+            } else {
+                "/".to_string()
+            };
+            let mut response = (
+                StatusCode::FOUND,
+                [(header::LOCATION, safe_return.as_str())],
+            )
+                .into_response();
+            let name = crate::auth::cookie::scoped_auth_cookie_name(
+                &crate::auth::cookie::request_host(&headers),
+                "",
+            );
+            if let Ok(value) = crate::auth::cookie::set_cookie_value(&name, &jwt, &options).parse()
+            {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            // Clear the OIDC state cookie after successful use.
+            let oidc_name = crate::auth::oidc::OIDC_STATE_COOKIE;
+            if let Ok(value) =
+                crate::auth::cookie::set_cookie_value(oidc_name, "", &oidc_cookie_clear).parse()
+            {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            response
+        }
+        Err(e) => {
+            tracing::warn!("OIDC callback failed: {e}");
+            let mut response = (
+                StatusCode::FOUND,
+                [(header::LOCATION, "/.spaces/login?oidc_error=1")],
+            )
+                .into_response();
+            let oidc_name = crate::auth::oidc::OIDC_STATE_COOKIE;
+            if let Ok(value) =
+                crate::auth::cookie::set_cookie_value(oidc_name, "", &oidc_cookie_clear).parse()
+            {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            response
+        }
+    }
 }
 
 /// Increment the HTTP request counter when metrics are enabled, then continue.

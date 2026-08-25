@@ -532,7 +532,28 @@ fn try_build_state(
             InstanceAuth::Single(_) => crate::auth::username_only(),
         },
         #[cfg(feature = "oidc")]
-        oidc: deps.oidc.clone(),
+        oidc_deps: deps
+            .oidc
+            .as_ref()
+            .map(|oidc| {
+                let (users, authenticator) = match &deps.auth {
+                    InstanceAuth::Accounts {
+                        users,
+                        authenticator,
+                        ..
+                    } => (users.clone(), authenticator.clone()),
+                    _ => return Err(
+                        "OIDC requires account-managed auth, but single-space auth is configured"
+                            .to_string(),
+                    ),
+                };
+                Ok(crate::state::OidcDeps {
+                    oidc: oidc.clone(),
+                    users,
+                    authenticator,
+                })
+            })
+            .transpose()?,
     })
 }
 

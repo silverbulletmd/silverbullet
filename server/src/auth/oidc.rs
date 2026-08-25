@@ -173,7 +173,7 @@ impl OidcState {
 }
 
 const OIDC_COOKIE_TTL_SECS: i64 = 600;
-const OIDC_STATE_COOKIE: &str = "sb_oidc_state";
+pub(crate) const OIDC_STATE_COOKIE: &str = "sb_oidc_state";
 
 fn sign_cookie(data: &[u8], authenticator: &Authenticator) -> String {
     let sig = authenticator.sign_hmac(data);
@@ -295,7 +295,7 @@ pub async fn handle_callback(
     authenticator: &Arc<Authenticator>,
     credential_version: Option<CredentialVersionFn>,
     users: &UserStore,
-) -> Result<(String, u64), String> {
+) -> Result<(String, u64, String), String> {
     let params: std::collections::HashMap<String, String> =
         openidconnect::url::form_urlencoded::parse(query.as_bytes())
             .map(|(k, v)| (k.into_owned(), v.into_owned()))
@@ -373,4 +373,5 @@ pub async fn handle_callback(
     login
         .issue_session(&username, remember)
         .map_err(|e| format!("failed to issue session: {e}"))
+        .map(|(jwt, secs)| (jwt, secs, cookie_claims.return_mount))
 }
