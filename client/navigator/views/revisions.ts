@@ -310,13 +310,11 @@ function previewLogFile(
 export const spaceLogView: BuiltinView<LogRow> = {
   meta: baseMeta({
     title: "Space History",
-    placeholder: "Page or author",
+    placeholder: "Filter page/author",
     mode: "tree",
     dock: DOCK,
     foldersFirst: false,
     hasRowIcon: true,
-    // Unlike Page History (one page's revisions, all of them worth scanning),
-    // this spans the whole space -- filtering is how you find a page in it.
     filterFields: { primary: { weight: 1.0, segments: true }, message: 0.8 },
     refreshOn: ["file:changed", "file:deleted", REVISIONS_CHANGED_EVENT],
     refreshOnOpen: true,
