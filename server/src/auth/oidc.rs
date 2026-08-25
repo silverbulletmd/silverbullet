@@ -100,7 +100,7 @@ impl ReqwestAsyncHttpClient {
 impl<'c> AsyncHttpClient<'c> for ReqwestAsyncHttpClient {
     type Error = HttpError;
     type Future =
-        Pin<Box<dyn Future<Output = Result<openidconnect::HttpResponse, Self::Error>> + 'c>>;
+        Pin<Box<dyn Future<Output = Result<openidconnect::HttpResponse, Self::Error>> + Send + 'c>>;
 
     fn call(&'c self, request: openidconnect::HttpRequest) -> Self::Future {
         let (parts, body) = request.into_parts();

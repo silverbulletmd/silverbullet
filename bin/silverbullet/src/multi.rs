@@ -196,7 +196,8 @@ pub async fn build_multi_stack(
         authenticator,
         session,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
-
+        #[cfg(feature = "oidc")]
+        oidc_state.clone(),
     ));
     let router = build_main_router(
         manager,

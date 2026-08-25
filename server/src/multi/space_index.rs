@@ -16,6 +16,8 @@ use serde_json::json;
 use silverbullet_server_common::SpacePrimitives;
 
 use crate::auth::cookie::set_cookie_value;
+#[cfg(feature = "oidc")]
+use crate::auth::oidc::OidcState;
 use crate::auth::{
     cookie_value, is_secure_request, request_host, scoped_auth_cookie_name, Authenticator,
     CookieOptions, LoginManager,
@@ -33,6 +35,8 @@ pub struct SpaceIndexState {
     authenticator: Arc<Authenticator>,
     users: Arc<UserStore>,
     client_bundle: Box<dyn SpacePrimitives>,
+    #[cfg(feature = "oidc")]
+    oidc: Option<Arc<OidcState>>,
 }
 
 impl SpaceIndexState {
@@ -42,6 +46,7 @@ impl SpaceIndexState {
         authenticator: Arc<Authenticator>,
         session: SessionPolicy,
         client_bundle: Box<dyn SpacePrimitives>,
+        #[cfg(feature = "oidc")] oidc: Option<Arc<OidcState>>,
     ) -> Self {
         // Server-wide, not per-account: `LockoutTimer` counts failures across
         // every login attempt against this surface regardless of username
@@ -79,6 +84,8 @@ impl SpaceIndexState {
             authenticator,
             users,
             client_bundle,
+            #[cfg(feature = "oidc")]
+            oidc,
         }
     }
 }
@@ -274,8 +281,107 @@ async fn handle_asset(
 /// bundle); every screen it renders is driven by data behind `/api/*`, which
 /// authorizes per request. `admin_api` arrives already gated — see
 /// `build_admin_api_router`.
+#[cfg(feature = "oidc")]
+async fn handle_oidc_login(
+    State(state): State<Arc<SpaceIndexState>>,
+    headers: HeaderMap,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    let Some(oidc_state) = &state.oidc else {
+        return (StatusCode::NOT_FOUND, "OIDC not configured").into_response();
+    };
+    let return_mount = params.get("return").map(|s| s.as_str()).unwrap_or("/");
+    match crate::auth::oidc::start_login(oidc_state, return_mount, &state.authenticator, &headers) {
+        Ok((auth_url, cookie)) => {
+            let mut response =
+                (StatusCode::FOUND, [(header::LOCATION, auth_url.as_str())]).into_response();
+            if let Ok(value) = cookie.parse() {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            response
+        }
+        Err(e) => {
+            tracing::error!("OIDC login setup failed: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "SSO login failed").into_response()
+        }
+    }
+}
+#[cfg(feature = "oidc")]
+async fn handle_oidc_callback(
+    State(state): State<Arc<SpaceIndexState>>,
+    headers: HeaderMap,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    let Some(oidc_state) = &state.oidc else {
+        return (StatusCode::NOT_FOUND, "OIDC not configured").into_response();
+    };
+    let query_string = params
+        .iter()
+        .map(|(k, v)| format!("{k}={v}"))
+        .collect::<Vec<_>>()
+        .join("&");
+    let credential_version = {
+        let users = state.users.clone();
+        Some(
+            Arc::new(move |username: &str| users.credential_version(username).unwrap_or_default())
+                as crate::auth::oidc::CredentialVersionFn,
+        )
+    };
+    match crate::auth::oidc::handle_callback(
+        oidc_state,
+        &query_string,
+        &headers,
+        &state.authenticator,
+        credential_version,
+        &state.users,
+    )
+    .await
+    {
+        Ok((jwt, secs)) => {
+            let options = CookieOptions {
+                path: "/".to_string(),
+                max_age_secs: Some(secs as i64),
+                http_only: true,
+                secure: is_secure_request(&headers),
+                same_site: "Lax",
+            };
+            let mut response = (StatusCode::FOUND, [(header::LOCATION, "/")]).into_response();
+            let name = scoped_auth_cookie_name(&request_host(&headers), "");
+            if let Ok(value) = set_cookie_value(&name, &jwt, &options).parse() {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            response
+        }
+        Err(e) => {
+            tracing::warn!("OIDC callback failed: {e}");
+            let mut response = (
+                StatusCode::FOUND,
+                [(header::LOCATION, "/.spaces/login?oidc_error=1")],
+            )
+                .into_response();
+            let clear = CookieOptions {
+                path: "/".to_string(),
+                max_age_secs: Some(0),
+                http_only: true,
+                secure: is_secure_request(&headers),
+                same_site: "Lax",
+            };
+            let name = scoped_auth_cookie_name(&request_host(&headers), "");
+            if let Ok(value) = set_cookie_value(&name, "", &clear).parse() {
+                response.headers_mut().append(header::SET_COOKIE, value);
+            }
+            response
+        }
+    }
+}
+
 pub fn build_spaces_router(state: Arc<SpaceIndexState>, admin_api: Router) -> Router {
-    Router::new()
+    #[cfg(feature = "oidc")]
+    let has_oidc = state.oidc.is_some();
+    #[cfg(not(feature = "oidc"))]
+    let has_oidc = false;
+
+    let mut router = Router::new()
         .route("/", get(handle_shell))
         .route("/index.html", get(handle_shell))
         .route("/new", get(handle_shell))
@@ -294,7 +400,15 @@ pub fn build_spaces_router(state: Arc<SpaceIndexState>, admin_api: Router) -> Ro
         )
         .route("/api/spaces", get(handle_list))
         .route("/api/login", post(handle_login))
-        .route("/api/logout", get(handle_logout))
+        .route("/api/logout", get(handle_logout));
+
+    if has_oidc {
+        router = router
+            .route("/.oidc/login", get(handle_oidc_login))
+            .route("/.oidc/callback", get(handle_oidc_callback));
+    }
+
+    router
         .layer(axum::extract::DefaultBodyLimit::max(1024 * 1024))
         .with_state(state)
         // Nested after with_state: both sides are Router<()> here.
@@ -405,6 +519,8 @@ mod tests {
             authenticator,
             session,
             Box::new(bundle),
+            #[cfg(feature = "oidc")]
+            None,
         ));
         (
             dir,
