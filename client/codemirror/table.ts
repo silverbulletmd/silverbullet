@@ -17,6 +17,7 @@ import type { Client } from "../client.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
 import {
   attachWidgetEventHandlers,
+  buildResolveTransclusion,
   buildTranslateUrls,
 } from "./widget_util.ts";
 
@@ -59,6 +60,7 @@ class TableViewWidget extends WidgetType {
       this.client.clientSystem.spaceLuaEnv,
       {
         syntaxExtensions: this.client.config.get("syntaxExtensions", {}),
+        resolveTransclusion: buildResolveTransclusion(this.client),
       },
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
@@ -67,6 +69,7 @@ class TableViewWidget extends WidgetType {
         annotationPositions: true,
         shortWikiLinks: this.client.config.get("shortWikiLinks", true),
         translateUrls: buildTranslateUrls(this.client),
+        resolveTransclusion: buildResolveTransclusion(this.client),
       });
       setTimeout(() => {
         // Give it a tick to render

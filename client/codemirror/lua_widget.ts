@@ -18,6 +18,7 @@ import {
 import { activeWidgets } from "./code_widget.ts";
 import {
   attachWidgetEventHandlers,
+  buildResolveTransclusion,
   buildTranslateUrls,
   findWidgetSourceRange,
   moveCursorToWidgetStart,
@@ -308,6 +309,7 @@ export class LuaWidget extends WidgetType {
         {
           rewriteTasks: false,
           syntaxExtensions,
+          resolveTransclusion: buildResolveTransclusion(this.opts.client),
         },
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
@@ -346,6 +348,7 @@ export class LuaWidget extends WidgetType {
           {
             shortWikiLinks: this.opts.client.config.get("shortWikiLinks", true),
             translateUrls: buildTranslateUrls(this.opts.client),
+            resolveTransclusion: buildResolveTransclusion(this.opts.client),
           },
           this.opts.client.ui.viewState.allPages,
         ),

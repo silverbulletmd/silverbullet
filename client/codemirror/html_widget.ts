@@ -13,6 +13,7 @@ import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import {
   attachWidgetEventHandlers,
+  buildResolveTransclusion,
   buildTranslateUrls,
 } from "./widget_util.ts";
 import { matchHtmlTagPairs, parseHtmlTag } from "./html_element.ts";
@@ -58,12 +59,14 @@ class HtmlWidget extends WidgetType {
       this.client.clientSystem.spaceLuaEnv,
       {
         syntaxExtensions: this.client.config.get("syntaxExtensions", {}),
+        resolveTransclusion: buildResolveTransclusion(this.client),
       },
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         annotationPositions: true,
         shortWikiLinks: this.client.config.get("shortWikiLinks", true),
         translateUrls: buildTranslateUrls(this.client),
+        resolveTransclusion: buildResolveTransclusion(this.client),
       });
       setTimeout(() => {
         attachWidgetEventHandlers(dom, this.client, this.sourceText);

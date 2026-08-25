@@ -55,6 +55,9 @@ export type MarkdownExpandOptions = {
   rewriteTasks?: boolean;
   // Custom syntax extensions keyed by name, with optional renderHtml callbacks
   syntaxExtensions?: Record<string, CustomSyntaxHtmlRenderer>;
+  // Resolve a wiki-link transclusion's target the way wiki links resolve
+  // (see buildResolveTransclusion); fromPage is the page being expanded
+  resolveTransclusion?: (t: Transclusion, fromPage: string) => void;
 };
 
 /**
@@ -78,11 +81,16 @@ export async function expandMarkdown(
       const text = renderToText(n);
 
       const transclusion = parseTransclusion(text);
-      if (!transclusion || processedPages.has(transclusion.url)) {
+      if (!transclusion) {
+        return n;
+      }
+      options.resolveTransclusion?.(transclusion, pageName);
+      if (processedPages.has(transclusion.url)) {
         return n;
       }
 
-      // Resolve local URLs (only for markdown links, wikilinks are absolute)
+      // Resolve local URLs (only for markdown links; wikilink targets were
+      // resolved space-wide above)
       if (
         isLocalURL(transclusion.url) &&
         transclusion.linktype !== "wikilink"

@@ -1,10 +1,30 @@
-import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+import { parseToRef, type Path } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  resolveTransclusionUrl,
+  type Transclusion,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
 import type { Client } from "../client.ts";
 import type { EventPayLoad } from "./lua_widget.ts";
 import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
+
+/**
+ * Gives widget renderers the same wiki-link resolution the editor's own link
+ * renderer uses, so an `![[embed]]` inside a rendered widget finds its file
+ * the way a `[[link]]` would.
+ */
+export function buildResolveTransclusion(
+  client: Client,
+): (t: Transclusion, fromPage?: string) => void {
+  return (t, fromPage) =>
+    resolveTransclusionUrl(
+      t,
+      (fromPage ? `${fromPage}.md` : client.currentPath()) as Path,
+      client.clientSystem.allKnownFiles,
+    );
+}
 
 export function buildTranslateUrls(client: Client): (url: string) => string {
   return (url: string) => {

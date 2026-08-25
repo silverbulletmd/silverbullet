@@ -20,7 +20,10 @@ import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { createMediaElement } from "./inline.ts";
-import { parseTransclusion } from "@silverbulletmd/silverbullet/lib/transclusion";
+import {
+  parseTransclusion,
+  type Transclusion,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
 import { parseHtmlTag } from "../codemirror/html_element.ts";
 
 export type MarkdownRenderOptions = {
@@ -31,6 +34,9 @@ export type MarkdownRenderOptions = {
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string, type: "link" | "image") => string;
   resolveTagHref?: (tagName: string) => string;
+  // Resolve a wiki-link transclusion's target the way wiki links resolve
+  // (see buildResolveTransclusion)
+  resolveTransclusion?: (t: Transclusion) => void;
   expand?: true;
 };
 
@@ -341,6 +347,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       if (!transclusion) {
         return text;
       }
+      options.resolveTransclusion?.(transclusion);
 
       try {
         const element = createMediaElement(transclusion);

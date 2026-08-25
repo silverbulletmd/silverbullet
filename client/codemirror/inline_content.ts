@@ -26,9 +26,10 @@ import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   nameFromTransclusion,
   parseTransclusion,
+  resolveTransclusionUrl,
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
-import { buildTranslateUrls } from "./widget_util.ts";
+import { buildResolveTransclusion, buildTranslateUrls } from "./widget_util.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -50,6 +51,11 @@ export function inlineContentPlugin(client: Client) {
         if (!transclusion) {
           return;
         }
+        resolveTransclusionUrl(
+          transclusion,
+          client.currentPath(),
+          client.clientSystem.allKnownFiles,
+        );
 
         const renderingSyntax =
           client.ui.viewState.uiOptions.markdownSyntaxRendering;
@@ -111,7 +117,10 @@ export function inlineContentPlugin(client: Client) {
                       nameFromTransclusion(transclusion),
                       parse(mdLang, result.text, result.offset),
                       client.clientSystem.spaceLuaEnv,
-                      { syntaxExtensions },
+                      {
+                        syntaxExtensions,
+                        resolveTransclusion: buildResolveTransclusion(client),
+                      },
                     );
                     content = {
                       html: renderMarkdownToHtml(
@@ -122,6 +131,7 @@ export function inlineContentPlugin(client: Client) {
                             true,
                           ),
                           translateUrls: buildTranslateUrls(client),
+                          resolveTransclusion: buildResolveTransclusion(client),
                         },
                         client.ui.viewState.allPages,
                       ),
