@@ -837,16 +837,23 @@ test.describe("Offline rejoin: edits merge after reconnecting", () => {
     await pageA4.goto(`${base4}/${PAGE2_NAME}`, {
       waitUntil: "domcontentloaded",
     });
-    await pageA4
-      .locator("#sb-editor .cm-editor")
-      .waitFor({ state: "visible", timeout: 30_000 });
+    // Content rendering is the readiness signal here (see openLiveClientPage):
+    // `.cm-editor` turns visible ~80ms before the page's text is loaded into
+    // it, and a keystroke landing in that window is dropped when the load
+    // replaces the document -- yet still leaves the editor dirty, so the save
+    // that follows writes the *pre-edit* content back out.
+    await expect(pageA4.locator("#sb-editor .cm-content")).toContainText(
+      "Second page original content",
+      { timeout: 30_000 },
+    );
     await typeAtEnd(pageA4, "Offline edit by A on page2");
     await pageA4.goto(`${base4}/${PAGE_NAME}`, {
       waitUntil: "domcontentloaded",
     });
-    await pageA4
-      .locator("#sb-editor .cm-editor")
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await expect(pageA4.locator("#sb-editor .cm-content")).toContainText(
+      "Line1 original",
+      { timeout: 30_000 },
+    );
 
     // A remote actor changes a different part of the SAME page on the
     // server while A is offline and can't see it yet.
@@ -963,7 +970,11 @@ test.describe("Laggy connection: repeated edits still converge cleanly", () => {
       await new Promise((resolve) =>
         setTimeout(resolve, 800 + Math.random() * 700),
       );
-      await route.continue();
+      // The delay is long enough for the request to be canceled under it (a
+      // navigation, or teardown at the end of the test) -- Playwright then
+      // handles the route itself and this continue() would throw "Route is
+      // already handled", failing the test on a request nobody needed.
+      await route.continue().catch(() => {});
     });
 
     await openLiveClientPage(pageA5, base5);
