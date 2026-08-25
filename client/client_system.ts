@@ -1,3 +1,4 @@
+import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import { PlugNamespaceHook } from "./plugos/hooks/plug_namespace.ts";
 import type { SilverBulletHooks } from "@silverbulletmd/silverbullet/type/manifest";
 import type { EventHook } from "./plugos/hooks/event.ts";
@@ -82,7 +83,7 @@ export class ClientSystem {
   >();
   scriptsLoaded: boolean = false;
 
-  readonly allKnownFiles = new Set<string>();
+  readonly allKnownFiles = new BasenameIndex();
   public knownFilesLoaded: boolean = false;
 
   constructor(

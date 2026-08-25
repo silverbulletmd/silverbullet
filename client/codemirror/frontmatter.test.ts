@@ -1,4 +1,5 @@
 import { EditorState } from "@codemirror/state";
+import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import { describe, expect, test } from "vitest";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import {
@@ -30,7 +31,7 @@ function clientWithMarkdownSyntaxRendering(markdownSyntaxRendering: boolean) {
       },
     },
     clientSystem: {
-      allKnownFiles: new Set<string>(),
+      allKnownFiles: new BasenameIndex(),
       knownFilesLoaded: true,
     },
     fullSyncCompleted: true,

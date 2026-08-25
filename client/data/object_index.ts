@@ -200,6 +200,10 @@ export class ObjectIndex {
     return this.objectsWithTag("aspiring-page");
   }
 
+  ambiguousLinks(): LuaQueryCollection {
+    return this.objectsWithTag("ambiguous-link");
+  }
+
   relations(kind?: string): LuaQueryCollection {
     if (kind) {
       return this.filteredTag(
@@ -449,7 +453,9 @@ export class ObjectIndex {
     const startTime = Date.now();
     await this.mq.batchSend(
       "indexQueue",
-      files.map((file) => file.name),
+      // `clearIndex` above already dropped every file's entries, so tell the
+      // indexer not to clear them again one file at a time.
+      files.map((file) => ({ path: file.name, cleared: true })),
     );
     await this.mq.awaitEmptyQueue("indexQueue");
     await this.markFullIndexComplete();

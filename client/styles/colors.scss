@@ -478,6 +478,11 @@ a.sb-wiki-link-invalid,
   color: var(--editor-wiki-link-page-invalid-color);
 }
 
+a.sb-wiki-link-ambiguous,
+.sb-wiki-link-ambiguous>.sb-wiki-link {
+  color: var(--editor-wiki-link-page-invalid-color);
+}
+
 .sb-task-mark {
   color: var(--editor-task-marker-color);
 }

@@ -160,6 +160,13 @@ export function indexSyscalls(
       description:
         "Returns linked but not yet created pages as a query collection.",
     },
+    "index.ambiguousLinks": {
+      callback: (): LuaQueryCollection => {
+        return objectIndex.ambiguousLinks();
+      },
+      description:
+        "Returns links whose page name matches more than one page as a query collection.",
+    },
     // Internals
     "index.aggregates": {
       callback: (): LuaQueryCollection => {
@@ -255,6 +262,13 @@ export function indexSyscalls(
       signatures: ["index.queryLuaObjects(tag, query, scopedVariables?)"],
     },
 
+    "index.clearFileIndex": {
+      callback: (_ctx, path: string): Promise<void> =>
+        objectIndex.clearFileIndex(path),
+      description:
+        "Drops every indexed object belonging to a file, so a re-index replaces them rather than merging on top.",
+      signatures: ["index.clearFileIndex(path)"],
+    },
     "index.deleteObject": {
       callback: (
         _ctx,

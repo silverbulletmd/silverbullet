@@ -420,7 +420,6 @@ export class Client {
 
     this.eventHook.addLocalListener("file:changed", async (name: string) => {
       console.log("Queueing index for", name);
-      await this.objectIndex.clearFileIndex(name);
       await this.mq.send("indexQueue", name);
     });
 

@@ -1,12 +1,16 @@
 import {
   encodePageURI,
   parseToRef,
+  type Path,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import type { Client } from "../../client.ts";
-import type { SysCallMapping } from "../system.ts";
-import { fsEndpoint } from "../../spaces/constants.ts";
-
+import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  BasenameIndex,
+  type PathIndex,
+  type PathLookup,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
 import type {
   DocumentMeta,
   FileMeta,
@@ -16,6 +20,9 @@ import type {
   FileRevisions,
   SpaceLog,
 } from "@silverbulletmd/silverbullet/type/revisions";
+import type { Client } from "../../client.ts";
+import { fsEndpoint } from "../../spaces/constants.ts";
+import type { SysCallMapping } from "../system.ts";
 
 function revisionsUrl(client: Client, suffix: string): string {
   return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.revisions/${suffix}`;
@@ -76,7 +83,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
     },
     "space.pageExists": {
       callback: (_ctx, name: string): boolean =>
-        client.clientSystem.allKnownFiles.has(`${name}.md`),
+        resolvePath(`${name}.md`, "", client.clientSystem.allKnownFiles).exists,
       description: "Checks whether a page exists in the space.",
       signatures: ["space.pageExists(name)"],
     },
@@ -154,6 +161,57 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
         await client.space.spacePrimitives.readFile(name),
       description: "Reads an arbitrary space file together with its metadata.",
       signatures: ["space.readFileWithMeta(name)"],
+    },
+    "space.collidingBasenames": {
+      callback: async (): Promise<Record<string, Path[]>> => {
+        // Same cold-start rule as lookupPaths below: before the file list has
+        // loaded, ask the space instead of answering from a half-filled index.
+        if (!client.clientSystem.knownFilesLoaded) {
+          const listing = new BasenameIndex();
+          listing.rebuild(
+            (await client.space.spacePrimitives.fetchFileList()).map(
+              (f) => f.name,
+            ),
+          );
+          return listing.collidingBuckets();
+        }
+        return client.clientSystem.allKnownFiles.collidingBuckets();
+      },
+      description:
+        "Returns every basename carried by more than one file, with the files carrying it.",
+      signatures: ["space.collidingBasenames()"],
+    },
+    "space.lookupPaths": {
+      callback: async (
+        _ctx,
+        paths: string[],
+      ): Promise<Record<string, PathLookup>> => {
+        // The client's index is only trustworthy once the file list has
+        // loaded; before that, ask the space directly rather than reporting
+        // everything as missing.
+        let index: PathIndex = client.clientSystem.allKnownFiles;
+        if (!client.clientSystem.knownFilesLoaded) {
+          const listing = new BasenameIndex();
+          listing.rebuild(
+            (await client.space.spacePrimitives.fetchFileList()).map(
+              (f) => f.name,
+            ),
+          );
+          index = listing;
+        }
+
+        const result: Record<string, PathLookup> = {};
+        for (const path of paths) {
+          result[path] = {
+            exact: index.has(path),
+            candidates: index.candidates(fileName(path)),
+          };
+        }
+        return result;
+      },
+      description:
+        "Looks up, for each path, whether it exists exactly and which files share its basename.",
+      signatures: ["space.lookupPaths(paths)"],
     },
     "space.fileExists": {
       callback: async (_ctx, name: string): Promise<boolean> => {

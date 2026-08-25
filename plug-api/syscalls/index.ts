@@ -184,6 +184,13 @@ export function reindexSpace(): Promise<void> {
   return syscall("index.reindexSpace");
 }
 
+/**
+ * Drops every indexed object belonging to a file.
+ */
+export function clearFileIndex(path: string): Promise<void> {
+  return syscall("index.clearFileIndex", path);
+}
+
 export function deleteObject(
   page: string,
   tag: string,

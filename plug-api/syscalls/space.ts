@@ -1,5 +1,4 @@
-import { syscall } from "../syscall.ts";
-
+import type { Path, Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   DocumentMeta,
   FileMeta,
@@ -9,7 +8,8 @@ import type {
   FileRevisions,
   SpaceLog,
 } from "../../plug-api/types/revisions.ts";
-import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import type { PathLookup } from "../lib/resolve_path.ts";
+import { syscall } from "../syscall.ts";
 
 /**
  * Exposes the space with its pages, documents and plugs.
@@ -206,6 +206,21 @@ export function deleteFile(name: string): Promise<void> {
 
 export function fileExists(name: string): Promise<boolean> {
   return syscall("space.fileExists", name);
+}
+
+/**
+ * Looks up a batch of paths at once: for each, whether that exact path exists
+ * and which files share its basename. Pair with `lookupIndex` and `resolvePath`
+ * from `lib/resolve_path` to resolve them.
+ */
+export function collidingBasenames(): Promise<Record<string, Path[]>> {
+  return syscall("space.collidingBasenames");
+}
+
+export function lookupPaths(
+  paths: string[],
+): Promise<Record<string, PathLookup>> {
+  return syscall("space.lookupPaths", paths);
 }
 
 /**

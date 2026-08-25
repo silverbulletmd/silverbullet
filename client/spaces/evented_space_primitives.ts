@@ -13,7 +13,7 @@ import { sleep } from "@silverbulletmd/silverbullet/lib/async";
  * - file:deleted (string)
  * - file:listed (FileMeta[])
  * - file:initial: triggered in case of an initially empty snapshot, after the first set of events has gone out
- * - page:saved (string, FileMeta)
+ * - page:saved (string, FileMeta, created: boolean)
  * - page:deleted (string)
  */
 export class EventedSpacePrimitives implements SpacePrimitives {
@@ -198,6 +198,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
 
     this.operationCount++;
+    // Whether this write brings the file into existence — a create or the
+    // write half of a rename — as opposed to saving over an existing file.
+    // Read before the write updates the snapshot.
+    const created = this.spaceSnapshot[path] === undefined;
     try {
       const newMeta = await this.wrapped.writeFile(path, data, meta);
       if (this.operationCount === 1) {
@@ -205,7 +209,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
       if (path.endsWith(".md")) {
         const pageName = path.substring(0, path.length - 3);
-        await this.dispatchEvent("page:saved", pageName, newMeta);
+        await this.dispatchEvent("page:saved", pageName, newMeta, created);
       }
 
       return newMeta;

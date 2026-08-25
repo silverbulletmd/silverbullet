@@ -1,18 +1,22 @@
 import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
-import type { Client } from "../client.ts";
-import {
-  fileName,
-  isBuiltinPath,
-} from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,
   encodeRef,
   getNameFromPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { isCursorInRange, LinkWidget } from "./util.ts";
+import {
+  fileName,
+  isBuiltinPath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  type ResolveResult,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import type { Client } from "../client.ts";
+import { isCursorInRange, LinkWidget } from "./util.ts";
 
 // Building a `path -> PageMeta` lookup requires calling `parseToRef` (two
 // regexes) on every page in the space. Doing that per rendered wiki link, on
@@ -65,21 +69,36 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   const { leadingTrivia, stringRef, alias, trailingTrivia } = match;
   const ref = parseToRef(stringRef);
 
-  let linkStatus: "file-missing" | "default" | "invalid" = "default";
+  let linkStatus: "file-missing" | "default" | "invalid" | "ambiguous" =
+    "default";
+  let resolution: ResolveResult | undefined;
 
   if (!ref) {
     linkStatus = "invalid";
   } else if (ref.path === "" || isBuiltinPath(ref.path)) {
     linkStatus = "default";
-  } else if (client.clientSystem.allKnownFiles.has(ref.path)) {
-    linkStatus = "default";
-  } else if (client.fullSyncCompleted || client.clientSystem.knownFilesLoaded) {
-    linkStatus = "file-missing";
+  } else {
+    resolution = resolvePath(
+      ref.path,
+      client.currentPath(),
+      client.clientSystem.allKnownFiles,
+    );
+    if (resolution.ambiguous) {
+      linkStatus = "ambiguous";
+    } else if (resolution.exists) {
+      linkStatus = "default";
+    } else if (
+      client.fullSyncCompleted ||
+      client.clientSystem.knownFilesLoaded
+    ) {
+      linkStatus = "file-missing";
+    }
   }
 
   let css = {
     "file-missing": "sb-wiki-link-missing",
     invalid: "sb-wiki-link-invalid",
+    ambiguous: "sb-wiki-link-ambiguous",
     default: "",
   }[linkStatus];
 
@@ -102,13 +121,20 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
     default: `Navigate to ${cleanedPath}`,
     "file-missing": `Create ${cleanedPath}`,
     invalid: `Cannot create invalid file ${cleanedPath}`,
+    ambiguous: `Ambiguous — ${
+      resolution?.candidates?.length ?? 0
+    } candidates, resolving to ${
+      resolution ? getNameFromPath(resolution.path) : cleanedPath
+    }`,
   }[linkStatus];
 
   let linkText = alias || stringRef;
 
   // The `&& ref` is only there to make typescript happy
-  if (linkStatus === "default" && ref) {
-    const meta = pageByPath(client.ui.viewState.allPages).get(ref.path);
+  if ((linkStatus === "default" || linkStatus === "ambiguous") && ref) {
+    const meta = pageByPath(client.ui.viewState.allPages).get(
+      resolution?.path ?? ref.path,
+    );
 
     const renderedRef = structuredClone(ref);
 
