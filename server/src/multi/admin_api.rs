@@ -337,6 +337,66 @@ async fn handle_set_user_profile(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OidcLinkBody {
+    issuer: String,
+    subject: String,
+}
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FullNameBody {
+    /// `null` clears the override: rendering reverts to the account name and
+    /// OIDC logins resume syncing from the provider's `name` claim.
+    full_name: Option<String>,
+}
+
+async fn handle_oidc_unlink(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+) -> Response {
+    let users = state.users.clone();
+    let result = run_blocking(move || Ok(users.unlink_oidc(&name))).await;
+    match result {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+async fn handle_set_full_name(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+    Json(body): Json<FullNameBody>,
+) -> Response {
+    let users = state.users.clone();
+    let result =
+        run_blocking(move || Ok(users.set_full_name(&name, body.full_name.as_deref()))).await;
+    match result {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+async fn handle_oidc_link(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+    Json(body): Json<OidcLinkBody>,
+) -> Response {
+    let users = state.users.clone();
+    let result =
+        run_blocking(move || Ok(users.link_oidc(&name, &body.issuer, &body.subject))).await;
+    match result {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 /// Deletes the account first, then atomically sweeps it out of every space's
 /// `members` and shrinks the manager's known-users set to the store's
 /// post-delete usernames.
@@ -567,6 +627,9 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
             "/users/{name}/profile",
             axum::routing::put(handle_set_user_profile),
         )
+        .route("/users/{name}/oidc-link", post(handle_oidc_link))
+        .route("/users/{name}/oidc-unlink", post(handle_oidc_unlink))
+        .route("/users/{name}/full-name", post(handle_set_full_name))
         .route("/users/{name}/tokens", post(handle_create_token))
         .route(
             "/users/{name}/tokens/{token_name}",
@@ -1570,5 +1633,320 @@ mod tests {
             v["errors"][0]["field"].as_str().unwrap().ends_with(".auth"),
             "{v}"
         );
+    }
+
+    // ── Display name + OIDC link/unlink admin endpoints ────────────────────
+
+    #[tokio::test]
+    async fn display_name_set_and_retrieve() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users
+            .create_user("test-user-one", "pw123456", false, Profile::default())
+            .unwrap();
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/full-name",
+            r#"{"fullName":"Alice"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(authed(&r, "GET", "/api/users/test-user-one", "", &cookie).await).await;
+        assert_eq!(v["fullName"], "Alice");
+        assert_eq!(v["fullNameSource"], "admin");
+    }
+
+    #[tokio::test]
+    async fn display_name_trims_whitespace_and_clears() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users
+            .create_user("test-user-one", "pw123456", false, Profile::default())
+            .unwrap();
+        let cookie = session_cookie(&users, "admin");
+
+        // Set a name first.
+        authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/full-name",
+            r#"{"fullName":"Alice"}"#,
+            &cookie,
+        )
+        .await;
+
+        // Whitespace-only clears.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/full-name",
+            r#"{"fullName":"   "}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(authed(&r, "GET", "/api/users/test-user-one", "", &cookie).await).await;
+        assert_eq!(
+            v["fullName"].as_str().unwrap(),
+            "test-user-one",
+            "whitespace-only should clear to account name"
+        );
+        assert!(v["fullNameSource"].is_null());
+    }
+
+    #[tokio::test]
+    async fn display_name_clear_with_null() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users
+            .create_user("test-user-one", "pw123456", false, Profile::default())
+            .unwrap();
+        let cookie = session_cookie(&users, "admin");
+
+        authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/full-name",
+            r#"{"fullName":"Alice"}"#,
+            &cookie,
+        )
+        .await;
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/full-name",
+            r#"{"fullName":null}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(authed(&r, "GET", "/api/users/test-user-one", "", &cookie).await).await;
+        assert_eq!(v["fullName"].as_str().unwrap(), "test-user-one");
+        assert!(v["fullNameSource"].is_null());
+    }
+
+    #[tokio::test]
+    async fn display_name_unknown_user_is_404() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/ghost/full-name",
+            r#"{"fullName":"X"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn oidc_link_then_unlink_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users
+            .create_user("test-user-one", "pw123456", false, Profile::default())
+            .unwrap();
+        let cookie = session_cookie(&users, "admin");
+
+        // Link.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/oidc-link",
+            r#"{"issuer":"https://auth.example.com/test","subject":"sub-aaa123"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(authed(&r, "GET", "/api/users/test-user-one", "", &cookie).await).await;
+        assert_eq!(v["oidcIssuer"], "https://auth.example.com/test");
+        assert_eq!(v["oidcSubject"], "sub-aaa123");
+
+        // Unlink.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/oidc-unlink",
+            "",
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let v = body_json(authed(&r, "GET", "/api/users/test-user-one", "", &cookie).await).await;
+        assert!(v["oidcIssuer"].is_null());
+        assert!(v["oidcSubject"].is_null());
+    }
+
+    #[tokio::test]
+    async fn oidc_unlink_unknown_user_is_404() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(&r, "POST", "/api/users/ghost/oidc-unlink", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn oidc_link_unknown_user_is_404() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/ghost/oidc-link",
+            r#"{"issuer":"https://auth.example.com/test","subject":"sub-aaa123"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn oidc_link_malformed_body_is_422() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users
+            .create_user("test-user-one", "pw123456", false, Profile::default())
+            .unwrap();
+        let cookie = session_cookie(&users, "admin");
+
+        // Missing `subject` field.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/oidc-link",
+            r#"{"issuer":"https://auth.example.com/test"}"#,
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    /// The 401/403 split the unified surface relies on applies to the OIDC
+    /// endpoints exactly as it does to every other admin route.
+    #[tokio::test]
+    async fn display_name_and_oidc_endpoints_gate_401_403() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users.create_user("alice", "alicepw12", false, Profile::default()).unwrap();
+
+        let routes = [
+            ("/api/users/alice/full-name", r#"{"fullName":"X"}"#),
+            (
+                "/api/users/alice/oidc-link",
+                r#"{"issuer":"i","subject":"s"}"#,
+            ),
+            ("/api/users/alice/oidc-unlink", ""),
+        ];
+        for (uri, body) in &routes {
+            // No session at all: go log in.
+            let resp = authed(&r, "POST", uri, body, "").await;
+            assert_eq!(resp.status(), StatusCode::UNAUTHORIZED, "{uri}");
+            // Valid non-admin session: signed in, but not allowed — a dead
+            // end rendered as an error, never a redirect.
+            let alice = session_cookie(&users, "alice");
+            let resp = authed(&r, "POST", uri, body, &alice).await;
+            assert_eq!(resp.status(), StatusCode::FORBIDDEN, "{uri}");
+        }
+    }
+
+    #[tokio::test]
+    async fn unlink_keeps_display_name_and_repeats_cleanly() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        users
+            .create_user("test-user-one", "pw123456", false, Profile::default())
+            .unwrap();
+        let cookie = session_cookie(&users, "admin");
+
+        for (uri, body) in [
+            (
+                "/api/users/test-user-one/oidc-link",
+                r#"{"issuer":"https://auth.example.com/test","subject":"sub-aaa123"}"#,
+            ),
+            (
+                "/api/users/test-user-one/full-name",
+                r#"{"fullName":"Kept Name"}"#,
+            ),
+        ] {
+            let resp = authed(&r, "POST", uri, body, &cookie).await;
+            assert_eq!(resp.status(), StatusCode::OK);
+        }
+
+        // Unlink clears the identity but leaves the admin-chosen name alone.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/oidc-unlink",
+            "",
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let v = body_json(authed(&r, "GET", "/api/users/test-user-one", "", &cookie).await).await;
+        assert!(v["oidcIssuer"].is_null());
+        assert!(v["oidcSubject"].is_null());
+        assert_eq!(v["fullName"], "Kept Name");
+        assert_eq!(v["fullNameSource"], "admin");
+
+        // Unlinking again is a clean no-op, not an error.
+        let resp = authed(
+            &r,
+            "POST",
+            "/api/users/test-user-one/oidc-unlink",
+            "",
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(body_json(resp).await, serde_json::json!({ "status": "ok" }));
+    }
+
+    #[tokio::test]
+    async fn oidc_endpoint_unknown_user_errors_are_structured() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let cases = [
+            (
+                "/api/users/ghost/full-name",
+                r#"{"fullName":"X"}"#.to_string(),
+            ),
+            (
+                "/api/users/ghost/oidc-link",
+                r#"{"issuer":"i","subject":"s"}"#.to_string(),
+            ),
+            ("/api/users/ghost/oidc-unlink", String::new()),
+        ];
+        for (uri, body) in &cases {
+            let resp = authed(&r, "POST", uri, body, &cookie).await;
+            assert_eq!(resp.status(), StatusCode::NOT_FOUND, "{uri}");
+            let v = body_json(resp).await;
+            let msg = v["errors"][0]["message"].as_str().unwrap_or_default();
+            assert!(
+                msg.starts_with("no such user"),
+                "{uri} must carry a structured 'no such user' body, got {v}"
+            );
+            // The account name leaks nothing extra beyond the echo of what
+            // was asked for; field stays empty (not a form-validation case).
+            assert_eq!(v["errors"][0]["field"], "");
+        }
     }
 }
