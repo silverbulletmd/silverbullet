@@ -1,5 +1,14 @@
-import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import {
+  getNameFromPath,
+  type Path,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  lookupIndex,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
+import {
+  folderName,
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
@@ -63,6 +72,38 @@ async function actionClickOrActionEnter(
 
       if (ref.path === "" && ref.details?.type !== "anchor") {
         ref.path = currentPath;
+      } else if (ref.path !== "") {
+        // A bare link names a page, not a path: resolve it the same way the
+        // renderer does, or following it would create an empty page at the
+        // root instead of opening the one the link points at. An unresolved
+        // path is left alone so "click to create" still works.
+        const resolution = resolvePath(
+          ref.path,
+          currentPath as Path,
+          lookupIndex(await space.lookupPaths([ref.path])),
+        );
+        if (resolution.ambiguous && resolution.candidates) {
+          // Following an ambiguous link means saying which page was meant.
+          // The link text itself is left alone: following a link is reading,
+          // and reading should not edit the document. Every navigation route
+          // lands here — click, Navigate: To This Page, Cmd-Enter — so they
+          // all get the same picker.
+          const selected = await editor.filterBox(
+            "Which page?",
+            resolution.candidates.map((path) => ({
+              name: getNameFromPath(path),
+              description: folderName(path) || "space root",
+              path,
+            })),
+            `“${link}” matches ${resolution.candidates.length} pages. Pick the one to open.`,
+          );
+          if (!selected) {
+            return;
+          }
+          ref.path = (selected as unknown as { path: Path }).path;
+        } else if (resolution.exists) {
+          ref.path = resolution.path;
+        }
       }
 
       return editor.navigate(ref, false, inNewWindow);

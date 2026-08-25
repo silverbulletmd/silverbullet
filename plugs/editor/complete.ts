@@ -1,15 +1,27 @@
+import {
+  getNameFromPath,
+  type Path,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
+  collisionIndex,
+  type LinkWriteFormat,
+  writeLinkPath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
+import {
+  config,
   editor,
   index,
   language,
   lua,
+  space,
 } from "@silverbulletmd/silverbullet/syscalls";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type {
   DocumentMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 // Map a page's last-modified time to a small, monotone-decreasing boost
 function recencyToBoost(lastModified: string): number {
@@ -103,6 +115,33 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   const folder = folderName(completeEvent.pageName);
 
+  const writeFormat = await config.get<LinkWriteFormat>(
+    "linkWriteFormat",
+    "shortest",
+  );
+  // `allPages` holds documents too, whose names already carry an extension —
+  // `parseToRef` appends `.md` only where it belongs.
+  const pathOf = (name: string): Path | undefined =>
+    parseToRef(name)?.path || undefined;
+  // Only the colliding basenames cross the sandbox boundary — everything else
+  // is unique by the bare-iff-unique invariant and writes bare. Asking for
+  // the whole listing instead costs tens of milliseconds per keystroke in a
+  // large space.
+  const linkIndex = collisionIndex(await space.collidingBasenames());
+  const written = (name: string, aspiring: boolean): string => {
+    // Caret links address infrastructure pages by their full path; shortening
+    // `^Library/Std/APIs/Tag` to `^Tag` would point at the concept page.
+    // An aspiring page is not a file, so the collision index cannot vouch for
+    // its name; its link is inserted exactly as written elsewhere.
+    if (name.startsWith("^") || aspiring) {
+      return name;
+    }
+    const path = pathOf(name);
+    return path
+      ? getNameFromPath(writeLinkPath(path, writeFormat, linkIndex))
+      : name;
+  };
+
   return {
     from: completeEvent.pos - prefix.length,
     options: allPages.flatMap((pageMeta) => {
@@ -126,8 +165,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             boost: recencyBoost,
             apply:
               pageMeta.tag === "template"
-                ? pageMeta.name
-                : `${pageMeta.name}|${linkAlias}`,
+                ? written(pageMeta.name, pageMeta._isAspiring === true)
+                : `${written(pageMeta.name, pageMeta._isAspiring === true)}|${linkAlias}`,
             detail: pageMeta.linkName
               ? `linkName for: ${pageMeta.name}`
               : `displayName for: ${pageMeta.name}`,
@@ -144,8 +183,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
               boost: recencyBoost,
               apply:
                 pageMeta.tag === "template"
-                  ? pageMeta.name
-                  : `${pageMeta.name}|${alias}`,
+                  ? written(pageMeta.name, pageMeta._isAspiring === true)
+                  : `${written(pageMeta.name, pageMeta._isAspiring === true)}|${alias}`,
               detail: `alias to: ${pageMeta.name}`,
               type: "page",
               cssClass,
@@ -153,10 +192,12 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           }
         }
         const decoratedName = namePrefix + pageMeta.name;
+        const applyText = written(pageMeta.name, pageMeta._isAspiring === true);
         completions.push({
           label: pageMeta.name,
           displayLabel: decoratedName,
           boost: recencyBoost,
+          apply: applyText === pageMeta.name ? undefined : applyText,
           detail: pageMeta.tags?.includes("non-existing")
             ? "Linked but not created"
             : undefined,
