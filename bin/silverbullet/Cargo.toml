@@ -4,6 +4,9 @@ edition.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+oidc = ["dep:openidconnect"]
+
 [lints]
 workspace = true
 
@@ -30,6 +33,7 @@ tower = { version = "0.5", features = ["util"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
+openidconnect = { workspace = true, optional = true }
 
 [build-dependencies]
 serde_json = { workspace = true }
