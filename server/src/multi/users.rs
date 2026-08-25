@@ -260,6 +260,36 @@ impl UserStore {
         None
     }
 
+    /// Look up a username by OIDC (issuer, subject) pair stored in `extra`.
+    pub fn resolve_by_oidc_subject(&self, issuer: &str, subject: &str) -> Option<String> {
+        let guard = self.read();
+        for (name, user) in &guard.users {
+            let oidc_issuer = user.extra.get("oidcIssuer").and_then(|v| v.as_str());
+            let oidc_subject = user.extra.get("oidcSubject").and_then(|v| v.as_str());
+            if oidc_issuer == Some(issuer) && oidc_subject == Some(subject) {
+                return Some(name.clone());
+            }
+        }
+        None
+    }
+
+    /// Store OIDC (issuer, subject) in a user's `extra` map.
+    pub fn link_oidc(&self, name: &str, issuer: &str, subject: &str) -> Result<(), String> {
+        self.mutate(|c| {
+            let entry = c
+                .users
+                .get_mut(name)
+                .ok_or_else(|| format!("no such user {name:?}"))?;
+            entry
+                .extra
+                .insert("oidcIssuer".into(), serde_json::Value::String(issuer.into()));
+            entry
+                .extra
+                .insert("oidcSubject".into(), serde_json::Value::String(subject.into()));
+            Ok(())
+        })
+    }
+
     pub fn create_user(
         &self,
         name: &str,

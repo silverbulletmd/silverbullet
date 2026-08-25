@@ -68,6 +68,16 @@ impl Authenticator {
         &self.salt
     }
 
+    /// HMAC-SHA256 signature of `message`, used to sign the OIDC state cookie.
+    pub(crate) fn sign_hmac(&self, message: &[u8]) -> Vec<u8> {
+        use hmac::{Hmac, Mac};
+        use sha2::Sha256;
+        type H = Hmac<Sha256>;
+        let mut mac = H::new_from_slice(&self.secret).expect("HMAC accepts any key size");
+        mac.update(message);
+        mac.finalize().into_bytes().to_vec()
+    }
+
     /// Issue a token for `username` expiring `expiry_secs` from now.
     pub fn issue_jwt(
         &self,

@@ -45,6 +45,7 @@ axum = "0.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }
 jsonwebtoken = "9"
 sha2 = "0.10"
+hmac = "0.12"
 getrandom = "0.2"
 clap = { version = "4", features = ["derive", "env"] }
 rust-embed = { version = "8", features = ["interpolate-folder-path", "mime-guess"] }

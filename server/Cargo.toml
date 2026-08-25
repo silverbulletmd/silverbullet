@@ -17,6 +17,7 @@ serde_json = { workspace = true }
 tracing = { workspace = true }
 jsonwebtoken = { workspace = true }
 sha2 = { workspace = true }
+hmac = { workspace = true }
 getrandom = { workspace = true }
 base64 = { workspace = true }
 serde = { workspace = true }
