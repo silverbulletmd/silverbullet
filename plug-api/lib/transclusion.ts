@@ -3,9 +3,15 @@ import {
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
 import {
+  encodeRef,
   getNameFromPath,
   parseToRef,
+  type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  type PathIndex,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
 
 export type LinkType = "wikilink" | "markdownlink";
 /**
@@ -100,6 +106,28 @@ export function parseTransclusion(text: string): Transclusion | null {
     dimension,
     linktype,
   };
+}
+
+/**
+ * Rewrites a wiki-link transclusion's target to the path it resolves to, the
+ * same way plain wiki links resolve.
+ */
+export function resolveTransclusionUrl(
+  t: Transclusion,
+  fromPage: Path,
+  index: PathIndex,
+): void {
+  if (t.linktype !== "wikilink") {
+    return;
+  }
+  const ref = parseToRef(t.url);
+  if (!ref || ref.path === "") {
+    return;
+  }
+  const resolution = resolvePath(ref.path, fromPage, index);
+  if (resolution.exists && resolution.path !== ref.path) {
+    t.url = encodeRef({ ...ref, path: resolution.path });
+  }
 }
 
 export function nameFromTransclusion(t: Transclusion): string {

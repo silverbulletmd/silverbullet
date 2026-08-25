@@ -15,6 +15,7 @@
     "./lib/tree": "./plug-api/lib/tree.ts",
     "./lib/ref": "./plug-api/lib/ref.ts",
     "./lib/resolve": "./plug-api/lib/resolve.ts",
+    "./lib/resolve_path": "./plug-api/lib/resolve_path.ts",
     "./lib/dates": "./plug-api/lib/dates.ts",
     "./lib/fuzzy": "./plug-api/lib/fuzzy.ts",
     "./lib/async": "./plug-api/lib/async.ts",

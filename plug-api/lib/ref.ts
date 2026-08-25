@@ -237,9 +237,17 @@ export function coerceAndValidateRef(ref: Ref | string): Ref {
 }
 
 /**
- * The inverse of {@link parseToRef}, encodes a ref object into a reference string.
- * It tries to produce the shortest valid representation
+ * Renders a ref as wiki link *text*, preserving the `^` meta prefix.
+ *
+ * {@link encodeRef} deliberately drops it — it also builds page URLs, where a
+ * caret would address a page that does not exist — so anything rewriting a link
+ * in a document must use this instead, or `[[^Library/Std]]` silently loses its
+ * caret.
  */
+export function encodeLinkText(ref: Ref): string {
+  return (ref.meta ? "^" : "") + encodeRef(ref);
+}
+
 export function encodeRef(ref: Ref): string {
   let stringRef: string = ref.path;
 

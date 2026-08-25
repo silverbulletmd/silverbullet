@@ -1,0 +1,298 @@
+{
+  "comment": "Shared resolution cases run by both resolve_path.test.ts and server/src/link_resolve.rs, so the TypeScript resolver and its Rust twin cannot drift. Assertions derive from the design spec, not from observed behavior. `candidates` is asserted only for ambiguous results.",
+  "cases": [
+    {
+      "name": "empty path resolves to the current page",
+      "files": ["Page.md"],
+      "from": "Page.md",
+      "link": "",
+      "expect": {
+        "path": "",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "exact path match wins",
+      "files": ["sub/Notes.md", "other/Notes.md"],
+      "from": "z/Page.md",
+      "link": "sub/Notes.md",
+      "expect": {
+        "path": "sub/Notes.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "exact match is never ambiguous despite basename rivals",
+      "files": ["Config.md", "docs/api/Config.md"],
+      "from": "docs/api/Auth.md",
+      "link": "Config.md",
+      "expect": {
+        "path": "Config.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "case-only rivals do not make an exact match ambiguous",
+      "files": ["Tag.md", "Object/tag.md", "API/tag.md"],
+      "from": "Home.md",
+      "link": "Tag.md",
+      "expect": {
+        "path": "Tag.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "bare name resolves space-wide by basename",
+      "files": ["sub/folder/Notes.md", "Other.md"],
+      "from": "Other.md",
+      "link": "Notes.md",
+      "expect": {
+        "path": "sub/folder/Notes.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "basename lookup is case-insensitive",
+      "files": ["sub/Notes.md"],
+      "from": "Other.md",
+      "link": "notes.md",
+      "expect": {
+        "path": "sub/Notes.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "exact-case candidate beats a case-insensitive one",
+      "files": ["a/Notes.md", "b/notes.md"],
+      "from": "z/Page.md",
+      "link": "notes.md",
+      "expect": {
+        "path": "b/notes.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "case-exact filtering collapses ambiguity",
+      "files": ["a/Notes.md", "b/notes.md", "c/NOTES.md"],
+      "from": "z/Page.md",
+      "link": "Notes.md",
+      "expect": {
+        "path": "a/Notes.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "unresolvable bare name stays literal",
+      "files": ["sub/Other.md"],
+      "from": "sub/Page.md",
+      "link": "Notes.md",
+      "expect": {
+        "path": "Notes.md",
+        "exists": false,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "documents resolve by basename",
+      "files": ["assets/diagram.png", "Page.md"],
+      "from": "Page.md",
+      "link": "diagram.png",
+      "expect": {
+        "path": "assets/diagram.png",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "same folder beats another subfolder, flagged ambiguous",
+      "files": ["docs/api/Config.md", "sibling/Config.md"],
+      "from": "docs/api/Auth.md",
+      "link": "Config.md",
+      "expect": {
+        "path": "docs/api/Config.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": ["docs/api/Config.md", "sibling/Config.md"]
+      }
+    },
+    {
+      "name": "nearest common ancestor beats a distant folder",
+      "files": ["docs/shared/Config.md", "sibling/Config.md"],
+      "from": "docs/api/Auth.md",
+      "link": "Config.md",
+      "expect": {
+        "path": "docs/shared/Config.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": ["docs/shared/Config.md", "sibling/Config.md"]
+      }
+    },
+    {
+      "name": "root wins once proximity ties, being shallowest (case-variant link, so no exact match short-circuits)",
+      "files": ["Config.md", "guides/Config.md"],
+      "from": "docs/api/Auth.md",
+      "link": "config.md",
+      "expect": {
+        "path": "Config.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": ["Config.md", "guides/Config.md"]
+      }
+    },
+    {
+      "name": "shallower path wins at equal proximity",
+      "files": ["a/Config.md", "b/c/Config.md"],
+      "from": "z/Page.md",
+      "link": "Config.md",
+      "expect": {
+        "path": "a/Config.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": ["a/Config.md", "b/c/Config.md"]
+      }
+    },
+    {
+      "name": "lexicographic order is the final tie-break",
+      "files": ["b/Config.md", "a/Config.md"],
+      "from": "z/Page.md",
+      "link": "Config.md",
+      "expect": {
+        "path": "a/Config.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": ["a/Config.md", "b/Config.md"]
+      }
+    },
+    {
+      "name": "full ranking order over four candidates (case-variant link, so no exact match short-circuits)",
+      "files": [
+        "sibling/Config.md",
+        "Config.md",
+        "docs/api/Config.md",
+        "docs/shared/Config.md",
+        "docs/api/Auth.md"
+      ],
+      "from": "docs/api/Auth.md",
+      "link": "config.md",
+      "expect": {
+        "path": "docs/api/Config.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": [
+          "docs/api/Config.md",
+          "docs/shared/Config.md",
+          "Config.md",
+          "sibling/Config.md"
+        ]
+      }
+    },
+    {
+      "name": "qualified path with no match at all stays literal",
+      "files": ["sub/Notes.md"],
+      "from": "z/Page.md",
+      "link": "other/Notes.md",
+      "expect": {
+        "path": "other/Notes.md",
+        "exists": false,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "qualified link resolves by unique path suffix",
+      "files": ["docs/api/Auth.md", "docs/guides/Intro.md"],
+      "from": "docs/Index.md",
+      "link": "api/Auth.md",
+      "expect": {
+        "path": "docs/api/Auth.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "exact match beats a suffix match",
+      "files": ["api/Auth.md", "docs/api/Auth.md"],
+      "from": "docs/Index.md",
+      "link": "api/Auth.md",
+      "expect": {
+        "path": "api/Auth.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "several suffix matches are ambiguous and ranked by proximity",
+      "files": ["docs/api/Auth.md", "sibling/api/Auth.md"],
+      "from": "docs/Index.md",
+      "link": "api/Auth.md",
+      "expect": {
+        "path": "docs/api/Auth.md",
+        "exists": true,
+        "ambiguous": true,
+        "candidates": ["docs/api/Auth.md", "sibling/api/Auth.md"]
+      }
+    },
+    {
+      "name": "suffix matching is case-insensitive",
+      "files": ["docs/API/Auth.md"],
+      "from": "z/Page.md",
+      "link": "api/Auth.md",
+      "expect": {
+        "path": "docs/API/Auth.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "exact-case suffix match beats a case-insensitive one",
+      "files": ["docs/API/Auth.md", "sibling/api/Auth.md"],
+      "from": "z/Page.md",
+      "link": "api/Auth.md",
+      "expect": {
+        "path": "sibling/api/Auth.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "a suffix only matches on a folder boundary",
+      "files": ["xapi/Auth.md"],
+      "from": "z/Page.md",
+      "link": "api/Auth.md",
+      "expect": {
+        "path": "api/Auth.md",
+        "exists": false,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "a multi-segment suffix matches deep paths",
+      "files": ["repo/docs/api/Auth.md", "repo/other/Auth.md"],
+      "from": "Index.md",
+      "link": "docs/api/Auth.md",
+      "expect": {
+        "path": "repo/docs/api/Auth.md",
+        "exists": true,
+        "ambiguous": false
+      }
+    },
+    {
+      "name": "documents resolve by path suffix",
+      "files": ["docs/assets/logo.png", "Page.md"],
+      "from": "docs/Page.md",
+      "link": "assets/logo.png",
+      "expect": {
+        "path": "docs/assets/logo.png",
+        "exists": true,
+        "ambiguous": false
+      }
+    }
+  ]
+}
