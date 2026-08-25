@@ -35,7 +35,7 @@ type DiscoveredClient = CoreClient<
 /// Environment-driven OIDC configuration. Discovery fetches the provider's
 /// `.well-known/openid-configuration`; optional `SB_OIDC_*` overrides take
 /// precedence when present.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OidcConfig {
     pub issuer_url: String,
     pub client_id: String,
@@ -46,27 +46,40 @@ pub struct OidcConfig {
 }
 
 impl OidcConfig {
-    /// Read `SB_OIDC_*` from the process environment. Returns `None` when
-    /// `SB_OIDC_ISSUER` is absent — OIDC is disabled.
-    pub fn from_env() -> Option<Self> {
-        let get = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
-        let issuer_url = get("SB_OIDC_ISSUER")?;
+    /// Read `SB_OIDC_*` from the process environment. Returns `Err` when
+    /// required vars are missing, `None` when `SB_OIDC_ISSUER` is absent.
+    pub fn from_env() -> Result<Option<Self>, String> {
+        Self::from_env_with(|k| std::env::var(k).ok().filter(|v| !v.is_empty()))
+    }
+
+    /// Configurable variant for testing: accepts an arbitrary getter instead
+    /// of reading process environment variables, avoiding `set_var` races in
+    /// parallel test threads.
+    pub fn from_env_with<F>(get: F) -> Result<Option<Self>, String>
+    where
+        F: Fn(&str) -> Option<String>,
+    {
+        let Some(issuer_url) = get("SB_OIDC_ISSUER") else {
+            return Ok(None);
+        };
         let client_id = get("SB_OIDC_CLIENT_ID")
-            .expect("SB_OIDC_CLIENT_ID required when SB_OIDC_ISSUER is set");
-        let client_secret = get("SB_OIDC_CLIENT_SECRET")
-            .expect("SB_OIDC_CLIENT_SECRET required when SB_OIDC_ISSUER is set");
-        let redirect_base = get("SB_OIDC_REDIRECT_BASE")
-            .expect("SB_OIDC_REDIRECT_BASE required when SB_OIDC_ISSUER is set");
+            .ok_or_else(|| "SB_OIDC_CLIENT_ID required when SB_OIDC_ISSUER is set".to_string())?;
+        let client_secret = get("SB_OIDC_CLIENT_SECRET").ok_or_else(|| {
+            "SB_OIDC_CLIENT_SECRET required when SB_OIDC_ISSUER is set".to_string()
+        })?;
+        let redirect_base = get("SB_OIDC_REDIRECT_BASE").ok_or_else(|| {
+            "SB_OIDC_REDIRECT_BASE required when SB_OIDC_ISSUER is set".to_string()
+        })?;
         let auto_provision = get("SB_OIDC_AUTO_PROVISION")
             .map(|v| v == "true" || v == "1")
             .unwrap_or(false);
-        Some(Self {
+        Ok(Some(Self {
             issuer_url,
             client_id,
             client_secret,
             redirect_base,
             auto_provision,
-        })
+        }))
     }
 }
 
@@ -163,7 +176,7 @@ impl OidcState {
             .await
             .map_err(|e| format!("OIDC discovery failed: {e}"))?;
 
-        let redirect_url = RedirectUrl::new(format!("{}/__oidc_callback", config.redirect_base))
+        let redirect_url = RedirectUrl::new(format!("{}/.oidc/callback", config.redirect_base))
             .map_err(|e| format!("invalid redirect URL: {e}"))?;
 
         let client = CoreClient::from_provider_metadata(
@@ -266,7 +279,9 @@ pub fn start_login(
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("openid".to_string()))
+        // NOTE: the openidconnect crate injects the `openid` scope itself
+        // (client.rs `use_openid_scope`), so only extra scopes belong here.
+        .add_scope(Scope::new("profile".to_string()))
         .set_pkce_challenge(pkce_challenge)
         .url();
 
@@ -298,8 +313,33 @@ impl crate::auth::Credentials for OidcCredentials {
 
 pub type CredentialVersionFn = Arc<dyn Fn(&str) -> String + Send + Sync>;
 
+/// Maximum length for an auto-provisioned username.
+const MAX_USERNAME_LEN: usize = 64;
+
+/// Validate and normalize a `preferred_username` claim from an OIDC provider.
+///
+/// Returns the lowercased, trimmed username on success, or `Err(())` if the
+/// value is empty, too long, or contains characters that SilverBullet's
+/// `create_user` rejects (`:`, `/`) or control characters.  The caller falls
+/// back to `oidc_<sha256-hex>` on `Err` and logs a warning.
+fn sanitize_preferred_username(raw: &str) -> Result<String, ()> {
+    let trimmed = raw.trim().to_lowercase();
+    if trimmed.is_empty() || trimmed.len() > MAX_USERNAME_LEN {
+        return Err(());
+    }
+    if trimmed.contains(':') || trimmed.contains('/') {
+        return Err(());
+    }
+    if trimmed.chars().any(|c| c.is_control()) {
+        return Err(());
+    }
+    Ok(trimmed)
+}
+
 /// Handle the OIDC callback: verify state, exchange code for tokens, verify the
-/// ID token, resolve the local user, and issue a session JWT.
+/// ID token, resolve the local user, and issue a session JWT. Returns
+/// `(jwt, expiry_secs, return_mount)` where `return_mount` is the path saved
+/// in the state cookie (e.g. `/` or `/work/`).
 pub async fn handle_callback(
     state: &OidcState,
     query: &str,
@@ -347,8 +387,20 @@ pub async fn handle_callback(
     let subject = claims.subject().as_str().to_string();
     let issuer = state.config.issuer_url.clone();
 
+    // Extract optional profile claims for display name and username selection.
+    let preferred_username = claims
+        .preferred_username()
+        .map(|u| u.as_str().to_string());
+    let display_name = claims
+        .name()
+        .and_then(|n| n.get(None).map(|v| v.as_str().to_string()));
+
     let username = match users.resolve_by_oidc_subject(&issuer, &subject) {
-        Some(username) => username,
+        Some(username) => {
+            // Existing user — keep display name in sync with the provider.
+            let _ = users.sync_oidc_profile(&username, display_name.as_deref());
+            username
+        }
         None => {
             if !state.config.auto_provision {
                 return Err("OIDC subject not linked to any user".to_string());
@@ -358,13 +410,60 @@ pub async fn handle_callback(
                 getrandom::getrandom(&mut bytes).expect("OS RNG must be available");
                 base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes)
             };
-            let name = format!("oidc_{}", &subject[..subject.len().min(20)]);
-            users
-                .create_user(&name, &random_password, false, Profile::default())
-                .map_err(|e| format!("auto-provision failed: {e}"))?;
-            users
-                .link_oidc(&name, &issuer, &subject)
-                .map_err(|e| format!("auto-provision link failed: {e}"))?;
+            // Hash the full subject to produce a collision-resistant, filesystem-
+            // safe fallback username.
+            use sha2::{Digest, Sha256};
+            let hash = {
+                let mut h = Sha256::new();
+                h.update(subject.as_bytes());
+                let result = h.finalize();
+                result
+                    .iter()
+                    .take(12)
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>()
+            };
+            let fallback = format!("oidc_{hash}");
+
+            // Try preferred_username first; fall back to oidc_<hash>.
+            let name = match preferred_username.as_deref().and_then(|u| {
+                sanitize_preferred_username(u).ok()
+            }) {
+                Some(sanitized) => {
+                    match users.create_user(&sanitized, &random_password, false, Profile::default())
+                    {
+                        Ok(()) => {
+                            let _ = users.link_oidc(&sanitized, &issuer, &subject);
+                            let _ =
+                                users.sync_oidc_profile(&sanitized, display_name.as_deref());
+                            sanitized
+                        }
+                        Err(_) => {
+                            // preferred_username already taken — use fallback.
+                            users
+                                .create_user(&fallback, &random_password, false, Profile::default())
+                                .map_err(|e| format!("auto-provision failed: {e}"))?;
+                            users
+                                .link_oidc(&fallback, &issuer, &subject)
+                                .map_err(|e| format!("auto-provision link failed: {e}"))?;
+                            let _ =
+                                users.sync_oidc_profile(&fallback, display_name.as_deref());
+                            fallback
+                        }
+                    }
+                }
+                None => {
+                    // No usable preferred_username — use fallback.
+                    users
+                        .create_user(&fallback, &random_password, false, Profile::default())
+                        .map_err(|e| format!("auto-provision failed: {e}"))?;
+                    users
+                        .link_oidc(&fallback, &issuer, &subject)
+                        .map_err(|e| format!("auto-provision link failed: {e}"))?;
+                    let _ = users.sync_oidc_profile(&fallback, display_name.as_deref());
+                    fallback
+                }
+            };
             name
         }
     };
@@ -386,4 +485,223 @@ pub async fn handle_callback(
         .issue_session(&username, remember)
         .map_err(|e| format!("failed to issue session: {e}"))
         .map(|(jwt, secs)| (jwt, secs, cookie_claims.return_mount))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderMap;
+    use std::collections::HashMap;
+
+    fn authenticator() -> Arc<Authenticator> {
+        Arc::new(Authenticator::from_secret_bytes(
+            vec![7u8; 32],
+            "test".into(),
+        ))
+    }
+
+    fn env<'a>(vars: &'a [(&str, &str)]) -> impl Fn(&str) -> Option<String> + 'a {
+        let map: HashMap<&str, &str> = vars.iter().copied().collect();
+        move |k: &str| map.get(k).map(|v| v.to_string())
+    }
+
+    #[test]
+    fn sign_cookie_and_verify_round_trip() {
+        let auth = authenticator();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as usize;
+        let claims = OidcCookieClaims {
+            state: "csrf-token".into(),
+            nonce: "nonce-value".into(),
+            pkce_verifier: "verifier".into(),
+            return_mount: "/work/".into(),
+            exp: now + 300,
+        };
+        let cookie_header =
+            set_oidc_cookie(&claims, &auth, &HeaderMap::new()).expect("set_oidc_cookie failed");
+        // The cookie header looks like "sb_oidc_state=<value>; Path=/; ..."
+        let cookie_val = cookie_header
+            .split(';')
+            .next()
+            .unwrap()
+            .strip_prefix("sb_oidc_state=")
+            .unwrap()
+            .to_string();
+
+        // Rebuild a HeaderMap with the cookie set.
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::COOKIE,
+            format!("sb_oidc_state={cookie_val}").parse().unwrap(),
+        );
+        let verified = verify_oidc_cookie(&headers, &auth).expect("verify_oidc_cookie failed");
+        assert_eq!(verified.state, "csrf-token");
+        assert_eq!(verified.return_mount, "/work/");
+    }
+
+    #[test]
+    fn verify_oidc_cookie_rejects_tampered_signature() {
+        let auth = authenticator();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as usize;
+        let claims = OidcCookieClaims {
+            state: "s".into(),
+            nonce: "n".into(),
+            pkce_verifier: "v".into(),
+            return_mount: "/".into(),
+            exp: now + 300,
+        };
+        let cookie_header = set_oidc_cookie(&claims, &auth, &HeaderMap::new()).unwrap();
+        let cookie_val = cookie_header.split(';').next().unwrap();
+        // Tamper with the last hex char of the signature.
+        let mut tampered = cookie_val.to_string();
+        let last = tampered.pop().unwrap();
+        tampered.push(if last == 'a' { 'b' } else { 'a' });
+        let name_val = tampered.strip_prefix("sb_oidc_state=").unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::COOKIE,
+            format!("sb_oidc_state={name_val}").parse().unwrap(),
+        );
+        let err = verify_oidc_cookie(&headers, &auth).unwrap_err();
+        assert!(err.contains("mismatch"), "{err}");
+    }
+
+    #[test]
+    fn verify_oidc_cookie_rejects_expired() {
+        let auth = authenticator();
+        let past = 1_000u64; // well in the past
+        let claims = OidcCookieClaims {
+            state: "s".into(),
+            nonce: "n".into(),
+            pkce_verifier: "v".into(),
+            return_mount: "/".into(),
+            exp: past as usize,
+        };
+        let cookie_header = set_oidc_cookie(&claims, &auth, &HeaderMap::new()).unwrap();
+        let cookie_val = cookie_header
+            .split(';')
+            .next()
+            .unwrap()
+            .strip_prefix("sb_oidc_state=")
+            .unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::COOKIE,
+            format!("sb_oidc_state={cookie_val}").parse().unwrap(),
+        );
+        let err = verify_oidc_cookie(&headers, &auth).unwrap_err();
+        assert!(err.contains("expired"), "{err}");
+    }
+
+    #[test]
+    fn from_env_returns_none_when_issuer_unset() {
+        let getter = env(&[]);
+        assert!(OidcConfig::from_env_with(getter).unwrap().is_none());
+    }
+
+    #[test]
+    fn from_env_returns_err_when_issuer_set_but_client_id_missing() {
+        let getter = env(&[("SB_OIDC_ISSUER", "https://issuer.example.com")]);
+        let err = OidcConfig::from_env_with(getter).unwrap_err();
+        assert!(err.contains("CLIENT_ID"), "{err}");
+    }
+
+    #[test]
+    fn from_env_returns_config_when_all_vars_present() {
+        let getter = env(&[
+            ("SB_OIDC_ISSUER", "https://issuer.example.com"),
+            ("SB_OIDC_CLIENT_ID", "my-client"),
+            ("SB_OIDC_CLIENT_SECRET", "my-secret"),
+            ("SB_OIDC_REDIRECT_BASE", "https://sb.example.com"),
+        ]);
+        let cfg = OidcConfig::from_env_with(getter).unwrap().unwrap();
+        assert_eq!(cfg.issuer_url, "https://issuer.example.com");
+        assert_eq!(cfg.client_id, "my-client");
+        assert!(!cfg.auto_provision);
+    }
+
+    // ── sanitize_preferred_username tests ────────────────────────────────────
+
+    #[test]
+    fn sanitize_preferred_username_basic_valid() {
+        assert_eq!(
+            sanitize_preferred_username("camden").unwrap(),
+            "camden"
+        );
+    }
+
+    #[test]
+    fn sanitize_preferred_username_lowercases() {
+        assert_eq!(
+            sanitize_preferred_username("Camden").unwrap(),
+            "camden"
+        );
+    }
+
+    #[test]
+    fn sanitize_preferred_username_trims_whitespace() {
+        assert_eq!(
+            sanitize_preferred_username("  camden  ").unwrap(),
+            "camden"
+        );
+    }
+
+    #[test]
+    fn sanitize_preferred_username_allows_spaces_and_dots() {
+        assert_eq!(
+            sanitize_preferred_username("Camden Bock").unwrap(),
+            "camden bock"
+        );
+        assert_eq!(
+            sanitize_preferred_username("user.name").unwrap(),
+            "user.name"
+        );
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_empty() {
+        assert!(sanitize_preferred_username("").is_err());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_whitespace_only() {
+        assert!(sanitize_preferred_username("   ").is_err());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_colon() {
+        assert!(sanitize_preferred_username("user:name").is_err());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_slash() {
+        assert!(sanitize_preferred_username("user/name").is_err());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_too_long() {
+        assert!(sanitize_preferred_username(&"a".repeat(65)).is_err());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_accepts_exactly_64() {
+        assert!(sanitize_preferred_username(&"a".repeat(64)).is_ok());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_control_chars() {
+        assert!(sanitize_preferred_username("user\x00name").is_err());
+        assert!(sanitize_preferred_username("user\x1fname").is_err());
+        assert!(sanitize_preferred_username("user\x7fname").is_err());
+    }
+
+    #[test]
+    fn sanitize_preferred_username_rejects_newline() {
+        assert!(sanitize_preferred_username("user\nname").is_err());
+    }
 }
