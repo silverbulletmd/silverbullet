@@ -1,5 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Distributions that patch browsers (e.g. NixOS) cannot execute Playwright's
+// downloaded binaries; the devshell exports this pointing at the system
+// chromium. Unset elsewhere → Playwright resolves its own browser as usual.
+const systemChromium = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+
+const launchOptions = {
+  args: ["--disable-dev-shm-usage"],
+  ...(systemChromium ? { executablePath: systemChromium } : {}),
+};
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
@@ -27,9 +37,7 @@ export default defineConfig({
       testIgnore: "**/release-embedded.test.ts",
       use: {
         ...devices["Desktop Chrome"],
-        // CI runners have a small /dev/shm, which crashes the chromium
-        // renderer (SEGV); route shared memory to /tmp instead.
-        launchOptions: { args: ["--disable-dev-shm-usage"] },
+        launchOptions,
       },
     },
     {
@@ -49,7 +57,7 @@ export default defineConfig({
       testMatch: "**/release-embedded.test.ts",
       use: {
         ...devices["Desktop Chrome"],
-        launchOptions: { args: ["--disable-dev-shm-usage"] },
+        launchOptions,
       },
     },
   ],
