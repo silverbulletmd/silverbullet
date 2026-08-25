@@ -46,14 +46,9 @@ Commits are attributed to whoever made the change:
 * **SilverBullet**, for a change made through SilverBullet with no account attached — a single-user server without authentication.
 * **External**, for a change SilverBullet detected, but did not make: e.g. another editor, a script, or coding agent.
 
-When an identity has no email of its own, one is synthesized from its name and `revisions.authorEmailDomain` (below).
+When an identity has no email of its own, one is synthesized from its name at the `silverbullet.local` domain (e.g. `alice@silverbullet.local`).
 
 ${widgets.commandButton("Revision: Create snapshot")} commits everything outstanding immediately, rather than waiting.
-
-## Configuring attribution
-Under **Revisions** in the [[Configuration Manager]]:
-
-* `revisions.authorEmailDomain`: the domain for synthesized commit emails (`alice@silverbullet.local` by default), used whenever an identity has no email set.
 
 # Browsing history
 If revisions is enabled, there will be two additional views:

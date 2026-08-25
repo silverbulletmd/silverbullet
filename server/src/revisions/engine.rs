@@ -3,7 +3,7 @@ use crate::watcher::{EventOrigin, EventOriginKind, FsAction, FsEvent};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 const QUIET: Duration = Duration::from_secs(30);
@@ -21,33 +21,6 @@ pub enum Attribution {
     LocalUser,
     External,
     System,
-}
-
-/// From the space's `revisions.authorEmailDomain` config.
-#[derive(Debug, Clone, PartialEq)]
-pub struct AuthorConfig {
-    pub domain: String,
-}
-
-impl Default for AuthorConfig {
-    fn default() -> Self {
-        AuthorConfig {
-            domain: DEFAULT_DOMAIN.to_string(),
-        }
-    }
-}
-
-impl AuthorConfig {
-    pub fn from_config(domain: &str) -> AuthorConfig {
-        let domain = domain.trim();
-        AuthorConfig {
-            domain: if domain.is_empty() {
-                DEFAULT_DOMAIN.to_string()
-            } else {
-                domain.to_string()
-            },
-        }
-    }
 }
 
 struct EngineState {
@@ -77,7 +50,6 @@ impl Default for Timing {
 struct EngineInner {
     store: Arc<RevisionStore>,
     state: (Mutex<EngineState>, Condvar),
-    author: RwLock<AuthorConfig>,
     warned: AtomicBool,
     commit_lock: Mutex<()>,
     snapshot_done: AtomicBool,
@@ -92,18 +64,8 @@ impl EngineInner {
         cv.notify_all();
     }
 
-    fn set_author_config(&self, config: AuthorConfig) {
-        *self.author.write().unwrap_or_else(|e| e.into_inner()) = config;
-    }
-
     /// The `name <email>` to commit an attribution under.
     fn identity_for(&self, attribution: &Attribution) -> (String, String) {
-        let domain = self
-            .author
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .domain
-            .clone();
         let (name, email) = match attribution {
             Attribution::Account { name, email } => (name.clone(), email.clone()),
             Attribution::LocalUser | Attribution::System => (SYSTEM_AUTHOR.to_string(), None),
@@ -113,7 +75,7 @@ impl EngineInner {
             format!(
                 "{}@{}",
                 name.to_lowercase().replace(char::is_whitespace, "-"),
-                domain
+                DEFAULT_DOMAIN
             )
         });
         (name, email)
@@ -371,7 +333,6 @@ impl RevisionEngine {
                 }),
                 Condvar::new(),
             ),
-            author: RwLock::new(AuthorConfig::default()),
             warned: AtomicBool::new(false),
             commit_lock: Mutex::new(()),
             snapshot_done: AtomicBool::new(false),
@@ -456,10 +417,6 @@ impl RevisionEngine {
 
     pub fn store(&self) -> &RevisionStore {
         &self.inner.store
-    }
-
-    pub fn set_author_config(&self, config: AuthorConfig) {
-        self.inner.set_author_config(config);
     }
 
     pub fn mark(&self, space_path: &str, attribution: Attribution) {
@@ -612,26 +569,11 @@ mod tests {
     }
 
     #[test]
-    fn the_configured_domain_changes_the_synthesized_email() {
+    fn a_missing_email_synthesizes_one_from_the_default_domain() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("seed.md"), b"s").unwrap();
         let handle = RevisionEngine::start(managed(&dir), None);
         handle.commit_now();
-        handle.set_author_config(AuthorConfig::from_config("example.org"));
-
-        assert_eq!(
-            commit_as(&dir, &handle, "alice"),
-            "alice <alice@example.org>"
-        );
-    }
-
-    #[test]
-    fn a_blank_configured_domain_falls_back_to_the_default() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("seed.md"), b"s").unwrap();
-        let handle = RevisionEngine::start(managed(&dir), None);
-        handle.commit_now();
-        handle.set_author_config(AuthorConfig::from_config("  "));
 
         assert_eq!(
             commit_as(&dir, &handle, "alice"),
@@ -643,7 +585,6 @@ mod tests {
     fn attribution_resolves_to_the_expected_identity() {
         let dir = tempfile::tempdir().unwrap();
         let handle = RevisionEngine::start(managed(&dir), None);
-        handle.set_author_config(AuthorConfig::from_config("example.org"));
 
         let cases = [
             (
@@ -658,16 +599,19 @@ mod tests {
                     name: "Ada Lovelace".into(),
                     email: None,
                 },
-                ("Ada Lovelace", "ada-lovelace@example.org"),
+                ("Ada Lovelace", "ada-lovelace@silverbullet.local"),
             ),
             (
                 Attribution::LocalUser,
-                ("SilverBullet", "silverbullet@example.org"),
+                ("SilverBullet", "silverbullet@silverbullet.local"),
             ),
-            (Attribution::External, ("External", "external@example.org")),
+            (
+                Attribution::External,
+                ("External", "external@silverbullet.local"),
+            ),
             (
                 Attribution::System,
-                ("SilverBullet", "silverbullet@example.org"),
+                ("SilverBullet", "silverbullet@silverbullet.local"),
             ),
         ];
         for (attribution, (name, email)) in cases {

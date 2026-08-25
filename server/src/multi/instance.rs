@@ -485,10 +485,6 @@ fn try_build_state(
         crate::revisions::RevisionEngine::start(store, fs_events.as_ref().map(|tx| tx.subscribe()))
     });
 
-    if let (Some(revisions), Some(runtime)) = (&revisions, &runtime) {
-        crate::revisions::spawn_author_config_lookup(revisions, runtime);
-    }
-
     Ok(ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
