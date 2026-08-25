@@ -11,6 +11,17 @@ ${some(query[[
   ]==](a)
 ]]) or "_No broken or aspiring links — everything resolves._ ✅"}
 
+# Ambiguous links
+Bare links matching more than one page in the space — each still resolves, but which page it points at depends on where the link is written (max 20):
+
+${some(query[[
+  from a = index.objects("ambiguous-link")
+  limit 20
+  select template.new[==[
+    * [[${ref}]] → `${name}` resolves to [[${resolvesTo}]], out of ${#candidates} candidates
+  ]==](a)
+]]) or "_No ambiguous links — every linked name is unique._ ✅"}
+
 # Revision review queue
 Pages that declare a `lastReviewed` date but haven't been reviewed in over three months:
 
@@ -22,13 +33,3 @@ ${some(query[[
     * [[${p.name}]] — last reviewed _${p.lastReviewed}_
   ]==]({p=p})
 ]]) or "_Nothing overdue for review, nice job!_ 🥳"}
-
-# Code drift
-Pages whose referenced source files changed after the page was last updated:
-
-${codeLink.healthMarkdown()}
-
-# Broken code links
-`references:` entries that do not currently resolve to source files:
-
-${codeLink.referenceErrorsMarkdown()}

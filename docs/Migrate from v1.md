@@ -33,7 +33,7 @@ event.listen {
 
 See [[^Library/Std/Widgets/Widgets]] for some examples.
 
-_Snippets_ can be implemented as follows: [[Library/Std/Infrastructure/Slash Templates]].
+_Snippets_ can be implemented as follows: [[^Library/Std/Infrastructure/Slash Templates]].
 
 _Page templates_ now work slightly differently: [[^Library/Std/Infrastructure/Page Templates]].
 

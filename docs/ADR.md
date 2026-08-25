@@ -12,7 +12,7 @@ ${query[[
 ${query[[
   from p = index.pages("adr")
   where p.status ~= "superseded" and p.status ~= "deprecated"
-  order by p.status, p.name
+  order by p.date desc, p.name
   select {
     ADR = "[[" .. p.name .. "]]",
     Owner = p.owner,

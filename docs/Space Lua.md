@@ -59,7 +59,7 @@ The order used is determined by this [[Space Lua/Integrated Query|query]] (also 
 
 This means that the higher the priority, the earlier the script is loaded. That also means that if you want to override previously defined definitions you need to a set a _lower_ priority (or in most cases: simply omit the priority comment).
 
-Here are the conventions used by the [[Library/Std]] library:
+Here are the conventions used by the [[^Library/Std]] library:
 
 * `priority: 100` for config definitions (schemas)
 * `priority: 50` for setting really core and root variables (like `template.*` APIs) that will be used by other scripts

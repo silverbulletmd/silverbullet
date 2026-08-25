@@ -3,7 +3,6 @@ tags: maturity/experimental
 references:
 - plugs/object-graph/*
 ---
-
 An interactive object-graph explorer visualizes [[Object|objects]] (pages, items, blocks) and the typed [[Object/relation|relations]] between them — letting you navigate your space by structure rather than by name.
 
 # Commands

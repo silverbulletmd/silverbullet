@@ -6,7 +6,7 @@ references:
 - plug-api/types/manifest.ts
 ---
 
-APIs to create [[Slash Command]]. For simple cases it is recommended to use [[Library/Std/Infrastructure/Slash Templates]] instead.
+APIs to create [[Slash Command]]. For simple cases it is recommended to use [[^Library/Std/Infrastructure/Slash Templates]] instead.
 
 ## slashCommand.define(spec)
 

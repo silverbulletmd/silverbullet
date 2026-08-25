@@ -160,3 +160,8 @@ tag.define {
   end
 }
 ```
+
+```space-lua
+-- managed-by: configuration-manager
+config.set("linkWriteFormat", "full-path")
+```

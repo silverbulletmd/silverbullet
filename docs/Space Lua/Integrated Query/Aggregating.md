@@ -68,7 +68,7 @@ ${query[[
     name
 ]]}
 
-See [[Library/Std/APIs/Aggregate|Aggregate API]] for how to define custom aggregates and aliases.
+See [[^Library/Std/APIs/Aggregate|Aggregate API]] for how to define custom aggregates and aliases.
 
 # Examples
 All example queries operate on `tags.page`, but will work with any query collection. As always, to see the underlying query, hover over the result table and click the _Edit_ button to see the underlying query.
@@ -239,7 +239,7 @@ ${query [[
 ]]}
 
 ## Custom aggregators
-Custom aggregator functions may be defined by the user using [[Library/Std/APIs/Aggregate|dedicated API]].
+Custom aggregator functions may be defined by the user using [[^Library/Std/APIs/Aggregate|dedicated API]].
 
 # See also
 * [[Space Lua/Integrated Query/Grouping]] — grouping queries without aggregation

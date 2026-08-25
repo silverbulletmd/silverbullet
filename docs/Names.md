@@ -1,9 +1,10 @@
 ---
 references:
 - plug-api/lib/ref.ts
+- plug-api/lib/resolve_path.ts
 - plugs/index/refactor.ts
 ---
-In [[SilverBullet]] every [[Page|page]] or [[Document|document]] has a name. Names are (currently) unique, meaning no two pages or documents can share the same name.
+In [[SilverBullet]] every [[Page|page]] or [[Document|document]] has a name. Names are unique, meaning no two pages or documents can share the same name.
 
 # Rules
 Names _must_ also follow certain rules:
@@ -14,7 +15,7 @@ Names _must_ also follow certain rules:
 * Names cannot contain one or two `.` enclosed by a combination of the start/end of the name or `/`
 * Names cannot contain `//`
 * Names cannot end in `.md` (See [[Paths#Relation to names]] section)
-- (Names are case-sensitive and contrary to most filesystem, `/` is allowed)
+- (Names preserve case, and contrary to most filesystems, `/` is allowed)
 
 ## Valid Examples
 - “foo”
@@ -27,6 +28,9 @@ Names _must_ also follow certain rules:
 - “.foo”
 - “foo//bar”
 - “foo/../bar”
+
+# Case sensitivity
+Names keep the case you give them, and an exactly matching name always wins when a [[Link|link]] is resolved. But a link that matches nothing exactly falls back to a case-insensitive lookup across the space — by name for a bare link, by path suffix for a qualified one — so `[[note]]` finds a page called `Note`, and `[[project/notes]]` finds `project/Notes`. See [[Link#Link resolution]].
 
 # Special characters
 Certain HTTP reverse proxies may block “suspicious” characters (such as `?`, `#` and `;`) by default, including Traefik, [see this thread](https://community.silverbullet.md/t/traefik-proxied-setups-block-page-names-with-fix/3724/2) on how to work around this.
