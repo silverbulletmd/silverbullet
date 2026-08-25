@@ -7,9 +7,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use axum::http::HeaderMap;
-use openidconnect::core::{
-    CoreAuthenticationFlow, CoreClient, CoreProviderMetadata,
-};
+use openidconnect::core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata};
 use openidconnect::{
     AsyncHttpClient, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet,
     EndpointNotSet, EndpointSet, IssuerUrl, Nonce, PkceCodeChallenge, PkceCodeVerifier,
@@ -111,15 +109,23 @@ impl<'c> AsyncHttpClient<'c> for ReqwestAsyncHttpClient {
         req_builder = req_builder.body(body);
 
         Box::pin(async move {
-            let response = req_builder.send().await.map_err(|e| HttpError(e.to_string()))?;
+            let response = req_builder
+                .send()
+                .await
+                .map_err(|e| HttpError(e.to_string()))?;
             let status = response.status();
             let resp_headers = response.headers().clone();
-            let bytes = response.bytes().await.map_err(|e| HttpError(e.to_string()))?;
+            let bytes = response
+                .bytes()
+                .await
+                .map_err(|e| HttpError(e.to_string()))?;
             let mut builder = openidconnect::http::Response::builder().status(status.as_u16());
             for (key, value) in resp_headers.iter() {
                 builder = builder.header(key, value);
             }
-            builder.body(bytes.to_vec()).map_err(|e| HttpError(e.to_string()))
+            builder
+                .body(bytes.to_vec())
+                .map_err(|e| HttpError(e.to_string()))
         })
     }
 }
@@ -145,10 +151,13 @@ impl OidcState {
     /// Discover provider metadata and build the OIDC client. Env-var endpoint
     /// overrides (`SB_OIDC_AUTH_URL`, `SB_OIDC_TOKEN_URL`) take precedence
     /// over the discovery document.
-    pub async fn new(config: OidcConfig, http_client: reqwest::Client) -> Result<Arc<Self>, String> {
+    pub async fn new(
+        config: OidcConfig,
+        http_client: reqwest::Client,
+    ) -> Result<Arc<Self>, String> {
         let oidc_http = ReqwestAsyncHttpClient::new(http_client);
-        let issuer =
-            IssuerUrl::new(config.issuer_url.clone()).map_err(|e| format!("invalid issuer: {e}"))?;
+        let issuer = IssuerUrl::new(config.issuer_url.clone())
+            .map_err(|e| format!("invalid issuer: {e}"))?;
 
         let provider_metadata = CoreProviderMetadata::discover_async(issuer, &oidc_http)
             .await
@@ -205,7 +214,10 @@ fn set_oidc_cookie(
     ))
 }
 
-fn verify_oidc_cookie(headers: &HeaderMap, authenticator: &Authenticator) -> Result<OidcCookieClaims, String> {
+fn verify_oidc_cookie(
+    headers: &HeaderMap,
+    authenticator: &Authenticator,
+) -> Result<OidcCookieClaims, String> {
     let raw = cookie_value(headers, OIDC_STATE_COOKIE)
         .ok_or_else(|| "missing OIDC state cookie".to_string())?;
     let (encoded, sig) = raw

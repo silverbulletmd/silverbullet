@@ -1854,7 +1854,9 @@ mod tests {
     async fn display_name_and_oidc_endpoints_gate_401_403() {
         let dir = tempfile::tempdir().unwrap();
         let (r, _m, users) = admin_router(&dir);
-        users.create_user("alice", "alicepw12", false, Profile::default()).unwrap();
+        users
+            .create_user("alice", "alicepw12", false, Profile::default())
+            .unwrap();
 
         let routes = [
             ("/api/users/alice/full-name", r#"{"fullName":"X"}"#),

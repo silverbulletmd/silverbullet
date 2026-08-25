@@ -239,7 +239,12 @@ mod tests {
         .unwrap();
         let spaces = axum::Router::new()
             .fallback(|| async { (StatusCode::from_u16(299).unwrap(), "spaces") });
-        build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()))
+        build_main_router(
+            m,
+            Some(spaces),
+            "test".to_string(),
+            Arc::new(crate::test_support::test_state()),
+        )
     }
 
     async fn get(router: &axum::Router, host: &str, uri: &str) -> axum::response::Response {
@@ -367,7 +372,12 @@ mod tests {
         let spaces = axum::Router::new()
             .route("/", axum::routing::get(|| async { "SPACES-ROOT" }))
             .fallback(|| async { "spaces-fallback" });
-        let r = build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()));
+        let r = build_main_router(
+            m,
+            Some(spaces),
+            "test".to_string(),
+            Arc::new(crate::test_support::test_state()),
+        );
 
         let resp = get(&r, "localhost", "/.spaces").await;
         assert_eq!(resp.status(), StatusCode::OK);
@@ -427,7 +437,12 @@ mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        let r = build_main_router(m, None, "1.2.3-test".to_string(), Arc::new(crate::test_support::test_state()));
+        let r = build_main_router(
+            m,
+            None,
+            "1.2.3-test".to_string(),
+            Arc::new(crate::test_support::test_state()),
+        );
         let resp = get(&r, "localhost", "/.instance").await;
         assert_eq!(resp.status(), StatusCode::OK);
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
@@ -465,7 +480,12 @@ mod tests {
         )
         .unwrap();
         let spaces = axum::Router::new().fallback(|| async { "spaces" });
-        let r = build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()));
+        let r = build_main_router(
+            m,
+            Some(spaces),
+            "test".to_string(),
+            Arc::new(crate::test_support::test_state()),
+        );
         let resp = get(&r, "localhost", "/").await;
         assert_eq!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
         assert_eq!(resp.headers()["location"], "/.spaces");
@@ -485,7 +505,12 @@ mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        let r = build_main_router(m, None, "test".to_string(), Arc::new(crate::test_support::test_state()));
+        let r = build_main_router(
+            m,
+            None,
+            "test".to_string(),
+            Arc::new(crate::test_support::test_state()),
+        );
         let resp = get(&r, "localhost", "/").await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
@@ -507,7 +532,12 @@ mod tests {
         )
         .unwrap();
         let spaces = axum::Router::new().fallback(|| async { "spaces" });
-        let r = build_main_router(m, Some(spaces), "test".to_string(), Arc::new(crate::test_support::test_state()));
+        let r = build_main_router(
+            m,
+            Some(spaces),
+            "test".to_string(),
+            Arc::new(crate::test_support::test_state()),
+        );
         let resp = get(&r, "localhost", "/").await;
         assert_ne!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
     }

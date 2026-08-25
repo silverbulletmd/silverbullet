@@ -12,9 +12,9 @@ pub mod identity;
 pub mod jwt_authorizer;
 pub mod lockout;
 pub mod login;
-pub mod password;
 #[cfg(feature = "oidc")]
 pub mod oidc;
+pub mod password;
 
 pub use authenticator::{Authenticator, AUTH_FILE_NAME, MULTI_AUTH_FILE_NAME};
 pub use authorizer::{Actor, AuthContext, AuthOutcome, RequestAuthorizer};

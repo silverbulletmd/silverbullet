@@ -819,7 +819,7 @@ mod tests {
         let s = store(dir.path());
         s.set_full_name("zef", Some("  The Zef  ")).unwrap();
         assert_eq!(s.effective_full_name("zef"), "The Zef"); // trimmed
-        // Provider says something else; override wins and sync is skipped.
+                                                             // Provider says something else; override wins and sync is skipped.
         s.sync_oidc_profile("zef", Some("Zef From Provider"))
             .unwrap();
         assert_eq!(s.effective_full_name("zef"), "The Zef");
@@ -842,10 +842,7 @@ mod tests {
         let src = r#"{"old": {"passwordHash": "$argon2id$x", "oidcIssuer": "https://id.example", "oidcSubject": "sub-123", "oidcDisplayName": "Old Name"}}"#;
         let cfg = UsersConfig::from_json(src).unwrap();
         let entry = &cfg.users["old"];
-        assert_eq!(
-            entry.oidc_issuer.as_deref(),
-            Some("https://id.example")
-        );
+        assert_eq!(entry.oidc_issuer.as_deref(), Some("https://id.example"));
         assert_eq!(entry.oidc_subject.as_deref(), Some("sub-123"));
         assert_eq!(entry.full_name.as_deref(), Some("Old Name"));
         assert_eq!(entry.full_name_source, Some(NameSource::Oidc));
