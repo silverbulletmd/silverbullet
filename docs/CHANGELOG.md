@@ -20,6 +20,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * Nested blockquotes now draw one accent bar per level, with real per-level indentation. Previously every level shared a single bar and the indent was an accident of the whitespace left behind by hidden quote markers.
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off.
 * [[Space Manager|Multi-space]] mode: a space's settings no longer hide half of themselves behind an **Advanced** disclosure — every option is visible as soon as the form opens.
+* Fix: the first-run **setup wizard** and the [[Space Manager]] are usable on a phone.
 * The table-of-contents widget **is off by default**: replaced by two [[Navigator]] **outline** views over the same headers. The ToC widgets caused a lot of “content jiggling” on (first) load, which was quite distracting.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.
 * Fix: the [[Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available.

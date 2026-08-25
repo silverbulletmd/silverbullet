@@ -146,7 +146,12 @@ body.sb-standalone.sb-page {
 }
 
 .sb-standalone .center {
-  height: 100vh;
+  // `min-height`, not `height`: a card taller than the viewport (a login form
+  // carrying an error, a phone in landscape) must push the page taller rather
+  // than centre itself half-off the top edge. `dvh` keeps it honest while a
+  // mobile browser's URL bar slides in and out.
+  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
 }
@@ -335,6 +340,15 @@ body.sb-standalone.sb-page {
   color: #999;
 }
 
+// Directory names have no length limit, and a crumb or listing entry is one
+// unbroken word, so without this a single long name pushes the whole page
+// sideways rather than wrapping.
+.sb-standalone .sb-folder-crumbs .sb-link-button,
+.sb-standalone .sb-folder-dirs li {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
 .sb-standalone .sb-folder-dirs {
   list-style: none;
   max-height: 12rem;
@@ -437,4 +451,146 @@ body.sb-standalone.sb-page {
   gap: 0.4em;
   margin: 0.25rem 0;
   font-weight: normal;
+}
+
+/* Phones. The desktop layout assumes a 720px reading column with room to spare
+   for side-by-side rows; on a 375px screen the page padding and the card's own
+   3em swallow a third of the width before any content is drawn, and every
+   `display: flex` row here is unwrapped, so the header and the input+button
+   rows spill past the card's edge. */
+@media only screen and (max-width: 600px) {
+  body.sb-standalone.sb-page {
+    padding: 0.75rem;
+  }
+
+  .sb-standalone .floating-island,
+  .sb-standalone.sb-page #root {
+    padding: 1.25rem;
+    margin-block: 0.5rem;
+  }
+
+  body.sb-standalone {
+    h1 {
+      font-size: 1.35rem;
+    }
+
+    // 16px exactly: anything smaller makes iOS Safari zoom the page in when
+    // the field takes focus, and it never zooms back out.
+    .sb-input,
+    .sb-select {
+      font-size: 16px;
+      min-height: 2.75rem;
+    }
+
+    .sb-button,
+    .sb-button-primary,
+    .sb-button-danger,
+    a.sb-button,
+    a.sb-button-primary {
+      min-height: 2.75rem;
+      padding: 0.5em 1em;
+      font-size: 1rem;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+      width: 20px;
+      height: 20px;
+    }
+
+    // Anything laying a field out beside its button: let the button drop to
+    // its own line instead of pushing out of the card, and let the field
+    // shrink to make room while they still share one.
+    .row,
+    .password-field,
+    .sb-folder-picker-status,
+    .sb-token-list li {
+      flex-wrap: wrap;
+    }
+
+    .row .sb-input,
+    .row .sb-select,
+    .password-field .sb-input {
+      flex: 1 1 10rem;
+      width: auto;
+      min-width: 0;
+    }
+  }
+
+  /* The header's three parts don't fit on one line. `display: contents` lifts
+     the wordmark and tabs out of their wrapper so all three become siblings of
+     the flex container, which lets the tab bar claim a full-width row of its
+     own below the wordmark and the log-out link. */
+  .sb-standalone .sb-spaces-header {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .sb-standalone .sb-spaces-header-left {
+    display: contents;
+  }
+
+  .sb-standalone .sb-spaces-header .sb-tabs {
+    order: 1;
+    flex: 1 0 100%;
+    margin-top: 0.25rem;
+  }
+
+  .sb-standalone .sb-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 0.6rem;
+  }
+
+  .sb-standalone .sb-logout {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+
+  /* Column alignment across rows stops being worth anything once the columns
+     are too narrow to hold their content: give the name a line of its own and
+     let the binding, status and Edit share the one below it. */
+  .sb-standalone .sb-space-list {
+    display: block;
+  }
+
+  .sb-standalone .sb-space-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 0;
+  }
+
+  .sb-standalone .sb-space-list .sb-space-link {
+    flex: 1 0 100%;
+  }
+
+  .sb-standalone .sb-space-edit {
+    margin-left: auto;
+  }
+
+  .sb-standalone .sb-user-table th,
+  .sb-standalone .sb-user-table td {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .sb-standalone .sb-user-table td:first-child {
+    overflow-wrap: anywhere;
+  }
+
+  /* The origin affix ("https://notes.example.com") is nowrap and often wider
+     than the segment you actually type into, leaving it a few characters
+     wide. Stack it above instead so both get the full width. */
+  .sb-standalone .sb-url-input {
+    flex-wrap: wrap;
+  }
+
+  .sb-standalone .sb-url-affix:first-child {
+    flex: 1 0 100%;
+    border-right: 0;
+    border-bottom: 1px solid #0002;
+  }
 }
