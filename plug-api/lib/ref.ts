@@ -105,7 +105,7 @@ const refRegex =
  */
 export function parseToRef(stringRef: string): Ref | null {
   const match = stringRef.match(refRegex);
-  if (!match || !match.groups) {
+  if (!match?.groups) {
     return null;
   }
 
@@ -319,7 +319,7 @@ export function getOffsetFromHeader(
   header: string,
 ): number {
   const node = findNodeMatching(parseTree, (subTree) => {
-    if (!subTree.type || !subTree.type.startsWith("ATXHeading")) {
+    if (!subTree.type?.startsWith("ATXHeading")) {
       return false;
     }
 

@@ -23,7 +23,7 @@ export function getSchemaAtPath(schemas: any, path: string): any {
   const parts = path.split(".");
   let current: any = schemas;
   for (const part of parts) {
-    if (!current || !current.properties || !current.properties[part]) {
+    if (!current?.properties?.[part]) {
       return undefined;
     }
     current = current.properties[part];
@@ -32,7 +32,7 @@ export function getSchemaAtPath(schemas: any, path: string): any {
 }
 
 function collectUiSchemas(schemaNode: any, path: string, results: UiSchema[]) {
-  if (!schemaNode || !schemaNode.properties) return;
+  if (!schemaNode?.properties) return;
   for (const [key, prop] of Object.entries<any>(schemaNode.properties)) {
     const fullPath = path ? `${path}.${key}` : key;
     if (prop.ui) results.push({ path: fullPath, schema: prop });

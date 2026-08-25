@@ -102,7 +102,7 @@ export class CommandHook
   }
 
   public buildAllCommandsAndEmit() {
-    this.emit("commandsUpdated", this.buildAllCommands());
+    void this.emit("commandsUpdated", this.buildAllCommands());
   }
 
   apply(system: System<CommandHookT>): void {

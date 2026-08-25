@@ -238,7 +238,7 @@ const footnoteTooltip = hoverTooltip((view, pos) => {
   while (refNode && refNode.name !== "FootnoteRef") {
     refNode = refNode.parent!;
   }
-  if (!refNode || refNode.name !== "FootnoteRef") {
+  if (refNode?.name !== "FootnoteRef") {
     return null;
   }
 
@@ -284,7 +284,7 @@ const inlineFootnoteTooltip = hoverTooltip((view, pos) => {
   while (fnNode && fnNode.name !== "InlineFootnote") {
     fnNode = fnNode.parent!;
   }
-  if (!fnNode || fnNode.name !== "InlineFootnote") {
+  if (fnNode?.name !== "InlineFootnote") {
     return null;
   }
 

@@ -306,7 +306,7 @@ export class Config {
   private getSchemaAtPath(path: string[]): any | null {
     let current = this.schemas;
     for (const part of path) {
-      if (!current.properties || !current.properties[part]) {
+      if (!current.properties?.[part]) {
         return null;
       }
       current = current.properties[part];

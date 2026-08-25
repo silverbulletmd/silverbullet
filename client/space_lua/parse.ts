@@ -1032,7 +1032,7 @@ function parseBlockNode(t: ParseTree, ctx: ASTCtx): LuaBlock {
 }
 
 function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
-  if (!t || !t.type) {
+  if (!t?.type) {
     return {
       type: "Semicolon",
       ctx: context(t, ctx),
@@ -1085,7 +1085,7 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
       let elseBlock: LuaBlock | undefined;
       for (let i = 0; i < t.children!.length; i += 4) {
         const child = t.children![i];
-        if (!child || !child.children || !child.children[0]) {
+        if (!child?.children?.[0]) {
           continue;
         }
         const token = child.children![0].text;
@@ -1419,7 +1419,7 @@ function parseString(s: string): string {
 }
 
 function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
-  if (!t || !t.type) {
+  if (!t?.type) {
     throw new Error("Undefined expression node");
   }
   switch (t.type) {
@@ -1734,7 +1734,7 @@ function parseFunctionBody(t: ParseTree, ctx: ASTCtx): LuaFunctionBody {
 }
 
 function parsePrefixExpression(t: ParseTree, ctx: ASTCtx): LuaPrefixExpression {
-  if (!t || !t.type) {
+  if (!t?.type) {
     throw new Error("Undefined prefix expression node");
   }
   switch (t.type) {

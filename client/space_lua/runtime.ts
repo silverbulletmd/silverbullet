@@ -172,7 +172,7 @@ export function luaMarkToBeClosed(
   }
 
   const mt = getMetatable(value, sf);
-  if (!mt || !mt.has("__close")) {
+  if (!mt?.has("__close")) {
     throw new LuaRuntimeError(
       "variable got a non-closable value",
       sf.withCtx(ctx),
@@ -1620,14 +1620,14 @@ export class LuaRuntimeError extends Error {
   }
 
   toPrettyString(code: string): string {
-    if (!this.sf || !this.sf.astCtx?.from || !this.sf.astCtx?.to) {
+    if (!this.sf?.astCtx?.from || !this.sf.astCtx?.to) {
       return this.toString();
     }
     let traceStr = "";
     let current: LuaStackFrame | undefined = this.sf;
     while (current) {
       const ctx = current.astCtx;
-      if (!ctx || !ctx.from || !ctx.to) {
+      if (!ctx?.from || !ctx.to) {
         break;
       }
       // Find the line and column

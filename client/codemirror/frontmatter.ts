@@ -217,7 +217,7 @@ export function frontmatterPlugin(client: Client) {
             frontmatterWikiLinkRegex.lastIndex = 0;
             let wMatch: RegExpExecArray | null;
             while ((wMatch = frontmatterWikiLinkRegex.exec(text)) !== null) {
-              if (!wMatch || !wMatch.groups) {
+              if (!wMatch?.groups) {
                 return;
               }
               const mFrom = from + (wMatch.index ?? 0);

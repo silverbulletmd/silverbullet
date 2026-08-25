@@ -85,7 +85,7 @@ export function validateSchema(schema: any): undefined | string {
  */
 export function inferFromObject(value: any): any {
   const schema = inferSchemaNode(value);
-  schema["$schema"] = "https://json-schema.org/draft/2020-12/schema";
+  schema.$schema = "https://json-schema.org/draft/2020-12/schema";
   schema["x-inferred"] = true;
   return schema;
 }

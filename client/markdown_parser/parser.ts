@@ -49,7 +49,7 @@ const WikiLink: MarkdownConfig = {
 
         pWikiLinkRegex.lastIndex = 0;
         const match = pWikiLinkRegex.exec(cx.slice(pos, cx.end));
-        if (!match || !match.groups) {
+        if (!match?.groups) {
           return -1;
         }
 

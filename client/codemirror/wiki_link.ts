@@ -24,7 +24,7 @@ export function cleanWikiLinkPlugin(client: Client) {
 
         wikiLinkRegex.lastIndex = 0;
         const match = wikiLinkRegex.exec(text);
-        if (!match || !match.groups) {
+        if (!match?.groups) {
           return;
         }
 
