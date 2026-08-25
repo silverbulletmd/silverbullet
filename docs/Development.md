@@ -95,6 +95,10 @@ make fmt
 make test
 ```
 
+For the OIDC single sign-on feature specifically, see [[OIDC Testing]] — it
+adds a provider-in-the-loop suite (`make test-oidc-integration`) on top of the
+standard gates.
+
 ### Docker
 Multi-arch (amd64 + arm64 + arm/v7) Docker images are published to Docker Hub
 and the GitHub Container Registry. The **edge** channel is rebuilt on every push
