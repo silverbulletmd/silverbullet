@@ -65,7 +65,7 @@ tag.define {
         nullable = true,
       },
       recipients = {
-        description = "Who this page is for: nicknames or [[wiki links]]",
+        description = "Who this page is for, by @name",
         anyOf = {
           { type = "array", items = schema.string() },
           schema.string(),

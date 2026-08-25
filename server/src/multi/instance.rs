@@ -81,24 +81,56 @@ pub enum InstanceAuth {
     },
 }
 
-struct AccountIdentity(Arc<UserStore>);
+struct AccountIdentity {
+    store: Arc<UserStore>,
+    members: BTreeSet<String>,
+}
 
 impl crate::auth::IdentityResolver for AccountIdentity {
     fn resolve(&self, username: Option<&str>) -> crate::auth::UserProfile {
         let Some(username) = username else {
             return crate::auth::UserProfile::default();
         };
-        let profile = self.0.profile(username).unwrap_or_default();
+        let profile = self.store.profile(username).unwrap_or_default();
         crate::auth::UserProfile {
             username: Some(username.to_string()),
             full_name: profile.full_name,
             email: profile.email,
         }
     }
+
+    fn accounts(&self) -> Option<Vec<crate::auth::UserProfile>> {
+        let mut names = self.members.clone();
+        names.extend(
+            self.store
+                .usernames()
+                .into_iter()
+                .filter(|name| self.store.is_admin(name)),
+        );
+        Some(
+            names
+                .into_iter()
+                .map(|name| {
+                    let profile = self.store.profile(&name).unwrap_or_default();
+                    crate::auth::UserProfile {
+                        username: Some(name),
+                        full_name: profile.full_name,
+                        email: None,
+                    }
+                })
+                .collect(),
+        )
+    }
 }
 
-fn account_identity(users: Arc<UserStore>) -> Arc<dyn crate::auth::IdentityResolver> {
-    Arc::new(AccountIdentity(users))
+fn account_identity(
+    users: Arc<UserStore>,
+    members: BTreeSet<String>,
+) -> Arc<dyn crate::auth::IdentityResolver> {
+    Arc::new(AccountIdentity {
+        store: users,
+        members,
+    })
 }
 
 /// Prevent a space deliberately rooted at the multi-space data directory from
@@ -363,6 +395,7 @@ fn try_build_state(
     // identity across every prefix; each space still applies its own live
     // admin-or-member authorization policy.
     let headless_token = generate_token();
+    let members: BTreeSet<String> = config.members.keys().cloned().collect();
     let (authorizer, login): AuthPair = match &deps.auth {
         InstanceAuth::Single(None) => (None, None),
         InstanceAuth::Single(Some(config)) => {
@@ -374,7 +407,7 @@ fn try_build_state(
             authenticator,
             session,
         } => {
-            let members: BTreeSet<String> = config.members.keys().cloned().collect();
+            let members = members.clone();
             let jwt: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_filter(
                 authenticator.clone(),
                 String::new(),
@@ -495,7 +528,7 @@ fn try_build_state(
         fs_guard,
         revisions,
         identity: match &deps.auth {
-            InstanceAuth::Accounts { users, .. } => account_identity(users.clone()),
+            InstanceAuth::Accounts { users, .. } => account_identity(users.clone(), members),
             InstanceAuth::Single(_) => crate::auth::username_only(),
         },
     })
@@ -889,6 +922,78 @@ mod tests {
         assert_eq!(outsider_resp.status(), axum::http::StatusCode::UNAUTHORIZED);
     }
 
+    /// End-to-end through the real authorizer chain: a member hitting
+    /// `/.accounts` on a members-backed space must see the roster with
+    /// themselves marked, not an empty list.
+    #[tokio::test]
+    async fn accounts_endpoint_reports_the_roster_to_a_member() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        store
+            .create_user(
+                "bob",
+                "bobpw12345",
+                false,
+                Profile {
+                    full_name: Some("Bob Smith".into()),
+                    email: None,
+                },
+            )
+            .unwrap();
+        store
+            .create_user("root", "rootpw12345", true, Profile::default())
+            .unwrap();
+        let bob_token = store.create_token("bob", "t").unwrap();
+        let authenticator = Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into()));
+        deps.auth = InstanceAuth::Accounts {
+            users: store,
+            authenticator,
+            session: SessionPolicy::default(),
+        };
+
+        let folder = dir.path().join("members");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut members = std::collections::BTreeMap::new();
+        members.insert("bob".to_string(), serde_json::Map::new());
+        let cfg = space_users_model(
+            Binding::Prefix {
+                prefix: "/m".into(),
+            },
+            false,
+            members,
+            folder.to_str().unwrap(),
+        );
+        let inst = build_instance("m", &cfg, &deps);
+        let router = inst.router.unwrap();
+
+        let resp = router
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/.accounts")
+                    .header("authorization", format!("Bearer {bob_token}"))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), axum::http::StatusCode::OK);
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let names: Vec<&str> = v
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["username"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, vec!["bob", "root"], "body was {v}");
+        assert_eq!(v[0]["me"], true, "the caller must be marked: {v}");
+        assert_eq!(v[0]["fullName"], "Bob Smith");
+    }
+
     #[tokio::test]
     async fn root_folder_space_cannot_read_server_control_files() {
         use tower::ServiceExt;
@@ -1023,7 +1128,7 @@ mod tests {
                 },
             )
             .unwrap();
-        let resolver = account_identity(store);
+        let resolver = account_identity(store, BTreeSet::new());
         assert_eq!(
             resolver.resolve(Some("ada")),
             crate::auth::UserProfile {
@@ -1041,5 +1146,58 @@ mod tests {
             }
         );
         assert_eq!(resolver.resolve(None), crate::auth::UserProfile::default());
+    }
+
+    #[test]
+    fn the_account_directory_is_members_plus_admins() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        store
+            .create_user(
+                "root",
+                "pw123456",
+                true,
+                crate::multi::users::Profile::default(),
+            )
+            .unwrap();
+        store
+            .create_user(
+                "ada",
+                "pw123456",
+                false,
+                crate::multi::users::Profile {
+                    full_name: Some("Ada Lovelace".into()),
+                    email: Some("ada@example.org".into()),
+                },
+            )
+            .unwrap();
+        store
+            .create_user(
+                "zoe",
+                "pw123456",
+                false,
+                crate::multi::users::Profile::default(),
+            )
+            .unwrap();
+
+        let members: BTreeSet<String> = ["ada".to_string()].into_iter().collect();
+        let resolver = account_identity(store, members);
+
+        let accounts = resolver
+            .accounts()
+            .expect("account-managed deployments have a directory");
+        let names: Vec<Option<String>> = accounts.iter().map(|a| a.username.clone()).collect();
+        assert_eq!(
+            names,
+            vec![Some("ada".to_string()), Some("root".to_string())]
+        );
+        assert_eq!(accounts[0].full_name.as_deref(), Some("Ada Lovelace"));
+        // The directory carries no addresses: `/.accounts` must never serve one.
+        assert!(accounts.iter().all(|a| a.email.is_none()));
+    }
+
+    #[test]
+    fn a_deployment_without_accounts_has_no_directory() {
+        assert!(crate::auth::username_only().accounts().is_none());
     }
 }

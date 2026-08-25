@@ -6,11 +6,12 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 * Beginnings of more solid [[Collaboration]] functionality, comprising of a slew of new improvements/features:
   * **Near real-time sync**: changes made to pages are now synced (and will appear in other clients) within ~2-3s.
   * **Near real-time content updates**: if multiple clients/process edit the same page, SilverBullet will do its best to reconcile those changes with local ones. In cases of unresolvable conflicts a new _conflict widget_ will show helping you to resolve the conflict.
-  * **At-mentions and Recipients** ([[Recipient]]): mention people, teams, or anything else with `@nickname`. Mentions are indexed, autocompleted, and listed in a Mention Inbox sidebar (${widgets.commandButton("Navigate: Mentions")}). 
+  * **At-mentions and Recipients** ([[Recipient]]): mention people, teams, or anything else with `@name`.
   * **HTML comments are now parsed as markdown** ([[Markdown/Comment]]): the body of a `<!-- ... -->` block is now parsed and rendered as ordinary markdown. This enables a communication channel (likely using [[Recipient|recipients]]) to communicate between team members.
   * Beginning of [[Revisions]]: In three modes: **Managed** (SilverBullet commits your changes for you), **Unmanaged** (an existing git repository’s history is read, but SilverBullet never commits to it) or **Disabled**.
   * Accounts now carry a full name and email, used to attribute revision commits and shown as the presence label for concurrent edits.
   * Every user gets a **Profile** page ([[Authentication#Accounts]]) to set their own full name and email.
+  * The editor learns who the space's people are from a new `/.accounts` endpoint, which replaces `/.profile`: it reports every account with access to the space, with the current user marked, and never an email address.
 * **Completely revamped [[Navigator]] UX (includes a file tree!):** one configurable navigation UI that presents any object collection as a fuzzy-filterable list **or tree**, either as a modal or as a sidebar. A lot of views have been rebuilt on this. Oh yeah: ${widgets.commandButton("Navigate: Tree")} 🤯
 * **[[Link|Wiki links]] now resolve by page name, not just by full path.** A `[[Note]]` link resolves to `some/folder/Note` when that name is unique in the space, matching how Obsidian resolves links, so an Obsidian-authored space works in SilverBullet without rewriting every link. See [[ADR/011 Link Resolution by Name]] for reasoning.
 * [[API/index#index.relations]] is the canonical accessor for `relation` objects, alongside `index.tasks()`, `index.items()`, and friends: `index.relations()` for all of them, `index.relations("at-mention")` to filter to one kind.

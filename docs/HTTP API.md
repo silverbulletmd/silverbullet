@@ -27,7 +27,7 @@ In [[Space Manager|multi-space mode]] every account carries a profile — a disp
 * `PUT /.spaces/api/admin/users/<name>/profile` (admin only): Sets another account's profile. Same body and validation as `PUT /.spaces/api/profile`.
 
 # Profile
-* `GET /.profile`: The caller's own identity, as resolved by whatever authentication is configured: `{"username", "fullName", "email"}`. Any of the three may be `null` — on a server with no authorizer configured, all three are.
+* `GET /.accounts`: Every account with access to this space, as `[{"username", "fullName", "me"}]`, with the caller's own entry marked `me`. `username` is `null` where the deployment keeps no accounts (the caller is still reported, marked `me`, so their name is known even though they are nobody the space can address), `fullName` is omitted when unset, and `me` is omitted when false.
 
 # File system
 The space file system is exposed under the `/.fs` prefix:

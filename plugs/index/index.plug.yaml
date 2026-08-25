@@ -121,9 +121,6 @@ functions:
     events:
       - editor:complete
 
-  resolveRecipient:
-    path: recipient.ts:resolveRecipient
-
   resolveAtMention:
     path: recipient.ts:resolveAtMention
 
@@ -202,11 +199,6 @@ functions:
 
   lintAnchors:
     path: lint.ts:lintAnchors
-    events:
-      - editor:lint
-
-  lintAtMentions:
-    path: lint.ts:lintAtMentions
     events:
       - editor:lint
 

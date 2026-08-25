@@ -33,11 +33,7 @@ import {
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import {
-  deriveAliasNickname,
-  parseDeclaredRecipients,
-  RECIPIENT_PREFIX,
-} from "./recipient.ts";
+import { parseDeclaredRecipients, recipientId } from "./recipient.ts";
 import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
@@ -444,7 +440,7 @@ export async function indexRelations(
       kind: "at-mention",
       from,
       fromTag,
-      to: RECIPIENT_PREFIX + nickname.toLowerCase(),
+      to: recipientId(nickname),
       toTag: "recipient",
       range: [n.from!, n.to!],
       alias: nickname,
@@ -499,18 +495,18 @@ function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
   for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
     wikiLinkRegex.lastIndex = 0;
     if (wikiLinkRegex.exec(entry)) continue;
-    const nickname = deriveAliasNickname(entry);
-    if (nickname === "") continue;
+    const name = entry.replaceAll(" ", "");
+    if (name === "") continue;
     ctx.out.push({
-      ref: `${ctx.pageMeta.name}@recipients/${nickname.toLowerCase()}`,
+      ref: `${ctx.pageMeta.name}@recipients/${name.toLowerCase()}`,
       tag: "relation",
       kind: "recipients",
       from: ctx.pageMeta.name,
       fromTag: "page",
-      to: RECIPIENT_PREFIX + nickname.toLowerCase(),
+      to: recipientId(name),
       toTag: "recipient",
       page: ctx.pageMeta.name,
-      alias: nickname,
+      alias: name,
       pageLastModified: ctx.pageMeta.lastModified,
     });
   }

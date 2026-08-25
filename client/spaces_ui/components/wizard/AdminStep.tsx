@@ -57,13 +57,13 @@ export function AdminStep({
         value={values.password2}
         onInput={(e) => onChange({ password2: e.currentTarget.value })}
       />
-      <label for="setup-full-name">Full name</label>
+      <label for="setup-full-name">Full name (optional)</label>
       <Input
         id="setup-full-name"
         value={values.fullName}
         onInput={(e) => onChange({ fullName: e.currentTarget.value })}
       />
-      <label for="setup-email">Email</label>
+      <label for="setup-email">Email (optional)</label>
       <Input
         id="setup-email"
         value={values.email}

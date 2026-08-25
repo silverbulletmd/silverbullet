@@ -50,6 +50,7 @@ Internally, these APIs typically update the [[API/config]] as a side effect, whi
 Examples:
 * [[API/tag#tag.define(spec)]]
 * [[API/taskState#taskState.define(def)]]
+* [[API/recipient#recipient.define(def)]]
 * [[API/config#config.define(key, schema)]]
 * [[API/slashCommand#slashCommand.define(spec)]]
 * [[^Library/Std/APIs/Command#command.define(commandDef)]]

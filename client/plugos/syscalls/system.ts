@@ -3,8 +3,11 @@ import type { Client } from "../../client.ts";
 import { version as publicVersion } from "../../../version.json";
 import type { CommandDef } from "@silverbulletmd/silverbullet/type/manifest";
 import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
-import { loadProfile } from "../../profile.ts";
-import type { ClientProfile } from "../../../plug-api/types/profile.ts";
+import { loadAccounts, loadProfile } from "../../accounts.ts";
+import type {
+  Account,
+  ClientProfile,
+} from "../../../plug-api/types/profile.ts";
 
 export function systemSyscalls(
   client: Client,
@@ -254,6 +257,12 @@ export function systemSyscalls(
       description:
         'The current user\'s identity. `username` is "me" when the server has no account for this session.',
       signatures: ["system.getProfile()"],
+    },
+    "system.listAccounts": {
+      callback: (): Promise<Account[]> => loadAccounts(client),
+      description:
+        "Every account with access to this space, with the current user marked.",
+      signatures: ["system.listAccounts()"],
     },
     "system.getConfig": {
       callback: (_ctx, key: string, defaultValue: any = undefined) =>

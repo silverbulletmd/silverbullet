@@ -9,7 +9,7 @@ use axum::Router;
 use silverbullet_server_common::SpaceError;
 use tower_http::compression::CompressionLayer;
 
-use crate::handlers::{bundle, control, fs, profile, revisions};
+use crate::handlers::{accounts, bundle, control, fs, revisions};
 use crate::state::ServerState;
 
 /// Run a synchronous `SpacePrimitives` operation on the blocking thread pool so
@@ -103,7 +103,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     // Protected: require authorization (when an authorizer is configured).
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
-        .route("/.profile", get(profile::handle_profile))
+        .route("/.accounts", get(accounts::handle_accounts))
         // Gzip/brotli-compress file reads (Accept-Encoding aware). Big text
         // assets like a self-hosted mermaid.min.js (~3.3 MB) transfer at
         // ~0.9 MB. Scoped to GET so writes are untouched. The `x-content-length`
@@ -277,15 +277,15 @@ mod auth_tests {
         assert_eq!(status(st, "/.config").await, StatusCode::OK);
     }
 
-    /// `/.profile` emits the caller's identity, so an unauthenticated request
+    /// `/.accounts` emits the space's roster, so an unauthenticated request
     /// must never reach it.
     #[tokio::test]
-    async fn profile_requires_authorization() {
+    async fn accounts_requires_authorization() {
         let st = state_with(Some(Arc::new(Always(false))));
-        assert_eq!(status(st, "/.profile").await, StatusCode::UNAUTHORIZED);
+        assert_eq!(status(st, "/.accounts").await, StatusCode::UNAUTHORIZED);
 
         let st = state_with(Some(Arc::new(Always(true))));
-        assert_eq!(status(st, "/.profile").await, StatusCode::OK);
+        assert_eq!(status(st, "/.accounts").await, StatusCode::OK);
     }
 
     #[tokio::test]

@@ -408,11 +408,17 @@ config.define("taskStates", {
 })
 
 -- Recipients
-config.define("recipients.tag", {
-  type = "string",
-  default = "recipient",
-  description = "Tag that marks a page as a recipient, addressable with @nickname.",
-  ui = { category = "Indexing", label = "Recipient tag", priority = 0 },
+config.define("recipients", {
+  type = "object",
+  default = {},
+  additionalProperties = {
+    type = "object",
+    properties = {
+      name = schema.string(),
+      description = schema.nullable "string",
+    },
+    required = {"name"},
+  },
 })
 
 -- Revisions

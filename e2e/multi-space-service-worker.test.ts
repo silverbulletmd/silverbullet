@@ -176,3 +176,26 @@ test("a sibling space's client assets are not answered with the app shell", asyn
   await expect(page.locator("#login")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("#username")).toBeVisible();
 });
+
+test("/.accounts is proxied to the server, not answered with the app shell", async ({
+  page,
+}) => {
+  // Every `/.`-prefixed surface the worker cannot answer locally has to be
+  // declared in `spaceSurfaces`, or it falls through to the SPA-shell
+  // fallback and the client parses `<!doctype html>` as JSON. `/.accounts`
+  // feeds `@mention` completion and the Mention Inbox's default filter, so
+  // the failure shows up as "nobody is a recipient" rather than as an error.
+  await registerRootServiceWorker(page);
+
+  const result = await page.evaluate(async (url) => {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
+    const body = await response.text();
+    return { status: response.status, body: body.slice(0, 60) };
+  }, `${base}/.accounts`);
+
+  expect(result.status).toBe(200);
+  expect(result.body).not.toContain("<!doctype");
+  expect(() => JSON.parse(result.body)).not.toThrow();
+});

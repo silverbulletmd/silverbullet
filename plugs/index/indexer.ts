@@ -17,11 +17,7 @@ import { indexHeaders } from "./header.ts";
 import { indexItems } from "./item.ts";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import {
-  deriveAliasNickname,
-  parseDeclaredRecipients,
-  RECIPIENT_PREFIX,
-} from "./recipient.ts";
+import { parseDeclaredRecipients, recipientId } from "./recipient.ts";
 import { indexRelations } from "./relation.ts";
 import { buildLineIndex, extractSnippet, type LineIndex } from "./snippet.ts";
 import { indexSpaceLua } from "./space_lua.ts";
@@ -143,9 +139,7 @@ function stampRecipients(
       pageTargets.add(wikiMatch[1]);
       continue;
     }
-    pageTargets.add(
-      RECIPIENT_PREFIX + deriveAliasNickname(entry).toLowerCase(),
-    );
+    pageTargets.add(recipientId(entry.replaceAll(" ", "")));
   }
   const byHost = new Map<string, Set<string>>();
   for (const m of mentions) {

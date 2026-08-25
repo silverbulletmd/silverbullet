@@ -4,7 +4,6 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   findNodeOfType,
-  type ParseTree,
   renderToText,
   traverseTree,
   traverseTreeAsync,
@@ -19,7 +18,6 @@ import { isValidAnchorName } from "./anchor.ts";
 import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { allIndexers } from "./indexer.ts";
-import { fetchRecipientRegistry } from "./recipient.ts";
 
 /**
  * Lint YAML syntax in frontmatter and fenced code blocks
@@ -451,37 +449,5 @@ export async function lintAnchors({
     }
   }
 
-  return diagnostics;
-}
-
-export async function lintAtMentions({
-  tree,
-}: LintEvent): Promise<LintDiagnostic[]> {
-  const mentionNodes: ParseTree[] = [];
-  traverseTree(tree, (n) => {
-    if (n.type === "AtMention") {
-      mentionNodes.push(n);
-      return true;
-    }
-    return false;
-  });
-  if (mentionNodes.length === 0) {
-    return [];
-  }
-  const registry = await fetchRecipientRegistry();
-  const diagnostics: LintDiagnostic[] = [];
-  for (const n of mentionNodes) {
-    const nickname = renderToText(n).slice(1);
-    const key = nickname.toLowerCase();
-    const entry = registry.byNickname.get(key);
-    if (entry && registry.ambiguous.has(key)) {
-      diagnostics.push({
-        from: n.from!,
-        to: n.to!,
-        severity: "warning",
-        message: `Ambiguous recipient "@${nickname}" — currently resolves to "${entry.target}"`,
-      });
-    }
-  }
   return diagnostics;
 }

@@ -27,10 +27,10 @@ import {
   editor,
   markdown,
   space,
-  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { tagPrefix } from "../index/constants.ts";
+import { recipientId } from "../index/recipient.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -158,21 +158,12 @@ async function actionClickOrActionEnter(
       break;
     }
     case "AtMention": {
+      // A recipient is a name, not a place: the mention has nowhere to
+      // navigate to, so it opens the Mention Inbox filtered on that
+      // recipient without pulling focus out of the editor.
       const nickname = renderToText(mdTree).slice(1);
-      const result = await system.invokeFunction(
-        "index.resolveRecipient",
-        nickname,
-      );
-      // Every mention resolves: a nickname claimed by a page navigates
-      // there, and either way the Mention Inbox opens filtered on the
-      // recipient, without pulling focus out of the editor.
-      if (result.page) {
-        await editor.navigate(result.page, false, inNewWindow);
-      }
       await editor.openNavigator("inbox", {
-        // Mentions group by recipient, not by spelling: the page is the key
-        // for anyone who has one.
-        dropdown: result.page ?? result.target,
+        dropdown: recipientId(nickname),
         focus: false,
       });
       break;

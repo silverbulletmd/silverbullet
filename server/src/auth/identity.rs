@@ -18,6 +18,12 @@ pub struct UserProfile {
 /// settings; a plain single-space server has nothing to add.
 pub trait IdentityResolver: Send + Sync {
     fn resolve(&self, username: Option<&str>) -> UserProfile;
+
+    /// Every account with access to this space, or `None` where the deployment
+    /// keeps no accounts at all.
+    fn accounts(&self) -> Option<Vec<UserProfile>> {
+        None
+    }
 }
 
 struct UsernameOnly;

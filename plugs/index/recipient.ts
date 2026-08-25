@@ -8,33 +8,18 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { frontmatterValuePrefix } from "./complete.ts";
 
 export const RECIPIENT_PREFIX = "recipient:";
 
-export type RecipientEntry = {
-  nickname: string;
-  target: string;
-};
-
-export type RecipientRegistry = {
-  byNickname: Map<string, RecipientEntry>;
-  ambiguous: Set<string>;
-};
-
-export function deriveNickname(pageName: string): string {
-  return pageName.split("/").pop()!.replaceAll(" ", "");
-}
-
-/** Alias-to-nickname derivation: spaces only, no path-splitting — an alias
- * isn't a page path the way a page name is. */
-export function deriveAliasNickname(alias: string): string {
-  return alias.replaceAll(" ", "");
+/** A recipient is a name; this is the identifier every mention of it carries. */
+export function recipientId(name: string): string {
+  return RECIPIENT_PREFIX + name.toLowerCase();
 }
 
 // One entry of a `recipients:` frontmatter value: a wikilink (kept whole, so
-// a page name with spaces survives) or a run of non-space characters.
+// the indexer can recognise one and leave it alone rather than minting junk
+// names out of its halves) or a run of non-space characters.
 const declaredRecipientRegex = /\[\[[^\]]*\]\]|\S+/g;
 
 /** The entries of a `recipients:` frontmatter value. A list gives one entry
@@ -53,71 +38,8 @@ export function parseDeclaredRecipients(value: unknown): string[] {
     .filter((entry) => entry !== "");
 }
 
-export function buildRecipientRegistry(
-  pages: { name: string; aliases?: string[] }[],
-): RecipientRegistry {
-  const explicitCandidates = new Map<string, RecipientEntry[]>();
-  const derivedCandidates = new Map<string, RecipientEntry[]>();
-  const add = (
-    nickname: string,
-    target: string,
-    tier: Map<string, RecipientEntry[]>,
-  ) => {
-    const key = nickname.toLowerCase();
-    const list = tier.get(key) ?? [];
-    list.push({ nickname, target });
-    tier.set(key, list);
-  };
-  for (const page of pages) {
-    for (const alias of page.aliases ?? []) {
-      add(deriveAliasNickname(alias), page.name, explicitCandidates);
-    }
-  }
-  for (const page of pages) {
-    add(deriveNickname(page.name), page.name, derivedCandidates);
-  }
-  const byNickname = new Map<string, RecipientEntry>();
-  const ambiguous = new Set<string>();
-  const allKeys = new Set<string>();
-  explicitCandidates.forEach((_, key) => allKeys.add(key));
-  derivedCandidates.forEach((_, key) => allKeys.add(key));
-  for (const key of allKeys) {
-    const explicit = explicitCandidates.get(key) ?? [];
-    const derived = derivedCandidates.get(key) ?? [];
-    let winner: RecipientEntry;
-    if (explicit.length > 0) {
-      explicit.sort((a, b) => a.target.localeCompare(b.target));
-      winner = explicit[0];
-    } else {
-      derived.sort((a, b) => a.target.localeCompare(b.target));
-      winner = derived[0];
-    }
-    byNickname.set(key, winner);
-    const allTargets = new Set([...explicit, ...derived].map((e) => e.target));
-    if (allTargets.size > 1) {
-      ambiguous.add(key);
-    }
-  }
-  return { byNickname, ambiguous };
-}
-
-export async function fetchRecipientRegistry(): Promise<RecipientRegistry> {
-  const recipientTag = await config.get<string>("recipients.tag", "recipient");
-  const pages = await index.queryLuaObjects<PageMeta & { aliases?: string[] }>(
-    "page",
-    {
-      objectVariable: "_",
-      where: await lua.parseExpression(
-        `table.find(_.tags, function(tag) return tag == recipientTag end)`,
-      ),
-    },
-    { recipientTag },
-  );
-  return buildRecipientRegistry(pages);
-}
-
-/** Every reference to a recipient by nickname: inline `@mentions` and the
- * nickname form of `recipients:` frontmatter alike. */
+/** Every reference to a recipient by name: inline `@mentions` and the
+ * name form of `recipients:` frontmatter alike. */
 async function queryMentions(): Promise<{ to: string; alias?: string }[]> {
   return await index.queryLuaObjects<{ to: string; alias?: string }>(
     "relation",
@@ -131,80 +53,65 @@ async function queryMentions(): Promise<{ to: string; alias?: string }[]> {
 }
 
 export type RecipientListing = {
-  nickname: string;
-  nicknames: string[];
-  target: string;
-  page?: string;
-  ids: string[];
+  name: string;
+  id: string;
+  detail?: string;
 };
 
-/** Every recipient the space knows about: one entry per `#recipient` page,
- * plus one per mentioned nickname no page claims. `target` is the grouping
- * key consumers filter on — the page for a page-backed recipient, so all of
- * its spellings group together, and the `recipient:` identifier otherwise.
- * `nicknames` are the spellings as written (`nickname` being the one to
- * label the recipient with); `ids` are those same spellings in the
- * identifier form mentions carry, which is how a mention is joined back onto
- * its recipient at read time. */
-export async function listRecipients(): Promise<RecipientListing[]> {
-  const registry = await fetchRecipientRegistry();
-  const byPage = new Map<string, { nicknames: string[]; ids: string[] }>();
-  for (const [key, entry] of registry.byNickname) {
-    let group = byPage.get(entry.target);
-    if (!group) {
-      group = { nicknames: [], ids: [] };
-      byPage.set(entry.target, group);
+/** The most-used spelling of every mentioned name, keyed by identifier. */
+async function mentionedNames(): Promise<Map<string, string>> {
+  const counts = new Map<string, Map<string, number>>();
+  for (const mention of await queryMentions()) {
+    let spellings = counts.get(mention.to);
+    if (!spellings) {
+      spellings = new Map();
+      counts.set(mention.to, spellings);
     }
-    group.nicknames.push(entry.nickname);
-    group.ids.push(RECIPIENT_PREFIX + key);
+    const spelling = mention.alias ?? mention.to.slice(RECIPIENT_PREFIX.length);
+    spellings.set(spelling, (spellings.get(spelling) ?? 0) + 1);
   }
-  const result: RecipientListing[] = [];
-  for (const [page, group] of byPage) {
-    const derived = deriveNickname(page).toLowerCase();
-    const nicknames = [...group.nicknames].sort((a, b) => a.localeCompare(b));
-    result.push({
-      nickname:
-        nicknames.find((n) => n.toLowerCase() === derived) ?? nicknames[0],
-      nicknames,
-      target: page,
-      page,
-      ids: [...group.ids].sort(),
-    });
+  const result = new Map<string, string>();
+  for (const [id, spellings] of counts) {
+    result.set(
+      id,
+      [...spellings.entries()].sort(
+        (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+      )[0][0],
+    );
   }
-  // Aliases per mentioned identifier, so a pageless nickname is labelled
-  // with the most common spelling actually typed rather than lowercased.
-  const aliasCounts = new Map<string, Map<string, number>>();
-  for (const m of await queryMentions()) {
-    const key = m.to.slice(RECIPIENT_PREFIX.length);
-    if (registry.byNickname.has(key)) continue;
-    let counts = aliasCounts.get(key);
-    if (!counts) {
-      counts = new Map();
-      aliasCounts.set(key, counts);
-    }
-    const alias = m.alias ?? key;
-    counts.set(alias, (counts.get(alias) ?? 0) + 1);
-  }
-  for (const [key, counts] of aliasCounts) {
-    const nickname = [...counts.entries()].sort(
-      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
-    )[0][0];
-    const target = RECIPIENT_PREFIX + key;
-    result.push({ nickname, nicknames: [nickname], target, ids: [target] });
-  }
-  return result.sort((a, b) => a.nickname.localeCompare(b.nickname));
+  return result;
 }
 
-/** Your own name is always completable, even in a space where nobody has been
- * mentioned yet and no `#recipient` page exists. */
-async function ownCompletion(
-  taken: Set<string>,
-): Promise<Completion | undefined> {
-  const { username } = await system.getProfile();
-  if (taken.has(username.toLowerCase())) {
-    return undefined;
+/** Every name this space can address: its accounts, whatever `recipient.define`
+ * registered, and every name already mentioned. */
+export async function listRecipients(): Promise<RecipientListing[]> {
+  const byId = new Map<string, RecipientListing>();
+  const add = (name: string, detail?: string) => {
+    const id = recipientId(name);
+    if (byId.has(id)) return;
+    byId.set(id, detail ? { name, id, detail } : { name, id });
+  };
+
+  for (const account of await system.listAccounts()) {
+    // A deployment without accounts has a current user but no name for them,
+    // and a nameless recipient is not addressable.
+    if (!account.username) continue;
+    add(account.username, account.me ? "you" : account.fullName);
   }
-  return { label: username, type: "at-mention", detail: "you" };
+  const defined = await config.get<
+    Record<string, { name?: string; description?: string }>
+  >("recipients", {});
+  for (const [key, spec] of Object.entries(defined ?? {})) {
+    add(
+      typeof spec?.name === "string" && spec.name ? spec.name : key,
+      spec?.description,
+    );
+  }
+  for (const [id, name] of await mentionedNames()) {
+    if (!byId.has(id)) byId.set(id, { name, id });
+  }
+
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function atMentionComplete(completeEvent: CompleteEvent) {
@@ -217,23 +124,15 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
   if (!match) {
     return null;
   }
-  const options: Completion[] = [];
-  const taken = new Set<string>();
-  for (const entry of await listRecipients()) {
-    for (const nickname of entry.nicknames) {
-      taken.add(nickname.toLowerCase());
-      options.push({
-        label: nickname,
-        type: "at-mention",
-        detail: entry.target,
-      });
-    }
-  }
-  const own = await ownCompletion(taken);
-  if (own) options.push(own);
   return {
     from: completeEvent.pos - match[1].length,
-    options,
+    options: (await listRecipients()).map(
+      (recipient): Completion => ({
+        label: recipient.name,
+        type: "at-mention",
+        detail: recipient.detail,
+      }),
+    ),
   };
 }
 
@@ -250,33 +149,22 @@ export async function frontmatterRecipientComplete(
   // The `@` is inside the replaced range, so CodeMirror's own filter would
   // measure `@ad` against a bare `ada` and reject it: the matching is ours.
   const typed = prefix.replace(/^@/, "").toLowerCase();
-  const options: Completion[] = [];
-  const taken = new Set<string>();
-  for (const entry of await listRecipients()) {
-    for (const nickname of entry.nicknames) {
-      taken.add(nickname.toLowerCase());
-      if (!nickname.toLowerCase().includes(typed)) {
-        continue;
-      }
-      options.push({
-        label: nickname,
-        type: "at-mention",
-        detail: entry.target,
-      });
-    }
-  }
-  const own = await ownCompletion(taken);
-  if (own?.label.toLowerCase().includes(typed)) {
-    options.push(own);
-  }
   return {
     from: completeEvent.pos - prefix.length,
     filter: false,
-    options,
+    options: (await listRecipients())
+      .filter((recipient) => recipient.name.toLowerCase().includes(typed))
+      .map(
+        (recipient): Completion => ({
+          label: recipient.name,
+          type: "at-mention",
+          detail: recipient.detail,
+        }),
+      ),
   };
 }
 
-export type MentionMode = "link" | "remove" | "delete-host";
+export type MentionMode = "remove" | "delete-host";
 
 function isBlankLine(line: string): boolean {
   return line.trim() === "";
@@ -354,17 +242,14 @@ export function computeMentionEdit(args: {
   text: string;
   range: [number, number];
   nickname: string;
-  target: string;
-  mode?: MentionMode;
+  mode: MentionMode;
 }): { from: number; to: number; insert: string } | null {
-  const { text, range, nickname, target, mode = "link" } = args;
+  const { text, range, nickname, mode } = args;
   const [start, end] = range;
   if (text.slice(start, end) !== `@${nickname}`) {
     return null;
   }
   switch (mode) {
-    case "link":
-      return { from: start, to: end, insert: `[[${target}|${nickname}]]` };
     case "remove":
       if (text[start - 1] === " ") {
         return { from: start - 1, to: end, insert: "" };
@@ -382,8 +267,7 @@ export function spliceAtMention(args: {
   text: string;
   range: [number, number];
   nickname: string;
-  target: string;
-  mode?: MentionMode;
+  mode: MentionMode;
 }): string {
   const edit = computeMentionEdit(args);
   if (!edit) {
@@ -392,48 +276,19 @@ export function spliceAtMention(args: {
   return args.text.slice(0, edit.from) + edit.insert + args.text.slice(edit.to);
 }
 
-export async function resolveRecipient(
-  nickname: string,
-): Promise<{ ok: true; target: string; page?: string }> {
-  const registry = await fetchRecipientRegistry();
-  const entry = registry.byNickname.get(nickname.toLowerCase());
-  const target = RECIPIENT_PREFIX + nickname.toLowerCase();
-  return entry
-    ? { ok: true, target, page: entry.target }
-    : { ok: true, target };
-}
-
 export async function resolveAtMention(
   pageName: string,
   range: [number, number],
   nickname: string,
-  mode: MentionMode = "link",
+  mode: MentionMode,
 ): Promise<boolean> {
   const doneMessage =
-    mode === "link"
-      ? `Resolved @${nickname}`
-      : mode === "remove"
-        ? `Removed @${nickname}`
-        : `Deleted @${nickname} mention`;
+    mode === "remove" ? `Removed @${nickname}` : `Deleted @${nickname} mention`;
   const staleMessage =
     "Page changed since indexing — reopen the mention and try again";
-  let target = "";
-  if (mode === "link") {
-    // The page claiming this nickname is whatever claims it now, not
-    // whatever was indexed alongside the mention.
-    const resolved = await resolveRecipient(nickname);
-    if (!resolved.page) {
-      await editor.flashNotification(
-        `@${nickname} has no page to link to`,
-        "error",
-      );
-      return false;
-    }
-    target = resolved.page;
-  }
   if ((await editor.getCurrentPage()) === pageName) {
     const text = await editor.getText();
-    const edit = computeMentionEdit({ text, range, nickname, target, mode });
+    const edit = computeMentionEdit({ text, range, nickname, mode });
     if (!edit) {
       await editor.flashNotification(staleMessage, "error");
       return false;
@@ -446,7 +301,7 @@ export async function resolveAtMention(
   }
 
   const text = await space.readPage(pageName);
-  const newText = spliceAtMention({ text, range, nickname, target, mode });
+  const newText = spliceAtMention({ text, range, nickname, mode });
   if (newText === text) {
     await editor.flashNotification(staleMessage, "error");
     return false;

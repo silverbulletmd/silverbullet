@@ -1,7 +1,7 @@
 import { syscall } from "../syscall.ts";
 import type { CommandDef } from "../types/manifest.ts";
 import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
-import type { ClientProfile } from "../types/profile.ts";
+import type { Account, ClientProfile } from "../types/profile.ts";
 
 /**
  * System level syscalls
@@ -136,6 +136,15 @@ export function getVersion(): Promise<string> {
  */
 export function getProfile(): Promise<ClientProfile> {
   return syscall("system.getProfile");
+}
+
+/**
+ * Every account with access to this space. `username` falls back to "me" for a
+ * deployment without accounts, and exactly one entry is marked `me` whenever
+ * the current user is known.
+ */
+export function listAccounts(): Promise<Account[]> {
+  return syscall("system.listAccounts");
 }
 
 export function getConfig<T = any>(

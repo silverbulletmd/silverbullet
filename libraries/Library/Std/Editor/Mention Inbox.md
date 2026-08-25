@@ -22,18 +22,6 @@ end
 
 local function inboxRows()
   local rows = {}
-  -- A mention only records the nickname it was written with, so the
-  -- recipient it belongs to is joined here, once per load. Every spelling a
-  -- page claims maps to that page, which is what groups rows by person
-  -- rather than by spelling.
-  local pageByMention = {}
-  for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
-    if r.page then
-      for _, id in ipairs(r.ids) do
-        pageByMention[id] = r.page
-      end
-    end
-  end
   local mentions = query[[
     from index.relations "at-mention"
   ]]
@@ -61,9 +49,8 @@ local function inboxRows()
         page = m.page,
         range = m.range,
         nickname = m.alias,
-        target = pageByMention[m.to] or m.to,
+        target = m.to,
         fromTag = m.fromTag,
-        hasPage = pageByMention[m.to] ~= nil,
       })
     end
   end
@@ -71,10 +58,10 @@ local function inboxRows()
   -- so they have no `@nickname` span to act on: the row navigates and that's
   -- all. Its own `ref` uniquifies the tree path, the way a range does above.
   local declared = query[[
-    from index.relations "recipients"
+    from index.relations "recipients" where _.toTag == "recipient"
   ]]
   for _, d in ipairs(declared) do
-    local recipient = d.alias and ("@" .. d.alias) or d.to
+    local recipient = "@" .. d.alias
     local label = d.snippet or recipient
     table.insert(rows, {
       name = d.page .. SEP .. label .. "\30" .. d.ref,
@@ -82,23 +69,19 @@ local function inboxRows()
       recipient = recipient,
       ref = d.page,
       page = d.page,
-      target = pageByMention[d.to] or d.to,
+      target = d.to,
       declared = true,
     })
   end
   return rows
 end
 
--- The recipient the current user is: their own `#recipient` page when one
--- claims their name, and the bare mention identifier otherwise.
+-- The recipient the current user is, when the space knows who that is. An
+-- anonymous reader of a public space is nobody, and opens on all recipients.
 local function ownTarget()
-  local profile = system.getProfile()
-  local username = (profile and profile.username or "me"):lower()
-  for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
-    for _, nickname in ipairs(r.nicknames) do
-      if nickname:lower() == username then
-        return r.target
-      end
+  for _, account in ipairs(system.listAccounts()) do
+    if account.me and account.username then
+      return "recipient:" .. account.username:lower()
     end
   end
 end
@@ -155,7 +138,7 @@ navigator.define {
     options = function()
       local result = {}
       for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
-        table.insert(result, { label = r.nickname, value = r.target })
+        table.insert(result, { label = r.name, value = r.id })
       end
       return result
     end,
@@ -163,17 +146,8 @@ navigator.define {
     where = function(obj, value) return obj.target == value end,
   },
   actions = {
-    -- A recipient with no page has nothing to link to, so those mentions
-    -- only offer Remove/Delete. A declared recipient has no `@nickname` in
-    -- the text at all, so it offers none of the three.
-    { icon = "link", label = "Resolve to link", requireMode = "rw",
-      when = function(obj)
-        return not obj.isFolder and not obj.declared and obj.hasPage
-      end,
-      run = function(obj)
-        system.invokeFunction("index.resolveAtMention",
-          obj.page, obj.range, obj.nickname, "link")
-      end },
+    -- A declared recipient has no `@nickname` span in the text, so it offers
+    -- neither of these.
     { icon = "x", label = "Remove mention", requireMode = "rw",
       when = function(obj) return not obj.isFolder and not obj.declared end,
       run = function(obj)

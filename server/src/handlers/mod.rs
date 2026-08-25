@@ -1,9 +1,9 @@
+pub mod accounts;
 pub mod auth;
 pub mod bundle;
 pub mod control;
 pub mod events;
 pub mod fs;
-pub mod profile;
 pub mod proxy;
 pub mod revisions;
 pub mod runtime;
