@@ -12,6 +12,7 @@ export type AuthConfig = {
   encryptionSalt: string;
   rememberMeDays: number;
   accountManaged: boolean;
+  oidcConfigured: boolean;
 };
 
 /**
@@ -106,6 +107,8 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
           rememberMeDays={config.rememberMeDays}
           clientEncryption
           initialClientEncryption={!!localStorage.getItem("enableEncryption")}
+          oidcConfigured={config.oidcConfigured}
+          oidcLoginUrl={`/.oidc/login?return=${encodeURIComponent("/" + config.spaceName + "/")}`}
           onSubmit={(values) => void submit(values)}
         />
         <footer>

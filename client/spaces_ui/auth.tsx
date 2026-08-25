@@ -12,6 +12,7 @@ export function readAuthConfig(root: HTMLElement): AuthConfig {
     encryptionSalt: root.dataset.encryptionSalt ?? "",
     rememberMeDays: Number(root.dataset.rememberMeDays ?? 0),
     accountManaged: root.dataset.accountManaged === "true",
+    oidcConfigured: root.dataset.oidcConfigured === "true",
   };
 }
 

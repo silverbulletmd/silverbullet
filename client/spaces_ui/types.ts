@@ -31,7 +31,13 @@ export interface UserInfo {
   admin: boolean;
   fullName: string | null;
   email: string | null;
+  /** Who set `fullName`: "admin" blocks SSO sync until cleared. */
+  fullNameSource?: "admin" | "oidc";
   tokens: Record<string, { createdAt: string }>;
+  /** OIDC issuer URL, set when the account is linked via single sign-on. */
+  oidcIssuer?: string;
+  /** OIDC subject identifier, set when the account is linked via SSO. */
+  oidcSubject?: string;
 }
 
 /** GET/PUT `api/profile`: the caller's own account. */
@@ -40,6 +46,8 @@ export interface ProfileInfo {
   admin: boolean;
   fullName: string | null;
   email: string | null;
+  /** Who set `fullName`: "admin" blocks SSO sync until cleared. */
+  fullNameSource?: "admin" | "oidc";
 }
 
 /**

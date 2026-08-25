@@ -13,10 +13,13 @@ import {
   deleteUser,
   formatApiError,
   getUser,
+  linkOidc,
   listUsers,
+  setFullName,
   setUserAdmin,
   setUserPassword,
   setUserProfile,
+  unlinkOidc,
 } from "../api.ts";
 import { useNavigate } from "../navigation.ts";
 import { spacesUrl } from "../routes.ts";
@@ -78,6 +81,9 @@ export function UserList({
                         {name}
                       </a>{" "}
                       {name === currentUsername && <Badge>you</Badge>}
+                      {user.fullName !== name && (
+                        <div class="sb-help-text">{user.fullName}</div>
+                      )}
                     </td>
                     <td>{user.admin ? "admin" : "user"}</td>
                     <td>
@@ -193,15 +199,19 @@ export function UserDetail({
   const [password, setPassword] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [shownToken, setShownToken] = useState<string | undefined>();
-  const [fullName, setFullName] = useState("");
+  const [nameOverride, setNameOverride] = useState("");
   const [email, setEmail] = useState("");
+  const [linkIssuer, setLinkIssuer] = useState("");
+  const [linkSubject, setLinkSubject] = useState("");
   const isSelf = username === currentUsername;
 
   async function reload() {
     try {
       const user = await getUser(username);
       setUser(user);
-      setFullName(user.fullName ?? "");
+      // Prefill the editor only when an admin override exists; otherwise an
+      // empty input means "follow the provider / account name".
+      setNameOverride(user.fullNameSource === "admin" ? (user.fullName ?? "") : "");
       setEmail(user.email ?? "");
       setError("");
     } catch (error: any) {
@@ -273,23 +283,143 @@ export function UserDetail({
           Administrator
         </label>
       </section>
+      <details>
+        <summary>Advanced</summary>
+        <section>
+          <h2>Display name</h2>
+          <p class="sb-help-text">
+            {user.fullNameSource === "admin"
+              ? "Custom override — single sign-on will not change this name."
+              : "Follows the SSO provider's name claim when available; otherwise the account name is shown."}
+          </p>
+          <div class="row">
+            <Input
+              aria-label="Display name"
+              placeholder={username}
+              value={nameOverride}
+              onInput={(event) => setNameOverride(event.currentTarget.value)}
+            />
+            <Button
+              variant="primary"
+              onClick={() =>
+                void run(async () => {
+                  await setFullName(username, nameOverride.trim() || null);
+                  await reload();
+                })
+              }
+            >
+              Save
+            </Button>
+            {user.fullNameSource === "admin" && (
+              <Button
+                onClick={() =>
+                  void run(async () => {
+                    await setFullName(username, null);
+                    setNameOverride("");
+                    await reload();
+                  })
+                }
+              >
+                Reset to automatic
+              </Button>
+            )}
+          </div>
+        </section>
+        <section>
+          <h2>Single sign-on</h2>
+          {user.oidcIssuer ? (
+            <>
+              <p class="sb-help-text">
+                This account signs in via single sign-on with these claims.
+              </p>
+              <label for="oidc-issuer">Issuer</label>
+              <Input
+                id="oidc-issuer"
+                readOnly
+                value={user.oidcIssuer}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <label for="oidc-subject">Subject</label>
+              <Input
+                id="oidc-subject"
+                readOnly
+                value={user.oidcSubject ?? ""}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <div class="row">
+                <Button
+                  variant="danger"
+                  onClick={() =>
+                    void run(async () => {
+                      if (
+                        !confirm(
+                          `Unlink single sign-on from "${username}"? They will only be able to sign in with a password.`,
+                        )
+                      ) {
+                        return;
+                      }
+                      await unlinkOidc(username);
+                      await reload();
+                    })
+                  }
+                >
+                  Unlink
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p class="sb-help-text">
+                Link this account to a single sign-on identity by pasting its{" "}
+                <code>iss</code> and <code>sub</code> claims from an ID token.
+              </p>
+              <label for="oidc-link-issuer">Issuer URL</label>
+              <Input
+                id="oidc-link-issuer"
+                placeholder="https://provider.example/..."
+                value={linkIssuer}
+                onInput={(event) => setLinkIssuer(event.currentTarget.value)}
+              />
+              <label for="oidc-link-subject">Subject</label>
+              <Input
+                id="oidc-link-subject"
+                placeholder="Subject identifier (sub claim)"
+                value={linkSubject}
+                onInput={(event) => setLinkSubject(event.currentTarget.value)}
+              />
+              <div class="row">
+                <Button
+                  variant="primary"
+                  disabled={!linkIssuer.trim() || !linkSubject.trim()}
+                  onClick={() =>
+                    void run(async () => {
+                      await linkOidc(
+                        username,
+                        linkIssuer.trim(),
+                        linkSubject.trim(),
+                      );
+                      await reload();
+                    })
+                  }
+                >
+                  Link
+                </Button>
+              </div>
+            </>
+          )}
+        </section>
+      </details>
       <section>
-        <h2>Profile</h2>
+        <h2>Contact</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault();
             void run(async () => {
-              await setUserProfile(username, fullName, email);
+              await setUserProfile(username, user.fullName ?? "", email);
               await reload();
             });
           }}
         >
-          <label for="user-detail-full-name">Full name</label>
-          <Input
-            id="user-detail-full-name"
-            value={fullName}
-            onInput={(event) => setFullName(event.currentTarget.value)}
-          />
           <label for="user-detail-email">Email</label>
           <Input
             id="user-detail-email"
@@ -327,6 +457,7 @@ export function UserDetail({
           </Button>
         </div>
       </section>
+
       <section>
         <h2>API tokens</h2>
         {tokenNames.length === 0 && <p>No tokens.</p>}

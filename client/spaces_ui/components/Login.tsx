@@ -17,10 +17,12 @@ export function Login({
   onDone,
   title = "SilverBullet",
   rememberMeDays = 7,
+  oidcConfigured = false,
 }: {
   onDone: (username: string) => void;
   title?: string;
   rememberMeDays?: number;
+  oidcConfigured?: boolean;
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,6 +36,8 @@ export function Login({
       clientEncryption
       clientEncryptionHint="Applied when you open a space, you will be requested to reauthenticate (for secure key exchange)."
       initialClientEncryption={!!localStorage.getItem("enableEncryption")}
+      oidcConfigured={oidcConfigured}
+      oidcLoginUrl="/.oidc/login"
       onSubmit={({ username, password, rememberMe, clientEncryption }) => {
         setBusy(true);
         setError("");

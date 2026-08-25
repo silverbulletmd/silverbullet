@@ -31,6 +31,8 @@ export function LoginForm({
   clientEncryption = false,
   clientEncryptionHint,
   initialClientEncryption = false,
+  oidcConfigured = false,
+  oidcLoginUrl,
   children,
   onSubmit,
 }: {
@@ -44,6 +46,10 @@ export function LoginForm({
   /** Explanatory line under the client-encryption option, when it needs one. */
   clientEncryptionHint?: string;
   initialClientEncryption?: boolean;
+  /** Show the SSO login link when true. */
+  oidcConfigured?: boolean;
+  /** URL for the SSO login redirect (e.g. "/.oidc/login" or with a return param). */
+  oidcLoginUrl?: string;
   /** Extra content below the form (e.g. the login page's footer link). */
   children?: preact.ComponentChildren;
   onSubmit: (values: LoginValues) => void;
@@ -135,6 +141,14 @@ export function LoginForm({
           Log in
         </Button>
       </div>
+      {oidcConfigured && oidcLoginUrl && (
+        <>
+          <div class="oidc-separator" />
+          <a href={oidcLoginUrl} class="oidc-login-link">
+            Sign in with SSO
+          </a>
+        </>
+      )}
       {children}
     </form>
   );

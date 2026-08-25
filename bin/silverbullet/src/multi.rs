@@ -184,11 +184,22 @@ pub async fn build_multi_stack(
     }
 
     // Main listener: the unified /.spaces surface + prefix/host spaces.
+    let oidc_configured = {
+        #[cfg(feature = "oidc")]
+        {
+            oidc_state.is_some()
+        }
+        #[cfg(not(feature = "oidc"))]
+        {
+            false
+        }
+    };
     let admin_state = Arc::new(AdminState::new(
         manager.clone(),
         store.clone(),
         authenticator.clone(),
         runtime_availability,
+        oidc_configured,
     ));
     let spaces_state = Arc::new(SpaceIndexState::new(
         manager.clone(),
@@ -196,6 +207,7 @@ pub async fn build_multi_stack(
         authenticator.clone(),
         session,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
+        oidc_configured,
     ));
     let router = build_main_router(
         manager,

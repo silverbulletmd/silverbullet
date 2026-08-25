@@ -77,6 +77,8 @@ const SCREENS: Record<SpacesRoute["screen"], Screen | undefined> = {
 export function App() {
   const [auth, setAuth] = useState<AuthState>({ phase: "loading" });
   const { route, navigate } = useSpacesRouter();
+  const oidcConfigured =
+    document.getElementById("root")?.dataset.oidcConfigured === "true";
 
   // One delegated listener rather than a link component: every in-app link is
   // a real <a href> that works without JS, and this upgrades them in place.
@@ -127,6 +129,7 @@ export function App() {
               : undefined;
           location.assign(next ?? spacesUrl("/"));
         }}
+        oidcConfigured={oidcConfigured}
       />
     );
   }

@@ -103,6 +103,30 @@ export function setUserAdmin(name: string, admin: boolean): Promise<void> {
   return adminApi("PUT", `users/${encodeURIComponent(name)}`, { admin });
 }
 
+export function setFullName(
+  name: string,
+  fullName: string | null,
+): Promise<void> {
+  return adminApi("POST", `users/${encodeURIComponent(name)}/full-name`, {
+    fullName,
+  });
+}
+
+export function linkOidc(
+  name: string,
+  issuer: string,
+  subject: string,
+): Promise<void> {
+  return adminApi("POST", `users/${encodeURIComponent(name)}/oidc-link`, {
+    issuer,
+    subject,
+  });
+}
+
+export function unlinkOidc(name: string): Promise<void> {
+  return adminApi("POST", `users/${encodeURIComponent(name)}/oidc-unlink`);
+}
+
 export function setUserProfile(
   name: string,
   fullName: string,
