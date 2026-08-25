@@ -121,6 +121,14 @@ config.define("shortWikiLinks", {
   ui = { category = "Editor", label = "Short wiki links", priority = 1 },
 })
 
+config.define("linkWriteFormat", {
+  description = "How SilverBullet writes wiki links it generates: 'shortest' uses the bare page name when that name is unique in the space and the full path when it is not, 'shortest-suffix' writes the shortest path suffix that still uniquely identifies the page instead of the full path, 'full-path' always writes the full path",
+  type = "string",
+  enum = { "shortest", "shortest-suffix", "full-path" },
+  default = "shortest",
+  ui = { category = "Editor", label = "Link write format", priority = 2 },
+})
+
 config.define("frontmatterFolding", {
   description = "Configure folding behavior for YAML frontmatter at the top of pages",
   type = "object",

@@ -210,6 +210,21 @@ functions:
     events:
       - editor:lint
 
+  requalifyAfterSave:
+    path: requalify.ts:requalifyAfterSave
+    events:
+      - page:saved
+
+  invalidateOnFileAppeared:
+    path: invalidate.ts:invalidateOnFileAppeared
+    events:
+      - file:changed
+
+  invalidateOnFileDeleted:
+    path: invalidate.ts:invalidateOnFileDeleted
+    events:
+      - file:deleted
+
   # X-Ray editor lens
   xrayInfo:
     path: xray.ts:xrayInfo

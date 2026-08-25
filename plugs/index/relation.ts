@@ -1,3 +1,4 @@
+import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   getNameFromPath,
   isMarkdownPath,
@@ -7,6 +8,11 @@ import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  lookupIndex,
+  type ResolveResult,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -424,7 +430,7 @@ export async function indexRelations(
   );
 
   emitCoMentions(ctx, tree);
-  await emitAspiringPages(ctx);
+  await resolvePageTargets(ctx, pageText);
 
   // A mention records the nickname only, as the namespaced identifier
   // `recipient:<lowercased nickname>` (so @Bob and @bob converge). Which
@@ -510,12 +516,12 @@ function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
   }
 }
 
-// Emits one `aspiring-page` record per (page-targeted) ref that does
-// not resolve to a real page in the space. Lives here because it
-// piggybacks on the relation indexer's page-resolution work — every
-// non-co-mention record with `toTag = "page"` is a
-// candidate. Mirrors the legacy `link.ts` behavior.
-async function emitAspiringPages(ctx: EmitCtx): Promise<void> {
+function isWikiLinkAt(text: string, range: [number, number]): boolean {
+  const slice = text.substring(range[0], range[1]);
+  return slice.startsWith("[[") || slice.startsWith("![[");
+}
+
+async function resolvePageTargets(ctx: EmitCtx, text: string): Promise<void> {
   const candidates = ctx.out.filter(
     (r): r is RelationObject & { range: [number, number] } =>
       r.kind !== "co-mention" && r.toTag === "page" && Array.isArray(r.range),
@@ -523,29 +529,62 @@ async function emitAspiringPages(ctx: EmitCtx): Promise<void> {
   if (candidates.length === 0) return;
 
   const uniqueTargets = [...new Set(candidates.map((r) => r.to))];
-  const existence = await Promise.all(
-    uniqueTargets.map((t) => space.fileExists(`${t}.md`)),
+  const lookups = await space.lookupPaths(
+    uniqueTargets.map((target) => `${target}.md`),
   );
-  const missing = new Set(uniqueTargets.filter((_, i) => !existence[i]));
-  if (missing.size === 0) return;
+  const index = lookupIndex(lookups);
+  const fromPage = `${ctx.pageMeta.name}.md` as Path;
+
+  const resolutions = new Map<string, ResolveResult>();
+  const resolutionFor = (target: string, wikiLink: boolean): ResolveResult => {
+    const key = `${wikiLink}:${target}`;
+    let resolution = resolutions.get(key);
+    if (!resolution) {
+      const path = `${target}.md` as Path;
+      resolution = wikiLink
+        ? resolvePath(path, fromPage, index)
+        : { path, exists: index.has(path), ambiguous: false };
+      resolutions.set(key, resolution);
+    }
+    return resolution;
+  };
 
   for (const rec of candidates) {
-    if (!missing.has(rec.to)) continue;
-    ctx.out.push({
-      ref: `${ctx.pageMeta.name}@${rec.range[0]}`,
-      tag: "aspiring-page",
-      page: ctx.pageMeta.name,
-      pos: rec.range[0],
-      range: rec.range,
-      name: rec.to,
-    } as any);
-    console.info(
-      "Link from",
-      ctx.pageMeta.name,
-      "to",
-      rec.to,
-      "is broken, indexing as aspiring page",
-    );
+    const resolution = resolutionFor(rec.to, isWikiLinkAt(text, rec.range));
+
+    if (!resolution.exists) {
+      ctx.out.push({
+        ref: `${ctx.pageMeta.name}@${rec.range[0]}`,
+        tag: "aspiring-page",
+        page: ctx.pageMeta.name,
+        pos: rec.range[0],
+        range: rec.range,
+        name: rec.to,
+      } as any);
+      console.info(
+        "Link from",
+        ctx.pageMeta.name,
+        "to",
+        rec.to,
+        "is broken, indexing as aspiring page",
+      );
+      continue;
+    }
+
+    if (resolution.ambiguous) {
+      ctx.out.push({
+        ref: `${ctx.pageMeta.name}@${rec.range[0]}`,
+        tag: "ambiguous-link",
+        page: ctx.pageMeta.name,
+        pos: rec.range[0],
+        range: rec.range,
+        name: rec.to,
+        resolvesTo: getNameFromPath(resolution.path),
+        candidates: (resolution.candidates ?? []).map(getNameFromPath),
+      } as any);
+    }
+
+    rec.to = getNameFromPath(resolution.path);
   }
 }
 
@@ -554,12 +593,6 @@ async function emitAspiringPages(ctx: EmitCtx): Promise<void> {
 // ancestor, emit one co-mention edge using the innermost shared scope's
 // ref as `via`. ListItem ancestors are preferred over Paragraph.
 function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
-  // The parser does NOT emit WikiLink nodes inside AttributeValue (the
-  // value is raw text), so we can't rely on a parent-pointer walk from
-  // a wikilink node — inline-attribute and data-block relations don't
-  // have one to walk from. Instead, collect every ListItem / Paragraph
-  // range up front
-  // and resolve each relation's containing scopes by range containment.
   type Scope = { from: number; to: number };
   const items: Scope[] = [];
   const paragraphs: Scope[] = [];

@@ -5,6 +5,7 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
+  encodeLinkText,
   getNameFromPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
@@ -96,9 +97,7 @@ export async function headerComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - match.groups.path.length,
     options: headers.map((header) => ({
-      label: `${
-        (ref.meta ? "^" : "") + getNameFromPath(ref.path)
-      }#${header.name}`,
+      label: `${encodeLinkText(ref)}#${header.name}`,
       type: "header",
     })),
   };

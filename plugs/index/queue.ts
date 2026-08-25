@@ -1,30 +1,53 @@
 import {
   editor,
   events,
+  index,
   markdown,
   mq,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
 /// QUEUE PROCESSING
 
+/**
+ * A plain path, or a path a producer has already cleared the index for.
+ */
+type IndexQueueBody = string | { path: string; cleared?: boolean };
+
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
-    const path: string = message.body;
+    const body: IndexQueueBody = message.body;
+    const path = typeof body === "string" ? body : body.path;
     console.log("[index]", `Indexing file ${path}`);
-    await indexFile(path);
+    await indexFile(path, typeof body !== "string" && body.cleared === true);
   }
 }
 
-async function indexFile(path: string) {
+async function indexFile(path: string, alreadyCleared: boolean) {
+  // Indexing writes on top of whatever is already stored, so the file's
+  // previous entries are dropped here, on the way out of the queue, rather
+  // than by whoever put it in. Every route into the queue then replaces
+  // rather than accumulates.
+  if (!alreadyCleared) {
+    await index.clearFileIndex(path);
+  }
   if (path.endsWith(".md")) {
     // Page
     const name = path.slice(0, -3);
-    // Read and parse the file
-    const { text, meta } = await space.readPageWithMeta(name);
+    let text: string, meta: any;
+    try {
+      ({ text, meta } = await space.readPageWithMeta(name));
+    } catch (e: any) {
+      if (e.message === notFoundError.message) {
+        console.info("[index]", `Skipping ${path}, no longer exists`);
+        return;
+      }
+      throw e;
+    }
     const tree = await markdown.parseMarkdown(text);
 
     // Emit the event which will be picked up by indexers

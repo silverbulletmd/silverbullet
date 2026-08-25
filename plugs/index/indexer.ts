@@ -44,6 +44,7 @@ const NON_ANCHORABLE_TAGS = new Set([
   "page",
   "tag",
   "aspiring-page",
+  "ambiguous-link",
   "space-lua",
   "space-style",
 ]);

@@ -1,6 +1,15 @@
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
-import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  getNameFromPath,
+  isValidPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  BasenameIndex,
+  type LinkWriteFormat,
+  writeLinkPath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   addParentPointers,
@@ -9,6 +18,7 @@ import {
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
+  config,
   editor,
   index,
   lua,
@@ -293,7 +303,7 @@ async function renamePage(oldName: string, newName: string) {
   }
 
   // Update backlinks to this page
-  const updatedRefences = await updateBacklinks(oldName, newName);
+  const { updated: updatedRefences } = await updateBacklinks(oldName, newName);
 
   // Navigate to new page if currently viewing old page
   if ((await editor.getCurrentPage()) === oldName) {
@@ -332,7 +342,7 @@ async function renameDocument(oldPath: string, newPath: string) {
   }
 
   // Update any backlinks
-  const updatedRefences = await updateBacklinks(oldPath, newPath);
+  const { updated: updatedRefences } = await updateBacklinks(oldPath, newPath);
   let message = `Renamed ${oldPath} to ${newPath}`;
   if (updatedRefences > 0) {
     message = `${message}, updated ${updatedRefences} backlinks`;
@@ -453,12 +463,43 @@ export async function extractToPageCommand() {
  * @param newName Full path to new page/file
  * @returns The number of references updated
  */
-async function updateBacklinks(
+async function wikiLinkTextFor(
+  name: string,
+  vanishingName?: string,
+): Promise<string> {
+  const path = parseToRef(name)?.path;
+  if (!path) {
+    return name;
+  }
+  const writeFormat = await config.get<LinkWriteFormat>(
+    "linkWriteFormat",
+    "shortest",
+  );
+
+  const lookups = await space.lookupPaths([path]);
+  const index = new BasenameIndex();
+  index.rebuild([...(lookups[path]?.candidates ?? []), path]);
+
+  const vanishingPath = vanishingName
+    ? parseToRef(vanishingName)?.path
+    : undefined;
+  if (vanishingPath) {
+    index.delete(vanishingPath);
+  }
+
+  return getNameFromPath(writeLinkPath(path, writeFormat, index));
+}
+
+export async function updateBacklinks(
   oldName: string,
   newName: string,
-): Promise<number> {
+  wikiNameOverride?: string,
+  wikiLinksOnly = false,
+): Promise<{ updated: number }> {
   // This is the bit where we update all the links
   const backRelations = await getTextualBackRelations(oldName);
+  const newWikiName =
+    wikiNameOverride ?? (await wikiLinkTextFor(newName, oldName));
   let updatedReferences = 0;
 
   // Group by page to edit entire page at once
@@ -491,12 +532,17 @@ async function updateBacklinks(
 
     for (const rec of recsInPage) {
       if (!rec.range) continue;
+      if (wikiLinksOnly) {
+        const slice = text.substring(rec.range[0], rec.range[1]);
+        if (!slice.startsWith("[[") && !slice.startsWith("![[")) continue;
+      }
       const before = text;
       text = spliceReference({
         text,
         range: rec.range,
         oldName,
         newName,
+        newWikiName,
         pageToEdit,
       });
       if (text !== before) updatedReferences++;
@@ -507,5 +553,6 @@ async function updateBacklinks(
       await space.writePage(pageToEdit, text);
     }
   }
-  return updatedReferences;
+
+  return { updated: updatedReferences };
 }
