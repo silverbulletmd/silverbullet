@@ -156,13 +156,9 @@ test("the Mention Inbox opens on the current user", async ({ page }) => {
     await mkdir(dirname(fullPath), { recursive: true });
     await writeFile(fullPath, content);
   };
-  // Page-backed recipient whose derived nickname ("Mona") matches the
-  // signed-in username case-insensitively, exactly like e2e/at-mention.test.ts's
-  // "Pete Smith" fixture.
-  await write(
-    "People/Mona.md",
-    ["---", "tags: recipient", "---", "", "Mona's page.", ""].join("\n"),
-  );
+  // `@Mona` and the `mona` account share one recipient id (`re:mona`), so the
+  // mention lands in the signed-in user's own inbox without any page having to
+  // declare them.
   await write(
     "Notes.md",
     ["Hello @Mona, welcome!", "", "Ping @Someone for approval.", ""].join("\n"),
@@ -182,7 +178,9 @@ test("the Mention Inbox opens on the current user", async ({ page }) => {
   const inbox = page.locator(".sb-nav-root-rhs");
   await expect(inbox.locator(".sb-nav-title")).toHaveText("Mention Inbox");
   const dropdown = inbox.locator("select.sb-nav-dropdown");
-  await expect(dropdown.locator("option:checked")).toHaveText("Mona", {
+  // Accounts are the first source `listRecipients()` consults, so the account's
+  // own spelling of the name wins over the `@Mona` the page happens to use.
+  await expect(dropdown.locator("option:checked")).toHaveText("mona", {
     timeout: 20_000,
   });
 
