@@ -1,14 +1,14 @@
 import {
+  linkWriteFormat,
+  writtenLinkText,
+} from "@silverbulletmd/silverbullet/lib/link_write";
+import {
   getNameFromPath,
   type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
-import {
-  BasenameIndex,
-  type LinkWriteFormat,
-  writeLinkPath,
-} from "@silverbulletmd/silverbullet/lib/resolve_path";
-import { config, space } from "@silverbulletmd/silverbullet/syscalls";
+import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
+import { space } from "@silverbulletmd/silverbullet/syscalls";
 import { updateBacklinks } from "./refactor.ts";
 
 /**
@@ -27,31 +27,27 @@ import { updateBacklinks } from "./refactor.ts";
  * collisions surface as `ambiguous-link` objects instead.
  */
 export async function requalifyCollisions(pageName: string): Promise<void> {
-  const lookups = await space.lookupPaths([fileName(`${pageName}.md`)]);
-  const candidates = Object.values(lookups)[0]?.candidates ?? [];
+  const basename = fileName(`${pageName}.md`);
+  const lookups = await space.lookupPaths([basename]);
+  const candidates = lookups[basename]?.candidates ?? [];
   if (candidates.length < 2) {
     return;
   }
 
   const others = candidates
-    .map((path) => path.replace(/\.md$/, ""))
+    .map((path) => getNameFromPath(path))
     .filter((name) => name !== pageName);
 
   // The rewritten links honor the configured write format: with
   // `shortest-suffix` they get the shortest still-unique path suffix, with
   // the other formats the full path (the name collides, so `shortest` cannot
   // write it bare).
-  const writeFormat = await config.get<LinkWriteFormat>(
-    "linkWriteFormat",
-    "shortest",
-  );
+  const writeFormat = await linkWriteFormat();
   const index = new BasenameIndex();
   index.rebuild(candidates);
 
   for (const other of others) {
-    const written = getNameFromPath(
-      writeLinkPath(`${other}.md` as Path, writeFormat, index),
-    );
+    const written = writtenLinkText(`${other}.md` as Path, writeFormat, index);
     await updateBacklinks(other, other, written, true);
   }
 }

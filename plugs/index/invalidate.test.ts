@@ -34,7 +34,7 @@ test("a page linking the deleted file is found via its resolved path", async () 
   // docs/api/Auth.md is deleted: no candidate lookup returns it anymore, so
   // only its own path leads back to the stale relation.
   await space.deletePage("docs/api/Auth");
-  const pages = await collectPagesToReindex(["Auth.md"], ["docs/api/Auth.md"]);
+  const pages = await collectPagesToReindex(["docs/api/Auth.md"]);
   expect(pages).toContain("Home");
 });
 
@@ -48,10 +48,10 @@ test("a folder-to-folder move finds pages via the old resolved path", async () =
   // (that is the feature working), so only invalidation re-points the index.
   await space.deletePage("fred/Zef Hemel");
   await space.writePage("gred/Zef Hemel", "");
-  const pages = await collectPagesToReindex(
-    ["Zef Hemel.md"],
-    ["fred/Zef Hemel.md", "gred/Zef Hemel.md"],
-  );
+  const pages = await collectPagesToReindex([
+    "fred/Zef Hemel.md",
+    "gred/Zef Hemel.md",
+  ]);
   expect(pages).toContain("Home");
 });
 
@@ -62,7 +62,7 @@ test("a dangling link's page is found when its target appears", async () => {
   await indexPage("Home", "See [[Auth]]");
 
   await space.writePage("docs/api/Auth", "");
-  const pages = await collectPagesToReindex(["Auth.md"], ["docs/api/Auth.md"]);
+  const pages = await collectPagesToReindex(["docs/api/Auth.md"]);
   expect(pages).toContain("Home");
 });
 
@@ -73,9 +73,6 @@ test("an unrelated file event re-indexes nothing", async () => {
   await indexPage("Home", "See [[Auth]]");
 
   await space.writePage("Elsewhere/Unrelated", "");
-  const pages = await collectPagesToReindex(
-    ["Unrelated.md"],
-    ["Elsewhere/Unrelated.md"],
-  );
+  const pages = await collectPagesToReindex(["Elsewhere/Unrelated.md"]);
   expect(pages.size).toBe(0);
 });

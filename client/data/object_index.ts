@@ -1,4 +1,8 @@
-import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
+import type {
+  IndexQueueBody,
+  KV,
+  KvKey,
+} from "@silverbulletmd/silverbullet/type/datastore";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { relationToLink } from "../../plugs/index/link.ts";
 import type { Config } from "../config.ts";
@@ -455,7 +459,7 @@ export class ObjectIndex {
       "indexQueue",
       // `clearIndex` above already dropped every file's entries, so tell the
       // indexer not to clear them again one file at a time.
-      files.map((file) => ({ path: file.name, cleared: true })),
+      files.map((file): IndexQueueBody => ({ path: file.name, cleared: true })),
     );
     await this.mq.awaitEmptyQueue("indexQueue");
     await this.markFullIndexComplete();

@@ -1,24 +1,26 @@
+import {
+  getNameFromPath,
+  type Path,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 import { index, mq, space } from "@silverbulletmd/silverbullet/syscalls";
 import { getTextualBackRelations } from "./relation.ts";
 
-function toName(path: string): string {
-  return path.endsWith(".md") ? path.slice(0, -3) : path;
-}
-
-const pendingBasenames = new Set<string>();
 const pendingPaths = new Set<string>();
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
+const toName = (path: string) => getNameFromPath(path as Path);
+
 /**
- * Finds the pages to re-index now that files carrying these basenames — the
- * files at these exact paths — appeared or disappeared. Exported for tests;
- * the timer-driven flush below is the production caller.
+ * Finds the pages to re-index now that the files at these paths appeared or
+ * disappeared. Exported for tests; the timer-driven flush below is the
+ * production caller.
  */
 export async function collectPagesToReindex(
-  basenames: string[],
   paths: string[],
 ): Promise<Set<string>> {
+  const basenames = [...new Set(paths.map((path) => fileName(path)))];
+
   // Every file that currently answers to one of these names: a bare link to any
   // of them may now land somewhere else.
   const lookups = await space.lookupPaths(basenames);
@@ -38,8 +40,11 @@ export async function collectPagesToReindex(
   }
 
   const pages = new Set<string>();
-  for (const target of targets) {
-    for (const relation of await getTextualBackRelations(target)) {
+  const relationLists = await Promise.all(
+    [...targets].map((target) => getTextualBackRelations(target)),
+  );
+  for (const relations of relationLists) {
+    for (const relation of relations) {
       pages.add(relation.page);
     }
   }
@@ -72,15 +77,13 @@ export async function collectPagesToReindex(
  * which suppresses events and defers `fetchFileList` while one is in flight).
  */
 async function flushPending(): Promise<void> {
-  const basenames = [...pendingBasenames];
   const paths = [...pendingPaths];
-  pendingBasenames.clear();
   pendingPaths.clear();
-  if (basenames.length === 0) {
+  if (paths.length === 0) {
     return;
   }
 
-  const pages = await collectPagesToReindex(basenames, paths);
+  const pages = await collectPagesToReindex(paths);
   if (pages.size === 0) {
     return;
   }
@@ -97,7 +100,6 @@ async function flushPending(): Promise<void> {
  * queries. One pass once the burst settles finds the same pages.
  */
 function scheduleInvalidation(path: string) {
-  pendingBasenames.add(fileName(path));
   pendingPaths.add(path);
   if (flushTimer !== undefined) {
     clearTimeout(flushTimer);

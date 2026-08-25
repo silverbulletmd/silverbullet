@@ -116,17 +116,27 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
     return widgets;
   }
 
+  // Built per rendered link on every editor update: compute only the branch
+  // that is actually shown.
   const cleanedPath = ref ? getNameFromPath(ref.path) : stringRef;
-  const helpText = {
-    default: `Navigate to ${cleanedPath}`,
-    "file-missing": `Create ${cleanedPath}`,
-    invalid: `Cannot create invalid file ${cleanedPath}`,
-    ambiguous: `Ambiguous — ${
-      resolution?.candidates?.length ?? 0
-    } candidates, resolving to ${
-      resolution ? getNameFromPath(resolution.path) : cleanedPath
-    }`,
-  }[linkStatus];
+  let helpText: string;
+  switch (linkStatus) {
+    case "file-missing":
+      helpText = `Create ${cleanedPath}`;
+      break;
+    case "invalid":
+      helpText = `Cannot create invalid file ${cleanedPath}`;
+      break;
+    case "ambiguous":
+      helpText = `Ambiguous — ${
+        resolution?.candidates?.length ?? 0
+      } candidates, resolving to ${
+        resolution ? getNameFromPath(resolution.path) : cleanedPath
+      }`;
+      break;
+    default:
+      helpText = `Navigate to ${cleanedPath}`;
+  }
 
   let linkText = alias || stringRef;
 

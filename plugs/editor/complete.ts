@@ -1,16 +1,11 @@
 import {
-  getNameFromPath,
-  type Path,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
+  linkWriteFormat,
+  writtenLinkText,
+} from "@silverbulletmd/silverbullet/lib/link_write";
+import { type Path, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
+import { collisionIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import {
-  collisionIndex,
-  type LinkWriteFormat,
-  writeLinkPath,
-} from "@silverbulletmd/silverbullet/lib/resolve_path";
-import {
-  config,
   editor,
   index,
   language,
@@ -115,19 +110,19 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   const folder = folderName(completeEvent.pageName);
 
-  const writeFormat = await config.get<LinkWriteFormat>(
-    "linkWriteFormat",
-    "shortest",
-  );
-  // `allPages` holds documents too, whose names already carry an extension —
-  // `parseToRef` appends `.md` only where it belongs.
-  const pathOf = (name: string): Path | undefined =>
-    parseToRef(name)?.path || undefined;
   // Only the colliding basenames cross the sandbox boundary — everything else
   // is unique by the bare-iff-unique invariant and writes bare. Asking for
   // the whole listing instead costs tens of milliseconds per keystroke in a
   // large space.
-  const linkIndex = collisionIndex(await space.collidingBasenames());
+  const [writeFormat, colliding] = await Promise.all([
+    linkWriteFormat(),
+    space.collidingBasenames(),
+  ]);
+  const linkIndex = collisionIndex(colliding);
+  // `allPages` holds documents too, whose names already carry an extension —
+  // `parseToRef` appends `.md` only where it belongs.
+  const pathOf = (name: string): Path | undefined =>
+    parseToRef(name)?.path || undefined;
   const written = (name: string, aspiring: boolean): string => {
     // Caret links address infrastructure pages by their full path; shortening
     // `^Library/Std/APIs/Tag` to `^Tag` would point at the concept page.
@@ -137,15 +132,17 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       return name;
     }
     const path = pathOf(name);
-    return path
-      ? getNameFromPath(writeLinkPath(path, writeFormat, linkIndex))
-      : name;
+    return path ? writtenLinkText(path, writeFormat, linkIndex) : name;
   };
 
   return {
     from: completeEvent.pos - prefix.length,
     options: allPages.flatMap((pageMeta) => {
       const completions: any[] = [];
+      const applyName = written(
+        pageMeta.name,
+        (pageMeta as PageMeta)._isAspiring === true,
+      );
       const namePrefix = (pageMeta as PageMeta).pageDecoration?.prefix || "";
       const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClasses || [])
         .join(" ")
@@ -165,8 +162,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             boost: recencyBoost,
             apply:
               pageMeta.tag === "template"
-                ? written(pageMeta.name, pageMeta._isAspiring === true)
-                : `${written(pageMeta.name, pageMeta._isAspiring === true)}|${linkAlias}`,
+                ? applyName
+                : `${applyName}|${linkAlias}`,
             detail: pageMeta.linkName
               ? `linkName for: ${pageMeta.name}`
               : `displayName for: ${pageMeta.name}`,
@@ -183,8 +180,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
               boost: recencyBoost,
               apply:
                 pageMeta.tag === "template"
-                  ? written(pageMeta.name, pageMeta._isAspiring === true)
-                  : `${written(pageMeta.name, pageMeta._isAspiring === true)}|${alias}`,
+                  ? applyName
+                  : `${applyName}|${alias}`,
               detail: `alias to: ${pageMeta.name}`,
               type: "page",
               cssClass,
@@ -192,12 +189,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           }
         }
         const decoratedName = namePrefix + pageMeta.name;
-        const applyText = written(pageMeta.name, pageMeta._isAspiring === true);
         completions.push({
           label: pageMeta.name,
           displayLabel: decoratedName,
           boost: recencyBoost,
-          apply: applyText === pageMeta.name ? undefined : applyText,
+          apply: applyName === pageMeta.name ? undefined : applyName,
           detail: pageMeta.tags?.includes("non-existing")
             ? "Linked but not created"
             : undefined,

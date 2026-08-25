@@ -1,15 +1,11 @@
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import {
-  getNameFromPath,
-  isValidPath,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
+  linkWriteFormat,
+  writtenLinkText,
+} from "@silverbulletmd/silverbullet/lib/link_write";
+import { isValidPath, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import {
-  BasenameIndex,
-  type LinkWriteFormat,
-  writeLinkPath,
-} from "@silverbulletmd/silverbullet/lib/resolve_path";
+import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   addParentPointers,
@@ -18,7 +14,6 @@ import {
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  config,
   editor,
   index,
   lua,
@@ -28,7 +23,11 @@ import {
 } from "@silverbulletmd/silverbullet/syscalls";
 import { findRenameConflict, shouldDeleteOldPath } from "./refactor_case.ts";
 import { spliceReference } from "./refactor_splice.ts";
-import { getTextualBackRelations, type RelationObject } from "./relation.ts";
+import {
+  getTextualBackRelations,
+  isWikiLinkAt,
+  type RelationObject,
+} from "./relation.ts";
 
 /** A relation known to span page text, which is what a rewrite needs. */
 type RangedRelation = RelationObject & { range: [number, number] };
@@ -303,7 +302,7 @@ async function renamePage(oldName: string, newName: string) {
   }
 
   // Update backlinks to this page
-  const { updated: updatedRefences } = await updateBacklinks(oldName, newName);
+  const updatedRefences = await updateBacklinks(oldName, newName);
 
   // Navigate to new page if currently viewing old page
   if ((await editor.getCurrentPage()) === oldName) {
@@ -342,7 +341,7 @@ async function renameDocument(oldPath: string, newPath: string) {
   }
 
   // Update any backlinks
-  const { updated: updatedRefences } = await updateBacklinks(oldPath, newPath);
+  const updatedRefences = await updateBacklinks(oldPath, newPath);
   let message = `Renamed ${oldPath} to ${newPath}`;
   if (updatedRefences > 0) {
     message = `${message}, updated ${updatedRefences} backlinks`;
@@ -457,12 +456,7 @@ export async function extractToPageCommand() {
   await editor.navigate(newName);
 }
 
-/**
- * Updates backlinks across all pages
- * @param oldName Full path to old page/file
- * @param newName Full path to new page/file
- * @returns The number of references updated
- */
+/** The link text a rename writes for `name`, with `vanishingName` on its way out. */
 async function wikiLinkTextFor(
   name: string,
   vanishingName?: string,
@@ -471,10 +465,7 @@ async function wikiLinkTextFor(
   if (!path) {
     return name;
   }
-  const writeFormat = await config.get<LinkWriteFormat>(
-    "linkWriteFormat",
-    "shortest",
-  );
+  const writeFormat = await linkWriteFormat();
 
   const lookups = await space.lookupPaths([path]);
   const index = new BasenameIndex();
@@ -487,15 +478,21 @@ async function wikiLinkTextFor(
     index.delete(vanishingPath);
   }
 
-  return getNameFromPath(writeLinkPath(path, writeFormat, index));
+  return writtenLinkText(path, writeFormat, index);
 }
 
+/**
+ * Updates backlinks across all pages
+ * @param oldName Full path to old page/file
+ * @param newName Full path to new page/file
+ * @returns The number of references updated
+ */
 export async function updateBacklinks(
   oldName: string,
   newName: string,
   wikiNameOverride?: string,
   wikiLinksOnly = false,
-): Promise<{ updated: number }> {
+): Promise<number> {
   // This is the bit where we update all the links
   const backRelations = await getTextualBackRelations(oldName);
   const newWikiName =
@@ -532,9 +529,8 @@ export async function updateBacklinks(
 
     for (const rec of recsInPage) {
       if (!rec.range) continue;
-      if (wikiLinksOnly) {
-        const slice = text.substring(rec.range[0], rec.range[1]);
-        if (!slice.startsWith("[[") && !slice.startsWith("![[")) continue;
+      if (wikiLinksOnly && !isWikiLinkAt(text, rec.range)) {
+        continue;
       }
       const before = text;
       text = spliceReference({
@@ -554,5 +550,5 @@ export async function updateBacklinks(
     }
   }
 
-  return { updated: updatedReferences };
+  return updatedReferences;
 }

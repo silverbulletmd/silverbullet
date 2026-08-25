@@ -4,7 +4,9 @@ import {
   type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import { escapeBakedBody } from "../baked_sections/regions.ts";
 import type { Client } from "../client.ts";
+import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
@@ -23,8 +25,6 @@ import {
   findWidgetSourceRange,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
-import { escapeBakedBody } from "../baked_sections/regions.ts";
-import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -301,6 +301,7 @@ export class LuaWidget extends WidgetType {
         wc.markdown || "",
       );
 
+      const resolveTransclusion = buildResolveTransclusion(this.opts.client);
       mdTree = await expandMarkdown(
         this.opts.client.space,
         currentName,
@@ -309,7 +310,7 @@ export class LuaWidget extends WidgetType {
         {
           rewriteTasks: false,
           syntaxExtensions,
-          resolveTransclusion: buildResolveTransclusion(this.opts.client),
+          resolveTransclusion,
         },
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
@@ -348,7 +349,7 @@ export class LuaWidget extends WidgetType {
           {
             shortWikiLinks: this.opts.client.config.get("shortWikiLinks", true),
             translateUrls: buildTranslateUrls(this.opts.client),
-            resolveTransclusion: buildResolveTransclusion(this.opts.client),
+            resolveTransclusion,
           },
           this.opts.client.ui.viewState.allPages,
         ),

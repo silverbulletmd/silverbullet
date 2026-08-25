@@ -120,8 +120,6 @@ pub fn resolve_path(path: &str, from_page: &str, index: &BasenameIndex) -> Resol
             candidates: None,
         };
     }
-    let bare = !path.contains('/');
-
     if index.has(path) {
         // An exact path match is fully determined by the link text, so it is
         // never reported ambiguous — even when other files share the basename.
@@ -136,14 +134,13 @@ pub fn resolve_path(path: &str, from_page: &str, index: &BasenameIndex) -> Resol
         };
     }
 
-    // Both lookups start from the basename bucket; a qualified path just has
-    // to match more of its tail. That suffix fallback is what keeps qualified
-    // links working when a space is opened at a wider root.
+    // A bare name is just the degenerate suffix, so one matcher serves both
+    // lookups: a candidate matches when, `/`-prefixed, its path ends with `/`
+    // plus the ref. The suffix fallback is what keeps qualified links working
+    // when a space is opened at a wider root.
+    let suffix = format!("/{}", path.to_lowercase());
     let mut candidates = index.candidates(file_name(path));
-    if !bare {
-        let suffix = format!("/{}", path.to_lowercase());
-        candidates.retain(|candidate| candidate.to_lowercase().ends_with(&suffix));
-    }
+    candidates.retain(|candidate| format!("/{}", candidate.to_lowercase()).ends_with(&suffix));
     if candidates.is_empty() {
         return ResolveResult {
             path: path.to_string(),
@@ -152,19 +149,30 @@ pub fn resolve_path(path: &str, from_page: &str, index: &BasenameIndex) -> Resol
             candidates: None,
         };
     }
+    // The overwhelmingly common case under the bare-iff-unique invariant.
+    if candidates.len() == 1 {
+        return ResolveResult {
+            path: candidates.into_iter().next().expect("length checked"),
+            exists: true,
+            ambiguous: false,
+            candidates: None,
+        };
+    }
 
-    let suffix = format!("/{path}");
+    let case_suffix = format!("/{path}");
     let exact_case: Vec<String> = candidates
         .iter()
-        .filter(|candidate| {
-            if bare {
-                file_name(candidate) == path
-            } else {
-                candidate.ends_with(&suffix)
-            }
-        })
+        .filter(|candidate| format!("/{candidate}").ends_with(&case_suffix))
         .cloned()
         .collect();
+    if exact_case.len() == 1 {
+        return ResolveResult {
+            path: exact_case.into_iter().next().expect("length checked"),
+            exists: true,
+            ambiguous: false,
+            candidates: None,
+        };
+    }
     let ranked = rank_candidates(
         if exact_case.is_empty() {
             &candidates
@@ -173,14 +181,6 @@ pub fn resolve_path(path: &str, from_page: &str, index: &BasenameIndex) -> Resol
         },
         from_page,
     );
-    if ranked.len() == 1 {
-        return ResolveResult {
-            path: ranked.into_iter().next().expect("length checked"),
-            exists: true,
-            ambiguous: false,
-            candidates: None,
-        };
-    }
     ResolveResult {
         path: ranked[0].clone(),
         exists: true,

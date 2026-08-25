@@ -1,22 +1,22 @@
-import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState, Range } from "@codemirror/state";
 import { Decoration, WidgetType } from "@codemirror/view";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import type { Client } from "../client.ts";
+import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
+import { expandMarkdown } from "../markdown_renderer/inline.ts";
+import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
+import { matchHtmlTagPairs, parseHtmlTag } from "./html_element.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
-import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
-import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
-import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
-import type { Client } from "../client.ts";
 import {
   attachWidgetEventHandlers,
   buildResolveTransclusion,
   buildTranslateUrls,
 } from "./widget_util.ts";
-import { matchHtmlTagPairs, parseHtmlTag } from "./html_element.ts";
 
 /**
  * Widget that renders an HTMLBlock or a slice of inline HTML as HTML, by
@@ -52,6 +52,7 @@ class HtmlWidget extends WidgetType {
       dom.classList.add("sb-html-widget-inline");
     }
 
+    const resolveTransclusion = buildResolveTransclusion(this.client);
     void expandMarkdown(
       this.client.space,
       this.client.currentName(),
@@ -59,14 +60,14 @@ class HtmlWidget extends WidgetType {
       this.client.clientSystem.spaceLuaEnv,
       {
         syntaxExtensions: this.client.config.get("syntaxExtensions", {}),
-        resolveTransclusion: buildResolveTransclusion(this.client),
+        resolveTransclusion,
       },
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         annotationPositions: true,
         shortWikiLinks: this.client.config.get("shortWikiLinks", true),
         translateUrls: buildTranslateUrls(this.client),
-        resolveTransclusion: buildResolveTransclusion(this.client),
+        resolveTransclusion,
       });
       setTimeout(() => {
         attachWidgetEventHandlers(dom, this.client, this.sourceText);

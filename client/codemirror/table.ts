@@ -1,20 +1,19 @@
-import type { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState } from "@codemirror/state";
 import { Decoration, WidgetType } from "@codemirror/view";
+import {
+  type ParseTree,
+  renderToText,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import type { Client } from "../client.ts";
+import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
+import { expandMarkdown } from "../markdown_renderer/inline.ts";
+import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import {
   decoratorStateField,
   hideBlockSource,
   isCursorInRange,
 } from "./util.ts";
-
-import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
-import {
-  type ParseTree,
-  renderToText,
-} from "@silverbulletmd/silverbullet/lib/tree";
-import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
-import type { Client } from "../client.ts";
-import { expandMarkdown } from "../markdown_renderer/inline.ts";
 import {
   attachWidgetEventHandlers,
   buildResolveTransclusion,
@@ -53,6 +52,7 @@ class TableViewWidget extends WidgetType {
       });
     });
 
+    const resolveTransclusion = buildResolveTransclusion(this.client);
     void expandMarkdown(
       this.client.space,
       this.client.currentName(),
@@ -60,7 +60,7 @@ class TableViewWidget extends WidgetType {
       this.client.clientSystem.spaceLuaEnv,
       {
         syntaxExtensions: this.client.config.get("syntaxExtensions", {}),
-        resolveTransclusion: buildResolveTransclusion(this.client),
+        resolveTransclusion,
       },
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
@@ -69,7 +69,7 @@ class TableViewWidget extends WidgetType {
         annotationPositions: true,
         shortWikiLinks: this.client.config.get("shortWikiLinks", true),
         translateUrls: buildTranslateUrls(this.client),
-        resolveTransclusion: buildResolveTransclusion(this.client),
+        resolveTransclusion,
       });
       setTimeout(() => {
         // Give it a tick to render

@@ -209,14 +209,19 @@ export function fileExists(name: string): Promise<boolean> {
 }
 
 /**
- * Looks up a batch of paths at once: for each, whether that exact path exists
- * and which files share its basename. Pair with `lookupIndex` and `resolvePath`
- * from `lib/resolve_path` to resolve them.
+ * Every basename carried by more than one file, with the files that carry it.
+ * Small under the bare-iff-unique invariant; pair with `collisionIndex` and
+ * `writeLinkPath` from `lib/resolve_path` to decide link write formats.
  */
 export function collidingBasenames(): Promise<Record<string, Path[]>> {
   return syscall("space.collidingBasenames");
 }
 
+/**
+ * Looks up a batch of paths at once: for each, whether that exact path exists
+ * and which files share its basename. Pair with `lookupIndex` and `resolvePath`
+ * from `lib/resolve_path` to resolve them.
+ */
 export function lookupPaths(
   paths: string[],
 ): Promise<Record<string, PathLookup>> {

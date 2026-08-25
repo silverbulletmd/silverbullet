@@ -1,3 +1,5 @@
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import {
   editor,
   events,
@@ -6,17 +8,13 @@ import {
   mq,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { notFoundError } from "@silverbulletmd/silverbullet/constants";
-import { sleep } from "@silverbulletmd/silverbullet/lib/async";
-import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
+import type {
+  IndexQueueBody,
+  MQMessage,
+} from "@silverbulletmd/silverbullet/type/datastore";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
 /// QUEUE PROCESSING
-
-/**
- * A plain path, or a path a producer has already cleared the index for.
- */
-type IndexQueueBody = string | { path: string; cleared?: boolean };
 
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {

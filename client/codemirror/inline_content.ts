@@ -1,34 +1,34 @@
-import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState, Range } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
+import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import {
-  decoratorStateField,
-  invisibleDecoration,
-  isCursorInRange,
-  widgetRenderMode,
-} from "./util.ts";
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  nameFromTransclusion,
+  parseTransclusion,
+  resolveTransclusionUrl,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import type { Client } from "../client.ts";
-import { LuaWidget } from "./lua_widget.ts";
-import { LoadingWidget } from "./loading_widget.ts";
+import { parse } from "../markdown_parser/parse_tree.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import {
   createMediaElement,
   expandMarkdown,
   readTransclusionContent,
 } from "../markdown_renderer/inline.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
+import { LoadingWidget } from "./loading_widget.ts";
+import { LuaWidget } from "./lua_widget.ts";
 import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
-import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import { parse } from "../markdown_parser/parse_tree.ts";
-import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  nameFromTransclusion,
-  parseTransclusion,
-  resolveTransclusionUrl,
-} from "@silverbulletmd/silverbullet/lib/transclusion";
-import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+  decoratorStateField,
+  invisibleDecoration,
+  isCursorInRange,
+  widgetRenderMode,
+} from "./util.ts";
 import { buildResolveTransclusion, buildTranslateUrls } from "./widget_util.ts";
 
 export function inlineContentPlugin(client: Client) {
@@ -99,6 +99,7 @@ export function inlineContentPlugin(client: Client) {
                   );
                 }
 
+                const resolveTransclusion = buildResolveTransclusion(client);
                 try {
                   let content;
                   try {
@@ -119,7 +120,7 @@ export function inlineContentPlugin(client: Client) {
                       client.clientSystem.spaceLuaEnv,
                       {
                         syntaxExtensions,
-                        resolveTransclusion: buildResolveTransclusion(client),
+                        resolveTransclusion,
                       },
                     );
                     content = {
@@ -131,7 +132,7 @@ export function inlineContentPlugin(client: Client) {
                             true,
                           ),
                           translateUrls: buildTranslateUrls(client),
-                          resolveTransclusion: buildResolveTransclusion(client),
+                          resolveTransclusion,
                         },
                         client.ui.viewState.allPages,
                       ),

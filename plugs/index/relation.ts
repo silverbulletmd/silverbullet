@@ -516,7 +516,7 @@ function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
   }
 }
 
-function isWikiLinkAt(text: string, range: [number, number]): boolean {
+export function isWikiLinkAt(text: string, range: [number, number]): boolean {
   const slice = text.substring(range[0], range[1]);
   return slice.startsWith("[[") || slice.startsWith("![[");
 }

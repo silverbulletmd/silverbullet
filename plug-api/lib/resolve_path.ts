@@ -92,7 +92,7 @@ export class BasenameIndex implements PathIndex {
   }
 }
 
-export function basenameKey(path: string): string {
+function basenameKey(path: string): string {
   return fileName(path).toLowerCase();
 }
 
@@ -250,8 +250,6 @@ export function resolvePath(
   if (path === "") {
     return { path, exists: true, ambiguous: false };
   }
-  const bare = !path.includes("/");
-
   if (index.has(path)) {
     // An exact path match is fully determined by the link text, so it is never
     // reported ambiguous — even when other files share the basename. For a
@@ -261,29 +259,32 @@ export function resolvePath(
     return { path, exists: true, ambiguous: false };
   }
 
-  // Both lookups start from the basename bucket; a qualified path just has to
-  // match more of its tail.
-  let candidates = index.candidates(fileName(path));
-  if (!bare) {
-    const suffix = `/${path.toLowerCase()}`;
-    candidates = candidates.filter((candidate) =>
-      candidate.toLowerCase().endsWith(suffix),
-    );
-  }
+  // A bare name is just the degenerate suffix, so one matcher serves both
+  // lookups: a candidate matches when, `/`-prefixed, its path ends with `/`
+  // plus the ref.
+  const suffix = `/${path.toLowerCase()}`;
+  const candidates = index
+    .candidates(fileName(path))
+    .filter((candidate) => `/${candidate.toLowerCase()}`.endsWith(suffix));
   if (candidates.length === 0) {
     return { path, exists: false, ambiguous: false };
   }
+  // The overwhelmingly common case under the bare-iff-unique invariant, on
+  // the per-rendered-link path: skip the case filter and the ranking sort.
+  if (candidates.length === 1) {
+    return { path: candidates[0], exists: true, ambiguous: false };
+  }
 
-  const matchesCase = bare
-    ? (candidate: Path) => fileName(candidate) === path
-    : (candidate: Path) => candidate.endsWith(`/${path}`);
-  const exactCase = candidates.filter(matchesCase);
+  const caseSuffix = `/${path}`;
+  const exactCase = candidates.filter((candidate) =>
+    `/${candidate}`.endsWith(caseSuffix),
+  );
+  if (exactCase.length === 1) {
+    return { path: exactCase[0], exists: true, ambiguous: false };
+  }
   const ranked = rankCandidates(
     exactCase.length > 0 ? exactCase : candidates,
     fromPage,
   );
-  if (ranked.length === 1) {
-    return { path: ranked[0], exists: true, ambiguous: false };
-  }
   return { path: ranked[0], exists: true, ambiguous: true, candidates: ranked };
 }

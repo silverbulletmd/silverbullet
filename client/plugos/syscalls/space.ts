@@ -1,13 +1,12 @@
 import {
   encodePageURI,
-  parseToRef,
   type Path,
+  parseToRef,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   BasenameIndex,
-  type PathIndex,
   type PathLookup,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve_path";
@@ -43,6 +42,22 @@ async function fetchRevisionsJson(
     throw new Error(`Revisions request failed: ${resp.status}`);
   }
   return resp.json();
+}
+
+/**
+ * The index resolution syscalls answer from. The client's own index is only
+ * trustworthy once the file list has loaded; before that, ask the space
+ * directly rather than reporting everything as missing.
+ */
+async function resolutionIndex(client: Client): Promise<BasenameIndex> {
+  if (client.clientSystem.knownFilesLoaded) {
+    return client.clientSystem.allKnownFiles;
+  }
+  const listing = new BasenameIndex();
+  listing.rebuild(
+    (await client.space.spacePrimitives.fetchFileList()).map((f) => f.name),
+  );
+  return listing;
 }
 
 export function spaceReadSyscalls(client: Client): SysCallMapping {
@@ -163,20 +178,8 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.readFileWithMeta(name)"],
     },
     "space.collidingBasenames": {
-      callback: async (): Promise<Record<string, Path[]>> => {
-        // Same cold-start rule as lookupPaths below: before the file list has
-        // loaded, ask the space instead of answering from a half-filled index.
-        if (!client.clientSystem.knownFilesLoaded) {
-          const listing = new BasenameIndex();
-          listing.rebuild(
-            (await client.space.spacePrimitives.fetchFileList()).map(
-              (f) => f.name,
-            ),
-          );
-          return listing.collidingBuckets();
-        }
-        return client.clientSystem.allKnownFiles.collidingBuckets();
-      },
+      callback: async (): Promise<Record<string, Path[]>> =>
+        (await resolutionIndex(client)).collidingBuckets(),
       description:
         "Returns every basename carried by more than one file, with the files carrying it.",
       signatures: ["space.collidingBasenames()"],
@@ -186,19 +189,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
         _ctx,
         paths: string[],
       ): Promise<Record<string, PathLookup>> => {
-        // The client's index is only trustworthy once the file list has
-        // loaded; before that, ask the space directly rather than reporting
-        // everything as missing.
-        let index: PathIndex = client.clientSystem.allKnownFiles;
-        if (!client.clientSystem.knownFilesLoaded) {
-          const listing = new BasenameIndex();
-          listing.rebuild(
-            (await client.space.spacePrimitives.fetchFileList()).map(
-              (f) => f.name,
-            ),
-          );
-          index = listing;
-        }
+        const index = await resolutionIndex(client);
 
         const result: Record<string, PathLookup> = {};
         for (const path of paths) {
