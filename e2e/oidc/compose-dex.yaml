@@ -35,7 +35,7 @@ services:
   # ── SilverBullet ─────────────────────────────────────────────────────────
   sb:
     build:
-      context: ..
+      context: ../..
       dockerfile: e2e/oidc/Dockerfile.silverbullet
     image: silverbullet:oidc
     network_mode: host
