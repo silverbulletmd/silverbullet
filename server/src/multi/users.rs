@@ -23,6 +23,16 @@ pub struct TokenEntry {
     pub created_at: String,
 }
 
+/// Who last wrote an account's `full_name`. An admin override wins over
+/// provider sync: OIDC logins stop updating the name once an admin sets it.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NameSource {
+    Admin,
+    Oidc,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserEntry {
@@ -30,15 +40,66 @@ pub struct UserEntry {
     pub password_hash: String,
     #[serde(default)]
     pub admin: bool,
+    /// The human-readable name rendered in place of the account name when
+    /// set. Defaults to the account name — relevant for auto-provisioned
+    /// OIDC users whose account name is an opaque `oidc_<hash>`. Doubles as
+    /// the commit-attribution identity (see `Profile`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub full_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+    /// Who last wrote `full_name`: `"admin"` blocks provider sync.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub full_name_source: Option<NameSource>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub tokens: BTreeMap<String, TokenEntry>,
+    /// OIDC issuer URL when the account is linked to single sign-on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub oidc_issuer: Option<String>,
+    /// OIDC subject (`sub`) claim of the linked account.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub oidc_subject: Option<String>,
     /// Fields written by newer versions, preserved verbatim.
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+impl UserEntry {
+    /// Fold legacy extra-map keys (`oidcIssuer` / `oidcSubject` /
+    /// `oidcDisplayName`, written before dedicated fields existed) into the
+    /// typed fields and drop them from `extra`, so files migrate on first
+    /// load and never round-trip duplicated.
+    fn normalize_legacy(&mut self) {
+        for key in ["oidcIssuer", "oidcSubject"] {
+            let value = self.extra.remove(key);
+            let target = match key {
+                "oidcIssuer" => &mut self.oidc_issuer,
+                _ => &mut self.oidc_subject,
+            };
+            if target.is_none() {
+                if let Some(s) = value.and_then(|v| v.as_str().map(str::to_string)) {
+                    *target = Some(s);
+                }
+            }
+        }
+        if let Some(s) = self
+            .extra
+            .remove("oidcDisplayName")
+            .and_then(|v| v.as_str().map(str::to_string))
+        {
+            if self.full_name.is_none() {
+                self.full_name = Some(s);
+                if self.full_name_source.is_none() {
+                    self.full_name_source = Some(NameSource::Oidc);
+                }
+            }
+        }
+    }
+
+    /// The name to render: the explicit full name, else the account name.
+    pub fn effective_full_name<'a>(&'a self, account_name: &'a str) -> &'a str {
+        self.full_name.as_deref().unwrap_or(account_name)
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -65,8 +126,11 @@ impl Profile {
 
 impl UsersConfig {
     pub fn from_json(src: &str) -> Result<Self, String> {
-        let users: BTreeMap<String, UserEntry> =
+        let mut users: BTreeMap<String, UserEntry> =
             serde_json::from_str(src).map_err(|e| format!("invalid users.json: {e}"))?;
+        for entry in users.values_mut() {
+            entry.normalize_legacy();
+        }
         Ok(Self { users })
     }
 
@@ -273,19 +337,87 @@ impl UserStore {
         None
     }
 
-    /// Store OIDC (issuer, subject) in a user's `extra` map.
+    /// Store OIDC (issuer, subject) on a user.
     pub fn link_oidc(&self, name: &str, issuer: &str, subject: &str) -> Result<(), String> {
         self.mutate(|c| {
             let entry = c
                 .users
                 .get_mut(name)
                 .ok_or_else(|| format!("no such user {name:?}"))?;
-            entry
-                .extra
-                .insert("oidcIssuer".into(), serde_json::Value::String(issuer.into()));
-            entry
-                .extra
-                .insert("oidcSubject".into(), serde_json::Value::String(subject.into()));
+            entry.oidc_issuer = Some(issuer.into());
+            entry.oidc_subject = Some(subject.into());
+            Ok(())
+        })
+    }
+
+    /// The linked OIDC identity as `(issuer, subject)`, if linked.
+    pub fn oidc_identity(&self, name: &str) -> Option<(String, String)> {
+        let guard = self.read();
+        let entry = guard.users.get(name)?;
+        Some((entry.oidc_issuer.clone()?, entry.oidc_subject.clone()?))
+    }
+
+    /// The name to render for this account: its full name, else the
+    /// account name. Missing accounts render as their own name.
+    pub fn effective_full_name(&self, name: &str) -> String {
+        let guard = self.read();
+        match guard.users.get(name) {
+            Some(entry) => entry.effective_full_name(name).to_string(),
+            None => name.to_string(),
+        }
+    }
+
+    /// Remove the OIDC link (issuer + subject). Any full name stays.
+    pub fn unlink_oidc(&self, name: &str) -> Result<(), String> {
+        self.mutate(|c| {
+            let entry = c
+                .users
+                .get_mut(name)
+                .ok_or_else(|| format!("no such user {name:?}"))?;
+            entry.oidc_issuer = None;
+            entry.oidc_subject = None;
+            Ok(())
+        })
+    }
+
+    /// Set (Some) or clear (None) an admin-managed full name. Clearing
+    /// reverts rendering to the account name and re-enables provider sync.
+    pub fn set_full_name(&self, name: &str, full_name: Option<&str>) -> Result<(), String> {
+        self.mutate(|c| {
+            let entry = c
+                .users
+                .get_mut(name)
+                .ok_or_else(|| format!("no such user {name:?}"))?;
+            match full_name.map(str::trim).filter(|s| !s.is_empty()) {
+                Some(dn) => {
+                    entry.full_name = Some(dn.to_string());
+                    entry.full_name_source = Some(NameSource::Admin);
+                }
+                None => {
+                    entry.full_name = None;
+                    entry.full_name_source = None;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    /// Sync the profile from the provider on each OIDC login. An admin-set
+    /// full name always wins — sync only touches names it owns or absent
+    /// ones, and ignores empty claims.
+    pub fn sync_oidc_profile(&self, name: &str, full_name: Option<&str>) -> Result<(), String> {
+        self.mutate(|c| {
+            let entry = c
+                .users
+                .get_mut(name)
+                .ok_or_else(|| format!("no such user {name:?}"))?;
+            if entry.full_name_source == Some(NameSource::Admin) {
+                return Ok(());
+            }
+            if let Some(dn) = full_name.map(str::trim).filter(|s| !s.is_empty()) {
+                entry.full_name = Some(dn.to_string());
+                entry.full_name_source = Some(NameSource::Oidc);
+            }
             Ok(())
         })
     }
@@ -317,6 +449,9 @@ impl UserStore {
                     full_name: profile.full_name.clone(),
                     email: profile.email.clone(),
                     tokens: BTreeMap::new(),
+                    full_name_source: None,
+                    oidc_issuer: None,
+                    oidc_subject: None,
                     extra: Default::default(),
                 },
             );
@@ -428,18 +563,18 @@ impl UserStore {
         let guard = self.read();
         let mut out = serde_json::Map::new();
         for (name, u) in &guard.users {
-            out.insert(name.clone(), user_json(u));
+            out.insert(name.clone(), user_json(name, u));
         }
         serde_json::Value::Object(out)
     }
 
     /// Redacted JSON view for one account.
     pub fn get(&self, name: &str) -> Option<serde_json::Value> {
-        self.read().users.get(name).map(user_json)
+        self.read().users.get(name).map(|u| user_json(name, u))
     }
 }
 
-fn user_json(user: &UserEntry) -> serde_json::Value {
+fn user_json(account_name: &str, user: &UserEntry) -> serde_json::Value {
     let tokens: serde_json::Map<String, serde_json::Value> = user
         .tokens
         .iter()
@@ -452,9 +587,12 @@ fn user_json(user: &UserEntry) -> serde_json::Value {
         .collect();
     serde_json::json!({
         "admin": user.admin,
-        "fullName": user.full_name,
-        "email": user.email,
         "tokens": tokens,
+        "fullName": user.effective_full_name(account_name),
+        "email": user.email,
+        "fullNameSource": user.full_name_source,
+        "oidcIssuer": user.oidc_issuer,
+        "oidcSubject": user.oidc_subject,
     })
 }
 
@@ -465,6 +603,8 @@ mod tests {
     fn store(dir: &std::path::Path) -> std::sync::Arc<UserStore> {
         let s = UserStore::create_empty(dir).unwrap();
         s.create_user("ada", "hunter22", true, Profile::default())
+            .unwrap();
+        s.create_user("zef", "hunter22", false, Profile::default())
             .unwrap();
         s
     }
@@ -657,5 +797,81 @@ mod tests {
         let v = s.list();
         assert_eq!(v["ada"]["fullName"], "Ada Lovelace");
         assert!(v["ada"]["email"].is_null());
+    }
+
+    #[test]
+    fn full_name_defaults_to_account_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        assert_eq!(s.effective_full_name("zef"), "zef");
+        // Synced name shows through; source is reported so the UI can tell
+        // overrides apart.
+        s.sync_oidc_profile("zef", Some("Zef")).unwrap();
+        assert_eq!(s.effective_full_name("zef"), "Zef");
+        let v = s.get("zef").unwrap();
+        assert_eq!(v["fullName"], "Zef");
+        assert_eq!(v["fullNameSource"], "oidc");
+    }
+
+    #[test]
+    fn admin_override_blocks_provider_sync_until_cleared() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        s.set_full_name("zef", Some("  The Zef  ")).unwrap();
+        assert_eq!(s.effective_full_name("zef"), "The Zef"); // trimmed
+        // Provider says something else; override wins and sync is skipped.
+        s.sync_oidc_profile("zef", Some("Zef From Provider"))
+            .unwrap();
+        assert_eq!(s.effective_full_name("zef"), "The Zef");
+        assert_eq!(s.get("zef").unwrap()["fullNameSource"], "admin");
+        // Clearing (also via whitespace-only input) reverts rendering to the
+        // account name; the next OIDC login re-syncs from the provider.
+        assert!(s.set_full_name("zef", Some("   ")).is_ok());
+        assert_eq!(s.effective_full_name("zef"), "zef");
+        let v = s.get("zef").unwrap();
+        assert_ne!(v["fullNameSource"], "admin");
+        // Unknown users are rejected on both paths.
+        assert!(s.set_full_name("ghost", Some("x")).is_err());
+        assert!(s.sync_oidc_profile("ghost", Some("x")).is_err());
+    }
+
+    #[test]
+    fn legacy_extra_oidc_keys_migrate_to_typed_fields() {
+        // Pre-typed-field builds wrote these as free-form keys next to
+        // passwordHash; serde(flatten) collects them into `extra`.
+        let src = r#"{"old": {"passwordHash": "$argon2id$x", "oidcIssuer": "https://id.example", "oidcSubject": "sub-123", "oidcDisplayName": "Old Name"}}"#;
+        let cfg = UsersConfig::from_json(src).unwrap();
+        let entry = &cfg.users["old"];
+        assert_eq!(
+            entry.oidc_issuer.as_deref(),
+            Some("https://id.example")
+        );
+        assert_eq!(entry.oidc_subject.as_deref(), Some("sub-123"));
+        assert_eq!(entry.full_name.as_deref(), Some("Old Name"));
+        assert_eq!(entry.full_name_source, Some(NameSource::Oidc));
+        assert!(entry.extra.is_empty());
+        // Round-trip writes typed fields, never resurrects `extra`.
+        let out = cfg.to_json_string().unwrap();
+        assert!(out.contains("\"oidcIssuer\""));
+        assert!(!out.contains("\"extra\""));
+    }
+
+    #[test]
+    fn unlink_clears_link_but_keeps_full_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        s.link_oidc("zef", "https://id.example", "sub-1").unwrap();
+        s.sync_oidc_profile("zef", Some("Linked Name")).unwrap();
+        assert_eq!(
+            s.oidc_identity("zef"),
+            Some(("https://id.example".to_string(), "sub-1".to_string()))
+        );
+        s.unlink_oidc("zef").unwrap();
+        assert_eq!(s.oidc_identity("zef"), None);
+        // The label stays (it is just a name); admins can reset it via
+        // set_full_name if desired.
+        assert_eq!(s.effective_full_name("zef"), "Linked Name");
+        assert!(s.unlink_oidc("ghost").is_err());
+        assert!(s.link_oidc("ghost", "https://id.example", "sub").is_err());
     }
 }
