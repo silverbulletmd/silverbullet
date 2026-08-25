@@ -194,7 +194,7 @@ test-oidc-integration:
 	node e2e/oidc/flow.mjs dex errors
 	node e2e/oidc/claims.mjs dex
 	node e2e/oidc/expiry.mjs dex --wait 615
-	podman compose -f test-env/compose-dex.yaml down -v
+	podman compose -f e2e/oidc/compose-dex.yaml down -v
 
 bench:
 	npm run bench
