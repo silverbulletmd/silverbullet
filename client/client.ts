@@ -7,7 +7,7 @@ import { syntaxTree } from "@codemirror/language";
 import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
-import { jitter } from "@silverbulletmd/silverbullet/lib/async";
+import { jitter, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
 import {
   encodePageURI,
@@ -265,20 +265,11 @@ export class Client {
     });
 
     // If widget rendering is still gated waiting on a full index, the
-    // initial-index handler in ObjectIndex may have unsubscribed or
-    // never fired for this client. After any indexing pass empties the
-    // queue, refresh the page list cache so its index-backed branch
-    // can flip pageListLoaded and unblock widget rendering.
-    this.eventHook.addLocalListener("mq:emptyQueue:indexQueue", async () => {
-      if (this.widgetReadyDispatched) return;
-      if (
-        !this.pageListLoaded &&
-        (await this.objectIndex.hasFullIndexCompleted())
-      ) {
-        this.fullIndexCompleted = true;
-        await this.updatePageListCache();
-      }
-    });
+    // initial-index handler in ObjectIndex may have unsubscribed or never
+    // fired for this client — the index may have been completed by another
+    // window, which produces no event here at all. Poll until the page list
+    // cache can take its index-backed branch, then stop for good.
+    void this.pollForWidgetReadiness();
 
     this.clientSystem = new ClientSystem(
       this,
@@ -732,6 +723,19 @@ export class Client {
     }
 
     void this.space.spacePrimitives.fetchFileList();
+  }
+
+  private async pollForWidgetReadiness() {
+    while (!this.widgetReadyDispatched && !this.pageListLoaded) {
+      await sleep(2000);
+      if (this.widgetReadyDispatched || this.pageListLoaded) {
+        return;
+      }
+      if (await this.objectIndex.hasFullIndexCompleted()) {
+        this.fullIndexCompleted = true;
+        await this.updatePageListCache();
+      }
+    }
   }
 
   /**

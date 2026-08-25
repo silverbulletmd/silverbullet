@@ -47,6 +47,7 @@ test("with nobody marked me, the profile is still a name you can be addressed by
 
 test("retries after a failed fetch instead of caching the failure", async () => {
   vi.resetModules();
+  vi.useFakeTimers();
   const { loadAccounts } = await import("./accounts.ts");
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   const authenticatedFetch = vi
@@ -65,13 +66,40 @@ test("retries after a failed fetch instead of caching the failure", async () => 
   } as unknown as Client;
 
   expect(await loadAccounts(client)).toEqual([]);
+  vi.advanceTimersByTime(30000);
   expect(await loadAccounts(client)).toEqual([{ username: "ada", me: true }]);
   expect(authenticatedFetch).toHaveBeenCalledTimes(2);
   warn.mockRestore();
+  vi.useRealTimers();
+});
+
+test("a failing endpoint is not re-fetched on every call", async () => {
+  vi.resetModules();
+  vi.useFakeTimers();
+  const { loadAccounts } = await import("./accounts.ts");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const authenticatedFetch = vi
+    .fn()
+    .mockRejectedValue(new Error("network unreachable"));
+  const client = {
+    httpSpacePrimitives: {
+      url: "http://localhost:3000/.fs",
+      authenticatedFetch,
+    },
+  } as unknown as Client;
+
+  for (let i = 0; i < 5; i++) {
+    expect(await loadAccounts(client)).toEqual([]);
+    vi.advanceTimersByTime(500);
+  }
+  expect(authenticatedFetch).toHaveBeenCalledTimes(1);
+  warn.mockRestore();
+  vi.useRealTimers();
 });
 
 test("retries after a non-ok response instead of caching the failure", async () => {
   vi.resetModules();
+  vi.useFakeTimers();
   const { loadProfile } = await import("./accounts.ts");
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   const authenticatedFetch = vi
@@ -90,7 +118,9 @@ test("retries after a non-ok response instead of caching the failure", async () 
   } as unknown as Client;
 
   expect(await loadProfile(client)).toEqual({ username: "me" });
+  vi.advanceTimersByTime(30000);
   expect(await loadProfile(client)).toEqual({ username: "ada" });
   expect(authenticatedFetch).toHaveBeenCalledTimes(2);
   warn.mockRestore();
+  vi.useRealTimers();
 });

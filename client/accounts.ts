@@ -48,14 +48,25 @@ export function profileFrom(response: unknown): ClientProfile {
 }
 
 let cached: Promise<Account[]> | undefined;
+let retryAfter = 0;
+
+/** A failure is worth retrying -- a deployment whose accounts endpoint is
+ * missing or briefly unreachable should recover without a reload -- but not
+ * on every call: callers include per-refresh view sources, and an endpoint
+ * that keeps failing would otherwise be re-fetched several times a second. */
+const RETRY_COOLDOWN_MS = 30000;
 
 export function loadAccounts(client: Client): Promise<Account[]> {
   if (!cached) {
+    if (Date.now() < retryAfter) {
+      return Promise.resolve([]);
+    }
     cached = fetchAccounts(client).then(
       (accounts) => accounts,
       (e) => {
         console.warn("Could not load accounts", e);
         cached = undefined;
+        retryAfter = Date.now() + RETRY_COOLDOWN_MS;
         return [];
       },
     );

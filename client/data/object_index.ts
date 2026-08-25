@@ -83,8 +83,19 @@ export class ObjectIndex {
     // resulting in new index entries (if any) being queued in the index queue
     // this is later used to track if the index is complete
     let indexStarted = false;
+    let finishInitialIndex: (() => Promise<void>) | undefined;
+    // The queue announces a drain, not the state of being empty, so a client
+    // that has already listed and drained gets no further event. Both signals
+    // re-check the other rather than waiting for one that has been spent.
+    const finishIfDrained = async () => {
+      if (finishInitialIndex && (await this.mq.isQueueEmpty("indexQueue"))) {
+        await finishInitialIndex();
+      }
+    };
+
     this.eventHook.addLocalListener("file:listed", () => {
       indexStarted = true;
+      return finishIfDrained();
     });
 
     // Handle initial index completion for fresh installs only.
@@ -94,22 +105,29 @@ export class ObjectIndex {
           console.log("Index queue empty, checking if index is complete");
           // Theoretically we could get empty queue notifications before the file:listed event has been triggered, so let's account for this
           if (indexStarted) {
-            // Indexing has just finished for the first time for this client
-            console.info("Initial index complete, reloading editor state");
-            await this.markFullIndexComplete();
-            // Unsubscribe yourself
-            this.eventHook.removeLocalListener(
-              "mq:emptyQueue:indexQueue",
-              emptyQueueHandler,
-            );
-            // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
-            void this.eventHook.dispatchEvent("editor:reloadState");
+            await finishInitialIndex?.();
           }
+        };
+        finishInitialIndex = async () => {
+          finishInitialIndex = undefined;
+          // Indexing has just finished for the first time for this client
+          console.info("Initial index complete, reloading editor state");
+          await this.markFullIndexComplete();
+          // Unsubscribe yourself
+          this.eventHook.removeLocalListener(
+            "mq:emptyQueue:indexQueue",
+            emptyQueueHandler,
+          );
+          // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
+          void this.eventHook.dispatchEvent("editor:reloadState");
         };
         this.eventHook.addLocalListener(
           "mq:emptyQueue:indexQueue",
           emptyQueueHandler,
         );
+        if (indexStarted) {
+          void finishIfDrained();
+        }
       }
     });
   }
@@ -210,10 +228,22 @@ export class ObjectIndex {
 
   relations(kind?: string): LuaQueryCollection {
     if (kind) {
-      return this.filteredTag(
-        "relation",
-        (varName) => `${varName}.kind == ${JSON.stringify(kind)}`,
-      );
+      // `kind` isn't part of the key, so this still scans every relation --
+      // but rejecting in the enricher skips both enrichment and the Lua
+      // predicate for the rows that don't match, and never materializes them.
+      return {
+        query: (query, env, sf, config?): Promise<any[]> => {
+          return this.ds.luaQuery(
+            [indexKey, "relation"],
+            query,
+            env,
+            sf,
+            (key, value) =>
+              value?.kind === kind ? this.enricher(key, value) : undefined,
+            config,
+          );
+        },
+      };
     }
     return this.objectsWithTag("relation");
   }

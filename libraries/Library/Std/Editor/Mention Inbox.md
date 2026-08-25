@@ -28,12 +28,7 @@ local function inboxRows()
   for _, m in ipairs(mentions) do
     local hidden = false
     if m.fromTag == "task" then
-      -- Indexing a `query[[...]]` result directly (`query[[...]][1]`) fails
-      -- to parse; splitting the index onto its own line works around it.
-      local tasks = query[[
-        from index.tag "task" where _.ref == m.from limit 1
-      ]]
-      local task = tasks[1]
+      local task = index.getObjectByRef(m.page, "task", m.from)
       hidden = task and task.done or false
     end
     if not hidden then

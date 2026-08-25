@@ -34,6 +34,7 @@ export class QueueWorker {
    * This is the main loop of the worker, whenever it exits the loop it means the worker has stopped
    */
   async run() {
+    let drainPending = true;
     try {
       while (true) {
         if (this.stopping) {
@@ -45,14 +46,17 @@ export class QueueWorker {
           this.options.batchSize || 1,
         );
         if (messages.length > 0) {
+          drainPending = true;
           // We have messages, process them, then immediately loop to poll again
           await this.callback(messages);
         } else {
-          // No messages, wait to be woken up or a timeout
-          void this.mq.eventHook.dispatchEvent(
-            `mq:emptyQueue:${this.queue}`,
-            this.queue,
-          );
+          if (drainPending) {
+            drainPending = false;
+            void this.mq.eventHook.dispatchEvent(
+              `mq:emptyQueue:${this.queue}`,
+              this.queue,
+            );
+          }
           try {
             await race([
               // Wait to be woken up explicitly

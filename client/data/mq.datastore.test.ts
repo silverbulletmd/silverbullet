@@ -215,3 +215,39 @@ test("DataStore MQ - Scale test with multiple subscribers", async () => {
     vi.useRealTimers();
   }
 });
+
+test("DataStore MQ - empty queue is announced on drain, not on every poll", async () => {
+  vi.useFakeTimers();
+  const db = new MemoryKvPrimitives();
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+
+  try {
+    const mq = new DataStoreMQ(new DataStore(db), eventHook);
+    let announcements = 0;
+    eventHook.addLocalListener("mq:emptyQueue:drainTest", () => {
+      announcements++;
+    });
+
+    const worker = mq.subscribe("drainTest", { pollInterval: 100 }, () => {});
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(announcements).toEqual(1);
+
+    await mq.send("drainTest", "work");
+    while ((await mq.getQueueStats("drainTest")).queued > 0) {
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(announcements).toEqual(2);
+
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(announcements).toEqual(2);
+
+    worker.stop();
+  } finally {
+    await db.close();
+    vi.useRealTimers();
+  }
+});
