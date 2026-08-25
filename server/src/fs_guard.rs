@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
@@ -18,6 +18,12 @@ const EXPECTED_WRITE_TTL: Duration = Duration::from_secs(30);
 /// Above this many entries, `record_expected_write` opportunistically sweeps
 /// out expired ones -- same spirit as `LOCK_SWEEP_THRESHOLD`.
 const EXPECTED_WRITE_SWEEP_THRESHOLD: usize = 10_000;
+/// Above this many cached content hashes, `record` evicts in insertion order.
+/// Plain FIFO rather than LRU: an entry evicted while still hot is re-recorded
+/// by its next write, costing one hash, and a space large enough to churn
+/// through this many paths is past the point where an exact policy pays for
+/// the bookkeeping.
+const HASH_CACHE_CAPACITY: usize = 10_000;
 
 /// The resolved identity of a write this process just made, keyed by
 /// `(path, content hash)` so the watcher can match it up against the
@@ -38,11 +44,20 @@ pub struct ExpectedWrite {
     recorded_at: Instant,
 }
 
+/// Content hashes keyed by path, each valid only while the file still reports
+/// the `(last_modified, size)` it was recorded against. `order` bounds the map:
+/// see [`HASH_CACHE_CAPACITY`].
+#[derive(Default)]
+struct HashCache {
+    entries: HashMap<String, (i64, i64, String)>,
+    order: VecDeque<String>,
+}
+
 /// Per-space content-hash cache and per-path mutation locks for conditional
 /// `/.fs` writes.
 #[derive(Default)]
 pub struct FsGuard {
-    cache: RwLock<HashMap<String, (i64, i64, String)>>,
+    cache: RwLock<HashCache>,
     locks: Mutex<HashMap<String, Arc<Mutex<()>>>>,
     expected_writes: Mutex<HashMap<(String, String), ExpectedWrite>>,
     #[cfg(test)]
@@ -57,15 +72,23 @@ impl FsGuard {
         self.hash_for_calls
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let meta = space.get_file_meta(path)?;
-        if let Some((mtime, size, hash)) = self.cache.read().unwrap().get(path) {
-            if *mtime == meta.last_modified && *size == meta.size {
-                return Ok(hash.clone());
-            }
+        if let Some(hash) = self.cached_hash(path, &meta) {
+            return Ok(hash);
         }
         let (data, meta) = space.read_file(path)?;
         let hash = sha256_hex(&data);
         self.record(path, &meta, hash.clone());
         Ok(hash)
+    }
+
+    /// The recorded hash for `path`, if one was recorded against exactly the
+    /// `(last_modified, size)` `meta` reports. Callers that already hold both
+    /// the file's bytes and its meta use this to skip re-hashing content this
+    /// process has hashed before.
+    pub fn cached_hash(&self, path: &str, meta: &FileMeta) -> Option<String> {
+        let cache = self.cache.read().unwrap();
+        let (mtime, size, hash) = cache.entries.get(path)?;
+        (*mtime == meta.last_modified && *size == meta.size).then(|| hash.clone())
     }
 
     /// Total number of `hash_for` calls made so far. Test-only: lets a test
@@ -79,15 +102,27 @@ impl FsGuard {
 
     /// Record the hash of content just written, keyed by the write's result meta.
     pub fn record(&self, path: &str, meta: &FileMeta, hash: String) {
-        self.cache
-            .write()
-            .unwrap()
-            .insert(path.to_string(), (meta.last_modified, meta.size, hash));
+        let mut cache = self.cache.write().unwrap();
+        if cache
+            .entries
+            .insert(path.to_string(), (meta.last_modified, meta.size, hash))
+            .is_none()
+        {
+            cache.order.push_back(path.to_string());
+        }
+        while cache.order.len() > HASH_CACHE_CAPACITY {
+            // A key `forget` already dropped is popped here too; removing it
+            // again is a no-op, and bounding `order` bounds `entries` with it.
+            let Some(oldest) = cache.order.pop_front() else {
+                break;
+            };
+            cache.entries.remove(&oldest);
+        }
     }
 
     /// Forget a path (after delete).
     pub fn forget(&self, path: &str) {
-        self.cache.write().unwrap().remove(path);
+        self.cache.write().unwrap().entries.remove(path);
     }
 
     /// Per-path mutation lock (handlers wrap validate-then-write in it).
@@ -238,6 +273,17 @@ impl FsGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_meta(last_modified: i64) -> FileMeta {
+        FileMeta {
+            name: "a.md".into(),
+            created: 0,
+            last_modified,
+            content_type: "text/markdown".into(),
+            size: 1,
+            perm: "rw".into(),
+        }
+    }
 
     #[test]
     fn records_and_looks_up_an_exact_path_hash_match() {
@@ -427,5 +473,49 @@ mod tests {
         guard.hash_for(&space, "a.md").unwrap();
         guard.hash_for(&space, "a.md").unwrap();
         assert_eq!(guard.hash_for_call_count(), 2);
+    }
+
+    #[test]
+    fn cached_hash_hits_on_matching_meta_and_misses_once_it_changes() {
+        let space = silverbullet_server_common::space::MemorySpacePrimitives::new();
+        let meta = space.write_file("a.md", b"hello", None).unwrap();
+        let guard = FsGuard::default();
+        assert_eq!(guard.cached_hash("a.md", &meta), None);
+
+        let hash = guard.hash_for(&space, "a.md").unwrap();
+        assert_eq!(guard.cached_hash("a.md", &meta).as_ref(), Some(&hash));
+
+        let stale = FileMeta {
+            size: meta.size + 1,
+            ..meta.clone()
+        };
+        assert_eq!(guard.cached_hash("a.md", &stale), None);
+    }
+
+    #[test]
+    fn record_evicts_in_insertion_order_past_capacity() {
+        let guard = FsGuard::default();
+        let meta = test_meta(1);
+        for i in 0..HASH_CACHE_CAPACITY + 10 {
+            guard.record(&format!("p{i}.md"), &meta, format!("h{i}"));
+        }
+        let cache = guard.cache.read().unwrap();
+        assert_eq!(cache.entries.len(), HASH_CACHE_CAPACITY);
+        assert_eq!(cache.order.len(), HASH_CACHE_CAPACITY);
+        assert!(!cache.entries.contains_key("p0.md"));
+        assert!(cache
+            .entries
+            .contains_key(&format!("p{}.md", HASH_CACHE_CAPACITY + 9)));
+    }
+
+    #[test]
+    fn re_recording_the_same_path_does_not_grow_the_eviction_queue() {
+        let guard = FsGuard::default();
+        for i in 0..100 {
+            guard.record("a.md", &test_meta(i), format!("h{i}"));
+        }
+        let cache = guard.cache.read().unwrap();
+        assert_eq!(cache.entries.len(), 1);
+        assert_eq!(cache.order.len(), 1);
     }
 }

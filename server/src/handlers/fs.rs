@@ -145,10 +145,16 @@ pub async fn handle_fs_get(
     let path_inner = path.clone();
     match run_blocking(move || {
         let (data, meta) = state_inner.space.read_file(&path_inner)?;
-        let hash = sha256_hex(&data);
-        state_inner
-            .fs_guard
-            .record(&path_inner, &meta, hash.clone());
+        let hash = match state_inner.fs_guard.cached_hash(&path_inner, &meta) {
+            Some(hash) => hash,
+            None => {
+                let hash = sha256_hex(&data);
+                state_inner
+                    .fs_guard
+                    .record(&path_inner, &meta, hash.clone());
+                hash
+            }
+        };
         Ok((data, meta, hash))
     })
     .await
