@@ -20,32 +20,24 @@ function mockSpace(accounts: any[], profile: any = { username: "me" }) {
   return mock;
 }
 
+/** What `indexRelations` emits for a page that mentions these names: one
+ * `recipient` object per distinct name, carrying the page's own spelling. */
 async function indexMentions(page: string, aliases: string[]): Promise<void> {
+  const byRef = new Map<string, string>();
+  for (const alias of aliases) {
+    const ref = `re:${alias.toLowerCase()}`;
+    if (!byRef.has(ref)) byRef.set(ref, alias);
+  }
   await (globalThis as any).syscall(
     "index.indexObjects",
     page,
-    aliases.map((alias, i) => {
-      const pos = i * 100;
-      return {
-        ref: `${page}@${pos}`,
-        tag: "relation",
-        kind: "at-mention",
-        from: page,
-        fromTag: "page",
-        to: `recipient:${alias.toLowerCase()}`,
-        toTag: "recipient",
-        alias,
-        page,
-        range: [pos, pos + alias.length + 1],
-        pageLastModified: "",
-      };
-    }),
+    [...byRef].map(([ref, name]) => ({ ref, tag: "recipient", name, page })),
   );
 }
 
 test("recipientId lowercases, so @Bob and @bob are one recipient", () => {
-  expect(recipientId("Bob")).toBe("recipient:bob");
-  expect(recipientId("bob")).toBe("recipient:bob");
+  expect(recipientId("Bob")).toBe("re:bob");
+  expect(recipientId("bob")).toBe("re:bob");
 });
 
 test("accounts are recipients, labelled by full name", async () => {
@@ -55,8 +47,8 @@ test("accounts are recipients, labelled by full name", async () => {
   ]);
   const listed = await listRecipients();
   expect(listed).toEqual([
-    { name: "ada", id: "recipient:ada", detail: "Ada Lovelace" },
-    { name: "bob", id: "recipient:bob" },
+    { name: "ada", id: "re:ada", detail: "Ada Lovelace" },
+    { name: "bob", id: "re:bob" },
   ]);
 });
 
@@ -66,17 +58,15 @@ test("your own account is labelled you, under your real username", async () => {
     { username: "bob", me: false },
   ]);
   expect(await listRecipients()).toEqual([
-    { name: "ada", id: "recipient:ada", detail: "you" },
-    { name: "bob", id: "recipient:bob" },
+    { name: "ada", id: "re:ada", detail: "you" },
+    { name: "bob", id: "re:bob" },
   ]);
 });
 
 test("a deployment with no accounts has no recipient for the current user", async () => {
   mockSpace([{ username: null, fullName: "Zef Hemel", me: true }]);
   await indexMentions("Notes", ["Sales"]);
-  expect(await listRecipients()).toEqual([
-    { name: "Sales", id: "recipient:sales" },
-  ]);
+  expect(await listRecipients()).toEqual([{ name: "Sales", id: "re:sales" }]);
 });
 
 test("defined recipients carry their description", async () => {
@@ -88,7 +78,7 @@ test("defined recipients carry their description", async () => {
   const listed = await listRecipients();
   expect(listed.find((r) => r.name === "sales")).toEqual({
     name: "sales",
-    id: "recipient:sales",
+    id: "re:sales",
     detail: "Sales team",
   });
 });
@@ -99,37 +89,37 @@ test("an account wins the spelling over a definition of the same name", async ()
   ]);
   config.set(["recipients", "Ada"], { name: "Ada", description: "not this" });
   const listed = await listRecipients();
-  expect(listed.filter((r) => r.id === "recipient:ada")).toEqual([
-    { name: "ada", id: "recipient:ada", detail: "Ada Lovelace" },
+  expect(listed.filter((r) => r.id === "re:ada")).toEqual([
+    { name: "ada", id: "re:ada", detail: "Ada Lovelace" },
   ]);
 });
 
-test("an unclaimed mentioned name is a recipient, spelled the way it is written most", async () => {
+test("an unclaimed mentioned name is a recipient, spelled the way most pages write it", async () => {
   mockSpace([]);
-  await indexMentions("Notes", ["Sales", "Sales", "sales"]);
+  await indexMentions("Notes", ["Sales"]);
+  await indexMentions("Other", ["Sales"]);
+  await indexMentions("Third", ["sales"]);
   const listed = await listRecipients();
-  expect(listed.find((r) => r.id === "recipient:sales")).toEqual({
+  expect(listed.find((r) => r.id === "re:sales")).toEqual({
     name: "Sales",
-    id: "recipient:sales",
+    id: "re:sales",
   });
+});
+
+test("one page naming someone many times still counts once", async () => {
+  mockSpace([]);
+  // A page shouting "@sales" twenty times must not outvote two pages that
+  // spell it "@Sales" — the indexer emits one object per page per name.
+  await indexMentions("Loud", ["sales"]);
+  await indexMentions("A", ["Sales"]);
+  await indexMentions("B", ["Sales"]);
+  const listed = await listRecipients();
+  expect(listed.find((r) => r.id === "re:sales")?.name).toBe("Sales");
 });
 
 test("a frontmatter-declared name is a known recipient", async () => {
   mockSpace([]);
-  await (globalThis as any).syscall("index.indexObjects", "Notes", [
-    {
-      ref: "Notes@recipients/sales",
-      tag: "relation",
-      kind: "recipients",
-      from: "Notes",
-      fromTag: "page",
-      to: "recipient:sales",
-      toTag: "recipient",
-      alias: "sales",
-      page: "Notes",
-      pageLastModified: "",
-    },
-  ]);
+  await indexMentions("Notes", ["sales"]);
   const listed = await listRecipients();
   expect(listed.map((r) => r.name)).toEqual(["sales"]);
 });

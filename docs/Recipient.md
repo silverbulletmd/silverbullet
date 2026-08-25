@@ -16,6 +16,8 @@ A **recipient** is anything worth addressing directly: a team mate, a team, a pr
 # `@name` syntax
 Type `@` followed by a name with no spaces, e.g. @ada. While typing, autocomplete offers every known recipient.
 
+A name may contain dots, so dotted usernames carry whole: @pete.smith and @ada.b.lovelace are each one mention. A dot has to be followed by more name, which is what keeps a sentence-ending period out of it — "spoke to @pete." mentions `pete`, not `pete.`. A name may **not** contain `/`: that reads as a page separator, and a recipient is a name rather than a path, so `@ops/team` mentions `ops`. An `@` glued to a preceding word is never a mention, which is what keeps `pete@example.com` an email address.
+
 **Any name is a valid mention.** Nothing needs declaring up front: mentioning @sales makes `sales` a recipient.
 
 Your own name always completes too, labelled "you". In a deployment without accounts that name is `me`. Confusingly 😉
@@ -54,7 +56,7 @@ If the page changed since it was last indexed, these actions leave the text unto
 Recipients declared in `recipients:` frontmatter (see below) are listed too, under their page and marked with an `@` icon. Such a declaration addresses the whole page rather than a spot in it, so the row shows the page's opening line, with the recipient it names as a chip beside it, and it carries neither of the two actions above — selecting one just opens the page.
 
 # The `recipients` attribute
-Every mention also sets a `recipients` attribute onto the object that hosts it, holding the `recipient:` identifier of each name mentioned.
+Every mention also sets a `recipients` attribute onto the object that hosts it, holding the `re:` identifier of each name mentioned.
 * a mention inside a task or list item stamps that task or item;
 * a mention in a plain paragraph or header stamps the **page** object instead.
 
@@ -86,11 +88,9 @@ At-mentions are indexed like any other [[Object Index|relation]], with `kind == 
 ```lua
 ${query[[
   from index.relations "at-mention"
-  where _.to == "recipient:petesmith"
+  where _.to == "re:petesmith"
   select { page = _.page, snippet = _.snippet }
 ]]}
 ```
 
-Frontmatter declarations are relations too, with `kind == "recipients"`, targeting the same `recipient:` identifiers and carrying no `range` (there is no `@name` in the text to point at).
-
-To list every recipient the space knows about, call `index.listRecipients()`. It returns one entry per recipient: `{ name, id, detail }`, where `id` is the `recipient:` identifier its mentions carry — so joining mentions onto recipients is a lookup on `to` — and `detail` is the account's full name, a defined recipient's description, or `"you"` for your own account.
+Frontmatter declarations are relations too, with `kind == "recipients"`.

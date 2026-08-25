@@ -222,7 +222,7 @@ async function renamePage(oldName: string, newName: string) {
   if (oldFolder !== newFolder) {
     // Pull every relation on this page that points at a page or file —
     // these are the candidates whose relative-path form may need to be
-    // rewritten when the page moves between folders. A `recipient:` target
+    // rewritten when the page moves between folders. A `re:` target
     // is never one: its range covers literal `@nickname` text rather than
     // link syntax, or it has no range at all (a `recipients:` frontmatter
     // nickname), so those are excluded up front.

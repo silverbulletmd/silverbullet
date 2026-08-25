@@ -372,3 +372,60 @@ test("a row.icon crossing the bridge as a table (not a string) draws nothing and
   expect(errorSpy).not.toHaveBeenCalled();
   errorSpy.mockRestore();
 });
+
+test("a reload in flight never exposes a half-cleared view to a publish", async () => {
+  // `publish()` reads the live ViewState, and a debounced refresh can start
+  // while an older one is still awaiting — so any window where the entry holds
+  // new rows but no dropdown options renders as unfiltered "All Recipients"
+  // over every row. The state must swap atomically instead.
+  let releaseDropdown: (v: unknown) => void = () => {};
+  let dropdownCalls = 0;
+  const rows = [
+    { obj: { name: "A", target: "p" }, primary: "A" },
+    { obj: { name: "B", target: "q" }, primary: "B" },
+  ];
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") {
+      return Promise.resolve(meta({ dropdown: { placeholder: "Recipient" } }));
+    }
+    if (payload.hook === "rows") return Promise.resolve(rows);
+    if (payload.hook === "dropdown") {
+      dropdownCalls++;
+      const result = {
+        options: [{ label: "Pete", value: "p" }],
+        masks: [[true], [false]],
+      };
+      // The first load resolves immediately; the second hangs so we can look
+      // at the entry mid-flight, exactly where a stale publish would land.
+      if (dropdownCalls === 1) return Promise.resolve(result);
+      return new Promise((resolve) => {
+        releaseDropdown = resolve as (v: unknown) => void;
+      });
+    }
+    return Promise.resolve(undefined);
+  });
+
+  const engine = new NavigatorEngine();
+  await engine.activate("v");
+  expect(engine.activeState()?.dropdownOptions).toEqual([
+    { label: "Pete", value: "p" },
+  ]);
+
+  const second = engine.refresh();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  // Mid-flight: what a publish would render right now.
+  expect(engine.activeState()?.dropdownOptions).toEqual([
+    { label: "Pete", value: "p" },
+  ]);
+
+  releaseDropdown({
+    options: [{ label: "Pete", value: "p" }],
+    masks: [[true], [false]],
+  });
+  await second;
+  expect(engine.activeState()?.dropdownOptions).toEqual([
+    { label: "Pete", value: "p" },
+  ]);
+});

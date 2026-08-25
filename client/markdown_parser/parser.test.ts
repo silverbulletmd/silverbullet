@@ -522,3 +522,34 @@ test("Non-SB conflict-like lines keep their markdown meaning", () => {
   expect(collectNodesOfType(afterHunk, "ConflictMarker").length).toEqual(4);
   expect(findNodeOfType(afterHunk, "SetextHeading1")).not.toBeNull();
 });
+
+test("AtMention names may contain dots but never end on one", () => {
+  // Usernames are commonly dotted, so a mention has to carry them whole.
+  const mention = (md: string) => {
+    const found = collectNodesOfType(parseMarkdown(md), "AtMention");
+    return found.length ? renderToText(found[0]) : null;
+  };
+
+  expect(mention("Ping @pete.smith about it")).toBe("@pete.smith");
+
+  // A sentence-ending period is punctuation, not part of the name.
+  expect(mention("Talked to @pete.")).toBe("@pete");
+  expect(mention("Talked to @pete.smith.")).toBe("@pete.smith");
+  expect(mention("Talked to @pete.smith. And more.")).toBe("@pete.smith");
+
+  // A dot has to be followed by more name, so a run of them ends it.
+  expect(mention("Wait @pete..smith")).toBe("@pete");
+
+  // Still not an email address.
+  expect(mention("Mail pete@example.com")).toBe(null);
+});
+
+test("AtMention names do not contain slashes", () => {
+  // A mention is a name, not a path — `/` reads as a page separator and has
+  // no business in one.
+  const found = collectNodesOfType(
+    parseMarkdown("Ping @ops/team about it"),
+    "AtMention",
+  );
+  expect(renderToText(found[0])).toBe("@ops");
+});

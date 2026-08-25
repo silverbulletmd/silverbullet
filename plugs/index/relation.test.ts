@@ -584,24 +584,23 @@ test("at-mentions index as relations", async () => {
   expect(atMentions.length).toBe(4);
   // Every mention records the nickname, never the page claiming it: which
   // page that is gets joined at read time, so index order can't change it.
-  expect(atMentions[0].to).toBe("recipient:petesmith");
+  expect(atMentions[0].to).toBe("re:petesmith");
   expect(atMentions[0].toTag).toBe("recipient");
   expect(atMentions[0].fromTag).toBe("page");
   expect(atMentions[0].alias).toBe("PeteSmith");
   // Case-insensitive: a differently cased spelling converges, task container
-  expect(atMentions[1].to).toBe("recipient:petesmith");
+  expect(atMentions[1].to).toBe("re:petesmith");
   expect(atMentions[1].fromTag).toBe("task");
   expect(atMentions[1].alias).toBe("petesmith");
-  expect(atMentions[2].to).toBe("recipient:petra");
+  expect(atMentions[2].to).toBe("re:petra");
   expect(atMentions[2].toTag).toBe("recipient");
   expect(atMentions[2].alias).toBe("Petra");
-  expect(atMentions[3].to).toBe("recipient:nobody");
+  expect(atMentions[3].to).toBe("re:nobody");
   expect(atMentions[3].toTag).toBe("recipient");
-  // A recipient: identifier is not a page target: no aspiring page
+  // A re: identifier is not a page target: no aspiring page
   expect(
     objects.filter(
-      (o) =>
-        o.tag === "aspiring-page" && (o as any).name.startsWith("recipient:"),
+      (o) => o.tag === "aspiring-page" && (o as any).name.startsWith("re:"),
     ).length,
   ).toBe(0);
 });
@@ -631,7 +630,7 @@ test("a frontmatter recipients nickname emits a recipient relation", async () =>
     (o) => o.tag === "relation" && o.kind === "recipients",
   );
   expect(declared.length).toBe(2);
-  expect(declared[0].to).toBe("recipient:zef");
+  expect(declared[0].to).toBe("re:zef");
   expect(declared[0].toTag).toBe("recipient");
   expect(declared[0].from).toBe("Notes");
   expect(declared[0].fromTag).toBe("page");
@@ -639,7 +638,7 @@ test("a frontmatter recipients nickname emits a recipient relation", async () =>
   expect(declared[0].range).toBeUndefined();
   // Spaces are stripped the same way an alias-derived nickname is, so
   // `Pete Smith` and `@PeteSmith` converge.
-  expect(declared[1].to).toBe("recipient:petesmith");
+  expect(declared[1].to).toBe("re:petesmith");
   expect(declared[1].alias).toBe("PeteSmith");
   // Each entry needs its own ref, or the second overwrites the first
   expect(declared[0].ref).not.toBe(declared[1].ref);
@@ -712,4 +711,29 @@ test("a recipients declaration on a page with no paragraph has no snippet", asyn
     (o) => o.tag === "relation" && o.kind === "recipients",
   )!;
   expect(declared.snippet).toBeUndefined();
+});
+
+test("a page emits one recipient object per distinct name it addresses", async () => {
+  createMockSystem();
+  const text = [
+    "---",
+    "recipients:",
+    "- sales",
+    "---",
+    "",
+    "Talked to @Petra and @petra about it, and pinged @Ops.",
+    "",
+  ].join("\n");
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
+
+  const recipients = objects.filter((o) => o.tag === "recipient");
+  // @Petra and @petra are one recipient, and the page's first spelling wins.
+  expect(recipients.map((o) => [o.ref, (o as any).name]).sort()).toEqual([
+    ["re:ops", "Ops"],
+    ["re:petra", "Petra"],
+    ["re:sales", "sales"],
+  ]);
+  expect(recipients.every((o) => (o as any).page === "Notes")).toBe(true);
 });

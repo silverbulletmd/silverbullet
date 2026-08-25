@@ -303,7 +303,13 @@ function dropdownMeta(spec: ViewSpec): DropdownMeta | undefined {
       "navigator.define: dropdown.options must be a function or list",
     );
   }
-  if (luaType(field(dropdown, "where")) !== "function") {
+  const key = field(dropdown, "key");
+  if (present(key) && luaType(key) !== "function") {
+    throw new Error("navigator.define: dropdown.key must be a function");
+  }
+  // `key` is the cheap form of `where`: one call per row instead of one per
+  // row per option. Either answers the same question, so a view needs one.
+  if (!present(key) && luaType(field(dropdown, "where")) !== "function") {
     throw new Error("navigator.define: dropdown.where must be a function");
   }
   const placeholder = field(dropdown, "placeholder");
@@ -819,9 +825,23 @@ async function dropdownState(
   } catch {
     resolved = undefined;
   }
+  const key = field(dropdown, "key");
   const where = field(dropdown, "where") as ILuaFunction;
   const masks: boolean[][] = [];
   for (const obj of args.objs ?? []) {
+    if (present(key)) {
+      // One call per row, then plain equality against each option — the whole
+      // point of `key` is not paying a Lua call per (row, option) pair.
+      let value: unknown;
+      try {
+        value = toJS(await callLua(sf, key as ILuaFunction, obj));
+      } catch {
+        masks.push(options.map(() => false));
+        continue;
+      }
+      masks.push(options.map((option) => option.value === value));
+      continue;
+    }
     const mask: boolean[] = [];
     for (const option of options) {
       try {

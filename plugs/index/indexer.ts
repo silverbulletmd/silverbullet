@@ -41,6 +41,7 @@ const NON_ANCHORABLE_TAGS = new Set([
   "tag",
   "aspiring-page",
   "ambiguous-link",
+  "recipient",
   "space-lua",
   "space-style",
 ]);
@@ -134,7 +135,7 @@ function stampRecipients(
   for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
     const wikiMatch = /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(entry);
     // A wiki link names a page directly, so it stamps that page; a nickname
-    // stamps its recipient: identifier, like an inline @mention would.
+    // stamps its re: identifier, like an inline @mention would.
     if (wikiMatch) {
       pageTargets.add(wikiMatch[1]);
       continue;

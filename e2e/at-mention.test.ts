@@ -99,8 +99,16 @@ test("a hand-picked filter is remembered across a reopen", async ({
     },
   );
   await dropdown.selectOption({ label: "sales" });
+  await expect(dropdown.locator("option:checked")).toHaveText("sales");
+
+  // Genuinely close it and open it again. `Navigate: Mentions` only ever
+  // opens (`openCommand`), so invoking it twice would re-open an already-open
+  // panel and assert nothing — Escape is what closes it.
+  await page.keyboard.press("Escape");
+  await expect(inbox).toHaveCount(0);
   await runCommandViaPalette(page, "Navigate: Mentions");
-  await runCommandViaPalette(page, "Navigate: Mentions");
+  await expect(inbox).toHaveCount(1);
+
   await expect(dropdown.locator("option:checked")).toHaveText("sales");
 });
 

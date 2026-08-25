@@ -227,15 +227,18 @@ dropdown = {
       { label = "AnnaJones", value = "People/Anna Jones" },
     }
   end,
-  where = function(obj, value) return obj.target == value end,
+  key = function(obj) return obj.target end,
 }
 ```
 
 * `options`: a function returning a list of `{ label, value }` entries, or such a list directly. The function is re-evaluated **every time the view’s source loads or refreshes** (the `refreshOn`/`refreshOnOpen` cycle), not once at define time, so a dynamic option set stays fresh.
-* `where`: predicate callback deciding whether an object belongs under the selected `value`.
+* `key`: callback returning the option value an object belongs under. Called **once per row**, and its result compared to each option by equality.
+* `where`: predicate deciding whether an object belongs under the selected `value`. The general form, for membership that is not a plain equality — a row under several values, or a range. Called **once per row per option**, so a view with many rows and many options pays `rows × options` calls on every refresh; prefer `key` whenever the predicate is really `obj.field == value`.
 * `placeholder` (optional): what the select reads as while nothing is selected -- and, absent `allLabel`, the built-in "All" option's label too.
 * `allLabel` (optional): label of the built-in "All" option, overriding `placeholder` for that one entry. Defaults to "All" if not given.
 * `default` (optional): the value to open on — a string, or a function returning one, re-evaluated on the same cycle as `options`. Ignored when it is not among the options that cycle resolved, and overridden by a value the user last picked.
+
+A dropdown declares `key` or `where` — one of the two; `key` wins if both are given.
 
 The first entry is always a built-in **All** — no filtering — and it is what the view opens on unless a `default` says otherwise. Filtering composes with everything else the panel does: the active segment (if the view has both) subsets the rows, the dropdown selection subsets them further, and the phrase ranks what is left.
 

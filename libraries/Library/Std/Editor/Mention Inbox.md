@@ -79,10 +79,17 @@ end
 -- The recipient the current user is, when the space knows who that is. An
 -- anonymous reader of a public space is nobody, and opens on all recipients.
 local function ownTarget()
+  local me
   for _, account in ipairs(system.listAccounts()) do
     if account.me and account.username then
-      return "recipient:" .. account.username:lower()
+      me = account.username:lower()
     end
+  end
+  if not me then return end
+  -- Read the identifier off the list rather than rebuilding it: its format is
+  -- the recipient module's business, not this view's.
+  for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
+    if r.name:lower() == me then return r.id end
   end
 end
 
@@ -143,7 +150,7 @@ navigator.define {
       return result
     end,
     default = ownTarget,
-    where = function(obj, value) return obj.target == value end,
+    key = function(obj) return obj.target end,
   },
   actions = {
     -- A declared recipient has no `@nickname` span in the text, so it offers

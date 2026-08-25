@@ -3,14 +3,15 @@ import {
   config,
   editor,
   index,
-  lua,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { frontmatterValuePrefix } from "./complete.ts";
 
-export const RECIPIENT_PREFIX = "recipient:";
+/** Namespace for a recipient identifier. Kept short: it is stored on every
+ * mention relation and on every `recipient` object in the index. */
+export const RECIPIENT_PREFIX = "re:";
 
 /** A recipient is a name; this is the identifier every mention of it carries. */
 export function recipientId(name: string): string {
@@ -38,43 +39,35 @@ export function parseDeclaredRecipients(value: unknown): string[] {
     .filter((entry) => entry !== "");
 }
 
-/** Every reference to a recipient by name: inline `@mentions` and the
- * name form of `recipients:` frontmatter alike. */
-async function queryMentions(): Promise<{ to: string; alias?: string }[]> {
-  return await index.queryLuaObjects<{ to: string; alias?: string }>(
-    "relation",
-    {
-      objectVariable: "_",
-      where: await lua.parseExpression(
-        `(_.kind == "at-mention" or _.kind == "recipients") and _.toTag == "recipient"`,
-      ),
-    },
-  );
-}
-
 export type RecipientListing = {
   name: string;
   id: string;
   detail?: string;
 };
 
-/** The most-used spelling of every mentioned name, keyed by identifier. */
+/** Every name this space has been seen addressing, with the spelling most of
+ * its pages use. Read from the `recipient` objects the indexer emits per page,
+ * so this is a scan of one small tag rather than of every relation. */
 async function mentionedNames(): Promise<Map<string, string>> {
-  const counts = new Map<string, Map<string, number>>();
-  for (const mention of await queryMentions()) {
-    let spellings = counts.get(mention.to);
-    if (!spellings) {
-      spellings = new Map();
-      counts.set(mention.to, spellings);
+  const objects = await index.queryLuaObjects<{ ref: string; name: string }>(
+    "recipient",
+    { objectVariable: "_" },
+  );
+  const spellings = new Map<string, Map<string, number>>();
+  for (const object of objects) {
+    if (!object?.ref || typeof object.name !== "string") continue;
+    let counts = spellings.get(object.ref);
+    if (!counts) {
+      counts = new Map();
+      spellings.set(object.ref, counts);
     }
-    const spelling = mention.alias ?? mention.to.slice(RECIPIENT_PREFIX.length);
-    spellings.set(spelling, (spellings.get(spelling) ?? 0) + 1);
+    counts.set(object.name, (counts.get(object.name) ?? 0) + 1);
   }
   const result = new Map<string, string>();
-  for (const [id, spellings] of counts) {
+  for (const [ref, counts] of spellings) {
     result.set(
-      id,
-      [...spellings.entries()].sort(
+      ref,
+      [...counts.entries()].sort(
         (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
       )[0][0],
     );
@@ -125,6 +118,10 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
     return null;
   }
   return {
+    // The option set does not depend on what has been typed — every recipient
+    // is offered and CodeMirror filters. Saying so keeps it from re-running
+    // this source, and the relation scan behind it, on every keystroke.
+    validFor: /^[^\s@]*$/,
     from: completeEvent.pos - match[1].length,
     options: (await listRecipients()).map(
       (recipient): Completion => ({

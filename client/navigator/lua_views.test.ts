@@ -539,15 +539,15 @@ test("the dropdown hook resolves a default, from a function or a string", async 
       ${ON_SELECT},
       dropdown = {
         placeholder = "Recipient",
-        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
-        default = function() return "recipient:ada" end,
+        options = function() return { { label = "Ada", value = "re:ada" } } end,
+        default = function() return "re:ada" end,
         where = function(obj, value) return obj.target == value end,
       },
     }`),
     "dropdown",
     { objs: [] },
   );
-  expect(fromFunction.default).toBe("recipient:ada");
+  expect(fromFunction.default).toBe("re:ada");
 
   const fromString = await luaHandle(
     luaSpec(`{
@@ -555,15 +555,15 @@ test("the dropdown hook resolves a default, from a function or a string", async 
       ${SOURCE},
       ${ON_SELECT},
       dropdown = {
-        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
-        default = "recipient:ada",
+        options = function() return { { label = "Ada", value = "re:ada" } } end,
+        default = "re:ada",
         where = function(obj, value) return obj.target == value end,
       },
     }`),
     "dropdown",
     { objs: [] },
   );
-  expect(fromString.default).toBe("recipient:ada");
+  expect(fromString.default).toBe("re:ada");
 });
 
 test("the dropdown hook drops a default that is not among the options", async () => {
@@ -573,7 +573,7 @@ test("the dropdown hook drops a default that is not among the options", async ()
       ${SOURCE},
       ${ON_SELECT},
       dropdown = {
-        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
+        options = function() return { { label = "Ada", value = "re:ada" } } end,
         default = function() return "recipient:ghost" end,
         where = function(obj, value) return obj.target == value end,
       },
@@ -591,7 +591,7 @@ test("a throwing dropdown default costs the default, not the options", async () 
       ${SOURCE},
       ${ON_SELECT},
       dropdown = {
-        options = function() return { { label = "Ada", value = "recipient:ada" } } end,
+        options = function() return { { label = "Ada", value = "re:ada" } } end,
         default = function() error("boom") end,
         where = function(obj, value) return obj.target == value end,
       },
@@ -599,7 +599,7 @@ test("a throwing dropdown default costs the default, not the options", async () 
     "dropdown",
     { objs: [] },
   );
-  expect(state.options).toEqual([{ label: "Ada", value: "recipient:ada" }]);
+  expect(state.options).toEqual([{ label: "Ada", value: "re:ada" }]);
   expect(state.default).toBeUndefined();
 });
 
@@ -820,4 +820,53 @@ test("closures run against the space's own global environment", async () => {
   const rows = await luaHandle(spec, "rows", {}, env);
 
   expect(rows).toEqual([{ obj: { name: "notes/inbox" }, primary: "NOTES" }]);
+});
+
+test("a keyed dropdown masks by equality, calling the view once per row", async () => {
+  // `where` is evaluated once per row *per option*, so a view with many rows
+  // and many options pays rows x options Lua calls on every refresh. A
+  // dropdown whose predicate is really "does this row's key equal the option"
+  // says so with `key` and pays one call per row instead.
+  const spec = luaSpec(`{
+    name = "v",
+    ${SOURCE},
+    ${ON_SELECT},
+    dropdown = {
+      options = {
+        { label = "Pete", value = "p" },
+        { label = "Sales", value = "s" },
+        { label = "Ops", value = "o" },
+      },
+      key = function(obj)
+        calls = (calls or 0) + 1
+        return obj.target
+      end,
+    },
+  }`);
+
+  const state = await luaHandle(spec, "dropdown", {
+    objs: [{ target: "p" }, { target: "o" }, { target: "nobody" }],
+  });
+
+  expect(state.masks).toEqual([
+    [true, false, false],
+    [false, false, true],
+    [false, false, false],
+  ]);
+});
+
+test("a dropdown may declare key instead of where", () => {
+  expect(
+    define(
+      `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, key = function(obj) return obj.target end }`,
+    ),
+  ).not.toThrow();
+});
+
+test("a dropdown key that is not a function is refused", () => {
+  expect(
+    define(
+      `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, key = 7 }`,
+    ),
+  ).toThrow("navigator.define: dropdown.key must be a function");
 });

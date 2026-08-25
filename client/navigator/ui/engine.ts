@@ -258,17 +258,29 @@ export class NavigatorEngine {
         row.decorations = undefined;
       }
     }
-    entry.rows = rows;
-    await this.loadRowState(entry, token);
+    await this.loadRowState(entry, rows, token);
     return entry.loadToken === token;
   }
 
-  private async loadRowState(entry: ViewState, token: number): Promise<void> {
-    entry.rowState = undefined;
-    entry.segmentMasks = undefined;
-    entry.dropdownOptions = undefined;
-    entry.dropdownDefault = undefined;
-    entry.dropdownMasks = undefined;
+  private async loadRowState(
+    entry: ViewState,
+    rows: Row[],
+    token: number,
+  ): Promise<void> {
+    let rowState: ViewState["rowState"];
+    let segmentMasks: ViewState["segmentMasks"];
+    let dropdownOptions: ViewState["dropdownOptions"];
+    let dropdownDefault: ViewState["dropdownDefault"];
+    let dropdownMasks: ViewState["dropdownMasks"];
+    const commit = () => {
+      if (entry.loadToken !== token) return;
+      entry.rows = rows;
+      entry.rowState = rowState;
+      entry.segmentMasks = segmentMasks;
+      entry.dropdownOptions = dropdownOptions;
+      entry.dropdownDefault = dropdownDefault;
+      entry.dropdownMasks = dropdownMasks;
+    };
     const meta = entry.meta;
     const needsSegments =
       meta.search !== "source" && !!meta.segments?.some((s) => s.hasWhere);
@@ -279,13 +291,9 @@ export class NavigatorEngine {
     const needsDropdown = !!meta.dropdown;
     const nodes =
       (needsState || needsDropdown) && meta.mode === "tree"
-        ? allNodes(
-            buildTree(entry.rows, meta.hierarchy.separator, meta.foldersFirst),
-          )
+        ? allNodes(buildTree(rows, meta.hierarchy.separator, meta.foldersFirst))
         : undefined;
-    const objs = nodes
-      ? nodes.map(nodeObject)
-      : entry.rows.map((row) => row.obj);
+    const objs = nodes ? nodes.map(nodeObject) : rows.map((row) => row.obj);
     // Ahead of the rowState batch, so a failure there doesn't take the
     // dropdown down with it. A failure *here* leaves the options absent (the
     // select shows only "All") and a selected value with no masks fails
@@ -295,15 +303,15 @@ export class NavigatorEngine {
         const result = await this.handle(meta.name, "dropdown", { objs });
         if (entry.loadToken !== token) return;
         if (result && Array.isArray(result.options)) {
-          entry.dropdownOptions = result.options;
-          entry.dropdownDefault = result.default;
+          dropdownOptions = result.options;
+          dropdownDefault = result.default;
           const masks: DropdownMasks = new WeakMap();
           const put = (row: Row | undefined, mask: unknown) => {
             if (row) masks.set(row, Array.isArray(mask) ? mask : []);
           };
           if (nodes) nodes.forEach((n, i) => put(n.row, result.masks?.[i]));
-          else entry.rows.forEach((row, i) => put(row, result.masks?.[i]));
-          entry.dropdownMasks = masks;
+          else rows.forEach((row, i) => put(row, result.masks?.[i]));
+          dropdownMasks = masks;
         }
       } catch (e) {
         console.error("navigator: dropdown state failed", e);
@@ -316,6 +324,7 @@ export class NavigatorEngine {
         raw = Array.isArray(result) ? result : [];
       } catch (e) {
         console.error("navigator: row state failed", e);
+        commit();
         return;
       }
     }
@@ -330,26 +339,31 @@ export class NavigatorEngine {
     entry.actionIcons = meta.actions?.map((a) => this.iconNode(a.icon));
     entry.segmentIcons = meta.segments?.map((s) => this.iconNode(s.icon));
     entry.createIcon = this.iconNode(meta.createIcon);
-    if (!needsState) return;
+    if (!needsState) {
+      commit();
+      return;
+    }
     const states: RowState[] = raw.map((r) => ({
       actions: Array.isArray(r?.actions) ? r.actions : [],
       icon: this.iconNode(r?.icon),
     }));
-    entry.rowState = nodes
+    rowState = nodes
       ? { byPath: new Map(nodes.map((n, i) => [n.path, states[i] ?? {}])) }
       : {
           byRow: new WeakMap(
-            entry.rows.map((row, i) => [row, states[i] ?? {}] as const),
+            rows.map((row, i) => [row, states[i] ?? {}] as const),
           ),
         };
-    if (!needsSegments) return;
-    const masks: SegmentMasks = new WeakMap();
-    const put = (row: Row | undefined, r: RawRowState | undefined) => {
-      if (row) masks.set(row, Array.isArray(r?.segments) ? r.segments : []);
-    };
-    if (nodes) nodes.forEach((n, i) => put(n.row, raw[i]));
-    else entry.rows.forEach((row, i) => put(row, raw[i]));
-    entry.segmentMasks = masks;
+    if (needsSegments) {
+      const masks: SegmentMasks = new WeakMap();
+      const put = (row: Row | undefined, r: RawRowState | undefined) => {
+        if (row) masks.set(row, Array.isArray(r?.segments) ? r.segments : []);
+      };
+      if (nodes) nodes.forEach((n, i) => put(n.row, raw[i]));
+      else rows.forEach((row, i) => put(row, raw[i]));
+      segmentMasks = masks;
+    }
+    commit();
   }
 
   private warnUnknownPrefix(prefix: string): void {

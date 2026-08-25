@@ -233,6 +233,7 @@ export async function indexRelations(
   const pageFromTag = "page";
 
   const atMentionNodes: ParseTree[] = [];
+  const mentioned = new Map<string, string>();
 
   traverseTree(
     tree,
@@ -429,7 +430,7 @@ export async function indexRelations(
   await resolvePageTargets(ctx, pageText);
 
   // A mention records the nickname only, as the namespaced identifier
-  // `recipient:<lowercased nickname>` (so @Bob and @bob converge). Which
+  // `re:<lowercased nickname>` (so @Bob and @bob converge). Which
   // page — if any — claims that nickname is joined at read time, because
   // resolving it here would depend on whether the recipient's page happened
   // to be indexed first.
@@ -445,9 +446,13 @@ export async function indexRelations(
       range: [n.from!, n.to!],
       alias: nickname,
     });
+    if (!mentioned.has(recipientId(nickname))) {
+      mentioned.set(recipientId(nickname), nickname);
+    }
   }
 
-  emitDeclaredRecipients(ctx, frontmatter);
+  emitDeclaredRecipients(ctx, frontmatter, mentioned);
+  emitRecipients(ctx, mentioned);
 
   // A `recipients:` declaration addresses the whole page, so the frontmatter
   // line it happens to be written on identifies nothing. Every form of it —
@@ -486,12 +491,16 @@ function firstParagraphSnippet(
  * `recipients:` frontmatter entries written as a bare nickname. The wikilink
  * form is already covered by the frontmatter pass above, which resolves it
  * to a page; a nickname resolves to nothing at index time, so it takes the
- * same `recipient:` identifier an inline `@mention` does.
+ * same `re:` identifier an inline `@mention` does.
  *
  * These carry no range: unlike a mention there is no `@nickname` in the text
  * to rewrite, so nothing downstream may treat them as an editable span.
  */
-function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
+function emitDeclaredRecipients(
+  ctx: EmitCtx,
+  frontmatter: FrontMatter,
+  mentioned: Map<string, string>,
+): void {
   for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
     wikiLinkRegex.lastIndex = 0;
     if (wikiLinkRegex.exec(entry)) continue;
@@ -509,6 +518,31 @@ function emitDeclaredRecipients(ctx: EmitCtx, frontmatter: FrontMatter): void {
       alias: name,
       pageLastModified: ctx.pageMeta.lastModified,
     });
+    if (!mentioned.has(recipientId(name))) {
+      mentioned.set(recipientId(name), name);
+    }
+  }
+}
+
+/**
+ * One `recipient` object per distinct name this page addresses.
+ *
+ * These exist so the set of addressable names can be read without scanning
+ * every relation in the space: relations are the space's largest collection
+ * (every link, every co-mention, every frontmatter edge), and each tag is its
+ * own keyspace in the object index. Keying them by page — which the index does
+ * for every object — is also what makes them self-invalidating: re-indexing a
+ * page replaces its entries, and deleting it drops them, without anything
+ * having to notice that a name stopped being mentioned.
+ */
+function emitRecipients(ctx: EmitCtx, mentioned: Map<string, string>): void {
+  for (const [ref, name] of mentioned) {
+    ctx.out.push({
+      ref,
+      tag: "recipient",
+      name,
+      page: ctx.pageMeta.name,
+    } as any);
   }
 }
 
