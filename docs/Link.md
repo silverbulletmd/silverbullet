@@ -67,15 +67,13 @@ The `linkWriteFormat` option in your [[CONFIG]] controls how SilverBullet writes
 
 Options:
 
-* `shortest` (the default): write the bare page name when that name is unique in the space, and the full path when it is not.
+* `full-path` (the default): always write the full path.
+* `shortest`: write the bare page name when that name is unique in the space, and the full path when it is not.
 * `shortest-suffix`: like `shortest`, but when the name collides, write the shortest path suffix that still uniquely identifies the page (`api/Auth` rather than `docs/api/Auth`) — so even disambiguated links stay independent of where the space root sits.
-* `full-path`: always write the full path.
 
 ```lua
-config.set("linkWriteFormat", "full-path")
+config.set("linkWriteFormat", "shortest")
 ```
-
-Because `shortest` is the default, renaming a page rewrites its backlinks into bare form wherever the name is unique — so a rename in a space with folders produces a link-format change in the same edit. In a space without folders the two formats produce the same text.
 
 # Caret page links
 [[Meta Page]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[Library/Std]]` — it resolves exactly the same way. The only difference is that auto complete will _only_ complete meta pages.

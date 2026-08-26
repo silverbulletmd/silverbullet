@@ -11,7 +11,7 @@ import {
  * default live. Plug-side only (reads config through a syscall).
  */
 export function linkWriteFormat(): Promise<LinkWriteFormat> {
-  return config.get<LinkWriteFormat>("linkWriteFormat", "shortest");
+  return config.get<LinkWriteFormat>("linkWriteFormat", "full-path");
 }
 
 /**

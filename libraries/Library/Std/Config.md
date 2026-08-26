@@ -125,7 +125,7 @@ config.define("linkWriteFormat", {
   description = "How SilverBullet writes wiki links it generates: 'shortest' uses the bare page name when that name is unique in the space and the full path when it is not, 'shortest-suffix' writes the shortest path suffix that still uniquely identifies the page instead of the full path, 'full-path' always writes the full path",
   type = "string",
   enum = { "shortest", "shortest-suffix", "full-path" },
-  default = "shortest",
+  default = "full-path",
   ui = { category = "Editor", label = "Link write format", priority = 2 },
 })
 

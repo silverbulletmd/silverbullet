@@ -22,7 +22,8 @@ async function indexPage(name: string, text: string) {
 }
 
 test("moving a page to a folder leaves a unique bare link untouched", async () => {
-  const { space } = createMockSystem();
+  const { space, config } = createMockSystem();
+  config.set("linkWriteFormat", "shortest");
   await space.writePage("Zef Hemel", "The person");
   const text = "Written by [[Zef Hemel]].";
   await space.writePage("Mentions", text);
@@ -37,7 +38,8 @@ test("moving a page to a folder leaves a unique bare link untouched", async () =
 });
 
 test("the old path never counts as a rival when deciding the write format", async () => {
-  const { space } = createMockSystem();
+  const { space, config } = createMockSystem();
+  config.set("linkWriteFormat", "shortest");
   await space.writePage("Zef Hemel", "The person");
   const text = "Written by [[Zef Hemel]].";
   await space.writePage("Mentions", text);
