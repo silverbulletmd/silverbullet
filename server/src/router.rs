@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use axum::extract::DefaultBodyLimit;
 use axum::extract::Request;
-use axum::http::{header, HeaderMap, StatusCode};
+#[cfg(feature = "oidc")]
+use axum::http::header;
+#[cfg(feature = "oidc")]
+use axum::http::{HeaderMap, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, delete, get, post, put};
