@@ -74,6 +74,7 @@ export function createEditorState(
   selection?: EditorSelection,
 ): EditorState {
   let touchCount = 0;
+  let lastMouseDown: { x: number; y: number } | null = null;
 
   // Ugly: keep the commandKeyHandler compartment in the client, to be replaced
   // later once more commands are loaded
@@ -250,12 +251,31 @@ export function createEditorState(
           touchCount = 0;
         },
 
+        mousedown: (event: MouseEvent) => {
+          lastMouseDown = { x: event.clientX, y: event.clientY };
+        },
+
         click: (event: MouseEvent, view: EditorView) => {
           const pos = view.posAtCoords(event);
           if (event.button !== 0) {
             return;
           }
           if (!pos) {
+            return;
+          }
+          // Releasing a drag-selection also produces a `click` (on the common
+          // ancestor of the mousedown/mouseup targets). Only treat it as a
+          // click when the pointer stayed put since mousedown; a missing
+          // mousedown means it landed on a widget, so the targets differed.
+          const mouseDown = lastMouseDown;
+          lastMouseDown = null;
+          if (
+            !mouseDown ||
+            Math.hypot(
+              event.clientX - mouseDown.x,
+              event.clientY - mouseDown.y,
+            ) > 4
+          ) {
             return;
           }
           safeRun(async () => {
