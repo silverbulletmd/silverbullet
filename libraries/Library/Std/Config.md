@@ -407,8 +407,8 @@ config.define("taskStates", {
   },
 })
 
--- Recipients
-config.define("recipients", {
+-- Identities
+config.define("identities", {
   type = "object",
   default = {},
   additionalProperties = {

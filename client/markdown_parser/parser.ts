@@ -364,6 +364,72 @@ const AtMention: MarkdownConfig = {
   ],
 };
 
+// AtMentionSignature: a block-terminating `-- @name` marking text as written
+// BY someone rather than addressed TO them. Fires on the marker, which comes
+// before the `@` the AtMention parser waits for, so it wins the position and
+// the mentions it consumes are not re-parsed.
+//
+// The AtMention nodes stay nested, so every existing AtMention consumer keeps
+// working; the relation indexer is the one place that tells the two apart.
+const AtMentionSignature: MarkdownConfig = {
+  defineNodes: ["AtMentionSignature", "AtMentionSignatureMark"],
+  parseInline: [
+    {
+      name: "AtMentionSignature",
+      parse(cx, next, pos) {
+        // `--`, em dash, en dash. A single hyphen is deliberately not a
+        // marker: a trailing prose dash before a real recipient would
+        // silently turn a mention into an attribution.
+        let markerLen: number;
+        if (next === 45 /* - */) {
+          if (cx.slice(pos, Math.min(pos + 2, cx.end)) !== "--") return -1;
+          markerLen = 2;
+        } else if (next === 8212 /* em dash */ || next === 8211 /* en dash */) {
+          markerLen = 1;
+        } else {
+          return -1;
+        }
+
+        // A signature starts its block or follows whitespace: `re--@zef` is
+        // not one.
+        if (pos > cx.offset && !/\s/.test(cx.slice(pos - 1, pos))) {
+          return -1;
+        }
+
+        const children = [
+          cx.elt("AtMentionSignatureMark", pos, pos + markerLen),
+        ];
+        let at = pos + markerLen;
+        let count = 0;
+        for (;;) {
+          const gap = /^[ \t]*/.exec(cx.slice(at, cx.end))![0];
+          // Names must be separated; the marker itself needs no gap.
+          if (count > 0 && gap.length === 0) break;
+          const nameStart = at + gap.length;
+          const match = pAtMentionRegex.exec(cx.slice(nameStart, cx.end));
+          if (!match) break;
+          const nameEnd = nameStart + match[0].length;
+          children.push(
+            cx.elt("AtMention", nameStart, nameEnd, [
+              cx.elt("AtMentionMark", nameStart, nameStart + 1),
+            ]),
+          );
+          at = nameEnd;
+          count++;
+        }
+        if (count === 0) return -1;
+
+        // Only whitespace may follow: a signature terminates its block, and
+        // `cx.end` is the end of the block's inline content.
+        if (!/^\s*$/.test(cx.slice(at, cx.end))) {
+          return -1;
+        }
+        return cx.addElement(cx.elt("AtMentionSignature", pos, at, children));
+      },
+    },
+  ],
+};
+
 // FrontMatter parser
 
 const yamlLang = StreamLanguage.define(yamlLanguage);
@@ -449,6 +515,7 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
   Hashtag,
   NamedAnchor,
   AtMention,
+  AtMentionSignature,
   Superscript,
   Subscript,
   {
@@ -488,6 +555,15 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         NamedAnchorMark: ct.NamedAnchorMarkTag,
         AtMention: ct.AtMentionTag,
         AtMentionMark: ct.AtMentionMarkTag,
+        AtMentionSignature: ct.AtMentionSignatureTag,
+        AtMentionSignatureMark: ct.AtMentionSignatureMarkTag,
+        // A mention nested inside a signature (`-- @zef`) is an authorship
+        // mark, not a recipient pill: style its name and `@` with the muted
+        // signature look. The contextual path outranks the bare `AtMention`/
+        // `AtMentionMark` rules above for these nested nodes.
+        "AtMentionSignature/AtMention": ct.AtMentionSignatureTag,
+        "AtMentionSignature/AtMention/AtMentionMark":
+          ct.AtMentionSignatureMarkTag,
       }),
     ],
   },

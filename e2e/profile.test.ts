@@ -156,9 +156,9 @@ test("the Mention Inbox opens on the current user", async ({ page }) => {
     await mkdir(dirname(fullPath), { recursive: true });
     await writeFile(fullPath, content);
   };
-  // `@Mona` and the `mona` account share one recipient id (`re:mona`), so the
-  // mention lands in the signed-in user's own inbox without any page having to
-  // declare them.
+  // `@Mona` and the `mona` account share one identity id (`identity:mona`), so
+  // the mention lands in the signed-in user's own inbox without any page
+  // having to declare them.
   await write(
     "Notes.md",
     ["Hello @Mona, welcome!", "", "Ping @Someone for approval.", ""].join("\n"),
@@ -178,7 +178,7 @@ test("the Mention Inbox opens on the current user", async ({ page }) => {
   const inbox = page.locator(".sb-nav-root-rhs");
   await expect(inbox.locator(".sb-nav-title")).toHaveText("Mention Inbox");
   const dropdown = inbox.locator("select.sb-nav-dropdown");
-  // Accounts are the first source `listRecipients()` consults, so the account's
+  // Accounts are the first source `listIdentities()` consults, so the account's
   // own spelling of the name wins over the `@Mona` the page happens to use.
   await expect(dropdown.locator("option:checked")).toHaveText("mona", {
     timeout: 20_000,

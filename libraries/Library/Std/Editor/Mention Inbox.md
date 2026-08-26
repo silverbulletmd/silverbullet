@@ -22,6 +22,10 @@ end
 
 local function inboxRows()
   local rows = {}
+  local names = {}
+  for _, r in ipairs(system.invokeFunction("index.listIdentities")) do
+    names[r.id] = r.name
+  end
   local mentions = query[[
     from index.relations "at-mention"
   ]]
@@ -46,6 +50,14 @@ local function inboxRows()
         nickname = m.alias,
         target = m.to,
         fromTag = m.fromTag,
+        by = (function()
+          if not m.by or #m.by == 0 then return nil end
+          local out = {}
+          for _, id in ipairs(m.by) do
+            table.insert(out, "@" .. (names[id] or id:gsub("^@", "")))
+          end
+          return table.concat(out, " ")
+        end)(),
       })
     end
   end
@@ -53,7 +65,7 @@ local function inboxRows()
   -- so they have no `@nickname` span to act on: the row navigates and that's
   -- all. Its own `ref` uniquifies the tree path, the way a range does above.
   local declared = query[[
-    from index.relations "recipients" where _.toTag == "recipient"
+    from index.relations "recipients" where _.toTag == "identity"
   ]]
   for _, d in ipairs(declared) do
     local recipient = "@" .. d.alias
@@ -74,18 +86,8 @@ end
 -- The recipient the current user is, when the space knows who that is. An
 -- anonymous reader of a public space is nobody, and opens on all recipients.
 local function ownTarget()
-  local me
-  for _, account in ipairs(system.listAccounts()) do
-    if account.me and account.username then
-      me = account.username:lower()
-    end
-  end
-  if not me then return end
-  -- Read the identifier off the list rather than rebuilding it: its format is
-  -- the recipient module's business, not this view's.
-  for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
-    if r.name:lower() == me then return r.id end
-  end
+  local me = identity.own()
+  return me and me.id
 end
 
 navigator.define {
@@ -116,6 +118,10 @@ navigator.define {
         if obj.declared then
           return { { text = obj.recipient, position = "right" } }
         end
+        -- Who asked, without opening the page.
+        if obj.by then
+          return { { text = obj.by, position = "right" } }
+        end
       end,
       icon = function(obj)
         if obj.isFolder then
@@ -139,7 +145,7 @@ navigator.define {
     allLabel = "All Recipients",
     options = function()
       local result = {}
-      for _, r in ipairs(system.invokeFunction("index.listRecipients")) do
+      for _, r in ipairs(system.invokeFunction("index.listIdentities")) do
         table.insert(result, { label = r.name, value = r.id })
       end
       return result

@@ -30,7 +30,7 @@ import {
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { tagPrefix } from "../index/constants.ts";
-import { recipientId } from "../index/recipient.ts";
+import { identityId } from "../index/identity.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -158,12 +158,17 @@ async function actionClickOrActionEnter(
       break;
     }
     case "AtMention": {
+      // A mention inside a signature (`-- @name`) is an authorship byline,
+      // not a recipient: clicking it has no destination for now.
+      if (mdTree.parent?.type === "AtMentionSignature") {
+        break;
+      }
       // A recipient is a name, not a place: the mention has nowhere to
       // navigate to, so it opens the Mention Inbox filtered on that
       // recipient without pulling focus out of the editor.
       const nickname = renderToText(mdTree).slice(1);
       await editor.openNavigator("inbox", {
-        dropdown: recipientId(nickname),
+        dropdown: identityId(nickname),
         focus: false,
       });
       break;

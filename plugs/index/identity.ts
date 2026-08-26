@@ -9,13 +9,17 @@ import {
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { frontmatterValuePrefix } from "./complete.ts";
 
-/** Namespace for a recipient identifier. Kept short: it is stored on every
- * mention relation and on every `recipient` object in the index. */
-export const RECIPIENT_PREFIX = "re:";
+/** Namespace for an identity identifier. The `@` mirrors how the name is
+ * written in the text, so index queries read naturally (`_.to == "@bob"`),
+ * while still keeping identity ids out of the page-name keyspace that the
+ * backlink/rename machinery matches on. Stored on every mention relation and
+ * on every `identity` object in the index. */
+export const IDENTITY_PREFIX = "@";
 
-/** A recipient is a name; this is the identifier every mention of it carries. */
-export function recipientId(name: string): string {
-  return RECIPIENT_PREFIX + name.toLowerCase();
+/** An identity is a name; this is the identifier every mention of it carries.
+ * A leading `@` in the input is the prefix itself, so it is not doubled. */
+export function identityId(name: string): string {
+  return IDENTITY_PREFIX + name.replace(/^@/, "").toLowerCase();
 }
 
 // One entry of a `recipients:` frontmatter value: a wikilink (kept whole, so
@@ -27,7 +31,7 @@ const declaredRecipientRegex = /\[\[[^\]]*\]\]|\S+/g;
  * per item; a plain string is cut on whitespace, so `recipients: ada sales`
  * names two. A leading `@` is optional either way, the way a leading `#` is
  * on a tag. */
-export function parseDeclaredRecipients(value: unknown): string[] {
+export function parseDeclaredNames(value: unknown): string[] {
   const entries =
     typeof value === "string"
       ? (value.match(declaredRecipientRegex) ?? [])
@@ -39,18 +43,18 @@ export function parseDeclaredRecipients(value: unknown): string[] {
     .filter((entry) => entry !== "");
 }
 
-export type RecipientListing = {
+export type IdentityListing = {
   name: string;
   id: string;
   detail?: string;
 };
 
 /** Every name this space has been seen addressing, with the spelling most of
- * its pages use. Read from the `recipient` objects the indexer emits per page,
+ * its pages use. Read from the `identity` objects the indexer emits per page,
  * so this is a scan of one small tag rather than of every relation. */
 async function mentionedNames(): Promise<Map<string, string>> {
   const objects = await index.queryLuaObjects<{ ref: string; name: string }>(
-    "recipient",
+    "identity",
     { objectVariable: "_" },
   );
   const spellings = new Map<string, Map<string, number>>();
@@ -75,12 +79,12 @@ async function mentionedNames(): Promise<Map<string, string>> {
   return result;
 }
 
-/** Every name this space can address: its accounts, whatever `recipient.define`
+/** Every name this space can address: its accounts, whatever `identity.define`
  * registered, and every name already mentioned. */
-export async function listRecipients(): Promise<RecipientListing[]> {
-  const byId = new Map<string, RecipientListing>();
+export async function listIdentities(): Promise<IdentityListing[]> {
+  const byId = new Map<string, IdentityListing>();
   const add = (name: string, detail?: string) => {
-    const id = recipientId(name);
+    const id = identityId(name);
     if (byId.has(id)) return;
     byId.set(id, detail ? { name, id, detail } : { name, id });
   };
@@ -93,7 +97,7 @@ export async function listRecipients(): Promise<RecipientListing[]> {
   }
   const defined = await config.get<
     Record<string, { name?: string; description?: string }>
-  >("recipients", {});
+  >("identities", {});
   for (const [key, spec] of Object.entries(defined ?? {})) {
     add(
       typeof spec?.name === "string" && spec.name ? spec.name : key,
@@ -123,7 +127,7 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
     // this source, and the relation scan behind it, on every keystroke.
     validFor: /^[^\s@]*$/,
     from: completeEvent.pos - match[1].length,
-    options: (await listRecipients()).map(
+    options: (await listIdentities()).map(
       (recipient): Completion => ({
         label: recipient.name,
         type: "at-mention",
@@ -133,13 +137,14 @@ export async function atMentionComplete(completeEvent: CompleteEvent) {
   };
 }
 
-/** Recipient completion inside a `recipients:` frontmatter value, the
- * counterpart of `@mention` completion in the body. A typed `@` is part of
- * the prefix and so is replaced: unquoted, it is a YAML syntax error. */
-export async function frontmatterRecipientComplete(
+/** Name completion inside a `recipients:` or `authors:` frontmatter value, the
+ * counterpart of `@mention` completion in the body. A typed `@` is part of the
+ * prefix and so is replaced: unquoted, it is a YAML syntax error. */
+async function frontmatterNameComplete(
   completeEvent: CompleteEvent,
+  key: string,
 ) {
-  const prefix = frontmatterValuePrefix(completeEvent, "recipients", "@");
+  const prefix = frontmatterValuePrefix(completeEvent, key, "@");
   if (prefix === null) {
     return null;
   }
@@ -149,7 +154,7 @@ export async function frontmatterRecipientComplete(
   return {
     from: completeEvent.pos - prefix.length,
     filter: false,
-    options: (await listRecipients())
+    options: (await listIdentities())
       .filter((recipient) => recipient.name.toLowerCase().includes(typed))
       .map(
         (recipient): Completion => ({
@@ -159,6 +164,16 @@ export async function frontmatterRecipientComplete(
         }),
       ),
   };
+}
+
+export function frontmatterRecipientComplete(completeEvent: CompleteEvent) {
+  return frontmatterNameComplete(completeEvent, "recipients");
+}
+
+// The people you can address and the people you can credit are the same set,
+// so authorship completion offers the same list.
+export function frontmatterAuthorComplete(completeEvent: CompleteEvent) {
+  return frontmatterNameComplete(completeEvent, "authors");
 }
 
 export type MentionMode = "remove" | "delete-host";

@@ -115,31 +115,31 @@ Body.`;
 
 test("frontmatter list of wikilinks emits one relation per entry", async () => {
   const { space } = createMockSystem();
-  await space.writePage("First_author", "");
-  await space.writePage("Second_author", "");
+  await space.writePage("First_editor", "");
+  await space.writePage("Second_editor", "");
 
   const text = `---
-authors:
-- "[[First_author]]"
-- "[[Second_author]]"
+editors:
+- "[[First_editor]]"
+- "[[Second_editor]]"
 ---
 Body.`;
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Some_paper"), fm, tree, text);
 
-  const authors = objects.filter(
-    (o) => o.tag === "relation" && o.kind === "authors",
+  const editors = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "editors",
   );
-  expect(authors.map((r) => r.to).sort()).toEqual([
-    "First_author",
-    "Second_author",
+  expect(editors.map((r) => r.to).sort()).toEqual([
+    "First_editor",
+    "Second_editor",
   ]);
   // Each entry gets its own splice-able range pointing at its own `[[`.
-  for (const r of authors) {
+  for (const r of editors) {
     expect(text.substring(r.range![0], r.range![0] + 2)).toEqual("[[");
   }
-  expect(new Set(authors.map((r) => r.ref)).size).toEqual(2);
+  expect(new Set(editors.map((r) => r.ref)).size).toEqual(2);
 });
 
 test("frontmatter list of wikilinks works indented and in flow style", async () => {
@@ -148,17 +148,17 @@ test("frontmatter list of wikilinks works indented and in flow style", async () 
   await space.writePage("B", "");
 
   for (const body of [
-    `authors:\n  - "[[A]]"\n  - "[[B]]"`,
-    `authors: ["[[A]]", "[[B]]"]`,
+    `editors:\n  - "[[A]]"\n  - "[[B]]"`,
+    `editors: ["[[A]]", "[[B]]"]`,
   ]) {
     const text = `---\n${body}\n---\nBody.`;
     const tree = parseMarkdown(text);
     const fm = extractFrontMatter(tree);
     const objects = await indexRelations(pageMeta("P"), fm, tree, text);
-    const authors = objects.filter(
-      (o) => o.tag === "relation" && o.kind === "authors",
+    const editors = objects.filter(
+      (o) => o.tag === "relation" && o.kind === "editors",
     );
-    expect(authors.map((r) => r.to).sort(), `for: ${body}`).toEqual(["A", "B"]);
+    expect(editors.map((r) => r.to).sort(), `for: ${body}`).toEqual(["A", "B"]);
   }
 });
 
@@ -169,7 +169,7 @@ test("frontmatter list entries don't leak into the next key", async () => {
   await space.writePage("C", "");
 
   const text = `---
-authors:
+editors:
 - "[[A]]"
 - "[[B]]"
 publisher: "[[C]]"
@@ -184,7 +184,7 @@ Body.`;
       .filter((o) => o.tag === "relation" && o.kind === kind)
       .map((r) => r.to)
       .sort();
-  expect(byKind("authors")).toEqual(["A", "B"]);
+  expect(byKind("editors")).toEqual(["A", "B"]);
   expect(byKind("publisher")).toEqual(["C"]);
 });
 
@@ -584,23 +584,23 @@ test("at-mentions index as relations", async () => {
   expect(atMentions.length).toBe(4);
   // Every mention records the nickname, never the page claiming it: which
   // page that is gets joined at read time, so index order can't change it.
-  expect(atMentions[0].to).toBe("re:petesmith");
-  expect(atMentions[0].toTag).toBe("recipient");
+  expect(atMentions[0].to).toBe("@petesmith");
+  expect(atMentions[0].toTag).toBe("identity");
   expect(atMentions[0].fromTag).toBe("page");
   expect(atMentions[0].alias).toBe("PeteSmith");
   // Case-insensitive: a differently cased spelling converges, task container
-  expect(atMentions[1].to).toBe("re:petesmith");
+  expect(atMentions[1].to).toBe("@petesmith");
   expect(atMentions[1].fromTag).toBe("task");
   expect(atMentions[1].alias).toBe("petesmith");
-  expect(atMentions[2].to).toBe("re:petra");
-  expect(atMentions[2].toTag).toBe("recipient");
+  expect(atMentions[2].to).toBe("@petra");
+  expect(atMentions[2].toTag).toBe("identity");
   expect(atMentions[2].alias).toBe("Petra");
-  expect(atMentions[3].to).toBe("re:nobody");
-  expect(atMentions[3].toTag).toBe("recipient");
-  // A re: identifier is not a page target: no aspiring page
+  expect(atMentions[3].to).toBe("@nobody");
+  expect(atMentions[3].toTag).toBe("identity");
+  // An @ identifier is not a page target: no aspiring page
   expect(
     objects.filter(
-      (o) => o.tag === "aspiring-page" && (o as any).name.startsWith("re:"),
+      (o) => o.tag === "aspiring-page" && (o as any).name.startsWith("@"),
     ).length,
   ).toBe(0);
 });
@@ -630,15 +630,15 @@ test("a frontmatter recipients nickname emits a recipient relation", async () =>
     (o) => o.tag === "relation" && o.kind === "recipients",
   );
   expect(declared.length).toBe(2);
-  expect(declared[0].to).toBe("re:zef");
-  expect(declared[0].toTag).toBe("recipient");
+  expect(declared[0].to).toBe("@zef");
+  expect(declared[0].toTag).toBe("identity");
   expect(declared[0].from).toBe("Notes");
   expect(declared[0].fromTag).toBe("page");
   expect(declared[0].alias).toBe("zef");
   expect(declared[0].range).toBeUndefined();
   // Spaces are stripped the same way an alias-derived nickname is, so
   // `Pete Smith` and `@PeteSmith` converge.
-  expect(declared[1].to).toBe("re:petesmith");
+  expect(declared[1].to).toBe("@petesmith");
   expect(declared[1].alias).toBe("PeteSmith");
   // Each entry needs its own ref, or the second overwrites the first
   expect(declared[0].ref).not.toBe(declared[1].ref);
@@ -667,7 +667,7 @@ test("a frontmatter recipients wikilink stays a page relation", async () => {
   // The wikilink form keeps its range: unlike a nickname it is link syntax
   // the rename refactor rewrites.
   expect(page.range).toBeDefined();
-  expect(declared.filter((o) => o.toTag === "recipient").length).toBe(1);
+  expect(declared.filter((o) => o.toTag === "identity").length).toBe(1);
 });
 
 test("a recipients declaration is summarised by the page's opening line", async () => {
@@ -728,12 +728,168 @@ test("a page emits one recipient object per distinct name it addresses", async (
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
 
-  const recipients = objects.filter((o) => o.tag === "recipient");
+  const recipients = objects.filter((o) => o.tag === "identity");
   // @Petra and @petra are one recipient, and the page's first spelling wins.
   expect(recipients.map((o) => [o.ref, (o as any).name]).sort()).toEqual([
-    ["re:ops", "Ops"],
-    ["re:petra", "Petra"],
-    ["re:sales", "sales"],
+    ["@ops", "Ops"],
+    ["@petra", "Petra"],
+    ["@sales", "sales"],
   ]);
   expect(recipients.every((o) => (o as any).page === "Notes")).toBe(true);
+});
+
+test("a signature emits authored and no at-mention", async () => {
+  createMockSystem();
+  const text = "Why is this a heuristic? -- @zef";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Spec"), fm, tree, text);
+
+  const relations = objects.filter((o) => o.tag === "relation");
+  expect(relations.map((r) => r.kind)).toEqual(["authored"]);
+
+  const [r] = relations;
+  expect(r.to).toEqual("@zef");
+  expect(r.toTag).toEqual("identity");
+  expect(r.alias).toEqual("zef");
+  expect(text.substring(r.range![0], r.range![1])).toEqual("@zef");
+});
+
+test("a signed name is still an addressable recipient", async () => {
+  createMockSystem();
+  const text = "Why not? -- @zef";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Spec"), fm, tree, text);
+
+  const recipients = objects.filter((o) => o.tag === "identity");
+  expect(recipients.map((r) => r.ref)).toEqual(["@zef"]);
+});
+
+test("an addressed mention beside a signature still emits at-mention", async () => {
+  createMockSystem();
+  const text = "@robin Why not? -- @zef";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Spec"), fm, tree, text);
+
+  const kinds = objects
+    .filter((o) => o.tag === "relation")
+    .map((r) => `${r.kind}:${r.to}`)
+    .sort();
+  expect(kinds).toEqual(["at-mention:@robin", "authored:@zef"]);
+});
+
+test("each name in a co-signature gets its own authored relation", async () => {
+  createMockSystem();
+  const text = "Why not? -- @zef @ada";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Spec"), fm, tree, text);
+
+  const authored = objects.filter((o) => o.kind === "authored");
+  expect(authored.map((r) => r.to)).toEqual(["@zef", "@ada"]);
+  // Distinct refs, or the object index would collapse them onto one record.
+  expect(new Set(authored.map((r) => r.ref)).size).toBe(2);
+});
+
+async function relationsFor(text: string, name = "Spec") {
+  createMockSystem();
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta(name), fm, tree, text);
+  return objects.filter((o) => o.tag === "relation");
+}
+
+test("an inline signature attributes the block it ends", async () => {
+  const relations = await relationsFor("@robin Why not? -- @zef");
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toEqual(["@zef"]);
+});
+
+test("a standalone signature widens to its comment block", async () => {
+  const relations = await relationsFor(
+    "<!--\n@robin Why is this a heuristic?\n\n-- @zef\n-->\n",
+  );
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.to).toEqual("@robin");
+  expect(mention.by).toEqual(["@zef"]);
+});
+
+test("a standalone signature widens to its list item", async () => {
+  const relations = await relationsFor("* @robin Why not?\n\n  -- @zef\n");
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toEqual(["@zef"]);
+});
+
+test("a top-level standalone signature claims the preceding block", async () => {
+  const relations = await relationsFor("@robin Why not?\n\n-- @zef\n");
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toEqual(["@zef"]);
+});
+
+test("two signed paragraphs do not cross-attribute", async () => {
+  const relations = await relationsFor(
+    "@robin First question. -- @zef\n\n@robin Second question. -- @ada\n",
+  );
+  const mentions = relations
+    .filter((r) => r.kind === "at-mention")
+    .map((r) => r.by);
+  expect(mentions).toEqual([["@zef"], ["@ada"]]);
+});
+
+test("an unsigned mention carries no by", async () => {
+  const relations = await relationsFor("@robin Why not?");
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toBeUndefined();
+});
+
+test("the innermost signature wins and by is never unioned", async () => {
+  const relations = await relationsFor(
+    "* Outer thread\n  * @robin Why not? -- @ada\n\n  -- @zef\n",
+  );
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toEqual(["@ada"]);
+});
+
+test("a co-signature attributes both names", async () => {
+  const relations = await relationsFor("@robin Why not? -- @zef @ada");
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toEqual(["@zef", "@ada"]);
+});
+
+test("authors: frontmatter emits a page-level authored relation", async () => {
+  const relations = await relationsFor(
+    "---\nauthors: zef\n---\n\nSome prose.\n",
+  );
+  expect(relations).toHaveLength(1);
+  const [r] = relations;
+  expect(r.kind).toEqual("authored");
+  expect(r.from).toEqual("Spec");
+  expect(r.fromTag).toEqual("page");
+  expect(r.to).toEqual("@zef");
+  expect(r.range).toBeUndefined();
+  expect(r.snippet).toEqual("Some prose.");
+});
+
+test("authors: accepts a list and skips wiki links", async () => {
+  const relations = await relationsFor(
+    '---\nauthors:\n- zef\n- ada\n- "[[Some Page]]"\n---\n\nProse.\n',
+  );
+  expect(relations.map((r) => r.to)).toEqual(["@zef", "@ada"]);
+});
+
+test("authors: does not cascade to unsigned blocks", async () => {
+  const relations = await relationsFor(
+    "---\nauthors: zef\n---\n\n@robin Why not?\n",
+  );
+  const mention = relations.find((r) => r.kind === "at-mention")!;
+  expect(mention.by).toBeUndefined();
+});
+
+test("recipients: and authors: do not collide on ref", async () => {
+  const relations = await relationsFor(
+    "---\nrecipients: zef\nauthors: zef\n---\n\nProse.\n",
+  );
+  expect(new Set(relations.map((r) => r.ref)).size).toBe(2);
 });

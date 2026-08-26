@@ -6,10 +6,16 @@ export function atMentionPlugin() {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
-      enter: ({ type, from, to }) => {
-        if (type.name !== "AtMention") {
+      enter: (node) => {
+        if (node.type.name !== "AtMention") {
           return;
         }
+        // A signature (`-- @name`) is not a recipient pill; its nested
+        // AtMention is styled as a byline instead.
+        if (node.node.parent?.type.name === "AtMentionSignature") {
+          return;
+        }
+        const { from, to } = node;
         widgets.push(
           Decoration.mark({
             tagName: "a",

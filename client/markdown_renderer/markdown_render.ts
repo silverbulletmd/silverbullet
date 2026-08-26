@@ -447,6 +447,14 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         ],
       };
     }
+    case "AtMentionSignature": {
+      const literal = renderToText(t);
+      return {
+        name: "span",
+        attrs: { class: "sb-at-mention-signature" },
+        body: literal,
+      };
+    }
     case "AtMention": {
       const literal = renderToText(t);
       return {

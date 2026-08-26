@@ -222,17 +222,13 @@ describe("recipients", () => {
     const objects = await runIndexPageForTest("TestPage", text);
 
     const page = objects.find((o: any) => o.tag === "page");
-    // A frontmatter nickname stamps its re: identifier, like an
+    // A frontmatter nickname stamps its @ identifier, like an
     // inline @mention of it would; a wiki link names its page directly.
-    expect(page.recipients).toEqual([
-      "People/Alice",
-      "re:petesmith",
-      "re:sales",
-    ]);
+    expect(page.recipients).toEqual(["@petesmith", "@sales", "People/Alice"]);
     const task = objects.find((o: any) => o.tag === "task");
-    expect(task.recipients).toEqual(["re:petesmith"]);
+    expect(task.recipients).toEqual(["@petesmith"]);
     const item = objects.find((o: any) => o.tag === "item");
-    expect(item.recipients).toEqual(["re:petesmith"]);
+    expect(item.recipients).toEqual(["@petesmith"]);
     const rel = objects.find((o: any) => o.tag === "relation");
     expect(rel.recipients).toBeUndefined();
   });

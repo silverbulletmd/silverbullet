@@ -553,3 +553,92 @@ test("AtMention names do not contain slashes", () => {
   );
   expect(renderToText(found[0])).toBe("@ops");
 });
+
+test("AtMentionSignature parses a block-terminating signature", () => {
+  let tree = parseMarkdown("Why not? -- @zef");
+  const sigs = collectNodesOfType(tree, "AtMentionSignature");
+  expect(sigs.length).toBe(1);
+  expect(renderToText(sigs[0])).toBe("-- @zef");
+  expect(sigs[0].children![0].type).toBe("AtMentionSignatureMark");
+
+  // The mention stays nested, so existing AtMention consumers still see it.
+  const nested = collectNodesOfType(sigs[0], "AtMention");
+  expect(nested.length).toBe(1);
+  expect(renderToText(nested[0])).toBe("@zef");
+  expect(nested[0].children![0].type).toBe("AtMentionMark");
+
+  // Em dash and en dash are aliases.
+  for (const marker of ["—", "–"]) {
+    tree = parseMarkdown(`Why not? ${marker} @zef`);
+    expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(1);
+  }
+
+  // A single hyphen is not a marker.
+  tree = parseMarkdown("Ship it - @zef");
+  expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(0);
+  expect(collectNodesOfType(tree, "AtMention").length).toBe(1);
+
+  // Parentheses are not a marker.
+  tree = parseMarkdown("ask the maintainer (@zef)");
+  expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(0);
+  expect(collectNodesOfType(tree, "AtMention").length).toBe(1);
+});
+
+test("AtMentionSignature must terminate its block", () => {
+  // Mid-paragraph is punctuation, not a signature.
+  let tree = parseMarkdown("Why not? -- @zef thinks otherwise");
+  expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(0);
+  expect(collectNodesOfType(tree, "AtMention").length).toBe(1);
+
+  // The last line of a multi-line paragraph is the block's end.
+  tree = parseMarkdown("Why not?\nReally, why not?\n-- @zef");
+  expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(1);
+
+  // Glued to a word is not a signature.
+  tree = parseMarkdown("re--@zef");
+  expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(0);
+});
+
+test("AtMentionSignature accepts several names", () => {
+  const tree = parseMarkdown("Why not? -- @zef @ada");
+  const sigs = collectNodesOfType(tree, "AtMentionSignature");
+  expect(sigs.length).toBe(1);
+  expect(
+    collectNodesOfType(sigs[0], "AtMention").map((n) => renderToText(n)),
+  ).toEqual(["@zef", "@ada"]);
+});
+
+test("AtMentionSignature renders with its own class", async () => {
+  const { renderMarkdownToHtml } = await import(
+    "../markdown_renderer/markdown_render.ts"
+  );
+  const html = renderMarkdownToHtml(parseMarkdown("Why not? -- @zef"));
+  expect(JSON.stringify(html)).toContain("sb-at-mention-signature");
+});
+
+test("AtMentionSignature highlights the nested mention as a byline in the editor", async () => {
+  const { highlightTree } = await import("@lezer/highlight");
+  const { default: highlightStyles } = await import("../style.ts");
+  const { extendedMarkdownLanguage } = await import("./parser.ts");
+  const highlighter = highlightStyles();
+
+  // Highlight the whole line and record which class covers each offset. This
+  // exercises the editor's syntax-highlight path (Lezer tree + styleTags),
+  // not the read-only HTML renderer.
+  const text = "Why not? -- @zef";
+  const tree = extendedMarkdownLanguage.parser.parse(text);
+  const classAt: (string | undefined)[] = new Array(text.length).fill(
+    undefined,
+  );
+  highlightTree(tree, highlighter, (from, to, classes) => {
+    for (let i = from; i < to; i++) classAt[i] = classes;
+  });
+
+  const classFor = (needle: string) => classAt[text.indexOf(needle)];
+
+  // The `@` and the name both carry the muted signature styling — not the
+  // regular `sb-at-mention-text` recipient class.
+  expect(classFor("@zef")).toContain("sb-at-mention-signature-mark");
+  expect(classFor("zef")).toContain("sb-at-mention-signature");
+  expect(classFor("zef")).not.toContain("sb-at-mention-text");
+});

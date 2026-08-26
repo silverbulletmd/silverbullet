@@ -6,7 +6,8 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 * Beginnings of more solid [[Collaboration]] functionality, comprising of a slew of new improvements/features:
   * **Near real-time sync**: changes made to pages are now synced (and will appear in other clients) within ~2-3s.
   * **Near real-time content updates**: if multiple clients/process edit the same page, SilverBullet will do its best to reconcile those changes with local ones. In cases of unresolvable conflicts a new _conflict widget_ will show helping you to resolve the conflict.
-  * **At-mentions and Recipients** ([[Recipient]]): mention people, teams, or anything else with `@name`.
+  * **At-mentions and Identities** ([[At-Mention]], [[Identity]]): mention people, teams, or anything else with `@name`. Each name resolves to an [[Identity]] — an account, something registered with `identity.define`, or simply a name you've mentioned — addressed by the `@<name:lower>` id, so `@Ada` and `@ada` converge on the same identity. `identity.own()` returns the identity the current user is. An identity is addressed as a [[Recipient]] (→ Mention Inbox) or credited as an author (see [[Authorship]]). (Note: upgrading triggers a full space reindex, since mention identifiers moved to the `@name` form.)
+    * **[[Authorship]]**: a trailing `-- @name` (also `— @name`/`– @name`) signs a block instead of addressing it, crediting who wrote it without putting them in anyone's Mention Inbox. `authors:` frontmatter does the page-level equivalent of `recipients:`. Sign the current block with the `Mention: Sign` command or the `/sign` slash command.
   * **HTML comments are now parsed as markdown** ([[Markdown/Comment]]): the body of a `<!-- ... -->` block is now parsed and rendered as ordinary markdown. This enables a communication channel (likely using [[Recipient|recipients]]) to communicate between team members.
   * Beginning of [[Revisions]]: In three modes: **Managed** (SilverBullet commits your changes for you), **Unmanaged** (an existing git repository’s history is read, but SilverBullet never commits to it) or **Disabled**.
   * Accounts now carry a full name and email, used to attribute revision commits and shown as the presence label for concurrent edits.
@@ -21,6 +22,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 * [[Space Manager|Multi-space]] mode: the [[Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off.
 * [[Space Manager|Multi-space]] mode: a space's settings no longer hide half of themselves behind an **Advanced** disclosure — every option is visible as soon as the form opens.
 * Fix: the first-run **setup wizard** and the [[Space Manager]] are usable on a phone.
+* Fix: releasing a drag-selection on top of a link no longer navigates to it — only a real click (pointer down and up in the same spot) follows a link.
 * The table-of-contents widget **is off by default**: replaced by two [[Navigator]] **outline** views over the same headers. The ToC widgets caused a lot of “content jiggling” on (first) load, which was quite distracting.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.
 * Fix: the [[Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available.

@@ -117,23 +117,18 @@ functions:
       - editor:complete
 
   atMentionComplete:
-    path: recipient.ts:atMentionComplete
+    path: identity.ts:atMentionComplete
     events:
       - editor:complete
 
   resolveAtMention:
-    path: recipient.ts:resolveAtMention
+    path: identity.ts:resolveAtMention
 
-  listRecipients:
-    path: recipient.ts:listRecipients
+  listIdentities:
+    path: identity.ts:listIdentities
 
-  frontmatterTagComplete:
-    path: tags.ts:frontmatterTagComplete
-    events:
-      - editor:complete
-
-  frontmatterRecipientComplete:
-    path: recipient.ts:frontmatterRecipientComplete
+  frontmatterValueComplete:
+    path: frontmatter_value_complete.ts:frontmatterValueComplete
     events:
       - editor:complete
 

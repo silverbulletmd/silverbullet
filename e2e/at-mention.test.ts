@@ -10,7 +10,7 @@ test.use({
   spaceFiles: {
     "Library/Recipients.md": [
       "```space-lua",
-      'recipient.define { name = "sales", description = "Sales team" }',
+      'identity.define { name = "sales", description = "Sales team" }',
       "```",
       "",
     ].join("\n"),

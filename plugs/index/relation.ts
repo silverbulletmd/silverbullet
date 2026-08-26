@@ -33,7 +33,7 @@ import {
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { parseDeclaredRecipients, recipientId } from "./recipient.ts";
+import { parseDeclaredNames, identityId } from "./identity.ts";
 import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
@@ -61,6 +61,9 @@ export type RelationObject = ObjectValue<{
    * frontmatter nickname. */
   range?: [number, number];
   alias?: string;
+  /** Recipient ids of the signature claiming this mention's text. Present
+   * only on `at-mention` records that a signature's scope covers. */
+  by?: string[];
   snippet?: string;
   pageLastModified: string;
 }>;
@@ -79,6 +82,7 @@ type TextualEdgeArgs = {
   toTag?: string;
   range: [number, number];
   alias?: string;
+  by?: string[];
 };
 
 // ---- Constants ----
@@ -208,7 +212,100 @@ function emitTextualEdge(ctx: EmitCtx, args: TextualEdgeArgs): void {
   };
   if (args.toTag) rec.toTag = args.toTag;
   if (args.alias) rec.alias = args.alias;
+  if (args.by?.length) rec.by = args.by;
   ctx.out.push(rec);
+}
+
+/** Blocks a signature can terminate. A task has no Paragraph ancestor of its
+ * own, so it is listed here directly. */
+const SIGNATURE_BLOCK_TYPES = new Set([
+  "Paragraph",
+  "Task",
+  "ListItem",
+  "CommentBlock",
+  "Blockquote",
+]);
+
+/** Containers a standalone signature widens to. Deliberately excludes
+ * Document: a signature at top level claims the block above it, not the page. */
+const SIGNATURE_WIDEN_TYPES = new Set([
+  "CommentBlock",
+  "ListItem",
+  "Blockquote",
+]);
+
+/** The nearest earlier sibling of `block` that holds any non-whitespace text. */
+function previousSiblingBlock(
+  block: ParseTree,
+  pageText: string,
+): ParseTree | undefined {
+  const siblings = block.parent?.children ?? [];
+  for (let i = siblings.indexOf(block) - 1; i >= 0; i--) {
+    const sibling = siblings[i];
+    if (sibling.from === undefined || sibling.to === undefined) continue;
+    if (!/\S/.test(pageText.slice(sibling.from, sibling.to))) continue;
+    return sibling;
+  }
+  return undefined;
+}
+
+/**
+ * The span of text a signature claims authorship of.
+ */
+function signatureScope(
+  sig: ParseTree,
+  pageText: string,
+): [number, number] | undefined {
+  const block = findParentMatching(sig, (p) =>
+    SIGNATURE_BLOCK_TYPES.has(p.type!),
+  );
+  if (!block || block.from === undefined || block.to === undefined) {
+    return undefined;
+  }
+
+  const before = pageText.slice(block.from, sig.from!);
+  const after = pageText.slice(sig.to!, block.to);
+  if (/\S/.test(before) || /\S/.test(after)) {
+    return [block.from, block.to];
+  }
+
+  const container = findParentMatching(block, (p) =>
+    SIGNATURE_WIDEN_TYPES.has(p.type!),
+  );
+  if (container?.from !== undefined && container.to !== undefined) {
+    return [container.from, container.to];
+  }
+
+  const previous = previousSiblingBlock(block, pageText);
+  if (previous) {
+    return [previous.from!, previous.to!];
+  }
+  return [block.from, block.to];
+}
+
+/**
+ * The authors of the innermost signature whose scope contains `[from, to)`.
+ *
+ * Innermost wins and results are never unioned: a sub-item signed by Ada is
+ * Ada's even inside a list Zef signed, because attributing it to both reads
+ * as co-authorship rather than as a thread.
+ */
+function authorsFor(
+  scopes: { names: string[]; scope: [number, number] }[],
+  from: number,
+  to: number,
+): string[] | undefined {
+  let best: string[] | undefined;
+  let bestSize = Infinity;
+  for (const { names, scope } of scopes) {
+    if (scope[0] > from || to > scope[1]) continue;
+    const size = scope[1] - scope[0];
+    if (size < bestSize) {
+      bestSize = size;
+      best = names;
+    }
+  }
+  return best;
 }
 
 export async function indexRelations(
@@ -233,11 +330,21 @@ export async function indexRelations(
   const pageFromTag = "page";
 
   const atMentionNodes: ParseTree[] = [];
+  const signatureNodes: ParseTree[] = [];
   const mentioned = new Map<string, string>();
 
   traverseTree(
     tree,
     (n) => {
+      // Returning true stops the descent, so a signature's nested AtMention
+      // nodes never reach `atMentionNodes`. That is the whole suppression
+      // mechanism: no inbox has to exclude anything, because nothing that
+      // would land in one is ever emitted.
+      if (n.type === "AtMentionSignature") {
+        signatureNodes.push(n);
+        return true;
+      }
+
       if (n.type === "AtMention") {
         atMentionNodes.push(n);
         return true;
@@ -382,6 +489,10 @@ export async function indexRelations(
 
       if (n.type === "FrontMatter") {
         for (const { key, valueNode } of frontmatterStringEntries(n)) {
+          // `authors:` credits a name; a wikilink there isn't a name, and
+          // unlike `recipients:` it has no page-relation fallback to resolve
+          // to — it's simply not a valid author entry, so it's dropped.
+          if (key === "authors") continue;
           const text = valueNode.children![0].text!;
           const trimmed = text.replace(/^["'\s]*/, "").replace(/["'\s]*$/, "");
           wikiLinkRegex.lastIndex = 0;
@@ -430,10 +541,22 @@ export async function indexRelations(
   await resolvePageTargets(ctx, pageText);
 
   // A mention records the nickname only, as the namespaced identifier
-  // `re:<lowercased nickname>` (so @Bob and @bob converge). Which
+  // `@<lowercased nickname>` (so @Bob and @bob converge). Which
   // page — if any — claims that nickname is joined at read time, because
   // resolving it here would depend on whether the recipient's page happened
   // to be indexed first.
+  const signatureScopes: { names: string[]; scope: [number, number] }[] = [];
+  for (const sig of signatureNodes) {
+    const scope = signatureScope(sig, pageText);
+    if (!scope) continue;
+    signatureScopes.push({
+      names: collectNodesOfType(sig, "AtMention").map((n) =>
+        identityId(renderToText(n).slice(1)),
+      ),
+      scope,
+    });
+  }
+
   for (const n of atMentionNodes) {
     const nickname = renderToText(n).slice(1);
     const { from, fromTag } = innermostContainer(n, pageMeta.name);
@@ -441,26 +564,57 @@ export async function indexRelations(
       kind: "at-mention",
       from,
       fromTag,
-      to: recipientId(nickname),
-      toTag: "recipient",
+      to: identityId(nickname),
+      toTag: "identity",
       range: [n.from!, n.to!],
       alias: nickname,
+      by: authorsFor(signatureScopes, n.from!, n.to!),
     });
-    if (!mentioned.has(recipientId(nickname))) {
-      mentioned.set(recipientId(nickname), nickname);
+    if (!mentioned.has(identityId(nickname))) {
+      mentioned.set(identityId(nickname), nickname);
     }
   }
 
-  emitDeclaredRecipients(ctx, frontmatter, mentioned);
-  emitRecipients(ctx, mentioned);
+  // A signature records who wrote the surrounding text. It anchors on its
+  // own container so a task signature is filed under the task, and each name
+  // carries its own range so co-signatures get distinct refs.
+  for (const sig of signatureNodes) {
+    const { from, fromTag } = innermostContainer(sig, pageMeta.name);
+    for (const n of collectNodesOfType(sig, "AtMention")) {
+      const nickname = renderToText(n).slice(1);
+      emitTextualEdge(ctx, {
+        kind: "authored",
+        from,
+        fromTag,
+        to: identityId(nickname),
+        toTag: "identity",
+        range: [n.from!, n.to!],
+        alias: nickname,
+      });
+      if (!mentioned.has(identityId(nickname))) {
+        mentioned.set(identityId(nickname), nickname);
+      }
+    }
+  }
+
+  emitDeclaredNames(ctx, frontmatter.recipients, "recipients", mentioned);
+  emitDeclaredNames(ctx, frontmatter.authors, "authored", mentioned);
+  emitIdentities(ctx, mentioned);
 
   // A `recipients:` declaration addresses the whole page, so the frontmatter
-  // line it happens to be written on identifies nothing. Every form of it —
-  // nickname or wikilink — is shown by the page's opening line instead.
+  // line it happens to be written on identifies nothing — true of both the
+  // nickname form (no range) and the wikilink form (a range, but only into
+  // the frontmatter). Either way the page's opening line stands in instead.
+  // `authors:` has the same problem, but only for its nickname form: an
+  // inline `-- @zef` signature is also `kind: "authored"` and already has a
+  // meaningful range-derived snippet of its own, which must not be clobbered.
   const summary = firstParagraphSnippet(ctx, tree);
   if (summary) {
     for (const rec of ctx.out) {
-      if (rec.kind === "recipients") {
+      if (
+        rec.kind === "recipients" ||
+        (rec.kind === "authored" && rec.range === undefined)
+      ) {
         rec.snippet = summary;
       }
     }
@@ -488,44 +642,43 @@ function firstParagraphSnippet(
 }
 
 /**
- * `recipients:` frontmatter entries written as a bare nickname. The wikilink
- * form is already covered by the frontmatter pass above, which resolves it
- * to a page; a nickname resolves to nothing at index time, so it takes the
- * same `re:` identifier an inline `@mention` does.
+ * A frontmatter list of names, as relations with no range.
  *
- * These carry no range: unlike a mention there is no `@nickname` in the text
- * to rewrite, so nothing downstream may treat them as an editable span.
+ * `recipients:` addresses the page and puts it in an inbox; `authors:` credits
+ * the page and must never create work. Same parse, same shape, opposite
+ * direction — so they share everything but the `kind` and the ref namespace.
  */
-function emitDeclaredRecipients(
+function emitDeclaredNames(
   ctx: EmitCtx,
-  frontmatter: FrontMatter,
+  value: unknown,
+  kind: string,
   mentioned: Map<string, string>,
 ): void {
-  for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
+  for (const entry of parseDeclaredNames(value)) {
     wikiLinkRegex.lastIndex = 0;
     if (wikiLinkRegex.exec(entry)) continue;
     const name = entry.replaceAll(" ", "");
     if (name === "") continue;
     ctx.out.push({
-      ref: `${ctx.pageMeta.name}@recipients/${name.toLowerCase()}`,
+      ref: `${ctx.pageMeta.name}@${kind}/${name.toLowerCase()}`,
       tag: "relation",
-      kind: "recipients",
+      kind,
       from: ctx.pageMeta.name,
       fromTag: "page",
-      to: recipientId(name),
-      toTag: "recipient",
+      to: identityId(name),
+      toTag: "identity",
       page: ctx.pageMeta.name,
       alias: name,
       pageLastModified: ctx.pageMeta.lastModified,
     });
-    if (!mentioned.has(recipientId(name))) {
-      mentioned.set(recipientId(name), name);
+    if (!mentioned.has(identityId(name))) {
+      mentioned.set(identityId(name), name);
     }
   }
 }
 
 /**
- * One `recipient` object per distinct name this page addresses.
+ * One `identity` object per distinct name this page addresses.
  *
  * These exist so the set of addressable names can be read without scanning
  * every relation in the space: relations are the space's largest collection
@@ -535,11 +688,11 @@ function emitDeclaredRecipients(
  * page replaces its entries, and deleting it drops them, without anything
  * having to notice that a name stopped being mentioned.
  */
-function emitRecipients(ctx: EmitCtx, mentioned: Map<string, string>): void {
+function emitIdentities(ctx: EmitCtx, mentioned: Map<string, string>): void {
   for (const [ref, name] of mentioned) {
     ctx.out.push({
       ref,
-      tag: "recipient",
+      tag: "identity",
       name,
       page: ctx.pageMeta.name,
     } as any);

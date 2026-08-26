@@ -231,7 +231,7 @@ async function renamePage(oldName: string, newName: string) {
       {
         objectVariable: "_",
         where: await lua.parseExpression(
-          `_.page == oldName and _.kind ~= "co-mention" and _.toTag ~= "recipient" and _.toTag ~= "url" and _.range ~= nil`,
+          `_.page == oldName and _.kind ~= "co-mention" and _.toTag ~= "identity" and _.toTag ~= "url" and _.range ~= nil`,
         ),
       },
       { oldName },

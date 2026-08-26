@@ -255,6 +255,12 @@
   opacity: 0.6;
 }
 
+.sb-at-mention-signature,
+.sb-at-mention-signature-mark {
+  color: var(--editor-at-mention-signature-color);
+  opacity: 0.6;
+}
+
 // Anchor styling — mark and text colored independently so themes can
 // diverge them later. Default: both get the link color.
 .sb-named-anchor {

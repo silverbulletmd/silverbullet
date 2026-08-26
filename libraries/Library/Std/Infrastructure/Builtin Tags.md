@@ -72,6 +72,14 @@ tag.define {
         },
         nullable = true,
       },
+      authors = {
+        description = "Who wrote this page, by @name.",
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+        nullable = true,
+      },
       created = readOnlyType("string"),
       contentType = readOnlyType("string"),
       size = readOnlyType("number"),

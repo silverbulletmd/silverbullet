@@ -2,12 +2,13 @@ import { expect, test } from "vitest";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import {
   atMentionComplete,
+  frontmatterAuthorComplete,
   frontmatterRecipientComplete,
-  listRecipients,
-  parseDeclaredRecipients,
-  recipientId,
+  listIdentities,
+  parseDeclaredNames,
+  identityId,
   spliceAtMention,
-} from "./recipient.ts";
+} from "./identity.ts";
 
 /** A mock system whose deployment reports `accounts` and whose current user is
  * `profile`. Both syscalls are overridden: the real ones need a live client. */
@@ -21,23 +22,23 @@ function mockSpace(accounts: any[], profile: any = { username: "me" }) {
 }
 
 /** What `indexRelations` emits for a page that mentions these names: one
- * `recipient` object per distinct name, carrying the page's own spelling. */
+ * `identity` object per distinct name, carrying the page's own spelling. */
 async function indexMentions(page: string, aliases: string[]): Promise<void> {
   const byRef = new Map<string, string>();
   for (const alias of aliases) {
-    const ref = `re:${alias.toLowerCase()}`;
+    const ref = `@${alias.toLowerCase()}`;
     if (!byRef.has(ref)) byRef.set(ref, alias);
   }
   await (globalThis as any).syscall(
     "index.indexObjects",
     page,
-    [...byRef].map(([ref, name]) => ({ ref, tag: "recipient", name, page })),
+    [...byRef].map(([ref, name]) => ({ ref, tag: "identity", name, page })),
   );
 }
 
-test("recipientId lowercases, so @Bob and @bob are one recipient", () => {
-  expect(recipientId("Bob")).toBe("re:bob");
-  expect(recipientId("bob")).toBe("re:bob");
+test("identityId lowercases, so @Bob and @bob are one recipient", () => {
+  expect(identityId("Bob")).toBe("@bob");
+  expect(identityId("bob")).toBe("@bob");
 });
 
 test("accounts are recipients, labelled by full name", async () => {
@@ -45,10 +46,10 @@ test("accounts are recipients, labelled by full name", async () => {
     { username: "ada", fullName: "Ada Lovelace", me: false },
     { username: "bob", me: false },
   ]);
-  const listed = await listRecipients();
+  const listed = await listIdentities();
   expect(listed).toEqual([
-    { name: "ada", id: "re:ada", detail: "Ada Lovelace" },
-    { name: "bob", id: "re:bob" },
+    { name: "ada", id: "@ada", detail: "Ada Lovelace" },
+    { name: "bob", id: "@bob" },
   ]);
 });
 
@@ -57,28 +58,28 @@ test("your own account is labelled you, under your real username", async () => {
     { username: "ada", fullName: "Ada Lovelace", me: true },
     { username: "bob", me: false },
   ]);
-  expect(await listRecipients()).toEqual([
-    { name: "ada", id: "re:ada", detail: "you" },
-    { name: "bob", id: "re:bob" },
+  expect(await listIdentities()).toEqual([
+    { name: "ada", id: "@ada", detail: "you" },
+    { name: "bob", id: "@bob" },
   ]);
 });
 
 test("a deployment with no accounts has no recipient for the current user", async () => {
   mockSpace([{ username: null, fullName: "Zef Hemel", me: true }]);
   await indexMentions("Notes", ["Sales"]);
-  expect(await listRecipients()).toEqual([{ name: "Sales", id: "re:sales" }]);
+  expect(await listIdentities()).toEqual([{ name: "Sales", id: "@sales" }]);
 });
 
 test("defined recipients carry their description", async () => {
   const { config } = mockSpace([]);
-  config.set(["recipients", "sales"], {
+  config.set(["identities", "sales"], {
     name: "sales",
     description: "Sales team",
   });
-  const listed = await listRecipients();
+  const listed = await listIdentities();
   expect(listed.find((r) => r.name === "sales")).toEqual({
     name: "sales",
-    id: "re:sales",
+    id: "@sales",
     detail: "Sales team",
   });
 });
@@ -87,10 +88,10 @@ test("an account wins the spelling over a definition of the same name", async ()
   const { config } = mockSpace([
     { username: "ada", fullName: "Ada Lovelace", me: false },
   ]);
-  config.set(["recipients", "Ada"], { name: "Ada", description: "not this" });
-  const listed = await listRecipients();
-  expect(listed.filter((r) => r.id === "re:ada")).toEqual([
-    { name: "ada", id: "re:ada", detail: "Ada Lovelace" },
+  config.set(["identities", "Ada"], { name: "Ada", description: "not this" });
+  const listed = await listIdentities();
+  expect(listed.filter((r) => r.id === "@ada")).toEqual([
+    { name: "ada", id: "@ada", detail: "Ada Lovelace" },
   ]);
 });
 
@@ -99,10 +100,10 @@ test("an unclaimed mentioned name is a recipient, spelled the way most pages wri
   await indexMentions("Notes", ["Sales"]);
   await indexMentions("Other", ["Sales"]);
   await indexMentions("Third", ["sales"]);
-  const listed = await listRecipients();
-  expect(listed.find((r) => r.id === "re:sales")).toEqual({
+  const listed = await listIdentities();
+  expect(listed.find((r) => r.id === "@sales")).toEqual({
     name: "Sales",
-    id: "re:sales",
+    id: "@sales",
   });
 });
 
@@ -113,14 +114,14 @@ test("one page naming someone many times still counts once", async () => {
   await indexMentions("Loud", ["sales"]);
   await indexMentions("A", ["Sales"]);
   await indexMentions("B", ["Sales"]);
-  const listed = await listRecipients();
-  expect(listed.find((r) => r.id === "re:sales")?.name).toBe("Sales");
+  const listed = await listIdentities();
+  expect(listed.find((r) => r.id === "@sales")?.name).toBe("Sales");
 });
 
 test("a frontmatter-declared name is a known recipient", async () => {
   mockSpace([]);
   await indexMentions("Notes", ["sales"]);
-  const listed = await listRecipients();
+  const listed = await listIdentities();
   expect(listed.map((r) => r.name)).toEqual(["sales"]);
 });
 
@@ -231,23 +232,23 @@ test("spliceAtMention verifies before splicing", () => {
   ).toBe("Xxllo @PeteSmith!");
 });
 
-test("parseDeclaredRecipients accepts a list, a plain string, and @ notation", () => {
-  expect(parseDeclaredRecipients(["ada", "Pete Smith"])).toEqual([
+test("parseDeclaredNames accepts a list, a plain string, and @ notation", () => {
+  expect(parseDeclaredNames(["ada", "Pete Smith"])).toEqual([
     "ada",
     "Pete Smith",
   ]);
   // A plain string is cut on whitespace: one recipient each, like tags
-  expect(parseDeclaredRecipients("ada sales")).toEqual(["ada", "sales"]);
-  expect(parseDeclaredRecipients("@ada @sales")).toEqual(["ada", "sales"]);
-  expect(parseDeclaredRecipients(["@ada"])).toEqual(["ada"]);
+  expect(parseDeclaredNames("ada sales")).toEqual(["ada", "sales"]);
+  expect(parseDeclaredNames("@ada @sales")).toEqual(["ada", "sales"]);
+  expect(parseDeclaredNames(["@ada"])).toEqual(["ada"]);
   // A wikilink survives the cut whole, spaces and all, so the indexer can
   // recognise one and leave it alone rather than minting junk names from it
-  expect(parseDeclaredRecipients("[[Team/Ops Squad]] ada")).toEqual([
+  expect(parseDeclaredNames("[[Team/Ops Squad]] ada")).toEqual([
     "[[Team/Ops Squad]]",
     "ada",
   ]);
-  expect(parseDeclaredRecipients("  ")).toEqual([]);
-  expect(parseDeclaredRecipients(undefined)).toEqual([]);
+  expect(parseDeclaredNames("  ")).toEqual([]);
+  expect(parseDeclaredNames(undefined)).toEqual([]);
 });
 
 function makeCompleteEvent(linePrefix: string) {
@@ -315,5 +316,41 @@ test("frontmatter recipient completion offers the current user too", async () =>
   const result = await frontmatterRecipientComplete(
     frontmatterCompleteEvent("recipients: ", "recipients: "),
   );
+  expect(result!.options.map((o: any) => o.label)).toContain("ada");
+});
+
+test("authors: frontmatter completion offers the same names as recipients:", async () => {
+  mockSpace([
+    { username: "ada", fullName: "Ada Lovelace", me: false },
+    { username: "bob", me: false },
+  ]);
+  const inline = await frontmatterAuthorComplete(
+    frontmatterCompleteEvent("authors: @ad", "authors: @ad"),
+  );
+  expect(inline!.options.map((o: any) => o.label)).toContain("ada");
+
+  const listItem = await frontmatterAuthorComplete(
+    frontmatterCompleteEvent("- @ad", "authors:\n- @ad"),
+  );
+  expect(listItem!.options.map((o: any) => o.label)).toContain("ada");
+});
+
+test("author and recipient completions do not fire in each other's key", async () => {
+  mockSpace([{ username: "ada", me: false }]);
+  expect(
+    await frontmatterAuthorComplete(
+      frontmatterCompleteEvent("recipients: @a", "recipients: @a"),
+    ),
+  ).toBeNull();
+  expect(
+    await frontmatterRecipientComplete(
+      frontmatterCompleteEvent("authors: @a", "authors: @a"),
+    ),
+  ).toBeNull();
+});
+
+test("at-mention completion fires after a signature marker", async () => {
+  mockSpace([{ username: "ada", me: false }]);
+  const result = await atMentionComplete(makeCompleteEvent("Why not? -- @a"));
   expect(result!.options.map((o: any) => o.label)).toContain("ada");
 });

@@ -17,7 +17,7 @@ import { indexHeaders } from "./header.ts";
 import { indexItems } from "./item.ts";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { parseDeclaredRecipients, recipientId } from "./recipient.ts";
+import { parseDeclaredNames, identityId } from "./identity.ts";
 import { indexRelations } from "./relation.ts";
 import { buildLineIndex, extractSnippet, type LineIndex } from "./snippet.ts";
 import { indexSpaceLua } from "./space_lua.ts";
@@ -41,7 +41,7 @@ const NON_ANCHORABLE_TAGS = new Set([
   "tag",
   "aspiring-page",
   "ambiguous-link",
-  "recipient",
+  "identity",
   "space-lua",
   "space-style",
 ]);
@@ -132,15 +132,15 @@ function stampRecipients(
     (o) => o.tag === "relation" && o.kind === "at-mention",
   );
   const pageTargets = new Set<string>();
-  for (const entry of parseDeclaredRecipients(frontmatter.recipients)) {
+  for (const entry of parseDeclaredNames(frontmatter.recipients)) {
     const wikiMatch = /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(entry);
     // A wiki link names a page directly, so it stamps that page; a nickname
-    // stamps its re: identifier, like an inline @mention would.
+    // stamps its `@` identifier, like an inline @mention would.
     if (wikiMatch) {
       pageTargets.add(wikiMatch[1]);
       continue;
     }
-    pageTargets.add(recipientId(entry.replaceAll(" ", "")));
+    pageTargets.add(identityId(entry.replaceAll(" ", "")));
   }
   const byHost = new Map<string, Set<string>>();
   for (const m of mentions) {
