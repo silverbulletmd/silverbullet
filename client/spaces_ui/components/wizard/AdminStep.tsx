@@ -31,10 +31,10 @@ export function AdminStep({
       <h1>Welcome to SilverBullet!</h1>
       <p class="sb-help-text">Step 1 of 2</p>
       <p>
-        This server has not been configured yet. Nevertheless, DO NOT PANIC, it only
-        takes two quick steps: first creating an administrator account, then
-        configuring your first space. You can add more spaces and users later (if
-        you were so to desire) in the spaces UI.
+        This server has not been configured yet. Nevertheless, DO NOT PANIC, it
+        only takes two quick steps: first creating an administrator account,
+        then configuring your first space. You can add more spaces and users
+        later (if you were so to desire) in the spaces UI.
       </p>
       <FieldErrors errors={errors} />
       <label for="setup-username">Username</label>
