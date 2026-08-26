@@ -280,12 +280,19 @@ export function createCommands({
   async function selectTreeNode(node: TreeNode) {
     if (!view) return;
     if (node.isFolder && view.meta.selectableFolders) {
-      if (node.row) {
-        await engine.select(view.name, node.row.obj, returnTo.current);
-      } else {
-        void editor.navigate(node.path);
+      // A folder without a row of its own is a pure folder, not a dual: there
+      // is no page behind it to open.
+      if (!node.row) {
+        tree.toggleExpanded(node.path);
+        return;
       }
+      const kept = await engine.select(
+        view.name,
+        node.row.obj,
+        returnTo.current,
+      );
       tree.expandPath(node.path);
+      if (closesOnSelect && kept !== false) await close();
       return;
     }
     if (node.row) {

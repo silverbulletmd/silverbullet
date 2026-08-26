@@ -162,8 +162,8 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     followEditor: true,
     hasCreate: true,
     foldersFirst: false,
-    // Every folder here shares its name with a page, so clicking one opens
-    // that page as well as expanding the row.
+    // A folder that is also a page opens that page on click; one that isn't
+    // just expands.
     selectableFolders: true,
     refreshOn: INDEX_REFRESH_EVENTS,
   }),

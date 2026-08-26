@@ -3371,7 +3371,7 @@ test.describe("built-in views", () => {
     ).toHaveText("flow.png");
   });
 
-  test("default row icons distinguish folders, pages, documents and images", async ({
+  test("default row icons distinguish folders, duals, pages, documents and images", async ({
     sbPage,
   }) => {
     const frame = await openSpaceTree(sbPage);
@@ -3382,12 +3382,12 @@ test.describe("built-in views", () => {
       await frame.locator(`[data-path='${path}'] .sb-nav-icon svg`).innerHTML();
 
     const folder = await iconOf("Diagrams");
+    const dual = await iconOf("Projects");
     const page = await iconOf("Projects/Alpha");
     const document = await iconOf("Projects/notes.txt");
     const image = await iconOf("Diagrams/flow.png");
 
-    expect(new Set([folder, page, document, image]).size).toBe(4);
-    expect(await iconOf("Projects")).toBe(folder);
+    expect(new Set([folder, dual, page, document, image]).size).toBe(5);
   });
 
   test("a page/folder dual is navigable, a pure folder is not", async ({
