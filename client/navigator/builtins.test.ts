@@ -475,6 +475,9 @@ test("std.spaceTree's row state: icon per kind, and the action mask", async () =
   expect(image.icon).toBe("image");
   expect(locked.icon).toBe("lock");
   expect(aspiring.icon).toBe("file-plus");
+  // A dual heads a folder AND opens as a page, so it gets neither the plain
+  // folder icon nor the plain page one.
+  expect(dual.icon).toBe("book-open");
 
   // "New page here" (index 0) only offers on folders; "Delete" (index 2)
   // only where there's something to delete -- a bare folder has neither a

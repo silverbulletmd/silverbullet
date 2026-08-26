@@ -15,30 +15,14 @@ import {
   type Segment,
 } from "./types.ts";
 
-/**
- * A tree row: a real page/document from `spaceContents()` (a genuine
- * `ObjectValue`), or a folder the tree synthesizes client-side from the
- * hierarchy -- which has a `name` and `isFolder`, but neither `ref` nor
- * `tag` of its own (a "dual" -- a folder that is *also* a page -- carries
- * both: everything the real object has, plus `isFolder`). `Partial` is what
- * makes both shapes fit one type: only `name` is ever guaranteed.
- */
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
   name: string;
   isFolder?: boolean;
 };
 
-/** Folder rows (and page/folder duals) arrive as `{ name, isFolder = true }`,
- * synthesized client-side from the tree's own hierarchy -- which is why this
- * leads with `isFolder` rather than with the tag. */
 function treeIcon(obj: TreeObj): string {
-  if (obj.isFolder) return "folder";
+  if (obj.isFolder) return obj.ref != null ? "book-open" : "folder";
   if (obj.isAspiring) return "file-plus";
-  // `perm` is a read-only (in the schema sense) system field -- reaches this
-  // object for free, since the source selects the whole row -- so a page or
-  // document the space can't write to is flagged the same way regardless of
-  // kind. `lock` over `eye`: "eye" reads as a visibility/hide toggle (see
-  // `pageDecoration.hide`), not a write-permission one.
   if (obj.perm === "ro") return "lock";
   if (obj.tag === "document") {
     return String(obj.contentType ?? "").startsWith("image/")
@@ -77,10 +61,6 @@ const spaceTreeSegments: Segment<TreeObj>[] = [
   },
 ];
 
-/** `spaceContents()` already degrades pre-index the same way the space
- * picker needs to; the tree wants the identical set, just alphabetical
- * rather than recency-ordered, honouring the same `queryCollation` config
- * the indexed `order by _.name` query path does. */
 async function spaceTreeSource(): Promise<TreeObj[]> {
   const contents = await spaceContents();
   const collation = await config.get<QueryCollationConfig>(
@@ -88,9 +68,6 @@ async function spaceTreeSource(): Promise<TreeObj[]> {
     {},
   );
   const collator = Intl.Collator(collation?.locale, collation?.options);
-  // A real page/document always has `name` at runtime; `TreeObj` just can't
-  // say so statically, since it also has to fit the folders the tree
-  // synthesizes client-side (see the type's own doc comment).
   return [...contents].sort((a, b) =>
     compareCollated(String(a.name), String(b.name), collation, collator),
   ) as TreeObj[];
@@ -185,6 +162,9 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     followEditor: true,
     hasCreate: true,
     foldersFirst: false,
+    // Every folder here shares its name with a page, so clicking one opens
+    // that page as well as expanding the row.
+    selectableFolders: true,
     refreshOn: INDEX_REFRESH_EVENTS,
   }),
   row: { icon: treeIcon },

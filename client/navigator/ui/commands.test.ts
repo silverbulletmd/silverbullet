@@ -1,5 +1,17 @@
-import { describe, expect, it } from "vitest";
-import { createCommands } from "./commands.ts";
+import { describe, expect, it, vi } from "vitest";
+
+const navigated: string[] = [];
+vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
+  datastore: {},
+  editor: {
+    navigate: (ref: string) => {
+      navigated.push(ref);
+      return Promise.resolve();
+    },
+  },
+}));
+
+const { createCommands } = await import("./commands.ts");
 import type { NavigatorEngine } from "./engine.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
@@ -15,7 +27,8 @@ function treeNode(path: string, page: boolean): TreeNode {
   };
 }
 
-function setup() {
+function setup(selectableFolders = false) {
+  navigated.length = 0;
   const selected: Record<string, any>[] = [];
   let expanded = new Set<string>();
   const cmd = createCommands({
@@ -24,7 +37,11 @@ function setup() {
     // no host here.
     view: {
       name: "tree",
-      meta: { expansionScope: "page", hierarchy: { separator: "/" } },
+      meta: {
+        expansionScope: "page",
+        hierarchy: { separator: "/" },
+        selectableFolders,
+      },
     } as unknown as ActiveView,
     engine: {
       select: (_view: string, obj: Record<string, any>) => {
@@ -54,7 +71,7 @@ function setup() {
     } as unknown as PanelSetters,
     refresh: () => {},
   });
-  return { cmd, selected, expanded: () => expanded };
+  return { cmd, selected, expanded: () => expanded, navigated };
 }
 
 describe("selecting a tree node", () => {
@@ -70,5 +87,40 @@ describe("selecting a tree node", () => {
     await cmd.selectTreeNode(treeNode("Projects", true));
     expect(selected).toEqual([{ name: "Projects" }]);
     expect([...expanded()]).toEqual([]);
+  });
+});
+
+// A tree whose folders name something openable -- the space tree. Folders in
+// the revisions and TOC trees are groupings, and keep the behaviour above.
+describe("selecting a tree node when folders are selectable", () => {
+  it("a plain folder both opens the page of its name and expands", async () => {
+    const { cmd, selected, expanded, navigated } = setup(true);
+    await cmd.selectTreeNode(treeNode("Projects", false));
+    expect(navigated).toEqual(["Projects"]);
+    expect([...expanded()]).toEqual(["Projects"]);
+    // Opening is all that happens -- nothing here creates the page.
+    expect(selected).toEqual([]);
+  });
+
+  it("a folder that is also a page opens it and expands too", async () => {
+    const { cmd, selected, expanded } = setup(true);
+    await cmd.selectTreeNode(treeNode("Projects", true));
+    expect(selected).toEqual([{ name: "Projects" }]);
+    expect([...expanded()]).toEqual(["Projects"]);
+  });
+
+  it("expands rather than toggles, so a second click keeps it open", async () => {
+    const { cmd, expanded } = setup(true);
+    await cmd.selectTreeNode(treeNode("Projects", false));
+    await cmd.selectTreeNode(treeNode("Projects", false));
+    expect([...expanded()]).toEqual(["Projects"]);
+  });
+
+  it("a leaf is unaffected", async () => {
+    const { cmd, selected, navigated } = setup(true);
+    const leaf = { ...treeNode("Projects/Notes", true), isFolder: false };
+    await cmd.selectTreeNode(leaf);
+    expect(selected).toEqual([{ name: "Projects/Notes" }]);
+    expect(navigated).toEqual([]);
   });
 });

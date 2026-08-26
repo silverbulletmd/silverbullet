@@ -57,6 +57,7 @@ export type ViewMeta = {
   dock: "modal" | "lhs" | "rhs";
   hierarchy: { field: string; separator: string };
   foldersFirst: boolean;
+  selectableFolders?: boolean;
   expandAll: boolean;
   expansionScope: "view" | "page";
   filterFields?: FilterFields;

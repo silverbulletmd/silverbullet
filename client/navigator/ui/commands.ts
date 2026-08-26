@@ -279,6 +279,15 @@ export function createCommands({
 
   async function selectTreeNode(node: TreeNode) {
     if (!view) return;
+    if (node.isFolder && view.meta.selectableFolders) {
+      if (node.row) {
+        await engine.select(view.name, node.row.obj, returnTo.current);
+      } else {
+        void editor.navigate(node.path);
+      }
+      tree.expandPath(node.path);
+      return;
+    }
     if (node.row) {
       const kept = await engine.select(
         view.name,
