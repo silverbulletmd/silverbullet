@@ -292,7 +292,6 @@ async fn handle_asset(
 /// bundle); every screen it renders is driven by data behind `/api/*`, which
 /// authorizes per request. `admin_api` arrives already gated — see
 /// `build_admin_api_router`.
-
 pub fn build_spaces_router(state: Arc<SpaceIndexState>, admin_api: Router) -> Router {
     let router = Router::new()
         .route("/", get(handle_shell))

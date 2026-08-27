@@ -324,13 +324,15 @@ impl UserStore {
         None
     }
 
-    /// Look up a username by OIDC (issuer, subject) pair stored in `extra`.
+    /// Look up a username by OIDC (issuer, subject) pair stored in the typed
+    /// `oidc_issuer` / `oidc_subject` fields (legacy extra-map keys are folded
+    /// into them on load by `normalize_legacy`).
     pub fn resolve_by_oidc_subject(&self, issuer: &str, subject: &str) -> Option<String> {
         let guard = self.read();
         for (name, user) in &guard.users {
-            let oidc_issuer = user.extra.get("oidcIssuer").and_then(|v| v.as_str());
-            let oidc_subject = user.extra.get("oidcSubject").and_then(|v| v.as_str());
-            if oidc_issuer == Some(issuer) && oidc_subject == Some(subject) {
+            if user.oidc_issuer.as_deref() == Some(issuer)
+                && user.oidc_subject.as_deref() == Some(subject)
+            {
                 return Some(name.clone());
             }
         }
@@ -851,6 +853,39 @@ mod tests {
         let out = cfg.to_json_string().unwrap();
         assert!(out.contains("\"oidcIssuer\""));
         assert!(!out.contains("\"extra\""));
+    }
+
+    #[test]
+    fn resolve_by_oidc_subject_finds_linked_user() {
+        // Regression: resolve must read the typed fields that link_oidc writes,
+        // not the legacy extra map — re-login depends on this lookup.
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        s.link_oidc("zef", "https://id.example", "sub-42").unwrap();
+        assert_eq!(
+            s.resolve_by_oidc_subject("https://id.example", "sub-42")
+                .as_deref(),
+            Some("zef")
+        );
+        // Wrong issuer, wrong subject, and unknown pairs never match.
+        assert!(s
+            .resolve_by_oidc_subject("https://other.example", "sub-42")
+            .is_none());
+        assert!(s
+            .resolve_by_oidc_subject("https://id.example", "sub-other")
+            .is_none());
+        // The link must survive a reload from disk (serialize -> typed fields).
+        let s2 = UserStore::open(dir.path()).unwrap().unwrap();
+        assert_eq!(
+            s2.resolve_by_oidc_subject("https://id.example", "sub-42")
+                .as_deref(),
+            Some("zef")
+        );
+        // Unlinking makes the account unresolvable again.
+        s2.unlink_oidc("zef").unwrap();
+        assert!(s2
+            .resolve_by_oidc_subject("https://id.example", "sub-42")
+            .is_none());
     }
 
     #[test]
