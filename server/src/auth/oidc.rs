@@ -7,11 +7,12 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use axum::http::HeaderMap;
-use openidconnect::core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata};
+use openidconnect::core::{
+    CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreTokenResponse,
+};
 use openidconnect::{
-    AsyncHttpClient, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet,
-    EndpointNotSet, EndpointSet, IssuerUrl, Nonce, PkceCodeChallenge, PkceCodeVerifier,
-    RedirectUrl, Scope, TokenResponse,
+    AsyncHttpClient, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
+    EndpointSet, IssuerUrl, Nonce, PkceCodeChallenge, RedirectUrl, Scope, TokenResponse,
 };
 use serde::{Deserialize, Serialize};
 
@@ -106,6 +107,12 @@ impl ReqwestAsyncHttpClient {
     pub fn new(client: reqwest::Client) -> Self {
         Self { client }
     }
+
+    /// Borrow the wrapped `reqwest::Client` for direct (non-crate) requests such
+    /// as the token exchange in `exchange_authorization_code`.
+    pub fn client(&self) -> &reqwest::Client {
+        &self.client
+    }
 }
 
 impl<'c> AsyncHttpClient<'c> for ReqwestAsyncHttpClient {
@@ -158,6 +165,10 @@ pub struct OidcState {
     pub config: OidcConfig,
     pub client: DiscoveredClient,
     pub http_client: ReqwestAsyncHttpClient,
+    /// Token endpoint captured from provider discovery. Used for the direct
+    /// token exchange below (the openidconnect crate's `exchange_code` path
+    /// is bypassed — see `exchange_authorization_code`).
+    pub token_endpoint: String,
 }
 
 impl OidcState {
@@ -180,16 +191,23 @@ impl OidcState {
             .map_err(|e| format!("invalid redirect URL: {e}"))?;
 
         let client = CoreClient::from_provider_metadata(
-            provider_metadata,
+            provider_metadata.clone(),
             ClientId::new(config.client_id.clone()),
             Some(ClientSecret::new(config.client_secret.clone())),
         )
         .set_redirect_uri(redirect_url);
 
+        let token_endpoint = provider_metadata
+            .token_endpoint()
+            .ok_or_else(|| "OIDC provider metadata missing token_endpoint".to_string())?
+            .url()
+            .to_string();
+
         Ok(Arc::new(Self {
             config,
             client,
             http_client: oidc_http,
+            token_endpoint,
         }))
     }
 }
@@ -336,6 +354,67 @@ fn sanitize_preferred_username(raw: &str) -> Result<String, ()> {
     Ok(trimmed)
 }
 
+/// Exchange an authorization code for tokens via a direct `reqwest` POST.
+///
+/// The openidconnect crate's `exchange_code()` path was found to fail against
+/// Dex/Authentik (and any PKCE-requiring provider) with `invalid_grant`, even
+/// though an equivalent raw form-encoded request succeeds. We therefore perform
+/// the token exchange ourselves using the workspace `reqwest::Client` (the same
+/// client already wrapped by `ReqwestAsyncHttpClient`), then deserialize the
+/// JSON into the crate's `CoreTokenResponse` so the existing ID-token
+/// verification logic is reused unchanged.
+async fn exchange_authorization_code(
+    state: &OidcState,
+    code: &str,
+    pkce_verifier: &str,
+) -> Result<CoreTokenResponse, String> {
+    let redirect_uri = format!("{}/.oidc/callback", state.config.redirect_base);
+    // Build the body as an explicit, pre-encoded string and send it via
+    // `.body()` so reqwest emits a fixed `Content-Length` rather than
+    // `Transfer-Encoding: chunked`. Some providers (Dex, Authentik) misread a
+    // chunked token request and silently drop the `code_verifier`, yielding a
+    // bogus `invalid_grant`.
+    let enc = percent_encoding::utf8_percent_encode;
+    let form = [
+        ("grant_type", "authorization_code"),
+        ("code", code),
+        ("code_verifier", pkce_verifier),
+        ("redirect_uri", redirect_uri.as_str()),
+    ];
+    // Encode only the *values*; the parameter names must stay literal
+    // (`grant_type`, `code_verifier`, …) or the provider won't recognize them.
+    let body: String = form
+        .iter()
+        .map(|(k, v)| format!("{}={}", k, enc(v, percent_encoding::NON_ALPHANUMERIC)))
+        .collect::<Vec<_>>()
+        .join("&");
+    let basic = base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        format!("{}:{}", state.config.client_id, state.config.client_secret),
+    );
+    let resp = state
+        .http_client
+        .client()
+        .post(&state.token_endpoint)
+        .header("Authorization", format!("Basic {basic}"))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await
+        .map_err(|e| format!("OIDC token request failed: {e}"))?;
+
+    let status = resp.status();
+    let body = resp
+        .text()
+        .await
+        .map_err(|e| format!("OIDC token response unreadable: {e}"))?;
+    if !status.is_success() {
+        return Err(format!("OIDC token exchange failed: {status} {body}"));
+    }
+    serde_json::from_str::<CoreTokenResponse>(&body)
+        .map_err(|e| format!("OIDC token response parse failed: {e}: {body}"))
+}
+
 /// Handle the OIDC callback: verify state, exchange code for tokens, verify the
 /// ID token, resolve the local user, and issue a session JWT. Returns
 /// `(jwt, expiry_secs, return_mount)` where `return_mount` is the path saved
@@ -367,14 +446,8 @@ pub async fn handle_callback(
         return Err("OIDC state mismatch".to_string());
     }
 
-    let token_response = state
-        .client
-        .exchange_code(AuthorizationCode::new(code))
-        .map_err(|e| format!("OIDC code exchange setup failed: {e}"))?
-        .set_pkce_verifier(PkceCodeVerifier::new(cookie_claims.pkce_verifier))
-        .request_async(&state.http_client)
-        .await
-        .map_err(|e| format!("OIDC token exchange failed: {e}"))?;
+    let token_response =
+        exchange_authorization_code(state, &code, &cookie_claims.pkce_verifier).await?;
 
     let id_token = token_response
         .id_token()
@@ -388,9 +461,7 @@ pub async fn handle_callback(
     let issuer = state.config.issuer_url.clone();
 
     // Extract optional profile claims for display name and username selection.
-    let preferred_username = claims
-        .preferred_username()
-        .map(|u| u.as_str().to_string());
+    let preferred_username = claims.preferred_username().map(|u| u.as_str().to_string());
     let display_name = claims
         .name()
         .and_then(|n| n.get(None).map(|v| v.as_str().to_string()));
@@ -426,16 +497,16 @@ pub async fn handle_callback(
             let fallback = format!("oidc_{hash}");
 
             // Try preferred_username first; fall back to oidc_<hash>.
-            let name = match preferred_username.as_deref().and_then(|u| {
-                sanitize_preferred_username(u).ok()
-            }) {
+            let name = match preferred_username
+                .as_deref()
+                .and_then(|u| sanitize_preferred_username(u).ok())
+            {
                 Some(sanitized) => {
                     match users.create_user(&sanitized, &random_password, false, Profile::default())
                     {
                         Ok(()) => {
                             let _ = users.link_oidc(&sanitized, &issuer, &subject);
-                            let _ =
-                                users.sync_oidc_profile(&sanitized, display_name.as_deref());
+                            let _ = users.sync_oidc_profile(&sanitized, display_name.as_deref());
                             sanitized
                         }
                         Err(_) => {
@@ -446,8 +517,7 @@ pub async fn handle_callback(
                             users
                                 .link_oidc(&fallback, &issuer, &subject)
                                 .map_err(|e| format!("auto-provision link failed: {e}"))?;
-                            let _ =
-                                users.sync_oidc_profile(&fallback, display_name.as_deref());
+                            let _ = users.sync_oidc_profile(&fallback, display_name.as_deref());
                             fallback
                         }
                     }
@@ -629,26 +699,17 @@ mod tests {
 
     #[test]
     fn sanitize_preferred_username_basic_valid() {
-        assert_eq!(
-            sanitize_preferred_username("camden").unwrap(),
-            "camden"
-        );
+        assert_eq!(sanitize_preferred_username("camden").unwrap(), "camden");
     }
 
     #[test]
     fn sanitize_preferred_username_lowercases() {
-        assert_eq!(
-            sanitize_preferred_username("Camden").unwrap(),
-            "camden"
-        );
+        assert_eq!(sanitize_preferred_username("Camden").unwrap(), "camden");
     }
 
     #[test]
     fn sanitize_preferred_username_trims_whitespace() {
-        assert_eq!(
-            sanitize_preferred_username("  camden  ").unwrap(),
-            "camden"
-        );
+        assert_eq!(sanitize_preferred_username("  camden  ").unwrap(), "camden");
     }
 
     #[test]
