@@ -1990,7 +1990,7 @@ function evalBlockNoClose(
     meta = undefined;
   }
 
-  if (!meta?.funcHasGotos) {
+  if (!meta || !meta.funcHasGotos) {
     const dup = b.dupLabelError;
     if (dup) {
       throw new LuaRuntimeError(

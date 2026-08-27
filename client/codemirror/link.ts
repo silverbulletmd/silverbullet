@@ -29,7 +29,7 @@ export function linkPlugin(client: Client) {
 
         mdLinkRegex.lastIndex = 0;
         const match = mdLinkRegex.exec(text);
-        if (!match?.groups) {
+        if (!match || !match.groups) {
           return;
         }
 

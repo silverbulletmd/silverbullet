@@ -45,8 +45,7 @@ export type KeyContext = {
  */
 export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   const { view, phrase, derived, cmd, set } = ctx;
-  // setPhrase removed — unused (biome noUnusedVariables)
-  const { setSelectedIndex } = set;
+  const { setPhrase, setSelectedIndex } = set;
   if (e.isComposing) return;
   if (tryKeymap(e, ctx)) return;
   if (cycleSegment(e, ctx)) return;
@@ -219,9 +218,8 @@ function updateInteraction(e: KeyboardEvent, ctx: KeyContext) {
 }
 
 function treeKeyDown(e: KeyboardEvent, ctx: KeyContext) {
-  // phrase, setPhrase removed — unused (biome noUnusedVariables)
-  const { view, derived, cmd, set } = ctx;
-  const { setSelectedPath } = set;
+  const { view, phrase, derived, cmd, set } = ctx;
+  const { setPhrase, setSelectedPath } = set;
   const {
     treeVisible,
     treeLastIndex,

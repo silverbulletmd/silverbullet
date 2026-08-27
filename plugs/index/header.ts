@@ -76,12 +76,12 @@ export async function headerComplete(completeEvent: CompleteEvent) {
   const match = /(?:\[\[|\[.*?\]\()(?<path>[^[]*)$/.exec(
     completeEvent.linePrefix,
   );
-  if (!match?.groups?.path) {
+  if (!match || !match.groups?.path) {
     return;
   }
 
   const ref = parseToRef(match.groups.path);
-  if (ref?.details?.type !== "header") {
+  if (!ref || ref.details?.type !== "header") {
     return;
   }
 

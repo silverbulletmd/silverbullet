@@ -15,7 +15,7 @@ export function computeMarkerWidth(
   lineStart: number,
 ): number {
   const mark = listItem.firstChild;
-  if (mark?.name !== "ListMark") {
+  if (!mark || mark.name !== "ListMark") {
     return 0;
   }
   const leadingIndent = mark.from - lineStart;

@@ -206,7 +206,7 @@ async function installLibrary(
 ): Promise<{ page: string; plugPaths: string[] } | null> {
   const text = await readUriAsText(uri);
   const { frontmatter: remoteFm } = await extractFrontmatter(text);
-  if (!remoteFm?.name) {
+  if (!remoteFm || !remoteFm.name) {
     throw new Error("Library frontmatter missing required 'name'");
   }
   const remoteHash = await contentHash(text);

@@ -15,7 +15,7 @@ export interface DomWidget {
 
 export async function reloadAllWidgets() {
   for (const widget of [...activeWidgets]) {
-    if (!widget.dom?.parentNode) {
+    if (!widget.dom || !widget.dom.parentNode) {
       activeWidgets.delete(widget);
       continue;
     }
@@ -31,7 +31,7 @@ export async function reloadAllWidgets() {
 
 function garbageCollectWidgets() {
   for (const widget of activeWidgets) {
-    if (!widget.dom?.parentNode) {
+    if (!widget.dom || !widget.dom.parentNode) {
       // console.log("Garbage collecting widget", widget.bodyText);
       activeWidgets.delete(widget);
     }
