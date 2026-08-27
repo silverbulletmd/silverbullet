@@ -8,7 +8,7 @@ references:
 This guide walks you through a project and task management workflow. You'll learn how tasks, frontmatter, linked tasks, and queries combine into a lightweight project tracker — no extra tools needed.
 
 # 1. Create a project page
-Make a page called "Website Redesign" with structured [[Frontmatter]]:
+Make a page called "Website Redesign" with structured [[Concept/Frontmatter]]:
 
 ```yaml
 ---
@@ -32,7 +32,7 @@ Type `/task` to insert a task (or just type `* [ ] ` directly). Add a few tasks 
 Click a checkbox to mark a task as done. All tasks are automatically indexed and queryable.
 
 # 3. Annotate tasks with attributes
-Add metadata to tasks using [[Attribute]] syntax:
+Add metadata to tasks using [[Concept/Attribute]] syntax:
 
 ```markdown
 * [ ] Write the proposal [deadline: "2026-03-15"] [priority: high]
@@ -58,7 +58,7 @@ Real tasks don’t all live in one place — they come up in meetings, while rea
 The `[[Website Redesign]]` link connects these tasks to the project.
 
 # 5. See linked tasks automatically
-Navigate to your "Website Redesign" page. At the top, the **[[Linked Tasks]]** widget shows all incomplete tasks from _other_ pages that link to this page — including the ones from your meeting notes.
+Navigate to your "Website Redesign" page. At the top, the **[[Concept/Linked Task]]** widget shows all incomplete tasks from _other_ pages that link to this page — including the ones from your meeting notes.
 
 You can check off a linked task from either page; the state change propagates. No manual copying or moving of tasks needed.
 
@@ -101,6 +101,6 @@ Each section updates live as you add, complete, or modify tasks across your spac
 # What's next?
 You now have a project tracking system: project pages with frontmatter, tasks scattered naturally across pages, linked tasks that connect everything, and a dashboard for the big picture.
 
-* [[Journal]] — set up a daily journal
-* [[Knowledge Base]] — build a personal knowledge base
+* [[Feature/Journal]] — set up a daily journal
+* [[Guide/Knowledge Base]] — build a personal knowledge base
 * [[Manual]] — the full user manual

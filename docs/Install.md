@@ -25,17 +25,17 @@ There are three things to take care of, in this order (follow the links in each 
 1. Install SilverBullet:
    * [[Install/Binary]] — a single self-contained binary
    * [[Install/Docker]] — a docker container
-2. Be sure you enable [[Authentication]] for security
+2. Be sure you enable [[Feature/Authentication]] for security
 3. Deploy a [[TLS]] layer front of SilverBullet: browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so _you cannot_ reach a remote SilverBullet server over plain `http://`.
 4. Once that’s all set up, go through the setup flow and then follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud
-While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
+While [[Principles/Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
 
 PikaPods contribute a part of their revenue back to the projects they host, so it’s a source of [[Funding]] for SilverBullet itself.
 
 # First run
-When you point the server at an **empty** folder — or one that doesn’t exist yet — it opens a browser-based setup wizard that creates an admin account and your first space — see [[Space Manager]].
+When you point the server at an **empty** folder — or one that doesn’t exist yet — it opens a browser-based setup wizard that creates an admin account and your first space — see [[Feature/Space Manager]].
 
 # Notes on file systems
 ## Case insensitive file systems (Mac and Windows)
@@ -55,6 +55,6 @@ If you’re deploying **Linux**, you’re likely using a file system that is cas
 **Windows**’ native NTFS file system is _case insensitive_ by default, [however there are apparently ways to mark specific folders as case sensitive](https://www.howtogeek.com/354220/how-to-enable-case-sensitive-folders-on-windows-10/). Still, this makes deploying SilverBullet on Windows _not recommended_.
 
 ## NAS, sync engines, experimental file systems
-While using a NAS to store your space files should be fine, if you encounter issues (unreliable saving, sync issues) it is worth switching to a local file system to see if this resolves those issues. The same goes for synchronizing your files from your server elsewhere, e.g. using tools like SyncThing. They _should_ work fine, but if you run into [[Sync]] issues, disable everything, switch to a local file system and see if the issues persist to [[Troubleshooting]].
+While using a NAS to store your space files should be fine, if you encounter issues (unreliable saving, sync issues) it is worth switching to a local file system to see if this resolves those issues. The same goes for synchronizing your files from your server elsewhere, e.g. using tools like SyncThing. They _should_ work fine, but if you run into [[Feature/Sync]] issues, disable everything, switch to a local file system and see if the issues persist to [[Troubleshooting]].
 
 SilverBullet’s sync engine relies on reliably persisting **last modified timestamps** for your files, and those timestamps only being touched when actual changes to those file occur. If your file system (or NAS) does not persist these consistently, or you have some external sync process that updates them — this may lead to problems. 

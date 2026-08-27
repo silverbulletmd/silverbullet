@@ -5,7 +5,7 @@ references:
 - client/codemirror/footnote.ts
 ---
 
-SilverBullet supports footnotes in two flavors: classic **reference-style** footnotes and **inline** footnotes. Both are rendered as a small widget in [[Live Preview]] and show their content on hover.
+SilverBullet supports footnotes in two flavors: classic **reference-style** footnotes and **inline** footnotes. Both are rendered as a small widget in [[Feature/Live Preview]] and show their content on hover.
 
 # Reference-style footnotes
 A reference uses `[^label]` and is paired with a definition `[^label]: body` somewhere in the same page. Labels can be any string without whitespace or `]`.
@@ -29,7 +29,7 @@ This claim has an inline footnote.^[Inline footnotes don't need a separate defin
 The content is parsed as inline markdown.
 
 # Editor behavior
-* In [[Live Preview]], a footnote reference renders as a compact `…` widget. Move the cursor into it to see and edit the raw `[^label]` source.
+* In [[Feature/Live Preview]], a footnote reference renders as a compact `…` widget. Move the cursor into it to see and edit the raw `[^label]` source.
 * Hover over a reference to see the rendered footnote body in a tooltip. For an undefined reference, the tooltip shows an error.
 * **Click** a reference to jump to its definition. **Alt-click** moves the cursor into the marker for editing instead.
 * Unresolved references (no matching definition) are styled distinctly so you can spot them.

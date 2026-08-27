@@ -1,7 +1,7 @@
 ---
 description: Template for an Architecture Decision Record (ADR).
 command: "ADR: New"
-suggestedName: "ADR/000 Untitled Decision"
+suggestedName: "Architecture/ADR/000 Untitled Decision"
 confirmName: true
 tags: meta/template/page
 frontmatter: |

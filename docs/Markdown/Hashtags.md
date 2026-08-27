@@ -6,12 +6,12 @@ references:
 - plugs/index/tags.ts
 ---
 
-Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Tag]] to an [[Object]].
+Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Concept/Tag]] to an [[Object]].
 
 # Scope rules
 * If a hashtag is the only content in a paragraph (at most with additional hashtags), it applies to the **page**.
 * If a hashtag is used inside of an item (bullet point, or ordered list), it applies to that **item**.
-* If a hashtag is used inside of a [[Task]], it applies to that **task**.
+* If a hashtag is used inside of a [[Concept/Task]], it applies to that **task**.
 * If a hashtag is used inside of a paragraph, they apply to the **paragraph**.
 * If you create a [[Markdown/Fenced Code Block]] with a hashtag as language, it applies the tag to that [[Object/data]].
 

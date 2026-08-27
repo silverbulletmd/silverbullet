@@ -6,7 +6,7 @@ references:
 - plugs/index/item.ts
 ---
 
-APIs to define [[Task#Custom states]].
+APIs to define [[Concept/Task#Custom states]].
 
 # API
 ## taskState.define(def)
