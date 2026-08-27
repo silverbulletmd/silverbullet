@@ -17,9 +17,8 @@ let base: string;
 const BIN = "./target/debug/silverbullet";
 const CWD = join(import.meta.dirname, "..");
 
-test.describe.serial(
-  "OIDC admin user management (single shared server)",
-  () => {
+test.describe
+  .serial("OIDC admin user management (single shared server)", () => {
     test.beforeAll(async () => {
       rootDir = await mkdtemp(join(tmpdir(), "sb-users-oidc-e2e-"));
       execFileSync(
@@ -106,48 +105,45 @@ test.describe.serial(
       await expect(page.getByText("Test User Two")).toBeVisible();
     });
 
-    test(
-      "unlinked user detail: Advanced block with display-name editor",
-      async ({ page }) => {
-        await page.goto(`${base}/.spaces/users/test-user-two`);
-
-        const details = page.locator("details");
-        await expect(details).toBeAttached();
-        // Collapsed by default.
-        expect(await details.getAttribute("open")).toBeNull();
-
-        await details.locator("summary").click();
-        await expect(details).toContainText("Display name");
-        await expect(details).toContainText("Single sign-on");
-
-        await expect(details.locator("#oidc-link-issuer")).toBeAttached();
-        await expect(details.locator("#oidc-link-subject")).toBeAttached();
-        await expect(
-          details.getByRole("button", { name: "Link", exact: true }),
-        ).toBeDisabled();
-
-        // Scope to the Display name section — the Contact section also has a
-        // "Save" button, which trips strict-mode locators if unqualified.
-        const displaySection = details
-          .locator("section")
-          .filter({ has: page.getByLabel("Display name") });
-        await displaySection
-          .locator('input[aria-label="Display name"]')
-          .fill("Custom Override");
-        await displaySection.getByRole("button", { name: "Save" }).click();
-        await expect(page.locator("body")).toContainText("Custom override");
-        await expect(page.locator("body")).toContainText("Reset to automatic");
-
-        await page.getByRole("button", { name: "Reset to automatic" }).click();
-        await expect(page.locator("body")).toContainText(
-          "Follows the SSO provider",
-        );
-      },
-    );
-
-    test("linked user detail: Unlink / Relink round-trip", async ({
+    test("unlinked user detail: Advanced block with display-name editor", async ({
       page,
     }) => {
+      await page.goto(`${base}/.spaces/users/test-user-two`);
+
+      const details = page.locator("details");
+      await expect(details).toBeAttached();
+      // Collapsed by default.
+      expect(await details.getAttribute("open")).toBeNull();
+
+      await details.locator("summary").click();
+      await expect(details).toContainText("Display name");
+      await expect(details).toContainText("Single sign-on");
+
+      await expect(details.locator("#oidc-link-issuer")).toBeAttached();
+      await expect(details.locator("#oidc-link-subject")).toBeAttached();
+      await expect(
+        details.getByRole("button", { name: "Link", exact: true }),
+      ).toBeDisabled();
+
+      // Scope to the Display name section — the Contact section also has a
+      // "Save" button, which trips strict-mode locators if unqualified.
+      const displaySection = details
+        .locator("section")
+        .filter({ has: page.getByLabel("Display name") });
+      await displaySection
+        .locator('input[aria-label="Display name"]')
+        .fill("Custom Override");
+      await displaySection.getByRole("button", { name: "Save" }).click();
+      await expect(page.locator("body")).toContainText("Custom override");
+      await expect(page.locator("body")).toContainText("Reset to automatic");
+
+      await page.getByRole("button", { name: "Reset to automatic" }).click();
+      await expect(page.locator("body")).toContainText(
+        "Follows the SSO provider",
+      );
+    });
+
+    test("linked user detail: Unlink / Relink round-trip", async ({ page }) => {
       await page.goto(`${base}/.spaces/users/test-user-one`);
 
       const details = page.locator("details");
@@ -172,5 +168,4 @@ test.describe.serial(
       await page.getByRole("button", { name: "Link", exact: true }).click();
       await expect(details).toContainText("Unlink");
     });
-  },
-);
+  });

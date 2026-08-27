@@ -211,7 +211,9 @@ export function UserDetail({
       setUser(user);
       // Prefill the editor only when an admin override exists; otherwise an
       // empty input means "follow the provider / account name".
-      setNameOverride(user.fullNameSource === "admin" ? (user.fullName ?? "") : "");
+      setNameOverride(
+        user.fullNameSource === "admin" ? (user.fullName ?? "") : "",
+      );
       setEmail(user.email ?? "");
       setError("");
     } catch (error: any) {

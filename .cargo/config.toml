@@ -19,12 +19,6 @@
 # static musl binary that runs on bare Alpine — no aarch64/armv7 *musl* gcc
 # (e.g. the flaky musl.cc toolchains) is required.
 
-[target.x86_64-unknown-linux-gnu]
-# On NixOS the rust-lld default can't resolve glibc's LFS symbols
-# (open64/stat64/lseek64/…) and the musl lib dir is also dropped from
-# NIX_LDFLAGS in flake.nix, so link with the devshell's cc (gcc) here.
-linker = "cc"
-
 [target.x86_64-unknown-linux-musl]
 linker = "musl-gcc"
 

@@ -155,13 +155,10 @@ test.each([
   "javascript:alert(1)",
   "  //evil.example/x",
   "/.spaces/../secret",
-])(
-  "safeSpacesDestination rejects open-redirect payload: %s",
-  async (payload) => {
-    const { safeSpacesDestination } = await load("/.spaces/login");
-    expect(safeSpacesDestination(payload)).toBe(undefined);
-  },
-);
+])("safeSpacesDestination rejects open-redirect payload: %s", async (payload) => {
+  const { safeSpacesDestination } = await load("/.spaces/login");
+  expect(safeSpacesDestination(payload)).toBe(undefined);
+});
 
 // --- loginUrl ---------------------------------------------------------------
 
