@@ -34,4 +34,15 @@ while true; do
   sleep "$INTERVAL"
 done
 
+# Seed an unconfigured data folder non-interactively (fresh volumes boot into
+# the setup wizard otherwise, which gates the OIDC surface under test). The
+# seeded admin is deliberately NOT named "admin": the Dex test user carries
+# preferred_username=admin, and the collision must stay available so the flow
+# exercises preferred_username adoption (not the oidc_<hash> fallback).
+if [ ! -f "${SB_FOLDER:-/space}/users.json" ]; then
+  echo "Seeding ${SB_FOLDER:-/space}: admin account + root space..."
+  /silverbullet setup "${SB_FOLDER:-/space}" \
+    --admin "sbadmin:password" --space "Main" --at "/"
+fi
+
 exec "$@"
