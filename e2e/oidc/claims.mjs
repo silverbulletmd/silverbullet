@@ -41,13 +41,17 @@ const setCb = (u) => {
     }
   } catch {}
 };
-// Primary capture: Location header of the provider's 302 back to us.
+// Primary capture: Location header of the provider's 302/303 back to us.
 ctx.on("response", (r) => {
-  if (r.status() === 302) setCb(r.headers().location ?? "");
+  if (r.status() === 302 || r.status() === 303)
+    setCb(r.headers().location ?? "");
 });
-// Backstop: block any direct contact with localhost.
+// Backstop: block only the SB callback host (localhost:3000), not the IdP
+// (e.g. Dex at localhost:5556), so the login form can load.
 await ctx.route(
-  (u) => u.hostname === "localhost" || u.hostname === "127.0.0.1",
+  (u) =>
+    (u.hostname === "localhost" || u.hostname === "127.0.0.1") &&
+    u.port === "3000",
   (route) => {
     setCb(route.request().url());
     return route.abort();
