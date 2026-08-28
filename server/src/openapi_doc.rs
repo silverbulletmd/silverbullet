@@ -1,14 +1,15 @@
-//! OpenAPI component-schema smoke test. Compiled only with `--features openapi`.
+//! OpenAPI component-schema generation, gated behind the `openapi` feature.
 //!
-//! Aggregates every *public* annotated wire DTO and asserts the document
-//! serializes. Private request/response structs (`ShellRequest`, `LoginBody`,
-//! `Manifest`, etc.) are still `ToSchema`-derived where they live; this harness
-//!only proves the public contract, which is what an external consumer needs.
-//! The green build under `--features openapi` is what proves the openapi branch
-//! stands alone, independent of any OIDC payload work.
+//! Aggregates every *public* annotated wire DTO into a single `utoipa::OpenApi`
+//! document. The public contract is what an external consumer needs; the private
+//! request/response structs (`ShellRequest`, `LoginBody`, `Manifest`, etc.) are
+//! still `ToSchema`-derived where they live but are intentionally not bundled
+//! here. No YAML dependency is pulled in — the spec is served as JSON via the
+//! already-present `serde_json`.
 
-#![cfg(all(test, feature = "openapi"))]
+#![cfg(feature = "openapi")]
 
+use axum::response::IntoResponse;
 use utoipa::OpenApi;
 
 use crate::handlers::auth::LoginForm;
@@ -46,18 +47,43 @@ use crate::multi::validate::FieldError;
 )))]
 struct WireContract;
 
-#[test]
-fn schemas_generate_for_server_wire_types() {
-    let doc = WireContract::openapi();
-    let json = doc
+/// Serialize the wire-contract OpenAPI document to pretty-printed JSON.
+///
+/// Compiled only with `--features openapi`; callers outside that feature never
+/// pay for `utoipa`. Returned as `String` so the router can set
+/// `content-type: application/json` without an extra dependency.
+pub fn openapi_json() -> String {
+    WireContract::openapi()
         .to_pretty_json()
-        .expect("wire-contract schema must serialize");
-    // The camelCase serde hints must carry into the generated schema names.
-    assert!(json.contains("LoginForm"), "missing LoginForm: {json}");
-    assert!(json.contains("UserEntry"), "missing UserEntry: {json}");
-    assert!(json.contains("SpaceConfig"), "missing SpaceConfig: {json}");
-    assert!(
-        json.contains("RoutingTable"),
-        "missing RoutingTable: {json}"
-    );
+        .expect("wire-contract schema must serialize")
+}
+
+/// Serve the OpenAPI wire-contract document as pretty-printed JSON.
+///
+/// Gated behind the `openapi` feature: without it, this handler (and the
+/// `utoipa` dependency) does not exist, so the default binary stays lean.
+pub async fn handle_openapi_json() -> axum::response::Response {
+    (
+        [(axum::http::header::CONTENT_TYPE, "application/json")],
+        openapi_json(),
+    )
+        .into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn schemas_generate_for_server_wire_types() {
+        let json = openapi_json();
+        // The camelCase serde hints must carry into the generated schema names.
+        assert!(json.contains("LoginForm"), "missing LoginForm: {json}");
+        assert!(json.contains("UserEntry"), "missing UserEntry: {json}");
+        assert!(json.contains("SpaceConfig"), "missing SpaceConfig: {json}");
+        assert!(
+            json.contains("RoutingTable"),
+            "missing RoutingTable: {json}"
+        );
+    }
 }

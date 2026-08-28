@@ -167,6 +167,14 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         )
         .route("/.logout", get(crate::handlers::auth::handle_logout));
 
+    // OpenAPI spec (opt-in `openapi` feature): serves the wire-contract JSON at
+    // `/.openapi.json`. Gated so the default binary pays nothing for `utoipa`.
+    #[cfg(feature = "openapi")]
+    let open = open.route(
+        "/.openapi.json",
+        get(crate::openapi_doc::handle_openapi_json),
+    );
+
     open.merge(protected)
         .fallback(get(bundle::handle_client_bundle))
         .layer(middleware::from_fn_with_state(
@@ -475,6 +483,48 @@ mod auth_tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    /// `/.openapi.json` serves the wire-contract spec when the `openapi` feature
+    /// is compiled in, with a JSON content type and parsable body.
+    #[cfg(feature = "openapi")]
+    #[tokio::test]
+    async fn openapi_json_route_serves_spec() {
+        let state = test_state();
+        state
+            .client_bundle
+            .write_file(".client/index.html", b"<html>client shell</html>", None)
+            .unwrap();
+
+        let resp = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.openapi.json")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("content-type").unwrap(),
+            "application/json"
+        );
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        // Valid JSON, and it contains at least one component schema we annotate.
+        let value: serde_json::Value =
+            serde_json::from_slice(&bytes).expect("body must be valid JSON");
+        assert!(
+            value
+                .get("components")
+                .and_then(|c| c.get("schemas"))
+                .and_then(|s| s.get("SpaceConfig"))
+                .is_some(),
+            "expected a SpaceConfig component schema in {value}"
+        );
     }
 
     /// Regression guard: every write method on `/.fs`, and even an undeclared
