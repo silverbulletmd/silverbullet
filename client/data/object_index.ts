@@ -40,7 +40,7 @@ const indexVersionKey = ["$indexVersion"];
 const reindexInProgressKey = ["$reindexInProgress"];
 
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 13;
+const desiredIndexVersion = 14;
 
 type TagDefinition = {
   tagPage?: string;
