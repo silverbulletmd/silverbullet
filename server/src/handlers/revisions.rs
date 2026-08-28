@@ -1,4 +1,7 @@
+use crate::openapi_responses::SnapshotResponse;
 use crate::revisions::read;
+#[cfg(feature = "openapi")]
+use crate::revisions::read::{FileRevisions, RevisionEntry};
 use crate::state::ServerState;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -57,7 +60,7 @@ where
     path = "/.revisions/",
     tag = "Revisions",
     params(("path" = Option<String>, Query, description = "Filter by file path")),
-    responses((status = 200, description = "Space-wide revision log"))
+    responses((status = 200, body = [RevisionEntry], description = "Space-wide revision log"))
 ))]
 pub async fn handle_space_log(
     State(state): State<Arc<ServerState>>,
@@ -86,7 +89,7 @@ pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response 
         return disabled();
     };
     match run_blocking(move || history.snapshot_now()).await {
-        Ok(committed) => axum::Json(serde_json::json!({ "committed": committed })).into_response(),
+        Ok(committed) => axum::Json(SnapshotResponse { committed }).into_response(),
         Err(e) => revisions_error(e),
     }
 }
@@ -97,7 +100,7 @@ pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response 
     tag = "Revisions",
     params(("path" = String, Path, description = "File path")),
     responses(
-        (status = 200, description = "Revision history for the file"),
+        (status = 200, body = FileRevisions, description = "Revision history for the file"),
         (status = 404, description = "No such file")
     )
 ))]

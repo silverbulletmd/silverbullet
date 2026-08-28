@@ -12,6 +12,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
+use crate::openapi_responses::LogsResponse;
 use crate::runtime::RuntimeError;
 use crate::state::ServerState;
 
@@ -161,7 +162,7 @@ pub async fn handle_runtime_logs(
     };
     let limit = params.limit.unwrap_or(100);
     let logs = rt.logs(limit, params.since);
-    (StatusCode::OK, Json(json!({ "logs": logs }))).into_response()
+    (StatusCode::OK, Json(LogsResponse { logs })).into_response()
 }
 
 #[cfg(test)]

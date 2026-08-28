@@ -3,6 +3,7 @@ use super::store::RevisionStore;
 use serde::Serialize;
 use std::path::Path;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevisionEntry {
@@ -14,6 +15,7 @@ pub struct RevisionEntry {
     pub removed: u64,
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileRevisions {

@@ -30,7 +30,7 @@ fn is_false(value: &bool) -> bool {
     get,
     path = "/.accounts",
     tag = "System",
-    responses((status = 200, description = "Account switcher list (authenticated)"))
+    responses((status = 200, body = [AccountEntry], description = "Account switcher list (authenticated)"))
 ))]
 pub async fn handle_accounts(
     State(state): State<Arc<ServerState>>,

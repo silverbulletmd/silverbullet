@@ -12,11 +12,11 @@ use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use serde_json::json;
 use silverbullet_server_common::SpacePrimitives;
 
 use crate::multi::admin_api::dir_completion;
 use crate::multi::setup::{canonicalize_best_effort, run_setup, SetupRequest};
+use crate::openapi_responses::{ErrorListResponse, SetupStatusResponse, StatusResponse};
 use crate::router::run_blocking;
 
 /// Everything the setup surface needs to serve the wizard and provision the
@@ -86,7 +86,7 @@ async fn handle_status(State(state): State<Arc<SetupState>>) -> Response {
     let root = canonicalize_best_effort(&state.root)
         .to_string_lossy()
         .to_string();
-    Json(json!({ "root": root })).into_response()
+    Json(SetupStatusResponse { root }).into_response()
 }
 
 #[cfg_attr(feature = "openapi", utoipa::path(
@@ -115,10 +115,10 @@ async fn handle_complete(
     match result {
         Ok(Ok(())) => {
             (state.on_complete)();
-            Json(json!({ "status": "ok" })).into_response()
+            Json(StatusResponse::ok()).into_response()
         }
         Ok(Err(errors)) => {
-            (StatusCode::BAD_REQUEST, Json(json!({ "errors": errors }))).into_response()
+            (StatusCode::BAD_REQUEST, Json(ErrorListResponse { errors })).into_response()
         }
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }

@@ -114,6 +114,15 @@ pub struct TokenResponse {
     pub token: String,
 }
 
+/// `{ "status": "ok", "redirect": "..." }` — returned by `handle_auth_post`
+/// (standalone login) after a successful credential check.
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[derive(Debug, Clone, Serialize)]
+pub struct AuthLoginResponse {
+    pub status: String,
+    pub redirect: String,
+}
+
 /// `{ "id": "..." }` — returned by `handle_create` (admin space create).
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[derive(Debug, Clone, Serialize)]
@@ -222,6 +231,15 @@ mod tests {
             token: "abc".to_string(),
         };
         assert_eq!(ser(&body), r#"{"token":"abc"}"#);
+    }
+
+    #[test]
+    fn auth_login_response_matches_literal() {
+        let body = AuthLoginResponse {
+            status: "ok".to_string(),
+            redirect: "/".to_string(),
+        };
+        assert_eq!(ser(&body), r#"{"status":"ok","redirect":"/"}"#);
     }
 
     #[test]

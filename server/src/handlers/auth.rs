@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
+use crate::auth::{is_secure_request, request_host, CookieOptions};
+use crate::openapi_responses::{AuthLoginResponse, LoginErrorResponse};
+use crate::router::run_blocking;
+use crate::state::ServerState;
 use axum::extract::State;
 use axum::http::{header::SET_COOKIE, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json};
 use serde::Deserialize;
-use serde_json::json;
-
-use crate::auth::{is_secure_request, request_host, CookieOptions};
-use crate::router::run_blocking;
-use crate::state::ServerState;
 
 /// `GET /.auth` — render the login page from `.client/auth.html`. Returns 403
 /// when authentication is not enabled (no `LoginManager`).
@@ -148,7 +147,11 @@ pub async fn handle_auth_post(
         form.from.clone()
     };
 
-    let mut resp = Json(json!({ "status": "ok", "redirect": redirect })).into_response();
+    let mut resp = Json(AuthLoginResponse {
+        status: "ok".to_string(),
+        redirect,
+    })
+    .into_response();
     let cookie_name = crate::auth::scoped_auth_cookie_name(&host, login.session_url_prefix());
     append_cookie(&mut resp, &cookie_name, &jwt, &opts);
     if remember {
@@ -158,7 +161,7 @@ pub async fn handle_auth_post(
 }
 
 fn json_error(message: &str) -> Response {
-    Json(json!({ "status": "error", "error": message })).into_response()
+    Json(LoginErrorResponse::new(message)).into_response()
 }
 
 fn append_cookie(resp: &mut Response, name: &str, value: &str, opts: &CookieOptions) {
