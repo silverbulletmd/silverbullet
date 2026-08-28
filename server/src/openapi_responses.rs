@@ -16,6 +16,7 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 use crate::multi::validate::FieldError;
+use crate::runtime::availability::RuntimeAvailability;
 use crate::runtime::logs::LogEntry;
 
 /// `{ "status": "ok" }` — returned by every mutating handler on success.
@@ -82,12 +83,14 @@ pub struct ProfileView {
     pub email: String,
 }
 
-/// `{ "runtimeApi": bool }` — returned by `handle_server_info`.
+/// `{ "runtimeApi": <availability> }` — returned by `handle_server_info`. The
+/// value is the internally-tagged `RuntimeAvailability` enum
+/// (`{ "status": "available" }`, `{ "status": "no_chrome" }`, …).
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[derive(Debug, Clone, Serialize)]
 pub struct ServerInfoResponse {
     #[serde(rename = "runtimeApi")]
-    pub runtime_api: bool,
+    pub runtime_api: RuntimeAvailability,
 }
 
 /// `{ "committed": bool }` — returned by `handle_snapshot`.
@@ -186,8 +189,10 @@ mod tests {
 
     #[test]
     fn server_info_response_matches_literal() {
-        let body = ServerInfoResponse { runtime_api: true };
-        assert_eq!(ser(&body), r#"{"runtimeApi":true}"#);
+        let body = ServerInfoResponse {
+            runtime_api: RuntimeAvailability::Available,
+        };
+        assert_eq!(ser(&body), r#"{"runtimeApi":{"status":"available"}}"#);
     }
 
     #[test]

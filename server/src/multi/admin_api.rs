@@ -21,6 +21,10 @@ use crate::multi::manager::{ApiError, MultiManager};
 #[cfg(feature = "openapi")]
 use crate::multi::users::UserEntry;
 use crate::multi::users::{Profile, UserStore};
+use crate::multi::validate::FieldError;
+use crate::openapi_responses::{
+    CreateSpaceResponse, ErrorListResponse, ServerInfoResponse, StatusResponse, TokenResponse,
+};
 use crate::router::run_blocking;
 
 pub struct AdminState {
@@ -138,18 +142,28 @@ async fn handle_list(State(state): State<Arc<AdminState>>) -> Response {
 fn api_error(e: ApiError) -> Response {
     match e {
         ApiError::Validation(errors) => {
-            (StatusCode::BAD_REQUEST, Json(json!({ "errors": errors }))).into_response()
+            (StatusCode::BAD_REQUEST, Json(ErrorListResponse { errors })).into_response()
         }
         ApiError::NotFound => (
             StatusCode::NOT_FOUND,
-            Json(json!({ "errors": [{ "field": "id", "message": "no such space" }] })),
+            Json(ErrorListResponse {
+                errors: vec![FieldError {
+                    field: "id".to_string(),
+                    message: "no such space".to_string(),
+                }],
+            }),
         )
             .into_response(),
         ApiError::Internal(msg) => {
             tracing::error!("admin API internal error: {msg}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "errors": [{ "field": "", "message": msg }] })),
+                Json(ErrorListResponse {
+                    errors: vec![FieldError {
+                        field: "".to_string(),
+                        message: msg,
+                    }],
+                }),
             )
                 .into_response()
         }
@@ -169,7 +183,12 @@ fn user_store_error(msg: String) -> Response {
     if msg.starts_with("no such") {
         return (
             StatusCode::NOT_FOUND,
-            Json(json!({ "errors": [{ "field": "", "message": msg }] })),
+            Json(ErrorListResponse {
+                errors: vec![FieldError {
+                    field: "".to_string(),
+                    message: msg,
+                }],
+            }),
         )
             .into_response();
     }
@@ -221,7 +240,7 @@ async fn handle_create(
     let manager = state.manager.clone();
     let CreateBody { seed_index, config } = body;
     match run_blocking(move || Ok(manager.create(config, seed_index))).await {
-        Ok(Ok(id)) => Json(json!({ "id": id })).into_response(),
+        Ok(Ok(id)) => Json(CreateSpaceResponse { id }).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -242,7 +261,7 @@ async fn handle_update(
 ) -> Response {
     let manager = state.manager.clone();
     match run_blocking(move || Ok(manager.update(&id, cfg))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(())) => Json(StatusResponse::ok()).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -282,7 +301,7 @@ async fn handle_patch(
 ) -> Response {
     let manager = state.manager.clone();
     match run_blocking(move || Ok(manager.patch(&id, body))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(())) => Json(StatusResponse::ok()).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -301,7 +320,7 @@ async fn handle_delete(
 ) -> Response {
     let manager = state.manager.clone();
     match run_blocking(move || Ok(manager.delete(&id))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(())) => Json(StatusResponse::ok()).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -414,7 +433,7 @@ async fn handle_set_user_profile(
     };
     let users = state.users.clone();
     match run_blocking(move || Ok(users.set_profile(&name, profile))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(())) => Json(StatusResponse::ok()).into_response(),
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -450,7 +469,7 @@ async fn handle_delete_user(
     })
     .await
     {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(())) => Json(StatusResponse::ok()).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -542,7 +561,7 @@ async fn handle_create_token(
     match result {
         Ok(Ok(token)) => {
             state.manager.set_known_users(state.users.usernames());
-            Json(json!({ "token": token })).into_response()
+            Json(TokenResponse { token }).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
@@ -607,7 +626,10 @@ async fn handle_fs_dirs(
     responses((status = 200, description = "Runtime availability of the Lua API"))
 ))]
 async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
-    Json(json!({ "runtimeApi": state.runtime_availability })).into_response()
+    Json(ServerInfoResponse {
+        runtime_api: state.runtime_availability.clone(),
+    })
+    .into_response()
 }
 
 /// Path status + subdirectory suggestions for a folder-picker field. Relative

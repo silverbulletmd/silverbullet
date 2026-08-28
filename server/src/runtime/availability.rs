@@ -10,6 +10,7 @@ use serde::Serialize;
 ///
 /// Serialized internally tagged, so the wire form is `{"status": "no_chrome"}`
 /// and `{"status": "failed", "message": "..."}`.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum RuntimeAvailability {
