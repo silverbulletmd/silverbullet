@@ -126,6 +126,7 @@
     background: color-mix(in srgb,
         var(--top-background-color) 90%,
         transparent);
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     overflow: hidden;
     flex-direction: column;

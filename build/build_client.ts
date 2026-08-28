@@ -18,6 +18,9 @@ export async function buildClient(): Promise<void> {
     absWorkingDir: process.cwd(),
     bundle: true,
     treeShaking: true,
+    // Safari 16.4 is the oldest engine the client actually works on (regex lookbehind and CSS
+    // @property need it) and corresponds to macOS 12 Monterey
+    target: ["safari16.4"],
     sourcemap: "linked",
     minify: true,
     jsxFactory: "h",

@@ -25,6 +25,24 @@
         <meta content="{{ description }}" property="og:description" />
 
         <link href=".client/main.css" rel="stylesheet" />
+        <!--
+            WebKit has no requestIdleCallback. Without it, CodeMirror's
+            background syntax parser falls back to fixed 500ms pauses between
+            parse chunks, so scrolling into a not-yet-parsed region shows raw
+            markdown for half a second before live preview kicks in.
+        -->
+        <script>
+            globalThis.requestIdleCallback ||= (callback) =>
+                setTimeout(() => {
+                    const start = Date.now();
+                    callback({
+                        didTimeout: false,
+                        timeRemaining: () =>
+                            Math.max(0, 50 - (Date.now() - start)),
+                    });
+                }, 16);
+            globalThis.cancelIdleCallback ||= (id) => clearTimeout(id);
+        </script>
         <script src=".client/client.js" type="module"></script>
         <link
             crossorigin="use-credentials"

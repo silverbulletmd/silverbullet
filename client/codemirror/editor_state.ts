@@ -8,6 +8,7 @@ import {
 import {
   codeFolding,
   foldEffect,
+  forceParsing,
   indentOnInput,
   indentUnit,
   LanguageDescription,
@@ -374,6 +375,28 @@ export function createEditorState(
       closeBrackets(),
     ],
   });
+}
+
+/**
+ * Synchronously parse the region of the document that is about to become
+ * visible, so live-preview decorations are present on the first paint instead
+ * of flashing raw markdown. A fresh editor state only parses the first ~3000
+ * characters; the background parser resumes after an idle pause (a fixed
+ * 500ms in WebKit, which lacks requestIdleCallback). Must be called in the
+ * same task as `setState`/navigation, before the browser paints.
+ *
+ * `scrollTop` is the scroll position that is about to be restored, if any.
+ */
+export function forceParseVisibleRegion(view: EditorView, scrollTop?: number) {
+  let upto = view.viewport.to;
+  if (scrollTop) {
+    upto = Math.max(
+      upto,
+      view.lineBlockAtHeight(scrollTop + view.scrollDOM.clientHeight).to,
+    );
+  }
+  upto = Math.max(upto, view.state.selection.main.to);
+  forceParsing(view, Math.min(view.state.doc.length, upto + 2500), 100);
 }
 
 export function createCommandKeyBindings(client: Client): Extension {
