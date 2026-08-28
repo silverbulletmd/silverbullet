@@ -100,6 +100,7 @@ struct LoginBody {
 #[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/.spaces/api/login",
+    tag = "Auth",
     request_body = LoginBody,
     responses(
         (status = 200, description = "Session cookie issued"),
@@ -144,6 +145,12 @@ async fn handle_login(
     response
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/logout",
+    tag = "Auth",
+    responses((status = 200, description = "Session cookie cleared"))
+))]
 async fn handle_logout(headers: HeaderMap) -> Response {
     let options = CookieOptions {
         path: "/".to_string(),
@@ -176,6 +183,7 @@ fn current_username(state: &SpaceIndexState, headers: &HeaderMap) -> Option<Stri
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/.spaces/api/session",
+    tag = "Auth",
     responses(
         (status = 200, description = "Current session identity (or anonymous)"),
         (status = 401, description = "No active session")
@@ -199,6 +207,15 @@ struct ProfileBody {
     email: String,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/profile",
+    tag = "Users",
+    responses(
+        (status = 200, body = Profile, description = "Current user's profile"),
+        (status = 401, description = "No active session")
+    )
+))]
 async fn handle_get_profile(
     State(state): State<Arc<SpaceIndexState>>,
     headers: HeaderMap,
@@ -218,6 +235,16 @@ async fn handle_get_profile(
 
 /// The username comes from the session cookie only, never from the request
 /// body — this is what stops a caller from naming another account.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    put,
+    path = "/.spaces/api/profile",
+    tag = "Users",
+    request_body = ProfileBody,
+    responses(
+        (status = 200, body = Profile, description = "Updated profile"),
+        (status = 401, description = "No active session")
+    )
+))]
 async fn handle_put_profile(
     State(state): State<Arc<SpaceIndexState>>,
     headers: HeaderMap,
@@ -249,6 +276,7 @@ fn profile_error(message: String) -> Response {
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/.spaces/api/spaces",
+    tag = "Spaces",
     responses(
         (status = 200, body = [VisibleSpace], description = "Spaces visible to the caller")
     )
