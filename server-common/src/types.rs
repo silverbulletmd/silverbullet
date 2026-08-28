@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// File metadata for a file in a space — the `/.fs` wire contract shared with
 /// the client's `FileMeta` interface.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileMeta {
@@ -14,6 +15,7 @@ pub struct FileMeta {
 }
 
 /// Boot configuration sent to the client via `/.config`.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BootConfig {
@@ -43,6 +45,7 @@ fn default_sync_protocol_version() -> u32 {
     1
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RevisionsMode {
