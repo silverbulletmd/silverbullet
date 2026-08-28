@@ -18,6 +18,9 @@ mod ssr;
 pub mod state;
 pub mod watcher;
 
+#[cfg(feature = "openapi")]
+mod openapi_doc;
+
 pub use fs_guard::FsGuard;
 pub use router::{build_router, metrics_router};
 pub use state::{ServerState, ServerVersion};
