@@ -151,7 +151,7 @@ pub struct LogsQuery {
     path = "/.runtime/logs",
     tag = "Runtime",
     params(("path" = Option<String>, Query, description = "Filter by file path")),
-    responses((status = 200, description = "Lua execution logs"))
+    responses((status = 200, body = LogsResponse, description = "Lua execution logs"))
 ))]
 pub async fn handle_runtime_logs(
     State(state): State<Arc<ServerState>>,

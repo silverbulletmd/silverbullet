@@ -94,7 +94,7 @@ async fn handle_status(State(state): State<Arc<SetupState>>) -> Response {
     path = "/.setup/api/complete",
     tag = "Setup",
     request_body = SetupRequest,
-    responses((status = 200, description = "Setup completed"))
+    responses((status = 200, body = StatusResponse, description = "Setup completed"), (status = 400, body = ErrorListResponse, description = "Validation errors"))
 ))]
 async fn handle_complete(
     State(state): State<Arc<SetupState>>,

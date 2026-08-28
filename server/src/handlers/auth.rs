@@ -97,7 +97,7 @@ pub struct LoginForm {
     tag = "Auth",
     request_body = LoginForm,
     responses(
-        (status = 200, description = "Logged in"),
+        (status = 200, body = AuthLoginResponse, description = "Logged in"),
         (status = 403, description = "Authentication not enabled")
     )
 ))]

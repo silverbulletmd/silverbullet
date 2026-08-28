@@ -108,8 +108,8 @@ struct LoginBody {
     tag = "Auth",
     request_body = LoginBody,
     responses(
-        (status = 200, description = "Session cookie issued"),
-        (status = 401, description = "Invalid credentials or lockout")
+        (status = 200, body = StatusResponse, description = "Session cookie issued"),
+        (status = 401, body = LoginErrorResponse, description = "Invalid credentials or lockout")
     )
 ))]
 async fn handle_login(
@@ -153,7 +153,7 @@ async fn handle_login(
     get,
     path = "/.spaces/api/logout",
     tag = "Auth",
-    responses((status = 200, description = "Session cookie cleared"))
+    responses((status = 200, body = StatusResponse, description = "Session cookie cleared"))
 ))]
 async fn handle_logout(headers: HeaderMap) -> Response {
     let options = CookieOptions {
@@ -189,7 +189,7 @@ fn current_username(state: &SpaceIndexState, headers: &HeaderMap) -> Option<Stri
     path = "/.spaces/api/session",
     tag = "Auth",
     responses(
-        (status = 200, description = "Current session identity (or anonymous)"),
+        (status = 200, body = SessionResponse, description = "Current session identity (or anonymous)"),
         (status = 401, description = "No active session")
     )
 ))]

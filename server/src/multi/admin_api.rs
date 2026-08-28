@@ -231,7 +231,7 @@ struct CreateBody {
     path = "/.spaces/api/admin/spaces",
     tag = "Admin",
     request_body = CreateBody,
-    responses((status = 200, description = "Space created"))
+    responses((status = 200, body = CreateSpaceResponse, description = "Space created"))
 ))]
 async fn handle_create(
     State(state): State<Arc<AdminState>>,
@@ -252,7 +252,7 @@ async fn handle_create(
     tag = "Admin",
     params(("id" = String, Path, description = "Space id")),
     request_body = SpaceConfig,
-    responses((status = 200, description = "Space updated"))
+    responses((status = 200, body = StatusResponse, description = "Space updated"))
 ))]
 async fn handle_update(
     State(state): State<Arc<AdminState>>,
@@ -292,7 +292,7 @@ async fn handle_get(
     path = "/.spaces/api/admin/spaces/{id}",
     tag = "Admin",
     params(("id" = String, Path, description = "Space id")),
-    responses((status = 200, description = "Space patched"))
+    responses((status = 200, body = StatusResponse, description = "Space patched"))
 ))]
 async fn handle_patch(
     State(state): State<Arc<AdminState>>,
@@ -312,7 +312,7 @@ async fn handle_patch(
     path = "/.spaces/api/admin/spaces/{id}",
     tag = "Admin",
     params(("id" = String, Path, description = "Space id")),
-    responses((status = 200, description = "Space deleted"))
+    responses((status = 200, body = StatusResponse, description = "Space deleted"))
 ))]
 async fn handle_delete(
     State(state): State<Arc<AdminState>>,
@@ -379,7 +379,7 @@ struct CreateUserBody {
     path = "/.spaces/api/admin/users",
     tag = "Admin",
     request_body = CreateUserBody,
-    responses((status = 200, description = "User created"))
+    responses((status = 200, body = StatusResponse, description = "User created"))
 ))]
 async fn handle_create_user(
     State(state): State<Arc<AdminState>>,
@@ -420,7 +420,7 @@ struct ProfileBody {
     tag = "Admin",
     params(("name" = String, Path, description = "Account name")),
     request_body = ProfileBody,
-    responses((status = 200, description = "Profile updated"))
+    responses((status = 200, body = StatusResponse, description = "Profile updated"))
 ))]
 async fn handle_set_user_profile(
     State(state): State<Arc<AdminState>>,
@@ -447,7 +447,7 @@ async fn handle_set_user_profile(
     path = "/.spaces/api/admin/users/{name}",
     tag = "Admin",
     params(("name" = String, Path, description = "Account name")),
-    responses((status = 200, description = "User deleted"))
+    responses((status = 200, body = StatusResponse, description = "User deleted"))
 ))]
 async fn handle_delete_user(
     State(state): State<Arc<AdminState>>,
@@ -487,7 +487,7 @@ struct PasswordBody {
     tag = "Admin",
     params(("name" = String, Path, description = "Account name")),
     request_body = PasswordBody,
-    responses((status = 200, description = "Password set"))
+    responses((status = 200, body = StatusResponse, description = "Password set"))
 ))]
 async fn handle_set_user_password(
     State(state): State<Arc<AdminState>>,
@@ -518,7 +518,7 @@ struct SetAdminBody {
     tag = "Admin",
     params(("name" = String, Path, description = "Account name")),
     request_body = SetAdminBody,
-    responses((status = 200, description = "Admin flag set"))
+    responses((status = 200, body = StatusResponse, description = "Admin flag set"))
 ))]
 async fn handle_set_admin(
     State(state): State<Arc<AdminState>>,
@@ -549,7 +549,7 @@ struct CreateTokenBody {
     tag = "Admin",
     params(("user" = String, Path, description = "Account name"), ("tokenName" = String, Path, description = "Token name")),
     request_body = CreateTokenBody,
-    responses((status = 200, description = "Token created"))
+    responses((status = 200, body = TokenResponse, description = "Token created"))
 ))]
 async fn handle_create_token(
     State(state): State<Arc<AdminState>>,
@@ -573,7 +573,7 @@ async fn handle_create_token(
     path = "/.spaces/api/admin/users/{user}/tokens/{tokenName}",
     tag = "Admin",
     params(("user" = String, Path, description = "Account name"), ("tokenName" = String, Path, description = "Token name")),
-    responses((status = 200, description = "Token deleted"))
+    responses((status = 200, body = StatusResponse, description = "Token deleted"))
 ))]
 async fn handle_delete_token(
     State(state): State<Arc<AdminState>>,
@@ -603,7 +603,7 @@ struct DirsQuery {
     path = "/.spaces/api/admin/fs/dirs",
     tag = "Admin",
     params(("root" = Option<String>, Query, description = "Subdirectory to list")),
-    responses((status = 200, description = "Directory listing"))
+    responses((status = 200, body = StatusResponse, description = "Directory listing"))
 ))]
 async fn handle_fs_dirs(
     State(state): State<Arc<AdminState>>,

@@ -60,7 +60,7 @@ where
     path = "/.revisions/",
     tag = "Revisions",
     params(("path" = Option<String>, Query, description = "Filter by file path")),
-    responses((status = 200, body = [RevisionEntry], description = "Space-wide revision log"))
+    responses((status = 200, body = Vec<RevisionEntry>, description = "Space-wide revision log"))
 ))]
 pub async fn handle_space_log(
     State(state): State<Arc<ServerState>>,
@@ -82,7 +82,7 @@ pub async fn handle_space_log(
     post,
     path = "/.revisions/",
     tag = "Revisions",
-    responses((status = 200, description = "Snapshot written"))
+    responses((status = 200, body = SnapshotResponse, description = "Snapshot written"))
 ))]
 pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response {
     let Some(history) = state.revisions.clone() else {

@@ -22,6 +22,14 @@ use crate::multi::registry::RoutingTable;
 use crate::multi::setup::{FirstSpace, SetupRequest};
 use crate::multi::users::{Profile, TokenEntry, UserEntry};
 use crate::multi::validate::FieldError;
+#[cfg(feature = "openapi")]
+use crate::openapi_responses::{
+    AuthLoginResponse, CreateSpaceResponse, ErrorListResponse, LoginErrorResponse, LogsResponse,
+    ProfileView, ServerInfoResponse, SessionResponse, SetupStatusResponse, SnapshotResponse,
+    StatusResponse, TokenResponse,
+};
+#[cfg(feature = "openapi")]
+use crate::runtime::availability::RuntimeAvailability;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -101,7 +109,20 @@ Generated from the server crate's `utoipa` annotations; enabled with the \
         MultiConfig,
         InstanceStatus,
         SpaceInstance,
-        RoutingTable
+        RoutingTable,
+        StatusResponse,
+        ErrorListResponse,
+        LoginErrorResponse,
+        SessionResponse,
+        ProfileView,
+        ServerInfoResponse,
+        SnapshotResponse,
+        LogsResponse,
+        TokenResponse,
+        CreateSpaceResponse,
+        SetupStatusResponse,
+        AuthLoginResponse,
+        RuntimeAvailability
     ))
 )]
 struct WireContract;
@@ -144,6 +165,24 @@ mod tests {
             json.contains("RoutingTable"),
             "missing RoutingTable: {json}"
         );
+        // Typed response DTOs introduced by the behavioral-change branch.
+        for name in [
+            "StatusResponse",
+            "ErrorListResponse",
+            "LoginErrorResponse",
+            "SessionResponse",
+            "ProfileView",
+            "ServerInfoResponse",
+            "SnapshotResponse",
+            "LogsResponse",
+            "TokenResponse",
+            "CreateSpaceResponse",
+            "SetupStatusResponse",
+            "AuthLoginResponse",
+            "RuntimeAvailability",
+        ] {
+            assert!(json.contains(name), "missing response DTO schema: {name}");
+        }
 
         // Paths from the multi-space API must be present, not just components.
         let value: serde_json::Value =
