@@ -54,6 +54,7 @@ fn runtime_error_response(e: RuntimeError) -> Response {
         .into_response()
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Clone, Copy)]
 enum EvalKind {
     Lua,
@@ -125,6 +126,7 @@ async fn runtime_eval(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(serde::Deserialize, Default)]
 pub struct LogsQuery {
     limit: Option<usize>,

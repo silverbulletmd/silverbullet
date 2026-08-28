@@ -39,6 +39,7 @@ pub async fn handle_config(State(state): State<Arc<ServerState>>) -> impl IntoRe
 }
 
 /// An icon entry in the PWA manifest.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(serde::Serialize)]
 struct ManifestIcon {
     src: String,
@@ -49,6 +50,7 @@ struct ManifestIcon {
 
 /// The PWA `manifest.json` document. Field names match the web app manifest
 /// spec (snake_case), so they are serialized verbatim.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(serde::Serialize)]
 struct Manifest {
     short_name: String,

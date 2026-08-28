@@ -10,6 +10,7 @@ use std::sync::Arc;
 const DEFAULT_LIMIT: usize = 50;
 const MAX_LIMIT: usize = 200;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 pub struct HistoryQuery {
     rev: Option<String>,
