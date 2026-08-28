@@ -112,10 +112,10 @@ pub struct SpaceConfig {
     #[serde(default)]
     pub log_push: bool,
     #[serde(default)]
-    #[cfg_attr(feature = "openapi", schema(value_type = String))]
+    #[cfg_attr(feature = "openapi", schema(ignore))]
     pub revisions: silverbullet_server_common::RevisionsMode,
     /// Fields written by newer versions, preserved verbatim.
-    #[cfg_attr(feature = "openapi", schema(value_type = Object, additional_properties = true))]
+    #[cfg_attr(feature = "openapi", schema(ignore))]
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
