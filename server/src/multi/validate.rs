@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use crate::multi::config::{Binding, MultiConfig};
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Serialize)]
 pub struct FieldError {
     pub field: String,

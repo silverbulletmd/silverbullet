@@ -14,6 +14,7 @@ use crate::auth::{clean_email, clean_full_name};
 
 pub const USERS_FILE: &str = "users.json";
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenEntry {
@@ -23,6 +24,7 @@ pub struct TokenEntry {
     pub created_at: String,
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserEntry {
@@ -37,6 +39,7 @@ pub struct UserEntry {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub tokens: BTreeMap<String, TokenEntry>,
     /// Fields written by newer versions, preserved verbatim.
+    #[cfg_attr(feature = "openapi", schema(value_type = Object, additional_properties = true))]
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
@@ -48,6 +51,7 @@ pub struct UsersConfig {
 
 /// The human identity attached to an account: who commits are attributed to,
 /// and what other clients see as a presence label.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Profile {
     pub full_name: Option<String>,

@@ -111,6 +111,7 @@ async fn handle_complete(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(serde::Deserialize)]
 struct DirsQuery {
     #[serde(default)]

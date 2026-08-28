@@ -83,6 +83,7 @@ impl SpaceIndexState {
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct LoginBody {
@@ -169,6 +170,7 @@ async fn handle_session(State(state): State<Arc<SpaceIndexState>>, headers: Head
     Json(json!({ "username": username, "admin": admin })).into_response()
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ProfileBody {

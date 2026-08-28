@@ -15,6 +15,7 @@ use crate::multi::validate::{validate, FieldError};
 const SPACES_FILE: &str = "spaces.json";
 
 /// The first space to create alongside the admin account, if any.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FirstSpace {
@@ -29,6 +30,7 @@ pub struct FirstSpace {
 
 /// Everything needed to provision a brand-new server root: the admin account
 /// plus an optional first space.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetupRequest {
