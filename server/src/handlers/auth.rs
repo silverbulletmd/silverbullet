@@ -68,6 +68,7 @@ fn render_auth_page(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct LoginForm {

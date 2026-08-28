@@ -8,6 +8,7 @@ use serde::Serialize;
 use crate::auth::{Actor, UserProfile};
 use crate::state::ServerState;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AccountEntry {

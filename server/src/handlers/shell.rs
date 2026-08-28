@@ -7,6 +7,7 @@ use axum::response::IntoResponse;
 use crate::router::run_blocking;
 use crate::state::ServerState;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(serde::Deserialize)]
 struct ShellRequest {
     cmd: String,
@@ -15,6 +16,7 @@ struct ShellRequest {
     stdin: Option<String>,
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(serde::Serialize)]
 struct ShellResponse {
     stdout: String,
