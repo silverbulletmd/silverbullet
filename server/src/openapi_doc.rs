@@ -37,26 +37,27 @@ use crate::multi::validate::FieldError;
         crate::handlers::fs::handle_fs_reconcile,
     ),
     components(schemas(
-    LoginForm,
-    HistoryQuery,
-    LogsQuery,
-    Profile,
-    TokenEntry,
-    UserEntry,
-    FieldError,
-    FirstSpace,
-    SetupRequest,
-    ApiError,
-    SpaceState,
-    VisibleSpace,
-    Binding,
-    ShellSettings,
-    SpaceConfig,
-    MultiConfig,
-    InstanceStatus,
-    SpaceInstance,
-    RoutingTable
-)))]
+        LoginForm,
+        HistoryQuery,
+        LogsQuery,
+        Profile,
+        TokenEntry,
+        UserEntry,
+        FieldError,
+        FirstSpace,
+        SetupRequest,
+        ApiError,
+        SpaceState,
+        VisibleSpace,
+        Binding,
+        ShellSettings,
+        SpaceConfig,
+        MultiConfig,
+        InstanceStatus,
+        SpaceInstance,
+        RoutingTable
+    ))
+)]
 struct WireContract;
 
 /// Serialize the wire-contract OpenAPI document to pretty-printed JSON.

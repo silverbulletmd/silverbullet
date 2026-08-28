@@ -18,9 +18,9 @@ use crate::auth::{Authenticator, JwtAuthorizer, RequestAuthorizer};
 use crate::multi::access::UserTokenAuthorizer;
 use crate::multi::config::SpaceConfig;
 use crate::multi::manager::{ApiError, MultiManager};
-use crate::multi::users::{Profile, UserStore};
 #[cfg(feature = "openapi")]
 use crate::multi::users::UserEntry;
+use crate::multi::users::{Profile, UserStore};
 use crate::router::run_blocking;
 
 pub struct AdminState {
