@@ -9,32 +9,43 @@ export function registerNavigatorCommands(
   revisionsEnabled: boolean,
 ): void {
   hook.registerCommand({
-    name: "Navigate: Outline",
-    run: openCommand("std.toc"),
-  });
-  hook.registerCommand({
-    name: "Navigate: Outline Picker",
-    run: openCommand("std.tocModal"),
-  });
-  hook.registerCommand({
     name: "Navigate: Tree",
     key: ["Ctrl-o", "Ctrl-Shift-o"],
     mac: ["Cmd-o", "Cmd-Shift-o"],
+    menu: { location: "view", group: "1_views", order: 4, label: "Tree" },
     run: openCommand("std.spaceTree"),
   });
   if (revisionsEnabled) {
     hook.registerCommand({
       name: "Revision: Page History",
       requireEditor: "page",
+      menu: {
+        location: "space",
+        group: "1_revisions",
+        order: 1,
+        label: "Page History",
+      },
       run: openCommand("std.pageHistory"),
     });
     hook.registerCommand({
       name: "Revision: Space History",
+      menu: {
+        location: "space",
+        group: "1_revisions",
+        order: 2,
+        label: "Space History",
+      },
       run: openCommand("std.spaceLog"),
     });
     hook.registerCommand({
       name: "Revision: Create snapshot",
       requireMode: "rw",
+      menu: {
+        location: "space",
+        group: "1_revisions",
+        order: 3,
+        label: "Create Snapshot",
+      },
       run: createSnapshot,
     });
   }

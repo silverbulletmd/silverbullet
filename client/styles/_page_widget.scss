@@ -1,0 +1,141 @@
+// Page slots and the widgets in them: a view docked `page-top` or
+// `page-bottom` renders inside the editor document, so these rules frame it
+// as document content rather than as panel chrome.
+//
+// A *content* view's body gets its markdown typography from `editor.scss`
+// instead -- see the note there on why that half must stay under `#sb-main`.
+
+.sb-page-slot {
+  --sb-nav-muted: var(--subtle-color);
+}
+
+.sb-page-widget {
+  border: 1px solid var(--editor-widget-background-color);
+  border-radius: 5px;
+  margin: 0 0 10px 0;
+}
+
+.sb-page-slot-page-bottom .sb-page-widget {
+  margin: 10px 0 0 0;
+}
+
+.sb-page-widget-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--editor-widget-background-color);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 10px;
+}
+
+.sb-page-widget-title {
+  white-space: nowrap;
+  color: inherit;
+  font-weight: bold;
+}
+
+.sb-page-widget-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sb-page-widget-title[role="button"] {
+  cursor: pointer;
+}
+
+.sb-page-widget-fold {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 0.8em;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  // Rotated rather than swapped for a ▸ glyph: one character, so the strip's
+  // metrics can't shift between the two states.
+  transition: transform 0.12s ease;
+}
+
+.sb-page-widget-collapsed .sb-page-widget-fold {
+  transform: rotate(-90deg);
+}
+
+.sb-page-widget-collapsed .sb-page-widget-bar {
+  border-radius: 4px;
+}
+
+.sb-page-widget-error {
+  color: var(--alert-error-color);
+}
+
+.sb-page-widget-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--subtle-color);
+}
+
+.sb-page-widget-body {
+  padding: 10px;
+}
+
+.sb-page-widget-body .sb-page-widget-row {
+  padding-left: 0;
+}
+
+.sb-page-widget-body .sb-nav-primary {
+  color: var(--editor-link-color);
+}
+
+.sb-page-widget-body .sb-nav-row {
+  height: auto;
+
+  &:hover {
+    background-color: var(--ui-surface-hover-background-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ui-accent-color);
+    outline-offset: -2px;
+  }
+}
+
+.sb-page-widget-more {
+  cursor: default;
+  padding: 2px 8px 0 8px;
+  font-size: 75%;
+  color: var(--modal-description-color);
+}
+
+.sb-page-widget-body .sb-nav-folder {
+  font-weight: inherit;
+}
+
+.sb-page-widget-row {
+  :is(p, ul, ol, li, blockquote, h1, h2, h3, h4, h5, h6) {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+
+  li+li::before {
+    content: " ";
+  }
+
+  // A hard break inside a one-line row would give the row a second line.
+  br {
+    display: none;
+  }
+
+  img {
+    max-height: 1.2em;
+    vertical-align: text-bottom;
+  }
+}

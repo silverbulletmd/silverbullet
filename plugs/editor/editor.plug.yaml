@@ -242,6 +242,10 @@ functions:
       mac: "Cmd-Alt-c"
       requireMode: rw
       requireEditor: page
+    slashCommand:
+      name: comment
+      description: "Add a comment"
+      exceptContexts: ["FencedCode"]
   commentSelection:
     path: "./comments.ts:commentSelection"
     command:

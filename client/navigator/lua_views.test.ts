@@ -11,7 +11,7 @@ import {
   wireMeta,
 } from "./lua_views.ts";
 
-/** A real Lua table, closures and all -- the same value `lua:navigator.define` receives. */
+/** A real Lua table, closures and all -- the same value `lua:view.define` receives. */
 function luaSpecIn(env: LuaEnv, source: string): LuaTable {
   const node = parseBlock(`e(${source})`)
     .statements[0] as LuaFunctionCallStatement;
@@ -24,6 +24,7 @@ function luaSpec(source: string): LuaTable {
 }
 
 const SOURCE = "source = function() return {} end";
+const CONTENT = 'content = function() return "# hi" end';
 const ON_SELECT = "onSelect = function() end";
 
 function define(fields: string) {
@@ -34,253 +35,260 @@ const rejections: [string, string, string][] = [
   [
     "reserved pick prefix",
     `name = "__pick:x", ${SOURCE}, ${ON_SELECT}`,
-    "navigator.define: names starting with '__pick:' are reserved for navigator.pick",
+    "view.define: names starting with '__pick:' are reserved for view.pick",
   ],
   [
     "missing onSelect",
     `name = "v", ${SOURCE}`,
-    "navigator.define: onSelect is required",
+    "view.define: onSelect is required",
   ],
   [
     "key without command",
     `name = "v", key = "Ctrl-j", ${SOURCE}, ${ON_SELECT}`,
-    "navigator.define: key/mac require command",
+    "view.define: key/mac require command",
   ],
   [
     "mac without command",
     `name = "v", mac = "Cmd-j", ${SOURCE}, ${ON_SELECT}`,
-    "navigator.define: key/mac require command",
+    "view.define: key/mac require command",
   ],
   [
     "openOnStart on a modal",
     `name = "v", openOnStart = true, ${SOURCE}, ${ON_SELECT}`,
-    'navigator.define: openOnStart requires dock "lhs" or "rhs"',
+    'view.define: openOnStart requires dock "lhs" or "rhs"',
   ],
-  [
-    "missing name",
-    `${SOURCE}, ${ON_SELECT}`,
-    "navigator.define: name is required",
-  ],
+  ["missing name", `${SOURCE}, ${ON_SELECT}`, "view.define: name is required"],
   [
     "missing source",
     `name = "v", ${ON_SELECT}`,
-    "navigator.define: source is required",
+    "view.define: source is required",
+  ],
+  [
+    "both content and source",
+    `name = "v", ${SOURCE}, ${CONTENT}, ${ON_SELECT}`,
+    "view.define: content and source are mutually exclusive -- a view either " +
+      "renders markdown (content) or lists rows (source)",
+  ],
+  [
+    "content that is not a function",
+    `name = "v", content = "# hi"`,
+    "view.define: content must be a function returning a markdown string",
   ],
   [
     "createIcon that is not a string",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { createIcon = 42 }`,
-    'navigator.define: presentation.createIcon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
+    'view.define: presentation.createIcon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
   ],
   [
     "row icon table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { row = { icon = { svg = "<svg></svg>" } } }`,
-    'navigator.define: presentation.row.icon must be an icon name ("lock"), a namespaced name ("feather:lock"), literal SVG markup (a string starting with "<svg"), or a function returning one',
+    'view.define: presentation.row.icon must be an icon name ("lock"), a namespaced name ("feather:lock"), literal SVG markup (a string starting with "<svg"), or a function returning one',
   ],
   [
     "reserved keymap key",
     `name = "v", ${SOURCE}, ${ON_SELECT}, keymap = { Enter = function() end }`,
-    "navigator.define: key 'Enter' is reserved by built-in navigation",
+    "view.define: key 'Enter' is reserved by built-in navigation",
   ],
   [
     "keymap entry that is not a function",
     `name = "v", ${SOURCE}, ${ON_SELECT}, keymap = { x = 1 }`,
-    "navigator.define: keymap['x'] must be a function",
+    "view.define: keymap['x'] must be a function",
   ],
   [
     "action without a label",
     `name = "v", ${SOURCE}, ${ON_SELECT}, actions = { { run = function() end } }`,
-    "navigator.define: actions[1] requires a label",
+    "view.define: actions[1] requires a label",
   ],
   [
     "action without a run",
     `name = "v", ${SOURCE}, ${ON_SELECT}, actions = { { label = "A" } }`,
-    "navigator.define: actions[1].run must be a function",
+    "view.define: actions[1].run must be a function",
   ],
   [
     "action when that is not a function",
     `name = "v", ${SOURCE}, ${ON_SELECT}, actions = { { label = "A", run = function() end, when = true } }`,
-    "navigator.define: actions[1].when must be a function",
+    "view.define: actions[1].when must be a function",
   ],
   [
     "action requireMode other than rw",
     `name = "v", ${SOURCE}, ${ON_SELECT}, actions = { { label = "A", run = function() end, requireMode = "ro" } }`,
-    'navigator.define: actions[1].requireMode must be "rw"',
+    'view.define: actions[1].requireMode must be "rw"',
   ],
   [
     "action icon table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, actions = { { label = "A", run = function() end, icon = { svg = "<svg></svg>" } } }`,
-    'navigator.define: actions[1].icon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
+    'view.define: actions[1].icon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
   ],
   [
     "segment without a label",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { icon = "layers" } }`,
-    "navigator.define: segments[1] requires a label",
+    "view.define: segments[1] requires a label",
   ],
   [
     "duplicate segment label",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A" }, { label = "A" } }`,
-    "navigator.define: duplicate segment label 'A'",
+    "view.define: duplicate segment label 'A'",
   ],
   [
     "segment where that is not a function",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", where = 3 } }`,
-    "navigator.define: segments[1].where must be a function",
+    "view.define: segments[1].where must be a function",
   ],
   [
     "segment icon table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", icon = {} } }`,
-    'navigator.define: segments[1].icon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
+    'view.define: segments[1].icon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
   ],
   [
     "dropdown that is not a table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = "nope"`,
-    "navigator.define: dropdown must be a table",
+    "view.define: dropdown must be a table",
   ],
   [
     "dropdown without options",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { where = function() return true end }`,
-    "navigator.define: dropdown.options must be a function or list",
+    "view.define: dropdown.options must be a function or list",
   ],
   [
     "dropdown options that are neither function nor list",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = "nope", where = function() return true end }`,
-    "navigator.define: dropdown.options must be a function or list",
+    "view.define: dropdown.options must be a function or list",
   ],
   [
     "dropdown without a where",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {} }`,
-    "navigator.define: dropdown.where must be a function",
+    "view.define: dropdown.where must be a function",
   ],
   [
     "dropdown where that is not a function",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = true }`,
-    "navigator.define: dropdown.where must be a function",
+    "view.define: dropdown.where must be a function",
   ],
   [
     "dropdown placeholder that is not a string",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = function() return true end, placeholder = 7 }`,
-    "navigator.define: dropdown.placeholder must be a string",
+    "view.define: dropdown.placeholder must be a string",
   ],
   [
     "dropdown allLabel that is not a string",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = function() return true end, allLabel = 7 }`,
-    "navigator.define: dropdown.allLabel must be a string",
+    "view.define: dropdown.allLabel must be a string",
   ],
   [
     "dropdown default that is neither string nor function",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, where = function() return true end, default = 42 }`,
-    "navigator.define: dropdown.default must be a string or a function",
+    "view.define: dropdown.default must be a string or a function",
   ],
   [
     "prefixViews that is not a table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, prefixViews = "nope"`,
-    "navigator.define: prefixViews must be a table",
+    "view.define: prefixViews must be a table",
   ],
   [
     "prefixViews target that is not a name",
     `name = "v", ${SOURCE}, ${ON_SELECT}, prefixViews = { ["$"] = 7 }`,
-    "navigator.define: prefixViews['$'] must be a view name",
+    "view.define: prefixViews['$'] must be a view name",
   ],
   [
     "segment prefix that is not a string",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", prefix = 1 } }`,
-    "navigator.define: segments[1].prefix must be a string",
+    "view.define: segments[1].prefix must be a string",
   ],
   [
     "segment prefix longer than one character",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", prefix = "ab" } }`,
-    "navigator.define: segments[1].prefix must be exactly one character",
+    "view.define: segments[1].prefix must be exactly one character",
   ],
   [
     "segment prefix that is whitespace",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", prefix = " " } }`,
-    "navigator.define: segments[1].prefix must be a printable character",
+    "view.define: segments[1].prefix must be a printable character",
   ],
   [
     "prefix claimed twice",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", prefix = "$" } }, prefixViews = { ["$"] = "other" }`,
-    "navigator.define: prefix '$' is claimed twice (segments[1].prefix and prefixViews['$'])",
+    "view.define: prefix '$' is claimed twice (segments[1].prefix and prefixViews['$'])",
   ],
   [
     "keymap key colliding with a prefix",
     `name = "v", ${SOURCE}, ${ON_SELECT}, prefixViews = { ["$"] = "other" }, keymap = { ["$"] = function() end }`,
-    "navigator.define: '$' is both a keymap key and prefixViews['$']",
+    "view.define: '$' is both a keymap key and prefixViews['$']",
   ],
   [
     "zero limit",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { limit = 0 }`,
-    "navigator.define: presentation.limit must be a positive integer",
+    "view.define: presentation.limit must be a positive integer",
   ],
   [
     "fractional limit",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { limit = 1.5 }`,
-    "navigator.define: presentation.limit must be a positive integer",
+    "view.define: presentation.limit must be a positive integer",
   ],
   [
     "unknown search mode",
     `name = "v", ${SOURCE}, ${ON_SELECT}, search = "fts"`,
-    'navigator.define: search must be "client" or "source"',
+    'view.define: search must be "client" or "source"',
   ],
   [
     "unknown dock",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dock = "left"`,
-    'navigator.define: dock must be "modal", "lhs" or "rhs"',
+    "view.define: dock must be one of lhs, rhs, modal, page-top, page-bottom",
   ],
   [
     "unknown presentation mode",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "table" }`,
-    'navigator.define: presentation.mode must be "list" or "tree"',
+    'view.define: presentation.mode must be "list" or "tree"',
   ],
   [
     "incomplete hierarchy",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "tree", hierarchy = {} }`,
-    "navigator.define: presentation.hierarchy must be { field = <string>, separator = <string> }",
+    "view.define: presentation.hierarchy must be { field = <string>, separator = <string> }",
   ],
   [
     "refreshOn that is not a list",
     `name = "v", ${SOURCE}, ${ON_SELECT}, refreshOn = "file:changed"`,
-    "navigator.define: refreshOn must be a list of event names",
+    "view.define: refreshOn must be a list of event names",
   ],
   [
     "filter.fields that is not a table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, filter = { fields = "name" }`,
-    "navigator.define: filter.fields must be a table",
+    "view.define: filter.fields must be a table",
   ],
   [
     "filter that is neither a table nor false",
     `name = "v", ${SOURCE}, ${ON_SELECT}, filter = "off"`,
-    "navigator.define: filter must be a table or false",
+    "view.define: filter must be a table or false",
   ],
   [
     "filter = true",
     `name = "v", ${SOURCE}, ${ON_SELECT}, filter = true`,
-    "navigator.define: filter must be a table or false",
+    "view.define: filter must be a table or false",
   ],
   [
     "expandAll that is not a boolean",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "tree", expandAll = "yes" }`,
-    "navigator.define: presentation.expandAll must be a boolean",
+    "view.define: presentation.expandAll must be a boolean",
   ],
   [
     "expandAll on a list view",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { expandAll = true }`,
-    'navigator.define: presentation.expandAll requires mode "tree"',
+    'view.define: presentation.expandAll requires mode "tree"',
   ],
   [
     "unknown expansionScope",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "tree", expansionScope = "space" }`,
-    'navigator.define: presentation.expansionScope must be "view" or "page"',
+    'view.define: presentation.expansionScope must be "view" or "page"',
   ],
   [
     "page expansionScope on a list view",
     `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { expansionScope = "page" }`,
-    'navigator.define: presentation.expansionScope requires mode "tree"',
+    'view.define: presentation.expansionScope requires mode "tree"',
   ],
 ];
 
 test.each(
   rejections,
-)("navigator.define rejects %s at define time", (_what, fields, message) => {
+)("view.define rejects %s at define time", (_what, fields, message) => {
   expect(define(fields)).toThrow(message);
 });
 
@@ -295,7 +303,9 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     stripPrefix: undefined,
     createIcon: undefined,
     mode: "list",
+    hasContent: false,
     dock: "modal",
+    supportedDocks: ["modal"],
     hierarchy: { field: "name", separator: "/" },
     foldersFirst: true,
     expandAll: false,
@@ -318,6 +328,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     hashtagFilter: false,
     ephemeral: false,
     openOnStart: false,
+    defaultOpen: false,
   });
 });
 
@@ -603,7 +614,7 @@ test("a throwing dropdown default costs the default, not the options", async () 
   expect(state.default).toBeUndefined();
 });
 
-test("navigator.pick rejects every navigator.define field", () => {
+test("view.pick rejects every view.define field", () => {
   const rejected = [
     ["name", '"x"'],
     ["command", '"X"'],
@@ -626,18 +637,18 @@ test("navigator.pick rejects every navigator.define field", () => {
     expect(() =>
       buildPickSpec(luaSpec(`{ ${SOURCE}, ${name} = ${value} }`), "__pick:1:0"),
     ).toThrow(
-      `navigator.pick: '${name}' is a navigator.define field (a name, command chrome, or docking field) -- navigator.pick doesn't take it; use navigator.define if this view needs one of its own`,
+      `view.pick: '${name}' is a view.define field (a name, command chrome, or docking field) -- view.pick doesn't take it; use view.define if this view needs one of its own`,
     );
   }
 });
 
 // `~= nil`, not truthiness: `followEditor = false` is a plausible copy-paste
-// from a define spec and still isn't a field navigator.pick takes.
-test("navigator.pick rejects a define field even when its value is false", () => {
+// from a define spec and still isn't a field view.pick takes.
+test("view.pick rejects a define field even when its value is false", () => {
   expect(() =>
     buildPickSpec(luaSpec(`{ ${SOURCE}, followEditor = false }`), "__pick:1:0"),
   ).toThrow(
-    "navigator.pick: 'followEditor' is a navigator.define field (a name, command chrome, or docking field) -- navigator.pick doesn't take it; use navigator.define if this view needs one of its own",
+    "view.pick: 'followEditor' is a view.define field (a name, command chrome, or docking field) -- view.pick doesn't take it; use view.define if this view needs one of its own",
   );
 });
 
@@ -654,16 +665,97 @@ test("a present-but-false onMove/onCreate/row.icon still counts as declared", ()
   expect(meta.hasRowIcon).toBe(true);
 });
 
-test("navigator.pick rejects a non-table spec and a sourceless one", () => {
-  expect(() => buildPickSpec("nope" as any, "__pick:1:0")).toThrow(
-    "navigator.pick: spec must be a table",
+// A content view renders a document, so it has no row to select and no rows
+// to filter -- and it says so in its meta, which is how every container knows
+// to render markdown instead of a list.
+test("a content view needs no onSelect, and projects hasContent + noFilter", () => {
+  expect(define(`name = "v", ${CONTENT}`)).not.toThrow();
+
+  const meta = wireMeta(luaSpec(`{ name = "v", ${CONTENT} }`));
+  expect(meta.hasContent).toBe(true);
+  expect(meta.noFilter).toBe(true);
+
+  // Even an explicit filter table can't put a filter input back: there is
+  // nothing on screen for a phrase to narrow.
+  const withFilter = wireMeta(
+    luaSpec(`{ name = "v", ${CONTENT}, filter = { fields = { name = 1.0 } } }`),
   );
-  expect(() => buildPickSpec(luaSpec("{ }"), "__pick:1:0")).toThrow(
-    "navigator.pick: source is required",
+  expect(withFilter.noFilter).toBe(true);
+});
+
+test("a row view leaves hasContent off", () => {
+  expect(
+    wireMeta(luaSpec(`{ name = "v", ${SOURCE}, ${ON_SELECT} }`)).hasContent,
+  ).toBe(false);
+});
+
+test("the content hook returns the markdown the view's own closure built", async () => {
+  const spec = luaSpec(`{
+    name = "v",
+    content = function(ctx) return "# Hi " .. ctx.phrase end,
+  }`);
+
+  await expect(
+    luaHandle(spec, "content", { ctx: { phrase: "there" } }),
+  ).resolves.toEqual({ markdown: "# Hi there" });
+  // No ctx at all is an empty phrase, not a nil dereference.
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    markdown: "# Hi ",
+  });
+});
+
+test("content returning nil is empty markdown, which renders no chrome at all", async () => {
+  const spec = luaSpec(`{ name = "v", content = function() return nil end }`);
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    markdown: "",
+  });
+});
+
+// So the one builder can feed both `widget.new { markdown = ... }` and a view.
+test("content may answer with a widget-shaped table carrying markdown", async () => {
+  const spec = luaSpec(
+    `{ name = "v", content = function() return { markdown = "* [ ] a task" } end }`,
+  );
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    markdown: "* [ ] a task",
+  });
+});
+
+test("content answering with something that isn't markdown comes back as an error", async () => {
+  const spec = luaSpec(`{ name = "v", content = function() return 42 end }`);
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    error: "navigator: content must return a markdown string, got number",
+  });
+});
+
+// Same contract as the rows hook: there is nothing else left on screen to fall
+// back to, so a throwing content function has to arrive as data.
+test("a throwing content function comes back as data, not a rejection", async () => {
+  const spec = luaSpec(
+    `{ name = "v", content = function() error("boom") end }`,
+  );
+  const result = await luaHandle(spec, "content", {});
+  expect(result.markdown).toBeUndefined();
+  expect(String(result.error)).toContain("boom");
+});
+
+test("view.pick rejects content outright", () => {
+  expect(() => buildPickSpec(luaSpec(`{ ${CONTENT} }`), "__pick:1:0")).toThrow(
+    "view.pick: 'content' is a view.define field -- a pick resolves to a " +
+      "selected row, and a content view has no rows; use view.define",
   );
 });
 
-test("navigator.pick keeps the content fields and stands them up as an ephemeral modal", () => {
+test("view.pick rejects a non-table spec and a sourceless one", () => {
+  expect(() => buildPickSpec("nope" as any, "__pick:1:0")).toThrow(
+    "view.pick: spec must be a table",
+  );
+  expect(() => buildPickSpec(luaSpec("{ }"), "__pick:1:0")).toThrow(
+    "view.pick: source is required",
+  );
+});
+
+test("view.pick keeps the content fields and stands them up as an ephemeral modal", () => {
   const internal = buildPickSpec(
     luaSpec(
       `{ ${SOURCE}, title = "Pick", placeholder = "Fruit", ${ON_SELECT} }`,
@@ -868,5 +960,92 @@ test("a dropdown key that is not a function is refused", () => {
     define(
       `name = "v", ${SOURCE}, ${ON_SELECT}, dropdown = { options = {}, key = 7 }`,
     ),
-  ).toThrow("navigator.define: dropdown.key must be a function");
+  ).toThrow("view.define: dropdown.key must be a function");
+});
+
+test("dock accepts the full vocabulary", () => {
+  for (const dock of ["lhs", "rhs", "modal", "page-top", "page-bottom"]) {
+    const meta = wireMeta({
+      name: "t",
+      source: () => [],
+      onSelect: () => {},
+      dock,
+    });
+    expect(meta.dock).toBe(dock);
+  }
+});
+
+test("dock rejects unknown values", () => {
+  expect(() => wireMeta({ name: "t", source: () => [], dock: "top" })).toThrow(
+    /dock must be one of/,
+  );
+});
+
+test("supportedDocks validates and defaults to the declared dock", () => {
+  const meta = wireMeta({
+    name: "t",
+    source: () => [],
+    dock: "page-bottom",
+    supportedDocks: ["page-bottom", "rhs", "modal"],
+  });
+  expect(meta.supportedDocks).toEqual(["page-bottom", "rhs", "modal"]);
+  const bare = wireMeta({ name: "t", source: () => [], dock: "rhs" });
+  expect(bare.supportedDocks).toEqual(["rhs"]);
+});
+
+test("supportedDocks must include the default dock", () => {
+  expect(() =>
+    validateDefineSpec({
+      name: "t",
+      source: () => [],
+      onSelect: () => {},
+      dock: "rhs",
+      supportedDocks: ["modal"],
+    }),
+  ).toThrow(/supportedDocks must include/);
+});
+
+test("defaultOpen must be a boolean and carried through", () => {
+  const meta = wireMeta({
+    name: "t",
+    source: () => [],
+    dock: "page-top",
+    defaultOpen: true,
+  });
+  expect(meta.defaultOpen).toBe(true);
+  expect(() =>
+    validateDefineSpec({
+      name: "t",
+      source: () => [],
+      onSelect: () => {},
+      defaultOpen: "yes",
+    }),
+  ).toThrow(/defaultOpen must be a boolean/);
+});
+
+// `ctx.dock` lets a view present itself differently in a document than in a
+// panel -- the same "the container decides" principle the styling follows.
+test("the rows hook hands the source its resolved dock", async () => {
+  const spec = luaSpec(`{
+    name = "v",
+    source = function(ctx) return { { name = tostring(ctx.dock) } } end,
+    ${ON_SELECT},
+  }`);
+
+  expect(
+    await luaHandle(spec, "rows", { ctx: { phrase: "", dock: "page-top" } }),
+  ).toEqual([{ obj: { name: "page-top" }, primary: "page-top" }]);
+  expect(
+    await luaHandle(spec, "rows", { ctx: { phrase: "", dock: "modal" } }),
+  ).toEqual([{ obj: { name: "modal" }, primary: "modal" }]);
+});
+
+test("the content hook hands its function the same dock", async () => {
+  const spec = luaSpec(
+    `{ name = "v", content = function(ctx) return "dock=" .. tostring(ctx.dock) end }`,
+  );
+
+  await expect(
+    luaHandle(spec, "content", { ctx: { phrase: "", dock: "rhs" } }),
+  ).resolves.toEqual({ markdown: "dock=rhs" });
 });

@@ -21,7 +21,9 @@ type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
 };
 
 function treeIcon(obj: TreeObj): string {
-  if (obj.isFolder) return obj.ref != null ? "book-open" : "folder";
+  // Only a pure folder gets the folder icon. A dual has a page behind it and
+  // reads as that page, so it falls through to the icons below like any other.
+  if (obj.isFolder && obj.ref == null) return "folder";
   if (obj.isAspiring) return "file-plus";
   if (obj.perm === "ro") return "lock";
   if (obj.tag === "document") {
@@ -158,12 +160,13 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     // with the segment naming what it picks in the input's placeholder.
     label: "Open",
     dock: "lhs",
+    supportedDocks: ["lhs", "rhs", "modal"],
     mode: "tree",
     followEditor: true,
     hasCreate: true,
     foldersFirst: false,
-    // A folder that is also a page opens that page on click; one that isn't
-    // just expands.
+    // Every folder here names a page, whether or not one exists yet, so
+    // clicking one opens that page as well as expanding the row.
     selectableFolders: true,
     refreshOn: INDEX_REFRESH_EVENTS,
   }),

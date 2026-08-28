@@ -2,9 +2,9 @@
 references:
 - plugs/index/item.ts
 ---
-List items (both bullet point and numbered items) are indexed with the `item` tag, additional tags can be added using [[Tag]].
+List items (both bullet point and numbered items) are indexed with the `item` tag, additional tags can be added using [[Concept/Tag]].
 
-Here is an example of a #quote item using a custom [[Attribute|attribute]]:
+Here is an example of a #quote item using a custom [[Concept/Attribute|attribute]]:
 
 * “If you don’t know where you’re going you may not get there.” [by: Yogi Berra] #quote
 
@@ -16,7 +16,7 @@ ${query[[
 Additional attributes:
 
 * `parent` will contain a ref to the item’s direct parent `item` if any
-* `links` will contain a list of all the wiki-style [[Link|links]] in the item
+* `links` will contain a list of all the wiki-style [[Concept/Link|links]] in the item
 * `ilinks` (inherited links) will contain a list of all the wiki-style links in the item _and its parents_.
 * `itags` will also inherit their ancestors’ tags
 

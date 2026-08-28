@@ -13,9 +13,9 @@ v2 does not have support for old-style [queries](https://v1.silverbullet.md/Quer
 In v1 there were various types of templates:
 
 * [Live Templates](https://v1.silverbullet.md/Live%20Templates) (in `template` blocks)
-* [Live Template Widgets](https://v1.silverbullet.md/Live%20Template%20Widgets) (using special [[Frontmatter]]-based hooks)
-* [Snippets](https://v1.silverbullet.md/Snippets) (using special [[Frontmatter]]-based hooks)
-* [Page Templates](https://v1.silverbullet.md/Page%20Templates) (using special [[Frontmatter]]-based hooks)
+* [Live Template Widgets](https://v1.silverbullet.md/Live%20Template%20Widgets) (using special [[Concept/Frontmatter]]-based hooks)
+* [Snippets](https://v1.silverbullet.md/Snippets) (using special [[Concept/Frontmatter]]-based hooks)
+* [Page Templates](https://v1.silverbullet.md/Page%20Templates) (using special [[Concept/Frontmatter]]-based hooks)
 
 _Live templates_ are now better expressed by simply putting `${lua expressions}` in text. Iterating and rendering queries using templates is generally done by selecting a template call in the query itself: `${query[[ from ... select someTemplate(...) ]]}`.
 

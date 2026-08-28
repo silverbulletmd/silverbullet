@@ -22,6 +22,7 @@ import {
 import {
   createEditorState,
   externalUpdate,
+  forceParseVisibleRegion,
 } from "./codemirror/editor_state.ts";
 import { externalSource } from "./codemirror/external_presence.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
@@ -476,6 +477,8 @@ export class ContentManager {
         // We don't really care if this fails.
       }
     }
+
+    forceParseVisibleRegion(this.client.editorView, locationState.scrollTop);
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     this.client.eventHook
       .dispatchEvent(

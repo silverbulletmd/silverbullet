@@ -25,22 +25,80 @@ import {
 const BIN = "./target/debug/silverbullet";
 const CWD = join(import.meta.dirname, "..");
 
-let proc: ChildProcess;
+type Server = {
+  proc: ChildProcess;
+  rootDir: string;
+  base: string;
+  cookie: string;
+};
+
+let server: Server;
 let rootDir: string;
 let base: string;
-let cookie: string;
+
+/**
+ * A server of its own, with an admin session. Most tests share the one from
+ * `beforeAll`; the offline test starts a second because it freezes the
+ * process, which strands in-flight requests of any test sharing it.
+ */
+async function startServer(): Promise<Server> {
+  const rootDir = await mkdtemp(join(tmpdir(), "sb-sw-scope-e2e-"));
+  execFileSync(
+    BIN,
+    ["setup", rootDir, "--admin", `${ADMIN_USER}:${ADMIN_PASSWORD}`],
+    {
+      cwd: CWD,
+      stdio: "pipe",
+    },
+  );
+
+  const port = await getFreePort();
+  const proc = spawn(BIN, [rootDir, "-p", String(port), "-L", "127.0.0.1"], {
+    cwd: CWD,
+    stdio: ["ignore", "pipe", "pipe"],
+    // Note: SB_DISABLE_SERVICE_WORKER is deliberately NOT set here.
+    env: { ...process.env, SB_RUNTIME_API: "0" },
+  });
+  const base = `http://127.0.0.1:${port}`;
+  await waitForServer(`${base}/.spaces`);
+
+  const login = await fetch(`${base}/.spaces/api/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: ADMIN_USER, password: ADMIN_PASSWORD }),
+  });
+  const cookie = login.headers
+    .getSetCookie()
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  return { proc, rootDir, base, cookie };
+}
+
+async function stopServer(server: Server) {
+  server.proc.kill();
+  await rm(server.rootDir, { recursive: true, force: true });
+}
 
 /** Call the admin API (nested at `/.spaces/api/admin`) as the logged-in admin. */
-async function admin(method: string, path: string, body?: unknown) {
-  const resp = await fetch(`${base}/.spaces/api/admin/${path}`, {
+async function adminOn(
+  server: Server,
+  method: string,
+  path: string,
+  body?: unknown,
+) {
+  const resp = await fetch(`${server.base}/.spaces/api/admin/${path}`, {
     method,
-    headers: { "Content-Type": "application/json", Cookie: cookie },
+    headers: { "Content-Type": "application/json", Cookie: server.cookie },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!resp.ok) {
     throw new Error(`${method} ${path} -> ${resp.status} ${await resp.text()}`);
   }
   return resp.json();
+}
+
+function admin(method: string, path: string, body?: unknown) {
+  return adminOn(server, method, path, body);
 }
 
 /** Create a public space so the browser side needs no login. */
@@ -60,8 +118,8 @@ async function createSpace(name: string, prefix: string): Promise<string> {
  * that worker is what the assertions below guard. Each test gets a fresh
  * browser context, so this re-registers per test.
  */
-async function registerRootServiceWorker(page: Page) {
-  await page.goto(`${base}/`);
+async function registerRootServiceWorker(page: Page, origin: string = base) {
+  await page.goto(`${origin}/`);
   await page.waitForFunction(
     () => !!navigator.serviceWorker.controller,
     undefined,
@@ -74,35 +132,8 @@ async function registerRootServiceWorker(page: Page) {
 }
 
 test.beforeAll(async () => {
-  rootDir = await mkdtemp(join(tmpdir(), "sb-sw-scope-e2e-"));
-  execFileSync(
-    BIN,
-    ["setup", rootDir, "--admin", `${ADMIN_USER}:${ADMIN_PASSWORD}`],
-    {
-      cwd: CWD,
-      stdio: "pipe",
-    },
-  );
-
-  const port = await getFreePort();
-  proc = spawn(BIN, [rootDir, "-p", String(port), "-L", "127.0.0.1"], {
-    cwd: CWD,
-    stdio: ["ignore", "pipe", "pipe"],
-    // Note: SB_DISABLE_SERVICE_WORKER is deliberately NOT set here.
-    env: { ...process.env, SB_RUNTIME_API: "0" },
-  });
-  base = `http://127.0.0.1:${port}`;
-  await waitForServer(`${base}/.spaces`);
-
-  const login = await fetch(`${base}/.spaces/api/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USER, password: ADMIN_PASSWORD }),
-  });
-  cookie = login.headers
-    .getSetCookie()
-    .map((c) => c.split(";")[0])
-    .join("; ");
+  server = await startServer();
+  ({ rootDir, base } = server);
 
   // The root-bound space whose service worker shadows the whole origin. Both
   // tests depend on it, and only one space can hold "/" — so it is created
@@ -111,8 +142,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  proc?.kill();
-  await rm(rootDir, { recursive: true, force: true });
+  await stopServer(server);
 });
 
 test("a sibling space is not shadowed by the root space's service worker", async ({
@@ -176,6 +206,88 @@ test("a sibling space's client assets are not answered with the app shell", asyn
   await expect(page.locator("#login")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("#username")).toBeVisible();
 });
+
+test("a sibling space is not shadowed while the worker believes it is offline", async ({
+  page,
+}) => {
+  // The worker's `online` flag flips false on a mere ping timeout (2s), so a
+  // slow server — not a dead one — is enough to reach the offline SPA-shell
+  // fallback. A navigation to a sibling space landing in that window used to
+  // be answered with the root space's cached shell; the worker can only
+  // refuse it because it knows the origin's space prefixes
+  // (`BootConfig.spacePrefixes`).
+  //
+  // Freezing a server strands the in-flight requests of anything sharing it,
+  // so this test runs against one of its own.
+  const own = await startServer();
+  try {
+    await runOfflineSiblingCheck(page, own);
+  } finally {
+    await stopServer(own);
+  }
+});
+
+async function runOfflineSiblingCheck(page: Page, own: Server) {
+  await adminOn(own, "POST", "spaces", {
+    name: "root",
+    folder: join(own.rootDir, "root-space"),
+    binding: { prefix: "/" },
+    public: true,
+    seedIndex: true,
+  });
+  // The sibling must exist before the root worker is configured, so its
+  // prefix is in the boot config the worker receives.
+  await adminOn(own, "POST", "spaces", {
+    name: "slow",
+    folder: join(own.rootDir, "slow-space"),
+    binding: { prefix: "/slow" },
+    public: false,
+    seedIndex: true,
+  });
+  await registerRootServiceWorker(page, own.base);
+
+  // Collect the worker's own connectivity broadcasts, so the freeze below is
+  // waited out on the state it actually reached rather than on a duration.
+  await page.evaluate(() => {
+    (globalThis as any).onlineStatuses = [];
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data?.type === "online-status") {
+        (globalThis as any).onlineStatuses.push(event.data.isOnline);
+      }
+    });
+    // The worker's ping runs on a timer, and an idle worker is terminated (and
+    // restarts believing it is online). A steady trickle of precache-served
+    // requests keeps it alive without touching the frozen server.
+    (globalThis as any).keepAlive = setInterval(() => {
+      void fetch(".client/client.js");
+    }, 250);
+  });
+
+  // Freeze (not kill) the server: frozen-but-listening is "slow", not "down",
+  // which is exactly what trips the 2s ping timeout.
+  own.proc.kill("SIGSTOP");
+  await page.waitForFunction(
+    () => (globalThis as any).onlineStatuses.includes(false),
+    undefined,
+    { timeout: 30_000 },
+  );
+  await page.evaluate(() => clearInterval((globalThis as any).keepAlive));
+
+  // Navigate while the server is still frozen, so the worker is provably in
+  // its offline state when it routes the navigation. The correct behavior is
+  // to proxy the request anyway (it is not ours to answer); the kernel holds
+  // the connection until the server thaws a moment later. The buggy behavior
+  // answers instantly from the precache, before the thaw can matter.
+  const navigation = page.goto(`${own.base}/slow/`);
+  await new Promise((resolve) => setTimeout(resolve, 1_000));
+  own.proc.kill("SIGCONT");
+  await navigation;
+
+  // The private sibling's login form must render — not the root space's
+  // cached shell (whose `<base href="/">` would boot the wrong space).
+  await expect(page.locator("#login")).toBeVisible({ timeout: 30_000 });
+  expect(await page.evaluate(() => document.baseURI)).not.toBe(`${own.base}/`);
+}
 
 test("/.accounts is proxied to the server, not answered with the app shell", async ({
   page,

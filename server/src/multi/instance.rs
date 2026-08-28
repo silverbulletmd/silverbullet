@@ -21,7 +21,7 @@ use crate::multi::config::{Binding, SpaceConfig};
 use crate::multi::users::UserStore;
 use crate::multi::validate::normalize_prefix;
 use crate::shell::ShellConfig;
-use crate::state::{ServerState, ServerVersion};
+use crate::state::{ServerState, ServerVersion, SpacePrefixes};
 
 /// Factories that produce the read-only asset layers (client bundle + base_fs).
 /// Injected because the embedded assets live in the bin crate, not here.
@@ -65,7 +65,11 @@ pub struct InstanceDeps {
     /// Process-wide shutdown signal, cloned into every instance's
     /// `ServerState::shutdown`. See that field's doc comment.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
-    /// Shared OIDC state, threaded into every instance's per-space auth.
+    /// The origin's space roots, cloned into every instance's
+    /// `ServerState::space_prefixes` and republished by `MultiManager` on
+    /// every config change. See that type's doc comment.
+    pub space_prefixes: SpacePrefixes,
+      /// Shared OIDC state, threaded into every instance's per-space auth.
     #[cfg(feature = "oidc")]
     pub oidc: Option<Arc<crate::auth::oidc::OidcState>>,
 }
@@ -509,6 +513,7 @@ fn try_build_state(
             sync_protocol_version: 2,
             revisions: config.revisions,
         },
+        space_prefixes: deps.space_prefixes.clone(),
         space_folder_path: folder_str,
         version: ServerVersion::Static(deps.version.clone()),
         host_url_prefix: prefix.to_string(),
@@ -584,6 +589,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
+            space_prefixes: Default::default(),
             #[cfg(feature = "oidc")]
             oidc: None,
         }

@@ -49,6 +49,7 @@ mod test_support {
                 sync_protocol_version: 2,
                 revisions: RevisionsMode::Disabled,
             },
+            space_prefixes: Default::default(),
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
             host_url_prefix: String::new(),

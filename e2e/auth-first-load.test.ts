@@ -79,8 +79,11 @@ test("the login page's styles actually load", async ({ page }) => {
     .locator("#login button[type=submit], #login button")
     .last();
   await button.waitFor({ state: "visible" });
-  const bg = await button.evaluate(
-    (el) => getComputedStyle(el).backgroundColor,
-  );
-  expect(bg).toBe("rgb(70, 76, 252)"); // --ui-accent-color #464cfc
+  // The button is visible from the raw HTML before auth.css has finished
+  // loading, so a one-shot read races the stylesheet under load (seen in a
+  // full three-browser sweep). Poll: the value still has to become exactly
+  // the accent colour, so a stylesheet that never loads still fails.
+  await expect
+    .poll(() => button.evaluate((el) => getComputedStyle(el).backgroundColor))
+    .toBe("rgb(70, 76, 252)"); // --ui-accent-color #464cfc
 });

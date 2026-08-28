@@ -18,23 +18,19 @@ end)}
 
 ${widgets.commandButton("System: Reload")}
 
-## Top and bottom widgets
-* Table of contents: shows a table of contents for your page — **off by default**; the `Navigate: Outline` and `Navigate: Outline Picker` commands show the same headers on demand instead
-* Linked mentions: show a list of links that link to the current page, at the bottom of your page
-* Linked tasks: shows a list of tasks that link to the current page, at the top of the page
+## Docked widgets
+* **Table of Contents** (`std.toc`, command `Navigate: Table of Contents`): the current page's headers as a tree, live as you type. Opens as a modal. A page with fewer than `minHeaders` headers has no outline worth showing, and the view renders nothing at all in a page dock there.
+* **Linked Mentions** (`std.linkedMentions`, command `Navigate: Linked Mentions`): every other page linking to this one, with a snippet of context. Docks at the bottom of the page, open until you close it.
+* **Linked Tasks** (`std.linkedTasks`, command `Navigate: Linked Tasks`): incomplete tasks on other pages that link to this one. Docks at the top of the page, open until you close it.
 
-These can each be individually enabled/disabled and configured in your `CONFIG` page (use `space-lua` instead of `lua`):
+None of the three has an `enabled` config key any more. Each remembers its own dock and open/closed state: close it with its ×, bring it back with its command, move it with its dock menu, and that choice is what applies from then on. The one knob left is how short an outline is too short to be worth showing:
 
 ```lua
--- Put the TOC back at the top of every page
-config.set("std.widgets.toc.enabled", true)
--- Only render a TOC when there's >= 5 headers
+-- Only show a table of contents on pages with >= 5 headers
 config.set("std.widgets.toc.minHeaders", 5)
--- Disable linked mentions altogether
-config.set("std.widgets.linkedMentions.enabled", false)
--- Disable linked tasks altogether
-config.set("std.widgets.linkedTasks.enabled", false)
 ```
+
+To set where a view docks space-wide, use `view.docks` (`navigator.docks` still works as a fallback) -- see [[API/view#Persisted state and precedence]].
 
 # Implementation
 
@@ -80,27 +76,6 @@ end
 ```
 
 ## Table of contents
-```space-style
-.sb-toc-summary {
-  cursor: pointer;
-  font-weight: bold;
-  user-select: none;
-  padding: 15px 10px;
-  margin: -10px -10px 0 -10px;
-  background-color: var(--editor-widget-background-color);
-}
-.sb-toc-content {
-  padding-top: 0.5rem;
-}
-.sb-toc-item {
-  padding: 0.1rem 0;
-}
-.sb-toc-link {
-  cursor: pointer;
-  text-decoration: none;
-}
-```
-
 ```space-lua
 -- priority: 10
 widgets = widgets or {}
@@ -111,15 +86,12 @@ config.defineCategory {
   priority = 45,
 }
 
+-- The Table of Contents view has no `enabled` key -- it remembers its own dock
+-- and open state -- but it does have a floor: a page with fewer headers than
+-- this has no outline worth showing, so the view renders nothing at all there.
 config.define("std.widgets.toc", {
   type = "object",
   properties = {
-    enabled = {
-      type = "boolean",
-      default = false,
-      description = "Show a table of contents at the top of pages (off by default: the Outline navigator views show one on demand instead)",
-      ui = { category = "Widgets", label = "Table of Contents", priority = 4 },
-    },
     minHeaders = {
       type = "number",
       default = 3,
@@ -131,9 +103,9 @@ config.define("std.widgets.toc", {
 
 -- Every ATX heading in `text` (defaulting to the page being edited), as
 -- `{name, pos, level}`: the text to show, the position to navigate to, and the
--- nesting depth. Shared by the table-of-contents widget and the navigator
--- outline views, so the two can never disagree about what a header is called
--- or where it starts.
+-- nesting depth. The single header extractor -- the `std.toc` view is its one
+-- caller today, and anything else wanting the page's headers should use it
+-- rather than parsing them again.
 function widgets.tocHeaders(text)
   local parsedMarkdown = markdown.parseMarkdown(text or editor.getText())
   local headers = {}
@@ -162,99 +134,83 @@ function widgets.tocHeaders(text)
   return headers
 end
 
-function widgets.toc(options)
-  options = options or config.get("std.widgets.toc", {})
-  options.minHeaders = options.minHeaders or 3
-  options.minLevel = options.minLevel or 1
-  options.header = options.header or "Table of Contents"
-  local defaultOpen = (options.defaultOpen ~= false) or nil
-
-  local pageName = editor.getCurrentPage()
-  local headers = widgets.tocHeaders(editor.getText())
-
-  if options.minHeaders and options.minHeaders > #headers then
-    return widget.new{}
-  end
-
-  local headersToDisplay = {}
-  for _, header in ipairs(headers) do
-    if not (options.maxHeader and header.level > options.maxHeader or
-            header.level < options.minLevel) then
-      table.insert(headersToDisplay, header)
-    end
-  end
-  
-  local minLevel = 6
-  for _, header in ipairs(headersToDisplay) do
-    minLevel = math.min(minLevel, header.level)
-  end
-
-  local function buildTocList(headers)
-    local root = dom.ul {  }
-    local stack = { { node = root, level = minLevel - 1, lastLi = nil } }
-
-    for _, header in ipairs(headers) do
-      while #stack > 1 and stack[#stack].level >= header.level do
-        table.remove(stack)
-      end
-
-      while stack[#stack].level < header.level - 1 do
-        local newUl = dom.ul {}
-        local parent = stack[#stack].lastLi or dom.li {}
-        if not stack[#stack].lastLi then
-          stack[#stack].node.appendChild(parent)
-        end
-        parent.appendChild(newUl)
-        table.insert(stack, { node = newUl, level = stack[#stack].level + 1, lastLi = nil })
-      end
-
-      local li = dom.li {
-        dom.a {
-          onclick = function()
-            editor.navigate({ page = pageName, pos = header.pos })
-          end,
-          class = "sb-toc-link",
-          __rawText = header.name
-        }
-      }
-      stack[#stack].node.appendChild(li)
-      stack[#stack].lastLi = li
-    end
-
-    return root
-  end
-
-  -- Wrap in a <details> element for native show/hide toggle
-  return widget.new {
-    html = dom.details {
-      open = defaultOpen,
-      dom.summary {
-        class = "sb-toc-summary",
-        options.header
-      },
-      buildTocList(headersToDisplay)
-    },
-    display = "block"
-  }
-end
 ```
 
-### Top widget
+### Table of Contents
 ```space-lua
 -- priority: -1
-if config.get("std.widgets.toc.enabled", false) then
-  event.listen {
-    name = "hooks:renderTopWidgets",
-    run = function(e)
-      local pageText = editor.getText()
-      local fm = index.extractFrontmatter(pageText)
-      if fm.frontmatter.pageDecoration and fm.frontmatter.pageDecoration.disableTOC then
-        return
-      end
-      return widgets.toc()
+view.define {
+  name = "std.toc",
+  title = "Table of Contents",
+  placeholder = "Header",
+  command = "Navigate: Table of Contents",
+  menu = { location = "view", group = "1_views", order = 1, label = "Table of Contents" },
+  dock = "modal",
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  defaultOpen = false,
+  refreshOn = { "editor:pageModified", "editor:pageLoaded", "editor:documentLoaded" },
+  refreshOnOpen = true,
+  source = function(ctx)
+    -- A document (not a page) has no markdown text for `tocHeaders` to read,
+    -- and `editor.getText()` would answer with whatever page was open before.
+    local path = editor.getCurrentPath()
+    if not string.match(path, "%.md$") then
+      return {}
     end
-  }
-end
+    local headers = widgets.tocHeaders()
+    if ctx.dock == "page-top" or ctx.dock == "page-bottom" then
+      local minHeaders = config.get("std.widgets.toc", {}).minHeaders or 3
+      if #headers < minHeaders then
+        return {}
+      end
+    end
+    -- Nest by ancestor chain: nearest shallower header is the parent.
+    local rows = {}
+    local stack = {}
+    local taken = {}
+    for _, header in ipairs(headers) do
+      while #stack > 0 and stack[#stack].level >= header.level do
+        table.remove(stack)
+      end
+      -- "/" is the tree's path separator; look-alike keeps it literal.
+      local nodePath = string.gsub(header.name, "/", "∕")
+      if #stack > 0 then
+        nodePath = stack[#stack].path .. "/" .. nodePath
+      end
+      while taken[nodePath] do
+        nodePath = nodePath .. " @" .. header.pos
+      end
+      taken[nodePath] = true
+      table.insert(stack, { level = header.level, path = nodePath })
+      table.insert(rows, {
+        name = nodePath,
+        header = header.name,
+        pos = header.pos,
+      })
+    end
+    return rows
+  end,
+  presentation = {
+    mode = "tree",
+    expandAll = true,
+    expansionScope = "page",
+    foldersFirst = false,
+    row = {
+      primary = "header",
+      label = "header",
+      cssClass = function() return "sb-nav-noband" end,
+    },
+  },
+  keymap = {
+    [" "] = function(obj)
+      editor.navigate { page = editor.getCurrentPage(), pos = obj.pos }
+    end,
+  },
+  onSelect = function(obj)
+    editor.navigate { page = editor.getCurrentPage(), pos = obj.pos }
+  end,
+}
+
 ```
 
 ## Linked mentions
@@ -268,19 +224,7 @@ ${_.snippet}
 
 ]==]
 
-config.define("std.widgets.linkedMentions", {
-  type = "object",
-  properties = {
-    enabled = {
-      type = "boolean",
-      default = true,
-      description = "Show linked mentions at the bottom of pages",
-      ui = { category = "Widgets", label = "Linked mentions", priority = 2 },
-    },
-  }
-})
-
-function widgets.linkedMentions(pageName)
+function widgets.linkedMentionsMarkdown(pageName)
   pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
     from r = index.relations()
@@ -294,44 +238,47 @@ function widgets.linkedMentions(pageName)
       start = r.range[1],
     })
   ]]
-  if #linkedMentions > 0 then
+  if #linkedMentions == 0 then
+    return ""
+  end
+  return table.concat(linkedMentions)
+end
+
+function widgets.linkedMentions(pageName)
+  local md = widgets.linkedMentionsMarkdown(pageName)
+  if md != "" then
     return widget.new {
-      markdown = "# Linked Mentions\n" .. table.concat(linkedMentions)
+      markdown = "# Linked Mentions\n" .. md
     }
   end
 end
-```
 
-### Bottom widget
-```space-lua
--- priority: -1
-if config.get("std.widgets.linkedMentions.enabled", true) then
-  event.listen {
-    name = "hooks:renderBottomWidgets",
-    run = function(e)
-      return widgets.linkedMentions()
-    end
-  }
-end
+view.define {
+  name = "std.linkedMentions",
+  title = "Linked Mentions",
+  command = "Navigate: Linked Mentions",
+  menu = { location = "view", group = "1_views", order = 2, label = "Linked Mentions" },
+  dock = "page-bottom",
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  defaultOpen = true,
+  refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
+  refreshOnOpen = true,
+  content = function()
+    return widgets.linkedMentionsMarkdown()
+  end,
+}
 ```
 
 ## Linked tasks
 ```space-lua
 -- priority: 10
 
-config.define("std.widgets.linkedTasks", {
-  type = "object",
-  properties = {
-    enabled = {
-      type = "boolean",
-      default = true,
-      description = "Show linked tasks at the top of pages",
-      ui = { category = "Widgets", label = "Linked tasks", priority = 1 },
-    },
-  }
-})
-
-function widgets.linkedTasks(pageName)
+-- The linked-task list as markdown, with no heading of its own -- the shared
+-- builder behind `widgets.linkedTasks()` and the `std.linkedTasks` content
+-- view. `templates.taskItem` renders each task with its `[[page@pos]]` ref,
+-- which is what makes the rendered checkbox tick through to the page the task
+-- actually lives on. Returns "" when nothing links here.
+function widgets.linkedTasksMarkdown(pageName)
   pageName = pageName or editor.getCurrentPage()
   local tasks = query[[
     from t = index.tasks()
@@ -339,11 +286,16 @@ function widgets.linkedTasks(pageName)
     order by t.page
     select templates.taskItem(t)
   ]]
-  local md = ""
-  if #tasks > 0 then
-    md = "# Linked Tasks\n" .. table.concat(tasks)
-  else
-    md = ""
+  if #tasks == 0 then
+    return ""
+  end
+  return table.concat(tasks)
+end
+
+function widgets.linkedTasks(pageName)
+  local md = widgets.linkedTasksMarkdown(pageName)
+  if md != "" then
+    md = "# Linked Tasks\n" .. md
   end
   return widget.new {
     markdown = md
@@ -354,12 +306,21 @@ end
 ### Top widget
 ```space-lua
 -- priority: -1
-if config.get("std.widgets.linkedTasks.enabled", true) then
-  event.listen {
-    name = "hooks:renderTopWidgets",
-    run = function(e)
-      return widgets.linkedTasks()
-    end
-  }
-end
+-- A *content* view, like linked mentions: the tasks render as real markdown
+-- tasks, so their checkboxes tick and write straight back to the page each
+-- task lives on -- no need to navigate there first.
+view.define {
+  name = "std.linkedTasks",
+  title = "Linked Tasks",
+  command = "Navigate: Linked Tasks",
+  menu = { location = "view", group = "1_views", order = 3, label = "Linked Tasks" },
+  dock = "page-top",
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  defaultOpen = true,
+  refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
+  refreshOnOpen = true,
+  content = function()
+    return widgets.linkedTasksMarkdown()
+  end,
+}
 ```

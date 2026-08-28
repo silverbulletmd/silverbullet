@@ -174,6 +174,8 @@ export type BootConfig = {
   disableServiceWorker?: boolean;
   syncProtocolVersion?: number;
   revisions?: "managed" | "unmanaged" | "disabled";
+  /** Every other space root on this origin, e.g. ["/private", "/work"]. */
+  spacePrefixes?: string[];
 };
 
 /**

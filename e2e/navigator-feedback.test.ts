@@ -11,7 +11,7 @@ import {
 
 const PERM_ICON_CONFIG = `# Perm icon test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "permIconTest",
   title = "Perm Icon Test",
   command = "Navigator: Perm Icon Test",
@@ -45,7 +45,7 @@ navigator.define {
 // error boundary (Addendum 9) exists to catch.
 const THROW_ON_RENDER_CONFIG = `# Throws on second render
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "throwsOnSecondRender",
   title = "Throws On Second Render",
   command = "Navigator: Throws On Second Render",
@@ -197,7 +197,16 @@ test("C: the top bar never scrolls, even with both docks open on a decorated pag
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
   await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toBeVisible();
   await sbPage.locator("#sb-editor .cm-content").click();
-  await runCommandViaPalette(sbPage, "Navigate: Outline");
+  // Opens as a modal by default; pin it to the right sidebar so both docks
+  // are open, as the test name promises.
+  await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+  const outlineModal = sbPage.locator(".sb-nav-root-modal");
+  await expect(outlineModal).toBeVisible();
+  await outlineModal.locator(".sb-dock-button").click();
+  await outlineModal
+    .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+    .click();
+  // Picking a dock from the modal's own menu closes it.
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
   await expect(sbPage.locator("#sb-main .sb-nav-root-rhs")).toBeVisible();
 
@@ -372,7 +381,17 @@ test("E: the outline empties on a document instead of keeping the previous page'
   sbServer,
 }) => {
   await gotoSilverBulletPage(sbPage, sbServer, "Outline");
-  await runCommandViaPalette(sbPage, "Navigate: Outline");
+  // Opens as a modal by default; pin it to the right sidebar so it stays
+  // open (and refreshes) across the navigations this test drives below.
+  await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+  const outlineModal = sbPage.locator(".sb-nav-root-modal");
+  await expect(outlineModal).toBeVisible();
+  await outlineModal.locator(".sb-dock-button").click();
+  await outlineModal
+    .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+    .click();
+  // Picking a dock from the modal's own menu closes it.
+  await expect(outlineModal).toHaveCount(0);
   await expect(sbPage.locator("#sb-main .sb-nav-root-rhs")).toBeVisible();
 
   const frame = sbPage.locator("#sb-main .sb-nav-root-rhs");
@@ -531,7 +550,18 @@ async function readDefaultPrevented(input: ReturnType<typeof navInput>) {
 test("K: a host-bound chord forwarded from a dock with no local claim fires its command exactly once, with no browser default", async ({
   sbPage,
 }) => {
-  await runCommandViaPalette(sbPage, "Navigate: Outline");
+  // Opens as a modal by default; pin it to the right sidebar.
+  await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+  const outlineModal = sbPage.locator(".sb-nav-root-modal");
+  await expect(outlineModal).toBeVisible();
+  await outlineModal.locator(".sb-dock-button").click();
+  await outlineModal
+    .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+    .click();
+  // Picking a dock from the modal's own menu closes it, and moveDock's own
+  // re-open at the new dock focuses it -- this test's own subject, forwarding
+  // a chord typed into a dock's input, needs that focus to start there.
+  await expect(outlineModal).toHaveCount(0);
   const outlineFrame = sbPage.locator("#sb-main .sb-nav-root-rhs");
   const outlineInput = outlineFrame.locator("input.sb-nav-input");
   await expect(outlineInput).toBeFocused();
@@ -637,7 +667,16 @@ test("D: drag-resize survives Plugs: Reload", async ({ sbPage }) => {
 
   await sbPage.locator("#sb-editor .cm-content").click();
 
-  await runCommandViaPalette(sbPage, "Navigate: Outline");
+  // Opens as a modal by default; pin it to the right sidebar.
+  await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+  const outlineModal = sbPage.locator(".sb-nav-root-modal");
+  await expect(outlineModal).toBeVisible();
+  await outlineModal.locator(".sb-dock-button").click();
+  await outlineModal
+    .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+    .click();
+  // Picking a dock from the modal's own menu closes it.
+  await expect(outlineModal).toHaveCount(0);
   await expect(sbPage.locator("#sb-main .sb-nav-root-rhs")).toBeVisible();
 });
 
@@ -654,7 +693,11 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
     };
   });
 
-  await runCommandViaPalette(sbPage, "Navigate: Outline Picker");
+  // "Navigate: Table of Contents" (std.toc has no persisted dock preference
+  // here, so this opens as a modal) stands in for "some command that
+  // reliably opens a modal view" -- the activation-token behavior under
+  // test isn't specific to the outline.
+  await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
   await expectNavInputFocused(sbPage);
   await sbPage.keyboard.press("Escape");
   await expect(sbPage.locator(".sb-modal")).toBeHidden();
@@ -668,7 +711,7 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
   await sbPage.waitForTimeout(300);
 
   await sbPage.evaluate(() =>
-    (globalThis as any).client.runCommandByName("Navigate: Outline Picker"),
+    (globalThis as any).client.runCommandByName("Navigate: Table of Contents"),
   );
   // Reaching a settled (non-paint-pending) modal at all is the assertion; the
   // test's own timeout is the budget.
@@ -684,12 +727,12 @@ test("M8: reopening a modal view is still prompt after Plugs: Reload resets the 
 test("N: a Space Lua-defined view's meta still resolves after Plugs: Reload", async ({
   sbPage,
 }) => {
-  // Opening it *is* the resolution: `navigator.open` answers false for a view
+  // Opening it *is* the resolution: `view.open` answers false for a view
   // the registry can't resolve (quiet, so a miss doesn't flash a notification).
   async function resolvesMeta(): Promise<boolean> {
     const opened = await sbPage.evaluate(() =>
       (globalThis as any).sbRuntime.evalLua(
-        `navigator.open("permIconTest", { quiet = true })`,
+        `view.open("permIconTest", { quiet = true })`,
       ),
     );
     if (opened) {

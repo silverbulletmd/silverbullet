@@ -8,8 +8,14 @@
 @use "components";
 // After `components`: the shared `.sb-nav-*` rules live there, and the
 // navigator's own overrides of them (a hint chip's font size, a selected
-// row's colours) win on source order, not specificity.
+// row's colours) win on source order, not specificity. The navigator's
+// per-component partials follow it, for the same reason and in this order:
+// each may override the panel chrome above, none overrides its siblings.
 @use "navigator";
+@use "revision_preview";
+@use "dock_menu";
+@use "page_widget";
+@use "view_content";
 
 @font-face {
   font-family: "iA-Mono";

@@ -69,7 +69,7 @@ This one manifest declares a syscall, a command, a message-queue subscriber, and
 Each hook type is a different way for a plug function to be triggered. A single function may declare more than one hook.
 
 ## `command`
-Declares a [[Command]] available from the command palette and (optionally) via a keybinding.
+Declares a [[Concept/Command]] available from the command palette and (optionally) via a keybinding.
 
 ```yaml
 toggleDarkMode:
@@ -93,7 +93,7 @@ export async function toggleDarkMode() {
 ```
 
 ## `slashCommand`
-Declares a [[Slash Command]] that appears after the user types `/`.
+Declares a [[Concept/Slash Command]] that appears after the user types `/`.
 
 ```yaml
 insertToday:
@@ -115,7 +115,7 @@ export async function insertToday() {
 ```
 
 ## `events`
-Subscribes the function to one or more [[Event]] names. Wildcards are supported (e.g. `page:*`). The function receives the event payload.
+Subscribes the function to one or more [[Concept/Event]] names. Wildcards are supported (e.g. `page:*`). The function receives the event payload.
 
 ```yaml
 onPageSaved:

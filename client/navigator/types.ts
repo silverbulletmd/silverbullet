@@ -14,6 +14,7 @@ export type FilterFields = Record<
 export type NavigatorHook =
   | "meta"
   | "rows"
+  | "content"
   | "select"
   | "create"
   | "key"
@@ -45,7 +46,19 @@ export type DropdownOption = {
 export type SourceCtx = {
   phrase: string;
   segment?: string;
+  dock?: string;
 };
+
+export const WINDOW_DOCKS = ["lhs", "rhs"] as const;
+export const PAGE_DOCKS = ["page-top", "page-bottom"] as const;
+export const ALL_DOCKS = [...WINDOW_DOCKS, "modal", ...PAGE_DOCKS] as const;
+
+export function isPageDock(dock: string): boolean {
+  return (PAGE_DOCKS as readonly string[]).includes(dock);
+}
+export function isWindowDock(dock: string): boolean {
+  return (WINDOW_DOCKS as readonly string[]).includes(dock);
+}
 
 export type ViewMeta = {
   name: string;
@@ -54,7 +67,9 @@ export type ViewMeta = {
   placeholder?: string;
   stripPrefix?: string;
   mode: "list" | "tree";
-  dock: "modal" | "lhs" | "rhs";
+  hasContent?: boolean;
+  dock: (typeof ALL_DOCKS)[number];
+  supportedDocks?: string[];
   hierarchy: { field: string; separator: string };
   foldersFirst: boolean;
   selectableFolders?: boolean;
@@ -82,5 +97,6 @@ export type ViewMeta = {
   hashtagFilter: boolean;
   ephemeral?: boolean;
   openOnStart?: boolean;
+  defaultOpen?: boolean;
   builtin?: boolean;
 };

@@ -44,10 +44,10 @@ For this, you need to get your hands on a TLS certificate.
 A few options:
 
 ## Pangolin, Authelia, Authentik
-If you’re _already_ using a proxy like [Pangolin](https://pangolin.net/), [Authelia](https://www.authelia.com/) or [Authentik](https://goauthentik.io/), you are likely already set up with everything you need and can just reverse-proxy a subdomain to SilverBullet. Be sure to check the notes on using a [[Authentication Proxy]] on how to configure this.
+If you’re _already_ using a proxy like [Pangolin](https://pangolin.net/), [Authelia](https://www.authelia.com/) or [Authentik](https://goauthentik.io/), you are likely already set up with everything you need and can just reverse-proxy a subdomain to SilverBullet. Be sure to check the notes on using a [[Deployment/Authentication Proxy]] on how to configure this.
 
 ## Tailscale SSL certificate
-If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a solid service, very friendly to [[Self Hosted|self hosters]], and _free_ for this use case.
+If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a solid service, very friendly to [[Principles/Self Hosted|self hosters]], and _free_ for this use case.
 
 Part of the [guide to setup SilverBullet on Linux](https://community.silverbullet.md/t/install-silverbullet-on-a-64-bit-debian-ubuntu-raspianos-internet-accessible-via-tailscale/48) are instructions on how to install  (a free service) and use it to expose a local server (like SilverBullet) locally on your VPN, or the Internet — a setup that gives you a `.ts.net` subdomain with TLS certificate. 
 
@@ -63,7 +63,7 @@ The recommended approach for this requires two things:
    * [Vultr](https://www.vultr.com/products/cloud-compute/) starting from about $2.5/month.
 2. A domain name of your own that you can configure DNS records on to point to your server, or using a service like [DuckDNS](https://www.duckdns.org/) which gives you a `*.duckdns.org` sub-domain for free.
 
-After deploying SilverBullet on the VM (with [[Authentication]] enabled, obviously), you can deploy [Caddy](https://caddyserver.com/) next to it as a reverse proxy. Caddy can automatically request TLS certificates using [Let’s Encrypt](https://letsencrypt.org/). 
+After deploying SilverBullet on the VM (with [[Feature/Authentication]] enabled, obviously), you can deploy [Caddy](https://caddyserver.com/) next to it as a reverse proxy. Caddy can automatically request TLS certificates using [Let’s Encrypt](https://letsencrypt.org/). 
 
 For this, [install Caddy](https://caddyserver.com/docs/install) into your VM. Then, in your Caddyfile (usually located `/etc/caddy/Caddyfile`) put:
 

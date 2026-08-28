@@ -4,7 +4,6 @@ references:
 - client/space_lua/parse.ts
 - client/space_lua/runtime.ts
 ---
-
 Some coding conventions for [[Space Lua]]. Work in progress.
 
 # Indentation

@@ -4,6 +4,11 @@ import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
 import { activeWidgets } from "./code_widget.ts";
+import { pageSlotViews } from "../navigator/page_slots.ts";
+import {
+  renderPageSlot,
+  unmountPageSlot,
+} from "../navigator/ui/components/page_widget.tsx";
 
 class ArrayWidget extends WidgetType {
   public dom?: HTMLElement;
@@ -115,6 +120,76 @@ class ArrayWidget extends WidgetType {
   }
 }
 
+/** A page slot: every navigator view whose resolved dock is this slot. */
+class NavPageSlotWidget extends WidgetType {
+  private destroyed = false;
+  private measureTimer?: ReturnType<typeof setTimeout>;
+
+  constructor(
+    readonly client: Client,
+    readonly slot: "page-top" | "page-bottom",
+    readonly cacheKey: string,
+  ) {
+    super();
+  }
+
+  override get estimatedHeight(): number {
+    return this.client.widgetCache.getCachedWidgetHeight(this.cacheKey);
+  }
+
+  toDOM(): HTMLElement {
+    const div = document.createElement("div");
+    div.className = `sb-page-slot sb-page-slot-${this.slot}`;
+
+    const cachedHeight = this.client.widgetCache.getCachedWidgetHeight(
+      this.cacheKey,
+    );
+    if (cachedHeight > 0) {
+      div.style.minHeight = `${cachedHeight}px`;
+    }
+
+    pageSlotViews(this.slot)
+      .then((views) => {
+        if (this.destroyed) return;
+        renderPageSlot(div, views, this.slot, this.client, () =>
+          this.measure(div),
+        );
+      })
+      .catch(console.error);
+
+    return div;
+  }
+
+  /**
+   * Measures only once the slot's views have all resolved.
+   */
+  private measure(div: HTMLElement): void {
+    clearTimeout(this.measureTimer);
+    this.measureTimer = setTimeout(() => {
+      if (this.destroyed) return;
+      div.style.minHeight = "";
+      div.dataset.settled = "1";
+      if (!div.isConnected) return;
+      this.client.widgetCache.setCachedWidgetMeta(this.cacheKey, {
+        height: div.clientHeight,
+        block: true,
+      });
+    }, 0);
+  }
+
+  override destroy(dom: HTMLElement): void {
+    this.destroyed = true;
+    clearTimeout(this.measureTimer);
+    unmountPageSlot(dom);
+  }
+
+  override eq(other: WidgetType): boolean {
+    return (
+      other instanceof NavPageSlotWidget && other.cacheKey === this.cacheKey
+    );
+  }
+}
+
 export function postScriptPrefacePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     if (!editor.clientSystem.scriptsLoaded) {
@@ -122,6 +197,19 @@ export function postScriptPrefacePlugin(editor: Client) {
       return Decoration.none;
     }
     const widgets: any[] = [];
+
+    // side -2/2 puts the navigator's page slots outside the legacy Lua top and bottom widgets
+    widgets.push(
+      Decoration.widget({
+        widget: new NavPageSlotWidget(
+          editor,
+          "page-top",
+          `pageslot:top:${editor.currentPath()}`,
+        ),
+        side: -2,
+        block: true,
+      }).range(0),
+    );
 
     widgets.push(
       Decoration.widget({
@@ -146,6 +234,18 @@ export function postScriptPrefacePlugin(editor: Client) {
           "sb-lua-bottom-widget",
         ),
         side: 1,
+        block: true,
+      }).range(state.doc.length),
+    );
+
+    widgets.push(
+      Decoration.widget({
+        widget: new NavPageSlotWidget(
+          editor,
+          "page-bottom",
+          `pageslot:bottom:${editor.currentPath()}`,
+        ),
+        side: 2,
         block: true,
       }).range(state.doc.length),
     );

@@ -17,6 +17,6 @@ The general syntax is:
 These are the block types that ship with SilverBullet, but [[Plugs]] can define their own:
 
 * `space-lua`: [[Space Lua]]
-* `space-style`: [[Space Style]]
+* `space-style`: [[Concept/Space Style]]
 
 The fenced code block syntax is also used to get [[Markdown/Syntax Highlighting]] for numerous programming languages.

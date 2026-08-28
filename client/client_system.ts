@@ -55,11 +55,20 @@ import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
 import { setRevisionsAvailable } from "./navigator/builtins.ts";
 import { registerNavigatorCommands } from "./navigator/commands.ts";
-import { restoreDocks } from "./navigator/navigator.ts";
+import { restoreDocks, setSpaceDocks } from "./navigator/navigator.ts";
 import { clearScriptViews, setLuaEnvSource } from "./navigator/registry.ts";
+import type { Config } from "./config.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
+
+function resolveSpaceDocks(config: Config): Record<string, string> {
+  const viewDocks = config.get<Record<string, string> | undefined>(
+    "view.docks",
+    undefined,
+  );
+  return viewDocks ?? config.get("navigator.docks", {});
+}
 
 /**
  * Handles the extension-related mechanisms of the client by wrapping a PlugOS System object as well as Space Lua environments
@@ -128,6 +137,7 @@ export class ClientSystem {
       this.client.bootConfig.revisions !== "disabled";
     setRevisionsAvailable(revisionsAvailable);
     registerNavigatorCommands(this.commandHook, revisionsAvailable);
+    setSpaceDocks(resolveSpaceDocks(this.client.config));
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
@@ -245,6 +255,8 @@ export class ClientSystem {
     this.commandHook.throttledBuildAllCommandsAndEmit();
     this.slashCommandHook.throttledBuildAllCommands();
     this.mqHook.throttledReloadQueues();
+
+    setSpaceDocks(resolveSpaceDocks(this.client.config));
 
     this.scriptsLoaded = true;
     this.client.maybeDispatchWidgetsReady();

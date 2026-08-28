@@ -34,11 +34,9 @@ impl ReadOnlyDirSpacePrimitives {
                 format!("no such directory: {}", root.display()),
             )));
         }
-        // Use the build timestamp as a fixed mtime for all files: stable per
-        // binary, never 0. Previously we read the bundle dir's mtime from
-        // disk, but inside a Flatpak (OSTree) mount that's 0, which exposed a
-        // client bug (see BUILD_TIMESTAMP_MILLIS_STR docs).
-        let fixed_mtime = build_timestamp_millis();
+        // One mtime for the whole tree, taken from its newest file: stable
+        // between rebuilds of the same content.
+        let fixed_mtime = newest_mtime_millis(&root).unwrap_or_else(build_timestamp_millis);
         Ok(Self {
             root_path: root,
             fixed_mtime,
@@ -68,10 +66,25 @@ impl ReadOnlyDirSpacePrimitives {
 
 /// Plug files carry their actual on-disk mtime so Core's manifest cache
 /// (keyed by `lastModified`) invalidates whenever a plug is rebuilt. All
-/// other files keep the fixed root mtime to avoid re-indexing pages after
-/// client-bundle rebuilds.
+/// other files share the tree's single mtime, so an unchanged bundle never
+/// re-indexes and a changed one invalidates as a unit.
 fn is_plug(path: &str) -> bool {
     path.ends_with(".plug.js")
+}
+
+/// The newest file mtime under `root`, in unix millis.
+///
+/// `None` when the tree holds no files, or when every one of them reports 0 —
+/// an OSTree-backed Flatpak mount does exactly that, and 0 is the one value
+/// this space must never report (see `BUILD_TIMESTAMP_MILLIS_STR`).
+fn newest_mtime_millis(root: &Path) -> Option<i64> {
+    let newest = WalkDir::new(root)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file())
+        .filter_map(|entry| file_mtime_millis(&entry.metadata().ok()?))
+        .max()?;
+    (newest > 0).then_some(newest)
 }
 
 fn file_mtime_millis(metadata: &std::fs::Metadata) -> Option<i64> {
@@ -283,6 +296,81 @@ mod tests {
         let p: Box<dyn SpacePrimitives> =
             Box::new(ReadOnlyDirSpacePrimitives::new(td.path()).unwrap());
         (td, p)
+    }
+
+    #[test]
+    fn read_only_dir_mtime_tracks_the_newest_file() {
+        // The bundle is regenerated independently of the binary that serves
+        // it, so the reported mtime has to follow the *content*. When it
+        // didn't, the client's sync compared an unchanged mtime against its
+        // snapshot and kept serving the previous bundle from its own cache --
+        // a rebuilt Space Lua library silently never reached the editor.
+        let td = TempDir::new().unwrap();
+        std::fs::write(td.path().join("page.md"), b"before").unwrap();
+        let before = ReadOnlyDirSpacePrimitives::new(td.path())
+            .unwrap()
+            .get_file_meta("page.md")
+            .unwrap()
+            .last_modified;
+
+        // Rewrite with a definitively later mtime, the way a rebuild does.
+        let path = td.path().join("page.md");
+        std::fs::write(&path, b"after").unwrap();
+        let later = SystemTime::now() + std::time::Duration::from_secs(60);
+        std::fs::File::open(&path)
+            .unwrap()
+            .set_modified(later)
+            .unwrap();
+
+        let after = ReadOnlyDirSpacePrimitives::new(td.path())
+            .unwrap()
+            .get_file_meta("page.md")
+            .unwrap()
+            .last_modified;
+        assert!(
+            after > before,
+            "rebuilt content must report a newer mtime ({after} !> {before})"
+        );
+    }
+
+    #[test]
+    fn read_only_dir_mtime_is_shared_and_never_zero() {
+        // One mtime for the whole tree: every non-plug file reports the
+        // newest, so a single changed file invalidates the bundle as a unit.
+        // 0 is the one value this space must never report -- Core's
+        // `EventedSpacePrimitives` read it as "no prior hash" and re-fired
+        // file:changed on every listing.
+        let td = TempDir::new().unwrap();
+        std::fs::write(td.path().join("old.md"), b"old").unwrap();
+        std::fs::write(td.path().join("new.md"), b"new").unwrap();
+        std::fs::File::open(td.path().join("old.md"))
+            .unwrap()
+            .set_modified(SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1))
+            .unwrap();
+
+        let p = ReadOnlyDirSpacePrimitives::new(td.path()).unwrap();
+        let old = p.get_file_meta("old.md").unwrap().last_modified;
+        let new = p.get_file_meta("new.md").unwrap().last_modified;
+        assert_eq!(old, new, "the whole tree shares one mtime");
+        assert!(old > 0, "mtime must never be 0");
+    }
+
+    #[test]
+    fn read_only_dir_falls_back_when_every_mtime_is_zero() {
+        // What the build timestamp was introduced for: an OSTree-backed
+        // Flatpak mount reports 0 for every file.
+        let td = TempDir::new().unwrap();
+        std::fs::write(td.path().join("page.md"), b"x").unwrap();
+        std::fs::File::open(td.path().join("page.md"))
+            .unwrap()
+            .set_modified(SystemTime::UNIX_EPOCH)
+            .unwrap();
+
+        let meta = ReadOnlyDirSpacePrimitives::new(td.path())
+            .unwrap()
+            .get_file_meta("page.md")
+            .unwrap();
+        assert_eq!(meta.last_modified, build_timestamp_millis());
     }
 
     #[test]

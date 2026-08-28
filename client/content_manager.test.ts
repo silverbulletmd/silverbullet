@@ -22,6 +22,7 @@ vi.mock("./codemirror/editor_state.ts", async () => {
       _readOnly: boolean,
     ) => RealEditorState.create({ doc: text }),
     externalUpdate: Annotation.define<boolean>(),
+    forceParseVisibleRegion: () => {},
   };
 });
 

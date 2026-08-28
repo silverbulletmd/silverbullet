@@ -1,8 +1,11 @@
 import { expect, test } from "vitest";
 import { parser as baseParser } from "@lezer/markdown";
 import type { SyntaxNode } from "@lezer/common";
+import { EditorState } from "@codemirror/state";
 import { TaskList } from "../markdown_parser/extended_task.ts";
-import { computeMarkerWidth } from "./list_indent.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
+import { computeMarkerWidth, listIndentPlugin } from "./list_indent.ts";
+import { blockquotePlugin } from "./block_quote.ts";
 
 const parser = baseParser.configure([TaskList]);
 
@@ -111,4 +114,74 @@ test("computeMarkerWidth: respects non-zero lineStart", () => {
   if (!node) throw new Error("no ListItem");
   // Line start for the second line is at offset 6 (after "intro\n").
   expect(computeMarkerWidth(node, 6)).toBe(2);
+});
+
+function lineStylesFor(doc: string): string[] {
+  const field = listIndentPlugin();
+  const state = EditorState.create({
+    doc,
+    extensions: [buildExtendedMarkdownLanguage(), field],
+  });
+  const styles: string[] = [];
+  state.field(field).between(0, doc.length, (_from, _to, deco) => {
+    const style = (deco.spec as any).attributes?.style;
+    if (style) styles.push(style);
+  });
+  return styles;
+}
+
+test("a list line contributes its marker width as a custom property", () => {
+  expect(lineStylesFor("* one\n")).toEqual(["--sb-list-indent:2ch"]);
+});
+
+test("a nested item contributes the innermost marker width", () => {
+  // Outer then inner for the nested line; the inner one is added last and
+  // therefore wins the concatenated style attribute.
+  expect(lineStylesFor("* one\n  * two\n")).toEqual([
+    "--sb-list-indent:2ch",
+    "--sb-list-indent:2ch",
+    "--sb-list-indent:4ch",
+  ]);
+});
+
+// Guards the invariant the two plugins jointly maintain: the sum of every
+// `--sb-*-indent` contribution on a line must equal the number of columns
+// its leading markup actually occupies, so a wrapped row's padding lines up
+// with the first row's markers. Each plugin alone can't catch a regression
+// where one starts double-counting what the other already reserves.
+function summedIndentColumns(doc: string): number {
+  const listField = listIndentPlugin();
+  const quoteField = blockquotePlugin();
+  const state = EditorState.create({
+    doc,
+    // Cursor parked outside the doc so no quote marker is revealed.
+    selection: { anchor: doc.length },
+    extensions: [buildExtendedMarkdownLanguage(), listField, quoteField],
+  });
+  const firstLineEnd = state.doc.line(1).to;
+  let sum = 0;
+  for (const field of [listField, quoteField]) {
+    state.field(field).between(0, firstLineEnd, (_from, _to, deco) => {
+      const style = (deco.spec as any).attributes?.style as string | undefined;
+      // --sb-list-indent:Nch  or  --sb-quote-indent:calc(N * var(--editor-column))
+      const match = style?.match(/:(?:calc\()?(\d+)/);
+      if (match) sum += Number(match[1]);
+    });
+  }
+  return sum;
+}
+
+test("list and quote indent contributions sum to the real leading-markup width", () => {
+  const cases: [string, number][] = [
+    ["* item", 2], // `* `
+    ["> quoted", 2], // `> `
+    ["> * item one", 4], // `> * `
+    ["> 1. numbered", 5], // `> 1. `
+    ["> > * deep", 6], // `> > * `
+    [">   * spaced", 6], // `>   * `
+    ["  > * indented", 6], // `  > * `
+  ];
+  for (const [line, expected] of cases) {
+    expect(summedIndentColumns(`${line}\n`)).toBe(expected);
+  }
 });

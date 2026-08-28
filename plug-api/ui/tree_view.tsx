@@ -42,12 +42,9 @@ export type TreeViewProps = {
   onSelect: (node: TreeNode) => void;
   onMove: (draggedPath: string, targetFolder: string) => void;
   onAction: (node: TreeNode, actionIndex: number) => void;
-  /**
-   * A selector (from the selected row, via `closest()`) of the container to
-   * scroll into view within on selection change. No reveal happens if
-   * omitted -- there's no generic "the" scroll container to guess at.
-   */
   scrollContainerSelector?: string;
+  focusableRows?: boolean;
+  onRowKeyDown?: (node: TreeNode, event: KeyboardEvent) => void;
 };
 
 export function TreeView({
@@ -68,6 +65,8 @@ export function TreeView({
   onMove,
   onAction,
   scrollContainerSelector,
+  focusableRows,
+  onRowKeyDown,
 }: TreeViewProps) {
   const selectedRef = useRef<HTMLDivElement>(null);
   const treeRef = useRef<HTMLUListElement>(null);
@@ -242,6 +241,8 @@ export function TreeView({
           onSelect={onSelect}
           onAction={onAction}
           selectedRef={selectedRef}
+          focusableRows={focusableRows}
+          onRowKeyDown={onRowKeyDown}
         />
       ))}
     </ul>
@@ -266,6 +267,8 @@ function TreeItem({
   onSelect,
   onAction,
   selectedRef,
+  focusableRows,
+  onRowKeyDown,
 }: {
   node: TreeNode;
   depth: number;
@@ -284,6 +287,8 @@ function TreeItem({
   onSelect: (node: TreeNode) => void;
   onAction: (node: TreeNode, actionIndex: number) => void;
   selectedRef: { current: HTMLDivElement | null };
+  focusableRows?: boolean;
+  onRowKeyDown?: (node: TreeNode, event: KeyboardEvent) => void;
 }) {
   const isExpanded = node.isFolder && expanded.has(node.path);
   const selected = selectedPath === node.path;
@@ -303,12 +308,7 @@ function TreeItem({
         ref={selected ? selectedRef : undefined}
         class={
           "sb-nav-row" +
-          // Folders (including page/folder duals) head a section of the tree,
-          // and are styled as its header -- see the stylesheet.
           (node.isFolder ? " sb-nav-folder" : "") +
-          // A dual: a folder whose name is also something you can open. It
-          // draws with the same folder icon a pure folder gets, so the row
-          // needs a mark of its own -- see the stylesheet.
           (node.isFolder && node.row ? " sb-nav-dual" : "") +
           (selected ? " sb-nav-selected" : "") +
           (dropTarget === node.path ? " sb-nav-droptarget" : "") +
@@ -317,6 +317,12 @@ function TreeItem({
         style={{ paddingLeft: `${depth * 1.2}rem` }}
         data-path={node.path}
         draggable={draggable}
+        tabIndex={focusableRows ? 0 : undefined}
+        onKeyDown={
+          onRowKeyDown
+            ? (e) => onRowKeyDown(node, e as KeyboardEvent)
+            : undefined
+        }
         onClick={() => onSelect(node)}
       >
         {node.isFolder ? (
@@ -384,6 +390,8 @@ function TreeItem({
               onSelect={onSelect}
               onAction={onAction}
               selectedRef={selectedRef}
+              focusableRows={focusableRows}
+              onRowKeyDown={onRowKeyDown}
             />
           ))}
         </ul>

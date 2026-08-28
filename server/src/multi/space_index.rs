@@ -394,6 +394,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test\n".into(),
             shutdown: None,
+            space_prefixes: Default::default(),
             #[cfg(feature = "oidc")]
             oidc: None,
         };

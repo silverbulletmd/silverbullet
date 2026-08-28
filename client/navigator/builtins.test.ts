@@ -55,7 +55,6 @@ const { closePreview, currentPreview } = await import(
   "./views/revision_preview.ts"
 );
 const { spaceContents } = await import("./views/pages.ts");
-const { pageHeaders } = await import("./views/toc.ts");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -188,129 +187,13 @@ function builtinRows(name: string) {
   return builtinHandle(name, "rows", {});
 }
 
-/** A leaf-text-only `ParseTree` fixture, matching what `markdown.parseMarkdown`
- * hands back: leaf nodes carry `text`, container nodes only `children`. */
-function heading(level: number, from: number, ...labelParts: string[]) {
-  return {
-    type: `ATXHeading${level}`,
-    from,
-    to: from + 1,
-    // First child is the "# " mark, dropped by `pageHeaders` before reading
-    // the rest -- a bare placeholder is enough, its text is never read.
-    children: [
-      { text: `${"#".repeat(level)} ` },
-      ...labelParts.map((text) => ({ text })),
-    ],
-  };
-}
-
-test("pageHeaders reads ATX headings, drops the mark, and strips wiki-link brackets", async () => {
-  markdown.parseMarkdown.mockResolvedValue({
-    children: [
-      heading(1, 0, "Intro"),
-      {
-        type: "Paragraph",
-        from: 10,
-        to: 20,
-        children: [{ text: "body text" }],
-      },
-      // Each inline child is trimmed *before* concatenation, matching
-      // widgets.tocHeaders exactly (Widgets.md) -- including that this drops
-      // the whitespace either side of an inline element like this link.
-      heading(2, 30, "See ", "[[Some Page]]", " too"),
-    ],
-  });
-
-  const headers = await pageHeaders("ignored -- parseMarkdown is mocked");
-
-  expect(headers).toEqual([
-    { name: "Intro", pos: 0, level: 1 },
-    { name: "SeeSome Pagetoo", pos: 30, level: 2 },
-  ]);
-});
-
-test("pageHeaders drops a heading that renders to an empty label", async () => {
-  markdown.parseMarkdown.mockResolvedValue({
-    children: [heading(1, 0)],
-  });
-
-  expect(await pageHeaders("x")).toEqual([]);
-});
-
-test("std.toc nests rows by ancestor level and substitutes a literal '/' in the path", async () => {
-  editor.getCurrentPath.mockResolvedValue("Projects/Alpha.md");
-  editor.getCurrentPage.mockResolvedValue("Projects/Alpha");
-  editor.getText.mockResolvedValue("ignored");
-  markdown.parseMarkdown.mockResolvedValue({
-    children: [
-      heading(1, 0, "Intro"),
-      // H3 directly under H1: nests under Intro without inventing an H2.
-      heading(3, 10, "Details"),
-      heading(1, 20, "A/B"),
-    ],
-  });
-
-  const rows = await builtinRows("std.toc");
-
-  expect(rows).toEqual([
-    {
-      obj: expect.objectContaining({
-        name: "Intro",
-        page: "Projects/Alpha",
-        pos: 0,
-      }),
-      primary: "Intro",
-      label: "Intro",
-      description: undefined,
-      decorations: undefined,
-      cssClass: "sb-nav-noband",
-    },
-    {
-      obj: expect.objectContaining({ name: "Intro/Details", pos: 10 }),
-      primary: "Details",
-      label: "Details",
-      description: undefined,
-      decorations: undefined,
-      cssClass: "sb-nav-noband",
-    },
-    {
-      // The literal "/" in the header text is not a path separator.
-      obj: expect.objectContaining({ name: "A∕B", pos: 20 }),
-      primary: "A/B",
-      label: "A/B",
-      description: undefined,
-      decorations: undefined,
-      cssClass: "sb-nav-noband",
-    },
-  ]);
-});
-
-test("std.toc is empty off a page (not a .md path)", async () => {
-  editor.getCurrentPath.mockResolvedValue("assets/logo.png");
-
-  expect(await builtinRows("std.toc")).toEqual([]);
-  expect(markdown.parseMarkdown).not.toHaveBeenCalled();
-});
-
-test("std.toc's meta carries a Space keymap entry; std.tocModal's doesn't", async () => {
-  expect(builtinMeta("std.toc")!.keys).toEqual([" "]);
-  expect(builtinMeta("std.tocModal")!.keys).toBeUndefined();
-  // Neither view icons its rows -- unlike std.spaceTree, an outline is one
-  // kind of thing -- so neither should reserve indentation for one.
-  expect(builtinMeta("std.toc")!.hasRowIcon).toBe(false);
-  expect(builtinMeta("std.tocModal")!.hasRowIcon).toBe(false);
-});
-
-test("navigator:key runs std.toc's Space entry: jump without closing the panel", async () => {
-  const result = await builtinHandle("std.toc", "key", {
+test("navigator:key runs std.spaceTree's Space entry: peek without closing the panel", async () => {
+  const result = await builtinHandle("std.spaceTree", "key", {
     key: " ",
-    obj: { page: "Projects/Alpha", pos: 42 },
+    obj: { name: "Alpha", ref: "Alpha" },
   });
 
-  expect(editor.navigate).toHaveBeenCalledWith({
-    path: "Projects/Alpha.md",
-    details: { type: "position", pos: 42 },
-  });
+  expect(editor.navigate).toHaveBeenCalledWith("Alpha");
   // A keymap entry has nothing analogous to onSelect's false-keeps-open
   // contract -- the panel's own keydown handler decides that, not the return
   // value -- so this is just "ran without throwing".
@@ -318,11 +201,13 @@ test("navigator:key runs std.toc's Space entry: jump without closing the panel",
 });
 
 test("navigator:key is a no-op for a view (or key) with no keymap entry", async () => {
+  // std.pages defines no keymap at all.
   expect(
-    await builtinHandle("std.tocModal", "key", { key: " ", obj: {} }),
+    await builtinHandle("std.pages", "key", { key: " ", obj: {} }),
   ).toBeUndefined();
+  // std.spaceTree has one, but not for this key.
   expect(
-    await builtinHandle("std.toc", "key", { key: "x", obj: {} }),
+    await builtinHandle("std.spaceTree", "key", { key: "x", obj: {} }),
   ).toBeUndefined();
   expect(editor.navigate).not.toHaveBeenCalled();
 });
@@ -330,9 +215,9 @@ test("navigator:key is a no-op for a view (or key) with no keymap entry", async 
 test("a throwing keymap handler is flashed, not left as a rejection", async () => {
   editor.navigate.mockRejectedValueOnce(new Error("no such page"));
 
-  const result = await builtinHandle("std.toc", "key", {
+  const result = await builtinHandle("std.spaceTree", "key", {
     key: " ",
-    obj: { page: "Gone", pos: 0 },
+    obj: { name: "Gone", ref: "Gone" },
   });
 
   expect(editor.flashNotification).toHaveBeenCalledWith(
@@ -348,11 +233,11 @@ test("validateKeymaps rejects a key reserved by built-in navigation", () => {
   ).toThrow('"ArrowDown" is reserved');
 });
 
-test("validateKeymaps accepts the real registry (std.toc's Space included)", () => {
+test("validateKeymaps accepts the real registry (std.spaceTree's Space included)", () => {
   expect(() =>
     validateKeymaps({
-      "std.toc": { keymap: { " ": () => {} } },
-      "std.tocModal": {},
+      "std.spaceTree": { keymap: { " ": () => {} } },
+      "std.pages": {},
     }),
   ).not.toThrow();
 });
@@ -475,9 +360,9 @@ test("std.spaceTree's row state: icon per kind, and the action mask", async () =
   expect(image.icon).toBe("image");
   expect(locked.icon).toBe("lock");
   expect(aspiring.icon).toBe("file-plus");
-  // A dual heads a folder AND opens as a page, so it gets neither the plain
-  // folder icon nor the plain page one.
-  expect(dual.icon).toBe("book-open");
+  // A dual heads a folder but opens as a page, and takes the page's icon --
+  // what marks it out as a dual is the row's own styling, not the icon.
+  expect(dual.icon).toBe("file-text");
 
   // "New page here" (index 0) only offers on folders; "Delete" (index 2)
   // only where there's something to delete -- a bare folder has neither a
@@ -579,7 +464,7 @@ test("navigator:action requireMode rw is blocked in read-only mode, before the a
 test("navigator:action for an unknown index or view is a no-op", async () => {
   expect(await runAction(99, { name: "x" })).toBeUndefined();
   expect(
-    await builtinHandle("std.toc", "action", { index: 1, obj: {} }),
+    await builtinHandle("std.tags", "action", { index: 1, obj: {} }),
   ).toBeUndefined();
 });
 
@@ -613,7 +498,7 @@ test("navigator:move moving a folder renames the prefix, not a single page", asy
 });
 
 test("navigator:move is a no-op for a view with no onMove", async () => {
-  const result = await builtinHandle("std.toc", "move", {
+  const result = await builtinHandle("std.tags", "move", {
     obj: {},
     newName: "x",
   });

@@ -23,7 +23,7 @@ import {
 
 const ROW_HEIGHT_TREE_CONFIG = `# Row height tree test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "rowheighttree",
   title = "Row Height Tree",
   command = "Debug: Row Height Tree",
@@ -1007,7 +1007,7 @@ test("Space Lua opens a built-in picker by name, with options", async ({
   // opener that only knew about Lua-defined views would reject exactly them.
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(
-      `navigator.open("std.pages", { segment = "Documents" })`,
+      `view.open("std.pages", { segment = "Documents" })`,
     ),
   );
 
@@ -1047,7 +1047,7 @@ test("defining a view named std.pages surfaces the collision error, and the buil
   const collision = await evalPcall(
     sbPage,
     `
-      navigator.define {
+      view.define {
         name = "std.pages",
         title = "Redefined",
         label = "Find",
@@ -1074,7 +1074,7 @@ test("a Lua view redefined by a space-lua edit shows its new definition on next 
 }) => {
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(`
-      navigator.define {
+      view.define {
         name = "test.redefinable",
         title = "Original",
         dock = "modal",
@@ -1087,7 +1087,7 @@ test("a Lua view redefined by a space-lua edit shows its new definition on next 
   );
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(
-      `navigator.open("test.redefinable")`,
+      `view.open("test.redefinable")`,
     ),
   );
   const frame = navFrame(sbPage);
@@ -1097,7 +1097,7 @@ test("a Lua view redefined by a space-lua edit shows its new definition on next 
 
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(`
-      navigator.define {
+      view.define {
         name = "test.redefinable",
         title = "Redefined",
         dock = "modal",
@@ -1111,15 +1111,33 @@ test("a Lua view redefined by a space-lua edit shows its new definition on next 
 
   await sbPage.evaluate(() =>
     (globalThis as any).sbRuntime.evalLuaScript(
-      `navigator.open("test.redefinable")`,
+      `view.open("test.redefinable")`,
     ),
   );
   await expect(frame.locator(".sb-nav-title")).toHaveText("Redefined");
   await expectNavRow(frame, "Redefined Row");
 });
 
-async function openOutline(sbPage: Page, command: string, panel: string) {
-  await runCommandViaPalette(sbPage, command);
+/**
+ * Runs "Navigate: Table of Contents" (the single command both the sidebar
+ * and the picker used to have separately -- see `Widgets.md`'s `std.toc`)
+ * and waits for it to answer in `panel`. It opens as a modal by default;
+ * asking for the rhs panel pins it there first via the dock menu, same as a
+ * user would.
+ */
+async function openOutline(sbPage: Page, panel: string) {
+  await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+  if (panel === ".sb-nav-root-rhs") {
+    const modal = sbPage.locator(NAV_MODAL_ROOT);
+    await expect(modal).toBeVisible();
+    await modal.locator(".sb-dock-button").click();
+    await modal
+      .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+      .click();
+    // Picking a dock from the modal's own menu closes the modal it was
+    // picked from.
+    await expect(modal).toHaveCount(0);
+  }
   const frame = sbPage.locator(panel);
   await expect(frame.locator("input.sb-nav-input")).toHaveAttribute(
     "placeholder",
@@ -1129,15 +1147,11 @@ async function openOutline(sbPage: Page, command: string, panel: string) {
   return frame;
 }
 
-test("the outline picker nests a page's headers, fully expanded", async ({
+test("the outline nests a page's headers, fully expanded", async ({
   sbPage,
 }) => {
   await navigateViaPagePicker(sbPage, "Outline Page");
-  const frame = await openOutline(
-    sbPage,
-    "Navigate: Outline Picker",
-    NAV_MODAL_ROOT,
-  );
+  const frame = await openOutline(sbPage, NAV_MODAL_ROOT);
 
   await expect(navRows(frame)).toHaveText([
     "Getting started",
@@ -1180,11 +1194,7 @@ test("the outline sidebar follows the buffer, keeping collapses", async ({
   sbPage,
 }) => {
   await navigateViaPagePicker(sbPage, "Outline Page");
-  const frame = await openOutline(
-    sbPage,
-    "Navigate: Outline",
-    ".sb-nav-root-rhs",
-  );
+  const frame = await openOutline(sbPage, ".sb-nav-root-rhs");
   await expect(
     frame.locator("[data-path='Getting started/Install']"),
   ).toBeVisible({
@@ -1214,11 +1224,7 @@ test("an outline collapse belongs to the page, not to the view", async ({
   sbPage,
 }) => {
   await navigateViaPagePicker(sbPage, "Outline Page");
-  const frame = await openOutline(
-    sbPage,
-    "Navigate: Outline",
-    ".sb-nav-root-rhs",
-  );
+  const frame = await openOutline(sbPage, ".sb-nav-root-rhs");
   await expect(
     frame.locator("[data-path='Getting started/Install']"),
   ).toBeVisible({ timeout: 20_000 });
@@ -1247,11 +1253,7 @@ test("Space peeks at a header without leaving the outline sidebar", async ({
   sbPage,
 }) => {
   await navigateViaPagePicker(sbPage, "Outline Page");
-  const frame = await openOutline(
-    sbPage,
-    "Navigate: Outline",
-    ".sb-nav-root-rhs",
-  );
+  const frame = await openOutline(sbPage, ".sb-nav-root-rhs");
   const input = frame.locator("input.sb-nav-input");
   await expect(
     frame.locator("[data-path='Getting started/Install']"),
@@ -1282,11 +1284,7 @@ test("the outline drops the tree's folder bands; the space tree keeps them", asy
   sbPage,
 }) => {
   await navigateViaPagePicker(sbPage, "Outline Page");
-  const outline = await openOutline(
-    sbPage,
-    "Navigate: Outline",
-    ".sb-nav-root-rhs",
-  );
+  const outline = await openOutline(sbPage, ".sb-nav-root-rhs");
   const band = (frame: ReturnType<typeof navFrame>, path: string) =>
     frame
       .locator(`[data-path='${path}']`)
@@ -1312,15 +1310,11 @@ test("the outline drops the tree's folder bands; the space tree keeps them", asy
   expect(await band(tree, "Projects")).not.toBe("none");
 });
 
-test("the outline picker re-sources for the page it is opened on", async ({
+test("the outline re-sources for the page it is opened on", async ({
   sbPage,
 }) => {
   await navigateViaPagePicker(sbPage, "Outline Page");
-  const frame = await openOutline(
-    sbPage,
-    "Navigate: Outline Picker",
-    NAV_MODAL_ROOT,
-  );
+  const frame = await openOutline(sbPage, NAV_MODAL_ROOT);
   await expect(frame.locator("[data-path='Reference']")).toBeVisible({
     timeout: 20_000,
   });
@@ -1329,79 +1323,32 @@ test("the outline picker re-sources for the page it is opened on", async ({
   // A modal is never open across a navigation, so it has to pick up the
   // current page from `refreshOnOpen` rather than a pageLoaded refresh.
   await navigateViaPagePicker(sbPage, "index");
-  await openOutline(sbPage, "Navigate: Outline Picker", NAV_MODAL_ROOT);
+  await openOutline(sbPage, NAV_MODAL_ROOT);
   await expect(frame.locator(".sb-nav-empty")).toBeVisible({ timeout: 20_000 });
 });
 
-test("std.toc/std.tocModal answer on a page loaded directly, before anything else touches the navigator", async ({
+test("std.toc answers on a page loaded directly, once the std library's Space Lua has run", async ({
   sbServer,
   page,
 }) => {
-  // Both outline views are TS builtins rather than `navigator.define` calls,
-  // unlike `std.journal`/`std.pageTemplates` -- so unlike those, they need no
-  // Space Lua to have run first, and this tab's very first navigation has
-  // none.
+  // Unlike a TS builtin, std.toc is now itself a `view.define` call in
+  // the std library's own Widgets.md (Widgets.md's "Navigator view" block),
+  // so it only exists once that script has run -- `gotoSilverBulletPage`'s
+  // readiness wait (sbRuntime.ready, which settles after widgets are ready)
+  // already covers that. This is the regression guard that keeps it so.
   await gotoSilverBulletPage(page, sbServer, "Outline Page");
 
-  const modal = await openOutline(
-    page,
-    "Navigate: Outline Picker",
-    NAV_MODAL_ROOT,
-  );
+  const modal = await openOutline(page, NAV_MODAL_ROOT);
   await expect(navRows(modal).first()).toHaveText("Getting started", {
     timeout: 20_000,
   });
   await closePicker(page);
 
   await page.locator("#sb-editor .cm-content").click();
-  const sidebar = await openOutline(
-    page,
-    "Navigate: Outline",
-    ".sb-nav-root-rhs",
-  );
+  const sidebar = await openOutline(page, ".sb-nav-root-rhs");
   await expect(
     sidebar.locator("[data-path='Getting started/Install']"),
   ).toBeVisible({ timeout: 20_000 });
-});
-
-test("the collision error also covers a moved built-in (std.tocModal)", async ({
-  sbPage,
-}) => {
-  await navigateViaPagePicker(sbPage, "Outline Page");
-  const frame = await openOutline(
-    sbPage,
-    "Navigate: Outline Picker",
-    NAV_MODAL_ROOT,
-  );
-  await expect(frame.locator(".sb-nav-title")).toHaveText("Outline");
-  await expect(navRows(frame).first()).toHaveText("Getting started", {
-    timeout: 20_000,
-  });
-  await closePicker(sbPage);
-
-  const collision = await evalPcall(
-    sbPage,
-    `
-      navigator.define {
-        name = "std.tocModal",
-        title = "Redefined Outline",
-        placeholder = "Header",
-        source = function()
-          return { { name = "Only Mine", ref = "Only Mine" } }
-        end,
-        onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
-      }
-    `,
-  );
-  expect(collision.ok).toBe(false);
-  expect(collision.result).toContain("std.tocModal");
-
-  const stillBuiltin = await openOutline(
-    sbPage,
-    "Navigate: Outline Picker",
-    NAV_MODAL_ROOT,
-  );
-  await expect(stillBuiltin.locator(".sb-nav-title")).toHaveText("Outline");
 });
 
 test("Navigate: Tree answers on a page loaded directly, before anything else touches the navigator", async ({
@@ -1435,7 +1382,7 @@ test("the collision error also covers a sidebar-docked built-in (std.spaceTree)"
   const collision = await evalPcall(
     sbPage,
     `
-      navigator.define {
+      view.define {
         name = "std.spaceTree",
         title = "Redefined Tree",
         dock = "lhs",

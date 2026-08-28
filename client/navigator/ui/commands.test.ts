@@ -93,12 +93,12 @@ describe("selecting a tree node", () => {
 // A tree whose folders may name something openable -- the space tree. Folders
 // in the revisions and TOC trees are groupings, and keep the behaviour above.
 describe("selecting a tree node when folders are selectable", () => {
-  it("a folder with no page of its own only expands", async () => {
+  it("a folder with no page of its own opens that page and expands", async () => {
     const { cmd, selected, expanded, navigated } = setup(true);
     await cmd.selectTreeNode(treeNode("Projects", false));
     expect([...expanded()]).toEqual(["Projects"]);
-    // Nothing here opens or creates a page that does not exist.
-    expect(navigated).toEqual([]);
+    // Navigating lands on the blank page -- nothing here creates it.
+    expect(navigated).toEqual(["Projects"]);
     expect(selected).toEqual([]);
   });
 
@@ -109,10 +109,10 @@ describe("selecting a tree node when folders are selectable", () => {
     expect([...expanded()]).toEqual(["Projects"]);
   });
 
-  it("a dual expands rather than toggles, so a second click keeps it open", async () => {
+  it("expands rather than toggles, so a second click keeps it open", async () => {
     const { cmd, expanded } = setup(true);
-    await cmd.selectTreeNode(treeNode("Projects", true));
-    await cmd.selectTreeNode(treeNode("Projects", true));
+    await cmd.selectTreeNode(treeNode("Projects", false));
+    await cmd.selectTreeNode(treeNode("Projects", false));
     expect([...expanded()]).toEqual(["Projects"]);
   });
 

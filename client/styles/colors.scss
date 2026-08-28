@@ -298,7 +298,10 @@ tbody tr:nth-of-type(even) {
 }
 
 .sb-comment-block {
-  border-left-color: transparent;
+  border-left-color: var(--editor-comment-border-color);
+  border-right-color: var(--editor-comment-border-color);
+  border-top-color: var(--editor-comment-border-color);
+  border-bottom-color: var(--editor-comment-border-color);
 }
 
 .sb-line-code {

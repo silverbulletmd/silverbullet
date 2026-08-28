@@ -21,7 +21,10 @@ import { handleKeyDown } from "../keyboard.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
 import { resolvePrefix } from "../prefix.ts";
 import { markSlotReady, type NavActivation } from "../slots.ts";
+import { CloseIcon } from "./chrome_icons.tsx";
+import { ContentBody, CopyMarkdownButton } from "./content_view.tsx";
 import { CreateRow } from "./create_row.tsx";
+import { DockMenu } from "./dock_menu.tsx";
 import { ListView } from "./list_view.tsx";
 
 /**
@@ -113,19 +116,11 @@ export function NavRoot({
     publish,
   });
 
-  // Paint-gated reveal (see `slots.ts`'s `paintReady`): once this activation
-  // has *something* to show -- rows, an error, "no results", doesn't matter
-  // which -- lift the modal that is being held invisible rather than reveal
-  // it empty and let it grow. Only reached by a *fresh* load or a source
-  // refresh, both of which genuinely change `view`/`bootError` -- a reopen of
-  // an already-displayed view has its own, immediate signal from
-  // `createActivate` instead. `readySignaledToken` is shared with that path,
-  // so whichever reaches a given activation first is the one that counts.
-  // A `useLayoutEffect`, not a plain one, so this fires before the browser's
-  // next paint of the settled content, not after. Keyed on
-  // `handledToken.current` via the ref rather than a dependency (it isn't
-  // reactive state), read fresh each time `view`/`bootError` change, which is
-  // what actually means "this activation rendered something".
+  const content = view?.meta.hasContent ? (view.content ?? "") : undefined;
+
+  const [paintedContent, setPaintedContent] = useState<string | undefined>(
+    undefined,
+  );
   useLayoutEffect(() => {
     const token = handledToken.current;
     if (
@@ -135,9 +130,18 @@ export function NavRoot({
     ) {
       return;
     }
+    // Only when there is something to render: an empty content view draws
+    // nothing and would otherwise never be revealed at all.
+    if (
+      content !== undefined &&
+      content.trim() !== "" &&
+      paintedContent !== content
+    ) {
+      return;
+    }
     readySignaledToken.current = token;
     markSlotReady(slot, token);
-  }, [view, bootError]);
+  }, [view, bootError, paintedContent]);
 
   const derived = useDerived({
     engine,
@@ -231,17 +235,11 @@ export function NavRoot({
     <div
       className={
         `sb-nav-root sb-nav-root-${slot}` +
+        (content !== undefined ? " sb-nav-root-content" : "") +
         (showResizer ? " sb-nav-resizable" : "")
       }
       data-slot={slot}
       style={mode === undefined ? undefined : { flex: mode }}
-      // The panel's whole keyboard contract depends on the input holding
-      // focus (see commands.ts), so no mousedown anywhere in the panel may
-      // move it. Exempt: the input itself (caret placement, drag-selection),
-      // the select (must take focus to open natively), draggable tree rows
-      // (a canceled mousedown cancels the drag itself in Firefox -- their
-      // handlers hand focus back instead), and the body's scrollbar gutter
-      // (never moves focus, and canceling can block native scrollbar drags).
       onMouseDownCapture={(e) => {
         const target = e.target as HTMLElement;
         if (target.closest("input, select, [draggable='true']")) return;
@@ -266,9 +264,6 @@ export function NavRoot({
             className="sb-nav-input"
             type="text"
             placeholder={noFilter ? undefined : placeholder}
-            // Invisible but focused (it is the panel's focus home), so it
-            // can't be aria-hidden -- a name is what keeps a screen reader
-            // oriented on it instead.
             aria-label={
               noFilter ? (view?.meta.label ?? view?.meta.title) : undefined
             }
@@ -282,16 +277,8 @@ export function NavRoot({
               }
               interaction.current = "typing";
               const value = e.currentTarget.value;
-              // Prefix routing, resolved on the input rather than the keydown
-              // so a paste ("$anchor" straight into an empty box) routes just
-              // like a typed character does.
               const routed = resolvePrefix(view?.meta, phrase, value);
               if (routed) {
-                // Both halves, deliberately. The state write is what the panel
-                // renders from; the DOM write is because `phrase` may not
-                // change at all here (empty to empty), and preact then has no
-                // re-render in which to take the prefix character back out of
-                // the box the browser already put it in.
                 e.currentTarget.value = routed.rest;
                 setPhrase(routed.rest);
                 setSelectedIndex(0);
@@ -326,16 +313,28 @@ export function NavRoot({
               aria-label="Searching"
             />
           )}
-          {isSidebar && (
-            <button
-              type="button"
-              className="sb-nav-close"
-              aria-label="Close"
-              onClick={() => void cmd.close()}
-            >
-              ×
-            </button>
+          {/* The same Copy the page-docked container puts in its own strip,
+              and the same one the inline Lua widget button bar has: the
+              markdown source, on the clipboard. */}
+          {content && !fatalError && (
+            <CopyMarkdownButton client={client} markdown={content} />
           )}
+          {view && (
+            <DockMenu
+              name={view.name}
+              current={slot}
+              supported={view.meta.supportedDocks ?? [slot]}
+            />
+          )}
+          <button
+            type="button"
+            className="sb-nav-close"
+            title="Close"
+            aria-label="Close"
+            onClick={() => void cmd.close()}
+          >
+            <CloseIcon />
+          </button>
         </div>
         {segments && (
           <SegmentedControl
@@ -396,6 +395,14 @@ export function NavRoot({
         )}
         {fatalError ? (
           <div className="sb-nav-error">{error}</div>
+        ) : content !== undefined ? (
+          content.trim() ? (
+            <ContentBody
+              client={client}
+              markdown={content}
+              onPainted={setPaintedContent}
+            />
+          ) : null
         ) : view && isTreeMode && treeDisplay ? (
           <TreeView
             tree={treeDisplay.tree}

@@ -90,11 +90,13 @@ local function ownTarget()
   return me and me.id
 end
 
-navigator.define {
+view.define {
   name = "inbox",
   title = "Mention Inbox",
   dock = "rhs",
+  supportedDocks = { "rhs", "modal" },
   command = "Navigate: Mentions",
+  menu = { location = "view", group = "1_views", order = 5, label = "Mentions" },
   key = "Ctrl-Alt-i",
   mac = "Cmd-Shift-i",
   filter = false,
@@ -109,8 +111,6 @@ navigator.define {
       primary = function(obj)
         return obj.snippet
       end,
-      -- Tree rows display `label` (falling back to the path segment, which
-      -- here carries the uniquifying range suffix).
       label = function(obj)
         return obj.snippet
       end,
@@ -154,15 +154,20 @@ navigator.define {
     key = function(obj) return obj.target end,
   },
   actions = {
-    -- A declared recipient has no `@nickname` span in the text, so it offers
-    -- neither of these.
-    { icon = "x", label = "Remove mention", requireMode = "rw",
+    {
+      icon = "x",
+      label = "Remove mention",
+      requireMode = "rw",
       when = function(obj) return not obj.isFolder and not obj.declared end,
       run = function(obj)
         system.invokeFunction("index.resolveAtMention",
           obj.page, obj.range, obj.nickname, "remove")
-      end },
-    { icon = "trash-2", label = "Delete task/item/paragraph", requireMode = "rw",
+      end
+    },
+    {
+      icon = "trash-2",
+      label = "Delete task/item/paragraph",
+      requireMode = "rw",
       when = function(obj) return not obj.isFolder and not obj.declared end,
       run = function(obj)
         if not editor.confirm(
@@ -172,7 +177,8 @@ navigator.define {
         end
         system.invokeFunction("index.resolveAtMention",
           obj.page, obj.range, obj.nickname, "delete-host")
-      end },
+      end
+    },
   },
   onSelect = function(obj)
     editor.navigate(obj.ref or obj.name)

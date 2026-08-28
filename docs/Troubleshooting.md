@@ -11,7 +11,7 @@ Depending on the situation you may (temporarily) disable various client features
 
 * `?disableSync=1` disables synchronization with the server
 * `?disableSpaceLua=1` disables loading of all [[Space Lua]] scripts
-* `?disableSpaceStyle=1` disables loading of all [[Space Style]]
+* `?disableSpaceStyle=1` disables loading of all [[Concept/Space Style]]
 * `?disablePlugs=1` disables loading of all non built-in [[Plugs]]
 
 These can be combined: `?disableSpaceLua=1&disableSpaceStyle=1`

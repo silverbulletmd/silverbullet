@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use silverbullet_server_common::{BootConfig, SpacePrimitives};
 
@@ -48,6 +48,29 @@ impl From<&str> for ServerVersion {
     }
 }
 
+/// The origin's prefix-bound space roots (`/work`, `/private`), shared live
+/// with every space on it and reported at `/.config`.
+///
+/// A space bound at `/` registers its service worker at scope `/`, so the
+/// browser hands it every sibling space's requests too. Without this list the
+/// worker cannot tell `/private/` (a sibling's root) from a page of its own,
+/// and answers it from its own cached app shell whenever it believes it is
+/// offline. Live rather than a snapshot in each space's `BootConfig` because
+/// unchanged instances are reused across config changes: a space created
+/// after boot must still appear here.
+#[derive(Default, Clone)]
+pub struct SpacePrefixes(Arc<RwLock<Vec<String>>>);
+
+impl SpacePrefixes {
+    pub fn current(&self) -> Vec<String> {
+        self.0.read().expect("prefix lock poisoned").clone()
+    }
+
+    pub fn set(&self, prefixes: Vec<String>) {
+        *self.0.write().expect("prefix lock poisoned") = prefixes;
+    }
+}
+
 /// Shared state for the HTTP server. Holds what the file/config/bundle
 /// endpoints need; further capabilities (auth, runtime evaluation) attach
 /// additional state as they are introduced.
@@ -61,6 +84,9 @@ pub struct ServerState {
     pub client_bundle: Box<dyn SpacePrimitives>,
     /// Boot configuration returned from `/.config`.
     pub boot_config: BootConfig,
+    /// The origin's other space roots, served alongside `boot_config`. Empty
+    /// for a server that hosts a single space.
+    pub space_prefixes: SpacePrefixes,
     /// Absolute path of the space folder, surfaced in `X-Space-Path` headers.
     pub space_folder_path: String,
     /// Server version, surfaced in `/.ping`'s `X-Server-Version`. The client

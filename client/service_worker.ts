@@ -198,6 +198,9 @@ self.addEventListener("message", async (event: any) => {
     }
     case "config": {
       const config = message.config;
+      // Refreshed ahead of the configured check: a space added since this
+      // worker booted must stop being answered locally right away.
+      proxyRouter.setSpacePrefixes(config.spacePrefixes ?? []);
       // Configure the service worker if it hasn't been already
       if (isConfigured()) {
         console.info(

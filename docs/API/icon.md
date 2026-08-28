@@ -44,6 +44,6 @@ Renders a batch of Feather icons to SVG markup in one round trip, so panels can 
 - `table` — Map of icon name to SVG markup.
 <!--/lua-->
 
-Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel's content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/navigator|navigator]] icons use internally — don't call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the navigator resolves them itself, lazily and in one batch per view refresh. See [[API/navigator#Row icons]].
+Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel's content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/view|view]] icons use internally — don't call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the navigator resolves them itself, lazily and in one batch per view refresh. See [[API/view#Row icons]].
 
 [Feathericons.com](https://feathericons.com) lists the available names. The namespace is the point, not the implementation: `icon.feather`/`icon.resolveFeather` are the first of what could eventually be more than one icon set, each reached the same way (`icon.<set>...`) if and when a second one arrives — `icon.lucide`, say.

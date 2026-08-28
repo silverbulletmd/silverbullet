@@ -1,0 +1,128 @@
+@use "markdown_body" as mb;
+
+// A content view's body in a *panel* container: the sidebar or the modal.
+// Here the view is UI, so it takes the panel's own font and rhythm. The
+// page-docked half of this lives in `editor.scss`, where the body instead
+// inherits the in-document widget typography; the rules common to both are
+// `mb.markdown-body`.
+
+.sb-nav-root .sb-nav-content {
+  font-family: var(--ui-font);
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+
+  >.wrapper {
+    display: block;
+  }
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  pre,
+  table {
+    margin: 0 0 0.6em 0;
+    padding: 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.4em;
+  }
+
+  li {
+    margin: 0.15em 0;
+  }
+
+  @include mb.markdown-body;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0.8em 0 0.35em 0;
+    padding: 0;
+    border: 0;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  h1 {
+    font-size: 1.2em;
+  }
+
+  h2 {
+    font-size: 1.1em;
+  }
+
+  h3 {
+    font-size: 1.05em;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: 1em;
+  }
+
+  .wrapper> :first-child {
+    margin-top: 0;
+  }
+
+  .wrapper> :last-child {
+    margin-bottom: 0;
+  }
+
+  a.wiki-link {
+    cursor: pointer;
+  }
+
+  input[type="checkbox"] {
+    margin-right: 0.35em;
+    vertical-align: baseline;
+    cursor: pointer;
+  }
+
+  .sb-task-state {
+    cursor: pointer;
+  }
+
+  code {
+    font-family: var(--editor-font);
+    font-size: 0.9em;
+  }
+
+  pre {
+    overflow-x: auto;
+  }
+
+  blockquote {
+    border-left: 3px solid var(--ui-surface-border-color);
+    padding-left: 0.6em;
+    color: var(--subtle-color);
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--ui-surface-border-color);
+    margin: 0.6em 0;
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--ui-surface-border-color);
+    padding: 2px 6px;
+  }
+}

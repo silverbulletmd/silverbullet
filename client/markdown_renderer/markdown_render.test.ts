@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { parse } from "../markdown_parser/parse_tree.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import {
@@ -592,4 +593,29 @@ test("renders at-mentions as plain styled text", () => {
     `<span class="sb-at-mention"><span class="sb-at-mention-mark">@</span>PeteSmith</span>`,
   );
   expect(html).not.toContain("<a");
+});
+
+test("expandMarkdown strips a transcluded page's frontmatter", async () => {
+  // A whole-page transclusion splices the target's text in. Its frontmatter
+  // is metadata, not content -- and the two-pass widget pipelines round-trip
+  // the expanded tree through text, where surviving `---` fences would
+  // re-parse mid-document as setext/thematic-break garbage.
+  const lang = buildExtendedMarkdownLanguage({});
+  const tree = parse(lang, "Before\n![[Other]]\nAfter");
+  const space = {
+    readRef: async () => ({
+      offset: 0,
+      text: "---\nreferences:\n- some/file.ts\n---\nTranscluded body",
+    }),
+  } as unknown as Space;
+
+  const expanded = await expandMarkdown(space, "test", tree, stubSle, {
+    expandLuaDirectives: false,
+    rewriteTasks: false,
+  });
+
+  const roundTripped = renderToText(expanded);
+  expect(roundTripped).toContain("Transcluded body");
+  expect(roundTripped).not.toContain("references:");
+  expect(roundTripped).not.toContain("---");
 });

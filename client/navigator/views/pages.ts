@@ -176,6 +176,7 @@ export const pagePicker: BuiltinView<PageObj> = {
   meta: baseMeta({
     title: "Pages",
     label: "Open",
+    supportedDocks: ["modal", "lhs", "rhs"],
     hasCreate: true,
     // The create row makes a page, and says so before it says the name.
     createIcon: "file-text",

@@ -16,6 +16,7 @@ import {
 
 export type PanelLifecycleMeta = {
   dock: string;
+  supportedDocks?: string[];
 };
 
 /**
@@ -62,6 +63,8 @@ export type PanelLifecycleConfig = {
   onSuperseded?(previousView: string): void;
   /** A slot closed for real (no successor activation) while `view` was up. */
   onSlotClosedWithoutSuccessor?(view: string): void;
+  /** Resolves the slot a view actually opens in, overriding `meta.dock`. */
+  resolveDock?(name: string, meta: PanelLifecycleMeta): Promise<string>;
 };
 
 export function createPanelLifecycle(config: PanelLifecycleConfig) {
@@ -91,6 +94,8 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
   // that lands after the panel closed can't re-show it.
   const visibleSidebarView = new Map<string, string>();
 
+  const displaced = new Map<string, string>();
+
   // Slot -> the flex mode it is currently shown with, so a `replaceInSlot`
   // hop takes over the slot at exactly the width it already had rather
   // than at whatever width happens to be saved under its own name.
@@ -119,18 +124,10 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
       }
       return false;
     }
-    const slot = meta.dock;
+    const slot = config.resolveDock
+      ? await config.resolveDock(name, meta)
+      : meta.dock;
 
-    // Toggle-on-focused: closed -> open+focus and visible-but-unfocused ->
-    // re-focus are both the fall-through below (the panel stays mounted; the
-    // new activation is what makes an unfocused dock take focus). Focused ->
-    // hide is the one case that isn't a re-open at all, so it's handled here,
-    // ahead of any of that. Modal is exempt: a picker already resets and
-    // re-focuses on every open by design, and has its own dismissal (Escape,
-    // backdrop, a pick) rather than a re-press-to-close gesture.
-    // A focus-less open never toggles: it is an "arrange this panel" call
-    // (e.g. a mention click presetting the dropdown), not a re-press of the
-    // panel's own open gesture.
     if (
       !passive &&
       opts?.focus !== false &&
@@ -143,11 +140,6 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
       return true;
     }
 
-    // Last-open-wins: this activation takes the slot from whatever was
-    // pending for it. Captured now, acted on only once this activation's
-    // own work below is done (see the `finally` below): `finally`, not a
-    // plain trailing call, so a throw anywhere below can't leave the
-    // outgoing activation's supersede notification undelivered.
     const previous = pendingActivation.get(slot);
 
     try {
@@ -160,6 +152,11 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         ...bag,
       };
       pendingActivation.set(slot, activation);
+      if (previous && previous.view !== name && sidebarSlots.includes(slot)) {
+        displaced.set(slot, previous.view);
+      } else if (!previous) {
+        displaced.delete(slot);
+      }
       let mode: number | string = MODAL_MODE;
       if (slot !== MODAL_SLOT) {
         const saved = await datastore.get([NAMESPACE, name, "width"]);
@@ -183,14 +180,6 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     return activateShow(name, false, opts);
   }
 
-  /**
-   * Swap the view a slot is showing for a sibling, in place -- the slot's
-   * own `dock` (if any) is ignored, since the whole point is that it takes
-   * over the slot the user is already looking at, at the width that slot
-   * already has. Deliberately never persisted to `dockedKey`: the caller
-   * decides what "docked" means for its own content, this primitive never
-   * writes that key.
-   */
   async function replaceInSlot(
     slot: string,
     name: string,
@@ -230,11 +219,6 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     }
   }
 
-  /**
-   * Closes a slot for real. `expectedToken` is the activation the caller
-   * means to close: a close decided against an activation a newer one has
-   * since taken over is dropped rather than applied to that newer one.
-   */
   async function hide(slot: string, expectedToken?: number): Promise<void> {
     const pending = pendingActivation.get(slot);
     if (
@@ -245,15 +229,14 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     }
     visibleSidebarView.delete(slot);
     pendingActivation.delete(slot);
-    // A real close, with no successor activation for the slot -- the
-    // supersede case never comes through here.
     if (pending) config.onSlotClosedWithoutSuccessor?.(pending.view);
-    // Closing a dock is what un-remembers it: the next boot restores whatever
-    // was still open when this client last ran. Ahead of the unmount, and
-    // awaited: the panel leaving the screen is what everything else reads as
-    // "closed", and a reload landing between the two would bring the dock
-    // straight back. A local datastore write, so nothing perceptible.
     if (sidebarSlots.includes(slot)) await datastore.del(dockedKey(slot));
+    const back = displaced.get(slot);
+    displaced.delete(slot);
+    if (back && config.getMeta(back)) {
+      await activateShow(back, true);
+      return;
+    }
     hideSlot(slot);
   }
 
@@ -268,10 +251,6 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     if (data.commit) {
       await datastore.set([NAMESPACE, name, "width"], width);
     }
-    // Re-read rather than reuse what was captured above: the panel may have
-    // been closed while the commit was in flight (re-showing it would reopen
-    // it), and a hop that landed there owns the slot now, so its activation
-    // is the one this width belongs to.
     const activation = pendingActivation.get(data.slot);
     if (!activation) return;
     const mode = widthMode(width);
@@ -279,12 +258,6 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     showSlot(data.slot, mode, activation);
   }
 
-  /**
-   * Which views want a dock at boot: whatever was still open when this
-   * client last ran (per slot, `dockedKey`), overridden by any view the
-   * caller reports as force-open. Restoring is passive -- the panel comes
-   * back, the editor keeps focus.
-   */
   async function restoreDocks(): Promise<void> {
     // A narrow screen always boots with its drawers closed: there a dock
     // covers the editor whole, so restoring one would hide the page the
@@ -308,10 +281,10 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         // gone, and forgetting it there would silently close a dock the
         // user never closed. It costs one lookup per boot to keep trying.
         if (!meta) continue;
-        // A dock mismatch *is* decisive: the view exists and lives
-        // somewhere else now, so this slot's memory of it is stale by
-        // definition.
-        if (meta.dock !== slot) {
+        const resolved = config.resolveDock
+          ? await config.resolveDock(saved, meta)
+          : meta.dock;
+        if (resolved !== slot) {
           await datastore.del(dockedKey(slot));
           continue;
         }

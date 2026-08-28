@@ -7,12 +7,10 @@
 // keeps the scoping free of specificity -- at (0,1,0) it would tie every
 // `.sb-nav-*` rule in components.scss and, sitting later in the stylesheet,
 // win: every row, chip and segment inside the panel would lose its padding.
-:where(
-  .sb-nav-root,
+:where(.sb-nav-root,
   .sb-nav-root *,
   .sb-nav-root *::before,
-  .sb-nav-root *::after
-) {
+  .sb-nav-root *::after) {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -162,10 +160,44 @@
   margin-left: auto;
 }
 
-// The dropdown filter (`navigator.define`'s `dropdown`), sharing the header
-// column with the segmented control. `.sb-select` supplies the chrome; the
-// width is the header's, so a long option label ellipsizes instead of
-// widening a dock.
+.sb-nav-no-filter .sb-nav-copy {
+  margin-left: auto;
+}
+
+.sb-nav-no-filter .sb-nav-copy~.sb-nav-close {
+  margin-left: 0;
+}
+
+.sb-nav-copy,
+.sb-dock-button,
+.sb-page-widget-tools .sb-nav-close,
+.sb-nav-header-row .sb-nav-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sb-nav-copy {
+  color: var(--subtle-color);
+}
+
+.sb-nav-copy:hover {
+  color: var(--modal-header-label-color);
+}
+
+.sb-nav-root-content.sb-nav-root-modal .sb-nav-body {
+  max-height: min(60vh, 640px);
+}
+
 .sb-nav-dropdown {
   max-width: 100%;
   align-self: flex-start;
@@ -182,26 +214,11 @@
   overflow-y: auto;
 }
 
-// `.sb-nav-row`'s layout (display/gap/padding/position, etc.) lives in the
-// shared stylesheet now -- see `client/styles/components.scss` -- since
-// `TreeView` renders the same class and must draw a row without this file
-// present. What's left here is the navigator's own row-height token and its
-// section-band custom property.
 .sb-nav-row {
-  // Every row is one line, so every row is the same height -- fixed here
-  // rather than left to the tallest thing on it, which is how a row carrying a
-  // chip used to come out a few pixels taller than its neighbours (and how the
-  // modal's whole-row cap stopped landing on a boundary).
   height: var(--sb-nav-row-height);
-  // The row's section band (see .sb-nav-folder). A custom property, because
-  // the action overlay has to paint the same band over the strip it covers --
-  // and custom properties inherit, so it picks this up per row for free.
   --sb-nav-band: transparent;
 }
 
-// Rows carry no hover highlight: the highlight *is* the keyboard selection,
-// and a second one under the pointer read as a second cursor. The pointer's
-// affordances are the row's `cursor` and its action buttons appearing.
 .sb-nav-selected {
   background-color: var(--modal-selected-option-background-color);
   color: var(--modal-selected-option-color);
@@ -209,14 +226,6 @@
   --sb-nav-muted: var(--modal-selected-option-color);
 }
 
-// Row actions live in the shared stylesheet (`.sb-row-actions`/`.sb-row-action*`,
-// see `client/styles/components.scss`) since `RowActions` is a shared
-// component -- including the reveal rule (`.sb-nav-row:hover`/`.sb-nav-selected`
-// showing `.sb-row-actions`), which moved there too so the component isn't
-// permanently `display: none` outside the navigator. What's left here is
-// color only.
-
-// Opaque accent, and no band on top of it: the selection is its own surface.
 .sb-nav-row.sb-nav-selected .sb-row-actions {
   background-color: var(--modal-selected-option-background-color);
   background-image: none;
@@ -226,54 +235,30 @@
   color: var(--sb-nav-muted);
 }
 
-// The rest colour follows `--sb-nav-muted` like every other dimmed thing; the
-// *hover* colour is the one that still needs pairing, since the accent hover
-// token would disappear into the accent fill underneath it.
 .sb-nav-selected .sb-row-action:hover {
   color: var(--modal-selected-option-color);
 }
 
-// Folder rows head a section of the tree, so they read as its header: same
-// text color, heavier, on a faint full-width band. Row height is untouched.
-//
-// The band is a background *image*, not a color, so the selected/droptarget
-// background-colors below keep working on top of it without any specificity
-// fight -- and it's derived from the shared surface token rather than a raw
-// rgba, at a fraction of its strength so it stays a band rather than a fill.
 .sb-nav-row.sb-nav-folder {
-  --sb-nav-band: color-mix(
-    in srgb,
-    var(--ui-surface-section-background-color) 60%,
-    transparent
-  );
+  --sb-nav-band: color-mix(in srgb,
+      var(--ui-surface-section-background-color) 60%,
+      transparent);
   font-weight: 600;
   background-image: linear-gradient(var(--sb-nav-band), var(--sb-nav-band));
 }
 
-// The selection is its own opaque surface; tinting it would only muddy the
-// contrast its foreground color is paired with.
 .sb-nav-row.sb-nav-folder.sb-nav-selected {
   background-image: none;
 }
 
-// A view that opts out of the bands, through the `presentation.row.cssClass`
-// hook it already has (the outline views do). On a tree whose rows are mostly
-// parents -- a page outline, where all but the leaf headers head a section --
-// a band on nearly every row reads as stripes rather than as structure, and
-// the indentation already carries it. The heading weight stays.
 .sb-nav-row.sb-nav-folder.sb-nav-noband {
   background-image: none;
 }
 
-// The row's leading icon slot's layout lives in the shared stylesheet (see
-// `client/styles/components.scss`) since `TreeView` renders the same class;
-// only its dimmed color stays here.
 .sb-nav-icon {
   color: var(--sb-nav-muted);
 }
 
-// The truncation footer: what the render cap left out. Not a row you can act
-// on -- it isn't a result, and selection never reaches it.
 .sb-nav-more {
   cursor: default;
   pointer-events: none;
@@ -286,7 +271,6 @@
   border-top: 1px solid var(--ui-surface-border-color);
 }
 
-// Tree mode pins the create row to the bottom of the scroll container.
 .sb-nav-create-pinned {
   position: sticky;
   bottom: 0;
@@ -297,9 +281,6 @@
   background-color: var(--modal-selected-option-background-color);
 }
 
-// `.sb-nav-primary` and `.sb-nav-description`'s layout (the space-priority
-// rationale) moved to the shared stylesheet along with `TreeView` -- see
-// `client/styles/components.scss`. Colors stay here.
 .sb-nav-description {
   color: var(--modal-description-color);
 }
@@ -308,15 +289,6 @@
   color: var(--modal-selected-option-description-color);
 }
 
-// `.sb-nav-chip`'s base rule (a fixed trailing element, drawn whole at every
-// width) moved to the shared stylesheet along with `TreeView` -- see
-// `client/styles/components.scss`. What follows are the navigator's own
-// chip variants, keyed off `decoration.cssClass`/local markup rather than
-// anything a shared component renders by name.
-
-// Tags drawn the way SilverBullet draws them everywhere else -- the sizing
-// `.sb-hashtag` gets in `editor.scss` is CodeMirror-specific, so a chip
-// restates the parts of it that make a pill.
 .sb-nav-chip.sb-hashtag {
   color: var(--editor-hashtag-color);
   background-color: var(--editor-hashtag-background-color);
@@ -326,21 +298,11 @@
   font-size: 0.8em;
 }
 
-// A chip for something the row can't actually do -- a document with no
-// editor registered for its extension. Still shown (the row is selectable),
-// just not advertised.
 .sb-nav-chip-inactive {
   background-color: transparent;
   color: var(--sb-nav-muted);
 }
 
-// The right-aligned **hint slot**: `FilterList`'s `.sb-hint` (see
-// `client/styles/modals.scss`), which is what the create affordance and the
-// command palette's key bindings are both drawn as. Pinned to the row's right
-// edge -- `margin-left: auto` is the flex equivalent of the `float: right` it
-// used -- at the row's own type size rather than the chip scale, with its
-// padding, radius and colour tokens. Row actions overlay the same edge on
-// hover, which is by design: at rest the hint owns it.
 .sb-nav-chip-hint {
   margin-left: auto;
   padding: 3px 5px;
@@ -350,38 +312,22 @@
   color: var(--modal-hint-color);
 }
 
-// The key binding a command palette row would run under: the same hint, in a
-// monospace face so a chord reads as keys rather than as a word.
 .sb-nav-chip-key {
   font-family: var(--editor-monospace-font, monospace);
 }
 
-// A chip on the selected row sits on the selection's accent fill, not on the
-// surface its own tokens were paired against -- the `Create` hint on a
-// selected aspiring row being the least legible pairing in the panel. Re-pair
-// it the way the row's foregrounds are re-paired (see `--sb-nav-muted`): the
-// selection's own foreground, on a well cut out of it, so it holds in both
-// themes by construction. Hashtag pills keep their own paired colours.
 .sb-nav-selected .sb-nav-chip:not(.sb-hashtag) {
-  background-color: color-mix(
-    in srgb,
-    var(--modal-selected-option-color) 22%,
-    transparent
-  );
+  background-color: color-mix(in srgb,
+      var(--modal-selected-option-color) 22%,
+      transparent);
   color: var(--modal-selected-option-color);
 }
 
-// A page that is linked to but doesn't exist yet: picking it creates it. The
-// italic stays on the selection; only the colour yields (see `--sb-nav-muted`).
 .sb-nav-aspiring .sb-nav-primary {
   font-style: italic;
   color: var(--sb-nav-muted);
 }
 
-// `.sb-nav-empty`'s base rule (the "No results" message) moved to the shared
-// stylesheet along with `TreeView` -- see `client/styles/components.scss`.
-// `.sb-nav-error` isn't rendered by any shared component, so it keeps its own
-// (identically-sized) rule here.
 .sb-nav-error {
   padding: 12px 10px;
   font-size: 0.9em;
@@ -389,8 +335,6 @@
   background-color: var(--alert-error-background-color);
 }
 
-// The same message over rows that are still good (a source that failed on one
-// phrase, say): a banner, not the whole panel.
 .sb-nav-error-inline {
   padding: 6px 10px;
   font-size: 0.8em;
@@ -405,120 +349,27 @@
   border-bottom: 1px solid var(--ui-surface-border-color);
 }
 
-// `.sb-tree`'s own list-reset lives in the shared stylesheet (see
-// `client/styles/components.scss`) since `TreeView` is a shared component;
-// this row-perf rule stays here because it's paired with `.sb-nav-row`.
 .sb-tree .sb-nav-row {
-  // Rows outside the viewport skip layout/paint; each is sized ahead of time
-  // (padding + line-height, see .sb-nav-row above) so scrollbar/scrollIntoView
-  // math stays correct while they're skipped.
   content-visibility: auto;
   contain-intrinsic-size: auto 36px;
 }
 
-// `.sb-nav-chevron`/`-spacer` layout lives in the shared stylesheet (see
-// `client/styles/components.scss`) since `TreeView` renders them; only the
-// dimmed color stays here.
 .sb-nav-chevron {
   color: var(--sb-nav-muted);
 }
 
-// Drop target during a drag. Inset (rather than a border) so nothing shifts
-// as the highlight moves from row to row.
 .sb-nav-row.sb-nav-droptarget {
   outline: 2px solid var(--modal-selected-option-background-color);
   outline-offset: -2px;
   background-color: var(--ui-surface-hover-background-color);
 }
 
-// Dropping on the tree's own area moves to the root of the hierarchy.
 .sb-tree.sb-nav-droptarget {
   outline: 2px solid var(--modal-selected-option-background-color);
   outline-offset: -2px;
 }
 
-// `.sb-nav-primary mark` (matched-character highlighting, tree and list
-// alike -- see `highlight.tsx`) moved to the shared stylesheet along with
-// `TreeView`.
-
-// The revision preview overlay. Column layout so the footer stays put and
-// only the body scrolls, however long the diff is.
-.sb-revision-preview {
-  // `.sb-modal` paints no background of its own: every other user of it holds
-  // either a plug iframe or a nav panel, each of which paints its own.
-  background: var(--ui-surface-background-color);
-  color: var(--ui-surface-color);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 16px;
-  box-sizing: border-box;
-  font-family: var(--ui-font);
-}
-
-.sb-revision-preview-header {
-  flex: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-// The title takes the squeeze, not the control beside it: `.sb-segments-wrap`
-// sets `min-width: 0` and would otherwise wrap its buttons onto a second line.
-.sb-revision-preview-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sb-revision-preview-header .sb-segments-wrap {
-  flex: none;
-}
-
-.sb-revision-preview-message {
-  flex: none;
-  color: var(--ui-surface-subtle-color);
-  margin: 0 0 12px 0;
-}
-
-.sb-revision-preview-body {
-  flex: 1;
-  // Without this a flex child refuses to shrink below its content.
-  min-height: 0;
-  overflow: auto;
-  margin: 0 0 12px 0;
-  background: var(--ui-surface-section-background-color);
-  border: 1px solid var(--ui-surface-border-color);
-  border-radius: 0.5em;
-  padding: 12px;
-  font-family: var(--editor-font), monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-  user-select: text;
-}
-
-.sb-revision-diff-add {
-  color: var(--editor-code-inserted-color, #16a34a);
-  background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));
-}
-
-.sb-revision-diff-del {
-  color: var(--editor-code-deleted-color, #dc2626);
-  background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));
-}
-
-.sb-revision-diff-hunk {
-  color: var(--ui-surface-subtle-color);
-  font-weight: 600;
-}
-
-.sb-revision-preview-footer {
-  flex: none;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
+// The rest of the navigator's styles live beside this file, one partial per
+// component: `_view_content.scss` (a content view's body in a panel),
+// `_revision_preview.scss`, `_dock_menu.scss` and `_page_widget.scss`.
+// `main.scss` loads them in order, after `components` -- see the note there.
