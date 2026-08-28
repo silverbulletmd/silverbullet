@@ -22,6 +22,8 @@ use crate::auth::{
 };
 use crate::multi::access::{AnyUserAuth, SessionPolicy};
 use crate::multi::manager::MultiManager;
+#[cfg(feature = "openapi")]
+use crate::multi::manager::VisibleSpace;
 use crate::multi::users::{Profile, UserStore};
 use crate::router::run_blocking;
 
@@ -244,6 +246,13 @@ fn profile_error(message: String) -> Response {
         .into_response()
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/spaces",
+    responses(
+        (status = 200, body = [VisibleSpace], description = "Spaces visible to the caller")
+    )
+))]
 async fn handle_list(State(state): State<Arc<SpaceIndexState>>, headers: HeaderMap) -> Response {
     let Some(username) = current_username(&state, &headers) else {
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();

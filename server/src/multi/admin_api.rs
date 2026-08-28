@@ -19,6 +19,8 @@ use crate::multi::access::UserTokenAuthorizer;
 use crate::multi::config::SpaceConfig;
 use crate::multi::manager::{ApiError, MultiManager};
 use crate::multi::users::{Profile, UserStore};
+#[cfg(feature = "openapi")]
+use crate::multi::users::UserEntry;
 use crate::router::run_blocking;
 
 pub struct AdminState {
@@ -262,6 +264,13 @@ async fn handle_delete(
 
 // --- Account management (users.json via `UserStore`) ---------------------
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/admin/users",
+    responses(
+        (status = 200, body = [UserEntry], description = "Account roster (admin only)")
+    )
+))]
 async fn handle_list_users(State(state): State<Arc<AdminState>>) -> Response {
     Json(state.users.list()).into_response()
 }
