@@ -12,10 +12,11 @@ The **navigator** is SilverBullet’s generalized navigation UI: it takes any co
 * **Anchor picker**: type `$` into the page picker. Every [[Markdown/Anchor]] in the space, with the line it sits on.
 * **Tag picker** — `Ctrl-Alt-t`, or `#` from the page picker. Every tag, with how many things carry it.
 * ${widgets.commandButton("Navigate: Tree")}: `Cmd-o`/`Ctrl-o`, or `Cmd-Shift-o`/`Ctrl-Shift-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel. On Safari, `Cmd-O` is reserved by the app at the OS level, so web content never even sees the keydown — use `Cmd-Shift-O` there instead; `Cmd-O` works normally in the desktop App and every other browser.
-* ${widgets.commandButton("Navigate: Outline")}: the current page’s headers as a tree, fully expanded and live as you type. Opens as a modal by default; use its dock menu to pin it to a sidebar instead, which is remembered from then on. (`Navigate: Outline Picker` is a hidden alias for the same command, kept for muscle memory.)
+* ${widgets.commandButton("Navigate: Table of Contents")}: the current page’s headers as a tree, fully expanded and live as you type. Opens as a modal by default; use its dock menu (see [[#The dock menu]]) to move it to the top of the page, the bottom, a sidebar, or back to modal -- the choice is remembered from then on.
+* ${widgets.commandButton("Navigate: Linked Mentions")}: every other page that links to the one you're on, with a snippet of surrounding context. Docks at the bottom of the page by default, open. See [[Concept/Linked Mention]].
+* ${widgets.commandButton("Navigate: Linked Tasks")}: incomplete tasks on *other* pages that link to the one you're on. Docks at the top of the page by default, open. Tick a task's checkbox right in the widget and the new state is written back to the page the task lives on. See [[Concept/Linked Task]].
 
 # Using a view
-
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
 * `Enter` opens the selected row. `Escape` closes the panel, whether or not you have typed anything.
 * Typing ranks rows fuzzily, highlighting the matched characters in each row’s name, list or tree alike.
@@ -33,7 +34,7 @@ In a tree that supports it: drag a row onto a folder to move it (renaming throug
 # Custom navigators
 You can define custom navigators with [[Space Lua]]. Example, adding a task navigator modal:
 ```lua
-navigator.define {
+view.define {
   name = "tasks",
   title = "Open tasks",
   command = "Navigate: Open Tasks",
@@ -58,16 +59,20 @@ navigator.define {
 }
 ```
 
-`name`, `source` and `onSelect` are the only required keys, `command` registers a [[Concept/Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `navigator.open("tasks")`.
+`name`, `source` and `onSelect` are the only required keys, `command` registers a [[Concept/Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`. (`navigator.*` is a permanent alias for `view.*` -- `navigator.define`, `navigator.open`, etc. still work.)
 
-See **[[API/navigator]] for the full field reference**: every key of `spec` and of `presentation`, with what each one does.
+See **[[API/view]] for the full field reference**: every key of `spec` and of `presentation`, with what each one does.
 
 # Docks
-`dock` decides where a view opens.
+`dock` decides where a view opens, out of five places:
 
 * `"modal"` (the default) is a centered overlay. It clears its phrase on open and dismisses when you pick something.
-* `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus.
+* `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar holds one view at a time -- docking a second view there displaces whichever one was already showing, which comes back on its own once the newcomer moves away.
+* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. [[Concept/Linked Mention|Linked Mentions]] and [[Concept/Linked Task|Linked Tasks]] default to a page dock; [[#Built-in navigators|Table of Contents]] can be moved to one from its dock menu but opens as a modal by default.
 
-Whichever sidebars are open when a client shuts down open again on its next boot, one per side.
+A view's body is a list, a tree, or — for a [[API/view#content|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all five docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 
-On **narrow screens** (below 600px) a sidebar becomes a full-width drawer over the editor that dismisses on selection, and boot restore is skipped there.
+# The dock menu
+Any view whose `supportedDocks` lists more than one place gets a **dock menu**: a button in its header (sidebar/modal title bar, or page-widget bar) whose icon shows the current dock, opening a list of the places it can move to.
+
+See [[API/view#Position target|the API reference]] for the full field list (`dock`, `supportedDocks`, `defaultOpen`, `openOnStart`), the persisted state keys, and the `view.docks` space-config default (`navigator.docks` still works as a fallback).

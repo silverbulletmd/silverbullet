@@ -1,4 +1,10 @@
-import { config, system } from "@silverbulletmd/silverbullet/syscalls";
+import { EditorView } from "@codemirror/view";
+import {
+  config,
+  datastore,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
+import { createDockState } from "./dock_state.ts";
 import {
   buildPickSpec,
   commandDefinition,
@@ -9,6 +15,7 @@ import {
   wireMeta,
 } from "./lua_views.ts";
 import { createPanelLifecycle } from "./panel_lifecycle.ts";
+import { isPageDock, isWindowDock } from "./types.ts";
 import {
   openOnStartViews,
   register,
@@ -44,29 +51,156 @@ function supersede(name: string) {
   else settlePick(name, null);
 }
 
+// The space's `navigator.docks` table is read per resolution; `config.get`
+// is synchronous-cached client-side so this is cheap.
+let spaceDocks: Record<string, string> = {};
+export function setSpaceDocks(docks: Record<string, string>): void {
+  spaceDocks = docks ?? {};
+}
+
+export const dockState = createDockState({
+  store: datastore,
+  spaceDefault: (name) => spaceDocks[name],
+});
+
+export async function resolvedDock(name: string): Promise<string | undefined> {
+  const meta = resolveMeta(name);
+  if (!meta) return undefined;
+  return dockState.resolveDock(name, meta);
+}
+
 const lifecycle = createPanelLifecycle({
   getMeta: resolveMeta,
   getForcedOpens: openOnStartViews,
   onSuperseded: supersede,
   onSlotClosedWithoutSuccessor: (view) => settlePick(view, null),
+  resolveDock: (name, meta) => dockState.resolveDock(name, meta),
 });
 
-export function open(name: string, opts?: OpenOptions): Promise<boolean> {
-  return lifecycle.open(name, {
+/**
+ * Reveal a page-docked widget and put the keyboard somewhere useful in it,
+ * reporting whether it actually took focus.
+ * 
+ * This has gotten a bit conthrived, but it seems to work
+ */
+async function revealPageWidget(name: string, dock: string): Promise<boolean> {
+  const selector = `.sb-page-widget[data-view="${CSS.escape(name)}"]`;
+  const scroller = client.editorView.scrollDOM;
+  const savedScrollTop = scroller.scrollTop;
+  let scrolled = false;
+  if (!document.querySelector(selector)) {
+    const side = dock === "page-top" ? "top" : "bottom";
+    const cached = client.widgetCache.getCachedWidgetMeta(
+      `pageslot:${side}:${client.currentPath()}`,
+    );
+    if (cached?.height !== 0) {
+      client.editorView.dispatch({
+        effects: EditorView.scrollIntoView(
+          dock === "page-top" ? 0 : client.editorView.state.doc.length,
+          { y: dock === "page-top" ? "start" : "end" },
+        ),
+      });
+      scrolled = true;
+    }
+  }
+  const settledSlot = `.sb-page-slot-${dock}[data-settled="1"]`;
+  const el = await new Promise<HTMLElement | null>((resolve) => {
+    const found = () => document.querySelector(selector) as HTMLElement | null;
+    const decide = () => {
+      const el = found();
+      if (el) {
+        settle(el);
+        return;
+      }
+      if (document.querySelector(settledSlot)) settle(null);
+    };
+    const settle = (value: HTMLElement | null) => {
+      observer.disconnect();
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const existing = found();
+    if (existing) return resolve(existing);
+    const observer = new MutationObserver(decide);
+    const root = document.querySelector("#sb-editor") ?? document.body;
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-settled"],
+    });
+    const timer = setTimeout(() => settle(null), 3000);
+    decide();
+  });
+  if (el) {
+    el.scrollIntoView({ block: "nearest" });
+    const target =
+      (el.querySelector(
+        '.sb-page-widget-body [tabindex="0"]',
+      ) as HTMLElement | null) ?? el;
+    target.focus({ preventScroll: true });
+    return el.contains(document.activeElement);
+  }
+  if (scrolled) {
+    scroller.scrollTop = savedScrollTop;
+  }
+  return false;
+}
+
+async function openWithFocus(
+  name: string,
+  opts?: OpenOptions,
+): Promise<{ opened: boolean; focused: boolean }> {
+  const dock = await resolvedDock(name);
+  if (dock && isPageDock(dock)) {
+    await dockState.setOpen(name, true);
+    client.rebuildEditorState();
+    return { opened: true, focused: await revealPageWidget(name, dock) };
+  }
+  // A panel focuses its own input when it opens, so the two coincide here.
+  const opened = await lifecycle.open(name, {
     quiet: opts?.quiet,
     phrase: opts?.phrase,
     segment: opts?.segment,
     dropdown: opts?.dropdown,
     focus: opts?.focus,
   });
+  return { opened, focused: opened };
 }
 
-/**
- * Hand focus back to a panel's input -- its focus home, and what the whole
- * keyboard contract runs through -- after something outside the panel (a
- * modal `editor.showPanel`) took it away. Reopening the view would do it too,
- * but that resets the selection, losing the row the user was on.
- */
+export async function open(name: string, opts?: OpenOptions): Promise<boolean> {
+  return (await openWithFocus(name, opts)).opened;
+}
+
+export async function moveDock(name: string, dock: string): Promise<void> {
+  const meta = resolveMeta(name);
+  if (!meta) return;
+  const before = await dockState.resolveDock(name, meta);
+  await dockState.setDock(name, dock);
+  if (isWindowDock(before) || before === "modal") await lifecycle.hide(before);
+  if (isPageDock(before) || isPageDock(dock)) {
+    await dockState.setOpen(name, isPageDock(dock));
+    client.rebuildEditorState();
+  }
+  if (!isPageDock(dock)) await open(name);
+}
+
+export async function closeView(name: string, slot: string): Promise<void> {
+  if (isPageDock(slot)) {
+    await dockState.setOpen(name, false);
+    client.rebuildEditorState();
+    return;
+  }
+  await lifecycle.hide(slot);
+}
+
+export async function setViewCollapsed(
+  name: string,
+  collapsed: boolean,
+): Promise<void> {
+  await dockState.setCollapsed(name, collapsed);
+}
+
 export function focusPanel(slot?: string): boolean {
   const selector = slot
     ? `.sb-nav-root[data-slot="${CSS.escape(slot)}"]`
@@ -81,7 +215,8 @@ export function focusPanel(slot?: string): boolean {
 
 export function openCommand(name: string) {
   return async (): Promise<boolean | undefined> => {
-    if (await open(name)) return false;
+    const { focused } = await openWithFocus(name);
+    if (focused) return false;
   };
 }
 
@@ -159,11 +294,11 @@ export function pickView(spec: ViewSpec): Promise<unknown> {
 export function openView(name: string, opts?: any): Promise<boolean> {
   if (typeof name === "string" && name.startsWith(RESERVED_PICK_PREFIX)) {
     throw new Error(
-      `navigator.open: '${name}' is a navigator.pick view -- it can only be opened by the navigator.pick call that registered it`,
+      `view.open: '${name}' is a view.pick view -- it can only be opened by the view.pick call that registered it`,
     );
   }
   if (opts !== undefined && opts !== null && typeof opts !== "object") {
-    throw new Error("navigator.open: opts must be a table");
+    throw new Error("view.open: opts must be a table");
   }
   return open(name, opts);
 }

@@ -1,3 +1,5 @@
+@use "markdown_body" as mb;
+
 .cm-focused {
   outline: none !important;
 }
@@ -859,33 +861,7 @@ $comment-border: 1px;
       margin-bottom: 0;
     }
 
-    ul {
-      list-style: none;
-      // padding-left: 1ch;
-    }
-
-    ul li::before {
-      content: "\2022";
-      /* Add content: \2022 is the CSS Code/unicode for a bullet */
-      color: var(--editor-list-bullet-color);
-      display: inline-block;
-      /* Needed to add space between the bullet and the text */
-      width: 1em;
-      /* Also needed for space (tweak if needed) */
-      margin-left: -1em;
-    }
-
-    // Hanging-indent for task items so wrapped task text aligns with the
-    // first-line text (after the checkbox) instead of falling back under
-    // the bullet column.
-    li>.sb-task {
-      display: inline-block;
-      width: 100%;
-      box-sizing: border-box;
-      padding-left: 1.7em;
-      text-indent: -1.7em;
-      vertical-align: top;
-    }
+    @include mb.markdown-body;
 
     h1,
     h2,
@@ -895,14 +871,6 @@ $comment-border: 1px;
       margin: 0;
     }
 
-    a.wiki-link {
-      border-radius: 5px;
-      padding: 0 5px;
-      margin: 0 -5px;
-      color: var(--editor-wiki-link-page-color);
-      background-color: var(--editor-wiki-link-page-background-color);
-      text-decoration: none;
-    }
 
     span.task-deadline {
       background-color: rgba(22, 22, 22, 0.07);

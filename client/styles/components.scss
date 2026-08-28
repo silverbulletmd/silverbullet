@@ -212,13 +212,6 @@
   opacity: 0.6;
 }
 
-/* Binding-value input dressed up as the URL it will produce: fixed
-   scheme/host parts as affixes around the editable segment. Backs the
-   `UrlPrefixInput` component, so it lives here rather than in the standalone
-   page styles — the desktop app's dashboard uses the component too, and only
-   links this stylesheet. */
-// Matches .sb-input's own surface so the affixes read as decoration on one
-// field rather than a differently-styled control sitting among the others.
 .sb-url-input {
   display: flex;
   align-items: stretch;
@@ -242,10 +235,6 @@
   background: transparent;
 }
 
-// The affixes are the parts you cannot type in, so they get their own darker
-// surface — the editable segment keeps the plain field background. Without
-// that contrast the whole control reads as one uniformly grey box and it stops
-// being obvious which part is the input.
 .sb-url-affix {
   display: flex;
   align-items: center;
@@ -308,8 +297,6 @@
   color: var(--modal-color);
 }
 
-// The active item is the selection, and carries the selection's own paired
-// foreground/background -- the same rule rows follow.
 .sb-segment-active {
   background-color: var(--modal-selected-option-background-color);
   color: var(--modal-selected-option-color);
@@ -328,15 +315,10 @@
   display: block;
 }
 
-// Too narrow for labels: iconed items keep the icon (the label survives as
-// tooltip and accessible name), label-only ones are never collapsed to
-// nothing.
 .sb-segments-narrow .sb-segment-iconed .sb-segment-label {
   display: none;
 }
 
-/* Resize handle (`ResizeHandle`). Invisible at rest: whatever border the
-   host draws on the dock is the only line there should be. */
 .sb-resizer {
   position: absolute;
   top: 0;
@@ -369,9 +351,6 @@
   }
 }
 
-// Flush with the edge (not straddling it, e.g. `right: -3px`) so the whole
-// hit area stays inside the dock, which is expected to clip via
-// overflow: hidden.
 .sb-resizer-lhs {
   right: 0;
 }
@@ -510,17 +489,6 @@
 .sb-nav-chip {
   flex: none;
   padding: 2px 6px;
-  // Pinned rather than left to inherit the row's own `line-height: 20px`
-  // (`.sb-nav-row`, this file): the row's `align-items: baseline` lines a
-  // chip's own text baseline up with its neighbours', and the chip's padding
-  // extends past that shared baseline by an amount that depends on the
-  // *inherited* line-height's ascent/descent -- an engine's own UA default
-  // for "normal", not something this rule controls, unlike a pinned
-  // `line-height: 1`. The App wraps WKWebView on macOS, which this repo's
-  // Chromium-only e2e harness can't exercise, so a chip row reading taller
-  // than its plain neighbours there (not reproduced here) is the failure
-  // mode this guards against -- same defensive-even-without-a-local-repro
-  // call as `.sb-nav-primary mark`'s explicit reset, below.
   line-height: 1;
   font-size: 10px;
   border-radius: 4px;
@@ -537,4 +505,6 @@
 .sb-tree,
 .sb-tree ul[role="group"] {
   list-style: none;
+  padding: 0;
+  margin: 0;
 }

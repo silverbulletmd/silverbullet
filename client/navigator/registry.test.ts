@@ -55,6 +55,8 @@ const {
   handle,
   openOnStartViews,
   selectInFlight,
+  loadContent,
+  normalizeContent,
 } = await import("./registry.ts");
 const { builtinMeta } = await import("./builtins.ts");
 
@@ -179,9 +181,21 @@ test("a non-meta hook for an unknown view resolves to nothing", async () => {
 });
 
 test("a built-in hook is dispatched to the built-in registry", async () => {
-  editor.getCurrentPath.mockResolvedValue("assets/logo.png");
+  index.isAvailable.mockResolvedValue(false);
 
-  expect(await handle({ view: "std.toc", hook: "rows" })).toEqual([]);
+  expect(await handle({ view: "std.anchors", hook: "rows" })).toEqual([]);
+});
+
+// std.toc used to be a built-in (client/navigator/views/toc.ts); it's now a
+// Space Lua view (navigator.define in Widgets.md) keeping the historical
+// name for persisted dock/width state, so registering it must no longer be
+// rejected as a built-in name clash.
+test("register no longer rejects std.toc now that it's a Lua view, not a built-in", () => {
+  expect(() =>
+    register({ meta: luaMeta({ name: "std.toc" }), spec: luaSpec(INERT) }),
+  ).not.toThrow();
+  expect(resolveMeta("std.toc")?.name).toBe("std.toc");
+  unregister("std.toc");
 });
 
 test("an ephemeral (navigator.pick) view registers and resolves like any other, then is gone once unregistered", async () => {
@@ -294,4 +308,46 @@ test("openOnStartViews lists only the Lua views declaring openOnStart, by name a
   expect(openOnStartViews().map((v) => v.name)).not.toContain(
     "space.not-startup",
   );
+});
+
+test("loadContent runs a content view's own closure and hands back its markdown", async () => {
+  registerLua(
+    "space.content",
+    '{ content = function(ctx) return "# Hi " .. ctx.phrase end }',
+    { hasContent: true },
+  );
+
+  await expect(loadContent("space.content")).resolves.toEqual({
+    markdown: "# Hi ",
+  });
+  await expect(
+    loadContent("space.content", { phrase: "there" }),
+  ).resolves.toEqual({ markdown: "# Hi there" });
+});
+
+test("loadContent turns a throwing content view into an error, not a rejection", async () => {
+  registerLua(
+    "space.content-boom",
+    '{ content = function() error("nope") end }',
+    {
+      hasContent: true,
+    },
+  );
+
+  const result = await loadContent("space.content-boom");
+  expect(result.markdown).toBeUndefined();
+  expect(String(result.error)).toContain("nope");
+});
+
+// A view that no longer exists (a script reload retired it mid-flight) answers
+// `undefined`; every container reads that as "nothing to show", not a crash.
+test("loadContent on an unknown view is empty markdown", async () => {
+  await expect(loadContent("space.nope")).resolves.toEqual({ markdown: "" });
+});
+
+test("normalizeContent reads markdown, errors, and nothing at all", () => {
+  expect(normalizeContent({ markdown: "# a" })).toEqual({ markdown: "# a" });
+  expect(normalizeContent({ error: "broke" })).toEqual({ error: "broke" });
+  expect(normalizeContent(undefined)).toEqual({ markdown: "" });
+  expect(normalizeContent({})).toEqual({ markdown: "" });
 });

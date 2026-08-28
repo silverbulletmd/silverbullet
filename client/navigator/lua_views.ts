@@ -8,13 +8,14 @@ import {
   luaTypeOf,
   luaValueToJS,
 } from "../space_lua/runtime.ts";
-import type {
-  ActionMeta,
-  DropdownMeta,
-  DropdownOption,
-  NavigatorHook,
-  SegmentMeta,
-  ViewMeta,
+import {
+  type ActionMeta,
+  ALL_DOCKS,
+  type DropdownMeta,
+  type DropdownOption,
+  type NavigatorHook,
+  type SegmentMeta,
+  type ViewMeta,
 } from "./types.ts";
 
 export const RESERVED_PICK_PREFIX = "__pick:";
@@ -33,8 +34,8 @@ export const RESERVED_KEYS = new Set([
   "Tab",
 ]);
 
-/** A `navigator.define`/`navigator.pick` spec: the raw Lua table the user
- * wrote, or the plain object `navigator.pick` assembles from one. */
+/** A `view.define`/`view.pick` spec: the raw Lua table the user
+ * wrote, or the plain object `view.pick` assembles from one. */
 export type ViewSpec = LuaTable | Record<string, any>;
 
 function luaType(value: unknown): string {
@@ -107,20 +108,20 @@ function validatePrefix(
   claimed: Map<string, string>,
 ) {
   if (luaType(char) !== "string") {
-    throw new Error(`navigator.define: ${what} must be a string`);
+    throw new Error(`view.define: ${what} must be a string`);
   }
   const text = char as string;
   if (charCount(text) !== 1) {
-    throw new Error(`navigator.define: ${what} must be exactly one character`);
+    throw new Error(`view.define: ${what} must be exactly one character`);
   }
   const code = text.codePointAt(0) ?? 0;
   if (/\s/.test(text) || code < 0x20 || code === 0x7f) {
-    throw new Error(`navigator.define: ${what} must be a printable character`);
+    throw new Error(`view.define: ${what} must be a printable character`);
   }
   const owner = claimed.get(text);
   if (owner) {
     throw new Error(
-      `navigator.define: prefix '${text}' is claimed twice (${owner} and ${what})`,
+      `view.define: prefix '${text}' is claimed twice (${owner} and ${what})`,
     );
   }
   claimed.set(text, what);
@@ -130,7 +131,7 @@ function prefixViewsMeta(spec: ViewSpec): Record<string, string> | undefined {
   const prefixViews = field(spec, "prefixViews");
   if (prefixViews === undefined || prefixViews === null) return undefined;
   if (luaType(prefixViews) !== "table") {
-    throw new Error("navigator.define: prefixViews must be a table");
+    throw new Error("view.define: prefixViews must be a table");
   }
   const out: Record<string, string> = {};
   let any = false;
@@ -138,7 +139,7 @@ function prefixViewsMeta(spec: ViewSpec): Record<string, string> | undefined {
     const name = field(prefixViews, char);
     if (luaType(name) !== "string" || name === "") {
       throw new Error(
-        `navigator.define: prefixViews['${String(char)}'] must be a view name`,
+        `view.define: prefixViews['${String(char)}'] must be a view name`,
       );
     }
     out[char] = name;
@@ -165,7 +166,7 @@ function validatePrefixes(spec: ViewSpec) {
     const owner = claimed.get(key);
     if (owner) {
       throw new Error(
-        `navigator.define: '${key}' is both a keymap key and ${owner}`,
+        `view.define: '${key}' is both a keymap key and ${owner}`,
       );
     }
   }
@@ -178,11 +179,11 @@ function keymapKeys(spec: ViewSpec): string[] | undefined {
   for (const key of keysOf(keymap)) {
     if (RESERVED_KEYS.has(key)) {
       throw new Error(
-        `navigator.define: key '${key}' is reserved by built-in navigation`,
+        `view.define: key '${key}' is reserved by built-in navigation`,
       );
     }
     if (luaType(field(keymap, key)) !== "function") {
-      throw new Error(`navigator.define: keymap['${key}'] must be a function`);
+      throw new Error(`view.define: keymap['${key}'] must be a function`);
     }
     keys.push(key);
   }
@@ -195,7 +196,7 @@ function validateIcon(icon: unknown, what: string) {
   if (icon === undefined || icon === null) return;
   if (luaType(icon) === "string") return;
   throw new Error(
-    `navigator.define: ${what} must be an icon name ("lock"), ` +
+    `view.define: ${what} must be an icon name ("lock"), ` +
       'a namespaced name ("feather:lock"), or literal SVG markup ' +
       '(a string starting with "<svg")',
   );
@@ -207,7 +208,7 @@ function validateRowIcon(icon: unknown, what: string) {
   const type = luaType(icon);
   if (type === "string" || type === "function") return;
   throw new Error(
-    `navigator.define: ${what} must be an icon name ("lock"), ` +
+    `view.define: ${what} must be an icon name ("lock"), ` +
       'a namespaced name ("feather:lock"), literal SVG markup ' +
       '(a string starting with "<svg"), or a function returning one',
   );
@@ -223,14 +224,14 @@ function actionMeta(spec: ViewSpec): ActionMeta[] | undefined {
     const label = field(action, "label");
     const what = `actions[${i + 1}]`;
     if (luaType(label) !== "string" || label === "") {
-      throw new Error(`navigator.define: ${what} requires a label`);
+      throw new Error(`view.define: ${what} requires a label`);
     }
     if (luaType(field(action, "run")) !== "function") {
-      throw new Error(`navigator.define: ${what}.run must be a function`);
+      throw new Error(`view.define: ${what}.run must be a function`);
     }
     const when = field(action, "when");
     if (when !== undefined && when !== null && luaType(when) !== "function") {
-      throw new Error(`navigator.define: ${what}.when must be a function`);
+      throw new Error(`view.define: ${what}.when must be a function`);
     }
     const requireMode = field(action, "requireMode");
     if (
@@ -238,7 +239,7 @@ function actionMeta(spec: ViewSpec): ActionMeta[] | undefined {
       requireMode !== null &&
       requireMode !== "rw"
     ) {
-      throw new Error(`navigator.define: ${what}.requireMode must be "rw"`);
+      throw new Error(`view.define: ${what}.requireMode must be "rw"`);
     }
     validateIcon(field(action, "icon"), `${what}.icon`);
     out.push({
@@ -263,10 +264,10 @@ function segmentMeta(spec: ViewSpec): SegmentMeta[] | undefined {
     const what = `segments[${i + 1}]`;
     const label = field(segment, "label");
     if (luaType(label) !== "string" || label === "") {
-      throw new Error(`navigator.define: ${what} requires a label`);
+      throw new Error(`view.define: ${what} requires a label`);
     }
     if (seen.has(label)) {
-      throw new Error(`navigator.define: duplicate segment label '${label}'`);
+      throw new Error(`view.define: duplicate segment label '${label}'`);
     }
     seen.add(label);
     const where = field(segment, "where");
@@ -275,7 +276,7 @@ function segmentMeta(spec: ViewSpec): SegmentMeta[] | undefined {
       where !== null &&
       luaType(where) !== "function"
     ) {
-      throw new Error(`navigator.define: ${what}.where must be a function`);
+      throw new Error(`view.define: ${what}.where must be a function`);
     }
     validateIcon(field(segment, "icon"), `${what}.icon`);
     out.push({
@@ -295,30 +296,28 @@ function dropdownMeta(spec: ViewSpec): DropdownMeta | undefined {
   const dropdown = field(spec, "dropdown");
   if (!truthy(dropdown)) return undefined;
   if (luaType(dropdown) !== "table") {
-    throw new Error("navigator.define: dropdown must be a table");
+    throw new Error("view.define: dropdown must be a table");
   }
   const options = luaType(field(dropdown, "options"));
   if (options !== "function" && options !== "table") {
-    throw new Error(
-      "navigator.define: dropdown.options must be a function or list",
-    );
+    throw new Error("view.define: dropdown.options must be a function or list");
   }
   const key = field(dropdown, "key");
   if (present(key) && luaType(key) !== "function") {
-    throw new Error("navigator.define: dropdown.key must be a function");
+    throw new Error("view.define: dropdown.key must be a function");
   }
   // `key` is the cheap form of `where`: one call per row instead of one per
   // row per option. Either answers the same question, so a view needs one.
   if (!present(key) && luaType(field(dropdown, "where")) !== "function") {
-    throw new Error("navigator.define: dropdown.where must be a function");
+    throw new Error("view.define: dropdown.where must be a function");
   }
   const placeholder = field(dropdown, "placeholder");
   if (present(placeholder) && luaType(placeholder) !== "string") {
-    throw new Error("navigator.define: dropdown.placeholder must be a string");
+    throw new Error("view.define: dropdown.placeholder must be a string");
   }
   const allLabel = field(dropdown, "allLabel");
   if (present(allLabel) && luaType(allLabel) !== "string") {
-    throw new Error("navigator.define: dropdown.allLabel must be a string");
+    throw new Error("view.define: dropdown.allLabel must be a string");
   }
   const defaultValue = field(dropdown, "default");
   if (
@@ -327,7 +326,7 @@ function dropdownMeta(spec: ViewSpec): DropdownMeta | undefined {
     luaType(defaultValue) !== "function"
   ) {
     throw new Error(
-      "navigator.define: dropdown.default must be a string or a function",
+      "view.define: dropdown.default must be a string or a function",
     );
   }
   return { placeholder: toJS(placeholder), allLabel: toJS(allLabel) };
@@ -339,7 +338,7 @@ function renderLimit(spec: ViewSpec): number {
   const value = numberOf(limit);
   if (luaType(limit) !== "number" || value < 1 || !Number.isInteger(value)) {
     throw new Error(
-      "navigator.define: presentation.limit must be a positive integer",
+      "view.define: presentation.limit must be a positive integer",
     );
   }
   return value;
@@ -350,14 +349,10 @@ function expandAll(spec: ViewSpec): boolean {
   const value = field(p, "expandAll");
   if (value === undefined || value === null) return false;
   if (luaType(value) !== "boolean") {
-    throw new Error(
-      "navigator.define: presentation.expandAll must be a boolean",
-    );
+    throw new Error("view.define: presentation.expandAll must be a boolean");
   }
   if (value && or(field(p, "mode"), "list") !== "tree") {
-    throw new Error(
-      'navigator.define: presentation.expandAll requires mode "tree"',
-    );
+    throw new Error('view.define: presentation.expandAll requires mode "tree"');
   }
   return value;
 }
@@ -368,12 +363,12 @@ function expansionScope(spec: ViewSpec): "view" | "page" {
   if (scope === undefined || scope === null) return "view";
   if (scope !== "view" && scope !== "page") {
     throw new Error(
-      'navigator.define: presentation.expansionScope must be "view" or "page"',
+      'view.define: presentation.expansionScope must be "view" or "page"',
     );
   }
   if (scope === "page" && or(field(p, "mode"), "list") !== "tree") {
     throw new Error(
-      'navigator.define: presentation.expansionScope requires mode "tree"',
+      'view.define: presentation.expansionScope requires mode "tree"',
     );
   }
   return scope;
@@ -383,27 +378,84 @@ function searchMode(spec: ViewSpec): "client" | "source" {
   const mode = field(spec, "search");
   if (mode === undefined || mode === null) return "client";
   if (mode !== "client" && mode !== "source") {
-    throw new Error('navigator.define: search must be "client" or "source"');
+    throw new Error('view.define: search must be "client" or "source"');
   }
   return mode;
 }
 
-function dockSlot(spec: ViewSpec): "modal" | "lhs" | "rhs" {
+function contentFn(spec: ViewSpec, caller: string): unknown {
+  const content = field(spec, "content");
+  if (content === undefined || content === null) return undefined;
+  if (luaType(content) !== "function") {
+    throw new Error(
+      `${caller}: content must be a function returning a markdown string`,
+    );
+  }
+  if (truthy(field(spec, "source"))) {
+    throw new Error(
+      `${caller}: content and source are mutually exclusive -- a view either ` +
+        "renders markdown (content) or lists rows (source)",
+    );
+  }
+  return content;
+}
+
+export function contentMarkdown(value: unknown): string {
+  if (value === undefined || value === null || value === false) return "";
+  if (typeof value === "string") return value;
+  if (luaType(value) === "table") {
+    const markdown = field(value, "markdown");
+    if (typeof markdown === "string") return markdown;
+    if (markdown === undefined || markdown === null) return "";
+  }
+  throw new Error(
+    `navigator: content must return a markdown string, got ${luaType(value)}`,
+  );
+}
+
+function dockSlot(spec: ViewSpec): string {
   const dock = field(spec, "dock");
   if (dock === undefined || dock === null) return "modal";
-  if (dock !== "modal" && dock !== "lhs" && dock !== "rhs") {
-    throw new Error('navigator.define: dock must be "modal", "lhs" or "rhs"');
+  if (!(ALL_DOCKS as readonly string[]).includes(dock)) {
+    throw new Error(`view.define: dock must be one of ${ALL_DOCKS.join(", ")}`);
   }
   return dock;
+}
+
+function supportedDocks(spec: ViewSpec): string[] {
+  const dock = dockSlot(spec);
+  const listed = field(spec, "supportedDocks");
+  if (listed === undefined || listed === null) return [dock];
+  const docks = sequence(listed).map((entry) => toJS(entry));
+  for (const entry of docks) {
+    if (!(ALL_DOCKS as readonly string[]).includes(entry)) {
+      throw new Error(
+        `view.define: supportedDocks entry '${entry}' must be one of ${ALL_DOCKS.join(", ")}`,
+      );
+    }
+  }
+  if (!docks.includes(dock)) {
+    throw new Error(
+      `view.define: supportedDocks must include the default dock '${dock}'`,
+    );
+  }
+  return docks;
+}
+
+function defaultOpen(spec: ViewSpec): boolean {
+  const value = field(spec, "defaultOpen");
+  if (value === undefined || value === null) return false;
+  if (luaType(value) !== "boolean") {
+    throw new Error("view.define: defaultOpen must be a boolean");
+  }
+  return value;
 }
 
 function presentationMode(spec: ViewSpec): "list" | "tree" {
   const mode = field(or(field(spec, "presentation"), {}), "mode");
   if (mode === undefined || mode === null) return "list";
   if (mode !== "list" && mode !== "tree") {
-    throw new Error(
-      'navigator.define: presentation.mode must be "list" or "tree"',
-    );
+    throw new Error('view.define: presentation.mode must be "list" or "tree"');
   }
   return mode;
 }
@@ -417,7 +469,7 @@ function hierarchy(spec: ViewSpec): { field: string; separator: string } {
     luaType(field(h, "separator")) !== "string"
   ) {
     throw new Error(
-      "navigator.define: presentation.hierarchy must be " +
+      "view.define: presentation.hierarchy must be " +
         "{ field = <string>, separator = <string> }",
     );
   }
@@ -429,9 +481,7 @@ function refreshOnEvents(spec: ViewSpec): string[] | undefined {
   const refreshOn = field(spec, "refreshOn");
   if (refreshOn === undefined || refreshOn === null) return undefined;
   if (luaType(refreshOn) !== "table") {
-    throw new Error(
-      "navigator.define: refreshOn must be a list of event names",
-    );
+    throw new Error("view.define: refreshOn must be a list of event names");
   }
   if (sequence(refreshOn).length === 0) return undefined;
   return toJS(refreshOn);
@@ -444,7 +494,7 @@ function noFilter(spec: ViewSpec): boolean {
   if (filter === undefined || filter === null) return false;
   if (filter === false) return true;
   if (luaType(filter) !== "table") {
-    throw new Error("navigator.define: filter must be a table or false");
+    throw new Error("view.define: filter must be a table or false");
   }
   return false;
 }
@@ -455,7 +505,7 @@ function filterFields(spec: ViewSpec): Record<string, any> | undefined {
   const fields = truthy(filter) ? field(filter, "fields") : undefined;
   if (fields === undefined || fields === null) return undefined;
   if (luaType(fields) !== "table") {
-    throw new Error("navigator.define: filter.fields must be a table");
+    throw new Error("view.define: filter.fields must be a table");
   }
   if (keysOf(fields).length === 0) return undefined;
   return toJS(fields);
@@ -466,6 +516,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
   const f = or(field(spec, "filter"), {});
   const name = field(spec, "name");
   const title = field(spec, "title");
+  const hasContent = present(field(spec, "content"));
   return {
     name,
     title: truthy(title) ? title : name,
@@ -474,13 +525,18 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     stripPrefix: toJS(field(f, "stripPrefix")),
     createIcon: toJS(field(p, "createIcon")),
     mode: presentationMode(spec),
+    hasContent,
     dock: dockSlot(spec),
+    supportedDocks: supportedDocks(spec),
     hierarchy: hierarchy(spec),
     foldersFirst: field(p, "foldersFirst") !== false,
     expandAll: expandAll(spec),
     expansionScope: expansionScope(spec),
     filterFields: filterFields(spec),
-    noFilter: noFilter(spec),
+    // A content view has no rows to narrow, so the panel shows it no filter
+    // input at all -- the box stays as the panel's focus home (see `noFilter`
+    // in `ViewMeta`), which is what keeps Escape and the dock menu working.
+    noFilter: hasContent || noFilter(spec),
     followEditor: field(spec, "followEditor") === true,
     refreshOn: refreshOnEvents(spec),
     hasMove: present(field(spec, "onMove")),
@@ -498,6 +554,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     hashtagFilter: field(f, "hashtagFilter") === true,
     ephemeral: field(spec, "ephemeral") === true,
     openOnStart: field(spec, "openOnStart") === true,
+    defaultOpen: defaultOpen(spec),
   } as ViewMeta;
 }
 
@@ -506,7 +563,8 @@ export function validateViewSpec(spec: ViewSpec, caller: string) {
   if (!truthy(field(spec, "name"))) {
     throw new Error(`${caller}: name is required`);
   }
-  if (!truthy(field(spec, "source"))) {
+  const content = contentFn(spec, caller);
+  if (!content && !truthy(field(spec, "source"))) {
     throw new Error(`${caller}: source is required`);
   }
   const p = or(field(spec, "presentation"), {});
@@ -524,6 +582,8 @@ export function validateViewSpec(spec: ViewSpec, caller: string) {
   renderLimit(spec);
   searchMode(spec);
   dockSlot(spec);
+  supportedDocks(spec);
+  defaultOpen(spec);
   presentationMode(spec);
   hierarchy(spec);
   refreshOnEvents(spec);
@@ -537,25 +597,28 @@ export function validateDefineSpec(spec: ViewSpec) {
   const name = field(spec, "name");
   if (luaType(name) === "string" && name.startsWith(RESERVED_PICK_PREFIX)) {
     throw new Error(
-      `navigator.define: names starting with '${RESERVED_PICK_PREFIX}' are reserved for navigator.pick`,
+      `view.define: names starting with '${RESERVED_PICK_PREFIX}' are reserved for view.pick`,
     );
   }
-  if (luaType(field(spec, "onSelect")) !== "function") {
-    throw new Error("navigator.define: onSelect is required");
+  // A content view renders a document, not a list: there is no row to select,
+  // so it is the one shape of view that needs no `onSelect`.
+  if (
+    !present(field(spec, "content")) &&
+    luaType(field(spec, "onSelect")) !== "function"
+  ) {
+    throw new Error("view.define: onSelect is required");
   }
   if (
     (truthy(field(spec, "key")) || truthy(field(spec, "mac"))) &&
     !truthy(field(spec, "command"))
   ) {
-    throw new Error("navigator.define: key/mac require command");
+    throw new Error("view.define: key/mac require command");
   }
   const dock = field(spec, "dock");
   if (field(spec, "openOnStart") === true && dock !== "lhs" && dock !== "rhs") {
-    throw new Error(
-      'navigator.define: openOnStart requires dock "lhs" or "rhs"',
-    );
+    throw new Error('view.define: openOnStart requires dock "lhs" or "rhs"');
   }
-  validateViewSpec(spec, "navigator.define");
+  validateViewSpec(spec, "view.define");
 }
 
 const PICK_REJECTED_FIELDS = [
@@ -569,6 +632,8 @@ const PICK_REJECTED_FIELDS = [
   "menuLinux",
   "hide",
   "dock",
+  "supportedDocks",
+  "defaultOpen",
   "openOnStart",
   "refreshOn",
   "refreshOnOpen",
@@ -600,18 +665,24 @@ export function nextPickName(): string {
   return `${RESERVED_PICK_PREFIX}${pickCounter}:${Math.random()}`;
 }
 
-/** The internal `navigator.define`-shaped spec one `navigator.pick` call
+/** The internal `view.define`-shaped spec one `view.pick` call
  * stands up: the user's content fields under a generated ephemeral name. */
 export function buildPickSpec(spec: ViewSpec, name: string): ViewSpec {
   if (luaType(spec) !== "table") {
-    throw new Error("navigator.pick: spec must be a table");
+    throw new Error("view.pick: spec must be a table");
+  }
+  if (present(field(spec, "content"))) {
+    throw new Error(
+      "view.pick: 'content' is a view.define field -- a pick resolves to a " +
+        "selected row, and a content view has no rows; use view.define",
+    );
   }
   for (const rejected of PICK_REJECTED_FIELDS) {
     if (present(field(spec, rejected))) {
       throw new Error(
-        `navigator.pick: '${rejected}' is a navigator.define field ` +
-          "(a name, command chrome, or docking field) -- navigator.pick " +
-          "doesn't take it; use navigator.define if this view needs one of its own",
+        `view.pick: '${rejected}' is a view.define field ` +
+          "(a name, command chrome, or docking field) -- view.pick " +
+          "doesn't take it; use view.define if this view needs one of its own",
       );
     }
   }
@@ -624,7 +695,7 @@ export function buildPickSpec(spec: ViewSpec, name: string): ViewSpec {
   for (const content of PICK_CONTENT_FIELDS) {
     internal[content] = field(spec, content);
   }
-  validateViewSpec(internal, "navigator.pick");
+  validateViewSpec(internal, "view.pick");
   return internal;
 }
 
@@ -861,7 +932,7 @@ async function dropdownState(
 
 /**
  * Run one panel hook against a Lua view's spec. `onPick` is the pick
- * bookkeeping a `navigator.pick` view carries: its user `onSelect` gets a
+ * bookkeeping a `view.pick` view carries: its user `onSelect` gets a
  * veto (returning `false`), and anything else settles the pick.
  */
 export async function luaHandle(
@@ -875,10 +946,33 @@ export async function luaHandle(
   switch (hook) {
     case "rows": {
       const incoming = args.ctx ?? {};
-      const ctx = { phrase: incoming.phrase ?? "", segment: incoming.segment };
+      const ctx = {
+        phrase: incoming.phrase ?? "",
+        segment: incoming.segment,
+        dock: incoming.dock,
+      };
       // Exceptions come back as data here (not flashed): unlike the other hooks, a throwing source leaves nothing else on screen to fall back to.
       try {
         return await buildRows(sf, spec, ctx);
+      } catch (e: any) {
+        return { error: e?.message ?? String(e) };
+      }
+    }
+    case "content": {
+      const content = field(spec, "content");
+      if (!truthy(content)) return undefined;
+      const incoming = args.ctx ?? {};
+      // Same contract as "rows": a throwing content function comes back as
+      // data, because there is nothing else left on screen to fall back to.
+      try {
+        return {
+          markdown: contentMarkdown(
+            await callLua(sf, content as ILuaFunction, {
+              phrase: incoming.phrase ?? "",
+              dock: incoming.dock,
+            }),
+          ),
+        };
       } catch (e: any) {
         return { error: e?.message ?? String(e) };
       }
@@ -964,7 +1058,7 @@ const COMMAND_FIELDS = [
 ];
 
 /**
- * The command chrome `navigator.define` mirrors into a command definition.
+ * The command chrome `view.define` mirrors into a command definition.
  * Absent fields are left out rather than set to `undefined`: config validates
  * against its JSON schema, which rejects an `undefined` property value.
  */

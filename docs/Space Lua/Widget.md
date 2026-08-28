@@ -83,24 +83,19 @@ ${widgets.commandButton("System: Reload")}
 ## Sub-pages widget
 * `widgets.subPages(pageName?)` — renders a list of sub-pages (pages with the given prefix). Defaults to the current page.
 
-## Top and bottom widgets
-These render automatically on every page and can be configured:
+## Docked widgets
+These are [[Feature/Navigator]] views, not automatic page decorations. Each ships docked into the page and can be moved to a sidebar or a modal from its own dock menu, closed with its ×, or folded to its title bar:
 
-* **Table of contents** — shows a table of contents at the top of the page. **Off by default**: the [[Feature/Navigator]]'s `Navigate: Outline` (right sidebar) and `Navigate: Outline Picker` (modal) show the same headers as an outline you can call up when you want it, rather than on top of every page.
-* **Linked mentions** — shows pages that link to the current page at the bottom
-* **Linked tasks** — shows incomplete tasks that mention the current page at the top
+* **Linked mentions** — pages that link to the current page, docked at the bottom
+* **Linked tasks** — incomplete tasks that mention the current page, docked at the top
 
-Configure them in your [[^Library/Std/Config]] page:
+The table of contents is no longer rendered on every page either: it's the `Navigate: Table of Contents` view, which you call up when you want it and dock wherever you like.
+
+None of the three has an `enabled` config key: each remembers its own dock and open/closed state, so closing or moving one is what decides whether it appears from then on. The one setting left is in your [[^Library/Std/Config]] page:
 
 ```lua
--- Put the TOC back at the top of every page
-config.set("std.widgets.toc.enabled", true)
--- Only render a TOC when there's >= 5 headers
+-- Only show a table of contents on pages with >= 5 headers
 config.set("std.widgets.toc.minHeaders", 5)
--- Disable linked mentions
-config.set("std.widgets.linkedMentions.enabled", false)
--- Disable linked tasks
-config.set("std.widgets.linkedTasks.enabled", false)
 ```
 
 # Embed widgets

@@ -34,7 +34,7 @@ vi.mock("./ui/slots.ts", () => slots);
 vi.mock("../lib/mobile.ts", () => mobile);
 
 const { createPanelLifecycle } = await import("./panel_lifecycle.ts");
-type Meta = { dock: string };
+type Meta = { dock: string; supportedDocks?: string[] };
 
 function makeConfig(
   overrides: Partial<Parameters<typeof createPanelLifecycle>[0]> = {},
@@ -470,6 +470,30 @@ test("restoreDocks: a dock mismatch between the saved slot and the view's curren
   expect(slots.showSlot).not.toHaveBeenCalled();
 });
 
+test("restoreDocks: a view re-docked via moveDock still restores -- resolveDock decides, not the static meta.dock", async () => {
+  // The saved dockedKey remembers "v" in rhs (where moveDock last put it),
+  // but "v"'s declared meta.dock is still its original default (modal).
+  // Without resolveDock in the loop this reads as a stale mismatch and the
+  // dock would be forgotten on every reload after a switch.
+  const { config, getMeta } = makeConfig({
+    sidebarSlots: ["rhs"],
+    resolveDock: () => Promise.resolve("rhs"),
+  } as any);
+  datastore.get.mockResolvedValue("v");
+  getMeta.mockReturnValue({ dock: "modal", supportedDocks: ["modal", "rhs"] });
+  const lc = createPanelLifecycle(config);
+
+  await lc.restoreDocks();
+
+  expect(datastore.del).not.toHaveBeenCalledWith([
+    "navigator",
+    "docked",
+    "rhs",
+  ]);
+  expect(slots.showSlot).toHaveBeenCalled();
+  expect(lc.current("rhs")).toMatchObject({ view: "v", passive: true });
+});
+
 test("restoreDocks: a currently-unresolvable saved name is skipped, not deleted", async () => {
   // Falsifiability: treating "not yet resolvable" the same as "gone" would
   // silently forget a dock on a cold boot before the space finishes
@@ -484,4 +508,68 @@ test("restoreDocks: a currently-unresolvable saved name is skipped, not deleted"
 
   expect(datastore.del).not.toHaveBeenCalled();
   expect(slots.showSlot).not.toHaveBeenCalled();
+});
+
+test("resolveDock overrides the meta's declared dock", async () => {
+  const { config, getMeta } = makeConfig({
+    resolveDock: () => Promise.resolve("rhs"),
+  });
+  getMeta.mockReturnValue({ dock: "modal" });
+  const lc = createPanelLifecycle(config);
+  await lc.open("v");
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "rhs",
+    expect.anything(),
+    expect.objectContaining({ view: "v" }),
+    false,
+  );
+});
+
+test("closing a displacing view restores the displaced one (one-deep)", async () => {
+  const { config, getMeta } = makeConfig();
+  getMeta.mockImplementation((name: string) =>
+    name === "a" || name === "b" ? { dock: "rhs" } : undefined,
+  );
+  const lc = createPanelLifecycle(config);
+  await lc.open("a");
+  await lc.open("b"); // displaces a
+  slots.showSlot.mockClear();
+  await lc.hide("rhs");
+  // a came back, passively
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "rhs",
+    expect.anything(),
+    expect.objectContaining({ view: "a", passive: true }),
+    false,
+  );
+});
+
+test("closing a view that displaced nothing just closes", async () => {
+  const { config, getMeta } = makeConfig();
+  getMeta.mockReturnValue({ dock: "rhs" });
+  const lc = createPanelLifecycle(config);
+  await lc.open("a");
+  slots.showSlot.mockClear();
+  await lc.hide("rhs");
+  expect(slots.showSlot).not.toHaveBeenCalled();
+  expect(slots.hideSlot).toHaveBeenCalledWith("rhs");
+});
+
+test("an A -> B -> A sequence restores B on close: the latest displacement wins, one-deep", async () => {
+  const { config, getMeta } = makeConfig();
+  getMeta.mockImplementation((name: string) =>
+    name === "a" || name === "b" ? { dock: "rhs" } : undefined,
+  );
+  const lc = createPanelLifecycle(config);
+  await lc.open("a");
+  await lc.open("b"); // displaces a
+  await lc.open("a"); // re-opening a now displaces b
+  slots.showSlot.mockClear();
+  await lc.hide("rhs");
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "rhs",
+    expect.anything(),
+    expect.objectContaining({ view: "b", passive: true }),
+    false,
+  );
 });

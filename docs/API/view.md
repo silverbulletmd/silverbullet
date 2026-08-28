@@ -3,12 +3,14 @@ tags: api/space-lua
 references:
 - client/navigator/navigator.ts
 ---
-The `navigator` API defines and opens [[Feature/Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
+The `view` API defines and opens [[Feature/Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
 
-## navigator.define(spec)
-`navigator.define(spec)`
+`navigator.*` is a permanent alias for every function below (`navigator.define`, `navigator.open`, `navigator.pick`, `navigator.focus`, `navigator.moveByRename`) -- same implementation, just the pre-rename name. It is fully supported, not deprecated; use whichever reads better in your own scripts. Everything past this point uses the canonical `view.*` names.
 
-Registers a view, and optionally a [[Concept/Command]] that opens it. `name`, `source` and `onSelect` are required; everything else is optional. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`) is reserved and cannot be redefined: `navigator.define` throws instead. `std.toc` (the outline) is *not* one of these any more -- it's itself a `navigator.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Concept/Command]] (or key) to it, rather than trying to redefine the built-in's name.
+## view.define(spec)
+`view.define(spec)`
+
+Registers a view, and optionally a [[Concept/Command]] that opens it. `name`, `source` and `onSelect` are required; everything else is optional. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) is reserved and cannot be redefined: `view.define` throws instead. `std.toc` (Table of Contents) is *not* one of these any more -- it's itself a `view.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Concept/Command]] (or key) to it, rather than trying to redefine the built-in's name.
 
 ### Identity and chrome
 * `name`: (globally) unique identifier for the navigator view; reserved names (the built-ins above, and anything starting with `__pick:`) throw at definition time.
@@ -23,24 +25,86 @@ Registers a view, and optionally a [[Concept/Command]] that opens it. `name`, `s
 * `hide`: keep the command out of the command palette.
 
 ### Position target
-Where the view opens is configured via:
+Where the view opens -- and where it's allowed to be moved to -- is configured via:
 
-* `dock`: `"modal"` (default), `"lhs"` or `"rhs"`.
-* `openOnStart`: open the (sidebar) view at every boot regardless of what was remembered, whether or not it was open last time. Rejected on a modal view, which has nowhere to stay open.
+* `dock`: the view's default dock, one of `"modal"` (the default), `"lhs"`, `"rhs"`, `"page-top"` or `"page-bottom"`.
+* `supportedDocks`: the list of docks the view's own dock menu offers, e.g. `{ "page-top", "page-bottom", "rhs", "modal" }`. Defaults to `{ dock }` (just the default, no menu). Must include `dock` itself, and every entry must be one of the five dock names above -- `view.define` throws otherwise. A view with fewer than two supported docks gets no dock menu at all; there'd be nothing to switch to.
+* `defaultOpen`: whether a **page-docked** view (`page-top`/`page-bottom`) starts open before anyone has touched it. Ignored for `lhs`/`rhs`/`modal`, which have their own open/closed story (below). Defaults to `false`.
+* `openOnStart`: open the view at every boot regardless of what was remembered, whether or not it was open last time. Only valid with `dock = "lhs"` or `"rhs"` -- `view.define` throws `openOnStart requires dock "lhs" or "rhs"` for any other dock, page docks included.
 
-Whichever sidebar views are open when a client shuts down are opened again on its next boot, per side. Closing a sidebar is what un-remembers it.
+There are three families of dock, each with its own notion of "open":
 
-On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over the editor, spanning everything below the top bar. It dismisses on selection like the modal, and has no resize handle. Boot restore and `openOnStart` are skipped there entirely.
+* **`lhs` / `rhs`** (sidebars) persist across navigation and boot. Whichever sidebar views are open when a client shuts down are opened again on its next boot, per side. Closing a sidebar is what un-remembers it. They're resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar is single-slot: docking a second view onto an already-occupied side displaces the current resident, which comes back on its own the moment the newcomer leaves (one level of displacement is remembered, no deeper).
+* **`page-top` / `page-bottom`** render as in-document widgets, above and below the page content respectively -- not as panels with a filter box. A page-docked view renders when its persisted (or default) open state is `true` and refreshes on the events its `refreshOn` names. `refreshOnOpen` does **not** apply: that is a panel activation, and a page dock has no such moment -- it is simply present or not. A **list** view caps its rows at `presentation.limit` (default 200) with an "*N* more" line for the rest; a **tree** view is deliberately uncapped, because a cap that removed a subtree would change the shape of the tree rather than just its length. Every row is keyboard-activatable (`Enter`/`Space`, same as a click) and runs `onSelect`; in a tree, `ArrowRight`/`ArrowLeft` expand and collapse the focused row. There's no fuzzy filter box on a page dock. A page widget with an empty result (no rows, no error) renders **nothing at all** -- no title bar, no dock button, no × -- even while its persisted open state is `true`; the chrome only appears once there's something to show.
+* **`modal`** is a centered, transient overlay: it clears its phrase on open and dismisses when you pick something. It has no persisted open state -- there's nowhere to "stay open". Picking a different dock from its own dock menu closes the modal it was picked from, the same as any other dock-to-dock move.
+
+On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over the editor, spanning everything below the top bar. It dismisses on selection like the modal, and has no resize handle. Boot restore and `openOnStart` are skipped there entirely. Page docks are unaffected by screen width -- they're already part of the document flow.
+
+#### Persisted state and precedence
+Three pieces of state are remembered per view, in the client's local datastore (under the internal `navigator` namespace regardless of which Lua name -- `view.*` or `navigator.*` -- a script used):
+
+* `["navigator", <name>, "dock"]`: which dock the view currently sits in, once you've moved it (see [[#The dock menu]] below).
+* `["navigator", <name>, "open"]`: whether a page-docked view is currently open (set on close, on dock-menu moves into/out of a page dock, and by `view.open`/closing).
+* `["navigator", <name>, "collapsed"]`: whether a page-docked view is folded to its title bar (see the fold triangle under [[#The dock menu]]). Independent of `open` -- a folded view is still open, it just isn't showing its body.
+
+Which dock a view actually opens in is resolved with this precedence, falling through whenever a level's value isn't one of the view's `supportedDocks`:
+
+1. the datastore override above, if the view still supports it;
+2. the space's `view.docks` config (see below), if it names a dock the view still supports;
+3. the view's own declared `dock`.
+
+`view.docks` is a space-wide default, set in [[CONFIG]] as a table from view name to dock:
+
+```lua
+config.set("view.docks", {
+  ["std.toc"] = "page-top",
+  ["std.linkedMentions"] = "rhs",
+})
+```
+
+`navigator.docks` is read as a permanent fallback when `view.docks` is absent -- `view.docks` wins if both are set. It only takes effect for views whose `supportedDocks` includes the dock named -- an unsupported or unrecognized value is skipped, falling back to the view's own default.
+
+#### The dock menu
+Every container a navigator view renders in -- sidebar, modal, or page widget -- gets this chrome in its header/title bar automatically, with no code required beyond declaring `supportedDocks`:
+
+* A **dock button**, whose icon depicts the view's current dock (a portrait page glyph for `page-top`/`page-bottom`, a landscape window glyph for `lhs`/`rhs`/`modal`). Clicking it opens a menu listing every dock in `supportedDocks` by name -- "Top of page", "Bottom of page", "Left sidebar", "Right sidebar", "Modal only" -- picking one moves the view there immediately, closing whichever dock (including the modal) it was picked from. A view with fewer than two `supportedDocks` gets no dock button.
+* An unconditional **× close button**. Closing never changes the view's dock preference -- only whether it's currently open. Re-invoking the view's command afterwards shows-or-focuses it again in whichever dock it was last moved to.
+* On a **page dock only**, a **fold triangle** at the left of the title, and the title itself, toggle the widget between its full body and its title bar alone. A sidebar or the modal is already its own container and gets no triangle. The choice is persisted per view like the dock is, so a folded widget stays folded across a reload and a page navigation.
 
 ### Data source
-* `source`: takes `{ phrase, segment }` as an argument and returns the objects to show.
+* `source`: takes the [[#The source context|source context]] (`{ phrase, segment, dock }`) as an argument and returns the objects to show. Mutually exclusive with `content` (below): a view either lists rows or renders a document, and `view.define` throws `content and source are mutually exclusive` if given both, `source is required` if given neither.
 * `search`: `"client"` (default: the source runs once, the panel ranks) or `"source"` (typing re-invokes the source, whose order wins).
 * `refreshOn`: event names that re-run the source. Defaults to none. For a view over the space (a page/document listing, a tree), the recommended set is `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }` -- the built-in pickers and the space tree all declare it explicitly.
 * `refreshOnOpen`: re-run the source every time the view is activated in a panel that is already open, for a view whose rows are a fact about *now*.
 * `followEditor`: a sidebar view tracks the page you navigate to.
 
+#### The source context
+`source` is handed a context table: `{ phrase = <what is typed>, segment = <active segment's label, or nil>, dock = <the dock it is being rendered in> }`. A [[#content|content view]]'s `content` function gets `phrase` and `dock` too.
+
+`ctx.dock` is the view's **resolved** dock — the same value the dock menu and `view.docks` settle on, never the declared default — so a view can present itself differently in a document than in a panel. The built-in Table of Contents uses it for exactly that:
+
+```lua
+source = function(ctx)
+  local headers = widgets.tocHeaders()
+  -- In a page dock, too short an outline is worse than none: it takes space
+  -- at the top of every page. Returning no rows renders nothing at all --
+  -- no title bar, no chrome, no reserved height.
+  if ctx.dock == "page-top" or ctx.dock == "page-bottom" then
+    -- Hoisted: `<` binds tighter than `or`, so inlining the fallback would
+    -- read as `(#headers < minHeaders) or 3` and always be truthy.
+    local minHeaders = config.get("std.widgets.toc", {}).minHeaders or 3
+    if #headers < minHeaders then
+      return {}
+    end
+  end
+  -- In a sidebar or the modal you opened it deliberately, so you get every
+  -- header however few.
+  return headers
+end
+```
+
 #### Search modes
-`source` is handed a context table: `{ phrase = <what is typed>, segment = <active segment's label, or nil> }`. What it does with it is what `search` decides.
+What `source` does with `phrase` and `segment` is what `search` decides.
 
 `search = "client"` (the default) runs the source once per load, hands it the state at that moment, and does everything else in the panel: the phrase ranks fuzzily and the segments subset by `where`, both without leaving the panel. Sources that ignore `ctx` entirely — the common case — are exactly this mode.
 
@@ -50,6 +114,35 @@ On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over 
 A view's rows are loaded once and then kept, refreshed by its `refreshOn` events.
 
 Opening a panel that was closed re-runs `source` once, since a closed panel hears none of its `refreshOn` events. Everything else reuses what the view already has: re-activating the view a panel is already showing, or hopping to a sibling it has visited before. That is right for a tree of the space, and wrong for anything whose order or membership is a fact about *now*: recency, the page you are currently on, which commands the cursor's context allows. `refreshOnOpen = true` re-runs `source` for those activations too.
+
+### content
+Some views aren't lists at all. `content` defines a **content view**: instead of `source`, it takes the same [[#The source context|source context]] (`phrase` and `dock`; a content view has no segments) and returns a **markdown string** (or `nil` for "nothing to show"), and the view renders that markdown in place of a row list.
+
+```lua
+view.define {
+  name = "my.mentions",
+  title = "Linked Mentions",
+  command = "Navigate: My Linked Mentions",
+  dock = "page-bottom",
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  defaultOpen = true,
+  refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
+  content = function(ctx)
+    return widgets.linkedMentionsMarkdown()
+  end,
+}
+```
+
+What you get:
+
+* The markdown goes through **the same renderer an inline Lua widget's `markdown` goes through**. Wiki links resolve and navigate locally, `widgets.commandButton` buttons run their commands, transclusions and `${...}` directives expand, and custom syntax renders.
+* **Tasks are tickable.** A task carrying a `[[page@pos]]` ref — everything `templates.taskItem` builds — renders a live checkbox that writes the new state straight back to the page the task lives on. (A task without one gets a ref to the current page; the write is re-checked against the marker before it lands, so a stale ref does nothing.)
+* The title bar carries a **Copy** button putting the markdown *source* on the clipboard, exactly like the inline Lua widget button bar's Copy.
+* It renders **identically in every dock** — page-top, page-bottom, either sidebar, or a modal. Only the frame around it differs.
+
+Things a content view doesn't have, because it has no rows: `onSelect` (the one shape of view that doesn't require it), a filter input (suppressed automatically, whatever `filter` says), `presentation.row`, `segments`, `dropdown`, `actions`, `keymap`, `onCreate` and `onMove`. Everything else — the chrome, the docking fields, `refreshOn`/`refreshOnOpen`, `defaultOpen`, `openOnStart` — works exactly as it does for a row view; `refreshOn` re-runs `content` rather than `source`.
+
+`view.pick` never takes `content`: a pick resolves to a selected row, and a content view has none.
 
 ### Filter
 `filter` is a table of everything about how the phrase matches:
@@ -77,7 +170,7 @@ Opening a panel that was closed re-runs `source` once, since a closed panel hear
 * `hierarchy`: `{ field = <string>, separator = <string> }` (a table of named keys, not a positional pair), defaults to `{ field = "name", separator = "/" }`. Tree only. The field's value is the row's path and thus its identity: it must be unique per row — rows sharing a path collapse onto a single tree node.
 * `foldersFirst`: group folders above everything else. Tree only. Default on.
 * `expandAll`: every folder starts open, and what is remembered is what you *closed*. Tree only.
-* `expansionScope`: `"view"` (default, persisted per view) or `"page"` (kept only while you are on the page, for a tree of the current page's own content). Tree only.
+* `expansionScope`: `"view"` (default, persisted per view) or `"page"` (kept only while you are on the page, for a tree of the current page's own content). Tree only. A `"page"` tree keeps its expansion in memory only, in a page dock exactly as in a panel -- its paths belong to the page you are on, so a stored set would arrive on top of a different page's rows.
 * `limit`: (default 200) rows rendered before the `N more matches` footer.
 * `createIcon`: the create row's icon (see [[#Row icons]] for the accepted forms), resolved once for the view since its "object" is whatever is being typed.
 * `row`: `{ primary, label, description, decorations, cssClass, icon }`. `primary`/`label`/`description`/`cssClass` are each either a field name or a function of the object; `cssClass` adds classes to the row element itself; `icon` is described under [[#Row icons]].
@@ -124,7 +217,7 @@ presentation = {
 ```
 
 ### Callbacks and interaction modes
-* `onSelect`: `(obj, ctx)` for the picked row. **Required.** Returning `false` keeps the panel open.
+* `onSelect`: `(obj, ctx)` for the picked row. **Required**, except on a [[#content|content view]], which has no rows to pick. Returning `false` keeps the panel open.
 * `onCreate`: takes the typed phrase, for the create row. The create row appears iff `onCreate` is defined.
 * `onMove`:`(obj, newName)`, when defined makes a tree drag-and-drop capable.
 * `keymap`: key name to function map of the selected row’s object. Navigation keys are rejected.
@@ -267,13 +360,13 @@ prefixViews = { ["$"] = "std.anchors", ["#"] = "std.tags" },
 #### Drag and drop
 A tree view with `onMove` lets you drag rows to a new place in the hierarchy. Drop targets are folders and the tree’s root area. Hovering a collapsed folder for some time opens it. The drop renames the dragged item to `<target folder>/<last segment>` and calls `onMove(obj, newName)`. Dragging a folder moves everything under it. A name that already exists in the tree aborts the drop with an error notification. Folder rows reach `onMove` with an added `isFolder = true`; a page that also has children carries both `isFolder` and its own fields. Desktop only.
 
-## navigator.pick(spec)
-`navigator.pick(spec)`
+## view.pick(spec)
+`view.pick(spec)`
 
 A one-shot modal picker: opens, suspends the calling script, and returns the selected row’s object — or `nil` if it was dismissed (Escape, backdrop) or superseded by a newer navigator open before anything was picked.
 
 ```lua
-local task = navigator.pick {
+local task = view.pick {
   title = "Pick a task",
   source = function() return query [[from index.tag "task" where not _.done]] end,
   presentation = { row = { primary = "name", description = "page" } },
@@ -283,14 +376,14 @@ if task then editor.navigate(task.ref) end
 
 It’s the successor to `editor.filterBox` for a rich, filterable, optionally-segmented or tree-shaped picker inline in a script.
 
-**`onSelect`** is optional, same signature as `navigator.define`‘s (`(obj, ctx)`):
-* Absent: picking a row resolves `navigator.pick` with that row’s `obj` and closes the panel.
-* Present: it runs, returning `false` keeps the panel open (unchanged semantics — the handler has taken the slot over itself), anything else resolves `navigator.pick` with the selected `obj` regardless of what `onSelect` returned.
+**`onSelect`** is optional, same signature as `view.define`‘s (`(obj, ctx)`):
+* Absent: picking a row resolves `view.pick` with that row’s `obj` and closes the panel.
+* Present: it runs, returning `false` keeps the panel open (unchanged semantics — the handler has taken the slot over itself), anything else resolves `view.pick` with the selected `obj` regardless of what `onSelect` returned.
 
-## navigator.open(name, opts?)
-`navigator.open(name, opts?)`
+## view.open(name, opts?)
+`view.open(name, opts?)`
 
-Opens the view registered under `name`, and returns whether a panel came up. Opening a view whose dock is already visible re-focuses its filter input (unless `focus = false`).
+Opens the view registered under `name`, and returns whether the view opened. (A page-docked view opens without a panel coming up, and still returns `true`.) Opening a view whose dock is already visible re-focuses its filter input (unless `focus = false`).
 
 **Parameters:**
 
@@ -301,3 +394,18 @@ Opens the view registered under `name`, and returns whether a panel came up. Ope
   * `dropdown`: the [[#Dropdown|dropdown]] value to open selected, overriding the remembered one for this open only — it is never persisted, so the next open without one restores the remembered (hand-picked) selection or All. A value not (yet) among the loaded options filters as the built-in "All" until a refresh brings its option in.
   * `focus`: `false` opens the panel without taking keyboard focus — the editor keeps it. Only the focus grab is skipped: the rows still refresh and the phrase/selection reset like any other open (unlike a boot restore, which is fully passive). Such an open also never toggles an already-focused panel closed.
 
+## view.focus(slot?)
+`view.focus(slot?)`
+
+Returns focus to an open navigator panel's input, keeping its current selection.
+
+* `slot?`: which panel -- `"modal"`, `"lhs"` or `"rhs"`. Defaults to any open one.
+
+## view.moveByRename(obj, newName)
+`view.moveByRename(obj, newName)`
+
+Renames the page, document or folder an object stands for -- the default `onMove` for space-backed views:
+
+```lua
+onMove = view.moveByRename,
+```

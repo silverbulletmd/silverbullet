@@ -14,7 +14,6 @@ import { pageHistoryView, spaceLogView } from "./views/revisions.ts";
 import { pagePicker } from "./views/pages.ts";
 import { spaceTreeView } from "./views/space_tree.ts";
 import { tagPicker } from "./views/tags.ts";
-import { tocModalView, tocView } from "./views/toc.ts";
 import type { BuiltinView } from "./views/types.ts";
 
 async function isReadOnly(): Promise<boolean> {
@@ -31,8 +30,6 @@ const views: Record<string, BuiltinView<any>> = {
   "std.anchors": anchorPicker,
   "std.tags": tagPicker,
   "std.commands": commandPalette,
-  "std.toc": tocView,
-  "std.tocModal": tocModalView,
   "std.spaceTree": spaceTreeView,
   "std.pageHistory": pageHistoryView,
   "std.spaceLog": spaceLogView,
@@ -68,6 +65,10 @@ export function setRevisionsAvailable(available: boolean): void {
 
 function hidden(name: string): boolean {
   return REVISION_VIEWS.has(name) && !revisionsAvailable;
+}
+
+export function builtinViewNames(): string[] {
+  return Object.keys(views);
 }
 
 export function builtinMeta(name: string): ViewMeta | undefined {

@@ -7,7 +7,17 @@ const handle = vi.fn<(data: any) => Promise<any>>();
 vi.mock("@silverbulletmd/silverbullet/syscall", () => ({
   syscall: (name: string, ...args: any[]) => syscall(name, ...args),
 }));
-vi.mock("../registry.ts", () => ({ handle: (data: any) => handle(data) }));
+vi.mock("../registry.ts", () => ({
+  handle: (data: any) => handle(data),
+  // The real thing: this is pure result-shaping, and stubbing it would only
+  // let the engine's content path pass against a fiction.
+  normalizeContent: (result: any) =>
+    result && typeof result.error === "string"
+      ? { error: result.error }
+      : {
+          markdown: typeof result?.markdown === "string" ? result.markdown : "",
+        },
+}));
 
 const { NavigatorEngine, parseIcon } = await import("./engine.ts");
 
@@ -428,4 +438,63 @@ test("a reload in flight never exposes a half-cleared view to a publish", async 
   expect(engine.activeState()?.dropdownOptions).toEqual([
     { label: "Pete", value: "p" },
   ]);
+});
+
+// `ctx.dock` is the view's resolved dock. For a panel that *is* the engine's
+// own slot: there is one engine per slot, and a view only reaches this one by
+// having resolved here.
+test("every load stamps the panel's own slot onto ctx.dock", async () => {
+  bridge(meta(), []);
+
+  await new NavigatorEngine("rhs").activate("v");
+
+  const rowsCalls = handle.mock.calls
+    .map(([payload]) => payload)
+    .filter((p) => p.hook === "rows");
+  expect(rowsCalls).toHaveLength(1);
+  expect(rowsCalls[0].args.ctx.dock).toBe("rhs");
+});
+
+// Not just the first load: a refresh and a source-mode query come through the
+// same choke point, which is why the stamp lives there rather than at each
+// call site.
+test("a refresh and a query carry ctx.dock too", async () => {
+  bridge(meta({ search: "source" }), []);
+  const engine = new NavigatorEngine("modal");
+  await engine.activate("v");
+
+  await engine.refresh();
+  await engine.query({ phrase: "typed" });
+
+  const docks = handle.mock.calls
+    .map(([payload]) => payload)
+    .filter((p) => p.hook === "rows")
+    .map((p) => p.args.ctx.dock);
+  expect(docks).toEqual(["modal", "modal", "modal"]);
+  // ...and the query's own phrase survives the stamp.
+  const last = handle.mock.calls
+    .map(([payload]) => payload)
+    .filter((p) => p.hook === "rows")
+    .at(-1);
+  expect(last.args.ctx.phrase).toBe("typed");
+});
+
+test("a content view's load carries the dock as well", async () => {
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") {
+      return Promise.resolve(meta({ hasContent: true }));
+    }
+    if (payload.hook === "content") {
+      return Promise.resolve({ markdown: "# hi" });
+    }
+    return Promise.resolve(undefined);
+  });
+
+  const state = await new NavigatorEngine("lhs").activate("v");
+
+  expect(state.content).toBe("# hi");
+  const contentCall = handle.mock.calls
+    .map(([payload]) => payload)
+    .find((p) => p.hook === "content");
+  expect(contentCall.args.ctx.dock).toBe("lhs");
 });

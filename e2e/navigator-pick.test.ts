@@ -467,7 +467,9 @@ test("navigator.define and navigator.open both reject the reserved pick prefix, 
   expect(rows).toContain("dock=false");
   const dockError = rows.find((r) => r.startsWith("dock.error="));
   expect(dockError).toBeDefined();
-  expect(dockError).toContain("navigator.define");
+  // The fixture calls the `navigator.*` alias, but the validator names the
+  // canonical API in its message -- `view.define`, since the rename.
+  expect(dockError).toContain("view.define");
   expect(dockError).toContain("'dock'");
   await sbPage.keyboard.press("Escape");
 });

@@ -1,5 +1,9 @@
 import { icon } from "@silverbulletmd/silverbullet/syscalls";
-import { handle as runHook } from "../registry.ts";
+import {
+  type ContentResult,
+  normalizeContent,
+  handle as runHook,
+} from "../registry.ts";
 import { rank } from "../../../plug-api/lib/fuzzy.ts";
 import {
   allNodes,
@@ -61,6 +65,8 @@ export function parseIcon(icon: unknown): ParsedIcon {
 export type ViewState = {
   meta: ViewMeta;
   rows: Row[];
+  /** A content view's markdown (`meta.hasContent`); rows stay empty. */
+  content?: string;
   error?: string;
   rowState?: RowStates;
   segmentMasks?: SegmentMasks;
@@ -84,6 +90,8 @@ function metaChanged(a: ViewMeta, b: ViewMeta): boolean {
 }
 
 export class NavigatorEngine {
+  constructor(readonly slot?: string) {}
+
   /** How a view's hooks are run. A property so a test can wrap it. */
   runHook: HookRunner = runHook;
 
@@ -238,8 +246,24 @@ export class NavigatorEngine {
   // Applied only if it's still the newest load for this view, so a slow response can't overwrite what a newer one already put under the user's typing.
   private async loadRows(entry: ViewState, ctx: SourceCtx): Promise<boolean> {
     const token = ++this.tokens;
+    ctx = { ...ctx, dock: this.slot };
     entry.ctx = ctx;
     entry.loadToken = token;
+    if (entry.meta.hasContent) {
+      let result: ContentResult;
+      try {
+        result = normalizeContent(
+          await this.handle(entry.meta.name, "content", { ctx }),
+        );
+      } catch (e: any) {
+        result = { error: e?.message ?? String(e) };
+      }
+      if (entry.loadToken !== token) return false;
+      entry.error = result.error;
+      entry.rows = [];
+      if (result.error === undefined) entry.content = result.markdown;
+      return true;
+    }
     let rows: Row[] = [];
     let error: string | undefined;
     try {
@@ -455,7 +479,7 @@ const engines = new Map<string, NavigatorEngine>();
 export function engineFor(slot: string): NavigatorEngine {
   let engine = engines.get(slot);
   if (!engine) {
-    engine = new NavigatorEngine();
+    engine = new NavigatorEngine(slot);
     engines.set(slot, engine);
   }
   return engine;

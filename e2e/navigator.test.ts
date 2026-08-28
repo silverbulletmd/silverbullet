@@ -22,7 +22,7 @@ import {
 
 const NAV_CONFIG = `# Nav test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "pages",
   title = "Pages",
   command = "Navigator: Pages",
@@ -36,7 +36,7 @@ navigator.define {
 }
 
 navigator._flakyCalls = navigator._flakyCalls or 0
-navigator.define {
+view.define {
   name = "flaky",
   title = "Flaky",
   command = "Navigator: Flaky",
@@ -49,7 +49,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "sidebar",
   title = "Sidebar",
   command = "Navigator: Sidebar",
@@ -62,7 +62,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "sidebarjournal",
   title = "Sidebar Journal",
   command = "Navigator: Sidebar Journal",
@@ -79,7 +79,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "modaltree",
   title = "Modal Tree",
   command = "Navigator: Modal Tree",
@@ -92,7 +92,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "sidebartree",
   title = "Sidebar Tree",
   command = "Navigator: Sidebar Tree",
@@ -106,7 +106,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "createlist",
   title = "Create List",
   command = "Navigator: Create List",
@@ -120,7 +120,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "createtree",
   title = "Create Tree",
   command = "Navigator: Create Tree",
@@ -136,7 +136,7 @@ navigator.define {
 
 -- Synthetic + tiny, so "does this phrase prune the tree to nothing" doesn't
 -- depend on what the background indexer has delivered yet.
-navigator.define {
+view.define {
   name = "createtreesmall",
   title = "Create Tree Small",
   command = "Navigator: Create Tree Small",
@@ -149,7 +149,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "keymaptree",
   title = "Keymap Tree",
   command = "Navigator: Keymap Tree",
@@ -166,7 +166,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "keymaplist",
   title = "Keymap List",
   command = "Navigator: Keymap List",
@@ -182,7 +182,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "createbulk",
   title = "Create Bulk",
   command = "Navigator: Create Bulk",
@@ -200,7 +200,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "expandalltree",
   title = "Expand All Tree",
   command = "Navigator: Expand All Tree",
@@ -213,7 +213,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "labeltree",
   title = "Label Tree",
   command = "Navigator: Label Tree",
@@ -234,7 +234,7 @@ navigator.define {
 
 -- Synthetic rows: enough of them to scroll, and identical across refreshes so
 -- a scroll-stability assertion isn't confounded by the dataset changing.
-navigator.define {
+view.define {
   name = "scrolltree",
   title = "Scroll Tree",
   command = "Navigator: Scroll Tree",
@@ -1417,14 +1417,14 @@ test("keymap: a printable key types while typing and acts while navigating", asy
 
 const DND_CONFIG = `# Nav DnD test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "movetree",
   title = "Move Tree",
   command = "Navigator: Move Tree",
   dock = "modal",
   refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   presentation = { mode = "tree", foldersFirst = false },
-  onMove = navigator.moveByRename,
+  onMove = view.moveByRename,
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
@@ -1637,7 +1637,7 @@ test.describe("dnd", () => {
 
 const ACTION_CONFIG = `# Nav actions test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "actiontree",
   title = "Action Tree",
   command = "Navigator: Action Tree",
@@ -1665,7 +1665,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "actionlist",
   title = "Action List",
   command = "Navigator: Action List",
@@ -1688,7 +1688,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "icontree",
   title = "Icon Tree",
   command = "Navigator: Icon Tree",
@@ -1722,7 +1722,7 @@ navigator.define {
 
 -- An empty table is not an empty array once it crosses to the panel; both of
 -- these used to take the whole view down with a TypeError.
-navigator.define {
+view.define {
   name = "emptyextras",
   title = "Empty Extras",
   command = "Navigator: Empty Extras",
@@ -1737,7 +1737,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "rotree",
   title = "RO Tree",
   command = "Navigator: RO Tree",
@@ -1745,7 +1745,7 @@ navigator.define {
   refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   onCreate = function(name) editor.navigate(name) end,
   presentation = { mode = "tree" },
-  onMove = navigator.moveByRename,
+  onMove = view.moveByRename,
   actions = {
     { icon = "eye", label = "Peek", run = function(obj)
         editor.flashNotification("action peek " .. obj.name)
@@ -2125,7 +2125,7 @@ local kindSegments = {
     where = function(obj) return obj.kind == "doc" end },
 }
 
-navigator.define {
+view.define {
   name = "segmentlist",
   title = "Segment List",
   command = "Navigator: Segment List",
@@ -2143,7 +2143,7 @@ navigator.define {
 -- measures what a *keystroke* costs; a background indexing pass finishing
 -- mid-test fires a legitimate refresh (two dispatches: rows + rowState) that
 -- would otherwise be charged to the keyboard.
-navigator.define {
+view.define {
   name = "norefresh",
   title = "No Refresh",
   command = "Navigator: No Refresh",
@@ -2155,7 +2155,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "segmenttree",
   title = "Segment Tree",
   command = "Navigator: Segment Tree",
@@ -2169,7 +2169,7 @@ navigator.define {
 -- A name far wider than the narrowest dock, on a row that also carries an
 -- icon: the icon offsets the name, so a name allowed to take the row's whole
 -- width ends up past the pane -- with its own ellipsis rendered off-screen.
-navigator.define {
+view.define {
   name = "longnames",
   title = "Long Names",
   command = "Navigator: Long Names",
@@ -2188,7 +2188,7 @@ navigator.define {
 }
 
 -- Label-only segments: they must never collapse to nothing, however narrow.
-navigator.define {
+view.define {
   name = "filterplain",
   title = "Filter Plain",
   command = "Navigator: Filter Plain",
@@ -2204,7 +2204,7 @@ navigator.define {
 }
 
 -- A predicate that throws: fail-closed, and it must not take the pass whole.
-navigator.define {
+view.define {
   name = "filterboom",
   title = "Filter Boom",
   command = "Navigator: Filter Boom",
@@ -2225,7 +2225,7 @@ navigator.define {
 -- object, and neither field survives being taken at face value -- refreshOn is
 -- spread into an event list, and empty filter fields would rank every row
 -- against no field at all, emptying the list on the first keystroke.
-navigator.define {
+view.define {
   name = "emptytables",
   title = "Empty Tables",
   command = "Navigator: Empty Tables",
@@ -2248,12 +2248,12 @@ for _, case in ipairs({
   { what = "good", spec = { name = "goodspec", source = things,
       onSelect = function() end } },
 }) do
-  local ok = pcall(navigator.define, case.spec)
+  local ok = pcall(view.define, case.spec)
   navigator._badIcons[#navigator._badIcons + 1] = case.what .. "=" .. tostring(ok)
 end
 
 -- Reads the outcomes back out through the machinery under test.
-navigator.define {
+view.define {
   name = "validation",
   title = "Validation",
   command = "Navigator: Validation",
@@ -2515,7 +2515,7 @@ test.describe("segments", () => {
     );
   });
 
-  test("navigator.define rejects a bad spec, and defines a good one, across the Lua bridge", async ({
+  test("view.define rejects a bad spec, and defines a good one, across the Lua bridge", async ({
     sbPage,
   }) => {
     const frame = await openNavigatorView(sbPage, "Navigator: Validation");
@@ -2619,7 +2619,7 @@ local function pick(ctx)
   return out
 end
 
-navigator.define {
+view.define {
   name = "sourcesearch",
   title = "Source Search",
   command = "Navigator: Source Search",
@@ -2656,7 +2656,7 @@ navigator.define {
 }
 
 -- The same data, ranked by the panel: the control for the ordering assertion.
-navigator.define {
+view.define {
   name = "clientsearch",
   title = "Client Search",
   command = "Navigator: Client Search",
@@ -2787,7 +2787,7 @@ end
 
 -- Everything that costs something per row, at once: icons, an action gated by
 -- when(), and a filter segment gated by where().
-navigator.define {
+view.define {
   name = "bulklist",
   title = "Bulk List",
   command = "Navigator: Bulk List",
@@ -2806,7 +2806,7 @@ navigator.define {
   onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 
-navigator.define {
+view.define {
   name = "smalllimit",
   title = "Small Limit",
   command = "Navigator: Small Limit",
@@ -2987,7 +2987,7 @@ test.describe("render cap", () => {
 
 const MODAL_VIEW = `# Modal view
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "test.pagesModal",
   title = "Pages Modal",
   command = "Navigator: Pages Modal",
@@ -3324,7 +3324,18 @@ test.describe("built-in views", () => {
       differsFromUnselected: true,
     });
 
-    await runCommand(sbPage, "Navigate: Outline");
+    // Opens as a modal by default; pin it to the right sidebar to reach the
+    // docked empty-state styling this asserts on.
+    await runCommand(sbPage, "Navigate: Table of Contents");
+    const outlineModal = sbPage.locator(".sb-nav-root-modal");
+    await expect(outlineModal).toBeVisible();
+    await outlineModal.locator(".sb-dock-button").click();
+    await outlineModal
+      .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+      .click();
+    // Picking a dock from the modal's own menu closes the modal it was
+    // picked from.
+    await expect(outlineModal).toHaveCount(0);
     const outline = sidebarFrame(sbPage, "rhs");
     await expect(outline.locator(".sb-nav-empty")).toBeVisible();
     const rhsMetrics = await sbPage.evaluate(() => {
@@ -3371,7 +3382,7 @@ test.describe("built-in views", () => {
     ).toHaveText("flow.png");
   });
 
-  test("default row icons distinguish folders, duals, pages, documents and images", async ({
+  test("default row icons distinguish folders, pages, documents and images", async ({
     sbPage,
   }) => {
     const frame = await openSpaceTree(sbPage);
@@ -3382,19 +3393,23 @@ test.describe("built-in views", () => {
       await frame.locator(`[data-path='${path}'] .sb-nav-icon svg`).innerHTML();
 
     const folder = await iconOf("Diagrams");
-    const dual = await iconOf("Projects");
     const page = await iconOf("Projects/Alpha");
     const document = await iconOf("Projects/notes.txt");
     const image = await iconOf("Diagrams/flow.png");
 
-    expect(new Set([folder, dual, page, document, image]).size).toBe(5);
+    expect(new Set([folder, page, document, image]).size).toBe(4);
+    // A dual takes the page icon -- it is a page that happens to head a folder.
+    expect(await iconOf("Projects")).toBe(page);
   });
 
-  test("a page/folder dual is navigable, a pure folder is not", async ({
+  test("every folder opens the page of its name, dual or not", async ({
     sbPage,
   }) => {
     const frame = await openSpaceTree(sbPage);
 
+    // A dual carries a class of its own, as a styling hook. What it does not
+    // change is the click: both kinds open the page their label names, the
+    // dual an existing one and the pure folder a blank one.
     await expect(frame.locator("[data-path='Projects']")).toHaveClass(
       /sb-nav-dual/,
     );
@@ -3407,7 +3422,7 @@ test.describe("built-in views", () => {
       frame.locator("[data-path='Diagrams/flow.png']"),
     ).toBeVisible();
     await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
-      "index",
+      "Diagrams",
     );
 
     await frame.locator("[data-path='Projects'] .sb-nav-primary").click();
@@ -3715,24 +3730,41 @@ test.describe("boot restore", () => {
     await expect(sbPage.locator("#sb-main .sb-nav-root-lhs")).toHaveCount(0);
   });
 
-  test("a docked outline (std.toc, a TS builtin) comes back on the next boot, passively", async ({
+  test("a docked outline (std.toc, now a Space Lua navigator view) comes back on the next boot, passively", async ({
     sbPage,
     sbServer,
   }) => {
-    await runCommand(sbPage, "Navigate: Outline");
+    // Opens as a modal by default now (no persisted dock preference yet);
+    // pin it to a sidebar first, same as any other multi-dock view.
+    await runCommand(sbPage, "Navigate: Table of Contents");
+    const modal = sbPage.locator(".sb-nav-root-modal");
+    await expect(modal.locator(".sb-nav-title")).toHaveText(
+      "Table of Contents",
+    );
+    await modal.locator(".sb-dock-button").click();
+    await modal
+      .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+      .click();
+    // Picking a dock from the modal's own menu closes the modal.
+    await expect(modal).toHaveCount(0);
+
     const frame = sidebarFrame(sbPage, "rhs");
-    await expect(frame.locator(".sb-nav-title")).toHaveText("Outline");
+    await expect(frame.locator(".sb-nav-title")).toHaveText(
+      "Table of Contents",
+    );
 
     await reboot(sbPage, sbServer);
 
     const restored = sidebarFrame(sbPage, "rhs");
-    await expect(restored.locator(".sb-nav-title")).toHaveText("Outline");
+    await expect(restored.locator(".sb-nav-title")).toHaveText(
+      "Table of Contents",
+    );
   });
 });
 
 const STARTUP_CONFIG = `# Nav startup test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "startupsidebar",
   title = "Startup Sidebar",
   command = "Navigator: Startup Sidebar",
@@ -3748,7 +3780,7 @@ navigator.define {
 
 navigator._openOnStartRejected = false
 local ok = pcall(function()
-  navigator.define {
+  view.define {
     name = "startupmodal",
     dock = "modal",
     openOnStart = true,
@@ -3853,7 +3885,18 @@ test.describe("mobile", () => {
   test("a drawer overlays rather than reserving top-bar width, on either side, and a modal opens over it", async ({
     sbPage,
   }) => {
-    await runCommand(sbPage, "Navigate: Outline");
+    // Opens as a modal by default; pin it to the right sidebar first so it
+    // becomes the drawer this test is stacking a modal on top of.
+    await runCommand(sbPage, "Navigate: Table of Contents");
+    const outlineModal = sbPage.locator(".sb-nav-root-modal");
+    await expect(outlineModal).toBeVisible();
+    await outlineModal.locator(".sb-dock-button").click();
+    await outlineModal
+      .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
+      .click();
+    // Picking a dock from the modal's own menu closes it, so the modal this
+    // test opens next is the only one up.
+    await expect(outlineModal).toHaveCount(0);
     const frame = sidebarFrame(sbPage, "rhs");
     await expect(frame).toBeVisible();
 
@@ -3925,7 +3968,7 @@ end
 
 local function isMeta(obj) return obj.kind == "meta" end
 
-navigator.define {
+view.define {
   name = "prefixhost",
   title = "Prefix Host",
   command = "Navigator: Prefix Host",
@@ -3947,7 +3990,7 @@ navigator.define {
 
 -- No command of its own: the only way in is the host's "$" prefix, which is
 -- exactly what makes this a routing assertion rather than an open assertion.
-navigator.define {
+view.define {
   name = "prefixchild",
   title = "Prefix Child",
   dock = "modal",
@@ -3963,7 +4006,7 @@ navigator.define {
 
 -- A sidebar host: the child docks "modal", so routing from here proves the
 -- hop takes over the *invoking* slot rather than the target's own.
-navigator.define {
+view.define {
   name = "prefixside",
   title = "Prefix Side",
   command = "Navigator: Prefix Side",
@@ -3975,7 +4018,7 @@ navigator.define {
 }
 
 -- Path completion next to a keymap that claims Space: the two must not fight.
-navigator.define {
+view.define {
   name = "prefixspace",
   title = "Prefix Space",
   command = "Navigator: Prefix Space",
@@ -4249,7 +4292,7 @@ test.describe("prefixes and completion", () => {
 
 const SOURCE_DATA_CONFIG = `# Nav source data test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "spacepicker",
   title = "Space Picker",
   command = "Navigator: Space Picker",
@@ -4391,7 +4434,7 @@ test.describe("source-side picker data", () => {
 
 const LUACALL_CONFIG = `# LuaCall round-trip test
 \`\`\`space-lua
-navigator.define {
+view.define {
   name = "luacalltree",
   title = "LuaCall Tree",
   command = "Navigator: LuaCall Tree",
@@ -4403,7 +4446,7 @@ navigator.define {
       when = function(obj) return obj.isFolder ~= true end,
       run = function(obj) editor.flashNotification("action delete " .. obj.name) end },
   },
-  onMove = navigator.moveByRename,
+  onMove = view.moveByRename,
   source = function()
     return query [[from index.tag "page" order by _.name]]
   end,
@@ -4475,7 +4518,7 @@ test.describe("builtins with no Space Lua navigator definitions present", () => 
     },
   });
 
-  test("std.pages, std.commands, std.spaceTree and std.toc all open normally", async ({
+  test("std.pages, std.commands, std.spaceTree open normally, and std.toc (now a std-library Space Lua view, not a TS builtin) opens too", async ({
     sbPage,
   }) => {
     const pages = await openPicker(sbPage, `${mod}+k`, "Page");
@@ -4493,8 +4536,14 @@ test.describe("builtins with no Space Lua navigator definitions present", () => 
     });
 
     await sbPage.locator("#sb-editor .cm-content").click();
-    await runCommandViaPalette(sbPage, "Navigate: Outline");
-    const outline = sbPage.locator(".sb-nav-root-rhs");
-    await expect(outline.locator(".sb-nav-title")).toHaveText("Outline");
+    // Opens as a modal by default (no persisted dock preference yet); no
+    // Space Lua config here comes from the user's own space, only the std
+    // library's own view.define -- proof the built-in-name collision
+    // guard in registry.ts no longer blocks std.toc now it isn't a builtin.
+    await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+    const outline = sbPage.locator(".sb-nav-root-modal");
+    await expect(outline.locator(".sb-nav-title")).toHaveText(
+      "Table of Contents",
+    );
   });
 });

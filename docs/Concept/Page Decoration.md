@@ -3,7 +3,6 @@ description: Visual customization (icons, prefixes, CSS) applied to pages matchi
 tags: maturity/beta glossary
 pageDecoration:
   prefix: "🎄 "
-  disableTOC: true
   cssClasses:
   - christmas-decoration
 references:
@@ -14,7 +13,6 @@ Page decorations allow you to “decorate” pages in various fun ways.
 # Supported decorations
 * `prefix`: A (visual) string prefix (often an emoji) to add to all page names. This prefix will appear in the top bar as well as in (live preview) links to this page. For example, the name of this page is actually “Page Decorations”, but when you link to it, you’ll see it’s prefixed with a 🎄: [[Concept/Page Decoration]]
 * `cssClasses`: (list of strings) Attaches one or more CSS classes the page's `<body>` tag, wiki links, auto complete items and [[Feature/Page Picker]] entries for more advanced styling through a [[Concept/Space Style]] (see [[#Use case: pimp my page]] for an example).
-* `disableTOC` (not technically built-in, but a feature of the [[^Library/Std/Widgets/Widgets|Table of Content]] widget): disable the TOC for this particular page.
 
 # Apply with [[Concept/Frontmatter]]
 This is demonstrated in the [[Concept/Frontmatter]] at the top of this page, by using the special `pageDecoration` attribute. This is how we get the fancy tree (🎄) in front of the page name. Sweet.

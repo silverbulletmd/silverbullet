@@ -16,17 +16,7 @@ Let's say you keep notes of 1-on-1 meetings with people. You have a page for eac
 The next time you open B's page, you'll see the task from your meeting with A listed in the "Linked Tasks" widget at the top.
 
 # Behind the scenes
-The Linked Tasks widget appears at the top of a page and shows all incomplete tasks from _other_ pages that contain a link to the current page. This is powered by a query that finds tasks where `ilinks` (inherited links) includes the current page name.
-
-When you complete a linked task (by checking the checkbox), the task is updated on its source page — the state change propagates across pages.
-
-# Configuration
-You can enable or disable the Linked Tasks widget via configuration:
-
-```lua
--- Disable linked tasks widget
-config.set("std.widgets.linkedTasks.enabled", false)
-```
+Linked Tasks is a [[Feature/Navigator]] view (${widgets.commandButton("Navigate: Linked Tasks")}) that docks at the top of the page by default, open, and shows all incomplete tasks from _other_ pages that contain a link to the current page. This is powered by a query that finds tasks where `ilinks` (inherited links) includes the current page name.
 
 # Example
 Below are two tasks that mention this very page (this is not the general pattern, just for demonstration purposes). Note that the not completed task is listed at the top of this page as well in the "Linked Tasks" widget.

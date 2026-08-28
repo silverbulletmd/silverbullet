@@ -1,0 +1,57 @@
+// The dock menu: the ⋯ button in a panel or page-widget title bar, and the
+// popup it anchors. Shared by every dock, so it belongs to none of them.
+
+.sb-dock-menu-anchor {
+  position: relative;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sb-dock-button {
+  cursor: pointer;
+  color: var(--subtle-color);
+}
+
+.sb-dock-button:hover {
+  color: var(--action-button-hover-color);
+}
+
+.sb-dock-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 180px;
+  background: var(--modal-background-color);
+  border: 1px solid var(--modal-border-color);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.sb-dock-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--ui-font);
+  font-size: 14px;
+  color: var(--modal-color);
+}
+
+.sb-dock-menu-item:hover {
+  background: var(--subtle-background-color);
+}
+
+.sb-dock-menu-current {
+  background: var(--ui-accent-color);
+  color: var(--ui-accent-contrast-color);
+}
+
+.sb-dock-menu-item.sb-dock-menu-current:hover {
+  background: var(--ui-accent-color);
+}

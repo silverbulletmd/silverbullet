@@ -190,8 +190,6 @@ async function registeredCommands(revisionsEnabled = true) {
 }
 
 test.each([
-  ["Navigate: Outline", "std.toc"],
-  ["Navigate: Outline Picker", "std.tocModal"],
   ["Navigate: Tree", "std.spaceTree"],
   ["Revision: Page History", "std.pageHistory"],
   ["Revision: Space History", "std.spaceLog"],
@@ -293,13 +291,145 @@ test("defineView registers the view and mirrors its command into config", async 
   expect(command).toMatchObject({ name: "Space: V", key: "Ctrl-j" });
 });
 
+// The one link nothing else exercises: a Space Lua `view.define`'s `menu`
+// table has to survive Lua-to-JS conversion intact (as a plain object with
+// the right keys, not a Lua table wrapper) since it's what eventually
+// reaches `buildAllCommands()` and, from there, the App's native-menu
+// assembler (`webview-scripts/menus/assemble.ts`, which only understands
+// plain `MenuContribution` objects).
+test("defineView mirrors a Lua `menu` table into the command's config entry intact", async () => {
+  const nav = await freshNavigator();
+  const { LuaEnv, LuaStackFrame } = await import("../space_lua/runtime.ts");
+  const { luaBuildStandardEnv } = await import("../space_lua/stdlib.ts");
+  const { parseBlock } = await import("../space_lua/parse.ts");
+  const { evalExpression } = await import("../space_lua/eval.ts");
+  const env = new LuaEnv(luaBuildStandardEnv());
+  const node: any = parseBlock(
+    `e({ name = "space.v", command = "Space: V",
+         menu = { location = "view", group = "1_views", order = 1, label = "V" },
+         source = function() return {} end, onSelect = function() end })`,
+  ).statements[0];
+  const spec = evalExpression(
+    node.call.args[0],
+    env,
+    new LuaStackFrame(env, node.ctx),
+  );
+
+  await nav.defineView(spec);
+
+  const [path, command] = config.set.mock.calls[0];
+  expect(path).toEqual(["commands", "Space: V"]);
+  expect(Object.keys(command as object).sort()).toEqual([
+    "menu",
+    "name",
+    "run",
+  ]);
+  // Plain JS object, not a LuaTable -- this is exactly the shape
+  // `MenuContribution` expects on the App side.
+  expect((command as any).menu).toEqual({
+    location: "view",
+    group: "1_views",
+    order: 1,
+    label: "V",
+  });
+});
+
 test("openView refuses to open a pick view by name", async () => {
   const nav = await freshNavigator();
 
   expect(() => nav.openView("__pick:1:0.5")).toThrow(
-    "navigator.open: '__pick:1:0.5' is a navigator.pick view",
+    "view.open: '__pick:1:0.5' is a view.pick view",
   );
   expect(() => nav.openView("space.v", "modal")).toThrow(
-    "navigator.open: opts must be a table",
+    "view.open: opts must be a table",
+  );
+});
+
+test("moveDock persists the dock and reopens a visible window view there", async () => {
+  const nav = await freshNavigator();
+  registry.resolveMeta.mockReturnValue({
+    name: "v",
+    title: "V",
+    dock: "rhs",
+    supportedDocks: ["rhs", "lhs", "modal"],
+    refreshOn: [],
+  });
+  // datastore is a bare mock (no real storage), so mirror the dock key's
+  // persisted value off `datastore.set`'s own call history -- this is what
+  // lets the post-move `open()` resolve to the dock just persisted.
+  datastore.get.mockImplementation((key: unknown[]) => {
+    const match = datastore.set.mock.calls.findLast(
+      ([k]) => JSON.stringify(k) === JSON.stringify(key),
+    );
+    return Promise.resolve(match?.[1]);
+  });
+
+  await nav.open("v");
+  slots.showSlot.mockClear();
+
+  await nav.moveDock("v", "lhs");
+
+  expect(datastore.set).toHaveBeenCalledWith(["navigator", "v", "dock"], "lhs");
+  expect(slots.hideSlot).toHaveBeenCalledWith("rhs");
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "lhs",
+    expect.anything(),
+    expect.objectContaining({ view: "v" }),
+    false,
+  );
+});
+
+// Round 2 (a): the modal used to linger on screen after picking a dock from
+// its own dock menu -- `isWindowDock("modal")` is false, so the old guard
+// never hid it. `moveDock` now hides `before` on modal too, not just lhs/rhs.
+test("moveDock hides the modal slot (not just a window dock) when moving a view out of it", async () => {
+  const nav = await freshNavigator();
+  registry.resolveMeta.mockReturnValue({
+    name: "v",
+    title: "V",
+    dock: "modal",
+    supportedDocks: ["modal", "lhs", "rhs"],
+    refreshOn: [],
+  });
+  datastore.get.mockImplementation((key: unknown[]) => {
+    const match = datastore.set.mock.calls.findLast(
+      ([k]) => JSON.stringify(k) === JSON.stringify(key),
+    );
+    return Promise.resolve(match?.[1]);
+  });
+
+  await nav.open("v");
+  slots.showSlot.mockClear();
+
+  await nav.moveDock("v", "lhs");
+
+  expect(datastore.set).toHaveBeenCalledWith(["navigator", "v", "dock"], "lhs");
+  expect(slots.hideSlot).toHaveBeenCalledWith("modal");
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "lhs",
+    expect.anything(),
+    expect.objectContaining({ view: "v" }),
+    false,
+  );
+});
+
+test("closeView hides the slot without touching the dock preference", async () => {
+  const nav = await freshNavigator();
+  registry.resolveMeta.mockReturnValue({
+    name: "w",
+    title: "W",
+    dock: "rhs",
+    refreshOn: [],
+  });
+
+  await nav.open("w");
+  datastore.set.mockClear();
+
+  await nav.closeView("w", "rhs");
+
+  expect(slots.hideSlot).toHaveBeenCalledWith("rhs");
+  expect(datastore.set).not.toHaveBeenCalledWith(
+    ["navigator", "w", "dock"],
+    expect.anything(),
   );
 });

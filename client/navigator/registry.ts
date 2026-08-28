@@ -1,4 +1,4 @@
-import { builtinHandle, builtinMeta } from "./builtins.ts";
+import { builtinHandle, builtinMeta, builtinViewNames } from "./builtins.ts";
 import { luaHandle, RESERVED_PICK_PREFIX, type ViewSpec } from "./lua_views.ts";
 import type { LuaEnv } from "../space_lua/runtime.ts";
 import type { NavigatorHook, ViewMeta } from "./types.ts";
@@ -30,11 +30,11 @@ export function selectInFlight(view: string): Promise<any> | undefined {
 export function register(data: LuaView): void {
   const meta = data?.meta;
   if (!meta || typeof meta.name !== "string" || !meta.name) {
-    throw new Error("navigator.register: meta.name is required");
+    throw new Error("view.define: meta.name is required");
   }
   if (builtinMeta(meta.name)) {
     throw new Error(
-      `navigator.register: "${meta.name}" is a built-in navigator view and cannot be redefined`,
+      `view.define: "${meta.name}" is a built-in navigator view and cannot be redefined`,
     );
   }
   luaViews.set(meta.name, data);
@@ -50,6 +50,10 @@ export function clearScriptViews(): void {
   for (const name of [...luaViews.keys()]) {
     if (!name.startsWith(RESERVED_PICK_PREFIX)) luaViews.delete(name);
   }
+}
+
+export function allViewNames(): string[] {
+  return [...builtinViewNames(), ...luaViews.keys()];
 }
 
 export function resolveMeta(name: string): ViewMeta | undefined {
@@ -84,6 +88,40 @@ export async function handle(data: {
       .catch(() => {});
   }
   return await dispatched;
+}
+
+/** What a content view's `content` hook resolved to: markdown, or why not. */
+export type ContentResult =
+  | { markdown: string; error?: undefined }
+  | {
+      markdown?: undefined;
+      error: string;
+    };
+
+export function normalizeContent(result: any): ContentResult {
+  if (result && typeof result.error === "string") {
+    return { error: result.error };
+  }
+  return {
+    markdown: typeof result?.markdown === "string" ? result.markdown : "",
+  };
+}
+
+export async function loadContent(
+  view: string,
+  ctx?: { phrase?: string; dock?: string },
+): Promise<ContentResult> {
+  try {
+    return normalizeContent(
+      await handle({
+        view,
+        hook: "content",
+        args: { ctx: { phrase: ctx?.phrase ?? "", dock: ctx?.dock } },
+      }),
+    );
+  } catch (e: any) {
+    return { error: e?.message ?? String(e) };
+  }
 }
 
 export function openOnStartViews(): { name: string; dock: string }[] {

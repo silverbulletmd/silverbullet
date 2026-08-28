@@ -40,17 +40,17 @@ test("custom fields", () => {
 
 test("an exact whole-field match wins a tie over orderId, even against a candidate whose name is a superset", () => {
   const objs = [
-    { name: "Navigate: Outline Picker" },
-    { name: "Navigate: Outline" },
+    { name: "Navigate: Widget Demo Picker" },
+    { name: "Navigate: Widget Demo" },
   ];
-  // Every token in "navigate: outline" matches equally well against both
+  // Every token in "navigate: widget demo" matches equally well against both
   // candidates (the superset's extra "picker" word is never penalized), so
   // without the exact-match tie-break `orderId` alone would decide -- and
   // here it deliberately favors the wrong (superset) row first.
-  const r = rank(objs, "navigate: outline", {
-    orderId: (o) => (o.name === "Navigate: Outline Picker" ? 0 : 1),
+  const r = rank(objs, "navigate: widget demo", {
+    orderId: (o) => (o.name === "Navigate: Widget Demo Picker" ? 0 : 1),
   });
-  expect(r[0].name).toEqual("Navigate: Outline");
+  expect(r[0].name).toEqual("Navigate: Widget Demo");
 });
 
 test("no exact match: the tie still falls back to orderId", () => {
