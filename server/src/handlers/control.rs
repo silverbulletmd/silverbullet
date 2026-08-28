@@ -18,11 +18,23 @@ pub async fn handle_ping(State(state): State<Arc<ServerState>>) -> impl IntoResp
     )
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConfigResponse<'a> {
+    #[serde(flatten)]
+    boot_config: &'a silverbullet_server_common::BootConfig,
+    space_prefixes: Vec<String>,
+}
+
 pub async fn handle_config(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     (
         StatusCode::OK,
         [("Cache-Control", "no-cache")],
-        axum::Json(state.boot_config.clone()),
+        axum::Json(ConfigResponse {
+            boot_config: &state.boot_config,
+            space_prefixes: state.space_prefixes.current(),
+        })
+        .into_response(),
     )
 }
 

@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { belongsToAnotherSpace } from "./proxy_router.ts";
+import {
+  belongsToAnotherSpace,
+  belongsToSiblingSpace,
+  scopedSiblingPrefixes,
+} from "./proxy_router.ts";
 
 // A space bound at "/" registers its service worker at scope "/", so it
 // receives requests for every *other* space on the origin too. Answering those
@@ -45,4 +49,47 @@ test.each([
 test("a page named like a surface, one level down, is still another space", () => {
   // `/x/.fs` is unambiguous: no space serves a page called ".fs".
   expect(belongsToAnotherSpace("/x/.fs")).toBe(true);
+});
+
+// `belongsToAnotherSpace` only recognizes *space surfaces* one level down
+// (`/x/.client/...`). A bare sibling root like `/private/` matches nothing
+// there, so while the worker believed it was offline such a navigation fell
+// through to the root space's cached shell. The worker now also consults the
+// origin's space prefixes, delivered via `BootConfig.spacePrefixes`.
+
+test("the root worker treats every other prefix space as a sibling", () => {
+  expect(scopedSiblingPrefixes("", ["/private", "/work"])).toEqual([
+    "/private",
+    "/work",
+  ]);
+});
+
+test("a prefix-bound worker only scopes prefixes nested under its own base", () => {
+  // Its own prefix is not a sibling, and prefixes outside its scope are
+  // unreachable through it. A nested space is kept, space-relative.
+  expect(
+    scopedSiblingPrefixes("/work", ["/private", "/work", "/work/sub"]),
+  ).toEqual(["/sub"]);
+});
+
+test.each([
+  "/private",
+  "/private/",
+  "/private/some/page",
+])("%s belongs to a sibling space", (path) => {
+  expect(belongsToSiblingSpace(path, ["/private"])).toBe(true);
+});
+
+test.each([
+  // Boundary: a page merely sharing the prefix's characters.
+  "/privateer",
+  "/",
+  "/index",
+  "/some/page",
+])("%s is not a sibling space path", (path) => {
+  expect(belongsToSiblingSpace(path, ["/private"])).toBe(false);
+});
+
+test("no known prefixes means nothing is a sibling", () => {
+  expect(belongsToSiblingSpace("/private/", [])).toBe(false);
 });

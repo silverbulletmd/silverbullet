@@ -60,6 +60,41 @@ export function belongsToAnotherSpace(pathname: string): boolean {
   return anotherSpaceSurface.test(pathname);
 }
 
+/**
+ * The origin's space roots that fall inside this worker's scope, made
+ * space-relative.
+ *
+ * A worker only ever sees requests under its own base, so prefixes outside it
+ * are unreachable here; its own base is not a sibling. For a root-bound worker
+ * (base "") that leaves every other prefix space.
+ */
+export function scopedSiblingPrefixes(
+  basePathName: string,
+  spacePrefixes: string[],
+): string[] {
+  return spacePrefixes
+    .filter((prefix) => prefix.startsWith(`${basePathName}/`))
+    .map((prefix) => prefix.slice(basePathName.length));
+}
+
+/**
+ * Whether a space-relative path lies within a sibling space's root.
+ *
+ * `belongsToAnotherSpace` recognizes a sibling only by its *surfaces*
+ * ("/private/.client/..."). A bare sibling root ("/private/") is
+ * indistinguishable from one of our own pages without knowing the origin's
+ * prefixes, and answering it from our precached shell hands the visitor this
+ * space's `<base href>` under the sibling's URL.
+ */
+export function belongsToSiblingSpace(
+  pathname: string,
+  siblingPrefixes: string[],
+): boolean {
+  return siblingPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export type ProxyRouterEvents = {
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   observedRequest: (path: string) => void;
@@ -92,6 +127,8 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
 
+  private siblingPrefixes: string[] = [];
+
   constructor(
     private basePathName: string,
     private baseURI: string,
@@ -103,6 +140,13 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     setInterval(() => {
       void this.checkOnline();
     }, pingInterval);
+  }
+
+  setSpacePrefixes(spacePrefixes: string[]) {
+    this.siblingPrefixes = scopedSiblingPrefixes(
+      this.basePathName,
+      spacePrefixes,
+    );
   }
 
   /**
@@ -218,9 +262,14 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             return await fetch(request);
           }
 
-          // Another space's surface, reachable only because this worker is
-          // scoped at the origin root. Never ours to answer.
-          if (belongsToAnotherSpace(pathname)) {
+          // Another space, reachable only because this worker's scope covers
+          // its prefix. Never ours to answer — including while we believe we
+          // are offline, when the SPA-shell fallback below would otherwise
+          // hand back this space's shell under the sibling's URL.
+          if (
+            belongsToAnotherSpace(pathname) ||
+            belongsToSiblingSpace(pathname, this.siblingPrefixes)
+          ) {
             return await fetch(request);
           }
 

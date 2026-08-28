@@ -93,6 +93,7 @@ impl MultiManager {
             .iter()
             .map(|(id, cfg)| (id.clone(), Arc::new(build_instance(id, cfg, &deps))))
             .collect();
+        deps.space_prefixes.set(prefix_roots(&instances));
         let table = RoutingTable::build(instances.clone());
         Ok(Arc::new(Self {
             root,
@@ -131,6 +132,7 @@ impl MultiManager {
             .iter()
             .map(|(id, cfg)| (id.clone(), Arc::new(build_instance(id, cfg, &deps))))
             .collect();
+        deps.space_prefixes.set(prefix_roots(&instances));
         let table = RoutingTable::build(instances.clone());
         Ok(Arc::new(Self {
             root,
@@ -224,6 +226,7 @@ impl MultiManager {
                 }
             }
         }
+        self.deps.space_prefixes.set(prefix_roots(&instances));
         self.registry.swap(RoutingTable::build(instances.clone()));
         inner.config = new_config;
         inner.instances = instances;
@@ -369,6 +372,19 @@ impl MultiManager {
     }
 }
 
+/// Every space's non-empty prefix root, sorted. Host bindings (prefix `""`)
+/// and a root-bound space's own `""` are excluded: neither can be shadowed by
+/// another space's origin-scoped service worker.
+fn prefix_roots(instances: &HashMap<String, Arc<SpaceInstance>>) -> Vec<String> {
+    let mut roots: Vec<String> = instances
+        .values()
+        .map(|inst| inst.prefix.clone())
+        .filter(|prefix| !prefix.is_empty())
+        .collect();
+    roots.sort();
+    roots
+}
+
 /// Per-space JSON view shared by `list` and `get`: the config, plus the
 /// live `status`. The derived key is not a
 /// `SpaceConfig` field — which is exactly why `patch` merges over the
@@ -411,6 +427,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
+            space_prefixes: Default::default(),
         }
     }
 

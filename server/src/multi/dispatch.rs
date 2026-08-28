@@ -163,6 +163,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
+            space_prefixes: Default::default(),
         }
     }
 
@@ -274,6 +275,84 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn config_carries_live_space_prefixes() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        m.create(
+            payload("Root", Binding::Prefix { prefix: "/".into() }),
+            true,
+        )
+        .unwrap();
+        m.create(
+            payload(
+                "Work",
+                Binding::Prefix {
+                    prefix: "/work".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        m.create(
+            payload(
+                "Hosted",
+                Binding::Host {
+                    host: "notes.example.com".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let r = build_main_router(m.clone(), None, "test".to_string());
+
+        let config_prefixes = |resp_body: &[u8]| -> Vec<String> {
+            let v: serde_json::Value = serde_json::from_slice(resp_body).unwrap();
+            v["spacePrefixes"]
+                .as_array()
+                .unwrap_or_else(|| panic!("no spacePrefixes in {v}"))
+                .iter()
+                .map(|p| p.as_str().unwrap().to_string())
+                .collect()
+        };
+
+        let resp = get(&r, "localhost", "/.config").await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        // Non-empty prefix bindings only: the root space's own "" prefix is
+        // never shadowable, and host bindings live on other origins.
+        assert_eq!(config_prefixes(&body), vec!["/work".to_string()]);
+
+        // The list is live: a space created after the instances were built
+        // shows up on the next fetch, with no instance rebuild.
+        m.create(
+            payload(
+                "Private",
+                Binding::Prefix {
+                    prefix: "/private".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let resp = get(&r, "localhost", "/work/.config").await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(
+            config_prefixes(&body),
+            vec!["/private".to_string(), "/work".to_string()]
+        );
+    }
+
+    #[tokio::test]
     async fn host_space_resolution_and_no_root_binding() {
         let dir = tempfile::tempdir().unwrap();
         let r = setup(&dir);
@@ -322,18 +401,6 @@ mod tests {
         );
     }
 
-    /// `dispatch` redirects `/` to the bare `SPACES_PREFIX` (no trailing
-    /// slash — see `root_redirects_to_spaces_when_unbound_and_unknown_paths_404`),
-    /// and nothing else in this repo pins that the bare prefix actually
-    /// resolves *into* the nested spaces router rather than falling through
-    /// to `dispatch`'s own catch-all. It works today because axum's
-    /// `nest_service` registers both `prefix` and `prefix/{*rest}` — but
-    /// that's an axum implementation detail, not something this crate
-    /// controls, so pin it with a real request. The nested router below
-    /// answers its root and its fallback with different bodies so a match on
-    /// `/.spaces` provably reached the nested router's `/` handler, not just
-    /// any 200 (and not `dispatch`'s own 404, which would read "No space
-    /// here" instead).
     #[tokio::test]
     async fn bare_spaces_prefix_resolves_into_the_nested_router() {
         let dir = tempfile::tempdir().unwrap();
