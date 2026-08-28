@@ -72,6 +72,12 @@ async fn handle_asset(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.setup/api/status",
+    tag = "Setup",
+    responses((status = 200, description = "First-run setup status"))
+))]
 async fn handle_status(State(state): State<Arc<SetupState>>) -> Response {
     // The wizard prepopulates the space folder with an absolute path under the
     // data root, so it needs to know where the server was booted — the user
@@ -83,6 +89,13 @@ async fn handle_status(State(state): State<Arc<SetupState>>) -> Response {
     Json(json!({ "root": root })).into_response()
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.setup/api/complete",
+    tag = "Setup",
+    request_body = SetupRequest,
+    responses((status = 200, description = "Setup completed"))
+))]
 async fn handle_complete(
     State(state): State<Arc<SetupState>>,
     Json(req): Json<SetupRequest>,
@@ -122,6 +135,13 @@ struct DirsQuery {
 /// `GET /.spaces/api/admin/fs/dirs`. Same trust model as the rest of `/.setup`:
 /// unauthenticated, but only reachable while the server is unconfigured — the
 /// whole surface vanishes the moment setup completes.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.setup/api/fs/dirs",
+    tag = "Setup",
+    params(("root" = Option<String>, Query, description = "Subdirectory to list")),
+    responses((status = 200, description = "Directory listing"))
+))]
 async fn handle_fs_dirs(
     State(state): State<Arc<SetupState>>,
     axum::extract::Query(q): axum::extract::Query<DirsQuery>,

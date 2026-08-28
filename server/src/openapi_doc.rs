@@ -78,6 +78,9 @@ Generated from the server crate's `utoipa` annotations; enabled with the \
         crate::handlers::runtime::handle_runtime_lua,
         crate::handlers::runtime::handle_runtime_lua_script,
         crate::handlers::runtime::handle_runtime_logs,
+        crate::multi::setup_api::handle_status,
+        crate::multi::setup_api::handle_complete,
+        crate::multi::setup_api::handle_fs_dirs,
     ),
     components(schemas(
         LoginForm,
