@@ -95,6 +95,15 @@ struct LoginBody {
     remember_me: bool,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.spaces/api/login",
+    request_body = LoginBody,
+    responses(
+        (status = 200, description = "Session cookie issued"),
+        (status = 401, description = "Invalid credentials or lockout")
+    )
+))]
 async fn handle_login(
     State(state): State<Arc<SpaceIndexState>>,
     headers: HeaderMap,
@@ -162,6 +171,14 @@ fn current_username(state: &SpaceIndexState, headers: &HeaderMap) -> Option<Stri
 /// Any *account* — not public. The client reads `admin` from here to decide
 /// whether to render the Users tab and edit affordances; that is a display
 /// hint only, since every admin route is gated server-side regardless.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/session",
+    responses(
+        (status = 200, description = "Current session identity (or anonymous)"),
+        (status = 401, description = "No active session")
+    )
+))]
 async fn handle_session(State(state): State<Arc<SpaceIndexState>>, headers: HeaderMap) -> Response {
     let Some(username) = current_username(&state, &headers) else {
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
