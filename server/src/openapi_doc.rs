@@ -25,11 +25,38 @@ use crate::multi::validate::FieldError;
 
 #[derive(OpenApi)]
 #[openapi(
+    info(
+        title = "SilverBullet Server API",
+        description = "HTTP API for the SilverBullet server: authentication, \
+space management, account administration, and per-space file (note) CRUD. \
+Generated from the server crate's `utoipa` annotations; enabled with the \
+`openapi` cargo feature.",
+        version = "0.0.0"
+    ),
     paths(
         crate::multi::space_index::handle_login,
+        crate::multi::space_index::handle_logout,
         crate::multi::space_index::handle_session,
         crate::multi::space_index::handle_list,
+        crate::multi::space_index::handle_get_profile,
+        crate::multi::space_index::handle_put_profile,
+        crate::multi::admin_api::handle_list,
+        crate::multi::admin_api::handle_create,
+        crate::multi::admin_api::handle_update,
+        crate::multi::admin_api::handle_get,
+        crate::multi::admin_api::handle_patch,
+        crate::multi::admin_api::handle_delete,
         crate::multi::admin_api::handle_list_users,
+        crate::multi::admin_api::handle_get_user,
+        crate::multi::admin_api::handle_create_user,
+        crate::multi::admin_api::handle_set_user_profile,
+        crate::multi::admin_api::handle_delete_user,
+        crate::multi::admin_api::handle_set_user_password,
+        crate::multi::admin_api::handle_set_admin,
+        crate::multi::admin_api::handle_create_token,
+        crate::multi::admin_api::handle_delete_token,
+        crate::multi::admin_api::handle_fs_dirs,
+        crate::multi::admin_api::handle_server_info,
         crate::handlers::fs::handle_fs_list,
         crate::handlers::fs::handle_fs_get,
         crate::handlers::fs::handle_fs_put,
@@ -112,6 +139,14 @@ mod tests {
         assert!(
             paths.contains_key("/.spaces/api/spaces"),
             "missing spaces path: {paths:?}"
+        );
+        assert!(
+            paths.contains_key("/.spaces/api/admin/users"),
+            "missing admin users path: {paths:?}"
+        );
+        assert!(
+            paths.contains_key("/.spaces/api/admin/spaces/{id}"),
+            "missing admin spaces path: {paths:?}"
         );
         assert!(
             paths.contains_key("/.fs/{path}"),

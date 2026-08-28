@@ -125,6 +125,12 @@ async fn require_admin(State(state): State<Arc<AdminState>>, req: Request, next:
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/admin/spaces",
+    tag = "Admin",
+    responses((status = 200, body = [SpaceConfig], description = "All space configurations (admin)"))
+))]
 async fn handle_list(State(state): State<Arc<AdminState>>) -> Response {
     Json(state.manager.list()).into_response()
 }
@@ -201,6 +207,13 @@ struct CreateBody {
     config: SpaceConfig,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.spaces/api/admin/spaces",
+    tag = "Admin",
+    request_body = CreateBody,
+    responses((status = 200, description = "Space created"))
+))]
 async fn handle_create(
     State(state): State<Arc<AdminState>>,
     Json(body): Json<CreateBody>,
@@ -214,6 +227,14 @@ async fn handle_create(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    put,
+    path = "/.spaces/api/admin/spaces/{id}",
+    tag = "Admin",
+    params(("id" = String, Path, description = "Space id")),
+    request_body = SpaceConfig,
+    responses((status = 200, description = "Space updated"))
+))]
 async fn handle_update(
     State(state): State<Arc<AdminState>>,
     AxumPath(id): AxumPath<String>,
@@ -227,6 +248,16 @@ async fn handle_update(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/admin/spaces/{id}",
+    tag = "Admin",
+    params(("id" = String, Path, description = "Space id")),
+    responses(
+        (status = 200, body = SpaceConfig, description = "Space configuration"),
+        (status = 404, description = "No such space")
+    )
+))]
 async fn handle_get(
     State(state): State<Arc<AdminState>>,
     AxumPath(id): AxumPath<String>,
@@ -237,6 +268,13 @@ async fn handle_get(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    patch,
+    path = "/.spaces/api/admin/spaces/{id}",
+    tag = "Admin",
+    params(("id" = String, Path, description = "Space id")),
+    responses((status = 200, description = "Space patched"))
+))]
 async fn handle_patch(
     State(state): State<Arc<AdminState>>,
     AxumPath(id): AxumPath<String>,
@@ -250,6 +288,13 @@ async fn handle_patch(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    delete,
+    path = "/.spaces/api/admin/spaces/{id}",
+    tag = "Admin",
+    params(("id" = String, Path, description = "Space id")),
+    responses((status = 200, description = "Space deleted"))
+))]
 async fn handle_delete(
     State(state): State<Arc<AdminState>>,
     AxumPath(id): AxumPath<String>,
@@ -275,6 +320,16 @@ async fn handle_list_users(State(state): State<Arc<AdminState>>) -> Response {
     Json(state.users.list()).into_response()
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/admin/users/{name}",
+    tag = "Admin",
+    params(("name" = String, Path, description = "Account name")),
+    responses(
+        (status = 200, body = UserEntry, description = "Account"),
+        (status = 404, description = "No such user")
+    )
+))]
 async fn handle_get_user(
     State(state): State<Arc<AdminState>>,
     AxumPath(name): AxumPath<String>,
@@ -285,6 +340,7 @@ async fn handle_get_user(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CreateUserBody {
@@ -298,6 +354,13 @@ struct CreateUserBody {
     email: String,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.spaces/api/admin/users",
+    tag = "Admin",
+    request_body = CreateUserBody,
+    responses((status = 200, description = "User created"))
+))]
 async fn handle_create_user(
     State(state): State<Arc<AdminState>>,
     Json(body): Json<CreateUserBody>,
@@ -321,6 +384,7 @@ async fn handle_create_user(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ProfileBody {
@@ -330,6 +394,14 @@ struct ProfileBody {
     email: String,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    put,
+    path = "/.spaces/api/admin/users/{name}/profile",
+    tag = "Admin",
+    params(("name" = String, Path, description = "Account name")),
+    request_body = ProfileBody,
+    responses((status = 200, description = "Profile updated"))
+))]
 async fn handle_set_user_profile(
     State(state): State<Arc<AdminState>>,
     AxumPath(name): AxumPath<String>,
@@ -350,6 +422,13 @@ async fn handle_set_user_profile(
 /// Deletes the account first, then atomically sweeps it out of every space's
 /// `members` and shrinks the manager's known-users set to the store's
 /// post-delete usernames.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    delete,
+    path = "/.spaces/api/admin/users/{name}",
+    tag = "Admin",
+    params(("name" = String, Path, description = "Account name")),
+    responses((status = 200, description = "User deleted"))
+))]
 async fn handle_delete_user(
     State(state): State<Arc<AdminState>>,
     AxumPath(name): AxumPath<String>,
@@ -376,11 +455,20 @@ async fn handle_delete_user(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 struct PasswordBody {
     password: String,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.spaces/api/admin/users/{name}/password",
+    tag = "Admin",
+    params(("name" = String, Path, description = "Account name")),
+    request_body = PasswordBody,
+    responses((status = 200, description = "Password set"))
+))]
 async fn handle_set_user_password(
     State(state): State<Arc<AdminState>>,
     AxumPath(name): AxumPath<String>,
@@ -398,11 +486,20 @@ async fn handle_set_user_password(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 struct SetAdminBody {
     admin: bool,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.spaces/api/admin/users/{name}/admin",
+    tag = "Admin",
+    params(("name" = String, Path, description = "Account name")),
+    request_body = SetAdminBody,
+    responses((status = 200, description = "Admin flag set"))
+))]
 async fn handle_set_admin(
     State(state): State<Arc<AdminState>>,
     AxumPath(name): AxumPath<String>,
@@ -420,11 +517,20 @@ async fn handle_set_admin(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 struct CreateTokenBody {
     name: String,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.spaces/api/admin/users/{user}/tokens/{tokenName}",
+    tag = "Admin",
+    params(("user" = String, Path, description = "Account name"), ("tokenName" = String, Path, description = "Token name")),
+    request_body = CreateTokenBody,
+    responses((status = 200, description = "Token created"))
+))]
 async fn handle_create_token(
     State(state): State<Arc<AdminState>>,
     AxumPath(user): AxumPath<String>,
@@ -442,6 +548,13 @@ async fn handle_create_token(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    delete,
+    path = "/.spaces/api/admin/users/{user}/tokens/{tokenName}",
+    tag = "Admin",
+    params(("user" = String, Path, description = "Account name"), ("tokenName" = String, Path, description = "Token name")),
+    responses((status = 200, description = "Token deleted"))
+))]
 async fn handle_delete_token(
     State(state): State<Arc<AdminState>>,
     AxumPath((user, token_name)): AxumPath<(String, String)>,
@@ -458,12 +571,20 @@ async fn handle_delete_token(
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 struct DirsQuery {
     #[serde(default)]
     path: String,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/admin/fs/dirs",
+    tag = "Admin",
+    params(("root" = Option<String>, Query, description = "Subdirectory to list")),
+    responses((status = 200, description = "Directory listing"))
+))]
 async fn handle_fs_dirs(
     State(state): State<Arc<AdminState>>,
     axum::extract::Query(q): axum::extract::Query<DirsQuery>,
@@ -478,6 +599,12 @@ async fn handle_fs_dirs(
 
 /// Server-level facts an administrator's screens need. An object rather than a
 /// bare availability so later server-level fields have somewhere to go.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.spaces/api/admin/server-info",
+    tag = "Admin",
+    responses((status = 200, description = "Runtime availability of the Lua API"))
+))]
 async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
     Json(json!({ "runtimeApi": state.runtime_availability })).into_response()
 }
