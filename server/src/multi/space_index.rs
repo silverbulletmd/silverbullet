@@ -12,6 +12,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
+#[cfg(test)]
 use serde_json::json;
 use silverbullet_server_common::SpacePrimitives;
 
@@ -25,6 +26,10 @@ use crate::multi::manager::MultiManager;
 #[cfg(feature = "openapi")]
 use crate::multi::manager::VisibleSpace;
 use crate::multi::users::{Profile, UserStore};
+use crate::multi::validate::FieldError;
+use crate::openapi_responses::{
+    ErrorListResponse, LoginErrorResponse, ProfileView, SessionResponse, StatusResponse,
+};
 use crate::router::run_blocking;
 
 pub const SPACES_PREFIX: &str = "/.spaces";
@@ -113,15 +118,14 @@ async fn handle_login(
     Json(body): Json<LoginBody>,
 ) -> Response {
     if state.login.is_locked() {
-        return Json(
-            json!({ "status": "error", "error": "Too many failed attempts — please wait" }),
-        )
+        return Json(LoginErrorResponse::new(
+            "Too many failed attempts — please wait",
+        ))
         .into_response();
     }
     if !state.login.authorize(&body.username, &body.password) {
         state.login.record_failure();
-        return Json(json!({ "status": "error", "error": "Invalid username and/or password" }))
-            .into_response();
+        return Json(LoginErrorResponse::new("Invalid username and/or password")).into_response();
     }
     let (jwt, secs) = match state.login.issue_session(&body.username, body.remember_me) {
         Ok(value) => value,
@@ -137,7 +141,7 @@ async fn handle_login(
         secure: is_secure_request(&headers),
         same_site: "Lax",
     };
-    let mut response = Json(json!({ "status": "ok" })).into_response();
+    let mut response = Json(StatusResponse::ok()).into_response();
     let name = scoped_auth_cookie_name(&request_host(&headers), "");
     if let Ok(value) = set_cookie_value(&name, &jwt, &options).parse() {
         response.headers_mut().append(header::SET_COOKIE, value);
@@ -159,7 +163,7 @@ async fn handle_logout(headers: HeaderMap) -> Response {
         secure: is_secure_request(&headers),
         same_site: "Lax",
     };
-    let mut response = Json(json!({ "status": "ok" })).into_response();
+    let mut response = Json(StatusResponse::ok()).into_response();
     let name = scoped_auth_cookie_name(&request_host(&headers), "");
     if let Ok(value) = set_cookie_value(&name, "", &options).parse() {
         response.headers_mut().append(header::SET_COOKIE, value);
@@ -194,7 +198,11 @@ async fn handle_session(State(state): State<Arc<SpaceIndexState>>, headers: Head
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
     };
     let admin = state.users.is_admin(&username);
-    Json(json!({ "username": username, "admin": admin })).into_response()
+    Json(SessionResponse {
+        username: username.clone(),
+        admin,
+    })
+    .into_response()
 }
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -212,7 +220,7 @@ struct ProfileBody {
     path = "/.spaces/api/profile",
     tag = "Users",
     responses(
-        (status = 200, body = Profile, description = "Current user's profile"),
+        (status = 200, body = ProfileView, description = "Current user's profile"),
         (status = 401, description = "No active session")
     )
 ))]
@@ -224,12 +232,12 @@ async fn handle_get_profile(
         return StatusCode::UNAUTHORIZED.into_response();
     };
     let profile = state.users.profile(&username).unwrap_or_default();
-    Json(json!({
-        "username": username,
-        "admin": state.users.is_admin(&username),
-        "fullName": profile.full_name,
-        "email": profile.email,
-    }))
+    Json(ProfileView {
+        username: username.clone(),
+        admin: state.users.is_admin(&username),
+        full_name: profile.full_name.unwrap_or_default(),
+        email: profile.email.unwrap_or_default(),
+    })
     .into_response()
 }
 
@@ -241,7 +249,7 @@ async fn handle_get_profile(
     tag = "Users",
     request_body = ProfileBody,
     responses(
-        (status = 200, body = Profile, description = "Updated profile"),
+        (status = 200, body = ProfileView, description = "Updated profile"),
         (status = 401, description = "No active session")
     )
 ))]
@@ -259,7 +267,7 @@ async fn handle_put_profile(
     };
     let users = state.users.clone();
     match run_blocking(move || Ok(users.set_profile(&username, profile))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(())) => Json(StatusResponse::ok()).into_response(),
         Ok(Err(e)) => profile_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -268,7 +276,12 @@ async fn handle_put_profile(
 fn profile_error(message: String) -> Response {
     (
         StatusCode::BAD_REQUEST,
-        Json(json!({ "errors": [{ "field": "", "message": message }] })),
+        Json(ErrorListResponse {
+            errors: vec![FieldError {
+                field: "".to_string(),
+                message,
+            }],
+        }),
     )
         .into_response()
 }

@@ -10,6 +10,7 @@ pub mod handlers;
 pub mod link_resolve;
 pub mod metrics;
 pub mod multi;
+pub mod openapi_responses;
 pub mod revisions;
 pub mod router;
 pub mod runtime;

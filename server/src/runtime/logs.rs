@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 /// A captured console log entry. Field names form the `/.runtime/logs` wire
 /// contract.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LogEntry {
     pub level: String,
