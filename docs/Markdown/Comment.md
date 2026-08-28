@@ -19,7 +19,7 @@ Inside SilverBullet the `<!--` and `-->` markers are hidden and the region gets 
 Comments can be used to make notes to self or to team mates about the regular page content. There may be other future use cases as well.
 
 # Commands
-* `Comment: Add` (`Ctrl-Alt-c` / `Cmd-Alt-c`) inserts a comment after the current block — or, inside a list, after the list item the selection ends in, indented so it stays part of that item. With text selected, the selection is quoted inside it as a blockquote, and the cursor lands a blank line below it so what you type starts its own paragraph rather than continuing the quote.
+* `Comment: Add` (`Ctrl-Alt-c` / `Cmd-Alt-c`, or the `/comment` slash command) inserts a comment after the current block.
 * `Comment: Selection` wraps the selected lines in `<!--` and `-->`.
 
 # Querying

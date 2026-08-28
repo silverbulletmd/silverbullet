@@ -98,8 +98,13 @@ export function hideHeaderMarkPlugin() {
           return;
         }
         if (isCursorInRange(state, [from, to])) {
+          // A line decoration anchored anywhere but a line start is discarded
+          // in silence, and a heading inside a blockquote or a list item does
+          // not start at one.
           widgets.push(
-            Decoration.line({ class: "sb-header-inside" }).range(from),
+            Decoration.line({ class: "sb-header-inside" }).range(
+              state.doc.lineAt(from).from,
+            ),
           );
           return;
         }

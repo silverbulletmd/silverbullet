@@ -2,6 +2,13 @@
   outline: none !important;
 }
 
+// How far a comment region's box reaches past the text column on each side.
+// Bounded by `.cm-content`'s own horizontal padding, which is what it borrows.
+$comment-inset: 8px;
+
+// The hairline that draws that box, drawn within the inset above.
+$comment-border: 1px;
+
 // An unregistered custom property inherits as an unresolved token stream, so a
 // `ch` inside one re-resolves against every element that references it — 1.5x
 // wider on a heading line, tilting a quoted heading out of its own quote's
@@ -47,6 +54,29 @@
   .cm-line {
     padding: 0;
 
+    // Indent contributions from several sources — a list's marker zone, a
+    // quote's markers, an inline comment — sum here rather than each writing
+    // `padding-left` and clobbering the others. The negative text-indent pulls
+    // the first row back over the markup that already occupies those columns,
+    // leaving wrapped rows hanging at the indent.
+    --sb-indent: calc(var(--sb-list-indent, 0px) + var(--sb-quote-indent, 0px) + var(--sb-inline-comment-indent, 0px));
+
+    // How far a line's *first* row hangs back beyond the indent above: the
+    // columns its own markup occupies there and nothing else does. Only a
+    // revealed heading's `#` run claims any, and it claims them in the
+    // heading's own font, which is the font its markers render in.
+    --sb-header-hang: 0px;
+
+    // The vertical padding a line adds, named so that what a line paints can
+    // span it: a background with a content-box origin stops at the content
+    // edge otherwise, and a quote's bar breaks at every padded line.
+    --sb-line-pad-y: 0px;
+
+    padding-left: var(--sb-indent);
+    padding-top: var(--sb-line-pad-y);
+    padding-bottom: var(--sb-line-pad-y);
+    text-indent: calc(-1 * (var(--sb-indent) + var(--sb-header-hang)));
+
     &.sb-line-h1,
     &.sb-line-h2,
     &.sb-line-h3,
@@ -56,7 +86,7 @@
       font-weight: bold;
       // Vertical breathing room above/below the heading without indenting
       // the heading text away from the body column.
-      padding: 2px 0;
+      --sb-line-pad-y: 2px;
     }
   }
 
@@ -91,7 +121,9 @@
   // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
   .sb-line-h1:has(> a.sb-hashtag:only-child) {
     font-size: 1em;
-    padding: 0;
+    // Not a heading after all, so none of a heading's breathing room -- and
+    // set through the variable, which is also what the line paints against.
+    --sb-line-pad-y: 0px;
     font-weight: normal;
 
     .sb-meta {
@@ -196,8 +228,7 @@
   }
 
   .sb-line-comment {
-    text-indent: calc(-3 * var(--editor-column));
-    padding-left: calc(3 * var(--editor-column));
+    --sb-inline-comment-indent: calc(3 * var(--editor-column));
   }
 
   .cm-list-bullet {
@@ -245,29 +276,33 @@
     }
   }
 
-  // Hanging-indent for the leading `#`-markers in cursor-in mode
+  // Hanging-indent for the leading `#`-markers in cursor-in mode. Contributed
+  // as the line's hang rather than written as a `text-indent` of its own: that
+  // would *replace* the negative indent `.cm-line` computes from `--sb-indent`
+  // and drop it, throwing a heading inside a blockquote or a list item a whole
+  // indent step sideways the moment the caret entered it.
   .sb-header-inside.sb-line-h1 {
-    text-indent: -2ch;
+    --sb-header-hang: 2ch;
   }
 
   .sb-header-inside.sb-line-h2 {
-    text-indent: -3ch;
+    --sb-header-hang: 3ch;
   }
 
   .sb-header-inside.sb-line-h3 {
-    text-indent: -4ch;
+    --sb-header-hang: 4ch;
   }
 
   .sb-header-inside.sb-line-h4 {
-    text-indent: -5ch;
+    --sb-header-hang: 5ch;
   }
 
   .sb-header-inside.sb-line-h5 {
-    text-indent: -6ch;
+    --sb-header-hang: 6ch;
   }
 
   .sb-header-inside.sb-line-h6 {
-    text-indent: -7ch;
+    --sb-header-hang: 7ch;
   }
 
   // When the editor column itself narrows to ≤ the default editor-width --
@@ -287,7 +322,9 @@
     .sb-header-inside.sb-line-h4,
     .sb-header-inside.sb-line-h5,
     .sb-header-inside.sb-line-h6 {
-      text-indent: 0;
+      // Only the markers' own hang goes; whatever a quote or a list item
+      // indents the line by is still theirs.
+      --sb-header-hang: 0px;
     }
   }
 
@@ -474,11 +511,18 @@
     color: transparent;
   }
 
-  // The indent is the marker spacer in the text flow, not CSS, so it composes
-  // with the inline `padding-left` listIndentPlugin puts on list lines. Each bar
-  // paints over the spacer of its own level, standing in for the `>` it
-  // replaced; border-box origin anchors them to the line's left edge rather than
-  // letting a list item's padding drag them along.
+  // Each bar paints over the spacer of its own level, standing in for the `>`
+  // it replaced, so the run starts where the line's quote markup starts. From
+  // the content box, backing out the whole summed indent lands on the first
+  // row's own start; --sb-quote-bar-offset then steps in by whatever precedes
+  // the `>` there. That holds whatever the line sits inside — a list item, a
+  // comment region's inset, or nothing — without this rule having to know.
+  //
+  // Vertically the content box is the wrong span: a heading line pads itself
+  // for breathing room, and a bar ending at the content edge would stop short
+  // of the line at both ends, breaking the run into dashes. The origin stays
+  // content-box — that is what makes the horizontal reasoning above hold — and
+  // the band is grown back over the padding instead.
   .sb-line-blockquote {
     min-height: 1em;
     background-image: repeating-linear-gradient(to right,
@@ -486,9 +530,10 @@
         var(--editor-blockquote-border-color) var(--blockquote-bar),
         transparent var(--blockquote-bar),
         transparent var(--blockquote-step));
-    background-origin: border-box;
+    background-origin: content-box;
+    background-position: calc(var(--sb-quote-bar-offset, 0px) - var(--sb-indent)) calc(-1 * var(--sb-line-pad-y));
     background-repeat: no-repeat;
-    background-size: var(--blockquote-step) 100%;
+    background-size: var(--blockquote-step) calc(100% + 2 * var(--sb-line-pad-y));
   }
 
   .sb-quote-spacer {
@@ -507,7 +552,7 @@
   // matching number of bars. Past level 6 a line keeps level 6's gutter.
   @for $depth from 2 through 6 {
     .sb-line-blockquote-#{$depth} {
-      background-size: calc(#{$depth} * var(--blockquote-step)) 100%;
+      background-size: calc(#{$depth} * var(--blockquote-step)) calc(100% + 2 * var(--sb-line-pad-y));
     }
   }
 
@@ -729,6 +774,9 @@
     }
   }
 
+  // The widget *frame*: the box an in-document widget draws around itself.
+  // A navigator page widget brings its own box (`.sb-page-widget`), so it is
+  // deliberately absent from this list and present in the typography one below.
   .sb-markdown-widget,
   .sb-lua-directive-block,
   .sb-lua-directive-inline,
@@ -744,6 +792,67 @@
       overflow-y: auto;
     }
 
+    // Anchored to the frame's own `position: relative` above, which is why
+    // these live here rather than with the typography below.
+    // Only show the button bar on hover on non-touch devices
+    &:hover .button-bar {
+      display: block;
+    }
+
+    // Always show button bar on touch devices
+    @media (hover: none) and (pointer: coarse) {
+      .button-bar {
+        display: block !important;
+      }
+    }
+
+    .button-bar {
+      position: absolute;
+      right: 0;
+      top: 0;
+      display: none;
+      background: var(--editor-widget-background-color);
+      padding-inline: 3px;
+      padding: 4px 0;
+      border-radius: 0 0 0 5px;
+
+      button {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--root-color);
+        margin-right: -8px;
+        padding: 11px 8px;
+      }
+
+      button:last-of-type {
+        margin-right: 2px;
+      }
+    }
+  }
+
+  // Rendered-markdown *typography*, shared by every in-document widget body.
+  // A **content** view's body opts in here so a navigator view docked page-top
+  // or page-bottom reads as part of the document it sits in -- the same
+  // bullets, task indent, heading rhythm and link chips as any other widget --
+  // rather than carrying the panel's UI vocabulary into the page. A view in a
+  // sidebar or the modal is styled by `.sb-nav-root .sb-nav-content` instead:
+  // the container decides, and this is the page-dock half of that.
+  //
+  // Deliberately `.sb-page-widget-content .sb-page-widget-body` and not
+  // `.sb-page-widget-body` alone. A *row* widget's body is not a document: its
+  // rows flatten their markdown to a single inline run
+  // (`.sb-page-widget-row :is(p, ul, ol, li, ...)` in _navigator.scss), and
+  // this block's `ul li::before { content: "\2022" }` -- at (1,2,3) with the
+  // `#sb-main` above -- would outrank that file's
+  // `.sb-page-widget-row li + li::before { content: " " }` at (0,1,3) and put
+  // a bullet where a separating space belongs.
+  .sb-markdown-widget,
+  .sb-lua-directive-block,
+  .sb-lua-directive-inline,
+  .sb-markdown-top-widget:has(*),
+  .sb-markdown-bottom-widget:has(*),
+  .sb-page-widget-content .sb-page-widget-body {
     ul,
     ol {
       margin-top: 0;
@@ -809,41 +918,6 @@
       white-space: nowrap;
     }
 
-    // Only show the button bar on hover on non-touch devices
-    &:hover .button-bar {
-      display: block;
-    }
-
-    // Always show button bar on touch devices
-    @media (hover: none) and (pointer: coarse) {
-      .button-bar {
-        display: block !important;
-      }
-    }
-
-    .button-bar {
-      position: absolute;
-      right: 0;
-      top: 0;
-      display: none;
-      background: var(--editor-widget-background-color);
-      padding-inline: 3px;
-      padding: 4px 0;
-      border-radius: 0 0 0 5px;
-
-      button {
-        border: none;
-        background: none;
-        cursor: pointer;
-        color: var(--root-color);
-        margin-right: -8px;
-        padding: 11px 8px;
-      }
-
-      button:last-of-type {
-        margin-right: 2px;
-      }
-    }
   }
 
   .sb-lua-directive-inline:has(> button) {
@@ -972,9 +1046,16 @@
   }
 
   .sb-admonition {
+    // The quote plugin sets --sb-quote-indent inline, which outranks a plain
+    // declaration here: the border stands in for the marker, so those columns
+    // have to be given back even against an inline value.
+    --sb-quote-indent: 0px !important;
     border-left-width: 4px !important;
     border-left-style: solid;
-    padding-left: 5px;
+    // The 5px is the gap between the border and the text, on top of whatever
+    // the line is already indented by — a nested admonition keeps its list
+    // indent instead of snapping back to the margin.
+    padding-left: calc(var(--sb-indent) + 5px);
     background-image: none;
 
     // The border stands in for the marker of the quote this is, so the spacer
@@ -1002,44 +1083,37 @@
   }
 
   .sb-comment-block {
-    // The indent is a border rather than padding because list lines inside a
-    // comment carry an inline `padding-left` from listIndentPlugin: a border
-    // adds to that instead of losing to it. The bar is a background gradient
-    // over the border box for the same reason an inset box-shadow won't do —
-    // that is clipped to the padding box and would land a step in. Widths are
-    // shared with the blockquote gutter so the two systems stay aligned.
-    border-left-width: var(--blockquote-step);
+    background-color: var(--editor-comment-background-color);
+    border-left-width: $comment-border;
+    border-right-width: $comment-border;
     border-left-style: solid;
-    background-color: var(--editor-blockquote-background-color);
-    background-image: linear-gradient(to right,
-        var(--editor-code-comment-color) 0,
-        var(--editor-code-comment-color) var(--blockquote-bar),
-        transparent var(--blockquote-bar));
-    background-origin: border-box;
-    background-repeat: no-repeat;
+    border-right-style: solid;
+    // The box bleeds outward into the content's own padding, and an equal
+    // inset puts the text back where it would have been: a caret in the
+    // first column gets room to show, without the region indenting itself out
+    // of column with the text around it. A negative margin alone would drag
+    // the content along with the border. The border sits inside that inset
+    // and is part of it, so the padding is the inset less the border — leaving
+    // it whole would push every line in the region a border-width right of the
+    // text around it.
+    margin-left: -$comment-inset;
+    margin-right: -$comment-inset;
+    padding-left: calc(var(--sb-indent) + #{$comment-inset - $comment-border});
+    padding-right: $comment-inset - $comment-border;
   }
 
-  // A quote inside a comment sits in both gutters: the comment's bar stays at
-  // the edge and the quote's bars start one step in. The combined selector
-  // outranks both single-class rules, so their order no longer matters.
-  .sb-comment-block.sb-line-blockquote {
-    background-image: linear-gradient(to right,
-        var(--editor-code-comment-color) 0,
-        var(--editor-code-comment-color) var(--blockquote-bar),
-        transparent var(--blockquote-bar)),
-      repeating-linear-gradient(to right,
-        var(--editor-blockquote-border-color) 0,
-        var(--editor-blockquote-border-color) var(--blockquote-bar),
-        transparent var(--blockquote-bar),
-        transparent var(--blockquote-step));
-    background-position: 0 0, var(--blockquote-step) 0;
+  .sb-comment-block-first {
+    border-top-width: $comment-border;
+    border-top-style: solid;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
   }
 
-  @for $depth from 1 through 6 {
-    .sb-comment-block.sb-line-blockquote-#{$depth} {
-      background-size: var(--blockquote-step) 100%,
-      calc(#{$depth} * var(--blockquote-step)) 100%;
-    }
+  .sb-comment-block-last {
+    border-bottom-width: $comment-border;
+    border-bottom-style: solid;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
   }
 
   .sb-comment-resolve {

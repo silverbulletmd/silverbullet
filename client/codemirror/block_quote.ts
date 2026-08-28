@@ -40,6 +40,8 @@ function writtenMarkers(lineText: string): number {
 function decorateBlockQuote(state: EditorState) {
   const widgets: Range<Decoration>[] = [];
   const depth = new Map<number, number>();
+  const markupStart = new Map<number, number>();
+  const markupEnd = new Map<number, number>();
 
   syntaxTree(state).iterate({
     enter: ({ type, from, to }) => {
@@ -56,6 +58,12 @@ function decorateBlockQuote(state: EditorState) {
       // both is exactly as wide, revealed, the mark class pins it to the same
       // two editor columns. Either way a line occupies the same width.
       const end = state.doc.sliceString(to, to + 1) === " " ? to + 1 : to;
+      const lineStart = state.doc.lineAt(from).from;
+      markupStart.set(
+        lineStart,
+        Math.min(markupStart.get(lineStart) ?? from, from),
+      );
+      markupEnd.set(lineStart, Math.max(markupEnd.get(lineStart) ?? 0, end));
       widgets.push(
         isCursorInRange(state, [from, to])
           ? Decoration.mark({ class: "sb-quote-mark" }).range(from, end)
@@ -66,17 +74,44 @@ function decorateBlockQuote(state: EditorState) {
     },
   });
 
-  // A lazy continuation writes no marker of its own; without a stand-in it
-  // would start a marker-width left of the line it continues.
   for (const [lineStart, levels] of depth) {
+    // A lazy continuation writes no marker of its own; without a stand-in it
+    // would start a marker-width left of the line it continues.
     const missing = levels - writtenMarkers(state.doc.lineAt(lineStart).text);
-    if (missing <= 0) continue;
-    widgets.push(
-      Decoration.widget({
-        widget: new QuoteMarkSpacer(missing * markerColumns),
-        side: -1,
-      }).range(lineStart),
-    );
+    if (missing > 0) {
+      widgets.push(
+        Decoration.widget({
+          widget: new QuoteMarkSpacer(missing * markerColumns),
+          side: -1,
+        }).range(lineStart),
+      );
+    }
+    // The spacers hold the first row's columns; this reserves them on the rows
+    // it wraps into, which inline padding cannot reach. Measured from the
+    // first marker, not the line start: leading whitespace on a quote nested
+    // in a list is the item's indent, which listIndentPlugin already reserves.
+    const written = markupEnd.has(lineStart)
+      ? markupEnd.get(lineStart)! - markupStart.get(lineStart)!
+      : 0;
+    const columns = written + Math.max(missing, 0) * markerColumns;
+    if (columns > 0) {
+      // Where the markup itself starts, which is not derivable from the
+      // indents: a list inside a quote puts the `>` first, a quote inside a
+      // list puts the item's indent first. The bars key off this so they land
+      // on the spacers they stand in for either way.
+      const offset = markupStart.has(lineStart)
+        ? markupStart.get(lineStart)! - lineStart
+        : 0;
+      widgets.push(
+        Decoration.line({
+          attributes: {
+            style:
+              `--sb-quote-indent:calc(${columns} * var(--editor-column));` +
+              `--sb-quote-bar-offset:calc(${offset} * var(--editor-column))`,
+          },
+        }).range(lineStart),
+      );
+    }
   }
 
   return Decoration.set(widgets, true);

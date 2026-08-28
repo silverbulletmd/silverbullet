@@ -124,6 +124,12 @@ html {
   --editor-blockquote-background-color: var(--subtle-background-color);
   --editor-blockquote-color: var(--subtle-color);
   --editor-blockquote-border-color: rgb(74, 74, 74);
+  // Half the tint of a quote: a comment region wraps whole blocks, so it reads
+  // at a glance from its outline rather than from a wash the text sits in. The
+  // outline stays well short of the text colour for the same reason — it marks
+  // an extent, it is not something to read.
+  --editor-comment-background-color: rgba(72, 72, 72, 0.05);
+  --editor-comment-border-color: rgb(178, 178, 178);
   --editor-code-background-color: var(--subtle-background-color);
   --editor-struct-color: darkred;
   --editor-highlight-background-color: var(--highlight-color);
@@ -304,6 +310,8 @@ html[data-theme="dark"] {
   --editor-blockquote-background-color: var(--subtle-background-color);
   --editor-blockquote-color: var(--subtle-color);
   --editor-blockquote-border-color: rgb(128, 128, 128);
+  --editor-comment-background-color: rgba(105, 105, 105, 0.05);
+  --editor-comment-border-color: rgb(90, 90, 90);
   --editor-code-background-color: var(--subtle-background-color);
   --editor-struct-color: #d6222e;
   --editor-highlight-background-color: var(--highlight-color);

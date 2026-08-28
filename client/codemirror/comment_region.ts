@@ -63,10 +63,10 @@ export function resolveRange(
   };
 }
 
-/** True when the marker is the only thing on its line. */
+/** True when nothing but whitespace shares the marker's line. */
 function markerOwnsLine(state: EditorState, from: number, to: number): boolean {
   const line = state.doc.lineAt(from);
-  return line.from === from && line.to === to;
+  return line.to === to && line.text.slice(0, from - line.from).trim() === "";
 }
 
 function decorateCommentRegions(state: EditorState, client: Client) {

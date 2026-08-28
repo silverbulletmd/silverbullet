@@ -2,6 +2,7 @@ import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
   collectNodesOfType,
   type ParseTree,
+  traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 
 /**
@@ -36,28 +37,60 @@ export function wrapLines(
   return { from, to, replacement: `<!--\n${text.slice(from, to)}\n-->` };
 }
 
-/** End of the block containing `pos`: forward to the last non-blank line. */
-function endOfBlock(text: string, pos: number): number {
-  let at = pos;
-  while (at < text.length) {
-    const nl = text.indexOf("\n", at);
-    const lineEnd = nl === -1 ? text.length : nl;
-    const nextStart = nl === -1 ? text.length : nl + 1;
-    const nextNl = text.indexOf("\n", nextStart);
-    const nextEnd = nextNl === -1 ? text.length : nextNl;
-    at = lineEnd;
-    if (
-      nextStart >= text.length ||
-      text.slice(nextStart, nextEnd).trim() === ""
-    ) {
-      break;
+/**
+ * End of the top-level block containing `pos`. Between blocks — on a blank
+ * line — there is nothing to follow, so the comment belongs right at `pos`.
+ */
+function endOfBlock(tree: ParseTree, pos: number): number {
+  for (const block of tree.children ?? []) {
+    // The untyped children are the whitespace runs separating the blocks.
+    if (!block.type) continue;
+    if (pos >= block.from! && pos <= block.to!) {
+      return block.to!;
     }
-    at = nextStart;
   }
-  return at;
+  return pos;
 }
 
-function quoteSelection(selection: string): string {
+function enclosingListItem(
+  tree: ParseTree,
+  pos: number,
+): ParseTree | undefined {
+  // Deeper items are visited later, so the last match is the innermost one.
+  let found: ParseTree | undefined;
+  traverseTree(tree, (node) => {
+    if (node.from === undefined || node.to === undefined) return false;
+    if (pos < node.from || pos > node.to) return true;
+    if (node.type === "ListItem") found = node;
+    return false;
+  });
+  return found;
+}
+
+/**
+ * Where a comment on `selTo` belongs, and the indent that keeps it there. A
+ * `<!--` in column 0 inside a list splits the list in two; indented to the
+ * item's continuation column it parses as part of the item instead.
+ */
+export function commentAnchor(
+  tree: ParseTree,
+  text: string,
+  selTo: number,
+): { insertAt: number; indent: string } {
+  const item = enclosingListItem(tree, selTo);
+  const mark = item?.children?.[0];
+  if (!item || mark?.type !== "ListMark") {
+    return { insertAt: endOfBlock(tree, selTo), indent: "" };
+  }
+  // Measured from the line, not from `item.from`: a nested item's leading
+  // indentation is a sibling text node of the parent list, outside the item.
+  const lineStart = text.lastIndexOf("\n", item.from! - 1) + 1;
+  // A task's `[ ]` is deliberately not counted: that column is content indent
+  // + 4, which the parser reads as an indented code block.
+  return { insertAt: item.to!, indent: " ".repeat(mark.to! - lineStart + 1) };
+}
+
+function quoteSelection(selection: string, indent: string): string {
   if (!selection) {
     return "";
   }
@@ -67,26 +100,32 @@ function quoteSelection(selection: string): string {
   if (selection.endsWith("\n")) {
     lines.pop();
   }
-  return `${lines.map((line) => (line.trim() === "" ? ">" : `> ${line}`)).join("\n")}\n`;
+  return `${lines.map((line) => (line.trim() === "" ? `${indent}>` : `${indent}> ${line}`)).join("\n")}\n`;
 }
 
 export function buildCommentInsertion(
+  tree: ParseTree,
   text: string,
   selFrom: number,
   selTo: number,
 ): { insertAt: number; text: string; cursorPos: number } {
-  const insertAt = endOfBlock(text, selTo);
-  const selection = text.slice(selFrom, selTo);
-  const quote = quoteSelection(selection);
+  const { insertAt, indent } = commentAnchor(tree, text, selTo);
+  const quote = quoteSelection(text.slice(selFrom, selTo), indent);
+  // Only an anchor with text already on its line needs a separator; at a line
+  // boundary one would push the comment down past the spot it was asked for.
+  const lead = insertAt > 0 && text[insertAt - 1] !== "\n" ? "\n" : "";
   // With a quote, a blank line follows it: the cursor lands one line further
   // down, so what gets typed starts its own block instead of being absorbed as
-  // a lazy continuation of the blockquote.
-  const scaffold = quote ? `\n<!--\n${quote}\n\n-->` : `\n<!--\n\n-->`;
+  // a lazy continuation of the blockquote. That landing line carries the indent
+  // even though it is otherwise empty — the caret sits after it, so typing
+  // lands in the comment's column instead of back at the margin.
+  const scaffold = quote
+    ? `${lead}${indent}<!--\n${quote}\n${indent}\n${indent}-->`
+    : `${lead}${indent}<!--\n${indent}\n${indent}-->`;
   return {
     insertAt,
     text: scaffold,
-    // Land on the blank line the scaffold leaves above the closing marker.
-    cursorPos: insertAt + scaffold.length - 4,
+    cursorPos: insertAt + scaffold.length - (4 + indent.length),
   };
 }
 
@@ -109,7 +148,8 @@ export async function commentSelection() {
 export async function addComment() {
   const text = await editor.getText();
   const selection = await editor.getSelection();
-  const r = buildCommentInsertion(text, selection.from, selection.to);
+  const tree = await markdown.parseMarkdown(text);
+  const r = buildCommentInsertion(tree, text, selection.from, selection.to);
   await editor.replaceRange(r.insertAt, r.insertAt, r.text);
   await editor.moveCursor(r.cursorPos);
 }

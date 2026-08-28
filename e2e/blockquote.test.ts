@@ -1,5 +1,5 @@
+import { barGapRows, lineProbe, wordX } from "./blockquote_probe.ts";
 import { expect, gotoSilverBulletPage, test } from "./fixtures.ts";
-import { lineProbe, wordX } from "./blockquote_probe.ts";
 
 test.use({
   spaceFiles: {
@@ -101,6 +101,27 @@ async function caretOnPlainLine(page: any, needle: string) {
       }, needle),
     )
     .toBe(true);
+}
+
+/**
+ * Puts the caret inside a heading's own *text*, and confirms the header markup
+ * really was revealed: `.sb-header-inside` lands only when the caret is within
+ * the ATXHeading node, so a caret in the quote marker at column 0 leaves the
+ * heading rendered exactly as it was and every comparison after it vacuous.
+ */
+async function revealHeaderOf(page: any, needle: string) {
+  await page.evaluate((needle: string) => {
+    const view = (globalThis as any).client.editorView;
+    view.dispatch({
+      selection: { anchor: view.state.doc.toString().indexOf(needle) + 1 },
+    });
+  }, needle);
+  await expect(
+    page.locator(".cm-line.sb-header-inside", { hasText: needle }),
+  ).toHaveCount(1);
+  await expect(
+    page.locator(".cm-line.sb-header-inside", { hasText: needle }),
+  ).toHaveText(/#/);
 }
 
 test("nested quotes carry distinct depth classes", async ({
@@ -223,6 +244,44 @@ test("revealing a quoted heading's marker does not move it either", async ({
   expect(await wordX(page, "Deep heading")).toBe(hidden.two);
 });
 
+test("entering a quoted heading's text does not move it", async ({
+  sbServer,
+  page,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Quotes");
+  await page.waitForSelector(".sb-line-blockquote-2");
+  await caretOnPlainLine(page, "continued without a marker");
+  const hidden = {
+    one: await wordX(page, "Quoted heading"),
+    two: await wordX(page, "Deep heading"),
+  };
+  // With the caret in the heading, the `#` markers become real text and hang
+  // back over the columns they occupy. That hanging indent has to *compose*
+  // with the quote's own — a `text-indent` of its own replaces the sum and
+  // drops the quote's indent, throwing the line a whole step sideways as the
+  // caret arrives.
+  await revealHeaderOf(page, "Quoted heading");
+  expect(await wordX(page, "Quoted heading")).toBe(hidden.one);
+  await revealHeaderOf(page, "Deep heading");
+  expect(await wordX(page, "Deep heading")).toBe(hidden.two);
+});
+
+test("a quoted heading's bar runs the full height of its line", async ({
+  sbServer,
+  page,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Quotes");
+  await page.waitForSelector(".sb-line-blockquote");
+  await caretOnPlainLine(page, "continued without a marker");
+  // A heading line carries vertical padding for breathing room, and the bar is
+  // painted from the content box — so unless that padding is part of the band,
+  // the bar of a quoted heading stops 2px short at each end and the quote's
+  // bar breaks into dashes.
+  expect(
+    await barGapRows(page, "Quoted heading", "Body under the heading"),
+  ).toEqual([]);
+});
+
 test("extra space between markers does not add an indent", async ({
   sbServer,
   page,
@@ -256,7 +315,7 @@ test("a setext underline aligns with the title it underlines", async ({
   );
 });
 
-test("a quote inside a comment keeps both gutters", async ({
+test("a quote inside a comment keeps its bars and its column", async ({
   sbServer,
   page,
 }) => {
@@ -269,14 +328,17 @@ test("a quote inside a comment keeps both gutters", async ({
   const commented = lines.find((l: any) => l.text.includes("commented"))!;
   const deeper = lines.find((l: any) => l.text.includes("deeper"))!;
   expect(commented.classes).toContain("sb-comment-block");
-  // The comment keeps a real border gutter; the quote inside it adds its own
-  // bars and one step of text indent per level on top.
-  expect(Math.round(commented.borderLeft / step)).toBe(1);
+  // A comment region is a box drawn around whole blocks, not a gutter a step
+  // wide: its edge is a 1px hairline that bleeds out into `.cm-content`'s own
+  // padding and gives those pixels back as padding. Pinned exactly, so that
+  // deleting the rule that draws the box fails here rather than passing on a
+  // border of zero being "not a step wide".
+  expect(commented.borderLeft).toBe(1);
+  // So the quote inside it lands in exactly the column it has outside it, and
+  // still paints its own bars and one step of text indent per level.
   expect(gutterSteps(commented, step)).toBe(1);
   expect(gutterSteps(deeper, step)).toBe(2);
-  expect(
-    Math.abs(commented.x! - outer.x! - commented.borderLeft),
-  ).toBeLessThanOrEqual(1);
+  expect(commented.x).toBe(outer.x);
   expect(Math.abs(deeper.x! - commented.x! - step)).toBeLessThanOrEqual(1);
 });
 

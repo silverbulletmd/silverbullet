@@ -59,6 +59,16 @@ describe("comment region decorations", () => {
     // The `comment` label standing in for the hidden `<!--`, and Resolve.
     expect(widgets).toHaveLength(2);
     expect(lineClasses).toHaveLength(5);
+    expect(lineClasses.filter((c) => c.includes("-first"))).toHaveLength(1);
+    expect(lineClasses.filter((c) => c.includes("-last"))).toHaveLength(1);
+    expect(lineClasses[0]).toContain("sb-comment-block-first");
+    expect(lineClasses.slice(1, -1).join(" ")).not.toContain(
+      "sb-comment-block-first",
+    );
+    expect(lineClasses.slice(1, -1).join(" ")).not.toContain(
+      "sb-comment-block-last",
+    );
+    expect(lineClasses.at(-1)).toContain("sb-comment-block-last");
   });
 
   test("reveals delimiters while the cursor is inside", () => {
@@ -89,6 +99,24 @@ describe("comment region decorations", () => {
     const { replaced, widgets } = decorationsFor(
       "Before.\n<!-- TODO: fix this -->\n",
     );
+    expect(replaced).toEqual([]);
+    expect(widgets).toEqual([]);
+  });
+
+  test("hides delimiters indented into a list item", () => {
+    const doc = "* one\n  <!--\n  > one\n\n\n  -->\n* two\n";
+    const { replaced, widgets } = decorationsFor(doc);
+    expect(replaced).toEqual(["<!--", "-->"]);
+    // The `comment` label standing in for the hidden `<!--`, and Resolve.
+    expect(widgets).toHaveLength(2);
+  });
+
+  test("an indented one-liner inside a list item keeps its markers", () => {
+    // The opener fails the "reaches the line end" half of markerOwnsLine
+    // (the closer shares its line), and the closer fails the whitespace
+    // half (the opener and text share its line) — so neither hides.
+    const doc = "* item\n  <!-- note -->\n";
+    const { replaced, widgets } = decorationsFor(doc);
     expect(replaced).toEqual([]);
     expect(widgets).toEqual([]);
   });
@@ -126,37 +154,73 @@ describe("resolveRange", () => {
 });
 
 describe("comment region styling", () => {
-  test("indents with a border so list padding composes instead of losing", () => {
-    const scss = readFileSync("client/styles/editor.scss", "utf-8");
-    const css = sass.compileString(scss, {
-      loadPaths: ["client/styles"],
-      style: "expanded",
-    }).css;
-    const rule = css.match(/\.sb-comment-block \{[^}]*\}/)?.[0] ?? "";
-    expect(rule).toMatch(/border-left-width:\s*var\(--blockquote-step\)/);
-    expect(rule).toMatch(/border-left-style:\s*solid/);
-    // listIndentPlugin sets `padding-left` inline on every list line inside the
-    // comment, and inline styles win: the region indent must not use it.
-    expect(rule).not.toMatch(/padding-left/);
-    // An inset box-shadow would be clipped to the padding box, i.e. drawn
-    // a step in rather than at the region's edge.
-    expect(rule).not.toMatch(/box-shadow/);
+  const editorCss = sass.compileString(
+    readFileSync("client/styles/editor.scss", "utf-8"),
+    { loadPaths: ["client/styles"], style: "expanded" },
+  ).css;
+  const colorsCss = sass.compileString(
+    readFileSync("client/styles/colors.scss", "utf-8"),
+    { loadPaths: ["client/styles"], style: "expanded" },
+  ).css;
+
+  test("the region has no horizontal gutter of its own", () => {
+    const rule = editorCss.match(/\.sb-comment-block \{[^}]*\}/)?.[0] ?? "";
+    // A hairline, not the two-column indent the region used to carry.
+    expect(rule).toMatch(/border-left-width:\s*1px/);
+    // The bar was painted as a background gradient over the border box.
+    expect(rule).not.toMatch(/linear-gradient/);
+    // The box reaches outward and gives those pixels straight back, so the
+    // region adds no net indent: a negative margin alone drags the content
+    // with the border, leaving comment text left of the text around it. The
+    // hairline is drawn *within* the inset, so it is the border and padding
+    // together that have to add back up to it — padding the full inset would
+    // push every line in the region a border-width right of its surroundings.
+    const inset = Number(rule.match(/margin-left:\s*-(\d+)px/)?.[1]);
+    const border = Number(rule.match(/border-left-width:\s*(\d+)px/)?.[1]);
+    expect(inset).toBeGreaterThan(0);
+    expect(border).toBeGreaterThan(0);
+    expect(rule).toMatch(new RegExp(`margin-right:\\s*-${inset}px`));
+    expect(rule).toMatch(
+      new RegExp(
+        `padding-left:\\s*calc\\(var\\(--sb-indent\\) \\+ ${
+          inset - border
+        }px\\)`,
+      ),
+    );
+    expect(rule).toMatch(new RegExp(`padding-right:\\s*${inset - border}px`));
     // A `border-left` shorthand would also set a colour, outranking the
     // `.sb-admonition` colour in colors.scss on a line carrying both.
     expect(rule).not.toMatch(/border-left:/);
   });
 
-  test("the transparent border colour is pinned, not left to currentColor", () => {
-    // Both region indents are colourless longhands, so without an explicit
-    // colour they would inherit `currentColor` and paint a solid text-coloured
-    // slab a step wide.
-    const css = sass.compileString(
-      readFileSync("client/styles/colors.scss", "utf-8"),
-      { loadPaths: ["client/styles"], style: "expanded" },
-    ).css;
-    // Only the comment region still carries a border; a quote's indent is the
-    // marker spacer in the text flow.
-    const rule = css.match(/\.sb-comment-block \{[^}]*\}/)?.[0] ?? "";
-    expect(rule).toMatch(/border-left-color:\s*transparent/);
+  test("the box closes at the first and last line of the region", () => {
+    expect(editorCss).toMatch(
+      /\.sb-comment-block-first \{[^}]*border-top-width:\s*1px/,
+    );
+    expect(editorCss).toMatch(
+      /\.sb-comment-block-last \{[^}]*border-bottom-width:\s*1px/,
+    );
+  });
+
+  test("the combined comment/quote gutter override is gone", () => {
+    expect(editorCss).not.toMatch(/\.sb-comment-block\.sb-line-blockquote/);
+  });
+
+  test("the border colour is pinned, not left to currentColor", () => {
+    // The colourless longhands would otherwise inherit `currentColor` and
+    // paint a text-coloured hairline.
+    const rule = colorsCss.match(/\.sb-comment-block \{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toMatch(/border-left-color:/);
+    expect(rule).toMatch(/border-right-color:/);
+    expect(rule).toMatch(/border-top-color:/);
+    expect(rule).toMatch(/border-bottom-color:/);
+    expect(rule).not.toMatch(/transparent/);
+  });
+
+  test("an admonition inside a comment keeps its own accent bar", () => {
+    // Both rules set border-left-color on the same line; the later one wins.
+    expect(colorsCss.indexOf(".sb-admonition {")).toBeGreaterThan(
+      colorsCss.indexOf(".sb-comment-block {"),
+    );
   });
 });
