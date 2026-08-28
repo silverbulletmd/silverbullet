@@ -97,5 +97,24 @@ mod tests {
             json.contains("RoutingTable"),
             "missing RoutingTable: {json}"
         );
+
+        // Paths from the multi-space API must be present, not just components.
+        let value: serde_json::Value =
+            serde_json::from_str(&json).expect("spec must be valid JSON");
+        let paths = value["paths"]
+            .as_object()
+            .expect("spec must contain a paths object");
+        assert!(
+            paths.contains_key("/.spaces/api/login"),
+            "missing login path: {paths:?}"
+        );
+        assert!(
+            paths.contains_key("/.spaces/api/spaces"),
+            "missing spaces path: {paths:?}"
+        );
+        assert!(
+            paths.contains_key("/.fs/{path}"),
+            "missing fs path: {paths:?}"
+        );
     }
 }
