@@ -39,6 +39,67 @@ async function selectionLine(
   });
 }
 
+/**
+ * Arms a one-shot latch on the client's own page-load event.
+ *
+ * `#sb-current-page` is NOT the anchor for "the remembered position has been
+ * restored": `loadPage` dispatches its `page-loaded` view action (which is
+ * what flips the title) several awaits *before* it calls
+ * `navigateWithinPage()`, which is what applies the remembered
+ * scroll/selection (`client/content_manager.ts`). Reading the selection as
+ * soon as the title flips can therefore land in that window and see the fresh
+ * document's cursor at line 1.
+ *
+ * `editor:pageLoaded` / `editor:pageReloaded` are dispatched at the *end* of
+ * `loadPage`, after `navigateWithinPage()` has run, so awaiting one of them is
+ * the real anchor. Navigations the test drives through an awaited client call
+ * (`client.open`, `client.navigate`, the `editor.open` syscall) already resolve
+ * past the restore; a browser Back, a wiki-link click and a picker Enter do
+ * not -- those are the ones that need this latch.
+ */
+async function armPageLoaded(
+  page: import("@playwright/test").Page,
+  expectedPage: string,
+): Promise<void> {
+  await page.evaluate((expected) => {
+    const hook = (globalThis as any).client.eventHook;
+    (globalThis as any).__sbPageLoaded = new Promise<void>((resolve) => {
+      const listener = (pageName?: string) => {
+        // Both dispatch sites pass the loaded page's name as the first
+        // argument; filtering on it keeps a stray `editor:pageReloaded` on
+        // the *origin* page (a background reloadPageContent) from resolving
+        // the latch before the navigation under test has restored anything.
+        if (pageName !== expected) {
+          return;
+        }
+        for (const event of ["editor:pageLoaded", "editor:pageReloaded"]) {
+          hook.removeLocalListener(event, listener);
+        }
+        resolve();
+      };
+      for (const event of ["editor:pageLoaded", "editor:pageReloaded"]) {
+        hook.addLocalListener(event, listener);
+      }
+    });
+  }, expectedPage);
+}
+
+/** Waits for the latch armed by `armPageLoaded`, which must still be there. */
+async function awaitPageLoaded(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await page.evaluate(() => {
+    const latch = (globalThis as any).__sbPageLoaded;
+    if (!latch) {
+      throw new Error(
+        "no editor:pageLoaded latch on the page -- armPageLoaded() was not called, or the document was replaced in between",
+      );
+    }
+    delete (globalThis as any).__sbPageLoaded;
+    return latch;
+  });
+}
+
 // Open PageB, park the cursor on line 12, then navigate away to PageA so
 // PageB's position is captured into openLocations.
 async function parkOnPageBThenLeave(
@@ -71,11 +132,13 @@ test("clean wiki-link navigation opens PageB at the top, not the remembered line
   const editor = page.locator("#sb-editor .cm-content");
   const wikiLink = editor.locator(".sb-wiki-link", { hasText: "PageB" });
   await expect(wikiLink).toBeVisible({ timeout: 10_000 });
+  await armPageLoaded(page, "PageB");
   await wikiLink.click();
 
   await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
     "PageB",
   );
+  await awaitPageLoaded(page);
   await waitForEditorReady(page);
   expect(await selectionLine(page)).toBe(1);
 });
@@ -102,10 +165,12 @@ test("browser Back restores the remembered line on PageB", async ({
 }) => {
   await parkOnPageBThenLeave(page, sbServer);
 
+  await armPageLoaded(page, "PageB");
   await page.goBack();
   await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
     "PageB",
   );
+  await awaitPageLoaded(page);
   await waitForEditorReady(page);
   expect(await selectionLine(page)).toBe(12);
 });
@@ -143,8 +208,10 @@ test("page picker restores the remembered line on PageB", async ({
   await parkOnPageBThenLeave(page, sbServer);
 
   // Open the page navigator and pick PageB.
+  await armPageLoaded(page, "PageB");
   await navigateViaPagePicker(page, "PageB");
 
+  await awaitPageLoaded(page);
   await waitForEditorReady(page);
   expect(await selectionLine(page)).toBe(12);
 });
@@ -189,18 +256,22 @@ test("fresh forward navigation, then browser Back, restores the origin page", as
   const editor = page.locator("#sb-editor .cm-content");
   const wikiLink = editor.locator(".sb-wiki-link", { hasText: "PageB" });
   await expect(wikiLink).toBeVisible({ timeout: 10_000 });
+  await armPageLoaded(page, "PageB");
   await wikiLink.click();
   await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
     "PageB",
   );
+  await awaitPageLoaded(page);
   await waitForEditorReady(page);
   expect(await selectionLine(page)).toBe(1);
 
   // Back to PageA must restore line 8 even though the forward nav was fresh.
+  await armPageLoaded(page, "PageA");
   await page.goBack();
   await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
     "PageA",
   );
+  await awaitPageLoaded(page);
   await waitForEditorReady(page);
   expect(await selectionLine(page)).toBe(8);
 });

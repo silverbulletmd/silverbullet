@@ -5,7 +5,8 @@ test.use({
     "index.md": "Welcome",
     "Zef Hemel.md": "The person page",
     "Mentions.md": "Written by [[Zef Hemel]] and reviewed by [[Zef Hemel]].",
-    "Config.md": '```space-lua\nconfig.set({"linkWriteFormat"}, "shortest")\n```\n',
+    "Config.md":
+      '```space-lua\nconfig.set({"linkWriteFormat"}, "shortest")\n```\n',
   },
 });
 
