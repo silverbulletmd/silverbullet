@@ -151,3 +151,40 @@ mod tests {
         assert_eq!(SpaceError::PathOutsideRoot.to_string(), "Path not in space");
     }
 }
+
+/// Only compiled when the `openapi` feature is on. Exercises the `#[cfg_attr]`
+/// `ToSchema` derives so a build with `--features openapi` actually generates
+/// schemas for the wire types — this is what proves the annotations stand
+/// alone, independent of any OIDC payload work.
+#[cfg(all(test, feature = "openapi"))]
+mod openapi_tests {
+    use super::*;
+    use utoipa::OpenApi;
+
+    #[derive(OpenApi)]
+    #[openapi(components(schemas(FileMeta, BootConfig, RevisionsMode)))]
+    struct WireContract;
+
+    #[test]
+    fn schemas_generate_for_wire_types() {
+        let doc = WireContract::openapi();
+        let json = doc.to_pretty_json().expect("schema must serialize");
+        // The `rename_all = "camelCase"` serde hints must carry into the schema.
+        assert!(
+            json.contains("lastModified"),
+            "schema missing camelCase field: {json}"
+        );
+        assert!(
+            json.contains("FileMeta"),
+            "FileMeta component missing: {json}"
+        );
+        assert!(
+            json.contains("BootConfig"),
+            "BootConfig component missing: {json}"
+        );
+        assert!(
+            json.contains("RevisionsMode"),
+            "RevisionsMode component missing: {json}"
+        );
+    }
+}
