@@ -48,6 +48,11 @@ const CONFLICT_HUNK_LIMIT: usize = 100;
 /// none in this codebase today, but the contract allows for one) raced us.
 const MAX_RECONCILE_ATTEMPTS: usize = 3;
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.fs",
+    responses((status = 200, description = "Directory listing of the current space"))
+))]
 pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let state_inner = state.clone();
     match run_blocking(move || state_inner.space.fetch_file_list()).await {
@@ -71,6 +76,15 @@ pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoR
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.fs/{path}",
+    params(("path" = String, Path, description = "Note path within the space")),
+    responses(
+        (status = 200, description = "Note content"),
+        (status = 404, description = "Not found")
+    )
+))]
 pub async fn handle_fs_get(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
@@ -268,6 +282,16 @@ fn precondition_failed_response(current: CurrentRevision) -> Response {
         .unwrap()
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    put,
+    path = "/.fs/{path}",
+    params(("path" = String, Path, description = "Note path within the space")),
+    responses(
+        (status = 200, description = "Written"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Read-only space")
+    )
+))]
 pub async fn handle_fs_put(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
@@ -340,6 +364,16 @@ pub async fn handle_fs_put(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    delete,
+    path = "/.fs/{path}",
+    params(("path" = String, Path, description = "Note path within the space")),
+    responses(
+        (status = 200, description = "Deleted"),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Not found")
+    )
+))]
 pub async fn handle_fs_delete(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
@@ -425,6 +459,15 @@ enum ReconcileOutcome {
     Conflict(&'static str),
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.fs/{path}",
+    params(("path" = String, Path, description = "Note path within the space")),
+    responses(
+        (status = 200, description = "Reconciled"),
+        (status = 401, description = "Unauthorized")
+    )
+))]
 pub async fn handle_fs_reconcile(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
