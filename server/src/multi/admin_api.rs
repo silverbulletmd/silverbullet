@@ -189,6 +189,7 @@ fn default_true() -> bool {
     true
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CreateBody {

@@ -39,7 +39,7 @@ pub struct UserEntry {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub tokens: BTreeMap<String, TokenEntry>,
     /// Fields written by newer versions, preserved verbatim.
-    #[cfg_attr(feature = "openapi", schema(value_type = Object, additional_properties = true))]
+    #[cfg_attr(feature = "openapi", schema(additional_properties = true))]
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
 }

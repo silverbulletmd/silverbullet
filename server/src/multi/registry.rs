@@ -8,10 +8,14 @@ use std::sync::{Arc, RwLock};
 use crate::multi::config::Binding;
 use crate::multi::instance::SpaceInstance;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RoutingTable {
+    #[cfg_attr(feature = "openapi", schema(ignore))]
     pub instances: HashMap<String, Arc<SpaceInstance>>,
+    #[cfg_attr(feature = "openapi", schema(ignore))]
     hosts: HashMap<String, Arc<SpaceInstance>>,
     /// (normalized prefix, instance), sorted longest-first.
+    #[cfg_attr(feature = "openapi", schema(ignore))]
     prefixes: Vec<(String, Arc<SpaceInstance>)>,
 }
 

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 /// One space's binding to the outside world. Exactly one variant; the
 /// `untagged` representation matches the spec's `{"prefix": "/x"}` /
 /// `{"host": "..."}` shapes.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Binding {
@@ -45,6 +46,7 @@ impl<'de> Deserialize<'de> for Binding {
     }
 }
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ShellSettings {
     pub enabled: bool,
@@ -76,6 +78,7 @@ fn default_description() -> String {
 
 /// A single space's full configuration — parity with the single-space `SB_*`
 /// env surface.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpaceConfig {
@@ -109,13 +112,16 @@ pub struct SpaceConfig {
     #[serde(default)]
     pub log_push: bool,
     #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(value_type = String))]
     pub revisions: silverbullet_server_common::RevisionsMode,
     /// Fields written by newer versions, preserved verbatim.
+    #[cfg_attr(feature = "openapi", schema(value_type = Object, additional_properties = true))]
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 /// The whole `spaces.json`: GUID -> config.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct MultiConfig {
     pub spaces: HashMap<String, SpaceConfig>,

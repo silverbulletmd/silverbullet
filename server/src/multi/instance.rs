@@ -213,6 +213,7 @@ impl SpacePrimitives for ServerControlFileFilter {
 }
 
 /// Whether a space built successfully.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug)]
 pub enum InstanceStatus {
     Running,
@@ -221,6 +222,7 @@ pub enum InstanceStatus {
 
 /// A materialized space: its config plus a ready-to-mount router (or `None`
 /// when the build errored).
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SpaceInstance {
     pub id: String,
     pub config: SpaceConfig,
@@ -228,6 +230,7 @@ pub struct SpaceInstance {
     pub prefix: String,
     pub status: InstanceStatus,
     /// `None` when errored.
+    #[cfg_attr(feature = "openapi", schema(ignore))]
     pub router: Option<axum::Router>,
 }
 

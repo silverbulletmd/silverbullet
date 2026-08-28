@@ -14,6 +14,7 @@ use crate::multi::instance::{
 use crate::multi::registry::{Registry, RoutingTable};
 use crate::multi::validate::{validate, FieldError};
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug)]
 pub enum ApiError {
     Validation(Vec<FieldError>),
@@ -26,6 +27,7 @@ pub enum ApiError {
 /// Deliberately an allowlist, not a redaction of `SpaceConfig`: that type
 /// carries `#[serde(flatten)] extra`, so a denylist would expose every field
 /// added later by default. Adding a field here is a conscious edit.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VisibleSpace {
@@ -44,6 +46,7 @@ pub struct VisibleSpace {
 /// that admin listing, not widening `VisibleSpace`: this type must keep
 /// carrying no `reason`, since ordinary accounts can see spaces they don't
 /// administer.
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SpaceState {
