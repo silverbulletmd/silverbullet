@@ -9,6 +9,8 @@ publish = false
 [features]
 # Exposes MemorySpacePrimitives for use in downstream crates' tests.
 testing = []
+# Derives utoipa::ToSchema on wire types for OpenAPI spec generation.
+openapi = ["dep:utoipa"]
 
 [dependencies]
 aes-gcm = { workspace = true }
@@ -29,6 +31,7 @@ sha2 = { workspace = true }
 # a release zip and extract it in place.
 zip = { workspace = true }
 tempfile = { workspace = true }
+utoipa = { workspace = true, optional = true }
 
 # `fcntl(F_GETPATH)` is the only cheap way to recover true on-disk casing on
 # macOS; `canonicalize` does not correct casing there. Windows gets the same
