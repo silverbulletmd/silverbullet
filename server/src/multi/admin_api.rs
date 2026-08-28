@@ -312,6 +312,7 @@ async fn handle_delete(
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/.spaces/api/admin/users",
+    tag = "Users",
     responses(
         (status = 200, body = [UserEntry], description = "Account roster (admin only)")
     )
