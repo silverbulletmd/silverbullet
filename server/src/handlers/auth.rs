@@ -13,6 +13,15 @@ use crate::state::ServerState;
 
 /// `GET /.auth` — render the login page from `.client/auth.html`. Returns 403
 /// when authentication is not enabled (no `LoginManager`).
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.auth",
+    tag = "Auth",
+    responses(
+        (status = 200, description = "Auth status / login page"),
+        (status = 403, description = "Authentication not enabled")
+    )
+))]
 pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response {
     let Some(login) = state.login.clone() else {
         return (StatusCode::FORBIDDEN, "Authentication not enabled").into_response();
@@ -83,6 +92,16 @@ pub struct LoginForm {
 /// Always answers with JSON (the page submits via `fetch`): `{"status":"ok",
 /// "redirect": …}` or `{"status":"error","error": …}`. Lockout and empty-field
 /// cases are JSON errors.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.auth",
+    tag = "Auth",
+    request_body = LoginForm,
+    responses(
+        (status = 200, description = "Logged in"),
+        (status = 403, description = "Authentication not enabled")
+    )
+))]
 pub async fn handle_auth_post(
     State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
@@ -150,6 +169,12 @@ fn append_cookie(resp: &mut Response, name: &str, value: &str, opts: &CookieOpti
 }
 
 /// `GET /.logout` — clear the session + refresh cookies and 302 to `/.auth`.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.logout",
+    tag = "Auth",
+    responses((status = 200, description = "Logged out"))
+))]
 pub async fn handle_logout(State(state): State<Arc<ServerState>>, headers: HeaderMap) -> Response {
     let page_prefix = state
         .login

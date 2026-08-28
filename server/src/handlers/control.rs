@@ -6,6 +6,12 @@ use axum::response::IntoResponse;
 
 use crate::state::ServerState;
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.ping",
+    tag = "System",
+    responses((status = 200, description = "Liveness probe"))
+))]
 pub async fn handle_ping(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     (
         StatusCode::OK,
@@ -26,6 +32,12 @@ struct ConfigResponse<'a> {
     space_prefixes: Vec<String>,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.config",
+    tag = "System",
+    responses((status = 200, description = "Server configuration"))
+))]
 pub async fn handle_config(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     (
         StatusCode::OK,
@@ -70,6 +82,12 @@ struct Manifest {
 /// name/description and theme color come from config, and `host_url_prefix` is
 /// prepended to the icon, start URL, and scope so the PWA installs correctly
 /// under a sub-path mount.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.client/manifest.json",
+    tag = "System",
+    responses((status = 200, body = Manifest, description = "PWA web manifest"))
+))]
 pub async fn handle_manifest(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let prefix = &state.host_url_prefix;
     let manifest = Manifest {

@@ -61,6 +61,12 @@ enum EvalKind {
     Script,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.runtime/lua",
+    tag = "Runtime",
+    responses((status = 200, description = "Lua evaluation result"))
+))]
 pub async fn handle_runtime_lua(
     State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
@@ -69,6 +75,12 @@ pub async fn handle_runtime_lua(
     runtime_eval(state, headers, body, EvalKind::Lua).await
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.runtime/lua/script",
+    tag = "Runtime",
+    responses((status = 200, description = "Lua script evaluation result"))
+))]
 pub async fn handle_runtime_lua_script(
     State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
@@ -133,6 +145,13 @@ pub struct LogsQuery {
     since: Option<i64>,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.runtime/logs",
+    tag = "Runtime",
+    params(("path" = Option<String>, Query, description = "Filter by file path")),
+    responses((status = 200, description = "Lua execution logs"))
+))]
 pub async fn handle_runtime_logs(
     State(state): State<Arc<ServerState>>,
     Query(params): Query<LogsQuery>,

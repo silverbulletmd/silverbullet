@@ -35,6 +35,12 @@ fn err_response(status: StatusCode, message: &str) -> (StatusCode, axum::Json<Sh
     )
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.shell",
+    tag = "Runtime",
+    responses((status = 200, description = "Shell command output"))
+))]
 pub async fn handle_shell(
     State(state): State<Arc<ServerState>>,
     body: axum::body::Bytes,

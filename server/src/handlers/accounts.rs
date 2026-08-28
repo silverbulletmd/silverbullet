@@ -26,6 +26,12 @@ fn is_false(value: &bool) -> bool {
 /// Every account with access to this space, with the caller marked. A
 /// deployment with no accounts reports the caller alone; an anonymous caller on
 /// a space that does have accounts is told about nobody.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.accounts",
+    tag = "System",
+    responses((status = 200, description = "Account switcher list (authenticated)"))
+))]
 pub async fn handle_accounts(
     State(state): State<Arc<ServerState>>,
     Extension(actor): Extension<Actor>,

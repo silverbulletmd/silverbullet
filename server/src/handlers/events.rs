@@ -94,6 +94,15 @@ async fn wait_for_shutdown(mut shutdown: Option<tokio::sync::watch::Receiver<()>
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.events",
+    tag = "System",
+    responses(
+        (status = 200, description = "Server-sent event stream of file changes"),
+        (status = 404, description = "File events disabled")
+    )
+))]
 pub async fn handle_events(State(state): State<Arc<ServerState>>) -> Response {
     let Some(tx) = &state.fs_events else {
         return StatusCode::NOT_FOUND.into_response();

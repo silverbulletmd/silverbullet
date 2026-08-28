@@ -23,6 +23,13 @@ pub(crate) fn proxy_target_url(path: &str, query: Option<&str>) -> String {
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.proxy/{path}",
+    tag = "Runtime",
+    params(("path" = String, Path, description = "Proxied upstream path")),
+    responses((status = 200, description = "Proxied response"))
+))]
 pub async fn handle_proxy(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,

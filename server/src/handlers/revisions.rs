@@ -52,6 +52,13 @@ where
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.revisions/",
+    tag = "Revisions",
+    params(("path" = Option<String>, Query, description = "Filter by file path")),
+    responses((status = 200, description = "Space-wide revision log"))
+))]
 pub async fn handle_space_log(
     State(state): State<Arc<ServerState>>,
     Query(q): Query<HistoryQuery>,
@@ -68,6 +75,12 @@ pub async fn handle_space_log(
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/.revisions/",
+    tag = "Revisions",
+    responses((status = 200, description = "Snapshot written"))
+))]
 pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response {
     let Some(history) = state.revisions.clone() else {
         return disabled();
@@ -78,6 +91,16 @@ pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response 
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/.revisions/{path}",
+    tag = "Revisions",
+    params(("path" = String, Path, description = "File path")),
+    responses(
+        (status = 200, description = "Revision history for the file"),
+        (status = 404, description = "No such file")
+    )
+))]
 pub async fn handle_file_revisions(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
