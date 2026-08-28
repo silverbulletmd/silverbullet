@@ -66,3 +66,14 @@ More text`;
     `* Item X\n  * [ ] [[test@${taskPos}]] Hello`,
   );
 });
+
+test("extractSnippet neutralizes transclusions into plain links", () => {
+  // A snippet is a preview; a live `![[page]]` inside it would make every
+  // consumer that expands transclusions inline the whole target page.
+  const text = `# API
+![[API]]
+# Next section`;
+  expect(extractSnippet("test", text, text.indexOf("![[API]]"))).toEqual(
+    "[[API]]",
+  );
+});

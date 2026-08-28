@@ -119,6 +119,13 @@ export async function expandMarkdown(
 
         const tree = parse(mdLang, result.text);
 
+        // Remove frontmatter when transcluding
+        if (result.offset === 0 && tree.children) {
+          tree.children = tree.children.filter(
+            (c) => c.type !== "FrontMatter",
+          );
+        }
+
         // Recursively process
         return expandMarkdown(
           space,

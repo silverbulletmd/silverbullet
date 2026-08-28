@@ -106,6 +106,13 @@ export function extractSnippet(
   // Specific cases: because headers look bad in snippets, let's strip those leading `#`
   result = result.replace(/^(#+)\s+/, "");
 
+  // A `![[transclusion]]` must not survive into a snippet: consumers render
+  // snippets through pipelines that expand transclusions, which would inline
+  // the entire target page into what is meant to be a one-glance preview --
+  // for a linked-mentions snippet, that is the very page the widget is on.
+  // Show it as a plain link instead.
+  result = result.replaceAll("![[", "[[");
+
   return result;
 }
 
