@@ -33,6 +33,10 @@ uuid = { workspace = true }
 tower = { version = "0.5", features = ["util"] }
 notify = { workspace = true }
 tokio-stream = { workspace = true }
+utoipa = { workspace = true, optional = true }
+
+[features]
+openapi = ["dep:utoipa"]
 
 [dev-dependencies]
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }
