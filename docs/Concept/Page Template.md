@@ -25,8 +25,7 @@ Optional keys you can set in the page’s frontmatter:
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
-* `frontmatter`: Frontmatter to set in the resulting page. Use a YAML literal block scalar
-  (`frontmatter: |`) so that the value is passed as a string and `${...}` Lua interpolation
+* `frontmatter`: Frontmatter to set in the resulting page. Use a YAML literal block scalar (`frontmatter: |`) so that the value is passed as a string and `${...}` Lua interpolation
   works. A nested YAML mapping is also accepted (and serialized verbatim), but interpolation
   will be skipped in that case.
 * `priority`: Similar to how space lua scripts are loaded, this controls the order in which page template _commands_ are
@@ -57,11 +56,6 @@ You can create a page based on a page template via the ${widgets.commandButton("
 
 # Overriding page templates
 If you would like to override an existing page template (for instance the Quick Note) template with your own, you can take advantage of the load order determined by the `priority` frontmatter. Built in page templates will have a priority set that is higher than the default. Therefore, their commands and keybindings will be set early. Therefore, by simply defining your own version of the page template _with the same command name_ will let that version override the versions that are built in.
-<!--
-> et that is higher than the default. Therefore, their commands and keybindings will be set early. Therefore, by simply defining your own v
-
-
--->
 
 ## Example: overriding the Quick Note template
 ~~~

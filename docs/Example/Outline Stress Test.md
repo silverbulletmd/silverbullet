@@ -11,7 +11,6 @@
 * Unordered list item:
   * [ ] With a task sub item
   * [ ] And a long one that will eventually wrap its line if I keep typing
-
 # Mixed bullet markers
 - Hyphen marker
 * Asterisk marker
