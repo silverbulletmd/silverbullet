@@ -24,7 +24,19 @@ use crate::multi::users::{Profile, TokenEntry, UserEntry};
 use crate::multi::validate::FieldError;
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(
+#[openapi(
+    paths(
+        crate::multi::space_index::handle_login,
+        crate::multi::space_index::handle_session,
+        crate::multi::space_index::handle_list,
+        crate::multi::admin_api::handle_list_users,
+        crate::handlers::fs::handle_fs_list,
+        crate::handlers::fs::handle_fs_get,
+        crate::handlers::fs::handle_fs_put,
+        crate::handlers::fs::handle_fs_delete,
+        crate::handlers::fs::handle_fs_reconcile,
+    ),
+    components(schemas(
     LoginForm,
     HistoryQuery,
     LogsQuery,
