@@ -74,13 +74,24 @@ export default function reducer(
       const oldPageMeta = new Map(
         [...state.allPages].map((pm) => [pm.name, pm]),
       );
+      const currentPath = state.current?.path;
+      const currentNameCandidates = currentPath
+        ? new Set(
+            currentPath.endsWith(".md")
+              ? [currentPath, currentPath.slice(0, -3)]
+              : [currentPath],
+          )
+        : undefined;
       let currPageMeta: PageMeta | undefined;
       for (const pageMeta of action.allPages) {
         const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
         if (oldPageMetaItem?.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
-        if (parseToRef(pageMeta.name)?.path === state.current?.path) {
+        if (
+          currentNameCandidates?.has(pageMeta.name) &&
+          parseToRef(pageMeta.name)?.path === currentPath
+        ) {
           currPageMeta = pageMeta;
         }
       }
