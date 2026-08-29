@@ -16,8 +16,10 @@
 }
 
 #sb-top.sb-sync-error {
+  --top-background-color: var(--top-sync-error-background-color);
+
   color: var(--top-sync-error-color);
-  background-color: var(--top-sync-error-background-color);
+  background-color: var(--top-background-color);
 }
 
 .sb-saved {

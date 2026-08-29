@@ -7,7 +7,11 @@ import {
   withExpanded,
 } from "../../../../plug-api/ui/tree_model.ts";
 import type { Client } from "../../../client.ts";
-import { isNarrowScreen, MOBILE_MEDIA_QUERY } from "../../../lib/mobile.ts";
+import {
+  isMobileDevice,
+  isNarrowScreen,
+  MOBILE_MEDIA_QUERY,
+} from "../../../lib/mobile.ts";
 import { createActivate } from "../activation.ts";
 import type { NavigatorEngine } from "../engine.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
@@ -78,6 +82,7 @@ export function usePanelEvents({
     // for the modal always and for a sidebar only when it's coming back with
     // a non-empty phrase already in it.
     function focusInput(select: boolean) {
+      if (isMobileDevice()) return;
       refs.input.current?.focus();
       if (select) refs.input.current?.select();
     }

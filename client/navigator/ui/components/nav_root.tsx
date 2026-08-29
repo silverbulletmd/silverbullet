@@ -263,6 +263,9 @@ export function NavRoot({
             ref={inputRef}
             className="sb-nav-input"
             type="text"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck={false}
             placeholder={noFilter ? undefined : placeholder}
             aria-label={
               noFilter ? (view?.meta.label ?? view?.meta.title) : undefined

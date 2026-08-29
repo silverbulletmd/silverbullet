@@ -27,6 +27,10 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 * [[Feature/Space Manager|Multi-space]] mode: the [[Feature/Runtime API]] (`runtimeApi`) is now **on by default** for new and existing spaces, instead of off.
 * [[Feature/Space Manager|Multi-space]] mode: a space's settings no longer hide half of themselves behind an **Advanced** disclosure — every option is visible as soon as the form opens.
 * Fix: the first-run **setup wizard** and the [[Feature/Space Manager]] are usable on a phone.
+* A batch of mobile (iOS) fixes:
+  * Pickers no longer show keyboard shortcuts on touch devices, where they cannot be pressed and only crowd out the page names.
+  * Filter boxes no longer autocapitalize or autocorrect: command and page names are identifiers, and the phone's corrections only fought the fuzzy match.
+  * Fix: the hamburger menu on a narrow screen stayed grey when the rest of the top bar turned yellow to signal a lost connection.
 * Fix: releasing a drag-selection on top of a link no longer navigates to it — only a real click (pointer down and up in the same spot) follows a link.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.
 * Fix: the [[Feature/Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available.

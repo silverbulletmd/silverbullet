@@ -4,6 +4,7 @@ import {
   isMarkdownPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { isMobileDevice } from "./lib/mobile.ts";
 
 export default function reducer(
   state: AppViewState,
@@ -20,14 +21,13 @@ export default function reducer(
         },
       };
     case "page-loaded": {
-      const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
       const isBrowser = globalThis.matchMedia(
         "(display-mode: browser)",
       ).matches;
       return {
         ...state,
         isLoading: false,
-        isMobile: !mouseDetected,
+        isMobile: isMobileDevice(),
         isStandalone: !isBrowser,
         current: {
           path: action.path,

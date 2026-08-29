@@ -134,6 +134,10 @@ export function NewUser({ onUnauthorized }: { onUnauthorized: () => void }) {
       <label for="new-user-username">Username</label>
       <Input
         id="new-user-username"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck={false}
+        autocomplete="username"
         value={username}
         onInput={(event) => setUsername(event.currentTarget.value)}
       />
@@ -141,6 +145,7 @@ export function NewUser({ onUnauthorized }: { onUnauthorized: () => void }) {
       <Input
         id="new-user-password"
         type="password"
+        autocomplete="new-password"
         value={password}
         onInput={(event) => setPassword(event.currentTarget.value)}
       />
@@ -154,12 +159,18 @@ export function NewUser({ onUnauthorized }: { onUnauthorized: () => void }) {
       <label for="new-user-full-name">Full name</label>
       <Input
         id="new-user-full-name"
+        autocomplete="name"
         value={fullName}
         onInput={(event) => setFullName(event.currentTarget.value)}
       />
       <label for="new-user-email">Email</label>
       <Input
         id="new-user-email"
+        type="email"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck={false}
+        autocomplete="email"
         value={email}
         onInput={(event) => setEmail(event.currentTarget.value)}
       />
@@ -287,12 +298,18 @@ export function UserDetail({
           <label for="user-detail-full-name">Full name</label>
           <Input
             id="user-detail-full-name"
+            autocomplete="name"
             value={fullName}
             onInput={(event) => setFullName(event.currentTarget.value)}
           />
           <label for="user-detail-email">Email</label>
           <Input
             id="user-detail-email"
+            type="email"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck={false}
+            autocomplete="email"
             value={email}
             onInput={(event) => setEmail(event.currentTarget.value)}
           />

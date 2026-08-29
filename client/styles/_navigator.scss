@@ -368,8 +368,3 @@
   outline: 2px solid var(--modal-selected-option-background-color);
   outline-offset: -2px;
 }
-
-// The rest of the navigator's styles live beside this file, one partial per
-// component: `_view_content.scss` (a content view's body in a panel),
-// `_revision_preview.scss`, `_dock_menu.scss` and `_page_widget.scss`.
-// `main.scss` loads them in order, after `components` -- see the note there.

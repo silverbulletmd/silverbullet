@@ -80,7 +80,7 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
-import { isNarrowScreen } from "../../lib/mobile.ts";
+import { isMobileDevice, isNarrowScreen } from "../../lib/mobile.ts";
 import { hide as hideNavigatorSlot } from "../../navigator/navigator.ts";
 import type { PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
@@ -1592,10 +1592,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
 
     "editor.isMobile": {
-      callback: () => {
-        const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
-        return !mouseDetected;
-      },
+      callback: () => isMobileDevice(),
       description:
         "Checks whether the current device lacks a fine pointer and should be treated as mobile.",
       returns: [

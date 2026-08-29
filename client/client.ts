@@ -51,6 +51,7 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { isValidEditor } from "./lib/command_filters.ts";
+import { isMobileDevice } from "./lib/mobile.ts";
 import { timedSpan } from "./lib/perf.ts";
 import { open as openNavigatorView } from "./navigator/navigator.ts";
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
@@ -824,8 +825,10 @@ export class Client {
         priority: Number(def.priority) || 0,
         lastRun: def.lastRun,
         // Prettified here rather than in the source: which shortcut applies
-        // (and how it is written) is a property of this client's platform.
-        hint: keyboardHint(def),
+        // (and how it is written) is a property of this client's platform --
+        // as is having a keyboard at all. A touch client gets no hint, so the
+        // palette spends that width on the command's name instead.
+        hint: isMobileDevice() ? undefined : keyboardHint(def),
       });
     }
     return out;

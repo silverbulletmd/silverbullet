@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { Input } from "@silverbulletmd/silverbullet/ui";
 import { fuzzySearchAndSort } from "../lib/fuzzy_search.ts";
+import { isMobileDevice } from "../lib/mobile.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";
 import { AlwaysShownModal } from "./basic_modals.tsx";
 
@@ -49,6 +50,10 @@ export function FilterList({
   const selectedElementRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
+    // See the matching skip in the navigator's `focusInput`: on a touch device
+    // this focus leaves the field focused with no on-screen keyboard, and no
+    // tap can recover one.
+    if (isMobileDevice()) return;
     inputRef.current?.focus();
   }, []);
 
@@ -114,6 +119,9 @@ export function FilterList({
         <Input
           inputRef={inputRef}
           class="sb-filter-input"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck={false}
           value={text}
           placeholder={placeholder}
           onInput={(e) => setText(e.currentTarget.value)}

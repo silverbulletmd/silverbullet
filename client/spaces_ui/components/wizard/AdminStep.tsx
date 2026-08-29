@@ -40,6 +40,10 @@ export function AdminStep({
       <label for="setup-username">Username</label>
       <Input
         id="setup-username"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck={false}
+        autocomplete="username"
         value={values.username}
         onInput={(e) => onChange({ username: e.currentTarget.value })}
       />
@@ -47,6 +51,7 @@ export function AdminStep({
       <Input
         id="setup-password"
         type="password"
+        autocomplete="new-password"
         value={values.password}
         onInput={(e) => onChange({ password: e.currentTarget.value })}
       />
@@ -54,18 +59,25 @@ export function AdminStep({
       <Input
         id="setup-password2"
         type="password"
+        autocomplete="new-password"
         value={values.password2}
         onInput={(e) => onChange({ password2: e.currentTarget.value })}
       />
       <label for="setup-full-name">Full name (optional)</label>
       <Input
         id="setup-full-name"
+        autocomplete="name"
         value={values.fullName}
         onInput={(e) => onChange({ fullName: e.currentTarget.value })}
       />
       <label for="setup-email">Email (optional)</label>
       <Input
         id="setup-email"
+        type="email"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck={false}
+        autocomplete="email"
         value={values.email}
         onInput={(e) => onChange({ email: e.currentTarget.value })}
       />

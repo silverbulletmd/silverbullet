@@ -15,3 +15,12 @@ export const MOBILE_MEDIA_QUERY = "(max-width: 600px)";
 export function isNarrowScreen(): boolean {
   return globalThis.matchMedia?.(MOBILE_MEDIA_QUERY).matches ?? false;
 }
+
+export const FINE_POINTER_MEDIA_QUERY = "(pointer: fine)";
+
+export function isMobileDevice(): boolean {
+  const query = globalThis.matchMedia?.(FINE_POINTER_MEDIA_QUERY);
+  // No `matchMedia` at all (SSR, tests) is treated as a desktop, matching what
+  // every caller did before this helper existed.
+  return query ? !query.matches : false;
+}
