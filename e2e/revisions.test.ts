@@ -34,9 +34,22 @@ function gitCommit(spaceDir: string, author: string, message: string): void {
 }
 
 function commitCount(spaceDir: string): number {
-  const out = execFileSync("git", ["log", "--oneline"], {
-    cwd: spaceDir,
-  }).toString();
+  let out: string;
+  try {
+    out = execFileSync("git", ["log", "--oneline"], {
+      cwd: spaceDir,
+      stdio: ["ignore", "pipe", "pipe"],
+    }).toString();
+  } catch (e: any) {
+    // A repo whose initial snapshot hasn't been committed yet makes `git log`
+    // exit non-zero ("does not have any commits yet") — that's 0 commits, not
+    // an error; waitForInitialSnapshot polls through this state.
+    const stderr = e.stderr?.toString() ?? "";
+    if (stderr.includes("does not have any commits")) {
+      return 0;
+    }
+    throw e;
+  }
   return out.trim() === "" ? 0 : out.trim().split("\n").length;
 }
 
