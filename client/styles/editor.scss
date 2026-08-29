@@ -461,6 +461,17 @@ $comment-border: 1px;
     color: var(--top-loading-color, #888);
     opacity: 0.7;
     vertical-align: middle;
+    animation: sb-loading-appear 0.2s ease-out 0.3s both;
+  }
+
+  @keyframes sb-loading-appear {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 0.7;
+    }
   }
 
   .sb-loading-widget-block {
@@ -855,6 +866,7 @@ $comment-border: 1px;
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*),
   .sb-page-widget-content .sb-page-widget-body {
+
     ul,
     ol {
       margin-top: 0;
