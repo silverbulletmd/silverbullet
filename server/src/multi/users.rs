@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::auth::{clean_email, clean_full_name};
+use crate::openapi_responses::UserView;
 
 pub const USERS_FILE: &str = "users.json";
 
@@ -414,22 +415,7 @@ impl UserStore {
 }
 
 fn user_json(user: &UserEntry) -> serde_json::Value {
-    let tokens: serde_json::Map<String, serde_json::Value> = user
-        .tokens
-        .iter()
-        .map(|(name, token)| {
-            (
-                name.clone(),
-                serde_json::json!({ "createdAt": token.created_at }),
-            )
-        })
-        .collect();
-    serde_json::json!({
-        "admin": user.admin,
-        "fullName": user.full_name,
-        "email": user.email,
-        "tokens": tokens,
-    })
+    serde_json::to_value(UserView::from(user)).unwrap_or_default()
 }
 
 #[cfg(test)]

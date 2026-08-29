@@ -12,19 +12,19 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::json;
 
 use crate::auth::{Authenticator, JwtAuthorizer, RequestAuthorizer};
 use crate::multi::access::UserTokenAuthorizer;
 use crate::multi::config::SpaceConfig;
 use crate::multi::manager::{ApiError, MultiManager};
-#[cfg(feature = "openapi")]
-use crate::multi::users::UserEntry;
 use crate::multi::users::{Profile, UserStore};
 use crate::multi::validate::FieldError;
 use crate::openapi_responses::{
-    CreateSpaceResponse, ErrorListResponse, ServerInfoResponse, StatusResponse, TokenResponse,
+    CreateSpaceResponse, DirCompletionResponse, ErrorListResponse, ServerInfoResponse,
+    StatusResponse, TokenResponse,
 };
+#[cfg(feature = "openapi")]
+use crate::openapi_responses::{SpaceView, UserView};
 use crate::router::run_blocking;
 
 pub struct AdminState {
@@ -133,7 +133,7 @@ async fn require_admin(State(state): State<Arc<AdminState>>, req: Request, next:
     get,
     path = "/.spaces/api/admin/spaces",
     tag = "Admin",
-    responses((status = 200, body = [SpaceConfig], description = "All space configurations (admin)"))
+    responses((status = 200, body = [SpaceView], description = "All space configurations (admin)"))
 ))]
 async fn handle_list(State(state): State<Arc<AdminState>>) -> Response {
     Json(state.manager.list()).into_response()
@@ -207,7 +207,12 @@ fn user_store_error(msg: String) -> Response {
     };
     (
         StatusCode::BAD_REQUEST,
-        Json(json!({ "errors": [{ "field": field, "message": msg }] })),
+        Json(ErrorListResponse {
+            errors: vec![FieldError {
+                field: field.to_string(),
+                message: msg.to_string(),
+            }],
+        }),
     )
         .into_response()
 }
@@ -273,7 +278,7 @@ async fn handle_update(
     tag = "Admin",
     params(("id" = String, Path, description = "Space id")),
     responses(
-        (status = 200, body = SpaceConfig, description = "Space configuration"),
+        (status = 200, body = SpaceView, description = "Space configuration and live status"),
         (status = 404, description = "No such space")
     )
 ))]
@@ -333,7 +338,7 @@ async fn handle_delete(
     path = "/.spaces/api/admin/users",
     tag = "Users",
     responses(
-        (status = 200, body = [UserEntry], description = "Account roster (admin only)")
+        (status = 200, body = [UserView], description = "Account roster (admin only)")
     )
 ))]
 async fn handle_list_users(State(state): State<Arc<AdminState>>) -> Response {
@@ -346,7 +351,7 @@ async fn handle_list_users(State(state): State<Arc<AdminState>>) -> Response {
     tag = "Admin",
     params(("name" = String, Path, description = "Account name")),
     responses(
-        (status = 200, body = UserEntry, description = "Account"),
+        (status = 200, body = UserView, description = "Account (redacted view)"),
         (status = 404, description = "No such user")
     )
 ))]
@@ -397,7 +402,7 @@ async fn handle_create_user(
     match result {
         Ok(Ok(())) => {
             state.manager.set_known_users(state.users.usernames());
-            Json(json!({ "status": "ok" })).into_response()
+            Json(StatusResponse::ok()).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
@@ -499,7 +504,7 @@ async fn handle_set_user_password(
     match result {
         Ok(Ok(())) => {
             state.manager.set_known_users(state.users.usernames());
-            Json(json!({ "status": "ok" })).into_response()
+            Json(StatusResponse::ok()).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
@@ -530,7 +535,7 @@ async fn handle_set_admin(
     match result {
         Ok(Ok(())) => {
             state.manager.set_known_users(state.users.usernames());
-            Json(json!({ "status": "ok" })).into_response()
+            Json(StatusResponse::ok()).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
@@ -584,7 +589,7 @@ async fn handle_delete_token(
     match result {
         Ok(Ok(())) => {
             state.manager.set_known_users(state.users.usernames());
-            Json(json!({ "status": "ok" })).into_response()
+            Json(StatusResponse::ok()).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
@@ -603,7 +608,7 @@ struct DirsQuery {
     path = "/.spaces/api/admin/fs/dirs",
     tag = "Admin",
     params(("root" = Option<String>, Query, description = "Subdirectory to list")),
-    responses((status = 200, body = StatusResponse, description = "Directory listing"))
+    responses((status = 200, body = DirCompletionResponse, description = "Directory listing"))
 ))]
 async fn handle_fs_dirs(
     State(state): State<Arc<AdminState>>,
@@ -636,7 +641,7 @@ async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
 /// input resolves against the server root; directory names only. Shared with
 /// the setup surface (`GET /.setup/api/fs/dirs`) so both the admin space form
 /// and the first-run wizard drive the same picker off one implementation.
-pub(crate) fn dir_completion(root: &std::path::Path, input: &str) -> serde_json::Value {
+pub(crate) fn dir_completion(root: &std::path::Path, input: &str) -> DirCompletionResponse {
     let input_is_absolute = std::path::Path::new(input).is_absolute();
     let resolved = {
         let p = std::path::Path::new(input);
@@ -696,7 +701,11 @@ pub(crate) fn dir_completion(root: &std::path::Path, input: &str) -> serde_json:
     suggestions.sort();
     suggestions.truncate(50);
 
-    json!({ "status": status, "writable": writable, "suggestions": suggestions })
+    DirCompletionResponse {
+        status: status.to_string(),
+        writable,
+        suggestions,
+    }
 }
 
 /// The admin route table. Deliberately returns an UNGATED router: the gate is

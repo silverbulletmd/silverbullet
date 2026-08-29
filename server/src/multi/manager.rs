@@ -13,6 +13,7 @@ use crate::multi::instance::{
 };
 use crate::multi::registry::{Registry, RoutingTable};
 use crate::multi::validate::{validate, FieldError};
+use crate::openapi_responses::{SpaceStatus, SpaceView};
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug)]
@@ -393,14 +394,11 @@ fn prefix_roots(instances: &HashMap<String, Arc<SpaceInstance>>) -> Vec<String> 
 /// `SpaceConfig` field — which is exactly why `patch` merges over the
 /// config's own serialization and not over this.
 fn space_json(config: &SpaceConfig, status: &InstanceStatus) -> serde_json::Value {
-    let mut v = serde_json::to_value(config).unwrap_or_default();
-    v["status"] = match status {
-        InstanceStatus::Errored(reason) => {
-            serde_json::json!({ "state": "errored", "reason": reason })
-        }
-        _ => serde_json::json!({ "state": "running" }),
+    let view = SpaceView {
+        config: config.clone(),
+        status: SpaceStatus::from(status),
     };
-    v
+    serde_json::to_value(view).unwrap_or_default()
 }
 
 #[cfg(test)]
