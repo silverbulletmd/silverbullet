@@ -1,4 +1,4 @@
-use crate::openapi_responses::SnapshotResponse;
+use crate::openapi_responses::{RevisionsDisabledResponse, SnapshotResponse};
 use crate::revisions::read;
 #[cfg(feature = "openapi")]
 use crate::revisions::read::{FileRevisions, RevisionEntry};
@@ -25,7 +25,9 @@ pub struct HistoryQuery {
 fn disabled() -> Response {
     (
         StatusCode::NOT_FOUND,
-        axum::Json(serde_json::json!({"error": "revisions disabled"})),
+        axum::Json(RevisionsDisabledResponse {
+            error: "revisions disabled".to_string(),
+        }),
     )
         .into_response()
 }
@@ -60,7 +62,10 @@ where
     path = "/.revisions/",
     tag = "Revisions",
     params(("path" = Option<String>, Query, description = "Filter by file path")),
-    responses((status = 200, body = Vec<RevisionEntry>, description = "Space-wide revision log"))
+    responses(
+        (status = 200, body = Vec<RevisionEntry>, description = "Space-wide revision log"),
+        (status = 404, body = RevisionsDisabledResponse, description = "Revisions disabled for this space")
+    )
 ))]
 pub async fn handle_space_log(
     State(state): State<Arc<ServerState>>,
@@ -82,7 +87,10 @@ pub async fn handle_space_log(
     post,
     path = "/.revisions/",
     tag = "Revisions",
-    responses((status = 200, body = SnapshotResponse, description = "Snapshot written"))
+    responses(
+        (status = 200, body = SnapshotResponse, description = "Snapshot written"),
+        (status = 404, body = RevisionsDisabledResponse, description = "Revisions disabled for this space")
+    )
 ))]
 pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response {
     let Some(history) = state.revisions.clone() else {
@@ -101,7 +109,7 @@ pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response 
     params(("path" = String, Path, description = "File path")),
     responses(
         (status = 200, body = FileRevisions, description = "Revision history for the file"),
-        (status = 404, description = "No such file")
+        (status = 404, body = RevisionsDisabledResponse, description = "Revisions disabled or no such file")
     )
 ))]
 pub async fn handle_file_revisions(

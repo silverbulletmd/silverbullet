@@ -10,9 +10,10 @@ use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use serde_json::json;
 
-use crate::openapi_responses::LogsResponse;
+use crate::openapi_responses::{
+    LogsResponse, RuntimeErrorResponse, RuntimeFailureResponse, RuntimeResultResponse,
+};
 use crate::runtime::RuntimeError;
 use crate::state::ServerState;
 
@@ -33,7 +34,9 @@ pub(crate) fn parse_timeout(headers: &HeaderMap) -> Duration {
 fn not_enabled() -> Response {
     (
         StatusCode::SERVICE_UNAVAILABLE,
-        Json(json!({ "error": "Runtime API is not enabled" })),
+        Json(RuntimeErrorResponse {
+            error: "Runtime API is not enabled".to_string(),
+        }),
     )
         .into_response()
 }
@@ -50,7 +53,10 @@ fn runtime_error_response(e: RuntimeError) -> Response {
     };
     (
         status,
-        Json(json!({ "error": e.to_string(), "code": code })),
+        Json(RuntimeFailureResponse {
+            error: e.to_string(),
+            code: code.to_string(),
+        }),
     )
         .into_response()
 }
@@ -66,7 +72,11 @@ enum EvalKind {
     post,
     path = "/.runtime/lua",
     tag = "Runtime",
-    responses((status = 200, description = "Lua evaluation result"))
+    responses(
+        (status = 200, body = RuntimeResultResponse, description = "Lua evaluation result"),
+        (status = 400, body = RuntimeErrorResponse, description = "Empty request body"),
+        (status = 503, body = RuntimeErrorResponse, description = "Runtime API not enabled")
+    )
 ))]
 pub async fn handle_runtime_lua(
     State(state): State<Arc<ServerState>>,
@@ -80,7 +90,11 @@ pub async fn handle_runtime_lua(
     post,
     path = "/.runtime/lua/script",
     tag = "Runtime",
-    responses((status = 200, description = "Lua script evaluation result"))
+    responses(
+        (status = 200, body = RuntimeResultResponse, description = "Lua script evaluation result"),
+        (status = 400, body = RuntimeErrorResponse, description = "Empty request body"),
+        (status = 503, body = RuntimeErrorResponse, description = "Runtime API not enabled")
+    )
 ))]
 pub async fn handle_runtime_lua_script(
     State(state): State<Arc<ServerState>>,
@@ -107,7 +121,9 @@ async fn runtime_eval(
     if code.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Request body is required" })),
+            Json(RuntimeErrorResponse {
+                error: "Request body is required".to_string(),
+            }),
         )
             .into_response();
     }
@@ -129,11 +145,17 @@ async fn runtime_eval(
     .await;
 
     match result {
-        Ok(Ok(value)) => (StatusCode::OK, Json(json!({ "result": value }))).into_response(),
+        Ok(Ok(value)) => (
+            StatusCode::OK,
+            Json(RuntimeResultResponse { result: value }),
+        )
+            .into_response(),
         Ok(Err(e)) => runtime_error_response(e),
         Err(join) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": format!("runtime task failed: {join}") })),
+            Json(RuntimeErrorResponse {
+                error: format!("runtime task failed: {join}"),
+            }),
         )
             .into_response(),
     }
@@ -151,7 +173,10 @@ pub struct LogsQuery {
     path = "/.runtime/logs",
     tag = "Runtime",
     params(("path" = Option<String>, Query, description = "Filter by file path")),
-    responses((status = 200, body = LogsResponse, description = "Lua execution logs"))
+    responses(
+        (status = 200, body = LogsResponse, description = "Lua execution logs"),
+        (status = 503, body = RuntimeErrorResponse, description = "Runtime API not enabled")
+    )
 ))]
 pub async fn handle_runtime_logs(
     State(state): State<Arc<ServerState>>,
