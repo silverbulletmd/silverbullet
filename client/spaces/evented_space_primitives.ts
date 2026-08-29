@@ -25,6 +25,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   // so that synced changes are not missed.
   private deferredFetchFileList = false;
 
+  // Concurrent fetchFileList calls share one underlying listing (single-flight);
+  // during boot several subsystems request the list at nearly the same time.
+  private inFlightFileList?: Promise<FileMeta[]>;
+
   private enabled = false;
 
   // Snapshot state management
@@ -93,7 +97,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return this.eventHook.dispatchEvent(name, ...args);
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
+  fetchFileList(): Promise<FileMeta[]> {
+    if (this.inFlightFileList) {
+      return this.inFlightFileList;
+    }
     if (this.operationCount > 0) {
       // Some other operation (read, write, list, meta) is already going on
       // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
@@ -104,9 +111,16 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.deferredFetchFileList = true;
       return this.wrapped.fetchFileList();
     }
-    if (!this.enabled) {
-      return this.wrapped.fetchFileList();
-    }
+    const listing = this.enabled
+      ? this.fetchFileListAndDispatch()
+      : this.wrapped.fetchFileList();
+    this.inFlightFileList = listing;
+    return listing.finally(() => {
+      this.inFlightFileList = undefined;
+    });
+  }
+
+  private async fetchFileListAndDispatch(): Promise<FileMeta[]> {
     // console.log("Fetching file list");
     // Fetching mutex
     this.operationCount++;

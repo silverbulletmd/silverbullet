@@ -46,6 +46,55 @@ function setup(lastModified = 2000) {
 const fileChanged = (events: { name: string; args: unknown[] }[]) =>
   events.filter((e) => e.name === "file:changed");
 
+describe("EventedSpacePrimitives fetchFileList single-flight", () => {
+  function listingSetup() {
+    let listCalls = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const base = setup();
+    (base.sp as unknown as { wrapped: SpacePrimitives }).wrapped = {
+      fetchFileList: async () => {
+        listCalls++;
+        await gate;
+        return [meta("index.md", 2000)];
+      },
+    } as unknown as SpacePrimitives;
+    return { ...base, release, listCalls: () => listCalls };
+  }
+
+  test("concurrent calls share one underlying listing", async () => {
+    const { sp, release, listCalls } = listingSetup();
+    await sp.enable();
+
+    const [a, b] = [sp.fetchFileList(), sp.fetchFileList()];
+    release();
+    expect(await a).toEqual(await b);
+    expect(listCalls()).toBe(1);
+  });
+
+  test("concurrent calls share one underlying listing before enable()", async () => {
+    const { sp, release, listCalls } = listingSetup();
+
+    const [a, b] = [sp.fetchFileList(), sp.fetchFileList()];
+    release();
+    expect(await a).toEqual(await b);
+    expect(listCalls()).toBe(1);
+  });
+
+  test("a later call after completion fetches fresh", async () => {
+    const { sp, release, listCalls } = listingSetup();
+    await sp.enable();
+
+    const first = sp.fetchFileList();
+    release();
+    await first;
+    await sp.fetchFileList();
+    expect(listCalls()).toBe(2);
+  });
+});
+
 // file:changed fires from inside writeFile, before it returns, so ownWrite is
 // a listener's only way to tell its own write from somebody else's.
 describe("EventedSpacePrimitives file:changed ownWrite flag", () => {
