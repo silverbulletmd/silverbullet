@@ -51,6 +51,7 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { isValidEditor } from "./lib/command_filters.ts";
+import { timedSpan } from "./lib/perf.ts";
 import { open as openNavigatorView } from "./navigator/navigator.ts";
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
@@ -211,14 +212,16 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init(encryptionKey?: CryptoKey) {
+    performance.mark("sb:client-init");
     const dbName = await deriveDbName(
       "data",
       this.bootConfig.spaceFolderPath,
       document.baseURI.replace(/\/$/, ""),
       encryptionKey,
     );
-    let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(dbName);
-    await (kvPrimitives as IndexedDBKvPrimitives).init();
+    const idbKvPrimitives = new IndexedDBKvPrimitives(dbName);
+    await timedSpan("idb-open", () => idbKvPrimitives.init());
+    let kvPrimitives: KvPrimitives = idbKvPrimitives;
 
     console.log("Using IndexedDB database", dbName);
 
@@ -280,7 +283,7 @@ export class Client {
       this.bootConfig.readOnly,
     );
 
-    await this.initSpace();
+    await timedSpan("init-space", () => this.initSpace());
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
@@ -313,11 +316,11 @@ export class Client {
       }
     }
 
-    await this.widgetCache.load();
+    await timedSpan("widget-cache-load", () => this.widgetCache.load());
 
     // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
-      await this.httpSpacePrimitives.ping();
+      await timedSpan("ping", () => this.httpSpacePrimitives.ping());
     } catch (e: any) {
       if (e.message === "Not authenticated") {
         console.warn("Not authenticated, redirecting to auth page");
@@ -329,12 +332,16 @@ export class Client {
       );
     }
 
-    await this.loadPlugs();
+    await timedSpan("load-plugs", () => this.loadPlugs());
+    performance.mark("sb:plugs-loaded");
 
-    await this.clientSystem.loadLuaScripts();
-    await this.initNavigator();
+    await timedSpan("load-lua-scripts", () =>
+      this.clientSystem.loadLuaScripts(),
+    );
+    await timedSpan("init-navigator", () => this.initNavigator());
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
+    performance.mark("sb:system-ready");
     this.maybeDispatchWidgetsReady();
 
     // When the service worker is disabled (desktop app / headless) there's no
@@ -359,7 +366,7 @@ export class Client {
 
     this.loadCustomStyles().catch(console.error);
 
-    await this.dispatchAppEvent("editor:init");
+    await timedSpan("editor-init", () => this.dispatchAppEvent("editor:init"));
 
     client.editorView.dispatch({
       effects: client.undoHistoryCompartment?.reconfigure([]),
@@ -667,11 +674,17 @@ export class Client {
 
     if (indexAvailable) {
       console.log("Initial index complete, loading full page list via index.");
-      allPages = await this.queryLuaObjects<PageMeta>("page", {});
-      await this.pageMetaAugmenter.augmentObjectArray(allPages, "ref");
-      const aspiringPageNames = await this.queryLuaObjects<string>(
-        "aspiring-page",
-        { select: parseExpressionString("name"), distinct: true },
+      allPages = await timedSpan("page-list-query", () =>
+        this.queryLuaObjects<PageMeta>("page", {}),
+      );
+      await timedSpan("page-list-augment", () =>
+        this.pageMetaAugmenter.augmentObjectArray(allPages, "ref"),
+      );
+      const aspiringPageNames = await timedSpan("aspiring-page-query", () =>
+        this.queryLuaObjects<string>("aspiring-page", {
+          select: parseExpressionString("name"),
+          distinct: true,
+        }),
       );
       allPages.push(
         ...aspiringPageNames.map(
@@ -708,19 +721,22 @@ export class Client {
       }
     }
 
-    this.ui.viewDispatch({
-      type: "update-page-list",
-      allPages: allPages,
-    });
-
     // Only flip the readiness flag if allPages reflects the indexed,
     // transform-applied values (the index branch). The fallback branch
     // produces raw page meta without pageDecoration, so we keep
     // showing loading widgets until the index is back.
+    // Flipped before the view dispatch below: widgets shouldn't wait for the
+    // page-list reducer + UI re-render.
     if (indexAvailable) {
       this.pageListLoaded = true;
+      performance.mark("sb:page-list-loaded");
       this.maybeDispatchWidgetsReady();
     }
+
+    this.ui.viewDispatch({
+      type: "update-page-list",
+      allPages: allPages,
+    });
 
     void this.space.spacePrimitives.fetchFileList();
   }
@@ -755,6 +771,34 @@ export class Client {
       this.widgetReadyDispatched = true;
       this.rebuildEditorState();
       this.resolveWidgetsReady();
+      performance.mark("sb:widgets-ready");
+      const marks = performance
+        .getEntriesByType("mark")
+        .filter((m) => m.name.startsWith("sb:"));
+      console.log(
+        "[Boot]",
+        marks
+          .map((m) => `${m.name.slice(3)}=${Math.round(m.startTime)}ms`)
+          .join(" "),
+      );
+      const spans = performance
+        .getEntriesByType("measure")
+        .filter(
+          (m) =>
+            m.name.startsWith("sb:") &&
+            !m.name.startsWith("sb:lua-script:") &&
+            !m.name.startsWith("sb:widget:"),
+        );
+      console.log(
+        "[Boot spans]",
+        spans
+          .map((m) => `${m.name.slice(3)}=${Math.round(m.duration)}ms`)
+          .join(" "),
+      );
+      const idbStats = (globalThis as any).sbIdbStats;
+      if (idbStats) {
+        console.log("[Boot idb]", JSON.stringify(idbStats));
+      }
     }
   }
 

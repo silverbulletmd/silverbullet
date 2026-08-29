@@ -457,6 +457,7 @@ export class ContentManager {
         doc.meta.perm === "ro",
       );
       this.client.editorView.setState(editorState);
+      performance.mark("sb:page-content");
     } else {
       // Same-page reload: applyExternalPatches diffs against the base from
       // the *previous* load (this.lastKnownDiskText, untouched above) and

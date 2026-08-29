@@ -72,6 +72,7 @@ if (!crypto.subtle) {
 }
 
 safeRun(async () => {
+  performance.mark("sb:boot-start");
   // First we attempt to fetch the config from the server
   let bootConfig: BootConfig | undefined;
   let config: Config | undefined;
@@ -180,6 +181,7 @@ safeRun(async () => {
     newURL.search = "";
     history.pushState({}, "", newURL.toString());
   }
+  performance.mark("sb:config-loaded");
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig, config.values);
 

@@ -138,7 +138,15 @@ export class LuaWidget extends WidgetType {
     }
 
     // Async kick-off of content renderer
-    this.renderContent(innerDiv).catch(console.error);
+    const renderStart = performance.now();
+    this.renderContent(innerDiv)
+      .then(() => {
+        performance.measure(`sb:widget:${this.opts.cacheKey.slice(0, 80)}`, {
+          start: renderStart,
+          end: performance.now(),
+        });
+      })
+      .catch(console.error);
     this.dom = wrapperSpan;
     return wrapperSpan;
   }

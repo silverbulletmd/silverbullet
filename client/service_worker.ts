@@ -221,6 +221,7 @@ self.addEventListener("message", async (event: any) => {
       }
       // Lock configuration mutex
       configuring = true;
+      const configureStart = performance.now();
       // Put a timeout on it, just in case
       setTimeout(() => {
         configuring = false;
@@ -302,10 +303,18 @@ self.addEventListener("message", async (event: any) => {
           syncDocuments: config.syncDocuments,
           syncIgnore: config.syncIgnore,
         });
+        const syncStartBegin = performance.now();
         await syncEngine.start();
 
         // Ok, we're ready to go, let's plug in the proxy router
         proxyRouter.configure(syncEngine);
+        console.log(
+          `[Boot] service worker configured in ${Math.round(
+            performance.now() - configureStart,
+          )}ms (sync engine start: ${Math.round(
+            performance.now() - syncStartBegin,
+          )}ms)`,
+        );
 
         // And wire up some events
         proxyRouter.on({

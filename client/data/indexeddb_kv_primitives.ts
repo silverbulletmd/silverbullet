@@ -7,6 +7,19 @@ import type { KV, KvKey } from "../../plug-api/types/datastore.ts";
 const sep = "\0";
 const objectStoreName = "data";
 
+/**
+ * Per-session counters of IndexedDB traffic, for boot/perf analysis. Exposed
+ * as globalThis.sbIdbStats (also inside the service worker's context).
+ */
+export const idbStats = {
+  batchGetCalls: 0,
+  keysRequested: 0,
+  scans: 0,
+  rowsScanned: 0,
+  writes: 0,
+};
+(globalThis as any).sbIdbStats = idbStats;
+
 export class IndexedDBKvPrimitives implements KvPrimitives {
   db!: IDBPDatabase<any>;
 
@@ -39,11 +52,14 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
   }
 
   batchGet(keys: KvKey[]): Promise<any[]> {
+    idbStats.batchGetCalls++;
+    idbStats.keysRequested += keys.length;
     const tx = this.db.transaction(objectStoreName, "readonly");
     return Promise.all(keys.map((key) => tx.store.get(this.buildKey(key))));
   }
 
   async batchSet(entries: KV[]): Promise<void> {
+    idbStats.writes += entries.length;
     const tx = this.db.transaction(objectStoreName, "readwrite");
     await Promise.all([
       ...entries.map(({ key, value }) =>
@@ -64,6 +80,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
   // Important IndexedDB limitation: no asynchronous processing can happen
   // in the body of the for await: https://stackoverflow.com/a/51898463
   async *query({ prefix }: KvQueryOptions): AsyncIterableIterator<KV> {
+    idbStats.scans++;
     const tx = this.db.transaction(objectStoreName, "readonly");
     prefix = prefix || [];
     for await (const entry of tx.store.iterate(
@@ -72,6 +89,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
         this.buildKey([...prefix, "\uffff"]),
       ),
     )) {
+      idbStats.rowsScanned++;
       yield { key: this.extractKey(entry.key), value: entry.value };
     }
   }

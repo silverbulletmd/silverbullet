@@ -50,9 +50,11 @@ export class SpaceLuaEnvironment {
       this.env = buildLuaEnv(this.system);
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", this.env);
+      const totalStart = performance.now();
+      const scriptTimings: [string, number][] = [];
       for (const script of allScripts) {
+        const scriptStart = performance.now();
         try {
-          console.log("Now evaluating", script.ref);
           const ast = parseBlock(script.script, { ref: script.ref });
           // We create a local scope for each script
           const scriptEnv = new LuaEnv(this.env);
@@ -74,10 +76,27 @@ export class SpaceLuaEnvironment {
             `Error evaluating script: ${e.message} for script: ${script.script}`,
             e,
           );
+        } finally {
+          const duration = performance.now() - scriptStart;
+          scriptTimings.push([script.ref, duration]);
+          performance.measure(`sb:lua-script:${script.ref}`, {
+            start: scriptStart,
+            end: scriptStart + duration,
+          });
         }
       }
 
-      console.log("[Lua] Loaded", allScripts.length, "scripts");
+      const slowest = scriptTimings
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .filter(([, ms]) => ms >= 2)
+        .map(([ref, ms]) => `${ref} ${ms.toFixed(1)}ms`)
+        .join(", ");
+      console.log(
+        `[Lua] Loaded ${allScripts.length} scripts in ${Math.round(
+          performance.now() - totalStart,
+        )}ms${slowest ? ` (slowest: ${slowest})` : ""}`,
+      );
     } catch (e: any) {
       console.error("Error reloading Lua scripts:", e.message);
     }

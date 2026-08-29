@@ -259,6 +259,7 @@ export class ClientSystem {
     setSpaceDocks(resolveSpaceDocks(this.client.config));
 
     this.scriptsLoaded = true;
+    performance.mark("sb:scripts-loaded");
     this.client.maybeDispatchWidgetsReady();
   }
 
