@@ -121,9 +121,7 @@ export async function expandMarkdown(
 
         // Remove frontmatter when transcluding
         if (result.offset === 0 && tree.children) {
-          tree.children = tree.children.filter(
-            (c) => c.type !== "FrontMatter",
-          );
+          tree.children = tree.children.filter((c) => c.type !== "FrontMatter");
         }
 
         // Recursively process

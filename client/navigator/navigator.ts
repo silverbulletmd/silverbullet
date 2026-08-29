@@ -80,7 +80,7 @@ const lifecycle = createPanelLifecycle({
 /**
  * Reveal a page-docked widget and put the keyboard somewhere useful in it,
  * reporting whether it actually took focus.
- * 
+ *
  * This has gotten a bit conthrived, but it seems to work
  */
 async function revealPageWidget(name: string, dock: string): Promise<boolean> {

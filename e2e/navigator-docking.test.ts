@@ -1558,7 +1558,8 @@ test.describe("a mention that transcludes the page stays a link in the widget", 
   test.use({
     spaceFiles: {
       "index.md": "Welcome",
-      "Target.md": "---\nreferences:\n- some/file.ts\n---\n# Target\nTarget body text.\n",
+      "Target.md":
+        "---\nreferences:\n- some/file.ts\n---\n# Target\nTarget body text.\n",
       "Source.md": "# Embeds\n![[Target]]\n",
     },
   });
