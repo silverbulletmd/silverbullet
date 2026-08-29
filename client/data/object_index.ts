@@ -15,6 +15,7 @@ import {
 } from "../space_lua/aggregates.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import {
+  applyQuery,
   ArrayQueryCollection,
   type LuaCollectionQuery,
   type LuaQueryCollection,
@@ -163,8 +164,8 @@ export class ObjectIndex {
     }
     return {
       query: (query, env, sf, config?): Promise<any[]> => {
-        return this.ds.luaQuery(
-          ["idx", tagName],
+        return this.memoLuaQuery(
+          tagName,
           query,
           env,
           sf,
@@ -182,8 +183,8 @@ export class ObjectIndex {
   linkObjects(): LuaQueryCollection {
     return {
       query: (query, env, sf, config?): Promise<any[]> => {
-        return this.ds.luaQuery(
-          ["idx", "relation"],
+        return this.memoLuaQuery(
+          "relation",
           query,
           env,
           sf,
@@ -233,8 +234,8 @@ export class ObjectIndex {
       // predicate for the rows that don't match, and never materializes them.
       return {
         query: (query, env, sf, config?): Promise<any[]> => {
-          return this.ds.luaQuery(
-            [indexKey, "relation"],
+          return this.memoLuaQuery(
+            "relation",
             query,
             env,
             sf,
@@ -284,8 +285,8 @@ export class ObjectIndex {
               ctx: {},
             }
           : filter;
-        return this.ds.luaQuery(
-          ["idx", tagName],
+        return this.memoLuaQuery(
+          tagName,
           { ...query, where },
           env,
           sf,
@@ -555,6 +556,76 @@ export class ObjectIndex {
     }
   }
 
+  /**
+   * How long a memoized full-tag scan stays valid. Same-window index writes
+   * invalidate immediately; the TTL bounds staleness from writes made by
+   * another window/tab sharing the IndexedDB.
+   */
+  scanMemoTTLMs = 5000;
+  private scanMemo = new Map<string, { rows: KV[]; at: number }>();
+  private scanInFlight = new Map<string, Promise<KV[]>>();
+
+  private invalidateScanMemo() {
+    this.scanMemo.clear();
+  }
+
+  /**
+   * Materializes the full `["idx", tag]` range, memoized. During boot the
+   * page list, widgets, and script loading all scan the same ranges within
+   * a few hundred ms — one walk serves them all.
+   */
+  private scanTagRawRows(tag: string): Promise<KV[]> {
+    const memo = this.scanMemo.get(tag);
+    if (memo && performance.now() - memo.at < this.scanMemoTTLMs) {
+      return Promise.resolve(memo.rows);
+    }
+    const inFlight = this.scanInFlight.get(tag);
+    if (inFlight) {
+      return inFlight;
+    }
+    const scan = (async () => {
+      const rows: KV[] = [];
+      for await (const row of this.ds.query({ prefix: [indexKey, tag] })) {
+        rows.push(row);
+      }
+      this.scanMemo.set(tag, { rows, at: performance.now() });
+      return rows;
+    })();
+    this.scanInFlight.set(tag, scan);
+    return scan.finally(() => {
+      this.scanInFlight.delete(tag);
+    });
+  }
+
+  /**
+   * Drop-in equivalent of `ds.luaQuery(["idx", tag], ...)` backed by the
+   * memoized scan. Values are cloned per caller so consumers can mutate
+   * results freely, exactly as they can with the structured clones IndexedDB
+   * hands out.
+   */
+  private async memoLuaQuery<T>(
+    tag: string,
+    query: LuaCollectionQuery,
+    env: LuaEnv,
+    sf: LuaStackFrame,
+    enricher?: (key: KvKey, item: any) => any,
+    config?: Config,
+  ): Promise<T[]> {
+    const rawRows = await this.scanTagRawRows(tag);
+    const results: any[] = [];
+    for (const { key, value } of rawRows) {
+      let item = structuredClone(value);
+      if (enricher) {
+        item = enricher(key, item);
+        if (item === undefined) {
+          continue;
+        }
+      }
+      results.push(item);
+    }
+    return applyQuery(results, query, env, sf, config);
+  }
+
   queryLuaObjects<T>(
     globalEnv: LuaEnv,
     tag: string,
@@ -575,10 +646,11 @@ export class ObjectIndex {
         ObjectValue<T>[]
       >;
     }
-    return this.ds.luaQuery([indexKey, tag], query, env, sf);
+    return this.memoLuaQuery(tag, query, env, sf);
   }
 
   batchSet(page: string, kvs: KV[]): Promise<void> {
+    this.invalidateScanMemo();
     const finalBatch: KV[] = [];
     for (const { key, value } of kvs) {
       finalBatch.push(
@@ -597,6 +669,7 @@ export class ObjectIndex {
   }
 
   batchDelete(page: string, keys: KvKey[]): Promise<void> {
+    this.invalidateScanMemo();
     const finalBatch: KvKey[] = [];
     for (const key of keys) {
       finalBatch.push([indexKey, ...key, page]);
@@ -620,6 +693,7 @@ export class ObjectIndex {
       allKeys.push(key);
       allKeys.push([indexKey, ...key.slice(2), file]);
     }
+    this.invalidateScanMemo();
     await this.ds.batchDelete(allKeys);
   }
 
@@ -641,6 +715,7 @@ export class ObjectIndex {
    * Clears the entire index
    */
   public async clearIndex(): Promise<void> {
+    this.invalidateScanMemo();
     const allKeys: KvKey[] = [];
     for await (const { key } of this.ds.query({ prefix: [indexKey] })) {
       allKeys.push(key);
