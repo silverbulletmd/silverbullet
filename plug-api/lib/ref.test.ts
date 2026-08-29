@@ -16,6 +16,8 @@ test("parseToRef() default cases", () => {
   expect(parseToRef("foo.png")).toEqual({ path: "foo.png" });
   expect(parseToRef("foo.md")).toEqual({ path: "foo.md" });
   expect(parseToRef("foo.")).toEqual({ path: "foo..md" });
+  expect(parseToRef("foo.tar.gz")).toEqual({ path: "foo.tar.gz" });
+  expect(parseToRef("foo.c-d")).toEqual({ path: "foo.c-d.md" });
   expect(parseToRef("foo..")).toEqual({ path: "foo...md" });
   expect(parseToRef(" .foo")).toEqual({ path: " .foo" });
   expect(parseToRef("foo[bar")).toEqual({ path: "foo[bar.md" });

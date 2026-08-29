@@ -62,11 +62,27 @@ function normalizePath(path: string): Path {
     path = path.slice(1);
   }
 
-  if (/.+\.[a-zA-Z0-9]+$/.test(path) || path === "") {
+  if (endsInExtension(path) || path === "") {
     return path as Path;
   }
 
   return `${path}.md`;
+}
+
+function endsInExtension(path: string): boolean {
+  const dot = path.lastIndexOf(".");
+  if (dot < 1 || dot === path.length - 1) {
+    return false;
+  }
+  for (let i = dot + 1; i < path.length; i++) {
+    const c = path.charCodeAt(i);
+    const alphanumeric =
+      (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+    if (!alphanumeric) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
