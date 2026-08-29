@@ -7,6 +7,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{any, delete, get, post, put};
 use axum::Router;
 use silverbullet_server_common::SpaceError;
+use tower_http::compression::predicate::{DefaultPredicate, NotForContentType, Predicate};
 use tower_http::compression::CompressionLayer;
 
 use crate::handlers::{accounts, bundle, control, fs, revisions};
@@ -167,8 +168,11 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         )
         .route("/.logout", get(crate::handlers::auth::handle_logout));
 
+    let bundle_compression = CompressionLayer::new()
+        .compress_when(DefaultPredicate::new().and(NotForContentType::const_new("font/")));
+
     open.merge(protected)
-        .fallback(get(bundle::handle_client_bundle))
+        .fallback(get(bundle::handle_client_bundle).layer(bundle_compression))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             count_requests,
