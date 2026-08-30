@@ -138,6 +138,7 @@ function makeClientStub(opts: {
         return [];
       },
     },
+    canDeferExternalUpdate: () => true,
     isReadOnlyMode: () => false,
     dispatchAppEvent: async () => [],
     currentPath: () => currentPathValue,

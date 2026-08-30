@@ -28,6 +28,7 @@ export function computeExternalChanges(
   base: string,
   disk: string,
   current: string,
+  options: { canDefer?: boolean } = {},
 ): ExternalMerge {
   if (disk === current) {
     return { changes: ChangeSet.empty(current.length), deferred: false };
@@ -46,7 +47,10 @@ export function computeExternalChanges(
     };
   }
   const local = ChangeSet.of(diffAndPrepareChanges(base, current), base.length);
-  if (collidesInSameChunk(external, local, base)) {
+  if (
+    options.canDefer !== false &&
+    collidesInSameChunk(external, local, base)
+  ) {
     return { changes: ChangeSet.empty(current.length), deferred: true };
   }
   // before: true keeps a local insertion on the user's side of the merge

@@ -311,6 +311,44 @@ describe("computeExternalChanges", () => {
       expect(apply(current, cs)).toBe(current);
     });
 
+    // Known over-deferral: the server resolves this one by word refinement,
+    // but predicting when refinement succeeds means reimplementing its
+    // tokenizer. Deferring costs a round trip through the reconcile
+    // endpoint, which is the safe direction.
+    it("defers a same-line insertion the server could still refine", () => {
+      const base = "Hello world\n";
+      const disk = "Hello world\nExternal line\n";
+      const current = "LOCAL Hello world\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("defers pure insertions at the very same position", () => {
+      const base = "Hello world\n";
+      const disk = "Hello world\nExternal line\n";
+      const current = "Hello world\nLOCAL\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    // Without a service worker there is no sync engine to declare a
+    // divergent base to, and the editor's save carries no precondition --
+    // so withholding would let the next save blindly overwrite the external
+    // revision. A best-effort merge is the lesser evil there.
+    it("merges best-effort instead of deferring when it cannot escalate", () => {
+      const base = "Line1\nLine2 original\nLine3\n";
+      const disk = "Line1\nLine2 changed by Remote\nLine3\n";
+      const current = "Line1\nLine2 changed by Tab1\nLine3\n";
+      expect(computeExternalChanges(base, disk, current).deferred).toBe(true);
+      const cs = computeExternalChanges(base, disk, current, {
+        canDefer: false,
+      });
+      expect(cs.deferred).toBe(false);
+      expect(apply(current, cs)).not.toBe(current);
+    });
+
     it("merges insertions at distinct line boundaries", () => {
       const base = "intro\nbody\n";
       const disk = "intro\nXXX\nbody\n";

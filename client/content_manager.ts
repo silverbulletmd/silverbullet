@@ -613,6 +613,7 @@ export class ContentManager {
       this.lastKnownDiskText,
       newText,
       currentText,
+      { canDefer: this.client.canDeferExternalUpdate() },
     );
     if (deferred) {
       this.pendingExternal = { text: newText, modified, source };
@@ -679,6 +680,7 @@ export class ContentManager {
       base,
       pending.text,
       this.client.editorView.state.sliceDoc(),
+      { canDefer: this.client.canDeferExternalUpdate() },
     );
     if (deferred) {
       return base;

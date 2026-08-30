@@ -1393,6 +1393,10 @@ export class Client {
     registration.active.postMessage(message);
   }
 
+  public canDeferExternalUpdate(): boolean {
+    return !!globalThis.navigator?.serviceWorker?.controller;
+  }
+
   /**
    * Tells the sync engine that the page about to be written descends from
    * `baseText` rather than from whatever the local replica holds now (see
