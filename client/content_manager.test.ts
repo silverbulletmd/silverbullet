@@ -160,7 +160,7 @@ function pageMeta(lastModified: string): PageMeta {
 
 describe("ContentManager.loadPage base tracking (regression)", () => {
   test("same-page reload merges against the previous disk text, not the newly-fetched one", async () => {
-    let diskText = "hello world\n";
+    let diskText = "hello world\nsecond\nthird\n";
     let diskModified = "2026-01-01T00:00:00.000";
     const client = makeClientStub({
       initialDoc: "",
@@ -171,18 +171,23 @@ describe("ContentManager.loadPage base tracking (regression)", () => {
 
     // Fresh load establishes the base.
     await cm.loadPage({ path: "index.md" }, false);
-    expect(client.editorView.state.sliceDoc()).toBe("hello world\n");
+    expect(client.editorView.state.sliceDoc()).toBe(
+      "hello world\nsecond\nthird\n",
+    );
 
     // An unsaved local edit sits in the editor -- stale relative to the disk
     // change below, exactly the situation "Editor: Reload" or the
-    // first-sync-complete auto-reload can hit.
+    // first-sync-complete auto-reload can hit. It rewrites the first line,
+    // clear of the append below, so the two merge instead of deferring.
     client.editorView.dispatch({
-      changes: { from: client.editorView.state.doc.length, insert: "LOCAL" },
+      changes: { from: 0, to: 5, insert: "HELLO" },
     });
-    expect(client.editorView.state.sliceDoc()).toBe("hello world\nLOCAL");
+    expect(client.editorView.state.sliceDoc()).toBe(
+      "HELLO world\nsecond\nthird\n",
+    );
 
     // Disk changes externally while that edit is still unsaved.
-    diskText = "hello world\nExternal line\n";
+    diskText = "hello world\nsecond\nthird\nExternal line\n";
     diskModified = "2026-01-01T00:00:05.000";
 
     // Same-page reload (loadingDifferentPath stays false: previousPath ===
@@ -193,6 +198,7 @@ describe("ContentManager.loadPage base tracking (regression)", () => {
     // text before this merge runs, base === disk and the diff -- and thus
     // this assertion -- would be empty regardless of what changed on disk.
     expect(client.editorView.state.sliceDoc()).toContain("External line");
+    expect(client.editorView.state.sliceDoc()).toContain("HELLO world");
   });
 });
 

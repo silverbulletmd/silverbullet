@@ -58,5 +58,12 @@ Changes written to a page you have open are applied to your open editor within m
 # Offline and flaky networks
 SilverBullet remains [[Principles/Local First|local-first]]: edits you make offline (or while [[Feature/Sync]] is struggling with a flaky connection) accumulate locally and reconcile with the server once you’re back online, following the same merge and conflict rules as above. A deletion never silently wins over a concurrent edit — if you edited a page that someone else deleted (or vice versa) while you were offline, the edit survives and the deletion is suppressed, surfaced to you as a notification rather than quietly discarding your work.
 
+# What to expect
+Merging is built for people (and agents, and scripts) working on *different parts* of a page at the same time. Within that, it is close to invisible. Outside of it, prepare for problems:
+
+* **This is not Google Docs.** There are no live cursors, and nothing warns you that someone else is in the page until their edit lands. Two people typing into the same paragraph at once is the case this design handles worst.
+* **Give each other room.** Edits a line or more apart land cleanly and immediately. Edits inside the same line or paragraph usually still merge, but only after a short round trip through the server.
+* **Sync works in seconds.** Your work is saved about a second after you stop typing and propagates a beat later. Rapid back-and-forth in the same spot will outrun the merge.
+
 # For API and script users
 If you're writing directly to `/.fs` over the [[HTTP API]] rather than through the editor, see [[HTTP API#Conditional writes]] for how to use `ETag`/`If-Match` to avoid blindly overwriting someone else’s concurrent write.

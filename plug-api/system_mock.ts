@@ -20,6 +20,7 @@ import {
   spaceReadSyscalls,
   spaceWriteSyscalls,
 } from "../client/plugos/syscalls/space.ts";
+import { syncSyscalls } from "../client/plugos/syscalls/sync.ts";
 import { systemSyscalls } from "../client/plugos/syscalls/system.ts";
 import { System } from "../client/plugos/system.ts";
 import { Space } from "../client/space.ts";
@@ -46,6 +47,13 @@ export function createMockSystem() {
     space,
     config,
     eventedSpacePrimitives: spacePrimitives,
+    // Sync/index state consulted by sync syscalls; defaults simulate a
+    // steady-state client (everything synced).
+    bootConfig: {},
+    fullSyncCompleted: true,
+    fullIndexCompleted: true,
+    syncedPaths: new Set<string>(),
+    serverPingMs: undefined,
   };
 
   const objectIndex = new ObjectIndex(ds, config, eventHook, mq);
@@ -71,6 +79,7 @@ export function createMockSystem() {
     dataStoreReadSyscalls(ds, clientSystemMock),
     dataStoreWriteSyscalls(ds),
     systemSyscalls(clientMock, false),
+    syncSyscalls(clientMock),
   );
 
   globalThis.syscall = (name: string, ...args: any): Promise<any> => {
@@ -86,5 +95,6 @@ export function createMockSystem() {
     mq,
     ds,
     space,
+    clientMock,
   };
 }

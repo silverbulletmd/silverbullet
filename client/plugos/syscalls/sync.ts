@@ -70,6 +70,31 @@ export function syncSyscalls(client: Client): SysCallMapping {
         { type: "boolean", description: "Whether initial sync is complete." },
       ],
     },
+    "sync.areFilesReadyToIndex": {
+      callback: (_ctx, paths: string[]): boolean[] => {
+        const allReady =
+          !!client.bootConfig.disableServiceWorker ||
+          client.fullSyncCompleted ||
+          client.fullIndexCompleted ||
+          (client.serverPingMs !== undefined && client.serverPingMs < 25);
+        return paths.map((path) => allReady || client.syncedPaths.has(path));
+      },
+      description:
+        "For each file, whether indexing it now would read it locally or cheaply (true), or race the initial sync and expensively re-download it (false).",
+      parameters: [
+        {
+          name: "paths",
+          type: "string[]",
+          description: "Space-relative file paths.",
+        },
+      ],
+      returns: [
+        {
+          type: "boolean[]",
+          description: "Per-path readiness, in input order.",
+        },
+      ],
+    },
     "sync.performFileSync": {
       callback: async (
         _ctx,

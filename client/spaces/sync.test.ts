@@ -2741,3 +2741,36 @@ describe("Same-millisecond divergence", () => {
     expect(suppressed).toEqual(["note.md"]);
   });
 });
+
+// The indexer uses these announcements to avoid reading files the initial
+// sync hasn't delivered yet (such a read would re-download the file through
+// the proxy, racing the sync engine for connections).
+describe("fileSynced events", () => {
+  test("every file pulled from the secondary during a cycle is announced", async () => {
+    const { primary, secondary, snapshot, sync } = createSyncSetup();
+    const synced: string[] = [];
+    sync.on({
+      fileSynced: (path: string) => {
+        synced.push(path);
+      },
+    });
+    await secondary.writeFile("a.md", encode("A"));
+    await secondary.writeFile("b.md", encode("B"));
+    await doSync(sync, snapshot);
+    expect(synced.sort()).toEqual(["a.md", "b.md"]);
+    expect((await primary.readFile("a.md")).data).toEqual(encode("A"));
+  });
+
+  test("files pushed to the secondary are not announced (already local)", async () => {
+    const { primary, snapshot, sync } = createSyncSetup();
+    const synced: string[] = [];
+    sync.on({
+      fileSynced: (path: string) => {
+        synced.push(path);
+      },
+    });
+    await primary.writeFile("local.md", encode("L"));
+    await doSync(sync, snapshot);
+    expect(synced).toEqual([]);
+  });
+});

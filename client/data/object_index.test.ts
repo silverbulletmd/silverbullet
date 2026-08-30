@@ -289,3 +289,21 @@ test("index.relations(kind) with an unknown kind returns an empty result", async
   const results = await runQuery(objectIndex, "does-not-exist");
   expect(results).toEqual([]);
 });
+
+// The top bar shows an "Indexing" label whenever a wholesale index rebuild is
+// running — first boot, manual "Space: Reindex", or a version-bump reindex.
+// The latter two need an in-memory signal: fullIndexCompleted never flips
+// back to false once set.
+test("a manual reindex flags rebuildInProgress for its duration", async () => {
+  const { objectIndex, mq } = makeFreshSetup();
+  let seenDuringRebuild: boolean | undefined;
+  const origAwait = mq.awaitEmptyQueue.bind(mq);
+  mq.awaitEmptyQueue = async (queue: string) => {
+    seenDuringRebuild = objectIndex.rebuildInProgress;
+    return origAwait(queue);
+  };
+  const spaceStub = { deduplicatedFileList: async () => [] };
+  await objectIndex.reindexSpace(spaceStub as any);
+  expect(seenDuringRebuild).toBe(true);
+  expect(objectIndex.rebuildInProgress).toBe(false);
+});

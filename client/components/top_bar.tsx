@@ -82,9 +82,11 @@ function NotificationPanel({
 function SyncProgressIndicator({
   percentage,
   type,
+  withLabel,
 }: {
   percentage?: number;
   type?: string;
+  withLabel?: boolean;
 }) {
   if (percentage === undefined) return null;
   return (
@@ -93,6 +95,11 @@ function SyncProgressIndicator({
         className="progress-wrapper"
         title={`${type} progress: ${percentage}%`}
       >
+        {withLabel && (
+          <span className="progress-label">
+            {type === "sync" ? "Syncing space" : "Indexing"}
+          </span>
+        )}
         <div className="progress-bar">
           <div
             className="progress-ring"
@@ -204,6 +211,7 @@ export function TopBar({
   actionButtons,
   progressPercentage,
   progressType,
+  progressWithLabel,
   lhs,
   rhs,
   pageNamePrefix,
@@ -218,6 +226,7 @@ export function TopBar({
   notifications: Notification[];
   progressPercentage?: number;
   progressType?: string;
+  progressWithLabel?: boolean;
   onRename: (newName?: string) => Promise<void>;
   onDismissNotification: (id: number) => void;
   actionButtons: ActionButton[];
@@ -252,6 +261,7 @@ export function TopBar({
             <SyncProgressIndicator
               percentage={progressPercentage}
               type={progressType}
+              withLabel={progressWithLabel}
             />
             {mobileMenuStyle ? (
               <>

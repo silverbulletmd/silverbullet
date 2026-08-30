@@ -171,6 +171,11 @@ export class Client {
 
   contentManager!: ContentManager;
   fullSyncCompleted = false;
+  // Paths the sync engine has pulled down this session, fed by "file-synced"
+  // messages
+  readonly syncedPaths = new Set<string>();
+  // Boot-time server round trip in ms; undefined when the ping failed
+  serverPingMs?: number;
   private versionMismatchNotified = false;
   // True once we've confirmed the server reports the same publicVersion as
   // this client bundle and the plugs the server is shipping are aligned with the running build.
@@ -321,7 +326,9 @@ export class Client {
 
     // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
+      const pingStart = performance.now();
       await timedSpan("ping", () => this.httpSpacePrimitives.ping());
+      this.serverPingMs = performance.now() - pingStart;
     } catch (e: any) {
       if (e.message === "Not authenticated") {
         console.warn("Not authenticated, redirecting to auth page");
@@ -1210,9 +1217,17 @@ export class Client {
       }
     }
     switch (message.type) {
+      case "file-synced": {
+        if (!this.fullSyncCompleted) {
+          this.syncedPaths.add(message.path);
+        }
+        break;
+      }
       case "space-sync-complete": {
         const isFirstSync = !this.fullSyncCompleted;
         this.fullSyncCompleted = true;
+        // fullSyncCompleted supersedes per-path tracking
+        this.syncedPaths.clear();
         // Only trigger a version-bump reindex once we've also confirmed the
         // server is on the same publicVersion as this client — otherwise the
         // reindex could run against stale plug code that's about to be

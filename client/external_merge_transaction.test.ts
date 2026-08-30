@@ -47,12 +47,12 @@ describe("external patch transaction shape (headless EditorState)", () => {
     }).state;
     expect(state.sliceDoc()).toBe("Hello typed");
 
-    // An external write appends "!" right where the local insertion starts --
-    // computeExternalChanges' `before: true` mapping keeps the local
-    // insertion on the user's side, landing the external insert immediately
-    // adjacent to it once mapped onto the current doc.
-    state = dispatchExternalPatch(state, "Hello", "Hello!");
-    expect(state.sliceDoc()).toBe("Hello! typed");
+    // The buffer has since been saved, so the base moved to what the user
+    // typed; an external write then appends immediately after their
+    // insertion. (While the typing is still unsaved this collides in the
+    // server's merge chunk and computeExternalChanges defers instead.)
+    state = dispatchExternalPatch(state, "Hello typed", "Hello typed!");
+    expect(state.sliceDoc()).toBe("Hello typed!");
 
     // A command's "target" only needs { state, dispatch }, so we can drive
     // undo() headlessly by threading `state` through a small local stub.

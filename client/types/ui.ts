@@ -229,6 +229,10 @@ export type ServiceWorkerSourceMessage =
       operations: number;
     }
   | {
+      type: "file-synced";
+      path: string;
+    }
+  | {
       type: "sync-error";
       message: string;
       path?: string;

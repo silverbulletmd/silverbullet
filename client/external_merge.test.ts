@@ -33,12 +33,13 @@ describe("computeExternalChanges", () => {
     expect(apply(current, cs)).toBe("ALPHA\nbeta\ngamma\nexternal\n");
   });
 
-  it("keeps local insertion when external edit touches an adjacent region", () => {
+  it("defers a local append sharing a line with an external rewrite", () => {
     const base = "one two three";
     const disk = "one 2 three"; // external replaced "two"
     const current = "one two three four"; // local appended
     const cs = computeExternalChanges(base, disk, current);
-    expect(apply(current, cs)).toBe("one 2 three four");
+    expect(cs.deferred).toBe(true);
+    expect(apply(current, cs)).toBe(current);
   });
 
   it("survives external and local edits to the same region without crashing", () => {
@@ -61,12 +62,13 @@ describe("computeExternalChanges", () => {
     expect(apply(current, cs)).toBe(current);
   });
 
-  it("keeps a local insertion right at the edge of an external replacement", () => {
+  it("defers a local insertion inside a line the external side rewrote", () => {
     const base = "shared text here";
     const disk = "shared TEXT here"; // external uppercases "text"
     const current = "shared texty here"; // local insertion of "y" right after "text"
     const cs = computeExternalChanges(base, disk, current);
-    expect(apply(current, cs)).toBe("shared TEXTy here");
+    expect(cs.deferred).toBe(true);
+    expect(apply(current, cs)).toBe(current);
   });
 
   it("does not silently drop local content when a local edit fully replaces an externally-touched word", () => {
@@ -249,6 +251,91 @@ describe("computeExternalChanges", () => {
       const cs = computeExternalChanges(base, disk, current);
       expect(cs.deferred).toBe(true);
       expect(cs.changes.empty).toBe(true);
+    });
+  });
+
+  // The server merges by three-way diff3 over lines: a base line survives as
+  // a sync point only when both sides leave it byte-identical, and chunks run
+  // between consecutive sync points. Applying anything the server would not
+  // resolve identically is what makes buffer and disk disagree, so the rule
+  // below is "same chunk => defer", verified against the Rust kernel.
+  describe("agreement with the server's chunk boundaries", () => {
+    it("defers two rewrites of adjacent base lines", () => {
+      // Neither line survives as a sync point, so they collapse into one
+      // chunk both sides changed -- a conflict on the server even though no
+      // single line is rewritten twice.
+      const base = "l1\nl2\nl3\nl4\n";
+      const disk = "l1\nl2\nL3\nl4\n";
+      const current = "l1\nL2\nl3\nl4\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("defers two insertions at the same line boundary", () => {
+      const base = "a\nb\n";
+      const disk = "a\nY\nb\n";
+      const current = "a\nX\nb\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("defers an insertion whose boundary abuts an externally rewritten line", () => {
+      const base = "a\nb\nc\n";
+      const disk = "A\nb\nc\n"; // external rewrites line 0
+      const current = "a\nX\nb\nc\n"; // local inserts on the 0/1 boundary
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("defers an append abutting a rewrite of the final line", () => {
+      const base = "a\nb\n";
+      const disk = "a\nB\n";
+      const current = "a\nb\nZ\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("defers a line-start insertion that has no trailing newline", () => {
+      // Only an insertion ending in a newline leaves the line it precedes
+      // byte-identical; "LOCAL" prepended to line 0 rewrites it, which
+      // merges line 0 into the same chunk as the external rewrite below it.
+      const base = "a\nb\nc\n";
+      const disk = "a\nB\nc\n";
+      const current = "LOCALa\nb\nc\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
+    it("merges insertions at distinct line boundaries", () => {
+      const base = "intro\nbody\n";
+      const disk = "intro\nXXX\nbody\n";
+      const current = "intro\nbody\nlocal tail\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(false);
+      expect(apply(current, cs)).toBe("intro\nXXX\nbody\nlocal tail\n");
+    });
+
+    it("merges rewrites separated by an untouched base line", () => {
+      const base = "l1\nl2\nl3\nl4\n";
+      const disk = "l1\nl2\nl3\nL4\n";
+      const current = "L1\nl2\nl3\nl4\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(false);
+      expect(apply(current, cs)).toBe("L1\nl2\nl3\nL4\n");
+    });
+
+    it("merges an insertion two lines clear of an external rewrite", () => {
+      const base = "a\nb\nc\nd\n";
+      const disk = "a\nb\nc\nD\n";
+      const current = "a\nX\nb\nc\nd\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(false);
+      expect(apply(current, cs)).toBe("a\nX\nb\nc\nD\n");
     });
   });
 

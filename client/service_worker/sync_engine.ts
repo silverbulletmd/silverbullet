@@ -41,6 +41,9 @@ type SyncEngineEvents = {
   // A local deletion was suppressed because the file was edited elsewhere
   suppressedDeletion: (path: string) => void | Promise<void>;
 
+  // A file was pulled from the server and is now locally present
+  fileSynced: (path: string) => void | Promise<void>;
+
   // Sync progress updated
   syncProgress: (
     syncStatus: SyncStatus,
@@ -165,6 +168,9 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       },
       suppressedDeletion: (path) => {
         void this.emit("suppressedDeletion", path);
+      },
+      fileSynced: (path) => {
+        void this.emit("fileSynced", path);
       },
     });
 

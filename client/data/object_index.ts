@@ -73,6 +73,9 @@ export class ObjectValidationError extends Error {
 export class ObjectIndex {
   private pagesWrittenSinceBoot = new Set<string>();
   private freshInstallEmptyStart: Promise<boolean>;
+  // True while a wholesale reindex (manual or version-bump) is running in
+  // this window
+  public rebuildInProgress = false;
 
   constructor(
     private ds: DataStore,
@@ -515,28 +518,38 @@ export class ObjectIndex {
   }
 
   private async reindexSpaceUnlocked(space: Space) {
-    // Record that a reindex is underway *before* we delete the version key,
-    // so an interruption between here and `markFullIndexComplete` is
-    // recoverable (see `ensureFullIndex`).
-    await this.markReindexInProgress();
-    console.log("Clearing page index...");
-    await this.clearIndex();
-    await this.markFullIndexInComplete();
+    // In-memory mirror for the UI: the boot progress label shows during any
+    // wholesale rebuild, and `fullIndexCompleted` never flips back to false
+    // after a first boot.
+    this.rebuildInProgress = true;
+    try {
+      // Record that a reindex is underway *before* we delete the version key,
+      // so an interruption between here and `markFullIndexComplete` is
+      // recoverable (see `ensureFullIndex`).
+      await this.markReindexInProgress();
+      console.log("Clearing page index...");
+      await this.clearIndex();
+      await this.markFullIndexInComplete();
 
-    const files = await space.deduplicatedFileList();
+      const files = await space.deduplicatedFileList();
 
-    console.log("Queing", files.length, "pages to be indexed.");
-    // Queue all file names to be indexed
-    const startTime = Date.now();
-    await this.mq.batchSend(
-      "indexQueue",
-      // `clearIndex` above already dropped every file's entries, so tell the
-      // indexer not to clear them again one file at a time.
-      files.map((file): IndexQueueBody => ({ path: file.name, cleared: true })),
-    );
-    await this.mq.awaitEmptyQueue("indexQueue");
-    await this.markFullIndexComplete();
-    console.log("Full index completed after", Date.now() - startTime, "ms");
+      console.log("Queing", files.length, "pages to be indexed.");
+      // Queue all file names to be indexed
+      const startTime = Date.now();
+      await this.mq.batchSend(
+        "indexQueue",
+        // `clearIndex` above already dropped every file's entries, so tell the
+        // indexer not to clear them again one file at a time.
+        files.map(
+          (file): IndexQueueBody => ({ path: file.name, cleared: true }),
+        ),
+      );
+      await this.mq.awaitEmptyQueue("indexQueue");
+      await this.markFullIndexComplete();
+      console.log("Full index completed after", Date.now() - startTime, "ms");
+    } finally {
+      this.rebuildInProgress = false;
+    }
   }
 
   /**

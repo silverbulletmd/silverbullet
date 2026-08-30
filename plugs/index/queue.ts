@@ -7,6 +7,7 @@ import {
   markdown,
   mq,
   space,
+  sync,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   IndexQueueBody,
@@ -17,25 +18,50 @@ import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 /// QUEUE PROCESSING
 
 export async function processIndexQueue(messages: MQMessage[]) {
+  // During a fresh install's initial index, defer files the sync engine
+  // hasn't delivered yet: indexing them now would re-download them through
+  // the proxy, racing the sync engine for connections. On fast links sync
+  // stays ahead and nothing defers; on slow links indexing throttles to
+  // sync pace.
+  const ready: MQMessage[] = [];
+  const requeue: IndexQueueBody[] = [];
+  const readiness = await sync.areFilesReadyToIndex(
+    messages.map((message) => {
+      const body: IndexQueueBody = message.body;
+      return typeof body === "string" ? body : body.path;
+    }),
+  );
+  messages.forEach((message, i) => {
+    if (readiness[i]) {
+      ready.push(message);
+    } else {
+      requeue.push(message.body);
+    }
+  });
+  if (ready.length === 0 && requeue.length > 0) {
+    // The whole batch is waiting on sync — back off instead of spinning
+    // through the queue
+    await sleep(1000);
+  }
+
   // Failures are isolated per file: a rejected batch would never be acked,
   // wedging its messages in "processing" where the requeue cron duplicates
   // work that is still in flight. Instead the batch always completes, and
   // failed files are explicitly re-queued a bounded number of times.
   const results = await Promise.allSettled(
-    messages.map((message) => {
+    ready.map((message) => {
       const body: IndexQueueBody = message.body;
       const path = typeof body === "string" ? body : body.path;
       console.log("[index]", `Indexing file ${path}`);
       return indexFile(path, typeof body !== "string" && body.cleared === true);
     }),
   );
-  const retry: IndexQueueBody[] = [];
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result.status !== "rejected") {
       continue;
     }
-    const body: IndexQueueBody = messages[i].body;
+    const body: IndexQueueBody = ready[i].body;
     const path = typeof body === "string" ? body : body.path;
     const attempts = (typeof body === "string" ? 0 : (body.attempts ?? 0)) + 1;
     if (attempts >= 3) {
@@ -50,11 +76,11 @@ export async function processIndexQueue(messages: MQMessage[]) {
         `Failed to index ${path} (attempt ${attempts}), re-queueing:`,
         result.reason?.message,
       );
-      retry.push({ path, attempts });
+      requeue.push({ path, attempts });
     }
   }
-  if (retry.length > 0) {
-    await mq.batchSend("indexQueue", retry);
+  if (requeue.length > 0) {
+    await mq.batchSend("indexQueue", requeue);
   }
 }
 

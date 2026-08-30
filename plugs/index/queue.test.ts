@@ -106,3 +106,66 @@ test("files within a batch are indexed concurrently, not serially", async () => 
 
   expect(indexed.sort()).toEqual(["A", "B"]);
 });
+
+test("files the initial sync hasn't delivered are deferred, not indexed", async () => {
+  const { spacePrimitives, eventHook, mq, clientMock } = createMockSystem();
+  clientMock.fullIndexCompleted = false;
+  clientMock.fullSyncCompleted = false;
+  clientMock.syncedPaths = new Set(["A.md"]);
+
+  const enc = new TextEncoder();
+  await spacePrimitives.writeFile("A.md", enc.encode("# A"));
+  await spacePrimitives.writeFile("B.md", enc.encode("# B"));
+
+  const indexed: string[] = [];
+  eventHook.addLocalListener("page:index", (event: { name: string }) => {
+    indexed.push(event.name);
+  });
+
+  await processIndexQueue([msg("A.md"), msg("B.md")]);
+
+  expect(indexed).toEqual(["A"]);
+  const requeued = await mq.poll("indexQueue", 10);
+  expect(requeued.map((m) => m.body)).toEqual(["B.md"]);
+});
+
+test("nothing is deferred once the initial sync has completed", async () => {
+  const { spacePrimitives, eventHook, mq, clientMock } = createMockSystem();
+  clientMock.fullIndexCompleted = false;
+  clientMock.fullSyncCompleted = true;
+  clientMock.syncedPaths = new Set();
+
+  const enc = new TextEncoder();
+  await spacePrimitives.writeFile("A.md", enc.encode("# A"));
+
+  const indexed: string[] = [];
+  eventHook.addLocalListener("page:index", (event: { name: string }) => {
+    indexed.push(event.name);
+  });
+
+  await processIndexQueue([msg("A.md")]);
+
+  expect(indexed).toEqual(["A"]);
+  expect(await mq.poll("indexQueue", 10)).toEqual([]);
+});
+
+test("nothing is deferred when the server is close enough that re-fetching is cheap", async () => {
+  const { spacePrimitives, eventHook, mq, clientMock } = createMockSystem();
+  clientMock.fullIndexCompleted = false;
+  clientMock.fullSyncCompleted = false;
+  clientMock.syncedPaths = new Set();
+  clientMock.serverPingMs = 3;
+
+  const enc = new TextEncoder();
+  await spacePrimitives.writeFile("A.md", enc.encode("# A"));
+
+  const indexed: string[] = [];
+  eventHook.addLocalListener("page:index", (event: { name: string }) => {
+    indexed.push(event.name);
+  });
+
+  await processIndexQueue([msg("A.md")]);
+
+  expect(indexed).toEqual(["A"]);
+  expect(await mq.poll("indexQueue", 10)).toEqual([]);
+});

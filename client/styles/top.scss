@@ -75,10 +75,21 @@
 
   .progress-wrapper {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-top: 4px;
     margin-right: 6px;
     padding: 4px;
     background-color: var(--top-background-color);
+  }
+
+  // Shown next to the ring during the first boot only, while the space is
+  // still being synced and indexed
+  .progress-label {
+    font-size: 12px;
+    color: var(--subtle-color);
+    white-space: nowrap;
   }
 
   .progress-bar {

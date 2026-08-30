@@ -362,6 +362,12 @@ self.addEventListener("message", async (event: any) => {
               operations,
             });
           },
+          fileSynced: (path) => {
+            broadcastMessage({
+              type: "file-synced",
+              path,
+            });
+          },
           syncError: (error, path) => {
             broadcastMessage({
               type: "sync-error",

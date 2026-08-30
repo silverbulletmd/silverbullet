@@ -298,6 +298,9 @@ export type SyncEvents = {
   snapshotUpdated: (snapshot: SyncSnapshot) => void | Promise<void>;
   syncConflict: (path: string) => void | Promise<void>;
   suppressedDeletion: (path: string) => void | Promise<void>;
+  // A file was pulled from the secondary and is now locally present and
+  // current.
+  fileSynced?: (path: string) => void | Promise<void>;
 };
 
 // Implementation of this algorithm: https://unterwaditzer.net/2016/sync-algorithm.html
@@ -572,6 +575,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         // Make sure the file is not marked as nonSynced anymore
         snapshot.nonSyncedFiles.delete(path);
         await this.captureBase(path, pulled.data, snapshot);
+        void this.emit("fileSynced", path);
         operations++;
       } else {
         // !syncBack
@@ -688,6 +692,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           snapshot.nonSyncedFiles.delete(path);
           await this.captureBase(path, pulled.data, snapshot);
           void this.emit("suppressedDeletion", path);
+          void this.emit("fileSynced", path);
           operations++;
         } else {
           throw e;
@@ -941,6 +946,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     // Make sure it's not in nonSyncedFiles
     snapshot.nonSyncedFiles.delete(path);
     await this.captureBase(path, pulled.data, snapshot);
+    void this.emit("fileSynced", path);
     return 1;
   }
 

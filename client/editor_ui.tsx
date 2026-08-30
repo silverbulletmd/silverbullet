@@ -426,6 +426,9 @@ export class MainUI {
           isLoading={viewState.isLoading}
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
+          progressWithLabel={
+            !client.fullIndexCompleted || client.objectIndex.rebuildInProgress
+          }
           onRename={async (newName) => {
             if (client.contentManager.isDocumentEditor()) {
               if (!newName) return;
