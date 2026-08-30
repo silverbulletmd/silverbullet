@@ -8,7 +8,10 @@ use std::time::{Duration, Instant};
 
 const QUIET: Duration = Duration::from_secs(30);
 const MAX_INTERVAL: Duration = Duration::from_secs(300);
-const TICK: Duration = Duration::from_secs(2);
+/// Safety net: how often to reconcile the working tree against HEAD even
+/// though nothing was ever marked dirty.
+const SWEEP_INTERVAL: Duration = Duration::from_secs(3600);
+const SWEEP_MESSAGE: &str = "Periodic sweep";
 const DEFAULT_DOMAIN: &str = "silverbullet.local";
 const EXTERNAL_AUTHOR: &str = "External";
 const SYSTEM_AUTHOR: &str = "SilverBullet";
@@ -27,6 +30,8 @@ struct EngineState {
     dirty: HashMap<String, Attribution>,
     first_mark: Option<Instant>,
     last_mark: Option<Instant>,
+    /// When the reconciling sweep last ran, successfully or not.
+    last_sweep: Instant,
     stopping: bool,
 }
 
@@ -34,7 +39,7 @@ struct EngineState {
 struct Timing {
     quiet: Duration,
     max_interval: Duration,
-    tick: Duration,
+    sweep_interval: Duration,
 }
 
 impl Default for Timing {
@@ -42,7 +47,7 @@ impl Default for Timing {
         Timing {
             quiet: QUIET,
             max_interval: MAX_INTERVAL,
-            tick: TICK,
+            sweep_interval: SWEEP_INTERVAL,
         }
     }
 }
@@ -100,9 +105,16 @@ impl EngineInner {
         if !self.store.auto_commit_allowed() {
             return;
         }
-        let (lock, _) = &self.state;
+        let (lock, cv) = &self.state;
         let mut guard = lock.lock().unwrap_or_else(|e| e.into_inner());
         let now = Instant::now();
+        // Only the idle -> dirty transition moves the commit thread's deadline
+        // earlier; while marks are already pending, a further mark can only
+        // push the quiet deadline out, so the sleep it is already in remains
+        // valid (it wakes early, recomputes, and waits again). Notifying per
+        // mark would wake the thread thousands of times during a rescan for
+        // no gain.
+        let was_idle = guard.first_mark.is_none();
         guard.first_mark.get_or_insert(now);
         guard.last_mark = Some(now);
         if overwrite {
@@ -112,6 +124,10 @@ impl EngineInner {
                 .dirty
                 .entry(space_path.to_string())
                 .or_insert(attribution);
+        }
+        drop(guard);
+        if was_idle {
+            cv.notify_all();
         }
     }
 
@@ -149,7 +165,7 @@ impl EngineInner {
                     if !self.warned.swap(true, Ordering::Relaxed) {
                         tracing::warn!("History auto-commit skipped: {e}");
                     }
-                    let (lock, _) = &self.state;
+                    let (lock, cv) = &self.state;
                     let mut guard = lock.lock().unwrap_or_else(|e| e.into_inner());
                     let now = Instant::now();
                     guard.first_mark.get_or_insert(now);
@@ -157,6 +173,11 @@ impl EngineInner {
                     for p in paths {
                         guard.dirty.entry(p).or_insert_with(|| attribution.clone());
                     }
+                    // The batch was taken, so this is an idle -> dirty
+                    // transition: the waiting thread needs a new deadline to
+                    // retry against, and `snapshot_now` can land here off-thread.
+                    drop(guard);
+                    cv.notify_all();
                 }
             }
         }
@@ -178,6 +199,56 @@ impl EngineInner {
         if let Some(paths) = list_all_paths(self.store.root()) {
             for path in paths {
                 self.record(&path, Attribution::External, false);
+            }
+        }
+    }
+
+    /// Reconcile the working tree against HEAD, committing whatever the
+    /// watcher never reported. The engine only ever commits what it was told
+    /// changed, so a lost event is otherwise invisible and permanent.
+    /// Returns whether it produced a commit.
+    fn sweep(&self) -> bool {
+        if !self.store.auto_commit_allowed() {
+            return false;
+        }
+        let _commit_guard = self.commit_lock.lock().unwrap_or_else(|e| e.into_inner());
+        // Read-only probe first. `git.rs` sets GIT_OPTIONAL_LOCKS=0, so this
+        // `git status` will not write the index: an idle space costs one stat
+        // walk per sweep and no writes at all.
+        let paths = match super::read::uncommitted_paths(&self.store) {
+            Ok(paths) => paths,
+            Err(e) => {
+                tracing::warn!("History sweep could not inspect the space: {e}");
+                return false;
+            }
+        };
+        if paths.is_empty() {
+            return false;
+        }
+        // Anything marked between the loop's check and here is about to be
+        // committed by the debounce path with its real author; a sweep would
+        // flatten that to External, so leave it alone.
+        {
+            let (lock, _) = &self.state;
+            let guard = lock.lock().unwrap_or_else(|e| e.into_inner());
+            if !guard.dirty.is_empty() {
+                return false;
+            }
+        }
+        // Reaching here means the event path dropped something: every
+        // watcher-reported change is committed on the debounce, long before a
+        // sweep interval elapses. This warning is the only signal of that.
+        tracing::warn!(
+            "History sweep found {} uncommitted change(s) the watcher never reported ({}); committing",
+            paths.len(),
+            sample(&paths)
+        );
+        let (name, email) = self.identity_for(&Attribution::External);
+        match self.store.commit_all(&name, &email, SWEEP_MESSAGE) {
+            Ok(id) => id.is_some(),
+            Err(e) => {
+                tracing::warn!("History sweep commit failed: {e}");
+                false
             }
         }
     }
@@ -271,6 +342,41 @@ fn name_from_email(email: &str) -> Option<String> {
     (!local.is_empty()).then(|| local.to_string())
 }
 
+/// A few paths for a log line, so a sweep over a large space stays readable.
+fn sample(paths: &[String]) -> String {
+    const SHOWN: usize = 3;
+    let head = paths
+        .iter()
+        .take(SHOWN)
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", ");
+    match paths.len().checked_sub(SHOWN) {
+        Some(rest) if rest > 0 => format!("{head}, +{rest} more"),
+        _ => head,
+    }
+}
+
+/// How long to sleep before the earliest deadline that could produce a
+/// commit. Replaces a fixed tick: an idle space sleeps a whole sweep
+/// interval, and `record` notifies when a mark pulls a deadline earlier.
+fn next_deadline(
+    state: &EngineState,
+    quiet: Duration,
+    max_interval: Duration,
+    sweep_interval: Duration,
+) -> Duration {
+    let mut wait = sweep_interval.saturating_sub(state.last_sweep.elapsed());
+    if let (Some(first), Some(last)) = (state.first_mark, state.last_mark) {
+        wait = wait
+            .min(quiet.saturating_sub(last.elapsed()))
+            .min(max_interval.saturating_sub(first.elapsed()));
+    }
+    // Never sleep zero: a deadline that has saturated but is not yet "due"
+    // by the caller's own comparison would spin this loop.
+    wait.max(Duration::from_millis(1))
+}
+
 fn commit_message(paths: &[String]) -> String {
     match paths.len() {
         1 => format!("Update {}", paths[0]),
@@ -298,7 +404,7 @@ impl RevisionEngine {
         events: Option<tokio::sync::broadcast::Receiver<FsEvent>>,
         quiet: Duration,
         max_interval: Duration,
-        tick: Duration,
+        sweep_interval: Duration,
     ) -> Arc<RevisionEngine> {
         Self::start_internal(
             store,
@@ -306,7 +412,7 @@ impl RevisionEngine {
             Timing {
                 quiet,
                 max_interval,
-                tick,
+                sweep_interval,
             },
         )
     }
@@ -329,6 +435,7 @@ impl RevisionEngine {
                     dirty: HashMap::new(),
                     first_mark: None,
                     last_mark: None,
+                    last_sweep: Instant::now(),
                     stopping: false,
                 }),
                 Condvar::new(),
@@ -343,7 +450,7 @@ impl RevisionEngine {
             let tick_inner = inner.clone();
             let quiet = timing.quiet;
             let max_interval = timing.max_interval;
-            let tick = timing.tick;
+            let sweep_interval = timing.sweep_interval;
             let thread = std::thread::Builder::new()
                 .name("sb-history".to_string())
                 .spawn(move || {
@@ -360,24 +467,34 @@ impl RevisionEngine {
                             tick_inner.ensure_initial_snapshot();
                             continue;
                         }
-                        let (g, _) = cv
-                            .wait_timeout(guard, tick)
-                            .unwrap_or_else(|e| e.into_inner());
-                        guard = g;
-                        if guard.stopping {
-                            return;
-                        }
-                        let due = match (guard.first_mark, guard.last_mark) {
+                        let commit_due = match (guard.first_mark, guard.last_mark) {
                             (Some(first), Some(last)) => {
                                 last.elapsed() >= quiet || first.elapsed() >= max_interval
                             }
                             _ => false,
                         };
-                        if !due {
+                        let sweep_due = guard.last_sweep.elapsed() >= sweep_interval;
+                        if !commit_due && !sweep_due {
+                            let wait = next_deadline(&guard, quiet, max_interval, sweep_interval);
+                            let (g, _) = cv
+                                .wait_timeout(guard, wait)
+                                .unwrap_or_else(|e| e.into_inner());
+                            drop(g);
                             continue;
                         }
+                        if sweep_due {
+                            // Reset up front, including when the sweep below
+                            // bails: a sweep deferred because the debounce path
+                            // owns the change has nothing to find anyway.
+                            guard.last_sweep = Instant::now();
+                        }
                         drop(guard);
-                        tick_inner.commit_now();
+                        if commit_due {
+                            tick_inner.commit_now();
+                        }
+                        if sweep_due {
+                            tick_inner.sweep();
+                        }
                     }
                 })
                 .expect("failed to spawn history thread");
@@ -978,7 +1095,9 @@ mod tests {
                 None,
                 Duration::from_millis(1),
                 Duration::from_secs(300),
-                Duration::from_millis(1),
+                // Long sweep interval: this test is about the debounce/drop
+                // race, not the safety net.
+                Duration::from_secs(3600),
             );
             let name = format!("race-{i}.md");
             std::fs::write(dir.path().join(&name), b"x").unwrap();
@@ -997,6 +1116,222 @@ mod tests {
             git_out(dir.path(), &["status", "--porcelain"]),
             "",
             "every dropped handle flushed its pending marks"
+        );
+    }
+
+    /// `git log` before the first commit exits non-zero, which `git_out`
+    /// treats as fatal. The sweep tests poll the log from the moment the
+    /// engine starts, so they need the empty-repo answer instead.
+    fn git_log(dir: &Path, args: &[&str]) -> String {
+        let mut full = vec!["log"];
+        full.extend_from_slice(args);
+        let out = std::process::Command::new("git")
+            .arg("-C")
+            .arg(dir)
+            .args(&full)
+            .output()
+            .unwrap();
+        if out.status.success() {
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        } else {
+            String::new()
+        }
+    }
+
+    /// Poll for a condition instead of sleeping a fixed slack period, so the
+    /// deadline-driven tests stay fast without getting flaky on a loaded box.
+    fn wait_until(deadline: Duration, mut cond: impl FnMut() -> bool) -> bool {
+        let start = std::time::Instant::now();
+        while start.elapsed() < deadline {
+            if cond() {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        cond()
+    }
+
+    /// The safety net: a change the engine was never told about still lands.
+    #[test]
+    fn sweep_commits_a_change_the_watcher_never_reported() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), b"hello").unwrap();
+        let handle = RevisionEngine::start_with_timing(
+            managed(&dir),
+            None,
+            Duration::from_secs(30),
+            Duration::from_secs(300),
+            Duration::from_millis(50),
+        );
+
+        // Written behind the engine's back: no event, no mark. Before the
+        // sweep existed this sat uncommitted forever.
+        std::fs::write(dir.path().join("lost.md"), b"never announced").unwrap();
+
+        assert!(
+            wait_until(Duration::from_secs(10), || {
+                git_log(dir.path(), &["--format=%s"]).contains(SWEEP_MESSAGE)
+            }),
+            "sweep never committed: {}",
+            git_out(dir.path(), &["status", "--porcelain"])
+        );
+        drop(handle);
+
+        let log = git_out(dir.path(), &["log", "-1", "--format=%an", "--", "lost.md"]);
+        assert_eq!(log, EXTERNAL_AUTHOR, "a swept change has no known author");
+        assert_eq!(
+            git_out(dir.path(), &["status", "--porcelain"]),
+            "",
+            "clean tree after the sweep"
+        );
+    }
+
+    #[test]
+    fn sweep_creates_no_commit_when_nothing_slipped_through() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), b"hello").unwrap();
+        let handle = RevisionEngine::start_with_timing(
+            managed(&dir),
+            None,
+            Duration::from_secs(30),
+            Duration::from_secs(300),
+            Duration::from_millis(20),
+        );
+        // Long enough for many sweeps to fire over an unchanged tree.
+        assert!(!wait_until(Duration::from_millis(500), || {
+            git_log(dir.path(), &["--format=%s"]).contains(SWEEP_MESSAGE)
+        }));
+        drop(handle);
+        assert_eq!(
+            git_log(dir.path(), &["--format=%s"]),
+            "Initial space snapshot",
+            "an idle space accrues no empty sweep commits"
+        );
+    }
+
+    /// A sweep must not steal a pending change from the debounce path and
+    /// flatten its author to External.
+    #[test]
+    fn sweep_defers_to_a_pending_attributed_change() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), b"hello").unwrap();
+        let handle = RevisionEngine::start_with_timing(
+            managed(&dir),
+            None,
+            // Long quiet window: the mark stays pending while sweeps fire.
+            Duration::from_secs(30),
+            Duration::from_secs(300),
+            Duration::from_millis(20),
+        );
+        std::fs::write(dir.path().join("mine.md"), b"alice wrote this").unwrap();
+        handle.mark(
+            "mine.md",
+            Attribution::Account {
+                name: "alice".into(),
+                email: None,
+            },
+        );
+        assert!(!wait_until(Duration::from_millis(500), || {
+            git_log(dir.path(), &["--format=%s"]).contains(SWEEP_MESSAGE)
+        }));
+
+        // The drop flush is what finally commits it, with alice intact.
+        drop(handle);
+        assert_eq!(
+            git_out(dir.path(), &["log", "-1", "--format=%an", "--", "mine.md"]),
+            "alice",
+            "the sweep clobbered a pending attribution"
+        );
+    }
+
+    /// Regression net for deadline-driven waiting: with the sweep an hour out
+    /// the loop is parked in a long `wait_timeout`, so a mark must notify it
+    /// rather than wait for a tick that no longer exists.
+    #[test]
+    fn a_mark_wakes_the_parked_loop_and_commits_on_the_quiet_deadline() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), b"hello").unwrap();
+        let handle = RevisionEngine::start_with_timing(
+            managed(&dir),
+            None,
+            Duration::from_millis(100),
+            Duration::from_secs(300),
+            Duration::from_secs(3600),
+        );
+        // Let the loop reach its idle park before marking.
+        assert!(wait_until(Duration::from_secs(5), || {
+            git_log(dir.path(), &["--format=%s"]).contains("Initial space snapshot")
+        }));
+        std::thread::sleep(Duration::from_millis(50));
+
+        std::fs::write(dir.path().join("late.md"), b"x").unwrap();
+        handle.mark(
+            "late.md",
+            Attribution::Account {
+                name: "alice".into(),
+                email: None,
+            },
+        );
+
+        assert!(
+            wait_until(Duration::from_secs(5), || {
+                git_log(dir.path(), &["--format=%s"]).contains("Update late.md")
+            }),
+            "a parked loop never woke for a new mark"
+        );
+    }
+
+    #[test]
+    fn sample_lists_a_few_paths_then_summarizes() {
+        assert_eq!(sample(&["a.md".into()]), "a.md");
+        assert_eq!(
+            sample(&["a.md".into(), "b.md".into(), "c.md".into()]),
+            "a.md, b.md, c.md"
+        );
+        assert_eq!(
+            sample(&["a.md".into(), "b.md".into(), "c.md".into(), "d.md".into()]),
+            "a.md, b.md, c.md, +1 more"
+        );
+    }
+
+    #[test]
+    fn next_deadline_picks_the_earliest_and_never_returns_zero() {
+        let quiet = Duration::from_secs(30);
+        let max_interval = Duration::from_secs(300);
+        let sweep = Duration::from_secs(3600);
+        let now = Instant::now();
+
+        let idle = EngineState {
+            dirty: HashMap::new(),
+            first_mark: None,
+            last_mark: None,
+            last_sweep: now,
+            stopping: false,
+        };
+        let wait = next_deadline(&idle, quiet, max_interval, sweep);
+        assert!(
+            wait > Duration::from_secs(3000),
+            "an idle space must park until the sweep, got {wait:?}"
+        );
+
+        let dirty = EngineState {
+            first_mark: Some(now),
+            last_mark: Some(now),
+            ..idle
+        };
+        let wait = next_deadline(&dirty, quiet, max_interval, sweep);
+        assert!(wait <= quiet && wait > Duration::from_secs(25), "{wait:?}");
+
+        let stale = EngineState {
+            first_mark: Some(now - Duration::from_secs(9999)),
+            last_mark: Some(now - Duration::from_secs(9999)),
+            last_sweep: now - Duration::from_secs(9999),
+            dirty: HashMap::new(),
+            stopping: false,
+        };
+        assert!(
+            next_deadline(&stale, quiet, max_interval, sweep) > Duration::ZERO,
+            "a saturated deadline must not spin the loop"
         );
     }
 

@@ -172,14 +172,17 @@ pub enum FsAction {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WatchMode {
     Auto,
-    Poll,
+    /// Poll every `Duration`. Carried in the variant rather than read from a
+    /// constant so tests can drive a fast poll without waiting out the real
+    /// interval.
+    Poll(Duration),
     Off,
 }
 
 impl WatchMode {
     pub fn from_env() -> Self {
         match std::env::var("SB_FS_WATCH").as_deref() {
-            Ok("poll") => WatchMode::Poll,
+            Ok("poll") => WatchMode::Poll(poll_interval_from_env()),
             Ok("off") => WatchMode::Off,
             Ok("auto") | Err(_) => WatchMode::Auto,
             Ok(other) => {
@@ -190,20 +193,37 @@ impl WatchMode {
     }
 }
 
+/// `SB_FS_POLL_INTERVAL`, in whole seconds. Split from the env lookup so the
+/// parsing is testable without mutating process-wide state.
+fn poll_interval_from_env() -> Duration {
+    parse_poll_interval(std::env::var("SB_FS_POLL_INTERVAL").ok().as_deref())
+}
+
+fn parse_poll_interval(raw: Option<&str>) -> Duration {
+    let Some(raw) = raw else {
+        return DEFAULT_POLL_INTERVAL;
+    };
+    match raw.trim().parse::<u64>() {
+        // Zero would spin the poll thread, so it is rejected rather than
+        // honored: an operator asking for "as fast as possible" gets the
+        // default instead of a busy loop over their whole space.
+        Ok(secs) if secs > 0 => Duration::from_secs(secs),
+        _ => {
+            tracing::warn!(
+                "Invalid SB_FS_POLL_INTERVAL {raw:?}, using {}s",
+                DEFAULT_POLL_INTERVAL.as_secs()
+            );
+            DEFAULT_POLL_INTERVAL
+        }
+    }
+}
+
 const DEBOUNCE: Duration = Duration::from_millis(75);
-/// A single debounce flush holding more than this many paths collapses into
-/// one Resync event (flood control).
 const FLOOD_THRESHOLD: usize = 20;
-const POLL_INTERVAL: Duration = Duration::from_secs(2);
+const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(30);
 const CHANNEL_CAPACITY: usize = 256;
-/// Minimum gap between logged watcher-callback errors, so a sustained
-/// failure (e.g. an exhausted inotify watch limit, which can otherwise
-/// re-fire on every subsequent fs change) doesn't flood the log.
 const ERROR_LOG_INTERVAL: Duration = Duration::from_secs(30);
-/// How long the debounce loop can block when idle before re-checking whether
-/// its broadcast::WeakSender has been abandoned (see debounce_loop's comment
-/// on why that check, not mpsc disconnection, is what ends this thread).
-const ABANDONMENT_CHECK_INTERVAL: Duration = Duration::from_secs(2);
+const ABANDONMENT_CHECK_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Start watching `root`. Returns the broadcast sender (subscribe for events),
 /// or None if the watcher is off or could not be started (callers degrade to
@@ -287,8 +307,8 @@ pub fn start_watcher(
                 return None;
             }
         },
-        WatchMode::Poll => {
-            let config = notify::Config::default().with_poll_interval(POLL_INTERVAL);
+        WatchMode::Poll(interval) => {
+            let config = notify::Config::default().with_poll_interval(interval);
             match notify::PollWatcher::new(event_handler, config) {
                 Ok(mut w) => match w.watch(&root, RecursiveMode::Recursive) {
                     Ok(()) => AnyWatcher::Poll(w),
@@ -312,7 +332,14 @@ pub fn start_watcher(
         .spawn(move || {
             // Keep the OS watcher alive for the lifetime of this thread
             let _watcher = watcher;
-            debounce_loop(&root, &validator, raw_rx, weak_out, &fs_guard);
+            debounce_loop(
+                &root,
+                &validator,
+                raw_rx,
+                weak_out,
+                &fs_guard,
+                ABANDONMENT_CHECK_INTERVAL,
+            );
         })
         .ok()?;
 
@@ -325,6 +352,7 @@ fn debounce_loop(
     rx: mpsc::Receiver<PathBuf>,
     out: broadcast::WeakSender<FsEvent>,
     guard: &FsGuard,
+    abandonment_check: Duration,
 ) {
     // Pending space-relative paths, with the time they last fired
     let mut pending: HashMap<String, Instant> = HashMap::new();
@@ -333,7 +361,7 @@ fn debounce_loop(
             return;
         };
         let timeout = if pending.is_empty() {
-            ABANDONMENT_CHECK_INTERVAL
+            abandonment_check
         } else {
             Duration::from_millis(25)
         };
@@ -410,6 +438,30 @@ mod tests {
     use std::time::Duration;
 
     #[test]
+    fn poll_interval_defaults_when_unset_or_unusable() {
+        assert_eq!(parse_poll_interval(None), DEFAULT_POLL_INTERVAL);
+        assert_eq!(parse_poll_interval(Some("")), DEFAULT_POLL_INTERVAL);
+        assert_eq!(parse_poll_interval(Some("nonsense")), DEFAULT_POLL_INTERVAL);
+        assert_eq!(parse_poll_interval(Some("-5")), DEFAULT_POLL_INTERVAL);
+        assert_eq!(
+            parse_poll_interval(Some("0")),
+            DEFAULT_POLL_INTERVAL,
+            "zero would spin the poll thread"
+        );
+    }
+
+    #[test]
+    fn poll_interval_honors_whole_seconds() {
+        assert_eq!(parse_poll_interval(Some("1")), Duration::from_secs(1));
+        assert_eq!(parse_poll_interval(Some("120")), Duration::from_secs(120));
+        assert_eq!(
+            parse_poll_interval(Some("  45  ")),
+            Duration::from_secs(45),
+            "surrounding whitespace is tolerated"
+        );
+    }
+
+    #[test]
     fn debounce_loop_exits_when_broadcast_sender_is_dropped() {
         let dir = tempfile::tempdir().unwrap();
         let validator = DiskSpacePrimitives::new(dir.path(), "").unwrap();
@@ -422,7 +474,14 @@ mod tests {
         let guard = FsGuard::default();
         let handle = std::thread::spawn(move || {
             let _keep_alive = thread_mpsc_tx;
-            debounce_loop(&root, &validator, raw_rx, weak_out, &guard);
+            debounce_loop(
+                &root,
+                &validator,
+                raw_rx,
+                weak_out,
+                &guard,
+                Duration::from_millis(50),
+            );
         });
 
         drop(broadcast_tx);
@@ -622,7 +681,7 @@ mod tests {
         let tx = start_watcher(
             dir.path(),
             "",
-            WatchMode::Poll,
+            WatchMode::Poll(Duration::from_millis(100)),
             Arc::new(FsGuard::default()),
         )
         .unwrap();
