@@ -327,18 +327,24 @@
   cursor: col-resize;
   z-index: 1;
   touch-action: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .sb-resizer::after {
   content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
   width: 2px;
-  height: 100%;
-  border-radius: 1px;
   background-color: transparent;
   transition: background-color 120ms ease-out;
+}
+
+.sb-resizer-lhs::after {
+  right: 0;
+}
+
+.sb-resizer-rhs::after {
+  left: 0;
 }
 
 .sb-resizer:hover::after {
