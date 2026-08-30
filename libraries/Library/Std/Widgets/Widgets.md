@@ -30,7 +30,7 @@ None of the three has an `enabled` config key any more. Each remembers its own d
 config.set("std.widgets.toc.minHeaders", 5)
 ```
 
-To set where a view docks space-wide, use `view.docks` (`navigator.docks` still works as a fallback) -- see [[API/view#Persisted state and precedence]].
+To set where a view docks space-wide, use `view.docks` (`navigator.docks` still works as a fallback)
 
 # Implementation
 
