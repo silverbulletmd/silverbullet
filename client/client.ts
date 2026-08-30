@@ -417,10 +417,13 @@ export class Client {
       void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
 
-    this.eventHook.addLocalListener("file:changed", async (name: string) => {
-      console.log("Queueing index for", name);
-      await this.mq.send("indexQueue", name);
-    });
+    this.eventHook.addLocalListener(
+      "file:changedBatch",
+      async (names: string[]) => {
+        console.log("Queueing index for", names.length, "file(s)");
+        await this.mq.batchSend("indexQueue", names);
+      },
+    );
 
     const space = new Space(
       this.eventedSpacePrimitives,

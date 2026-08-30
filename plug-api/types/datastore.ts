@@ -34,4 +34,6 @@ export type KvQuery = {
  * and the consumer (`plugs/index/queue.ts`) so the two ends of the queue
  * cannot drift.
  */
-export type IndexQueueBody = string | { path: string; cleared?: boolean };
+export type IndexQueueBody =
+  | string
+  | { path: string; cleared?: boolean; attempts?: number };

@@ -2,6 +2,8 @@ import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { describe, expect, test } from "vitest";
 import { Config } from "../config.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
+import { System } from "../plugos/system.ts";
+import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import { DataStore } from "./datastore.ts";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
@@ -90,6 +92,139 @@ describe("ObjectIndex scan memoization", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     await queryPages(objectIndex);
     expect(indexScans()).toBe(before + 2);
+  });
+});
+
+function makeClearScanCounter() {
+  const kv = new MemoryKvPrimitives();
+  let clearScans = 0;
+  const origQuery = kv.query.bind(kv);
+  kv.query = (opts: any) => {
+    if (opts.prefix?.[0] === "ridx") {
+      clearScans++;
+    }
+    return origQuery(opts);
+  };
+  const ds = new DataStore(kv);
+  const eventHook = new EventHook();
+  const mq = new DataStoreMQ(ds, eventHook);
+  const config = new Config();
+  const makeIndex = () => new ObjectIndex(ds, config, eventHook, mq);
+  return { makeIndex, clearScans: () => clearScans };
+}
+
+function makeFreshSetup() {
+  const kv = new MemoryKvPrimitives();
+  const ds = new DataStore(kv);
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>(undefined);
+  system.addHook(eventHook);
+  const mq = new DataStoreMQ(ds, eventHook);
+  const config = new Config();
+  const objectIndex = new ObjectIndex(ds, config, eventHook, mq);
+  return { objectIndex, eventHook, mq };
+}
+
+function fileMeta(name: string) {
+  return {
+    name,
+    lastModified: 1,
+    created: 1,
+    contentType: "text/markdown",
+    size: 0,
+    perm: "rw",
+  };
+}
+
+// The initial index only counts as complete when it actually covers the
+// listed space. Without this, an interrupted first boot (snapshot saved,
+// queue half-drained) or messages dropped after repeated failures would mark
+// a silently incomplete index as done.
+describe("ObjectIndex initial-index completion verification", () => {
+  test("completion is withheld and gaps re-queued until every listed page is indexed", async () => {
+    const { objectIndex, eventHook, mq } = makeFreshSetup();
+    await new Promise((r) => setTimeout(r, 0));
+    await objectIndex.indexObjects("A", [pageObject("A")]);
+
+    await eventHook.dispatchEvent("file:listed", [
+      fileMeta("A.md"),
+      fileMeta("B.md"),
+    ]);
+
+    expect(await objectIndex.hasFullIndexCompleted()).toBeFalsy();
+    const messages = await mq.poll("indexQueue", 10);
+    expect(messages.map((m) => m.body)).toEqual([{ path: "B.md" }]);
+
+    await objectIndex.indexObjects("B", [pageObject("B")]);
+    await mq.batchAck(
+      "indexQueue",
+      messages.map((m) => m.id),
+    );
+    await eventHook.dispatchEvent("mq:emptyQueue:indexQueue");
+    expect(await objectIndex.hasFullIndexCompleted()).toBe(true);
+  });
+
+  test("verification gives up after three rounds instead of looping forever", async () => {
+    const { objectIndex, eventHook, mq } = makeFreshSetup();
+    await new Promise((r) => setTimeout(r, 0));
+
+    const drainOnce = async () => {
+      const messages = await mq.poll("indexQueue", 10);
+      await mq.batchAck(
+        "indexQueue",
+        messages.map((m) => m.id),
+      );
+      await eventHook.dispatchEvent("mq:emptyQueue:indexQueue");
+    };
+
+    // "Unindexable.md" never produces index entries; each round re-queues it.
+    await eventHook.dispatchEvent("file:listed", [fileMeta("Unindexable.md")]);
+    await drainOnce();
+    await drainOnce();
+    expect(await objectIndex.hasFullIndexCompleted()).toBeFalsy();
+    await drainOnce();
+    expect(await objectIndex.hasFullIndexCompleted()).toBe(true);
+  });
+});
+
+describe("ObjectIndex fresh-install clear fast path", () => {
+  test("clearing never-indexed files skips the store scan when the index started empty", async () => {
+    const { makeIndex, clearScans } = makeClearScanCounter();
+    const objectIndex = makeIndex();
+    await objectIndex.clearFileIndex("Never.md");
+    const afterFirst = clearScans();
+    await objectIndex.clearFileIndex("AlsoNever.md");
+    expect(clearScans()).toBe(afterFirst);
+  });
+
+  test("clearFileIndex still removes entries for a file indexed since boot", async () => {
+    const { makeIndex } = makeClearScanCounter();
+    const objectIndex = makeIndex();
+    await objectIndex.indexObjects("TestPage", [pageObject("a")]);
+    await objectIndex.clearFileIndex("TestPage.md");
+    expect(await queryPages(objectIndex)).toEqual([]);
+  });
+
+  test("clearFileIndex scans normally when the index did not start empty", async () => {
+    const { makeIndex, clearScans } = makeClearScanCounter();
+    const first = makeIndex();
+    await first.indexObjects("TestPage", [pageObject("a")]);
+    const second = makeIndex();
+    // Settle the constructor's one-time emptiness probe (itself a scan)
+    // before measuring.
+    await second.clearFileIndex("Warmup.md");
+    const before = clearScans();
+    await second.clearFileIndex("Never.md");
+    expect(clearScans()).toBe(before + 1);
+  });
+
+  test("the fast path ends once the full index completes", async () => {
+    const { makeIndex, clearScans } = makeClearScanCounter();
+    const objectIndex = makeIndex();
+    await objectIndex.markFullIndexComplete();
+    const before = clearScans();
+    await objectIndex.clearFileIndex("Never.md");
+    expect(clearScans()).toBe(before + 1);
   });
 });
 

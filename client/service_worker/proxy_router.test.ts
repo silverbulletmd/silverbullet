@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   belongsToAnotherSpace,
   belongsToSiblingSpace,
+  isInitialSyncLocalReadCandidate,
   scopedSiblingPrefixes,
 } from "./proxy_router.ts";
 
@@ -92,4 +93,63 @@ test.each([
 
 test("no known prefixes means nothing is a sibling", () => {
   expect(belongsToSiblingSpace("/private/", [])).toBe(false);
+});
+
+const syncModeHeaders = new Headers({ "X-Sync-Mode": "true" });
+
+test.each([
+  "/.fs/index.md",
+  "/.fs/Library/Std/Config.md",
+  "/.fs/attachment.png",
+])("initial sync: programmatic GET of %s may be served locally", (path) => {
+  expect(isInitialSyncLocalReadCandidate("GET", path, syncModeHeaders)).toBe(
+    true,
+  );
+});
+
+test("initial sync: the file listing is never served locally", () => {
+  expect(isInitialSyncLocalReadCandidate("GET", "/.fs", syncModeHeaders)).toBe(
+    false,
+  );
+  expect(isInitialSyncLocalReadCandidate("GET", "/.fs/", syncModeHeaders)).toBe(
+    false,
+  );
+});
+
+test("initial sync: writes and deletes are never served locally", () => {
+  expect(
+    isInitialSyncLocalReadCandidate("PUT", "/.fs/index.md", syncModeHeaders),
+  ).toBe(false);
+  expect(
+    isInitialSyncLocalReadCandidate("DELETE", "/.fs/index.md", syncModeHeaders),
+  ).toBe(false);
+});
+
+test("initial sync: markdown navigations (no X-Sync-Mode) keep proxy-first behavior", () => {
+  expect(
+    isInitialSyncLocalReadCandidate("GET", "/.fs/index.md", new Headers()),
+  ).toBe(false);
+});
+
+// Plug worker scripts and attachments are fetched by the browser itself
+// (worker boot, <img>), which sets no X-Sync-Mode header. Those must be
+// local-read candidates too: on a slow link, proxying an already-synced
+// .plug.js can push the worker boot past its 5s creation timeout — plugs sync
+// first precisely so their files are available early.
+test.each([
+  "/.fs/Library/Std/Plugs/index.plug.js",
+  "/.fs/photo.png",
+])("initial sync: non-markdown GET of %s may be served locally without the header", (path) => {
+  expect(isInitialSyncLocalReadCandidate("GET", path, new Headers())).toBe(
+    true,
+  );
+});
+
+test("initial sync: non-fs paths are not local-read candidates", () => {
+  expect(
+    isInitialSyncLocalReadCandidate("GET", "/index", syncModeHeaders),
+  ).toBe(false);
+  expect(
+    isInitialSyncLocalReadCandidate("GET", "/.config", syncModeHeaders),
+  ).toBe(false);
 });

@@ -85,7 +85,7 @@ functions:
     path: ./queue.ts:processIndexQueue
     mqSubscriptions:
       - queue: indexQueue
-        batchSize: 3
+        batchSize: 8
         autoAck: true
 
   indexDocument:

@@ -7,6 +7,7 @@ import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 
 /**
  * Events exposed:
+ * - file:changedBatch (string[]): one aggregate event for multiple events
  * - file:changed (string, oldHash, newHash, ownWrite): dispatched from inside
  *   writeFile, before it returns, so ownWrite is a listener's only way to tell
  *   our own write from someone else's.
@@ -130,6 +131,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
       // Now we have the list, let's compare it to the snapshot and trigger events appropriately
       const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
+      const changedFiles: string[] = [];
       for (const meta of newFileList) {
         const oldHash = this.spaceSnapshot[meta.name];
         const newHash = meta.lastModified;
@@ -145,6 +147,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             newHash,
           );
           await this.dispatchEvent("file:changed", meta.name, oldHash, newHash);
+          changedFiles.push(meta.name);
         }
         // Page found, not deleted
         deletedFiles.delete(meta.name);
@@ -158,6 +161,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           const pageName = deletedFile.substring(0, deletedFile.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
         }
+      }
+
+      // Awaited before file:listed: the initial-index completion check
+      // listens for file:listed and checks whether the index queue has
+      // drained, so a listener enqueueing index work from this batch must
+      // have committed by then.
+      if (changedFiles.length > 0) {
+        await this.dispatchEvent("file:changedBatch", changedFiles);
       }
 
       await this.dispatchEvent("file:listed", newFileList);
@@ -251,6 +262,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         newHash,
         ownWrite,
       );
+      await this.dispatchEvent("file:changedBatch", [name]);
     }
     this.updateInSnapshot(name, newHash);
     await this.saveSnapshot();

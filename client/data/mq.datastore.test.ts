@@ -77,6 +77,39 @@ test("DataStore MQ", async () => {
   }
 });
 
+test("DataStore MQ - a worker survives a callback that throws", async () => {
+  const db = new MemoryKvPrimitives();
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+  try {
+    const mq = new DataStoreMQ(new DataStore(db), eventHook);
+    const received: string[] = [];
+    const worker = mq.subscribe(
+      "t",
+      { batchSize: 1, pollInterval: 10 },
+      async (messages) => {
+        const body = messages[0].body;
+        await mq.ack("t", messages[0].id);
+        if (body === "boom") {
+          throw new Error("boom");
+        }
+        received.push(body);
+      },
+    );
+    await mq.send("t", "boom");
+    await mq.send("t", "ok");
+    const deadline = Date.now() + 2000;
+    while (!received.includes("ok") && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    worker.stop();
+    expect(received).toEqual(["ok"]);
+  } finally {
+    await db.close();
+  }
+});
+
 test("DataStore MQ - Scale test with multiple subscribers", async () => {
   vi.useFakeTimers();
   const db = new MemoryKvPrimitives();

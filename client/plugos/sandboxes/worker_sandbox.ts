@@ -51,7 +51,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
       timeout(5000).catch((_) =>
         Promise.reject(new Error("Plug timed out during creation")),
       ),
-      new Promise((resolve) => {
+      new Promise<void>((resolve) => {
         this.worker!.onmessage = (ev) => {
           if (ev.data.type === "manifest") {
             this.manifest = ev.data.manifest;
@@ -67,7 +67,15 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
           void this.onMessage(ev.data);
         };
       }),
-    ]);
+    ]).catch((e) => {
+      // A worker that failed to come up must not linger: its script fetch may
+      // still be in flight (e.g. on a slow link), and a late boot would
+      // resolve into a sandbox the system already gave up on. Terminating it
+      // also lets a retry start from a clean slate.
+      this.worker?.terminate();
+      this.worker = undefined;
+      throw e;
+    });
   }
 
   async onMessage(data: ControllerMessage) {

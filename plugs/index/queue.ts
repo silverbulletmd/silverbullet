@@ -17,11 +17,44 @@ import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 /// QUEUE PROCESSING
 
 export async function processIndexQueue(messages: MQMessage[]) {
-  for (const message of messages) {
-    const body: IndexQueueBody = message.body;
+  // Failures are isolated per file: a rejected batch would never be acked,
+  // wedging its messages in "processing" where the requeue cron duplicates
+  // work that is still in flight. Instead the batch always completes, and
+  // failed files are explicitly re-queued a bounded number of times.
+  const results = await Promise.allSettled(
+    messages.map((message) => {
+      const body: IndexQueueBody = message.body;
+      const path = typeof body === "string" ? body : body.path;
+      console.log("[index]", `Indexing file ${path}`);
+      return indexFile(path, typeof body !== "string" && body.cleared === true);
+    }),
+  );
+  const retry: IndexQueueBody[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status !== "rejected") {
+      continue;
+    }
+    const body: IndexQueueBody = messages[i].body;
     const path = typeof body === "string" ? body : body.path;
-    console.log("[index]", `Indexing file ${path}`);
-    await indexFile(path, typeof body !== "string" && body.cleared === true);
+    const attempts = (typeof body === "string" ? 0 : (body.attempts ?? 0)) + 1;
+    if (attempts >= 3) {
+      console.error(
+        "[index]",
+        `Giving up on ${path} after ${attempts} attempts:`,
+        result.reason?.message,
+      );
+    } else {
+      console.warn(
+        "[index]",
+        `Failed to index ${path} (attempt ${attempts}), re-queueing:`,
+        result.reason?.message,
+      );
+      retry.push({ path, attempts });
+    }
+  }
+  if (retry.length > 0) {
+    await mq.batchSend("indexQueue", retry);
   }
 }
 

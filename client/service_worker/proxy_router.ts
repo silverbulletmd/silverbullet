@@ -95,6 +95,27 @@ export function belongsToSiblingSpace(
   );
 }
 
+/**
+ * Whether a request may be answered from the local base store while the very
+ * first sync cycle is still running (i.e. before `fullSyncConfirmed`).
+ * Non-markdown GETs qualify even without the X-Sync-Mode header: plug worker
+ * scripts and attachments are fetched by the browser itself, and proxying an
+ * already-synced .plug.js on a slow link can push the worker boot past its
+ * 5s creation timeout. Bare .md navigations keep proxy-first behavior.
+ */
+export function isInitialSyncLocalReadCandidate(
+  method: string,
+  pathname: string,
+  headers: Headers,
+): boolean {
+  return (
+    method === "GET" &&
+    pathname.startsWith(`${fsEndpoint}/`) &&
+    pathname.length > fsEndpoint.length + 1 &&
+    (headers.has("X-Sync-Mode") || !pathname.endsWith(".md"))
+  );
+}
+
 export type ProxyRouterEvents = {
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   observedRequest: (path: string) => void;
@@ -279,22 +300,38 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             return await fetch(request);
           }
 
-          // Configured but no full sync confirmed yet and we think we're online —
-          // try the server first. If it fails with a network error, fall through to
-          // serve from local data (which may exist from a previous session's
-          // snapshot). fullSyncConfirmed is recovered from the persisted snapshot on
-          // SW restart (see configure()), so this condition only applies when no
-          // previous sync data exists at all.
           if (!this.fullSyncConfirmed && this.online) {
+            // A file the initial sync has already pulled down can be served
+            // locally right away, a miss falls through to the proxy fetch
+            // below.
+            if (
+              isInitialSyncLocalReadCandidate(
+                request.method,
+                pathname,
+                request.headers,
+              )
+            ) {
+              const path = decodePageURI(pathname.slice(fsEndpoint.length + 1));
+              try {
+                if (request.headers.has("x-get-meta")) {
+                  const meta =
+                    await this.localSpacePrimitives.getFileMeta(path);
+                  return new Response(null, {
+                    headers: fileMetaToHeaders(meta),
+                  });
+                }
+                const { meta, data } =
+                  await this.localSpacePrimitives.readFile(path);
+                return new Response(data as any, {
+                  headers: fileMetaToHeaders(meta),
+                });
+              } catch {
+                // Not synced yet (or unreadable) — proxy as before.
+              }
+            }
             try {
               return await fetch(request);
             } catch (e: any) {
-              // When the proxy fetch fails due to a network error, mark offline
-              // and fall through to serve from local data instead of returning
-              // a hard 503. We check for both the wrapped "Offline" error (from
-              // HttpSpacePrimitives) and raw browser network errors (e.g.
-              // "Failed to fetch" in Chrome, "NetworkError..." in Firefox,
-              // "Load failed" in Safari) via isNetworkError().
               if (e.message === "Offline" || isNetworkError(e)) {
                 console.info(
                   "Detected offline, marking offline and falling through",

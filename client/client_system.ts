@@ -278,15 +278,52 @@ export class ClientSystem {
       console.warn("Not loading custom plugs as `disablePlugs` has been set");
     }
 
+    const failed: { name: string; lastModified: number }[] = [];
     await Promise.all(
       allPlugs.map((fileMeta) =>
-        this.loadPlugFromPath(fileMeta.name, fileMeta.lastModified).catch((e) =>
-          console.error(
-            `Could not load plug ${fileMeta.name} error: ${e.message}`,
-          ),
+        this.loadPlugFromPath(fileMeta.name, fileMeta.lastModified).catch(
+          (e) => {
+            console.error(
+              `Could not load plug ${fileMeta.name} error: ${e.message}`,
+            );
+            failed.push({
+              name: fileMeta.name,
+              lastModified: fileMeta.lastModified,
+            });
+          },
         ),
       ),
     );
+    if (failed.length > 0) {
+      this.retryFailedPlugs(failed, 1);
+    }
+  }
+
+  private retryFailedPlugs(
+    plugs: { name: string; lastModified: number }[],
+    attempt: number,
+  ) {
+    const delayMs = attempt * 10000;
+    console.warn(
+      `Retrying ${plugs.length} failed plug load(s) in ${delayMs}ms (attempt ${attempt}/3)`,
+    );
+    setTimeout(async () => {
+      const stillFailing: { name: string; lastModified: number }[] = [];
+      for (const plug of plugs) {
+        try {
+          await this.loadPlugFromPath(plug.name, plug.lastModified);
+          console.log(`Plug ${plug.name} loaded on retry`);
+        } catch (e: any) {
+          console.error(
+            `Retry failed for plug ${plug.name} error: ${e.message}`,
+          );
+          stillFailing.push(plug);
+        }
+      }
+      if (stillFailing.length > 0 && attempt < 3) {
+        this.retryFailedPlugs(stillFailing, attempt + 1);
+      }
+    }, delayMs);
   }
 
   localSyscall(name: string, args: any[]) {

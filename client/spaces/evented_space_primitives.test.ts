@@ -95,6 +95,58 @@ describe("EventedSpacePrimitives fetchFileList single-flight", () => {
   });
 });
 
+// file:changedBatch aggregates a dispatch cascade's file:changed events into
+// one event so listeners can act on the whole set at once (e.g. a single
+// index-queue batch send). It is dispatched and awaited BEFORE file:listed —
+// the initial-index completion check listens for file:listed and must observe
+// the queued batch, or a cold boot marks the index complete while empty.
+describe("EventedSpacePrimitives file:changedBatch", () => {
+  function listingSetup(files: FileMeta[]) {
+    const base = setup();
+    (base.sp as unknown as { wrapped: SpacePrimitives }).wrapped = {
+      fetchFileList: async () => files,
+      writeFile: async (path: string) => meta(path, 999),
+    } as unknown as SpacePrimitives;
+    return base;
+  }
+
+  test("a listing dispatches one awaited batch of all changed files, before file:listed", async () => {
+    const { sp, events } = listingSetup([
+      meta("a.md", 100),
+      meta("b.md", 200),
+      meta("c.png", 300),
+    ]);
+    await sp.enable();
+    await sp.fetchFileList();
+
+    const names = events.map((e) => e.name);
+    const batchAt = names.indexOf("file:changedBatch");
+    expect(batchAt).toBeGreaterThan(-1);
+    expect(batchAt).toBeLessThan(names.indexOf("file:listed"));
+    expect(events[batchAt].args).toEqual([["a.md", "b.md", "c.png"]]);
+  });
+
+  test("a listing with no changes dispatches no batch", async () => {
+    const { sp, events } = listingSetup([meta("a.md", 100)]);
+    await sp.enable();
+    await sp.fetchFileList();
+    await sp.fetchFileList();
+
+    const batches = events.filter((e) => e.name === "file:changedBatch");
+    expect(batches).toHaveLength(1);
+  });
+
+  test("a write dispatches a single-file batch", async () => {
+    const { sp, events } = listingSetup([]);
+    await sp.enable();
+    await sp.writeFile("d.md", new Uint8Array());
+
+    const batches = events.filter((e) => e.name === "file:changedBatch");
+    expect(batches).toHaveLength(1);
+    expect(batches[0].args).toEqual([["d.md"]]);
+  });
+});
+
 // file:changed fires from inside writeFile, before it returns, so ownWrite is
 // a listener's only way to tell its own write from somebody else's.
 describe("EventedSpacePrimitives file:changed ownWrite flag", () => {

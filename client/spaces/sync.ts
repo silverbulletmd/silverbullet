@@ -18,7 +18,7 @@ import {
 } from "./http_space_primitives.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
 
-const syncConcurrency = 3;
+const syncConcurrency = 5;
 
 const mergeEligibleExtensions = new Set([
   "md",

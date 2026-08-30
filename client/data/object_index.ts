@@ -3,7 +3,10 @@ import type {
   KV,
   KvKey,
 } from "@silverbulletmd/silverbullet/type/datastore";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  FileMeta,
+  ObjectValue,
+} from "@silverbulletmd/silverbullet/type/index";
 import { relationToLink } from "../../plugs/index/link.ts";
 import type { Config } from "../config.ts";
 import type { EventHook } from "../plugos/hooks/event.ts";
@@ -68,12 +71,16 @@ export class ObjectValidationError extends Error {
 }
 
 export class ObjectIndex {
+  private pagesWrittenSinceBoot = new Set<string>();
+  private freshInstallEmptyStart: Promise<boolean>;
+
   constructor(
     private ds: DataStore,
     private config: Config,
     private eventHook: EventHook,
     private mq: DataStoreMQ,
   ) {
+    this.freshInstallEmptyStart = this.probeFreshInstallEmptyStart();
     // Clear any entries for deleted files
     this.eventHook.addLocalListener("file:deleted", (path: string) => {
       return this.clearFileIndex(path);
@@ -94,8 +101,10 @@ export class ObjectIndex {
       }
     };
 
-    this.eventHook.addLocalListener("file:listed", () => {
+    let lastFileList: FileMeta[] | undefined;
+    this.eventHook.addLocalListener("file:listed", (allFiles: FileMeta[]) => {
       indexStarted = true;
+      lastFileList = allFiles;
       return finishIfDrained();
     });
 
@@ -109,18 +118,51 @@ export class ObjectIndex {
             await finishInitialIndex?.();
           }
         };
+        let finishing = false;
+        let verificationRounds = 0;
         finishInitialIndex = async () => {
-          finishInitialIndex = undefined;
-          // Indexing has just finished for the first time for this client
-          console.info("Initial index complete, reloading editor state");
-          await this.markFullIndexComplete();
-          // Unsubscribe yourself
-          this.eventHook.removeLocalListener(
-            "mq:emptyQueue:indexQueue",
-            emptyQueueHandler,
-          );
-          // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
-          void this.eventHook.dispatchEvent("editor:reloadState");
+          if (finishing) {
+            return;
+          }
+          finishing = true;
+          try {
+            // Verify the index actually covers the listed space before
+            // declaring it complete: an interrupted earlier boot leaves the
+            // file-list snapshot saved but the queue half-drained (a reload
+            // then diffs to nothing), and messages dropped after repeated
+            // failures would otherwise go missing silently. Bounded, so a
+            // page that never yields an index entry (e.g. deleted mid-boot)
+            // can't hold completion hostage.
+            if (lastFileList && verificationRounds < 3) {
+              const missingFiles = await this.findUnindexedPages(lastFileList);
+              if (missingFiles.length > 0) {
+                verificationRounds++;
+                console.warn(
+                  "[index]",
+                  `Initial index is missing ${missingFiles.length} page(s), queueing them (round ${verificationRounds})`,
+                );
+                await this.mq.batchSend(
+                  "indexQueue",
+                  missingFiles.map((path): IndexQueueBody => ({ path })),
+                );
+                // Still armed: the drain after these index re-runs this check
+                return;
+              }
+            }
+            finishInitialIndex = undefined;
+            // Indexing has just finished for the first time for this client
+            console.info("Initial index complete, reloading editor state");
+            await this.markFullIndexComplete();
+            // Unsubscribe yourself
+            this.eventHook.removeLocalListener(
+              "mq:emptyQueue:indexQueue",
+              emptyQueueHandler,
+            );
+            // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
+            void this.eventHook.dispatchEvent("editor:reloadState");
+          } finally {
+            finishing = false;
+          }
         };
         this.eventHook.addLocalListener(
           "mq:emptyQueue:indexQueue",
@@ -530,7 +572,39 @@ export class ObjectIndex {
     await this.mq.awaitEmptyQueue("indexQueue");
   }
 
+  /**
+   * Markdown files from `files` that have no `page` object in the index.
+   */
+  private async findUnindexedPages(files: FileMeta[]): Promise<string[]> {
+    const indexedPages = new Set<string>();
+    for await (const { key } of this.ds.query({ prefix: [indexKey, "page"] })) {
+      indexedPages.add(String(key[key.length - 1]));
+    }
+    const missing: string[] = [];
+    for (const file of files) {
+      if (
+        file.name.endsWith(".md") &&
+        !indexedPages.has(file.name.slice(0, -3))
+      ) {
+        missing.push(file.name);
+      }
+    }
+    return missing;
+  }
+
+  private async probeFreshInstallEmptyStart(): Promise<boolean> {
+    if ((await this.getCurrentIndexVersion()) !== undefined) {
+      return false;
+    }
+    for await (const _ of this.ds.query({ prefix: [pageKey] })) {
+      return false;
+    }
+    return true;
+  }
+
   async markFullIndexComplete() {
+    this.freshInstallEmptyStart = Promise.resolve(false);
+    this.pagesWrittenSinceBoot.clear();
     await this.ds.set(indexVersionKey, desiredIndexVersion);
     // The index is whole again — drop the interrupted-reindex marker.
     await this.ds.delete(reindexInProgressKey);
@@ -650,6 +724,7 @@ export class ObjectIndex {
   }
 
   batchSet(page: string, kvs: KV[]): Promise<void> {
+    this.pagesWrittenSinceBoot.add(page);
     this.invalidateScanMemo();
     const finalBatch: KV[] = [];
     for (const { key, value } of kvs) {
@@ -684,6 +759,12 @@ export class ObjectIndex {
   public async clearFileIndex(file: string): Promise<void> {
     if (file.endsWith(".md")) {
       file = file.replace(/\.md$/, "");
+    }
+    if (
+      !this.pagesWrittenSinceBoot.has(file) &&
+      (await this.freshInstallEmptyStart)
+    ) {
+      return;
     }
     // console.log("Clearing index for", file);
     const allKeys: KvKey[] = [];

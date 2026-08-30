@@ -47,8 +47,17 @@ export class QueueWorker {
         );
         if (messages.length > 0) {
           drainPending = true;
-          // We have messages, process them, then immediately loop to poll again
-          await this.callback(messages);
+          // We have messages, process them, then immediately loop to poll
+          // again. A throwing callback must not kill the worker — its queue
+          // would silently never be processed again for the session.
+          try {
+            await this.callback(messages);
+          } catch (e) {
+            console.error(
+              `Error in queue "${this.queue}" worker callback (worker continues)`,
+              e,
+            );
+          }
         } else {
           if (drainPending) {
             drainPending = false;
