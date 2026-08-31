@@ -3441,6 +3441,24 @@ test.describe("built-in views", () => {
     );
   });
 
+  test("the tree follows the editor onto a document", async ({ sbPage }) => {
+    const frame = await openSpaceTree(sbPage);
+    await navigateViaPagePicker(sbPage, "Projects/Alpha");
+    await expect(
+      frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
+    ).toBeVisible();
+
+    await sbPage.evaluate(() =>
+      (globalThis as any).client.navigate({ path: "Diagrams/flow.png" }),
+    );
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "Diagrams/flow.png",
+    );
+    await expect(
+      frame.locator("[data-path='Diagrams/flow.png'].sb-nav-selected"),
+    ).toBeVisible();
+  });
+
   // A fresh activation re-fetches the persisted expansion snapshot as a sibling async round trip to the reveal's own ancestor-expansion, with no fixed order between them; an empty snapshot happens not to reproduce the race, hence the unrelated folder expanded by hand first.
   test("space tree: reopening a closed dock reveals the current page even with an unrelated folder remembered as expanded", async ({
     sbPage,

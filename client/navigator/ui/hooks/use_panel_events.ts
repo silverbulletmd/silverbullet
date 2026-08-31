@@ -159,15 +159,9 @@ export function usePanelEvents({
     };
     refresh.current = triggerRefresh;
 
-    const pageLoaded = (pageRef: unknown) => {
+    const contentLoaded = (pageRef: unknown) => {
       void syncReadOnly();
       const current = viewRef.current;
-      // A tree built out of the page's own content: its paths belong to the
-      // page being left, so nothing about them carries over -- a header
-      // collapsed here must not arrive collapsed on the next page that
-      // happens to have one of the same name. Ahead of the followEditor gate
-      // below, and not gated on the dock: the modal keeps its state too when
-      // it is re-opened on the view it is already showing.
       if (current?.meta.expansionScope === "page") {
         setExpanded(new Set());
         setSelectedPath(undefined);
@@ -182,21 +176,20 @@ export function usePanelEvents({
 
     // Reloading the editor in place is what `editor.setUiOption` does, so it
     // is also the only signal a forced read-only toggle gives us.
-    const pageReloaded = () => {
+    const contentReloaded = () => {
       void syncReadOnly();
     };
 
-    // Per (event, handler) pair, not per event: a view whose `refreshOn`
-    // names `editor:pageLoaded` needs the refresh *as well as* the
-    // follow-editor handler already subscribed to it.
     const subscribed: [string, (...args: any[]) => void][] = [];
     const listen = (name: string, handler: (...args: any[]) => void) => {
       if (subscribed.some(([n, h]) => n === name && h === handler)) return;
       subscribed.push([name, handler]);
       client.eventHook.addLocalListener(name, handler);
     };
-    listen("editor:pageLoaded", pageLoaded);
-    listen("editor:pageReloaded", pageReloaded);
+    listen("editor:pageLoaded", contentLoaded);
+    listen("editor:pageReloaded", contentReloaded);
+    listen("editor:documentLoaded", contentLoaded);
+    listen("editor:documentReloaded", contentReloaded);
 
     activate.current = createActivate({
       slot,
