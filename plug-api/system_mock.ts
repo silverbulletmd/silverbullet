@@ -88,6 +88,7 @@ export function createMockSystem() {
 
   return {
     system,
+    objectIndex,
     eventHook,
     config,
     kv,

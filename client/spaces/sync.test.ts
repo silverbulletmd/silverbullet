@@ -2774,3 +2774,73 @@ describe("fileSynced events", () => {
     expect(synced).toEqual([]);
   });
 });
+
+// The base is what the server diffs both sides against, so it has to equal
+// what the client actually holds. A base lagging behind already-pulled
+// content would make the next push look like the client *added* the remote's
+// own lines, and the server would conflict two people who edited opposite
+// ends of the page.
+//
+// These pin that invariant on the pull path. They passed on first write:
+// they were added to test a theory about the intermittent conflict in
+// e2e/collab-sync.test.ts's laggy-connection test and they refuted it, so
+// they document a rule that holds rather than a bug that was fixed.
+describe("base tracking keeps pace with pulled content", () => {
+  const SEED = "Line1\nLine2\nLine3\n";
+
+  test("after pulling a remote append, the base matches the pulled content", async () => {
+    const { primary, secondary, snapshot, sync, baseStore } =
+      createReconcileSyncSetup();
+
+    await primary.writeFile("doc.md", encode(SEED));
+    await doSync(sync, snapshot);
+
+    // B appends from elsewhere; the client pulls it.
+    const withB1 = `${SEED}B1`;
+    await secondary.inner.writeFile("doc.md", encode(withB1));
+    await doSync(sync, snapshot);
+    expect(decode((await primary.readFile("doc.md")).data)).toBe(withB1);
+
+    const baseHash = snapshot.baseHashes.get("doc.md")!;
+    expect(decode((await baseStore.getBase(baseHash))!)).toBe(withB1);
+  });
+
+  test("a push after a pull declares the pulled content as its base, not the pre-pull seed", async () => {
+    const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();
+
+    await primary.writeFile("doc.md", encode(SEED));
+    await doSync(sync, snapshot);
+
+    // B appends B1; the client pulls it.
+    const withB1 = `${SEED}B1`;
+    await secondary.inner.writeFile("doc.md", encode(withB1));
+    await doSync(sync, snapshot);
+
+    // B appends B2 remotely, so the client's next push will hit a 412.
+    await secondary.inner.writeFile("doc.md", encode(`${withB1}\nB2`));
+
+    // Meanwhile A prepends its own line to what it holds.
+    const localEdit = `A1\n${withB1}`;
+    await primary.writeFile("doc.md", encode(localEdit));
+    secondary.failNextWrite = true;
+    secondary.reconcileResponse = {
+      status: "merged",
+      revision: {
+        algorithm: "sha256",
+        hash: "server-hash",
+        size: 1,
+        lastModified: 4242,
+      },
+      text: `A1\n${withB1}\nB2`,
+    };
+
+    await doSync(sync, snapshot);
+
+    expect(secondary.reconcileCalls.length).toBe(1);
+    const req = secondary.reconcileCalls[0].req;
+    expect(req.proposedText).toBe(localEdit);
+    // The decisive one: a base of SEED would make A's proposal look like it
+    // appended B1 itself, colliding with the remote's own B1/B2 append.
+    expect(req.baseText).toBe(withB1);
+  });
+});

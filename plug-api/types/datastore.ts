@@ -13,6 +13,8 @@ export type MQStats = {
 export type MQSubscribeOptions = {
   batchSize?: number;
   pollInterval?: number;
+  /** How often a running callback refreshes its messages' processing lease. */
+  leaseRenewIntervalMs?: number;
 };
 
 // KV types
@@ -34,6 +36,4 @@ export type KvQuery = {
  * and the consumer (`plugs/index/queue.ts`) so the two ends of the queue
  * cannot drift.
  */
-export type IndexQueueBody =
-  | string
-  | { path: string; cleared?: boolean; attempts?: number };
+export type IndexQueueBody = string | { path: string; cleared?: boolean };

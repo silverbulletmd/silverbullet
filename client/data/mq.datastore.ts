@@ -15,6 +15,8 @@ export type ProcessingMessage = MQMessage & {
   ts: number;
 };
 
+const DEFAULT_LEASE_RENEW_INTERVAL = 2000;
+
 const queuedPrefix = ["mq", "queued"];
 const processingPrefix = ["mq", "processing"];
 const dlqPrefix = ["mq", "dlq"];
@@ -50,6 +52,14 @@ export class QueueWorker {
           // We have messages, process them, then immediately loop to poll
           // again. A throwing callback must not kill the worker — its queue
           // would silently never be processed again for the session.
+          const renew = setInterval(() => {
+            this.mq
+              .renewLease(
+                this.queue,
+                messages.map((m) => m.id),
+              )
+              .catch(console.error);
+          }, this.options.leaseRenewIntervalMs || DEFAULT_LEASE_RENEW_INTERVAL);
           try {
             await this.callback(messages);
           } catch (e) {
@@ -57,6 +67,8 @@ export class QueueWorker {
               `Error in queue "${this.queue}" worker callback (worker continues)`,
               e,
             );
+          } finally {
+            clearInterval(renew);
           }
         } else {
           if (drainPending) {
@@ -257,6 +269,26 @@ export class DataStoreMQ {
     await this.ds.batchDelete(
       ids.map((id) => [...processingPrefix, queue, id]),
     );
+  }
+
+  /**
+   * Pushes out the processing lease on messages a consumer is still working
+   * on, so `requeueTimeouts` distinguishes a slow consumer from a dead one.
+   */
+  async renewLease(queue: string, ids: string[]) {
+    if (ids.length === 0) {
+      return;
+    }
+    const keys = ids.map((id) => [...processingPrefix, queue, id]);
+    const existing = await this.ds.batchGet<ProcessingMessage>(keys);
+    const now = Date.now();
+    const updates: KV<ProcessingMessage>[] = [];
+    existing.forEach((message, i) => {
+      if (message) {
+        updates.push({ key: keys[i], value: { ...message, ts: now } });
+      }
+    });
+    await this.ds.batchSet(updates);
   }
 
   async requeueTimeouts(

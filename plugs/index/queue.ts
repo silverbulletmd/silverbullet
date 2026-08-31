@@ -24,64 +24,60 @@ export async function processIndexQueue(messages: MQMessage[]) {
   // stays ahead and nothing defers; on slow links indexing throttles to
   // sync pace.
   const ready: MQMessage[] = [];
-  const requeue: IndexQueueBody[] = [];
+  const deferred: MQMessage[] = [];
   const readiness = await sync.areFilesReadyToIndex(
-    messages.map((message) => {
-      const body: IndexQueueBody = message.body;
-      return typeof body === "string" ? body : body.path;
-    }),
+    messages.map((message) => bodyPath(message.body)),
   );
   messages.forEach((message, i) => {
-    if (readiness[i]) {
-      ready.push(message);
-    } else {
-      requeue.push(message.body);
-    }
+    (readiness[i] ? ready : deferred).push(message);
   });
-  if (ready.length === 0 && requeue.length > 0) {
+  if (ready.length === 0 && deferred.length > 0) {
     // The whole batch is waiting on sync — back off instead of spinning
     // through the queue
     await sleep(1000);
   }
 
-  // Failures are isolated per file: a rejected batch would never be acked,
-  // wedging its messages in "processing" where the requeue cron duplicates
-  // work that is still in flight. Instead the batch always completes, and
-  // failed files are explicitly re-queued a bounded number of times.
   const results = await Promise.allSettled(
     ready.map((message) => {
       const body: IndexQueueBody = message.body;
-      const path = typeof body === "string" ? body : body.path;
+      const path = bodyPath(body);
       console.log("[index]", `Indexing file ${path}`);
       return indexFile(path, typeof body !== "string" && body.cleared === true);
     }),
   );
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result.status !== "rejected") {
-      continue;
-    }
-    const body: IndexQueueBody = ready[i].body;
-    const path = typeof body === "string" ? body : body.path;
-    const attempts = (typeof body === "string" ? 0 : (body.attempts ?? 0)) + 1;
-    if (attempts >= 3) {
-      console.error(
+
+  // A file that failed is simply not acked: the queue's own lease timeout
+  // requeues it and its own retry counter eventually drops it. Acking the
+  // rest individually keeps one bad file from dragging its batch mates
+  // through a re-run.
+  const done: string[] = deferred.map((message) => message.id);
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      console.warn(
         "[index]",
-        `Giving up on ${path} after ${attempts} attempts:`,
+        `Failed to index ${bodyPath(ready[i].body)}, leaving it for the queue to retry:`,
         result.reason?.message,
       );
     } else {
-      console.warn(
-        "[index]",
-        `Failed to index ${path} (attempt ${attempts}), re-queueing:`,
-        result.reason?.message,
-      );
-      requeue.push({ path, attempts });
+      done.push(ready[i].id);
     }
+  });
+
+  // Re-queued before the originals are acked, so a crash in between
+  // duplicates work rather than losing it.
+  if (deferred.length > 0) {
+    await mq.batchSend(
+      "indexQueue",
+      deferred.map((message) => message.body),
+    );
   }
-  if (requeue.length > 0) {
-    await mq.batchSend("indexQueue", requeue);
+  if (done.length > 0) {
+    await mq.batchAck("indexQueue", done);
   }
+}
+
+function bodyPath(body: IndexQueueBody): string {
+  return typeof body === "string" ? body : body.path;
 }
 
 async function indexFile(path: string, alreadyCleared: boolean) {

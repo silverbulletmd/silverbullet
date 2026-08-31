@@ -77,7 +77,11 @@ import { resolveASTReference } from "./space_lua.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { getOrCreateClientId } from "./spaces/client_id.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
-import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
+import {
+  type ChangedFile,
+  EventedSpacePrimitives,
+} from "./spaces/evented_space_primitives.ts";
+import type { IndexQueueBody } from "@silverbulletmd/silverbullet/type/datastore";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import type { Command, PaletteCommand } from "./types/command.ts";
 import type {
@@ -426,9 +430,17 @@ export class Client {
 
     this.eventHook.addLocalListener(
       "file:changedBatch",
-      async (names: string[]) => {
-        console.log("Queueing index for", names.length, "file(s)");
-        await this.mq.batchSend("indexQueue", names);
+      async (changed: ChangedFile[]) => {
+        console.log("Queueing index for", changed.length, "file(s)");
+        await this.mq.batchSend(
+          "indexQueue",
+          changed.map(
+            ({ name, isNew }): IndexQueueBody => ({
+              path: name,
+              cleared: isNew,
+            }),
+          ),
+        );
       },
     );
 

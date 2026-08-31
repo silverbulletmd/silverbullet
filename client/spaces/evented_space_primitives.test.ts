@@ -100,6 +100,10 @@ describe("EventedSpacePrimitives fetchFileList single-flight", () => {
 // index-queue batch send). It is dispatched and awaited BEFORE file:listed —
 // the initial-index completion check listens for file:listed and must observe
 // the queued batch, or a cold boot marks the index complete while empty.
+//
+// Each entry carries `isNew`: this client has never seen the file, so it has
+// no index entries to clear. The indexer relies on that to skip a per-file
+// store scan across a fresh install's initial index.
 describe("EventedSpacePrimitives file:changedBatch", () => {
   function listingSetup(files: FileMeta[]) {
     const base = setup();
@@ -123,7 +127,26 @@ describe("EventedSpacePrimitives file:changedBatch", () => {
     const batchAt = names.indexOf("file:changedBatch");
     expect(batchAt).toBeGreaterThan(-1);
     expect(batchAt).toBeLessThan(names.indexOf("file:listed"));
-    expect(events[batchAt].args).toEqual([["a.md", "b.md", "c.png"]]);
+    expect(events[batchAt].args).toEqual([
+      [
+        { name: "a.md", isNew: true },
+        { name: "b.md", isNew: true },
+        { name: "c.png", isNew: true },
+      ],
+    ]);
+  });
+
+  test("a file already in the snapshot is reported as changed, not new", async () => {
+    const files = [meta("a.md", 100), meta("b.md", 200)];
+    const { sp, events } = listingSetup(files);
+    await sp.enable();
+    await sp.fetchFileList();
+    files[0] = meta("a.md", 101);
+    await sp.fetchFileList();
+
+    const batches = events.filter((e) => e.name === "file:changedBatch");
+    expect(batches).toHaveLength(2);
+    expect(batches[1].args).toEqual([[{ name: "a.md", isNew: false }]]);
   });
 
   test("a listing with no changes dispatches no batch", async () => {
@@ -143,7 +166,19 @@ describe("EventedSpacePrimitives file:changedBatch", () => {
 
     const batches = events.filter((e) => e.name === "file:changedBatch");
     expect(batches).toHaveLength(1);
-    expect(batches[0].args).toEqual([["d.md"]]);
+    expect(batches[0].args).toEqual([[{ name: "d.md", isNew: true }]]);
+  });
+
+  test("a write to a file already in the snapshot is not new", async () => {
+    const { sp, events } = listingSetup([meta("d.md", 100)]);
+    await sp.enable();
+    await sp.fetchFileList();
+    await sp.writeFile("d.md", new Uint8Array());
+
+    const batches = events.filter((e) => e.name === "file:changedBatch");
+    expect(batches[batches.length - 1].args).toEqual([
+      [{ name: "d.md", isNew: false }],
+    ]);
   });
 });
 

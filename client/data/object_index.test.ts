@@ -95,22 +95,12 @@ describe("ObjectIndex scan memoization", () => {
   });
 });
 
-function makeClearScanCounter() {
-  const kv = new MemoryKvPrimitives();
-  let clearScans = 0;
-  const origQuery = kv.query.bind(kv);
-  kv.query = (opts: any) => {
-    if (opts.prefix?.[0] === "ridx") {
-      clearScans++;
-    }
-    return origQuery(opts);
-  };
-  const ds = new DataStore(kv);
+function makeSharedStoreIndexes() {
+  const ds = new DataStore(new MemoryKvPrimitives());
   const eventHook = new EventHook();
   const mq = new DataStoreMQ(ds, eventHook);
   const config = new Config();
-  const makeIndex = () => new ObjectIndex(ds, config, eventHook, mq);
-  return { makeIndex, clearScans: () => clearScans };
+  return () => new ObjectIndex(ds, config, eventHook, mq);
 }
 
 function makeFreshSetup() {
@@ -164,7 +154,7 @@ describe("ObjectIndex initial-index completion verification", () => {
     expect(await objectIndex.hasFullIndexCompleted()).toBe(true);
   });
 
-  test("verification gives up after three rounds instead of looping forever", async () => {
+  test("completion stops the round a page that can never index makes no progress", async () => {
     const { objectIndex, eventHook, mq } = makeFreshSetup();
     await new Promise((r) => setTimeout(r, 0));
 
@@ -177,54 +167,53 @@ describe("ObjectIndex initial-index completion verification", () => {
       await eventHook.dispatchEvent("mq:emptyQueue:indexQueue");
     };
 
-    // "Unindexable.md" never produces index entries; each round re-queues it.
+    // "Unindexable.md" never produces index entries. The first round has
+    // something to try, the second sees the set has not shrunk and gives up
+    // rather than counting to an arbitrary limit.
     await eventHook.dispatchEvent("file:listed", [fileMeta("Unindexable.md")]);
-    await drainOnce();
-    await drainOnce();
     expect(await objectIndex.hasFullIndexCompleted()).toBeFalsy();
     await drainOnce();
     expect(await objectIndex.hasFullIndexCompleted()).toBe(true);
   });
+
+  test("rounds keep going for as long as the missing set is shrinking", async () => {
+    const { objectIndex, eventHook, mq } = makeFreshSetup();
+    await new Promise((r) => setTimeout(r, 0));
+
+    const drainOnce = async () => {
+      const messages = await mq.poll("indexQueue", 10);
+      await mq.batchAck(
+        "indexQueue",
+        messages.map((m) => m.id),
+      );
+      await eventHook.dispatchEvent("mq:emptyQueue:indexQueue");
+    };
+
+    // Four pages, none indexed yet; each round indexes exactly one more.
+    // That is four shrinking rounds -- more than the old fixed cap of three,
+    // which would have declared the index complete with a page still missing.
+    const names = ["A", "B", "C", "D"];
+    await eventHook.dispatchEvent(
+      "file:listed",
+      names.map((n) => fileMeta(`${n}.md`)),
+    );
+    for (const name of names) {
+      expect(await objectIndex.hasFullIndexCompleted()).toBeFalsy();
+      await objectIndex.indexObjects(name, [pageObject(name)]);
+      await drainOnce();
+    }
+    expect(await objectIndex.hasFullIndexCompleted()).toBe(true);
+  });
 });
 
-describe("ObjectIndex fresh-install clear fast path", () => {
-  test("clearing never-indexed files skips the store scan when the index started empty", async () => {
-    const { makeIndex, clearScans } = makeClearScanCounter();
-    const objectIndex = makeIndex();
-    await objectIndex.clearFileIndex("Never.md");
-    const afterFirst = clearScans();
-    await objectIndex.clearFileIndex("AlsoNever.md");
-    expect(clearScans()).toBe(afterFirst);
-  });
-
-  test("clearFileIndex still removes entries for a file indexed since boot", async () => {
-    const { makeIndex } = makeClearScanCounter();
-    const objectIndex = makeIndex();
-    await objectIndex.indexObjects("TestPage", [pageObject("a")]);
-    await objectIndex.clearFileIndex("TestPage.md");
-    expect(await queryPages(objectIndex)).toEqual([]);
-  });
-
-  test("clearFileIndex scans normally when the index did not start empty", async () => {
-    const { makeIndex, clearScans } = makeClearScanCounter();
+describe("ObjectIndex clearFileIndex", () => {
+  test("clears entries written by an earlier session, not just this one", async () => {
+    const makeIndex = makeSharedStoreIndexes();
     const first = makeIndex();
     await first.indexObjects("TestPage", [pageObject("a")]);
     const second = makeIndex();
-    // Settle the constructor's one-time emptiness probe (itself a scan)
-    // before measuring.
-    await second.clearFileIndex("Warmup.md");
-    const before = clearScans();
-    await second.clearFileIndex("Never.md");
-    expect(clearScans()).toBe(before + 1);
-  });
-
-  test("the fast path ends once the full index completes", async () => {
-    const { makeIndex, clearScans } = makeClearScanCounter();
-    const objectIndex = makeIndex();
-    await objectIndex.markFullIndexComplete();
-    const before = clearScans();
-    await objectIndex.clearFileIndex("Never.md");
-    expect(clearScans()).toBe(before + 1);
+    await second.clearFileIndex("TestPage.md");
+    expect(await queryPages(second)).toEqual([]);
   });
 });
 

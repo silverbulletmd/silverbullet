@@ -124,6 +124,16 @@ function classifyEdits(
     for (let line = lineAt(from); line <= lineAt(to - 1); line++) {
       lines.add(line);
     }
+    // Whatever follows `to` on its line is joined onto whatever preceded
+    // `from`, so that line stops being byte-identical too -- unless the
+    // change ends exactly on a line boundary and leaves one behind.
+    const endsCleanly =
+      isLineStart(to) &&
+      (inserted.length === 0 ||
+        inserted.sliceString(inserted.length - 1) === "\n");
+    if (!endsCleanly) {
+      lines.add(lineAt(to));
+    }
   });
   return { lines, boundaries };
 }

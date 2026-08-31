@@ -86,7 +86,7 @@ functions:
     mqSubscriptions:
       - queue: indexQueue
         batchSize: 8
-        autoAck: true
+        autoAck: false
 
   indexDocument:
     path: "./document.ts:indexDocument"

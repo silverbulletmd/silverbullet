@@ -349,6 +349,18 @@ describe("computeExternalChanges", () => {
       expect(apply(current, cs)).not.toBe(current);
     });
 
+    it("defers when a local edit joins two base lines", () => {
+      // Deleting the newline merges line 1's text into line 0, so *both*
+      // base lines stop being sync points -- not just the one holding the
+      // deleted character.
+      const base = "gamma gamma\nbeta\n";
+      const disk = "gamma gamma\nbeta\n beta";
+      const current = "gamma gamma beta\n";
+      const cs = computeExternalChanges(base, disk, current);
+      expect(cs.deferred).toBe(true);
+      expect(apply(current, cs)).toBe(current);
+    });
+
     it("merges insertions at distinct line boundaries", () => {
       const base = "intro\nbody\n";
       const disk = "intro\nXXX\nbody\n";

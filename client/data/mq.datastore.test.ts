@@ -284,3 +284,69 @@ test("DataStore MQ - empty queue is announced on drain, not on every poll", asyn
     vi.useRealTimers();
   }
 });
+
+// A batch slower than the requeue timeout used to be handed to a second
+// consumer while the first was still working on it: `requeueTimeouts` only
+// looks at the timestamp `poll` stamped on the message. The worker now
+// refreshes that lease for as long as its callback is running, so the
+// timeout means "the consumer went away", not "the consumer is slow".
+test("a slow in-flight batch keeps its lease instead of being requeued", async () => {
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+  const mq = new DataStoreMQ(
+    new DataStore(new MemoryKvPrimitives()),
+    eventHook,
+  );
+
+  let release!: () => void;
+  const inFlight = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let started = false;
+
+  const worker = mq.subscribe(
+    "slow",
+    { leaseRenewIntervalMs: 5 },
+    async (messages) => {
+      started = true;
+      await inFlight;
+      await mq.batchAck(
+        "slow",
+        messages.map((m) => m.id),
+      );
+    },
+  );
+
+  await mq.send("slow", "work");
+  while (!started) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+
+  // Well past the 20ms timeout, but the callback is still running.
+  await new Promise((r) => setTimeout(r, 60));
+  await mq.requeueTimeouts(20);
+  expect((await mq.getQueueStats("slow")).queued).toEqual(0);
+
+  release();
+  await new Promise((r) => setTimeout(r, 20));
+  expect(await mq.fetchProcessingMessages()).toEqual([]);
+  worker.stop();
+});
+
+test("an abandoned in-flight batch still times out once its worker stops renewing", async () => {
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+  const mq = new DataStoreMQ(
+    new DataStore(new MemoryKvPrimitives()),
+    eventHook,
+  );
+
+  await mq.send("dead", "work");
+  // Polled by a consumer that then vanished without acking or renewing.
+  expect((await mq.poll("dead", 10)).length).toEqual(1);
+  await new Promise((r) => setTimeout(r, 30));
+  await mq.requeueTimeouts(20);
+  expect((await mq.getQueueStats("dead")).queued).toEqual(1);
+});

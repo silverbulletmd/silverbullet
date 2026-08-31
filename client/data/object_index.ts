@@ -71,8 +71,6 @@ export class ObjectValidationError extends Error {
 }
 
 export class ObjectIndex {
-  private pagesWrittenSinceBoot = new Set<string>();
-  private freshInstallEmptyStart: Promise<boolean>;
   // True while a wholesale reindex (manual or version-bump) is running in
   // this window
   public rebuildInProgress = false;
@@ -83,7 +81,6 @@ export class ObjectIndex {
     private eventHook: EventHook,
     private mq: DataStoreMQ,
   ) {
-    this.freshInstallEmptyStart = this.probeFreshInstallEmptyStart();
     // Clear any entries for deleted files
     this.eventHook.addLocalListener("file:deleted", (path: string) => {
       return this.clearFileIndex(path);
@@ -121,28 +118,33 @@ export class ObjectIndex {
             await finishInitialIndex?.();
           }
         };
+        // Guards against the two arming paths (a drained queue and a fresh
+        // listing) overlapping and both acting on the same missing set.
         let finishing = false;
-        let verificationRounds = 0;
+        let outstanding = Infinity;
         finishInitialIndex = async () => {
           if (finishing) {
             return;
           }
           finishing = true;
           try {
-            // Verify the index actually covers the listed space before
-            // declaring it complete: an interrupted earlier boot leaves the
-            // file-list snapshot saved but the queue half-drained (a reload
-            // then diffs to nothing), and messages dropped after repeated
-            // failures would otherwise go missing silently. Bounded, so a
-            // page that never yields an index entry (e.g. deleted mid-boot)
-            // can't hold completion hostage.
-            if (lastFileList && verificationRounds < 3) {
-              const missingFiles = await this.findUnindexedPages(lastFileList);
-              if (missingFiles.length > 0) {
-                verificationRounds++;
+            // The index is complete when it covers the listed space, not when
+            // the queue happens to be empty: an interrupted earlier boot
+            // leaves the file-list snapshot saved but the queue half-drained
+            // (a reload then diffs to nothing), and dropped messages would
+            // otherwise go missing silently. Re-queueing converges on the
+            // real work set, and stopping as soon as a round fails to shrink
+            // it keeps a page that can never be indexed (deleted mid-boot,
+            // permanently failing) from holding completion hostage.
+            const missingFiles = lastFileList
+              ? await this.findUnindexedPages(lastFileList)
+              : [];
+            if (missingFiles.length > 0) {
+              if (missingFiles.length < outstanding) {
+                outstanding = missingFiles.length;
                 console.warn(
                   "[index]",
-                  `Initial index is missing ${missingFiles.length} page(s), queueing them (round ${verificationRounds})`,
+                  `Initial index is missing ${missingFiles.length} page(s), queueing them`,
                 );
                 await this.mq.batchSend(
                   "indexQueue",
@@ -151,6 +153,10 @@ export class ObjectIndex {
                 // Still armed: the drain after these index re-runs this check
                 return;
               }
+              console.warn(
+                "[index]",
+                `Giving up on ${missingFiles.length} page(s) that never indexed`,
+              );
             }
             finishInitialIndex = undefined;
             // Indexing has just finished for the first time for this client
@@ -605,19 +611,7 @@ export class ObjectIndex {
     return missing;
   }
 
-  private async probeFreshInstallEmptyStart(): Promise<boolean> {
-    if ((await this.getCurrentIndexVersion()) !== undefined) {
-      return false;
-    }
-    for await (const _ of this.ds.query({ prefix: [pageKey] })) {
-      return false;
-    }
-    return true;
-  }
-
   async markFullIndexComplete() {
-    this.freshInstallEmptyStart = Promise.resolve(false);
-    this.pagesWrittenSinceBoot.clear();
     await this.ds.set(indexVersionKey, desiredIndexVersion);
     // The index is whole again — drop the interrupted-reindex marker.
     await this.ds.delete(reindexInProgressKey);
@@ -737,7 +731,6 @@ export class ObjectIndex {
   }
 
   batchSet(page: string, kvs: KV[]): Promise<void> {
-    this.pagesWrittenSinceBoot.add(page);
     this.invalidateScanMemo();
     const finalBatch: KV[] = [];
     for (const { key, value } of kvs) {
@@ -772,12 +765,6 @@ export class ObjectIndex {
   public async clearFileIndex(file: string): Promise<void> {
     if (file.endsWith(".md")) {
       file = file.replace(/\.md$/, "");
-    }
-    if (
-      !this.pagesWrittenSinceBoot.has(file) &&
-      (await this.freshInstallEmptyStart)
-    ) {
-      return;
     }
     // console.log("Clearing index for", file);
     const allKeys: KvKey[] = [];

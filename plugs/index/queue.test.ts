@@ -25,7 +25,32 @@ test("a batch dispatches page:index for every queued page", async () => {
   expect(indexed.sort()).toEqual(["A", "B"]);
 });
 
-test("a failing file doesn't fail the batch and is re-queued with an attempt count", async () => {
+test("a file flagged as already cleared skips the per-file clear scan", async () => {
+  const { spacePrimitives, objectIndex } = createMockSystem();
+  const enc = new TextEncoder();
+  await spacePrimitives.writeFile("A.md", enc.encode("# A"));
+  await spacePrimitives.writeFile("B.md", enc.encode("# B"));
+
+  const cleared: string[] = [];
+  const origClear = objectIndex.clearFileIndex.bind(objectIndex);
+  objectIndex.clearFileIndex = (file: string) => {
+    cleared.push(file);
+    return origClear(file);
+  };
+
+  await processIndexQueue([
+    { id: "A.md", queue: "indexQueue", body: { path: "A.md", cleared: true } },
+    { id: "B.md", queue: "indexQueue", body: { path: "B.md", cleared: false } },
+  ]);
+
+  expect(cleared).toEqual(["B.md"]);
+});
+
+// Retry is the queue's job, not the message body's: a file that fails is
+// simply never acked, so the MQ's own lease timeout requeues it and its own
+// retry counter eventually drops it. Acking per message keeps one poison
+// file from dragging its whole batch through a re-run.
+test("a failing file is left unacked while its batch mates are acked", async () => {
   const { spacePrimitives, eventHook, mq } = createMockSystem();
   const enc = new TextEncoder();
   await spacePrimitives.writeFile("A.md", enc.encode("# A"));
@@ -44,28 +69,27 @@ test("a failing file doesn't fail the batch and is re-queued with an attempt cou
     indexed.push(event.name);
   });
 
-  // Must resolve (a rejection would leave the whole batch un-acked).
-  await processIndexQueue([msg("A.md"), msg("B.md")]);
+  await mq.batchSend("indexQueue", [{ path: "A.md" }, { path: "B.md" }]);
+  const polled = await mq.poll("indexQueue", 10);
+
+  // Must resolve: a rejection would leave the whole batch un-acked.
+  await processIndexQueue(polled);
 
   expect(indexed).toEqual(["B"]);
-  const requeued = await mq.poll("indexQueue", 10);
-  expect(requeued.map((m) => m.body)).toEqual([{ path: "A.md", attempts: 1 }]);
+  const stillProcessing = await mq.fetchProcessingMessages();
+  expect(stillProcessing.map((m) => m.body)).toEqual([{ path: "A.md" }]);
 });
 
-test("a file that keeps failing is dropped after three attempts", async () => {
+test("a batch that all succeeds leaves nothing in processing", async () => {
   const { spacePrimitives, mq } = createMockSystem();
   const enc = new TextEncoder();
   await spacePrimitives.writeFile("A.md", enc.encode("# A"));
-  spacePrimitives.readFile = async () => {
-    throw new Error("Request timed out after 30000ms");
-  };
+  await spacePrimitives.writeFile("B.md", enc.encode("# B"));
 
-  await processIndexQueue([
-    { id: "A.md", queue: "indexQueue", body: { path: "A.md", attempts: 2 } },
-  ]);
+  await mq.batchSend("indexQueue", [{ path: "A.md" }, { path: "B.md" }]);
+  await processIndexQueue(await mq.poll("indexQueue", 10));
 
-  const requeued = await mq.poll("indexQueue", 10);
-  expect(requeued).toEqual([]);
+  expect(await mq.fetchProcessingMessages()).toEqual([]);
 });
 
 test("files within a batch are indexed concurrently, not serially", async () => {

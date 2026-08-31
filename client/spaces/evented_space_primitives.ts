@@ -5,9 +5,14 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { DataStore } from "../data/datastore.ts";
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 
+export type ChangedFile = {
+  name: string;
+  isNew: boolean;
+};
+
 /**
  * Events exposed:
- * - file:changedBatch (string[]): one aggregate event for multiple events
+ * - file:changedBatch (ChangedFile[]): one aggregate event for multiple events
  * - file:changed (string, oldHash, newHash, ownWrite): dispatched from inside
  *   writeFile, before it returns, so ownWrite is a listener's only way to tell
  *   our own write from someone else's.
@@ -131,7 +136,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
       // Now we have the list, let's compare it to the snapshot and trigger events appropriately
       const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
-      const changedFiles: string[] = [];
+      const changedFiles: ChangedFile[] = [];
       for (const meta of newFileList) {
         const oldHash = this.spaceSnapshot[meta.name];
         const newHash = meta.lastModified;
@@ -147,7 +152,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             newHash,
           );
           await this.dispatchEvent("file:changed", meta.name, oldHash, newHash);
-          changedFiles.push(meta.name);
+          changedFiles.push({ name: meta.name, isNew: oldHash === undefined });
         }
         // Page found, not deleted
         deletedFiles.delete(meta.name);
@@ -262,7 +267,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         newHash,
         ownWrite,
       );
-      await this.dispatchEvent("file:changedBatch", [name]);
+      await this.dispatchEvent("file:changedBatch", [
+        { name, isNew: oldHash === undefined },
+      ]);
     }
     this.updateInSnapshot(name, newHash);
     await this.saveSnapshot();
