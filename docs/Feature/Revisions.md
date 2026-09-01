@@ -53,8 +53,8 @@ ${widgets.commandButton("Revision: Create snapshot")} commits everything outstan
 # Browsing history
 If revisions is enabled, there will be two additional views:
 
-* ${widgets.commandButton("Revision: Page History")} lists the current page's revisions. Selecting one opens a preview showing the change as a colour-coded diff, switch to **Content** to read the whole page as it was at that point. **Restore** puts that version back into the editor as a single undo step.
-* ${widgets.commandButton("Revision: Space History")} lists commits across the whole space. Selecting a commit opens it up to show the pages it touched; selecting one of those previews it the same way.
+* ${widgets.commandButton("Revision: Page History")} lists the current page's revisions, newest first. Selecting one opens a preview showing the change as a colour-coded diff, switch to **Content** to read the whole page as it was at that point. **Restore** puts that version back into the editor as a single undo step.
+* ${widgets.commandButton("Revision: Space History")} lists commits across the whole space.
 
 Whatever has changed since the last commit heads both views as an **Uncommitted changes** entry — in the space-wide log it opens up to list every file involved. Selecting it shows the change; there is nothing to restore, since it is what is already on disk.
 

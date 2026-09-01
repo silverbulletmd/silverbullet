@@ -54,11 +54,12 @@ This is the same mechanism the built-in clients use to drive the automatic mergi
 # Revisions
 Present when [[Feature/Revisions]] are enabled for the space: every endpoint below answers `404` with `{"error": "revisions disabled"}` when they are not. A `rev` is always a full 40-character commit hash — anything else is a `404`.
 
-* `GET /.revisions/`: The space-wide commit log as JSON: `mode`, `commits` (each with `rev`, `timestamp`, `author`, `message`, `files`, `added` and `removed`), `uncommitted` (paths differing from HEAD right now) and `more`. Takes optional `before` (page back from this revision) and `limit` (default 50, capped at 200) query parameters.
+* `GET /.revisions/`: The space-wide commit log as JSON: `mode`, `commits` (each with `rev`, `timestamp`, `author`, `message`, `files`, `added` and `removed`), `uncommitted` (paths differing from HEAD right now) and `more`. Takes optional `before` (page back from this revision), `limit` (default 50, capped at 200) and `q` (only commits whose message or author contains this phrase) query parameters.
 * `POST /.revisions/`: Commits everything outstanding immediately. Takes no body, returns `{"committed": true|false}`. Returns `409` for a space that is not in Managed mode.
+* `GET /.revisions/?rev=<hash>&to=<hash|HEAD|WORKING>`: A summary of everything that changed between `rev` and `to` as JSON: `from`, `to`, `files` (each with `path`, `status`, `added` and `removed`) and `authors`. `to=WORKING` reaches all the way to what's on disk, uncommitted changes included.
 * `GET /.revisions/<path>`: One file's revisions as JSON: `mode`, `uncommitted` (whether what is on disk differs from the last commit), `revisions` and `more`. Takes the same `before`/`limit` parameters.
-* `GET /.revisions/<path>?rev=<hash>`: The content of that file as it was at that revision, served with the file's own content type.
-* `GET /.revisions/<path>?rev=<hash>&format=diff`: A unified diff of what that revision changed in that file, as `text/plain`. `404` when the revision has nothing to diff against a parent (a merge commit).
+* `GET /.revisions/<path>?rev=<hash>`: The content of that file as it was at that revision, served with the file's own content type. 
+* `GET /.revisions/<path>?rev=<hash>&format=diff`: A unified diff of what that revision changed in that file, as `text/plain`. `404` when the revision has nothing to diff against a parent (a merge commit). 
 * `GET /.revisions/<path>?format=diff`: With no `rev`, the *uncommitted* change instead — HEAD versus what is on disk, as `text/plain`. A file that has never been committed reads as wholly added. `404` when it matches HEAD after all.
 
 # RPC
