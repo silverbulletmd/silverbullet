@@ -154,9 +154,8 @@ impl EngineInner {
         }
         for (attribution, mut paths) in by_attribution {
             paths.sort();
-            let message = commit_message(&paths);
             let (name, email) = self.identity_for(&attribution);
-            match self.store.commit_batch(&name, &email, &message, &paths) {
+            match self.store.commit_batch_auto(&name, &email, &paths) {
                 Ok(id) => {
                     committed |= id.is_some();
                     self.warned.store(false, Ordering::Relaxed);
@@ -215,8 +214,8 @@ impl EngineInner {
         // Read-only probe first. `git.rs` sets GIT_OPTIONAL_LOCKS=0, so this
         // `git status` will not write the index: an idle space costs one stat
         // walk per sweep and no writes at all.
-        let paths = match super::read::uncommitted_paths(&self.store) {
-            Ok(paths) => paths,
+        let paths: Vec<String> = match super::read::uncommitted_files(&self.store) {
+            Ok(files) => files.into_iter().map(|f| f.path).collect(),
             Err(e) => {
                 tracing::warn!("History sweep could not inspect the space: {e}");
                 return false;
@@ -375,14 +374,6 @@ fn next_deadline(
     // Never sleep zero: a deadline that has saturated but is not yet "due"
     // by the caller's own comparison would spin this loop.
     wait.max(Duration::from_millis(1))
-}
-
-fn commit_message(paths: &[String]) -> String {
-    match paths.len() {
-        1 => format!("Update {}", paths[0]),
-        2 => format!("Update {}, {}", paths[0], paths[1]),
-        n => format!("Update {}, {} (+{} more)", paths[0], paths[1], n - 2),
-    }
 }
 
 pub struct RevisionEngine {
@@ -1275,7 +1266,7 @@ mod tests {
 
         assert!(
             wait_until(Duration::from_secs(5), || {
-                git_log(dir.path(), &["--format=%s"]).contains("Update late.md")
+                git_log(dir.path(), &["--format=%s"]).contains("Create late.md")
             }),
             "a parked loop never woke for a new mark"
         );

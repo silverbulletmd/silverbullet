@@ -16,6 +16,9 @@ pub struct HistoryQuery {
     before: Option<String>,
     limit: Option<usize>,
     format: Option<String>,
+    parent: Option<String>,
+    q: Option<String>,
+    to: Option<String>,
 }
 
 fn disabled() -> Response {
@@ -32,6 +35,10 @@ fn limit_of(q: &HistoryQuery) -> usize {
 
 fn is_hex40(s: &str) -> bool {
     s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+fn flag(v: Option<&String>) -> bool {
+    matches!(v.map(String::as_str), Some("1") | Some("true"))
 }
 
 /// Runs a history call on the blocking thread pool, keeping its plain
@@ -58,9 +65,25 @@ pub async fn handle_space_log(
     let Some(history) = state.revisions.clone() else {
         return disabled();
     };
+    if let (Some(rev), Some(to_raw)) = (q.rev.as_deref(), q.to.as_deref()) {
+        if !is_hex40(rev) {
+            return StatusCode::BAD_REQUEST.into_response();
+        }
+        let Some(to) = read::RangeEnd::parse(to_raw) else {
+            return StatusCode::BAD_REQUEST.into_response();
+        };
+        let rev = rev.to_string();
+        let result = run_blocking(move || read::range_summary(history.store(), &rev, &to)).await;
+        return match result {
+            Ok(summary) => axum::Json(summary).into_response(),
+            Err(e) => revisions_error(e),
+        };
+    }
     let limit = limit_of(&q);
-    let result =
-        run_blocking(move || read::space_log(history.store(), q.before.as_deref(), limit)).await;
+    let result = run_blocking(move || {
+        read::space_log(history.store(), q.before.as_deref(), limit, q.q.as_deref())
+    })
+    .await;
     match result {
         Ok(log) => axum::Json(log).into_response(),
         Err(e) => revisions_error(e),
@@ -86,14 +109,36 @@ pub async fn handle_file_revisions(
         return disabled();
     };
     let limit = limit_of(&q);
+    let parent = flag(q.parent.as_ref());
     if let Some(rev) = q.rev {
         if !is_hex40(&rev) {
             return StatusCode::NOT_FOUND.into_response();
         }
+        if let Some(to_raw) = q.to.as_deref() {
+            let Some(to) = read::RangeEnd::parse(to_raw) else {
+                return StatusCode::BAD_REQUEST.into_response();
+            };
+            let path_inner = path.clone();
+            let result = run_blocking(move || {
+                read::range_file_diff(history.store(), &path_inner, &rev, &to)
+            })
+            .await;
+            return match result {
+                Ok(Some(diff)) => (
+                    StatusCode::OK,
+                    [("Content-Type", "text/plain; charset=utf-8")],
+                    diff,
+                )
+                    .into_response(),
+                Ok(None) => StatusCode::NOT_FOUND.into_response(),
+                Err(e) => revisions_error(e),
+            };
+        }
         if q.format.as_deref() == Some("diff") {
             let path_inner = path.clone();
             let result =
-                run_blocking(move || read::file_diff(history.store(), &path_inner, &rev)).await;
+                run_blocking(move || read::file_diff(history.store(), &path_inner, &rev, parent))
+                    .await;
             return match result {
                 Ok(Some(diff)) => (
                     StatusCode::OK,
@@ -106,7 +151,8 @@ pub async fn handle_file_revisions(
             };
         }
         let path_inner = path.clone();
-        let result = run_blocking(move || read::file_at(history.store(), &path_inner, &rev)).await;
+        let result =
+            run_blocking(move || read::file_at(history.store(), &path_inner, &rev, parent)).await;
         return match result {
             Ok(Some(bytes)) => (
                 StatusCode::OK,
@@ -306,13 +352,54 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn parent_flag_serves_the_version_before_a_deletion() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = Arc::new(history_state(&dir));
+        std::fs::remove_file(dir.path().join("note.md")).unwrap();
+        let store = state.revisions.clone().unwrap();
+        let deletion = store
+            .store()
+            .commit_batch("carol", "carol@x", "remove note", &["note.md".into()])
+            .unwrap()
+            .unwrap();
+
+        let router = crate::build_router(state.clone());
+        let resp = router
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/.revisions/note.md?rev={deletion}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        let resp = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/.revisions/note.md?rev={deletion}&parent=1"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&bytes[..], b"v2");
+    }
+
+    #[tokio::test]
     async fn space_log_lists_commits_with_files() {
         let dir = tempfile::tempdir().unwrap();
         let state = Arc::new(history_state(&dir));
         let (status, json) = get_json(crate::build_router(state), "/.revisions/").await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(json["commits"].as_array().unwrap().len(), 2);
-        assert_eq!(json["commits"][0]["files"][0], "note.md");
+        assert_eq!(json["commits"][0]["files"][0]["path"], "note.md");
+        assert_eq!(json["commits"][0]["files"][0]["status"], "modified");
     }
 
     async fn post_json(router: axum::Router, uri: &str) -> (StatusCode, serde_json::Value) {
@@ -427,6 +514,25 @@ mod tests {
         )
         .await;
         assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn a_bad_range_end_is_a_400_not_a_500() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = Arc::new(history_state(&dir));
+        let rev = "a".repeat(40);
+        let resp = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri(format!(
+                        "/.revisions/note.md?rev={rev}&to=HEAD~3&format=diff"
+                    ))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
