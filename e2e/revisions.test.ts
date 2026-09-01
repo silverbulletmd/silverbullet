@@ -384,8 +384,8 @@ test.describe("Space History", () => {
     // children showing under any of them.
     await expect(frame.locator(".sb-nav-row")).toHaveCount(3);
     const bobRow = frame.locator(".sb-nav-row", { hasText: "Bob" });
-    await expect(bobRow.locator(".sb-nav-primary")).toHaveText("Bob");
-    await expect(bobRow.locator(".sb-nav-chip").first()).toBeVisible();
+    await expect(bobRow.locator(".sb-nav-primary")).toHaveText("Update A");
+    await expect(bobRow.locator(".sb-nav-chip").first()).toHaveText("Bob");
 
     // Selecting the commit itself opens it up. Bob's touched only page-a.md.
     await bobRow.click();
