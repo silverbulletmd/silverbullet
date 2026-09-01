@@ -15,6 +15,25 @@ pub const SESSION_EXPIRY_SECS: u64 = 60 * 60 * 24 * 7;
 
 type CredentialVersionProvider = Arc<dyn Fn(&str) -> String + Send + Sync>;
 
+pub const DEFAULT_ACCESS_TOKEN_DAYS: u64 = 365;
+pub const REFRESH_TOKEN_DAYS: u64 = 730;
+
+pub struct DeviceTokens {
+    pub access_token: String,
+    pub refresh_token: String,
+    pub expires_in: u64,
+}
+
+pub fn access_token_expiry_secs() -> u64 {
+    std::env::var("SB_APP_TOKEN_EXPIRY_DAYS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|d| *d > 0)
+        .unwrap_or(DEFAULT_ACCESS_TOKEN_DAYS)
+        * 24
+        * 3600
+}
+
 /// Owns the credential verifier, lockout state, and JWT issuer for `/.auth`.
 pub struct LoginManager {
     authenticator: Arc<Authenticator>,
@@ -24,6 +43,7 @@ pub struct LoginManager {
     lockout: LockoutTimer,
     host_url_prefix: String,
     session_url_prefix: String,
+    auth_codes: crate::auth::oauth::AuthCodeStore,
 }
 
 impl LoginManager {
@@ -42,6 +62,7 @@ impl LoginManager {
             lockout,
             session_url_prefix: host_url_prefix.clone(),
             host_url_prefix,
+            auth_codes: crate::auth::oauth::AuthCodeStore::new(),
         }
     }
 
@@ -78,6 +99,10 @@ impl LoginManager {
         &self.session_url_prefix
     }
 
+    pub fn auth_codes(&self) -> &crate::auth::oauth::AuthCodeStore {
+        &self.auth_codes
+    }
+
     pub fn is_locked(&self) -> bool {
         self.lockout.is_locked()
     }
@@ -110,6 +135,48 @@ impl LoginManager {
             None => self.authenticator.issue_jwt(username, secs)?,
         };
         Ok((jwt, secs))
+    }
+
+    pub fn issue_device_tokens(
+        &self,
+        username: &str,
+    ) -> Result<DeviceTokens, jsonwebtoken::errors::Error> {
+        let version = self.credential_version.as_ref().map(|p| p(username));
+        let expires_in = access_token_expiry_secs();
+        Ok(DeviceTokens {
+            access_token: self.authenticator.issue_token(
+                username,
+                version.clone(),
+                None,
+                expires_in,
+            )?,
+            refresh_token: self.authenticator.issue_token(
+                username,
+                version,
+                Some("refresh"),
+                REFRESH_TOKEN_DAYS * 24 * 3600,
+            )?,
+            expires_in,
+        })
+    }
+
+    pub fn verify_refresh_token(&self, token: &str) -> Option<String> {
+        let claims = self.authenticator.verify_jwt(token).ok()?;
+        if claims.token_use.as_deref() != Some("refresh") {
+            return None;
+        }
+        let current = self
+            .credential_version
+            .as_ref()
+            .map(|p| p(&claims.username));
+        if current != claims.credential_version {
+            return None;
+        }
+        Some(claims.username)
+    }
+
+    pub fn csrf_token(&self, binding: &str) -> String {
+        self.authenticator.csrf_token(binding)
     }
 }
 
@@ -192,5 +259,48 @@ mod tests {
         assert!(m.authorize("member", "pw"));
         assert!(!m.authorize("member", "no"));
         assert_eq!(m.remember_me_days(), 2);
+    }
+
+    #[test]
+    fn device_tokens_are_distinguishable_and_long_lived() {
+        let m = manager();
+        let tokens = m.issue_device_tokens("alice").unwrap();
+        assert_eq!(tokens.expires_in, 365 * 24 * 3600);
+
+        let access = m.authenticator.verify_jwt(&tokens.access_token).unwrap();
+        assert_eq!(access.username, "alice");
+        assert_eq!(access.token_use, None);
+
+        let refresh = m.authenticator.verify_jwt(&tokens.refresh_token).unwrap();
+        assert_eq!(refresh.token_use.as_deref(), Some("refresh"));
+    }
+
+    #[test]
+    fn only_a_refresh_token_verifies_as_one() {
+        let m = manager();
+        let tokens = m.issue_device_tokens("alice").unwrap();
+        assert_eq!(
+            m.verify_refresh_token(&tokens.refresh_token).as_deref(),
+            Some("alice")
+        );
+        assert_eq!(m.verify_refresh_token(&tokens.access_token), None);
+        assert_eq!(m.verify_refresh_token("not-a-jwt"), None);
+    }
+
+    #[test]
+    fn a_refresh_token_with_a_stale_credential_version_is_rejected() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let bumps = Arc::new(AtomicUsize::new(0));
+        let seen = bumps.clone();
+        let m = manager().with_credential_version(Arc::new(move |_u| {
+            format!("v{}", seen.load(Ordering::SeqCst))
+        }));
+        let tokens = m.issue_device_tokens("alice").unwrap();
+        assert_eq!(
+            m.verify_refresh_token(&tokens.refresh_token).as_deref(),
+            Some("alice")
+        );
+        bumps.store(1, Ordering::SeqCst);
+        assert_eq!(m.verify_refresh_token(&tokens.refresh_token), None);
     }
 }

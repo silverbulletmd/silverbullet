@@ -369,6 +369,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
                 this.online = false;
               }
             }
+            // Only a navigation may be answered with the app shell.
+            if (request.mode !== "navigate") {
+              return await fetch(request);
+            }
             return (
               (await caches.match(this.precacheFiles["/"])) || fetch(request)
             );

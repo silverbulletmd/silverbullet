@@ -10,19 +10,12 @@ use crate::auth::cookie::{cookie_value, request_host, scoped_auth_cookie_name};
 /// Additional policy applied after a JWT's signature and expiry validate.
 pub type ClaimsFilter = Box<dyn Fn(&Claims) -> bool + Send + Sync>;
 
-/// The standalone server's authorizer: a request is authorized if it carries the
-/// configured bearer token (constant-time compared) or a valid session JWT in
-/// an auth cookie. Classic single-space servers may scope the cookie to their
-/// configured URL prefix; account-managed multi-space servers pass an empty
-/// prefix and share `auth_<cleanHost>` across every space.
 pub struct JwtAuthorizer {
     authenticator: Arc<Authenticator>,
     /// Optional bearer token (empty disables bearer auth).
     auth_token: String,
     /// URL prefix this authorizer's space is mounted under (cookie scoping).
     url_prefix: String,
-    /// Optional filter applied to verified JWT claims. Bearer-token policy is
-    /// handled independently by the corresponding token authorizer.
     claims_filter: Option<ClaimsFilter>,
 }
 
@@ -63,36 +56,38 @@ impl JwtAuthorizer {
 
 impl RequestAuthorizer for JwtAuthorizer {
     fn authorize(&self, ctx: &AuthContext) -> Option<AuthOutcome> {
+        let bearer = bearer_token(ctx.headers);
         if !self.auth_token.is_empty() {
-            if let Some(token) = bearer_token(ctx.headers) {
+            if let Some(token) = &bearer {
                 if constant_time_eq(token.as_bytes(), self.auth_token.as_bytes()) {
                     return Some(AuthOutcome { username: None });
                 }
             }
         }
-        let name = scoped_auth_cookie_name(&request_host(ctx.headers), &self.url_prefix);
-        if let Some(cookie) = cookie_value(ctx.headers, &name) {
-            if let Ok(claims) = self.authenticator.verify_jwt(&cookie) {
-                if let Some(f) = &self.claims_filter {
-                    if !f(&claims) {
-                        return None;
-                    }
-                }
-                return Some(AuthOutcome {
-                    username: Some(claims.username.clone()),
-                });
+        let cookie_name = scoped_auth_cookie_name(&request_host(ctx.headers), &self.url_prefix);
+        let candidate = cookie_value(ctx.headers, &cookie_name).or(bearer);
+        let claims = self.authenticator.verify_jwt(&candidate?).ok()?;
+        if claims.token_use.is_some() {
+            return None;
+        }
+        if let Some(f) = &self.claims_filter {
+            if !f(&claims) {
+                return None;
             }
         }
-        None
+        Some(AuthOutcome {
+            username: Some(claims.username),
+        })
     }
 }
 
 /// Extract the `Authorization: Bearer <token>` value.
-fn bearer_token(headers: &HeaderMap) -> Option<&str> {
+fn bearer_token(headers: &HeaderMap) -> Option<String> {
     headers
         .get("authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
+        .map(str::to_string)
 }
 
 #[cfg(test)]
@@ -229,5 +224,87 @@ mod tests {
         let h2 = mk(&jwt_bad);
         assert!(a.is_authorized(&ctx(&h1)));
         assert!(!a.is_authorized(&ctx(&h2)));
+    }
+
+    #[test]
+    fn a_session_jwt_in_the_authorization_header_authorizes_with_its_username() {
+        let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let jwt = auth.issue_token("alice", None, None, 600).unwrap();
+        let authz = JwtAuthorizer::new(auth, "static-tok".into());
+
+        let mut headers = HeaderMap::new();
+        headers.insert("authorization", format!("Bearer {jwt}").parse().unwrap());
+        let outcome = authz
+            .authorize(&AuthContext {
+                method: &Method::GET,
+                path: "/.fs",
+                query: None,
+                headers: &headers,
+            })
+            .expect("should authorize");
+        assert_eq!(outcome.username.as_deref(), Some("alice"));
+    }
+
+    #[test]
+    fn a_refresh_token_is_not_accepted_as_a_bearer() {
+        let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let refresh = auth
+            .issue_token("alice", None, Some("refresh"), 600)
+            .unwrap();
+        let authz = JwtAuthorizer::new(auth, String::new());
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "authorization",
+            format!("Bearer {refresh}").parse().unwrap(),
+        );
+        assert!(authz
+            .authorize(&AuthContext {
+                method: &Method::GET,
+                path: "/.fs",
+                query: None,
+                headers: &headers,
+            })
+            .is_none());
+    }
+
+    #[test]
+    fn the_claims_filter_applies_to_the_bearer_path() {
+        let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let jwt = auth.issue_token("alice", None, None, 600).unwrap();
+        let authz = JwtAuthorizer::with_filter(
+            auth,
+            String::new(),
+            String::new(),
+            Box::new(|c| c.username == "bob"),
+        );
+
+        let mut headers = HeaderMap::new();
+        headers.insert("authorization", format!("Bearer {jwt}").parse().unwrap());
+        assert!(authz
+            .authorize(&AuthContext {
+                method: &Method::GET,
+                path: "/.fs",
+                query: None,
+                headers: &headers,
+            })
+            .is_none());
+    }
+
+    #[test]
+    fn the_static_bearer_token_still_authorizes_anonymously() {
+        let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let authz = JwtAuthorizer::new(auth, "static-tok".into());
+        let mut headers = HeaderMap::new();
+        headers.insert("authorization", "Bearer static-tok".parse().unwrap());
+        let outcome = authz
+            .authorize(&AuthContext {
+                method: &Method::GET,
+                path: "/.fs",
+                query: None,
+                headers: &headers,
+            })
+            .expect("should authorize");
+        assert_eq!(outcome.username, None);
     }
 }

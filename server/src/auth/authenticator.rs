@@ -11,6 +11,8 @@ pub struct Claims {
     pub username: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub credential_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_use: Option<String>,
     /// Expiry, Unix seconds (validated automatically).
     pub exp: usize,
 }
@@ -109,6 +111,7 @@ impl Authenticator {
         let claims = Claims {
             username: username.to_string(),
             credential_version,
+            token_use: None,
             exp,
         };
         encode(
@@ -116,6 +119,37 @@ impl Authenticator {
             &claims,
             &EncodingKey::from_secret(&self.secret),
         )
+    }
+
+    pub fn issue_token(
+        &self,
+        username: &str,
+        credential_version: Option<String>,
+        token_use: Option<&str>,
+        expiry_secs: u64,
+    ) -> Result<String, jsonwebtoken::errors::Error> {
+        let claims = Claims {
+            username: username.to_string(),
+            credential_version,
+            token_use: token_use.map(str::to_string),
+            exp: now_secs().saturating_add(expiry_secs) as usize,
+        };
+        encode(
+            &Header::new(Algorithm::HS256),
+            &claims,
+            &EncodingKey::from_secret(&self.secret),
+        )
+    }
+
+    /// The secret goes last: `SHA256(secret || message)` is the secret-prefix
+    /// MAC construction and admits length extension.
+    pub fn csrf_token(&self, binding: &str) -> String {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(binding.as_bytes());
+        h.update([0]);
+        h.update(&self.secret);
+        h.finalize().iter().map(|b| format!("{b:02x}")).collect()
     }
 
     /// Verify a token's signature and expiry, returning its claims.
@@ -402,5 +436,27 @@ mod tests {
         let a3 = Authenticator::load_or_init_with_stamp(dir.path(), "stamp2").unwrap();
         assert!(a3.verify_jwt(&jwt).is_err());
         assert_eq!(a2.salt(), a3.salt());
+    }
+
+    #[test]
+    fn a_token_use_claim_round_trips_and_defaults_to_none() {
+        let a = Authenticator::from_secret_bytes(vec![7u8; 32], "h".into());
+        let access = a.issue_token("alice", None, None, 60).unwrap();
+        assert_eq!(a.verify_jwt(&access).unwrap().token_use, None);
+
+        let refresh = a.issue_token("alice", None, Some("refresh"), 60).unwrap();
+        assert_eq!(
+            a.verify_jwt(&refresh).unwrap().token_use.as_deref(),
+            Some("refresh")
+        );
+    }
+
+    #[test]
+    fn csrf_token_is_stable_per_binding_and_varies_by_secret() {
+        let a = Authenticator::from_secret_bytes(vec![7u8; 32], "h".into());
+        let b = Authenticator::from_secret_bytes(vec![8u8; 32], "h".into());
+        assert_eq!(a.csrf_token("session-value"), a.csrf_token("session-value"));
+        assert_ne!(a.csrf_token("session-value"), a.csrf_token("other"));
+        assert_ne!(a.csrf_token("session-value"), b.csrf_token("session-value"));
     }
 }

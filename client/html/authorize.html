@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport" />
+    <link rel="icon" type="image/png" href="{{ host_prefix | safe }}/.client/favicon-96x96.png" sizes="96x96" />
+    <link rel="stylesheet" href="{{ host_prefix | safe }}/.client/app.css" />
+    <title>Authorize access — {{ space_name }}</title>
+  </head>
+  <body class="sb-standalone">
+    <div class="center">
+      <main class="floating-island flow">
+        <h1>Authorize access</h1>
+        <p>
+          An application is asking for access to <strong>{{ space_name }}</strong>
+          as <strong>{{ username }}</strong>.
+        </p>
+        <p>
+          It identifies itself as <strong>{{ device_name }}</strong>.
+          <span class="sb-help-text">
+            This name is supplied by the application and has not been verified.
+          </span>
+        </p>
+        <p>
+          If you approve, it will be able to read and change everything in this
+          space.
+        </p>
+        <p class="sb-help-text">
+          Only approve this if you just started a sign-in from an application you
+          trust on this computer.
+        </p>
+        <form method="post" action="{{ host_prefix | safe }}/.auth/authorize">
+          <input type="hidden" name="client_id" value="{{ client_id }}" />
+          <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+          <input type="hidden" name="state" value="{{ state }}" />
+          <input type="hidden" name="code_challenge" value="{{ code_challenge }}" />
+          <input type="hidden" name="device_name" value="{{ device_name }}" />
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <div class="row">
+            <button type="submit" name="decision" value="approve" class="sb-button-primary">
+              Approve
+            </button>
+            <button type="submit" name="decision" value="deny" class="sb-button">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

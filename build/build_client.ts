@@ -164,6 +164,7 @@ async function copyAssets(dist: string) {
 // never answer from cache. Add an entry here when adding a bundle entry point.
 const NOT_PRECACHED = new Set([
   "auth.html",
+  "authorize.html",
   "auth.js",
   "index.html",
   "spaces.html",

@@ -157,16 +157,29 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             require_authorization,
         ));
 
-    // Open: liveness + the SPA shell/assets must always load.
-    let open = Router::new()
-        .route("/.ping", get(control::handle_ping))
-        .route("/.client/manifest.json", get(control::handle_manifest))
+    // Unauthenticated POST bodies are otherwise buffered (via `Form<...>`)
+    // before any auth/CSRF check runs, and the global body limit below is
+    // disabled — so these three routes get their own cap.
+    let auth_routes = Router::new()
         .route(
             "/.auth",
             get(crate::handlers::auth::handle_auth_get)
                 .post(crate::handlers::auth::handle_auth_post),
         )
-        .route("/.logout", get(crate::handlers::auth::handle_logout));
+        .route(
+            "/.auth/authorize",
+            get(crate::handlers::oauth::handle_authorize_get)
+                .post(crate::handlers::oauth::handle_authorize_post),
+        )
+        .route("/.auth/token", post(crate::handlers::oauth::handle_token))
+        .route_layer(DefaultBodyLimit::max(64 * 1024));
+
+    // Open: liveness + the SPA shell/assets must always load.
+    let open = Router::new()
+        .route("/.ping", get(control::handle_ping))
+        .route("/.client/manifest.json", get(control::handle_manifest))
+        .route("/.logout", get(crate::handlers::auth::handle_logout))
+        .merge(auth_routes);
 
     let bundle_compression = CompressionLayer::new()
         .compress_when(DefaultPredicate::new().and(NotForContentType::const_new("font/")));
