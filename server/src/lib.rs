@@ -57,6 +57,9 @@ mod test_support {
             theme_color: "#e1e1e1".into(),
             space_description: "Powerful and programmable note taking app".into(),
             authorizer: None,
+            anonymous_readable: false,
+            anonymous_writable: false,
+            access_policy: std::sync::Arc::new(crate::auth::AuthorizedPolicy),
             login: None,
             shell: crate::shell::ShellConfig {
                 enabled: true,

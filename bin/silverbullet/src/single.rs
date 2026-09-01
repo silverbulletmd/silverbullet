@@ -14,7 +14,9 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
 use silverbullet_server::metrics::Metrics;
-use silverbullet_server::multi::config::{Binding, MultiConfig, ShellSettings, SpaceConfig};
+use silverbullet_server::multi::config::{
+    Binding, MultiConfig, ShellSettings, SpaceAccess, SpaceConfig,
+};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{
     seed_index, AssetFactories, InstanceAuth, InstanceDeps,
@@ -43,7 +45,8 @@ fn synthesize(config: &Config, shell_env: ShellConfig) -> SpaceConfig {
         name: config.space_name.clone(),
         folder: ".".to_string(),
         binding: Binding::Prefix { prefix },
-        public: false,
+        access: Some(SpaceAccess::None),
+        legacy_public: None,
         members: Default::default(),
         read_only: config.read_only,
         shell: ShellSettings {

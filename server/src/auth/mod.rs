@@ -3,6 +3,7 @@
 //! in `.silverbullet.auth.json` within the space folder. Self-contained — it is
 //! configured only from environment variables and that file.
 
+pub mod access;
 pub mod authenticator;
 pub mod authorizer;
 pub mod config;
@@ -15,6 +16,7 @@ pub mod login;
 pub mod oauth;
 pub mod password;
 
+pub use access::{AccessLevel, AccessPolicy, AnonymousFallbackAuthorizer, AuthorizedPolicy};
 pub use authenticator::{Authenticator, AUTH_FILE_NAME, MULTI_AUTH_FILE_NAME};
 pub use authorizer::{Actor, AuthContext, AuthOutcome, RequestAuthorizer};
 pub use config::AuthConfig;

@@ -19,7 +19,9 @@ import { FieldErrors, useSlugDefaults } from "../space_fields.tsx";
 import type {
   Binding,
   FieldError,
+  MemberRole,
   RevisionsMode,
+  SpaceAccess,
   SpaceInfo,
   UserInfo,
 } from "../types.ts";
@@ -64,15 +66,20 @@ export function SpaceForm({
     // Intentionally run once on mount only.
   }, []);
 
-  const [isPublic, setIsPublic] = useState(initial?.public ?? false);
-  const [members, setMembers] = useState<Set<string>>(
-    new Set(Object.keys(initial?.members ?? {})),
+  const [access, setAccess] = useState<SpaceAccess>(initial?.access ?? "none");
+  const [members, setMembers] = useState<Record<string, MemberRole>>(
+    Object.fromEntries(
+      Object.entries(initial?.members ?? {}).map(([name, m]) => [name, m.role]),
+    ),
   );
   const [users, setUsers] = useState<Record<string, UserInfo>>({});
   const [usersError, setUsersError] = useState(false);
   const [readOnly, setReadOnly] = useState(initial?.readOnly ?? false);
+  // Off for a new space: shell commands are the most dangerous capability a
+  // space can hold, so an admin opts in rather than remembering to opt out.
+  // An existing space keeps whatever it was configured with.
   const [shellEnabled, setShellEnabled] = useState(
-    initial?.shell.enabled ?? true,
+    initial?.shell.enabled ?? false,
   );
   // Edited as the space-separated string the server's own SB_SHELL_WHITELIST
   // uses, and split back into the config's array on save.
@@ -174,8 +181,10 @@ export function SpaceForm({
           name,
           folder,
           binding,
-          public: isPublic,
-          members: Object.fromEntries([...members].map((m) => [m, {}])),
+          access,
+          members: Object.fromEntries(
+            Object.entries(members).map(([name, role]) => [name, { role }]),
+          ),
           readOnly,
           shell: {
             enabled: shellEnabled,
@@ -298,11 +307,36 @@ export function SpaceForm({
         browseStart={folderTouched ? undefined : "spaces"}
       />
       <h3>Access</h3>
-      <fieldset class="sb-member-list">
-        <legend>Members</legend>
+      <fieldset class="sb-access-table">
+        <legend>Who has access</legend>
+        <div class="sb-access-row sb-access-public">
+          <span class="sb-access-who">Public (not signed in)</span>
+          <Select
+            value={access}
+            onChange={(e) => setAccess(e.currentTarget.value as SpaceAccess)}
+          >
+            <option value="none">No access</option>
+            <option value="read">Read</option>
+            <option value="write" disabled={readOnly}>
+              Read &amp; write
+            </option>
+          </Select>
+        </div>
+        {access === "read" && (
+          <Alert variant="info">
+            Anyone can read this space without signing in. Page history and
+            revisions stay members-only.
+          </Alert>
+        )}
+        {access === "write" && !readOnly && (
+          <Alert variant="warning">
+            Anyone on the internet can read AND EDIT this space without signing
+            in. Only use for auth-proxy or VPN deployments.
+          </Alert>
+        )}
         {usersError && (
           <Alert variant="error">
-            Could not load users —{" "}
+            Could not load users:{" "}
             <a
               href="#"
               onClick={(e) => {
@@ -320,25 +354,51 @@ export function SpaceForm({
         {Object.entries(users)
           .sort((a, b) => a[0].localeCompare(b[0]))
           .map(([username, u]) => (
-            <label class="sb-member-row" key={username}>
-              <Checkbox
-                checked={u.admin || members.has(username)}
-                disabled={u.admin}
-                onChange={(e) => {
-                  const checked = e.currentTarget.checked;
-                  setMembers((prev) => {
-                    const next = new Set(prev);
-                    if (checked) next.add(username);
-                    else next.delete(username);
-                    return next;
-                  });
-                }}
-              />{" "}
-              {username}
-              {u.admin && <Badge>admin</Badge>}
-            </label>
+            <div class="sb-access-row" key={username}>
+              <span class="sb-access-who">
+                {username}
+                {u.admin && <Badge>admin</Badge>}
+              </span>
+              {u.admin ? (
+                <span class="sb-access-fixed">Full access</span>
+              ) : (
+                <Select
+                  value={members[username] ?? "none"}
+                  onChange={(e) => {
+                    const role = e.currentTarget.value;
+                    setMembers((prev) => {
+                      const next = { ...prev };
+                      if (role === "none") delete next[username];
+                      else next[username] = role as MemberRole;
+                      return next;
+                    });
+                  }}
+                >
+                  <option value="none">No access</option>
+                  <option value="read">Read</option>
+                  <option value="write" disabled={readOnly}>
+                    Read &amp; write
+                  </option>
+                </Select>
+              )}
+            </div>
           ))}
+        {readOnly && (
+          <p class="sb-help-text">
+            Write access is disabled while this space is frozen.
+          </p>
+        )}
       </fieldset>
+      <label>
+        <Checkbox
+          checked={readOnly}
+          onChange={(e) => setReadOnly(e.currentTarget.checked)}
+        />{" "}
+        Freeze this space
+        <span class="sb-help-text">
+          Nobody can write, including admins.
+        </span>
+      </label>
       <h3>Revisions</h3>
       <label for="space-revisions">Mode</label>
       <Select
@@ -357,29 +417,6 @@ export function SpaceForm({
         </option>
       </Select>
       <h3>Options</h3>
-      <label>
-        <Checkbox
-          checked={isPublic}
-          onChange={(e) => setIsPublic(e.currentTarget.checked)}
-        />{" "}
-        Public (no login required)
-      </label>
-      {/* Kept next to the toggle that causes it: a warning about the
-          selected combination is useless where you cannot see the
-          checkboxes it refers to. */}
-      {isPublic && !readOnly && (
-        <Alert variant="warning">
-          Anyone can read AND EDIT this space without logging in — intended for
-          auth-proxy deployments.
-        </Alert>
-      )}
-      <label>
-        <Checkbox
-          checked={readOnly}
-          onChange={(e) => setReadOnly(e.currentTarget.checked)}
-        />{" "}
-        Read-only
-      </label>
       <label>
         <Checkbox
           checked={shellEnabled}

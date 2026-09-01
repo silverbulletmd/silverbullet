@@ -50,7 +50,7 @@ pub fn validate(
             err(
                 &mut errors,
                 format!("{id}.auth"),
-                "unknown field (use public/members for access)",
+                "unknown field (use access/members for access)",
             );
         }
         if space.name.trim().is_empty() {
@@ -160,14 +160,15 @@ pub fn validate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, MultiConfig, SpaceConfig};
+    use crate::multi::config::{Binding, MultiConfig, SpaceAccess, SpaceConfig};
 
     fn space(name: &str, binding: Binding) -> SpaceConfig {
         SpaceConfig {
             name: name.into(),
             folder: String::new(),
             binding,
-            public: true,
+            access: Some(SpaceAccess::Write),
+            legacy_public: None,
             members: Default::default(),
             read_only: false,
             shell: Default::default(),

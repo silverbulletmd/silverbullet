@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::extract::DefaultBodyLimit;
 use axum::extract::Request;
+use axum::http::Method;
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, delete, get, post, put};
@@ -10,6 +11,7 @@ use silverbullet_server_common::SpaceError;
 use tower_http::compression::predicate::{DefaultPredicate, NotForContentType, Predicate};
 use tower_http::compression::CompressionLayer;
 
+use crate::auth::{AccessLevel, AuthOutcome};
 use crate::handlers::{accounts, bundle, control, fs, revisions};
 use crate::state::ServerState;
 
@@ -33,55 +35,95 @@ where
     }
 }
 
-/// Reject unauthorized requests to protected routes with 401. When no
-/// authorizer is configured the server is open and every request passes.
+/// Paths here have the space's URL prefix already stripped by the multi-space
+/// dispatcher, so they always start at `/.`.
+///
+/// Revisions need `Write` in both directions rather than `Read`: publishing a
+/// space's current content is not publishing every revision it ever had, and
+/// the client already drops its whole revisions surface in read-only mode, so
+/// this keeps API and UI consistent without a second authorization axis.
+pub(crate) fn required_level(method: &Method, path: &str) -> AccessLevel {
+    let safe = matches!(*method, Method::GET | Method::HEAD);
+
+    if path.starts_with("/.shell")
+        || path.starts_with("/.proxy/")
+        || path.starts_with("/.runtime/")
+        || path.starts_with("/.revisions")
+    {
+        return AccessLevel::Write;
+    }
+    if !safe {
+        return AccessLevel::Write;
+    }
+    AccessLevel::Read
+}
+
+/// Reject requests below the route's required access level. When no
+/// authorizer is configured the server is open and trusted at `Write`.
 /// Either way, inserts an `Extension<Actor>` carrying the verified identity
-/// (if any) so downstream handlers can attribute writes to it.
+/// (if any) and its level so downstream handlers can attribute writes to it.
 async fn require_authorization(
     axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
     mut req: Request,
     next: Next,
 ) -> Response {
-    let Some(authorizer) = state.authorizer.clone() else {
-        let profile = state.identity.resolve(None);
-        req.extensions_mut().insert(actor_from(profile));
-        return next.run(req).await;
-    };
-    let outcome = {
-        let ctx = crate::auth::AuthContext {
-            method: req.method(),
-            path: req.uri().path(),
-            query: req.uri().query(),
-            headers: req.headers(),
-        };
-        authorizer.authorize(&ctx)
-    };
-    match outcome {
-        Some(outcome) => {
-            let profile = state.identity.resolve(outcome.username.as_deref());
-            req.extensions_mut().insert(actor_from(profile));
-            next.run(req).await
+    let outcome = match state.authorizer.clone() {
+        None => Some(AuthOutcome::trusted()),
+        Some(authorizer) => {
+            let ctx = crate::auth::AuthContext {
+                method: req.method(),
+                path: req.uri().path(),
+                query: req.uri().query(),
+                headers: req.headers(),
+            };
+            authorizer.authorize(&ctx)
         }
-        None => {
-            // The client's boot code follows this `Location` to the login page;
-            // all protected routes are `/.`-prefixed, hence the
-            // 401-with-Location branch.
-            let location = format!("{}/.auth", state.host_url_prefix);
-            (
-                axum::http::StatusCode::UNAUTHORIZED,
-                [(axum::http::header::LOCATION, location)],
-                "Unauthorized",
-            )
-                .into_response()
-        }
+    };
+
+    // The authorizer itself refusing the request (`None`) is not gradeable —
+    // it never reaches the access policy, or an anonymous grade from a
+    // permissive policy could paper over an outright denial.
+    let Some(AuthOutcome { username, grant }) = outcome else {
+        return refuse(&state, false);
+    };
+    let level = grant.unwrap_or_else(|| state.access_policy.level_for(username.as_deref()));
+    let is_account = username.is_some() || grant.is_some();
+
+    if level < required_level(req.method(), req.uri().path()) {
+        return refuse(&state, is_account);
     }
+
+    let profile = state.identity.resolve(username.as_deref());
+    req.extensions_mut().insert(actor_from(profile, level));
+    next.run(req).await
 }
 
-fn actor_from(profile: crate::auth::UserProfile) -> crate::auth::Actor {
+/// An anonymous caller is sent to the login page, because signing in is the
+/// remedy. An account that simply lacks the level is not: it is already past
+/// the login page, so bouncing it there is a dead end.
+fn refuse(state: &ServerState, is_account: bool) -> Response {
+    if is_account {
+        return (
+            axum::http::StatusCode::FORBIDDEN,
+            "Insufficient access to this space",
+        )
+            .into_response();
+    }
+    let location = format!("{}/.auth", state.host_url_prefix);
+    (
+        axum::http::StatusCode::UNAUTHORIZED,
+        [(axum::http::header::LOCATION, location)],
+        "Unauthorized",
+    )
+        .into_response()
+}
+
+fn actor_from(profile: crate::auth::UserProfile, level: AccessLevel) -> crate::auth::Actor {
     crate::auth::Actor {
         username: profile.username,
         full_name: profile.full_name,
         email: profile.email,
+        level,
     }
 }
 
@@ -225,18 +267,18 @@ async fn handle_metrics(
 
 #[cfg(test)]
 mod auth_tests {
-    use crate::auth::{Actor, AuthContext, AuthOutcome, RequestAuthorizer};
+    use crate::auth::{AccessLevel, Actor, AuthContext, AuthOutcome, RequestAuthorizer};
     use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
-    use axum::http::{Request, StatusCode};
+    use axum::http::{Method, Request, StatusCode};
     use std::sync::Arc;
     use tower::ServiceExt;
 
     struct Always(bool);
     impl RequestAuthorizer for Always {
         fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
-            self.0.then_some(AuthOutcome { username: None })
+            self.0.then_some(AuthOutcome::anonymous())
         }
     }
 
@@ -419,6 +461,7 @@ mod auth_tests {
         }
 
         async fn probe(Extension(actor): Extension<Actor>) -> String {
+            assert_eq!(actor.level, AccessLevel::Write);
             format!(
                 "{}|{}",
                 actor.full_name.unwrap_or_default(),
@@ -571,6 +614,143 @@ mod auth_tests {
                 .status();
             assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {uri} must 401");
         }
+    }
+
+    #[test]
+    fn capability_routes_require_write() {
+        for path in ["/.shell", "/.proxy/https://example.com", "/.runtime/lua"] {
+            assert_eq!(
+                super::required_level(&Method::GET, path),
+                AccessLevel::Write,
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn reads_and_writes_of_fs_are_graded_separately() {
+        assert_eq!(
+            super::required_level(&Method::GET, "/.fs/index.md"),
+            AccessLevel::Read
+        );
+        assert_eq!(
+            super::required_level(&Method::PUT, "/.fs/index.md"),
+            AccessLevel::Write
+        );
+        assert_eq!(
+            super::required_level(&Method::POST, "/.fs/index.md"),
+            AccessLevel::Write
+        );
+    }
+
+    #[test]
+    fn revisions_require_write_in_both_directions() {
+        assert_eq!(
+            super::required_level(&Method::GET, "/.revisions/index.md"),
+            AccessLevel::Write
+        );
+        assert_eq!(
+            super::required_level(&Method::POST, "/.revisions/"),
+            AccessLevel::Write
+        );
+    }
+
+    #[test]
+    fn plain_reads_need_only_read() {
+        for path in ["/.config", "/.accounts", "/.events", "/.fs"] {
+            assert_eq!(
+                super::required_level(&Method::GET, path),
+                AccessLevel::Read,
+                "{path}"
+            );
+        }
+    }
+
+    /// An unrecognized protected path defaults to `Write` for any mutating
+    /// method, so a future route that forgets to special-case itself fails
+    /// closed rather than silently opening up to `Read`-level callers.
+    #[test]
+    fn unknown_mutating_route_defaults_to_write() {
+        assert_eq!(
+            super::required_level(&Method::PUT, "/.something-new"),
+            AccessLevel::Write
+        );
+    }
+
+    struct AsUser(&'static str);
+    impl RequestAuthorizer for AsUser {
+        fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
+            Some(AuthOutcome::user(self.0.to_string()))
+        }
+    }
+
+    struct FixedPolicy(AccessLevel);
+    impl crate::auth::AccessPolicy for FixedPolicy {
+        fn level_for(&self, _username: Option<&str>) -> AccessLevel {
+            self.0
+        }
+    }
+
+    #[tokio::test]
+    async fn account_below_required_level_is_403_without_location() {
+        let mut s = test_state();
+        s.authorizer = Some(Arc::new(AsUser("sam")));
+        s.access_policy = Arc::new(FixedPolicy(AccessLevel::Read));
+        let response = crate::build_router(Arc::new(s))
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/.fs/index.md")
+                    .body(Body::from("hello"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert!(response.headers().get("location").is_none());
+    }
+
+    #[tokio::test]
+    async fn denied_request_is_401_with_location() {
+        let mut s = test_state();
+        s.authorizer = Some(Arc::new(Always(false)));
+        s.access_policy = Arc::new(FixedPolicy(AccessLevel::Read));
+        let response = crate::build_router(Arc::new(s))
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/.fs/index.md")
+                    .body(Body::from("hello"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert!(response.headers().get("location").is_some());
+    }
+
+    /// `Always(true)` yields `AuthOutcome::anonymous()` -- the authorizer
+    /// approved the request but verified no identity -- so this is graded
+    /// through `access_policy`, unlike an outright denial above. This is the
+    /// path `AnonymousFallbackAuthorizer` (Task 5) turns into the common case
+    /// for anonymous visitors.
+    #[tokio::test]
+    async fn approved_anonymous_below_required_level_is_401_with_location() {
+        let mut s = test_state();
+        s.authorizer = Some(Arc::new(Always(true)));
+        s.access_policy = Arc::new(FixedPolicy(AccessLevel::Read));
+        let response = crate::build_router(Arc::new(s))
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/.fs/index.md")
+                    .body(Body::from("hello"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert!(response.headers().get("location").is_some());
     }
 }
 

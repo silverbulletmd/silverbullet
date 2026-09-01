@@ -17,7 +17,8 @@ use crate::auth::{
     LockoutTimer, LoginManager, RequestAuthorizer,
 };
 use crate::multi::access::{SessionPolicy, SpaceUsersAuth, UserTokenAuthorizer};
-use crate::multi::config::{Binding, SpaceConfig};
+use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
+use crate::multi::policy::SpaceAccessPolicy;
 use crate::multi::users::UserStore;
 use crate::multi::validate::normalize_prefix;
 use crate::shell::ShellConfig;
@@ -322,21 +323,19 @@ fn build_env_style_auth(
     Ok((Some(authorizer), Some(login)))
 }
 
-fn member_claims_filter(
+/// Session validity only: revocation on password change or account deletion.
+/// Whether the account may touch *this* space is the policy's decision, so a
+/// read-role member's token must verify here rather than being rejected.
+fn session_claims_filter(
     store: Arc<UserStore>,
-    members: BTreeSet<String>,
 ) -> Box<dyn Fn(&crate::auth::authenticator::Claims) -> bool + Send + Sync> {
     Box::new(move |claims| {
         store.session_is_current(&claims.username, claims.credential_version.as_deref())
-            && (store.is_admin(&claims.username) || members.contains(&claims.username))
     })
 }
 
-fn member_name_filter(
-    store: Arc<UserStore>,
-    members: BTreeSet<String>,
-) -> Box<dyn Fn(&str) -> bool + Send + Sync> {
-    Box::new(move |username| store.is_admin(username) || members.contains(username))
+fn any_account_filter(store: Arc<UserStore>) -> Box<dyn Fn(&str) -> bool + Send + Sync> {
+    Box::new(move |username| store.user_exists(username))
 }
 
 pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> SpaceInstance {
@@ -396,41 +395,71 @@ fn try_build_state(
     ));
 
     // Authentication establishes identity. Account-managed servers share that
-    // identity across every prefix; each space still applies its own live
-    // admin-or-member authorization policy.
+    // identity across every prefix; each space still grades it against its
+    // own live `SpaceAccessPolicy` (access level, member role, admin, freeze).
     let headless_token = generate_token();
     let members: BTreeSet<String> = config.members.keys().cloned().collect();
+
+    let access_policy: Arc<dyn crate::auth::AccessPolicy> = match &deps.auth {
+        InstanceAuth::Accounts { users, .. } => Arc::new(SpaceAccessPolicy::new(
+            users.clone(),
+            config.access(),
+            config.members.clone(),
+            config.read_only,
+        )),
+        InstanceAuth::Single(_) => Arc::new(crate::auth::AuthorizedPolicy),
+    };
+
+    // Single-space mode always synthesizes `access: none` (it has no accounts
+    // model for `access` to mean anything against, see `synthesize` in
+    // `bin/silverbullet/src/single.rs`), so for it this has to key off
+    // whether an authorizer was configured at all -- an absent one is the
+    // open-server case this field exists to keep serving SSR to.
+    let anonymous_readable = match &deps.auth {
+        InstanceAuth::Accounts { .. } => config.access() != SpaceAccess::None,
+        InstanceAuth::Single(auth) => auth.is_none(),
+    };
+
+    // Whether a stranger off the internet can author content here. SSR renders
+    // page markdown with raw HTML intact, so `anonymous_readable` alone is not
+    // a safe gate for it: on an anonymously *writable* space that would serve
+    // an attacker's stored HTML to every later visitor and crawler.
+    let anonymous_writable = match &deps.auth {
+        InstanceAuth::Accounts { .. } => config.access() == SpaceAccess::Write,
+        InstanceAuth::Single(auth) => auth.is_none() && !config.read_only,
+    };
+
     let (authorizer, login): AuthPair = match &deps.auth {
         InstanceAuth::Single(None) => (None, None),
         InstanceAuth::Single(Some(config)) => {
             build_env_style_auth(id, &folder, prefix, config, &headless_token)?
         }
-        InstanceAuth::Accounts { .. } if config.public => (None, None),
         InstanceAuth::Accounts {
             users: store,
             authenticator,
             session,
         } => {
-            let members = members.clone();
             let jwt: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_filter(
                 authenticator.clone(),
                 String::new(),
                 String::new(),
-                member_claims_filter(store.clone(), members.clone()),
+                session_claims_filter(store.clone()),
             ));
             let tokens: Box<dyn RequestAuthorizer> = Box::new(UserTokenAuthorizer::new(
                 jwt,
                 store.clone(),
-                member_name_filter(store.clone(), members.clone()),
+                any_account_filter(store.clone()),
             ));
-            let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(HeadlessTokenAuthorizer::new(
+            let inner: Box<dyn RequestAuthorizer> = Box::new(HeadlessTokenAuthorizer::new(
                 tokens,
                 headless_cookie_name(id),
                 headless_token.clone(),
             ));
+            let authorizer: Arc<dyn RequestAuthorizer> =
+                Arc::new(crate::auth::AnonymousFallbackAuthorizer::new(inner));
             let verifier = Arc::new(SpaceUsersAuth {
                 store: store.clone(),
-                members,
+                policy: access_policy.clone(),
             });
             let version_store = store.clone();
             let login = Arc::new(
@@ -498,7 +527,7 @@ fn try_build_state(
             index_page: config.index_page.clone(),
             read_only: config.read_only,
             log_push: config.log_push,
-            enable_client_encryption: authorizer.is_some(),
+            enable_client_encryption: authorizer.is_some() && config.access() == SpaceAccess::None,
             account_managed,
             shell_backend: if shell_enabled {
                 "local".into()
@@ -517,6 +546,9 @@ fn try_build_state(
         theme_color: config.theme_color.clone(),
         space_description: config.description.clone(),
         authorizer,
+        anonymous_readable,
+        anonymous_writable,
+        access_policy,
         login,
         shell: ShellConfig {
             enabled: shell_enabled,
@@ -538,8 +570,10 @@ fn try_build_state(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, ShellSettings, SpaceConfig};
+    use crate::multi::config::{Binding, MemberEntry, ShellSettings, SpaceConfig};
     use crate::multi::users::Profile;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
     use silverbullet_server_common::space::MemorySpacePrimitives;
 
     fn test_deps(root: &std::path::Path) -> InstanceDeps {
@@ -571,7 +605,8 @@ mod tests {
             name: "S".into(),
             folder: folder.into(),
             binding,
-            public: false,
+            access: Some(SpaceAccess::None),
+            legacy_public: None,
             members: Default::default(),
             read_only: false,
             shell: Default::default(),
@@ -780,15 +815,16 @@ mod tests {
 
     fn space_users_model(
         binding: Binding,
-        public: bool,
-        members: std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>>,
+        access: SpaceAccess,
+        members: std::collections::BTreeMap<String, MemberEntry>,
         folder: &str,
     ) -> SpaceConfig {
         SpaceConfig {
             name: "S".into(),
             folder: folder.into(),
             binding,
-            public,
+            access: Some(access),
+            legacy_public: None,
             members,
             read_only: false,
             shell: Default::default(),
@@ -802,6 +838,252 @@ mod tests {
             revisions: Default::default(),
             extra: Default::default(),
         }
+    }
+
+    /// An account-managed instance at the given `access` level, with no
+    /// members and no admins — only `access` decides what an anonymous or
+    /// unknown caller may do. Returns the `TempDir` guard alongside the
+    /// state: the space folder must outlive the caller's use of the state
+    /// (e.g. a request through its router), so the guard has to be bound in
+    /// the caller's own scope rather than dropped here.
+    fn state_with_access(access: SpaceAccess) -> (tempfile::TempDir, ServerState) {
+        let dir = tempfile::tempdir().unwrap();
+        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        let mut deps = test_deps(dir.path());
+        deps.auth = InstanceAuth::Accounts {
+            users: store,
+            authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+            session: SessionPolicy::default(),
+        };
+        let folder = dir.path().join("space");
+        std::fs::create_dir_all(&folder).unwrap();
+        let cfg = space_users_model(
+            Binding::Prefix {
+                prefix: "/s".into(),
+            },
+            access,
+            Default::default(),
+            folder.to_str().unwrap(),
+        );
+        let state = try_build_state("s", &cfg, "/s", &deps).unwrap();
+        (dir, state)
+    }
+
+    fn read_public_state() -> (tempfile::TempDir, Arc<ServerState>) {
+        let (dir, state) = state_with_access(SpaceAccess::Read);
+        (dir, Arc::new(state))
+    }
+
+    #[tokio::test]
+    async fn a_read_public_space_serves_config_to_an_anonymous_caller() {
+        use tower::ServiceExt;
+        let (_dir, state) = read_public_state();
+        let response = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.config")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn a_read_public_space_refuses_an_anonymous_write() {
+        use tower::ServiceExt;
+        let (_dir, state) = read_public_state();
+        let response = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/.fs/index.md")
+                    .body(Body::from("hi"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert!(response.headers().get("location").is_some());
+    }
+
+    #[test]
+    fn every_account_managed_space_has_a_login_manager() {
+        for access in [SpaceAccess::None, SpaceAccess::Read, SpaceAccess::Write] {
+            let (_dir, state) = state_with_access(access);
+            assert!(state.login.is_some(), "{access:?}");
+            assert!(state.authorizer.is_some(), "{access:?}");
+        }
+    }
+
+    #[test]
+    fn anonymous_readable_tracks_the_account_managed_access_level() {
+        // Pins the regression this field exists to fix: a public,
+        // account-managed space (`access: read`) must still drive the SSR
+        // gate, now that every account-managed space has an authorizer and
+        // `authorizer.is_none()` can no longer tell public from private.
+        let (_dir_none, none) = state_with_access(SpaceAccess::None);
+        assert!(!none.anonymous_readable);
+        let (_dir_read, read) = state_with_access(SpaceAccess::Read);
+        assert!(read.anonymous_readable);
+        let (_dir_write, write) = state_with_access(SpaceAccess::Write);
+        assert!(write.anonymous_readable);
+    }
+
+    #[test]
+    fn anonymous_writable_tracks_who_may_author_the_content() {
+        // Gates SSR alongside `anonymous_readable`: only `access: "write"`
+        // (legacy `public: true`) lets a stranger author a page, and rendering
+        // stranger-authored markdown into the shell would serve stored HTML.
+        let (_dir_none, none) = state_with_access(SpaceAccess::None);
+        assert!(!none.anonymous_writable);
+        let (_dir_read, read) = state_with_access(SpaceAccess::Read);
+        assert!(!read.anonymous_writable);
+        let (_dir_write, write) = state_with_access(SpaceAccess::Write);
+        assert!(write.anonymous_writable);
+    }
+
+    #[test]
+    fn an_open_single_space_is_anonymous_writable_unless_frozen() {
+        // No authorizer at all means anyone may write, so its content is no
+        // more trustworthy than a `access: "write"` space's -- unless the
+        // freeze stops every writer, which is what keeps SSR working for the
+        // classic public read-only wiki.
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        deps.auth = InstanceAuth::Single(None);
+        let folder = dir.path().join("open");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/o".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        let writable = try_build_state("o", &cfg, "/o", &deps).unwrap();
+        assert!(writable.anonymous_writable);
+
+        cfg.read_only = true;
+        let frozen = try_build_state("o", &cfg, "/o", &deps).unwrap();
+        assert!(!frozen.anonymous_writable);
+        assert!(frozen.anonymous_readable);
+    }
+
+    #[test]
+    fn open_single_space_is_anonymous_readable() {
+        // Pins the other regression: a single-space server with no
+        // authorizer at all (the classic open public wiki) must keep
+        // `anonymous_readable == true` even though its synthesized config's
+        // `access` is always `none` (see `synthesize` in
+        // `bin/silverbullet/src/single.rs`) -- unlike an account-managed
+        // space, single-space mode can't use `config.access()` here.
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        deps.auth = InstanceAuth::Single(None);
+        let folder = dir.path().join("open");
+        std::fs::create_dir_all(&folder).unwrap();
+        let cfg = space(
+            Binding::Prefix {
+                prefix: "/o".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        let state = try_build_state("o", &cfg, "/o", &deps).unwrap();
+        assert!(state.anonymous_readable);
+    }
+
+    #[test]
+    fn auth_protected_single_space_is_not_anonymous_readable() {
+        let dir = tempfile::tempdir().unwrap();
+        let deps = test_deps(dir.path()); // default: Single(Some(admin:pw))
+        let folder = dir.path().join("locked");
+        std::fs::create_dir_all(&folder).unwrap();
+        let cfg = space(
+            Binding::Prefix {
+                prefix: "/l".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        let state = try_build_state("l", &cfg, "/l", &deps).unwrap();
+        assert!(!state.anonymous_readable);
+    }
+
+    #[test]
+    fn client_encryption_is_off_wherever_anonymous_access_is_on() {
+        let (_dir_none, none) = state_with_access(SpaceAccess::None);
+        assert!(none.boot_config.enable_client_encryption);
+        let (_dir_read, read) = state_with_access(SpaceAccess::Read);
+        assert!(!read.boot_config.enable_client_encryption);
+        let (_dir_write, write) = state_with_access(SpaceAccess::Write);
+        assert!(!write.boot_config.enable_client_encryption);
+    }
+
+    #[tokio::test]
+    async fn a_private_account_managed_space_still_refuses_an_anonymous_caller() {
+        use tower::ServiceExt;
+        // The fallback authorizer grants an anonymous identity so the policy
+        // can grade it; on a private space the policy still says `None`.
+        let (_dir, state) = state_with_access(SpaceAccess::None);
+        let state = Arc::new(state);
+        let response = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.config")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn a_private_account_managed_space_redirects_page_navigation_to_login() {
+        use tower::ServiceExt;
+        // The SPA-shell gate has to grade the request the way the middleware
+        // does. Asking the authorizer a yes/no question cannot work here:
+        // `AnonymousFallbackAuthorizer` always says yes, so the gate would be
+        // vacuously open and the `?from=` deep-link return would be lost.
+        let (_dir, state) = state_with_access(SpaceAccess::None);
+        state
+            .client_bundle
+            .write_file(".client/index.html", b"<html></html>", None)
+            .unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/SomePage")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FOUND);
+        assert_eq!(
+            response.headers().get("location").unwrap(),
+            "/s/.auth?from=/SomePage"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_read_public_space_serves_the_shell_for_page_navigation() {
+        use tower::ServiceExt;
+        let (_dir, state) = read_public_state();
+        state
+            .client_bundle
+            .write_file(".client/index.html", b"<html></html>", None)
+            .unwrap();
+        let response = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/SomePage")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
     }
 
     #[tokio::test]
@@ -821,7 +1103,7 @@ mod tests {
             Binding::Prefix {
                 prefix: "/p".into(),
             },
-            true,
+            SpaceAccess::Write,
             Default::default(),
             folder.to_str().unwrap(),
         );
@@ -846,7 +1128,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn members_backed_space_401s_anon_200s_member_401s_outsider() {
+    async fn members_backed_space_401s_anon_200s_member_403s_outsider() {
         use tower::ServiceExt;
         let dir = tempfile::tempdir().unwrap();
         let mut deps = test_deps(dir.path());
@@ -869,12 +1151,12 @@ mod tests {
         let folder = dir.path().join("members");
         std::fs::create_dir_all(&folder).unwrap();
         let mut members = std::collections::BTreeMap::new();
-        members.insert("bob".to_string(), serde_json::Map::new());
+        members.insert("bob".to_string(), MemberEntry::default());
         let cfg = space_users_model(
             Binding::Prefix {
                 prefix: "/m".into(),
             },
-            false,
+            SpaceAccess::None,
             members,
             folder.to_str().unwrap(),
         );
@@ -911,6 +1193,9 @@ mod tests {
             .unwrap();
         assert_eq!(member_resp.status(), axum::http::StatusCode::OK);
 
+        // Eve holds a valid account and token, so she is authenticated — the
+        // policy just grades her below `Read`. That is a known-account
+        // refusal (403), distinct from an anonymous visitor (401).
         let outsider_resp = router
             .oneshot(
                 axum::http::Request::builder()
@@ -921,7 +1206,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(outsider_resp.status(), axum::http::StatusCode::UNAUTHORIZED);
+        assert_eq!(outsider_resp.status(), axum::http::StatusCode::FORBIDDEN);
     }
 
     /// End-to-end through the real authorizer chain: a member hitting
@@ -958,12 +1243,12 @@ mod tests {
         let folder = dir.path().join("members");
         std::fs::create_dir_all(&folder).unwrap();
         let mut members = std::collections::BTreeMap::new();
-        members.insert("bob".to_string(), serde_json::Map::new());
+        members.insert("bob".to_string(), MemberEntry::default());
         let cfg = space_users_model(
             Binding::Prefix {
                 prefix: "/m".into(),
             },
-            false,
+            SpaceAccess::None,
             members,
             folder.to_str().unwrap(),
         );
@@ -1017,7 +1302,7 @@ mod tests {
 
         let cfg = space_users_model(
             Binding::Prefix { prefix: "/".into() },
-            false,
+            SpaceAccess::None,
             Default::default(),
             dir.path().to_str().unwrap(),
         );

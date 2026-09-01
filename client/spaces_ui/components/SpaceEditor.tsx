@@ -51,16 +51,10 @@ export function SpaceEditor({
       id={id}
       initial={space}
       cancelHref={spacesUrl("/")}
-      // Editing returns to the list: the space the admin just changed is
-      // right there, and the list re-renders with the new values, which is
-      // the confirmation. Creating still lands on the new space's own edit
-      // screen, so its remaining settings are one step away rather than
-      // behind another round trip through the list.
-      onSaved={(savedId) =>
-        navigate(
-          id ? spacesUrl("/") : spacesUrl(`/${encodeURIComponent(savedId)}`),
-        )
-      }
+      // Both saving and creating return to the list, where the space appears
+      // with its new values -- landing back on a form that looks identical to
+      // the one just submitted reads as nothing having happened.
+      onSaved={() => navigate(spacesUrl("/"))}
       onDeleted={() => navigate(spacesUrl("/"))}
       onUnauthorized={onUnauthorized}
     />

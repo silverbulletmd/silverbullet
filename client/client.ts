@@ -408,7 +408,7 @@ export class Client {
       this.bootConfig.spaceFolderPath,
       (message, actionOrRedirectHeader) => {
         alert(message);
-        if (actionOrRedirectHeader === "reload") {
+        if (!actionOrRedirectHeader || actionOrRedirectHeader === "reload") {
           location.reload();
         } else {
           location.href = actionOrRedirectHeader;
@@ -1281,12 +1281,12 @@ export class Client {
       case "auth-error": {
         alert(message.message);
         if (
-          message.actionOrRedirectHeader &&
-          message.actionOrRedirectHeader !== "reload"
+          !message.actionOrRedirectHeader ||
+          message.actionOrRedirectHeader === "reload"
         ) {
-          location.href = message.actionOrRedirectHeader;
-        } else {
           location.reload();
+        } else {
+          location.href = message.actionOrRedirectHeader;
         }
         break;
       }

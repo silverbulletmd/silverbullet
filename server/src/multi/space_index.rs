@@ -304,7 +304,7 @@ pub fn build_spaces_router(state: Arc<SpaceIndexState>, admin_api: Router) -> Ro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceConfig};
+    use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use crate::multi::users::Profile;
     use axum::body::Body;
@@ -312,14 +312,15 @@ mod tests {
     use silverbullet_server_common::space::MemorySpacePrimitives;
     use tower::ServiceExt;
 
-    fn config(name: &str, prefix: &str, public: bool, members: &[&str]) -> SpaceConfig {
+    fn config(name: &str, prefix: &str, access: SpaceAccess, members: &[&str]) -> SpaceConfig {
         SpaceConfig {
             name: name.into(),
             folder: String::new(),
             binding: Binding::Prefix {
                 prefix: prefix.into(),
             },
-            public,
+            access: Some(access),
+            legacy_public: None,
             members: members
                 .iter()
                 .map(|name| (name.to_string(), Default::default()))
@@ -379,13 +380,16 @@ mod tests {
         let manager =
             MultiManager::boot(dir.path().to_path_buf(), deps, users.usernames()).unwrap();
         manager
-            .create(config("Public", "/public", true, &[]), true)
+            .create(config("Public", "/public", SpaceAccess::Write, &[]), true)
             .unwrap();
         manager
-            .create(config("Alice", "/alice", false, &["alice"]), true)
+            .create(
+                config("Alice", "/alice", SpaceAccess::None, &["alice"]),
+                true,
+            )
             .unwrap();
         manager
-            .create(config("Bob", "/bob", false, &["bob"]), true)
+            .create(config("Bob", "/bob", SpaceAccess::None, &["bob"]), true)
             .unwrap();
         let bundle = MemorySpacePrimitives::new();
         bundle
@@ -521,7 +525,7 @@ mod tests {
             // to `VisibleSpace` without being one of the ones named here.
             let mut keys: Vec<&str> = obj.keys().map(|k| k.as_str()).collect();
             keys.sort();
-            assert_eq!(keys, vec!["binding", "id", "name", "state"]);
+            assert_eq!(keys, vec!["access", "binding", "id", "name", "state"]);
         }
     }
 

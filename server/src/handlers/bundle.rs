@@ -39,9 +39,9 @@ fn is_content_hashed(path: &str) -> bool {
 
 /// SPA fallback: serve a bundle asset by request path verbatim, or fall back to
 /// the templated `index.html` shell for any unknown path (client-side routing).
-/// For a public, read-only space the shell is filled with server-side-rendered
-/// page markdown (SEO); otherwise the empty shell is served and the JS client
-/// renders.
+/// For a space anonymous visitors may read but not write, the shell is filled
+/// with server-side-rendered page markdown (SEO); otherwise the empty shell is
+/// served and the JS client renders.
 pub async fn handle_client_bundle(
     State(state): State<Arc<ServerState>>,
     req: axum::http::Request<Body>,
@@ -58,8 +58,12 @@ pub async fn handle_client_bundle(
 
     // Authorization for the SPA-shell fallback. Real assets (served below)
     // always load; only unknown / page paths are gated, matching the legacy
-    // server's allow-list intent.
-    let authorized = match state.authorizer.as_ref() {
+    // server's allow-list intent. Graded the way `require_authorization`
+    // grades it rather than asked as a yes/no question: every account-managed
+    // space wraps its chain in `AnonymousFallbackAuthorizer`, which authorizes
+    // unconditionally so the policy can grade the result, making a pass/fail
+    // probe against it vacuously true.
+    let level = match state.authorizer.as_ref() {
         Some(authz) => {
             let ctx = crate::auth::AuthContext {
                 method: req.method(),
@@ -67,10 +71,17 @@ pub async fn handle_client_bundle(
                 query: req.uri().query(),
                 headers: req.headers(),
             };
-            authz.is_authorized(&ctx)
+            authz
+                .authorize(&ctx)
+                .map(|o| {
+                    o.grant
+                        .unwrap_or_else(|| state.access_policy.level_for(o.username.as_deref()))
+                })
+                .unwrap_or(crate::auth::AccessLevel::None)
         }
-        None => true,
+        None => crate::auth::AccessLevel::Write,
     };
+    let authorized = level >= crate::auth::AccessLevel::Read;
 
     // Try the requested asset first — served verbatim, no templating. Static
     // bundle assets carry a `Last-Modified` so browsers can revalidate with a 304.
@@ -166,12 +177,13 @@ pub async fn handle_client_bundle(
         .unwrap()
 }
 
-/// Decide the `<title>` and content HTML for the fallback shell. Only a public
-/// (read-only, unauthenticated) space renders real page content; everything
-/// else gets the plain shell with an empty body for the JS client to take over.
+/// Decide the `<title>` and content HTML for the fallback shell. Real page
+/// content renders only where anonymous visitors may read the space *and* may
+/// not write it, so the markdown being rendered was authored by the space's
+/// own members. Everything else gets the plain shell with an empty body for
+/// the JS client to take over.
 async fn server_side_content(state: &Arc<ServerState>, path: &str) -> (String, String) {
-    let public = state.boot_config.read_only && state.authorizer.is_none();
-    if !public {
+    if !state.anonymous_readable || state.anonymous_writable {
         return ("SilverBullet".to_string(), String::new());
     }
 
@@ -211,9 +223,13 @@ async fn server_side_content(state: &Arc<ServerState>, path: &str) -> (String, S
 /// HTML autoescaping is on, so `title`/`description` are escaped while the
 /// pre-rendered `additional_head_html` and `content` are emitted via the
 /// template's `| safe` filter. The latter two are NOT sanitized: raw HTML in a
-/// page passes straight through. That is acceptable here because SSR only ever
-/// runs for a public, read-only space, where the content is the space owner's
-/// own pages; do not reuse `render_markdown` for untrusted input.
+/// page passes straight through. That is acceptable only because SSR runs
+/// exclusively where anonymous visitors may read the space AND may not write
+/// it, so the content is always the space owner's or its members' own pages.
+/// Both halves are load-bearing: "anonymously readable" says nothing about who
+/// authored the bytes, and on an anonymously writable space this filter would
+/// serve a stranger's stored HTML to every later visitor. Do not reuse
+/// `render_markdown` for untrusted input.
 ///
 /// On a template error (e.g. a malformed shell) the raw shell bytes are served
 /// so the client JS can still boot — a best-effort fallback.
@@ -515,7 +531,7 @@ mod tests {
 
     #[tokio::test]
     async fn fallback_templates_the_spa_shell() {
-        // Writable space (read_only=false): the SPA shell, no SSR content.
+        // Not anonymous-readable: the SPA shell, no SSR content.
         let state = test_state();
         seed_bundle(&state, ".client/index.html", INDEX_TPL);
         seed_space(&state, "Home.md", b"# Should not render");
@@ -538,7 +554,77 @@ mod tests {
         let mut s = test_state();
         s.boot_config.read_only = true;
         s.authorizer = None;
+        s.anonymous_readable = true;
         Arc::new(s)
+    }
+
+    #[tokio::test]
+    async fn an_anonymous_readable_space_renders_page_markdown_even_when_not_frozen() {
+        // The published-wiki row of the SSR truth table: `access: "read"` with
+        // members still writing. Gating SSR on the freeze as well would serve
+        // crawlers an empty shell for exactly the configuration this feature
+        // exists to add.
+        let mut s = test_state();
+        s.boot_config.read_only = false;
+        s.anonymous_readable = true;
+        s.anonymous_writable = false;
+        seed_bundle(&s, ".client/index.html", INDEX_TPL);
+        seed_space(&s, "Home.md", b"# Published\n\nCrawl me.");
+        let resp = crate::build_router(Arc::new(s))
+            .oneshot(Request::builder().uri("/Home").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let html = body_string(resp).await;
+        assert!(html.contains("<title>Home</title>"), "{html}");
+        assert!(html.contains("Published"), "{html}");
+    }
+
+    #[tokio::test]
+    async fn an_anonymously_writable_space_never_server_renders_content() {
+        // The XSS direction. On an `access: "write"` (legacy `public: true`)
+        // space any stranger can author a page, and `render_markdown` passes
+        // raw HTML through verbatim into a `| safe` slot. Rendering it would
+        // serve that stranger's stored HTML to every later visitor and
+        // crawler, so anonymous *readability* alone must never open the gate.
+        let mut s = test_state();
+        s.anonymous_readable = true;
+        s.anonymous_writable = true;
+        seed_bundle(&s, ".client/index.html", INDEX_TPL);
+        seed_space(&s, "Home.md", b"# Hi\n\n<script>alert(1)</script>");
+        let resp = crate::build_router(Arc::new(s))
+            .oneshot(Request::builder().uri("/Home").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let html = body_string(resp).await;
+        assert!(html.contains("<title>SilverBullet</title>"), "{html}");
+        assert!(
+            !html.contains("alert(1)"),
+            "stranger-authored HTML must never be server-rendered: {html}"
+        );
+        assert!(
+            html.contains(r#"<div class="cm-content"></div>"#),
+            "content should be withheld: {html}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_writable_private_space_withholds_content() {
+        // The remaining row: neither frozen nor anonymous-readable.
+        let mut s = test_state();
+        s.boot_config.read_only = false;
+        s.anonymous_readable = false;
+        seed_bundle(&s, ".client/index.html", INDEX_TPL);
+        seed_space(&s, "Home.md", b"# Secret\n\nShould not leak.");
+        let resp = crate::build_router(Arc::new(s))
+            .oneshot(Request::builder().uri("/Home").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let html = body_string(resp).await;
+        assert!(html.contains("<title>SilverBullet</title>"), "{html}");
+        assert!(!html.contains("Secret"), "leaked page content: {html}");
     }
 
     #[tokio::test]
@@ -595,6 +681,33 @@ mod tests {
         assert!(
             html.contains(r#"<div class="cm-content"></div>"#),
             "missing page → empty content: {html}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_read_only_space_that_is_not_anonymous_readable_withholds_content() {
+        // The disclosure direction that matters: freezing a space must not
+        // be enough to trigger SSR. A frozen, private, account-managed space
+        // (`read_only: true`, `access: none`) has `anonymous_readable ==
+        // false`, and must still serve the empty shell -- never the page's
+        // markdown -- to an anonymous caller. This is the test that fails if
+        // the `anonymous_readable` check is ever dropped from the gate.
+        let mut state = test_state();
+        state.boot_config.read_only = true;
+        state.anonymous_readable = false;
+        seed_bundle(&state, ".client/index.html", INDEX_TPL);
+        seed_space(&state, "Home.md", b"# Secret\n\nShould not leak.");
+        let resp = crate::build_router(Arc::new(state))
+            .oneshot(Request::builder().uri("/Home").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let html = body_string(resp).await;
+        assert!(html.contains("<title>SilverBullet</title>"), "{html}");
+        assert!(!html.contains("Secret"), "leaked page content: {html}");
+        assert!(
+            html.contains(r#"<div class="cm-content"></div>"#),
+            "content should be withheld: {html}"
         );
     }
 

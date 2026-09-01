@@ -741,7 +741,7 @@ mod tests {
 
     #[test]
     fn admin_and_spaces_share_one_authenticator() {
-        use crate::multi::config::{Binding, SpaceConfig};
+        use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
         use crate::multi::instance::{build_instance, InstanceStatus};
 
         let dir = tempfile::tempdir().unwrap();
@@ -772,7 +772,8 @@ mod tests {
             name: "Root".into(),
             folder: dir.path().to_str().unwrap().to_string(),
             binding: Binding::Prefix { prefix: "/".into() },
-            public: false,
+            access: Some(SpaceAccess::None),
+            legacy_public: None,
             members: Default::default(),
             read_only: false,
             shell: Default::default(),

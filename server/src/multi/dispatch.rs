@@ -139,7 +139,7 @@ fn strip_prefix(mut req: Request, prefix: &str) -> Request<Body> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceConfig};
+    use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use crate::multi::manager::MultiManager;
     use axum::body::Body;
@@ -172,7 +172,8 @@ mod tests {
             name: name.into(),
             folder: String::new(),
             binding,
-            public: false,
+            access: Some(SpaceAccess::None),
+            legacy_public: None,
             members: Default::default(),
             read_only: false,
             shell: Default::default(),

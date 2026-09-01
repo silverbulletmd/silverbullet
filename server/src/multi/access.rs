@@ -1,6 +1,5 @@
 //! Users.json-backed access checks for spaces and the admin surface.
 
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::auth::config::{
@@ -70,12 +69,12 @@ impl SessionPolicy {
 
 pub struct SpaceUsersAuth {
     pub store: Arc<UserStore>,
-    pub members: BTreeSet<String>,
+    pub policy: Arc<dyn crate::auth::AccessPolicy>,
 }
 
 impl Credentials for SpaceUsersAuth {
     fn verify(&self, username: &str, password: &str) -> bool {
-        let allowed = self.store.is_admin(username) || self.members.contains(username);
+        let allowed = self.policy.level_for(Some(username)) > crate::auth::AccessLevel::None;
         // Always burn the hash check to keep timing uniform.
         let pass_ok = self.store.verify_password(username, password);
         allowed && pass_ok
@@ -128,9 +127,7 @@ impl RequestAuthorizer for UserTokenAuthorizer {
         {
             if let Some(user) = self.store.resolve_token(token) {
                 return if (self.allow)(&user) {
-                    Some(AuthOutcome {
-                        username: Some(user),
-                    })
+                    Some(AuthOutcome::user(user))
                 } else {
                     None
                 };
@@ -192,7 +189,8 @@ mod tests {
         assert!(timer.is_locked());
     }
 
-    /// Temp `UserStore` with admin `root`, member `bob`, outsider `eve`.
+    /// Temp `UserStore` with admin `root`, write-member `bob`, read-member
+    /// `sam`, outsider `eve`.
     fn store() -> (tempfile::TempDir, Arc<UserStore>) {
         let dir = tempfile::tempdir().unwrap();
         let store = UserStore::create_empty(dir.path()).unwrap();
@@ -203,13 +201,36 @@ mod tests {
             .create_user("bob", "bobpw12345", false, Profile::default())
             .unwrap();
         store
+            .create_user("sam", "sampw12345", false, Profile::default())
+            .unwrap();
+        store
             .create_user("eve", "evepw12345", false, Profile::default())
             .unwrap();
         (dir, store)
     }
 
-    fn members() -> BTreeSet<String> {
-        ["bob".to_string()].into_iter().collect()
+    fn members_only_policy(store: Arc<UserStore>) -> Arc<dyn crate::auth::AccessPolicy> {
+        let mut members = std::collections::BTreeMap::new();
+        members.insert(
+            "bob".to_string(),
+            crate::multi::config::MemberEntry {
+                role: crate::multi::config::MemberRole::Write,
+                extra: Default::default(),
+            },
+        );
+        members.insert(
+            "sam".to_string(),
+            crate::multi::config::MemberEntry {
+                role: crate::multi::config::MemberRole::Read,
+                extra: Default::default(),
+            },
+        );
+        Arc::new(crate::multi::policy::SpaceAccessPolicy::new(
+            store,
+            crate::multi::config::SpaceAccess::None,
+            members,
+            false,
+        ))
     }
 
     #[test]
@@ -217,10 +238,13 @@ mod tests {
         let (_dir, store) = store();
         let auth = SpaceUsersAuth {
             store: store.clone(),
-            members: members(),
+            policy: members_only_policy(store),
         };
         assert!(auth.verify("root", "rootpw123"), "admin allowed");
-        assert!(auth.verify("bob", "bobpw12345"), "member allowed");
+        assert!(auth.verify("bob", "bobpw12345"), "write member allowed");
+        // Step 6's whole purpose: a read-role member may still sign in, even
+        // though signing in only ever grants write elsewhere in the store.
+        assert!(auth.verify("sam", "sampw12345"), "read member allowed");
         assert!(!auth.verify("eve", "evepw12345"), "outsider rejected");
         assert!(!auth.verify("bob", "wrong"), "wrong password rejected");
     }

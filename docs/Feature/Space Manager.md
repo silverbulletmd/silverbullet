@@ -23,7 +23,7 @@ Once finished, the server writes `users.json` and `spaces.json` and redirects yo
 Each account has a username, password, admin flag, any number of API tokens, and a profile — an optional full name and email used for attribution — which the account holder can edit themselves, or an admin can set on their behalf. See [[HTTP API#Accounts (multi-space mode)]] for the profile endpoints.
 
 * **Admins** can reach the admin UI and manage spaces, accounts, and tokens. They can also log into *every* space.
-* **Non-admin accounts** are ordinary users: they can log into any space they are a member of (see [[#Access]]).
+* **Non-admin accounts** are ordinary users: they can log into any space they are a member of, and any space whose access level admits them (see [[#Access]]).
 
 There is no self-service signup. Admins create accounts. There is no password recovery either, an admin sets a new password from the _Users_ tab. Fancier features like SSO integration etc may be implemented later.
 
@@ -37,13 +37,58 @@ Each space is reachable one of two ways:
 * **Hostname**: e.g. `notes.example.com`, matched on the `Host` header of the main listener. Point wildcard DNS or per-host reverse-proxy rules at the server.
 
 ## Access
-Each space controls who can read and write it through two fields:
+Access to a space resolves to one of three levels:
 
-* **`public`** — when true, no login is required. Anyone who can reach the URL can read *and edit* the space, so combine it with `readOnly` for a public wiki, or use it only behind an [[Deployment/Authentication Proxy]]. When false (the default), the space requires a login.
-* **`members`** — the accounts allowed to log into a non-public space. Admins are implicitly members of every space and don’t need listing.
+| Level | Meaning |
+| --- | --- |
+| `none` | Not visible. Requests are refused. |
+| `read` | May read content. May not modify anything, and may not reach any capability endpoint (shell, proxy, runtime API). |
+| `write` | Full access to the space’s content and capabilities. |
+
+The effective level for a request is the **maximum** of three independent sources:
+
+| Source | Values |
+| --- | --- |
+| `access` — what a visitor with no session gets | `none` (default), `read`, `write` |
+| `members[username].role` — what one account gets | absent (no access), `read`, `write` |
+| admin | always `write`, on every space |
+
+Taking the maximum is what makes this composable: `access: "read"` publishes a space to the world without touching the member list, and adding a `read`-role member to a private space grants exactly that one account visibility without promoting them to a writer. `access: "write"` is the auth-proxy/VPN escape hatch — today’s `public: true`, preserved as-is. `access: "read"` is the publishing mode: anonymous visitors can read, members keep write access.
+
+Two things worth stating plainly:
+
+* **`access: "read"` publishes current page content, not page history.** Revisions require write access (see [[Feature/Revisions]]), so a read-level actor — anonymous or a `read`-role member — gets no revisions UI and no revisions API.
+* **`access: "write"` also opens the shell, proxy, and runtime endpoints to anonymous callers**, exactly like `public: true` does today. That’s for deployments sitting behind an authenticating proxy or a VPN, not for publishing a wiki to the open internet — use `access: "read"` for that instead.
+
+### The freeze is a cap, not a grant
+The existing per-space `readOnly: true` is unchanged in meaning and stays orthogonal to `access`: it caps *everyone* at `read`, admins and the space’s own automations included. It can’t be expressed as a per-user role, because admins always have full access and there’s no row to demote — so it remains a separate switch.
+
+| | anonymous | member `read` | member `write` | admin |
+| --- | --- | --- | --- | --- |
+| `access: "read"` | read | read | write | write |
+| `readOnly: true` | per `access` | read | read | read |
+
+### Example
+```json
+{
+  "a1b2c3": {
+    "name": "Public Wiki",
+    "folder": "wiki",
+    "binding": { "prefix": "/wiki" },
+    "access": "read",
+    "members": {
+      "zef": { "role": "write" },
+      "sam": { "role": "read" }
+    }
+  }
+}
+```
+
+### Legacy `public`
+`public: bool` still deserializes: `public: true` reads as `access: "write"`, and `public: false` (or the field’s absence) reads as `access: "none"`. A member entry of `{}` — every member in every existing `spaces.json` — reads as `role: "write"`, so existing files keep behaving exactly as they do today.
 
 # Space index
-When no space is bound to the server root (`/`), opening `/` redirects to `/.spaces` instead of opening a space. Any account can log in there. Ordinary accounts see public spaces and spaces where they are members; administrators see every space, plus the admin screens covered in [[#Admin UI]].
+When no space is bound to the server root (`/`), opening `/` redirects to `/.spaces` instead of opening a space. Any account can log in there. Ordinary accounts see spaces with anonymous [[#Access|access]] and spaces where they are members; administrators see every space, plus the admin screens covered in [[#Admin UI]].
 
 # Boot modes
 On startup the server inspects the data folder, the `--single` flag, and legacy `SB_*` environment variables, then picks its run mode.

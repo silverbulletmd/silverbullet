@@ -2,8 +2,11 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   HttpSpacePrimitives,
   parseReconcileResponse,
+  PermissionDeniedError,
   ReconcileIneligibleError,
 } from "./http_space_primitives.ts";
+
+const encode = (s: string) => new TextEncoder().encode(s);
 
 describe("parseReconcileResponse", () => {
   test("returns null for 404 (server does not support reconciliation)", () => {
@@ -171,5 +174,72 @@ describe("HttpSpacePrimitives client identity headers", () => {
     const headers = new Headers(calls[0].init.headers);
     expect(headers.has("X-Client-Id")).toBe(false);
     expect(headers.has("X-Source")).toBe(false);
+  });
+});
+
+function makePrimitives({
+  fetch,
+  authErrorCallback,
+}: {
+  fetch: (url: string, init: RequestInit) => Promise<Response>;
+  authErrorCallback: (message: string, action?: string) => void;
+}) {
+  vi.stubGlobal("fetch", fetch);
+  return new HttpSpacePrimitives("http://x/.fs", "", authErrorCallback);
+}
+
+describe("permission errors", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("a 403 throws without triggering the auth callback", async () => {
+    const authErrors: string[] = [];
+    const primitives = makePrimitives({
+      fetch: async () => new Response("nope", { status: 403 }),
+      authErrorCallback: (message: string) => authErrors.push(message),
+    });
+    await expect(
+      primitives.writeFile("index.md", encode("hi")),
+    ).rejects.toThrow(PermissionDeniedError);
+    expect(authErrors).toEqual([]);
+  });
+
+  test("a 401 on a write throws without triggering the auth callback", async () => {
+    // An anonymous visitor on an `access: "read"` space gets 401+Location for
+    // a refused write. Signing in is not the remedy for a write that was never
+    // going to be allowed, and treating it as an auth error throws the visitor
+    // to the login page mid-session.
+    const authErrors: string[] = [];
+    const primitives = makePrimitives({
+      fetch: async () =>
+        new Response("nope", { status: 401, headers: { location: "/.auth" } }),
+      authErrorCallback: (message: string) => authErrors.push(message),
+    });
+    await expect(
+      primitives.writeFile("index.md", encode("hi")),
+    ).rejects.toThrow(PermissionDeniedError);
+    expect(authErrors).toEqual([]);
+  });
+
+  test("a 401 without a Location header asks for a reload, not a navigation", async () => {
+    const calls: (string | undefined)[] = [];
+    const primitives = makePrimitives({
+      fetch: async () => new Response("nope", { status: 401 }),
+      authErrorCallback: (_m: string, action?: string) => calls.push(action),
+    });
+    await expect(primitives.readFile("index.md")).rejects.toThrow();
+    expect(calls).toEqual(["reload"]);
+  });
+
+  test("a 401 with a Location header still redirects", async () => {
+    const calls: (string | undefined)[] = [];
+    const primitives = makePrimitives({
+      fetch: async () =>
+        new Response("nope", { status: 401, headers: { location: "/.auth" } }),
+      authErrorCallback: (_m: string, action?: string) => calls.push(action),
+    });
+    await expect(primitives.readFile("index.md")).rejects.toThrow();
+    expect(calls).toEqual(["/.auth"]);
   });
 });

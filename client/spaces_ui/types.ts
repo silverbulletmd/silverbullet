@@ -1,5 +1,8 @@
 export type RevisionsMode = "managed" | "unmanaged" | "disabled";
 
+export type SpaceAccess = "none" | "read" | "write";
+export type MemberRole = "read" | "write";
+
 export type Binding =
   | { prefix: string; host?: never }
   | { host: string; prefix?: never };
@@ -13,11 +16,11 @@ export type SpaceInfo = {
   name: string;
   folder: string;
   binding: Binding;
-  // Access control: `public` spaces need no login at all; `members` lists
-  // non-admin usernames granted access (admins always have access and are
-  // never listed here).
-  public: boolean;
-  members: Record<string, object>;
+  // Access control: `access` is what a visitor with no session gets; `members`
+  // grades individual accounts. Admins always have full access and are never
+  // listed here. `readOnly` caps everyone, admins included.
+  access: SpaceAccess;
+  members: Record<string, { role: MemberRole }>;
   readOnly: boolean;
   shell: { enabled: boolean; whitelist: string[] };
   runtimeApi: boolean;
@@ -51,6 +54,7 @@ export type VisibleSpace = {
   name: string;
   binding: Binding;
   state: "running" | "errored";
+  access: SpaceAccess;
 };
 
 /** Where the Space Manager is in its session lifecycle. */

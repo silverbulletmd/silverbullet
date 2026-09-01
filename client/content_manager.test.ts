@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { EditorState, type TransactionSpec } from "@codemirror/state";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { PermissionDeniedError } from "./spaces/http_space_primitives.ts";
 import type { Client } from "./client.ts";
 
 // content_manager.ts imports codemirror/editor_state.ts for createEditorState
@@ -70,6 +71,7 @@ function makeClientStub(opts: {
   writePage?: (name: string, text: string) => Promise<PageMeta>;
   hasFullIndexCompleted?: () => Promise<boolean>;
   getObjectByRef?: () => Promise<PageMeta | undefined>;
+  flashNotification?: (message: string, type?: string) => void;
 }) {
   const editorView = makeEditorViewStub(opts.initialDoc);
   const viewState: {
@@ -104,7 +106,7 @@ function makeClientStub(opts: {
     },
     ui: {
       viewState,
-      flashNotification: () => {},
+      flashNotification: opts.flashNotification ?? (() => {}),
       viewDispatch: (action: {
         type: string;
         path?: string;
@@ -757,5 +759,64 @@ describe("ContentManager save after a withheld external update", () => {
     // Neither under the old name (the buffer is gone) nor -- the actual
     // hazard -- under the new one.
     expect(written).toEqual([]);
+  });
+});
+
+describe("ContentManager.save error handling", () => {
+  function setUpFailingSave(writeError: unknown) {
+    const flashes: { message: string; type?: string }[] = [];
+    const client = makeClientStub({
+      initialDoc: "hello",
+      readPage: async () => ({
+        text: "hello",
+        meta: pageMeta("2026-01-01T00:00:00.000"),
+      }),
+      writePage: async () => {
+        throw writeError;
+      },
+      flashNotification: (message, type) => flashes.push({ message, type }),
+    });
+    client.currentPathValue = "index.md";
+    client.viewState.unsavedChanges = true;
+    const cm = new ContentManager(client as unknown as Client);
+    return { cm, flashes };
+  }
+
+  test("a PermissionDeniedError flashes a read-only notice and does not schedule a retry", async () => {
+    const { cm, flashes } = setUpFailingSave(new PermissionDeniedError());
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    await expect(cm.save(true)).rejects.toThrow(PermissionDeniedError);
+
+    expect(flashes).toEqual([
+      { message: "You have read-only access to this space", type: "error" },
+    ]);
+    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 10000)).toBe(
+      false,
+    );
+
+    setTimeoutSpy.mockRestore();
+  });
+
+  test("an ordinary write failure flashes the retry message and schedules a 10s retry", async () => {
+    const { cm, flashes } = setUpFailingSave(new Error("network blip"));
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    await expect(cm.save(true)).rejects.toThrow("network blip");
+
+    expect(flashes).toEqual([
+      {
+        message: "Could not save page, retrying again in 10 seconds",
+        type: "error",
+      },
+    ]);
+    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 10000)).toBe(
+      true,
+    );
+
+    setTimeoutSpy.mockRestore();
+    // The catch scheduled a real 10s retry against this ContentManager;
+    // clear it so it doesn't fire (and call save() again) after the test ends.
+    clearTimeout(cm.saveTimeout);
   });
 });

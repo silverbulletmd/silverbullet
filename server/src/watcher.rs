@@ -1043,6 +1043,7 @@ mod tests {
                 username: Some("ada".into()),
                 full_name: Some("Ada Lovelace".into()),
                 email: Some("ada@example.org".into()),
+                ..Default::default()
             },
             None,
             None,

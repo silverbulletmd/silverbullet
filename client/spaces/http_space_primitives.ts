@@ -20,6 +20,14 @@ export type WritePrecondition =
 
 export class PreconditionFailedError extends Error {}
 
+/** The caller is authenticated but lacks the access level this route needs. */
+export class PermissionDeniedError extends Error {
+  constructor() {
+    super("You do not have permission to do that");
+    this.name = "PermissionDeniedError";
+  }
+}
+
 export type ReconcileRequest = {
   baseHash: string;
   baseText: string;
@@ -175,25 +183,27 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           console.error("Got a redirect status but no location header", result);
         }
       }
-      // Check for unauthorized status
-      if (result.status === 401 || result.status === 403) {
-        // If it came with a redirect header, we'll redirect to that URL
+      if (result.status === 403) {
+        throw new PermissionDeniedError();
+      }
+      if (result.status === 401) {
+        // An anonymous visitor refused a write gets 401+Location per spec, but
+        // signing in is not the remedy for a write that will stay refused —
+        // routing it through the auth callback throws them to the login page
+        // mid-session. Only a refused *read* means "you need to sign in".
+        const method = (options.method ?? "GET").toUpperCase();
+        if (method !== "GET" && method !== "HEAD") {
+          throw new PermissionDeniedError();
+        }
         if (redirectHeader) {
-          console.log(
-            "Received unauthorized status and got a redirect via the API so will redirect to URL",
-            result.url,
-          );
           this.authErrorCallback("You are not authenticated ", redirectHeader);
-          // location.href = redirectHeader;
-          throw new Error("Not authenticated");
         } else {
-          // If not, let's reload
           this.authErrorCallback(
             "You are not authenticated, going to reload and hope that that kicks off authentication",
+            "reload",
           );
-          // location.reload();
-          throw new Error("Not authenticated");
         }
+        throw new Error("Not authenticated");
       }
       return result;
     } catch (e: any) {

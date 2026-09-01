@@ -283,6 +283,7 @@ body.sb-standalone.sb-page {
   color: #b00020;
 }
 
+
 /* Server-side folder picker (client/spaces_ui/FolderPicker.tsx). */
 .sb-standalone .sb-folder-picker-status {
   display: flex;
@@ -433,24 +434,34 @@ body.sb-standalone.sb-page {
   font-family: monospace;
 }
 
-.sb-standalone .sb-member-list {
+.sb-standalone .sb-access-table {
   border: 1px solid #ddd;
   border-radius: 0.4em;
   padding: 0.5rem 0.75rem;
   margin-top: 0.5rem;
+
+  .sb-access-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+  }
+
+  .sb-access-public {
+    border-bottom: 1px solid var(--subtle-color, #ccc);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+
+  .sb-access-fixed {
+    color: var(--subtle-color, #666);
+  }
 }
 
-.sb-standalone .sb-member-list legend {
+.sb-standalone .sb-access-table legend {
   font-weight: 600;
   padding: 0 0.3em;
-}
-
-.sb-standalone .sb-member-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4em;
-  margin: 0.25rem 0;
-  font-weight: normal;
 }
 
 /* Phones. The desktop layout assumes a 720px reading column with room to spare

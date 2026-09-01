@@ -98,6 +98,18 @@ pub struct ServerState {
     /// Authentication strategy for protected routes. `None` means the server is
     /// open (no authentication).
     pub authorizer: Option<Arc<dyn RequestAuthorizer>>,
+    /// True when a visitor with no session may read this space. Drives the
+    /// crawlable server-rendered HTML path, which used to infer this from the
+    /// absence of an authorizer -- no longer true now that every space has one.
+    pub anonymous_readable: bool,
+    /// True when a visitor with no session may *write* to this space. Paired
+    /// with `anonymous_readable` to gate server-side rendering: content a
+    /// stranger could have authored must never be rendered into the shell,
+    /// because `render_markdown` passes raw HTML through verbatim.
+    pub anonymous_writable: bool,
+    /// Grades a verified identity into an access level for this space. Always
+    /// present: an open server's policy simply grants `Write`.
+    pub access_policy: Arc<dyn crate::auth::AccessPolicy>,
     /// The login flow's issuing side (standalone server). `None` mirrors
     /// `authorizer == None` (an open server). Shares the `Authenticator` with
     /// the `authorizer` via `Arc`.

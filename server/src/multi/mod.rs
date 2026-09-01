@@ -8,6 +8,7 @@ pub mod config;
 pub mod dispatch;
 pub mod instance;
 pub mod manager;
+pub mod policy;
 pub mod registry;
 pub mod setup;
 pub mod setup_api;

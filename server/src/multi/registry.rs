@@ -74,7 +74,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceConfig};
+    use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
     use crate::multi::instance::{InstanceStatus, SpaceInstance};
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -90,7 +90,8 @@ mod tests {
                 name: id.into(),
                 folder: String::new(),
                 binding,
-                public: true,
+                access: Some(SpaceAccess::Write),
+                legacy_public: None,
                 members: Default::default(),
                 read_only: false,
                 shell: Default::default(),

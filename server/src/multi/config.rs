@@ -74,6 +74,35 @@ fn default_description() -> String {
     "Powerful and programmable note taking app".into()
 }
 
+/// What a visitor with no session may do in this space. `None` is the default
+/// and means the space is invisible without an account.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SpaceAccess {
+    #[default]
+    None,
+    Read,
+    Write,
+}
+
+/// What one member may do. Absent from `members` means no access at all.
+/// Every member predating roles was a writer, and an empty object still is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MemberRole {
+    Read,
+    #[default]
+    Write,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct MemberEntry {
+    #[serde(default)]
+    pub role: MemberRole,
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
 /// A single space's full configuration — parity with the single-space `SB_*`
 /// env surface.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -85,11 +114,14 @@ pub struct SpaceConfig {
     #[serde(default)]
     pub folder: String,
     pub binding: Binding,
-    #[serde(default)]
-    pub public: bool,
-    /// username -> per-member options (empty object today; room for roles).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub access: Option<SpaceAccess>,
+    /// Read from files written before `access` existed, never written back.
+    /// `normalize` folds it into `access` at load.
+    #[serde(default, rename = "public", skip_serializing)]
+    pub legacy_public: Option<bool>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub members: BTreeMap<String, serde_json::Map<String, serde_json::Value>>,
+    pub members: BTreeMap<String, MemberEntry>,
     #[serde(default)]
     pub read_only: bool,
     #[serde(default)]
@@ -115,6 +147,24 @@ pub struct SpaceConfig {
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
+impl SpaceConfig {
+    pub fn access(&self) -> SpaceAccess {
+        self.access.unwrap_or_default()
+    }
+
+    /// Folds a legacy `public` flag into `access` and drops it, so everything
+    /// downstream reads one field and every save writes the new shape.
+    pub fn normalize(&mut self) {
+        if self.access.is_none() {
+            self.access = Some(match self.legacy_public {
+                Some(true) => SpaceAccess::Write,
+                _ => SpaceAccess::None,
+            });
+        }
+        self.legacy_public = None;
+    }
+}
+
 /// The whole `spaces.json`: GUID -> config.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct MultiConfig {
@@ -123,8 +173,11 @@ pub struct MultiConfig {
 
 impl MultiConfig {
     pub fn from_json(src: &str) -> Result<Self, String> {
-        let spaces: HashMap<String, SpaceConfig> =
+        let mut spaces: HashMap<String, SpaceConfig> =
             serde_json::from_str(src).map_err(|e| format!("invalid spaces.json: {e}"))?;
+        for cfg in spaces.values_mut() {
+            cfg.normalize();
+        }
         Ok(Self { spaces })
     }
 
@@ -205,7 +258,7 @@ mod tests {
 
         let b = &c.spaces["id-b"];
         assert!(matches!(&b.binding, Binding::Prefix { prefix } if prefix == "/b"));
-        assert!(!b.public);
+        assert_eq!(b.access(), SpaceAccess::None);
         assert!(b.members.is_empty());
         assert!(!b.read_only);
         assert!(b.shell.enabled); // default on
@@ -292,14 +345,21 @@ mod tests {
           "id": {
             "name": "X", "binding": { "prefix": "/x" },
             "public": false,
-            "members": { "zef": {} }
+            "members": { "zef": {}, "sam": {"role": "read"} }
           }
         }"#;
         let c = MultiConfig::from_json(src).unwrap();
         let s = &c.spaces["id"];
         assert!(s.members.contains_key("zef"));
+        assert_eq!(s.members["sam"].role, MemberRole::Read);
         let out = c.to_json_string().unwrap();
         assert!(out.contains("members"), "{out}");
+        // A regression that ever made `role` default-on-write (or skipped it
+        // entirely) would silently promote every `read` member to a writer
+        // on the next save — this is the one test that loads a legacy file,
+        // normalizes, and re-serializes it to catch that.
+        assert!(!out.contains("\"public\""), "{out}");
+        assert!(out.contains("\"role\": \"read\""), "{out}");
     }
 
     #[test]
@@ -319,6 +379,67 @@ mod tests {
             !c.spaces["id-off"].runtime_api,
             "an explicit false stays off"
         );
+    }
+
+    #[test]
+    fn legacy_public_true_becomes_write_access() {
+        let mut cfg: SpaceConfig =
+            serde_json::from_str(r#"{"name":"W","binding":{"prefix":"/w"},"public":true}"#)
+                .unwrap();
+        cfg.normalize();
+        assert_eq!(cfg.access(), SpaceAccess::Write);
+    }
+
+    #[test]
+    fn legacy_public_false_and_absent_become_no_access() {
+        for body in [
+            r#"{"name":"W","binding":{"prefix":"/w"},"public":false}"#,
+            r#"{"name":"W","binding":{"prefix":"/w"}}"#,
+        ] {
+            let mut cfg: SpaceConfig = serde_json::from_str(body).unwrap();
+            cfg.normalize();
+            assert_eq!(cfg.access(), SpaceAccess::None);
+        }
+    }
+
+    #[test]
+    fn empty_member_object_is_a_writer() {
+        let cfg: SpaceConfig =
+            serde_json::from_str(r#"{"name":"W","binding":{"prefix":"/w"},"members":{"zef":{}}}"#)
+                .unwrap();
+        assert_eq!(cfg.members["zef"].role, MemberRole::Write);
+    }
+
+    #[test]
+    fn roles_round_trip() {
+        let cfg: SpaceConfig = serde_json::from_str(
+            r#"{"name":"W","binding":{"prefix":"/w"},"access":"read",
+                "members":{"sam":{"role":"read"},"zef":{"role":"write"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.access(), SpaceAccess::Read);
+        assert_eq!(cfg.members["sam"].role, MemberRole::Read);
+        let text = serde_json::to_string(&cfg).unwrap();
+        assert!(text.contains(r#""access":"read""#));
+        assert!(!text.contains(r#""public""#));
+    }
+
+    #[test]
+    fn explicit_access_wins_over_legacy_public() {
+        let mut cfg: SpaceConfig = serde_json::from_str(
+            r#"{"name":"W","binding":{"prefix":"/w"},"access":"none","public":true}"#,
+        )
+        .unwrap();
+        cfg.normalize();
+        assert_eq!(cfg.access(), SpaceAccess::None);
+    }
+
+    #[test]
+    fn an_unknown_role_is_rejected() {
+        let parsed: Result<SpaceConfig, _> = serde_json::from_str(
+            r#"{"name":"W","binding":{"prefix":"/w"},"members":{"z":{"role":"admin"}}}"#,
+        );
+        assert!(parsed.is_err());
     }
 
     #[test]

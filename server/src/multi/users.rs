@@ -222,6 +222,10 @@ impl UserStore {
         self.read().users.get(username).is_some_and(|u| u.admin)
     }
 
+    pub fn user_exists(&self, username: &str) -> bool {
+        self.read().users.contains_key(username)
+    }
+
     pub fn usernames(&self) -> BTreeSet<String> {
         self.read().users.keys().cloned().collect()
     }
@@ -492,6 +496,14 @@ mod tests {
         assert!(raw.contains("$argon2id$"));
         let s2 = UserStore::open(dir.path()).unwrap().unwrap();
         assert!(s2.verify_password("ada", "hunter22"));
+    }
+
+    #[test]
+    fn user_exists_is_true_for_any_known_account() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        assert!(s.user_exists("ada"));
+        assert!(!s.user_exists("ghost"));
     }
 
     #[test]

@@ -46,7 +46,7 @@ impl HeadlessTokenAuthorizer {
 impl RequestAuthorizer for HeadlessTokenAuthorizer {
     fn authorize(&self, ctx: &AuthContext) -> Option<AuthOutcome> {
         if self.cookie_token_matches(ctx.headers) {
-            return Some(AuthOutcome { username: None });
+            return Some(AuthOutcome::trusted());
         }
         self.inner.authorize(ctx)
     }
@@ -66,7 +66,7 @@ mod tests {
     struct AllowAll;
     impl RequestAuthorizer for AllowAll {
         fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {
-            Some(AuthOutcome { username: None })
+            Some(AuthOutcome::anonymous())
         }
     }
 
@@ -147,6 +147,25 @@ mod tests {
             "secret".into(),
         );
         assert!(a.is_authorized(&ctx(None, &h)));
+    }
+
+    /// The regression this whole task exists to prevent: the trusted headless
+    /// cookie has no username, but it must still grant `Write` rather than
+    /// falling back to a policy that would grade "no identity" as anonymous.
+    #[test]
+    fn matching_cookie_token_grants_trusted_write() {
+        let mut h = HeaderMap::new();
+        h.insert(
+            axum::http::header::COOKIE,
+            axum::http::HeaderValue::from_static("silverbullet_headless_a=secret"),
+        );
+        let a = HeadlessTokenAuthorizer::new(
+            Box::new(DenyAll),
+            "silverbullet_headless_a".into(),
+            "secret".into(),
+        );
+        let outcome = a.authorize(&ctx(None, &h)).expect("should authorize");
+        assert_eq!(outcome.grant, Some(crate::auth::AccessLevel::Write));
     }
 
     /// The whole point of the per-space name: space B's cookie, riding along

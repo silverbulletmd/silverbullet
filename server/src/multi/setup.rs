@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::multi::config::{MultiConfig, SpaceConfig};
+use crate::multi::config::{MultiConfig, SpaceAccess, SpaceConfig};
 use crate::multi::instance::{resolve_folder, seed_index};
 use crate::multi::users::{Profile, UserEntry, UsersConfig, USERS_FILE};
 use crate::multi::validate::{validate, FieldError};
@@ -197,7 +197,8 @@ pub fn run_setup(
         }))
         .map_err(|e| err("", format!("internal error building space config: {e}")))?;
         cfg.folder = folder_field;
-        debug_assert!(!cfg.public);
+        cfg.normalize();
+        debug_assert!(cfg.access() == SpaceAccess::None);
         debug_assert!(cfg.members.is_empty());
 
         seed_index(
@@ -273,12 +274,18 @@ mod tests {
         #[cfg(unix)]
         assert_0600(&spaces_path);
 
+        // The freshly provisioned file must use the same shape every other
+        // write path produces: an explicit `access`, never the legacy key.
+        let raw = std::fs::read_to_string(&spaces_path).unwrap();
+        assert!(raw.contains("\"access\""), "{raw}");
+        assert!(!raw.contains("\"public\""), "{raw}");
+
         let cfg = MultiConfig::load(&spaces_path).unwrap();
         assert_eq!(cfg.spaces.len(), 1);
         let (id, space) = cfg.spaces.iter().next().unwrap();
         assert_eq!(space.name, "Notes");
         assert!(matches!(&space.binding, Binding::Prefix { prefix } if prefix == "/"));
-        assert!(!space.public);
+        assert_eq!(space.access(), SpaceAccess::None);
         assert!(space.members.is_empty());
 
         let folder = resolve_folder(dir.path(), id, &space.folder);

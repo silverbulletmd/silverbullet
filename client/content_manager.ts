@@ -34,6 +34,7 @@ import { computeExternalChanges } from "./external_merge.ts";
 import { parsePageMetaLastModified } from "./lib/page_meta.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
+import { PermissionDeniedError } from "./spaces/http_space_primitives.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import type { Client } from "./client.ts";
 import type { LocationState } from "./navigator.ts";
@@ -201,6 +202,14 @@ export class ContentManager {
                 }
               })
               .catch((e) => {
+                if (e instanceof PermissionDeniedError) {
+                  this.client.ui.flashNotification(
+                    "You have read-only access to this space",
+                    "error",
+                  );
+                  reject(e);
+                  return;
+                }
                 this.client.ui.flashNotification(
                   "Could not save page, retrying again in 10 seconds",
                   "error",

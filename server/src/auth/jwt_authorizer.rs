@@ -60,7 +60,7 @@ impl RequestAuthorizer for JwtAuthorizer {
         if !self.auth_token.is_empty() {
             if let Some(token) = &bearer {
                 if constant_time_eq(token.as_bytes(), self.auth_token.as_bytes()) {
-                    return Some(AuthOutcome { username: None });
+                    return Some(AuthOutcome::trusted());
                 }
             }
         }
@@ -75,9 +75,7 @@ impl RequestAuthorizer for JwtAuthorizer {
                 return None;
             }
         }
-        Some(AuthOutcome {
-            username: Some(claims.username),
-        })
+        Some(AuthOutcome::user(claims.username))
     }
 }
 
@@ -119,6 +117,20 @@ mod tests {
             HeaderValue::from_static("Bearer secret-token"),
         );
         assert!(authz().is_authorized(&ctx(&h)));
+    }
+
+    /// The env-style shared secret (`SB_AUTH_TOKEN`) has no username, but it
+    /// is single-space-owner authority and must grant `Write` rather than
+    /// falling back to a policy that would grade "no identity" as anonymous.
+    #[test]
+    fn matching_bearer_token_grants_trusted_write() {
+        let mut h = HeaderMap::new();
+        h.insert(
+            "authorization",
+            HeaderValue::from_static("Bearer secret-token"),
+        );
+        let outcome = authz().authorize(&ctx(&h)).expect("should authorize");
+        assert_eq!(outcome.grant, Some(crate::auth::AccessLevel::Write));
     }
 
     #[test]

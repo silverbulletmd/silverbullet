@@ -92,6 +92,7 @@ mod tests {
             username: username.map(str::to_string),
             full_name: full_name.map(str::to_string),
             email: Some("never@served.example".into()),
+            ..Default::default()
         }
     }
 

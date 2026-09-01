@@ -16,9 +16,10 @@ How you authenticate depends on how the server is running (see [[Feature/Space M
 When the server runs in the default [[Feature/Space Manager|multi-space]] mode, authentication is account-based:
 
 * Every person has an **account** (username + password), plus an optional **Full name** and **Email** — set by an admin when creating the account or on its detail page, or by the account holder on their own **Profile** page. Both are used to attribute [[Feature/Revisions#Automatic commits|revision-history commits]] and as the presence label other clients see for concurrent edits.
-* Each [[Concept/Space]] is either **public** (no login) or requires login, and lists the **members** allowed in. Admins can reach every space and the admin UI.
+* Each [[Concept/Space]] has an [[Feature/Space Manager#Access|access level]] — `none`, `read`, or `write` — for visitors with no account, plus per-member `read`/`write` roles. Admins can reach every space and the admin UI.
 * Accounts, spaces, and access are all managed in the `/.spaces` surface, which every account can open (admins additionally get the Users tab and space create/edit screens).
 * When no space is bound to `/`, the server root provides an account-facing index of the spaces available to the current user.
+* Every space offers a login page, including one that permits anonymous access — signing in there costs nothing extra a non-member wouldn’t already have, but it grants identity: attribution on the pages you write, and a profile menu that knows who you are. Signing in as a member instead grants whatever that account’s role allows.
 
 # Single-space mode
 [[Feature/Space Manager#Single-space mode|Single-space mode]] serves one folder as one space, authenticated the classic way: a single set of credentials set via the `SB_USER` environment variable in `username:password` form.

@@ -7,7 +7,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::multi::config::{Binding, MultiConfig, SpaceConfig};
+use crate::multi::config::{Binding, MultiConfig, SpaceAccess, SpaceConfig};
 use crate::multi::instance::{
     build_instance, resolve_folder, seed_index, InstanceDeps, InstanceStatus, SpaceInstance,
 };
@@ -32,6 +32,7 @@ pub struct VisibleSpace {
     pub id: String,
     pub name: String,
     pub binding: Binding,
+    pub access: SpaceAccess,
     pub state: SpaceState,
 }
 
@@ -234,6 +235,7 @@ impl MultiManager {
     }
 
     pub fn create(&self, mut cfg: SpaceConfig, should_seed: bool) -> Result<String, ApiError> {
+        cfg.normalize();
         let mut inner = self.state.lock().unwrap();
         let id = uuid::Uuid::new_v4().to_string();
         if cfg.folder.is_empty() {
@@ -260,7 +262,8 @@ impl MultiManager {
         Ok(id)
     }
 
-    pub fn update(&self, id: &str, cfg: SpaceConfig) -> Result<(), ApiError> {
+    pub fn update(&self, id: &str, mut cfg: SpaceConfig) -> Result<(), ApiError> {
+        cfg.normalize();
         let mut inner = self.state.lock().unwrap();
         if !inner.config.spaces.contains_key(id) {
             return Err(ApiError::NotFound);
@@ -303,12 +306,15 @@ impl MultiManager {
             .instances
             .iter()
             .filter(|(_, inst)| {
-                admin || inst.config.public || inst.config.members.contains_key(username)
+                admin
+                    || inst.config.access() != SpaceAccess::None
+                    || inst.config.members.contains_key(username)
             })
             .map(|(id, inst)| VisibleSpace {
                 id: id.clone(),
                 name: inst.config.name.clone(),
                 binding: inst.config.binding.clone(),
+                access: inst.config.access(),
                 state: match inst.status {
                     InstanceStatus::Errored(_) => SpaceState::Errored,
                     InstanceStatus::Running => SpaceState::Running,
@@ -346,6 +352,12 @@ impl MultiManager {
         let Some(existing) = inner.config.spaces.get(id).cloned() else {
             return Err(ApiError::NotFound);
         };
+        // A legacy `public` key without an accompanying `access` must still
+        // take effect: the base config's own `access` (every stored config
+        // is normalized, so it always has one) would otherwise always win
+        // and the legacy key would silently do nothing.
+        let legacy_public_without_access =
+            patch.contains_key("public") && !patch.contains_key("access");
         let mut merged =
             serde_json::to_value(&existing).map_err(|e| ApiError::Internal(e.to_string()))?;
         let obj = merged
@@ -360,12 +372,16 @@ impl MultiManager {
             }
             obj.insert(k, v);
         }
-        let cfg: SpaceConfig = serde_json::from_value(merged).map_err(|e| {
+        if legacy_public_without_access {
+            obj.remove("access");
+        }
+        let mut cfg: SpaceConfig = serde_json::from_value(merged).map_err(|e| {
             ApiError::Validation(vec![FieldError {
                 field: String::new(),
                 message: e.to_string(),
             }])
         })?;
+        cfg.normalize();
         let mut new_config = inner.config.clone();
         new_config.spaces.insert(id.to_string(), cfg);
         self.apply_locked(&mut inner, new_config)
@@ -403,7 +419,7 @@ fn space_json(config: &SpaceConfig, status: &InstanceStatus) -> serde_json::Valu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceConfig};
+    use crate::multi::config::{Binding, MemberEntry, MemberRole, SpaceConfig};
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use silverbullet_server_common::space::MemorySpacePrimitives;
 
@@ -436,7 +452,8 @@ mod tests {
             name: name.into(),
             folder: String::new(),
             binding,
-            public: true,
+            access: Some(SpaceAccess::Write),
+            legacy_public: None,
             members: Default::default(),
             read_only: false,
             shell: Default::default(),
@@ -470,6 +487,45 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert!(m.registry().current().instances.is_empty());
+    }
+
+    #[test]
+    fn a_legacy_payload_is_normalized_on_create() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = boot(dir.path());
+        let cfg: SpaceConfig = serde_json::from_str(
+            r#"{"name":"W","folder":"w","binding":{"prefix":"/w"},"public":true}"#,
+        )
+        .unwrap();
+        let id = manager.create(cfg, false).unwrap();
+        let stored = manager.get(&id).unwrap();
+        assert_eq!(stored["access"], serde_json::json!("write"));
+        assert!(stored.get("public").is_none());
+    }
+
+    #[test]
+    fn a_legacy_payload_is_normalized_on_update() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = boot(dir.path());
+        let id = manager
+            .create(
+                payload(
+                    "W",
+                    Binding::Prefix {
+                        prefix: "/w".into(),
+                    },
+                ),
+                false,
+            )
+            .unwrap();
+        let mut cfg: SpaceConfig =
+            serde_json::from_str(r#"{"name":"W","binding":{"prefix":"/w"},"public":false}"#)
+                .unwrap();
+        cfg.folder = format!("spaces/{id}"); // keep the same folder
+        manager.update(&id, cfg).unwrap();
+        let stored = manager.get(&id).unwrap();
+        assert_eq!(stored["access"], serde_json::json!("none"));
+        assert!(stored.get("public").is_none());
     }
 
     #[test]
@@ -598,7 +654,7 @@ mod tests {
         // One root-bound, open space whose folder is the root itself.
         let mut cfg = payload("Solo", Binding::Prefix { prefix: "/".into() });
         cfg.folder = ".".into();
-        cfg.public = false;
+        cfg.access = Some(SpaceAccess::None);
         let mut spaces = HashMap::new();
         spaces.insert("solo".to_string(), cfg);
         let config = MultiConfig { spaces };
@@ -841,6 +897,59 @@ mod tests {
     }
 
     #[test]
+    fn patch_legacy_public_key_locks_down_a_write_space() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        let id = m
+            .create(
+                payload(
+                    "Work",
+                    Binding::Prefix {
+                        prefix: "/work".into(),
+                    },
+                ),
+                false,
+            )
+            .unwrap();
+        assert_eq!(m.get(&id).unwrap()["access"], serde_json::json!("write"));
+
+        let mut body = serde_json::Map::new();
+        body.insert("public".into(), serde_json::json!(false));
+        m.patch(&id, body).unwrap();
+
+        let v = m.get(&id).unwrap();
+        assert_eq!(
+            v["access"],
+            serde_json::json!("none"),
+            "the legacy key must actually take effect, not be a silent no-op: {v}"
+        );
+        assert!(v.get("public").is_none());
+    }
+
+    #[test]
+    fn patch_with_explicit_access_still_works() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        let id = m
+            .create(
+                payload(
+                    "Work",
+                    Binding::Prefix {
+                        prefix: "/work".into(),
+                    },
+                ),
+                false,
+            )
+            .unwrap();
+
+        let mut body = serde_json::Map::new();
+        body.insert("access".into(), serde_json::json!("read"));
+        m.patch(&id, body).unwrap();
+
+        assert_eq!(m.get(&id).unwrap()["access"], serde_json::json!("read"));
+    }
+
+    #[test]
     fn visible_space_omits_sensitive_config() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot_with_users(dir.path(), &["bob"]);
@@ -850,7 +959,7 @@ mod tests {
                 prefix: "/priv".into(),
             },
         );
-        cfg.public = false;
+        cfg.access = Some(SpaceAccess::None);
         cfg.members.insert("bob".into(), Default::default());
         m.create(cfg, true).unwrap();
 
@@ -861,7 +970,7 @@ mod tests {
         // The allowlist: exactly these keys, nothing else.
         let mut keys: Vec<&str> = obj.keys().map(|k| k.as_str()).collect();
         keys.sort();
-        assert_eq!(keys, vec!["binding", "id", "name", "state"]);
+        assert_eq!(keys, vec!["access", "binding", "id", "name", "state"]);
         // Named explicitly so a regression names the leaked field.
         for leaked in ["folder", "members", "shell", "runtimeApi", "logPush"] {
             assert!(!obj.contains_key(leaked), "leaked `{leaked}`");
@@ -887,7 +996,7 @@ mod tests {
                 prefix: "/pub".into(),
             },
         );
-        public.public = true;
+        public.access = Some(SpaceAccess::Write);
         m.create(public, true).unwrap();
 
         let mut bobs = payload(
@@ -896,7 +1005,7 @@ mod tests {
                 prefix: "/bob".into(),
             },
         );
-        bobs.public = false;
+        bobs.access = Some(SpaceAccess::None);
         bobs.members.insert("bob".into(), Default::default());
         m.create(bobs, true).unwrap();
 
@@ -906,7 +1015,7 @@ mod tests {
                 prefix: "/carol".into(),
             },
         );
-        carols.public = false;
+        carols.access = Some(SpaceAccess::None);
         carols.members.insert("carol".into(), Default::default());
         m.create(carols, true).unwrap();
 
@@ -950,7 +1059,7 @@ mod tests {
                     prefix: prefix.into(),
                 },
             );
-            cfg.public = true;
+            cfg.access = Some(SpaceAccess::Write);
             m.create(cfg, true).unwrap();
         }
         let names: Vec<String> = m
@@ -959,5 +1068,86 @@ mod tests {
             .map(|s| s.name)
             .collect();
         assert_eq!(names, ["Alpha", "Delta", "Foxtrot", "Kilo", "Mike", "Zulu"]);
+    }
+
+    /// One private space (member "zef" only) and one `access: read` space
+    /// open to any account. Returns the `TempDir` guard alongside the
+    /// manager: `boot` writes `spaces.json` under it and `create` seeds index
+    /// pages and starts a live fs watcher per instance, so the directory must
+    /// outlive the caller's use of the manager rather than being dropped here.
+    fn manager_with_private_and_public() -> (tempfile::TempDir, std::sync::Arc<MultiManager>) {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot_with_users(dir.path(), &["zef"]);
+
+        let mut work = payload(
+            "Work",
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+        );
+        work.access = Some(SpaceAccess::None);
+        work.members.insert("zef".into(), Default::default());
+        m.create(work, true).unwrap();
+
+        let mut wiki = payload(
+            "Public Wiki",
+            Binding::Prefix {
+                prefix: "/wiki".into(),
+            },
+        );
+        wiki.access = Some(SpaceAccess::Read);
+        m.create(wiki, true).unwrap();
+
+        (dir, m)
+    }
+
+    fn manager_with_read_role_member() -> (tempfile::TempDir, std::sync::Arc<MultiManager>) {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot_with_users(dir.path(), &["sam"]);
+
+        let mut cfg = payload(
+            "Team",
+            Binding::Prefix {
+                prefix: "/team".into(),
+            },
+        );
+        cfg.access = Some(SpaceAccess::None);
+        cfg.members.insert(
+            "sam".into(),
+            MemberEntry {
+                role: MemberRole::Read,
+                extra: Default::default(),
+            },
+        );
+        m.create(cfg, true).unwrap();
+
+        (dir, m)
+    }
+
+    #[test]
+    fn a_read_public_space_is_listed_for_every_account() {
+        let (_dir, manager) = manager_with_private_and_public();
+        let names: Vec<_> = manager
+            .list_accessible("sam", false)
+            .into_iter()
+            .map(|s| s.name)
+            .collect();
+        assert_eq!(names, vec!["Public Wiki".to_string()]);
+    }
+
+    #[test]
+    fn the_listing_reports_the_access_level() {
+        let (_dir, manager) = manager_with_private_and_public();
+        let listed = manager.list_accessible("zef", false);
+        let wiki = listed.iter().find(|s| s.name == "Public Wiki").unwrap();
+        assert_eq!(wiki.access, SpaceAccess::Read);
+        let private = listed.iter().find(|s| s.name == "Work").unwrap();
+        assert_eq!(private.access, SpaceAccess::None);
+    }
+
+    #[test]
+    fn a_read_role_member_can_see_the_space() {
+        let (_dir, manager) = manager_with_read_role_member();
+        assert_eq!(manager.list_accessible("sam", false).len(), 1);
     }
 }

@@ -26,12 +26,21 @@ struct ConfigResponse<'a> {
     space_prefixes: Vec<String>,
 }
 
-pub async fn handle_config(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
+pub async fn handle_config(
+    State(state): State<Arc<ServerState>>,
+    axum::Extension(actor): axum::Extension<crate::auth::Actor>,
+) -> impl IntoResponse {
+    let writable = actor.level >= crate::auth::AccessLevel::Write;
+    let mut boot_config = state.boot_config.clone();
+    if !writable {
+        boot_config.read_only = true;
+        boot_config.shell_backend = "noop".into();
+    }
     (
         StatusCode::OK,
         [("Cache-Control", "no-cache")],
         axum::Json(ConfigResponse {
-            boot_config: &state.boot_config,
+            boot_config: &boot_config,
             space_prefixes: state.space_prefixes.current(),
         })
         .into_response(),
@@ -100,6 +109,7 @@ mod tests {
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
+    use axum::response::IntoResponse;
     use tower::ServiceExt; // for `oneshot`
 
     #[tokio::test]
@@ -141,6 +151,56 @@ mod tests {
         assert_eq!(v["spaceName"], "Test");
         assert_eq!(v["indexPage"], "index");
         assert_eq!(v["readOnly"], false);
+    }
+
+    async fn config_for(level: crate::auth::AccessLevel) -> serde_json::Value {
+        let state = Arc::new(test_state());
+        let actor = crate::auth::Actor {
+            level,
+            ..Default::default()
+        };
+        let resp = super::handle_config(axum::extract::State(state), axum::Extension(actor))
+            .await
+            .into_response();
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_read_level_caller_is_told_the_space_is_read_only() {
+        let body = config_for(crate::auth::AccessLevel::Read).await;
+        assert_eq!(body["readOnly"], serde_json::json!(true));
+        assert_eq!(body["shellBackend"], serde_json::json!("noop"));
+    }
+
+    #[tokio::test]
+    async fn a_write_level_caller_sees_the_space_as_configured() {
+        let body = config_for(crate::auth::AccessLevel::Write).await;
+        assert_eq!(body["readOnly"], serde_json::json!(false));
+        assert_eq!(body["shellBackend"], serde_json::json!("local"));
+    }
+
+    #[tokio::test]
+    async fn a_write_level_caller_still_sees_a_genuinely_read_only_space() {
+        let mut state = test_state();
+        state.boot_config.read_only = true;
+        let actor = crate::auth::Actor {
+            level: crate::auth::AccessLevel::Write,
+            ..Default::default()
+        };
+        let resp = super::handle_config(
+            axum::extract::State(Arc::new(state)),
+            axum::Extension(actor),
+        )
+        .await
+        .into_response();
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["readOnly"], serde_json::json!(true));
     }
 
     #[tokio::test]
