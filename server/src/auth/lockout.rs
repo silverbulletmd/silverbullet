@@ -35,28 +35,32 @@ impl LockoutTimer {
     }
 
     pub fn is_locked(&self) -> bool {
+        self.is_locked_at(now_ms())
+    }
+
+    pub fn add_count(&self) {
+        self.add_count_at(now_ms());
+    }
+
+    fn is_locked_at(&self, now_ms: i64) -> bool {
         if self.disabled {
             return false;
         }
         let mut b = self.state.lock().unwrap();
-        self.roll(&mut b);
+        self.roll(&mut b, now_ms);
         b.count >= self.limit
     }
 
-    pub fn add_count(&self) {
+    fn add_count_at(&self, now_ms: i64) {
         if self.disabled {
             return;
         }
         let mut b = self.state.lock().unwrap();
-        self.roll(&mut b);
+        self.roll(&mut b, now_ms);
         b.count = b.count.saturating_add(1);
     }
 
-    fn roll(&self, b: &mut Bucket) {
-        let now_ms = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis() as i64)
-            .unwrap_or(0);
+    fn roll(&self, b: &mut Bucket, now_ms: i64) {
         let bucket = now_ms / self.bucket_size_ms;
         if b.time != bucket {
             b.time = bucket;
@@ -65,30 +69,34 @@ impl LockoutTimer {
     }
 }
 
+fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn locks_after_limit_within_a_bucket() {
-        // Huge bucket so all attempts land in one window.
-        let t = LockoutTimer::new(10_000_000, 3);
-        assert!(!t.is_locked());
-        t.add_count();
-        t.add_count();
-        assert!(!t.is_locked(), "2 < 3 attempts: not locked");
-        t.add_count();
-        assert!(t.is_locked(), "3 >= 3 attempts: locked");
+        let t = LockoutTimer::new(1_000, 3);
+        assert!(!t.is_locked_at(5_000));
+        t.add_count_at(5_000);
+        t.add_count_at(5_400);
+        assert!(!t.is_locked_at(5_800), "2 < 3 attempts: not locked");
+        t.add_count_at(5_900);
+        assert!(t.is_locked_at(5_999), "3 >= 3 attempts: locked");
     }
 
     #[test]
     fn resets_when_the_bucket_changes() {
-        // 1ms buckets: a tiny sleep moves to a new bucket and resets the count.
-        let t = LockoutTimer::new(1, 1);
-        t.add_count();
-        assert!(t.is_locked());
-        std::thread::sleep(std::time::Duration::from_millis(3));
-        assert!(!t.is_locked(), "new time bucket resets the counter");
+        let t = LockoutTimer::new(1_000, 1);
+        t.add_count_at(5_000);
+        assert!(t.is_locked_at(5_999), "same bucket still holds the count");
+        assert!(!t.is_locked_at(6_000), "new time bucket resets the counter");
     }
 
     #[test]
