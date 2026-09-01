@@ -6,6 +6,12 @@ use std::sync::Mutex;
 const COMMITTER_NAME: &str = "SilverBullet";
 const COMMITTER_EMAIL: &str = "silverbullet@silverbullet.local";
 
+pub struct StagedChange {
+    pub status: char,
+    pub path: String,
+    pub renamed_from: Option<String>,
+}
+
 pub struct RevisionStore {
     root: PathBuf,
     repo: Mutex<Option<PathBuf>>,
@@ -201,6 +207,17 @@ impl RevisionStore {
         Ok(Some(id.trim().to_string()))
     }
 
+    fn stage_paths(&self, repo: &Path, paths: &[String]) -> Result<(), String> {
+        let mut add_args: Vec<&str> = vec!["add", "-A", "-f", "--"];
+        let rels: Vec<String> = paths
+            .iter()
+            .map(|p| format!(":(literal){}", self.rel(p)))
+            .collect();
+        add_args.extend(rels.iter().map(|s| s.as_str()));
+        git::run(repo, &add_args, &[])?;
+        Ok(())
+    }
+
     /// Commit the current on-disk state of `paths` (space-relative). Missing
     /// files become deletions. Returns Ok(None) when nothing changed.
     pub fn commit_batch(
@@ -214,16 +231,66 @@ impl RevisionStore {
             return Ok(None);
         }
         let repo = self.prepare_commit()?;
+        self.stage_paths(&repo, paths)?;
+        self.commit_staged(&repo, author_name, author_email, message)
+    }
 
-        let mut add_args: Vec<&str> = vec!["add", "-A", "-f", "--"];
+    /// Like [`Self::commit_batch`], but derives the message from what
+    /// actually landed in the index instead of taking one from the caller.
+    /// A classification failure must never cost a commit, so it falls back
+    /// to the generic multi-path summary rather than erroring out.
+    pub fn commit_batch_auto(
+        &self,
+        author_name: &str,
+        author_email: &str,
+        paths: &[String],
+    ) -> Result<Option<String>, String> {
+        if paths.is_empty() {
+            return Ok(None);
+        }
+        let repo = self.prepare_commit()?;
+        self.stage_paths(&repo, paths)?;
+        let message = self
+            .classify_staged(&repo, paths)
+            .ok()
+            .and_then(|c| derive_message(&c))
+            .unwrap_or_else(|| fallback_message(paths));
+        self.commit_staged(&repo, author_name, author_email, &message)
+    }
+
+    /// `-z` records are `<status>\0<path>`, except renames and copies, which
+    /// carry a second path -- the destination, which is the one that now exists.
+    fn classify_staged(&self, repo: &Path, paths: &[String]) -> Result<Vec<StagedChange>, String> {
+        let mut args: Vec<&str> = vec!["diff", "--cached", "--name-status", "-z", "--"];
         let rels: Vec<String> = paths
             .iter()
             .map(|p| format!(":(literal){}", self.rel(p)))
             .collect();
-        add_args.extend(rels.iter().map(|s| s.as_str()));
-        git::run(&repo, &add_args, &[])?;
-
-        self.commit_staged(&repo, author_name, author_email, message)
+        args.extend(rels.iter().map(|s| s.as_str()));
+        let out = git::run(repo, &args, &[])?;
+        let mut fields = out.split('\0').filter(|f| !f.is_empty());
+        let mut changes = Vec::new();
+        while let Some(status) = fields.next() {
+            let code = status.chars().next().unwrap_or('M');
+            let first = match fields.next() {
+                Some(p) => p,
+                None => break,
+            };
+            let (path, renamed_from) = if matches!(code, 'R' | 'C') {
+                match fields.next() {
+                    Some(dest) => (dest, Some(first.to_string())),
+                    None => (first, None),
+                }
+            } else {
+                (first, None)
+            };
+            changes.push(StagedChange {
+                status: code,
+                path: path.to_string(),
+                renamed_from,
+            });
+        }
+        Ok(changes)
     }
 
     /// Commit everything under the space that differs from HEAD, whether or
@@ -248,6 +315,81 @@ impl RevisionStore {
         git::run(&repo, &add_args, &[])?;
 
         self.commit_staged(&repo, author_name, author_email, message)
+    }
+}
+
+fn noun(paths: &[&str], count: usize) -> &'static str {
+    let page = paths.iter().all(|p| p.ends_with(".md"));
+    match (page, count) {
+        (true, 1) => "page",
+        (true, _) => "pages",
+        (false, 1) => "file",
+        (false, _) => "files",
+    }
+}
+
+fn derive_message(changes: &[StagedChange]) -> Option<String> {
+    if changes.is_empty() {
+        return None;
+    }
+    if changes.len() == 1 {
+        let c = &changes[0];
+        if c.status == 'R' {
+            return Some(match &c.renamed_from {
+                Some(from) => format!("Rename {from} \u{2192} {}", c.path),
+                None => format!("Rename {}", c.path),
+            });
+        }
+        let verb = match c.status {
+            'A' => "Create",
+            'D' => "Delete",
+            _ => "Update",
+        };
+        return Some(format!("{verb} {}", c.path));
+    }
+    let group = |code: char| -> Vec<&str> {
+        changes
+            .iter()
+            .filter(|c| {
+                if code == 'M' {
+                    !matches!(c.status, 'A' | 'D' | 'R')
+                } else {
+                    c.status == code
+                }
+            })
+            .map(|c| c.path.as_str())
+            .collect()
+    };
+    let parts: Vec<(&str, Vec<&str>)> = vec![
+        ("update", group('M')),
+        ("create", group('A')),
+        ("delete", group('D')),
+        ("rename", group('R')),
+    ];
+    let present: Vec<(&str, Vec<&str>)> =
+        parts.into_iter().filter(|(_, v)| !v.is_empty()).collect();
+    let (lead_verb, lead) = present.first()?;
+    let lead_verb: &str = lead_verb;
+    let all: Vec<&str> = changes.iter().map(|c| c.path.as_str()).collect();
+    let mut out = format!(
+        "{}{} {} {}",
+        lead_verb[..1].to_uppercase(),
+        &lead_verb[1..],
+        lead.len(),
+        noun(&all, lead.len())
+    );
+    for (verb, group) in present.iter().skip(1) {
+        out.push_str(&format!(", {verb} {}", group.len()));
+    }
+    Some(out)
+}
+
+/// Message used when classification is unavailable or produced nothing.
+fn fallback_message(paths: &[String]) -> String {
+    match paths.len() {
+        1 => format!("Update {}", paths[0]),
+        2 => format!("Update {}, {}", paths[0], paths[1]),
+        n => format!("Update {}, {} (+{} more)", paths[0], paths[1], n - 2),
     }
 }
 
@@ -474,6 +616,119 @@ mod tests {
         assert_eq!(
             discover_repo_root(&sub).unwrap(),
             dir.path().canonicalize().unwrap()
+        );
+    }
+
+    fn message_of(dir: &tempfile::TempDir) -> String {
+        git_out(dir.path(), &["log", "-1", "--format=%s"])
+    }
+
+    #[test]
+    fn derived_message_names_a_single_created_page() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::write(dir.path().join("Alpha.md"), b"hi").unwrap();
+        store
+            .commit_batch_auto("alice", "alice@x", &["Alpha.md".into()])
+            .unwrap();
+        assert_eq!(message_of(&dir), "Create Alpha.md");
+    }
+
+    #[test]
+    fn derived_message_names_an_update_a_deletion_and_a_rename() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::write(dir.path().join("Alpha.md"), b"hi").unwrap();
+        std::fs::write(dir.path().join("Beta.md"), b"yo").unwrap();
+        std::fs::write(dir.path().join("Gamma.md"), b"same content\n").unwrap();
+        store
+            .commit_batch_auto(
+                "alice",
+                "alice@x",
+                &["Alpha.md".into(), "Beta.md".into(), "Gamma.md".into()],
+            )
+            .unwrap();
+
+        std::fs::write(dir.path().join("Alpha.md"), b"changed").unwrap();
+        store
+            .commit_batch_auto("alice", "alice@x", &["Alpha.md".into()])
+            .unwrap();
+        assert_eq!(message_of(&dir), "Update Alpha.md");
+
+        std::fs::remove_file(dir.path().join("Beta.md")).unwrap();
+        store
+            .commit_batch_auto("alice", "alice@x", &["Beta.md".into()])
+            .unwrap();
+        assert_eq!(message_of(&dir), "Delete Beta.md");
+
+        // Identical content, matching read.rs's rename tests, so git's
+        // rename detector fires at 100% similarity and this can't go flaky.
+        std::fs::rename(dir.path().join("Gamma.md"), dir.path().join("Delta.md")).unwrap();
+        store
+            .commit_batch_auto("alice", "alice@x", &["Gamma.md".into(), "Delta.md".into()])
+            .unwrap();
+        assert_eq!(message_of(&dir), "Rename Gamma.md \u{2192} Delta.md");
+    }
+
+    #[test]
+    fn derived_message_counts_a_mixed_batch() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        for name in ["a.md", "b.md", "c.md"] {
+            std::fs::write(dir.path().join(name), b"x").unwrap();
+        }
+        store
+            .commit_batch_auto(
+                "alice",
+                "alice@x",
+                &["a.md".into(), "b.md".into(), "c.md".into()],
+            )
+            .unwrap();
+        assert_eq!(message_of(&dir), "Create 3 pages");
+
+        std::fs::write(dir.path().join("a.md"), b"y").unwrap();
+        std::fs::write(dir.path().join("d.md"), b"new").unwrap();
+        std::fs::remove_file(dir.path().join("c.md")).unwrap();
+        store
+            .commit_batch_auto(
+                "alice",
+                "alice@x",
+                &["a.md".into(), "c.md".into(), "d.md".into()],
+            )
+            .unwrap();
+        assert_eq!(message_of(&dir), "Update 1 page, create 1, delete 1");
+    }
+
+    #[test]
+    fn derived_message_says_file_for_a_non_markdown_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::write(dir.path().join("logo.png"), b"\x89PNG").unwrap();
+        std::fs::write(dir.path().join("icon.png"), b"\x89PNG").unwrap();
+        store
+            .commit_batch_auto("alice", "alice@x", &["logo.png".into(), "icon.png".into()])
+            .unwrap();
+        assert_eq!(message_of(&dir), "Create 2 files");
+    }
+
+    #[test]
+    fn fallback_message_names_a_single_path() {
+        assert_eq!(fallback_message(&["a.md".into()]), "Update a.md");
+    }
+
+    #[test]
+    fn fallback_message_lists_two_paths() {
+        assert_eq!(
+            fallback_message(&["a.md".into(), "b.md".into()]),
+            "Update a.md, b.md"
+        );
+    }
+
+    #[test]
+    fn fallback_message_summarizes_more_than_two_paths() {
+        assert_eq!(
+            fallback_message(&["a.md".into(), "b.md".into(), "c.md".into(), "d.md".into()]),
+            "Update a.md, b.md (+2 more)"
         );
     }
 }
