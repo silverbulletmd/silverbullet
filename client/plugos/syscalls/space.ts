@@ -36,10 +36,15 @@ async function fetchRevisionsJson(
     { method: "GET", headers: { Accept: "application/json" } },
   );
   if (resp.status === 404) {
-    throw new Error("Revisions are not available for this space");
+    throw Object.assign(
+      new Error("Revisions are not available for this space"),
+      { status: resp.status },
+    );
   }
   if (!resp.ok) {
-    throw new Error(`Revisions request failed: ${resp.status}`);
+    throw Object.assign(new Error(`Revisions request failed: ${resp.status}`), {
+      status: resp.status,
+    });
   }
   return resp.json();
 }
@@ -237,18 +242,30 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.listRevisions(path, before?)"],
     },
     "space.getRevision": {
-      callback: async (_ctx, path: string, rev: string): Promise<string> => {
+      callback: async (
+        _ctx,
+        path: string,
+        rev: string,
+        parent?: boolean,
+      ): Promise<string> => {
         const resp = await client.httpSpacePrimitives.authenticatedFetch(
-          revisionsUrl(client, `${encodePageURI(path)}?rev=${rev}`),
+          revisionsUrl(
+            client,
+            `${encodePageURI(path)}?rev=${rev}${parent ? "&parent=1" : ""}`,
+          ),
           { method: "GET" },
         );
         if (!resp.ok) {
-          throw new Error(`Could not load revision: ${resp.status}`);
+          throw Object.assign(
+            new Error(`Could not load revision: ${resp.status}`),
+            { status: resp.status },
+          );
         }
         return resp.text();
       },
-      description: "Reads the text of a file as it was at a given revision.",
-      signatures: ["space.getRevision(path, rev)"],
+      description:
+        "Reads the text of a file as it was at a given revision, or at that revision's parent.",
+      signatures: ["space.getRevision(path, rev, parent?)"],
     },
     "space.getRevisionDiff": {
       callback: async (_ctx, path: string, rev?: string): Promise<string> => {
@@ -272,10 +289,17 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.getRevisionDiff(path, rev?)"],
     },
     "space.getSpaceLog": {
-      callback: (_ctx, before?: string): Promise<SpaceLog> =>
-        fetchRevisionsJson(client, before ? `?before=${before}` : ""),
+      callback: (_ctx, before?: string, q?: string): Promise<SpaceLog> => {
+        const params: string[] = [];
+        if (before) params.push(`before=${before}`);
+        if (q) params.push(`q=${encodeURIComponent(q)}`);
+        return fetchRevisionsJson(
+          client,
+          params.length ? `?${params.join("&")}` : "",
+        );
+      },
       description: "Lists the space-wide commit log.",
-      signatures: ["space.getSpaceLog(before?)"],
+      signatures: ["space.getSpaceLog(before?, q?)"],
     },
   };
 }

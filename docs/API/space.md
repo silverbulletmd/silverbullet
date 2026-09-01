@@ -67,21 +67,21 @@ Returns metadata for a page.
 
 ## space.getRevision
 
-`space.getRevision(path, rev)`
+`space.getRevision(path, rev, parent?)`
 
-Reads the text of a file as it was at a given revision.
+Reads the text of a file as it was at a given revision, or at that revision's parent.
 
 ## space.getRevisionDiff
 
-`space.getRevisionDiff(path, rev)`
+`space.getRevisionDiff(path, rev?)`
 
-Reads a unified diff of a revision's own change (vs its parent).
+Reads a unified diff of a revision's own change (vs its parent), or of the uncommitted change when no revision is given.
 
 ## space.getSpaceLog
 
-`space.getSpaceLog(before?)`
+`space.getSpaceLog(before?, q?)`
 
-Lists the space-wide commit log.
+Lists the space-wide commit log. Each commit's `files` — and the `uncommitted` list — are tables of `{path, status}`, where `status` is `added`, `modified`, `deleted` or `renamed`.
 
 ## space.listAttachments
 

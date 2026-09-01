@@ -241,12 +241,19 @@ export function listRevisions(
 }
 
 /**
- * Reads the text of a file as it was at a given revision.
+ * Reads the text of a file as it was at a given revision, or at that
+ * revision's parent.
  * @param path the path of the file to read
  * @param rev the revision id to read
+ * @param parent read the file as of the revision's parent instead (e.g. the
+ * version immediately before a deletion commit)
  */
-export function getRevision(path: string, rev: string): Promise<string> {
-  return syscall("space.getRevision", path, rev);
+export function getRevision(
+  path: string,
+  rev: string,
+  parent?: boolean,
+): Promise<string> {
+  return syscall("space.getRevision", path, rev, parent);
 }
 
 /**
@@ -262,9 +269,10 @@ export function getRevisionDiff(path: string, rev?: string): Promise<string> {
 /**
  * Lists the space-wide commit log.
  * @param before list commits older than this revision id
+ * @param q match commits whose message or author contains this phrase
  */
-export function getSpaceLog(before?: string): Promise<SpaceLog> {
-  return syscall("space.getSpaceLog", before);
+export function getSpaceLog(before?: string, q?: string): Promise<SpaceLog> {
+  return syscall("space.getSpaceLog", before, q);
 }
 
 /**
