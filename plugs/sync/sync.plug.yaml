@@ -33,7 +33,3 @@ functions:
     path: "./sync.ts:updateSyncStatus"
     events:
       - "service-worker:sync-status"
-  reportSyncConflict:
-    path: "./sync.ts:reportSyncConflict"
-    events:
-      - "service-worker:sync-conflict"

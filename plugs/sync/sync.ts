@@ -62,10 +62,3 @@ export async function updateSyncStatus(event: {
     }
   }
 }
-
-export async function reportSyncConflict({ path }: { path: string }) {
-  await editor.flashNotification(
-    `Sync: conflict detected for ${path} - conflict copy created`,
-    "error",
-  );
-}
