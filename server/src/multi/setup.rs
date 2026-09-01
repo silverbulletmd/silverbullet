@@ -150,6 +150,7 @@ pub fn run_setup(
             full_name: profile.full_name,
             email: profile.email,
             tokens: BTreeMap::new(),
+            session_epoch: 0,
             extra: Default::default(),
         },
     );

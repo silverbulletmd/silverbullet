@@ -129,6 +129,10 @@ export async function createToken(user: string, name: string): Promise<string> {
   return r.token;
 }
 
+export function signOutEverywhere(user: string): Promise<void> {
+  return adminApi("DELETE", `users/${encodeURIComponent(user)}/sessions`);
+}
+
 export function deleteToken(user: string, name: string): Promise<void> {
   return adminApi(
     "DELETE",

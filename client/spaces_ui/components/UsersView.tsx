@@ -1,4 +1,3 @@
-import { useEffect, useState } from "preact/hooks";
 import {
   Alert,
   Badge,
@@ -6,6 +5,7 @@ import {
   Checkbox,
   Input,
 } from "@silverbulletmd/silverbullet/ui";
+import { useEffect, useState } from "preact/hooks";
 import {
   createToken,
   createUser,
@@ -17,6 +17,7 @@ import {
   setUserAdmin,
   setUserPassword,
   setUserProfile,
+  signOutEverywhere,
 } from "../api.ts";
 import { useNavigate } from "../navigation.ts";
 import { spacesUrl } from "../routes.ts";
@@ -408,6 +409,24 @@ export function UserDetail({
             <Button onClick={() => setShownToken(undefined)}>Dismiss</Button>
           </div>
         )}
+      </section>
+      <section>
+        <h2>Sessions</h2>
+        <Button
+          onClick={() => {
+            const message = isSelf
+              ? `Sign out everywhere for your own account "${username}"? You will be logged out immediately.`
+              : `Sign out every browser session and connected app for "${username}"?`;
+            if (!confirm(message)) return;
+            void run(async () => {
+              await signOutEverywhere(username);
+              if (isSelf) location.assign("/");
+              else await reload();
+            });
+          }}
+        >
+          Sign out everywhere
+        </Button>
       </section>
       <div class="sb-danger-zone">
         <Button

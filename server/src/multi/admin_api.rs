@@ -388,6 +388,21 @@ async fn handle_set_user_password(
     }
 }
 
+/// Signs `name` out of every session — the only revocation lever for an
+/// account with no password to change.
+async fn handle_delete_sessions(
+    State(state): State<Arc<AdminState>>,
+    AxumPath(name): AxumPath<String>,
+) -> Response {
+    let users = state.users.clone();
+    let result = run_blocking(move || Ok(users.bump_session_epoch(&name))).await;
+    match result {
+        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Err(e)) => user_store_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 #[derive(Deserialize)]
 struct SetAdminBody {
     admin: bool,
@@ -564,6 +579,10 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
         )
         .route("/users/{name}/password", post(handle_set_user_password))
         .route(
+            "/users/{name}/sessions",
+            axum::routing::delete(handle_delete_sessions),
+        )
+        .route(
             "/users/{name}/profile",
             axum::routing::put(handle_set_user_profile),
         )
@@ -686,6 +705,15 @@ mod tests {
 
     fn get(uri: &str) -> Request<Body> {
         Request::builder()
+            .uri(uri)
+            .header("host", "localhost")
+            .body(Body::empty())
+            .unwrap()
+    }
+
+    fn del(uri: &str) -> Request<Body> {
+        Request::builder()
+            .method("DELETE")
             .uri(uri)
             .header("host", "localhost")
             .body(Body::empty())
@@ -1459,6 +1487,31 @@ mod tests {
             &new_cookie,
         )
         .await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn deleting_sessions_requires_admin_and_bumps_one_user() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        users
+            .create_user("bob", "pw123456", false, Profile::default())
+            .unwrap();
+        let before = users.credential_version("bob").unwrap();
+        let carol_before = users.credential_version("admin").unwrap();
+
+        let anon = send(&router, del("/api/users/bob/sessions")).await;
+        assert_eq!(anon.status(), StatusCode::UNAUTHORIZED);
+
+        let resp = authed(&router, "DELETE", "/api/users/bob/sessions", "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_ne!(users.credential_version("bob").unwrap(), before);
+        // Only bob's sessions were revoked.
+        assert_eq!(users.credential_version("admin").unwrap(), carol_before);
+
+        // A nonexistent user 404s.
+        let resp = authed(&router, "DELETE", "/api/users/ghost/sessions", "", &cookie).await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 

@@ -36,6 +36,8 @@ pub struct UserEntry {
     pub email: Option<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub tokens: BTreeMap<String, TokenEntry>,
+    #[serde(default)]
+    pub session_epoch: u64,
     /// Fields written by newer versions, preserved verbatim.
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -225,7 +227,11 @@ impl UserStore {
     }
 
     /// Opaque version embedded in a user's JWT. It changes with the password
-    /// hash, allowing password changes to revoke only this user's sessions.
+    /// hash or the session epoch, so either a password change or an explicit
+    /// `bump_session_epoch` call revokes only this user's sessions — the
+    /// latter is the only revocation lever for an account with no password
+    /// to change (e.g. one that signs in through an external identity
+    /// provider).
     pub fn credential_version(&self, username: &str) -> Option<String> {
         let guard = self.read();
         let user = guard.users.get(username)?;
@@ -233,6 +239,8 @@ impl UserStore {
         h.update(username.as_bytes());
         h.update([0]);
         h.update(user.password_hash.as_bytes());
+        h.update([0]);
+        h.update(user.session_epoch.to_string().as_bytes());
         Some(hex(&h.finalize()))
     }
 
@@ -287,6 +295,7 @@ impl UserStore {
                     full_name: profile.full_name.clone(),
                     email: profile.email.clone(),
                     tokens: BTreeMap::new(),
+                    session_epoch: 0,
                     extra: Default::default(),
                 },
             );
@@ -337,6 +346,20 @@ impl UserStore {
                 .get_mut(name)
                 .ok_or_else(|| format!("no such user {name:?}"))?;
             entry.password_hash = password_hash;
+            Ok(())
+        })
+    }
+
+    /// Invalidate `name`'s sessions without touching their password —
+    /// the admin "sign out everywhere" lever, and the only one available
+    /// for an account with no password to change.
+    pub fn bump_session_epoch(&self, name: &str) -> Result<(), String> {
+        self.mutate(|c| {
+            let entry = c
+                .users
+                .get_mut(name)
+                .ok_or_else(|| format!("no such user {name:?}"))?;
+            entry.session_epoch = entry.session_epoch.saturating_add(1);
             Ok(())
         })
     }
@@ -534,6 +557,29 @@ mod tests {
     }
 
     #[test]
+    fn bumping_the_session_epoch_invalidates_only_that_users_sessions() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        s.create_user("bob", "pw123456", false, Profile::default())
+            .unwrap();
+        s.create_user("carol", "pw123456", false, Profile::default())
+            .unwrap();
+        let bob = s.credential_version("bob").unwrap();
+        let carol = s.credential_version("carol").unwrap();
+
+        s.bump_session_epoch("bob").unwrap();
+        assert!(!s.session_is_current("bob", Some(&bob)));
+        assert!(s.session_is_current("carol", Some(&carol)));
+    }
+
+    #[test]
+    fn bump_session_epoch_on_missing_user_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = store(dir.path());
+        assert!(s.bump_session_epoch("nobody").is_err());
+    }
+
+    #[test]
     fn list_redacts_hashes() {
         let dir = tempfile::tempdir().unwrap();
         let s = store(dir.path());
@@ -601,6 +647,13 @@ mod tests {
         let entry = config.users.get("ada").unwrap();
         assert_eq!(entry.full_name, None);
         assert_eq!(entry.email, None);
+    }
+
+    #[test]
+    fn a_users_json_written_before_session_epoch_existed_still_loads() {
+        let legacy = r#"{"bob":{"passwordHash":"$argon2id$x"}}"#;
+        let config = UsersConfig::from_json(legacy).unwrap();
+        assert_eq!(config.users["bob"].session_epoch, 0);
     }
 
     #[test]
