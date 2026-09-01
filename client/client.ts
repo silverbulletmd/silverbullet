@@ -137,6 +137,14 @@ const REALTIME_ORIGIN_TTL_MS = 30_000;
 // Window within which an identical sync notification is shown only once.
 const SYNC_FLASH_DEDUP_MS = 5_000;
 
+// Service worker messages that mean the sync engine is still delivering.
+const SYNC_PROGRESS_MESSAGES = new Set([
+  "file-synced",
+  "file-sync-complete",
+  "space-sync-complete",
+  "sync-status",
+]);
+
 export class Client {
   eventHook: EventHook;
 
@@ -178,6 +186,9 @@ export class Client {
   // Paths the sync engine has pulled down this session, fed by "file-synced"
   // messages
   readonly syncedPaths = new Set<string>();
+  // Seeded at boot so a client that never hears from the sync engine at all
+  // still has a point to measure the stall from.
+  lastSyncProgressAt = Date.now();
   // Boot-time server round trip in ms; undefined when the ping failed
   serverPingMs?: number;
   private versionMismatchNotified = false;
@@ -1227,6 +1238,9 @@ export class Client {
         this.recentSyncFlashes.set(notification.text, now);
         this.ui.flashNotification(notification.text, notification.style);
       }
+    }
+    if (SYNC_PROGRESS_MESSAGES.has(message.type)) {
+      this.lastSyncProgressAt = Date.now();
     }
     switch (message.type) {
       case "file-synced": {

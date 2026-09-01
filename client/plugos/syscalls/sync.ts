@@ -3,6 +3,11 @@ import type { SysCallMapping } from "../system.ts";
 
 export function syncSyscalls(client: Client): SysCallMapping {
   const syncTimeoutMs = 30000;
+  // Deferring indexing only pays off while the sync engine is actually
+  // delivering files. Once it has gone this long without reporting progress
+  // there is nothing left to yield to, and continuing to defer would stall
+  // the initial index forever.
+  const syncStallMs = 5000;
 
   function waitForServiceWorkerActivation(path?: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
@@ -76,7 +81,8 @@ export function syncSyscalls(client: Client): SysCallMapping {
           !!client.bootConfig.disableServiceWorker ||
           client.fullSyncCompleted ||
           client.fullIndexCompleted ||
-          (client.serverPingMs !== undefined && client.serverPingMs < 25);
+          (client.serverPingMs !== undefined && client.serverPingMs < 25) ||
+          Date.now() - client.lastSyncProgressAt > syncStallMs;
         return paths.map((path) => allReady || client.syncedPaths.has(path));
       },
       description:
