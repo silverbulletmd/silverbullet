@@ -112,6 +112,7 @@ async function builtinRows(
       description: view.row.description?.(obj),
       decorations: view.row.decorations?.(obj),
       cssClass: view.row.cssClass?.(obj),
+      priority: view.row.priority?.(obj),
     }));
   } catch (e: any) {
     // The panel renders this rather than emptying itself, same as the Lua

@@ -55,6 +55,15 @@ tag.define {
           },
           hide = schema.nullable("boolean"),
           renderWidgets = schema.nullable("boolean"),
+          icon = schema.nullable("string"),
+          tree = {
+            type = "object",
+            properties = {
+              priority = schema.nullable("number"),
+              hide = schema.nullable("boolean"),
+            },
+            nullable = true,
+          },
         },
         nullable = true,
       },

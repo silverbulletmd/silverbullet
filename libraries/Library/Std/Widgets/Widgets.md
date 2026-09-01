@@ -30,7 +30,7 @@ None of the three has an `enabled` config key any more. Each remembers its own d
 config.set("std.widgets.toc.minHeaders", 5)
 ```
 
-To set where a view docks space-wide, use `view.docks` (`navigator.docks` still works as a fallback)
+To set where a view docks space-wide — and whether it starts open, folded, or how wide — use `view.defaults` (`view.docks` and `navigator.docks` still work as dock-only fallbacks).
 
 # Implementation
 

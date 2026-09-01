@@ -22,6 +22,8 @@ export type RowSpec<T = ObjectValue<Record<string, any>>> = {
   decorations?: (obj: T) => Decoration[] | undefined;
   cssClass?: (obj: T) => string | undefined;
   icon?: (obj: T) => string | undefined;
+  /** Tree mode: see `Row.priority`. */
+  priority?: (obj: T) => number | undefined;
 };
 
 export type Segment<T = ObjectValue<Record<string, any>>> = {

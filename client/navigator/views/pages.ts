@@ -27,7 +27,10 @@ export function isMetaPage(obj: { tag?: string; tags?: string[] }): boolean {
   return false;
 }
 
-function isHiddenPage(obj: PageObj): boolean {
+/** Also used by `space_tree.ts`: a page hidden from navigation is hidden
+ * there too. Loosely typed for the same reason `isMetaPage` is --
+ * `space_tree.ts` calls it with a synthesized tree folder as well. */
+export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
 }
 
@@ -164,6 +167,8 @@ function pickerDescription(obj: PageObj): string | undefined {
 
 function spaceIcon(obj: PageObj): string {
   if (obj.isAspiring) return "file-plus";
+  const decorated = obj.pageDecoration?.icon;
+  if (typeof decorated === "string" && decorated !== "") return decorated;
   if (obj.tag === "document") {
     return String(obj.contentType ?? "").startsWith("image/")
       ? "image"

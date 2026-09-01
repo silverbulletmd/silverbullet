@@ -7,7 +7,7 @@ import {
 import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
-import { isMetaPage, spaceContents } from "./pages.ts";
+import { isHiddenPage, isMetaPage, spaceContents } from "./pages.ts";
 import {
   baseMeta,
   type BuiltinView,
@@ -24,6 +24,8 @@ function treeIcon(obj: TreeObj): string {
   // Only a pure folder gets the folder icon. A dual has a page behind it and
   // reads as that page, so it falls through to the icons below like any other.
   if (obj.isFolder && obj.ref == null) return "folder";
+  const decorated = obj.pageDecoration?.icon;
+  if (typeof decorated === "string" && decorated !== "") return decorated;
   if (obj.isAspiring) return "file-plus";
   if (obj.perm === "ro") return "lock";
   if (obj.tag === "document") {
@@ -63,6 +65,14 @@ const spaceTreeSegments: Segment<TreeObj>[] = [
   },
 ];
 
+/** Unlike the picker, the tree has no segment that keeps hidden pages: a page
+ * hidden from navigation is hidden here too, and `tree.hide` hides it from
+ * here alone. A hidden page with children still leaves its folder behind --
+ * the folder is synthesized from the children's names. */
+function isTreeHidden(obj: TreeObj): boolean {
+  return isHiddenPage(obj) || obj.pageDecoration?.tree?.hide === true;
+}
+
 async function spaceTreeSource(): Promise<TreeObj[]> {
   const contents = await spaceContents();
   const collation = await config.get<QueryCollationConfig>(
@@ -70,9 +80,11 @@ async function spaceTreeSource(): Promise<TreeObj[]> {
     {},
   );
   const collator = Intl.Collator(collation?.locale, collation?.options);
-  return [...contents].sort((a, b) =>
-    compareCollated(String(a.name), String(b.name), collation, collator),
-  ) as TreeObj[];
+  return (contents as TreeObj[])
+    .filter((obj) => !isTreeHidden(obj))
+    .sort((a, b) =>
+      compareCollated(String(a.name), String(b.name), collation, collator),
+    );
 }
 
 async function moveByRename(obj: TreeObj, newName: string): Promise<void> {
@@ -170,7 +182,10 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     selectableFolders: true,
     refreshOn: INDEX_REFRESH_EVENTS,
   }),
-  row: { icon: treeIcon },
+  row: {
+    icon: treeIcon,
+    priority: (obj) => obj.pageDecoration?.tree?.priority,
+  },
   segments: spaceTreeSegments,
   actions: [
     {

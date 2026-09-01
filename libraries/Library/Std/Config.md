@@ -479,6 +479,21 @@ config.define("actionButtons", {
     additionalProperties = false
   }
 })
+
+config.define("view.defaults", {
+  description = "Per-view presentation defaults, keyed by view name.",
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      dock = { type = "string", enum = {"modal", "lhs", "rhs", "page-top", "page-bottom"} },
+      open = { type = "boolean" },
+      collapsed = { type = "boolean" },
+      width = { type = "number", minimum = 160, maximum = 600 },
+    },
+    additionalProperties = false,
+  },
+})
 ```
 
 # Default values

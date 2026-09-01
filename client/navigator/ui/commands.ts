@@ -1,6 +1,7 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { nodeObject, type TreeNode } from "../../../plug-api/ui/tree_model.ts";
 import { hide, route } from "../navigator.ts";
+import type { HideOpts } from "../panel_lifecycle.ts";
 import type { NavigatorEngine } from "./engine.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
@@ -85,7 +86,7 @@ export function createCommands({
     refresh,
   });
 
-  async function close() {
+  async function close(opts?: HideOpts) {
     // A newer activation may already have taken this slot, in which case this
     // close belongs to nothing: the token it was handed is what the lifecycle
     // compares against the slot's current occupant before closing anything.
@@ -96,7 +97,7 @@ export function createCommands({
     ) {
       return;
     }
-    await hide(slot, handledToken.current);
+    await hide(slot, handledToken.current, opts);
     await editor.focus();
   }
 
@@ -105,11 +106,15 @@ export function createCommands({
   // opened. A desktop sidebar stays, that being the point of a sidebar.
   const closesOnSelect = slot === "modal" || mobile;
 
+  // The drawer getting out of the way of what was just opened is not the
+  // client saying it wants this view closed from now on.
+  const dismiss = () => close({ recordIntent: false });
+
   async function runCreate() {
     if (!view || !canCreate) return;
     await engine.create(view.name, trimmedPhrase);
     if (closesOnSelect) {
-      await close();
+      await dismiss();
     } else {
       setPhrase("");
       setSelectedIndex(0);
@@ -274,7 +279,7 @@ export function createCommands({
     // An `onSelect` that returned false has taken the slot over itself (the
     // tag picker handing it back to the picker that routed to it, say), so
     // closing here would shut the panel it just opened.
-    if (closesOnSelect && kept !== false) await close();
+    if (closesOnSelect && kept !== false) await dismiss();
   }
 
   async function selectTreeNode(node: TreeNode) {
@@ -287,12 +292,12 @@ export function createCommands({
           returnTo.current,
         );
         tree.expandPath(node.path);
-        if (closesOnSelect && kept !== false) await close();
+        if (closesOnSelect && kept !== false) await dismiss();
         return;
       }
       await editor.navigate(node.path);
       tree.expandPath(node.path);
-      if (closesOnSelect) await close();
+      if (closesOnSelect) await dismiss();
       return;
     }
     if (node.row) {
@@ -305,7 +310,7 @@ export function createCommands({
         tree.expandPath(node.path);
         return;
       }
-      if (closesOnSelect && kept !== false) await close();
+      if (closesOnSelect && kept !== false) await dismiss();
     } else {
       tree.toggleExpanded(node.path);
     }

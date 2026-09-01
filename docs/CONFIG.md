@@ -167,3 +167,10 @@ tag.define {
 -- managed-by: configuration-manager
 config.set("linkWriteFormat", "full-path")
 ```
+
+# View defaults
+```space-lua
+config.set("view.defaults", {
+  ["std.spaceTree"] = { open = true, width = 240 },
+})
+```

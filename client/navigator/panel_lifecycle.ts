@@ -42,6 +42,17 @@ export type OpenOpts = {
   focus?: boolean;
 };
 
+export type HideOpts = {
+  /**
+   * Whether this close is the client saying it wants the view closed, and so
+   * should be remembered as `open = false`. `false` for a close the client
+   * did not ask for -- a narrow-screen drawer dismissing itself after a
+   * selection -- which must not opt the client out of a configured `open`.
+   * Defaults to `true`.
+   */
+  recordIntent?: boolean;
+};
+
 const NAMESPACE = "navigator";
 const MODAL_SLOT = "modal";
 /** The modal's inset, in pixels. */
@@ -65,6 +76,12 @@ export type PanelLifecycleConfig = {
   onSlotClosedWithoutSuccessor?(view: string): void;
   /** Resolves the slot a view actually opens in, overriding `meta.dock`. */
   resolveDock?(name: string, meta: PanelLifecycleMeta): Promise<string>;
+  /** The space's configured width for a view, if it set one. */
+  defaultWidth?(name: string): number | undefined;
+  /** Views the space configured open, for the boot-restore pass. */
+  getDefaultOpens?(): string[];
+  /** Whether a sidebar view opens at boot. */
+  sidebarDefaultOpen?(name: string): Promise<boolean>;
 };
 
 export function createPanelLifecycle(config: PanelLifecycleConfig) {
@@ -76,6 +93,10 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
 
   function widthMode(width: number): string {
     return `0 0 ${clampWidth(width)}px`;
+  }
+
+  function startingWidth(name: string): number {
+    return config.defaultWidth?.(name) ?? DEFAULT_WIDTH;
   }
 
   function dockedKey(slot: string) {
@@ -160,13 +181,16 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
       let mode: number | string = MODAL_MODE;
       if (slot !== MODAL_SLOT) {
         const saved = await datastore.get([NAMESPACE, name, "width"]);
-        mode = widthMode(typeof saved === "number" ? saved : DEFAULT_WIDTH);
+        mode = widthMode(
+          typeof saved === "number" ? saved : startingWidth(name),
+        );
       }
       slotMode.set(slot, mode);
       showSlot(slot, mode, activation, slot === MODAL_SLOT);
       if (slot !== MODAL_SLOT) {
         visibleSidebarView.set(slot, name);
         await datastore.set(dockedKey(slot), name);
+        await datastore.set([NAMESPACE, name, "open"], true);
       }
       return true;
     } finally {
@@ -205,7 +229,7 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
       showSlot(
         slot,
         slotMode.get(slot) ??
-          (slot === MODAL_SLOT ? MODAL_MODE : widthMode(DEFAULT_WIDTH)),
+          (slot === MODAL_SLOT ? MODAL_MODE : widthMode(startingWidth(name))),
         activation,
         // A hop swaps the rows under a panel that is already on screen:
         // gating it would blank what the user is looking at.
@@ -219,7 +243,11 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     }
   }
 
-  async function hide(slot: string, expectedToken?: number): Promise<void> {
+  async function hide(
+    slot: string,
+    expectedToken?: number,
+    opts?: HideOpts,
+  ): Promise<void> {
     const pending = pendingActivation.get(slot);
     if (
       expectedToken !== undefined &&
@@ -230,7 +258,20 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     visibleSidebarView.delete(slot);
     pendingActivation.delete(slot);
     if (pending) config.onSlotClosedWithoutSuccessor?.(pending.view);
-    if (sidebarSlots.includes(slot)) await datastore.del(dockedKey(slot));
+    if (sidebarSlots.includes(slot)) {
+      const resident = await datastore.get(dockedKey(slot));
+      await datastore.del(dockedKey(slot));
+      if (opts?.recordIntent !== false) {
+        if (pending) {
+          await datastore.set([NAMESPACE, pending.view, "open"], false);
+        }
+        // A `replaceInSlot` hop leaves the slot's resident-of-record behind:
+        // the user closed the panel, so neither view may reopen at boot.
+        if (typeof resident === "string" && resident !== pending?.view) {
+          await datastore.set([NAMESPACE, resident, "open"], false);
+        }
+      }
+    }
     const back = displaced.get(slot);
     displaced.delete(slot);
     if (back && config.getMeta(back)) {
@@ -290,6 +331,32 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         }
         name = saved;
       }
+      await activateShow(name, true);
+    }
+
+    const configuredOpens = [...(config.getDefaultOpens?.() ?? [])].sort();
+    for (const name of configuredOpens) {
+      const meta = config.getMeta(name);
+      if (!meta) continue;
+      const slot = config.resolveDock
+        ? await config.resolveDock(name, meta)
+        : meta.dock;
+      if (!sidebarSlots.includes(slot)) continue;
+      const occupant = pendingActivation.get(slot)?.view;
+      if (occupant) {
+        // Silent when it is this very view: the slot loop above already
+        // restored it from the docked key, which is the same outcome.
+        if (occupant !== name) {
+          // Two views configured open on the same side is an authoring
+          // mistake; a view the client itself left docked there is not.
+          const message =
+            `view.defaults: "${name}" is configured open on ${slot}, already taken by "${occupant}"`;
+          if (configuredOpens.includes(occupant)) console.warn(message);
+          else console.debug(message);
+        }
+        continue;
+      }
+      if (!(await config.sidebarDefaultOpen?.(name))) continue;
       await activateShow(name, true);
     }
   }

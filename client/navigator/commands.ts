@@ -1,4 +1,4 @@
-import { editor, events, space } from "@silverbulletmd/silverbullet/syscalls";
+import { datastore, editor, events, space } from "@silverbulletmd/silverbullet/syscalls";
 import type { CommandHook } from "../plugos/hooks/command.ts";
 import { openCommand } from "./navigator.ts";
 import { REVISIONS_CHANGED_EVENT } from "./views/revisions.ts";
@@ -49,6 +49,10 @@ export function registerNavigatorCommands(
       run: createSnapshot,
     });
   }
+  hook.registerCommand({
+    name: "Navigate: Reset All Views",
+    run: resetAllViews,
+  });
 }
 
 /**
@@ -69,4 +73,19 @@ async function createSnapshot(): Promise<void> {
     committed ? "Snapshot created" : "Nothing to snapshot",
   );
   await events.dispatchEvent(REVISIONS_CHANGED_EVENT, {});
+}
+
+/**
+ * A client's own dock/open/collapsed/width choices win over the space's
+ * `view.defaults`, so clearing them is the only way to see a later CONFIG
+ * edit on a client that has already moved or closed a view.
+ */
+async function resetAllViews(): Promise<void> {
+  const confirmed = await editor.confirm(
+    "Reset every view to this space's defaults? Your own dock, size and open/closed choices will be forgotten.",
+    { destructive: true },
+  );
+  if (!confirmed) return;
+  await datastore.batchDeletePrefix(["navigator"]);
+  location.reload();
 }

@@ -41,28 +41,36 @@ There are three families of dock, each with its own notion of "open":
 On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over the editor, spanning everything below the top bar. It dismisses on selection like the modal, and has no resize handle. Boot restore and `openOnStart` are skipped there entirely. Page docks are unaffected by screen width -- they're already part of the document flow.
 
 #### Persisted state and precedence
-Three pieces of state are remembered per view, in the client's local datastore (under the internal `navigator` namespace regardless of which Lua name -- `view.*` or `navigator.*` -- a script used):
+A few pieces of state are remembered per view, in the client’s local datastore:
 
 * `["navigator", <name>, "dock"]`: which dock the view currently sits in, once you've moved it (see [[#The dock menu]] below).
-* `["navigator", <name>, "open"]`: whether a page-docked view is currently open (set on close, on dock-menu moves into/out of a page dock, and by `view.open`/closing).
-* `["navigator", <name>, "collapsed"]`: whether a page-docked view is folded to its title bar (see the fold triangle under [[#The dock menu]]). Independent of `open` -- a folded view is still open, it just isn't showing its body.
+* `["navigator", <name>, "open"]`: whether the view is currently showing, for both dock families.
+* `["navigator", <name>, "collapsed"]`: whether a page-docked view is folded to its title bar.
+* `["navigator", <name>, "width"]`: the sidebar width the view was last dragged to, in pixels. Ignored outside `lhs`/`rhs`.
 
-Which dock a view actually opens in is resolved with this precedence, falling through whenever a level's value isn't one of the view's `supportedDocks`:
+Each of those is resolved the same way, falling through whenever a level's value isn't valid for the view:
 
-1. the datastore override above, if the view still supports it;
-2. the space's `view.docks` config (see below), if it names a dock the view still supports;
-3. the view's own declared `dock`.
+1. the datastore value above, if the view still supports it;
+2. the space’s `view.defaults` config (below);
+3. the view’s own declared value — `dock` and `defaultOpen` from `view.define`. `collapsed` and `width` have no declared level.
 
-`view.docks` is a space-wide default, set in [[CONFIG]] as a table from view name to dock:
+`view.defaults` is a space-wide table of presentation defaults, set in [[CONFIG]] and keyed by view name:
 
 ```lua
-config.set("view.docks", {
-  ["std.toc"] = "page-top",
-  ["std.linkedMentions"] = "rhs",
+config.set("view.defaults", {
+  ["std.toc"] = { dock = "page-top", open = true, width = 320 },
+  ["std.spaceTree"] = { open = true },
 })
 ```
 
-`navigator.docks` is read as a permanent fallback when `view.docks` is absent -- `view.docks` wins if both are set. It only takes effect for views whose `supportedDocks` includes the dock named -- an unsupported or unrecognized value is skipped, falling back to the view's own default.
+Because config paths nest, one view's defaults can also be set on their own -- `config.set({"view", "defaults", "std.toc"}, { dock = "page-top" })` -- so a library can ship a default that a space overrides one view at a time.
+
+Four fields, and they are defaults: a client that has moved, resized, folded or closed the view keeps its own choice. `Navigate: Reset All Views` forgets every such choice on that client, which is what makes a later `CONFIG` edit visible there.
+
+* `dock`: one of the five dock names. Only takes effect for a view whose `supportedDocks` includes it.
+* `open`: whether the view is showing. On a page dock that is the difference between the widget rendering and nothing rendering at all; on a sidebar it is whether the panel comes back at boot. Ignored for `modal`, which has no persisted open state. It overrides a page-docked view's declared `defaultOpen`; on a sidebar there is no declared level, because `defaultOpen` remains page-dock-only.
+* `collapsed`: whether a page widget starts folded to its title bar. Ignored outside `page-top`/`page-bottom`.
+* `width`: a sidebar's width in pixels, which must be between 160 and 600.
 
 #### The dock menu
 Every container a navigator view renders in -- sidebar, modal, or page widget -- gets this chrome in its header/title bar automatically, with no code required beyond declaring `supportedDocks`:
@@ -81,7 +89,7 @@ Every container a navigator view renders in -- sidebar, modal, or page widget --
 #### The source context
 `source` is handed a context table: `{ phrase = <what is typed>, segment = <active segment's label, or nil>, dock = <the dock it is being rendered in> }`. A [[#content|content view]]'s `content` function gets `phrase` and `dock` too.
 
-`ctx.dock` is the view's **resolved** dock — the same value the dock menu and `view.docks` settle on, never the declared default — so a view can present itself differently in a document than in a panel. The built-in Table of Contents uses it for exactly that:
+`ctx.dock` is the view's **resolved** dock — the same value the dock menu and `view.defaults` settle on, never the declared default — so a view can present itself differently in a document than in a panel. The built-in Table of Contents uses it for exactly that:
 
 ```lua
 source = function(ctx)

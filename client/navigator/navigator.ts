@@ -14,15 +14,17 @@ import {
   validateDefineSpec,
   wireMeta,
 } from "./lua_views.ts";
-import { createPanelLifecycle } from "./panel_lifecycle.ts";
+import { createPanelLifecycle, type HideOpts } from "./panel_lifecycle.ts";
 import { isPageDock, isWindowDock } from "./types.ts";
 import {
+  allViewNames,
   openOnStartViews,
   register,
   resolveMeta,
   selectInFlight,
   unregister,
 } from "./registry.ts";
+import type { ViewDefaultsTable } from "./view_defaults.ts";
 
 export type OpenOptions = {
   segment?: string;
@@ -51,16 +53,16 @@ function supersede(name: string) {
   else settlePick(name, null);
 }
 
-// The space's `navigator.docks` table is read per resolution; `config.get`
+// The space's `view.defaults` table is read per resolution; `config.get`
 // is synchronous-cached client-side so this is cheap.
-let spaceDocks: Record<string, string> = {};
-export function setSpaceDocks(docks: Record<string, string>): void {
-  spaceDocks = docks ?? {};
+let viewDefaults: ViewDefaultsTable = {};
+export function setViewDefaults(defaults: ViewDefaultsTable): void {
+  viewDefaults = defaults ?? {};
 }
 
 export const dockState = createDockState({
   store: datastore,
-  spaceDefault: (name) => spaceDocks[name],
+  spaceDefaults: (name) => viewDefaults[name],
 });
 
 export async function resolvedDock(name: string): Promise<string | undefined> {
@@ -75,6 +77,10 @@ const lifecycle = createPanelLifecycle({
   onSuperseded: supersede,
   onSlotClosedWithoutSuccessor: (view) => settlePick(view, null),
   resolveDock: (name, meta) => dockState.resolveDock(name, meta),
+  defaultWidth: (name) => viewDefaults[name]?.width,
+  getDefaultOpens: () =>
+    allViewNames().filter((name) => viewDefaults[name]?.open === true),
+  sidebarDefaultOpen: (name) => dockState.sidebarDefaultOpen(name),
 });
 
 /**
@@ -243,8 +249,12 @@ export function pickOpen(
   });
 }
 
-export function hide(slot: string, expectedToken?: number): Promise<void> {
-  return lifecycle.hide(slot, expectedToken);
+export function hide(
+  slot: string,
+  expectedToken?: number,
+  opts?: HideOpts,
+): Promise<void> {
+  return lifecycle.hide(slot, expectedToken, opts);
 }
 
 export async function route(data: {

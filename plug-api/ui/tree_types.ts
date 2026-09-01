@@ -20,6 +20,9 @@ export type Row = {
   decorations?: Decoration[];
   /** Extra CSS classes for the row element itself. */
   cssClass?: string;
+  /** Tree mode: floats the row above its lower-priority siblings (default 0).
+   * Only ever reorders one level; a folder takes its own row's priority. */
+  priority?: number;
 };
 
 /**

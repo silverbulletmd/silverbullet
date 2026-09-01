@@ -1402,3 +1402,91 @@ test("the collision error also covers a sidebar-docked built-in (std.spaceTree)"
   await expect(frame.locator(".sb-nav-title")).toHaveText("Open");
   await expect(frame.locator("[data-path='Projects']")).toBeVisible();
 });
+
+test.describe("tree page decorations", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "Archive.md": "# Archive",
+      "Projects.md":
+        "---\npageDecoration:\n  icon: star\n  tree:\n    priority: 10\n---\n# Projects",
+      "Projects/Alpha.md": "# Alpha",
+      "Projects/Beta.md":
+        "---\npageDecoration:\n  tree:\n    priority: 5\n---\n# Beta",
+      "Zebra.md": "# Zebra",
+      "Sunken.md":
+        "---\npageDecoration:\n  tree:\n    priority: -1\n---\n# Sunken",
+      "Tree Only.md":
+        "---\npageDecoration:\n  tree:\n    hide: true\n---\n# Tree Only",
+      "Everywhere.md": "---\npageDecoration:\n  hide: true\n---\n# Everywhere",
+    },
+  });
+
+  async function openTree(sbPage: Page): Promise<Locator> {
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    const tree = sbPage.locator(".sb-nav-root-lhs");
+    await expect(tree.locator("[data-path='Archive']")).toBeVisible({
+      timeout: 20_000,
+    });
+    return tree;
+  }
+
+  test("priority floats a page up, negatives sink, ties stay alphabetical", async ({
+    sbPage,
+  }) => {
+    const tree = await openTree(sbPage);
+    await expect(tree.locator("[data-path='Projects']")).toBeVisible();
+
+    expect(
+      await tree
+        .locator(".sb-nav-row")
+        .evaluateAll((rows) =>
+          rows.map((row) => (row as HTMLElement).dataset.path),
+        ),
+    ).toEqual(["Projects", "Archive", "Zebra", "index", "Sunken"]);
+
+    await tree.locator("[data-path='Projects'] .sb-nav-chevron").click();
+    expect(
+      await tree
+        .locator(".sb-nav-row")
+        .evaluateAll((rows) =>
+          rows.map((row) => (row as HTMLElement).dataset.path),
+        ),
+    ).toEqual([
+      "Projects",
+      "Projects/Beta",
+      "Projects/Alpha",
+      "Archive",
+      "Zebra",
+      "index",
+      "Sunken",
+    ]);
+  });
+
+  test("pageDecoration.icon replaces the default row icon", async ({
+    sbPage,
+  }) => {
+    const tree = await openTree(sbPage);
+    const iconOf = (path: string) =>
+      tree.locator(`[data-path='${path}'] .sb-nav-icon svg`).innerHTML();
+
+    // Only the star among these icons is drawn as a polygon.
+    expect(await iconOf("Projects")).toContain("polygon");
+    expect(await iconOf("Archive")).not.toContain("polygon");
+  });
+
+  test("tree.hide hides from the tree alone; hide hides from both", async ({
+    sbPage,
+  }) => {
+    const tree = await openTree(sbPage);
+    await expect(tree.locator("[data-path='Tree Only']")).toHaveCount(0);
+    await expect(tree.locator("[data-path='Everywhere']")).toHaveCount(0);
+
+    const picker = await openPicker(sbPage, `${mod}+k`, "Page");
+    await expectNavRow(picker, "Tree Only");
+    await navInput(sbPage).fill("Everywhere");
+    await expect(
+      picker.locator(".sb-nav-row", { hasText: "Everywhere" }),
+    ).toHaveCount(0);
+  });
+});

@@ -75,4 +75,4 @@ A view's body is a list, a tree, or — for a [[API/view#content|content view]] 
 # The dock menu
 Any view whose `supportedDocks` lists more than one place gets a **dock menu**: a button in its header (sidebar/modal title bar, or page-widget bar) whose icon shows the current dock, opening a list of the places it can move to.
 
-See [[API/view#Position target|the API reference]] for the full field list (`dock`, `supportedDocks`, `defaultOpen`, `openOnStart`), the persisted state keys, and the `view.docks` space-config default (`navigator.docks` still works as a fallback).
+See [[API/view#Position target|the API reference]] for the full field list (`dock`, `supportedDocks`, `defaultOpen`, `openOnStart`), the persisted state keys, and the `view.defaults` space-config defaults.

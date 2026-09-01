@@ -55,19 +55,24 @@ import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
 import { setRevisionsAvailable } from "./navigator/builtins.ts";
 import { registerNavigatorCommands } from "./navigator/commands.ts";
-import { restoreDocks, setSpaceDocks } from "./navigator/navigator.ts";
+import { restoreDocks, setViewDefaults } from "./navigator/navigator.ts";
 import { clearScriptViews, setLuaEnvSource } from "./navigator/registry.ts";
+import {
+  mergeLegacyDocks,
+  normalizeViewDefaults,
+  type ViewDefaultsTable,
+} from "./navigator/view_defaults.ts";
 import type { Config } from "./config.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
 
-function resolveSpaceDocks(config: Config): Record<string, string> {
-  const viewDocks = config.get<Record<string, string> | undefined>(
-    "view.docks",
-    undefined,
+function resolveViewDefaults(config: Config): ViewDefaultsTable {
+  return mergeLegacyDocks(
+    normalizeViewDefaults(config.get("view.defaults", {})),
+    config.get("view.docks", {}),
+    config.get("navigator.docks", {}),
   );
-  return viewDocks ?? config.get("navigator.docks", {});
 }
 
 /**
@@ -137,7 +142,7 @@ export class ClientSystem {
       this.client.bootConfig.revisions !== "disabled";
     setRevisionsAvailable(revisionsAvailable);
     registerNavigatorCommands(this.commandHook, revisionsAvailable);
-    setSpaceDocks(resolveSpaceDocks(this.client.config));
+    setViewDefaults(resolveViewDefaults(this.client.config));
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
@@ -256,7 +261,7 @@ export class ClientSystem {
     this.slashCommandHook.throttledBuildAllCommands();
     this.mqHook.throttledReloadQueues();
 
-    setSpaceDocks(resolveSpaceDocks(this.client.config));
+    setViewDefaults(resolveViewDefaults(this.client.config));
 
     this.scriptsLoaded = true;
     performance.mark("sb:scripts-loaded");

@@ -34,6 +34,7 @@ const events = {
 const registry = {
   resolveMeta: vi.fn<(name: string) => unknown>(),
   openOnStartViews: vi.fn<() => { name: string; dock: string }[]>(),
+  allViewNames: vi.fn<() => string[]>(),
   unregister: vi.fn<(name: string) => void>(),
   register: vi.fn<(data: { meta: unknown }) => void>(),
   selectInFlight: vi.fn<(view: string) => Promise<unknown> | undefined>(),
@@ -63,6 +64,7 @@ beforeEach(() => {
   slots.focusedSlot.mockReturnValue(undefined);
   registry.resolveMeta.mockReturnValue({ dock: "lhs", refreshOn: [] });
   registry.openOnStartViews.mockReturnValue([]);
+  registry.allViewNames.mockReturnValue([]);
   registry.selectInFlight.mockReturnValue(undefined);
 });
 
@@ -413,6 +415,36 @@ test("moveDock hides the modal slot (not just a window dock) when moving a view 
   );
 });
 
+// The sidebar hide writes `open = false` on its way out; the page-dock move
+// writes `true` after it. Reordering those two lines leaves a moved view
+// stored closed, and its widget never renders.
+test("moveDock from a sidebar to a page dock leaves the view stored open", async () => {
+  const nav = await freshNavigator();
+  const previousClient = (globalThis as any).client;
+  (globalThis as any).client = { rebuildEditorState: vi.fn() };
+  registry.resolveMeta.mockReturnValue({
+    name: "v",
+    title: "V",
+    dock: "lhs",
+    supportedDocks: ["lhs", "page-top"],
+    refreshOn: [],
+  });
+  datastore.get.mockImplementation((key: unknown[]) => {
+    const match = datastore.set.mock.calls.findLast(
+      ([k]) => JSON.stringify(k) === JSON.stringify(key),
+    );
+    return Promise.resolve(match?.[1]);
+  });
+
+  try {
+    await nav.open("v");
+    await nav.moveDock("v", "page-top");
+    expect(await datastore.get(["navigator", "v", "open"])).toBe(true);
+  } finally {
+    (globalThis as any).client = previousClient;
+  }
+});
+
 test("closeView hides the slot without touching the dock preference", async () => {
   const nav = await freshNavigator();
   registry.resolveMeta.mockReturnValue({
@@ -432,4 +464,37 @@ test("closeView hides the slot without touching the dock preference", async () =
     ["navigator", "w", "dock"],
     expect.anything(),
   );
+});
+
+test("setViewDefaults feeds dock resolution and is replaced wholesale", async () => {
+  const nav = await freshNavigator();
+  registry.resolveMeta.mockReturnValue({
+    dock: "modal",
+    supportedDocks: ["modal", "rhs"],
+    refreshOn: [],
+  });
+  datastore.get.mockResolvedValue(undefined);
+
+  expect(await nav.resolvedDock("t.view")).toBe("modal");
+  nav.setViewDefaults({ "t.view": { dock: "rhs" } });
+  expect(await nav.resolvedDock("t.view")).toBe("rhs");
+  nav.setViewDefaults({});
+  expect(await nav.resolvedDock("t.view")).toBe("modal");
+});
+
+test("only views the space configured open reach boot restore", async () => {
+  const nav = await freshNavigator();
+  registry.allViewNames.mockReturnValue(["a", "b", "c"]);
+  registry.resolveMeta.mockReturnValue({ dock: "lhs", refreshOn: [] });
+  datastore.get.mockResolvedValue(undefined);
+
+  nav.setViewDefaults({
+    a: { open: true },
+    b: { open: false },
+    c: { width: 300 },
+  });
+  await nav.restoreDocks();
+
+  const shown = slots.showSlot.mock.calls.map((call: any[]) => call[2].view);
+  expect(shown).toEqual(["a"]);
 });
