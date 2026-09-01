@@ -18,6 +18,11 @@ const row = (name: string) => ({
   primary: name.split("/").pop()!,
 });
 
+const prioRow = (name: string, priority: number) => ({
+  ...row(name),
+  priority,
+});
+
 test("builds hierarchy with implicit folders", () => {
   const root = buildTree(
     [row("Projects/Alpha"), row("Projects/Beta"), row("Top")],
@@ -349,4 +354,67 @@ test("nodeObject synthesizes an object for a folder with no row of its own", () 
     name: "Projects",
     isFolder: true,
   });
+});
+
+test("priority floats siblings up, ties keep source order", () => {
+  const root = buildTree(
+    [row("Archive"), prioRow("Projects", 10), row("Zebra"), row("Areas")],
+    "/",
+    false,
+  );
+  expect(root.children.map((c) => c.path)).toEqual([
+    "Projects",
+    "Archive",
+    "Zebra",
+    "Areas",
+  ]);
+});
+
+test("negative priority sinks below undecorated siblings", () => {
+  const root = buildTree(
+    [prioRow("Archive", -1), row("Projects"), row("Zebra")],
+    "/",
+    false,
+  );
+  expect(root.children.map((c) => c.path)).toEqual([
+    "Projects",
+    "Zebra",
+    "Archive",
+  ]);
+});
+
+test("priority sorts every level, not just the root", () => {
+  const root = buildTree(
+    [row("A/One"), prioRow("A/Two", 5), row("B")],
+    "/",
+    false,
+  );
+  expect(root.children.map((c) => c.path)).toEqual(["A", "B"]);
+  expect(root.children[0].children.map((c) => c.segment)).toEqual([
+    "Two",
+    "One",
+  ]);
+});
+
+test("a nested priority leaves its ancestor folder in place", () => {
+  const root = buildTree(
+    [row("Archive/Old"), prioRow("Zebra/Pinned", 10)],
+    "/",
+    false,
+  );
+  expect(root.children.map((c) => c.path)).toEqual(["Archive", "Zebra"]);
+});
+
+test("a dual's own priority pins its folder", () => {
+  const root = buildTree(
+    [row("Archive"), prioRow("Zebra", 10), row("Zebra/Child")],
+    "/",
+    false,
+  );
+  expect(root.children.map((c) => c.path)).toEqual(["Zebra", "Archive"]);
+});
+
+test("foldersFirst outranks priority", () => {
+  const root = buildTree([prioRow("Page", 10), row("Folder/Child")], "/", true);
+  expect(root.children.map((c) => c.path)).toEqual(["Folder", "Page"]);
 });
