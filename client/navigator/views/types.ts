@@ -1,9 +1,9 @@
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import type { Decoration, Row, ViewMeta } from "../types.ts";
+import type { Decoration, Row, SourceCtx, ViewMeta } from "../types.ts";
 
 // Re-exported so views importing shapes from "./types.ts" don't also need
 // "../types.ts" directly.
-export type { Decoration, Row, ViewMeta };
+export type { Decoration, Row, SourceCtx, ViewMeta };
 
 /**
  * Every built-in's row object is genuinely an indexed `ObjectValue` (`ref`
@@ -46,7 +46,7 @@ export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
   segments?: Segment<T>[];
   actions?: ActionSpec<T>[];
   row: RowSpec<T>;
-  source: () => Promise<T[]>;
+  source: (ctx: SourceCtx) => Promise<T[]>;
   /**
    * @returns `false` to keep the panel open (see the Lua `onSelect` docs), or
    * {@link EXPAND_ROW} for a tree row that should open rather than act.

@@ -7,7 +7,7 @@
 
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { RESERVED_KEYS } from "./lua_views.ts";
-import type { NavigatorHook, Row, ViewMeta } from "./types.ts";
+import type { NavigatorHook, Row, SourceCtx, ViewMeta } from "./types.ts";
 import { anchorPicker } from "./views/anchors.ts";
 import { commandPalette } from "./views/commands.ts";
 import { pageHistoryView, spaceLogView } from "./views/revisions.ts";
@@ -97,11 +97,14 @@ export function builtinMeta(name: string): ViewMeta | undefined {
   } as ViewMeta;
 }
 
-async function builtinRows(name: string): Promise<Row[] | { error: string }> {
+async function builtinRows(
+  name: string,
+  ctx: SourceCtx = { phrase: "" },
+): Promise<Row[] | { error: string }> {
   const view = views[name];
   if (!view) return [];
   try {
-    const objs = await view.source();
+    const objs = await view.source(ctx);
     return objs.map((obj) => ({
       obj,
       primary: view.row.primary?.(obj) ?? obj.name ?? obj.ref,
@@ -125,9 +128,9 @@ function builtinRowState(name: string, objs: any[]) {
   const view = views[name];
   if (!view) return [];
   // A source-mode view subsets in its own source, off the segment label it is
-  // handed; its `where` predicates are never consulted. No built-in is
-  // source-mode today -- this is here so the two registries answer the same
-  // way if one ever is.
+  // handed; its `where` predicates are never consulted. std.spaceLog is
+  // source-mode but has no segments, so this guard is dormant today -- it
+  // only matters for a source-mode built-in that also declares segments.
   const wantsSegments = view.segments && view.meta.search !== "source";
   const wantsActions = !!view.actions;
   return objs.map((obj) => {
@@ -204,7 +207,7 @@ export async function builtinHandle(
   if (hidden(name)) return undefined;
   switch (hook) {
     case "rows":
-      return await builtinRows(name);
+      return await builtinRows(name, args.ctx);
     case "rowState":
       return builtinRowState(name, args.objs ?? []);
     case "select": {

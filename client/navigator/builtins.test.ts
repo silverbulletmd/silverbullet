@@ -10,9 +10,10 @@ const space = {
   deletePage: vi.fn<(name: string) => Promise<void>>(),
   deleteDocument: vi.fn<(name: string) => Promise<void>>(),
   listRevisions: vi.fn<(path: string, before?: string) => Promise<any>>(),
-  getRevision: vi.fn<(path: string, rev: string) => Promise<string>>(),
+  getRevision:
+    vi.fn<(path: string, rev: string, parent?: boolean) => Promise<string>>(),
   getRevisionDiff: vi.fn<(path: string, rev: string) => Promise<string>>(),
-  getSpaceLog: vi.fn<(before?: string) => Promise<any>>(),
+  getSpaceLog: vi.fn<(before?: string, q?: string) => Promise<any>>(),
 };
 const editor = {
   flashNotification: vi.fn<(msg: string, kind?: string) => Promise<void>>(),
@@ -35,11 +36,15 @@ const system = {
     vi.fn<(name: string, ...args: unknown[]) => Promise<unknown>>(),
 };
 const open = vi.fn<(name: string, opts?: unknown) => Promise<boolean>>();
+const events = {
+  dispatchEvent: vi.fn<(name: string, data: unknown) => Promise<unknown[]>>(),
+};
 
 vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   index,
   space,
   config,
+  events,
   editor,
   markdown,
   system,
@@ -183,8 +188,8 @@ test("a handler that succeeds keeps its return value", async () => {
   expect(editor.flashNotification).not.toHaveBeenCalled();
 });
 
-function builtinRows(name: string) {
-  return builtinHandle(name, "rows", {});
+function builtinRows(name: string, ctx?: { phrase: string }) {
+  return builtinHandle(name, "rows", { ctx });
 }
 
 test("navigator:key runs std.spaceTree's Space entry: peek without closing the panel", async () => {
@@ -563,14 +568,68 @@ test("std.pageHistory lists revisions newest-first with an uncommitted pseudo-en
   );
 });
 
-test("std.pageHistory returns no rows on a non-markdown path or unavailable server", async () => {
+test("std.pageHistory returns no rows on a non-markdown path", async () => {
   editor.getCurrentPath.mockResolvedValue("image.png");
   expect(await builtinRows("std.pageHistory")).toEqual([]);
+});
+
+test("std.pageHistory surfaces an unreachable server as an error, not emptiness", async () => {
   editor.getCurrentPath.mockResolvedValue("note.md");
   space.listRevisions.mockRejectedValue(
-    new Error("Revisions are not available"),
+    Object.assign(new Error("Revisions request failed: 502"), { status: 502 }),
   );
+  const result = await builtinRows("std.pageHistory");
+  expect((result as any).error).toMatch(/offline/i);
+});
+
+test("std.pageHistory reports a disabled space distinctly from an empty one", async () => {
+  editor.getCurrentPath.mockResolvedValue("note.md");
+  space.listRevisions.mockResolvedValue({
+    mode: "disabled",
+    uncommitted: false,
+    more: false,
+    revisions: [],
+  });
+  const result = await builtinRows("std.pageHistory");
+  expect((result as any).error).toMatch(/off for this space/i);
+
+  space.listRevisions.mockResolvedValue({
+    mode: "managed",
+    uncommitted: false,
+    more: false,
+    revisions: [],
+  });
   expect(await builtinRows("std.pageHistory")).toEqual([]);
+});
+
+test("std.spaceLog surfaces an unreachable server as an error", async () => {
+  space.getSpaceLog.mockRejectedValue(
+    Object.assign(new Error("Revisions request failed: 502"), { status: 502 }),
+  );
+  const result = await builtinRows("std.spaceLog");
+  expect((result as any).error).toMatch(/offline/i);
+});
+
+test("std.spaceLog forwards the typed phrase to the server", async () => {
+  space.getSpaceLog.mockResolvedValue({
+    mode: "managed",
+    more: false,
+    uncommitted: [],
+    commits: [],
+  });
+  await builtinRows("std.spaceLog", { phrase: "Claude" });
+  expect(space.getSpaceLog).toHaveBeenCalledWith(undefined, "Claude");
+});
+
+test("std.spaceLog sends no phrase when the filter is empty", async () => {
+  space.getSpaceLog.mockResolvedValue({
+    mode: "managed",
+    more: false,
+    uncommitted: [],
+    commits: [],
+  });
+  await builtinRows("std.spaceLog", { phrase: "" });
+  expect(space.getSpaceLog).toHaveBeenCalledWith(undefined, undefined);
 });
 
 test("std.pageHistory restore action is rw-gated and calls editor.setText with isolated history", async () => {
@@ -589,6 +648,120 @@ test("std.pageHistory restore action is rw-gated and calls editor.setText with i
   expect(editor.setText).toHaveBeenCalledWith("old text", true);
 });
 
+test("restoring a deletion commit falls back to the parent revision", async () => {
+  editor.getCurrentPath.mockResolvedValue("Doomed.md");
+  system.getMode.mockResolvedValue("rw");
+  editor.getUiOption.mockResolvedValue(false);
+  space.getRevision.mockImplementation(
+    async (_path: string, _rev: string, parent?: boolean) => {
+      if (!parent) {
+        throw Object.assign(new Error("Could not load revision: 404"), {
+          status: 404,
+        });
+      }
+      return "alpha";
+    },
+  );
+
+  await builtinHandle("std.pageHistory", "action", {
+    index: 1,
+    obj: { name: "r", page: "Doomed.md", rev: "a".repeat(40) },
+  });
+
+  expect(space.getRevision).toHaveBeenCalledWith(
+    "Doomed.md",
+    "a".repeat(40),
+    true,
+  );
+  expect(editor.setText).toHaveBeenCalledWith("alpha", true);
+});
+
+test("restoring a deletion commit does not retry on a non-404 failure", async () => {
+  editor.getCurrentPath.mockResolvedValue("Doomed.md");
+  system.getMode.mockResolvedValue("rw");
+  editor.getUiOption.mockResolvedValue(false);
+  space.getRevision.mockRejectedValue(
+    Object.assign(new Error("Could not load revision: 500"), {
+      status: 500,
+    }),
+  );
+
+  await builtinHandle("std.pageHistory", "action", {
+    index: 1,
+    obj: { name: "r", page: "Doomed.md", rev: "a".repeat(40) },
+  });
+
+  // Exactly one call, and never with the parent flag: a bare
+  // catch-and-retry would call this twice regardless of status.
+  expect(space.getRevision).toHaveBeenCalledTimes(1);
+  expect(space.getRevision).not.toHaveBeenCalledWith(
+    "Doomed.md",
+    "a".repeat(40),
+    true,
+  );
+  expect(editor.flashNotification).toHaveBeenCalledWith(
+    expect.stringContaining("500"),
+    "error",
+  );
+  expect(editor.setText).not.toHaveBeenCalled();
+});
+
+test("restoring from Space History navigates to the row's page first", async () => {
+  editor.getCurrentPath
+    .mockResolvedValueOnce("index.md")
+    .mockResolvedValue("Other.md");
+  system.getMode.mockResolvedValue("rw");
+  editor.getUiOption.mockResolvedValue(false);
+  space.getRevision.mockResolvedValue("restored body");
+
+  await builtinHandle("std.spaceLog", "action", {
+    index: 1,
+    obj: { name: "r", rev: "b".repeat(40), file: "Other.md" },
+  });
+
+  expect(editor.navigate).toHaveBeenCalledWith({ path: "Other.md" });
+  expect(editor.setText).toHaveBeenCalledWith("restored body", true);
+});
+
+test("std.spaceLog gives each file an icon reflecting what happened to it", async () => {
+  space.getSpaceLog.mockResolvedValue({
+    mode: "managed",
+    more: false,
+    uncommitted: [{ path: "draft.md", status: "added" }],
+    commits: [
+      {
+        rev: "e".repeat(40),
+        timestamp: 3000,
+        author: "alice",
+        message: "a bit of everything",
+        added: 4,
+        removed: 2,
+        files: [
+          { path: "fresh.md", status: "added" },
+          { path: "keep.md", status: "modified" },
+          { path: "gone.md", status: "deleted" },
+          { path: "new.md", status: "renamed" },
+        ],
+      },
+    ],
+  });
+  const state = await rowState(
+    "std.spaceLog",
+    ((await builtinRows("std.spaceLog")) as any[]).map((r) => r.obj),
+  );
+  const icons = (state as any[]).map((s) => s.icon);
+  // [0] uncommitted pseudo-row, [1] its file, [2] the commit, [3..] its files
+  expect(icons).toEqual([
+    "edit-3",
+    "file-plus",
+    "git-commit",
+    "file-plus",
+    "file-text",
+    "file-minus",
+    "corner-up-right",
+  ]);
+});
+
 test("std.spaceLog nests touched files under their commit", async () => {
   space.getSpaceLog.mockResolvedValue({
     mode: "managed",
@@ -601,15 +774,19 @@ test("std.spaceLog nests touched files under their commit", async () => {
         message: "add stuff",
         added: 20,
         removed: 5,
-        files: ["index.md", "Projects/Alpha.md"],
+        files: [
+          { path: "index.md", status: "modified" },
+          { path: "Projects/Alpha.md", status: "modified" },
+        ],
       },
     ],
   });
   const rows = await builtinRows("std.spaceLog");
   expect((rows as any[])[0].obj.name).toBe("c".repeat(40));
-  expect((rows as any[])[0].primary).toBe("alice");
+  expect((rows as any[])[0].primary).toBe("add stuff");
   expect((rows as any[])[0].description).toBeUndefined();
   expect((rows as any[])[0].decorations).toEqual([
+    { text: "alice", position: "right" },
     { text: "+20 −5", position: "right" },
     { text: expect.any(String), title: expect.any(String), position: "right" },
   ]);
@@ -619,6 +796,38 @@ test("std.spaceLog nests touched files under their commit", async () => {
   expect((rows as any[])[2].obj.name).toBe(
     `${"c".repeat(40)}/Projects∕Alpha.md`,
   );
+});
+
+test("std.spaceLog labels commits by message, with the author as a decoration", async () => {
+  space.getSpaceLog.mockResolvedValue({
+    mode: "managed",
+    more: false,
+    uncommitted: [],
+    commits: [
+      {
+        rev: "c".repeat(40),
+        timestamp: 3000,
+        author: "Claude Code",
+        message: "Update 3 pages, create 1",
+        files: [],
+        added: 20,
+        removed: 4,
+      },
+      {
+        rev: "d".repeat(40),
+        timestamp: 2000,
+        author: "alice",
+        message: "",
+        files: [],
+        added: 1,
+        removed: 0,
+      },
+    ],
+  });
+  const rows = (await builtinRows("std.spaceLog")) as any[];
+  expect(rows[0].primary).toBe("Update 3 pages, create 1");
+  expect(rows[0].decorations.map((d: any) => d.text)).toContain("Claude Code");
+  expect(rows[1].primary).toBe("alice");
 });
 
 test("std.pageHistory select previews a color-coded diff by default", async () => {
@@ -778,23 +987,29 @@ test("std.pageHistory's Space-key peek previews without stealing focus from the 
   expect(keyResult).toBe(false);
 });
 
-test("Page History has no phrase filter; Space History does", () => {
+test("Page History has no phrase filter; Space History searches at the source", () => {
   // One page's revisions are all worth scanning, so filtering them is noise.
   expect(builtinMeta("std.pageHistory")!.noFilter).toBe(true);
   expect(builtinMeta("std.pageHistory")!.filterFields).toBeUndefined();
-  // The space-wide log is where finding a page by name matters.
+  // The space-wide log hands the phrase to the server, which searches commit
+  // messages and authors -- client-side ranking never runs, so weighting
+  // fields here would be dead config and the placeholder must not promise it.
   expect(builtinMeta("std.spaceLog")!.noFilter).toBeUndefined();
-  expect(builtinMeta("std.spaceLog")!.filterFields).toEqual({
-    primary: { weight: 1.0, segments: true },
-    message: 0.8,
-  });
+  expect(builtinMeta("std.spaceLog")!.search).toBe("source");
+  expect(builtinMeta("std.spaceLog")!.filterFields).toBeUndefined();
+  expect(builtinMeta("std.spaceLog")!.placeholder).toBe(
+    "Search commit message or author",
+  );
 });
 
 test("std.spaceLog heads the log with an uncommitted pseudo-commit", async () => {
   space.getSpaceLog.mockResolvedValue({
     mode: "managed",
     more: false,
-    uncommitted: ["index.md", "Projects/Alpha.md"],
+    uncommitted: [
+      { path: "index.md", status: "modified" },
+      { path: "Projects/Alpha.md", status: "added" },
+    ],
     commits: [
       {
         rev: "c".repeat(40),
@@ -803,7 +1018,7 @@ test("std.spaceLog heads the log with an uncommitted pseudo-commit", async () =>
         message: "add stuff",
         added: 1,
         removed: 0,
-        files: ["index.md"],
+        files: [{ path: "index.md", status: "modified" }],
       },
     ],
   });
@@ -817,7 +1032,7 @@ test("std.spaceLog heads the log with an uncommitted pseudo-commit", async () =>
   // Expanding to the files it covers, exactly like a real commit row.
   expect(rows[1].primary).toBe("index.md");
   expect(rows[2].primary).toBe("Projects/Alpha.md");
-  expect(rows[3].primary).toBe("alice");
+  expect(rows[3].primary).toBe("add stuff");
 
   // Selecting one previews the working-tree change -- no revision to ask for,
   // and nothing to restore.
@@ -876,4 +1091,169 @@ test("std.spaceLog previews a page child row and expands a bare commit row", asy
   expect(editor.navigate).not.toHaveBeenCalled();
   // Not `false`: the panel opens the row up rather than just staying put.
   expect(commitResult).toBe(EXPAND_ROW);
+});
+
+test("std.pageHistory offers Load more and appends the next page", async () => {
+  editor.getCurrentPath.mockResolvedValue("note.md");
+  space.listRevisions.mockResolvedValueOnce({
+    mode: "managed",
+    uncommitted: false,
+    more: true,
+    revisions: [
+      { rev: "a".repeat(40), timestamp: 3000, author: "alice", message: "m3" },
+    ],
+  });
+  let rows = (await builtinRows("std.pageHistory")) as any[];
+  expect(rows.at(-1).obj.name).toBe("@more");
+  expect(rows.at(-1).primary).toBe("Load more…");
+
+  space.listRevisions.mockResolvedValueOnce({
+    mode: "managed",
+    uncommitted: false,
+    more: false,
+    revisions: [
+      { rev: "b".repeat(40), timestamp: 2000, author: "bob", message: "m2" },
+    ],
+  });
+  await builtinHandle("std.pageHistory", "select", {
+    obj: { name: "@more", page: "note.md" },
+  });
+  expect(space.listRevisions).toHaveBeenLastCalledWith(
+    "note.md",
+    "a".repeat(40),
+  );
+
+  rows = (await builtinRows("std.pageHistory")) as any[];
+  expect(rows.map((r) => r.obj.rev)).toEqual(["a".repeat(40), "b".repeat(40)]);
+  expect(rows.some((r) => r.obj.name === "@more")).toBe(false);
+});
+
+test("switching page resets the page-history accumulator", async () => {
+  editor.getCurrentPath.mockResolvedValue("note.md");
+  space.listRevisions.mockResolvedValue({
+    mode: "managed",
+    uncommitted: false,
+    more: false,
+    revisions: [
+      { rev: "a".repeat(40), timestamp: 3000, author: "alice", message: "m" },
+    ],
+  });
+  await builtinRows("std.pageHistory");
+  editor.getCurrentPath.mockResolvedValue("other.md");
+  const rows = (await builtinRows("std.pageHistory")) as any[];
+  expect(rows).toHaveLength(1);
+  expect(space.listRevisions).toHaveBeenLastCalledWith("other.md", undefined);
+});
+
+test("selecting Load more twice before the first fetch lands does not duplicate rows", async () => {
+  editor.getCurrentPath.mockResolvedValue("note.md");
+  space.listRevisions.mockResolvedValueOnce({
+    mode: "managed",
+    uncommitted: false,
+    more: true,
+    revisions: [
+      { rev: "a".repeat(40), timestamp: 3000, author: "alice", message: "m3" },
+    ],
+  });
+  await builtinRows("std.pageHistory");
+
+  let resolveSecondPage: (value: unknown) => void;
+  const secondPage = new Promise((resolve) => {
+    resolveSecondPage = resolve;
+  });
+  space.listRevisions.mockReturnValueOnce(secondPage);
+
+  const firstSelect = builtinHandle("std.pageHistory", "select", {
+    obj: { name: "@more", page: "note.md" },
+  });
+  const secondSelect = builtinHandle("std.pageHistory", "select", {
+    obj: { name: "@more", page: "note.md" },
+  });
+  resolveSecondPage!({
+    mode: "managed",
+    uncommitted: false,
+    more: false,
+    revisions: [
+      { rev: "b".repeat(40), timestamp: 2000, author: "bob", message: "m2" },
+    ],
+  });
+  await Promise.all([firstSelect, secondSelect]);
+
+  // One fetch for the fresh load, one for the (single) extension -- the
+  // second, overlapping select must not have kicked off its own fetch.
+  expect(space.listRevisions).toHaveBeenCalledTimes(2);
+  // The no-op select must not dispatch a refresh either -- a spurious
+  // dispatch would re-run `rows()` while the real extension is still in
+  // flight, flashing the panel back to a fresh page 1.
+  expect(events.dispatchEvent).toHaveBeenCalledTimes(1);
+  const rows = (await builtinRows("std.pageHistory")) as any[];
+  expect(rows.map((r) => r.obj.rev)).toEqual(["a".repeat(40), "b".repeat(40)]);
+});
+
+test("std.spaceLog offers Load more and appends the next page, keyed on the cursor commit", async () => {
+  space.getSpaceLog.mockResolvedValueOnce({
+    mode: "managed",
+    more: true,
+    uncommitted: [],
+    commits: [
+      {
+        rev: "c".repeat(40),
+        timestamp: 3000,
+        author: "alice",
+        message: "m3",
+        files: [{ path: "note.md", status: "modified" }],
+      },
+    ],
+  });
+  let rows = (await builtinRows("std.spaceLog")) as any[];
+  expect(rows.at(-1).obj.name).toBe("@more");
+  expect(rows.at(-1).primary).toBe("Load more…");
+
+  space.getSpaceLog.mockResolvedValueOnce({
+    mode: "managed",
+    more: false,
+    uncommitted: [],
+    commits: [
+      {
+        rev: "d".repeat(40),
+        timestamp: 2000,
+        author: "bob",
+        message: "m2",
+        files: [],
+      },
+    ],
+  });
+  await builtinHandle("std.spaceLog", "select", {
+    obj: { name: "@more" },
+  });
+  expect(space.getSpaceLog).toHaveBeenLastCalledWith("c".repeat(40), undefined);
+
+  rows = (await builtinRows("std.spaceLog")) as any[];
+  expect(rows.map((r) => r.obj.rev)).toEqual([
+    "c".repeat(40),
+    "c".repeat(40),
+    "d".repeat(40),
+  ]);
+  expect(rows.some((r) => r.obj.name === "@more")).toBe(false);
+});
+
+test("typing a new search resets the space-log accumulator", async () => {
+  space.getSpaceLog.mockResolvedValue({
+    mode: "managed",
+    more: false,
+    uncommitted: [],
+    commits: [
+      {
+        rev: "c".repeat(40),
+        timestamp: 3000,
+        author: "alice",
+        message: "m",
+        files: [],
+      },
+    ],
+  });
+  await builtinRows("std.spaceLog", { phrase: "foo" });
+  const rows = (await builtinRows("std.spaceLog", { phrase: "bar" })) as any[];
+  expect(rows).toHaveLength(1);
+  expect(space.getSpaceLog).toHaveBeenLastCalledWith(undefined, "bar");
 });

@@ -14,12 +14,16 @@ export type FileRevisions = {
   more: boolean;
 };
 
-export type LogCommit = RevisionEntry & { files: string[] };
+export type FileStatus = "added" | "modified" | "deleted" | "renamed";
+
+export type LogFile = { path: string; status: FileStatus };
+
+export type LogCommit = RevisionEntry & { files: LogFile[] };
 
 export type SpaceLog = {
   mode: "managed" | "unmanaged" | "disabled";
   commits: LogCommit[];
   more: boolean;
-  /** Paths differing from HEAD right now -- what a snapshot would capture. */
-  uncommitted: string[];
+  /** What differs from HEAD right now -- what a snapshot would capture. */
+  uncommitted: LogFile[];
 };

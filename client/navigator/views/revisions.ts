@@ -1,15 +1,55 @@
 import { relativeTime } from "@silverbulletmd/silverbullet/lib/dates";
-import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
-import { type DiffLine, openPreview, parseDiff } from "./revision_preview.ts";
+import type { FileStatus } from "@silverbulletmd/silverbullet/type/revisions";
+import {
+  editor,
+  events,
+  space,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
+import {
+  type DiffLine,
+  openPreview,
+  parseDiff,
+  restoreInto,
+} from "./revision_preview.ts";
 import {
   type BuiltinView,
   baseMeta,
   type Decoration,
   EXPAND_ROW,
+  type SourceCtx,
 } from "./types.ts";
+
+const STATUS_ICONS: Record<FileStatus, string> = {
+  added: "file-plus",
+  modified: "file-text",
+  deleted: "file-minus",
+  renamed: "corner-up-right",
+};
 
 const PATH_SLASH = "∕";
 const UNCOMMITTED = "@uncommitted";
+const MORE = "@more";
+
+const OFFLINE = "Revision history unavailable — offline.";
+const DISABLED = "Revision history is off for this space.";
+
+type Accumulator<T> = {
+  key: string;
+  rows: T[];
+  more: boolean;
+  cursor?: string;
+  pending: boolean;
+  loading: boolean;
+};
+
+/** A 404 means this server has no revisions route; anything else that got
+ * here is a transport failure, which must not read as an empty history. */
+function describeFailure(e: unknown): Error {
+  const status = (e as { status?: number } | undefined)?.status;
+  if (status === 404) return new Error(DISABLED);
+  return new Error(OFFLINE);
+}
 
 /** Commits changed without any file changing, so nothing else would refresh. */
 export const REVISIONS_CHANGED_EVENT = "revisions:snapshot";
@@ -72,17 +112,23 @@ function commitDecorations(entry: {
   return decorations;
 }
 
-async function pageHistoryRows(): Promise<RevisionRow[]> {
-  const path = await editor.getCurrentPath();
-  if (!path.endsWith(".md")) return [];
+let pageAcc: Accumulator<RevisionRow> | undefined;
+
+async function fetchPageHistoryPage(
+  path: string,
+  before: string | undefined,
+): Promise<{ rows: RevisionRow[]; more: boolean; cursor?: string }> {
   let listing;
   try {
-    listing = await space.listRevisions(path, undefined);
-  } catch {
-    return [];
+    listing = await space.listRevisions(path, before);
+  } catch (e) {
+    throw describeFailure(e);
   }
+  if (listing.mode === "disabled") throw new Error(DISABLED);
   const rows: RevisionRow[] = [];
-  if (listing.uncommitted) {
+  // The uncommitted flag describes the working tree right now, not this
+  // page of history -- only the first page shows the pseudo-row for it.
+  if (before === undefined && listing.uncommitted) {
     rows.push({ name: UNCOMMITTED, page: path });
   }
   for (const r of listing.revisions) {
@@ -97,7 +143,56 @@ async function pageHistoryRows(): Promise<RevisionRow[]> {
       removed: r.removed,
     });
   }
-  return rows;
+  return { rows, more: listing.more, cursor: listing.revisions.at(-1)?.rev };
+}
+
+async function pageHistoryRows(): Promise<RevisionRow[]> {
+  const path = await editor.getCurrentPath();
+  if (!path.endsWith(".md")) {
+    pageAcc = undefined;
+    return [];
+  }
+  if (!pageAcc?.pending || pageAcc.key !== path) {
+    const { rows, more, cursor } = await fetchPageHistoryPage(path, undefined);
+    pageAcc = { key: path, rows, more, cursor, pending: false, loading: false };
+  }
+  pageAcc.pending = false;
+  return pageAcc.more
+    ? [...pageAcc.rows, { name: MORE, page: path }]
+    : pageAcc.rows;
+}
+
+/** Returns whether it actually fetched a page -- false for the no-op path
+ * (a stale row, or a fetch already in flight), so the caller only dispatches
+ * a refresh when there is something new to show. Without this, a second
+ * click landing on the guard above would still fire the refresh event, and
+ * that spurious `rows()` call (not `pending`, since no extension happened
+ * under it) would flash the panel back to a fresh page 1 while the real
+ * extension is still in flight. */
+async function loadMorePageHistory(path: string): Promise<boolean> {
+  if (!pageAcc || pageAcc.key !== path || !pageAcc.more || pageAcc.loading) {
+    return false;
+  }
+  const inProgress = pageAcc;
+  inProgress.loading = true;
+  try {
+    const { rows, more, cursor } = await fetchPageHistoryPage(
+      path,
+      inProgress.cursor,
+    );
+    pageAcc = {
+      key: path,
+      rows: [...inProgress.rows, ...rows],
+      more,
+      cursor,
+      pending: true,
+      loading: false,
+    };
+    return true;
+  } catch (e) {
+    inProgress.loading = false;
+    throw e;
+  }
 }
 
 /** Mirrors `builtins.ts`'s gate for a `requireMode: "rw"` row action. */
@@ -180,13 +275,32 @@ function peekRevision(obj: RevisionRow): Promise<false | undefined> {
   return showRevisionPreview(obj, false);
 }
 
+/** A deletion commit has no content of its own, so "restore this" can only
+ * mean the version immediately before it. */
+async function revisionText(
+  page: string,
+  rev: string,
+): Promise<{ text: string; fromParent: boolean }> {
+  try {
+    return { text: await space.getRevision(page, rev), fromParent: false };
+  } catch (e) {
+    if ((e as { status?: number } | undefined)?.status !== 404) throw e;
+    return {
+      text: await space.getRevision(page, rev, true),
+      fromParent: true,
+    };
+  }
+}
+
 async function restoreRevision(obj: RevisionRow): Promise<void> {
   if (!obj.rev) return;
-  const currentPath = await editor.getCurrentPath();
-  if (currentPath !== obj.page) return;
-  const text = await space.getRevision(obj.page, obj.rev);
-  await editor.setText(text, true);
-  await editor.flashNotification(`Restored revision ${obj.rev.slice(0, 8)}`);
+  const { text, fromParent } = await revisionText(obj.page, obj.rev);
+  await restoreInto(obj.page, text);
+  await editor.flashNotification(
+    fromParent
+      ? `Restored ${obj.page} as it was before ${obj.rev.slice(0, 8)}`
+      : `Restored revision ${obj.rev.slice(0, 8)}`,
+  );
 }
 
 export const pageHistoryView: BuiltinView<RevisionRow> = {
@@ -209,11 +323,20 @@ export const pageHistoryView: BuiltinView<RevisionRow> = {
   }),
   row: {
     primary: (obj) =>
-      obj.rev ? obj.author || obj.rev.slice(0, 8) : "Uncommitted changes",
+      obj.name === MORE
+        ? "Load more…"
+        : obj.rev
+          ? obj.author || obj.rev.slice(0, 8)
+          : "Uncommitted changes",
     label: (obj) =>
-      obj.rev ? obj.author || obj.rev.slice(0, 8) : "Uncommitted changes",
+      obj.name === MORE
+        ? "Load more…"
+        : obj.rev
+          ? obj.author || obj.rev.slice(0, 8)
+          : "Uncommitted changes",
     decorations: (obj) => (obj.rev ? commitDecorations(obj) : undefined),
-    icon: (obj) => (obj.rev ? "clock" : "edit-3"),
+    icon: (obj) =>
+      obj.name === MORE ? "chevron-down" : obj.rev ? "clock" : "edit-3",
     cssClass: () => "sb-nav-noband",
   },
   actions: [
@@ -225,15 +348,26 @@ export const pageHistoryView: BuiltinView<RevisionRow> = {
       run: restoreRevision,
     },
   ],
-  keymap: { " ": peekRevision },
+  keymap: {
+    " ": (obj) => (obj.name === MORE ? false : peekRevision(obj)),
+  },
   source: pageHistoryRows,
-  onSelect: previewRevision,
+  onSelect: (obj) => {
+    if (obj.name === MORE) {
+      return loadMorePageHistory(obj.page).then(async (didLoad) => {
+        if (didLoad) await events.dispatchEvent(REVISIONS_CHANGED_EVENT, {});
+        return false;
+      });
+    }
+    return previewRevision(obj);
+  },
 };
 
 type LogRow = {
   name: string;
   rev: string;
   file?: string;
+  status?: FileStatus;
   author?: string;
   message?: string;
   timestamp?: number;
@@ -241,25 +375,35 @@ type LogRow = {
   removed?: number;
 };
 
-async function spaceLogRows(): Promise<LogRow[]> {
+let logAcc: Accumulator<LogRow> | undefined;
+
+async function fetchSpaceLogPage(
+  phrase: string | undefined,
+  before: string | undefined,
+): Promise<{ rows: LogRow[]; more: boolean; cursor?: string }> {
   let log;
   try {
-    log = await space.getSpaceLog(undefined);
-  } catch {
-    return [];
+    log = await space.getSpaceLog(before, phrase);
+  } catch (e) {
+    throw describeFailure(e);
   }
+  if (log.mode === "disabled") throw new Error(DISABLED);
   const rows: LogRow[] = [];
   // A pseudo-commit for what is not committed yet, expanding to the files it
-  // covers exactly as a real commit row does.
-  const uncommitted = log.uncommitted ?? [];
-  if (uncommitted.length > 0) {
-    rows.push({ name: UNCOMMITTED, rev: UNCOMMITTED });
-    for (const path of uncommitted) {
-      rows.push({
-        name: `${UNCOMMITTED}/${path.replaceAll("/", PATH_SLASH)}`,
-        rev: UNCOMMITTED,
-        file: path,
-      });
+  // covers exactly as a real commit row does. It describes the working tree
+  // right now, not this page of history -- only the first page shows it.
+  if (before === undefined) {
+    const uncommitted = log.uncommitted ?? [];
+    if (uncommitted.length > 0) {
+      rows.push({ name: UNCOMMITTED, rev: UNCOMMITTED });
+      for (const f of uncommitted) {
+        rows.push({
+          name: `${UNCOMMITTED}/${f.path.replaceAll("/", PATH_SLASH)}`,
+          rev: UNCOMMITTED,
+          file: f.path,
+          status: f.status,
+        });
+      }
     }
   }
   for (const c of log.commits) {
@@ -274,22 +418,65 @@ async function spaceLogRows(): Promise<LogRow[]> {
     });
     for (const f of c.files) {
       rows.push({
-        name: `${c.rev}/${f.replaceAll("/", PATH_SLASH)}`,
+        name: `${c.rev}/${f.path.replaceAll("/", PATH_SLASH)}`,
         rev: c.rev,
-        file: f,
+        file: f.path,
+        status: f.status,
         author: c.author,
         message: c.message,
         timestamp: c.timestamp,
       });
     }
   }
-  return rows;
+  return { rows, more: log.more, cursor: log.commits.at(-1)?.rev };
+}
+
+async function spaceLogRows(ctx: SourceCtx): Promise<LogRow[]> {
+  const key = ctx.phrase || "";
+  if (!logAcc?.pending || logAcc.key !== key) {
+    const { rows, more, cursor } = await fetchSpaceLogPage(
+      ctx.phrase || undefined,
+      undefined,
+    );
+    logAcc = { key, rows, more, cursor, pending: false, loading: false };
+  }
+  logAcc.pending = false;
+  return logAcc.more
+    ? [...logAcc.rows, { name: MORE, rev: MORE }]
+    : logAcc.rows;
+}
+
+/** See `loadMorePageHistory`'s comment: the boolean return is what lets the
+ * caller skip dispatching a refresh for a no-op click. */
+async function loadMoreSpaceLog(): Promise<boolean> {
+  if (!logAcc || !logAcc.more || logAcc.loading) return false;
+  const inProgress = logAcc;
+  inProgress.loading = true;
+  try {
+    const { rows, more, cursor } = await fetchSpaceLogPage(
+      inProgress.key || undefined,
+      inProgress.cursor,
+    );
+    logAcc = {
+      key: inProgress.key,
+      rows: [...inProgress.rows, ...rows],
+      more,
+      cursor,
+      pending: true,
+      loading: false,
+    };
+    return true;
+  } catch (e) {
+    inProgress.loading = false;
+    throw e;
+  }
 }
 
 function logRowLabel(obj: LogRow): string {
+  if (obj.name === MORE) return "Load more…";
   if (obj.file) return obj.file;
   if (obj.rev === UNCOMMITTED) return "Uncommitted changes";
-  return obj.author || obj.rev.slice(0, 8);
+  return obj.message || obj.author || obj.rev.slice(0, 8);
 }
 
 /**
@@ -310,33 +497,60 @@ function previewLogFile(
 export const spaceLogView: BuiltinView<LogRow> = {
   meta: baseMeta({
     title: "Space History",
-    placeholder: "Filter page/author",
+    placeholder: "Search commit message or author",
     mode: "tree",
     dock: DOCK,
     foldersFirst: false,
     hasRowIcon: true,
-    filterFields: { primary: { weight: 1.0, segments: true }, message: 0.8 },
     refreshOn: ["file:changed", "file:deleted", REVISIONS_CHANGED_EVENT],
     refreshOnOpen: true,
+    search: "source",
   }),
   row: {
     primary: (obj) => logRowLabel(obj),
     label: (obj) => logRowLabel(obj),
-    decorations: (obj) => (obj.file ? undefined : commitDecorations(obj)),
+    decorations: (obj) => {
+      if (obj.file) return undefined;
+      const chips: Decoration[] = [];
+      if (obj.message && obj.author) {
+        chips.push({ text: obj.author, position: "right" });
+      }
+      chips.push(...(commitDecorations(obj) ?? []));
+      return chips.length > 0 ? chips : undefined;
+    },
     icon: (obj) =>
-      obj.file
-        ? "file-text"
-        : obj.rev === UNCOMMITTED
-          ? "edit-3"
-          : "git-commit",
+      obj.name === MORE
+        ? "chevron-down"
+        : obj.file
+          ? STATUS_ICONS[obj.status ?? "modified"]
+          : obj.rev === UNCOMMITTED
+            ? "edit-3"
+            : "git-commit",
     cssClass: () => "sb-nav-noband",
   },
   source: spaceLogRows,
   onSelect: (obj) => {
+    if (obj.name === MORE) {
+      return loadMoreSpaceLog().then(async (didLoad) => {
+        if (didLoad) await events.dispatchEvent(REVISIONS_CHANGED_EVENT, {});
+        return false;
+      });
+    }
     // A commit row's only meaningful selection is opening it up; the pages it
     // touched preview exactly like a Page History row does.
     if (!obj.file) return Promise.resolve(EXPAND_ROW);
     return previewLogFile(obj, true);
   },
-  keymap: { " ": (obj) => previewLogFile(obj, false) },
+  keymap: {
+    " ": (obj) => (obj.name === MORE ? false : previewLogFile(obj, false)),
+  },
+  actions: [
+    {
+      icon: "rotate-ccw",
+      label: "Restore",
+      requireMode: "rw",
+      when: (obj) => !!obj.file?.endsWith(".md") && obj.rev !== UNCOMMITTED,
+      run: (obj) => restoreRevision({ ...obj, page: obj.file! }),
+    },
+  ],
 };

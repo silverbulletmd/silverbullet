@@ -24,6 +24,11 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
   const [content, setContent] = useState<string | undefined>();
   const [contentFailed, setContentFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [fromParent, setFromParent] = useState(false);
+  // `restore()` can trigger the very fetch that discovers `fromParent`, and
+  // then needs the answer before this render's `setFromParent` has committed
+  // -- the state alone would still read stale mid-call.
+  const fromParentRef = useRef(fromParent);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useLayoutEffect(() => {
@@ -34,7 +39,15 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
   // other costs a single fetch. A failure is never cached, so a retry is real.
   async function fetchContent(): Promise<string> {
     if (content !== undefined) return content;
-    const text = await space.getRevision(path, rev!);
+    let text: string;
+    try {
+      text = await space.getRevision(path, rev!);
+    } catch (e) {
+      if ((e as { status?: number } | undefined)?.status !== 404) throw e;
+      text = await space.getRevision(path, rev!, true);
+      fromParentRef.current = true;
+      setFromParent(true);
+    }
     setContent(text);
     return text;
   }
@@ -53,8 +66,13 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
   async function restore() {
     setRestoring(true);
     try {
-      await restoreInto(path, await fetchContent());
-      await editor.flashNotification(`Restored revision ${rev!.slice(0, 8)}`);
+      const text = await fetchContent();
+      await restoreInto(path, text);
+      await editor.flashNotification(
+        fromParentRef.current
+          ? `Restored ${path} as it was before ${rev!.slice(0, 8)}`
+          : `Restored revision ${rev!.slice(0, 8)}`,
+      );
       close(dock);
     } catch (e: any) {
       setRestoring(false);
@@ -65,7 +83,11 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
   return (
     <>
       <div class="sb-revision-preview-header">
-        <span class="sb-revision-preview-title">{preview.header}</span>
+        <span class="sb-revision-preview-title">
+          {showContent && fromParent
+            ? `before this commit — ${preview.header}`
+            : preview.header}
+        </span>
         {diff !== undefined && canShowContent && (
           <SegmentedControl
             items={MODES}
@@ -94,7 +116,7 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
         </Button>
         {canRestore && (
           <Button variant="primary" disabled={restoring} onClick={restore}>
-            Restore
+            {fromParent ? "Restore version before this" : "Restore"}
           </Button>
         )}
       </div>
