@@ -15,10 +15,10 @@ references:
 - plugs/object-graph/src/graph_builder.ts
 ---
 # Context
-SilverBullet's power features — [[Space Lua/Integrated Query]], [[Concept/Linked Mention]], the [[Concept/Linked Task]], [[Feature/Object Graph]] — all need *structured, queryable* data. But the source of truth is plain markdown files. Something needs to turn that prose into queryable data without making the markdown any less plain.
+SilverBullet's power features — [[Space Lua/Integrated Query]], [[Concepts/Linked Mention]], the [[Concepts/Linked Task]], [[Features/Object Graph]] — all need *structured, queryable* data. But the source of truth is plain markdown files. Something needs to turn that prose into queryable data without making the markdown any less plain.
 
 # Decision
-Continuously maintain an **[[Concept/Object Index]]**: a structured, queryable graph automatically extracted from the markdown. Every meaningful element — [[Object/page|pages]], headers, [[Object/task|tasks]], list items, [[Concept/Tag|tags]], links — becomes an **[[Object|object]]** (a "row") with attributes, typed by one or more tags ("tables"), queried via [[Space Lua/Integrated Query]] and the [[API/index]] API.
+Continuously maintain an **[[Concepts/Object Index]]**: a structured, queryable graph automatically extracted from the markdown. Every meaningful element — [[Object/page|pages]], headers, [[Object/task|tasks]], list items, [[Concepts/Tag|tags]], links — becomes an **[[Object|object]]** (a "row") with attributes, typed by one or more tags ("tables"), queried via [[Space Lua/Integrated Query]] and the [[API/index]] API.
 
 Two principles hold it together:
 
@@ -30,7 +30,7 @@ Two principles hold it together:
 * **Plain markdown stays plain, yet queryable.** Structure is derived, so files remain portable and human-editable; nothing is locked in a database.
 * **Rebuildable and disposable.** The index is a cache. Corruption or schema changes are fixed through a reindex.
 * **One uniform model.** Pages, tasks, tags, and relations are all just objects with attributes enabling one query language over everything.
-* **A real graph for free.** Generalized relations turn backlinks and frontmatter links into uniform edges, enabling [[Concept/Linked Mention|backlinks]], the [[Feature/Object Graph]], renames, and semantic frontmatter (like ADR `dependsOn`/`related`).
+* **A real graph for free.** Generalized relations turn backlinks and frontmatter links into uniform edges, enabling [[Concepts/Linked Mention|backlinks]], the [[Features/Object Graph]], renames, and semantic frontmatter (like ADR `dependsOn`/`related`).
 
 ## Negative / trade-offs
 * **Every client (re)builds the index.** Indexing all files is a cold-start cost per client (see [[Architecture/ADR/001 Offline-First PWA]]), large spaces take longer.
@@ -40,5 +40,5 @@ Two principles hold it together:
 * **Query raw markdown text (grep-style) at query time.** Rejected: too slow and too weak, no typed attributes, no joins/graph, no incremental maintenance.
 
 # References
-* [[Object]] · [[Concept/Object Index]] · [[Object/relation]] · [[Feature/Object Graph]].
+* [[Object]] · [[Concepts/Object Index]] · [[Object/relation]] · [[Features/Object Graph]].
 * Generalized relation: [commit 91349448](https://github.com/silverbulletmd/silverbullet/commit/91349448) (2026-05-21) — "Introduce 'relation' indexer, demote 'link' to virtual view"

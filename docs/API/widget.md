@@ -42,7 +42,7 @@ function marquee(text)
 end
 ```
 
-We can combine this with some [[Concept/Space Style]] to style it:
+We can combine this with some [[Concepts/Space Style]] to style it:
 
 ```space-style
 .my-marquee {

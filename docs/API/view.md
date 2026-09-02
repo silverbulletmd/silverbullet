@@ -3,14 +3,14 @@ tags: api/space-lua
 references:
 - client/navigator/navigator.ts
 ---
-The `view` API defines and opens [[Feature/Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
+The `view` API defines and opens [[Features/Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
 
 `navigator.*` is a permanent alias for every function below (`navigator.define`, `navigator.open`, `navigator.pick`, `navigator.focus`, `navigator.moveByRename`) -- same implementation, just the pre-rename name. It is fully supported, not deprecated; use whichever reads better in your own scripts. Everything past this point uses the canonical `view.*` names.
 
 ## view.define(spec)
 `view.define(spec)`
 
-Registers a view, and optionally a [[Concept/Command]] that opens it. `name`, `source` and `onSelect` are required; everything else is optional. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) is reserved and cannot be redefined: `view.define` throws instead. `std.toc` (Table of Contents) is *not* one of these any more -- it's itself a `view.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Concept/Command]] (or key) to it, rather than trying to redefine the built-in's name.
+Registers a view, and optionally a [[Concepts/Command]] that opens it. `name`, `source` and `onSelect` are required; everything else is optional. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) is reserved and cannot be redefined: `view.define` throws instead. `std.toc` (Table of Contents) is *not* one of these any more -- it's itself a `view.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Concepts/Command]] (or key) to it, rather than trying to redefine the built-in's name.
 
 ### Identity and chrome
 * `name`: (globally) unique identifier for the navigator view; reserved names (the built-ins above, and anything starting with `__pick:`) throw at definition time.

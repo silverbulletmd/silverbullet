@@ -16,7 +16,7 @@ references:
 - server-runtime-chrome/src/supervisor.rs
 ---
 # Context
-The server does very little. Since [[Architecture/ADR/007 Core Application Logic on the Client|all application logic moved to the client]], the server is primarily a file store: it lists, reads, writes and deletes files, handles authentication, serves the static client, and runs shell commands. When the [[Feature/Runtime API]] is enabled, it manages a Chrome sub-process and delegates calls to it. This makes the server's *implementation language* a relatively low-stakes, swappable choice, and over the project’s life it has changed several times.
+The server does very little. Since [[Architecture/ADR/007 Core Application Logic on the Client|all application logic moved to the client]], the server is primarily a file store: it lists, reads, writes and deletes files, handles authentication, serves the static client, and runs shell commands. When the [[Features/Runtime API]] is enabled, it manages a Chrome sub-process and delegates calls to it. This makes the server's *implementation language* a relatively low-stakes, swappable choice, and over the project’s life it has changed several times.
 
 The server has been, in turn: Node.js (earliest prototypes), then **Deno** for years, then **Go** (2025), and now **Rust** (2026). (The separate move of the *client* build toolchain from Deno to Node is [[ADR/009 Client Build Toolchain|its own decision]].) This is further discussed in [On Tech Stacks](https://no.silverbullet.plus/tech-stacks).
 

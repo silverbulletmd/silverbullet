@@ -25,8 +25,8 @@ Three languages to learn and maintain, with awkward seams between them (a query 
 Adopt **Lua** as a single embedded language ([[Space Lua]]) that unifies scripting, templating, and querying:
 
 * `space-lua` code blocks define space-wide functions and config;
-* `${...}` expressions render inline via [[Feature/Live Preview]], replacing Handlebars templates;
-* **Space Lua Integrated Query (SLIQ)** — `${query[[ from ... select ... ]]}` replaces the old query language; because the body after `from` is a Lua expression, it can query the [[Concept/Object Index|object index]] *or* any Lua table.
+* `${...}` expressions render inline via [[Features/Live Preview]], replacing Handlebars templates;
+* **Space Lua Integrated Query (SLIQ)** — `${query[[ from ... select ... ]]}` replaces the old query language; because the body after `from` is a Lua expression, it can query the [[Concepts/Object Index|object index]] *or* any Lua table.
 
 [[Space Lua]] is a **custom, from-scratch implementation** — not the official [Lua](https://www.lua.org) or [LuaJIT](https://luajit.org), nor a WebAssembly build of them — largely Lua-5.4-compatible with a few non-standard additions. It replaced Space Script (JS) and the v1 template/query mechanisms.
 

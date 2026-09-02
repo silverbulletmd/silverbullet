@@ -7,7 +7,7 @@ references:
 - plugs/configuration-manager/configuration.ts
 ---
 
-The Config API provides functions for managing configuration values, defining their JSON schemas, and exposing them in the [[Feature/Configuration Manager]] UI.
+The Config API provides functions for managing configuration values, defining their JSON schemas, and exposing them in the [[Features/Configuration Manager]] UI.
 
 <!--#lua spacelua.renderApiDocumentation("config") -->
 ## config.define
@@ -168,11 +168,11 @@ Sets configuration while preserving the supplied Lua value representation.
 Schemas registered through `config.define` support two extensions on top of plain JSON Schema:
 
 * `default`: when present, the value is automatically applied if the key is not already set.
-* `ui`: optional annotations that expose the field in the [[Feature/Configuration Manager]].
+* `ui`: optional annotations that expose the field in the [[Features/Configuration Manager]].
 
 ### `ui` annotations
 
-Only fields that have a `ui` attribute appear in the [[Feature/Configuration Manager]]. Recognized properties:
+Only fields that have a `ui` attribute appear in the [[Features/Configuration Manager]]. Recognized properties:
 
 * `category` (required): name of the category (tab) the field appears under. It should match a `config.defineCategory` name; otherwise the category appears at the bottom in alphabetical order.
 * `label`: human-readable label shown next to the control.

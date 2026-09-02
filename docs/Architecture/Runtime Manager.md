@@ -7,6 +7,6 @@ references:
 - server-runtime-chrome/src/pool.rs
 - server-runtime-chrome/src/lib.rs
 ---
-In order to implement the [[Feature/Runtime API]], 
+In order to implement the [[Features/Runtime API]], 
 
 The server’s file-access and RPC surface behind the [[HTTP API]]: listing/reading/writing/deleting files, plus shell execution and the HTTP proxy.

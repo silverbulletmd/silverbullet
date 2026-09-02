@@ -3,7 +3,7 @@
 Welcome! This guide helps you get started with SilverBullet assuming you have it successfully [[Install|installed as a server]] or [desktop app](https://silverbullet.plus). 
 
 # Welcome
-Once you launch SilverBullet on a fresh [[Concept/Space]], you will be greeted by its automatically generated [[Concept/Index Page]] that contains a few sections:
+Once you launch SilverBullet on a fresh [[Concepts/Space]], you will be greeted by its automatically generated [[Concepts/Index Page]] that contains a few sections:
 
 1. Recent quick notes
 2. Recent journal entries
@@ -37,11 +37,11 @@ But at the end of the day, this is your space, so you can use (or not use) them 
 # Journal entries
 Dear diary,
 
-A [[Feature/Journal]] entry is in effect not that much different than a quick note, except that its page names are prefixed with `Journal/` and only contain the date, but not time. And that every time you click the “Today’s entry” button (or run the `Journal: Today` command, or hit `Ctrl-q j`) you end up on the page for that day and are greeted with an ever expecting (silver) bullet:
+A [[Features/Journal]] entry is in effect not that much different than a quick note, except that its page names are prefixed with `Journal/` and only contain the date, but not time. And that every time you click the “Today’s entry” button (or run the `Journal: Today` command, or hit `Ctrl-q j`) you end up on the page for that day and are greeted with an ever expecting (silver) bullet:
 
     *
 
-A common workflow is keep this page open throughout the day and use it as your journal [[Concept/Outline|Outline]]. You can use it to create tasks for yourself (see [[#Tasks]] later), write quick notes to yourself (if you don’t use quick notes), and make notes about meetings you’re in.
+A common workflow is keep this page open throughout the day and use it as your journal [[Concepts/Outline|Outline]]. You can use it to create tasks for yourself (see [[#Tasks]] later), write quick notes to yourself (if you don’t use quick notes), and make notes about meetings you’re in.
 
 Here is (one) of SilverBullet’s killer features: if you start to link to topic pages in your journal, you are now are starting to build your knowledge graph. 
 
@@ -52,9 +52,9 @@ What does _that_ mean? Let’s make this more concrete, let’s add an item to o
       * [ ] Agreed I shall come up with a better project name
       * [ ] Agreed [[Allan]] will approve final project name
 
-The `[[page]]` syntax is [[Concept/Link]] syntax. It allows you to create a web of links across your space, like a personal [wiki](https://en.wikipedia.org/wiki/Wiki). However — and here’s the kicker — these links are bi-directional. This means that _on the page you link to you can see what pages point to it_.
+The `[[page]]` syntax is [[Concepts/Link]] syntax. It allows you to create a web of links across your space, like a personal [wiki](https://en.wikipedia.org/wiki/Wiki). However — and here’s the kicker — these links are bi-directional. This means that _on the page you link to you can see what pages point to it_.
 
-This means that if I now click on the `Allan` link, I navigate to this page (or create it, if it didn’t exist yet) and there in a [[Concept/Linked Mention]] section I will see that on this and that journal page, I mentioned Alan + all the sub-items mentioned in the journal. Cool right? And because also created a _task_ mentioning `Allan`, and that task is not yet complete, it will also appear at the top of the page as under [[Concept/Linked Task]].
+This means that if I now click on the `Allan` link, I navigate to this page (or create it, if it didn’t exist yet) and there in a [[Concepts/Linked Mention]] section I will see that on this and that journal page, I mentioned Alan + all the sub-items mentioned in the journal. Cool right? And because also created a _task_ mentioning `Allan`, and that task is not yet complete, it will also appear at the top of the page as under [[Concepts/Linked Task]].
 
 This way, as you chronicle your journey day by day, mentioning people, projects and other topics, you implicitly contribute content to these pages. On the topic pages themselves you will see where they are mentioned and the context, and you can add additional information as you see fit in the page itself.
 
@@ -62,7 +62,7 @@ This way, as you chronicle your journey day by day, mentioning people, projects 
 On your index page you will see a list of all the days you’ve created a journal page for which is useful for navigation. If you’re on a journal page you can also use the `Journal: Previous Day` and `Journal: Next Day` command (these have keyboard shortcuts too) to walk through the various entries, or use `Journal: Picker` to get a list of all of them.
 
 # Tasks
-As you journal or create quick notes or topic pages, you may want to make note of things to do. For this, markdown offers [[Concept/Task]] syntax:
+As you journal or create quick notes or topic pages, you may want to make note of things to do. For this, markdown offers [[Concepts/Task]] syntax:
 
     * [ ] My task
 
@@ -74,7 +74,7 @@ You will notice that visually it will turn `[ ]` into a checkbox. You can go ahe
 
 As you collect incomplete tasks across your space, the “Recent incomplete tasks” will collect them all in one place until they’re done.
 
-Reality check: it’s likely you will collect a lot of tasks and this list will become unwieldly so likely you’ll want to replace this list with something more specific later. For this see the [[Guide/Task Management]] guide.
+Reality check: it’s likely you will collect a lot of tasks and this list will become unwieldly so likely you’ll want to replace this list with something more specific later. For this see the [[Guides/Task Management]] guide.
 
 # Recently modified pages
 This section does what it says on the tin: it shows you the last 10 modified pages in your space. Useful to get back to where you were last making changes. That’s all there’s to it, really.
@@ -82,9 +82,9 @@ This section does what it says on the tin: it shows you the last 10 modified pag
 # What's next?
 Now that you know the basics, explore these guides for real-world workflows:
 
-* [[Feature/Journal]] — a little more depth on the daily journal setup
-* [[Guide/Knowledge Base]] — build a personal knowledge base
-* [[Guide/Task Management]] — track projects and tasks
+* [[Features/Journal]] — a little more depth on the daily journal setup
+* [[Guides/Knowledge Base]] — build a personal knowledge base
+* [[Guides/Task Management]] — track projects and tasks
 * [[Manual]] — the full user manual
 * [[Space Lua]] — learn more about the scripting language that gives SilverBullet a lot of its power
 * [[Object]] — understand how SilverBullet indexes your content

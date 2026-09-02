@@ -1,5 +1,5 @@
 # Introduction
-SilverBullet is a [[Principles/Programmable]], [[Principles/Private]], [[Concept/Browser]]-based, [[Principles/Open Source]], [[Principles/Self Hosted]], [[Principles/Personal]] [[Concept/Knowledge Database]].
+SilverBullet is a [[Principles/Programmable]], [[Principles/Private]], [[Concepts/Browser]]-based, [[Principles/Open Source]], [[Principles/Self Hosted]], [[Principles/Personal]] [[Concepts/Knowledge Database]].
 
 _Yowza!_ That surely is a lot of adjectives to describe, effectively, a browser-based [[Markdown]] editor programmable with [[Lua]].
 
@@ -7,20 +7,20 @@ Let’s get more specific.
 
 SilverBullet combines a clean live-preview editor with wiki-style linking, a built-in database and query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a programmable system that grows with you.
 
-In SilverBullet you keep your content as a collection of [[Markdown]] [[Concept/Page|Pages]] (called a [[Concept/Space]]). You navigate your space using the [[Feature/Page Picker]] like a traditional notes app, or through [[Concept/Link|Links]] like a wiki (except they are [[Concept/Linked Mention|bi-directional]]).
+In SilverBullet you keep your content as a collection of [[Markdown]] [[Concepts/Page|Pages]] (called a [[Concepts/Space]]). You navigate your space using the [[Features/Page Picker]] like a traditional notes app, or through [[Concepts/Link|Links]] like a wiki (except they are [[Concepts/Linked Mention|bi-directional]]).
 
-If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Feature/Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Concept/Outline|Outlining]] tools for you. Productivity freak? Have a look at [[Concept/Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]] (SLIQ). 
+If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Features/Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Concepts/Outline|Outlining]] tools for you. Productivity freak? Have a look at [[Concepts/Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]] (SLIQ). 
 
-And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Concept/Command|Commands]], [[Concept/Page Template|Page Templates]] or [[API/widget|Widgets]].
+And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Concepts/Command|Commands]], [[Concepts/Page Template|Page Templates]] or [[API/widget|Widgets]].
 
 You were told there’s no such thing as a silver bullet. You were told wrong.
 
 # Programmable notes
 Dynamically generating content, _programmable notes_... why would you want that, and how does it work?
 
-Let’s say you have documented a set of product features in individual pages that you’ve [[Concept/Tag|tagged]] with a #feature tag, and annotated with a few custom [[Concept/Frontmatter]] [[Concept/Attribute|Attributes]].
+Let’s say you have documented a set of product features in individual pages that you’ve [[Concepts/Tag|tagged]] with a #feature tag, and annotated with a few custom [[Concepts/Frontmatter]] [[Concepts/Attribute|Attributes]].
 
-With a simple [[Space Lua/Integrated Query|Query]] and [[Concept/Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
+With a simple [[Space Lua/Integrated Query|Query]] and [[Concepts/Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
 ${query[[
   from f = tags.feature
   where f.tag == "page"
@@ -41,7 +41,7 @@ ${query[[
 ]]}
 
 ## To do items 
-Maybe you want to collect all [[Concept/Task|Tasks]] that you have not yet completed from across your space? No problem:
+Maybe you want to collect all [[Concepts/Task|Tasks]] that you have not yet completed from across your space? No problem:
 ${query[[
   from t = tags.task
   where not t.done
@@ -61,7 +61,7 @@ As mentioned, SilverBullet is a [[Principles/Self Hosted]] web application. This
 
 Want a **pure desktop app experience**? Give [SilverBullet+](https://silverbullet.plus) a try.
 
-While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Principles/Data Sovereignty]] and to access your content from any device with a modern [[Concept/Browser]].
+While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Principles/Data Sovereignty]] and to access your content from any device with a modern [[Concepts/Browser]].
 
 Ready? Proceed to [[Install]], then follow [[Getting Started]] to learn the basics.
 

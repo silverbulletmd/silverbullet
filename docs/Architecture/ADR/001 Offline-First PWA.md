@@ -14,13 +14,13 @@ references:
 - client/data/object_index.ts
 ---
 # Context
-SilverBullet aims to be **offline-first**: it should keep working with no network and feel instant. While we may reach a point in the state of the world some day where Internet connectivity is always available, we’re not there yet. You should be able to access your notes even when you’re in the middle of a dessert, top of a mountain, or 10km deep in the sea. For that, the client keeps a full local copy of your [[Concept/Space]] files and keeps working when the server is unreachable. (This offline-first stance later drove the v2 decision to run *all* application logic in the client — see [[Architecture/ADR/007 Core Application Logic on the Client]].)
+SilverBullet aims to be **offline-first**: it should keep working with no network and feel instant. While we may reach a point in the state of the world some day where Internet connectivity is always available, we’re not there yet. You should be able to access your notes even when you’re in the middle of a dessert, top of a mountain, or 10km deep in the sea. For that, the client keeps a full local copy of your [[Concepts/Space]] files and keeps working when the server is unreachable. (This offline-first stance later drove the v2 decision to run *all* application logic in the client — see [[Architecture/ADR/007 Core Application Logic on the Client]].)
 
 # Decision
 The client is a **Progressive Web App built around a service worker**. The service worker:
 
 * keeps a full local copy of the space's files in **IndexedDB**;
-* hosts the [[Concept/Object Index|index]] and the [[Feature/Sync|sync engine]];
+* hosts the [[Concepts/Object Index|index]] and the [[Features/Sync|sync engine]];
 * **intercepts the HTTP API** and serves it locally, so the app behaves the same whether or not the server is reachable;
 * caches and serves the client code itself.
 
@@ -41,4 +41,4 @@ See [[Architecture#Service Worker]].
 * **Bundle a native runtime for offline.** Rejected: heavier and platform-specific; a PWA delivers offline on every platform from one codebase.
 
 # References
-* [[Architecture#Service Worker]] and [[Feature/Sync]].
+* [[Architecture#Service Worker]] and [[Features/Sync]].

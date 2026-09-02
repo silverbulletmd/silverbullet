@@ -6,11 +6,11 @@ references:
 - client/data/object_index.ts
 ---
 
-Enables customization of [[Concept/Tag|tags]] and its [[Object|objects]] in a few ways:
+Enables customization of [[Concepts/Tag|tags]] and its [[Object|objects]] in a few ways:
 
-* Restrict and validates [[Concept/Metadata]] against a [[Concept/Schema]]
-* Change how objects are indexed in the [[Concept/Object Index]]
-* Tweak styling of tags in the editor using [[Concept/Space Style]]
+* Restrict and validates [[Concepts/Metadata]] against a [[Concepts/Schema]]
+* Change how objects are indexed in the [[Concepts/Object Index]]
+* Tweak styling of tags in the editor using [[Concepts/Space Style]]
 
 > **success** Success
 > Put all your `tag.define` calls in your [[CONFIG]] page so that they will be picked up during the index process.
@@ -24,7 +24,7 @@ Defines a tag explicitly.
 * `tagPage` page to navigate to when clicking the tag (defaults to `tag:name`)
 * `metatable` to set a custom Lua metatable for objects with this tag.
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
-* `schema` [[Concept/Schema]] to validate against
+* `schema` [[Concepts/Schema]] to validate against
 * `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
 
@@ -34,7 +34,7 @@ This is a very powerful API, with a wide range of potential use cases.
 
 # Use cases
 ## Schema validation
-To define a [[Concept/Schema]] for validating an object (e.g. a page) tagged with `#person` ensuring that the `age` attribute is always a number, you can do the following:
+To define a [[Concepts/Schema]] for validating an object (e.g. a page) tagged with `#person` ensuring that the `age` attribute is always a number, you can do the following:
 ```lua
 tag.define {
   name = "person",
@@ -66,8 +66,8 @@ Based on your page’s markdown, an indexer produces a list of objects to be ind
 > **note** Note
 > `transform` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `transform` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.
 
-### Example: adding [[Concept/Page Decoration]] dynamically
-The following dynamically adds a 🧑 prefix [[Concept/Page Decoration|page decoration]] to all pages tagged with `#person`, such as [[Example/Person/John]].
+### Example: adding [[Concepts/Page Decoration]] dynamically
+The following dynamically adds a 🧑 prefix [[Concepts/Page Decoration|page decoration]] to all pages tagged with `#person`, such as [[Example/Person/John]].
 
 ```lua
 tag.define {
@@ -132,7 +132,7 @@ The result is the following:
 <!--/lua-->
 
 ## Styling
-Tags get assigned a `data-tag-name` attribute in the DOM, which you can use to do custom styling with [[Concept/Space Style]].
+Tags get assigned a `data-tag-name` attribute in the DOM, which you can use to do custom styling with [[Concepts/Space Style]].
 
 ### Example: colorful tags
 Example: #my-red-tag

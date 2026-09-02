@@ -3,7 +3,7 @@ references:
 - plugs/index/relation.ts
 - client/data/object_index.ts
 ---
-[[Concept/Aspiring Page]] (codified using the `aspiring-page` tag) are pages that are linked to, but not yet created. [[Like this one]].
+[[Concepts/Aspiring Page]] (codified using the `aspiring-page` tag) are pages that are linked to, but not yet created. [[Like this one]].
 
 Internally SilverBullet uses these in [[^Library/Std/Pages/Maintenance]], page complete and the page picker (to hint at pages to still be created).
 

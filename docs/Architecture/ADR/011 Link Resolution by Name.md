@@ -32,11 +32,11 @@ The rules:
 1. **Exact path match wins.** Every link that resolved before resolves to the same file. That is: if a link is an absolute one, and that path exists — done.
 2. **Bare names** (so without a path segment) resolve space-wide by name, case-insensitively, exact-case preferred.
 3. **Qualified paths** (with a path segment, but not necessarily a full one) with no exact match are looked up by unique **path suffix** (`[[api/Auth]]` finds `docs/api/Auth`). This matches Obsidian’s partial paths and making qualified links survive a root change too. Example: [[1/ambiguous link]] (note that the `1/` prefix make it ambiguous, but it’s still not a full path).
-4. **Several matches** mean the link is **ambiguous**: it still resolves, but is highlighted, indexed as an [[Object/ambiguous-link]] object, and following it (click, command or shortcut) opens a picker over the candidates. The link text is left alone: following a link is reading, and reading does not edit the document, example: [[Examples/1/ambiguous link]]
+4. **Several matches** mean the link is **ambiguous**: it still resolves, but is highlighted, indexed as an [[Object/ambiguous-link]] object, and following it (click, command or shortcut) opens a picker over the candidates. The link text is left alone: following a link is reading, and reading does not edit the document, example: [[1/ambiguous link]]
 
-The scope is wiki links only, including documents (`![[image.png]]`) and [[Concept/Transclusion]]. The `[[^` meta-page link syntax is not included here (it always will continue to use absolute paths). Markdown links keep their existing folder-relative semantics. The [[Architecture/ADR/003 Indexed Object Graph|index]] keeps storing resolved absolute paths, so queries, backlinks and the graph never see write format.
+The scope is wiki links only, including documents (`![[image.png]]`) and [[Concepts/Transclusion]]. The `[[^` meta-page link syntax is not included here (it always will continue to use absolute paths). Markdown links keep their existing folder-relative semantics. The [[Architecture/ADR/003 Indexed Object Graph|index]] keeps storing resolved absolute paths, so queries, backlinks and the graph never see write format.
 
-There is now a “Link write format” configuration option in the [[Feature/Configuration Manager]] that allows you to choose either: `shortest`, `shortest-suffix`, or `full-path`. See [[Concept/Link#Link write format]] for details.
+There is now a “Link write format” configuration option in the [[Features/Configuration Manager]] that allows you to choose either: `shortest`, `shortest-suffix`, or `full-path`. See [[Concepts/Link#Link write format]] for details.
 
 # Consequences
 ## Positive
@@ -45,7 +45,7 @@ There is now a “Link write format” configuration option in the [[Feature/Con
 * For people using heavily nested spaces: links are now shorter (usually).
 
 ## Negative / trade-offs
-* **Semantics change, slightly:** A previously [[Concept/Aspiring Page]] link may now (silently) gain a target.
+* **Semantics change, slightly:** A previously [[Concepts/Aspiring Page]] link may now (silently) gain a target.
 * **Renames rewrite backlinks into bare form** in hierarchical spaces: switching `linkWriteFormat` back to `full-path` re-qualifies nothing already written bare.
 * **Resolution is stateful:** A file appearing or disappearing changes what links *elsewhere* mean.
 

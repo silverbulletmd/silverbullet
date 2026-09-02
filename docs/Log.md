@@ -3,7 +3,7 @@ To better understand what SilverBullet is doing, especially when [[Troubleshooti
 Most valuable logs are likely going to be in your browser’s logs, so especially if you’re a power user, get comfortable opening your JavaScript console.
 
 * Client logs: Check your browser’s JavaScript console. Usually these are part of “(Web) Developer Tools” buried somewhere in a Tools or Developer menu.
-* Service worker logs (especially useful when debugging [[Feature/Sync]] issues):
+* Service worker logs (especially useful when debugging [[Features/Sync]] issues):
   * In Chromium-based browsers these logs are mixed with the regular JavaScript console.
   * In Firefox start at `about:debugging#/runtime/this-firefox` then find it under the Service Worker section and click “Inspect”.
   * In Safari they can be accessed via `Developer > Service workers`.

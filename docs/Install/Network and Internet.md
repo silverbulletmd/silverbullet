@@ -5,7 +5,7 @@ Running SilverBullet locally on your machine is nice, but you likely want to acc
 > **note** IMPORTANT
 > To use SilverBullet from anywhere other than localhost, you have to set up [[TLS]]. SilverBullet does not work (other than via localhost) on URLs other than `https://` ones.
 
-For this, be sure to enable [[Feature/Authentication]].
+For this, be sure to enable [[Features/Authentication]].
 
 There’s two parts to this process:
 1. Run the SilverBullet server itself somewhere, following the [[Install]] instructions

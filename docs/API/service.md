@@ -5,7 +5,7 @@ references:
 - client/plugos/syscalls/service_registry.ts
 ---
 
-The Service API exposes a simple service registry leveraged by various parts of SilverBullet. See [[Concept/Service]].
+The Service API exposes a simple service registry leveraged by various parts of SilverBullet. See [[Concepts/Service]].
 
 <!--#lua spacelua.renderApiDocumentation("service") -->
 ## service.define
@@ -78,7 +78,7 @@ local greeting = service.invokeBestMatch("greeter", "Pete")
 
 # Architecture
 
-Services are built on top of [[Concept/Event|Events]]. When a service is defined, it registers two event listeners:
+Services are built on top of [[Concepts/Event|Events]]. When a service is defined, it registers two event listeners:
 
 1. `discover:<<selector>>` for service discovery
 2. `service:<<guid>>` for invocation

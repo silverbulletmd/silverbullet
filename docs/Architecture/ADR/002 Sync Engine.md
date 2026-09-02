@@ -14,10 +14,10 @@ references:
 - plugs/sync/sync.ts
 ---
 # Context
-Because the client keeps a full local copy of the space ([[Architecture/ADR/001 Offline-First PWA]]), it has to be reconciled with the server's copy. A [[Feature/Sync]] engine keeps the client's local copy and the server's files in agreement, in both directions, including after offline edits.
+Because the client keeps a full local copy of the space ([[Architecture/ADR/001 Offline-First PWA]]), it has to be reconciled with the server's copy. A [[Features/Sync]] engine keeps the client's local copy and the server's files in agreement, in both directions, including after offline edits.
 
 # Decision
-Sync is **file-level, bidirectional, and poll-based**, running in the service worker (see [[Feature/Sync]]):
+Sync is **file-level, bidirectional, and poll-based**, running in the service worker (see [[Features/Sync]]):
 
 * the whole space syncs roughly every 20 seconds, the currently open file every 4–5 seconds;
 * it reconciles **whole files** by comparing local and remote state, not character-level diffs;
@@ -50,6 +50,6 @@ The move to a Rust backend ([[Architecture/ADR/010 Rust Backend]]) shifts that c
 * **Server-side merge or locking.** Rejected: makes the server authoritative and stateful, breaking the thin-server model ([[Architecture/ADR/007 Core Application Logic on the Client]], [[Architecture/ADR/010 Rust Backend]]).
 
 # References
-* [[Feature/Sync]] · [[Architecture#Service Worker]].
+* [[Features/Sync]] · [[Architecture#Service Worker]].
 * Real-time collaboration added, then removed (2023): [PR 411](https://github.com/silverbulletmd/silverbullet/pull/411).
 * CRDT considered a no-go in the Go era: [issue 1902](https://github.com/silverbulletmd/silverbullet/issues/1902).

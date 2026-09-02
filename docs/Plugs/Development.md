@@ -13,7 +13,7 @@ This section covers the basics to build, test, and distribute your own plug:
 
 * [[Plugs/Development/Architecture]]: how plugs are loaded, executed, and sandboxed
 * [[Plugs/Development/Reference]]: `*.plug.yaml` manifests, hook types, and the syscall catalog
-* [[Plugs/Development/Distribution and Testing]]: packaging a plug as a [[Concept/Library]], testing, debugging
+* [[Plugs/Development/Distribution and Testing]]: packaging a plug as a [[Concepts/Library]], testing, debugging
 
 # Quick start
 The easiest way to start is to click the “Use this template” button on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo. Then:
@@ -23,7 +23,7 @@ npm install
 npm run build
 ```
 
-This produces a `yourplug.plug.js` bundle. For development, copy somewhere in your [[Concept/Space]] (it doesn’t really matter where):
+This produces a `yourplug.plug.js` bundle. For development, copy somewhere in your [[Concepts/Space]] (it doesn’t really matter where):
 
 ```shell
 cp yourplug.plug.js ~/myspace/
@@ -55,6 +55,6 @@ export async function helloCommand() {
 }
 ```
 
-Build, copy into your space, plug reload, and a `Hello: World` should now be available as a command from the [[Feature/Command Palette]]. When it’s run you should see a “Hello world!” message flash.
+Build, copy into your space, plug reload, and a `Hello: World` should now be available as a command from the [[Features/Command Palette]]. When it’s run you should see a “Hello world!” message flash.
 
 From here, read [[Plugs/Development/Architecture]] to understand what’s happening under the hood, then [[Plugs/Development/Reference]] for the full manifest/hook/syscall surface.

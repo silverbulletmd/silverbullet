@@ -20,76 +20,76 @@ ${query[[from g = index.pages("guide") select templates.pageItem(g)]]}
 
 # Installation and deployment
 * [[Install]]: Installation instructions for various setups
-* [[Feature/Authentication]]: Securing your instance
+* [[Features/Authentication]]: Securing your instance
 * [[TLS]]: the part where we walk through options to expose SilverBullet via HTTPS.
 * [[Troubleshooting]]: When things don't go as planned
-* [[Feature/CLI]]: Command-line interface for interacting with SilverBullet
+* [[Features/CLI]]: Command-line interface for interacting with SilverBullet
 
 For additional guides, check out [our community guides](https://community.silverbullet.md/c/guides/6).
 
 # Core Concepts
 These are the core concepts used in SilverBullet (also see the [[Glossary]]):
-* [[Concept/Space]]
-* [[Concept/Page]] (and [[Concept/Meta Page]])
-  * [[Concept/Frontmatter]]
-* [[Concept/Link]]
-* [[Concept/Document]]
-* [[Concept/Folder]]
-* [[Concept/Library]]
-* [[Feature/Collaboration]]
-* [[Feature/Revisions]]
+* [[Concepts/Space]]
+* [[Concepts/Page]] (and [[Concepts/Meta Page]])
+  * [[Concepts/Frontmatter]]
+* [[Concepts/Link]]
+* [[Concepts/Document]]
+* [[Concepts/Folder]]
+* [[Concepts/Library]]
+* [[Features/Collaboration]]
+* [[Features/Revisions]]
 
 # User interface
 SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements and how to use them.
 
-* The [[Concept/Top Bar]] contains:
-  * [[Feature/Page Namer]]
-  * [[Concept/Index Page]] (the home button)
-  * [[Feature/Page Picker]]
-  * [[Feature/Command Palette]]
-* The main [[Feature/Editor]] component contains your currently selected page’s text
+* The [[Concepts/Top Bar]] contains:
+  * [[Features/Page Namer]]
+  * [[Concepts/Index Page]] (the home button)
+  * [[Features/Page Picker]]
+  * [[Features/Command Palette]]
+* The main [[Features/Editor]] component contains your currently selected page’s text
 
 # Editing and Formatting
-* Content is written using [[Markdown]] and rendered using [[Feature/Live Preview]]
+* Content is written using [[Markdown]] and rendered using [[Features/Live Preview]]
   * Markdown [[Markdown/Basics]]
   * Markdown [[Markdown/Extensions]]
-    * [[Concept/Link]]
+    * [[Concepts/Link]]
     * [[Markdown/Admonition]]
-    * [[Concept/Task]]
+    * [[Concepts/Task]]
     * [[Markdown/Syntax Highlighting]]
     * [[Markdown/Comment]]
     * [[Markdown/Fenced Code Block]]
-* [[Concept/Slash Command]]
-* [[Concept/Outline]]
-* [[Feature/Completion]]
+* [[Concepts/Slash Command]]
+* [[Concepts/Outline]]
+* [[Features/Completion]]
 
 # Navigation
 The main ways to roam your space, beside following page links, are:
 
-* [[Feature/Page Picker]]
-* [[Feature/Meta Picker]]
-* [[Feature/Tag Picker]]
-* [[Feature/Full Text Search]]
+* [[Features/Page Picker]]
+* [[Features/Meta Picker]]
+* [[Features/Tag Picker]]
+* [[Features/Full Text Search]]
 
 # Advanced topics
 * [[Object]]
-  * [[Concept/Frontmatter]]
-  * [[Concept/Attribute]]
+  * [[Concepts/Frontmatter]]
+  * [[Concepts/Attribute]]
 * [[Space Lua]]
   * [[Space Lua/Standard Library]]
   * [[Space Lua/Integrated Query]]
   * [[Space Lua/DOM]]
   * [[Space Lua/JavaScript Interop]]
-* [[Concept/Template]]
-* [[Feature/Virtual Pages]]
-* [[Concept/Library]]
+* [[Concepts/Template]]
+* [[Features/Virtual Pages]]
+* [[Concepts/Library]]
 * [[Troubleshooting]]
 
 # Customization
-* [[Feature/Configuration Manager]]
-* [[Concept/Keyboard Shortcuts]]
-* [[Concept/Page Decoration]]
-* [[Concept/Space Style]]
+* [[Features/Configuration Manager]]
+* [[Concepts/Keyboard Shortcuts]]
+* [[Concepts/Page Decoration]]
+* [[Concepts/Space Style]]
 
 # Extending SilverBullet
 SilverBullet’s implementation is built on three things:
@@ -98,7 +98,7 @@ SilverBullet’s implementation is built on three things:
 * A lot of core functionality is implemented in [[Plugs]].
 * An increasing amount of additional functionality is now being implemented in “native” [[Space Lua]].
 
-See [[Feature/Extensions]] for an overview.
+See [[Features/Extensions]] for an overview.
 
 # Contributing
 SilverBullet is free and open-source software. You can contribute to

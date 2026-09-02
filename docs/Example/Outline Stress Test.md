@@ -60,8 +60,8 @@
 # Task states
 * [ ] Open task
 * [x] Completed task
-* [ ] Task with **bold** and a [[Concept/Link]] inside
-* [ ] Long task with formatting: **bold**, *italic*, `code`, [[Concept/Link]] — verify wrapped lines hang correctly
+* [ ] Task with **bold** and a [[Concepts/Link]] inside
+* [ ] Long task with formatting: **bold**, *italic*, `code`, [[Concepts/Link]] — verify wrapped lines hang correctly
 
 # Code block inside list item
 * Item with a fenced code block:

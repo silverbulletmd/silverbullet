@@ -20,7 +20,7 @@ Silverbullet supports [admonitions](https://github.com/community/community/discu
 > **success** This is a
 > success admonition
 
-Custom admonitions can be added in a [[Concept/Space Style]] using the following format:
+Custom admonitions can be added in a [[Concepts/Space Style]] using the following format:
 
 ```css
 /* Replace the keyword with a word or phrase of your choice */

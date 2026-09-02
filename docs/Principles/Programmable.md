@@ -12,4 +12,4 @@ On top of this core, a lot of functionality is built as [[Plugs]] and [[Space Lu
 
 While not as fundamental in this approach as editors like [Emacs](https://www.gnu.org/software/emacs/), it draws a lot of inspiration from it.
 
-Many people use SilverBullet as a personal application [[Feature/Platform]] and build remarkable things on top of it.
+Many people use SilverBullet as a personal application [[Features/Platform]] and build remarkable things on top of it.

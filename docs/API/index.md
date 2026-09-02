@@ -6,7 +6,7 @@ references:
 - client/data/object_index.ts
 ---
 
-The `index` API provides functions for interacting with SilverBullet's [[Concept/Object Index]], including query collections used by [[Space Lua/Integrated Query]], schema introspection, ad-hoc Markdown indexing, and direct object-index operations.
+The `index` API provides functions for interacting with SilverBullet's [[Concepts/Object Index]], including query collections used by [[Space Lua/Integrated Query]], schema introspection, ad-hoc Markdown indexing, and direct object-index operations.
 
 The main query API is `index.objects`; the other collection functions are mostly convenient filters over the same index.
 
@@ -267,7 +267,7 @@ Render three incomplete tasks:
 <!--#lua query[[from t = index.tasks() where not t.done limit 3 select templates.taskItem(t)]] -->
 * [ ] [[Example/Outline Stress Test@1458]] A task as ordered's child
 * [ ] [[Example/Outline Stress Test@1559]] Task inside ordered child and now what will happen when this starts to wrap. Oh it looks nice!
-* [ ] [[Concept/Attribute@1612]] Task with an attribute, I’m so cool
+* [ ] [[Concepts/Attribute@1612]] Task with an attribute, I’m so cool
 <!--/lua-->
 
 Ad-hoc index a Markdown fragment and select its list items:

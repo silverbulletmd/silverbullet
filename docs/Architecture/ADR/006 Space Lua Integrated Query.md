@@ -20,7 +20,7 @@ Add **Space Lua Integrated Query (SLIQ)** — an SQL- and [LINQ](https://learn.m
 
 * Syntax: `query[[ from ... where ... order by ... select ... ]]`. The only mandatory clause is `from`; clauses can appear in any order.
 * It's **backwards-compatible Lua.** `query[[...]]` is just Lua's call-with-a-long-string sugar (`query("...")`), so a program using SLIQ is still syntactically valid Lua — Space Lua simply interprets that string as a query.
-* Every clause body is a **Lua expression**, so a query can run over the [[Concept/Object Index|object index]] *or any Lua table*, call Lua functions, and render a template directly in `select`.
+* Every clause body is a **Lua expression**, so a query can run over the [[Concepts/Object Index|object index]] *or any Lua table*, call Lua functions, and render a template directly in `select`.
 
 # Consequences
 ## Positive

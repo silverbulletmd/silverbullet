@@ -19,7 +19,7 @@ When authentication is enabled, most endpoints require a valid session cookie (J
 * **Bearer token**: When [[Install/Configuration#Authentication|SB_AUTH_TOKEN]] is set, requests can authenticate via the `Authorization: Bearer <token>` header instead of cookies.
 
 # Accounts (multi-space mode)
-In [[Feature/Space Manager|multi-space mode]] every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.spaces` prefix and require the session cookie described in [[Feature/Space Manager#Space index]].
+In [[Features/Space Manager|multi-space mode]] every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.spaces` prefix and require the session cookie described in [[Features/Space Manager#Space index]].
 
 * `GET /.spaces/api/profile`: The caller's own profile: `{"username", "admin", "fullName", "email"}`. `fullName`/`email` are `null` until set. `401` without a session.
 * `PUT /.spaces/api/profile`: Sets the caller's own profile. Body: `{"fullName": string, "email": string}`. The username always comes from the session — there is no way to address another account through this endpoint. An empty string clears a field. `400` with `{"errors":[{"field", "message"}]}` if a value contains `<`, `>`, a line break, or (for `email`) whitespace.
@@ -49,10 +49,10 @@ The space file system is exposed under the `/.fs` prefix:
 
 A precondition that doesn't hold returns `412 Precondition Failed` instead of silently overwriting or deleting whatever is actually there.
 
-This is the same mechanism the built-in clients use to drive the automatic merging and conflict handling described in [[Feature/Collaboration]].
+This is the same mechanism the built-in clients use to drive the automatic merging and conflict handling described in [[Features/Collaboration]].
 
 # Revisions
-Present when [[Feature/Revisions]] are enabled for the space: every endpoint below answers `404` with `{"error": "revisions disabled"}` when they are not. A `rev` is always a full 40-character commit hash — anything else is a `404`.
+Present when [[Features/Revisions]] are enabled for the space: every endpoint below answers `404` with `{"error": "revisions disabled"}` when they are not. A `rev` is always a full 40-character commit hash — anything else is a `404`.
 
 * `GET /.revisions/`: The space-wide commit log as JSON: `mode`, `commits` (each with `rev`, `timestamp`, `author`, `message`, `files`, `added` and `removed`), `uncommitted` (paths differing from HEAD right now) and `more`. Takes optional `before` (page back from this revision), `limit` (default 50, capped at 200) and `q` (only commits whose message or author contains this phrase) query parameters.
 * `POST /.revisions/`: Commits everything outstanding immediately. Takes no body, returns `{"committed": true|false}`. Returns `409` for a space that is not in Managed mode.
@@ -76,7 +76,7 @@ Some functionality is exposed as RPC-style calls
   * The `x-proxy-status-code` header contains the actual upstream HTTP status code; the proxy response itself always returns 200 to avoid interference.
 
 ## Runtime API
-Enabled automatically when Chrome/Chromium is detected (set `SB_RUNTIME_API=0` to disable). See [[Feature/Runtime API]] for full documentation, setup instructions, and examples.
+Enabled automatically when Chrome/Chromium is detected (set `SB_RUNTIME_API=0` to disable). See [[Features/Runtime API]] for full documentation, setup instructions, and examples.
 
 # Client
 * `GET /.config`: Retrieve client configuration, JSON with the following keys:

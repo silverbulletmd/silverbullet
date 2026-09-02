@@ -6,4 +6,4 @@ references:
 - client/plugos/eventhook.ts
 - client/plugos/hooks/event.ts
 ---
-The client-side [[Concept/Event]] bus that decouples components: code reacts to events (page loaded, file changed, sync status…) rather than calling each other directly.
+The client-side [[Concepts/Event]] bus that decouples components: code reacts to events (page loaded, file changed, sync status…) rather than calling each other directly.

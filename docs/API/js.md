@@ -6,7 +6,7 @@ references:
 
 The `js` namespace provides JavaScript interoperability, including dynamic module imports, Lua/JavaScript value conversion, and asynchronous iterable support.
 
-`js.importFromSpace` resolves a space-relative file path to the current space's same-origin `/.fs` URL. This lets a library import a JavaScript module shipped as a [[Concept/Frontmatter#files]] asset without constructing a deployment-specific base URL. A leading slash is optional, and a sole `default` export is unwrapped like `js.import`.
+`js.importFromSpace` resolves a space-relative file path to the current space's same-origin `/.fs` URL. This lets a library import a JavaScript module shipped as a [[Concepts/Frontmatter#files]] asset without constructing a deployment-specific base URL. A leading slash is optional, and a sole `default` export is unwrapped like `js.import`.
 
 <!--#lua spacelua.renderApiDocumentation("js") -->
 ## js.eachIterable

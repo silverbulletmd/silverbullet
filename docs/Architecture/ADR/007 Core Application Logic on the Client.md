@@ -19,7 +19,7 @@ SilverBullet's [[Plugs]] runtime was originally designed so that plugs could run
 This was flexible and genuinely powerful, but maintaining **two runtime environments** for PlugOS was a persistent burden: every capability had to work and the dual model produced subtle, hard-to-diagnose issues. The goal for v2 was to be genuinely **offline-first** without that complexity.
 
 # Decision
-v2 **eliminates the server-side PlugOS runtime**: plug execution, indexing, the query engine, [[Space Lua]], page rendering, and the [[Feature/Sync|sync engine]] now run **only in the client**. In effect, **sync mode becomes the only mode**, and the **server is reduced to a file store** — it lists, reads, writes and deletes files, handles authentication, serves the static client, and runs shell commands. See [[Architecture]].
+v2 **eliminates the server-side PlugOS runtime**: plug execution, indexing, the query engine, [[Space Lua]], page rendering, and the [[Features/Sync|sync engine]] now run **only in the client**. In effect, **sync mode becomes the only mode**, and the **server is reduced to a file store** — it lists, reads, writes and deletes files, handles authentication, serves the static client, and runs shell commands. See [[Architecture]].
 
 # Consequences
 ## Positive
@@ -30,7 +30,7 @@ v2 **eliminates the server-side PlugOS runtime**: plug execution, indexing, the 
 * **Cheap to self-host** — a minimal file-serving process is all that is required. Memory usage was reduced from a few hundred MB to single to low-double digits.
 
 ## Negative / trade-offs 
-* **Every client builds and holds its own copy.** Each browser/device must sync all files locally and (re)create its own [[Concept/Object Index|object index]] from scratch — duplicated storage and a cold-start indexing cost on every new client, instead of indexing once on the server. Partly mitigated by selective sync (e.g. [[Concept/Document|documents]] are fetched on demand) — see [[Feature/Sync]].
+* **Every client builds and holds its own copy.** Each browser/device must sync all files locally and (re)create its own [[Concepts/Object Index|object index]] from scratch — duplicated storage and a cold-start indexing cost on every new client, instead of indexing once on the server. Partly mitigated by selective sync (e.g. [[Concepts/Document|documents]] are fetched on demand) — see [[Features/Sync]].
 * **No thin-client / server-only option.** Large spaces or constrained, low-power devices that could previously lean on server mode no longer can — there is no mode where the heavy lifting stays on the server.
 * **Server-authoritative features are harder.** Anything needing a central source of truth at edit time — notably real-time collaboration / CRDT merging — does not fall out naturally; concurrent edits are resolved by writing a conflicting copy rather than merging. See [[Architecture/ADR/002 Sync Engine]].
 

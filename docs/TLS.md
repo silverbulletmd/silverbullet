@@ -63,7 +63,7 @@ The recommended approach for this requires two things:
    * [Vultr](https://www.vultr.com/products/cloud-compute/) starting from about $2.5/month.
 2. A domain name of your own that you can configure DNS records on to point to your server, or using a service like [DuckDNS](https://www.duckdns.org/) which gives you a `*.duckdns.org` sub-domain for free.
 
-After deploying SilverBullet on the VM (with [[Feature/Authentication]] enabled, obviously), you can deploy [Caddy](https://caddyserver.com/) next to it as a reverse proxy. Caddy can automatically request TLS certificates using [Let’s Encrypt](https://letsencrypt.org/). 
+After deploying SilverBullet on the VM (with [[Features/Authentication]] enabled, obviously), you can deploy [Caddy](https://caddyserver.com/) next to it as a reverse proxy. Caddy can automatically request TLS certificates using [Let’s Encrypt](https://letsencrypt.org/). 
 
 For this, [install Caddy](https://caddyserver.com/docs/install) into your VM. Then, in your Caddyfile (usually located `/etc/caddy/Caddyfile`) put:
 

@@ -22,7 +22,7 @@ Add **federation**: a space can link to a remote space via a federated URL prefi
 * Significant complexity in the sync and index paths for a relatively niche use case as well as potential security issues: listing timeouts, reference rewriting, [[Space Lua]] code injection risks.
 
 # Status update
-**Deprecated and removed (2025).** Federation was taken out: the maintenance cost outweighed its limited use, and shared content is better served by other mechanisms ([[Concept/Library]], copying, or publishing). It has no direct replacement.
+**Deprecated and removed (2025).** Federation was taken out: the maintenance cost outweighed its limited use, and shared content is better served by other mechanisms ([[Concepts/Library]], copying, or publishing). It has no direct replacement.
 
 # References
 * Federation removed: [commit dbfc5995](https://github.com/silverbulletmd/silverbullet/commit/dbfc5995) — "More thorough removal of federation".

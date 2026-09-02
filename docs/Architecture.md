@@ -12,7 +12,7 @@ ${mermaid.diagram(mermaid.relationGraph{
 
 # The three layers
 * [[Architecture/Client]]: one instance per browser tab; runs 90%+ of the logic ([[Architecture/Editor|editor]], [[Architecture/Space Lua|Space Lua]], [[Architecture/Plugs|plugs]], [[Architecture/Syscalls|syscalls]], [[Architecture/Datastore|datastore]]).
-* [[Architecture/Service Worker]]: one instance per browser; offline cache + [[Feature/Sync]].
+* [[Architecture/Service Worker]]: one instance per browser; offline cache + [[Features/Sync]].
 * [[Architecture/Server]]: — authentication, serving the client, and the file [[HTTP API]], otherwise a dumb file store.
 
 # Components

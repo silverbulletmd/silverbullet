@@ -15,7 +15,7 @@ SilverBullet is distributed as a single server binary available for the followin
 > **note** Which file should I download?
 > The [releases page](https://github.com/silverbulletmd/silverbullet/releases) lists two families of zip files:
 > * `silverbullet-server-<os>-<arch>.zip`: **this is what you want**, the actual SilverBullet server.
-> * `sb-<os>-<arch>.zip` — the optional [[Feature/CLI]] tool (`sb`) for scripting against a _running_ server.
+> * `sb-<os>-<arch>.zip` — the optional [[Features/CLI]] tool (`sb`) for scripting against a _running_ server.
 
 # Steps
 We start by [downloading the `silverbullet-server-*` zip for your platform from GitHub](https://github.com/silverbulletmd/silverbullet/releases).
@@ -33,7 +33,7 @@ Run the server, pointing it at that folder:
 ./silverbullet sb-data
 ```
 
-Since `sb-data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Feature/Space Manager]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
+Since `sb-data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Features/Space Manager]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
 
 The server listens on `http://localhost:3000` by default. To pick a different port, use `-p`:
 ```bash
@@ -51,9 +51,9 @@ To force classic single-space behavior add `--single`:
 ```
 
 > **note** Note
-> If you want to access SilverBullet from another machine, you need [[TLS]] _and_ you should enable [[Feature/Authentication]] first.
+> If you want to access SilverBullet from another machine, you need [[TLS]] _and_ you should enable [[Features/Authentication]] first.
 
-Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Feature/Space Manager]], once that’s all done, head to [[Getting Started]] to learn the basics.
+Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Features/Space Manager]], once that’s all done, head to [[Getting Started]] to learn the basics.
 
 # Upgrading
 You can upgrade your SilverBullet install based on the version you’d like to run.

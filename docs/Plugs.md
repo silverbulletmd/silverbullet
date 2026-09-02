@@ -16,10 +16,10 @@ Plugs can hook into SB in various ways:
 
 Each plug runs in its own _sandboxed environment_ and communicates with SB via _syscalls_ that expose a vast range of functionality. Plugs can be loaded, unloaded, and updated without having to restart SilverBullet itself.
 
-These days, plugs are distributed as assets attached to [[Concept/Library|libraries]], ending in a file name with `.plug.js`. 
+These days, plugs are distributed as assets attached to [[Concepts/Library|libraries]], ending in a file name with `.plug.js`. 
 
 # Available plugs
-You can discover libraries and plugs via the [SilverBullet ‘Plugs and Libraries’](https://community.silverbullet.md/c/plugs/14) or through [[Feature/Configuration Manager#Libraries]].
+You can discover libraries and plugs via the [SilverBullet ‘Plugs and Libraries’](https://community.silverbullet.md/c/plugs/14) or through [[Features/Configuration Manager#Libraries]].
 
 # Development
 Want to develop your own plugs? Have a look at [[Plugs/Development]].

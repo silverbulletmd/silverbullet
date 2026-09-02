@@ -17,7 +17,7 @@ Registers a custom syntax extension. The extension will be active after the next
 * `startMarker` (required): Regex string for start delimiter (e.g. `"\\$"`)
 * `endMarker` (required): Regex string for end delimiter
 * `mode` (required): `"block"` or `"inline"`
-* CSS styling used when _not_ [[Feature/Live Preview|Live Previewing]]:
+* CSS styling used when _not_ [[Features/Live Preview|Live Previewing]]:
   * `startMarkerClass`: CSS class for the start marker
   * `bodyClass`: CSS class for the body content between markers
   * `endMarkerClass`: CSS class for the end marker
@@ -82,7 +82,7 @@ This recognizes fenced blocks:
 E = mc^2
 ||
 
-You can style these with [[Concept/Space Style]]:
+You can style these with [[Concepts/Space Style]]:
 ```space-style
 .sb-latex-mark {
   color: cyan;
