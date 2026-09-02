@@ -13,6 +13,7 @@ pub mod jwt_authorizer;
 pub mod lockout;
 pub mod login;
 pub mod oauth;
+pub mod oidc;
 pub mod password;
 
 pub use authenticator::{Authenticator, AUTH_FILE_NAME, MULTI_AUTH_FILE_NAME};
@@ -28,6 +29,7 @@ pub use jwt_authorizer::JwtAuthorizer;
 pub use lockout::LockoutTimer;
 pub use login::LoginManager;
 pub use oauth::{AuthCodeStore, CodeGrant, OAuthError, CLIENT_ID};
+pub use oidc::{oidc_enabled, OidcClient, OidcConfig};
 
 /// Verifies a username/password pair against some backing credential store.
 /// Lets `LoginManager` drive either the legacy single-user `AuthConfig` or a

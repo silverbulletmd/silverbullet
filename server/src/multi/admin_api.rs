@@ -33,6 +33,13 @@ pub struct AdminState {
     pub runtime_availability: crate::runtime::RuntimeAvailability,
 }
 
+fn oidc_admin_claims_allowed(
+    claims: &crate::auth::authenticator::Claims,
+    is_admin: impl Fn(&str) -> bool,
+) -> bool {
+    claims.credential_version.is_none() && is_admin(&claims.username)
+}
+
 impl AdminState {
     /// Uses the same server-wide authenticator as every space. Sessions are
     /// minted by the unified `/.spaces` surface; this state only *authorizes*,
@@ -44,6 +51,31 @@ impl AdminState {
         authenticator: Arc<Authenticator>,
         runtime_availability: crate::runtime::RuntimeAvailability,
     ) -> Self {
+        if crate::auth::oidc_enabled() {
+            let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(JwtAuthorizer::with_filter(
+                authenticator.clone(),
+                String::new(),
+                String::new(),
+                Box::new(|claims| {
+                    oidc_admin_claims_allowed(claims, crate::auth::oidc::oidc_is_admin)
+                }),
+            ));
+            let account_authorizer: Arc<dyn RequestAuthorizer> =
+                Arc::new(JwtAuthorizer::with_filter(
+                    authenticator,
+                    String::new(),
+                    String::new(),
+                    Box::new(|claims| claims.credential_version.is_none()),
+                ));
+            return Self {
+                manager,
+                authorizer,
+                account_authorizer,
+                users,
+                runtime_availability,
+            };
+        }
+
         let is_admin_token = {
             let store = users.clone();
             move |u: &str| store.is_admin(u)
@@ -617,6 +649,28 @@ mod tests {
 
     fn test_authenticator() -> Arc<Authenticator> {
         Arc::new(Authenticator::from_secret_bytes(vec![9; 32], "v1".into()))
+    }
+
+    #[test]
+    fn oidc_admin_gate_requires_a_versionless_admin_session() {
+        let claims =
+            |username: &str, credential_version: Option<&str>| crate::auth::authenticator::Claims {
+                username: username.to_string(),
+                credential_version: credential_version.map(str::to_string),
+                token_use: None,
+                exp: usize::MAX,
+            };
+        let is_admin = |username: &str| username == "root";
+
+        assert!(oidc_admin_claims_allowed(&claims("root", None), is_admin));
+        assert!(!oidc_admin_claims_allowed(
+            &claims("root", Some("password-version")),
+            is_admin
+        ));
+        assert!(!oidc_admin_claims_allowed(
+            &claims("member", None),
+            is_admin
+        ));
     }
 
     fn deps(

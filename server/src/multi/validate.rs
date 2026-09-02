@@ -117,7 +117,9 @@ pub fn validate(
             }
         }
         for member in space.members.keys() {
-            if !known_users.contains(member) {
+            // In OIDC mode the provider is the identity source of record, so
+            // members need not exist in users.json (which may be absent).
+            if !known_users.contains(member) && !crate::auth::oidc_enabled() {
                 err(
                     &mut errors,
                     format!("{id}.members"),

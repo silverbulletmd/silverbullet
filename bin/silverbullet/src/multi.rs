@@ -62,10 +62,19 @@ pub async fn build_multi_stack(
     warn_if_world_readable(&root.join("users.json"));
     warn_if_world_readable(&root.join(MULTI_AUTH_FILE_NAME));
 
-    let store = UserStore::open(&root)?.ok_or_else(|| {
-        "no users.json found: this folder is not fully provisioned, complete setup first"
-            .to_string()
-    })?;
+    let store = match UserStore::open(&root)? {
+        Some(store) => store,
+        None if silverbullet_server::auth::oidc_enabled() => {
+            tracing::info!("no users.json (OIDC mode): the OIDC provider is the identity source");
+            UserStore::empty(&root)?
+        }
+        None => {
+            return Err(
+                "no users.json found: this folder is not fully provisioned, complete setup first"
+                    .to_string(),
+            )
+        }
+    };
     let authenticator = Arc::new(
         Authenticator::load_or_init_with_stamp_named(
             &root,

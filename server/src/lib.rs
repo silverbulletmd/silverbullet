@@ -58,6 +58,7 @@ mod test_support {
             space_description: "Powerful and programmable note taking app".into(),
             authorizer: None,
             login: None,
+            oidc: None,
             shell: crate::shell::ShellConfig {
                 enabled: true,
                 whitelist: vec![],

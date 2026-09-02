@@ -171,6 +171,15 @@ impl UserStore {
         }))
     }
 
+    /// Open an empty store WITHOUT writing `users.json`. Used in OIDC mode,
+    /// where the OIDC provider is the identity source of record.
+    pub fn empty(root: &Path) -> Result<Arc<Self>, String> {
+        Ok(Arc::new(Self {
+            path: root.join(USERS_FILE),
+            state: RwLock::new(UsersConfig::default()),
+        }))
+    }
+
     /// Create an empty store (file written immediately). Test-only helper:
     /// production provisioning goes through `setup::run_setup`, which writes
     /// `users.json` with the first admin already populated.

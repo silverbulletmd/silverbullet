@@ -33,6 +33,7 @@ pub struct SpaceIndexState {
     authenticator: Arc<Authenticator>,
     users: Arc<UserStore>,
     client_bundle: Box<dyn SpacePrimitives>,
+    oidc_enabled: bool,
 }
 
 impl SpaceIndexState {
@@ -79,6 +80,7 @@ impl SpaceIndexState {
             authenticator,
             users,
             client_bundle,
+            oidc_enabled: crate::auth::oidc_enabled(),
         }
     }
 }
@@ -152,10 +154,26 @@ fn current_username(state: &SpaceIndexState, headers: &HeaderMap) -> Option<Stri
     let name = scoped_auth_cookie_name(&request_host(headers), "");
     let token = cookie_value(headers, &name)?;
     let claims = state.authenticator.verify_jwt(&token).ok()?;
+    if state.oidc_enabled {
+        // OIDC sessions are versionless. Reject account-password sessions so
+        // they cannot become an alternate path around the identity provider.
+        return claims
+            .credential_version
+            .is_none()
+            .then_some(claims.username);
+    }
     state
         .users
         .session_is_current(&claims.username, claims.credential_version.as_deref())
         .then_some(claims.username)
+}
+
+fn current_user_is_admin(state: &SpaceIndexState, username: &str) -> bool {
+    if state.oidc_enabled {
+        crate::auth::oidc::oidc_is_admin(username)
+    } else {
+        state.users.is_admin(username)
+    }
 }
 
 /// Any *account* — not public. The client reads `admin` from here to decide
@@ -165,7 +183,7 @@ async fn handle_session(State(state): State<Arc<SpaceIndexState>>, headers: Head
     let Some(username) = current_username(&state, &headers) else {
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
     };
-    let admin = state.users.is_admin(&username);
+    let admin = current_user_is_admin(&state, &username);
     Json(json!({ "username": username, "admin": admin })).into_response()
 }
 
@@ -188,7 +206,7 @@ async fn handle_get_profile(
     let profile = state.users.profile(&username).unwrap_or_default();
     Json(json!({
         "username": username,
-        "admin": state.users.is_admin(&username),
+        "admin": current_user_is_admin(&state, &username),
         "fullName": profile.full_name,
         "email": profile.email,
     }))
@@ -229,11 +247,22 @@ async fn handle_list(State(state): State<Arc<SpaceIndexState>>, headers: HeaderM
     let Some(username) = current_username(&state, &headers) else {
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
     };
-    let admin = state.users.is_admin(&username);
+    let admin = current_user_is_admin(&state, &username);
     Json(state.manager.list_accessible(&username, admin)).into_response()
 }
 
-async fn handle_shell(State(state): State<Arc<SpaceIndexState>>) -> Response {
+async fn handle_shell(
+    State(state): State<Arc<SpaceIndexState>>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    headers: HeaderMap,
+) -> Response {
+    // In OIDC mode the spaces manager is a logged-in surface. Serving its
+    // anonymous shell would expose a password form whose versioned session is
+    // intentionally rejected in this mode.
+    if state.oidc_enabled && current_username(&state, &headers).is_none() {
+        let location = crate::auth::oidc::login_location("", uri.path());
+        return (StatusCode::FOUND, [(header::LOCATION, location)]).into_response();
+    }
     let bundle = state.clone();
     match run_blocking(move || bundle.client_bundle.read_file(".client/spaces.html")).await {
         Ok((data, _)) => ([(header::CONTENT_TYPE, "text/html")], data).into_response(),
@@ -343,6 +372,14 @@ mod tests {
     }
 
     fn setup_with(session: SessionPolicy) -> (tempfile::TempDir, Router) {
+        let (dir, router, _) = setup_with_mode(session, false);
+        (dir, router)
+    }
+
+    fn setup_with_mode(
+        session: SessionPolicy,
+        oidc_enabled: bool,
+    ) -> (tempfile::TempDir, Router, Arc<Authenticator>) {
         let dir = tempfile::tempdir().unwrap();
         let users = UserStore::create_empty(dir.path()).unwrap();
         users
@@ -400,19 +437,22 @@ mod tests {
             authenticator.clone(),
             crate::runtime::RuntimeAvailability::Available,
         ));
-        let state = Arc::new(SpaceIndexState::new(
+        let mut state = SpaceIndexState::new(
             manager,
             users,
-            authenticator,
+            authenticator.clone(),
             session,
             Box::new(bundle),
-        ));
+        );
+        state.oidc_enabled = oidc_enabled;
+        let state = Arc::new(state);
         (
             dir,
             build_spaces_router(
                 state,
                 crate::multi::admin_api::build_admin_api_router(admin_state),
             ),
+            authenticator,
         )
     }
 
@@ -481,6 +521,73 @@ mod tests {
             StatusCode::OK
         );
         assert_eq!(list(&router, None).await.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn oidc_current_username_accepts_only_versionless_sessions() {
+        let (_dir, router, authenticator) = setup_with_mode(SessionPolicy::default(), true);
+        let versionless = authenticator.issue_jwt("alice", 3600).unwrap();
+        let response = send(
+            &router,
+            Request::builder()
+                .uri("/api/session")
+                .header("host", "localhost")
+                .header("cookie", format!("auth_localhost={versionless}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(json_body(response).await["username"], "alice");
+
+        let versioned = authenticator
+            .issue_jwt_with_version("alice", "password-version".into(), 3600)
+            .unwrap();
+        let response = send(
+            &router,
+            Request::builder()
+                .uri("/api/session")
+                .header("host", "localhost")
+                .header("cookie", format!("auth_localhost={versioned}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn oidc_shell_redirects_anonymous_visitors_to_login() {
+        let (_dir, router, authenticator) = setup_with_mode(SessionPolicy::default(), true);
+        let outer = Router::new().nest(SPACES_PREFIX, router);
+
+        let response = send(
+            &outer,
+            Request::builder()
+                .uri("/.spaces/new")
+                .header("host", "localhost")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::FOUND);
+        assert_eq!(
+            response.headers().get(header::LOCATION).unwrap(),
+            "/.oidc/login?return_to=%2F%2Espaces%2Fnew"
+        );
+
+        let jwt = authenticator.issue_jwt("alice", 3600).unwrap();
+        let response = send(
+            &outer,
+            Request::builder()
+                .uri("/.spaces/new")
+                .header("host", "localhost")
+                .header("cookie", format!("auth_localhost={jwt}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
     }
 
     #[tokio::test]

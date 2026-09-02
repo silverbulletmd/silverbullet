@@ -118,6 +118,28 @@ pub async fn handle_client_bundle(
     // the client's `/.config` fetch triggers the redirect instead.
     if !authorized && !path.is_empty() {
         let prefix = &state.host_url_prefix;
+        if state.oidc.is_some() {
+            let mut return_to = format!("{prefix}{}", req.uri().path());
+            if let Some(query) = req.uri().query() {
+                return_to.push('?');
+                return_to.push_str(query);
+            }
+            let location = crate::auth::oidc::login_location(prefix, &return_to);
+            let status = if path.ends_with(".md") {
+                StatusCode::UNAUTHORIZED
+            } else {
+                StatusCode::FOUND
+            };
+            return Response::builder()
+                .status(status)
+                .header(axum::http::header::LOCATION, location)
+                .body(if status == StatusCode::UNAUTHORIZED {
+                    Body::from("Unauthorized")
+                } else {
+                    Body::empty()
+                })
+                .unwrap();
+        }
         if path.ends_with(".md") {
             return Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
@@ -269,6 +291,26 @@ mod tests {
         Arc::new(s)
     }
 
+    fn oidc_gated_state() -> Arc<ServerState> {
+        let mut s = test_state();
+        s.authorizer = Some(Arc::new(Deny));
+        let authenticator = Arc::new(crate::auth::Authenticator::from_secret_bytes(
+            vec![1; 32],
+            "test".into(),
+        ));
+        s.oidc = Some(Arc::new(crate::auth::OidcClient::new(
+            crate::auth::OidcConfig {
+                issuer: "https://id.example/application/o/wiki/".into(),
+                client_id: "silverbullet".into(),
+                client_secret: "secret".into(),
+                redirect_uri: "https://wiki.example/.oidc/callback".into(),
+            },
+            authenticator,
+        )));
+        seed_bundle(&s, ".client/index.html", INDEX_TPL);
+        Arc::new(s)
+    }
+
     #[tokio::test]
     async fn unauthenticated_page_navigation_redirects_to_auth() {
         let resp = crate::build_router(gated_state())
@@ -300,6 +342,39 @@ mod tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
         assert_eq!(resp.headers().get("location").unwrap(), "/.auth");
+    }
+
+    #[tokio::test]
+    async fn oidc_page_and_markdown_navigation_use_the_oidc_login() {
+        let page = crate::build_router(oidc_gated_state())
+            .oneshot(
+                Request::builder()
+                    .uri("/SomePage?mode=edit")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(page.status(), StatusCode::FOUND);
+        assert_eq!(
+            page.headers().get("location").unwrap(),
+            "/.oidc/login?return_to=%2FSomePage%3Fmode%3Dedit"
+        );
+
+        let markdown = crate::build_router(oidc_gated_state())
+            .oneshot(
+                Request::builder()
+                    .uri("/Page.md")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(markdown.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            markdown.headers().get("location").unwrap(),
+            "/.oidc/login?return_to=%2FPage%2Emd"
+        );
     }
 
     #[tokio::test]
