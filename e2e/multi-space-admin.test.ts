@@ -80,16 +80,10 @@ test("first run: login, create a space, open it, edit a page", async ({
   await page.getByRole("link", { name: "Create space" }).click();
   await expect(page).toHaveURL(`${base}/.spaces/new`);
   await page.getByLabel("Name").fill("Playground");
-  // The binding-value input's label is dynamic ("Prefix"/"Hostname") and
-  // defaults to "Prefix" for the default "URL prefix" binding type.
   await page.getByLabel("Prefix").fill("/play");
-  // Folder picker (shared spaces_ui/FolderPicker.tsx): default value tracks
-  // the slugified name, and its "Browse…" control is present.
   await expect(page.locator("#space-folder")).toHaveValue("spaces/playground");
   await expect(page.getByRole("button", { name: "Browse…" })).toBeVisible();
-  // Access model is public/members now (no more per-space auth dropdown). Make
-  // it public so the space opens below without a separate space login.
-  await page.getByLabel("Public (no login required)").check();
+  await page.locator(".sb-access-public select").selectOption("write");
   await page.getByRole("button", { name: "Create" }).click();
 
   // Creation lands on the stable detail route. Return to the list to inspect
@@ -101,11 +95,6 @@ test("first run: login, create a space, open it, edit a page", async ({
   await expect(page.getByText("Playground")).toBeVisible();
   await expect(page.locator(".sb-badge.running")).toBeVisible();
 
-  // Open the space and verify the editor loads. Mirror the boot conventions
-  // from e2e/first-load.test.ts / fixtures.ts: navigate with `?headless=1`
-  // (so the server doesn't need a headless-Chrome runtime API), wait for
-  // `#sb-editor .cm-editor` to be visible, then wait for the client runtime
-  // to report ready before interacting with the page.
   await page.goto(`${base}/play/?headless=1`);
   await page
     .locator("#sb-editor .cm-editor")
