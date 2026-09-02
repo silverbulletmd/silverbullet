@@ -13,6 +13,8 @@ pub struct Claims {
     pub credential_version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_use: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub space: Option<String>,
     /// Expiry, Unix seconds (validated automatically).
     pub exp: usize,
 }
@@ -112,6 +114,7 @@ impl Authenticator {
             username: username.to_string(),
             credential_version,
             token_use: None,
+            space: None,
             exp,
         };
         encode(
@@ -126,12 +129,14 @@ impl Authenticator {
         username: &str,
         credential_version: Option<String>,
         token_use: Option<&str>,
+        space: Option<&str>,
         expiry_secs: u64,
     ) -> Result<String, jsonwebtoken::errors::Error> {
         let claims = Claims {
             username: username.to_string(),
             credential_version,
             token_use: token_use.map(str::to_string),
+            space: space.map(str::to_string),
             exp: now_secs().saturating_add(expiry_secs) as usize,
         };
         encode(
@@ -441,10 +446,12 @@ mod tests {
     #[test]
     fn a_token_use_claim_round_trips_and_defaults_to_none() {
         let a = Authenticator::from_secret_bytes(vec![7u8; 32], "h".into());
-        let access = a.issue_token("alice", None, None, 60).unwrap();
+        let access = a.issue_token("alice", None, None, None, 60).unwrap();
         assert_eq!(a.verify_jwt(&access).unwrap().token_use, None);
 
-        let refresh = a.issue_token("alice", None, Some("refresh"), 60).unwrap();
+        let refresh = a
+            .issue_token("alice", None, Some("refresh"), None, 60)
+            .unwrap();
         assert_eq!(
             a.verify_jwt(&refresh).unwrap().token_use.as_deref(),
             Some("refresh")

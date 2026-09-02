@@ -16,6 +16,10 @@ pub struct JwtAuthorizer {
     auth_token: String,
     /// URL prefix this authorizer's space is mounted under (cookie scoping).
     url_prefix: String,
+    /// Id of the space this authorizer guards, matched against a token's
+    /// `space` claim. Empty means "not a space" — the management surfaces —
+    /// which no space-scoped token may reach.
+    space_id: String,
     claims_filter: Option<ClaimsFilter>,
 }
 
@@ -33,8 +37,16 @@ impl JwtAuthorizer {
             authenticator,
             auth_token,
             url_prefix,
+            space_id: String::new(),
             claims_filter: None,
         }
+    }
+
+    /// Scope this authorizer to one space, so a token consented for another
+    /// space (or for none) is refused.
+    pub fn for_space(mut self, space_id: impl Into<String>) -> Self {
+        self.space_id = space_id.into();
+        self
     }
 
     /// Like [`Self::with_prefix`], but rejects JWT sessions whose claims don't
@@ -49,6 +61,7 @@ impl JwtAuthorizer {
             authenticator,
             auth_token,
             url_prefix,
+            space_id: String::new(),
             claims_filter: Some(filter),
         }
     }
@@ -69,6 +82,11 @@ impl RequestAuthorizer for JwtAuthorizer {
         let claims = self.authenticator.verify_jwt(&candidate?).ok()?;
         if claims.token_use.is_some() {
             return None;
+        }
+        if let Some(space) = &claims.space {
+            if *space != self.space_id {
+                return None;
+            }
         }
         if let Some(f) = &self.claims_filter {
             if !f(&claims) {
@@ -241,7 +259,7 @@ mod tests {
     #[test]
     fn a_session_jwt_in_the_authorization_header_authorizes_with_its_username() {
         let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
-        let jwt = auth.issue_token("alice", None, None, 600).unwrap();
+        let jwt = auth.issue_token("alice", None, None, None, 600).unwrap();
         let authz = JwtAuthorizer::new(auth, "static-tok".into());
 
         let mut headers = HeaderMap::new();
@@ -261,7 +279,7 @@ mod tests {
     fn a_refresh_token_is_not_accepted_as_a_bearer() {
         let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
         let refresh = auth
-            .issue_token("alice", None, Some("refresh"), 600)
+            .issue_token("alice", None, Some("refresh"), None, 600)
             .unwrap();
         let authz = JwtAuthorizer::new(auth, String::new());
 
@@ -280,10 +298,53 @@ mod tests {
             .is_none());
     }
 
+    /// An OAuth device token names the space its consent was given for. That
+    /// name is the whole scope: it must not open any other space, and it must
+    /// not stand in for a server-wide session on the management surfaces
+    /// (which carry no space of their own).
+    #[test]
+    fn a_token_bound_to_one_space_opens_only_that_space() {
+        let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let bound = auth
+            .issue_token("alice", None, None, Some("space-b"), 600)
+            .unwrap();
+        let unbound = auth.issue_token("alice", None, None, None, 600).unwrap();
+
+        let space_a = JwtAuthorizer::new(auth.clone(), String::new()).for_space("space-a");
+        let space_b = JwtAuthorizer::new(auth.clone(), String::new()).for_space("space-b");
+        let server_wide = JwtAuthorizer::new(auth, String::new());
+
+        let bearer = |token: &str| {
+            let mut h = HeaderMap::new();
+            h.insert("authorization", format!("Bearer {token}").parse().unwrap());
+            h
+        };
+
+        let hb = bearer(&bound);
+        assert!(
+            space_b.is_authorized(&ctx(&hb)),
+            "the consented space accepts it"
+        );
+        assert!(
+            !space_a.is_authorized(&ctx(&hb)),
+            "another space must not accept it"
+        );
+        assert!(
+            !server_wide.is_authorized(&ctx(&hb)),
+            "the unscoped management surface must not accept it"
+        );
+
+        let hu = bearer(&unbound);
+        assert!(
+            space_a.is_authorized(&ctx(&hu)) && server_wide.is_authorized(&ctx(&hu)),
+            "an ordinary session claims no space and still works everywhere"
+        );
+    }
+
     #[test]
     fn the_claims_filter_applies_to_the_bearer_path() {
         let auth = Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
-        let jwt = auth.issue_token("alice", None, None, 600).unwrap();
+        let jwt = auth.issue_token("alice", None, None, None, 600).unwrap();
         let authz = JwtAuthorizer::with_filter(
             auth,
             String::new(),

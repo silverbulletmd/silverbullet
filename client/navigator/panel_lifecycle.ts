@@ -349,8 +349,7 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         if (occupant !== name) {
           // Two views configured open on the same side is an authoring
           // mistake; a view the client itself left docked there is not.
-          const message =
-            `view.defaults: "${name}" is configured open on ${slot}, already taken by "${occupant}"`;
+          const message = `view.defaults: "${name}" is configured open on ${slot}, already taken by "${occupant}"`;
           if (configuredOpens.includes(occupant)) console.warn(message);
           else console.debug(message);
         }

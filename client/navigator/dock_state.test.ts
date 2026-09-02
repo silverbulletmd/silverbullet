@@ -37,7 +37,10 @@ test("unsupported values fall through to the next level", async () => {
   const { store } = fakeStore({
     '["navigator","v","dock"]': "lhs", // not in supportedDocks
   });
-  const ds = createDockState({ store, spaceDefaults: () => ({ dock: "bogus" }) });
+  const ds = createDockState({
+    store,
+    spaceDefaults: () => ({ dock: "bogus" }),
+  });
   expect(await ds.resolveDock("v", META)).toBe("modal");
 });
 
@@ -107,7 +110,7 @@ test("a non-boolean configured open is ignored", async () => {
   const { store } = fakeStore();
   const ds = createDockState({
     store,
-    spaceDefaults: () => ({ open: "yes" } as any),
+    spaceDefaults: () => ({ open: "yes" }) as any,
   });
   expect(await ds.isOpen("v", { ...META, defaultOpen: true })).toBe(true);
 });

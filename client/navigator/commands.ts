@@ -1,4 +1,9 @@
-import { datastore, editor, events, space } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  datastore,
+  editor,
+  events,
+  space,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type { CommandHook } from "../plugos/hooks/command.ts";
 import { openCommand } from "./navigator.ts";
 import { REVISIONS_CHANGED_EVENT } from "./views/revisions.ts";

@@ -45,20 +45,16 @@ impl<'de> Deserialize<'de> for Binding {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Off unless a config says otherwise, at both the struct and the field level:
+/// running arbitrary commands as the server process is the most dangerous thing
+/// a space can be handed, and on an `access: write` space it is handed to the
+/// public internet.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ShellSettings {
+    #[serde(default)]
     pub enabled: bool,
     #[serde(default)]
     pub whitelist: Vec<String>,
-}
-
-impl Default for ShellSettings {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            whitelist: vec![],
-        }
-    }
 }
 
 fn default_true() -> bool {
@@ -261,9 +257,37 @@ mod tests {
         assert_eq!(b.access(), SpaceAccess::None);
         assert!(b.members.is_empty());
         assert!(!b.read_only);
-        assert!(b.shell.enabled); // default on
+        assert!(!b.shell.enabled); // shell is off unless explicitly enabled
         assert_eq!(b.index_page, "index");
         assert_eq!(b.folder, ""); // empty = resolved elsewhere
+    }
+
+    /// Shell commands are the most dangerous capability a space can hand out,
+    /// so a config that does not name `shell` must not get one.
+    #[test]
+    fn shell_stays_off_unless_a_config_explicitly_enables_it() {
+        let c = MultiConfig::from_json(
+            r#"{
+              "quiet": { "name": "Quiet", "binding": { "prefix": "/q" } },
+              "loud": {
+                "name": "Loud",
+                "binding": { "prefix": "/l" },
+                "shell": { "enabled": true }
+              },
+              "partial": {
+                "name": "Partial",
+                "binding": { "prefix": "/p" },
+                "shell": { "whitelist": ["git"] }
+              }
+            }"#,
+        )
+        .unwrap();
+        assert!(!c.spaces["quiet"].shell.enabled, "absent `shell` means off");
+        assert!(c.spaces["loud"].shell.enabled, "explicit true still wins");
+        assert!(
+            !c.spaces["partial"].shell.enabled,
+            "a whitelist without `enabled` does not turn shell on"
+        );
     }
 
     #[test]

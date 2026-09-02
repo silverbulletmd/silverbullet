@@ -514,7 +514,7 @@ mod tests {
         state.login = Some(login);
 
         let jwt = authenticator
-            .issue_token("alice", None, None, 3600)
+            .issue_token("alice", None, None, None, 3600)
             .unwrap();
         (Arc::new(state), format!("auth_localhost={jwt}"))
     }

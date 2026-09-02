@@ -528,7 +528,7 @@ test("resolveDock overrides the meta's declared dock", async () => {
 test("closing a displacing view restores the displaced one (one-deep)", async () => {
   const { config, getMeta } = makeConfig();
   getMeta.mockImplementation((name: string) =>
-    name === "a" || name === "b" ? { dock: "rhs" } : undefined
+    name === "a" || name === "b" ? { dock: "rhs" } : undefined,
   );
   const lc = createPanelLifecycle(config);
   await lc.open("a");
@@ -558,7 +558,7 @@ test("closing a view that displaced nothing just closes", async () => {
 test("an A -> B -> A sequence restores B on close: the latest displacement wins, one-deep", async () => {
   const { config, getMeta } = makeConfig();
   getMeta.mockImplementation((name: string) =>
-    name === "a" || name === "b" ? { dock: "rhs" } : undefined
+    name === "a" || name === "b" ? { dock: "rhs" } : undefined,
   );
   const lc = createPanelLifecycle(config);
   await lc.open("a");
@@ -641,7 +641,7 @@ test("closing after a route hop records both views as closed", async () => {
   getMeta.mockReturnValue({ dock: "lhs" });
   const store = new Map<string, unknown>();
   datastore.get.mockImplementation((key: unknown[]) =>
-    Promise.resolve(store.get(JSON.stringify(key)))
+    Promise.resolve(store.get(JSON.stringify(key))),
   );
   datastore.set.mockImplementation((key: unknown[], value: unknown) => {
     store.set(JSON.stringify(key), value);
@@ -786,7 +786,7 @@ test("boot restore says nothing when the slot already holds the configured view"
       JSON.stringify(key) === JSON.stringify(["navigator", "docked", "lhs"])
         ? "tree"
         : undefined,
-    )
+    ),
   );
   const lifecycle = createPanelLifecycle(config as any);
 
@@ -809,7 +809,7 @@ test("a slot the client left to another view is skipped without a warning", asyn
       JSON.stringify(key) === JSON.stringify(["navigator", "docked", "lhs"])
         ? "mentions"
         : undefined,
-    )
+    ),
   );
   const lifecycle = createPanelLifecycle(config as any);
 

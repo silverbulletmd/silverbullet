@@ -395,9 +395,7 @@ export function SpaceForm({
           onChange={(e) => setReadOnly(e.currentTarget.checked)}
         />{" "}
         Freeze this space
-        <span class="sb-help-text">
-          Nobody can write, including admins.
-        </span>
+        <span class="sb-help-text">Nobody can write, including admins.</span>
       </label>
       <h3>Revisions</h3>
       <label for="space-revisions">Mode</label>

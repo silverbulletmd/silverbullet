@@ -43,6 +43,9 @@ pub struct LoginManager {
     lockout: LockoutTimer,
     host_url_prefix: String,
     session_url_prefix: String,
+    /// Id of the space this manager belongs to. Device tokens are stamped with
+    /// it and only redeemable against it; empty leaves them unscoped.
+    space_id: String,
     auth_codes: crate::auth::oauth::AuthCodeStore,
 }
 
@@ -62,6 +65,7 @@ impl LoginManager {
             lockout,
             session_url_prefix: host_url_prefix.clone(),
             host_url_prefix,
+            space_id: String::new(),
             auth_codes: crate::auth::oauth::AuthCodeStore::new(),
         }
     }
@@ -71,6 +75,12 @@ impl LoginManager {
     /// server signing secret.
     pub fn with_credential_version(mut self, provider: CredentialVersionProvider) -> Self {
         self.credential_version = Some(provider);
+        self
+    }
+
+    /// Name the space whose consent this manager issues device tokens against.
+    pub fn for_space(mut self, space_id: impl Into<String>) -> Self {
+        self.space_id = space_id.into();
         self
     }
 
@@ -143,26 +153,36 @@ impl LoginManager {
     ) -> Result<DeviceTokens, jsonwebtoken::errors::Error> {
         let version = self.credential_version.as_ref().map(|p| p(username));
         let expires_in = access_token_expiry_secs();
+        let space = self.scoped_space();
         Ok(DeviceTokens {
             access_token: self.authenticator.issue_token(
                 username,
                 version.clone(),
                 None,
+                space,
                 expires_in,
             )?,
             refresh_token: self.authenticator.issue_token(
                 username,
                 version,
                 Some("refresh"),
+                space,
                 REFRESH_TOKEN_DAYS * 24 * 3600,
             )?,
             expires_in,
         })
     }
 
+    fn scoped_space(&self) -> Option<&str> {
+        Some(self.space_id.as_str()).filter(|s| !s.is_empty())
+    }
+
     pub fn verify_refresh_token(&self, token: &str) -> Option<String> {
         let claims = self.authenticator.verify_jwt(token).ok()?;
         if claims.token_use.as_deref() != Some("refresh") {
+            return None;
+        }
+        if claims.space.as_deref() != self.scoped_space() {
             return None;
         }
         let current = self
@@ -228,6 +248,35 @@ mod tests {
 
         let (_jwt2, secs2) = m.issue_session("alice", true).unwrap();
         assert_eq!(secs2, 48 * 3600);
+    }
+
+    /// The consent screen names one space; the tokens it produces must say so,
+    /// and a refresh token from a different space must not be redeemable here.
+    #[test]
+    fn device_tokens_carry_the_space_they_were_consented_for() {
+        let m = manager().for_space("space-a");
+        let tokens = m.issue_device_tokens("alice").unwrap();
+        for token in [&tokens.access_token, &tokens.refresh_token] {
+            let claims = m.authenticator.verify_jwt(token).unwrap();
+            assert_eq!(claims.space.as_deref(), Some("space-a"));
+        }
+        assert_eq!(
+            m.verify_refresh_token(&tokens.refresh_token).as_deref(),
+            Some("alice"),
+            "its own space redeems it"
+        );
+
+        let elsewhere = manager().for_space("space-b");
+        assert_eq!(
+            elsewhere.verify_refresh_token(&tokens.refresh_token),
+            None,
+            "another space must not redeem it"
+        );
+        assert_eq!(
+            manager().verify_refresh_token(&tokens.refresh_token),
+            None,
+            "nor may an unscoped surface"
+        );
     }
 
     #[test]

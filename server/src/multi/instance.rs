@@ -302,24 +302,30 @@ fn build_env_style_auth(
         Authenticator::load_or_init(folder, ac)
             .map_err(|e| format!("could not initialize authentication: {e}"))?,
     );
-    let inner: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_prefix(
-        authenticator.clone(),
-        ac.auth_token.clone(),
-        prefix.to_string(),
-    ));
+    let inner: Box<dyn RequestAuthorizer> = Box::new(
+        JwtAuthorizer::with_prefix(
+            authenticator.clone(),
+            ac.auth_token.clone(),
+            prefix.to_string(),
+        )
+        .for_space(space_id),
+    );
     let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(HeadlessTokenAuthorizer::new(
         inner,
         headless_cookie_name(space_id),
         headless_token.to_string(),
     ));
     let lockout = LockoutTimer::from_config(ac.lockout_time_secs, ac.lockout_limit);
-    let login = Arc::new(LoginManager::new(
-        authenticator,
-        Arc::new(ac.clone()),
-        ac.remember_me_hours,
-        lockout,
-        prefix.to_string(),
-    ));
+    let login = Arc::new(
+        LoginManager::new(
+            authenticator,
+            Arc::new(ac.clone()),
+            ac.remember_me_hours,
+            lockout,
+            prefix.to_string(),
+        )
+        .for_space(space_id),
+    );
     Ok((Some(authorizer), Some(login)))
 }
 
@@ -439,12 +445,15 @@ fn try_build_state(
             authenticator,
             session,
         } => {
-            let jwt: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_filter(
-                authenticator.clone(),
-                String::new(),
-                String::new(),
-                session_claims_filter(store.clone()),
-            ));
+            let jwt: Box<dyn RequestAuthorizer> = Box::new(
+                JwtAuthorizer::with_filter(
+                    authenticator.clone(),
+                    String::new(),
+                    String::new(),
+                    session_claims_filter(store.clone()),
+                )
+                .for_space(id),
+            );
             let tokens: Box<dyn RequestAuthorizer> = Box::new(UserTokenAuthorizer::new(
                 jwt,
                 store.clone(),
@@ -475,7 +484,8 @@ fn try_build_state(
                         .credential_version(username)
                         .unwrap_or_default()
                 }))
-                .with_server_wide_session(),
+                .with_server_wide_session()
+                .for_space(id),
             );
             (Some(authorizer), Some(login))
         }
