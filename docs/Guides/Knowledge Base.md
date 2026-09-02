@@ -4,7 +4,7 @@ references:
 - libraries/Library/Std/Pages/Space Overview.md
 ---
 
-This guide walks you through building a personal knowledge base with SilverBullet. You’ll learn how pages, links, tags, queries, and transclusions work together to create an interconnected web of knowledge.
+This guide walks you through building a knowledge base with SilverBullet. You’ll learn how pages, links, tags, queries, and transclusions work together to create an interconnected web of knowledge.
 
 > **note** Note
 > This workflow works well with [[Features/Journal]], where you link out to knowledge base topic pages from your journal pages.

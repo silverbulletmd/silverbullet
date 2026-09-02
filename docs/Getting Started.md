@@ -52,7 +52,7 @@ What does _that_ mean? Let’s make this more concrete, let’s add an item to o
       * [ ] Agreed I shall come up with a better project name
       * [ ] Agreed [[Allan]] will approve final project name
 
-The `[[page]]` syntax is [[Concepts/Link]] syntax. It allows you to create a web of links across your space, like a personal [wiki](https://en.wikipedia.org/wiki/Wiki). However — and here’s the kicker — these links are bi-directional. This means that _on the page you link to you can see what pages point to it_.
+The `[[page]]` syntax is [[Concepts/Link]] syntax. It allows you to create a web of links across your space, like a [wiki](https://en.wikipedia.org/wiki/Wiki). However — and here’s the kicker — these links are bi-directional. This means that _on the page you link to you can see what pages point to it_.
 
 This means that if I now click on the `Allan` link, I navigate to this page (or create it, if it didn’t exist yet) and there in a [[Concepts/Linked Mention]] section I will see that on this and that journal page, I mentioned Alan + all the sub-items mentioned in the journal. Cool right? And because also created a _task_ mentioning `Allan`, and that task is not yet complete, it will also appear at the top of the page as under [[Concepts/Linked Task]].
 
@@ -83,7 +83,7 @@ This section does what it says on the tin: it shows you the last 10 modified pag
 Now that you know the basics, explore these guides for real-world workflows:
 
 * [[Features/Journal]] — a little more depth on the daily journal setup
-* [[Guides/Knowledge Base]] — build a personal knowledge base
+* [[Guides/Knowledge Base]] — build a knowledge base
 * [[Guides/Task Management]] — track projects and tasks
 * [[Manual]] — the full user manual
 * [[Space Lua]] — learn more about the scripting language that gives SilverBullet a lot of its power

@@ -5,7 +5,6 @@ references:
 - client/service_worker.ts
 - client/boot.ts
 ---
-
 SilverBullet is built as a [Progressive Web App](https://web.dev/progressive-web-apps/) (PWA) — a web application that works fully offline.
 
 # What the PWA gives you

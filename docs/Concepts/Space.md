@@ -14,5 +14,8 @@ A space consists of
 * [[Concepts/Page]] and [[Concepts/Meta Page]]
 * [[Concepts/Document]]
 
+# Who a space is for
+A space belongs to whoever runs the server it lives on. Often that is a single person — but nothing about a space assumes it. A space may just as well be held by a handful of people, each with their own account and [[Features/Space Manager#Access|access level]], together with the scripts and agents writing to the same files.
+
 # Folder layout
 Every space in SilverBullet at the very least has an index page (by default named `index.md`) and a [[CONFIG]] page (named `CONFIG.md`). If you use [[Concepts/Library]], you will likely have a `Library/` folder as well.

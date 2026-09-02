@@ -5,7 +5,7 @@ references:
 - libraries/Library/Std/Infrastructure/Share.md
 - plugs/configuration-manager/libraries.ts
 ---
-SilverBullet is aimed for single-user, private use. Nevertheless, many have the need to _share_ some content kept in SilverBullet with the outside world: to push content out, pull it in, or even sync between different locations. This is where SilverBullet _share_ functionality comes in. 
+A [[Concepts/Space]] is a boundary: what lives in it sits on your server and stays there unless you decide otherwise. Often, though, some of that content needs to cross the boundary — to push it out into the world, pull it in, or even sync between different locations. This is where SilverBullet _share_ functionality comes in. 
 
 **Note:** If you are interested in one-off ways to get content out, have a look at [[Concepts/Export]].
 

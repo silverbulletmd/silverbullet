@@ -1,7 +1,6 @@
 ---
-pageDecoration.tree.priority: 1
+pageDecoration.tree.priority: 97
 ---
-
 Concepts:
 ${query[[
   from p = index.subPages("Concepts")

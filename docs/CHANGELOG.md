@@ -1,5 +1,5 @@
 ---
-pageDecoration.tree.priority: 1
+pageDecoration.tree.priority: 100
 ---
 An attempt at documenting the changes/new features introduced in each release.
 

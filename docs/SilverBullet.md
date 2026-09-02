@@ -1,5 +1,5 @@
 # Introduction
-SilverBullet is a [[Principles/Programmable]], [[Principles/Private]], [[Concepts/Browser]]-based, [[Principles/Open Source]], [[Principles/Self Hosted]], [[Principles/Personal]] [[Concepts/Knowledge Database]].
+SilverBullet is a [[Principles/Programmable]], [[Principles/Private]], browser-based, [[Principles/Open Source]], [[Principles/Self Hosted]], [[Concepts/Knowledge Management System]].
 
 _Yowza!_ That surely is a lot of adjectives to describe, effectively, a browser-based [[Markdown]] editor programmable with [[Lua]].
 
@@ -7,7 +7,7 @@ Let’s get more specific.
 
 SilverBullet combines a clean live-preview editor with wiki-style linking, a built-in database and query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a programmable system that grows with you.
 
-In SilverBullet you keep your content as a collection of [[Markdown]] [[Concepts/Page|Pages]] (called a [[Concepts/Space]]). You navigate your space using the [[Features/Page Picker]] like a traditional notes app, or through [[Concepts/Link|Links]] like a wiki (except they are [[Concepts/Linked Mention|bi-directional]]).
+In SilverBullet you keep your content as a collection of [[Markdown]] [[Concepts/Page|Pages]] (called a [[Concepts/Space]]). You navigate your space using the [[Features/Page Picker]] like a traditional notes app, or through [[Concepts/Link|Links]] like a wiki (except they are [[Concepts/Linked Mention|bi-directional]]). A space may be yours alone, or shared with a handful of people who each have an account on the same server — see [[Guides/Working Together]].
 
 If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Features/Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Concepts/Outline|Outlining]] tools for you. Productivity freak? Have a look at [[Concepts/Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]] (SLIQ). 
 
@@ -57,11 +57,11 @@ ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
 Want to see even more? Here is a whole [playlist with instruction videos](https://www.youtube.com/watch?v=bb1USz_cEBY&list=PLxFAb_vXRcEp4465MVI6Ha9wzNiX5VevQ) that go more in depth.
 
 # [[Install]]
-As mentioned, SilverBullet is a [[Principles/Self Hosted]] web application. This is great if you care about [[Principles/Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
+As mentioned, SilverBullet is a [[Principles/Self Hosted]] web application. This is great if you care about [[Principles/Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, a VPS somewhere in the cloud, or a box your team already runs. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
 
 Want a **pure desktop app experience**? Give [SilverBullet+](https://silverbullet.plus) a try.
 
-While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Principles/Data Sovereignty]] and to access your content from any device with a modern [[Concepts/Browser]].
+While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Principles/Data Sovereignty]] and to access your content from any device with a modern browser.
 
 Ready? Proceed to [[Install]], then follow [[Getting Started]] to learn the basics.
 

@@ -1,7 +1,6 @@
 ---
 description: No tracking or private data is sent to SilverBullet (or any other) servers at any time.
 awesomeness: 3
-tags: feature
 ---
 SilverBullet does not include any trackers or telemetry in its software. No tracking or private data is sent to SilverBullet (or any other) servers at any time.
 

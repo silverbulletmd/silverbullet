@@ -1,5 +1,5 @@
 ---
-pageDecoration.tree.priority: 1
+pageDecoration.tree.priority: 95
 ---
 #getting-started
 
