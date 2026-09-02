@@ -12,12 +12,12 @@ references:
 A single SilverBullet server can host any number of [[Concepts/Space|spaces]] — each with its own URL, access rules, and configuration — managed a web-based management UI called _Space Manager_.
 
 # Setup wizard
-When a server boots with an empty data folder it will run in set mode. Setup mode has two steps:
+When a server boots with an empty data folder it will run in setup mode. Setup mode has two steps:
 
 1. **Account creation**: creates the first administrator account.
 2. **Space creation**: creates your first space.
 
-Once finished, the server writes `users.json` and `spaces.json` and redirects you to your newly created space. To return to the space manager, simply open the `/.spaces` URL.
+Once finished, the server writes `users.json` and `spaces.json` and redirects you to your newly created space. To return to the space manager, simply open the `/.spaces` URL, or select “All spaces” from the profile menu in the top bar.
 
 # Accounts
 Each account has a username, password, admin flag, any number of API tokens, and a profile — an optional full name and email used for attribution — which the account holder can edit themselves, or an admin can set on their behalf. See [[HTTP API#Accounts (multi-space mode)]] for the profile endpoints.
