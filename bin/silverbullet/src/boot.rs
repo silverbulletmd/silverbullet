@@ -169,6 +169,10 @@ pub fn detect(
         // that way — `run_setup` refuses once users.json is there — so say so
         // rather than looping the operator through a wizard that will 400.
         match silverbullet_server::multi::users::UsersConfig::load(&folder.join("users.json"))? {
+            None if silverbullet_server::auth::oidc_enabled() => {
+                tracing::info!("boot mode: multi-space (OIDC enabled — users.json not needed)");
+                return Ok(BootMode::Multi);
+            }
             None => {
                 tracing::info!(
                     "boot mode: setup (spaces.json present, but no users.json — no admin yet)"
@@ -176,6 +180,12 @@ pub fn detect(
                 return Ok(BootMode::Setup);
             }
             Some(cfg) if !cfg.users.values().any(|u| u.admin) => {
+                if silverbullet_server::auth::oidc_enabled() {
+                    tracing::info!(
+                        "boot mode: multi-space (OIDC enabled — users.json admin flag ignored)"
+                    );
+                    return Ok(BootMode::Multi);
+                }
                 return Err(
                     "users.json contains no admin account, so nobody could administer this \
                      server. Set \"admin\": true on a user in users.json and restart"

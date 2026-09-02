@@ -14,7 +14,7 @@ use silverbullet_server_common::{BootConfig, FileMeta, SpaceError, SpacePrimitiv
 
 use crate::auth::{
     headless_cookie_name, AuthConfig, Authenticator, HeadlessTokenAuthorizer, JwtAuthorizer,
-    LockoutTimer, LoginManager, RequestAuthorizer,
+    LockoutTimer, LoginManager, OidcClient, OidcConfig, RequestAuthorizer,
 };
 use crate::multi::access::{SessionPolicy, SpaceUsersAuth, UserTokenAuthorizer};
 use crate::multi::config::{Binding, SpaceConfig};
@@ -339,6 +339,19 @@ fn member_name_filter(
     Box::new(move |username| store.is_admin(username) || members.contains(username))
 }
 
+fn oidc_claims_filter(
+    members: BTreeSet<String>,
+) -> Box<dyn Fn(&crate::auth::authenticator::Claims) -> bool + Send + Sync> {
+    Box::new(move |claims| {
+        // OIDC sessions are deliberately versionless. Account-password
+        // sessions carry a credential version and must not become an
+        // alternate way around the configured identity provider.
+        claims.credential_version.is_none()
+            && (members.contains(&claims.username)
+                || crate::auth::oidc::oidc_is_admin(&claims.username))
+    })
+}
+
 pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> SpaceInstance {
     let prefix = match &config.binding {
         Binding::Prefix { prefix } => normalize_prefix(prefix),
@@ -400,12 +413,26 @@ fn try_build_state(
     // admin-or-member authorization policy.
     let headless_token = generate_token();
     let members: BTreeSet<String> = config.members.keys().cloned().collect();
+    let oidc = match &deps.auth {
+        InstanceAuth::Accounts { authenticator, .. } => OidcConfig::from_env()
+            .map(|config| Arc::new(OidcClient::new(config, authenticator.clone()))),
+        InstanceAuth::Single(_) => None,
+    };
     let (authorizer, login): AuthPair = match &deps.auth {
         InstanceAuth::Single(None) => (None, None),
         InstanceAuth::Single(Some(config)) => {
             build_env_style_auth(id, &folder, prefix, config, &headless_token)?
         }
         InstanceAuth::Accounts { .. } if config.public => (None, None),
+        InstanceAuth::Accounts { authenticator, .. } if oidc.is_some() => (
+            Some(Arc::new(JwtAuthorizer::with_filter(
+                authenticator.clone(),
+                String::new(),
+                String::new(),
+                oidc_claims_filter(members.clone()),
+            ))),
+            None,
+        ),
         InstanceAuth::Accounts {
             users: store,
             authenticator,
@@ -518,6 +545,7 @@ fn try_build_state(
         space_description: config.description.clone(),
         authorizer,
         login,
+        oidc,
         shell: ShellConfig {
             enabled: shell_enabled,
             whitelist: config.shell.whitelist.clone(),
@@ -585,6 +613,22 @@ mod tests {
             revisions: Default::default(),
             extra: Default::default(),
         }
+    }
+
+    #[test]
+    fn oidc_filter_accepts_only_versionless_member_sessions() {
+        let filter = oidc_claims_filter(["alice".to_string()].into_iter().collect());
+        let claims =
+            |username: &str, credential_version: Option<&str>| crate::auth::authenticator::Claims {
+                username: username.to_string(),
+                credential_version: credential_version.map(str::to_string),
+                token_use: None,
+                exp: usize::MAX,
+            };
+
+        assert!(filter(&claims("alice", None)));
+        assert!(!filter(&claims("alice", Some("password-version"))));
+        assert!(!filter(&claims("eve", None)));
     }
 
     #[test]

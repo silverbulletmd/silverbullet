@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::Engine;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 /// Claims carried in a session JWT.
 #[derive(Debug, Serialize, Deserialize)]
@@ -165,6 +166,18 @@ impl Authenticator {
             &Validation::new(Algorithm::HS256),
         )?;
         Ok(data.claims)
+    }
+
+    /// Derive a purpose-specific key from the persisted session secret.
+    /// Keeping the context ahead of the secret provides domain separation
+    /// without exposing or reusing the raw JWT signing key directly.
+    pub(crate) fn derive_key(&self, context: &[u8]) -> Vec<u8> {
+        let mut hash = Sha256::new();
+        hash.update(b"SilverBullet derived key\0");
+        hash.update(context);
+        hash.update([0]);
+        hash.update(&self.secret);
+        hash.finalize().to_vec()
     }
 
     /// Load the signing secret from `<space_dir>/.silverbullet.auth.json`,

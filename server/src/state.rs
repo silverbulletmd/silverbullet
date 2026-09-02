@@ -102,6 +102,9 @@ pub struct ServerState {
     /// `authorizer == None` (an open server). Shares the `Authenticator` with
     /// the `authorizer` via `Arc`.
     pub login: Option<Arc<crate::auth::LoginManager>>,
+    /// Self-contained OIDC login flow. Present only for account-managed
+    /// servers when `SB_OIDC_ISSUER` and `SB_OIDC_CLIENT_ID` are configured.
+    pub oidc: Option<Arc<crate::auth::OidcClient>>,
     /// Shell-execution policy for `/.shell`.
     pub shell: ShellConfig,
     /// Request metrics. `None` disables counting and `/metrics`.

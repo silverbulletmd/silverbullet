@@ -66,7 +66,16 @@ async fn require_authorization(
             // The client's boot code follows this `Location` to the login page;
             // all protected routes are `/.`-prefixed, hence the
             // 401-with-Location branch.
-            let location = format!("{}/.auth", state.host_url_prefix);
+            let location = if state.oidc.is_some() {
+                let mut return_to = format!("{}{}", state.host_url_prefix, req.uri().path());
+                if let Some(query) = req.uri().query() {
+                    return_to.push('?');
+                    return_to.push_str(query);
+                }
+                crate::auth::oidc::login_location(&state.host_url_prefix, &return_to)
+            } else {
+                format!("{}/.auth", state.host_url_prefix)
+            };
             (
                 axum::http::StatusCode::UNAUTHORIZED,
                 [(axum::http::header::LOCATION, location)],
@@ -175,11 +184,22 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         .route_layer(DefaultBodyLimit::max(64 * 1024));
 
     // Open: liveness + the SPA shell/assets must always load.
-    let open = Router::new()
+    let mut open = Router::new()
         .route("/.ping", get(control::handle_ping))
         .route("/.client/manifest.json", get(control::handle_manifest))
-        .route("/.logout", get(crate::handlers::auth::handle_logout))
         .merge(auth_routes);
+
+    // Keep OIDC entirely additive: without OIDC configuration these paths
+    // retain the same SPA-fallback behavior they had before.
+    if state.oidc.is_some() {
+        open = open
+            .route("/.oidc/login", get(crate::auth::oidc::handle_login))
+            .route("/.oidc/callback", get(crate::auth::oidc::handle_callback))
+            .route("/.oidc/logout", get(crate::auth::oidc::handle_logout))
+            .route("/.logout", get(crate::auth::oidc::handle_logout));
+    } else {
+        open = open.route("/.logout", get(crate::handlers::auth::handle_logout));
+    }
 
     let bundle_compression = CompressionLayer::new()
         .compress_when(DefaultPredicate::new().and(NotForContentType::const_new("font/")));
@@ -286,6 +306,61 @@ mod auth_tests {
     async fn unauthorized_protected_route_is_401() {
         let st = state_with(Some(Arc::new(Always(false))));
         assert_eq!(status(st, "/.config").await, StatusCode::UNAUTHORIZED);
+    }
+
+    fn add_test_oidc(state: &mut ServerState) {
+        let authenticator = Arc::new(crate::auth::Authenticator::from_secret_bytes(
+            vec![2; 32],
+            "test".into(),
+        ));
+        state.oidc = Some(Arc::new(crate::auth::OidcClient::new(
+            crate::auth::OidcConfig {
+                issuer: "https://id.example/application/o/wiki/".into(),
+                client_id: "silverbullet".into(),
+                client_secret: "secret".into(),
+                redirect_uri: "https://wiki.example/.oidc/callback".into(),
+            },
+            authenticator,
+        )));
+    }
+
+    #[tokio::test]
+    async fn oidc_unauthorized_response_points_to_login_with_return_path() {
+        let mut state = test_state();
+        state.authorizer = Some(Arc::new(Always(false)));
+        state.host_url_prefix = "/work".to_string();
+        add_test_oidc(&mut state);
+
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.config?mode=edit")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            response.headers().get("location").unwrap(),
+            "/work/.oidc/login?return_to=%2Fwork%2F%2Econfig%3Fmode%3Dedit"
+        );
+    }
+
+    #[tokio::test]
+    async fn oidc_callback_route_is_mounted() {
+        let mut state = test_state();
+        add_test_oidc(&mut state);
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.oidc/callback")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
