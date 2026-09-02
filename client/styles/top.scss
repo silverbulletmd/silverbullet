@@ -254,3 +254,77 @@
     }
   }
 }
+
+// Rendered via portal into document.body, same reason as .sb-notifications above.
+.sb-anchored-menu {
+  font-family: var(--ui-font);
+  position: fixed;
+  z-index: 21;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  background: var(--modal-background-color);
+  color: var(--modal-color);
+  border: 1px solid var(--modal-border-color);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+
+  .sb-anchored-menu-header {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--modal-border-color);
+  }
+
+  .sb-anchored-menu-title {
+    font-weight: 600;
+  }
+
+  .sb-anchored-menu-subtitle {
+    font-size: 0.85em;
+    color: var(--subtle-color);
+  }
+
+  button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--subtle-background-color);
+    }
+  }
+}
+
+// The reserved "profile" action button icon, rendered in place of a feather
+// icon (see client/components/profile_button.tsx).
+.sb-profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-family: var(--ui-font);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.sb-profile-avatar-signed-in {
+  background-color: var(--primary-button-background-color);
+  color: var(--primary-button-color);
+}
+
+.sb-profile-avatar-signed-out {
+  border: 1px solid var(--subtle-color);
+  color: var(--subtle-color);
+}

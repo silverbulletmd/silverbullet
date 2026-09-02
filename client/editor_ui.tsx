@@ -8,9 +8,13 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
 import { h, render as preactRender } from "preact";
-import { useEffect, useReducer } from "preact/hooks";
+import { useEffect, useMemo, useReducer, useState } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import type { Client } from "./client.ts";
+import {
+  type ConfiguredActionButton,
+  visibleActionButtons,
+} from "./action_buttons.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { kebabToPascal } from "./lib/feather_icons.ts";
@@ -20,6 +24,14 @@ import { RevisionPreviewModal } from "./navigator/ui/components/revision_preview
 import { useNavigatorSlot } from "./navigator/ui/slots.ts";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
+import { AnchoredMenu } from "./components/anchored_menu.tsx";
+import {
+  ProfileAvatar,
+  profileMenuHeader,
+  profileMenuItems,
+  profileMenuLabel,
+} from "./components/profile_button.tsx";
+import { loadProfile, type ProfileState } from "./profile.ts";
 import * as mdi from "./filtered_material_icons.ts";
 import reducer from "./reducer.ts";
 import {
@@ -277,6 +289,21 @@ export class MainUI {
 
     const client = this.client;
 
+    // Loaded once on mount, not polled or re-fetched on navigation
+    const [profile, setProfile] = useState<ProfileState>({
+      status: "unavailable",
+    });
+    useEffect(() => {
+      // `/.spaces/*` only exists on account-managed servers; asking for it
+      // anywhere else is a guaranteed 404 on every boot.
+      if (!client.bootConfig.accountManaged) return;
+      void loadProfile().then(setProfile);
+    }, []);
+
+    const [menuTrigger, setMenuTrigger] = useState<HTMLElement | undefined>(
+      undefined,
+    );
+
     const navSlots = {
       lhs: useNavigatorSlot("lhs"),
       rhs: useNavigatorSlot("rhs"),
@@ -359,9 +386,15 @@ export class MainUI {
       globalThis.dispatchEvent(new Event("resize"));
     }, [viewState.panels, navDockSignature]);
 
-    const actionButtons = client.config.get<ActionButton[]>(
+    const actionButtons = client.config.get<ConfiguredActionButton[]>(
       "actionButtons",
       [],
+    );
+    // A fresh component identity would remount the avatar on every
+    // top-bar render, and the top bar re-renders on sync progress.
+    const profileAvatarComponent = useMemo(
+      () => ProfileAvatar(profile),
+      [profile],
     );
 
     // One modal at a time, last open wins: a navigator modal taking the slot
@@ -472,21 +505,20 @@ export class MainUI {
                   },
                 ]
               : []),
-            ...actionButtons
+            ...visibleActionButtons(actionButtons, {
+              isMobile: viewState.isMobile,
+              isStandalone: viewState.isStandalone,
+              accountManaged: !!client.bootConfig.accountManaged,
+            })
+              // Until the profile request settles we do not know who the
+              // visitor is, and offering "Log in" to someone who is signed in
+              // is worse than offering nothing.
               .filter(
                 (button) =>
-                  button.icon &&
-                  (typeof button.mobile === "undefined" ||
-                    button.mobile === viewState.isMobile) &&
-                  (typeof button.standalone === "undefined" ||
-                    button.standalone === viewState.isStandalone),
+                  button.icon !== "profile" || profile.status !== "unavailable",
               )
-              .map((button, index) => ({
-                ...button,
-                priority: button.priority ?? actionButtons.length - index,
-              }))
-              .sort((a, b) => b.priority - a.priority)
               .map((button) => {
+                const isProfileButton = button.icon === "profile";
                 const iconName = kebabToPascal(button.icon);
                 const mdiIcon = (mdi as any)[iconName];
                 let featherIcon = (featherIcons as any)[iconName];
@@ -507,18 +539,46 @@ export class MainUI {
                 }
 
                 return {
-                  icon: mdiIcon ? mdiIcon : featherIcon,
+                  icon: isProfileButton
+                    ? profileAvatarComponent
+                    : mdiIcon
+                      ? mdiIcon
+                      : featherIcon,
                   description,
                   dropdown: button.dropdown,
-                  callback: button.command
-                    ? () => this.client.runCommandByName(button.command!)
-                    : button.run ||
-                      (() => {
-                        this.flashNotification(
-                          "actionButton did not specify a command or run() callback",
-                          "error",
+                  hasPopup: isProfileButton ? true : undefined,
+                  expanded: isProfileButton
+                    ? menuTrigger !== undefined
+                    : undefined,
+                  callback: isProfileButton
+                    ? (el?: HTMLElement) => {
+                        const items = profileMenuItems(profile, client);
+                        if (viewState.isMobile || !el) {
+                          void client.ui
+                            .filterBox(
+                              profileMenuLabel(profile),
+                              items.map((i) => ({ name: i.name })),
+                            )
+                            .then((selected) => {
+                              items
+                                .find((i) => i.name === selected?.name)
+                                ?.run();
+                            });
+                          return;
+                        }
+                        setMenuTrigger((current) =>
+                          current === el ? undefined : el,
                         );
-                      }),
+                      }
+                    : button.command
+                      ? () => this.client.runCommandByName(button.command!)
+                      : button.run ||
+                        (() => {
+                          this.flashNotification(
+                            "actionButton did not specify a command or run() callback",
+                            "error",
+                          );
+                        }),
                   href: "",
                 };
               }),
@@ -540,6 +600,14 @@ export class MainUI {
             viewState.uiOptions.forcedROMode || client.bootConfig.readOnly
           }
         />
+        {menuTrigger && (
+          <AnchoredMenu
+            trigger={menuTrigger}
+            header={profileMenuHeader(profile)}
+            items={profileMenuItems(profile, client)}
+            onClose={() => setMenuTrigger(undefined)}
+          />
+        )}
         <div id="sb-main">
           <NavigatorDock slot="lhs" state={navSlots.lhs} client={client} />
           {viewState.panels.lhs.mode !== undefined && (
@@ -586,14 +654,3 @@ export class MainUI {
     preactRender(h(this.ViewComponent.bind(this), {}), container);
   }
 }
-
-type ActionButton = {
-  icon: string;
-  description?: string;
-  command?: string;
-  mobile?: boolean;
-  standalone?: boolean;
-  dropdown?: boolean;
-  priority?: number;
-  run?: () => void;
-};

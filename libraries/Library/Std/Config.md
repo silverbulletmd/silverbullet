@@ -447,7 +447,7 @@ config.define("actionButtons", {
     properties = {
       icon = {
         type = "string",
-        description = "Icon for the action button, from https://feathericons.com"
+        description = "Icon for the action button, from https://feathericons.com. The name 'profile' is reserved for the account menu."
       },
       description = {
         type = "string",
@@ -468,6 +468,10 @@ config.define("actionButtons", {
       standalone = {
         type = "boolean",
         description = "Optional: when set to true, button only appears in standalone/PWA mode; when false, only in browser mode"
+      },
+      accountManaged = {
+        type = "boolean",
+        description = "Optional: when true, button only appears on servers that manage accounts (multi-space)"
       },
       dropdown = {
         type = "boolean",
@@ -539,6 +543,12 @@ config.set("actionButtons", {
     run = function()
       editor.goHistory(1)
     end,
-  }
+  },
+  {
+    icon = "profile",
+    description = "Account",
+    accountManaged = true,
+    priority = -2,
+  },
 })
 ```

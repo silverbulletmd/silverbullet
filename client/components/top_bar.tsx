@@ -8,10 +8,12 @@ export type ActionButton = {
   icon: FunctionalComponent<any>;
   description: string;
   class?: string;
-  callback: () => void;
+  callback: (el?: HTMLElement) => void;
   href?: string;
   mobile?: boolean;
   dropdown?: boolean;
+  hasPopup?: boolean;
+  expanded?: boolean;
 };
 
 function pageNameClass(
@@ -128,7 +130,7 @@ function ActionButtons({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              actionButton.callback();
+              actionButton.callback(e.currentTarget as HTMLElement);
             }}
             onBlur={() => {
               if (mobileMenuStyle === "hamburger") {
@@ -139,6 +141,10 @@ function ActionButtons({
             }}
             title={actionButton.description}
             className={actionButton.class}
+            aria-haspopup={actionButton.hasPopup ? "menu" : undefined}
+            aria-expanded={
+              actionButton.hasPopup ? !!actionButton.expanded : undefined
+            }
           >
             <actionButton.icon size={18} />
           </button>

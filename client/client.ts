@@ -1034,7 +1034,8 @@ export class Client {
         viewState.showFilterBox,
         viewState.showConfirm,
         viewState.showPrompt,
-      ].some(Boolean)
+      ].some(Boolean) ||
+      document.querySelector(".sb-anchored-menu")
     ) {
       // Some other modal UI element is visible, don't focus editor now
       return;
