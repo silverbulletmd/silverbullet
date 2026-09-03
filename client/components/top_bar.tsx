@@ -1,6 +1,6 @@
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import { createPortal } from "preact/compat";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import type { Notification } from "@silverbulletmd/silverbullet/type/client";
 import { Input } from "@silverbulletmd/silverbullet/ui";
 
@@ -29,6 +29,41 @@ function pageNameClass(
   return cssClass ? `${state} sb-decorated-object ${cssClass}` : state;
 }
 
+/**
+ * Publishes the editor pane's horizontal box so the notification overlay can
+ * line up with it. The overlay is portaled to document.body and positioned
+ * `fixed`, so it cannot see that #sb-editor is a flex child whose position and
+ * width change when a side panel opens.
+ */
+function useEditorPaneMetrics() {
+  // Layout effect, not effect: this runs before paint, so the overlay never
+  // renders at the fallback position and then jumps.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const editor = document.querySelector("#sb-editor");
+    if (!editor) return;
+
+    const publish = () => {
+      const { left, width } = editor.getBoundingClientRect();
+      // A zero box means the pane has not been laid out yet; the observer
+      // fires again once it has, and the CSS fallbacks hold until then.
+      if (width === 0) return;
+      root.style.setProperty("--sb-editor-pane-left", `${left}px`);
+      root.style.setProperty("--sb-editor-pane-width", `${width}px`);
+    };
+    publish();
+
+    const observer = new ResizeObserver(publish);
+    observer.observe(editor);
+
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--sb-editor-pane-left");
+      root.style.removeProperty("--sb-editor-pane-width");
+    };
+  }, []);
+}
+
 function NotificationPanel({
   notifications,
   onDismiss,
@@ -38,6 +73,22 @@ function NotificationPanel({
 }) {
   if (notifications.length === 0) return null;
   return createPortal(
+    <NotificationList notifications={notifications} onDismiss={onDismiss} />,
+    document.body,
+  );
+}
+
+// Split out so the metrics hook mounts only while something is on screen, by
+// which point #sb-editor is laid out and the first measurement is real.
+function NotificationList({
+  notifications,
+  onDismiss,
+}: {
+  notifications: Notification[];
+  onDismiss: (id: number) => void;
+}) {
+  useEditorPaneMetrics();
+  return (
     <div className="sb-notifications">
       {notifications.map((notification) => (
         <div
@@ -76,8 +127,7 @@ function NotificationPanel({
           )}
         </div>
       ))}
-    </div>,
-    document.body,
+    </div>
   );
 }
 

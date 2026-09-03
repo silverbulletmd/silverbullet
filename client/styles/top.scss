@@ -205,12 +205,12 @@
   }
 }
 
-// Rendered via portal into document.body, so it sits outside #sb-top's
-// stacking context and can render above the modal (z-index 100).
 .sb-notifications {
   position: fixed;
-  left: max(20px, calc((100vw - var(--#{"editor-width"})) / 2 + 20px));
-  right: max(20px, calc((100vw - var(--#{"editor-width"})) / 2 + 20px));
+  left: calc(var(--sb-editor-pane-left, 0px) + max(20px,
+      (var(--sb-editor-pane-width, 100vw) - var(--#{"editor-width"})) / 2 + 20px));
+  right: calc(100vw - var(--sb-editor-pane-left, 0px) - var(--sb-editor-pane-width, 100vw) + max(20px,
+      (var(--sb-editor-pane-width, 100vw) - var(--#{"editor-width"})) / 2 + 20px));
   top: 60px;
 
   font-size: 15px;
