@@ -292,23 +292,27 @@ export function SpaceForm({
           )}
         </Fragment>
       )}
+      {bindType === "prefix" && (
+        <p class="sb-help-text">
+          For added security, you can bind a space to its own hostname (instead
+          of a URL prefix) to better isolate it from your other spaces.
+        </p>
+      )}
       <label for="space-folder">Folder</label>
       <FolderPicker
         id="space-folder"
         value={folder}
         onChange={setFolder}
         apiBase="api/admin"
-        // The default value tracks `spaces/<slug>` (relative to the server
-        // root) and doesn't exist yet — browsing its parent ("spaces") shows
-        // the existing space folders to pick from, same idea as the wizard's
-        // parentDir(folder). Once the user (or an existing space's stored
-        // value) has a real folder, just browse that value's own
-        // subdirectories (the picker's default).
         browseStart={folderTouched ? undefined : "spaces"}
       />
       <h3>Access</h3>
       <fieldset class="sb-access-table">
         <legend>Who has access</legend>
+        <p class="sb-help-text">
+          Note: write members can also author scripts (Space Lua, install libraries and plugs) that run for anyone
+          who opens this space.
+        </p>
         <div class="sb-access-row sb-access-public">
           <span class="sb-access-who">Public (not signed in)</span>
           <Select
@@ -421,6 +425,10 @@ export function SpaceForm({
           onChange={(e) => setShellEnabled(e.currentTarget.checked)}
         />{" "}
         Enable shell commands
+        <span class="sb-help-text">
+          For added security, leave shell off unless this space needs to run
+          server commands.
+        </span>
       </label>
       {/* Only meaningful while shell commands are on, so it appears with
           them rather than sitting there greyed out. */}

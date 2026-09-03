@@ -36,6 +36,8 @@ Each space is reachable one of two ways:
 * **URL prefix**: e.g. `/work`. A bare `/` binds a space at the root (allowed once). Prefixes must not overlap (`/work` and `/work/sub` can’t coexist, nor can two spaces both bind `/`).
 * **Hostname**: e.g. `notes.example.com`, matched on the `Host` header of the main listener. Point wildcard DNS or per-host reverse-proxy rules at the server.
 
+A host binding gives a space its own origin, which is what isolates it from other spaces in the browser — see [[Deployment/Security Profiles]] for when that matters.
+
 ## Access
 Access to a space resolves to one of three levels:
 
@@ -44,6 +46,8 @@ Access to a space resolves to one of three levels:
 | `none` | Not visible. Requests are refused. |
 | `read` | May read content. May not modify anything, and may not reach any capability endpoint (shell, proxy, runtime API). |
 | `write` | Full access to the space’s content and capabilities. |
+
+`write` carries real trust — see [[Security#What `write` really means]].
 
 The effective level for a request is the **maximum** of three independent sources:
 

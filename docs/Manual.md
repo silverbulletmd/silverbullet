@@ -21,6 +21,8 @@ ${query[[from g = index.pages("guide") select templates.pageItem(g)]]}
 # Installation and deployment
 * [[Install]]: Installation instructions for various setups
 * [[Features/Authentication]]: Securing your instance
+* [[Security]]: the trust model behind multi-space deployments
+* [[Deployment/Security Profiles]]: which deployment shape fits your situation
 * [[TLS]]: the part where we walk through options to expose SilverBullet via HTTPS.
 * [[Troubleshooting]]: When things don't go as planned
 * [[Features/CLI]]: Command-line interface for interacting with SilverBullet
