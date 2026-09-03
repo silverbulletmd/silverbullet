@@ -1,6 +1,5 @@
----
-tags: guide
----
+#guide
+
 A [[Concepts/Space]] does not have to be yours alone. This guide walks through running one that several people share: giving them accounts, deciding what each of them may do, working in the same pages without stepping on each other, addressing one another in the content itself, and seeing who changed what.
 
 # Setting up a shared space

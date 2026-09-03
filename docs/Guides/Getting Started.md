@@ -1,4 +1,4 @@
-#getting-started #guide
+#guide
 
 Welcome! This guide helps you get started with SilverBullet assuming you have it successfully [[Install|installed as a server]] or [desktop app](https://silverbullet.plus). 
 

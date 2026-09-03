@@ -12,7 +12,7 @@ ${embed.youtube "https://www.youtube.com/watch?v=Of7zE0AVApc"}
 ${embed.youtube "https://www.youtube.com/watch?v=cH9cs8fowhY"}
 ${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
 # Getting started
-Start with [[Install]], followed by [[Getting Started]]. These will walk through the basics.
+Start with [[Install]], followed by [[Guides/Getting Started]]. These will walk through the basics.
 
 # Guides
 Practical walkthroughs for common workflows:

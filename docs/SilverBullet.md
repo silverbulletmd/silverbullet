@@ -63,7 +63,7 @@ Want a **pure desktop app experience**? Give [SilverBullet+](https://silverbulle
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Principles/Data Sovereignty]] and to access your content from any device with a modern browser.
 
-Ready? Proceed to [[Install]], then follow [[Getting Started]] to learn the basics.
+Ready? Proceed to [[Install]], then follow [[Guides/Getting Started]] to learn the basics.
 
 # What’s next?
 * [[Manual]]: SilverBullet’s official manual.

@@ -171,6 +171,7 @@ config.set("linkWriteFormat", "full-path")
 # View defaults
 ```space-lua
 config.set("view.defaults", {
-  ["std.spaceTree"] = { open = true, width = 240 },
+  -- The curated Navigate tree (see [[^Library/Website]]) is this site's navigation
+  ["docs.navigate"] = { open = true, width = 260 },
 })
 ```

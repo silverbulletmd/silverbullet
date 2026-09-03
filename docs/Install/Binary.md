@@ -53,7 +53,7 @@ To force classic single-space behavior add `--single`:
 > **note** Note
 > If you want to access SilverBullet from another machine, you need [[TLS]] _and_ you should enable [[Features/Authentication]] first.
 
-Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Features/Space Manager]], once that’s all done, head to [[Getting Started]] to learn the basics.
+Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Features/Space Manager]], once that’s all done, head to [[Guides/Getting Started]] to learn the basics.
 
 # Upgrading
 You can upgrade your SilverBullet install based on the version you’d like to run.

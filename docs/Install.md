@@ -16,7 +16,7 @@ Steps:
    * [[Install/Binary]] — a single self-contained binary
    * [[Install/Docker]] — a docker container
 3. Access it via `http://localhost:3000` and go through the setup flow.
-4. Follow [[Getting Started]] to learn the basics
+4. Follow [[Guides/Getting Started]] to learn the basics
 
 Is that working out for you? Great, then proceed to deploy SilverBullet _properly_ on a server so you can also access it from other devices (like your phone).
 
@@ -30,7 +30,7 @@ There are three things to take care of, in this order (follow the links in each 
    * [[Install/Docker]] — a docker container
 2. Be sure you enable [[Features/Authentication]] for security
 3. Deploy a [[TLS]] layer front of SilverBullet: browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so _you cannot_ reach a remote SilverBullet server over plain `http://`.
-4. Once that’s all set up, go through the setup flow and then follow [[Getting Started]] to learn the basics of using SilverBullet itself.
+4. Once that’s all set up, go through the setup flow and then follow [[Guides/Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud
 While [[Principles/Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.

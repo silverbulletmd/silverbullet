@@ -1,8 +1,4 @@
----
-tags: guide
-references:
-- libraries/Library/Std/Pages/Space Overview.md
----
+#guide
 
 This guide walks you through building a knowledge base with SilverBullet. You’ll learn how pages, links, tags, queries, and transclusions work together to create an interconnected web of knowledge.
 

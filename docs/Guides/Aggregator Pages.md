@@ -1,7 +1,5 @@
----
-description: A thin page whose body is primarily drived through queries that collects items from across your space.
-tags: glossary guide
----
+#guide
+
 An aggregator page is a thin page whose body is primarily drived through queries that collects items from across your space.
 
 Instead of hand-maintaining a list of all open questions, all ADRs, or all team members, you tag each item on its natural home page and let a single query page assemble the collection automatically. Add an item anywhere in your space, tag it, and the aggregator picks it up automatically.

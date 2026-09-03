@@ -79,6 +79,13 @@ When iterating on a `space-lua` block, follow this loop:
 > **note** Note
 > Lua examples in the docs use `lua` fenced blocks (not `space-lua`) so they are not activated on the docs site itself; when using snippets in your own space, change `lua` to `space-lua`. See the note at the top of this page.
 
+## Runaway scripts
+A `space-lua` definition (or any other Lua execution: an expression, a widget, a command) is given a small time budget on the browser's main thread. This only counts time the script is actually **busy computing**: loop iterations, function calls, table access, and the like. It never counts time a script spends **waiting** — on an [[API/editor#editor.prompt|editor.prompt]], a network call, or the [[Concepts/Object Index]] — however long that wait takes, since the main thread is free to do other things in the meantime.
+
+For `space-lua` definitions and commands, if busy time runs past the budget, SilverBullet offers to **Stop** it, with a **Keep going** option if it's just doing legitimately heavy work. Meanwhile the rest of the editor stays responsive. If you choose to stop a `space-lua` definition, it is **quarantined**: disabled on every subsequent reload, with a banner naming it and a **Re-enable** button. Editing the script (and reloading) lifts the quarantine automatically, since the quarantine is tied to the script's exact contents — no separate step needed. Widgets and `${…}` expressions are instead stopped automatically and replaced with a "Lua timeout" message inline.
+
+This budget cannot help with a single stdlib call that never returns on its own (e.g. an enormous `string.rep`), or with memory exhaustion.
+
 # Expressions
 One SilverBullet specific [[Markdown]] [[Markdown/Extensions]] is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Features/Live Preview]] to the evaluation of that Lua expression.
 
