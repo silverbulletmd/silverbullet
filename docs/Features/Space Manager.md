@@ -69,35 +69,6 @@ Detection rules:
 4. **The folder is non-empty -> single-space.** An existing notes folder is served as a single space, exactly as before.
 5. **Empty folder, no flags, no legacy env -> setup wizard.** A brand-new server — or a server pointed at a folder that hasn’t been created yet — puts up the [[#Setup wizard]].
 
-# Programmatic setup
-You can provision a server without the browser wizard. Both paths run the same logic and refuse to run twice (once `users.json` exists).
-
-**CLI `setup` subcommand**:
-```shell
-silverbullet setup /var/lib/silverbullet \
-  --admin admin:s3cretpw \
-  --space "Notes" --at / --space-folder spaces/notes
-```
-
-* `--admin user:pass` (required) creates the admin account.
-* `--space NAME` creates a first space (omit to create none).
-* `--at` is its binding (`/` for the root, or a prefix like `/notes`; default `/`).
-* `--space-folder` is where its files live (default `spaces/<id>`).
-
-**HTTP setup API**: while a server is in setup mode, `POST /.setup/api/complete` accepts the same payload the wizard sends:
-
-```json
-{
-  "adminUsername": "admin",
-  "adminPassword": "s3cretpw",
-  "adminFullName": "",
-  "adminEmail": "",
-  "space": { "name": "Notes", "prefix": "/", "folder": "" }
-}
-```
-
-`GET /.setup/api/status` reports the server's absolute data root, which the wizard uses to prepopulate the folder field. On success the server hot-swaps into the multi-space stack, just like the wizard.
-
 # Migrating a single-space server to accounts
 To convert an existing [[#Single-space mode]] server (one folder of notes, configured by `SB_USER` etc.) into an account-managed space:
 
@@ -106,10 +77,8 @@ To convert an existing [[#Single-space mode]] server (one folder of notes, confi
 3. In the wizard, create your admin account. On the space step, tick **“Use an existing folder on this server”** and point it at your existing notes folder (an absolute path, or one relative to the new server root).
 4. Finish. Your notes are now served as a space, with accounts and the admin UI in front.
 
-Nothing in your old notes folder is modified beyond seeding an index page if one is missing.
-
 # Single-space mode
-Single-space mode is the “classic” SilverBullet server: one folder, one space, configured entirely by environment variables, with no `spaces.json`, `users.json`, nor admin UI. Pick it with `--single`, or simply by pointing the server at a folder that already has content (or by setting any legacy `SB_*` variable). See [[Features/Authentication#Single-space mode]] for its authentication options and [[Install/Configuration]] for the full environment-variable surface. If the target folder doesn’t exist yet, the server creates it and serves an empty space.
+Single-space mode is the classic/soon legacy way to run a SilverBullet server: one folder, one space, configured entirely by environment variables. Pick it with `--single`, or simply by pointing the server at a folder that already has content (or by setting any legacy `SB_*` variable). See [[Features/Authentication#Single-space mode]] for its authentication options and [[Install/Configuration]] for the full environment-variable surface. If the target folder doesn’t exist yet, the server creates it and serves an empty space.
 
 # Notes and limitations
 * Spaces share one OS process and user. This mode is built for a household or team of trusted spaces, not hostile multi-tenancy.

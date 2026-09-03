@@ -5,4 +5,4 @@ tags: feature
 ---
 SilverBullet is [[Principles/Self Hosted]], and has [[Principles/Zero Tracking]]. This means that your data is fully in your control, it is [[Principles/Data Sovereignty]] at work.
 
-Private does not (need to mean) it’s just you. A [[Concepts/Space]] may have any number of members, each with their own account.
+Private does not need to mean it’s just you. A [[Concepts/Space]] may have any number of members.

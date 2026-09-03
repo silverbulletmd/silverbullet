@@ -1,13 +1,13 @@
 # Introduction
-SilverBullet is a [[Principles/Programmable]], [[Principles/Private]], browser-based, [[Principles/Open Source]], [[Principles/Self Hosted]], [[Concepts/Knowledge Management System]].
+SilverBullet is a [[Principles/Malleable]], [[Principles/Private]], [[Principles/Open Source]], [[Principles/Self Hosted]], [[Concepts/Knowledge Management System]].
 
 _Yowza!_ That surely is a lot of adjectives to describe, effectively, a browser-based [[Markdown]] editor programmable with [[Lua]].
 
 Let’s get more specific.
 
-SilverBullet combines a clean live-preview editor with wiki-style linking, a built-in database and query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a programmable system that grows with you.
+SilverBullet combines a clean [[Features/Live Preview]] markdown editor with wiki-style linking, a database with query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a programmable system that grows with you, or your team.
 
-In SilverBullet you keep your content as a collection of [[Markdown]] [[Concepts/Page|Pages]] (called a [[Concepts/Space]]). You navigate your space using the [[Features/Page Picker]] like a traditional notes app, or through [[Concepts/Link|Links]] like a wiki (except they are [[Concepts/Linked Mention|bi-directional]]). A space may be yours alone, or shared with a handful of people who each have an account on the same server — see [[Guides/Working Together]].
+In SilverBullet you keep your content as a collection of [[Markdown]] [[Concepts/Page|Pages]] (called a [[Concepts/Space]]). You navigate your space using the [[Features/Page Picker]] or [[Features/File Tree]] like a traditional notes app, or through [[Concepts/Link|Links]] like a wiki (except they are [[Concepts/Linked Mention|bi-directional]]). A space may be yours alone, or shared with a handful of people — see [[Guides/Working Together]].
 
 If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Features/Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Concepts/Outline|Outlining]] tools for you. Productivity freak? Have a look at [[Concepts/Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]] (SLIQ). 
 
