@@ -488,7 +488,7 @@ test("e2e: nested array in table cell renders as br-separated lines", async () =
   expect(toHtml(tbl)).toBe(
     "<table><thead><tr><th>name</th><th>hello</th></tr></thead><tbody>" +
       '<tr><td data-table-cell-type="string">Sup</td>' +
-      '<td data-table-cell-type="array">aaa<br/>bbb</td></tr></tbody></table>',
+      '<td data-table-cell-type="array">aaa<br>bbb</td></tr></tbody></table>',
   );
 });
 

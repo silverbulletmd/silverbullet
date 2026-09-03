@@ -48,6 +48,18 @@ const CONFLICT_HUNK_LIMIT: usize = 100;
 /// none in this codebase today, but the contract allows for one) raced us.
 const MAX_RECONCILE_ATTEMPTS: usize = 3;
 
+pub(crate) fn is_inline_safe(content_type: &str) -> bool {
+    let lowered = content_type.trim().to_ascii_lowercase();
+    let ct = lowered.split(';').next().unwrap_or("").trim(); // drop ;charset=…
+    if ct == "image/svg+xml" {
+        return false;
+    }
+    ct.starts_with("image/")
+        || ct == "application/pdf"
+        || ct.starts_with("video/")
+        || ct.starts_with("audio/")
+}
+
 pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let state_inner = state.clone();
     match run_blocking(move || state_inner.space.fetch_file_list()).await {
@@ -178,6 +190,11 @@ pub async fn handle_fs_get(
             let last_modified = http_date(meta.last_modified);
             if !last_modified.is_empty() {
                 builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
+            }
+            if !force_octet_stream && !is_inline_safe(&real_content_type) {
+                builder = builder
+                    .header(axum::http::header::CONTENT_DISPOSITION, "attachment")
+                    .header(axum::http::header::X_CONTENT_TYPE_OPTIONS, "nosniff");
             }
             builder.body(Body::from(data)).unwrap()
         }
@@ -728,10 +745,28 @@ fn file_meta_from_headers(headers: &HeaderMap, path: &str) -> FileMeta {
 mod tests {
     use std::sync::Arc;
 
+    use super::is_inline_safe;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
+
+    #[test]
+    fn inline_safe_classification() {
+        assert!(is_inline_safe("image/png"));
+        assert!(is_inline_safe("image/jpeg"));
+        assert!(is_inline_safe("application/pdf"));
+        assert!(is_inline_safe("video/mp4"));
+        assert!(is_inline_safe("audio/mpeg"));
+        assert!(!is_inline_safe("image/svg+xml"));
+        assert!(!is_inline_safe("text/html"));
+        assert!(!is_inline_safe("application/xml"));
+        assert!(!is_inline_safe("text/xml"));
+        assert!(!is_inline_safe("application/octet-stream"));
+        assert!(!is_inline_safe(""));
+        assert!(is_inline_safe("IMAGE/PNG"));
+        assert!(!is_inline_safe("IMAGE/SVG+XML"));
+    }
 
     #[tokio::test]
     async fn list_returns_written_files() {
@@ -958,6 +993,61 @@ mod tests {
             .unwrap();
         assert_ne!(real, "application/octet-stream");
         assert!(real.contains("markdown") || real.starts_with("text/"));
+    }
+
+    #[tokio::test]
+    async fn html_attachment_is_forced_to_download() {
+        // Non-inline-safe content type (text/html, inferred from the .html
+        // extension by the in-memory space) must be forced to download with
+        // nosniff, even against a browser-like Accept header.
+        let state = test_state();
+        state
+            .space
+            .write_file("evil.html", b"<script>alert(1)</script>", None)
+            .unwrap();
+        state.space.write_file("pic.png", b"\x89PNG", None).unwrap();
+        let app = crate::build_router(Arc::new(state));
+
+        let html_resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/evil.html")
+                    .header(
+                        "accept",
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(html_resp.status(), StatusCode::OK);
+        assert_eq!(
+            html_resp.headers().get("Content-Disposition").unwrap(),
+            "attachment"
+        );
+        assert_eq!(
+            html_resp.headers().get("X-Content-Type-Options").unwrap(),
+            "nosniff"
+        );
+
+        let png_resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/pic.png")
+                    .header(
+                        "accept",
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(png_resp.status(), StatusCode::OK);
+        assert!(png_resp.headers().get("Content-Disposition").is_none());
+        assert!(png_resp.headers().get("X-Content-Type-Options").is_none());
     }
 
     #[tokio::test]

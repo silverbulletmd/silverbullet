@@ -5,11 +5,26 @@ import {
   pingInterval,
 } from "@silverbulletmd/silverbullet/constants";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
+import { isInlineSafeContentType } from "../lib/inline_safe.ts";
 import { fileMetaToHeaders, headersToFileMeta } from "../lib/util.ts";
 import { EventEmitter } from "../plugos/event.ts";
 import { fsEndpoint } from "../spaces/constants.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import type { SyncEngine } from "./sync_engine.ts";
+
+/**
+ * Builds the `Response` for a file read straight from local storage
+ * (IndexedDB).
+ */
+function buildLocalFileResponse(meta: FileMeta, data: Uint8Array): Response {
+  const headers: Record<string, string> = fileMetaToHeaders(meta);
+  if (!isInlineSafeContentType(meta.contentType)) {
+    headers["Content-Disposition"] = "attachment";
+    headers["X-Content-Type-Options"] = "nosniff";
+  }
+  return new Response(data as any, { headers });
+}
 
 // The server surfaces every space carries under its own base path. This worker
 // can answer exactly two of them for its OWN space — `.client` from the
@@ -322,9 +337,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
                 }
                 const { meta, data } =
                   await this.localSpacePrimitives.readFile(path);
-                return new Response(data as any, {
-                  headers: fileMetaToHeaders(meta),
-                });
+                return buildLocalFileResponse(meta, data);
               } catch {
                 // Not synced yet (or unreadable) — proxy as before.
               }
@@ -460,9 +473,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         });
       } else {
         const { meta, data } = await this.localSpacePrimitives.readFile(path);
-        return new Response(data as any, {
-          headers: fileMetaToHeaders(meta),
-        });
+        return buildLocalFileResponse(meta, data);
       }
     } catch (err: any) {
       if (err.message === notFoundError.message && this.online) {

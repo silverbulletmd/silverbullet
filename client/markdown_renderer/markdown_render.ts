@@ -14,6 +14,7 @@ import {
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
+import { sanitizeTag } from "./sanitize_html.ts";
 import { CustomSyntaxRenderedHtmlType } from "./inline.ts";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
@@ -707,8 +708,17 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     // Structured HTMLBlock from the custom parser: flat sequence of
     // HTMLOpenTag / HTMLCloseTag / HTMLSelfClosingTag + inline content.
     // We rebuild nesting via a stack, similar to groupInlineHtml.
-    case "HTMLBlock":
-      return renderHtmlBlock(t.children ?? [], options);
+    case "HTMLBlock": {
+      const rawChildren = t.children ?? [];
+      if (
+        rawChildren.length === 1 &&
+        rawChildren[0].type === undefined &&
+        /^\s*<script(?:\s|>|$)/i.test(rawChildren[0].text ?? "")
+      ) {
+        return { name: Fragment, body: [] };
+      }
+      return renderHtmlBlock(rawChildren, options);
+    }
 
     // Tag markers inside HTMLBlock — should not appear outside of it,
     // but handle gracefully.
@@ -802,11 +812,19 @@ function renderHtmlBlock(
       }
       case "HTMLSelfClosingTag": {
         const text = renderToText(child);
-        // Emit as raw HTML to preserve the self-closing form (e.g. <br />)
-        currentBody().push({
-          name: RawHtml,
-          body: text,
-        });
+        const parsed = parseHtmlTag(text);
+        if (parsed) {
+          currentBody().push({
+            name: parsed.tagName,
+            attrs:
+              Object.keys(parsed.parsedAttrs).length > 0
+                ? parsed.parsedAttrs
+                : undefined,
+            body: [],
+          });
+        } else {
+          currentBody().push(text);
+        }
         break;
       }
       default: {
@@ -856,10 +874,18 @@ function groupInlineHtml(
         const parsed = parseHtmlTag(text);
         if (parsed?.isSelfClosing) {
           // Void elements (<br/>, <hr/>, <img/>...) have no closer — emit
-          // as raw HTML to preserve the self-closing form. Must run before
-          // the pair-search below, which would otherwise fail to find a
-          // closer and fall through to text-escaping.
-          result.push({ name: RawHtml, body: text });
+          // as a structured tag (rather than raw HTML) so its attributes
+          // are visible to the sanitizer. Must run before the pair-search
+          // below, which would otherwise fail to find a closer and fall
+          // through to text-escaping.
+          result.push({
+            name: parsed.tagName,
+            attrs:
+              Object.keys(parsed.parsedAttrs).length > 0
+                ? parsed.parsedAttrs
+                : undefined,
+            body: [],
+          });
           i++;
           continue;
         }
@@ -979,5 +1005,5 @@ export function renderMarkdownToHtml(
       }
     });
   }
-  return renderHtml(htmlTree);
+  return renderHtml(htmlTree ? sanitizeTag(htmlTree) : htmlTree);
 }

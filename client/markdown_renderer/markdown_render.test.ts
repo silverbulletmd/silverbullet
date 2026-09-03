@@ -380,7 +380,7 @@ test("Self-closing <br/> inside block HTML td renders as HTML", () => {
     "<table><tr><td>Hello<br/>there</td></tr></table>",
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe("<table><tr><td>Hello<br/>there</td></tr></table>");
+  expect(html).toBe("<table><tr><td>Hello<br>there</td></tr></table>");
 });
 
 test("Wiki link inside block HTML td is rendered", () => {
@@ -396,7 +396,7 @@ test("Wiki link inside block HTML td is rendered", () => {
 test("Block HTML with self-closing tags", () => {
   const tree = parse(extendedMarkdownLanguage, "<div><br /><hr /></div>");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe("<div><br /><hr /></div>");
+  expect(html).toBe("<div><br><hr></div>");
 });
 
 test("Multi-line block HTML table", () => {

@@ -3,17 +3,32 @@ import {
   belongsToAnotherSpace,
   belongsToSiblingSpace,
   isInitialSyncLocalReadCandidate,
+  ProxyRouter,
   scopedSiblingPrefixes,
 } from "./proxy_router.ts";
 
-// A space bound at "/" registers its service worker at scope "/", so it
-// receives requests for every *other* space on the origin too. Answering those
-// from its own precache or local data is how `/notes/.client/auth.js` came
-// back as the SPA shell — HTML where a JavaScript module was expected, leaving
-// the login page blank.
-//
-// Paths here are already space-relative (basePathName stripped), so for the
-// root worker they are the full path.
+function routerWithFile(
+  contentType: string,
+  data: Uint8Array = new Uint8Array([1, 2, 3]),
+): ProxyRouter {
+  const router = new ProxyRouter("", "http://localhost/", {});
+  router.localSpacePrimitives = {
+    readFile: async () => ({
+      meta: {
+        name: "note.html",
+        contentType,
+        size: data.byteLength,
+        created: 0,
+        lastModified: 0,
+        perm: "rw",
+      },
+      data,
+    }),
+  } as any;
+  router.syncEngine = {} as any;
+  return router;
+}
+
 
 test.each([
   "/notes/.client/auth.js",
@@ -152,4 +167,59 @@ test("initial sync: non-fs paths are not local-read candidates", () => {
   expect(
     isInitialSyncLocalReadCandidate("GET", "/.config", syncModeHeaders),
   ).toBe(false);
+});
+
+test("serves html from cache as a forced download", async () => {
+  const router = routerWithFile("text/html");
+  const resp = await router.handleGet(
+    "note.html",
+    new Request("http://localhost/.fs/note.html"),
+  );
+  expect(resp.headers.get("Content-Disposition")).toBe("attachment");
+  expect(resp.headers.get("X-Content-Type-Options")).toBe("nosniff");
+});
+
+test("serves images inline (no download header)", async () => {
+  const router = routerWithFile("image/png");
+  const resp = await router.handleGet(
+    "photo.png",
+    new Request("http://localhost/.fs/photo.png"),
+  );
+  expect(resp.headers.get("Content-Disposition")).toBeNull();
+  expect(resp.headers.get("X-Content-Type-Options")).toBeNull();
+});
+
+async function onFetchLocalRead(
+  router: ProxyRouter,
+  path: string,
+): Promise<Response> {
+  const originalCaches = (globalThis as any).caches;
+  (globalThis as any).caches = { match: async () => undefined };
+  try {
+    let responsePromise: Promise<Response> | undefined;
+    const event = {
+      request: new Request(`http://localhost/.fs/${path}`),
+      respondWith: (p: Promise<Response>) => {
+        responsePromise = p;
+      },
+    };
+    router.onFetch(event);
+    return await responsePromise!;
+  } finally {
+    (globalThis as any).caches = originalCaches;
+  }
+}
+
+test("onFetch initial-sync fast path forces html to download", async () => {
+  const router = routerWithFile("text/html");
+  const resp = await onFetchLocalRead(router, "evil.html");
+  expect(resp.headers.get("Content-Disposition")).toBe("attachment");
+  expect(resp.headers.get("X-Content-Type-Options")).toBe("nosniff");
+});
+
+test("onFetch initial-sync fast path serves images inline (no download header)", async () => {
+  const router = routerWithFile("image/png");
+  const resp = await onFetchLocalRead(router, "photo.png");
+  expect(resp.headers.get("Content-Disposition")).toBeNull();
+  expect(resp.headers.get("X-Content-Type-Options")).toBeNull();
 });
