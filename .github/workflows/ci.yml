@@ -81,6 +81,32 @@ jobs:
 
           echo "publish=$publish is_edge=$is_edge is_tag=$is_tag"
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lint
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build client bundle
+        run: npm run build
+
+      - name: Run checks
+        run: make check
+
   test-frontend:
     runs-on: ubuntu-latest
     steps:
@@ -94,6 +120,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -120,6 +147,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -157,6 +185,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -202,6 +231,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -238,7 +268,7 @@ jobs:
     secrets: inherit
 
   release:
-    needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release]
+    needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release, lint]
     if: needs.config.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -255,6 +285,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
+          cache: 'npm'
           registry-url: "https://registry.npmjs.org"
 
       - name: Install npm dependencies
@@ -314,7 +345,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   docker:
-    needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release]
+    needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release, lint]
     if: needs.config.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
