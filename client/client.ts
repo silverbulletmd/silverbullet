@@ -67,6 +67,7 @@ import {
   parseBlock as parseLua,
 } from "./space_lua/parse.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
+import { LuaBudgetStopped } from "./space_lua/budget.ts";
 import {
   LuaEnv,
   LuaRuntimeError,
@@ -588,6 +589,13 @@ export class Client {
   }
 
   reportError(e: any, context: string = "") {
+    if (e instanceof LuaBudgetStopped) {
+      console.info(
+        `Script stopped by the user during ${context || "execution"}`,
+      );
+      return;
+    }
+
     console.error(`Error during ${context}:`, e);
 
     // Don't show flash notifications for expected operational errors

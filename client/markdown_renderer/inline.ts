@@ -17,6 +17,11 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import mime from "mime";
 import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import {
+  BUSY_LIMIT_DEFAULT_MS,
+  LuaBudgetStopped,
+  makeLuaBudget,
+} from "../space_lua/budget.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
@@ -134,6 +139,12 @@ export async function expandMarkdown(
           processedPages,
         );
       } catch (e: any) {
+        if (e instanceof LuaBudgetStopped) {
+          return parse(
+            mdLang,
+            `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`,
+          );
+        }
         return parse(mdLang, `**Error:** ${e.message}`);
       }
     } else if (
@@ -151,6 +162,12 @@ export async function expandMarkdown(
 
       try {
         const sf = LuaStackFrame.createWithGlobalEnv(sle.env);
+        sf.threadState.budget = makeLuaBudget({
+          busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
+          onLimit: (b) => {
+            b.stopped = true;
+          },
+        });
 
         let result = await evalExpression(
           parseExpressionString(exprText),
@@ -165,6 +182,12 @@ export async function expandMarkdown(
         }
         return parse(mdLang, renderResultToMarkdown(result).markdown);
       } catch (e: any) {
+        if (e instanceof LuaBudgetStopped) {
+          return parse(
+            mdLang,
+            `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`,
+          );
+        }
         // Reduce blast radius and give useful error message
         console.error("Error evaluating Lua directive", exprText, e);
         return parse(mdLang, `**Error:** ${e.message}`);

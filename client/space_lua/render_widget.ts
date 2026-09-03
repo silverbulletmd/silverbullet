@@ -11,6 +11,11 @@ import {
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
+import {
+  BUSY_LIMIT_DEFAULT_MS,
+  LuaBudgetStopped,
+  makeLuaBudget,
+} from "./budget.ts";
 import { isTaggedFloat } from "./numeric.ts";
 import {
   encodeRef,
@@ -48,6 +53,12 @@ export async function renderLuaWidgetResult(
       client.clientSystem.spaceLuaEnv.env,
       ctx,
     );
+    sf.threadState.budget = makeLuaBudget({
+      busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
+      onLimit: (b) => {
+        b.stopped = true;
+      },
+    });
     const env = new LuaEnv(client.clientSystem.spaceLuaEnv.env);
     env.setLocal("_CTX", tl);
     const rawResult = singleResult(await compute(env, sf));
@@ -62,6 +73,9 @@ export async function renderLuaWidgetResult(
     }
     return luaValueToJS(rawResult, sf);
   } catch (e: any) {
+    if (e instanceof LuaBudgetStopped) {
+      return `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`;
+    }
     if (e instanceof LuaRuntimeError && e.sf?.astCtx) {
       const source = resolveASTReference(e.sf.astCtx);
       if (source) {

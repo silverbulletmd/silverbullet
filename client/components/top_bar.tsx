@@ -29,12 +29,6 @@ function pageNameClass(
   return cssClass ? `${state} sb-decorated-object ${cssClass}` : state;
 }
 
-/**
- * Publishes the editor pane's horizontal box so the notification overlay can
- * line up with it. The overlay is portaled to document.body and positioned
- * `fixed`, so it cannot see that #sb-editor is a flex child whose position and
- * width change when a side panel opens.
- */
 function useEditorPaneMetrics() {
   // Layout effect, not effect: this runs before paint, so the overlay never
   // renders at the fallback position and then jumps.
@@ -78,8 +72,6 @@ function NotificationPanel({
   );
 }
 
-// Split out so the metrics hook mounts only while something is on screen, by
-// which point #sb-editor is laid out and the first measurement is real.
 function NotificationList({
   notifications,
   onDismiss,

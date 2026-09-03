@@ -1,3 +1,4 @@
+import { LuaBudgetStopped } from "./budget.ts";
 import {
   getMetatable,
   type ILuaFunction,
@@ -295,10 +296,16 @@ async function pcallBoundary(
     const msg = errMsgOf(e);
     try {
       await luaCloseFromMark(sf, mark, msg);
-      return { ok: false, message: msg };
     } catch (closeErr: any) {
-      return { ok: false, message: errMsgOf(closeErr) };
+      if (!(e instanceof LuaBudgetStopped)) {
+        return { ok: false, message: errMsgOf(closeErr) };
+      }
     }
+    // A user-initiated stop is not a recoverable Lua error.
+    if (e instanceof LuaBudgetStopped) {
+      throw e;
+    }
+    return { ok: false, message: msg };
   }
 }
 
@@ -505,6 +512,12 @@ const dofileFunction = new LuaBuiltinFunction({
       const env = new LuaEnv(global);
       await evalStatement(parsedExpr, env, sf.withCtx(parsedExpr.ctx));
     } catch (e: any) {
+      // A user-initiated stop must keep its identity so an enclosing
+      // pcall/xpcall still recognizes and rethrows it, rather than being
+      // rewrapped into a recoverable LuaRuntimeError.
+      if (e instanceof LuaBudgetStopped) {
+        throw e;
+      }
       throw new LuaRuntimeError(
         `Error evaluating "${filename}": ${e.message}`,
         sf,

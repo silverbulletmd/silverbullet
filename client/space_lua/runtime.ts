@@ -1,4 +1,5 @@
 import type { ASTCtx, LuaFunctionBody, NumericType } from "./ast.ts";
+import type { LuaBudget } from "./budget.ts";
 import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import { isPromise, rpAll } from "./rp.ts";
@@ -9,6 +10,14 @@ import type {
   LuaFunctionDocumentation,
   LuaFunctionInfo,
 } from "../../plug-api/types/index.ts";
+
+let boundaryBudgetFactory: (() => LuaBudget) | undefined;
+
+export function setBoundaryBudgetFactory(
+  f: (() => LuaBudget) | undefined,
+): void {
+  boundaryBudgetFactory = f;
+}
 
 export type LuaType =
   | "nil"
@@ -86,6 +95,7 @@ export type LuaCloseEntry = { value: LuaValue; ctx: ASTCtx };
 
 type LuaThreadState = {
   closeStack?: LuaCloseEntry[];
+  budget?: LuaBudget;
 };
 
 function isLuaNumber(v: any): boolean {
@@ -1879,14 +1889,47 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     value instanceof LuaBuiltinFunction
   ) {
     return (...args: any[]) => {
-      const jsArgs = rpAll(args.map((v) => luaValueToJS(v, sf)));
-      if (isPromise(jsArgs)) {
-        return luaValueToJS(
-          jsArgs.then((jsArgs) => (value as ILuaFunction).call(sf, ...jsArgs)),
-          sf,
-        );
+      // A converted closure captures one frame forever; without a fresh
+      // thread state per call, every invocation would share one budget.
+      const boundaryBudget = boundaryBudgetFactory?.();
+      const callSf =
+        boundaryBudget === undefined
+          ? sf
+          : new LuaStackFrame(sf.threadLocal, sf.astCtx, undefined, undefined, {
+              closeStack: undefined,
+              budget: boundaryBudget,
+            });
+      // Marks this call's own budget (if any) done, so a Stop click that
+      // arrives after the call has already returned is a no-op rather than
+      // quarantining/disabling something that isn't running anymore.
+      const markFinished = () => {
+        if (boundaryBudget !== undefined) {
+          boundaryBudget.finished = true;
+        }
+      };
+      try {
+        const jsArgs = rpAll(args.map((v) => luaValueToJS(v, callSf)));
+        if (isPromise(jsArgs)) {
+          return luaValueToJS(
+            jsArgs
+              .then((jsArgs) => (value as ILuaFunction).call(callSf, ...jsArgs))
+              .finally(markFinished),
+            callSf,
+          );
+        }
+        const result = (value as ILuaFunction).call(callSf, ...jsArgs);
+        if (isPromise(result)) {
+          return luaValueToJS(
+            (result as Promise<any>).finally(markFinished),
+            callSf,
+          );
+        }
+        markFinished();
+        return luaValueToJS(result, callSf);
+      } catch (e) {
+        markFinished();
+        throw e;
       }
-      return luaValueToJS((value as ILuaFunction).call(sf, ...jsArgs), sf);
     };
   }
   if (isTaggedFloat(value)) {

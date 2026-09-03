@@ -11,6 +11,7 @@ import { exposeSyscalls } from "./space_lua_api.ts";
 import { parseBlock } from "./space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame } from "./space_lua/runtime.ts";
 import { evalStatement } from "./space_lua/eval.ts";
+import { BUSY_LIMIT_DEFAULT_MS, makeLuaBudget } from "./space_lua/budget.ts";
 import { editorSyscalls } from "./plugos/syscalls/editor.ts";
 import { markdownSyscalls } from "./plugos/syscalls/markdown.ts";
 import { languageSyscalls } from "./plugos/syscalls/language.ts";
@@ -81,6 +82,14 @@ export async function loadConfig(
   // And eval
   const localEnv = new LuaEnv(rootEnv);
   for (const statement of chunk.statements) {
+    sf.threadState.budget = makeLuaBudget({
+      busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
+      // No UI exists yet, so there is nothing to repaint: never yield, just stop.
+      yieldAfterMs: Infinity,
+      onLimit: (b) => {
+        b.stopped = true;
+      },
+    });
     try {
       await evalStatement(statement, localEnv, sf);
     } catch (e: any) {

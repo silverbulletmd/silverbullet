@@ -8,6 +8,7 @@ import type {
   NumericType,
 } from "./ast.ts";
 import { LuaAttribute } from "./ast.ts";
+import { budgetTick, LuaBudgetStopped } from "./budget.ts";
 import { evalPromiseValues } from "./util.ts";
 import {
   getMetatable,
@@ -1293,12 +1294,12 @@ export function evalExpression(
         );
     }
   } catch (err: any) {
-    // Repackage any non Lua-specific exceptions with some position information
-    if (!err.constructor.name.startsWith("Lua")) {
-      throw new LuaRuntimeError(err.message, sf.withCtx(e.ctx), err);
-    } else {
+    // instanceof, not constructor.name: the production build minifies class
+    // names, so a name-based test silently fails in the shipped client.
+    if (err instanceof LuaRuntimeError || err instanceof LuaBudgetStopped) {
       throw err;
     }
+    throw new LuaRuntimeError(err.message, sf.withCtx(e.ctx), err);
   }
 }
 
@@ -1867,6 +1868,8 @@ function runStatementsNoGoto(
       const result = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
       if (isPromise(result)) {
         return (result as Promise<any>).then((res) => {
+          const budget = sf.threadState.budget;
+          if (budget !== undefined) budget.awaited = true;
           if (res !== undefined) {
             if (isGotoSignal(res)) {
               throw new LuaRuntimeError(
@@ -1895,6 +1898,35 @@ function runStatementsNoGoto(
   return processFrom(startIdx);
 }
 
+function closeThenRethrow(
+  sf: LuaStackFrame,
+  mark: number,
+  e: any,
+): never | Promise<never> {
+  const errObj: LuaValue =
+    e instanceof LuaRuntimeError ? e.message : (e?.message ?? String(e));
+  // Lua 5.4 lets an error from __close replace the one being unwound, but a
+  // user-initiated stop is not a Lua error and outranks it.
+  const preferOriginal = (closeErr: any): never => {
+    if (e instanceof LuaBudgetStopped) {
+      throw e;
+    }
+    throw closeErr;
+  };
+  let r: void | Promise<void>;
+  try {
+    r = luaCloseFromMark(sf, mark, errObj);
+  } catch (closeErr: any) {
+    return preferOriginal(closeErr);
+  }
+  if (isPromise(r)) {
+    return (r as Promise<void>).then(() => {
+      throw e;
+    }, preferOriginal);
+  }
+  throw e;
+}
+
 function withCloseBoundary(
   sf: LuaStackFrame,
   mark: number,
@@ -1915,17 +1947,7 @@ function withCloseBoundary(
     return isPromise(r) ? (r as Promise<void>).then(() => res) : res;
   };
 
-  const onRejected = (e: any) => {
-    const errObj: LuaValue =
-      e instanceof LuaRuntimeError ? e.message : (e?.message ?? String(e));
-    const r = luaCloseFromMark(sf, mark, errObj);
-    if (isPromise(r)) {
-      return (r as Promise<void>).then(() => {
-        throw e;
-      });
-    }
-    throw e;
-  };
+  const onRejected = (e: any) => closeThenRethrow(sf, mark, e);
 
   return p.then(onFulfilled, onRejected);
 }
@@ -1965,6 +1987,8 @@ function evalBlockNoClose(
         const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
         if (isPromise(r)) {
           return (r as Promise<any>).then((res) => {
+            const budget = sf.threadState.budget;
+            if (budget !== undefined) budget.awaited = true;
             if (isGotoSignal(res)) return res;
             if (res !== undefined) return res;
             return runFrom(i + 1);
@@ -2005,11 +2029,13 @@ function evalBlockNoClose(
   const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
   const stmts = b.statements;
 
+  const budget = sf.threadState.budget;
   const runFrom = (i: number): EvalBlockResult => {
     for (; i < stmts.length; i++) {
       const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
       if (isPromise(r)) {
         return (r as Promise<any>).then((res) => {
+          if (budget !== undefined) budget.awaited = true;
           const consumed = consumeGotoInBlock(res, meta!.labels);
           if (typeof consumed === "number") {
             return runFrom(consumed);
@@ -2022,6 +2048,13 @@ function evalBlockNoClose(
       }
       const consumed = consumeGotoInBlock(r, meta.labels);
       if (typeof consumed === "number") {
+        if (budget !== undefined && --budget.ticks <= 0) {
+          const y = budgetTick(budget);
+          if (y !== undefined) {
+            const resumeAt = consumed;
+            return rpThen(y, () => runFrom(resumeAt));
+          }
+        }
         i = consumed - 1;
         continue;
       }
@@ -2233,15 +2266,7 @@ export function evalStatement(
       try {
         out = evalBlockNoClose(b, env, sf, returnOnReturn);
       } catch (e: any) {
-        const errObj: LuaValue =
-          e instanceof LuaRuntimeError ? e.message : (e?.message ?? String(e));
-        const r = luaCloseFromMark(sf, mark, errObj);
-        if (isPromise(r)) {
-          return (r as Promise<void>).then(() => {
-            throw e;
-          });
-        }
-        throw e;
+        return closeThenRethrow(sf, mark, e);
       }
 
       return withCloseBoundary(sf, mark, out);
@@ -2279,6 +2304,7 @@ export function evalStatement(
     }
     case "While": {
       const w = asWhile(s);
+      const budget = sf.threadState.budget;
 
       // Sync-first loop that re-enters sync mode after each async iteration
       const runSyncFirst = ():
@@ -2286,9 +2312,14 @@ export function evalStatement(
         | ControlSignal
         | Promise<undefined | ControlSignal> => {
         while (true) {
+          if (budget !== undefined && --budget.ticks <= 0) {
+            const y = budgetTick(budget);
+            if (y !== undefined) return rpThen(y, () => runSyncFirst());
+          }
           const c = evalExpression(w.condition, env, sf);
           if (isPromise(c)) {
             return (c as Promise<any>).then((cv) => {
+              if (budget !== undefined) budget.awaited = true;
               if (!luaTruthy(cv)) return;
               return rpThen(
                 evalStatement(w.block, env, sf, returnOnReturn),
@@ -2305,6 +2336,7 @@ export function evalStatement(
           const r = evalStatement(w.block, env, sf, returnOnReturn);
           if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
+              if (budget !== undefined) budget.awaited = true;
               if (res !== undefined) {
                 return isBreakSignal(res) ? undefined : res;
               }
@@ -2323,6 +2355,7 @@ export function evalStatement(
     }
     case "Repeat": {
       const rep = asRepeat(s);
+      const budget = sf.threadState.budget;
 
       // Sync-first loop that re-enters sync mode after each async iteration
       const runSyncFirst = ():
@@ -2330,9 +2363,14 @@ export function evalStatement(
         | ControlSignal
         | Promise<undefined | ControlSignal> => {
         while (true) {
+          if (budget !== undefined && --budget.ticks <= 0) {
+            const y = budgetTick(budget);
+            if (y !== undefined) return rpThen(y, () => runSyncFirst());
+          }
           const rr = evalStatement(rep.block, env, sf, returnOnReturn);
           if (isPromise(rr)) {
             return (rr as Promise<any>).then((res) => {
+              if (budget !== undefined) budget.awaited = true;
               if (res !== undefined) {
                 return isBreakSignal(res) ? undefined : res;
               }
@@ -2348,9 +2386,10 @@ export function evalStatement(
 
           const c = evalExpression(rep.condition, env, sf);
           if (isPromise(c)) {
-            return (c as Promise<any>).then((cv) =>
-              luaTruthy(cv) ? undefined : runSyncFirst(),
-            );
+            return (c as Promise<any>).then((cv) => {
+              if (budget !== undefined) budget.awaited = true;
+              return luaTruthy(cv) ? undefined : runSyncFirst();
+            });
           }
           if (luaTruthy(c)) break;
         }
@@ -2502,10 +2541,22 @@ export function evalStatement(
         const shouldContinue =
           step > 0 ? (i: number) => i <= end : (i: number) => i >= end;
 
+        const budget = sf.threadState.budget;
+
         for (let i = startIndex; shouldContinue(i); i += step) {
+          if (budget !== undefined && --budget.ticks <= 0) {
+            const y = budgetTick(budget);
+            if (y !== undefined) {
+              const resumeAt = i;
+              return rpThen(y, () =>
+                runFromIndex(loopEnv, end, step, resumeAt, loopType),
+              );
+            }
+          }
           const r = executeIteration(loopEnv, i, loopType);
           if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
+              if (budget !== undefined) budget.awaited = true;
               if (res !== undefined) {
                 return isBreakSignal(res) ? undefined : res;
               }
@@ -2534,11 +2585,22 @@ export function evalStatement(
           step > 0 ? (i: number) => i <= end : (i: number) => i >= end;
 
         const loopEnv = new LuaEnv(env);
+        const budget = sf.threadState.budget;
 
         for (let i = start; shouldContinue(i); i += step) {
+          if (budget !== undefined && --budget.ticks <= 0) {
+            const y = budgetTick(budget);
+            if (y !== undefined) {
+              const resumeAt = i;
+              return rpThen(y, () =>
+                runSyncFirst(resumeAt, end, step, loopType),
+              );
+            }
+          }
           const r = executeIteration(loopEnv, i, loopType);
           if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
+              if (budget !== undefined) budget.awaited = true;
               if (res !== undefined) {
                 if (isBreakSignal(res)) {
                   return;
@@ -2573,6 +2635,8 @@ export function evalStatement(
         isPromise(endV) ? endV : Promise.resolve(endV),
         isPromise(stepV) ? stepV : Promise.resolve(stepV),
       ]).then(([start, end, step]) => {
+        const budget = sf.threadState.budget;
+        if (budget !== undefined) budget.awaited = true;
         return runSyncFirst(
           untagNumber(start) as number,
           untagNumber(end) as number,
@@ -2630,24 +2694,13 @@ export function evalStatement(
           luaMarkToBeClosed(sf, closing, fi.ctx);
         }
 
-        const errObjFrom = (e: any): LuaValue =>
-          e instanceof LuaRuntimeError ? e.message : (e?.message ?? String(e));
-
         const finish = (res: any) => {
           const r = luaCloseFromMark(sf, mark, null);
           return isPromise(r) ? (r as Promise<void>).then(() => res) : res;
         };
 
-        const finishErr = (e: any): Promise<never> | never => {
-          const errObj = errObjFrom(e);
-          const r = luaCloseFromMark(sf, mark, errObj);
-          if (isPromise(r)) {
-            return (r as Promise<void>).then(() => {
-              throw e;
-            });
-          }
-          throw e;
-        };
+        const finishErr = (e: any): Promise<never> | never =>
+          closeThenRethrow(sf, mark, e);
 
         // Allocate the reusable env once before the loop
         const loopEnv = canReuseEnv ? new LuaEnv(env) : null;
@@ -2659,9 +2712,14 @@ export function evalStatement(
           return new LuaEnv(env);
         };
 
+        const budget = sf.threadState.budget;
         // Sync-first loop that re-enters sync mode after each async iteration
         const runSyncFirst = (): any => {
           while (true) {
+            if (budget !== undefined && --budget.ticks <= 0) {
+              const y = budgetTick(budget);
+              if (y !== undefined) return rpThen(y, () => runSyncFirst());
+            }
             const iterCall = luaCall(
               iteratorValue,
               [state, control],
@@ -2670,6 +2728,7 @@ export function evalStatement(
             );
 
             const afterIterCall = (itv: any): any => {
+              if (budget !== undefined) budget.awaited = true;
               const iterResult = new LuaMultiRes(itv).flatten();
               const nextControl = iterResult.values[0];
               if (nextControl === null || nextControl === undefined) {
@@ -2712,6 +2771,7 @@ export function evalStatement(
             if (isPromise(r)) {
               return (r as Promise<any>)
                 .then((res) => {
+                  if (budget !== undefined) budget.awaited = true;
                   if (res !== undefined) {
                     if (isBreakSignal(res)) {
                       return finish(undefined);
@@ -2739,7 +2799,11 @@ export function evalStatement(
       };
 
       if (isPromise(exprVals)) {
-        return (exprVals as Promise<any[]>).then(afterExprs);
+        return (exprVals as Promise<any[]>).then((v) => {
+          const budget = sf.threadState.budget;
+          if (budget !== undefined) budget.awaited = true;
+          return afterExprs(v);
+        });
       }
       return afterExprs(exprVals as any[]);
     }

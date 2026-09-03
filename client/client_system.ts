@@ -57,6 +57,14 @@ import { setRevisionsAvailable } from "./navigator/builtins.ts";
 import { registerNavigatorCommands } from "./navigator/commands.ts";
 import { restoreDocks, setViewDefaults } from "./navigator/navigator.ts";
 import { clearScriptViews, setLuaEnvSource } from "./navigator/registry.ts";
+import { listQuarantined, unquarantine } from "./space_lua/quarantine.ts";
+import {
+  BUSY_LIMIT_COMMAND_MS,
+  type LuaBudget,
+  makeLuaBudget,
+} from "./space_lua/budget.ts";
+import { offerStopNotification } from "./space_lua/budget_ui.ts";
+import { setBoundaryBudgetFactory } from "./space_lua/runtime.ts";
 import {
   mergeLegacyDocks,
   normalizeViewDefaults,
@@ -96,6 +104,8 @@ export class ClientSystem {
     { language: string; render: ILuaFunction }
   >();
   scriptsLoaded: boolean = false;
+  private loadLuaScriptsInFlight: Promise<void> | undefined;
+  private lastNotifiedQuarantineRefs: string | null = null;
 
   readonly allKnownFiles = new BasenameIndex();
   public knownFilesLoaded: boolean = false;
@@ -115,7 +125,11 @@ export class ClientSystem {
       ),
     });
 
-    this.spaceLuaEnv = new SpaceLuaEnvironment(this.system, objectIndex);
+    this.spaceLuaEnv = new SpaceLuaEnvironment(
+      this.system,
+      objectIndex,
+      this.client,
+    );
     this.serviceRegistry = new ServiceRegistry(this.eventHook, client.config);
 
     setInterval(() => {
@@ -169,6 +183,21 @@ export class ClientSystem {
     });
 
     this.eventHook.addLocalListener("editor:init", () => restoreDocks());
+
+    setBoundaryBudgetFactory(() =>
+      makeLuaBudget({
+        busyLimitMs: BUSY_LIMIT_COMMAND_MS,
+        onLimit: (b) => this.offerStopBoundary(b),
+      }),
+    );
+  }
+
+  private offerStopBoundary(budget: LuaBudget) {
+    offerStopNotification(
+      this.client.ui,
+      "A Lua script has been running for a while",
+      budget,
+    );
   }
 
   init() {
@@ -220,7 +249,17 @@ export class ClientSystem {
     }
   }
 
-  async loadLuaScripts() {
+  async loadLuaScripts(): Promise<void> {
+    if (this.loadLuaScriptsInFlight) {
+      return this.loadLuaScriptsInFlight;
+    }
+    this.loadLuaScriptsInFlight = this.loadLuaScriptsImpl().finally(() => {
+      this.loadLuaScriptsInFlight = undefined;
+    });
+    return this.loadLuaScriptsInFlight;
+  }
+
+  private async loadLuaScriptsImpl() {
     if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
@@ -237,6 +276,36 @@ export class ClientSystem {
       await this.spaceLuaEnv.reload();
     } catch (e: any) {
       console.error("Error loading Lua script:", e.message);
+    }
+
+    const disabled = listQuarantined();
+    if (disabled.length > 0) {
+      const notifiedKey = disabled.slice().sort().join(",");
+      if (notifiedKey !== this.lastNotifiedQuarantineRefs) {
+        this.lastNotifiedQuarantineRefs = notifiedKey;
+        this.client.ui.flashNotification(
+          `${disabled.length} Lua script${
+            disabled.length === 1 ? "" : "s"
+          } disabled: ${disabled.join(", ")}`,
+          "warning",
+          {
+            timeout: 0,
+            actions: [
+              {
+                name: "Re-enable",
+                run: () => {
+                  for (const ref of disabled) {
+                    unquarantine(ref);
+                  }
+                  void this.loadLuaScripts();
+                },
+              },
+            ],
+          },
+        );
+      }
+    } else {
+      this.lastNotifiedQuarantineRefs = null;
     }
 
     this.scriptCommands.clear();

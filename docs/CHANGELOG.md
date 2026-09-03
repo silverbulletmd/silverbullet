@@ -39,6 +39,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * Pickers no longer show keyboard shortcuts on touch devices, where they cannot be pressed and only crowd out the page names.
   * Filter boxes no longer autocapitalize or autocorrect: command and page names are identifiers, and the phone's corrections only fought the fuzzy match.
   * Fix: the hamburger menu on a narrow screen stayed grey when the rest of the top bar turned yellow to signal a lost connection.
+* [[Space Lua]]: scripts that runs too long no longer freeze the editor: after a couple of seconds it offers to stop the script, while the rest of the app stays responsive.
 * Fix: releasing a drag-selection on top of a link no longer navigates to it — only a real click (pointer down and up in the same spot) follows a link.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.
 * Fix: the [[Features/Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available.
@@ -54,7 +55,6 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * Renaming a page or folder to a different casing of the same name now works on case-insensitive filesystems (macOS, Windows)
   * Renames are now rejected when the new name differs only in casing from an existing page or document, so spaces stay portable between case-sensitive and case-insensitive hosts.
   * On case-insensitive filesystems, writing a file whose folder differs only in casing from an existing one now re-cases that folder to match — so writing `notes/foo` when the disk holds `Notes/` renames the folder, changing the reported path of every page inside it.
-* A [[Space Lua]] script that runs too long no longer freezes the editor: after a couple of seconds it offers to stop the script, while the rest of the app stays responsive.
 
 ## 2.10.0
 * [[Features/Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Concepts/Space|spaces]], each bound to a URL prefix or hostname.
