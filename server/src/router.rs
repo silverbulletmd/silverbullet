@@ -58,6 +58,71 @@ pub(crate) fn required_level(method: &Method, path: &str) -> AccessLevel {
     AccessLevel::Read
 }
 
+/// A cookie whose name starts with this prefix is a SilverBullet session cookie
+/// (`auth_<host>` / `auth_<host><prefix>`), so its presence marks a browser
+/// session request — the only requests subject to the confused-deputy.
+fn has_session_cookie(headers: &axum::http::HeaderMap) -> bool {
+    headers
+        .get(axum::http::header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .map(|h| {
+            h.split(';')
+                .filter_map(|pair| pair.trim().split_once('='))
+                .any(|(name, _)| name.starts_with("auth_"))
+        })
+        .unwrap_or(false)
+}
+
+fn has_bearer(headers: &axum::http::HeaderMap) -> bool {
+    headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.trim_start().to_ascii_lowercase().starts_with("bearer "))
+        .unwrap_or(false)
+}
+
+/// The request's own origin (`scheme://host`) as the browser would compute it.
+fn own_origin(headers: &axum::http::HeaderMap) -> String {
+    let scheme = if crate::auth::is_secure_request(headers) {
+        "https"
+    } else {
+        "http"
+    };
+    format!("{scheme}://{}", crate::auth::request_host(headers))
+}
+
+pub(crate) fn cross_origin_refused(
+    headers: &axum::http::HeaderMap,
+    method: &Method,
+    path: &str,
+) -> bool {
+    // Only the sensitive set is guarded.
+    if required_level(method, path) != AccessLevel::Write {
+        return false;
+    }
+    if has_bearer(headers) || !has_session_cookie(headers) {
+        return false;
+    }
+    match headers
+        .get("sec-fetch-site")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.trim().to_ascii_lowercase())
+    {
+        Some(ref s) if s == "cross-site" || s == "same-site" => true,
+        Some(_) => false, // same-origin, none, or any unrecognized value: allow
+        None => {
+            // Legacy client without Sec-Fetch-*: fall back to Origin.
+            match headers
+                .get(axum::http::header::ORIGIN)
+                .and_then(|v| v.to_str().ok())
+            {
+                Some(origin) => !origin.eq_ignore_ascii_case(&own_origin(headers)),
+                None => false,
+            }
+        }
+    }
+}
+
 /// Reject requests below the route's required access level. When no
 /// authorizer is configured the server is open and trusted at `Write`.
 /// Either way, inserts an `Extension<Actor>` carrying the verified identity
@@ -91,6 +156,14 @@ async fn require_authorization(
 
     if level < required_level(req.method(), req.uri().path()) {
         return refuse(&state, is_account);
+    }
+
+    if cross_origin_refused(req.headers(), req.method(), req.uri().path()) {
+        return (
+            axum::http::StatusCode::FORBIDDEN,
+            "Cross-origin request refused",
+        )
+            .into_response();
     }
 
     let profile = state.identity.resolve(username.as_deref());
@@ -751,6 +824,196 @@ mod auth_tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         assert!(response.headers().get("location").is_some());
+    }
+
+    #[test]
+    fn cross_origin_refused_policy() {
+        use axum::http::{HeaderMap, HeaderValue, Method};
+        let sensitive = "/.shell";
+        let read = "/some/page"; // GET here is required_level Read
+
+        fn h(pairs: &[(&str, &str)]) -> HeaderMap {
+            let mut m = HeaderMap::new();
+            for (k, v) in pairs {
+                m.insert(
+                    k.parse::<axum::http::HeaderName>().unwrap(),
+                    HeaderValue::from_str(v).unwrap(),
+                );
+            }
+            m
+        }
+        let post = &Method::POST;
+        let get = &Method::GET;
+        let cookie = ("cookie", "auth_localhost_4137=jwt");
+
+        // Non-sensitive route (a plain GET): never guarded, even cross-site + cookie.
+        assert!(!super::cross_origin_refused(
+            &h(&[cookie, ("sec-fetch-site", "cross-site")]),
+            get,
+            read
+        ));
+
+        // Bearer token present: skipped even on a sensitive cross-site POST.
+        assert!(!super::cross_origin_refused(
+            &h(&[
+                ("authorization", "Bearer abc"),
+                ("sec-fetch-site", "cross-site")
+            ]),
+            post,
+            sensitive
+        ));
+
+        // No session cookie (and no bearer): skipped.
+        assert!(!super::cross_origin_refused(
+            &h(&[("sec-fetch-site", "cross-site")]),
+            post,
+            sensitive
+        ));
+
+        assert!(!super::cross_origin_refused(
+            &h(&[
+                cookie,
+                ("authorization", "Bearer abc"),
+                ("sec-fetch-site", "cross-site")
+            ]),
+            post,
+            sensitive
+        ));
+
+        // Cookie-authed sensitive POST, cross-site / same-site -> REFUSE.
+        assert!(super::cross_origin_refused(
+            &h(&[cookie, ("sec-fetch-site", "cross-site")]),
+            post,
+            sensitive
+        ));
+        assert!(super::cross_origin_refused(
+            &h(&[cookie, ("sec-fetch-site", "same-site")]),
+            post,
+            sensitive
+        ));
+
+        // Cookie-authed sensitive POST, same-origin / none -> allow.
+        assert!(!super::cross_origin_refused(
+            &h(&[cookie, ("sec-fetch-site", "same-origin")]),
+            post,
+            sensitive
+        ));
+        assert!(!super::cross_origin_refused(
+            &h(&[cookie, ("sec-fetch-site", "none")]),
+            post,
+            sensitive
+        ));
+
+        // Unknown sec-fetch-site value -> lenient allow.
+        assert!(!super::cross_origin_refused(
+            &h(&[cookie, ("sec-fetch-site", "weird")]),
+            post,
+            sensitive
+        ));
+
+        // No sec-fetch-site -> Origin fallback. Mismatch refuses; match/absent allow.
+        assert!(super::cross_origin_refused(
+            &h(&[
+                cookie,
+                ("host", "a.example.com"),
+                ("origin", "https://evil.example.com")
+            ]),
+            post,
+            sensitive
+        ));
+        assert!(!super::cross_origin_refused(
+            &h(&[
+                cookie,
+                ("host", "a.example.com"),
+                ("x-forwarded-proto", "https"),
+                ("origin", "https://a.example.com")
+            ]),
+            post,
+            sensitive
+        ));
+        assert!(!super::cross_origin_refused(
+            &h(&[cookie, ("host", "a.example.com")]),
+            post,
+            sensitive
+        )); // no Origin
+    }
+
+    /// A cookie-authed cross-site POST to a sensitive path (e.g. `/.shell`) is
+    /// refused by the `require_authorization` layer itself (not just the pure
+    /// `cross_origin_refused` function): a same-origin cookie POST and a
+    /// cross-site bearer POST both pass through to the inner handler.
+    #[tokio::test]
+    async fn cross_origin_cookie_post_is_refused() {
+        use crate::auth::authenticator::Authenticator;
+        use crate::auth::JwtAuthorizer;
+        use axum::routing::post;
+
+        async fn probe() -> StatusCode {
+            StatusCode::OK
+        }
+
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![5u8; 32], "h".into()));
+        let token = auth.issue_jwt("alice", 3600).unwrap();
+        let authz = JwtAuthorizer::new(auth, "tok".into());
+        let st = state_with(Some(Arc::new(authz)));
+
+        // Sensitive path so `required_level` grades it `Write`.
+        let probe_router = axum::Router::new()
+            .route("/.shell", post(probe))
+            .route_layer(axum::middleware::from_fn_with_state(
+                st.clone(),
+                super::require_authorization,
+            ))
+            .with_state(st);
+
+        // Cookie-authed, cross-site: refused by the guard, not the inner handler.
+        let resp = probe_router
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.shell")
+                    .header("host", "localhost")
+                    .header("cookie", format!("auth_localhost={token}"))
+                    .header("sec-fetch-site", "cross-site")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+
+        // Cookie-authed, same-origin: passes the guard, reaches the handler.
+        let resp = probe_router
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.shell")
+                    .header("host", "localhost")
+                    .header("cookie", format!("auth_localhost={token}"))
+                    .header("sec-fetch-site", "same-origin")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // Bearer, cross-site: bearer skips the guard entirely.
+        let resp = probe_router
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.shell")
+                    .header("authorization", "Bearer tok")
+                    .header("sec-fetch-site", "cross-site")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 }
 

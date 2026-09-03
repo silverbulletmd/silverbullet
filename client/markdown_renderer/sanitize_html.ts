@@ -19,6 +19,7 @@ const URL_ATTRS = new Set([
 ]);
 
 export function isSafeUrl(url: string): boolean {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — strip the control chars (0x00-0x1F) that browsers remove from URLs before scheme resolution, so obfuscated `java\tscript:` etc. cannot slip past the scheme check.
   const stripped = url.replace(/[\t\n\r\x00-\x1f]/g, "");
   const m = /^\s*([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(stripped);
   if (!m) {

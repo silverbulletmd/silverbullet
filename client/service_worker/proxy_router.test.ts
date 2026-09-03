@@ -29,7 +29,6 @@ function routerWithFile(
   return router;
 }
 
-
 test.each([
   "/notes/.client/auth.js",
   "/notes/.client/client.js",
