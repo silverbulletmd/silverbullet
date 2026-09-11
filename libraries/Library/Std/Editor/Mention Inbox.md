@@ -81,7 +81,8 @@ local function inboxRows()
 end
 
 -- The recipient the current user is, when the space knows who that is. An
--- anonymous reader of a public space is nobody, and opens on all recipients.
+-- anonymous reader of a public space is nobody and opens on all recipients;
+-- an owner-only deployment without account usernames resolves to @self.
 local function ownTarget()
   local me = identity.own()
   return me and me.id

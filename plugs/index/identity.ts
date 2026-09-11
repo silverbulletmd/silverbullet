@@ -90,9 +90,10 @@ export async function listIdentities(): Promise<IdentityListing[]> {
   };
 
   for (const account of await system.listAccounts()) {
-    // A deployment without accounts has a current user but no name for them,
-    // and a nameless recipient is not addressable.
-    if (!account.username) continue;
+    if (!account.username) {
+      if (account.me) add("self", "you");
+      continue;
+    }
     add(account.username, account.me ? "you" : account.fullName);
   }
   const defined = await config.get<

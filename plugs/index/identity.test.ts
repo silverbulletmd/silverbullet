@@ -64,10 +64,13 @@ test("your own account is labelled you, under your real username", async () => {
   ]);
 });
 
-test("a deployment with no accounts has no recipient for the current user", async () => {
-  mockSpace([{ username: null, fullName: "Zef Hemel", me: true }]);
+test("a nameless owner is addressable as self", async () => {
+  mockSpace([{ username: null, fullName: "Casey Example", me: true }]);
   await indexMentions("Notes", ["Sales"]);
-  expect(await listIdentities()).toEqual([{ name: "Sales", id: "@sales" }]);
+  expect(await listIdentities()).toEqual([
+    { name: "Sales", id: "@sales" },
+    { name: "self", id: "@self", detail: "you" },
+  ]);
 });
 
 test("defined recipients carry their description", async () => {

@@ -88,9 +88,7 @@ test("a hand-picked filter is remembered across a reopen", async ({
 
   const inbox = page.locator(".sb-nav-root-rhs");
   const dropdown = inbox.locator("select.sb-nav-dropdown");
-  // This deployment has no accounts, so nobody is "you" and nothing is
-  // filtered by default.
-  await expect(dropdown.locator("option:checked")).toHaveText("All Recipients");
+  await expect(dropdown.locator("option:checked")).toHaveText("self");
 
   await expect(dropdown.locator("option", { hasText: "sales" })).toHaveCount(
     1,

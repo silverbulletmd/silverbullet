@@ -12,7 +12,7 @@ Defines an identity. Options:
 Accounts with access to the space are identities already and need no definition. Use this for teams, projects, agents — anything addressable that is not an account.
 
 ## identity.own()
-Returns the identity the current user is, as `{ name, id, detail? }`, or nil when the space does not know.
+Returns the identity the current user is, as `{ name, id, detail? }`, or nil when the space does not know. On an owner-only deployment without account usernames, this is `self` with the ID `@self`.
 
 # Example
 ```lua
@@ -33,13 +33,13 @@ function identity.define(spec)
 end
 
 -- The identity the current user is, or nil when the space does not know.
--- An anonymous reader of a public space is nobody; so is the App on a local
--- space, which has a current user but no name for them.
+-- An anonymous reader of a public space is nobody; owner-only deployments
+-- without account usernames use self.
 function identity.own()
   local me
   for _, account in ipairs(system.listAccounts()) do
-    if account.me and account.username then
-      me = account.username:lower()
+    if account.me then
+      me = account.username and account.username:lower() or "self"
     end
   end
   if not me then return end
