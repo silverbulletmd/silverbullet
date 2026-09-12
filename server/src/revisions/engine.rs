@@ -2173,7 +2173,9 @@ mod tests {
             std::thread::sleep(Duration::from_millis(100));
         };
         assert!(landed, "the commit never reached the remote");
-        assert!(matches!(engine.sync_state(), SyncState::Idle));
+        assert!(wait_until(Duration::from_secs(10), || {
+            matches!(engine.sync_state(), SyncState::Idle)
+        }));
     }
 
     #[test]

@@ -7,7 +7,10 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: 0,
-  reporter: "list",
+  reporter: [
+    ["list"],
+    ["json", { outputFile: "test-results/oidc-results.json" }],
+  ],
   outputDir: "test-results/oidc",
   use: {
     ...devices["Desktop Chrome"],

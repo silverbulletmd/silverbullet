@@ -63,7 +63,7 @@
     "build:plug-compile": "tsx build/build_plug_compile.ts",
     "prepublishOnly": "npm run build:plug-compile",
     "test": "vitest run",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit && tsc -p tsconfig.e2e.json",
     "lint": "biome lint .",
     "fmt": "biome format --write .",
     "fmt:check": "biome format .",

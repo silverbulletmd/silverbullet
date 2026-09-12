@@ -1,5 +1,5 @@
-import { ADMIN_USER, ADMIN_PASSWORD } from "../fixtures.ts";
 import { expect, test } from "@playwright/test";
+import { ADMIN_PASSWORD, ADMIN_USER } from "../fixtures/core.ts";
 import {
   coreApi,
   newPocketUserPage,
@@ -137,6 +137,22 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
     ).toHaveCount(0);
     await context.close();
     await second.context.close();
+  } catch (error) {
+    const pages = [];
+    for (const context of fixture.browser.contexts()) {
+      for (const page of context.pages()) {
+        if (!page.isClosed())
+          pages.push(
+            `${page.url()}: ${await page
+              .locator("body")
+              .innerText()
+              .catch(() => "unavailable")}`,
+          );
+      }
+    }
+    throw new Error(
+      `${error}\nBrowser pages:\n${pages.join("\n")}\nCore output:\n${fixture.output()}`,
+    );
   } finally {
     await fixture.stop();
   }

@@ -45,6 +45,7 @@ export default defineConfig({
       "dist",
       "client_bundle",
       "e2e",
+      "browser-tests",
       "docs",
       "server",
       // Exclude helper test files (no test() blocks, only export helper functions)

@@ -1,8 +1,8 @@
 import { type ChildProcess, execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { env } from "node:process";
 import { join } from "node:path";
+import { env } from "node:process";
 import {
   type Browser,
   type BrowserContext,
@@ -16,7 +16,7 @@ import {
   getFreePort,
   spawnServerProcess,
   waitForServer,
-} from "../fixtures.ts";
+} from "../fixtures/core.ts";
 import { type OidcEnvironment, startOidcEnvironment } from "./environment.ts";
 import { installPasskeyAuthenticator } from "./passkeys.ts";
 import { createPocketIdClient, provisionPocketIdUser } from "./provider.ts";

@@ -7,7 +7,7 @@ import net from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { getFreePort } from "../fixtures.ts";
+import { getFreePort } from "../fixtures/core.ts";
 
 const execute = promisify(execFile);
 const hosts = [
@@ -161,8 +161,6 @@ export async function startOidcEnvironment(
         }),
       )
       .digest("base64");
-    const handoff = await readFile(join(import.meta.dirname, "handoff.html"));
-    const serviceWorker = await readFile(join(import.meta.dirname, "sw.js"));
     server = https.createServer(
       { key: await readFile(join(directory, "server.key")), cert: certificate },
       (request, response) => {
@@ -189,23 +187,7 @@ export async function startOidcEnvironment(
           request.pipe(upstream);
           return;
         }
-        const url = new URL(request.url ?? "/", origin(host!));
-        response.setHeader("Cache-Control", "no-store");
-        response.setHeader("Referrer-Policy", "no-referrer");
-        if (url.searchParams.get("coop") === "same-origin")
-          response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-        if (url.pathname === "/cookie")
-          response.setHeader(
-            "Set-Cookie",
-            `fixture=${host}; Secure; SameSite=Lax`,
-          );
-        if (url.pathname === "/sw.js") {
-          response.setHeader("Content-Type", "application/javascript");
-          response.end(serviceWorker);
-        } else {
-          response.setHeader("Content-Type", "text/html");
-          response.end(handoff);
-        }
+        response.writeHead(404).end();
       },
     );
     server.on("connection", trackSocket);

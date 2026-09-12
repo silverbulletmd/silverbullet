@@ -1,0 +1,80 @@
+name: Extended browser coverage
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "server/src/auth/**"
+      - "server/src/multi/**"
+      - "bin/silverbullet/src/**"
+      - "server/src/handlers/oauth.rs"
+      - "server/src/handlers/auth.rs"
+      - "server/src/handlers/central_auth.rs"
+      - "server/src/handlers/accounts.rs"
+      - "server/src/router.rs"
+      - "client/logout*.ts"
+      - "client/html/auth.html"
+      - "client/html/authorize.html"
+      - "client/spaces_ui/**"
+      - "client/data/**"
+      - "client/service_worker/**"
+      - "client/service_worker*"
+      - "e2e/oidc/**"
+      - "e2e/fixtures/**"
+      - "Makefile"
+      - "playwright.oidc.config.ts"
+      - ".github/workflows/browser-extended.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-extended-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  oidc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: make test-e2e-oidc
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-oidc
+          path: test-results/
+          retention-days: 7
+
+  cross-browser:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: make build-e2e
+      - run: npx playwright test --project=${{ matrix.browser }}
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 7

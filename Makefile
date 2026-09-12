@@ -1,4 +1,4 @@
-.PHONY: build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-server-releases-freebsd build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-e2e-all test-e2e-release test-e2e-oidc bench generate website install uninstall bundle build-rs build-rs-cli run-rs
+.PHONY: build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-server-releases-freebsd build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-browser test-e2e-all test-e2e-release test-e2e-oidc bench generate website install uninstall bundle build-rs build-rs-cli run-rs
 
 build:
 	npm run build
@@ -141,8 +141,12 @@ test:
 test-e2e-oidc: build-e2e
 	npx playwright test --config=playwright.oidc.config.ts
 
+test-browser:
+	npm run build
+	npx playwright test --config=playwright.browser.config.ts
+
 test-e2e: build-e2e
-	npx playwright test --project=chromium
+	npx playwright test --project=chromium $(E2E_ARGS)
 
 # The same suite on all three engines. CI gates on chromium only; run this
 # before a release to catch firefox/webkit regressions. Needs the extra
