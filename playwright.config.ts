@@ -38,7 +38,16 @@ export default defineConfig({
     {
       name: "firefox",
       retries: 2,
-      use: { ...devices["Desktop Firefox"] },
+      use: {
+        ...devices["Desktop Firefox"],
+        launchOptions: {
+          firefoxUserPrefs: {
+            // Headless Linux may report no pointer, selecting touch-only UI.
+            "ui.primaryPointerCapabilities": 6,
+            "ui.allPointerCapabilities": 6,
+          },
+        },
+      },
     },
     {
       name: "webkit",

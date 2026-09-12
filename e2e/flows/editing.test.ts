@@ -182,8 +182,10 @@ test.describe("extension-assisted editing", () => {
       const cursor = text.indexOf("editor.getT") + "editor.getT".length;
       view.dispatch({ selection: { anchor: cursor } });
       view.focus();
-      await client.clientSystem.localSyscall("editor.startCompletion", []);
     });
+
+    await expect(page.locator(".cm-content")).toBeFocused();
+    await page.keyboard.press("Control+Space");
 
     const option = page.locator(".cm-tooltip-autocomplete li", {
       hasText: "getText()",

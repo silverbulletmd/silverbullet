@@ -14,7 +14,7 @@ test.skip(
   "Playwright offline service-worker emulation is validated in Chromium",
 );
 
-test("a cached page can be opened and edited offline, then saved after reconnecting", async ({
+test("offline edits survive reload and are saved after reconnecting", async ({
   page,
   context,
   sbServer,
@@ -27,6 +27,9 @@ test("a cached page can be opened and edited offline, then saved after reconnect
   await page.keyboard.press("Control+End");
   await page.keyboard.insertText("Written offline.\n");
   const expected = "Cached draft.\nWritten offline.\n";
+  await expect.poll(() => localContent(page, "Draft.md")).toBe(expected);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator(".cm-content")).toContainText("Written offline.");
   await expect.poll(() => localContent(page, "Draft.md")).toBe(expected);
   await context.setOffline(false);
   await waitForPersistedContent(sbServer, "Draft.md", expected);
