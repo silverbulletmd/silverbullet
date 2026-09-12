@@ -107,6 +107,22 @@ view.define {
 }
 
 view.define {
+  name = "aliasedsidebartree",
+  title = "Aliased Sidebar Tree",
+  command = "Navigator: Aliased Sidebar Tree",
+  dock = "rhs",
+  followEditor = true,
+  presentation = { mode = "tree", expandAll = true },
+  source = function()
+    return {
+      { name = "First", ref = "index" },
+      { name = "Features/Beta", ref = "Projects/Beta" },
+    }
+  end,
+  onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
+}
+
+view.define {
   name = "createlist",
   title = "Create List",
   command = "Navigator: Create List",
@@ -1037,6 +1053,25 @@ test("re-opening an unfiltered followEditor sidebar re-reveals the current page"
     frame.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
   ).toBeVisible();
   await expectNavInputFocused(sbPage, ".sb-nav-root-rhs");
+});
+
+test("followEditor keeps an aliased tree row selected after it navigates to its ref", async ({
+  sbPage,
+}) => {
+  const frame = await openNavigatorView(
+    sbPage,
+    "Navigator: Aliased Sidebar Tree",
+    ".sb-nav-root-rhs",
+  );
+
+  await frame.locator("[data-path='Features/Beta']").click();
+
+  await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+    "Projects/Beta",
+  );
+  await expect(
+    frame.locator("[data-path='Features/Beta'].sb-nav-selected"),
+  ).toBeVisible();
 });
 
 test("re-opening a filtered followEditor sidebar keeps the filter and skips the reveal", async ({

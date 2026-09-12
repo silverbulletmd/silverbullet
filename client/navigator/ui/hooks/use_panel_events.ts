@@ -108,6 +108,9 @@ export function usePanelEvents({
     function applyReveal(name: string, active?: ActiveView) {
       const current = active ?? viewRef.current;
       if (!current) return;
+      const path = String(
+        current.rows.find((row) => row.obj.ref === name)?.obj.name ?? name,
+      );
       // Use the view name so activate can compare it with its own identifier.
       revealedFor.current = current.name;
       revealedPage.current = name;
@@ -116,15 +119,15 @@ export function usePanelEvents({
       setExpanded((prev) =>
         withExpanded(
           prev,
-          ancestorPaths(name, current.meta.hierarchy.separator),
+          ancestorPaths(path, current.meta.hierarchy.separator),
           current.meta.expandAll === true,
         ),
       );
-      setSelectedPath(name);
+      setSelectedPath(path);
       requestAnimationFrame(() => {
         revealInClosest(
           document.querySelector(
-            `.sb-nav-root-${slot} [data-path="${CSS.escape(name)}"]`,
+            `.sb-nav-root-${slot} [data-path="${CSS.escape(path)}"]`,
           ),
           ".sb-nav-body",
         );
