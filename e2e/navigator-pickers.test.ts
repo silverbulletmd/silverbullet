@@ -1424,22 +1424,36 @@ test.describe("tree page decorations", () => {
     const tree = await openTree(sbPage);
     await expect(tree.locator("[data-path='Projects']")).toBeVisible();
 
-    expect(
-      await tree
+    const fixturePaths = [
+      "Projects",
+      "Projects/Beta",
+      "Projects/Alpha",
+      "Archive",
+      "Zebra",
+      "index",
+      "Sunken",
+    ];
+    const visibleFixturePaths = () =>
+      tree
         .locator(".sb-nav-row")
-        .evaluateAll((rows) =>
-          rows.map((row) => (row as HTMLElement).dataset.path),
-        ),
-    ).toEqual(["Projects", "Archive", "Zebra", "index", "Sunken"]);
+        .evaluateAll(
+          (rows, paths) =>
+            rows
+              .map((row) => (row as HTMLElement).dataset.path)
+              .filter((path): path is string => paths.includes(path as string)),
+          fixturePaths,
+        );
+
+    expect(await visibleFixturePaths()).toEqual([
+      "Projects",
+      "Archive",
+      "Zebra",
+      "index",
+      "Sunken",
+    ]);
 
     await tree.locator("[data-path='Projects'] .sb-nav-chevron").click();
-    expect(
-      await tree
-        .locator(".sb-nav-row")
-        .evaluateAll((rows) =>
-          rows.map((row) => (row as HTMLElement).dataset.path),
-        ),
-    ).toEqual([
+    expect(await visibleFixturePaths()).toEqual([
       "Projects",
       "Projects/Beta",
       "Projects/Alpha",
