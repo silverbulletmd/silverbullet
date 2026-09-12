@@ -1,5 +1,6 @@
 use super::git;
 use silverbullet_server_common::RevisionsMode;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -233,12 +234,43 @@ impl RevisionStore {
     }
 
     fn stage_paths(&self, repo: &Path, paths: &[String]) -> Result<(), String> {
-        let mut add_args: Vec<&str> = vec!["add", "-A", "-f", "--"];
-        let rels: Vec<String> = paths
+        let rels: Vec<String> = paths.iter().map(|path| self.rel(path)).collect();
+        let present: Vec<bool> = rels
             .iter()
-            .map(|p| format!(":(literal){}", self.rel(p)))
+            .map(|rel| match std::fs::symlink_metadata(repo.join(rel)) {
+                Ok(_) => Ok(true),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+                Err(error) => Err(format!("failed to inspect revision path {rel}: {error}")),
+            })
+            .collect::<Result<_, _>>()?;
+        let missing_pathspecs: Vec<String> = rels
+            .iter()
+            .zip(&present)
+            .filter(|(_, present)| !**present)
+            .map(|(rel, _)| format!(":(literal){rel}"))
             .collect();
-        add_args.extend(rels.iter().map(|s| s.as_str()));
+        let tracked: HashSet<Vec<u8>> = if missing_pathspecs.is_empty() {
+            HashSet::new()
+        } else {
+            let mut args: Vec<&str> = vec!["ls-files", "-z", "--cached", "--"];
+            args.extend(missing_pathspecs.iter().map(String::as_str));
+            git::run_bytes(repo, &args, &[])?
+                .split(|byte| *byte == 0)
+                .filter(|path| !path.is_empty())
+                .map(<[u8]>::to_vec)
+                .collect()
+        };
+        let stageable: Vec<String> = rels
+            .into_iter()
+            .zip(present)
+            .filter(|(rel, present)| *present || tracked.contains(rel.as_bytes()))
+            .map(|(rel, _)| format!(":(literal){rel}"))
+            .collect();
+        if stageable.is_empty() {
+            return Ok(());
+        }
+        let mut add_args: Vec<&str> = vec!["add", "-A", "-f", "--"];
+        add_args.extend(stageable.iter().map(String::as_str));
         git::run(repo, &add_args, &[])?;
         Ok(())
     }
@@ -579,16 +611,101 @@ mod tests {
     }
 
     #[test]
-    fn commit_batch_handles_pathspec_magic_characters() {
+    fn commit_batch_ignores_a_vanished_untracked_path() {
         let dir = tempfile::tempdir().unwrap();
         let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
-        std::fs::write(dir.path().join(":weird.md"), b"x").unwrap();
+        std::fs::write(dir.path().join("gone.md"), b"ephemeral").unwrap();
+        std::fs::remove_file(dir.path().join("gone.md")).unwrap();
+
         let id = store
-            .commit_batch("A", "a@x", "weird", &[":weird.md".into()])
+            .commit_batch_auto("A", "a@x", &["gone.md".into()])
+            .unwrap();
+
+        assert!(id.is_none());
+        assert!(!store.head_exists(), "no commit should exist");
+    }
+
+    #[test]
+    fn commit_batch_commits_a_live_path_beside_a_vanished_untracked_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::write(dir.path().join("gone.md"), b"ephemeral").unwrap();
+        std::fs::remove_file(dir.path().join("gone.md")).unwrap();
+        std::fs::write(dir.path().join("live.md"), b"kept").unwrap();
+
+        let id = store
+            .commit_batch_auto("A", "a@x", &["gone.md".into(), "live.md".into()])
+            .unwrap();
+
+        assert!(id.is_some());
+        assert_eq!(
+            git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]),
+            "live.md"
+        );
+    }
+
+    #[test]
+    fn commit_batch_handles_literal_pathspecs() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::create_dir(dir.path().join("nested space")).unwrap();
+        let paths = [
+            ":weird.md",
+            "*.md",
+            "[bracket].md",
+            "-leading.md",
+            "space name.md",
+            "nested space/note.md",
+        ];
+        for path in paths {
+            std::fs::write(dir.path().join(path), b"x").unwrap();
+        }
+        let id = store
+            .commit_batch("A", "a@x", "literal paths", &paths.map(str::to_string))
             .unwrap();
         assert!(id.is_some());
         let files = git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]);
-        assert!(files.contains(":weird.md"), "{files}");
+        for path in paths {
+            assert!(files.lines().any(|line| line == path), "{files}");
+        }
+
+        for path in paths {
+            std::fs::remove_file(dir.path().join(path)).unwrap();
+        }
+        let id = store
+            .commit_batch(
+                "A",
+                "a@x",
+                "delete literal paths",
+                &paths.map(str::to_string),
+            )
+            .unwrap();
+        assert!(id.is_some());
+        assert_eq!(
+            git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]),
+            ""
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn commit_batch_stages_a_broken_symlink() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        symlink("missing-target.md", dir.path().join("link.md")).unwrap();
+
+        let id = store
+            .commit_batch("A", "a@x", "symlink", &["link.md".into()])
+            .unwrap();
+
+        assert!(id.is_some());
+        assert!(git_out(dir.path(), &["ls-tree", "HEAD", "link.md"]).starts_with("120000 blob "));
+        assert_eq!(
+            git_out(dir.path(), &["show", "HEAD:link.md"]),
+            "missing-target.md"
+        );
     }
 
     #[test]

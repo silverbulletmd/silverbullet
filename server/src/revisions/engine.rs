@@ -1392,6 +1392,27 @@ mod tests {
         assert_eq!(authors, vec!["External", "SilverBullet", "alice"]);
     }
 
+    #[test]
+    fn a_vanished_untracked_path_does_not_block_later_commits_for_its_author() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("seed.md"), b"seed").unwrap();
+        let handle = RevisionEngine::start(managed(&dir), None, Timing::default(), None);
+        handle.commit_now();
+
+        std::fs::write(dir.path().join("gone.md"), b"ephemeral").unwrap();
+        handle.mark("gone.md", Attribution::LocalUser);
+        std::fs::remove_file(dir.path().join("gone.md")).unwrap();
+        handle.mark("gone.md", Attribution::LocalUser);
+        handle.commit_now();
+
+        std::fs::write(dir.path().join("later.md"), b"persisted").unwrap();
+        handle.mark("later.md", Attribution::LocalUser);
+        handle.commit_now();
+
+        assert_eq!(git_out(dir.path(), &["show", "HEAD:later.md"]), "persisted");
+        assert_eq!(git_out(dir.path(), &["status", "--porcelain"]), "");
+    }
+
     /// Commits `a.md` marked as an account named `author` and returns the
     /// resulting `name <email>`.
     fn commit_as(dir: &tempfile::TempDir, handle: &RevisionEngine, author: &str) -> String {
