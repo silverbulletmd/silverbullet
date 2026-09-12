@@ -166,6 +166,7 @@ fn run_setup_subcommand(
             name,
             prefix: at,
             folder: space_folder,
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }),
     };
 

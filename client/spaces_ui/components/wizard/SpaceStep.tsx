@@ -1,8 +1,19 @@
-import { Button, Input } from "@silverbulletmd/silverbullet/ui";
+import { Fragment } from "preact";
+import {
+  Button,
+  Input,
+  Select,
+  UrlPrefixInput,
+} from "@silverbulletmd/silverbullet/ui";
 import { FolderPicker } from "../../FolderPicker.tsx";
 import { FieldErrors } from "../../space_fields.tsx";
-import type { FieldError } from "../../types.ts";
-import { defaultFolder, parentDir, type SpaceValues } from "../../wizard.ts";
+import type { FieldError, RevisionsMode } from "../../types.ts";
+import {
+  defaultFolder,
+  type Hosting,
+  parentDir,
+  type SpaceValues,
+} from "../../wizard.ts";
 
 export function SpaceStep({
   values,
@@ -10,8 +21,11 @@ export function SpaceStep({
   onNameInput,
   primaryUrl,
   onPrimaryUrlChange,
+  onHostingChange,
+  onPrefixChange,
   onHostChange,
   onFolderChange,
+  onRevisionsChange,
   errors,
   busy,
   onBack,
@@ -23,8 +37,11 @@ export function SpaceStep({
   onNameInput: (name: string) => void;
   primaryUrl: string;
   onPrimaryUrlChange: (value: string) => void;
+  onHostingChange: (hosting: Hosting) => void;
+  onPrefixChange: (prefix: string) => void;
   onHostChange: (value: string) => void;
   onFolderChange: (folder: string) => void;
+  onRevisionsChange: (revisions: RevisionsMode) => void;
   errors: FieldError[];
   busy: boolean;
   onBack: () => void;
@@ -56,20 +73,45 @@ export function SpaceStep({
       />
       <p class="sb-help-text">
         Confirm the public origin for server management and sign-in. The current
-        browser origin is suggested. Spaces must use separate hostnames.
+        browser origin is suggested.
       </p>
-      <label for="setup-host">Space hostname</label>
-      <Input
-        id="setup-host"
-        required
-        value={values.host ?? ""}
-        placeholder="notes.example.com"
-        onInput={(e) => onHostChange(e.currentTarget.value)}
-      />
-      <p class="sb-help-text">
-        Configure this hostname to reach this server. It must differ from the
-        primary URL hostname; do not include a scheme or path.
-      </p>
+      <label for="setup-hosting">Binding</label>
+      <Select
+        id="setup-hosting"
+        value={values.hosting}
+        onChange={(e) =>
+          onHostingChange(e.currentTarget.value as "prefix" | "host")
+        }
+      >
+        <option value="prefix">URL prefix (this host)</option>
+        <option value="host">Hostname</option>
+      </Select>
+      {values.hosting === "prefix" ? (
+        <Fragment>
+          <label for="setup-prefix">Prefix</label>
+          <UrlPrefixInput
+            id="setup-prefix"
+            origin={location.origin}
+            value={values.prefix}
+            onInput={onPrefixChange}
+          />
+        </Fragment>
+      ) : (
+        <Fragment>
+          <label for="setup-host">Hostname</label>
+          <Input
+            id="setup-host"
+            required
+            value={values.host ?? ""}
+            placeholder="notes.example.com"
+            onInput={(e) => onHostChange(e.currentTarget.value)}
+          />
+          <p class="sb-help-text">
+            Configure this hostname to reach this server; do not include a
+            scheme or path.
+          </p>
+        </Fragment>
+      )}
       <label for="setup-folder">Folder</label>
       <FolderPicker
         id="setup-folder"
@@ -79,6 +121,24 @@ export function SpaceStep({
         placeholder={defaultFolder(root, values.name)}
         browseStart={parentDir(values.folder) || "/"}
       />
+      <label for="setup-revisions">Revisions</label>
+      <Select
+        id="setup-revisions"
+        value={values.revisions}
+        onChange={(e) =>
+          onRevisionsChange(e.currentTarget.value as RevisionsMode)
+        }
+      >
+        <option value="disabled">
+          Disabled — revision support switched off entirely
+        </option>
+        <option value="managed">
+          Managed — SilverBullet periodically commits automatically
+        </option>
+        <option value="unmanaged">
+          Unmanaged — show revisions only, no auto commit
+        </option>
+      </Select>
       <div class="row">
         <Button onClick={onBack}>Back</Button>
         <Button type="submit" variant="primary" disabled={busy}>

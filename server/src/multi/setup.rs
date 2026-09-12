@@ -27,6 +27,12 @@ pub struct FirstSpace {
     /// Empty = default (`spaces/<id>` under the root).
     #[serde(default)]
     pub folder: String,
+    #[serde(default = "default_revisions")]
+    pub revisions: silverbullet_server_common::RevisionsMode,
+}
+
+fn default_revisions() -> silverbullet_server_common::RevisionsMode {
+    silverbullet_server_common::RevisionsMode::Managed
 }
 
 /// Everything needed to provision a brand-new server root: the admin account
@@ -204,7 +210,7 @@ pub fn run_setup(
         }))
         .map_err(|e| err("", format!("internal error building space config: {e}")))?;
         cfg.folder = folder_field;
-        cfg.revisions = silverbullet_server_common::RevisionsMode::Managed;
+        cfg.revisions = first.revisions;
         cfg.normalize();
         debug_assert!(cfg.access() == SpaceAccess::None);
         debug_assert!(cfg.members.is_empty());
@@ -278,6 +284,7 @@ mod tests {
             host: None,
             prefix: "/".into(),
             folder: String::new(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }));
         run_setup(dir.path(), &request, "# Hello\n").unwrap();
 
@@ -329,6 +336,7 @@ mod tests {
             host: None,
             prefix: "/work".into(),
             folder: "custom/work".into(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }));
         run_setup(dir.path(), &request, "# Work\n").unwrap();
 
@@ -354,6 +362,7 @@ mod tests {
             host: None,
             prefix: "/".into(),
             folder: abs.to_string_lossy().to_string(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }));
         run_setup(dir.path(), &request, "# Hello\n").unwrap();
 
@@ -379,6 +388,7 @@ mod tests {
             host: None,
             prefix: "/".into(),
             folder: folder.clone(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }));
         run_setup(dir.path(), &request, "# Hello\n").unwrap();
 
@@ -396,6 +406,7 @@ mod tests {
             host: None,
             prefix: "/work".into(),
             folder: "custom/work".into(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }));
         run_setup(dir.path(), &request, "# Work\n").unwrap();
 
@@ -421,6 +432,7 @@ mod tests {
             prefix: String::new(),
             host: Some("notes.example.com".into()),
             folder: String::new(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
         }));
         request.primary_url = Some("https://manage.example.com".into());
         run_setup(dir.path(), &request, "# Hello\n").unwrap();
@@ -435,7 +447,7 @@ mod tests {
     }
 
     #[test]
-    fn primary_url_accepts_prefix_but_rejects_same_host_spaces() {
+    fn primary_url_accepts_prefix_and_same_host_spaces() {
         for (prefix, host) in [("/", None), ("", Some("manage.example.com"))] {
             let dir = tempfile::tempdir().unwrap();
             let mut request = req(Some(FirstSpace {
@@ -443,18 +455,12 @@ mod tests {
                 prefix: prefix.into(),
                 host: host.map(String::from),
                 folder: String::new(),
+                revisions: silverbullet_server_common::RevisionsMode::Managed,
             }));
             request.primary_url = Some("https://manage.example.com".into());
-            let result = run_setup(dir.path(), &request, "");
-            if host.is_none() {
-                result.unwrap();
-                assert!(is_configured(dir.path()));
-                assert!(dir.path().join("server.json").exists());
-            } else {
-                assert!(result.is_err());
-                assert!(!is_configured(dir.path()));
-                assert!(!dir.path().join("server.json").exists());
-            }
+            run_setup(dir.path(), &request, "").unwrap();
+            assert!(is_configured(dir.path()));
+            assert!(dir.path().join("server.json").exists());
         }
     }
 

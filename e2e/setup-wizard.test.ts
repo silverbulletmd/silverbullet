@@ -1,6 +1,6 @@
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Browser, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import type { SBServer } from "./fixtures";
 import { ADMIN_PASSWORD, ADMIN_USER, expect, test } from "./fixtures";
 
@@ -70,7 +70,7 @@ async function loginToAdmin(
   await page.getByRole("button", { name: "Log in" }).click();
 }
 
-test("wizard isolates manager and provisions a hostname space", async ({
+test("wizard provisions a prefix space with selected revisions mode", async ({
   sbServer,
   page,
 }) => {
@@ -80,44 +80,64 @@ test("wizard isolates manager and provisions a hostname space", async ({
   await expect(page.getByLabel("Primary URL", { exact: true })).toHaveValue(
     sbServer.url,
   );
-  await page.getByLabel("Space hostname").fill("localhost");
+  await expect(page.getByLabel("Binding")).toHaveValue("prefix");
+  await expect(page.locator("#setup-prefix")).toHaveValue("/notes");
+  await expect(page.getByLabel("Revisions")).toHaveValue("managed");
+  await page.getByLabel("Revisions").selectOption("unmanaged");
   await page.getByRole("button", { name: "Finish setup" }).click();
   await waitForHotSwap(sbServer);
   await page.goto(`${sbServer.url}/.spaces`);
   await loginToAdmin(page, ADMIN_USER, ADMIN_PASSWORD);
   await expect(page.locator(".sb-space-list")).toContainText("Notes");
   await access(join(sbServer.spaceDir, "spaces", "notes", "index.md"));
-  const config = JSON.parse(
+  const serverConfig = JSON.parse(
     await readFile(join(sbServer.spaceDir, "server.json"), "utf8"),
   );
-  expect(config.primaryUrl).toBe(sbServer.url);
-  const space = new URL(sbServer.url);
-  space.hostname = "localhost";
-  expect(
-    (
-      await page.request.get(`${space.origin}/.spaces/api/admin/users`)
-    ).status(),
-  ).toBe(403);
+  expect(serverConfig.primaryUrl).toBe(sbServer.url);
+  const spacesConfig = JSON.parse(
+    await readFile(join(sbServer.spaceDir, "spaces.json"), "utf8"),
+  );
+  const space = Object.values(spacesConfig)[0] as {
+    binding: { prefix: string };
+    revisions: string;
+  };
+  expect(space.binding).toEqual({ prefix: "/notes" });
+  expect(space.revisions).toBe("unmanaged");
   expect((await page.request.get(`${sbServer.url}/.setup/`)).status()).toBe(
     404,
   );
-  await page.goto(`${space.origin}/`);
-  await expect(page.locator("#sb-editor .cm-editor")).toBeVisible({
-    timeout: 30000,
-  });
 });
 
-test("wizard rejects a first space on the primary hostname", async ({
+test("wizard permits a first space on the primary hostname", async ({
   sbServer,
   page,
 }) => {
+  test.setTimeout(120_000);
   await page.goto(`${sbServer.url}/`);
   await fillAdminStep(page, ADMIN_USER, ADMIN_PASSWORD);
-  await page.getByLabel("Space hostname").fill(new URL(sbServer.url).hostname);
+  await page.getByLabel("Binding").selectOption("host");
+  const hostname = new URL(sbServer.url).hostname;
+  await page.getByLabel("Hostname").fill(hostname);
   await page.getByRole("button", { name: "Finish setup" }).click();
-  await expect(
-    page.getByText(/primary hostname cannot also serve a space/),
-  ).toBeVisible();
+  await waitForHotSwap(sbServer);
+  const spacesConfig = JSON.parse(
+    await readFile(join(sbServer.spaceDir, "spaces.json"), "utf8"),
+  );
+  const space = Object.values(spacesConfig)[0] as {
+    binding: { host: string };
+    revisions: string;
+  };
+  expect(space.binding).toEqual({ host: hostname });
+  expect(space.revisions).toBe("managed");
+  await page.goto(`${sbServer.url}/`);
+  await page.locator("#username").fill(ADMIN_USER);
+  await page.locator("#password").fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page.locator("#sb-editor .cm-editor")).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.goto(`${sbServer.url}/.spaces`);
+  await expect(page.locator(".sb-space-list")).toContainText("Notes");
 });
 
 test("wizard's folder picker is driven by the fs/dirs endpoint", async ({

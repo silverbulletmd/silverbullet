@@ -815,7 +815,7 @@ mod tests {
     }
 
     #[test]
-    fn primary_origin_persists_and_rejects_conflicting_bindings() {
+    fn primary_origin_persists_and_accepts_same_host_bindings() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert_eq!(m.primary_url(), None);
@@ -835,17 +835,16 @@ mod tests {
                 false
             )
             .is_ok());
-        assert!(m
-            .create(
-                payload(
-                    "Notes",
-                    Binding::Host {
-                        host: "manager.example.test".into()
-                    }
-                ),
-                false
-            )
-            .is_err());
+        m.create(
+            payload(
+                "Notes",
+                Binding::Host {
+                    host: "manager.example.test".into(),
+                },
+            ),
+            false,
+        )
+        .unwrap();
         m.create(
             payload(
                 "Notes",

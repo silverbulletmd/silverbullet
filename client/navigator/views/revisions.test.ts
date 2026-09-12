@@ -60,6 +60,22 @@ test("shows nothing extra when the server carries no sync field at all", async (
   expect(rows).toEqual([]);
 });
 
+test("shows nothing extra when Git sync is not configured", async () => {
+  space.getSpaceLog.mockResolvedValueOnce(log({ sync: { state: "idle" } }));
+  space.getGitSyncStatus.mockResolvedValueOnce({
+    sync: { state: "idle" },
+    enabled: false,
+    paused: false,
+    pending: null,
+    incoming: null,
+    lastAttempt: null,
+    lastSuccess: null,
+    version: 1,
+  });
+  const rows = await spaceLogView.source({ phrase: "" } as any);
+  expect(rows).toEqual([]);
+});
+
 test("a conflict prepends a header plus one link row per path", async () => {
   space.getSpaceLog.mockResolvedValueOnce(
     log({ sync: { state: "conflicted", paths: ["a.md", "b/c.md"] } }),

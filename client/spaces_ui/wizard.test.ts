@@ -20,6 +20,7 @@ const SPACE = {
   hosting: "prefix" as const,
   prefix: "/notes",
   folder: "/data/spaces/notes",
+  revisions: "managed" as const,
 };
 
 test("defaultFolder slugifies the name under <root>/spaces", () => {
@@ -128,6 +129,7 @@ test("spacePayload passes a prefix-bound space through unchanged", () => {
     name: "Notes",
     prefix: "/notes",
     folder: "/data/spaces/notes",
+    revisions: "managed",
   });
 });
 
@@ -136,6 +138,7 @@ test("spacePayload sends the root binding, not a stale prefix", () => {
     name: "Notes",
     prefix: "/",
     folder: "/data/spaces/notes",
+    revisions: "managed",
   });
 });
 
@@ -146,6 +149,16 @@ test("hostname setup submits an explicit host without a prefix", () => {
     name: "Notes",
     host: "notes.example.com",
     folder: SPACE.folder,
+    revisions: "managed",
+  });
+});
+
+test("spacePayload includes a selected unmanaged revisions mode", () => {
+  expect(spacePayload({ ...SPACE, revisions: "unmanaged" })).toEqual({
+    name: "Notes",
+    prefix: "/notes",
+    folder: "/data/spaces/notes",
+    revisions: "unmanaged",
   });
 });
 

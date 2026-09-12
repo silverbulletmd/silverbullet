@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use super::config::{Binding, MultiConfig};
+use super::config::MultiConfig;
 use super::validate::FieldError;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -47,7 +47,7 @@ impl ServerConfig {
         }
     }
 
-    pub fn validate(&mut self, spaces: &MultiConfig) -> Result<(), Vec<FieldError>> {
+    pub fn validate(&mut self, _spaces: &MultiConfig) -> Result<(), Vec<FieldError>> {
         self.server_name = self.server_name.trim().to_owned();
         if self.server_name.is_empty() || self.server_name.chars().count() > 100 {
             return Err(vec![FieldError {
@@ -64,26 +64,6 @@ impl ServerConfig {
                 message,
             }]
         })?;
-        let url = reqwest::Url::parse(&origin).unwrap();
-        let hostname = url.host_str().unwrap();
-        let mut errors = Vec::new();
-        for (id, space) in &spaces.spaces {
-            let message = match &space.binding {
-                Binding::Host { host } if host.eq_ignore_ascii_case(hostname) => {
-                    Some("the primary hostname cannot also serve a space")
-                }
-                _ => None,
-            };
-            if let Some(message) = message {
-                errors.push(FieldError {
-                    field: format!("{id}.binding"),
-                    message: message.into(),
-                });
-            }
-        }
-        if !errors.is_empty() {
-            return Err(errors);
-        }
         self.primary_url = Some(origin);
         Ok(())
     }

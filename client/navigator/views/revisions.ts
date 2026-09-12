@@ -465,11 +465,11 @@ async function fetchSpaceLogPage(
   // shows them.
   if (before === undefined) {
     const status = await loadGitSyncStatus();
-    if (status.snapshot || status.stale) {
+    if (status.stale || status.snapshot?.enabled) {
       rows.push(gitStatusRow(status));
       if (status.snapshot?.sync.state === "conflicted")
         rows.push(...syncRows(status.snapshot.sync).slice(1));
-    } else {
+    } else if (!status.snapshot) {
       rows.push(...syncRows(log.sync));
     }
   }

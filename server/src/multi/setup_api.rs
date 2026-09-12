@@ -151,6 +151,7 @@ pub fn build_setup_router(state: Arc<SetupState>) -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::multi::config::MultiConfig;
     use crate::multi::setup::is_configured;
     use crate::multi::users::UserStore;
     use axum::body::Body;
@@ -245,7 +246,7 @@ mod tests {
                 "/.setup/api/complete",
                 r#"{"adminUsername":"admin","adminPassword":"adminpw123",
                     "primaryUrl":"https://manage.example.com",
-                    "space":{"name":"Notes","host":"notes.example.com","folder":""}}"#,
+                    "space":{"name":"Notes","host":"notes.example.com","folder":"","revisions":"unmanaged"}}"#,
             ),
         )
         .await;
@@ -255,7 +256,35 @@ mod tests {
         assert!(is_configured(dir.path()), "users.json should now exist");
         assert!(dir.path().join("spaces.json").exists());
         assert!(dir.path().join("server.json").exists());
+        let spaces = MultiConfig::load(&dir.path().join("spaces.json")).unwrap();
+        assert_eq!(
+            spaces.spaces.values().next().unwrap().revisions,
+            silverbullet_server_common::RevisionsMode::Unmanaged
+        );
         assert!(flag.load(Ordering::SeqCst), "on_complete must have fired");
+    }
+
+    #[tokio::test]
+    async fn omitted_revisions_defaults_the_first_space_to_managed() {
+        let dir = tempfile::tempdir().unwrap();
+        let r = build_setup_router(state(&dir, true, Arc::new(AtomicBool::new(false))));
+
+        let resp = send(
+            &r,
+            post_json(
+                "/.setup/api/complete",
+                r#"{"adminUsername":"admin","adminPassword":"adminpw123",
+                    "space":{"name":"Notes","prefix":"/notes","folder":""}}"#,
+            ),
+        )
+        .await;
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        let spaces = MultiConfig::load(&dir.path().join("spaces.json")).unwrap();
+        assert_eq!(
+            spaces.spaces.values().next().unwrap().revisions,
+            silverbullet_server_common::RevisionsMode::Managed
+        );
     }
 
     #[tokio::test]

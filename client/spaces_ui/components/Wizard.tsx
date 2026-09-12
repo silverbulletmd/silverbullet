@@ -5,11 +5,13 @@ import type { FieldError } from "../types.ts";
 import {
   type AdminValues,
   defaultFolder,
+  type Hosting,
   spacePayload,
   type SpaceValues,
   validateAdmin,
   validateSpace,
 } from "../wizard.ts";
+import type { RevisionsMode } from "../types.ts";
 import { AdminStep } from "./wizard/AdminStep.tsx";
 import { DoneStep } from "./wizard/DoneStep.tsx";
 import { SpaceStep } from "./wizard/SpaceStep.tsx";
@@ -31,21 +33,28 @@ export function Wizard() {
   });
 
   const [spaceName, setSpaceName] = useState("Notes");
-  const hosting = "host";
+  const [hosting, setHosting] = useState<Hosting>("prefix");
   const [host, setHost] = useState("");
+  const [revisions, setRevisions] = useState<RevisionsMode>("managed");
   const [primaryUrl, setPrimaryUrl] = useState(location.origin);
   // The server's absolute data root, reported by `api/status`. The folder
   // field is prepopulated with an absolute path under it so the user never has
   // to know (or care) which directory the server was booted on.
   const [root, setRoot] = useState("");
-  const { prefix, folder, onNameChange, setFolder } = useSlugDefaults((slug) =>
-    defaultFolder(root, slug),
-  );
+  const { prefix, folder, onNameChange, setPrefix, setFolder } =
+    useSlugDefaults((slug) => defaultFolder(root, slug));
 
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const space: SpaceValues = { name: spaceName, hosting, prefix, host, folder };
+  const space: SpaceValues = {
+    name: spaceName,
+    hosting,
+    prefix,
+    host,
+    folder,
+    revisions,
+  };
 
   useEffect(() => {
     void (async () => {
@@ -126,8 +135,11 @@ export function Wizard() {
           }}
           primaryUrl={primaryUrl}
           onPrimaryUrlChange={setPrimaryUrl}
+          onHostingChange={setHosting}
+          onPrefixChange={setPrefix}
           onHostChange={setHost}
           onFolderChange={setFolder}
+          onRevisionsChange={setRevisions}
           errors={errors}
           busy={busy}
           onBack={() => {

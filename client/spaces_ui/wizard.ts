@@ -1,5 +1,5 @@
 import { slugify } from "@silverbulletmd/silverbullet/ui";
-import type { FieldError } from "./types.ts";
+import type { FieldError, RevisionsMode } from "./types.ts";
 
 export type Hosting = "root" | "prefix" | "host";
 
@@ -19,6 +19,7 @@ export type SpaceValues = {
   prefix: string;
   host?: string;
   folder: string;
+  revisions: RevisionsMode;
 };
 
 /** Absolute default folder for a space: `<root>/spaces/<slug-of-name>`. */
@@ -97,11 +98,15 @@ export function spacePayload({
   prefix,
   host,
   folder,
+  revisions,
 }: SpaceValues) {
-  if (hosting === "host") return { name, host: host?.trim(), folder };
+  if (hosting === "host") {
+    return { name, host: host?.trim(), folder, revisions };
+  }
   return {
     name,
     prefix: hosting === "root" ? "/" : prefix,
     folder,
+    revisions,
   };
 }
