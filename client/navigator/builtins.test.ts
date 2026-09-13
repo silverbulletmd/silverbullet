@@ -18,8 +18,11 @@ const space = {
 const editor = {
   flashNotification: vi.fn<(msg: string, kind?: string) => Promise<void>>(),
   navigate: vi.fn<(ref: unknown) => Promise<void>>(),
+  open: vi.fn<(ref: unknown) => Promise<void>>(),
   getCurrentPath: vi.fn<() => Promise<string>>(),
   getCurrentPage: vi.fn<() => Promise<string>>(),
+  getLastOpenedMap: vi.fn<() => Promise<Record<string, number>>>(),
+  getViewableExtensions: vi.fn<() => Promise<string[]>>(),
   getText: vi.fn<() => Promise<string>>(),
   prompt: vi.fn<(msg: string, def?: string) => Promise<string | undefined>>(),
   confirm: vi.fn<(msg: string) => Promise<boolean>>(),
@@ -65,6 +68,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   system.getMode.mockResolvedValue("rw");
   editor.getUiOption.mockResolvedValue(false);
+  editor.getCurrentPath.mockResolvedValue("Current.md");
+  editor.getLastOpenedMap.mockResolvedValue({});
+  editor.getViewableExtensions.mockResolvedValue([]);
   setRevisionsAvailable(true);
   closePreview();
 });
@@ -146,6 +152,68 @@ test("the branch is re-evaluated per source run, so it upgrades on its own", asy
   expect(await spaceContents()).toHaveLength(1);
   expect(await spaceContents()).toEqual([]);
   expect(space.listPages).toHaveBeenCalledTimes(1);
+});
+
+test("the page picker interleaves pages by their latest opened or modified time", async () => {
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) => {
+    if (tag !== "page") return Promise.resolve([]);
+    return Promise.resolve([
+      {
+        name: "Opened recently",
+        tag: "page",
+        lastModified: "2026-09-01T10:00:00",
+      },
+      {
+        name: "Modified most recently",
+        tag: "page",
+        lastModified: "2026-09-13T10:00:00",
+      },
+      {
+        name: "Opened less recently",
+        tag: "page",
+        lastModified: "2026-09-02T10:00:00",
+      },
+    ]);
+  });
+  editor.getLastOpenedMap.mockResolvedValue({
+    "Opened recently": Date.parse("2026-09-12T10:00:00"),
+    "Opened less recently": Date.parse("2026-09-10T10:00:00"),
+  });
+
+  const rows = (await builtinRows("std.pages")) as any[];
+
+  expect(rows.map((row) => row.primary)).toEqual([
+    "Modified most recently",
+    "Opened recently",
+    "Opened less recently",
+  ]);
+});
+
+test("the page picker keeps the current page below activity-ordered pages", async () => {
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) => {
+    if (tag !== "page") return Promise.resolve([]);
+    return Promise.resolve([
+      {
+        name: "Current",
+        tag: "page",
+        lastModified: "2026-09-13T10:00:00",
+      },
+      {
+        name: "Other",
+        tag: "page",
+        lastModified: "2026-09-01T10:00:00",
+      },
+    ]);
+  });
+  editor.getLastOpenedMap.mockResolvedValue({
+    Current: Date.parse("2026-09-13T11:00:00"),
+  });
+
+  const rows = (await builtinRows("std.pages")) as any[];
+
+  expect(rows.map((row) => row.primary)).toEqual(["Other", "Current"]);
 });
 
 test("a throwing handler is flashed, not left as a rejection", async () => {

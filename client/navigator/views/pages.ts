@@ -6,6 +6,7 @@ import {
 } from "@silverbulletmd/silverbullet/syscalls";
 import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { parsePageMetaLastModified } from "../../lib/page_meta.ts";
 import type { Decoration } from "../types.ts";
 import { baseMeta, type BuiltinView, INDEX_REFRESH_EVENTS } from "./types.ts";
 
@@ -43,8 +44,8 @@ export function isHiddenPage(obj: Record<string, any>): boolean {
 let viewableExtensions = new Set<string>();
 
 /**
- * Pages and documents, newest first, from the index when there is one and
- * from the space's file listing when there isn't.
+ * Pages and documents from the index when there is one and from the space's
+ * file listing when there isn't.
  *
  * The fallback is deliberately the same trade the client's own page-list
  * cache makes (`Client.updatePageListCache`): raw file metadata, no tags, no
@@ -96,8 +97,12 @@ async function aspiringRows(): Promise<PageObj[]> {
   }));
 }
 
-function lastModifiedOf(obj: PageObj): string {
-  return obj.lastModified ?? "";
+function lastActivityOf(obj: PageObj, opened: Record<string, number>): number {
+  const modified =
+    typeof obj.lastModified === "string"
+      ? parsePageMetaLastModified(obj.lastModified)
+      : undefined;
+  return Math.max(opened[obj.name] ?? 0, modified ?? 0);
 }
 
 async function pagePickerSource(): Promise<PageObj[]> {
@@ -114,8 +119,7 @@ async function pagePickerSource(): Promise<PageObj[]> {
   const readOnly =
     mode === "ro" || (await editor.getUiOption("forcedROMode")) === true;
 
-  const recent: PageObj[] = [];
-  const rest: PageObj[] = [];
+  const active: PageObj[] = [];
   const current: PageObj[] = [];
   const unopenable: PageObj[] = [];
   for (const obj of contents) {
@@ -128,15 +132,12 @@ async function pagePickerSource(): Promise<PageObj[]> {
     } else if (path === (isDocument ? obj.name : `${obj.name}.md`)) {
       // The page you are looking at is the one you are least likely to want.
       current.push(obj);
-    } else if (opened[obj.name] !== undefined) {
-      recent.push(obj);
     } else {
-      rest.push(obj);
+      active.push(obj);
     }
   }
-  recent.sort((a, b) => opened[b.name] - opened[a.name]);
-  rest.sort((a, b) => lastModifiedOf(b).localeCompare(lastModifiedOf(a)));
-  return [...recent, ...rest, ...current, ...aspiring, ...unopenable];
+  active.sort((a, b) => lastActivityOf(b, opened) - lastActivityOf(a, opened));
+  return [...active, ...current, ...aspiring, ...unopenable];
 }
 
 function hashtagChips(obj: PageObj): Decoration[] {

@@ -29,7 +29,7 @@ Pressing `Shift-Enter` will open or create (if it doesn't already exist) the pag
 Therefore, if you _intend to create a new page_, simply type the name of the new page and hit `Shift-Enter`.
 
 # Result ordering
-When no filter phrase is entered, pages are ordered by either _last opened_, or _last modified_ date in descending order. This makes it convenient to switch between recently edited pages.
+When no filter phrase is entered, pages are ordered by their latest activity in descending order. For each page, the picker uses whichever is newer: the last time it was opened on this client or its last modified date.
 
 When entering a filter phrase, the best matches should appear closer to the top, however the second option will always be an option to create a new page with _exactly_ the page name entered as the filter phrase.
 
@@ -50,4 +50,3 @@ When entering a filter phrase, the best matches should appear closer to the top,
 
 # Mouse/touch operation
 You can scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.
-
