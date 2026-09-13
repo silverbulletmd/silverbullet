@@ -308,7 +308,10 @@ export async function renderResultToCleanMarkdown(
       return jsonToMDTable(rows, cleanCellTransformer);
     }
     case "scalarArray":
-      return classified.items.map(formatScalar).join("\n");
+      // Only trim line ends: leading whitespace is list nesting (issue #2081).
+      return classified.items
+        .map((v) => (typeof v === "string" ? v.trimEnd() : formatScalar(v)))
+        .join("\n");
   }
 }
 
