@@ -6,7 +6,7 @@ pageDecoration.tree.priority: 95
 Excited to use SilverBullet? Here are a few ways for you to deploy it.
 
 > **note** Note
-> There is now an additional option: the (commercial) [desktop app](https://silverbullet.plus) version of SilverBullet.
+> There is now an additional option: the [desktop app](https://silverbullet.plus) version of SilverBullet.
 
 # localhost (desktop, laptop)
 While this is not an ideal deployment (it limits accessing your space to _just your own machine_), it is an easy way to get started (although [SilverBullet+](https://silverbullet.plus) may be an even lower-friction option to consider): simply run the SilverBullet server on your own laptop or desktop.
@@ -29,7 +29,7 @@ There are three things to take care of, in this order (follow the links in each 
    * [[Install/Binary]] — a single self-contained binary
    * [[Install/Docker]] — a docker container
 2. Be sure you enable [[Authentication]] for security
-3. Deploy a [[TLS]] layer front of SilverBullet: browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so _you cannot_ reach a remote SilverBullet server over plain `http://`.
+3. Deploy a [[TLS]] layer in front of SilverBullet for encrypted connections and the full feature set. Plain LAN `http://` also works in online-only mode, see [[TLS#LAN HTTP (no TLS)]] for limitations.
 4. Once that’s all set up, go through the setup flow and then follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud

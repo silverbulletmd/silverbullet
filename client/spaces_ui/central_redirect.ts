@@ -1,4 +1,5 @@
 export async function redirectToCentral(destination: string): Promise<boolean> {
+  if (globalThis.isSecureContext === false) return false;
   const response = await fetch("/.auth/central/public");
   if (!response.ok) return false;
   const config = await response.json();

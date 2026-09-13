@@ -115,7 +115,7 @@ export function syncSyscalls(client: Client): SysCallMapping {
           remoteRevisionHash,
         });
         // postServiceWorkerMessage returns silently if no SW, so only wait if SW is active
-        const registration = await navigator.serviceWorker.getRegistration();
+        const registration = await navigator.serviceWorker?.getRegistration();
         if (registration?.active) {
           return waitForServiceWorkerActivation(path);
         }
@@ -148,7 +148,7 @@ export function syncSyscalls(client: Client): SysCallMapping {
     "sync.performSpaceSync": {
       callback: async (): Promise<number> => {
         await client.postServiceWorkerMessage({ type: "perform-space-sync" });
-        const registration = await navigator.serviceWorker.getRegistration();
+        const registration = await navigator.serviceWorker?.getRegistration();
         if (registration?.active) {
           return waitForServiceWorkerActivation();
         }

@@ -1,3 +1,4 @@
+import { randomUUID } from "../../plug-api/lib/crypto.ts";
 import type { KvKey } from "../../plug-api/types/datastore.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 
@@ -15,7 +16,7 @@ export async function getOrCreateClientId(
     if (typeof existing === "string" && existing) {
       return existing;
     }
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     await kv.batchSet([{ key: clientIdKey, value: id }]);
     return id;
   } catch (e: any) {

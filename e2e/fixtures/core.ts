@@ -101,7 +101,13 @@ export function spawnServerProcess(
   opts: SpawnServerOptions = {},
 ): ChildProcess {
   const { disableServiceWorker = true, singleSpace = true, env = {} } = opts;
-  const args = [spaceDir, "-p", String(port), "-L", "127.0.0.1"];
+  const args = [
+    spaceDir,
+    "-p",
+    String(port),
+    "-L",
+    process.env.SB_E2E_HOST ?? "127.0.0.1",
+  ];
   // A fresh empty temp dir boots into the setup wizard unless we force
   // single-space mode; tests exercising the wizard pass singleSpace: false.
   if (singleSpace) args.push("--single");
@@ -191,7 +197,7 @@ export const test = base.extend<SBFixtures>({
       proc.on("error", (error) => {
         serverOutput += error.message;
       });
-      const url = `http://127.0.0.1:${port}`;
+      const url = `http://${process.env.SB_E2E_HOST ?? "127.0.0.1"}:${port}`;
       try {
         await waitForServer(`${url}/${provisionAdmin ? ".spaces" : ".ping"}`);
       } catch (error) {

@@ -1,3 +1,4 @@
+import { copyToClipboard } from "../../clipboard.ts";
 import {
   Alert,
   Button,
@@ -518,9 +519,7 @@ export function GitSyncPage({
                           <Button
                             onClick={async () => {
                               try {
-                                await navigator.clipboard.writeText(
-                                  draft.publicKey!,
-                                );
+                                await copyToClipboard(draft.publicKey!);
                                 setCopy("Public key copied");
                               } catch {
                                 setCopy(

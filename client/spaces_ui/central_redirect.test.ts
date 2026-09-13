@@ -2,6 +2,13 @@ import { afterEach, expect, test, vi } from "vitest";
 import { redirectToCentral } from "./central_redirect.ts";
 
 afterEach(() => vi.unstubAllGlobals());
+
+test("insecure HTTP keeps password login local even when central login is configured", async () => {
+  const replace = browser(true);
+  vi.stubGlobal("isSecureContext", false);
+  expect(await redirectToCentral("/")).toBe(false);
+  expect(replace).not.toHaveBeenCalled();
+});
 function browser(configured: boolean) {
   const replace = vi.fn();
   vi.stubGlobal("location", { origin: "https://notes.test", replace });

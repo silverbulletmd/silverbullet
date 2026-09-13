@@ -1481,7 +1481,7 @@ export class Client {
             resolve();
           }
         });
-        navigator.serviceWorker.getRegistration().then((registration) => {
+        navigator.serviceWorker?.getRegistration().then((registration) => {
           console.log(
             "Sending data wipe request to service worker",
             registration,
@@ -1506,7 +1506,7 @@ export class Client {
   }
 
   public async postServiceWorkerMessage(message: ServiceWorkerTargetMessage) {
-    const registration = await navigator.serviceWorker.getRegistration();
+    const registration = await navigator.serviceWorker?.getRegistration();
     if (!registration?.active) {
       // This causes too much noise
       // console.warn("No active service worker, skipping message:", message.type);

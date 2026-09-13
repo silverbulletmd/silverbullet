@@ -1,3 +1,4 @@
+import { copyToClipboard } from "../../clipboard.ts";
 import {
   Alert,
   Button,
@@ -332,7 +333,7 @@ export function OidcWizard({
             <Button
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(callbackUrl);
+                  await copyToClipboard(callbackUrl);
                   setCopied(true);
                 } catch {
                   setError(

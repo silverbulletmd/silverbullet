@@ -122,17 +122,11 @@ pub fn canonical_origin(value: &str) -> Result<String, String> {
     }
     let url =
         reqwest::Url::parse(value).map_err(|_| "enter a valid HTTP or HTTPS origin".to_string())?;
-    let host = url
-        .host_str()
-        .ok_or("the primary URL requires a hostname")?;
-    let local = host == "localhost"
-        || host.ends_with(".localhost")
-        || host
-            .trim_matches(['[', ']'])
-            .parse::<std::net::IpAddr>()
-            .is_ok_and(|ip| ip.is_loopback());
-    if !(url.scheme() == "https" || url.scheme() == "http" && local) {
-        return Err("use HTTPS, or HTTP with a loopback hostname for local testing".into());
+    if url.host_str().is_none() {
+        return Err("the primary URL requires a hostname".into());
+    }
+    if !matches!(url.scheme(), "https" | "http") {
+        return Err("use an HTTP or HTTPS origin".into());
     }
     if !url.username().is_empty()
         || url.password().is_some()
@@ -176,11 +170,13 @@ mod tests {
             "http://manager.localhost:3000",
             "http://127.0.0.1:3000",
             "http://[::1]:3000",
+            "http://192.168.1.20:3000",
+            "http://notes.home:3000",
         ] {
             assert!(canonical_origin(value).is_ok(), "{value}");
         }
         for value in [
-            "http://example.test",
+            "ftp://example.test",
             "https://user@example.test",
             "https://example.test/path",
             "https://example.test/?query",

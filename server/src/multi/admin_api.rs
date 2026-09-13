@@ -1275,7 +1275,7 @@ mod tests {
             &router,
             "PUT",
             "/api/server-config",
-            r#"{"primaryUrl":"http://unsafe.example.test"}"#,
+            r#"{"primaryUrl":"ftp://notes.example.test"}"#,
             &cookie,
         )
         .await;

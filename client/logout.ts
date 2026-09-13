@@ -1,3 +1,5 @@
+import { randomUUID } from "../plug-api/lib/crypto.ts";
+import { registerLogoutPresence } from "./logout_presence.ts";
 import type { LogoutRoute } from "./manager_navigation.ts";
 import {
   setLogoutState,
@@ -153,6 +155,7 @@ export class LogoutParticipant {
 }
 
 let participant: LogoutParticipant | undefined;
+let httpPresence: ReturnType<typeof registerLogoutPresence> | undefined;
 let initiatingLogout = false;
 
 function logoutDestination(localLockIncomplete = false): string {
@@ -201,6 +204,17 @@ export function registerLogoutParticipant(
     },
   );
   participant = registered;
+  if (globalThis.isSecureContext === false) {
+    httpPresence = registerLogoutPresence(localStorage);
+  }
+  const closePresence = () => httpPresence?.close();
+  const restorePresence = (event: PageTransitionEvent) => {
+    if (event.persisted) location.reload();
+  };
+  if (httpPresence) {
+    globalThis.addEventListener?.("pagehide", closePresence);
+    globalThis.addEventListener?.("pageshow", restorePresence);
+  }
   const listener = (event: MessageEvent) => {
     if (
       [
@@ -232,6 +246,10 @@ export function registerLogoutParticipant(
   return () => {
     navigator.serviceWorker?.removeEventListener("message", listener);
     channel?.close();
+    closePresence();
+    httpPresence = undefined;
+    globalThis.removeEventListener?.("pagehide", closePresence);
+    globalThis.removeEventListener?.("pageshow", restorePresence);
     if (participant === registered) participant = undefined;
     releaseLock?.();
     lockAbort.abort();
@@ -253,7 +271,7 @@ export async function logoutBrowserSession(
     : registerLogoutParticipant(saveCurrent);
   const current = participant!;
   if (current.active) throw new Error("Logout is already in progress.");
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   let workers: ServiceWorker[] = [];
   let revoked = false;
   let localLockIncomplete = false;
@@ -311,6 +329,10 @@ export async function logoutBrowserSession(
           preparationFailure =
             "Other SilverBullet windows have not confirmed their edits are saved. Close them and retry, or choose Force logout.";
         }
+      }
+      if (httpPresence && !httpPresence.isAlone()) {
+        preparationFailure =
+          "Close other SilverBullet tabs and windows before logging out over HTTP. If a tab crashed, save all open editors before choosing Force logout.";
       }
     } catch (error) {
       preparationFailure = `Could not check open SilverBullet windows: ${error instanceof Error ? error.message : String(error)}`;

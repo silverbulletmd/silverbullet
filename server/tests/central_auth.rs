@@ -53,6 +53,18 @@ async fn provider_configuration_is_admin_only() {
         .await
         .unwrap();
     assert_eq!(body(config).await["serverName"], "SilverBullet");
+    let insecure = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/.auth/central/start?destination=http://192.168.1.20/notes")
+                .header("host", "192.168.1.20")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(insecure.status(), StatusCode::FORBIDDEN);
     let response = app
         .oneshot(
             Request::builder()

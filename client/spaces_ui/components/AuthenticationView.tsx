@@ -28,7 +28,7 @@ export function AuthenticationView({
   }
 
   useEffect(() => {
-    void reload();
+    if (globalThis.isSecureContext !== false) void reload();
   }, []);
 
   async function disable() {
@@ -45,6 +45,15 @@ export function AuthenticationView({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (globalThis.isSecureContext === false) {
+    return (
+      <Alert variant="info">
+        SSO requires HTTPS or localhost. Sign in with a local username and
+        password when using HTTP.
+      </Alert>
+    );
   }
 
   return (

@@ -1,6 +1,7 @@
 import type { Client } from "../client.ts";
 import type { Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import { copyToClipboard } from "../clipboard.ts";
 import {
   Decoration,
   type DecorationSet,
@@ -40,16 +41,15 @@ class CodeCopyWidget extends WidgetType {
     button.onclick = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      navigator.clipboard
-        .writeText(this.value)
+      void copyToClipboard(this.value)
+        .then(() => {
+          this.client.ui.flashNotification("Copied to clipboard", "info");
+        })
         .catch((err) => {
           this.client.ui.flashNotification(
             `Error copying to clipboard: ${err}`,
             "error",
           );
-        })
-        .then(() => {
-          this.client.ui.flashNotification("Copied to clipboard", "info");
         });
     };
 

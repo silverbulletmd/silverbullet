@@ -1,10 +1,14 @@
 import { adminApi, test } from "../fixtures/authenticated.ts";
-import { expect, waitForPersistedContent } from "../fixtures/core.ts";
+import {
+  expect,
+  gotoSilverBulletPage,
+  waitForPersistedContent,
+} from "../fixtures/core.ts";
 import { openLivePage } from "../fixtures/offline.ts";
 
 test.use({ disableServiceWorker: false });
 test.skip(
-  ({ browserName }) => browserName !== "chromium",
+  ({ browserName }) => browserName !== "chromium" && !process.env.SB_E2E_HOST,
   "Live service-worker space routing is validated in Chromium",
 );
 
@@ -34,7 +38,8 @@ test("switching from a root space to a sibling loads and saves in the selected s
       })
     ).ok(),
   ).toBe(true);
-  await openLivePage(page, sbServer.url, "Personal notebook");
+  if (process.env.SB_E2E_HOST) await gotoSilverBulletPage(page, sbServer);
+  else await openLivePage(page, sbServer.url, "Personal notebook");
   await page.goto(`${sbServer.url}/.spaces/`);
   await page.getByRole("link").filter({ hasText: "Shared" }).click();
   await expect(page.locator(".cm-content")).toContainText("Shared notebook");

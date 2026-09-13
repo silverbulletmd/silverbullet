@@ -45,7 +45,7 @@ export function Login({
             error={error}
             busy={busy}
             rememberMeDays={rememberMeDays}
-            clientEncryption
+            clientEncryption={globalThis.isSecureContext}
             clientEncryptionHint="Applied when you open a space, you will be requested to reauthenticate (for secure key exchange)."
             initialClientEncryption={!!localStorage.getItem("enableEncryption")}
             onSubmit={({

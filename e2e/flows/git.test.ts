@@ -66,7 +66,13 @@ test.beforeAll(async () => {
   const port = await getFreePort();
   serverProcess = spawn(
     "./target/debug/silverbullet",
-    [join(root, "server"), "-p", String(port), "-L", "127.0.0.1"],
+    [
+      join(root, "server"),
+      "-p",
+      String(port),
+      "-L",
+      process.env.SB_E2E_HOST ?? "127.0.0.1",
+    ],
     {
       cwd,
       stdio: "ignore",
@@ -77,7 +83,7 @@ test.beforeAll(async () => {
       },
     },
   );
-  base = `http://127.0.0.1:${port}`;
+  base = `http://${process.env.SB_E2E_HOST ?? "127.0.0.1"}:${port}`;
   await waitForServer(`${base}/.spaces`);
 });
 

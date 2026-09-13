@@ -395,6 +395,21 @@ async fn origin_guard(
     next: axum::middleware::Next,
 ) -> Response {
     let path = request.uri().path();
+    if !matches!(
+        path,
+        "/.auth/central/public"
+            | "/.auth/central/profile"
+            | "/.auth/central/logout"
+            | "/.auth/central/signed-out"
+            | "/.spaces/api/admin/authentication"
+    ) && !path.starts_with("/.auth/central/assets/")
+        && crate::auth::oidc::config::validated_url(&origin(request.headers())).is_err()
+    {
+        return error(
+            StatusCode::FORBIDDEN,
+            "SSO requires HTTPS or localhost. Use local password login over HTTP.",
+        );
+    }
     let destination_route = matches!(
         path,
         "/.auth/central/public"
@@ -499,7 +514,10 @@ fn auth_cookie(response: &mut Response, headers: &HeaderMap, jwt: &str, seconds:
         seconds,
     );
 }
-async fn public_config(State(state): State<Arc<CentralAuth>>) -> Response {
+async fn public_config(State(state): State<Arc<CentralAuth>>, headers: HeaderMap) -> Response {
+    if crate::auth::oidc::config::validated_url(&origin(&headers)).is_err() {
+        return Json(json!({"primaryUrl":(state.primary_url)(),"serverName":(state.server_name)(),"configured":null,"provider":null})).into_response();
+    }
     Json(json!({"primaryUrl":(state.primary_url)(),"serverName":(state.server_name)(),"configured":state.central_origin().map(|c|json!({"centralOrigin":c})),"provider":state.active_provider().map(|c|json!({"buttonLabel":c.button_label}))})).into_response()
 }
 #[derive(Default, Deserialize)]

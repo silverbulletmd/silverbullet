@@ -67,12 +67,6 @@ async function findEncryptionKey(
   });
 }
 
-if (!crypto.subtle) {
-  alert(
-    "You are likely accessing SilverBullet via HTTP (rather than HTTPS or localhost), this is not a supported configuration. See https://silverbullet.md/TLS",
-  );
-}
-
 safeRun(async () => {
   if (!(await waitForLogout())) return;
   const clientReady = Promise.withResolvers<Client>();
@@ -98,6 +92,8 @@ safeRun(async () => {
       cachedFetch(".fs/CONFIG.md"),
     ]);
     bootConfig = JSON.parse(configJSONText);
+    if (!navigator.serviceWorker) bootConfig!.disableServiceWorker = true;
+    if (!globalThis.isSecureContext) bootConfig!.enableClientEncryption = false;
   } catch (e: any) {
     if (e.message === offlineError.message) {
       alert(

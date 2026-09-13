@@ -185,7 +185,7 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
             error={error}
             busy={busy}
             rememberMeDays={config.rememberMeDays}
-            clientEncryption
+            clientEncryption={globalThis.isSecureContext}
             initialClientEncryption={
               new URLSearchParams(location.search).get("encrypt") === "true" ||
               !!localStorage.getItem("enableEncryption")

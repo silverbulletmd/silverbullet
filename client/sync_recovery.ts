@@ -29,6 +29,7 @@ export function requestSafetyList(
   client: Client,
   timeoutMs = safetyListTimeoutMs,
 ): Promise<SafetyEntry[] | undefined> {
+  if (!navigator.serviceWorker) return Promise.resolve(undefined);
   return new Promise((resolve) => {
     let settled = false;
     const finish = (entries: SafetyEntry[] | undefined) => {
@@ -57,6 +58,7 @@ export function requestSafetyContent(
   hash: string,
   timeoutMs = safetyContentTimeoutMs,
 ): Promise<Uint8Array | null | undefined> {
+  if (!navigator.serviceWorker) return Promise.resolve(undefined);
   return new Promise((resolve) => {
     let settled = false;
     const finish = (data: Uint8Array | null | undefined) => {

@@ -1,3 +1,4 @@
+import { copyToClipboard } from "../../clipboard.ts";
 import {
   acceptCompletion,
   closeCompletion,
@@ -1546,20 +1547,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.copyToClipboard": {
       callback: async (_ctx, data: string | Blob) => {
         try {
-          if (typeof data === "string") {
-            await navigator.clipboard.writeText(data);
-          } else {
-            await navigator.clipboard.write([
-              new ClipboardItem({ [data.type]: data }),
-            ]);
-          }
+          await copyToClipboard(data);
         } catch (e) {
           console.error(e);
           client.ui.flashNotification(`Could not copy to clipboard: ${e}`);
         }
       },
       description:
-        "Copies text or binary Blob data to the system clipboard. Clipboard access requires a secure HTTPS context.",
+        "Copies text or binary Blob data to the system clipboard. Binary clipboard access requires HTTPS or localhost; text copying also works over HTTP when supported by the browser.",
       parameters: [
         {
           name: "data",
