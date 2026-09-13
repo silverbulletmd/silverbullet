@@ -3,6 +3,7 @@ import { test as base, expect } from "@playwright/test";
 import { build } from "esbuild";
 
 export const origin = "http://spaces.test";
+export const secureOrigin = "https://spaces.test";
 export { expect };
 export const test = base.extend<{}, { spacesJavascript: string }>({
   spacesJavascript: [
@@ -20,7 +21,7 @@ export const test = base.extend<{}, { spacesJavascript: string }>({
     { scope: "worker" },
   ],
   page: async ({ page, spacesJavascript }, use) => {
-    await page.route(`${origin}/**`, async (route) => {
+    await page.route(/^https?:\/\/spaces\.test\//, async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith("/assets/spaces.js"))
         return route.fulfill({

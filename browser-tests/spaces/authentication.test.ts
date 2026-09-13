@@ -1,4 +1,16 @@
-import { expect, origin, test } from "../fixtures.ts";
+import {
+  expect,
+  origin as insecureOrigin,
+  secureOrigin as origin,
+  test,
+} from "../fixtures.ts";
+
+test("SSO is unavailable on an insecure HTTP origin", async ({ page }) => {
+  await page.goto(`${insecureOrigin}/.spaces/authentication`);
+  expect(await page.evaluate(() => globalThis.isSecureContext)).toBe(false);
+  await expect(page.getByText(/SSO requires HTTPS or localhost/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Set up SSO" })).toHaveCount(0);
+});
 
 test("wizard UI tests a saved draft before activation and preserves the local administrator", async ({
   page,
@@ -62,9 +74,10 @@ test("wizard UI tests a saved draft before activation and preserves the local ad
     return route.fallback();
   });
   await page.goto(`${origin}/.spaces/authentication`);
+  expect(await page.evaluate(() => globalThis.isSecureContext)).toBe(true);
   await page.getByRole("button", { name: "Set up SSO" }).click();
   await page.getByLabel("Provider", { exact: true }).selectOption("pocket-id");
-  await page.getByLabel("Issuer URL").fill("http://provider.test");
+  await page.getByLabel("Issuer URL").fill("https://provider.test");
   await page.getByLabel("Central login URL").fill(origin);
   await page.getByLabel("Client ID", { exact: true }).fill("fixture-client");
   await page
