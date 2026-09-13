@@ -10,7 +10,7 @@ uri: https://github.com/zefhemel/silverbullet-libraries/blob/main/Git.md
 ---
 name: Diagrams
 author: Zef Hemel
-description: Support or (mermaid) diagrams in Sivlerbullet
+description: Support or (mermaid) diagrams in Silverbullet
 uri: https://github.com/silverbulletmd/silverbullet-diagram/blob/main/Mermaid.md
 ---
 name: Excalidraw diagrams
