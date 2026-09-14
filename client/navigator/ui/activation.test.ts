@@ -22,7 +22,11 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
 
 const { createActivate } = await import("./activation.ts");
 
-function makeHarness(remembered: unknown, dropdownDefault?: string) {
+function makeHarness(
+  remembered: unknown,
+  dropdownDefault?: string,
+  followEditor = false,
+) {
   datastore.get.mockReset();
   datastore.set.mockReset();
   datastore.get.mockImplementation((key: unknown[]) =>
@@ -31,7 +35,11 @@ function makeHarness(remembered: unknown, dropdownDefault?: string) {
     ),
   );
   const state = {
-    meta: { name: "inbox", dropdown: { placeholder: "Recipient" } },
+    meta: {
+      name: "inbox",
+      dropdown: { placeholder: "Recipient" },
+      followEditor,
+    },
     ctx: { phrase: "" },
     dropdownOptions: [
       { label: "Pete", value: "People/Pete" },
@@ -76,6 +84,8 @@ function makeHarness(remembered: unknown, dropdownDefault?: string) {
     setSelectedPath: vi.fn(),
     setExpanded: vi.fn(),
   };
+  const applyReveal = vi.fn();
+  const focusInput = vi.fn();
   const activate = createActivate({
     slot: "rhs",
     engine: engine as any,
@@ -84,11 +94,19 @@ function makeHarness(remembered: unknown, dropdownDefault?: string) {
     set: set as any,
     publish: vi.fn(),
     syncReadOnly: vi.fn(async () => {}),
-    applyReveal: vi.fn(),
-    focusInput: vi.fn(),
+    applyReveal,
+    focusInput,
     signalReady: vi.fn(),
   });
-  return { activate, setDropdownValue, refs };
+  return {
+    activate,
+    setDropdownValue,
+    refs,
+    applyReveal,
+    focusInput,
+    set,
+    state,
+  };
 }
 
 async function settled() {
@@ -199,4 +217,47 @@ test("a remembered 'All' outranks dropdown.default", async () => {
   await settled();
   expect(setDropdownValue).not.toHaveBeenCalledWith("recipient:sales");
   expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
+});
+
+test("restoring a follow-editor dock reveals the current page without taking focus", async () => {
+  const { activate, applyReveal, focusInput, set } = makeHarness(
+    undefined,
+    undefined,
+    true,
+  );
+  await activate({ view: "inbox", token: 1, passive: true });
+  expect(applyReveal).toHaveBeenCalledWith(
+    "Page",
+    expect.objectContaining({ name: "inbox" }),
+  );
+  expect(focusInput).not.toHaveBeenCalled();
+  expect(set.setPhrase).not.toHaveBeenCalled();
+});
+
+test("restoring a dock without follow-editor leaves its selection alone", async () => {
+  const { activate, applyReveal } = makeHarness(undefined);
+  await activate({ view: "inbox", token: 1, passive: true });
+  expect(applyReveal).not.toHaveBeenCalled();
+});
+
+test("restoring a tree waits for remembered expansion before revealing the page", async () => {
+  const { activate, applyReveal, state } = makeHarness(
+    undefined,
+    undefined,
+    true,
+  );
+  Object.assign(state.meta, { mode: "tree" });
+  const saved = Promise.withResolvers<unknown>();
+  datastore.get.mockImplementation((key) =>
+    key[2] === "expanded" ? saved.promise : Promise.resolve(undefined),
+  );
+  const activation = activate({ view: "inbox", token: 1, passive: true });
+  await settled();
+  expect(applyReveal).not.toHaveBeenCalled();
+  saved.resolve(["Archive"]);
+  await activation;
+  expect(applyReveal).toHaveBeenCalledWith(
+    "Page",
+    expect.objectContaining({ name: "inbox" }),
+  );
 });

@@ -194,6 +194,12 @@ test.describe("space tree", () => {
       "Projects/Alpha.md": "# Alpha",
       "Projects/Beta.md": "# Beta",
       "Journal/Today.md": "# Today\n\nPlanning notes.",
+      ...Object.fromEntries(
+        Array.from({ length: 80 }, (_, index) => [
+          `Archive ${index}/Note.md`,
+          "Archived notes",
+        ]),
+      ),
     },
   });
 
@@ -216,6 +222,20 @@ test.describe("space tree", () => {
     await expect(
       tree.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
     ).toBeVisible();
+
+    await sbPage.evaluate(async () => {
+      await (globalThis as any).client.clientSystem.ds.set(
+        ["navigator", "std.spaceTree", "expanded"],
+        Array.from({ length: 80 }, (_, i) => `Archive ${i}`),
+      );
+    });
+    await sbPage.reload();
+    await expect(tree.locator("[data-path='Archive 0/Note']")).toBeAttached();
+
+    await expect(
+      tree.locator("[data-path='Projects/Alpha'].sb-nav-selected"),
+    ).toBeInViewport();
+    await expect(sbPage.locator("#sb-editor .cm-content")).toBeFocused();
   });
 
   test("dragging a page onto a folder moves the real file", async ({

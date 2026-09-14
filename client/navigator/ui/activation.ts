@@ -174,8 +174,7 @@ export function createActivate(deps: ActivationDeps) {
             ? expansionKey(name, state.meta)
             : undefined;
         if (key) {
-          // Fire-and-forget: gating the reset on this round trip would open a window where a fast filter keystroke lands before it and gets wiped.
-          void datastore.get(key).then((saved) => {
+          const restored = datastore.get(key).then((saved) => {
             // Guards against a newer activation or a manual toggle that happened while this load was in flight — landing this stale snapshot would silently reopen a folder the user just closed.
             if (displayed.current !== name || expandedDirty.current) return;
             // Merged, not replaced: this also races applyReveal's own ancestor-expansion with no fixed order between the two, and a union converges the same way regardless of which arrives first.
@@ -184,6 +183,10 @@ export function createActivate(deps: ActivationDeps) {
               withExpanded(prev, paths, state.meta.expandAll === true),
             );
           });
+          if (passive) {
+            await restored;
+            if (handledToken.current !== token) return;
+          }
         }
         // Refresh cached rows on remount: the closed panel missed change events.
         // A panel that stayed mounted refreshes cached views only when requested.
@@ -252,23 +255,24 @@ export function createActivate(deps: ActivationDeps) {
       });
     }
     interaction.current = "typing";
-    if (passive) return;
-    if (carried !== undefined) {
-      setPhrase(carried);
-      setSelectedIndex(0);
-      setSelectedPath(undefined);
-    } else if (isModal) {
-      setPhrase("");
-      setSelectedIndex(0);
-      // A reveal may already have landed for this view -- resetting the selection would clobber it.
-      if (revealedFor.current !== name) setSelectedPath(undefined);
-    }
-    // `focus = false` skips only the focus grab: everything else about a
-    // user-asked open (refresh, phrase/selection reset) happened above.
-    if (focus !== false) {
-      focusInput(
-        carried === undefined && (isModal || phraseRef.current.trim() !== ""),
-      );
+    if (!passive) {
+      if (carried !== undefined) {
+        setPhrase(carried);
+        setSelectedIndex(0);
+        setSelectedPath(undefined);
+      } else if (isModal) {
+        setPhrase("");
+        setSelectedIndex(0);
+        // A reveal may already have landed for this view -- resetting the selection would clobber it.
+        if (revealedFor.current !== name) setSelectedPath(undefined);
+      }
+      // `focus = false` skips only the focus grab: everything else about a
+      // user-asked open (refresh, phrase/selection reset) happened above.
+      if (focus !== false) {
+        focusInput(
+          carried === undefined && (isModal || phraseRef.current.trim() !== ""),
+        );
+      }
     }
     if (
       !isModal &&
