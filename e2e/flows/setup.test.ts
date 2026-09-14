@@ -77,7 +77,7 @@ test("wizard provisions a hostname-prefix space with selected revisions mode", a
   const setupUrl = `http://localhost:${sbServer.port}`;
   await page.goto(`${setupUrl}/`);
   await fillAdminStep(page, ADMIN_USER, ADMIN_PASSWORD);
-  await expect(page.getByLabel("Primary URL", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Server URL", { exact: true })).toHaveValue(
     setupUrl,
   );
   await page.getByLabel("Hostname", { exact: true }).selectOption("new");

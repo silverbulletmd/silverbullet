@@ -26,6 +26,8 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 open = "5"
 tempfile = { workspace = true }
+globset = "0.4"
+similar = "2"
 
 [build-dependencies]
 serde_json = { workspace = true }

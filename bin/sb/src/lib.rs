@@ -10,6 +10,10 @@ pub mod commands;
 pub mod config;
 pub mod conn;
 pub mod device_auth;
+pub mod fs_api;
+pub mod fs_cli;
+pub mod fs_edit;
+mod fs_listing;
 pub mod output;
 pub mod run;
 

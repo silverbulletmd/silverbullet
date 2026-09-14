@@ -30,7 +30,7 @@ In [[Space Manager|multi-space mode]] every account carries a profile — a disp
 * `GET /.accounts`: Every account with access to this space, as `[{"username", "fullName", "me"}]`, with the caller's own entry marked `me`. `username` is `null` where the deployment keeps no accounts (the caller is still reported, marked `me`, so their name is known even though they are nobody the space can address), `fullName` is omitted when unset, and `me` is omitted when false.
 
 # File system
-The space file system is exposed under the `/.fs` prefix:
+The space file system is exposed under the `/.fs` prefix. The [[CLI#`fs`: remote files|`sb fs` CLI commands]] use these endpoints directly, including metadata and conditional writes, without requiring the Runtime API:
 
 * `GET /.fs` will return a full listing of all files in your space including metadata like when the file was last modified, as well as permissions in JSON format. This is primarily used for sync purposes with the client.
 * `GET /.fs/*`: _Reads_ and returns the content of the file at the given path. This means that if you `GET /.fs/index.md` you will receive the content of your `index` page. If the optional `X-Get-Meta` _request header_ is set, the server does not _need to_ return the body of the file (but it can). The `GET` _response_ will have a few additional SB-specific headers:

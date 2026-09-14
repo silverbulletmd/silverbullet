@@ -2737,6 +2737,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "clap",
+ "globset",
  "open",
  "reqwest 0.12.28",
  "serde",
@@ -2744,6 +2745,7 @@ dependencies = [
  "serde_yaml",
  "silverbullet-server-common",
  "silverbullet-server-runtime-chrome",
+ "similar",
  "tempfile",
  "uuid",
 ]

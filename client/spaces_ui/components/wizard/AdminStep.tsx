@@ -31,10 +31,10 @@ export function AdminStep({
       <h1>Welcome to SilverBullet!</h1>
       <p class="sb-help-text">Step 1 of 2</p>
       <p>
-        This server has not been configured yet. DO NOT PANIC! It
-        only takes two quick steps: first creating an administrator account,
-        then configuring your first space. You can add more spaces and users
-        later (if you were so to desire).
+        This server has not been configured yet. DO NOT PANIC! It only takes two
+        quick steps: first creating an administrator account, then configuring
+        your first space. You can add more spaces and users later (if you were
+        so to desire).
       </p>
       <FieldErrors errors={errors} />
       <label for="setup-username">Username</label>
@@ -48,7 +48,9 @@ export function AdminStep({
         onInput={(e) => onChange({ username: e.currentTarget.value })}
       />
       <p class="sb-help-text">
-        It is wise, but not required, to create an admin account dedicated purely for admin purposes.
+        It is wise, but not required, to create an admin account dedicated
+        purely for admin purposes. You can add additional regular user accounts
+        (with fewer permissions) later.
       </p>
       <label for="setup-password">Password</label>
       <Input
@@ -73,6 +75,10 @@ export function AdminStep({
         value={values.fullName}
         onInput={(e) => onChange({ fullName: e.currentTarget.value })}
       />
+      <p class="sb-help-text">
+        Full name and email are used to attribute changes in revision history
+        only.
+      </p>
       <label for="setup-email">Email (optional)</label>
       <Input
         id="setup-email"
@@ -84,10 +90,6 @@ export function AdminStep({
         value={values.email}
         onInput={(e) => onChange({ email: e.currentTarget.value })}
       />
-      <p class="sb-help-text">
-        Full name and email are used to attribute changes in revision history
-        only.
-      </p>
       <div class="row">
         <Button type="submit" variant="primary" disabled={busy}>
           Continue

@@ -4,30 +4,39 @@ use serde_json::Value;
 
 use crate::{
     config::{self, AuthConfig, SpaceConfig},
-    conn, crypto,
+    conn::{self, ConnectionError},
+    crypto,
 };
 
 pub fn access_token(space: &SpaceConfig) -> Result<String, String> {
-    access_token_from(space, &config::config_dir())
+    access_token_typed(space).map_err(|error| error.message)
 }
 
-fn access_token_from(space: &SpaceConfig, dir: &Path) -> Result<String, String> {
-    let _lock = config::lock(dir)?;
-    let mut cfg = config::load_from(dir)?;
+pub(crate) fn access_token_typed(space: &SpaceConfig) -> Result<String, ConnectionError> {
+    access_token_from_typed(space, &config::config_dir())
+}
+
+fn access_token_from_typed(space: &SpaceConfig, dir: &Path) -> Result<String, ConnectionError> {
+    let _lock = config::lock(dir).map_err(ConnectionError::operational)?;
+    let mut cfg = config::load_from(dir).map_err(ConnectionError::operational)?;
     let saved = cfg
         .spaces
         .iter_mut()
         .find(|saved| saved.id == space.id)
-        .ok_or("space configuration changed; retry the command")?;
+        .ok_or_else(|| {
+            ConnectionError::operational("space configuration changed; retry the command")
+        })?;
     if saved.url != space.url || saved.auth.method != "browser" || !saved.folder_path.is_empty() {
-        return Err("space configuration changed; retry the command".into());
+        return Err(ConnectionError::operational(
+            "space configuration changed; retry the command",
+        ));
     }
-    crate::device_auth::validate_url(&saved.url)?;
+    crate::device_auth::validate_url(&saved.url).map_err(ConnectionError::operational)?;
     let login_error = || {
-        format!(
+        ConnectionError::authentication(format!(
             "Browser credentials for space {:?} are unavailable or expired; run `sb space login {:?}`",
             saved.name, saved.name
-        )
+        ))
     };
     let key = crypto::load_or_create_key(dir).map_err(|_| login_error())?;
     if saved.auth.expires_at > chrono::Utc::now().timestamp() + 60 {
@@ -39,7 +48,7 @@ fn access_token_from(space: &SpaceConfig, dir: &Path) -> Result<String, String> 
     if refresh.is_empty() {
         return Err(login_error());
     }
-    let client = conn::new_client(Duration::from_secs(20))?;
+    let client = conn::new_client(Duration::from_secs(20)).map_err(ConnectionError::operational)?;
     let response = client
         .post(format!("{}/.auth/token", saved.url.trim_end_matches('/')))
         .form(&[
@@ -48,25 +57,27 @@ fn access_token_from(space: &SpaceConfig, dir: &Path) -> Result<String, String> 
             ("refresh_token", refresh.as_str()),
         ])
         .send()
-        .map_err(|e| format!("Cannot refresh browser credentials: {e}"))?;
+        .map_err(|error| {
+            ConnectionError::operational(format!("Cannot refresh browser credentials: {error}"))
+        })?;
     let status = response.status();
     if !status.is_success() {
         return if matches!(status.as_u16(), 400 | 401 | 403) {
             Err(login_error())
         } else {
-            Err(format!(
+            Err(ConnectionError::operational(format!(
                 "Cannot refresh browser credentials: server returned {status}"
-            ))
+            )))
         };
     }
-    let value = response
-        .json()
-        .map_err(|e| format!("Invalid refresh response: {e}"))?;
-    let mut auth = encode_tokens(value, dir)?;
+    let value = response.json().map_err(|error| {
+        ConnectionError::operational(format!("Invalid refresh response: {error}"))
+    })?;
+    let mut auth = encode_tokens(value, dir).map_err(ConnectionError::operational)?;
     auth.extra = saved.auth.extra.clone();
     let token = crypto::decrypt_with_key(&key, &auth.encrypted_token).map_err(|_| login_error())?;
     saved.auth = auth;
-    config::save_to(dir, &cfg)?;
+    config::save_to(dir, &cfg).map_err(ConnectionError::operational)?;
     Ok(token)
 }
 
@@ -220,8 +231,8 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let space = configured(tmp.path(), &url);
         thread::scope(|scope| {
-            let first = scope.spawn(|| access_token_from(&space, tmp.path()));
-            let second = scope.spawn(|| access_token_from(&space, tmp.path()));
+            let first = scope.spawn(|| access_token_from_typed(&space, tmp.path()));
+            let second = scope.spawn(|| access_token_from_typed(&space, tmp.path()));
             assert_eq!(first.join().unwrap().unwrap(), "new-access");
             assert_eq!(second.join().unwrap().unwrap(), "new-access");
         });
@@ -240,13 +251,27 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let space = configured(tmp.path(), &url);
         let before = std::fs::read(tmp.path().join("config.json")).unwrap();
-        let error = access_token_from(&space, tmp.path()).unwrap_err();
+        let error = access_token_from_typed(&space, tmp.path()).unwrap_err();
         handle.join().unwrap();
-        assert!(error.contains("sb space login"));
+        assert!(error.message.contains("sb space login"));
         assert_eq!(
             std::fs::read(tmp.path().join("config.json")).unwrap(),
             before
         );
+    }
+
+    #[test]
+    fn typed_refresh_marks_rejected_credentials_as_authentication_failure() {
+        let (url, handle) = server(401, serde_json::json!({"error":"invalid_token"}));
+        let tmp = tempfile::tempdir().unwrap();
+        let space = configured(tmp.path(), &url);
+
+        let error = access_token_from_typed(&space, tmp.path())
+            .expect_err("rejected refresh credentials should fail");
+        handle.join().unwrap();
+
+        assert!(error.authentication);
+        assert!(error.message.contains("sb space login"));
     }
 
     #[test]
@@ -257,7 +282,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let space = configured(tmp.path(), &url);
         let before = std::fs::read(tmp.path().join("config.json")).unwrap();
-        assert!(access_token_from(&space, tmp.path()).is_err());
+        assert!(access_token_from_typed(&space, tmp.path()).is_err());
         handle.join().unwrap();
         assert_eq!(
             std::fs::read(tmp.path().join("config.json")).unwrap(),
@@ -273,13 +298,28 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let space = configured(tmp.path(), &url);
         let before = std::fs::read(tmp.path().join("config.json")).unwrap();
-        let error = access_token_from(&space, tmp.path()).unwrap_err();
-        assert!(error.contains("refresh"));
-        assert!(!error.contains("sb space login"));
+        let error = access_token_from_typed(&space, tmp.path()).unwrap_err();
+        assert!(error.message.contains("refresh"));
+        assert!(!error.message.contains("sb space login"));
         assert_eq!(
             std::fs::read(tmp.path().join("config.json")).unwrap(),
             before
         );
+    }
+
+    #[test]
+    fn typed_refresh_keeps_transport_failure_operational() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        drop(listener);
+        let tmp = tempfile::tempdir().unwrap();
+        let space = configured(tmp.path(), &url);
+
+        let error = access_token_from_typed(&space, tmp.path())
+            .expect_err("unreachable refresh server should fail");
+
+        assert!(!error.authentication);
+        assert!(error.message.contains("refresh"));
     }
 
     #[test]
@@ -290,9 +330,9 @@ mod tests {
             std::fs::write(path, "invalid").unwrap();
         });
         let space = configured(tmp.path(), &url);
-        let error = access_token_from(&space, tmp.path()).unwrap_err();
+        let error = access_token_from_typed(&space, tmp.path()).unwrap_err();
         handle.join().unwrap();
-        assert!(error.contains("existing config"));
+        assert!(error.message.contains("existing config"));
         assert_eq!(
             std::fs::read_to_string(tmp.path().join("config.json")).unwrap(),
             "invalid"
@@ -304,8 +344,9 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let mut space = configured(tmp.path(), "http://127.0.0.1:1");
         space.url = "http://127.0.0.1:2".into();
-        assert!(access_token_from(&space, tmp.path())
+        assert!(access_token_from_typed(&space, tmp.path())
             .unwrap_err()
+            .message
             .contains("changed"));
     }
 }

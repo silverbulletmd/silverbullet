@@ -62,6 +62,7 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
 /// variants never need one (check `CoreCommand::needs_connection`).
 pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, String> {
     match cmd {
+        CoreCommand::Fs(command) => Ok(commands::fs::run(g, command)),
         CoreCommand::Upgrade => {
             commands::upgrade::run(false)?;
             Ok(ExitCode::SUCCESS)
@@ -106,7 +107,7 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                 CoreCommand::Logs { lines, follow } => {
                     commands::logs::run(&conn, lines, follow, &mut out)?
                 }
-                CoreCommand::Upgrade | CoreCommand::UpgradeEdge => {
+                CoreCommand::Fs(_) | CoreCommand::Upgrade | CoreCommand::UpgradeEdge => {
                     unreachable!("handled above")
                 }
             }

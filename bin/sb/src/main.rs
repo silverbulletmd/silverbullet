@@ -1,6 +1,8 @@
-use clap::Parser;
 use sb::cli::Cli;
 
 fn main() -> std::process::ExitCode {
-    sb::run::run(Cli::parse())
+    match sb::fs_cli::parse::<Cli>() {
+        Ok(cli) => sb::run::run(cli),
+        Err(code) => code,
+    }
 }
