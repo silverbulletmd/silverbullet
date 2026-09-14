@@ -14,10 +14,7 @@ import {
   maximumDocumentSize,
 } from "@silverbulletmd/silverbullet/constants";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import {
-  resolveAttachmentPath,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
+import { resolveAttachmentPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
@@ -311,10 +308,9 @@ export function documentExtension(editor: Client) {
       if (await doesFileExist(editor, desiredFilePath)) {
         let confirmedFilePath = await editor.ui.prompt(
           "A file with that name already exists, keep the same name to replace it, or rename your file",
-          resolveMarkdownLink(
-            client.currentPath(),
-            ensureValidFilenameWithExtension(desiredFilePath),
-          ),
+          // Already a space-root path from the first prompt; do not resolve
+          // it relative to the current page again.
+          desiredFilePath,
         );
         if (confirmedFilePath === undefined) {
           // Unlike the initial filename prompt, we're inside a workflow here

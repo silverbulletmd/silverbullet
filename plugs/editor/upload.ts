@@ -4,10 +4,7 @@ import {
   defaultLinkStyle,
   maximumDocumentSize,
 } from "@silverbulletmd/silverbullet/constants";
-import {
-  resolveAttachmentPath,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
+import { resolveAttachmentPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,
   isValidPath,
@@ -75,10 +72,9 @@ export async function saveFile(file: UploadFile) {
     if (await space.fileExists(desiredFilePath)) {
       let confirmedFilePath = await editor.prompt(
         "A file with that name already exists, keep the same name to replace it, or rename your file",
-        resolveMarkdownLink(
-          await editor.getCurrentPath(),
-          ensureValidFilenameWithExtension(desiredFilePath),
-        ),
+        // Already a space-root path from the first prompt; do not resolve
+        // it relative to the current page again.
+        desiredFilePath,
       );
       if (confirmedFilePath === undefined) {
         // Unlike the initial filename prompt, we're inside a workflow here
