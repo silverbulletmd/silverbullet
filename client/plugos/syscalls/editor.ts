@@ -637,10 +637,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
         html: HTMLElement | HTMLElement[] | string,
         script: string,
       ) => {
-        // The other half of "one modal at a time" (see editor_ui.tsx): a plug
-        // opening the modal closes the navigator's, rather than landing
-        // underneath it.
-        if (id === "modal") await hideNavigatorSlot(id);
+        // The other half of the shared-slot arbitration in editor_ui.tsx: a
+        // plug opening one of these slots closes the navigator's occupant.
+        if (id === "modal" || id === "bhs") {
+          await hideNavigatorSlot(id, undefined, {
+            restoreDisplaced: false,
+          });
+        }
         client.ui.viewDispatch({
           type: "show-panel",
           id: id as any,

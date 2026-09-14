@@ -49,7 +49,7 @@ export type SourceCtx = {
   dock?: string;
 };
 
-export const WINDOW_DOCKS = ["lhs", "rhs"] as const;
+export const WINDOW_DOCKS = ["lhs", "rhs", "bhs"] as const;
 export const PAGE_DOCKS = ["page-top", "page-bottom"] as const;
 export const ALL_DOCKS = [...WINDOW_DOCKS, "modal", ...PAGE_DOCKS] as const;
 

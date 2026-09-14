@@ -313,6 +313,7 @@ export class MainUI {
     const navSlots = {
       lhs: useNavigatorSlot("lhs"),
       rhs: useNavigatorSlot("rhs"),
+      bhs: useNavigatorSlot("bhs"),
       modal: useNavigatorSlot("modal"),
     };
 
@@ -415,6 +416,12 @@ export class MainUI {
     const modalInset = plugModalMode;
 
     const bhsVisible = viewState.panels.bhs.mode !== undefined;
+    const plugBhsMode = viewState.panels.bhs.mode;
+    useEffect(() => {
+      if (navSlots.bhs && plugBhsMode !== undefined) {
+        dispatch({ type: "hide-panel", id: "bhs" });
+      }
+    }, [navSlots.bhs, plugBhsMode]);
 
     return (
       <>
@@ -644,11 +651,15 @@ export class MainUI {
             </div>
           </div>
         )}
-        {bhsVisible && (
+        {navSlots.bhs ? (
+          <div className="sb-bhs" style={{ flex: navSlots.bhs.mode }}>
+            <NavigatorDock slot="bhs" state={navSlots.bhs} client={client} />
+          </div>
+        ) : bhsVisible ? (
           <div className="sb-bhs">
             <Panel config={viewState.panels.bhs} editor={client} slot="bhs" />
           </div>
-        )}
+        ) : null}
       </>
     );
   }

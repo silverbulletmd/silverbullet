@@ -170,7 +170,7 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     title: "Space",
     label: "Open",
     dock: "lhs",
-    supportedDocks: ["lhs", "rhs", "modal"],
+    supportedDocks: ["lhs", "rhs", "bhs", "modal"],
     mode: "tree",
     followEditor: true,
     hasCreate: true,

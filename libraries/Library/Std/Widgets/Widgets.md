@@ -30,7 +30,7 @@ None of the three has an `enabled` config key any more. Each remembers its own d
 config.set("std.widgets.toc.minHeaders", 5)
 ```
 
-To set where a view docks space-wide — and whether it starts open, folded, or how wide — use `view.defaults` (`view.docks` and `navigator.docks` still work as dock-only fallbacks).
+To set where a view docks space-wide — and whether it starts open, folded, or what size it uses — use `view.defaults` (`view.docks` and `navigator.docks` still work as dock-only fallbacks).
 
 # Implementation
 
@@ -142,7 +142,7 @@ view.define {
   command = "Navigate: Table of Contents",
   menu = { location = "view", group = "1_views", order = 1, label = "Table of Contents" },
   dock = "modal",
-  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = false,
   refreshOn = { "editor:pageModified", "editor:pageLoaded", "editor:documentLoaded" },
   refreshOnOpen = true,
@@ -255,7 +255,7 @@ view.define {
   command = "Navigate: Linked Mentions",
   menu = { location = "view", group = "1_views", order = 2, label = "Linked Mentions" },
   dock = "page-bottom",
-  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = true,
   refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
   refreshOnOpen = true,
@@ -308,7 +308,7 @@ view.define {
   command = "Navigate: Linked Tasks",
   menu = { location = "view", group = "1_views", order = 3, label = "Linked Tasks" },
   dock = "page-top",
-  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = true,
   refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
   refreshOnOpen = true,

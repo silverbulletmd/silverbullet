@@ -1,36 +1,46 @@
 import { useRef } from "preact/hooks";
 
-const MIN_SIDEBAR_WIDTH = 160;
-const MAX_SIDEBAR_WIDTH = 600;
+const MIN_DOCK_SIZE = 160;
+const MAX_DOCK_SIZE = 600;
 
 export type ResizeHandleProps = {
-  slot: "lhs" | "rhs";
-  onResize: (widthPx: number, commit: boolean) => void;
+  slot: "lhs" | "rhs" | "bhs";
+  onResize: (sizePx: number, commit: boolean) => void;
 };
 
+export function resizedDockSize(
+  slot: ResizeHandleProps["slot"],
+  startSize: number,
+  startPointer: number,
+  pointer: number,
+): number {
+  const sign = slot === "lhs" ? 1 : -1;
+  return Math.min(
+    MAX_DOCK_SIZE,
+    Math.max(MIN_DOCK_SIZE, startSize + sign * (pointer - startPointer)),
+  );
+}
+
 /**
- * A sidebar's draggable edge, for a caller whose dock grows/shrinks by width.
- * Rendered as a child of the dock it resizes -- that parent's width is what a
- * drag starts from.
+ * A window dock's draggable edge. Rendered as a child of the dock it resizes.
  */
 export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
-  const dragging = useRef<{ startX: number; startWidth: number } | null>(null);
+  const dragging = useRef<{ startPointer: number; startSize: number } | null>(
+    null,
+  );
   const raf = useRef<number | undefined>(undefined);
   const latestWidth = useRef<number | undefined>(undefined);
 
   function onPointerMove(e: PointerEvent) {
     const start = dragging.current;
     if (!start) return;
-    // lhs grows to the right (toward the editor); rhs grows to the left.
-    const sign = slot === "lhs" ? 1 : -1;
-    const width = Math.min(
-      MAX_SIDEBAR_WIDTH,
-      Math.max(
-        MIN_SIDEBAR_WIDTH,
-        start.startWidth + sign * (e.clientX - start.startX),
-      ),
+    const size = resizedDockSize(
+      slot,
+      start.startSize,
+      start.startPointer,
+      slot === "bhs" ? e.clientY : e.clientX,
     );
-    latestWidth.current = width;
+    latestWidth.current = size;
     if (raf.current === undefined) {
       raf.current = requestAnimationFrame(() => {
         raf.current = undefined;
@@ -72,9 +82,10 @@ export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
   function onPointerDown(e: PointerEvent) {
     if (e.button !== 0) return; // primary button (or touch) only
     const dock = (e.currentTarget as HTMLElement).parentElement;
+    const rect = dock?.getBoundingClientRect();
     dragging.current = {
-      startX: e.clientX,
-      startWidth: dock?.getBoundingClientRect().width ?? MIN_SIDEBAR_WIDTH,
+      startPointer: slot === "bhs" ? e.clientY : e.clientX,
+      startSize: (slot === "bhs" ? rect?.height : rect?.width) ?? MIN_DOCK_SIZE,
     };
     // Capture keeps delivering events after the drag leaves the narrow handle.
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);

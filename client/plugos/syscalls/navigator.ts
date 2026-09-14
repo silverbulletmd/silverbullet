@@ -38,7 +38,7 @@ export function navigatorSyscalls(): SysCallMapping {
           name: "slot",
           type: "string",
           description:
-            "Which panel: modal, lhs or rhs. Defaults to any open one.",
+            "Which panel: modal, lhs, rhs or bhs. Defaults to any open one.",
           optional: true,
         },
       ],

@@ -485,10 +485,11 @@ config.define("view.defaults", {
   additionalProperties = {
     type = "object",
     properties = {
-      dock = { type = "string", enum = {"modal", "lhs", "rhs", "page-top", "page-bottom"} },
+      dock = { type = "string", enum = {"modal", "lhs", "rhs", "bhs", "page-top", "page-bottom"} },
       open = { type = "boolean" },
       collapsed = { type = "boolean" },
       width = { type = "number", minimum = 160, maximum = 600 },
+      height = { type = "number", minimum = 160, maximum = 600 },
     },
     additionalProperties = false,
   },

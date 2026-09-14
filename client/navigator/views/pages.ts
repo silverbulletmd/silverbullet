@@ -178,7 +178,7 @@ export const pagePicker: BuiltinView<PageObj> = {
   meta: baseMeta({
     title: "Pages",
     label: "Open",
-    supportedDocks: ["modal", "lhs", "rhs"],
+    supportedDocks: ["modal", "lhs", "rhs", "bhs"],
     hasCreate: true,
     createIcon: "file-text",
     refreshOn: INDEX_REFRESH_EVENTS,

@@ -16,6 +16,7 @@ import {
   type NavigatorHook,
   type SegmentMeta,
   type ViewMeta,
+  isWindowDock,
 } from "./types.ts";
 
 export const RESERVED_PICK_PREFIX = "__pick:";
@@ -612,8 +613,10 @@ export function validateDefineSpec(spec: ViewSpec) {
     throw new Error("view.define: key/mac require command");
   }
   const dock = field(spec, "dock");
-  if (field(spec, "openOnStart") === true && dock !== "lhs" && dock !== "rhs") {
-    throw new Error('view.define: openOnStart requires dock "lhs" or "rhs"');
+  if (field(spec, "openOnStart") === true && !isWindowDock(dock)) {
+    throw new Error(
+      'view.define: openOnStart requires dock "lhs", "rhs" or "bhs"',
+    );
   }
   validateViewSpec(spec, "view.define");
 }

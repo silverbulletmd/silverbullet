@@ -78,6 +78,7 @@ const lifecycle = createPanelLifecycle({
   onSlotClosedWithoutSuccessor: (view) => settlePick(view, null),
   resolveDock: (name, meta) => dockState.resolveDock(name, meta),
   defaultWidth: (name) => viewDefaults[name]?.width,
+  defaultHeight: (name) => viewDefaults[name]?.height,
   getDefaultOpens: () =>
     allViewNames().filter((name) => viewDefaults[name]?.open === true),
   sidebarDefaultOpen: (name) => dockState.sidebarDefaultOpen(name),
@@ -274,7 +275,8 @@ export async function route(data: {
 
 export function resize(data: {
   slot: string;
-  width: number;
+  width?: number;
+  height?: number;
   commit?: boolean;
 }): Promise<void> {
   return lifecycle.resize(data);

@@ -3,7 +3,7 @@ tags: api/space-lua
 references:
 - client/navigator/navigator.ts
 ---
-The `view` API defines and opens [[Navigator]] views: filterable list or tree panels, shown as a modal or as a sidebar, over any collection of objects your Lua returns.
+The `view` API defines and opens [[Navigator]] views: filterable list or tree panels, shown as a modal, sidebar, bottom panel, or page widget over any collection of objects your Lua returns.
 
 `navigator.*` is a permanent alias for every function below (`navigator.define`, `navigator.open`, `navigator.pick`, `navigator.focus`, `navigator.moveByRename`) -- same implementation, just the pre-rename name. It is fully supported, not deprecated; use whichever reads better in your own scripts. Everything past this point uses the canonical `view.*` names.
 
@@ -27,18 +27,19 @@ Registers a view, and optionally a [[Command]] that opens it. `name`, `source` a
 ### Position target
 Where the view opens -- and where it's allowed to be moved to -- is configured via:
 
-* `dock`: the view's default dock, one of `"modal"` (the default), `"lhs"`, `"rhs"`, `"page-top"` or `"page-bottom"`.
-* `supportedDocks`: the list of docks the view's own dock menu offers, e.g. `{ "page-top", "page-bottom", "rhs", "modal" }`. Defaults to `{ dock }` (just the default, no menu). Must include `dock` itself, and every entry must be one of the five dock names above -- `view.define` throws otherwise. A view with fewer than two supported docks gets no dock menu at all; there'd be nothing to switch to.
-* `defaultOpen`: whether a **page-docked** view (`page-top`/`page-bottom`) starts open before anyone has touched it. Ignored for `lhs`/`rhs`/`modal`, which have their own open/closed story (below). Defaults to `false`.
-* `openOnStart`: open the view at every boot regardless of what was remembered, whether or not it was open last time. Only valid with `dock = "lhs"` or `"rhs"` -- `view.define` throws `openOnStart requires dock "lhs" or "rhs"` for any other dock, page docks included.
+* `dock`: the view's default dock, one of `"modal"` (the default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"` or `"page-bottom"`.
+* `supportedDocks`: the list of docks the view's own dock menu offers, e.g. `{ "page-top", "page-bottom", "bhs", "rhs", "modal" }`. Defaults to `{ dock }` (just the default, no menu). Must include `dock` itself, and every entry must be one of the six dock names above -- `view.define` throws otherwise. A view with fewer than two supported docks gets no dock menu at all; there'd be nothing to switch to.
+* `defaultOpen`: whether a **page-docked** view (`page-top`/`page-bottom`) starts open before anyone has touched it. Ignored for `lhs`/`rhs`/`bhs`/`modal`, which have their own open/closed story (below). Defaults to `false`.
+* `openOnStart`: open the view at every boot regardless of what was remembered, whether or not it was open last time. Only valid with `dock = "lhs"`, `"rhs"` or `"bhs"` -- `view.define` throws for any other dock, page docks included.
 
 There are three families of dock, each with its own notion of "open":
 
 * **`lhs` / `rhs`** (sidebars) persist across navigation and boot. Whichever sidebar views are open when a client shuts down are opened again on its next boot, per side. Closing a sidebar is what un-remembers it. They're resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar is single-slot: docking a second view onto an already-occupied side displaces the current resident, which comes back on its own the moment the newcomer leaves (one level of displacement is remembered, no deeper).
+* **`bhs`** (bottom-half screen) is a persistent panel below the editor. Drag its top edge to resize it; its height is remembered per view. Like either sidebar, it holds one view at a time and participates in the same one-level displacement behavior.
 * **`page-top` / `page-bottom`** render as in-document widgets, above and below the page content respectively -- not as panels with a filter box. A page-docked view renders when its persisted (or default) open state is `true` and refreshes on the events its `refreshOn` names. `refreshOnOpen` does **not** apply: that is a panel activation, and a page dock has no such moment -- it is simply present or not. A **list** view caps its rows at `presentation.limit` (default 200) with an "*N* more" line for the rest; a **tree** view is deliberately uncapped, because a cap that removed a subtree would change the shape of the tree rather than just its length. Every row is keyboard-activatable (`Enter`/`Space`, same as a click) and runs `onSelect`; in a tree, `ArrowRight`/`ArrowLeft` expand and collapse the focused row. There's no fuzzy filter box on a page dock. A page widget with an empty result (no rows, no error) renders **nothing at all** -- no title bar, no dock button, no × -- even while its persisted open state is `true`; the chrome only appears once there's something to show.
 * **`modal`** is a centered, transient overlay: it clears its phrase on open and dismisses when you pick something. It has no persisted open state -- there's nowhere to "stay open". Picking a different dock from its own dock menu closes the modal it was picked from, the same as any other dock-to-dock move.
 
-On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over the editor, spanning everything below the top bar. It dismisses on selection like the modal, and has no resize handle. Boot restore and `openOnStart` are skipped there entirely. Page docks are unaffected by screen width -- they're already part of the document flow.
+On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over the editor, spanning everything below the top bar. It dismisses on selection like the modal, and has no resize handle. The bottom panel also has no resize handle there. Boot restore and `openOnStart` are skipped there entirely. Page docks are unaffected by screen width -- they're already part of the document flow.
 
 #### Persisted state and precedence
 A few pieces of state are remembered per view, in the client’s local datastore:
@@ -47,12 +48,13 @@ A few pieces of state are remembered per view, in the client’s local datastore
 * `["navigator", <name>, "open"]`: whether the view is currently showing, for both dock families.
 * `["navigator", <name>, "collapsed"]`: whether a page-docked view is folded to its title bar.
 * `["navigator", <name>, "width"]`: the sidebar width the view was last dragged to, in pixels. Ignored outside `lhs`/`rhs`.
+* `["navigator", <name>, "height"]`: the bottom panel height the view was last dragged to, in pixels. Ignored outside `bhs`.
 
 Each of those is resolved the same way, falling through whenever a level's value isn't valid for the view:
 
 1. the datastore value above, if the view still supports it;
 2. the space’s `view.defaults` config (below);
-3. the view’s own declared value — `dock` and `defaultOpen` from `view.define`. `collapsed` and `width` have no declared level.
+3. the view’s own declared value — `dock` and `defaultOpen` from `view.define`. `collapsed`, `width` and `height` have no declared level.
 
 `view.defaults` is a space-wide table of presentation defaults, set in [[CONFIG]] and keyed by view name:
 
@@ -65,17 +67,18 @@ config.set("view.defaults", {
 
 Because config paths nest, one view's defaults can also be set on their own -- `config.set({"view", "defaults", "std.toc"}, { dock = "page-top" })` -- so a library can ship a default that a space overrides one view at a time.
 
-Four fields, and they are defaults: a client that has moved, resized, folded or closed the view keeps its own choice. `Navigate: Reset All Views` forgets every such choice on that client, which is what makes a later `CONFIG` edit visible there.
+Five fields, and they are defaults: a client that has moved, resized, folded or closed the view keeps its own choice. `Navigate: Reset All Views` forgets every such choice on that client, which is what makes a later `CONFIG` edit visible there.
 
-* `dock`: one of the five dock names. Only takes effect for a view whose `supportedDocks` includes it.
-* `open`: whether the view is showing. On a page dock that is the difference between the widget rendering and nothing rendering at all; on a sidebar it is whether the panel comes back at boot. Ignored for `modal`, which has no persisted open state. It overrides a page-docked view's declared `defaultOpen`; on a sidebar there is no declared level, because `defaultOpen` remains page-dock-only.
+* `dock`: one of the six dock names. Only takes effect for a view whose `supportedDocks` includes it.
+* `open`: whether the view is showing. On a page dock that is the difference between the widget rendering and nothing rendering at all; on a sidebar or the bottom panel it is whether the panel comes back at boot. Ignored for `modal`, which has no persisted open state. It overrides a page-docked view's declared `defaultOpen`; on a window dock there is no declared level, because `defaultOpen` remains page-dock-only.
 * `collapsed`: whether a page widget starts folded to its title bar. Ignored outside `page-top`/`page-bottom`.
 * `width`: a sidebar's width in pixels, which must be between 160 and 600.
+* `height`: the `bhs` panel's height in pixels, which must be between 160 and 600.
 
 #### The dock menu
 Every container a navigator view renders in -- sidebar, modal, or page widget -- gets this chrome in its header/title bar automatically, with no code required beyond declaring `supportedDocks`:
 
-* A **dock button**, whose icon depicts the view's current dock (a portrait page glyph for `page-top`/`page-bottom`, a landscape window glyph for `lhs`/`rhs`/`modal`). Clicking it opens a menu listing every dock in `supportedDocks` by name -- "Top of page", "Bottom of page", "Left sidebar", "Right sidebar", "Modal only" -- picking one moves the view there immediately, closing whichever dock (including the modal) it was picked from. A view with fewer than two `supportedDocks` gets no dock button.
+* A **dock button**, whose icon depicts the view's current dock. Clicking it opens a menu listing every dock in `supportedDocks` by name -- "Top of page", "Bottom of page", "Left sidebar", "Right sidebar", "Bottom panel", "Modal only" -- picking one moves the view there immediately, closing whichever dock (including the modal) it was picked from. A view with fewer than two `supportedDocks` gets no dock button.
 * An unconditional **× close button**. Closing never changes the view's dock preference -- only whether it's currently open. Re-invoking the view's command afterwards shows-or-focuses it again in whichever dock it was last moved to.
 * On a **page dock only**, a **fold triangle** at the left of the title, and the title itself, toggle the widget between its full body and its title bar alone. A sidebar or the modal is already its own container and gets no triangle. The choice is persisted per view like the dock is, so a folded widget stays folded across a reload and a page navigation.
 
@@ -132,7 +135,7 @@ view.define {
   title = "Linked Mentions",
   command = "Navigate: My Linked Mentions",
   dock = "page-bottom",
-  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "modal" },
+  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = true,
   refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
   content = function(ctx)
@@ -146,7 +149,7 @@ What you get:
 * The markdown goes through **the same renderer an inline Lua widget's `markdown` goes through**. Wiki links resolve and navigate locally, `widgets.commandButton` buttons run their commands, transclusions and `${...}` directives expand, and custom syntax renders.
 * **Tasks are tickable.** A task carrying a `[[page@pos]]` ref — everything `templates.taskItem` builds — renders a live checkbox that writes the new state straight back to the page the task lives on. (A task without one gets a ref to the current page; the write is re-checked against the marker before it lands, so a stale ref does nothing.)
 * The title bar carries a **Copy** button putting the markdown *source* on the clipboard, exactly like the inline Lua widget button bar's Copy.
-* It renders **identically in every dock** — page-top, page-bottom, either sidebar, or a modal. Only the frame around it differs.
+* It renders **identically in every dock** — page-top, page-bottom, either sidebar, the bottom panel, or a modal. Only the frame around it differs.
 
 Things a content view doesn't have, because it has no rows: `onSelect` (the one shape of view that doesn't require it), a filter input (suppressed automatically, whatever `filter` says), `presentation.row`, `segments`, `dropdown`, `actions`, `keymap`, `onCreate` and `onMove`. Everything else — the chrome, the docking fields, `refreshOn`/`refreshOnOpen`, `defaultOpen`, `openOnStart` — works exactly as it does for a row view; `refreshOn` re-runs `content` rather than `source`.
 
@@ -407,7 +410,7 @@ Opens the view registered under `name`, and returns whether the view opened. (A 
 
 Returns focus to an open navigator panel's input, keeping its current selection.
 
-* `slot?`: which panel -- `"modal"`, `"lhs"` or `"rhs"`. Defaults to any open one.
+* `slot?`: which panel -- `"modal"`, `"lhs"`, `"rhs"` or `"bhs"`. Defaults to any open one.
 
 ## view.moveByRename(obj, newName)
 `view.moveByRename(obj, newName)`

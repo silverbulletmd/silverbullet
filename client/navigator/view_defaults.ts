@@ -8,14 +8,15 @@
 
 import { ALL_DOCKS } from "./types.ts";
 
-const MIN_WIDTH = 160;
-const MAX_WIDTH = 600;
+const MIN_DOCK_SIZE = 160;
+const MAX_DOCK_SIZE = 600;
 
 export type ViewDefaults = {
   dock?: string;
   open?: boolean;
   collapsed?: boolean;
   width?: number;
+  height?: number;
 };
 
 export type ViewDefaultsTable = Record<string, ViewDefaults>;
@@ -33,7 +34,7 @@ export function normalizeViewDefaults(raw: unknown): ViewDefaultsTable {
       continue;
     }
     const entry: ViewDefaults = {};
-    const { dock, open, collapsed, width } = value;
+    const { dock, open, collapsed, width, height } = value;
     if (dock !== undefined) {
       if (
         typeof dock === "string" &&
@@ -54,9 +55,16 @@ export function normalizeViewDefaults(raw: unknown): ViewDefaultsTable {
     }
     if (width !== undefined) {
       if (typeof width === "number" && Number.isFinite(width)) {
-        entry.width = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
+        entry.width = Math.min(MAX_DOCK_SIZE, Math.max(MIN_DOCK_SIZE, width));
       } else {
         console.warn(`view.defaults: ignoring width for "${name}"`);
+      }
+    }
+    if (height !== undefined) {
+      if (typeof height === "number" && Number.isFinite(height)) {
+        entry.height = Math.min(MAX_DOCK_SIZE, Math.max(MIN_DOCK_SIZE, height));
+      } else {
+        console.warn(`view.defaults: ignoring height for "${name}"`);
       }
     }
     if (Object.keys(entry).length > 0) out[name] = entry;

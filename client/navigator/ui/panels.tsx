@@ -12,7 +12,7 @@ export function NavigatorDock({
   state,
   client,
 }: {
-  slot: "lhs" | "rhs";
+  slot: "lhs" | "rhs" | "bhs";
   state?: NavSlotState;
   client: Client;
 }) {

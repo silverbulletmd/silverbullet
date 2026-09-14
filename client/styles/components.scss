@@ -370,6 +370,19 @@ textarea,
   left: 0;
 }
 
+.sb-resizer-bhs {
+  inset: 0 0 auto;
+  width: 100%;
+  height: 6px;
+  cursor: row-resize;
+}
+
+.sb-resizer-bhs::after {
+  inset: 0 0 auto;
+  width: 100%;
+  height: 2px;
+}
+
 .sb-row-actions {
   position: absolute;
   top: 0;

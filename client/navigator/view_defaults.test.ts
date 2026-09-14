@@ -51,6 +51,18 @@ test("clamps width to the panel bounds", () => {
   ).toEqual({ a: { width: 160 }, b: { width: 600 } });
 });
 
+test("keeps bhs and clamps its configured height", () => {
+  expect(
+    normalizeViewDefaults({
+      short: { dock: "bhs", height: 40 },
+      tall: { dock: "bhs", height: 5000 },
+    }),
+  ).toEqual({
+    short: { dock: "bhs", height: 160 },
+    tall: { dock: "bhs", height: 600 },
+  });
+});
+
 test("a non-table argument yields an empty table", () => {
   expect(normalizeViewDefaults(undefined)).toEqual({});
   expect(normalizeViewDefaults("nope")).toEqual({});

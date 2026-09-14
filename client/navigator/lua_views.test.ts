@@ -55,7 +55,7 @@ const rejections: [string, string, string][] = [
   [
     "openOnStart on a modal",
     `name = "v", openOnStart = true, ${SOURCE}, ${ON_SELECT}`,
-    'view.define: openOnStart requires dock "lhs" or "rhs"',
+    'view.define: openOnStart requires dock "lhs", "rhs" or "bhs"',
   ],
   ["missing name", `${SOURCE}, ${ON_SELECT}`, "view.define: name is required"],
   [
@@ -232,7 +232,7 @@ const rejections: [string, string, string][] = [
   [
     "unknown dock",
     `name = "v", ${SOURCE}, ${ON_SELECT}, dock = "left"`,
-    "view.define: dock must be one of lhs, rhs, modal, page-top, page-bottom",
+    "view.define: dock must be one of lhs, rhs, bhs, modal, page-top, page-bottom",
   ],
   [
     "unknown presentation mode",
@@ -956,7 +956,14 @@ test("a dropdown key that is not a function is refused", () => {
 });
 
 test("dock accepts the full vocabulary", () => {
-  for (const dock of ["lhs", "rhs", "modal", "page-top", "page-bottom"]) {
+  for (const dock of [
+    "lhs",
+    "rhs",
+    "bhs",
+    "modal",
+    "page-top",
+    "page-bottom",
+  ]) {
     const meta = wireMeta({
       name: "t",
       source: () => [],
@@ -965,6 +972,14 @@ test("dock accepts the full vocabulary", () => {
     });
     expect(meta.dock).toBe(dock);
   }
+});
+
+test("openOnStart accepts the bottom-half dock", () => {
+  expect(
+    define(
+      `name = "v", dock = "bhs", openOnStart = true, ${SOURCE}, ${ON_SELECT}`,
+    ),
+  ).not.toThrow();
 });
 
 test("dock rejects unknown values", () => {

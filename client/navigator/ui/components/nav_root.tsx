@@ -219,14 +219,14 @@ export function NavRoot({
     truncated,
   } = derived;
 
-  const isSidebar = slot !== "modal";
+  const isDock = slot !== "modal";
   const placeholder =
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
   const noFilter = !!view?.meta.noFilter;
 
   // A drawer has no draggable edge, so it needs no room reserved beside its
   // scrollbar either -- the class that reserves it goes with the handle.
-  const showResizer = isSidebar && !mobile;
+  const showResizer = isDock && !mobile;
 
   return (
     <div
@@ -485,8 +485,14 @@ export function NavRoot({
           and the handle would only sit over the first column of every row. */}
       {showResizer && (
         <ResizeHandle
-          slot={slot as "lhs" | "rhs"}
-          onResize={(width, commit) => void resize({ slot, width, commit })}
+          slot={slot as "lhs" | "rhs" | "bhs"}
+          onResize={(size, commit) =>
+            void resize(
+              slot === "bhs"
+                ? { slot, height: size, commit }
+                : { slot, width: size, commit },
+            )
+          }
         />
       )}
     </div>

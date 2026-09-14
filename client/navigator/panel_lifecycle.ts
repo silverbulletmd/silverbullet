@@ -1,6 +1,6 @@
 /**
  * The content-agnostic half of the navigator's dock/panel management:
- * activation tokens, sidebar/modal show-hide-resize plumbing and boot
+ * activation tokens, window-dock/modal show-hide-resize plumbing and boot
  * restore. Mounting itself is `ui/slots.ts`; see `navigator.ts` for the
  * consumer that gives these slots their Lua/pick vocabulary.
  */
@@ -51,15 +51,18 @@ export type HideOpts = {
    * Defaults to `true`.
    */
   recordIntent?: boolean;
+  /** Whether a view displaced from this slot should return. Defaults to true. */
+  restoreDisplaced?: boolean;
 };
 
 const NAMESPACE = "navigator";
 const MODAL_SLOT = "modal";
 /** The modal's inset, in pixels. */
 const MODAL_MODE = 100;
-const MIN_WIDTH = 160;
-const MAX_WIDTH = 600;
+const MIN_DOCK_SIZE = 160;
+const MAX_DOCK_SIZE = 600;
 const DEFAULT_WIDTH = 260;
+const DEFAULT_HEIGHT = 300;
 
 export type PanelLifecycleConfig = {
   sidebarSlots?: string[];
@@ -76,27 +79,35 @@ export type PanelLifecycleConfig = {
   onSlotClosedWithoutSuccessor?(view: string): void;
   /** Resolves the slot a view actually opens in, overriding `meta.dock`. */
   resolveDock?(name: string, meta: PanelLifecycleMeta): Promise<string>;
-  /** The space's configured width for a view, if it set one. */
+  /** The space's configured sidebar width for a view, if it set one. */
   defaultWidth?(name: string): number | undefined;
+  /** The space's configured bottom-panel height for a view, if it set one. */
+  defaultHeight?(name: string): number | undefined;
   /** Views the space configured open, for the boot-restore pass. */
   getDefaultOpens?(): string[];
-  /** Whether a sidebar view opens at boot. */
+  /** Whether a window-docked view opens at boot. */
   sidebarDefaultOpen?(name: string): Promise<boolean>;
 };
 
 export function createPanelLifecycle(config: PanelLifecycleConfig) {
-  const sidebarSlots = config.sidebarSlots ?? ["lhs", "rhs"];
+  const sidebarSlots = config.sidebarSlots ?? ["lhs", "rhs", "bhs"];
 
-  function clampWidth(width: number): number {
-    return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
+  function clampSize(size: number): number {
+    return Math.min(MAX_DOCK_SIZE, Math.max(MIN_DOCK_SIZE, size));
   }
 
-  function widthMode(width: number): string {
-    return `0 0 ${clampWidth(width)}px`;
+  function sizeMode(size: number): string {
+    return `0 0 ${clampSize(size)}px`;
   }
 
-  function startingWidth(name: string): number {
-    return config.defaultWidth?.(name) ?? DEFAULT_WIDTH;
+  function sizeKey(slot: string): "width" | "height" {
+    return slot === "bhs" ? "height" : "width";
+  }
+
+  function startingSize(name: string, slot: string): number {
+    return slot === "bhs"
+      ? (config.defaultHeight?.(name) ?? DEFAULT_HEIGHT)
+      : (config.defaultWidth?.(name) ?? DEFAULT_WIDTH);
   }
 
   function dockedKey(slot: string) {
@@ -106,10 +117,12 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
   // Activation tokens distinguish late close/paint signals from the current view.
   const pendingActivation = new Map<string, Activation>();
   let activationToken = 0;
+  let invalidationToken = 0;
+  const slotInvalidatedAt = new Map<string, number>();
 
-  // Track the visible view for width commits; clearing on hide prevents a late
+  // Track the visible view for size commits; clearing on hide prevents a late
   // drag tick from reopening the panel.
-  const visibleSidebarView = new Map<string, string>();
+  const visibleDockView = new Map<string, string>();
 
   const displaced = new Map<string, string>();
 
@@ -129,6 +142,7 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     passive: boolean,
     opts?: OpenOpts,
   ): Promise<boolean> {
+    const startedAt = invalidationToken;
     const meta = config.getMeta(name);
     if (!meta) {
       if (!opts?.quiet) {
@@ -142,12 +156,13 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     const slot = config.resolveDock
       ? await config.resolveDock(name, meta)
       : meta.dock;
+    if ((slotInvalidatedAt.get(slot) ?? 0) > startedAt) return false;
 
     if (
       !passive &&
       opts?.focus !== false &&
       slot !== MODAL_SLOT &&
-      visibleSidebarView.get(slot) === name &&
+      visibleDockView.get(slot) === name &&
       focusedSlot() === slot
     ) {
       await hide(slot);
@@ -174,15 +189,16 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
       }
       let mode: number | string = MODAL_MODE;
       if (slot !== MODAL_SLOT) {
-        const saved = await datastore.get([NAMESPACE, name, "width"]);
-        mode = widthMode(
-          typeof saved === "number" ? saved : startingWidth(name),
+        const saved = await datastore.get([NAMESPACE, name, sizeKey(slot)]);
+        if (pendingActivation.get(slot)?.token !== token) return false;
+        mode = sizeMode(
+          typeof saved === "number" ? saved : startingSize(name, slot),
         );
       }
       slotMode.set(slot, mode);
       showSlot(slot, mode, activation, slot === MODAL_SLOT);
       if (slot !== MODAL_SLOT) {
-        visibleSidebarView.set(slot, name);
+        visibleDockView.set(slot, name);
         await datastore.set(dockedKey(slot), name);
         await datastore.set([NAMESPACE, name, "open"], true);
       }
@@ -223,13 +239,15 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
       showSlot(
         slot,
         slotMode.get(slot) ??
-          (slot === MODAL_SLOT ? MODAL_MODE : widthMode(startingWidth(name))),
+          (slot === MODAL_SLOT
+            ? MODAL_MODE
+            : sizeMode(startingSize(name, slot))),
         activation,
         // A hop swaps the rows under a panel that is already on screen:
         // gating it would blank what the user is looking at.
         false,
       );
-      if (slot !== MODAL_SLOT) visibleSidebarView.set(slot, name);
+      if (slot !== MODAL_SLOT) visibleDockView.set(slot, name);
     } finally {
       if (previous && previous.view !== name) {
         config.onSuperseded?.(previous.view);
@@ -249,7 +267,8 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     ) {
       return;
     }
-    visibleSidebarView.delete(slot);
+    slotInvalidatedAt.set(slot, ++invalidationToken);
+    visibleDockView.delete(slot);
     pendingActivation.delete(slot);
     if (pending) config.onSlotClosedWithoutSuccessor?.(pending.view);
     if (sidebarSlots.includes(slot)) {
@@ -268,7 +287,14 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     }
     const back = displaced.get(slot);
     displaced.delete(slot);
-    if (back && config.getMeta(back)) {
+    if (back && opts?.restoreDisplaced === false) {
+      hideSlot(slot);
+      if (opts.recordIntent !== false) {
+        await datastore.set([NAMESPACE, back, "open"], false);
+      }
+      return;
+    }
+    if (back && opts?.restoreDisplaced !== false && config.getMeta(back)) {
       await activateShow(back, true);
       return;
     }
@@ -277,18 +303,22 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
 
   async function resize(data: {
     slot: string;
-    width: number;
+    width?: number;
+    height?: number;
     commit?: boolean;
   }): Promise<void> {
-    const name = visibleSidebarView.get(data.slot);
+    const name = visibleDockView.get(data.slot);
     if (!name || !pendingActivation.has(data.slot)) return;
-    const width = clampWidth(data.width);
+    const key = sizeKey(data.slot);
+    const requested = key === "height" ? data.height : data.width;
+    if (requested === undefined) return;
+    const size = clampSize(requested);
     if (data.commit) {
-      await datastore.set([NAMESPACE, name, "width"], width);
+      await datastore.set([NAMESPACE, name, key], size);
     }
     const activation = pendingActivation.get(data.slot);
     if (!activation) return;
-    const mode = widthMode(width);
+    const mode = sizeMode(size);
     slotMode.set(data.slot, mode);
     showSlot(data.slot, mode, activation);
   }

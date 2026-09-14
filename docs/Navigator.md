@@ -4,7 +4,7 @@ tags: maturity/beta
 references:
 - client/navigator/*
 ---
-The **navigator** is SilverBullet’s generalized navigation UI: it takes any collection of [[Object|objects]] and shows it as a fuzzy-filterable **list** or **tree**, either as a modal overlay or as a sidebar that stays open. The [[Page Picker]], the [[Command Palette]], and many others are all built on this abstraction.
+The **navigator** is SilverBullet’s generalized navigation UI: it takes any collection of [[Object|objects]] and shows it as a fuzzy-filterable **list** or **tree**, as a modal overlay, persistent sidebar or bottom panel, or page widget. The [[Page Picker]], the [[Command Palette]], and many others are all built on this abstraction.
 
 # Built-in navigators
 * [[Page Picker]]: `Cmd-k`/`Ctrl-k`. The whole space as a modal list, most recently opened first.
@@ -64,13 +64,14 @@ view.define {
 See **[[API/view]] for the full field reference**: every key of `spec` and of `presentation`, with what each one does.
 
 # Docks
-`dock` decides where a view opens, out of five places:
+`dock` decides where a view opens, out of six places:
 
 * `"modal"` (the default) is a centered overlay. It clears its phrase on open and dismisses when you pick something.
 * `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar holds one view at a time -- docking a second view there displaces whichever one was already showing, which comes back on its own once the newcomer moves away.
+* `"bhs"` is a persistent bottom panel below the editor. It is resizable by its top edge, the height is remembered per view, and it otherwise behaves like the sidebars.
 * `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in navigators|Table of Contents]] can be moved to one from its dock menu but opens as a modal by default.
 
-A view's body is a list, a tree, or — for a [[API/view#content|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all five docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
+A view's body is a list, a tree, or — for a [[API/view#content|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 
 # The dock menu
 Any view whose `supportedDocks` lists more than one place gets a **dock menu**: a button in its header (sidebar/modal title bar, or page-widget bar) whose icon shows the current dock, opening a list of the places it can move to.

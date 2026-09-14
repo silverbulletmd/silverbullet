@@ -8,6 +8,7 @@ const LABELS: Record<string, string> = {
   "page-bottom": "Bottom of page",
   lhs: "Left sidebar",
   rhs: "Right sidebar",
+  bhs: "Bottom panel",
   modal: "Modal only",
 };
 
@@ -23,6 +24,7 @@ function dockIcon(dock: string) {
     "page-bottom": <rect x="5" y="10.5" width="6" height="2.5" rx="0.5" />,
     lhs: <rect x="3.5" y="4.5" width="3" height="7" rx="0.5" />,
     rhs: <rect x="9.5" y="4.5" width="3" height="7" rx="0.5" />,
+    bhs: <rect x="3.5" y="9" width="9" height="2.5" rx="0.5" />,
     modal: <rect x="4.5" y="5" width="7" height="4.5" rx="0.5" />,
   };
   return (
