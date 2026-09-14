@@ -7,6 +7,7 @@ An attempt at documenting the changes/new features introduced in each release.
   * There are probably still issues, this will need some time
 * Significant **multi-space server upgrade and revamp**:
   * Profile menu giving access to profile editing, list of all spaces, login, logout
+  * Hostname and path-prefix bindings can now be composed, so one custom hostname can serve multiple non-overlapping spaces such as `/work` and `/wiki`, with shared setup, creation, and settings controls.
   * Read/Write/Runtime API permissions per user
   * SSO user creation asks for email before suggesting a username.
   * Public space support (no auth)

@@ -1,4 +1,5 @@
 ---
+tags: administration
 references:
 - bin/silverbullet/src/boot.rs
 - server/src/multi/setup.rs
@@ -29,12 +30,38 @@ There is no self-service signup. Admins create accounts. There is no password re
 Spaces have a name and point to a folder where its content is kept. By default this will be inside the SilverBullet data folder, but you can pick any folder you like.
 
 ## Bindings
-Spaces support either binding, including when a primary URL is configured:
+Each space has a public address composed from a hostname and a path. `spaces.json` accepts three binding forms:
 
-* **URL prefix**: e.g. `/work`. A bare `/` binds a space at the root (allowed once). Prefixes must not overlap (`/work` and `/work/sub` can’t coexist, nor can two spaces both bind `/`).
-* **Hostname**: e.g. `notes.example.com`, matched on the `Host` header of the main listener. Point wildcard DNS or per-host reverse-proxy rules at the server.
+```json
+{ "prefix": "/work" }
+{ "host": "notes.example.com" }
+{ "host": "team.example.com", "prefix": "/work" }
+{ "host": "notes.home:3000", "prefix": "/work" }
+```
 
-A host binding gives a space its own origin, which is what isolates it from other spaces in the browser — see [[Security Profiles]] for when that matters.
+The first form mounts `/work` on the server's primary/current host, the second mounts `/` on a custom hostname, and the remaining forms mount `/work` on a custom hostname, optionally with an explicit port. A bare hostname uses the default port for its HTTP or HTTPS scheme; it never inherits the port on the Primary URL or the browser's current address. Include the port in `host`, as in `notes.home:3000`, when the public address uses a non-default port.
+
+Bindings are matched case-insensitively against the main listener's complete `Host` header, with a terminal DNS dot ignored. A bare hostname and the same hostname with an explicit port are distinct scopes: `notes.home` and `notes.home:3000` may each use the same path without ambiguity. Within each normalized host scope, one host may have either one space at `/` or multiple spaces at mutually non-overlapping non-root paths such as `/work` and `/wiki`; it cannot newly mix a root mapping with prefixed mappings. Exact duplicates and nested paths such as `/work` and `/work/private` are also rejected. Identical paths on different hosts are independent. A custom host claims its scope, so an unmatched path on it returns not found instead of falling through to a primary-host mapping.
+
+Older configurations that already mix `/` with prefixed spaces on one hostname continue to boot and route the most specific path first. Space Manager and the server log show an actionable warning; unrelated saves and changes that reduce or remove the conflict remain possible, while changes that introduce, replace, or expand a conflict are rejected.
+
+The setup wizard, **Create space**, and **Space settings → General** use the same address editor. Choose the primary host, a previously configured custom hostname or `hostname:port`, or **New hostname**, then choose a path. Existing host choices show their occupied paths; a host occupied at `/` remains visible but is unavailable for another mapping. The editor shows the complete public URL, and a newly entered custom host gets an advisory browser check that it reaches this server.
+
+A custom hostname gives its spaces an origin distinct from spaces on other hostnames, which is what provides browser isolation. Paths on the same hostname do not isolate one another: `https://team.example.com/work/` and `https://team.example.com/wiki/` share one browser origin, session boundary, and trust boundary. Use separate hostnames for mutually untrusted writer spaces; see [[Security Profiles]].
+
+Point wildcard DNS or per-host reverse-proxy rules at the server and preserve both the original `Host` header and request path. For example, this nginx configuration forwards `https://team.example.com/work/` unchanged rather than stripping `/work`:
+
+```nginx
+server {
+  server_name team.example.com;
+
+  location / {
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_pass http://127.0.0.1:3000;
+  }
+}
+```
 
 ## Access
 Access to a space resolves to one of three levels:
