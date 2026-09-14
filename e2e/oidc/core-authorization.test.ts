@@ -105,7 +105,7 @@ test("SSO continues App authorization and browser logout preserves device creden
     });
     await coreApi(fixture.adminPage, "POST", "admin/spaces", {
       name: "Notes",
-      binding: { host: "notes.test" },
+      binding: { host: new URL(fixture.oidc.notesOrigin).host },
       members: { river: {} },
       seedIndex: true,
     });

@@ -27,7 +27,7 @@ for (const uploadBlocked of [false, true]) {
           "admin/spaces",
           {
             name: "Research",
-            binding: { host: "research.test" },
+            binding: { host: new URL(fixture.oidc.researchOrigin).host },
             seedIndex: true,
           },
         );

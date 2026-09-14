@@ -30,7 +30,7 @@ test("SSO defers encryption in the manager, then chooses and safely unlocks the 
     });
     await coreApi(fixture.adminPage, "POST", "admin/spaces", {
       name: "Notes",
-      binding: { host: "notes.test" },
+      binding: { host: new URL(fixture.oidc.notesOrigin).host },
       members: { river: {} },
       seedIndex: true,
     });
@@ -128,7 +128,7 @@ test("local login unlocks an encrypted space through its popup", async ({
   try {
     await coreApi(fixture.adminPage, "POST", "admin/spaces", {
       name: "Research",
-      binding: { host: "research.test" },
+      binding: { host: new URL(fixture.oidc.researchOrigin).host },
       seedIndex: true,
     });
     const context = await fixture.browser.newContext();

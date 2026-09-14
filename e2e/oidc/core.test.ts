@@ -25,13 +25,13 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
     });
     await coreApi(adminPage, "POST", "admin/spaces", {
       name: "Notes",
-      binding: { host: "notes.test" },
+      binding: { host: new URL(oidc.notesOrigin).host },
       members: { river: {} },
       seedIndex: true,
     });
     await coreApi(adminPage, "POST", "admin/spaces", {
       name: "Research",
-      binding: { host: "research.test" },
+      binding: { host: new URL(oidc.researchOrigin).host },
       members: { river: {} },
       seedIndex: true,
     });
