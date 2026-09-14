@@ -31,10 +31,10 @@ export function AdminStep({
       <h1>Welcome to SilverBullet!</h1>
       <p class="sb-help-text">Step 1 of 2</p>
       <p>
-        This server has not been configured yet. Nevertheless, DO NOT PANIC, it
+        This server has not been configured yet. DO NOT PANIC! It
         only takes two quick steps: first creating an administrator account,
         then configuring your first space. You can add more spaces and users
-        later (if you were so to desire) in the spaces UI.
+        later (if you were so to desire).
       </p>
       <FieldErrors errors={errors} />
       <label for="setup-username">Username</label>
@@ -47,6 +47,9 @@ export function AdminStep({
         value={values.username}
         onInput={(e) => onChange({ username: e.currentTarget.value })}
       />
+      <p class="sb-help-text">
+        It is wise, but not required, to create an admin account dedicated purely for admin purposes.
+      </p>
       <label for="setup-password">Password</label>
       <Input
         id="setup-password"

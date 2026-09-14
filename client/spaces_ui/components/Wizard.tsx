@@ -23,7 +23,7 @@ export function Wizard() {
   const [step, setStep] = useState<Step>("admin");
 
   const [admin, setAdmin] = useState<AdminValues>({
-    username: "",
+    username: "admin",
     password: "",
     password2: "",
     fullName: "",

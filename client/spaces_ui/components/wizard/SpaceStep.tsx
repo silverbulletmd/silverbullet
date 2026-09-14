@@ -43,13 +43,7 @@ export function SpaceStep({
       <h1>Create your first space</h1>
       <p class="sb-help-text">Step 2 of 2</p>
       <FieldErrors errors={errors} />
-      <label for="setup-space-name">Name</label>
-      <Input
-        id="setup-space-name"
-        value={values.name}
-        onInput={(e) => onNameInput(e.currentTarget.value)}
-      />
-      <label for="setup-primary-url">Primary URL</label>
+      <label for="setup-primary-url">Server URL</label>
       <Input
         id="setup-primary-url"
         type="url"
@@ -58,9 +52,14 @@ export function SpaceStep({
         onInput={(e) => onPrimaryUrlChange(e.currentTarget.value)}
       />
       <p class="sb-help-text">
-        Confirm the public origin for server management and sign-in. The current
-        browser origin is suggested.
+        Confirm the public origin for server management and sign-in.
       </p>
+      <label for="setup-space-name">Name of your first space</label>
+      <Input
+        id="setup-space-name"
+        value={values.name}
+        onInput={(e) => onNameInput(e.currentTarget.value)}
+      />
       <BindingFields
         binding={values.binding}
         primaryUrl={primaryUrl}
@@ -85,13 +84,13 @@ export function SpaceStep({
         }
       >
         <option value="disabled">
-          Disabled — revision support switched off entirely
+          Disabled: revision support switched off
         </option>
         <option value="managed">
-          Managed — SilverBullet periodically commits automatically
+          Managed: SilverBullet periodically commits automatically
         </option>
         <option value="unmanaged">
-          Unmanaged — show revisions only, no auto commit
+          Unmanaged: show revisions only, no auto commit
         </option>
       </Select>
       <div class="row">

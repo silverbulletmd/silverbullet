@@ -400,13 +400,13 @@ export function SpaceForm({
             }
           >
             <option value="disabled">
-              Disabled — revision support switched off entirely
+              Disabled: revision support switched off
             </option>
             <option value="managed">
-              Managed — SilverBullet periodically commits automatically
+              Managed: SilverBullet periodically commits automatically
             </option>
             <option value="unmanaged">
-              Unmanaged — show revisions only, no auto commit
+              Unmanaged: show revisions only, no auto commit
             </option>
           </Select>
           {connectionDraft && (
