@@ -1,5 +1,5 @@
 ---
-tags: getting-started
+tags: administration
 references:
 - bin/silverbullet/src/config.rs
 - bin/silverbullet/src/server.rs

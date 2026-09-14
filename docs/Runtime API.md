@@ -1,5 +1,5 @@
 ---
-tags: maturity/experimental
+tags: maturity/experimental administration
 references:
 - bin/silverbullet/src/server.rs
 - bin/sb/src/commands/query.rs

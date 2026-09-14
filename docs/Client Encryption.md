@@ -1,5 +1,5 @@
 ---
-tags: maturity/beta
+tags: maturity/beta administration
 references:
 - client/data/encrypted_kv_primitives.ts
 - client/data/indexeddb_kv_primitives.ts

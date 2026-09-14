@@ -62,6 +62,16 @@ local navPages = {
   "Install/Binary",
   "Manual",
 
+  -- Admin
+  "Administration",
+  { name = "Administration/Space Manager", ref = "Space Manager"}, 
+  { name = "Administration/Authentication", ref = "Authentication"}, 
+  { name = "Administration/Single Sign-On", ref = "Single Sign-On"}, 
+  { name = "Administration/Security", ref = "Security"}, 
+  { name = "Administration/Client Encryption", ref = "Client Encryption"}, 
+  { name = "Administration/Runtime API", ref = "Runtime API"}, 
+
+  -- Guides
   { name = "Guides", ref = "Guide" },
   { name = "Guides/Getting Started", ref = "Getting Started" },
   { name = "Guides/Best Practices", ref = "Guide/Best Practices" },
@@ -95,9 +105,7 @@ local navPages = {
   { name = "Features/Virtual Pages", ref = "Virtual Pages" },
   { name = "Features/Vim", ref = "Vim" },
   { name = "Features/Configuration Manager", ref = "Configuration Manager" },
-  { name = "Features/Space Manager", ref = "Space Manager" },
   { name = "Features/Extensions", ref = "Extensions" },
-  { name = "Features/Authentication", ref = "Authentication" },
   { name = "Features/Client Encryption", ref = "Client Encryption" },
   { name = "Features/CLI", ref = "CLI" },
   { name = "Features/Runtime API", ref = "Runtime API" },
