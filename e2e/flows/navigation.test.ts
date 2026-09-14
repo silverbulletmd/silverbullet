@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   currentPage,
   expectNavInputFocused,
@@ -15,6 +15,43 @@ import {
   waitForPersistedContent,
 } from "../fixtures/core.ts";
 
+async function decoratedRowGeometry(row: Locator) {
+  return row.evaluate((element) => {
+    const rowRect = element.getBoundingClientRect();
+    const titleWidth = element
+      .querySelector(".sb-nav-primary")!
+      .getBoundingClientRect().width;
+    const trailing = element.querySelector(".sb-nav-trailing");
+    if (!trailing) {
+      return {
+        rowWidth: rowRect.width,
+        rowHeight: rowRect.height,
+        titleWidth,
+        chipRatios: [],
+      };
+    }
+    const clip = trailing.getBoundingClientRect();
+    const chipRatios = [...trailing.children].map((child) => {
+      const chip = child.getBoundingClientRect();
+      const visibleWidth = Math.max(
+        0,
+        Math.min(chip.right, clip.right) - Math.max(chip.left, clip.left),
+      );
+      const visibleHeight = Math.max(
+        0,
+        Math.min(chip.bottom, clip.bottom) - Math.max(chip.top, clip.top),
+      );
+      return (visibleWidth * visibleHeight) / (chip.width * chip.height);
+    });
+    return {
+      rowWidth: rowRect.width,
+      rowHeight: rowRect.height,
+      titleWidth,
+      chipRatios,
+    };
+  });
+}
+
 test.describe("page and command navigation", () => {
   test.use({
     spaceFiles: {
@@ -22,7 +59,53 @@ test.describe("page and command navigation", () => {
       "Fruit Apple.md": "Apple notes",
       "Fruit Banana.md": "Banana notes",
       "Fruit Cherry.md": "Cherry notes",
+      "Plan.md": "---\ntags: [planning, active]\n---\n",
+      "Projects/Medium Length Roadmap.md":
+        "---\ntags: [extraordinarily-long-tag]\ndescription: Summary\n---\n",
+      "Projects/Quarterly Roadmap For Product Launch.md":
+        "---\ntags: [planning, roadmap, active, review]\n---\n",
     },
+  });
+
+  test("page titles take precedence over tags at narrow widths", async ({
+    sbPage,
+  }) => {
+    await sbPage.setViewportSize({ width: 390, height: 844 });
+    const frame = await openPagePicker(sbPage);
+    const row = frame.locator(".sb-nav-row", {
+      hasText: "Projects/Quarterly Roadmap For Product Launch",
+    });
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    const plainRow = frame.locator(".sb-nav-row", { hasText: "Fruit Apple" });
+    const shortRow = frame
+      .locator(".sb-nav-primary")
+      .filter({ hasText: /^Plan$/ })
+      .locator("..");
+    const intermediateRow = frame.locator(".sb-nav-row", {
+      hasText: "Projects/Medium Length Roadmap",
+    });
+    await expect(shortRow).toBeVisible();
+    await expect(intermediateRow).toBeVisible();
+
+    const [longGeometry, plainHeight, shortGeometry, intermediateGeometry] =
+      await Promise.all([
+        decoratedRowGeometry(row),
+        plainRow.evaluate((element) => element.getBoundingClientRect().height),
+        decoratedRowGeometry(shortRow),
+        decoratedRowGeometry(intermediateRow),
+      ]);
+    expect(longGeometry.titleWidth).toBeGreaterThan(
+      longGeometry.rowWidth * 0.75,
+    );
+    expect(longGeometry.rowHeight).toBeCloseTo(plainHeight, 0);
+    expect(longGeometry.chipRatios.filter((ratio) => ratio > 0.01)).toEqual([]);
+    expect(shortGeometry.chipRatios.length).toBeGreaterThan(0);
+    expect(shortGeometry.chipRatios.every((ratio) => ratio > 0.99)).toBe(true);
+    expect(
+      intermediateGeometry.chipRatios.every(
+        (ratio) => ratio < 0.01 || ratio > 0.99,
+      ),
+    ).toBe(true);
   });
 
   test("keyboard selection opens a page and returns focus to the editor", async ({

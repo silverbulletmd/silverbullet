@@ -477,6 +477,17 @@ textarea,
   white-space: nowrap;
 }
 
+.sb-nav-trailing {
+  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  align-self: stretch;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 .sb-nav-description {
   flex: 1 1 0%;
   max-width: max-content;
