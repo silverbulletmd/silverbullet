@@ -1,7 +1,7 @@
 import { EditorState, Transaction } from "@codemirror/state";
 import { describe, expect, it } from "vitest";
 import {
-  buildGhostCaretElement,
+  buildPresenceLabelElement,
   expirePresence,
   externalPresenceField,
   externalSource,
@@ -27,7 +27,7 @@ describe("originLabel", () => {
   });
 });
 
-describe("buildGhostCaretElement", () => {
+describe("buildPresenceLabelElement", () => {
   class FakeElement {
     className = "";
     textContent = "";
@@ -49,11 +49,9 @@ describe("buildGhostCaretElement", () => {
     const label = originLabel({
       displayName: "<img src=x onerror=alert(1)>",
     });
-    const el = buildGhostCaretElement(label) as unknown as FakeElement;
-    const labelEl = el.children[0];
+    const labelEl = buildPresenceLabelElement(label) as unknown as FakeElement;
 
     expect(labelEl.textContent).toBe("<img src=x onerror=alert(1)>");
-    // A real child element, not innerHTML: nothing parsed it into markup.
     expect(labelEl.children).toHaveLength(0);
   });
 });

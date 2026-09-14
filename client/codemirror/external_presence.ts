@@ -13,6 +13,7 @@ import {
   Decoration,
   type DecorationSet,
   EditorView,
+  showTooltip,
   WidgetType,
 } from "@codemirror/view";
 
@@ -210,16 +211,11 @@ const externalUndoCursorFix = EditorView.updateListener.of((update) => {
   });
 });
 
-/** Exported so tests can assert the label lands as text, not markup. */
-export function buildGhostCaretElement(source: string): HTMLElement {
-  const el = document.createElement("span");
-  el.className = "sb-external-caret";
-  el.setAttribute("data-source", source);
+export function buildPresenceLabelElement(source: string): HTMLElement {
   const label = document.createElement("span");
   label.className = "sb-external-caret-label";
   label.textContent = source;
-  el.appendChild(label);
-  return el;
+  return label;
 }
 
 class GhostCaretWidget extends WidgetType {
@@ -232,7 +228,10 @@ class GhostCaretWidget extends WidgetType {
   }
 
   override toDOM() {
-    return buildGhostCaretElement(this.source);
+    const el = document.createElement("span");
+    el.className = "sb-external-caret";
+    el.setAttribute("data-source", this.source);
+    return el;
   }
 }
 
@@ -278,6 +277,15 @@ function deletedLineStarts(
   return [...starts];
 }
 
+function newestPresence(state: EditorState): PresenceHunk | undefined {
+  return state
+    .field(externalPresenceField)
+    .hunks.reduce<PresenceHunk | undefined>(
+      (newest, hunk) => (!newest || hunk.time >= newest.time ? hunk : newest),
+      undefined,
+    );
+}
+
 function buildDecorations(state: EditorState): DecorationSet {
   const { hunks } = state.field(externalPresenceField);
   if (hunks.length === 0) {
@@ -285,15 +293,12 @@ function buildDecorations(state: EditorState): DecorationSet {
   }
 
   const decos: Range<Decoration>[] = [];
-  let newest: PresenceHunk | undefined;
+  const newest = newestPresence(state);
   for (const h of hunks) {
     if (h.to > h.from) {
       decos.push(
         Decoration.mark({ class: "sb-external-edit" }).range(h.from, h.to),
       );
-    }
-    if (!newest || h.time >= newest.time) {
-      newest = h;
     }
   }
   for (const from of deletedLineStarts(state, hunks)) {
@@ -337,6 +342,17 @@ export function externalPresence(): Extension {
     EditorView.decorations.compute([externalPresenceField], (state) =>
       buildDecorations(state),
     ),
+    showTooltip.compute([externalPresenceField], (state) => {
+      const newest = newestPresence(state);
+      if (!newest || newest.source === "external") {
+        return null;
+      }
+      return {
+        pos: newest.to,
+        above: true,
+        create: () => ({ dom: buildPresenceLabelElement(newest.source) }),
+      };
+    }),
     presenceExpiry,
     externalUndoField,
     externalUndoCursorFix,

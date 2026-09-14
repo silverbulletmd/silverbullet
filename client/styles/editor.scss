@@ -166,21 +166,20 @@ $comment-border: 1px;
     border-left: 2px solid var(--editor-external-caret-color);
     margin-left: -1px;
     animation: sb-external-caret-blink 1s steps(1) infinite;
+  }
 
-    .sb-external-caret-label {
-      position: absolute;
-      top: -1.1em;
-      left: -2px;
-      text-indent: 0;
-      font-size: 0.65em;
-      line-height: 1.3;
-      padding: 0 4px;
-      border-radius: 3px;
-      background-color: var(--editor-external-caret-color);
-      color: var(--ui-accent-contrast-color);
-      white-space: nowrap;
-      pointer-events: none;
-    }
+  .cm-tooltip.sb-external-caret-label {
+    border: none;
+    font-family: var(--editor-font);
+    text-indent: 0;
+    font-size: 0.65em;
+    line-height: 1.3;
+    padding: 0 4px;
+    border-radius: 3px;
+    background-color: var(--editor-external-caret-color);
+    color: var(--ui-accent-contrast-color);
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   @keyframes sb-external-caret-blink {
