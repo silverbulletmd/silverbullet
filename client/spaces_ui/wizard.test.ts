@@ -1,9 +1,12 @@
-import { expect, test } from "vitest";
+import { h } from "preact";
+import { render } from "preact-render-to-string";
+import { afterEach, expect, test } from "vitest";
+import { SpaceStep } from "./components/wizard/SpaceStep.tsx";
+import type { Binding } from "./types.ts";
 import {
   defaultFolder,
   parentDir,
   spacePayload,
-  targetUrl,
   validateAdmin,
   validateSpace,
 } from "./wizard.ts";
@@ -17,11 +20,38 @@ const ADMIN = {
 };
 const SPACE = {
   name: "Notes",
-  hosting: "prefix" as const,
-  prefix: "/notes",
+  binding: { prefix: "/notes" },
   folder: "/data/spaces/notes",
   revisions: "managed" as const,
 };
+
+afterEach(() => {
+  delete (globalThis as any).location;
+});
+
+function renderSpaceStep(primaryUrl: string, binding: Binding = SPACE.binding) {
+  (globalThis as any).location = {
+    origin: "http://localhost:3000",
+    protocol: "http:",
+    port: "3000",
+  };
+  return render(
+    h(SpaceStep, {
+      values: { ...SPACE, binding },
+      root: "/data",
+      onNameInput: () => {},
+      primaryUrl,
+      onPrimaryUrlChange: () => {},
+      onBindingChange: () => {},
+      onFolderChange: () => {},
+      onRevisionsChange: () => {},
+      errors: [],
+      busy: false,
+      onBack: () => {},
+      onSubmit: () => {},
+    }),
+  );
+}
 
 test("defaultFolder slugifies the name under <root>/spaces", () => {
   expect(defaultFolder("/data", "My Notes")).toBe("/data/spaces/my-notes");
@@ -44,22 +74,50 @@ test("parentDir bottoms out at the root rather than returning empty", () => {
   expect(parentDir("/")).toBe("/");
 });
 
-test("targetUrl wraps a prefix in slashes", () => {
-  expect(targetUrl("prefix", "notes")).toBe("/notes/");
+test("the setup binding follows the edited Primary URL without changing its path", () => {
+  const first = renderSpaceStep("https://first.example.com");
+  const second = renderSpaceStep("https://second.example.com:8443");
+
+  expect(first).toContain("Primary hostname — first.example.com");
+  expect(first).toContain(
+    'class="sb-url-affix">https://first.example.com</span>',
+  );
+  expect(first).toContain('id="space-binding-path" value="/notes"');
+  expect(second).toContain("Primary hostname — second.example.com:8443");
+  expect(second).toContain(
+    'class="sb-url-affix">https://second.example.com:8443</span>',
+  );
+  expect(second).toContain('id="space-binding-path" value="/notes"');
 });
 
-test("targetUrl normalizes a prefix that already has slashes", () => {
-  expect(targetUrl("prefix", "/notes/")).toBe("/notes/");
+test("blank and partial Primary URL edits keep the binding controls renderable with the listener fallback", () => {
+  const blank = renderSpaceStep("");
+  const partial = renderSpaceStep("https://");
+
+  expect(blank).toContain("Primary hostname — localhost:3000");
+  expect(blank).toContain('class="sb-url-affix">http://localhost:3000</span>');
+  expect(partial).toContain("Primary hostname — localhost:3000");
+  expect(partial).toContain(
+    'class="sb-url-affix">http://localhost:3000</span>',
+  );
 });
 
-test("targetUrl is the bare root when hosting at the root", () => {
-  // The prefix field keeps its value when the radio flips to "root", so a
-  // stale prefix must not leak into the URL we poll and navigate to.
-  expect(targetUrl("root", "/notes")).toBe("/");
-});
+test("setup custom-host origins inherit only the Primary URL scheme", () => {
+  const bare = renderSpaceStep("https://manage.example.com:8443", {
+    host: "notes.example.com",
+    prefix: "/work",
+  });
+  const explicitPort = renderSpaceStep("https://manage.example.com", {
+    host: "notes.example.com:3000",
+    prefix: "/work",
+  });
 
-test("targetUrl collapses a blank prefix to the root instead of //", () => {
-  expect(targetUrl("prefix", "   ")).toBe("/");
+  expect(bare).toContain(
+    'class="sb-url-affix">https://notes.example.com</span>',
+  );
+  expect(explicitPort).toContain(
+    'class="sb-url-affix">https://notes.example.com:3000</span>',
+  );
 });
 
 test("validateAdmin accepts a complete, matching account", () => {
@@ -107,15 +165,18 @@ test("validateSpace rejects a blank name", () => {
 });
 
 test("validateSpace rejects a blank prefix when bound to a prefix", () => {
-  // A prefix-bound space with an empty prefix would bind to the bare root and
-  // capture every URL on the server.
-  expect(validateSpace({ ...SPACE, prefix: "  " })).toEqual([
+  expect(validateSpace({ ...SPACE, binding: { prefix: "  " } })).toEqual([
     { field: "space.prefix", message: "prefix is required" },
   ]);
 });
 
-test("validateSpace ignores a blank prefix when hosting at the root", () => {
-  expect(validateSpace({ ...SPACE, hosting: "root", prefix: "" })).toEqual([]);
+test("validateSpace rejects a blank path for a custom hostname", () => {
+  expect(
+    validateSpace({
+      ...SPACE,
+      binding: { host: "notes.example.com", prefix: " " },
+    }),
+  ).toEqual([{ field: "space.prefix", message: "prefix is required" }]);
 });
 
 test("validateSpace rejects a blank folder", () => {
@@ -124,7 +185,7 @@ test("validateSpace rejects a blank folder", () => {
   ]);
 });
 
-test("spacePayload passes a prefix-bound space through unchanged", () => {
+test("spacePayload serializes a primary-host prefix", () => {
   expect(spacePayload(SPACE)).toEqual({
     name: "Notes",
     prefix: "/notes",
@@ -133,21 +194,28 @@ test("spacePayload passes a prefix-bound space through unchanged", () => {
   });
 });
 
-test("spacePayload sends the root binding, not a stale prefix", () => {
-  expect(spacePayload({ ...SPACE, hosting: "root" })).toEqual({
+test("spacePayload serializes a custom-host root", () => {
+  expect(
+    spacePayload({ ...SPACE, binding: { host: "notes.example.com" } }),
+  ).toEqual({
     name: "Notes",
+    host: "notes.example.com",
     prefix: "/",
     folder: "/data/spaces/notes",
     revisions: "managed",
   });
 });
 
-test("hostname setup submits an explicit host without a prefix", () => {
+test("spacePayload serializes a custom hostname with a prefix", () => {
   expect(
-    spacePayload({ ...SPACE, hosting: "host", host: "notes.example.com" }),
+    spacePayload({
+      ...SPACE,
+      binding: { host: "notes.example.com", prefix: "/work" },
+    }),
   ).toEqual({
     name: "Notes",
     host: "notes.example.com",
+    prefix: "/work",
     folder: SPACE.folder,
     revisions: "managed",
   });
@@ -162,8 +230,8 @@ test("spacePayload includes a selected unmanaged revisions mode", () => {
   });
 });
 
-test("hostname setup requires an explicit host", () => {
-  expect(validateSpace({ ...SPACE, hosting: "host", host: " " })).toEqual([
-    { field: "space.host", message: "hostname is required" },
-  ]);
+test("new hostname setup requires an explicit host", () => {
+  expect(
+    validateSpace({ ...SPACE, binding: { host: " ", prefix: "/" } }),
+  ).toEqual([{ field: "space.host", message: "hostname is required" }]);
 });

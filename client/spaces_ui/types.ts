@@ -11,7 +11,7 @@ export type MemberEntry = {
 
 export type Binding =
   | { prefix: string; host?: never }
-  | { host: string; prefix?: never };
+  | { host: string; prefix?: string };
 
 export type FieldError = {
   field: string;
@@ -80,6 +80,7 @@ export type SpaceInfo = {
   name: string;
   folder: string;
   binding: Binding;
+  bindingWarning?: string;
   // Access control: `access` is what a visitor with no session gets; `members`
   // grades individual accounts. Admins always have full access and are never
   // listed here. `readOnly` caps everyone, admins included.

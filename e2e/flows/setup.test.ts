@@ -1,7 +1,6 @@
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
-import type { SBServer } from "../fixtures/core.ts";
 import { ADMIN_PASSWORD, ADMIN_USER, expect, test } from "../fixtures/core.ts";
 
 // End-to-end coverage of the first-run setup wizard. Both scenarios reuse the
@@ -41,12 +40,12 @@ async function fillAdminStep(
  * Generous timeout: the swap boots the whole multi stack on a background
  * task.
  */
-async function waitForHotSwap(sbServer: SBServer): Promise<void> {
+async function waitForHotSwap(baseUrl: string): Promise<void> {
   await expect
     .poll(
       async () => {
         try {
-          const r = await fetch(`${sbServer.url}/.spaces`, {
+          const r = await fetch(`${baseUrl}/.spaces`, {
             redirect: "manual",
           });
           return r.status;
@@ -70,40 +69,52 @@ async function loginToAdmin(
   await page.getByRole("button", { name: "Log in" }).click();
 }
 
-test("wizard provisions a prefix space with selected revisions mode", async ({
+test("wizard provisions a hostname-prefix space with selected revisions mode", async ({
   sbServer,
   page,
 }) => {
   test.setTimeout(120_000);
-  await page.goto(`${sbServer.url}/`);
+  const setupUrl = `http://localhost:${sbServer.port}`;
+  await page.goto(`${setupUrl}/`);
   await fillAdminStep(page, ADMIN_USER, ADMIN_PASSWORD);
   await expect(page.getByLabel("Primary URL", { exact: true })).toHaveValue(
-    sbServer.url,
+    setupUrl,
   );
-  await expect(page.getByLabel("Binding")).toHaveValue("prefix");
-  await expect(page.locator("#setup-prefix")).toHaveValue("/notes");
+  await page.getByLabel("Hostname", { exact: true }).selectOption("new");
+  await page
+    .getByLabel("New hostname", { exact: true })
+    .fill(`127.0.0.1:${sbServer.port}`);
+  await expect(
+    page.getByText("✓ hostname reaches this server", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("New hostname", { exact: true })
+    .fill("notes.localhost");
+  await page.getByLabel("Path", { exact: true }).fill("/notes");
+  await expect(page.locator(".sb-url-affix")).toHaveText(
+    "http://notes.localhost",
+  );
+  await expect(page.locator("output")).toHaveCount(0);
   await expect(page.getByLabel("Revisions")).toHaveValue("managed");
   await page.getByLabel("Revisions").selectOption("unmanaged");
   await page.getByRole("button", { name: "Finish setup" }).click();
-  await waitForHotSwap(sbServer);
-  await page.goto(`${sbServer.url}/.spaces`);
+  await waitForHotSwap(setupUrl);
+  await page.goto(`${setupUrl}/.spaces`);
   await loginToAdmin(page, ADMIN_USER, ADMIN_PASSWORD);
   await expect(page.locator(".sb-space-list")).toContainText("Notes");
   await access(join(sbServer.spaceDir, "spaces", "notes", "index.md"));
   const serverConfig = JSON.parse(
     await readFile(join(sbServer.spaceDir, "server.json"), "utf8"),
   );
-  expect(serverConfig.primaryUrl).toBe(sbServer.url);
+  expect(serverConfig.primaryUrl).toBe(setupUrl);
   const spacesConfig = JSON.parse(
     await readFile(join(sbServer.spaceDir, "spaces.json"), "utf8"),
   );
   const space = Object.values(spacesConfig)[0] as {
-    binding: { prefix: string };
+    binding: { host: string; prefix: string };
     revisions: string;
   };
-  expect(space.binding).toEqual({ prefix: "/notes" });
+  expect(space.binding).toEqual({ host: "notes.localhost", prefix: "/notes" });
   expect(space.revisions).toBe("unmanaged");
-  expect((await page.request.get(`${sbServer.url}/.setup/`)).status()).toBe(
-    404,
-  );
+  expect((await page.request.get(`${setupUrl}/.setup/`)).status()).toBe(404);
 });

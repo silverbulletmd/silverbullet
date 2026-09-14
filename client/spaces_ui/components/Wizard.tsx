@@ -1,17 +1,15 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.ts";
 import { useSlugDefaults } from "../space_fields.tsx";
-import type { FieldError } from "../types.ts";
+import type { Binding, FieldError, RevisionsMode } from "../types.ts";
 import {
   type AdminValues,
   defaultFolder,
-  type Hosting,
-  spacePayload,
   type SpaceValues,
+  spacePayload,
   validateAdmin,
   validateSpace,
 } from "../wizard.ts";
-import type { RevisionsMode } from "../types.ts";
 import { AdminStep } from "./wizard/AdminStep.tsx";
 import { DoneStep } from "./wizard/DoneStep.tsx";
 import { SpaceStep } from "./wizard/SpaceStep.tsx";
@@ -33,8 +31,6 @@ export function Wizard() {
   });
 
   const [spaceName, setSpaceName] = useState("Notes");
-  const [hosting, setHosting] = useState<Hosting>("prefix");
-  const [host, setHost] = useState("");
   const [revisions, setRevisions] = useState<RevisionsMode>("managed");
   const [primaryUrl, setPrimaryUrl] = useState(location.origin);
   // The server's absolute data root, reported by `api/status`. The folder
@@ -43,15 +39,15 @@ export function Wizard() {
   const [root, setRoot] = useState("");
   const { prefix, folder, onNameChange, setPrefix, setFolder } =
     useSlugDefaults((slug) => defaultFolder(root, slug));
+  const [hostBinding, setHostBinding] = useState<Binding | null>(null);
+  const binding = hostBinding ?? { prefix };
 
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [busy, setBusy] = useState(false);
 
   const space: SpaceValues = {
     name: spaceName,
-    hosting,
-    prefix,
-    host,
+    binding,
     folder,
     revisions,
   };
@@ -135,9 +131,14 @@ export function Wizard() {
           }}
           primaryUrl={primaryUrl}
           onPrimaryUrlChange={setPrimaryUrl}
-          onHostingChange={setHosting}
-          onPrefixChange={setPrefix}
-          onHostChange={setHost}
+          onBindingChange={(next) => {
+            if (next.host !== undefined) setHostBinding(next);
+            else {
+              setHostBinding(null);
+              if (!hostBinding && next.prefix !== prefix)
+                setPrefix(next.prefix);
+            }
+          }}
           onFolderChange={setFolder}
           onRevisionsChange={setRevisions}
           errors={errors}

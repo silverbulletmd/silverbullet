@@ -10,7 +10,11 @@ import { adminApi, formatApiError } from "../api.ts";
 import { spaceUrl } from "../bindings.ts";
 import { setNavigationGuard, useNavigate } from "../navigation.ts";
 import { spacesUrl } from "../routes.ts";
-import { SPACE_SECTIONS, type SpaceSection } from "../space_settings.ts";
+import {
+  applySpacePatch,
+  SPACE_SECTIONS,
+  type SpaceSection,
+} from "../space_settings.ts";
 import type { SpaceInfo } from "../types.ts";
 import { SpaceForm } from "./SpaceForm.tsx";
 import { GitSyncPage } from "./GitSyncPage.tsx";
@@ -30,6 +34,7 @@ export function SpaceEditor({
   const [loaded, setLoaded] = useState(!id);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
+  const [refresh, setRefresh] = useState(0);
   const [dirty, setDirty] = useState<SpaceSection[]>([]);
   const [gitDirty, setGitDirty] = useState(false);
   const [gitEditing, setGitEditing] = useState(false);
@@ -79,6 +84,7 @@ export function SpaceEditor({
       .then((value) => {
         if (active) {
           setSpace(value);
+          setError("");
           setLoaded(true);
         }
       })
@@ -86,17 +92,25 @@ export function SpaceEditor({
         if (!active) return;
         if (cause.unauthorized) onUnauthorized();
         else if (cause.notFound) setNotFound(true);
-        else setError(formatApiError(cause));
+        else
+          setError(
+            refresh
+              ? `Could not refresh space settings: ${formatApiError(cause)}`
+              : formatApiError(cause),
+          );
         setLoaded(true);
       });
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, refresh]);
   const saved = useCallback(
     (savedId: string, patch?: Partial<SpaceInfo>) => {
       if (!id) navigate(spacesUrl(`/${encodeURIComponent(savedId)}`));
-      else setSpace((value) => value && { ...value, ...patch });
+      else {
+        setSpace((value) => value && applySpacePatch(value, patch ?? {}));
+        if (patch?.binding) setRefresh((value) => value + 1);
+      }
     },
     [id, navigate],
   );
@@ -110,7 +124,7 @@ export function SpaceEditor({
         <a href={spacesUrl("/")}>Return to spaces</a>
       </div>
     );
-  if (error)
+  if (error && !space)
     return (
       <div class="sb-management-main sb-management-status">
         <Alert variant="error">{error}</Alert>
@@ -165,6 +179,7 @@ export function SpaceEditor({
           onSelect={(id) => navigate(sectionUrl(id as SpaceSection))}
         />
         <div class="sb-settings-content">
+          {error && <Alert variant="error">{error}</Alert>}
           {form}
           {visitedGit && (
             <div hidden={section !== "revisions"}>

@@ -5,11 +5,15 @@ import {
   Checkbox,
   Input,
   Select,
-  UrlPrefixInput,
 } from "@silverbulletmd/silverbullet/ui";
 import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { adminApi, getServerInfo, listUsers } from "../api.ts";
+import {
+  adminApi,
+  getServerInfo,
+  listSpaceBindings,
+  listUsers,
+} from "../api.ts";
 import { FolderPicker } from "../FolderPicker.tsx";
 import { formatDuration } from "../git_sync_copy.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
@@ -25,14 +29,17 @@ import {
 } from "../space_settings.ts";
 import type {
   CommitTiming,
+  Binding,
   FieldError,
   MemberEntry,
   RevisionsMode,
   SpaceAccess,
   SpaceInfo,
   UserInfo,
+  VisibleSpace,
 } from "../types.ts";
 import { AccessGrid } from "./AccessGrid.tsx";
+import { BindingFields } from "./BindingFields.tsx";
 
 const COMMIT_PRESETS = [
   {
@@ -79,11 +86,12 @@ export function SpaceForm({
   // get their own plain state below rather than living in this hook.
   const { folder, folderTouched, prefix, onNameChange, setFolder, setPrefix } =
     useSlugDefaults((slug) => `spaces/${slug}`);
-  const [bindType, setBindType] = useState<"prefix" | "host">(
-    initial?.binding.host ? "host" : "prefix",
+  const [hostBinding, setHostBinding] = useState<Binding | null>(
+    initial?.binding.host !== undefined ? initial.binding : null,
   );
-  const [hostValue, setHostValue] = useState(initial?.binding.host ?? "");
-  const bindValue = bindType === "host" ? hostValue : prefix;
+  const binding = hostBinding ?? { prefix };
+  const [primaryUrl, setPrimaryUrl] = useState<string | null>(null);
+  const [spaces, setSpaces] = useState<VisibleSpace[]>([]);
 
   // Initialize through the setters to mark stored folder/prefix values as
   // touched, protecting them from later name edits.
@@ -125,49 +133,6 @@ export function SpaceForm({
   const [indexPage, setIndexPage] = useState(initial?.indexPage ?? "index");
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving">("idle");
-  const [hostStatus, setHostStatus] = useState<
-    "verified" | "mismatch" | "unreachable" | null
-  >(null);
-
-  // Live hostname check: probe the candidate hostname from the browser and
-  // compare the answering server's per-boot instance id with our own. Proves
-  // DNS + routing + proxy forwarding end to end (from this browser's vantage
-  // point). `/.instance` answers on any Host, so this works before the
-  // binding exists.
-  //
-  // Deliberately probed on this page's own scheme and port rather than the
-  // https:// shown in the affix: the question is whether the hostname reaches
-  // *this* server from here, and an admin on http://localhost:3000 has no TLS
-  // to probe. Answering "unreachable" for every local setup would make the
-  // check worthless where it is needed most.
-  useEffect(() => {
-    if (
-      bindType !== "host" ||
-      !bindValue ||
-      bindValue.includes("/") ||
-      bindValue.includes(":")
-    ) {
-      setHostStatus(null);
-      return;
-    }
-    const t = setTimeout(async () => {
-      try {
-        const own = await (await fetch("/.instance")).json();
-        const port = location.port ? `:${location.port}` : "";
-        const probe = await fetch(
-          `${location.protocol}//${bindValue}${port}/.instance`,
-          { signal: AbortSignal.timeout(4000) },
-        );
-        const remote = await probe.json();
-        setHostStatus(
-          remote.instance === own.instance ? "verified" : "mismatch",
-        );
-      } catch {
-        setHostStatus("unreachable");
-      }
-    }, 400);
-    return () => clearTimeout(t);
-  }, [bindType, bindValue]);
 
   const loadUsers = () => {
     setUsersError(false);
@@ -185,8 +150,16 @@ export function SpaceForm({
       .then((info) => {
         setRuntimeAvailability(info.runtimeApi);
         setRuntimeServerEnabled(info.runtimeApiEnabled);
+        setPrimaryUrl(info.primaryUrl ?? null);
       })
-      .catch(() => {});
+      .catch((e: any) => {
+        if (e.unauthorized) onUnauthorized();
+      });
+    listSpaceBindings()
+      .then(setSpaces)
+      .catch((e: any) => {
+        if (e.unauthorized) onUnauthorized();
+      });
   }, []);
   const runtimeApiUnavailable =
     runtimeApiUnavailableReason(runtimeAvailability) ??
@@ -195,7 +168,7 @@ export function SpaceForm({
   const values: Partial<SpaceInfo> = {
     name,
     folder,
-    binding: bindType === "host" ? { host: hostValue } : { prefix },
+    binding,
     access,
     members,
     readOnly,
@@ -238,11 +211,7 @@ export function SpaceForm({
         if (saveState === "saving" || modeBlocked) return;
         notify("");
         setErrorSection(section);
-        if (
-          (!id || section === "general") &&
-          bindType === "prefix" &&
-          !prefix.trim()
-        ) {
+        if ((!id || section === "general") && !hostBinding && !prefix.trim()) {
           setErrors([{ field: "binding", message: "prefix is required" }]);
           return;
         }
@@ -292,67 +261,22 @@ export function SpaceForm({
               onNameChange(newName);
             }}
           />
-          <label for="space-bind-type">Binding</label>
-          <Select
-            id="space-bind-type"
-            value={bindType}
-            onChange={(e) =>
-              setBindType(e.currentTarget.value as "prefix" | "host")
-            }
-          >
-            <option value="prefix">URL prefix (this host)</option>
-            <option value="host">Hostname</option>
-          </Select>
-          <label for="space-bind-value">
-            {bindType === "prefix" ? "Prefix" : "Hostname"}
-          </label>
-          {bindType === "prefix" ? (
-            <UrlPrefixInput
-              id="space-bind-value"
-              origin={location.origin}
-              value={prefix}
-              onInput={setPrefix}
-            />
-          ) : (
-            <div class="sb-url-input">
-              {/* Only the scheme is fixed, and it is always https://: SilverBullet
-              requires TLS, and a host-bound space is reached through whatever
-              proxy terminates it — never on this server's own listening port.
-              Nothing follows the hostname, so there is no trailing affix; a
-              bare "/" only added noise. */}
-              <span class="sb-url-affix">https://</span>
-              <Input
-                id="space-bind-value"
-                value={hostValue}
-                placeholder="notes.example.com"
-                onInput={(e) => setHostValue(e.currentTarget.value)}
-              />
-            </div>
-          )}
-          {bindType === "host" && hostStatus && (
-            <Fragment>
-              {hostStatus === "verified" && (
-                <span class="sb-spaces-ok">✓ hostname reaches this server</span>
-              )}
-              {hostStatus === "mismatch" && (
-                <span class="sb-spaces-error">
-                  hostname reaches a different server
-                </span>
-              )}
-              {hostStatus === "unreachable" && (
-                <span class="sb-spaces-warn">
-                  could not verify: hostname does not reach this server from
-                  your browser (DNS or proxy not set up yet?)
-                </span>
-              )}
-            </Fragment>
-          )}
-          {bindType === "prefix" && (
-            <p class="sb-help-text">
-              For added security, you can bind a space to its own hostname
-              (instead of a URL prefix) to better isolate it from your other
-              spaces.
-            </p>
+          <BindingFields
+            binding={binding}
+            primaryUrl={primaryUrl}
+            spaces={spaces}
+            currentId={id}
+            onInput={(next) => {
+              if (next.host !== undefined) setHostBinding(next);
+              else {
+                setHostBinding(null);
+                if (!hostBinding && next.prefix !== prefix)
+                  setPrefix(next.prefix);
+              }
+            }}
+          />
+          {initial?.bindingWarning && (
+            <Alert variant="warning">{initial.bindingWarning}</Alert>
           )}
           <label for="space-folder">Folder</label>
           <FolderPicker

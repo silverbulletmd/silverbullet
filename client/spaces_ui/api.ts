@@ -6,6 +6,8 @@ import type {
   GitDraft,
   ProfileInfo,
   UserInfo,
+  SpaceInfo,
+  VisibleSpace,
 } from "./types.ts";
 
 export async function api(
@@ -73,6 +75,16 @@ export function getServerInfo(): Promise<{
   primaryUrl?: string | null;
 }> {
   return adminApi("GET", "server-info");
+}
+
+export async function listSpaceBindings(): Promise<VisibleSpace[]> {
+  const spaces: Record<string, SpaceInfo> = await adminApi("GET", "spaces");
+  return Object.entries(spaces).map(([id, space]) => ({
+    id,
+    name: space.name,
+    binding: space.binding,
+    access: space.access,
+  }));
 }
 
 export function listUsers(): Promise<Record<string, UserInfo>> {

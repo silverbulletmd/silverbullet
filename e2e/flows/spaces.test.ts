@@ -12,13 +12,13 @@ test.skip(
   "Live service-worker space routing is validated in Chromium",
 );
 
-test("switching from a root space to a sibling loads and saves in the selected space", async ({
+test("switching between sibling spaces loads and saves in the selected space", async ({
   adminPage: page,
   sbServer,
 }) => {
   await adminApi(page, sbServer, "POST", "spaces", {
     name: "Personal",
-    binding: { prefix: "/" },
+    binding: { prefix: "/personal" },
   });
   await adminApi(page, sbServer, "POST", "spaces", {
     name: "Shared",
@@ -26,7 +26,7 @@ test("switching from a root space to a sibling loads and saves in the selected s
   });
   expect(
     (
-      await page.request.put(`${sbServer.url}/.fs/index.md`, {
+      await page.request.put(`${sbServer.url}/personal/.fs/index.md`, {
         data: "Personal notebook",
       })
     ).ok(),
@@ -38,8 +38,9 @@ test("switching from a root space to a sibling loads and saves in the selected s
       })
     ).ok(),
   ).toBe(true);
-  if (process.env.SB_E2E_HOST) await gotoSilverBulletPage(page, sbServer);
-  else await openLivePage(page, sbServer.url, "Personal notebook");
+  const personalServer = { ...sbServer, url: `${sbServer.url}/personal` };
+  if (process.env.SB_E2E_HOST) await gotoSilverBulletPage(page, personalServer);
+  else await openLivePage(page, personalServer.url, "Personal notebook");
   await page.goto(`${sbServer.url}/.spaces/`);
   await page.getByRole("link").filter({ hasText: "Shared" }).click();
   await expect(page.locator(".cm-content")).toContainText("Shared notebook");
@@ -53,7 +54,7 @@ test("switching from a root space to a sibling loads and saves in the selected s
     page.request,
   );
   await waitForPersistedContent(
-    sbServer,
+    personalServer,
     "index.md",
     "Personal notebook",
     page.request,

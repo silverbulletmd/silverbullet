@@ -24,3 +24,14 @@ export function settingsPayload(
     SECTION_FIELDS[section].map((key) => [key, values[key]]),
   );
 }
+
+export function applySpacePatch(
+  space: SpaceInfo,
+  patch: Partial<SpaceInfo>,
+): SpaceInfo {
+  return {
+    ...space,
+    ...patch,
+    bindingWarning: patch.binding ? undefined : space.bindingWarning,
+  };
+}

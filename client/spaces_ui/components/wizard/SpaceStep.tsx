@@ -1,19 +1,9 @@
-import { Fragment } from "preact";
-import {
-  Button,
-  Input,
-  Select,
-  UrlPrefixInput,
-} from "@silverbulletmd/silverbullet/ui";
+import { Button, Input, Select } from "@silverbulletmd/silverbullet/ui";
 import { FolderPicker } from "../../FolderPicker.tsx";
 import { FieldErrors } from "../../space_fields.tsx";
-import type { FieldError, RevisionsMode } from "../../types.ts";
-import {
-  defaultFolder,
-  type Hosting,
-  parentDir,
-  type SpaceValues,
-} from "../../wizard.ts";
+import type { Binding, FieldError, RevisionsMode } from "../../types.ts";
+import { defaultFolder, parentDir, type SpaceValues } from "../../wizard.ts";
+import { BindingFields } from "../BindingFields.tsx";
 
 export function SpaceStep({
   values,
@@ -21,9 +11,7 @@ export function SpaceStep({
   onNameInput,
   primaryUrl,
   onPrimaryUrlChange,
-  onHostingChange,
-  onPrefixChange,
-  onHostChange,
+  onBindingChange,
   onFolderChange,
   onRevisionsChange,
   errors,
@@ -37,9 +25,7 @@ export function SpaceStep({
   onNameInput: (name: string) => void;
   primaryUrl: string;
   onPrimaryUrlChange: (value: string) => void;
-  onHostingChange: (hosting: Hosting) => void;
-  onPrefixChange: (prefix: string) => void;
-  onHostChange: (value: string) => void;
+  onBindingChange: (binding: Binding) => void;
   onFolderChange: (folder: string) => void;
   onRevisionsChange: (revisions: RevisionsMode) => void;
   errors: FieldError[];
@@ -75,43 +61,12 @@ export function SpaceStep({
         Confirm the public origin for server management and sign-in. The current
         browser origin is suggested.
       </p>
-      <label for="setup-hosting">Binding</label>
-      <Select
-        id="setup-hosting"
-        value={values.hosting}
-        onChange={(e) =>
-          onHostingChange(e.currentTarget.value as "prefix" | "host")
-        }
-      >
-        <option value="prefix">URL prefix (this host)</option>
-        <option value="host">Hostname</option>
-      </Select>
-      {values.hosting === "prefix" ? (
-        <Fragment>
-          <label for="setup-prefix">Prefix</label>
-          <UrlPrefixInput
-            id="setup-prefix"
-            origin={location.origin}
-            value={values.prefix}
-            onInput={onPrefixChange}
-          />
-        </Fragment>
-      ) : (
-        <Fragment>
-          <label for="setup-host">Hostname</label>
-          <Input
-            id="setup-host"
-            required
-            value={values.host ?? ""}
-            placeholder="notes.example.com"
-            onInput={(e) => onHostChange(e.currentTarget.value)}
-          />
-          <p class="sb-help-text">
-            Configure this hostname to reach this server; do not include a
-            scheme or path.
-          </p>
-        </Fragment>
-      )}
+      <BindingFields
+        binding={values.binding}
+        primaryUrl={primaryUrl}
+        spaces={[]}
+        onInput={onBindingChange}
+      />
       <label for="setup-folder">Folder</label>
       <FolderPicker
         id="setup-folder"
