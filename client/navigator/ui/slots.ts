@@ -7,7 +7,7 @@ import { useEffect, useState } from "preact/hooks";
  */
 
 /** How long a gated slot may stay hidden waiting for its first real content. */
-const PAINT_REVEAL_TIMEOUT_MS = 800;
+export const PAINT_REVEAL_TIMEOUT_MS = 800;
 
 /**
  * Applied to the modal while it is paint-gated. Opacity 0 so it can still

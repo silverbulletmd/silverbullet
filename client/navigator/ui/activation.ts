@@ -208,6 +208,10 @@ export function createActivate(deps: ActivationDeps) {
       signalReady(token);
       if (engine.activeState()?.meta.refreshOnOpen) refreshOnce();
     }
+    // Same-view supersede: `displayed` is unchanged, so the name check above
+    // is not enough. A newer activation (including `focus: false`) owns the
+    // tail from here — phrase reset, segment, and the focus grab.
+    if (handledToken.current !== token) return;
     const state = engine.activeState();
     const active: ActiveView | undefined =
       viewRef.current?.name === name
