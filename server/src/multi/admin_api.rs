@@ -1108,7 +1108,6 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            space_prefixes: Default::default(),
         }
     }
 

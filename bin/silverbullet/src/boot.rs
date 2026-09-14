@@ -69,6 +69,7 @@ pub(crate) async fn run_setup_server(
     let state = Arc::new(SetupState {
         root: root.clone(),
         client_bundle: Box::new(EmbeddedSpace::<ClientAssets>::new()),
+        version: crate::VERSION.to_string(),
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         on_complete: Box::new(move || signal.notify_one()),
         complete_lock: tokio::sync::Mutex::new(()),

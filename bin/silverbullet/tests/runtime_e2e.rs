@@ -184,7 +184,7 @@ fn host_bound_runtime_boots_core_and_reads_its_space() {
     std::fs::create_dir(&folder).unwrap();
     std::fs::write(folder.join("Welcome.md"), "# Fictional runtime notes\n").unwrap();
     std::fs::write(root.path().join("spaces.json"), serde_json::json!({
-        "host-smoke": {"name": "Notes", "folder": "notes", "binding": {"host": "notes.example.test"}, "indexPage": "Welcome"}
+        "host-smoke": {"name": "Notes", "folder": "notes", "binding": {"host": "notes.example.test", "prefix": "/work"}, "indexPage": "Welcome"}
     }).to_string()).unwrap();
     let port = free_port();
     let child = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
@@ -219,7 +219,7 @@ fn host_bound_runtime_boots_core_and_reads_its_space() {
     wait_until(
         Duration::from_secs(45),
         || match http
-            .post(format!("{base}/.runtime/lua"))
+            .post(format!("{base}/work/.runtime/lua"))
             .header("host", "notes.example.test")
             .bearer_auth(&token)
             .body("space.readPage('Welcome')")

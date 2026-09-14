@@ -67,10 +67,6 @@ pub struct InstanceDeps {
     /// Process-wide shutdown signal, cloned into every instance's
     /// `ServerState::shutdown`. See that field's doc comment.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
-    /// The origin's space roots, cloned into every instance's
-    /// `ServerState::space_prefixes` and republished by `MultiManager` on
-    /// every config change. See that type's doc comment.
-    pub space_prefixes: SpacePrefixes,
 }
 
 /// Single-space servers retain their classic environment credentials. An
@@ -242,8 +238,8 @@ pub enum InstanceStatus {
 pub struct SpaceInstance {
     pub id: String,
     pub config: SpaceConfig,
-    /// Normalized prefix; "" for host bindings.
     pub prefix: String,
+    pub space_prefixes: SpacePrefixes,
     pub status: InstanceStatus,
     /// `None` when errored.
     pub router: Option<axum::Router>,
@@ -348,10 +344,7 @@ fn any_account_filter(store: Arc<UserStore>) -> Box<dyn Fn(&str) -> bool + Send 
 }
 
 pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> SpaceInstance {
-    let prefix = match &config.binding {
-        Binding::Prefix { prefix } => normalize_prefix(prefix),
-        _ => String::new(),
-    };
+    let prefix = normalize_prefix(config.binding.prefix());
     let started = std::time::Instant::now();
     let result = try_build_state(id, config, &prefix, deps);
     tracing::debug!(
@@ -367,6 +360,7 @@ pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> Sp
                 id: id.to_string(),
                 config: config.clone(),
                 prefix,
+                space_prefixes: state.space_prefixes.clone(),
                 status: InstanceStatus::Running,
                 runtime_authorizer: state.authorizer.clone(),
                 router: Some(crate::build_router(Arc::new(state))),
@@ -381,6 +375,7 @@ pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> Sp
                 config: config.clone(),
                 prefix,
                 status: InstanceStatus::Errored(reason),
+                space_prefixes: Default::default(),
                 router: None,
                 revisions: None,
                 runtime: None,
@@ -507,7 +502,7 @@ fn try_build_state(
         let server_url = match &config.binding {
             Binding::Prefix { .. } => format!("http://127.0.0.1:{}{prefix}", deps.main_port),
             Binding::Host { .. } => format!(
-                "http://{}:{}",
+                "http://{}:{}{prefix}",
                 crate::multi::registry::runtime_host(id),
                 deps.main_port
             ),
@@ -636,7 +631,7 @@ fn try_build_state(
             sync_protocol_version: 2,
             revisions: revisions_mode,
         },
-        space_prefixes: deps.space_prefixes.clone(),
+        space_prefixes: Default::default(),
         space_folder_path: folder_str,
         version: ServerVersion::Static(deps.version.clone()),
         host_url_prefix: prefix.to_string(),
@@ -695,7 +690,6 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            space_prefixes: Default::default(),
         }
     }
 

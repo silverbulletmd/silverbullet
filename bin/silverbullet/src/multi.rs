@@ -123,7 +123,6 @@ pub async fn build_multi_stack(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: shutdown_rx,
-        space_prefixes: Default::default(),
     };
 
     let known_users = store.usernames();
@@ -222,20 +221,31 @@ pub async fn build_multi_stack(
             Box::new(EmbeddedSpace::<ClientAssets>::new()),
             Arc::new(move |url| {
                 let table = routing_manager.registry().current();
-                let host = url.host_str()?;
-                let configured_host = table.instances.values().any(|instance| matches!(&instance.config.binding,
-                silverbullet_server::multi::config::Binding::Host { host: bound } if bound.eq_ignore_ascii_case(host)));
-                let central_host = routing_manager.primary_url()
+                let hostname = url.host_str()?;
+                let host_scope = match url.port() {
+                    Some(port) => format!("{hostname}:{port}"),
+                    None => hostname.to_owned(),
+                };
+                let host_scope =
+                    silverbullet_server::multi::validate::normalize_host_authority(&host_scope);
+                let configured_host = table.instances.values().any(|instance| {
+                    instance.config.binding.host_scope().as_deref() == Some(&host_scope)
+                });
+                let central_host = routing_manager
+                    .primary_url()
                     .or_else(|| providers.configured().map(|c| c.central_origin.clone()))
-                    .and_then(|origin| silverbullet_server::auth::oidc::config::validated_url(&origin).ok())
+                    .and_then(|origin| {
+                        silverbullet_server::auth::oidc::config::validated_url(&origin).ok()
+                    })
                     .is_some_and(|origin| origin.origin() == url.origin());
                 if !configured_host && !central_host {
                     return None;
                 }
-                let (_, prefix) = table.resolve_main(host, url.path())?;
+                let (_, prefix) = table.resolve_main(&host_scope, url.path())?;
                 Some(format!("{prefix}/"))
             }),
-        )?.with_primary_url(Arc::new(move || primary_manager.primary_url()))
+        )?
+        .with_primary_url(Arc::new(move || primary_manager.primary_url()))
         .with_server_name(Arc::new(move || name_manager.server_name())),
     );
     let spaces_state = Arc::new(SpaceIndexState::new(

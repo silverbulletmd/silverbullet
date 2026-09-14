@@ -25,6 +25,7 @@ use crate::router::run_blocking;
 pub struct SetupState {
     pub root: PathBuf,
     pub client_bundle: Box<dyn SpacePrimitives>,
+    pub version: String,
     /// Seeded into a first space's index page (mirrors admin/single mode).
     pub index_template: String,
     pub on_complete: Box<dyn Fn() + Send + Sync>,
@@ -137,7 +138,22 @@ async fn handle_fallback() -> Response {
 }
 
 pub fn build_setup_router(state: Arc<SetupState>) -> Router {
+    let instance_id = uuid::Uuid::new_v4().to_string();
+    let version = state.version.clone();
+    let handle_instance = move || {
+        let body = json!({ "instance": instance_id, "version": version }).to_string();
+        async move {
+            (
+                [
+                    (header::CONTENT_TYPE, "application/json"),
+                    (header::ACCESS_CONTROL_ALLOW_ORIGIN, "*"),
+                ],
+                body,
+            )
+        }
+    };
     Router::new()
+        .route("/.instance", get(handle_instance))
         .route("/.setup/", get(handle_shell))
         .route("/.setup/assets/{file}", get(handle_asset))
         .route("/.setup/api/status", get(handle_status))
@@ -175,6 +191,7 @@ mod tests {
         Arc::new(SetupState {
             root: dir.path().to_path_buf(),
             client_bundle: Box::new(bundle),
+            version: "test".into(),
             index_template: "# Hello\n".into(),
             on_complete: Box::new(move || flag.store(true, Ordering::SeqCst)),
             complete_lock: tokio::sync::Mutex::new(()),
@@ -235,6 +252,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn instance_endpoint_is_available_during_setup_with_cors() {
+        let dir = tempfile::tempdir().unwrap();
+        let r = build_setup_router(state(&dir, true, Arc::new(AtomicBool::new(false))));
+
+        let resp = send(&r, get("/.instance")).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN], "*");
+        let value = body_json(resp).await;
+        uuid::Uuid::parse_str(value["instance"].as_str().unwrap()).unwrap();
+        assert_eq!(value["version"], "test");
+
+        let other_host = Request::builder()
+            .uri("/.instance")
+            .header(header::HOST, "127.0.0.1:3000")
+            .body(Body::empty())
+            .unwrap();
+        let other_value = body_json(send(&r, other_host).await).await;
+        assert_eq!(other_value["instance"], value["instance"]);
+    }
+
+    #[tokio::test]
     async fn complete_provisions_and_fires_on_complete() {
         let dir = tempfile::tempdir().unwrap();
         let flag = Arc::new(AtomicBool::new(false));
@@ -246,7 +284,7 @@ mod tests {
                 "/.setup/api/complete",
                 r#"{"adminUsername":"admin","adminPassword":"adminpw123",
                     "primaryUrl":"https://manage.example.com",
-                    "space":{"name":"Notes","host":"notes.example.com","folder":"","revisions":"unmanaged"}}"#,
+                    "space":{"name":"Notes","host":"notes.example.com","prefix":"/notes","folder":"","revisions":"unmanaged"}}"#,
             ),
         )
         .await;

@@ -13,7 +13,12 @@ use crate::multi::instance::{
 };
 use crate::multi::registry::{Registry, RoutingTable};
 use crate::multi::server_config::ServerConfig;
-use crate::multi::validate::{validate, FieldError};
+#[cfg(test)]
+use crate::multi::validate::root_prefix_conflict_warnings;
+use crate::multi::validate::{
+    introduced_root_prefix_conflicts_between_scopes, introduced_root_prefix_conflicts_for_primary,
+    root_prefix_conflict_warnings_for_primary, validate_for_primary, FieldError,
+};
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -102,13 +107,20 @@ impl MultiManager {
         server_config
             .validate_paths(&root, &config)
             .map_err(|errors| format!("invalid space folders: {errors:?}"))?;
-        let errors = validate(&config, &root, &known_users);
+        let primary_host = server_config.primary_host();
+        let errors = validate_for_primary(&config, &root, &known_users, primary_host.as_deref());
         if !errors.is_empty() {
             let msgs: Vec<String> = errors
                 .iter()
                 .map(|e| format!("{}: {}", e.field, e.message))
                 .collect();
             return Err(format!("invalid spaces.json: {}", msgs.join("; ")));
+        }
+        for warning in root_prefix_conflict_warnings_for_primary(&config, primary_host.as_deref())
+            .into_values()
+            .collect::<BTreeSet<_>>()
+        {
+            tracing::warn!("{warning}");
         }
         deps.runtime_enabled.store(
             server_config.runtime_api,
@@ -119,8 +131,8 @@ impl MultiManager {
             .iter()
             .map(|(id, cfg)| (id.clone(), Arc::new(build_instance(id, cfg, &deps))))
             .collect();
-        deps.space_prefixes.set(prefix_roots(&instances));
-        let table = RoutingTable::build(instances.clone());
+        publish_prefix_roots(&instances, primary_host.as_deref());
+        let table = RoutingTable::build_for_primary(instances.clone(), primary_host.as_deref());
         Ok(Arc::new(Self {
             root,
             git_connections: Mutex::new(()),
@@ -150,7 +162,7 @@ impl MultiManager {
     ) -> Result<Arc<Self>, String> {
         let config_path = root.join("spaces.json");
         let known_users = BTreeSet::new();
-        let errors = validate(&config, &root, &known_users);
+        let errors = validate_for_primary(&config, &root, &known_users, None);
         if !errors.is_empty() {
             let msgs: Vec<String> = errors
                 .iter()
@@ -163,7 +175,7 @@ impl MultiManager {
             .iter()
             .map(|(id, cfg)| (id.clone(), Arc::new(build_instance(id, cfg, &deps))))
             .collect();
-        deps.space_prefixes.set(prefix_roots(&instances));
+        publish_prefix_roots(&instances, None);
         let table = RoutingTable::build(instances.clone());
         Ok(Arc::new(Self {
             root,
@@ -221,6 +233,27 @@ impl MultiManager {
         config
             .validate_paths(&self.root, &inner.config)
             .map_err(ApiError::Validation)?;
+        let current_primary = inner.server_config.primary_host();
+        let proposed_primary = config.primary_host();
+        let known_users = self.known_users.read().unwrap().clone();
+        let errors = validate_for_primary(
+            &inner.config,
+            &self.root,
+            &known_users,
+            proposed_primary.as_deref(),
+        );
+        if !errors.is_empty() {
+            return Err(ApiError::Validation(errors));
+        }
+        let errors = introduced_root_prefix_conflicts_between_scopes(
+            &inner.config,
+            current_primary.as_deref(),
+            &inner.config,
+            proposed_primary.as_deref(),
+        );
+        if !errors.is_empty() {
+            return Err(ApiError::Validation(errors));
+        }
         config
             .save(&self.root.join("server.json"))
             .map_err(ApiError::Internal)?;
@@ -234,6 +267,11 @@ impl MultiManager {
                 }
             }
         }
+        publish_prefix_roots(&inner.instances, proposed_primary.as_deref());
+        self.registry.swap(RoutingTable::build_for_primary(
+            inner.instances.clone(),
+            proposed_primary.as_deref(),
+        ));
         inner.server_config = config;
         Ok(())
     }
@@ -416,7 +454,21 @@ impl MultiManager {
             }
         }
         let known_users = self.known_users.read().unwrap().clone();
-        let errors = validate(&new_config, &self.root, &known_users);
+        let primary_host = inner.server_config.primary_host();
+        let errors = validate_for_primary(
+            &new_config,
+            &self.root,
+            &known_users,
+            primary_host.as_deref(),
+        );
+        if !errors.is_empty() {
+            return Err(ApiError::Validation(errors));
+        }
+        let errors = introduced_root_prefix_conflicts_for_primary(
+            &inner.config,
+            &new_config,
+            primary_host.as_deref(),
+        );
         if !errors.is_empty() {
             return Err(ApiError::Validation(errors));
         }
@@ -467,8 +519,11 @@ impl MultiManager {
                 }
             }
         }
-        self.deps.space_prefixes.set(prefix_roots(&instances));
-        retired.table = Some(self.registry.swap(RoutingTable::build(instances.clone())));
+        publish_prefix_roots(&instances, primary_host.as_deref());
+        retired.table = Some(self.registry.swap(RoutingTable::build_for_primary(
+            instances.clone(),
+            primary_host.as_deref(),
+        )));
         inner.config = new_config;
         let previous = std::mem::replace(&mut inner.instances, instances);
         retired.instances.extend(previous.into_values());
@@ -588,8 +643,14 @@ impl MultiManager {
     pub fn list(&self) -> serde_json::Value {
         let inner = self.state.lock().unwrap();
         let mut out = serde_json::Map::new();
+        let primary_host = inner.server_config.primary_host();
+        let warnings =
+            root_prefix_conflict_warnings_for_primary(&inner.config, primary_host.as_deref());
         for (id, inst) in &inner.instances {
-            out.insert(id.clone(), space_json(&inst.config, &inst.status));
+            out.insert(
+                id.clone(),
+                space_json(&inst.config, &inst.status, warnings.get(id)),
+            );
         }
         serde_json::Value::Object(out)
     }
@@ -624,17 +685,23 @@ impl MultiManager {
     /// JSON view for GET /spaces/{id}; `None` when there is no such space.
     pub fn get(&self, id: &str) -> Option<serde_json::Value> {
         let inner = self.state.lock().unwrap();
-        inner
-            .instances
-            .get(id)
-            .map(|inst| space_json(&inst.config, &inst.status))
+        inner.instances.get(id).map(|inst| {
+            space_json(
+                &inst.config,
+                &inst.status,
+                root_prefix_conflict_warnings_for_primary(
+                    &inner.config,
+                    inner.server_config.primary_host().as_deref(),
+                )
+                .get(id),
+            )
+        })
     }
 
     /// Shallow-merge a partial body into a stored space config.
     ///
     /// The merge runs over the config's own serialization, never over
-    /// `space_json`: the latter carries `status`, which is
-    /// not `SpaceConfig` fields and would be captured by the `extra` flatten
+    /// `space_json`: its derived fields would be captured by the `extra` flatten
     /// and written verbatim into spaces.json.
     ///
     /// A present top-level key replaces that field entirely — `members` in the
@@ -664,7 +731,7 @@ impl MultiManager {
             // Derived keys the API emits itself: ignore rather than reject, so
             // a GET -> edit -> PATCH round-trip works without the caller
             // having to strip what the server just handed it.
-            if k == "status" {
+            if k == "status" || k == "bindingWarning" {
                 continue;
             }
             obj.insert(k, v);
@@ -686,24 +753,33 @@ impl MultiManager {
     }
 }
 
-/// Every space's non-empty prefix root, sorted. Host bindings (prefix `""`)
-/// and a root-bound space's own `""` are excluded: neither can be shadowed by
-/// another space's origin-scoped service worker.
-fn prefix_roots(instances: &HashMap<String, Arc<SpaceInstance>>) -> Vec<String> {
-    let mut roots: Vec<String> = instances
-        .values()
-        .map(|inst| inst.prefix.clone())
-        .filter(|prefix| !prefix.is_empty())
-        .collect();
-    roots.sort();
-    roots
+fn publish_prefix_roots(
+    instances: &HashMap<String, Arc<SpaceInstance>>,
+    primary_host: Option<&str>,
+) {
+    let mut scopes: HashMap<Option<String>, Vec<String>> = HashMap::new();
+    for inst in instances.values() {
+        let roots = scopes
+            .entry(inst.config.binding.effective_host_scope(primary_host))
+            .or_default();
+        if !inst.prefix.is_empty() {
+            roots.push(inst.prefix.clone());
+        }
+    }
+    for roots in scopes.values_mut() {
+        roots.sort();
+    }
+    for inst in instances.values() {
+        inst.space_prefixes
+            .set(scopes[&inst.config.binding.effective_host_scope(primary_host)].clone());
+    }
 }
 
-/// Per-space JSON view shared by `list` and `get`: the config, plus the
-/// live `status`. The derived key is not a
-/// `SpaceConfig` field — which is exactly why `patch` merges over the
-/// config's own serialization and not over this.
-fn space_json(config: &SpaceConfig, status: &InstanceStatus) -> serde_json::Value {
+fn space_json(
+    config: &SpaceConfig,
+    status: &InstanceStatus,
+    warning: Option<&String>,
+) -> serde_json::Value {
     let mut v = serde_json::to_value(config).unwrap_or_default();
     v["status"] = match status {
         InstanceStatus::Errored(reason) => {
@@ -711,6 +787,9 @@ fn space_json(config: &SpaceConfig, status: &InstanceStatus) -> serde_json::Valu
         }
         _ => serde_json::json!({ "state": "running" }),
     };
+    if let Some(warning) = warning {
+        v["bindingWarning"] = serde_json::json!(warning);
+    }
     v
 }
 
@@ -742,7 +821,6 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            space_prefixes: Default::default(),
         }
     }
 
@@ -782,6 +860,228 @@ mod tests {
         .unwrap()
     }
 
+    fn legacy_root_mix(root: &Path) -> Arc<MultiManager> {
+        let config = MultiConfig {
+            spaces: [
+                (
+                    "root".into(),
+                    payload("Root", Binding::Prefix { prefix: "".into() }),
+                ),
+                (
+                    "work".into(),
+                    payload(
+                        "Work",
+                        Binding::Prefix {
+                            prefix: "/work".into(),
+                        },
+                    ),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        };
+        config.save(&root.join("spaces.json")).unwrap();
+        boot(root)
+    }
+
+    #[test]
+    fn legacy_root_mix_rejects_expansion_without_changing_disk_or_registry() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = legacy_root_mix(dir.path());
+        let warning = "Root and prefixed bindings share the default hostname: \"Root\" (/), \"Work\" (/work). Move these spaces to separate hostnames or remove the root binding.";
+        assert_eq!(
+            root_prefix_conflict_warnings(&m.state.lock().unwrap().config),
+            HashMap::from([
+                ("root".into(), warning.into()),
+                ("work".into(), warning.into()),
+            ])
+        );
+        let before_disk = std::fs::read(dir.path().join("spaces.json")).unwrap();
+        let before_registry = m.registry().current();
+        let error = m
+            .create(
+                payload(
+                    "Wiki",
+                    Binding::Prefix {
+                        prefix: "/wiki".into(),
+                    },
+                ),
+                false,
+            )
+            .unwrap_err();
+        let ApiError::Validation(errors) = error else {
+            panic!("{error:?}")
+        };
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].field.ends_with(".binding"));
+        assert_ne!(errors[0].field, "root.binding");
+        assert!(errors[0].message.contains("/wiki"));
+        assert!(errors[0].message.contains("Root"));
+        assert_eq!(
+            std::fs::read(dir.path().join("spaces.json")).unwrap(),
+            before_disk
+        );
+        assert!(Arc::ptr_eq(&before_registry, &m.registry().current()));
+        assert_eq!(m.list().as_object().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn explicit_primary_hostname_and_implicit_bindings_share_warnings_routes_and_prefixes() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("server.json"),
+            r#"{"primaryUrl":"https://manager.example.test"}"#,
+        )
+        .unwrap();
+        let config = MultiConfig {
+            spaces: [
+                (
+                    "root".into(),
+                    payload(
+                        "Root",
+                        Binding::Host {
+                            host: "Manager.Example.test.".into(),
+                            prefix: String::new(),
+                        },
+                    ),
+                ),
+                (
+                    "notes".into(),
+                    payload(
+                        "Notes",
+                        Binding::Prefix {
+                            prefix: "/notes".into(),
+                        },
+                    ),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        };
+        config.save(&dir.path().join("spaces.json")).unwrap();
+        let m = boot(dir.path());
+        let listed = m.list();
+        assert!(listed["root"]["bindingWarning"].as_str().is_some());
+        assert!(listed["notes"]["bindingWarning"].as_str().is_some());
+        assert_eq!(
+            m.instance("root").unwrap().space_prefixes.current(),
+            vec!["/notes"]
+        );
+        assert_eq!(
+            m.instance("notes").unwrap().space_prefixes.current(),
+            vec!["/notes"]
+        );
+        assert_eq!(
+            m.registry()
+                .current()
+                .resolve_main("manager.example.test", "/notes/x")
+                .unwrap()
+                .0
+                .id,
+            "notes"
+        );
+        let error = m
+            .create(
+                payload(
+                    "Wiki",
+                    Binding::Prefix {
+                        prefix: "/wiki".into(),
+                    },
+                ),
+                false,
+            )
+            .unwrap_err();
+        assert!(matches!(error, ApiError::Validation(_)));
+    }
+
+    #[test]
+    fn changing_primary_hostname_cannot_introduce_a_cross_representation_root_mix() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        m.create(
+            payload(
+                "Root",
+                Binding::Host {
+                    host: "manager.example.test".into(),
+                    prefix: String::new(),
+                },
+            ),
+            false,
+        )
+        .unwrap();
+        m.create(
+            payload(
+                "Notes",
+                Binding::Prefix {
+                    prefix: "/notes".into(),
+                },
+            ),
+            false,
+        )
+        .unwrap();
+        let error = m
+            .set_primary_url("https://manager.example.test")
+            .unwrap_err();
+        assert!(matches!(error, ApiError::Validation(_)));
+        assert_eq!(m.primary_url(), None);
+    }
+
+    #[test]
+    fn legacy_root_mix_accepts_unrelated_patches_and_conflict_removal() {
+        for remove_root in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let m = legacy_root_mix(dir.path());
+            m.patch(
+                "work",
+                serde_json::json!({"description": "Updated"})
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+            )
+            .unwrap();
+            assert_eq!(m.get("work").unwrap()["description"], "Updated");
+            m.delete(if remove_root { "root" } else { "work" }).unwrap();
+            assert_eq!(m.registry().current().instances.len(), 1);
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let m = legacy_root_mix(dir.path());
+        m.patch(
+            "work",
+            serde_json::json!({"binding": {"host": "team.example.com", "prefix": "/work"}})
+                .as_object()
+                .unwrap()
+                .clone(),
+        )
+        .unwrap();
+        assert_eq!(
+            m.get("work").unwrap()["binding"]["host"],
+            "team.example.com"
+        );
+        let before_disk = std::fs::read(dir.path().join("spaces.json")).unwrap();
+        let before_registry = m.registry().current();
+        let error = m
+            .patch(
+                "work",
+                serde_json::json!({"binding": {"prefix": "/work"}})
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+            )
+            .unwrap_err();
+        let ApiError::Validation(errors) = error else {
+            panic!("{error:?}")
+        };
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "work.binding");
+        assert!(errors[0].message.contains("Root"));
+        assert_eq!(
+            std::fs::read(dir.path().join("spaces.json")).unwrap(),
+            before_disk
+        );
+        assert!(Arc::ptr_eq(&before_registry, &m.registry().current()));
+        assert!(root_prefix_conflict_warnings(&m.state.lock().unwrap().config).is_empty());
+    }
+
     #[test]
     fn server_name_defaults_and_persists_without_losing_settings() {
         let dir = tempfile::tempdir().unwrap();
@@ -815,7 +1115,7 @@ mod tests {
     }
 
     #[test]
-    fn primary_origin_persists_and_accepts_same_host_bindings() {
+    fn primary_origin_persists_and_accepts_same_host_prefixed_bindings() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert_eq!(m.primary_url(), None);
@@ -840,6 +1140,7 @@ mod tests {
                 "Notes",
                 Binding::Host {
                     host: "manager.example.test".into(),
+                    prefix: "/wiki".into(),
                 },
             ),
             false,
@@ -850,6 +1151,7 @@ mod tests {
                 "Notes",
                 Binding::Host {
                     host: "notes.example.test".into(),
+                    prefix: String::new(),
                 },
             ),
             false,
@@ -1230,6 +1532,37 @@ mod tests {
     }
 
     #[test]
+    fn admin_space_json_warns_only_for_legacy_root_mix_participants() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = legacy_root_mix(dir.path());
+        let separate = m
+            .create(
+                payload(
+                    "Separate",
+                    Binding::Host {
+                        host: "separate.test".into(),
+                        prefix: String::new(),
+                    },
+                ),
+                false,
+            )
+            .unwrap();
+        for id in ["root", "work"] {
+            let warning = m.get(id).unwrap()["bindingWarning"]
+                .as_str()
+                .unwrap()
+                .to_string();
+            assert!(warning.contains("Root") && warning.contains("Work"));
+            assert_eq!(m.list()[id]["bindingWarning"], warning);
+        }
+        assert!(m.get(&separate).unwrap().get("bindingWarning").is_none());
+        let visible = serde_json::to_value(m.list_accessible("fixture-admin", true)).unwrap();
+        assert!(!visible.to_string().contains("bindingWarning"));
+        m.delete("root").unwrap();
+        assert!(m.get("work").unwrap().get("bindingWarning").is_none());
+    }
+
+    #[test]
     fn patch_ignores_derived_keys_and_does_not_persist_them() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
@@ -1250,10 +1583,18 @@ mod tests {
         let mut body = serde_json::Map::new();
         body.insert("name".into(), serde_json::json!("Renamed"));
         body.insert("status".into(), serde_json::json!({ "state": "running" }));
+        body.insert(
+            "bindingWarning".into(),
+            serde_json::json!("Advisory warning"),
+        );
         m.patch(&id, body).unwrap();
 
         let raw = std::fs::read_to_string(dir.path().join("spaces.json")).unwrap();
         assert!(!raw.contains("\"status\""), "derived key persisted: {raw}");
+        assert!(
+            !raw.contains("bindingWarning"),
+            "derived key persisted: {raw}"
+        );
     }
 
     #[test]

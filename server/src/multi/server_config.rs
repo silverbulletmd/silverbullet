@@ -38,6 +38,17 @@ impl Default for ServerConfig {
 }
 
 impl ServerConfig {
+    pub fn primary_host(&self) -> Option<String> {
+        self.primary_url.as_deref().and_then(|value| {
+            let url = reqwest::Url::parse(value).ok()?;
+            let host = url.host_str()?.trim_end_matches('.').to_ascii_lowercase();
+            Some(match url.port() {
+                Some(port) => format!("{host}:{port}"),
+                None => host,
+            })
+        })
+    }
+
     pub fn load(path: &Path) -> Result<Self, String> {
         match std::fs::read_to_string(path) {
             Ok(value) => serde_json::from_str(&value)
@@ -185,6 +196,18 @@ mod tests {
         ] {
             assert!(canonical_origin(value).is_err(), "{value}");
         }
+    }
+
+    #[test]
+    fn primary_host_includes_an_explicit_non_default_port() {
+        let config = ServerConfig {
+            primary_url: Some("http://Manager.Example.test:3000".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            config.primary_host(),
+            Some("manager.example.test:3000".into())
+        );
     }
 
     #[test]

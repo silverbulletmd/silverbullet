@@ -12,7 +12,7 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Router;
 use tower::ServiceExt;
 
-use crate::multi::instance::InstanceStatus;
+use crate::multi::instance::{InstanceStatus, SpaceInstance};
 use crate::multi::manager::MultiManager;
 
 #[derive(Clone)]
@@ -104,13 +104,12 @@ async fn runtime_origin(
     {
         return StatusCode::FORBIDDEN.into_response();
     }
-    let Some(router) = &instance.router else {
-        return StatusCode::SERVICE_UNAVAILABLE.into_response();
-    };
-    match router.clone().oneshot(req).await {
-        Ok(response) => response,
-        Err(never) => match never {},
+    if let Some(path) = context.path.strip_prefix(&instance.prefix) {
+        if path == "/.spaces" || path.starts_with("/.spaces/") {
+            return StatusCode::FORBIDDEN.into_response();
+        }
     }
+    forward_to_space(&instance, &instance.prefix, req).await
 }
 
 fn primary_host_matches(primary: &str, headers: &HeaderMap) -> bool {
@@ -229,7 +228,7 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
     let path = req.uri().path().to_string();
     let Some((inst, prefix)) = table.resolve_main(&host, &path) else {
         if path == "/" {
-            if state.spaces_mounted {
+            if state.spaces_mounted && !table.claims_host(&host) {
                 return Redirect::temporary(crate::multi::space_index::SPACES_PREFIX)
                     .into_response();
             }
@@ -243,6 +242,14 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
             .into_response();
     };
 
+    forward_to_space(&inst, &prefix, req).await
+}
+
+async fn forward_to_space(inst: &SpaceInstance, prefix: &str, req: Request) -> Response {
+    let path = req.uri().path();
+    if !prefix.is_empty() && path != prefix && !path.starts_with(&format!("{prefix}/")) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
     // When the path exactly equals a non-empty prefix (no trailing slash),
     // redirect to `<prefix>/` so relative client URLs and the document base
     // resolve consistently. Preserve the query string across the redirect.
@@ -269,7 +276,7 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
     let req = if prefix.is_empty() {
         req
     } else {
-        strip_prefix(req, &prefix)
+        strip_prefix(req, prefix)
     };
     match router.oneshot(req).await {
         Ok(resp) => resp,
@@ -324,7 +331,6 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            space_prefixes: Default::default(),
         }
     }
 
@@ -375,6 +381,7 @@ mod tests {
                 "Hosted",
                 Binding::Host {
                     host: "notes.example.com".into(),
+                    prefix: String::new(),
                 },
             ),
             true,
@@ -397,6 +404,172 @@ mod tests {
             )
             .await
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn custom_host_prefixes_route_and_publish_only_their_scope() {
+        let dir = tempfile::tempdir().unwrap();
+        let m =
+            MultiManager::boot(dir.path().into(), deps(dir.path()), Default::default()).unwrap();
+        m.create(
+            payload(
+                "Default",
+                Binding::Prefix {
+                    prefix: "/default".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let work = m
+            .create(
+                payload(
+                    "Work",
+                    Binding::Host {
+                        host: "Notes.Example.test.".into(),
+                        prefix: "/work".into(),
+                    },
+                ),
+                true,
+            )
+            .unwrap();
+        let r = build_main_router(
+            m.clone(),
+            Some(Router::new().fallback(|| async { StatusCode::IM_A_TEAPOT })),
+            "test".into(),
+        );
+        let original = m.instance(&work).unwrap();
+        m.create(
+            payload(
+                "Wiki",
+                Binding::Host {
+                    host: "notes.example.test".into(),
+                    prefix: "/wiki".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        assert!(Arc::ptr_eq(&original, &m.instance(&work).unwrap()));
+        for (host, path, expected) in [
+            (
+                "NOTES.example.test.",
+                "/work/.config",
+                serde_json::json!(["/wiki", "/work"]),
+            ),
+            (
+                "notes.example.test",
+                "/wiki/.config",
+                serde_json::json!(["/wiki", "/work"]),
+            ),
+            (
+                "localhost",
+                "/default/.config",
+                serde_json::json!(["/default"]),
+            ),
+        ] {
+            let response = get(&r, host, path).await;
+            assert_eq!(response.status(), StatusCode::OK, "{host}{path}");
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let config: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(config["spacePrefixes"], expected);
+        }
+        for (host, path) in [
+            ("notes.example.test", "/missing"),
+            ("notes.example.test", "/default/.config"),
+            ("localhost", "/work/.config"),
+        ] {
+            assert_eq!(get(&r, host, path).await.status(), StatusCode::NOT_FOUND);
+        }
+        assert_eq!(
+            get(&r, "notes.example.test", "/.instance").await.status(),
+            StatusCode::OK
+        );
+        assert_eq!(
+            get(&r, "notes.example.test", "/.spaces/api/test")
+                .await
+                .status(),
+            StatusCode::IM_A_TEAPOT
+        );
+        let response = get(&r, "notes.example.test", "/work?a=1&b=2").await;
+        assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
+        assert_eq!(response.headers()["location"], "/work/?a=1&b=2");
+    }
+
+    #[tokio::test]
+    async fn custom_host_prefix_reaches_shell_manifest_and_login() {
+        use silverbullet_server_common::SpacePrimitives;
+        let dir = tempfile::tempdir().unwrap();
+        let mut dependencies = deps(dir.path());
+        dependencies.assets.client_bundle = Box::new(|| {
+            let bundle = MemorySpacePrimitives::new();
+            bundle
+                .write_file(
+                    ".client/index.html",
+                    br#"<base href="{{ host_prefix | safe }}/">"#,
+                    None,
+                )
+                .unwrap();
+            Box::new(bundle)
+        });
+        dependencies.auth = InstanceAuth::Single(Some(
+            crate::auth::AuthConfig::try_parse(
+                Some("keeper:fixture-password"),
+                Some("fixture-token"),
+                None,
+                None,
+                None,
+            )
+            .unwrap()
+            .unwrap(),
+        ));
+        let m = MultiManager::boot(dir.path().into(), dependencies, Default::default()).unwrap();
+        m.create(
+            payload(
+                "Work",
+                Binding::Host {
+                    host: "notes.example.test".into(),
+                    prefix: "/work".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let r = build_main_router(m, None, "test".into());
+        let response = get(&r, "notes.example.test", "/work/Welcome?filter=a%2Bb").await;
+        assert_eq!(response.status(), StatusCode::FOUND);
+        assert_eq!(
+            response.headers()["location"],
+            "/work/.auth?from=/work/Welcome%3Ffilter%3Da%252Bb"
+        );
+        let response = r
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/work/")
+                    .header("host", "notes.example.test")
+                    .header("authorization", "Bearer fixture-token")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(String::from_utf8_lossy(&bytes).contains(r#"<base href="/work/">"#));
+        let response = get(&r, "notes.example.test", "/work/.client/manifest.json").await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let manifest: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(manifest["scope"], "/work/");
+        assert_eq!(manifest["start_url"], "/work/#boot");
+        assert_eq!(manifest["icons"][0]["src"], "/work/.client/logo-dock.png");
     }
 
     #[tokio::test]
@@ -454,6 +627,7 @@ mod tests {
                 "Notes",
                 Binding::Host {
                     host: "notes.example.test".into(),
+                    prefix: String::new(),
                 },
             ),
             false,
@@ -565,6 +739,18 @@ mod tests {
     #[tokio::test]
     async fn config_carries_live_space_prefixes() {
         let dir = tempfile::tempdir().unwrap();
+        for id in ["root", "work"] {
+            std::fs::create_dir_all(dir.path().join("spaces").join(id)).unwrap();
+        }
+        std::fs::write(
+            dir.path().join("spaces.json"),
+            serde_json::json!({
+                "root": payload("Root", Binding::Prefix { prefix: "/".into() }),
+                "work": payload("Work", Binding::Prefix { prefix: "/work".into() }),
+            })
+            .to_string(),
+        )
+        .unwrap();
         let m = MultiManager::boot(
             dir.path().to_path_buf(),
             deps(dir.path()),
@@ -572,25 +758,11 @@ mod tests {
         )
         .unwrap();
         m.create(
-            payload("Root", Binding::Prefix { prefix: "/".into() }),
-            true,
-        )
-        .unwrap();
-        m.create(
-            payload(
-                "Work",
-                Binding::Prefix {
-                    prefix: "/work".into(),
-                },
-            ),
-            true,
-        )
-        .unwrap();
-        m.create(
             payload(
                 "Hosted",
                 Binding::Host {
                     host: "notes.example.com".into(),
+                    prefix: String::new(),
                 },
             ),
             true,
@@ -617,8 +789,7 @@ mod tests {
         // never shadowable, and host bindings live on other origins.
         assert_eq!(config_prefixes(&body), vec!["/work".to_string()]);
 
-        // The list is live: a space created after the instances were built
-        // shows up on the next fetch, with no instance rebuild.
+        m.delete("root").unwrap();
         m.create(
             payload(
                 "Private",
@@ -799,6 +970,36 @@ mod tests {
         assert_eq!(resp.headers()["location"], "/.spaces");
         let resp = get(&r, "localhost", "/nothing/here").await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn claimed_prefixed_hostname_root_does_not_redirect_to_manager() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            Default::default(),
+        )
+        .unwrap();
+        m.create(
+            payload(
+                "Work",
+                Binding::Host {
+                    host: "team.example.test".into(),
+                    prefix: "/work".into(),
+                },
+            ),
+            true,
+        )
+        .unwrap();
+        let r = build_main_router(
+            m,
+            Some(Router::new().fallback(|| async { "spaces" })),
+            "test".into(),
+        );
+        let resp = get(&r, "team.example.test", "/").await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+        assert!(resp.headers().get("location").is_none());
     }
 
     /// With no spaces surface mounted at all, `/` has nowhere to send the

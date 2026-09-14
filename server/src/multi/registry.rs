@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use crate::multi::config::Binding;
 use crate::multi::instance::SpaceInstance;
 
 pub(crate) fn runtime_host(id: &str) -> String {
@@ -16,7 +15,7 @@ pub(crate) fn runtime_host(id: &str) -> String {
 
 pub struct RoutingTable {
     pub instances: HashMap<String, Arc<SpaceInstance>>,
-    hosts: HashMap<String, Arc<SpaceInstance>>,
+    hosts: HashMap<String, Vec<(String, Arc<SpaceInstance>)>>,
     runtime_hosts: HashMap<String, Arc<SpaceInstance>>,
     /// (normalized prefix, instance), sorted longest-first.
     prefixes: Vec<(String, Arc<SpaceInstance>)>,
@@ -24,19 +23,31 @@ pub struct RoutingTable {
 
 impl RoutingTable {
     pub fn build(instances: HashMap<String, Arc<SpaceInstance>>) -> Self {
-        let mut hosts = HashMap::new();
+        Self::build_for_primary(instances, None)
+    }
+
+    pub fn build_for_primary(
+        instances: HashMap<String, Arc<SpaceInstance>>,
+        primary_host: Option<&str>,
+    ) -> Self {
+        let mut hosts: HashMap<String, Vec<(String, Arc<SpaceInstance>)>> = HashMap::new();
         let mut runtime_hosts = HashMap::new();
         let mut prefixes = Vec::new();
         for inst in instances.values() {
-            match &inst.config.binding {
-                Binding::Prefix { .. } => prefixes.push((inst.prefix.clone(), inst.clone())),
-                Binding::Host { host } => {
-                    // Host matching is case-insensitive (DNS is); store the key
-                    // lowercased and lowercase the request host at resolve time.
-                    hosts.insert(host.to_ascii_lowercase(), inst.clone());
-                    runtime_hosts.insert(runtime_host(&inst.id), inst.clone());
-                }
+            if inst.config.binding.host().is_some() {
+                runtime_hosts.insert(runtime_host(&inst.id), inst.clone());
             }
+            if let Some(host) = inst.config.binding.effective_host_scope(primary_host) {
+                hosts
+                    .entry(host)
+                    .or_default()
+                    .push((inst.prefix.clone(), inst.clone()));
+            } else {
+                prefixes.push((inst.prefix.clone(), inst.clone()));
+            }
+        }
+        for routes in hosts.values_mut() {
+            routes.sort_by_key(|(prefix, _)| std::cmp::Reverse(prefix.len()));
         }
         prefixes.sort_by_key(|(prefix, _)| std::cmp::Reverse(prefix.len()));
         Self {
@@ -51,15 +62,16 @@ impl RoutingTable {
         self.runtime_hosts.get(host).cloned()
     }
 
-    /// Resolve a main-listener request. `host` is the raw Host header (may
-    /// include :port — stripped internally). Returns the instance and the
-    /// matched prefix ("" for host matches).
+    pub fn claims_host(&self, host: &str) -> bool {
+        self.hosts.contains_key(&normalize_request_host(host))
+    }
+
+    /// Resolve a main-listener request. `host` is the raw Host header. Returns
+    /// the instance and matched prefix (empty for root mounts).
     pub fn resolve_main(&self, host: &str, path: &str) -> Option<(Arc<SpaceInstance>, String)> {
-        let bare_host = host.split(':').next().unwrap_or(host).to_ascii_lowercase();
-        if let Some(inst) = self.hosts.get(&bare_host) {
-            return Some((inst.clone(), String::new()));
-        }
-        for (prefix, inst) in &self.prefixes {
+        let bare_host = normalize_request_host(host);
+        let routes = self.hosts.get(&bare_host).unwrap_or(&self.prefixes);
+        for (prefix, inst) in routes {
             let matches =
                 prefix.is_empty() || path == prefix || path.starts_with(&format!("{prefix}/"));
             if matches {
@@ -68,6 +80,10 @@ impl RoutingTable {
         }
         None
     }
+}
+
+fn normalize_request_host(host: &str) -> String {
+    crate::multi::validate::normalize_host_authority(host)
 }
 
 /// Swappable handle to the current routing table.
@@ -99,10 +115,7 @@ mod tests {
     use std::sync::Arc;
 
     fn inst(id: &str, binding: Binding) -> Arc<SpaceInstance> {
-        let prefix = match &binding {
-            Binding::Prefix { prefix } => crate::multi::validate::normalize_prefix(prefix),
-            _ => String::new(),
-        };
+        let prefix = crate::multi::validate::normalize_prefix(binding.prefix());
         Arc::new(SpaceInstance {
             id: id.into(),
             config: SpaceConfig {
@@ -126,6 +139,7 @@ mod tests {
                 extra: Default::default(),
             },
             prefix,
+            space_prefixes: Default::default(),
             status: InstanceStatus::Running,
             router: None,
             revisions: None,
@@ -164,6 +178,7 @@ mod tests {
                 "hosted",
                 Binding::Host {
                     host: "notes.example.com".into(),
+                    prefix: String::new(),
                 },
             ),
         );
@@ -171,11 +186,70 @@ mod tests {
     }
 
     #[test]
+    fn custom_host_prefixes_are_isolated_and_longest_first() {
+        let mut instances = table().instances;
+        for (id, prefix) in [("host-work", "/work"), ("host-wiki", "/wiki")] {
+            instances.insert(
+                id.into(),
+                inst(
+                    id,
+                    Binding::Host {
+                        host: "Projects.Example.test.".into(),
+                        prefix: prefix.into(),
+                    },
+                ),
+            );
+        }
+        let t = RoutingTable::build(instances.clone());
+        for (path, id, prefix) in [
+            ("/work/page", "host-work", "/work"),
+            ("/wiki", "host-wiki", "/wiki"),
+        ] {
+            let (instance, matched) = t.resolve_main("PROJECTS.example.test", path).unwrap();
+            assert_eq!(instance.id, id);
+            assert_eq!(matched, prefix);
+        }
+        assert!(t
+            .resolve_main("projects.example.test.", "/missing")
+            .is_none());
+        assert!(t
+            .resolve_main("projects.example.test", "/workother")
+            .is_none());
+        assert_eq!(
+            t.resolve_main("other.example.test", "/work").unwrap().0.id,
+            "work"
+        );
+        instances.insert(
+            "host-root".into(),
+            inst(
+                "host-root",
+                Binding::Host {
+                    host: "projects.example.test".into(),
+                    prefix: String::new(),
+                },
+            ),
+        );
+        let t = RoutingTable::build(instances);
+        assert_eq!(
+            t.resolve_main("projects.example.test", "/work/page")
+                .unwrap()
+                .0
+                .id,
+            "host-work"
+        );
+        assert_eq!(
+            t.resolve_main("projects.example.test", "/missing")
+                .unwrap()
+                .0
+                .id,
+            "host-root"
+        );
+    }
+
+    #[test]
     fn host_match_beats_prefix_match() {
         let t = table();
-        let (i, p) = t
-            .resolve_main("notes.example.com:3000", "/work/page")
-            .unwrap();
+        let (i, p) = t.resolve_main("notes.example.com", "/work/page").unwrap();
         assert_eq!(i.id, "hosted");
         assert_eq!(p, "");
     }
@@ -183,7 +257,7 @@ mod tests {
     #[test]
     fn host_match_is_case_insensitive() {
         let t = table();
-        let (i, p) = t.resolve_main("Notes.Example.COM:3000", "/x").unwrap();
+        let (i, p) = t.resolve_main("Notes.Example.COM", "/x").unwrap();
         assert_eq!(i.id, "hosted");
         assert_eq!(p, "");
     }
@@ -224,6 +298,103 @@ mod tests {
         );
         let t = RoutingTable::build(m);
         assert!(t.resolve_main("localhost", "/other").is_none());
+    }
+
+    #[test]
+    fn primary_hostname_binding_routes_in_the_default_scope() {
+        let mut m = HashMap::new();
+        m.insert(
+            "root".into(),
+            inst("root", Binding::Prefix { prefix: "/".into() }),
+        );
+        m.insert(
+            "notes".into(),
+            inst(
+                "notes",
+                Binding::Host {
+                    host: "MANAGER.example.test.".into(),
+                    prefix: "/notes".into(),
+                },
+            ),
+        );
+        let t = RoutingTable::build_for_primary(m, Some("manager.example.test"));
+        assert_eq!(
+            t.resolve_main("manager.example.test", "/notes/page")
+                .unwrap()
+                .0
+                .id,
+            "notes"
+        );
+        assert_eq!(
+            t.resolve_main("manager.example.test", "/other")
+                .unwrap()
+                .0
+                .id,
+            "root"
+        );
+        assert_eq!(
+            t.resolve_runtime(&runtime_host("notes")).unwrap().id,
+            "notes"
+        );
+    }
+
+    #[test]
+    fn prefixed_custom_hostname_is_claimed_even_when_path_does_not_match() {
+        let mut m = HashMap::new();
+        m.insert(
+            "work".into(),
+            inst(
+                "work",
+                Binding::Host {
+                    host: "team.example.test".into(),
+                    prefix: "/work".into(),
+                },
+            ),
+        );
+        let t = RoutingTable::build(m);
+        assert!(t.claims_host("team.example.test"));
+        assert!(!t.claims_host("team.example.test:3000"));
+        assert!(!t.claims_host("other.example.test:3000"));
+    }
+
+    #[test]
+    fn bare_and_explicitly_ported_hosts_are_distinct_scopes() {
+        let mut m = HashMap::new();
+        m.insert(
+            "bare".into(),
+            inst(
+                "bare",
+                Binding::Host {
+                    host: "team.example.test".into(),
+                    prefix: "/work".into(),
+                },
+            ),
+        );
+        m.insert(
+            "ported".into(),
+            inst(
+                "ported",
+                Binding::Host {
+                    host: "TEAM.example.test.:3000".into(),
+                    prefix: "/work".into(),
+                },
+            ),
+        );
+        let t = RoutingTable::build(m);
+        assert_eq!(
+            t.resolve_main("team.example.test", "/work/page")
+                .unwrap()
+                .0
+                .id,
+            "bare"
+        );
+        assert_eq!(
+            t.resolve_main("team.example.test.:3000", "/work/page")
+                .unwrap()
+                .0
+                .id,
+            "ported"
+        );
     }
 
     #[test]

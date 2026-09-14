@@ -152,7 +152,6 @@ impl Fixture {
             shell_disabled: true,
             index_template: "# Fixture\n".into(),
             shutdown: None,
-            space_prefixes: Default::default(),
         };
         let manager = MultiManager::boot(
             dir.path().into(),
@@ -782,12 +781,133 @@ async fn restarted_runtime_authenticates_as_the_represented_user() {
 }
 
 #[tokio::test]
+async fn prefixed_host_runtime_forwards_only_its_path_and_credential() {
+    let f = Fixture::new();
+    let id = f.space("/host", true);
+    let mut config = f.manager.instance(&id).unwrap().config.clone();
+    config.binding = silverbullet_server::multi::config::Binding::Host {
+        host: "notes.example.test".into(),
+        prefix: "/work".into(),
+    };
+    f.manager.update(&id, config).unwrap();
+    let main = silverbullet_server::multi::dispatch::build_main_router(
+        f.manager.clone(),
+        Some(Router::new()),
+        "fixture".into(),
+    );
+    let (status, value) = request_at(
+        &main,
+        "notes.example.test",
+        "POST",
+        "/work/.runtime/lua",
+        Some(f.bearer("writer-one")),
+        "prefixed runtime",
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{value}");
+    let child = f.child(value["result"].as_u64().unwrap() as usize);
+    assert!(child.server_url.ends_with(".runtime.localhost:3000/work"));
+    let url = reqwest::Url::parse(&child.server_url).unwrap();
+    let host = url.host_str().unwrap();
+    let second = f.space("/other", false);
+    let other = f.child(
+        f.evaluate(&f.router(&second), "writer-one", "other runtime")
+            .await,
+    );
+    for credential in [
+        None,
+        Some(f.bearer("writer-one")),
+        cookie(&other),
+        Some((
+            "cookie",
+            format!(
+                "{}={}",
+                headless_cookie_name(&id),
+                other.cookie.split_once('=').unwrap().1
+            ),
+        )),
+    ] {
+        assert_eq!(
+            request_at(&main, host, "GET", "/work/.config", credential, "")
+                .await
+                .0,
+            StatusCode::FORBIDDEN
+        );
+    }
+    assert_eq!(
+        request_at(
+            &main,
+            host,
+            "PUT",
+            "/work/.fs/Welcome.md",
+            cookie(&child),
+            "# Fictional runtime notes"
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        request_at(
+            &main,
+            host,
+            "GET",
+            "/work/.fs/Welcome.md",
+            cookie(&child),
+            ""
+        )
+        .await
+        .1,
+        json!("# Fictional runtime notes")
+    );
+    for path in [
+        "/.spaces",
+        "/.spaces/api/server-config",
+        "/work/.spaces/api/server-config",
+    ] {
+        assert_eq!(
+            request_at(&main, host, "GET", path, cookie(&child), "")
+                .await
+                .0,
+            StatusCode::FORBIDDEN,
+            "{path}"
+        );
+    }
+    for path in ["/.config", "/workother/.config"] {
+        assert_eq!(
+            request_at(&main, host, "GET", path, cookie(&child), "")
+                .await
+                .0,
+            StatusCode::NOT_FOUND,
+            "{path}"
+        );
+    }
+    let response = main
+        .oneshot(
+            Request::builder()
+                .uri("/work?headless=1&filter=a%2Bb")
+                .header("host", host)
+                .header("cookie", &child.cookie)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
+    assert_eq!(
+        response.headers()["location"],
+        "/work/?headless=1&filter=a%2Bb"
+    );
+}
+
+#[tokio::test]
 async fn host_bound_runtime_uses_a_private_local_origin() {
     let f = Fixture::new();
     let id = f.space("/host", true);
     let mut config = f.manager.instance(&id).unwrap().config.clone();
     config.binding = silverbullet_server::multi::config::Binding::Host {
         host: "notes.example.test".into(),
+        prefix: String::new(),
     };
     f.manager.update(&id, config).unwrap();
     let main = silverbullet_server::multi::dispatch::build_main_router(

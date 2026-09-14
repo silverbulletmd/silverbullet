@@ -103,7 +103,10 @@ fn setup_subcommand_provisions_root_then_refuses_a_second_run() {
 /// binary against it with no boot-mode env switches at all — `boot::detect`
 /// must pick multi-space mode purely from `spaces.json`/`users.json` being on
 /// disk. Waits for the admin API to answer (401 on the gated spaces list).
-fn start_multi(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String) {
+fn start_multi_with_service_worker(
+    extra_env: &[(&str, &str)],
+    service_worker_enabled: bool,
+) -> (Server, tempfile::TempDir, String) {
     let root = tempfile::tempdir().unwrap();
     provision(root.path(), None);
     let port = free_port();
@@ -115,10 +118,13 @@ fn start_multi(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String
         .arg("127.0.0.1")
         .env_remove("SB_MULTI_SPACE")
         .env_remove("SB_USER")
+        .env_remove("SB_DISABLE_SERVICE_WORKER")
         .env("SB_RUNTIME_API", "0")
-        .env("SB_DISABLE_SERVICE_WORKER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if !service_worker_enabled {
+        cmd.env("SB_DISABLE_SERVICE_WORKER", "1");
+    }
     for (k, v) in extra_env {
         cmd.env(k, v);
     }
@@ -141,6 +147,10 @@ fn start_multi(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String
         std::thread::sleep(Duration::from_millis(200));
     }
     (server, root, base)
+}
+
+fn start_multi(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String) {
+    start_multi_with_service_worker(extra_env, false)
 }
 
 fn admin_client(base: &str) -> reqwest::blocking::Client {
@@ -461,6 +471,305 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
         .unwrap()
         .count();
     assert_eq!(spaces_dir, 2);
+}
+
+#[test]
+fn custom_hostname_prefixes_route_without_cross_host_fallback() {
+    let (_srv, _root, base) = start_multi_with_service_worker(&[], true);
+    let admin = admin_client(&base);
+    let create = |name: &str, binding: serde_json::Value| {
+        admin
+            .post(format!("{base}/.spaces/api/admin/spaces"))
+            .json(&serde_json::json!({
+                "name": name,
+                "binding": binding,
+                "access": "write"
+            }))
+            .send()
+            .unwrap()
+    };
+
+    for (name, binding) in [
+        ("Default", serde_json::json!({ "prefix": "/missing" })),
+        (
+            "Work",
+            serde_json::json!({ "host": "team.localhost", "prefix": "/work" }),
+        ),
+        (
+            "Wiki",
+            serde_json::json!({ "host": "TEAM.LOCALHOST.", "prefix": "/wiki" }),
+        ),
+        (
+            "Elsewhere",
+            serde_json::json!({ "host": "other.localhost", "prefix": "/elsewhere" }),
+        ),
+    ] {
+        let response = create(name, binding);
+        assert!(
+            response.status().is_success(),
+            "{}",
+            response.text().unwrap()
+        );
+    }
+
+    let request = |host: &str, path: &str| {
+        reqwest::blocking::Client::new()
+            .get(format!("{base}{path}"))
+            .header(reqwest::header::HOST, host)
+            .send()
+            .unwrap()
+    };
+    for path in ["/work/.ping", "/wiki/.ping"] {
+        assert!(
+            request("team.localhost", path).status().is_success(),
+            "{path}"
+        );
+    }
+    assert_eq!(request("team.localhost", "/missing/.ping").status(), 404);
+    assert_eq!(request("team.localhost", "/").status(), 404);
+    assert!(request("127.0.0.1", "/missing/.ping").status().is_success());
+
+    let work_manifest = request("team.localhost", "/work/.client/manifest.json")
+        .json::<serde_json::Value>()
+        .unwrap();
+    let wiki_manifest = request("team.localhost", "/wiki/.client/manifest.json")
+        .json::<serde_json::Value>()
+        .unwrap();
+    assert_eq!(work_manifest["name"], "Work");
+    assert_eq!(work_manifest["start_url"], "/work/#boot");
+    assert_eq!(wiki_manifest["name"], "Wiki");
+    assert_eq!(wiki_manifest["start_url"], "/wiki/#boot");
+
+    let config = request("team.localhost", "/work/.config")
+        .json::<serde_json::Value>()
+        .unwrap();
+    assert_eq!(config["disableServiceWorker"], false);
+    assert_eq!(
+        config["spacePrefixes"],
+        serde_json::json!(["/wiki", "/work"])
+    );
+}
+
+#[test]
+fn primary_hostname_bindings_share_routing_and_service_worker_scope_with_prefix_bindings() {
+    let root = tempfile::tempdir().unwrap();
+    provision(root.path(), None);
+    let port = free_port();
+    for id in ["root", "notes"] {
+        std::fs::create_dir_all(root.path().join("spaces").join(id)).unwrap();
+    }
+    std::fs::write(
+        root.path().join("server.json"),
+        serde_json::json!({ "primaryUrl": format!("http://manager.localhost:{port}") }).to_string(),
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("spaces.json"),
+        serde_json::json!({
+            "root": { "name": "Root", "binding": { "host": format!("MANAGER.LOCALHOST.:{port}") }, "access": "read" },
+            "notes": { "name": "Notes", "binding": { "prefix": "/notes" }, "access": "read" }
+        }).to_string(),
+    ).unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    child
+        .arg(root.path())
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .env("SB_RUNTIME_API", "0")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let _server = Server(child.spawn().unwrap());
+    let base = format!("http://127.0.0.1:{port}");
+    let client = reqwest::blocking::Client::new();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if client.get(format!("{base}/.instance")).send().is_ok() {
+            break;
+        }
+        assert!(Instant::now() < deadline, "server did not boot in time");
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    let get = |path: &str| {
+        client
+            .get(format!("{base}{path}"))
+            .header(reqwest::header::HOST, format!("manager.localhost:{port}"))
+            .send()
+            .unwrap()
+    };
+    assert_eq!(
+        get("/.client/manifest.json")
+            .json::<serde_json::Value>()
+            .unwrap()["name"],
+        "Root"
+    );
+    assert_eq!(
+        get("/notes/.client/manifest.json")
+            .json::<serde_json::Value>()
+            .unwrap()["name"],
+        "Notes"
+    );
+    assert_eq!(
+        get("/notes/.config").json::<serde_json::Value>().unwrap()["spacePrefixes"],
+        serde_json::json!(["/notes"])
+    );
+}
+
+#[test]
+fn hostname_scope_rejects_duplicate_nested_and_root_prefix_conflicts() {
+    let (_srv, _root, base) = start_multi(&[]);
+    let admin = admin_client(&base);
+    let create = |name: &str, binding: serde_json::Value| {
+        admin
+            .post(format!("{base}/.spaces/api/admin/spaces"))
+            .json(&serde_json::json!({ "name": name, "binding": binding }))
+            .send()
+            .unwrap()
+    };
+
+    assert!(create(
+        "Work",
+        serde_json::json!({ "host": "team.localhost", "prefix": "/work" })
+    )
+    .status()
+    .is_success());
+    for (name, binding) in [
+        (
+            "Duplicate",
+            serde_json::json!({ "host": "TEAM.LOCALHOST.", "prefix": "/work" }),
+        ),
+        (
+            "Nested",
+            serde_json::json!({ "host": "team.localhost", "prefix": "/work/private" }),
+        ),
+        ("Root", serde_json::json!({ "host": "team.localhost" })),
+    ] {
+        let response = create(name, binding);
+        assert_eq!(
+            response.status(),
+            400,
+            "{name}: {}",
+            response.text().unwrap()
+        );
+    }
+}
+
+#[test]
+fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
+    let root = tempfile::tempdir().unwrap();
+    provision(root.path(), None);
+    for id in ["root", "work"] {
+        std::fs::create_dir_all(root.path().join("spaces").join(id)).unwrap();
+    }
+    std::fs::write(
+        root.path().join("spaces.json"),
+        serde_json::json!({
+            "root": { "name": "Root", "binding": { "host": "team.localhost" } },
+            "work": { "name": "Work", "binding": { "host": "team.localhost", "prefix": "/work" } }
+        })
+        .to_string(),
+    )
+    .unwrap();
+
+    let port = free_port();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    child
+        .arg(root.path())
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .env("SB_RUNTIME_API", "0")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let server = Server(child.spawn().expect("spawn grandfathered server"));
+    let base = format!("http://127.0.0.1:{port}");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if reqwest::blocking::Client::new()
+            .get(format!("{base}/.spaces/api/admin/spaces"))
+            .send()
+            .is_ok_and(|response| response.status().as_u16() == 401)
+        {
+            break;
+        }
+        assert!(Instant::now() < deadline, "server did not boot in time");
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    let _server = server;
+    let admin = admin_client(&base);
+    let spaces = admin
+        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .send()
+        .unwrap()
+        .json::<serde_json::Value>()
+        .unwrap();
+    for id in ["root", "work"] {
+        assert!(
+            spaces[id]["bindingWarning"]
+                .as_str()
+                .is_some_and(|warning| warning.contains("team.localhost")),
+            "missing warning for {id}: {spaces}"
+        );
+    }
+
+    let unrelated = admin
+        .patch(format!("{base}/.spaces/api/admin/spaces/work"))
+        .json(&serde_json::json!({ "description": "Updated while resolving binding" }))
+        .send()
+        .unwrap();
+    assert!(
+        unrelated.status().is_success(),
+        "{}",
+        unrelated.text().unwrap()
+    );
+    let spaces_after_patch = admin
+        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .send()
+        .unwrap()
+        .json::<serde_json::Value>()
+        .unwrap();
+    assert_eq!(
+        spaces_after_patch["work"]["description"],
+        "Updated while resolving binding"
+    );
+    for id in ["root", "work"] {
+        assert!(
+            spaces_after_patch[id]["bindingWarning"]
+                .as_str()
+                .is_some_and(|warning| warning.contains("team.localhost")),
+            "patch cleared the warning for {id}: {spaces_after_patch}"
+        );
+    }
+
+    let rejected = admin
+        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .json(&serde_json::json!({
+            "name": "Wiki",
+            "binding": { "host": "team.localhost", "prefix": "/wiki" }
+        }))
+        .send()
+        .unwrap();
+    assert_eq!(rejected.status(), 400, "{}", rejected.text().unwrap());
+
+    let removed = admin
+        .delete(format!("{base}/.spaces/api/admin/spaces/root"))
+        .send()
+        .unwrap();
+    assert!(removed.status().is_success(), "{}", removed.text().unwrap());
+    assert!(admin
+        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .json(&serde_json::json!({
+            "name": "Wiki",
+            "binding": { "host": "team.localhost", "prefix": "/wiki" }
+        }))
+        .send()
+        .unwrap()
+        .status()
+        .is_success());
 }
 
 #[test]

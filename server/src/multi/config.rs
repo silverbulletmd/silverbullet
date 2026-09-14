@@ -9,18 +9,23 @@ use serde::{Deserialize, Serialize};
 
 /// One space's binding to the outside world. Exactly one variant; the
 /// `untagged` representation matches the spec's `{"prefix": "/x"}` /
-/// `{"host": "..."}` shapes.
+/// `{"host": "..."}` / `{"host": "...", "prefix": "/x"}` shapes.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Binding {
-    Prefix { prefix: String },
-    Host { host: String },
+    Prefix {
+        prefix: String,
+    },
+    Host {
+        host: String,
+        #[serde(skip_serializing_if = "String::is_empty")]
+        prefix: String,
+    },
 }
 
-// A hand-written `Deserialize` (rather than `#[serde(untagged)]` + derive) so we
-// can reject *composite* objects like `{"prefix": "/a", "host": "a.test"}` and
-// unknown keys outright. A derived untagged enum would silently pick the first
-// matching variant and drop the extra fields.
+// A hand-written `Deserialize` (rather than `#[serde(untagged)]` + derive) keeps
+// unknown keys rejected. A derived untagged enum would silently pick the first
+// matching variant and drop extra fields.
 impl<'de> Deserialize<'de> for Binding {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -37,10 +42,50 @@ impl<'de> Deserialize<'de> for Binding {
         let repr = Repr::deserialize(deserializer)?;
         match (repr.prefix, repr.host) {
             (Some(prefix), None) => Ok(Binding::Prefix { prefix }),
-            (None, Some(host)) => Ok(Binding::Host { host }),
+            (prefix, Some(host)) => Ok(Binding::Host {
+                host,
+                prefix: prefix.unwrap_or_default(),
+            }),
             _ => Err(serde::de::Error::custom(
-                "binding must have exactly one of `prefix` or `host`",
+                "binding must have at least one of `prefix` or `host`",
             )),
+        }
+    }
+}
+
+impl Binding {
+    pub fn host(&self) -> Option<&str> {
+        match self {
+            Binding::Prefix { .. } => None,
+            Binding::Host { host, .. } => Some(host),
+        }
+    }
+
+    pub fn prefix(&self) -> &str {
+        match self {
+            Binding::Prefix { prefix } | Binding::Host { prefix, .. } => prefix,
+        }
+    }
+
+    pub fn normalize(&mut self) {
+        match self {
+            Binding::Prefix { prefix } | Binding::Host { prefix, .. } => {
+                *prefix = crate::multi::validate::normalize_prefix(prefix);
+            }
+        }
+    }
+
+    pub fn host_scope(&self) -> Option<String> {
+        self.host()
+            .map(crate::multi::validate::normalize_host_authority)
+    }
+
+    pub fn effective_host_scope(&self, primary_host: Option<&str>) -> Option<String> {
+        let scope = self.host_scope();
+        if scope.as_deref() == primary_host {
+            None
+        } else {
+            scope
         }
     }
 }
@@ -297,6 +342,7 @@ impl SpaceConfig {
     }
 
     pub fn normalize(&mut self) {
+        self.binding.normalize();
         if self.access.is_none() {
             self.access = Some(match self.legacy_public {
                 Some(true) => SpaceAccess::Write,
@@ -436,7 +482,7 @@ mod tests {
         let c: MultiConfig = MultiConfig::from_json(sample_json()).unwrap();
         let a = &c.spaces["id-a"];
         assert_eq!(a.name, "Alpha");
-        assert!(matches!(&a.binding, Binding::Host { host } if host == "a.example.com"));
+        assert!(matches!(&a.binding, Binding::Host { host, .. } if host == "a.example.com"));
         assert!(a.read_only);
         assert!(!a.shell.enabled);
         assert_eq!(a.index_page, "home");
@@ -515,20 +561,80 @@ mod tests {
     }
 
     #[test]
-    fn composite_binding_is_rejected() {
-        // A `{"prefix": ..., "host": ...}` object is ambiguous: without
-        // `deny_unknown_fields` serde's untagged enum would silently pick
-        // Prefix and drop the host. It must fail to parse instead.
-        let src = r#"{
-          "id": {
-            "name": "X",
-            "binding": { "prefix": "/a", "host": "a.example.com" }
-          }
-        }"#;
-        assert!(
-            MultiConfig::from_json(src).is_err(),
-            "composite binding must not deserialize"
+    fn bindings_parse_hostname_prefix_and_preserve_legacy_serialization() {
+        let prefix: Binding = serde_json::from_str(r#"{"prefix":"/legacy"}"#).unwrap();
+        assert_eq!(
+            serde_json::to_value(prefix).unwrap(),
+            serde_json::json!({ "prefix": "/legacy" })
         );
+
+        let host: Binding = serde_json::from_str(r#"{"host":"team.example.com"}"#).unwrap();
+        assert!(matches!(
+            &host,
+            Binding::Host { host, prefix } if host == "team.example.com" && prefix.is_empty()
+        ));
+        assert_eq!(
+            serde_json::to_value(host).unwrap(),
+            serde_json::json!({ "host": "team.example.com" })
+        );
+
+        let host_with_prefix: Binding =
+            serde_json::from_str(r#"{"host":"team.example.com","prefix":"/work"}"#).unwrap();
+        assert!(matches!(
+            &host_with_prefix,
+            Binding::Host { host, prefix } if host == "team.example.com" && prefix == "/work"
+        ));
+        assert_eq!(
+            serde_json::to_value(host_with_prefix).unwrap(),
+            serde_json::json!({ "host": "team.example.com", "prefix": "/work" })
+        );
+    }
+
+    #[test]
+    fn normalizes_prefixes_for_every_binding_shape() {
+        let mut host: SpaceConfig = serde_json::from_str(
+            r#"{"name":"Team","binding":{"host":"team.example.com","prefix":"work/"}}"#,
+        )
+        .unwrap();
+        host.normalize();
+        assert!(matches!(
+            host.binding,
+            Binding::Host { prefix, .. } if prefix == "/work"
+        ));
+
+        let mut prefix: SpaceConfig =
+            serde_json::from_str(r#"{"name":"Root","binding":{"prefix":"/"}}"#).unwrap();
+        prefix.normalize();
+        assert!(matches!(
+            prefix.binding,
+            Binding::Prefix { prefix } if prefix.is_empty()
+        ));
+    }
+
+    #[test]
+    fn binding_accessors_preserve_host_display_spelling_and_normalize_scope() {
+        let host = Binding::Host {
+            host: "Team.Example.Com.:3000".into(),
+            prefix: "/work".into(),
+        };
+        assert_eq!(host.host(), Some("Team.Example.Com.:3000"));
+        assert_eq!(host.prefix(), "/work");
+        assert_eq!(host.host_scope(), Some("team.example.com:3000".into()));
+
+        let prefix = Binding::Prefix {
+            prefix: "/legacy".into(),
+        };
+        assert_eq!(prefix.host(), None);
+        assert_eq!(prefix.prefix(), "/legacy");
+        assert_eq!(prefix.host_scope(), None);
+    }
+
+    #[test]
+    fn empty_or_unknown_bindings_are_rejected() {
+        for source in [r#"{}"#, r#"{"unknown":"value"}"#] {
+            let parsed: Result<Binding, _> = serde_json::from_str(source);
+            assert!(parsed.is_err(), "{source}");
+        }
     }
 
     #[test]

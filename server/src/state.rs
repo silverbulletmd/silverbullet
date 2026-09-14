@@ -38,8 +38,8 @@ impl From<&str> for ServerVersion {
     }
 }
 
-/// The origin's prefix-bound space roots (`/work`, `/private`), shared live
-/// with every space on it and reported at `/.config`.
+/// The hostname scope's space roots (`/work`, `/private`), published live
+/// to each space's handle and reported at `/.config`.
 ///
 /// A space bound at `/` registers its service worker at scope `/`, so the
 /// browser hands it every sibling space's requests too. Without this list the

@@ -194,7 +194,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
     assert!(r.status().is_success(), "admin login failed");
 
     for (name, prefix, folder) in [
-        ("Root", "/", "spaceRoot"),
+        ("Root", "/root", "spaceRoot"),
         ("Notes", "/notes", "spaceNotes"),
     ] {
         let r = admin
@@ -240,7 +240,8 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         .expect("token in response")
         .to_string();
 
-    let (code, _, stderr) = run_sb(&["--url", &base, "eval", "1 + 1"], sb_config.path());
+    let root_url = format!("{base}/root");
+    let (code, _, stderr) = run_sb(&["--url", &root_url, "eval", "1 + 1"], sb_config.path());
     assert_ne!(code, 0, "anonymous eval should fail");
     assert!(
         stderr.contains("401")
@@ -252,7 +253,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
     // Each space answers with its own marker. The first call also pays for the
     // browser launch and the client's first sync, so allow a generous window.
     for (prefix, expected) in [
-        ("", "marker-from-root-space"),
+        ("/root", "marker-from-root-space"),
         ("/notes", "marker-from-notes-space"),
     ] {
         let url = format!("{base}{prefix}");

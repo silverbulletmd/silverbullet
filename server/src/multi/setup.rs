@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::multi::config::{MultiConfig, SpaceAccess, SpaceConfig};
+use crate::multi::config::{Binding, MultiConfig, SpaceAccess, SpaceConfig};
 use crate::multi::instance::{resolve_folder, seed_index};
 use crate::multi::server_config::ServerConfig;
 use crate::multi::users::{Profile, UserEntry, UsersConfig, USERS_FILE};
-use crate::multi::validate::{validate, FieldError};
+use crate::multi::validate::FieldError;
 
 const SPACES_FILE: &str = "spaces.json";
 
@@ -169,20 +169,29 @@ pub fn run_setup(
 
     if let Some(first) = &req.space {
         let prefix = first.prefix.trim();
-        if first.host.is_none() && prefix.is_empty() {
+        if prefix.is_empty() {
             return Err(err(
                 "space.prefix",
                 "prefix must not be empty (use \"/\" for the root)",
             ));
         }
-
-        if first.host.is_some() && !prefix.is_empty() {
-            return Err(err("space.host", "choose a hostname or a prefix, not both"));
+        if let Some(host) = first.host.as_deref() {
+            if host.trim().is_empty() {
+                return Err(err("space.host", "hostname must not be empty"));
+            }
+            if !super::validate::valid_host_authority(host) {
+                return Err(err(
+                    "space.host",
+                    "host must be an ASCII DNS name or canonical IPv4 address, optionally followed by a port from 1 to 65535",
+                ));
+            }
         }
-        let binding = match &first.host {
-            Some(host) => serde_json::json!({ "host": host.trim() }),
+        let binding_value = match &first.host {
+            Some(host) => serde_json::json!({ "host": host, "prefix": prefix }),
             None => serde_json::json!({ "prefix": prefix }),
         };
+        let binding: Binding = serde_json::from_value(binding_value)
+            .map_err(|e| err("space.binding", format!("invalid binding: {e}")))?;
 
         let id = uuid::Uuid::new_v4().to_string();
         let folder_field = if first.folder.is_empty() {
@@ -224,18 +233,19 @@ pub fn run_setup(
         spaces.spaces.insert(id, cfg);
     }
 
-    let known_users: BTreeSet<String> = users.users.keys().cloned().collect();
-    let errors = validate(&spaces, root, &known_users);
-    if !errors.is_empty() {
-        return Err(errors);
-    }
-
     let mut server_config =
         ServerConfig::load(&root.join("server.json")).map_err(|e| err("", e))?;
     if let Some(primary_url) = &req.primary_url {
         server_config.primary_url = Some(primary_url.clone());
     }
     server_config.validate(&spaces)?;
+    let known_users: BTreeSet<String> = users.users.keys().cloned().collect();
+    let primary_host = server_config.primary_host();
+    let errors =
+        super::validate::validate_for_primary(&spaces, root, &known_users, primary_host.as_deref());
+    if !errors.is_empty() {
+        return Err(errors);
+    }
     server_config.validate_paths(root, &spaces)?;
     server_config
         .save(&root.join("server.json"))
@@ -312,7 +322,7 @@ mod tests {
         assert_eq!(cfg.spaces.len(), 1);
         let (id, space) = cfg.spaces.iter().next().unwrap();
         assert_eq!(space.name, "Notes");
-        assert!(matches!(&space.binding, Binding::Prefix { prefix } if prefix == "/"));
+        assert!(matches!(&space.binding, Binding::Prefix { prefix } if prefix.is_empty()));
         assert_eq!(space.access(), SpaceAccess::None);
         assert!(space.members.is_empty());
         assert!(!space.shell.enabled);
@@ -429,7 +439,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut request = req(Some(FirstSpace {
             name: "Notes".into(),
-            prefix: String::new(),
+            prefix: "/".into(),
             host: Some("notes.example.com".into()),
             folder: String::new(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
@@ -443,12 +453,91 @@ mod tests {
         );
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         let space = cfg.spaces.values().next().unwrap();
-        assert!(matches!(&space.binding, Binding::Host { host } if host == "notes.example.com"));
+        assert!(matches!(
+            &space.binding,
+            Binding::Host { host, prefix }
+                if host == "notes.example.com" && prefix.is_empty()
+        ));
+    }
+
+    #[test]
+    fn setup_accepts_hostname_and_port_with_prefix() {
+        let dir = tempfile::tempdir().unwrap();
+        let request = req(Some(FirstSpace {
+            name: "Work".into(),
+            prefix: "/work".into(),
+            host: Some("team.example.com:3000".into()),
+            folder: String::new(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+        }));
+
+        run_setup(dir.path(), &request, "# Work\n").unwrap();
+
+        let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
+        let space = cfg.spaces.values().next().unwrap();
+        assert!(matches!(
+            &space.binding,
+            Binding::Host { host, prefix }
+                if host == "team.example.com:3000" && prefix == "/work"
+        ));
+    }
+
+    #[test]
+    fn setup_requires_an_explicit_path_for_a_hostname() {
+        let dir = tempfile::tempdir().unwrap();
+        let request = req(Some(FirstSpace {
+            name: "Notes".into(),
+            prefix: " ".into(),
+            host: Some("notes.example.com".into()),
+            folder: String::new(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+        }));
+
+        let errors = run_setup(dir.path(), &request, "# Notes\n").unwrap_err();
+        assert_eq!(errors[0].field, "space.prefix");
+        assert!(!is_configured(dir.path()));
+    }
+
+    #[test]
+    fn setup_reports_a_blank_hostname_on_the_hostname_field() {
+        let dir = tempfile::tempdir().unwrap();
+        let request = req(Some(FirstSpace {
+            name: "Notes".into(),
+            prefix: "/".into(),
+            host: Some(" ".into()),
+            folder: String::new(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+        }));
+
+        let errors = run_setup(dir.path(), &request, "# Notes\n").unwrap_err();
+        assert_eq!(errors[0].field, "space.host");
+        assert!(!is_configured(dir.path()));
+    }
+
+    #[test]
+    fn setup_rejects_malformed_hostname_on_the_hostname_field() {
+        for host in [
+            " notes.example.test",
+            "notes..example.test",
+            "user@notes.example.test",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let request = req(Some(FirstSpace {
+                name: "Notes".into(),
+                prefix: "/work".into(),
+                host: Some(host.into()),
+                folder: String::new(),
+                revisions: silverbullet_server_common::RevisionsMode::Managed,
+            }));
+            let errors = run_setup(dir.path(), &request, "# Notes\n").unwrap_err();
+            assert_eq!(errors[0].field, "space.host", "{host}");
+            assert!(!is_configured(dir.path()));
+        }
     }
 
     #[test]
     fn primary_url_accepts_prefix_and_same_host_spaces() {
-        for (prefix, host) in [("/", None), ("", Some("manage.example.com"))] {
+        for (prefix, host) in [("/", None), ("/", Some("manage.example.com"))] {
             let dir = tempfile::tempdir().unwrap();
             let mut request = req(Some(FirstSpace {
                 name: "Notes".into(),
