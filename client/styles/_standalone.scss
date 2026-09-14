@@ -161,13 +161,6 @@ body.sb-standalone.sb-page {
     font-weight: 600;
     img { width: 26px; height: 26px; }
   }
-  .sb-auth-host {
-    font-size: 13px;
-    color: var(--subtle-color);
-    overflow-wrap: anywhere;
-    min-width: 0;
-    text-align: right;
-  }
 }
 
 body.sb-standalone.sb-page:has(.sb-auth-header) {

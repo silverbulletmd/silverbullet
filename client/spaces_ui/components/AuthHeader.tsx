@@ -5,7 +5,6 @@ export function AuthHeader({ logo }: { logo: string }) {
         <img src={logo} alt="" />
         <span>SilverBullet</span>
       </div>
-      <span class="sb-auth-host">{location.host}</span>
     </header>
   );
 }
