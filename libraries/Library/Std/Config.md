@@ -120,6 +120,13 @@ config.define("shortWikiLinks", {
   ui = { category = "Editor", label = "Short wiki links", priority = 1 },
 })
 
+config.define("attachmentPath", {
+  description = "Default folder prefix used to pre-fill the file name prompt when pasting or uploading an attachment. Leave empty to suggest the current page's folder. A leading '/' is from the space root (e.g. '/Assets/'); without one it is relative to the current page (e.g. 'attachments/').",
+  type = "string",
+  default = "",
+  ui = { category = "Editor", label = "Attachment path", priority = 3 },
+})
+
 config.define("linkWriteFormat", {
   description = "How SilverBullet writes wiki links it generates: 'shortest' uses the bare page name when that name is unique in the space and the full path when it is not, 'shortest-suffix' writes the shortest path suffix that still uniquely identifies the page instead of the full path, 'full-path' always writes the full path",
   type = "string",

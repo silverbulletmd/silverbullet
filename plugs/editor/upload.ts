@@ -1,9 +1,13 @@
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import {
+  defaultAttachmentPath,
   defaultLinkStyle,
   maximumDocumentSize,
 } from "@silverbulletmd/silverbullet/constants";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  resolveAttachmentPath,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,
   isValidPath,
@@ -25,6 +29,10 @@ export async function saveFile(file: UploadFile) {
     "maximumDocumentSize",
     maximumDocumentSize,
   );
+  const attachmentPath = await system.getConfig<string>(
+    "attachmentPath",
+    defaultAttachmentPath,
+  );
 
   if (typeof maxSize !== "number") {
     await editor.flashNotification(
@@ -42,8 +50,9 @@ export async function saveFile(file: UploadFile) {
 
   let desiredFilePath = await editor.prompt(
     "File name for uploaded document",
-    resolveMarkdownLink(
+    resolveAttachmentPath(
       await editor.getCurrentPath(),
+      attachmentPath,
       ensureValidFilenameWithExtension(file.name),
     ),
   );

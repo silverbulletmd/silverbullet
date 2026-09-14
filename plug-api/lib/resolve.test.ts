@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  resolveAttachmentPath,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 
 test("Test URL resolver", () => {
   // Absolute paths
@@ -17,5 +20,31 @@ test("Test URL resolver", () => {
   expect(resolveMarkdownLink("bar", "../../foo/baz")).toEqual("foo/baz");
   expect(resolveMarkdownLink("bar/qux", "foo/../baz")).toEqual(
     "bar/foo/../baz",
+  );
+});
+
+test("resolveAttachmentPath prefixes pasted files (#1215)", () => {
+  expect(resolveAttachmentPath("Folder/Page", "", "image.png")).toEqual(
+    "Folder/image.png",
+  );
+  expect(resolveAttachmentPath("Page", "", "image.png")).toEqual("image.png");
+
+  expect(
+    resolveAttachmentPath("Folder/Page", "attachments/", "image.png"),
+  ).toEqual("Folder/attachments/image.png");
+  expect(resolveAttachmentPath("Page", "attachments/", "image.png")).toEqual(
+    "attachments/image.png",
+  );
+  expect(resolveAttachmentPath("Folder/Page", "attachments", "image.png"))
+    .toEqual("Folder/attachments/image.png");
+
+  expect(
+    resolveAttachmentPath("Folder/Sub/Page", "/Assets/", "image.png"),
+  ).toEqual("Assets/image.png");
+  expect(resolveAttachmentPath("Page", "/Assets/", "image.png")).toEqual(
+    "Assets/image.png",
+  );
+  expect(resolveAttachmentPath("Folder/Page", "/Assets", "image.png")).toEqual(
+    "Assets/image.png",
   );
 });
