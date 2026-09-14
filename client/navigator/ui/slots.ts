@@ -9,6 +9,24 @@ import { useEffect, useState } from "preact/hooks";
 /** How long a gated slot may stay hidden waiting for its first real content. */
 const PAINT_REVEAL_TIMEOUT_MS = 800;
 
+/**
+ * Applied to the modal while it is paint-gated. Opacity 0 so it can still
+ * receive programmatic focus in some browsers; `pointer-events: none` so it
+ * does not intercept clicks. Chromium/Edge still drop that focus, so the
+ * panel must wait until this class is gone before treating the input as
+ * focused (see `navInputCanTakeFocus`).
+ */
+export const NAV_PAINT_PENDING_CLASS = "sb-modal-paint-pending";
+
+/** False while the modal is still paint-gated — focus taken then is lost. */
+export function navInputCanTakeFocus(
+  el: EventTarget | null | undefined,
+): el is HTMLElement {
+  return (
+    el instanceof HTMLElement && !el.closest(`.${NAV_PAINT_PENDING_CLASS}`)
+  );
+}
+
 export type NavActivation = {
   view: string;
   token: number;

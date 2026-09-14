@@ -15,7 +15,11 @@ import {
 import { createActivate } from "../activation.ts";
 import type { NavigatorEngine } from "../engine.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
-import { markSlotReady, type NavActivation } from "../slots.ts";
+import {
+  markSlotReady,
+  navInputCanTakeFocus,
+  type NavActivation,
+} from "../slots.ts";
 
 /**
  * Everything that drives the panel from outside its own keystrokes:
@@ -85,8 +89,24 @@ export function usePanelEvents({
     // a non-empty phrase already in it.
     function focusInput(select: boolean) {
       if (isMobileDevice()) return;
-      refs.input.current?.focus();
-      if (select) refs.input.current?.select();
+      const apply = (): boolean => {
+        const el = refs.input.current;
+        if (!navInputCanTakeFocus(el)) return false;
+        el.focus({ preventScroll: true });
+        if (select) el.select();
+        return document.activeElement === el;
+      };
+      if (apply()) return;
+      // The modal opens paint-gated (`.sb-modal-paint-pending`). Focus
+      // taken then is dropped once the class is removed; retry until the
+      // input is actually shown, up to the paint-reveal timeout.
+      const started = performance.now();
+      const retry = () => {
+        if (apply()) return;
+        if (performance.now() - started > 1000) return;
+        requestAnimationFrame(retry);
+      };
+      requestAnimationFrame(retry);
     }
 
     // `system.getMode` covers a server/space started read-only; the UI option
