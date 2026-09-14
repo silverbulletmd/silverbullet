@@ -28,8 +28,12 @@ async function decoratedRowGeometry(row: Locator) {
         rowHeight: rowRect.height,
         titleWidth,
         chipRatios: [],
+        chipTopOffsets: [],
       };
     }
+    const title = element
+      .querySelector(".sb-nav-primary")!
+      .getBoundingClientRect();
     const clip = trailing.getBoundingClientRect();
     const chipRatios = [...trailing.children].map((child) => {
       const chip = child.getBoundingClientRect();
@@ -43,11 +47,15 @@ async function decoratedRowGeometry(row: Locator) {
       );
       return (visibleWidth * visibleHeight) / (chip.width * chip.height);
     });
+    const chipTopOffsets = [...trailing.children].map(
+      (child) => child.getBoundingClientRect().top - title.top,
+    );
     return {
       rowWidth: rowRect.width,
       rowHeight: rowRect.height,
       titleWidth,
       chipRatios,
+      chipTopOffsets,
     };
   });
 }
@@ -101,6 +109,9 @@ test.describe("page and command navigation", () => {
     expect(longGeometry.chipRatios.filter((ratio) => ratio > 0.01)).toEqual([]);
     expect(shortGeometry.chipRatios.length).toBeGreaterThan(0);
     expect(shortGeometry.chipRatios.every((ratio) => ratio > 0.99)).toBe(true);
+    expect(shortGeometry.chipTopOffsets.every((offset) => offset > 1)).toBe(
+      true,
+    );
     expect(
       intermediateGeometry.chipRatios.every(
         (ratio) => ratio < 0.01 || ratio > 0.99,
