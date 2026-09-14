@@ -98,7 +98,7 @@ export function SpaceList({
         <h1>Spaces</h1>
         {admin && (
           <a class="sb-button sb-button-primary" href={spacesUrl("/new")}>
-            Add space
+            Create space
           </a>
         )}
       </header>

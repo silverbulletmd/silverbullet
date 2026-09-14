@@ -38,7 +38,7 @@ hostnameTest(
       },
     );
     await page.reload();
-    await page.getByRole("link", { name: "Add space", exact: true }).click();
+    await page.getByRole("link", { name: "Create space", exact: true }).click();
     const primaryOption = page
       .getByLabel("Hostname", { exact: true })
       .locator('option[value="primary"]');
@@ -74,7 +74,7 @@ hostnameTest(
     });
 
     await page.goto(`${sbServer.url}/.spaces/`);
-    await page.getByRole("link", { name: "Add space", exact: true }).click();
+    await page.getByRole("link", { name: "Create space", exact: true }).click();
     await page.getByLabel("Name", { exact: true }).fill("Wiki");
     const knownHost = page
       .getByLabel("Hostname", { exact: true })
