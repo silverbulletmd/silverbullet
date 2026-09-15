@@ -120,4 +120,24 @@ describe("resolveAnchor", () => {
       expect(result.hostTag).toBe("header");
     }
   });
+
+  test("resolves an anchor inside a table cell (#2104)", async () => {
+    createMockSystem();
+    const text = `| Case | Content |
+| :--- | :--- |
+| in a cell | $Anchor-In-Table some text |
+`;
+    await indexPage(text, "TablePage");
+
+    const result = await resolveAnchor("Anchor-In-Table");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.page).toBe("TablePage");
+      expect(result.hostTag).toBe("table");
+      // The range is the anchored row, not the whole table.
+      expect(text.slice(...result.range)).toBe(
+        "| in a cell | $Anchor-In-Table some text |",
+      );
+    }
+  });
 });
