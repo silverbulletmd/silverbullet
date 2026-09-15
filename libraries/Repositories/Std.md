@@ -3,11 +3,6 @@
 Here are a few vetted libraries to get you started.
 
 ```#meta/library/remote
-name: Git
-description: Rudamentary Git integration
-author: Zef Hemel
-uri: https://github.com/zefhemel/silverbullet-libraries/blob/main/Git.md
----
 name: Diagrams
 author: Zef Hemel
 description: Support or (mermaid) diagrams in Silverbullet
@@ -24,11 +19,6 @@ author: MrMugame
 description: Powerful full-text search engine
 website: https://github.com/MrMugame/silversearch
 uri: ghr:MrMugame/silversearch/PLUG.md
----
-name: Document Explorer
-author: Mr.Red
-description: Adds a tree view that allows you to navigate your space hierarchially
-uri: https://github.com/Mr-xRed/silverbullet-libraries/blob/main/DocumentExplorer.md
 ---
 name: PDF Viewer
 author: MrMugame
