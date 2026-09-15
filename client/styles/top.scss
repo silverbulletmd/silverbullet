@@ -7,6 +7,15 @@
 
   height: 55px;
 
+  // iOS 27 paints a progressive blur over the top ~35px of a home-screen web app's content, which smears the page title and the action icons. 
+  // selector(:heading) shipped in Safari 27 and is the closest available proxy for "this WebKit draws the band", the
+  // `-webkit-touch-callout` half pins it to iOS.
+  @media (display-mode: standalone) {
+    @supports (-webkit-touch-callout: none) and selector(:heading) {
+      padding-top: 36px;
+    }
+  }
+
   .main {
     flex: 2;
     min-width: 0;
