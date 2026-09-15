@@ -15,7 +15,12 @@ import {
 import { createActivate } from "../activation.ts";
 import type { NavigatorEngine } from "../engine.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
-import { markSlotReady, type NavActivation } from "../slots.ts";
+import {
+  markSlotReady,
+  navInputCanTakeFocus,
+  PAINT_REVEAL_TIMEOUT_MS,
+  type NavActivation,
+} from "../slots.ts";
 
 /**
  * Everything that drives the panel from outside its own keystrokes:
@@ -83,10 +88,40 @@ export function usePanelEvents({
     // `select` is the caller's call -- see the activate tail, which selects
     // for the modal always and for a sidebar only when it's coming back with
     // a non-empty phrase already in it.
+    let focusRetry: number | undefined;
+    const cancelFocusRetry = () => {
+      if (focusRetry === undefined) return;
+      cancelAnimationFrame(focusRetry);
+      focusRetry = undefined;
+    };
+
     function focusInput(select: boolean) {
       if (isMobileDevice()) return;
-      refs.input.current?.focus();
-      if (select) refs.input.current?.select();
+      cancelFocusRetry();
+      // Bind this retry to the activation that asked for focus. A later
+      // open (including `focus: false`) updates `handledToken` and must
+      // not inherit this grab.
+      const token = refs.handledToken.current;
+      const apply = (): boolean => {
+        if (refs.handledToken.current !== token) return true;
+        const el = refs.input.current;
+        if (!navInputCanTakeFocus(el)) return false;
+        el.focus({ preventScroll: true });
+        if (select) el.select();
+        return document.activeElement === el;
+      };
+      if (apply()) return;
+      // The modal opens paint-gated (`.sb-modal-paint-pending`). Focus
+      // taken then is dropped once the class is removed; retry until the
+      // input is actually shown, up to the paint-reveal timeout.
+      const started = performance.now();
+      const retry = () => {
+        focusRetry = undefined;
+        if (apply()) return;
+        if (performance.now() - started > PAINT_REVEAL_TIMEOUT_MS) return;
+        focusRetry = requestAnimationFrame(retry);
+      };
+      focusRetry = requestAnimationFrame(retry);
     }
 
     // `system.getMode` covers a server/space started read-only; the UI option
@@ -208,6 +243,7 @@ export function usePanelEvents({
 
     const timer = refreshTimer;
     return () => {
+      cancelFocusRetry();
       clearTimeout(timer.current);
       for (const [name, handler] of subscribed) {
         client.eventHook.removeLocalListener(name, handler);

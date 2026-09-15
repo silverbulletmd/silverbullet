@@ -4,7 +4,7 @@ import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import { hide } from "../navigator.ts";
 import { NavErrorBoundary } from "./components/nav_error_boundary.tsx";
 import { NavRoot } from "./components/nav_root.tsx";
-import type { NavSlotState } from "./slots.ts";
+import { NAV_PAINT_PENDING_CLASS, type NavSlotState } from "./slots.ts";
 
 /** A docked navigator panel, or nothing when the slot is empty. */
 export function NavigatorDock({
@@ -67,7 +67,7 @@ export function NavigatorModal({
       <div
         className={
           "sb-modal sb-modal-centered" +
-          (state.paintReady ? "" : " sb-modal-paint-pending")
+          (state.paintReady ? "" : ` ${NAV_PAINT_PENDING_CLASS}`)
         }
         style={{
           top: inset,
