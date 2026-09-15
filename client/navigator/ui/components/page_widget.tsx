@@ -117,7 +117,7 @@ function PageContentWidget({
     if (!pending && settlesSlot(outcome)) onSettled(name);
   }, [state, pending]);
 
-  if (!visible && (outcome === "pending" || outcome === "empty")) return null;
+  if (outcome === "pending" || outcome === "empty") return null;
 
   const { markdown = "", node, error } = state ?? {};
   return (
@@ -247,7 +247,7 @@ function PageWidget({
     onSettled(name);
   }, [rows, error, pending]);
 
-  if (!visible && !error && !rows?.length) return null;
+  if (!error && !rows?.length) return null;
 
   const { shown, more } = visibleRows(rows ?? [], meta.limit);
   const select = (obj: Record<string, any>) =>
