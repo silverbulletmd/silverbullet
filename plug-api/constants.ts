@@ -1,5 +1,8 @@
 export const maximumDocumentSize: number = 10; // MiB
 export const defaultLinkStyle: string = "wikilink";
+/** Default folder prefix for pasted/uploaded attachments. Empty keeps
+ * today's behavior: save next to the current page. */
+export const defaultAttachmentPath: string = "";
 export const offlineError: Error = new Error("Offline");
 export const notFoundError: Error = new Error("Not found");
 export const notAuthenticatedError: Error = new Error("Unauthenticated");
