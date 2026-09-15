@@ -90,6 +90,48 @@ test("Wiki link with embedded image path", () => {
   });
 });
 
+test("Wiki links render the target page decoration icon before their label", () => {
+  const tree = parse(extendedMarkdownLanguage, "[[Person/Ada|Ada]]");
+  const html = renderMarkdownToHtml(tree, {}, [
+    {
+      ref: "Person/Ada",
+      tag: "page",
+      tags: [],
+      name: "Person/Ada",
+      perm: "rw",
+      lastModified: "0",
+      created: "0",
+      pageDecoration: { icon: "user" },
+    },
+  ]);
+
+  expect(html).toContain('class="sb-page-decoration-icon"');
+  expect(html).toContain("<svg");
+  expect(html).toMatch(/<svg[\s\S]*<\/svg><\/span>Ada<\/a>/);
+});
+
+test("Wiki link decoration icons never emit unsanitized literal SVG markup", () => {
+  const tree = parse(extendedMarkdownLanguage, "[[Safe Page]]");
+  const html = renderMarkdownToHtml(tree, {}, [
+    {
+      ref: "Safe Page",
+      tag: "page",
+      tags: [],
+      name: "Safe Page",
+      perm: "rw",
+      lastModified: "0",
+      created: "0",
+      pageDecoration: {
+        icon: '<svg onload="alert(1)"><script>alert(2)</script><circle cx="12" cy="12" r="4"></circle></svg>',
+      },
+    },
+  ]);
+
+  expect(html).not.toContain("onload");
+  expect(html).not.toContain("<script");
+  expect(html).not.toContain("alert(");
+});
+
 test("Smart hard break test", () => {
   const example = `**Hello**
 *world!*`;

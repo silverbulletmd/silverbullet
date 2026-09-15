@@ -1,8 +1,9 @@
 import type { Notification } from "@silverbulletmd/silverbullet/type/client";
-import { Input } from "@silverbulletmd/silverbullet/ui";
+import { Icon, Input } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { resolveIconNode } from "../lib/icon.ts";
 
 export type ActionButton = {
   icon: FunctionalComponent<any>;
@@ -261,6 +262,7 @@ export function TopBar({
   lhs,
   rhs,
   pageNamePrefix,
+  pageIcon,
   cssClass,
   mobileMenuStyle,
   readOnly,
@@ -279,17 +281,24 @@ export function TopBar({
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
   pageNamePrefix?: string;
+  pageIcon?: string;
   cssClass?: string;
   mobileMenuStyle?: string;
   readOnly: boolean;
 }) {
+  const pageIconNode = resolveIconNode(pageIcon);
   return (
     <div id="sb-top" className={isOnline ? undefined : "sb-sync-error"}>
       {lhs}
       <div className="main">
         <div className="inner">
           <div className="wrapper">
-            <div className="sb-page-prefix">{pageNamePrefix}</div>
+            <div className="sb-page-prefix">
+              {pageIconNode && (
+                <Icon node={pageIconNode} class="sb-page-decoration-icon" />
+              )}
+              {pageNamePrefix}
+            </div>
             <span
               id="sb-current-page"
               className={pageNameClass(isLoading, unsavedChanges, cssClass)}

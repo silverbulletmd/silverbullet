@@ -599,6 +599,7 @@ export class MainUI {
           pageNamePrefix={
             client.currentPageMeta()?.pageDecoration?.prefix ?? ""
           }
+          pageIcon={client.currentPageMeta()?.pageDecoration?.icon}
           cssClass={(client.currentPageMeta()?.pageDecoration?.cssClasses ?? [])
             .join(" ")
             .replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}

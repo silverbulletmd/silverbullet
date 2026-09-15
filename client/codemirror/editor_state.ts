@@ -4,6 +4,7 @@ import {
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
+  type Completion,
 } from "@codemirror/autocomplete";
 import {
   codeFolding,
@@ -61,6 +62,9 @@ import {
   frontmatterFoldPlaceholderDOM,
   prepareFrontmatterFoldPlaceholder,
 } from "./frontmatter_folding.ts";
+import { createIconElement } from "../lib/icon.ts";
+
+type DecoratedCompletion = Completion & { icon?: unknown };
 
 // Annotation marking a transaction whose changes came from outside the
 // editor's edit stream (e.g. a page re-fetch from storage), so the
@@ -154,6 +158,19 @@ export function createEditorState(
             return "";
           }
         },
+        addToOptions: [
+          {
+            position: 20,
+            render(completion) {
+              return (
+                createIconElement(
+                  (completion as DecoratedCompletion).icon,
+                  "sb-page-decoration-icon",
+                ) ?? null
+              );
+            },
+          },
+        ],
       }),
       EditorView.contentAttributes.of({
         spellcheck: "true",

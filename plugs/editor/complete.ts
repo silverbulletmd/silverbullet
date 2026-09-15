@@ -143,6 +143,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         (pageMeta as PageMeta)._isAspiring === true,
       );
       const namePrefix = (pageMeta as PageMeta).pageDecoration?.prefix || "";
+      const icon = (pageMeta as PageMeta).pageDecoration?.icon;
       const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClasses || [])
         .join(" ")
         .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
@@ -167,6 +168,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
               ? `linkName for: ${pageMeta.name}`
               : `displayName for: ${pageMeta.name}`,
             type: "page",
+            icon,
             cssClass,
           });
         }
@@ -183,6 +185,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
                   : `${applyName}|${alias}`,
               detail: `alias to: ${pageMeta.name}`,
               type: "page",
+              icon,
               cssClass,
             });
           }
@@ -197,6 +200,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             ? "Linked but not created"
             : undefined,
           type: "page",
+          icon,
           cssClass,
         });
       } else {
@@ -217,6 +221,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           boost: boost,
           apply: labelText.includes(" ") ? `<${labelText}>` : labelText,
           type: "page",
+          icon,
           cssClass,
         });
       }

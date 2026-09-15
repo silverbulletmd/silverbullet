@@ -22,6 +22,7 @@ import type {
   SourceCtx,
   ViewMeta,
 } from "../types.ts";
+import { createSvgNode, parseIcon } from "../../lib/icon.ts";
 
 export type { RowState, RowStates };
 
@@ -44,24 +45,7 @@ type RawRowState = {
   segments?: boolean[];
 };
 
-type ParsedIcon =
-  | { kind: "svg"; markup: string }
-  | { kind: "feather"; name: string }
-  | { kind: "unknown"; prefix: string }
-  | { kind: "invalid" };
-
-export function parseIcon(icon: unknown): ParsedIcon {
-  if (typeof icon !== "string") return { kind: "invalid" };
-  const trimmed = icon.replace(/^\s+/, "");
-  if (trimmed.startsWith("<svg")) return { kind: "svg", markup: trimmed };
-  const colon = trimmed.indexOf(":");
-  if (colon === -1) return { kind: "feather", name: trimmed };
-  const prefix = trimmed.slice(0, colon);
-  if (prefix === "feather") {
-    return { kind: "feather", name: trimmed.slice(colon + 1) };
-  }
-  return { kind: "unknown", prefix };
-}
+export { parseIcon } from "../../lib/icon.ts";
 
 export type ViewState = {
   meta: ViewMeta;
@@ -425,10 +409,7 @@ export class NavigatorEngine {
     }
     if (!svg) return undefined;
     if (this.nodeCache.has(svg)) return this.nodeCache.get(svg);
-    // <template> parses its content inert (no resource loads, nothing scheduled) — the same lenient HTML path innerHTML took, without the side effects.
-    const template = document.createElement("template");
-    template.innerHTML = svg;
-    const node = template.content.firstElementChild ?? undefined;
+    const node = createSvgNode(svg);
     this.nodeCache.set(svg, node);
     return node;
   }

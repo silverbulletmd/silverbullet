@@ -11,5 +11,5 @@ export function Icon({ node, class: extra }: IconProps) {
   useLayoutEffect(() => {
     ref.current?.replaceChildren(node.cloneNode(true));
   }, [node]);
-  return <span class={extra} ref={ref} />;
+  return <span class={extra} ref={ref} aria-hidden="true" />;
 }

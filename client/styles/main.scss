@@ -197,6 +197,18 @@ body {
   overflow: hidden;
 }
 
+.sb-page-decoration-icon {
+  display: inline-flex;
+  flex: none;
+  margin-right: 0.25em;
+  vertical-align: -0.125em;
+
+  svg {
+    width: 1em;
+    height: 1em;
+  }
+}
+
 .sb-panel {
   iframe {
     display: block;

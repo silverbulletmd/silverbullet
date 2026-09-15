@@ -226,6 +226,10 @@ $comment-border: 1px;
   }
 
   .cm-tooltip-autocomplete {
+    .sb-page-decoration-icon {
+      margin-left: 5px;
+    }
+
     .cm-completionDetail {
       font-style: normal;
       display: block;
@@ -234,7 +238,7 @@ $comment-border: 1px;
     }
 
     .cm-completionLabel {
-      display: block;
+      display: inline-block;
       margin-left: 5px;
     }
 

@@ -134,6 +134,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   }
 
   let linkText = alias || stringRef;
+  let icon: string | undefined;
 
   if ((linkStatus === "default" || linkStatus === "ambiguous") && ref) {
     const meta = pageByPath(client.ui.viewState.allPages).get(
@@ -152,6 +153,11 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
         ? ""
         : (meta?.pageDecoration?.prefix ?? "");
 
+    icon =
+      ref.details?.type === "position" || ref.details?.type === "linecolumn"
+        ? undefined
+        : meta?.pageDecoration?.icon;
+
     linkText = alias || prefix + encodeRef(renderedRef);
 
     if (meta?.pageDecoration?.cssClasses) {
@@ -167,6 +173,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
     Decoration.replace({
       widget: new LinkWidget({
         text: linkText,
+        icon,
         title: helpText,
         href: ref ? encodePageURI(encodeRef(ref)) : undefined,
         cssClass: `sb-wiki-link ${css}`,

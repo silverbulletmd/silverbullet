@@ -10,9 +10,11 @@ import {
 import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
+import { createIconElement } from "../lib/icon.ts";
 
 type LinkOptions = {
   text: string;
+  icon?: string;
   href?: string;
   title: string;
   cssClass: string;
@@ -28,7 +30,12 @@ export class LinkWidget extends WidgetType {
   toDOM(): HTMLElement {
     const anchor = document.createElement("a");
     anchor.className = this.options.cssClass;
-    anchor.textContent = this.options.text;
+    const icon = createIconElement(
+      this.options.icon,
+      "sb-page-decoration-icon",
+    );
+    if (icon) anchor.append(icon);
+    anchor.append(document.createTextNode(this.options.text));
 
     anchor.addEventListener("click", (e) => {
       if (e.button !== 0) {
@@ -65,6 +72,7 @@ export class LinkWidget extends WidgetType {
       other instanceof LinkWidget &&
       this.options.from === other.options.from &&
       this.options.text === other.options.text &&
+      this.options.icon === other.options.icon &&
       this.options.href === other.options.href &&
       this.options.title === other.options.title
     );

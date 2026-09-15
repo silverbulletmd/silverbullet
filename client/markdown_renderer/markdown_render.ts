@@ -26,6 +26,7 @@ import {
   type Transclusion,
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { parseHtmlTag } from "../codemirror/html_element.ts";
+import { resolveIconMarkup } from "../lib/icon.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -973,7 +974,18 @@ export function renderMarkdownToHtml(
               ref.details?.type === "linecolumn"
             )
           ) {
-            t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
+            const icon = resolveIconMarkup(pageMeta.pageDecoration?.icon);
+            t.body = [
+              ...(icon
+                ? [
+                    {
+                      name: RawHtml,
+                      body: `<span class="sb-page-decoration-icon" aria-hidden="true">${icon}</span>`,
+                    },
+                  ]
+                : []),
+              (pageMeta.pageDecoration?.prefix ?? "") + t.body,
+            ];
             if (pageMeta.pageDecoration?.cssClasses) {
               t.attrs!.class +=
                 " sb-decorated-object " +

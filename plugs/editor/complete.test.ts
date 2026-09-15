@@ -16,7 +16,11 @@ function makeCompleteEvent(
   };
 }
 
-async function indexPageMeta(name: string, tags: string[] = []): Promise<void> {
+async function indexPageMeta(
+  name: string,
+  tags: string[] = [],
+  pageDecoration?: PageMeta["pageDecoration"],
+): Promise<void> {
   const obj: PageMeta = {
     ref: name,
     tag: "page",
@@ -25,9 +29,26 @@ async function indexPageMeta(name: string, tags: string[] = []): Promise<void> {
     perm: "rw",
     lastModified: "0",
     created: "0",
+    pageDecoration,
   };
   await (globalThis as any).syscall("index.indexObjects", name, [obj]);
 }
+
+test("page completions carry the page decoration icon without changing their label", async () => {
+  createMockSystem();
+  await indexPageMeta("Person/Ada", [], { icon: "user" });
+
+  const result = await pageComplete(makeCompleteEvent("[[Ada"));
+  const completion = result!.options.find(
+    (option) => option.label === "Person/Ada",
+  );
+
+  expect(completion).toMatchObject({
+    label: "Person/Ada",
+    displayLabel: "Person/Ada",
+    icon: "user",
+  });
+});
 
 describe("pageComplete meta-page caret prefix", () => {
   test("[[^ returns only meta-tagged pages", async () => {

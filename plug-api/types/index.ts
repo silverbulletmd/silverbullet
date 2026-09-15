@@ -15,7 +15,8 @@ export type PageDecoration = {
   hide?: boolean;
   renderWidgets?: boolean; // Defaults to true
   /** A Feather name ("star"), a namespaced one ("feather:star"), or literal
-   * SVG markup, shown wherever a navigator view draws a row icon. */
+   * SVG markup, shown alongside the page in the top bar, navigation, links,
+   * and completion. */
   icon?: string;
   tree?: PageTreeDecoration;
 };

@@ -67,7 +67,7 @@ tag.define {
 tag.define {
   name = "person",
   transform = function(o)
-    o.pageDecoration = { prefix = "🧑 " }
+    o.pageDecoration = { icon = "user" }
     return o
   end
 }
@@ -133,7 +133,7 @@ tag.define {
   name = "component",
   tagPage = "Architecture",
   transform = function(o)
-    o.pageDecoration = { prefix = "📦 " }
+    o.pageDecoration = { icon = "box" }
     return o
   end
 }
