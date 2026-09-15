@@ -48,3 +48,14 @@ test("resolveAttachmentPath prefixes pasted files (#1215)", () => {
     "Assets/image.png",
   );
 });
+
+test("a resolved attachment path must not be resolved again against the page", () => {
+  // The overwrite prompt used to pass this through resolveMarkdownLink a
+  // second time, turning Assets/image.png into Folder/Assets/image.png.
+  const page = "Folder/Page";
+  const suggested = resolveAttachmentPath(page, "/Assets/", "image.png");
+  expect(suggested).toEqual("Assets/image.png");
+  expect(resolveMarkdownLink(page, suggested)).toEqual(
+    "Folder/Assets/image.png",
+  );
+});
