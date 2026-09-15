@@ -15,7 +15,7 @@ view.define {
   dock = "modal",
   presentation = { mode = "list" },
   source = function()
-    return { { name = "Open Destination", ref = "Destination" } }
+    return js.importFromSpace("routes.js").rows()
   end,
   onSelect = function(item) editor.navigate(item.ref) end,
 }
@@ -27,6 +27,11 @@ test.describe("Lua-defined views", () => {
     spaceFiles: {
       "index.md": "Welcome",
       "CONFIG.md": viewConfig,
+      "routes.js": `export function rows() {
+        return new Promise(resolve => {
+          globalThis.finishRoutes = () => resolve([{ name: "Open Destination", ref: "Destination" }]);
+        });
+      }`,
       "Destination.md": "# Destination",
     },
   });
@@ -36,7 +41,12 @@ test.describe("Lua-defined views", () => {
   }) => {
     await runCommandViaPalette(sbPage, "Fixture: Open Routes");
     const frame = navFrame(sbPage);
+    await expect(frame.getByRole("status", { name: "Loading" })).toBeVisible();
+    await navInput(sbPage).fill("Destination");
+    await sbPage.evaluate(() => (globalThis as any).finishRoutes());
     await expect(frame.locator(".sb-nav-title")).toHaveText("Routes");
+    await expect(navInput(sbPage)).toHaveValue("Destination");
+    await expect(frame.getByRole("status", { name: "Loading" })).toHaveCount(0);
     await frame.locator(".sb-nav-row", { hasText: "Open Destination" }).click();
 
     await expect(currentPage(sbPage)).toHaveValue("Destination");

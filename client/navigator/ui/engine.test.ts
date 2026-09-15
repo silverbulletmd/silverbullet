@@ -493,3 +493,72 @@ test("a content view's load carries the dock as well", async () => {
     .find((p) => p.hook === "content");
   expect(contentCall.args.ctx.dock).toBe("lhs");
 });
+
+test("loading covers initial metadata and clears when activation fails", async () => {
+  let reject!: (error: Error) => void;
+  handle.mockImplementation(
+    () =>
+      new Promise((_resolve, fail) => {
+        reject = fail;
+      }),
+  );
+  const engine = new NavigatorEngine();
+  const activation = engine.activate("v");
+  expect(engine.loading.pending).toBe(true);
+  reject(new Error("Unavailable"));
+  await expect(activation).rejects.toThrow("Unavailable");
+  expect(engine.loading.pending).toBe(false);
+});
+
+test("refresh loading follows the newest request and preserves existing rows", async () => {
+  const initial = [{ obj: { name: "Old" }, primary: "Old" }];
+  bridge(meta(), initial);
+  const engine = new NavigatorEngine();
+  await engine.activate("v");
+  const finish: ((value: any) => void)[] = [];
+  handle.mockImplementation(
+    () => new Promise((resolve) => finish.push(resolve)),
+  );
+  const first = engine.refresh();
+  const second = engine.refresh();
+  expect(engine.loading.pending).toBe(true);
+  expect(engine.activeState()?.rows).toEqual(initial);
+  finish[1]([{ obj: { name: "New" }, primary: "New" }]);
+  await second;
+  expect(engine.loading.pending).toBe(false);
+  finish[0]([]);
+  await first;
+  expect(engine.activeState()?.rows[0].primary).toBe("New");
+});
+
+test("a previous view completing cannot clear the new view's loading state", async () => {
+  const finish = new Map<string, (value: any) => void>();
+  handle.mockImplementation(({ view, hook }) =>
+    hook === "meta"
+      ? Promise.resolve(meta({ name: view }))
+      : new Promise((resolve) => finish.set(view, resolve)),
+  );
+  const engine = new NavigatorEngine();
+  const first = engine.activate("first");
+  await vi.waitFor(() => expect(finish.has("first")).toBe(true));
+  const second = engine.activate("second");
+  await vi.waitFor(() => expect(finish.has("second")).toBe(true));
+  finish.get("first")!([]);
+  await first;
+  expect(engine.loading.pending).toBe(true);
+  finish.get("second")!([]);
+  await second;
+  expect(engine.loading.pending).toBe(false);
+});
+
+test("a query from the previous view cannot change the newly active view", async () => {
+  const engine = new NavigatorEngine();
+  engine.runHook = vi.fn(async ({ view, hook }) =>
+    hook === "meta" ? meta({ name: view }) : [],
+  );
+  await engine.activate("new-view");
+  const calls = vi.mocked(engine.runHook).mock.calls.length;
+  expect(await engine.query({ phrase: "old phrase" }, "old-view")).toBe(false);
+  expect(vi.mocked(engine.runHook).mock.calls).toHaveLength(calls);
+  expect(engine.activeState()?.ctx?.phrase).toBe("");
+});

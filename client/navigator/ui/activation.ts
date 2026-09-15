@@ -99,6 +99,7 @@ export function createActivate(deps: ActivationDeps) {
     dropdown: wantedDropdown,
     focus,
   }: NavActivation) => {
+    const isModal = slot === "modal";
     void syncReadOnly();
     if (typeof token !== "number") {
       console.warn("navigator: activation without a token, ignoring", name);
@@ -111,6 +112,10 @@ export function createActivate(deps: ActivationDeps) {
       const redefined = await engine.dropIfRedefined(name);
       if (handledToken.current !== token) return;
       if (redefined) displayed.current = undefined;
+    }
+    if (!passive) {
+      if (carried !== undefined) setPhrase(carried);
+      else if (isModal) setPhrase("");
     }
     if (displayed.current !== name) {
       // A pick that loses the slot to a new activation is never unmounted (the panel stays up, showing the newcomer) — this is the only place that supersede is caught.
@@ -210,7 +215,6 @@ export function createActivate(deps: ActivationDeps) {
         : state?.meta.name === name
           ? { name, ...state }
           : undefined;
-    const isModal = slot === "modal";
     // segmentDirty here is what keeps the remembered-segment read (already dispatched) from landing on top of this once it settles.
     if (wantedSegment !== undefined) {
       const index = segmentIndexFor(active?.meta.segments, wantedSegment);
@@ -257,11 +261,9 @@ export function createActivate(deps: ActivationDeps) {
     interaction.current = "typing";
     if (!passive) {
       if (carried !== undefined) {
-        setPhrase(carried);
         setSelectedIndex(0);
         setSelectedPath(undefined);
       } else if (isModal) {
-        setPhrase("");
         setSelectedIndex(0);
         // A reveal may already have landed for this view -- resetting the selection would clobber it.
         if (revealedFor.current !== name) setSelectedPath(undefined);

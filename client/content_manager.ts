@@ -15,10 +15,7 @@ import type {
   PageCreatingContent,
   PageCreatingEvent,
 } from "@silverbulletmd/silverbullet/type/event";
-import {
-  notFoundError,
-  offlineError,
-} from "@silverbulletmd/silverbullet/constants";
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import {
   createEditorState,
   externalUpdate,
@@ -262,7 +259,6 @@ export class ContentManager {
     const loadingDifferentPath = previousPath ? previousPath !== newPath : true;
 
     if (previousPath) {
-      this.client.space.unwatchFile(previousPath);
       await this.save(true);
       // Wait briefly for saved-page indexing so widgets see fresh data. Skip
       // initial indexing and cap the wait to keep navigation responsive.
@@ -292,11 +288,22 @@ export class ContentManager {
       await this.leaveCurrentPage(path);
 
     const extension = getPathExtension(path as Path);
-
+    const needsEditorSwitch =
+      !this.isDocumentEditor() || this.documentEditor.extension !== extension;
     if (
-      !this.isDocumentEditor() ||
-      this.documentEditor.extension !== extension
+      needsEditorSwitch &&
+      !Array.from(
+        this.client.clientSystem.documentEditorHook.documentEditors.values(),
+      ).some(({ extensions }) => extensions.includes(extension))
     ) {
+      this.client.openUrl(
+        `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${path}`,
+      );
+      throw new Error("Opened externally");
+    }
+    const doc = await this.client.space.readDocument(path);
+
+    if (needsEditorSwitch) {
       try {
         await this.switchToDocumentEditor(extension);
       } catch (e: any) {
@@ -315,10 +322,9 @@ export class ContentManager {
       }
     }
 
-    const doc = await this.client.space.readDocument(path);
-
     this.documentEditor!.openFile(doc.data, doc.meta, locationState.details);
 
+    if (previousPath) this.client.space.unwatchFile(previousPath);
     this.client.space.watchFile(path);
 
     this.client.ui.viewDispatch({
@@ -354,18 +360,8 @@ export class ContentManager {
     try {
       doc = await this.client.space.readPage(pageName);
     } catch (e: any) {
-      if (
-        e.message !== notFoundError.message &&
-        e.message !== offlineError.message
-      ) {
+      if (e.message !== notFoundError.message) {
         throw e;
-      }
-
-      if (e.message === offlineError.message) {
-        console.info(
-          "Currently offline, will assume page doesn't exist:",
-          pageName,
-        );
       }
 
       console.log(`Page doesn't exist, creating new page: ${pageName}`);
@@ -453,6 +449,7 @@ export class ContentManager {
       );
     }
 
+    if (previousPath) this.client.space.unwatchFile(previousPath);
     this.client.space.watchFile(path);
 
     if (navigateWithinPage) {

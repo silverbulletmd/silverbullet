@@ -110,6 +110,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     // X-Source on mutating requests only (PUT/DELETE/reconcile), never GETs.
     private clientId?: string,
     private source?: string,
+    private connectivityCallback?: (isOnline: boolean) => void,
   ) {}
 
   private clientHeaders(): Record<string, string> {
@@ -148,8 +149,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.redirect = "manual";
       const result = await fetch(url, options);
       if (result.status >= 500 && result.status < 600) {
+        this.connectivityCallback?.(false);
         throw offlineError;
       }
+      this.connectivityCallback?.(true);
       const redirectHeader = result.headers.get("location");
 
       if (result.type === "opaqueredirect" && !redirectHeader) {
@@ -200,13 +203,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       return result;
     } catch (e: any) {
       // AbortSignal.timeout() throws a DOMException with name "TimeoutError".
-      // This is NOT an offline condition — the network may be fine, just slow.
+      // Preserve timeouts as a distinct error even though the connection is
+      // unavailable until a later request succeeds.
       if (e.name === "TimeoutError") {
         console.warn("Request timed out for", url);
+        this.connectivityCallback?.(false);
         throw new Error(`Request timed out after ${fetchTimeout}ms`);
       }
       if (isNetworkError(e)) {
         console.error("Got error fetching, throwing offline", url, e.message);
+        this.connectivityCallback?.(false);
         throw offlineError;
       }
       throw e;

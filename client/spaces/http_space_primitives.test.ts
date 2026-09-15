@@ -180,13 +180,87 @@ describe("HttpSpacePrimitives client identity headers", () => {
 function makePrimitives({
   fetch,
   authErrorCallback,
+  connectivityCallback,
 }: {
   fetch: (url: string, init: RequestInit) => Promise<Response>;
   authErrorCallback: (message: string, action?: string) => void;
+  connectivityCallback?: (isOnline: boolean) => void;
 }) {
   vi.stubGlobal("fetch", fetch);
-  return new HttpSpacePrimitives("http://x/.fs", "", authErrorCallback);
+  return new HttpSpacePrimitives(
+    "http://x/.fs",
+    "",
+    authErrorCallback,
+    undefined,
+    undefined,
+    undefined,
+    connectivityCallback,
+  );
 }
+
+describe("direct connection status", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("reports a successful server response as online", async () => {
+    const statuses: boolean[] = [];
+    const primitives = makePrimitives({
+      fetch: async () => new Response("[]", { status: 200 }),
+      authErrorCallback: () => {},
+      connectivityCallback: (isOnline) => statuses.push(isOnline),
+    });
+
+    await primitives.fetchFileList();
+
+    expect(statuses).toEqual([true]);
+  });
+
+  test("reports a server failure as offline", async () => {
+    const statuses: boolean[] = [];
+    const primitives = makePrimitives({
+      fetch: async () => new Response("Unavailable", { status: 503 }),
+      authErrorCallback: () => {},
+      connectivityCallback: (isOnline) => statuses.push(isOnline),
+    });
+
+    await expect(primitives.fetchFileList()).rejects.toThrow("Offline");
+
+    expect(statuses).toEqual([false]);
+  });
+
+  test("reports a timed-out request as offline without changing its error", async () => {
+    const statuses: boolean[] = [];
+    const primitives = makePrimitives({
+      fetch: async () => {
+        throw new DOMException("Timed out", "TimeoutError");
+      },
+      authErrorCallback: () => {},
+      connectivityCallback: (isOnline) => statuses.push(isOnline),
+    });
+
+    await expect(primitives.fetchFileList()).rejects.toThrow(
+      "Request timed out",
+    );
+
+    expect(statuses).toEqual([false]);
+  });
+
+  test("reports a browser network rejection as offline", async () => {
+    const statuses: boolean[] = [];
+    const primitives = makePrimitives({
+      fetch: async () => {
+        throw new TypeError("Failed to fetch");
+      },
+      authErrorCallback: () => {},
+      connectivityCallback: (isOnline) => statuses.push(isOnline),
+    });
+
+    await expect(primitives.fetchFileList()).rejects.toThrow("Offline");
+
+    expect(statuses).toEqual([false]);
+  });
+});
 
 describe("permission errors", () => {
   afterEach(() => {

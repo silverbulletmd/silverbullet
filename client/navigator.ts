@@ -29,6 +29,7 @@ export class PathPageNavigator {
   // dispatching its synthetic popstate; genuine browser back/forward fires
   // popstate without touching it, so it stays true and restores by default.
   private restoreOnPopstate = true;
+  private skipNextPopstate = false;
 
   constructor(private client: Client) {
     this.indexRef = this.client.getIndexRef();
@@ -98,7 +99,10 @@ export class PathPageNavigator {
       }
 
       if (!replaceState) {
+        this.navigationPromise = Promise.withResolvers();
+        this.skipNextPopstate = true;
         history.go(-1);
+        await this.navigationPromise.promise;
       } else {
         const newRef: Ref =
           currentState.path === ref.path
@@ -110,14 +114,6 @@ export class PathPageNavigator {
           "",
           `${document.baseURI}${this.pathToURI(newRef.path)}`,
         );
-
-        globalThis.dispatchEvent(
-          new PopStateEvent("popstate", {
-            state: newRef,
-          }),
-        );
-
-        await this.navigationPromise.promise;
       }
     }
 
@@ -159,6 +155,12 @@ export class PathPageNavigator {
 
   subscribe(pageLoadCallback: (locationState: LocationState) => Promise<void>) {
     globalThis.addEventListener("popstate", async (event: PopStateEvent) => {
+      if (this.skipNextPopstate) {
+        this.skipNextPopstate = false;
+        this.navigationPromise?.resolve(null);
+        return;
+      }
+
       // Consume the restore intent for this navigation; default back to true so
       // the next genuine browser back/forward restores.
       const restore = this.restoreOnPopstate;
@@ -190,13 +192,30 @@ export class PathPageNavigator {
         }
       }
 
-      // For some (propably smart) reason the reject() function on a
-      // Promise.withResolvers, also throws. This is hugely annoying here, so
-      // let's resolve for both cases
-      await pageLoadCallback(state).then(
-        () => this.navigationPromise?.resolve(null),
-        (e) => this.navigationPromise?.resolve(e.message),
-      );
+      try {
+        await pageLoadCallback(state);
+        this.navigationPromise?.resolve(null);
+      } catch (e: any) {
+        const error = e?.message ?? String(e);
+        if (this.navigationPromise) {
+          this.navigationPromise.resolve(error);
+          return;
+        }
+        if (error !== "Opened externally") {
+          this.client.ui.flashNotification(
+            `Failed to navigate: ${error}`,
+            "error",
+          );
+        }
+        const previousRef: Ref = {
+          path: leavingPath || this.indexRef.path,
+        };
+        globalThis.history.replaceState(
+          previousRef,
+          "",
+          `${document.baseURI}${this.pathToURI(previousRef.path)}`,
+        );
+      }
     });
   }
 }

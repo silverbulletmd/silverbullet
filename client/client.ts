@@ -323,6 +323,7 @@ export class Client {
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
+    this.registerUnsavedChangesWarning();
 
     this.editorView = new EditorView({
       state: createEditorState(this, "", "", true),
@@ -428,6 +429,14 @@ export class Client {
     this.updatePageListCache().catch(console.error);
   }
 
+  private registerUnsavedChangesWarning() {
+    globalThis.addEventListener("beforeunload", (event) => {
+      if (!this.ui.viewState.unsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = true;
+    });
+  }
+
   async initSpace() {
     const clientId = await getOrCreateClientId(this.ds.kv);
     this.httpSpacePrimitives = new HttpSpacePrimitives(
@@ -452,6 +461,16 @@ export class Client {
       // These fetches only actually reach the network when the service
       // worker isn't intercepting them.
       "editor",
+      this.bootConfig.disableServiceWorker || !globalThis.isSecureContext
+        ? (isOnline) => {
+            if (this.ui.viewState.isOnline !== isOnline) {
+              this.ui.viewDispatch({
+                type: "online-status-change",
+                isOnline,
+              });
+            }
+          }
+        : undefined,
     );
 
     this.eventedSpacePrimitives = new EventedSpacePrimitives(
@@ -848,6 +867,7 @@ export class Client {
           "Could not fetch page list directly.",
           "error",
         );
+        return;
       }
     }
 

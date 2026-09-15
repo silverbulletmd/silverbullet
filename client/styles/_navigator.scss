@@ -80,8 +80,6 @@
   min-width: 0;
 }
 
-// Only shown while a source-mode request has been outstanding long enough to
-// be worth mentioning -- see LOADING_AFTER_MS.
 .sb-nav-spinner {
   flex: 0 0 auto;
   align-self: center;

@@ -1,3 +1,4 @@
+import { LoadingState } from "./loading.ts";
 import { icon } from "@silverbulletmd/silverbullet/syscalls";
 import {
   type ContentResult,
@@ -90,6 +91,7 @@ function metaChanged(a: ViewMeta, b: ViewMeta): boolean {
 }
 
 export class NavigatorEngine {
+  readonly loading = new LoadingState();
   constructor(readonly slot?: string) {}
 
   /** How a view's hooks are run. A property so a test can wrap it. */
@@ -122,35 +124,43 @@ export class NavigatorEngine {
 
   async activate(viewName: string): Promise<ViewState> {
     this.activeName = viewName;
-    let cached = this.cache.get(viewName);
-    if (cached?.builtin) {
-      if (cached.error) {
-        await this.loadRows(cached, cached.ctx ?? this.initialCtx(cached.meta));
+    const loading = this.loading.begin();
+    try {
+      let cached = this.cache.get(viewName);
+      if (cached?.builtin) {
+        if (cached.error) {
+          await this.loadRows(
+            cached,
+            cached.ctx ?? this.initialCtx(cached.meta),
+          );
+        }
+        return cached;
       }
-      return cached;
-    }
-    const meta = await this.resolveMeta(viewName);
-    if (!meta) {
-      this.cache.delete(viewName);
-      if (this.activeName === viewName) this.activeName = undefined;
-      throw new Error(`No navigator view named "${viewName}"`);
-    }
-    if (cached && metaChanged(cached.meta, meta)) {
-      this.cache.delete(viewName);
-      cached = undefined;
-    }
-    let entry = cached;
-    if (entry) {
-      entry.meta = meta;
-      if (entry.error) {
-        await this.loadRows(entry, entry.ctx ?? this.initialCtx(meta));
+      const meta = await this.resolveMeta(viewName);
+      if (!meta) {
+        this.cache.delete(viewName);
+        if (this.activeName === viewName) this.activeName = undefined;
+        throw new Error(`No navigator view named "${viewName}"`);
       }
-    } else {
-      entry = { meta, rows: [], builtin: meta.builtin === true };
-      this.cache.set(viewName, entry);
-      await this.loadRows(entry, this.initialCtx(meta));
+      if (cached && metaChanged(cached.meta, meta)) {
+        this.cache.delete(viewName);
+        cached = undefined;
+      }
+      let entry = cached;
+      if (entry) {
+        entry.meta = meta;
+        if (entry.error) {
+          await this.loadRows(entry, entry.ctx ?? this.initialCtx(meta));
+        }
+      } else {
+        entry = { meta, rows: [], builtin: meta.builtin === true };
+        this.cache.set(viewName, entry);
+        await this.loadRows(entry, this.initialCtx(meta));
+      }
+      return entry;
+    } finally {
+      loading.finish();
     }
-    return entry;
   }
 
   // Only activation.ts's reopen-already-displayed path needs this: it's the one path that skips activate's own metaChanged check.
@@ -183,10 +193,12 @@ export class NavigatorEngine {
     await this.loadRows(entry, entry.ctx ?? this.initialCtx(entry.meta));
   }
 
-  async query(ctx: SourceCtx): Promise<boolean> {
+  async query(ctx: SourceCtx, viewName = this.activeName): Promise<boolean> {
+    if (viewName !== this.activeName) return false;
     const entry = this.activeName && this.cache.get(this.activeName);
     if (!entry) return false;
-    return await this.loadRows(entry, ctx);
+    const loaded = await this.loadRows(entry, ctx);
+    return loaded && this.activeName === viewName;
   }
 
   private initialCtx(meta: ViewMeta): SourceCtx {
@@ -245,45 +257,51 @@ export class NavigatorEngine {
 
   // Applied only if it's still the newest load for this view, so a slow response can't overwrite what a newer one already put under the user's typing.
   private async loadRows(entry: ViewState, ctx: SourceCtx): Promise<boolean> {
-    const token = ++this.tokens;
-    ctx = { ...ctx, dock: this.slot };
-    entry.ctx = ctx;
-    entry.loadToken = token;
-    if (entry.meta.hasContent) {
-      let result: ContentResult;
+    const loading =
+      this.activeName === entry.meta.name ? this.loading.begin() : undefined;
+    try {
+      const token = ++this.tokens;
+      ctx = { ...ctx, dock: this.slot };
+      entry.ctx = ctx;
+      entry.loadToken = token;
+      if (entry.meta.hasContent) {
+        let result: ContentResult;
+        try {
+          result = normalizeContent(
+            await this.handle(entry.meta.name, "content", { ctx }),
+          );
+        } catch (e: any) {
+          result = { error: e?.message ?? String(e) };
+        }
+        if (entry.loadToken !== token) return false;
+        entry.error = result.error;
+        entry.rows = [];
+        if (result.error === undefined) entry.content = result.markdown;
+        return true;
+      }
+      let rows: Row[] = [];
+      let error: string | undefined;
       try {
-        result = normalizeContent(
-          await this.handle(entry.meta.name, "content", { ctx }),
-        );
+        const result = await this.handle(entry.meta.name, "rows", { ctx });
+        rows = Array.isArray(result) ? result : [];
+        error = result?.error;
       } catch (e: any) {
-        result = { error: e?.message ?? String(e) };
+        error = e?.message ?? String(e);
       }
       if (entry.loadToken !== token) return false;
-      entry.error = result.error;
-      entry.rows = [];
-      if (result.error === undefined) entry.content = result.markdown;
-      return true;
-    }
-    let rows: Row[] = [];
-    let error: string | undefined;
-    try {
-      const result = await this.handle(entry.meta.name, "rows", { ctx });
-      rows = Array.isArray(result) ? result : [];
-      error = result?.error;
-    } catch (e: any) {
-      error = e?.message ?? String(e);
-    }
-    if (entry.loadToken !== token) return false;
-    entry.error = error;
-    // A failed load keeps its previous rows rather than clearing them — a phrase that breaks the source must not replace what's already on screen.
-    if (error !== undefined) return true;
-    for (const row of rows) {
-      if (row.decorations !== undefined && !Array.isArray(row.decorations)) {
-        row.decorations = undefined;
+      entry.error = error;
+      // A failed load keeps its previous rows rather than clearing them — a phrase that breaks the source must not replace what's already on screen.
+      if (error !== undefined) return true;
+      for (const row of rows) {
+        if (row.decorations !== undefined && !Array.isArray(row.decorations)) {
+          row.decorations = undefined;
+        }
       }
+      await this.loadRowState(entry, rows, token);
+      return entry.loadToken === token;
+    } finally {
+      loading?.finish();
     }
-    await this.loadRowState(entry, rows, token);
-    return entry.loadToken === token;
   }
 
   private async loadRowState(

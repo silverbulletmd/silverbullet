@@ -26,6 +26,7 @@ function makeHarness(
   remembered: unknown,
   dropdownDefault?: string,
   followEditor = false,
+  slot = "rhs",
 ) {
   datastore.get.mockReset();
   datastore.set.mockReset();
@@ -87,7 +88,7 @@ function makeHarness(
   const applyReveal = vi.fn();
   const focusInput = vi.fn();
   const activate = createActivate({
-    slot: "rhs",
+    slot,
     engine: engine as any,
     refs: refs as any,
     listenForRefresh: vi.fn(),
@@ -100,6 +101,7 @@ function makeHarness(
   });
   return {
     activate,
+    engine,
     setDropdownValue,
     refs,
     applyReveal,
@@ -260,4 +262,26 @@ test("restoring a tree waits for remembered expansion before revealing the page"
     "Page",
     expect.objectContaining({ name: "inbox" }),
   );
+});
+
+test("typing during a slow modal activation survives its completion", async () => {
+  const { activate, engine, set, state } = makeHarness(
+    undefined,
+    undefined,
+    false,
+    "modal",
+  );
+  let finish!: () => void;
+  engine.activate.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = () => resolve(state);
+      }),
+  );
+  const pending = activate({ view: "inbox", token: 1, phrase: "initial" });
+  expect(set.setPhrase).toHaveBeenLastCalledWith("initial");
+  set.setPhrase.mockClear();
+  finish();
+  await pending;
+  expect(set.setPhrase).not.toHaveBeenCalled();
 });

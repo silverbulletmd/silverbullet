@@ -9,6 +9,7 @@ import {
 import type { ViewMeta } from "../../types.ts";
 import { CloseIcon } from "./chrome_icons.tsx";
 import { DockMenu } from "./dock_menu.tsx";
+import { LoadingIndicator } from "./loading_indicator.tsx";
 
 /**
  * The strip above a page widget: a collapse triangle and its title on the left,
@@ -25,6 +26,7 @@ function WidgetBar({
   meta,
   slot,
   error,
+  loading,
   tools,
   collapsed,
   onToggleCollapsed,
@@ -33,6 +35,7 @@ function WidgetBar({
   meta: ViewMeta;
   slot: string;
   error?: string;
+  loading?: boolean;
   tools?: ComponentChildren;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -71,6 +74,7 @@ function WidgetBar({
         </span>
       </span>
       <span className="sb-page-widget-tools">
+        {loading && <LoadingIndicator />}
         {tools}
         <DockMenu
           name={name}
@@ -148,7 +152,9 @@ export function PageWidgetFrame({
   meta,
   slot,
   modifier,
+  pending,
   error,
+  loading,
   tools,
   collapsed,
   onToggleCollapsed,
@@ -160,7 +166,9 @@ export function PageWidgetFrame({
   slot: string;
   /** An extra class beside `sb-page-widget`, e.g. `sb-page-widget-tree`. */
   modifier?: string;
+  pending?: boolean;
   error?: string;
+  loading?: boolean;
   tools?: ComponentChildren;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -177,6 +185,7 @@ export function PageWidgetFrame({
         .filter(Boolean)
         .join(" ")}
       data-view={name}
+      aria-busy={pending}
       // Focusable programmatically (never by Tab): `open()` focuses the widget
       // when it has no row to hand the keyboard to.
       tabIndex={-1}
@@ -186,6 +195,7 @@ export function PageWidgetFrame({
         meta={meta}
         slot={slot}
         error={error}
+        loading={loading}
         tools={tools}
         collapsed={collapsed}
         onToggleCollapsed={onToggleCollapsed}

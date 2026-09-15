@@ -35,7 +35,7 @@ An attempt at documenting the changes/new features introduced in each release.
 * Docker images:
   * Default images (`:latest`, `:edge` now default to have the runtime API enabled, and are larger due to including a Chromium build, use the new `:latest-slim` and `:edge-slim` images for the version without Chromium)
 * **[[Link|Wiki links]] now resolve by page name, not just by full path (think: Obsidian compatibility).** A `[[Note]]` link resolves to `some/folder/Note` when that name is unique in the space, matching how Obsidian resolves links, so an Obsidian-authored space works in SilverBullet without rewriting every link. See [[ADR/011 Link Resolution by Name]] for reasoning. The `linkWriteFormat` option decides how SilverBullet writes the links it generates (auto complete, rename backlink rewriting), it defaults to `full-path`, so generated links keep spelling out the whole path.
-* **LAN HTTP support:** open SilverBullet via a LAN IP or hostname without TLS in online-only mode, with compatible hashing and text copying. See [[TLS]] for limitations.
+* **LAN HTTP support:** open SilverBullet via a LAN IP or hostname without TLS in online-only mode, with compatible hashing and text copying. Failed loads now preserve the current editor and page list instead of presenting empty content, direct requests update the connection indicator, and the browser warns before leaving an unsaved editor. See [[TLS]] for limitations.
 * Fix: a linked-mention snippet that contained a `![[transclusion]]` inlined the entire target page into the Linked Mentions widget -- frontmatter first, rendered as garbage. Snippets now show such a mention as a plain link, and a transcluded page's frontmatter no longer leaks into rendered widget content. (Triggers a full space reindex on upgrade.)
 * Fix: better blockquote rendering:
   * Nested blockquotes now draw one accent bar per level, with real per-level indentation. Previously every level shared a single bar and the indent was an accident of the whitespace left behind by hidden quote markers.
@@ -48,6 +48,7 @@ An attempt at documenting the changes/new features introduced in each release.
   * Pickers no longer show keyboard shortcuts on touch devices, where they cannot be pressed and only crowd out the page names.
   * Filter boxes no longer autocapitalize or autocorrect: command and page names are identifiers, and the phone's corrections only fought the fuzzy match.
   * Fix: the hamburger menu on a narrow screen stayed grey when the rest of the top bar turned yellow to signal a lost connection.
+  * Fix: on iOS 27, a home-screen install drew its page title and top-bar buttons underneath the system's new blurred top edge, leaving them smeared. The top bar now leaves that band clear.
 * [[Space Lua]]: scripts that runs too long no longer freeze the editor: after a couple of seconds it offers to stop the script, while the rest of the app stays responsive.
 * Fix: releasing a drag-selection on top of a link no longer navigates to it — only a real click (pointer down and up in the same spot) follows a link.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.

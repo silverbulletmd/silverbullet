@@ -31,6 +31,8 @@ import {
 import { MarkdownText, type RenderedRow, renderRows } from "./row_markdown.tsx";
 import { PageWidgetFrame, useCollapsed } from "./page_widget_frame.tsx";
 import type { Row, ViewMeta } from "../../types.ts";
+import { LoadingState } from "../loading.ts";
+import { useLoading } from "../hooks/use_loading.ts";
 
 /**
  * A content view in a page dock: the markdown its `content` function returned,
@@ -54,7 +56,11 @@ function PageContentWidget({
   onSettled: (name: string) => void;
 }) {
   const [state, setState] = useState<ContentState | undefined>(undefined);
-  const [collapsed, toggle] = useCollapsed(name, initialCollapsed, onSettled);
+  const [loading] = useState(() => new LoadingState());
+  const { pending, visible } = useLoading(loading);
+  const [collapsed, toggle] = useCollapsed(name, initialCollapsed, (name) => {
+    if (!loading.pending) onSettled(name);
+  });
 
   // The identity of what is currently committed, so a `refreshOn` burst that
   // produces the same content again costs nothing beyond the fetch itself.
@@ -63,9 +69,10 @@ function PageContentWidget({
   useEffect(() => {
     let live = true;
     const load = () => {
+      const ticket = loading.begin();
       void loadContent(name, { dock: slot })
         .then(async (result) => {
-          if (!live) return;
+          if (!live || !ticket.isCurrent()) return;
           const identity = loadIdentity(result.error, result.markdown ?? "");
           if (!gate.current.shouldCommit(identity)) return;
           if (result.error !== undefined) {
@@ -77,16 +84,17 @@ function PageContentWidget({
           const node = markdown.trim()
             ? await renderContentMarkdown(client, markdown)
             : undefined;
-          if (!live) return;
+          if (!live || !ticket.isCurrent()) return;
           setState({ markdown, node });
           gate.current.committed(identity);
         })
         .catch((e) => {
-          if (!live) return;
+          if (!live || !ticket.isCurrent()) return;
           console.error("navigator content view: render failed", e);
           setState({ markdown: "", error: e?.message ?? String(e) });
           gate.current.failed();
-        });
+        })
+        .finally(ticket.finish);
     };
     load();
     const unsubscribe = subscribeRefresh(
@@ -96,6 +104,7 @@ function PageContentWidget({
     );
     return () => {
       live = false;
+      loading.cancel();
       unsubscribe();
     };
   }, [name]);
@@ -105,14 +114,12 @@ function PageContentWidget({
   // Every terminal outcome reports -- errored, empty and ready alike. The slot
   // is waiting on all of them before it touches its height cache.
   useEffect(() => {
-    if (settlesSlot(outcome)) onSettled(name);
-  }, [state]);
+    if (!pending && settlesSlot(outcome)) onSettled(name);
+  }, [state, pending]);
 
-  // Same contract as the row widget: nothing at all until the content is in,
-  // and nothing at all when there is none -- no title bar, no chrome.
-  if (outcome === "pending" || outcome === "empty") return null;
+  if (!visible && (outcome === "pending" || outcome === "empty")) return null;
 
-  const { markdown, node, error } = state!;
+  const { markdown = "", node, error } = state ?? {};
   return (
     <PageWidgetFrame
       name={name}
@@ -120,10 +127,13 @@ function PageContentWidget({
       slot={slot}
       modifier="sb-page-widget-content"
       error={error}
+      pending={pending}
+      loading={visible}
       collapsed={collapsed}
       onToggleCollapsed={toggle}
       hasBody={!!node}
       tools={
+        node &&
         !error && <CopyMarkdownButton client={client} markdown={markdown} />
       }
     >
@@ -149,7 +159,11 @@ function PageWidget({
 }) {
   const [rows, setRows] = useState<RenderedRow[] | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [collapsed, toggle] = useCollapsed(name, initialCollapsed, onSettled);
+  const [loading] = useState(() => new LoadingState());
+  const { pending, visible } = useLoading(loading);
+  const [collapsed, toggle] = useCollapsed(name, initialCollapsed, (name) => {
+    if (!loading.pending) onSettled(name);
+  });
   const gate = useRef(createLoadGate());
   const isTree = meta.mode === "tree";
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -166,19 +180,20 @@ function PageWidget({
       firstExpansion.current = false;
       return;
     }
-    onSettled(name);
+    if (!loading.pending) onSettled(name);
   }, [expanded]);
 
   useEffect(() => {
     let live = true;
     const load = () => {
+      const ticket = loading.begin();
       void handle({
         view: name,
         hook: "rows",
         args: { ctx: { phrase: "", dock: slot } },
       })
         .then(async (result) => {
-          if (!live) return;
+          if (!live || !ticket.isCurrent()) return;
           const loadError =
             result && !Array.isArray(result) && result.error
               ? String(result.error)
@@ -199,7 +214,7 @@ function PageWidget({
           // the slot's settle still measures a finished widget -- and so a row
           // never paints its raw syntax and then reflows into rendered HTML.
           const rendered = await renderRows(client, incoming, isTree);
-          if (!live) return;
+          if (!live || !ticket.isCurrent()) return;
           setError(undefined);
           setRows(rendered);
           // After the row render, for the same reason the content widget
@@ -207,11 +222,12 @@ function PageWidget({
           gate.current.committed(identity);
         })
         .catch((e) => {
-          if (!live) return;
+          if (!live || !ticket.isCurrent()) return;
           setError(e?.message ?? String(e));
           setRows([]);
           gate.current.failed();
-        });
+        })
+        .finally(ticket.finish);
     };
     load();
     const unsubscribe = subscribeRefresh(
@@ -221,24 +237,24 @@ function PageWidget({
     );
     return () => {
       live = false;
+      loading.cancel();
       unsubscribe();
     };
   }, [name]);
 
   useEffect(() => {
-    if (rows === undefined) return;
+    if (pending || rows === undefined) return;
     onSettled(name);
-  }, [rows, error]);
+  }, [rows, error, pending]);
 
-  if (rows === undefined) return null;
-  if (rows.length === 0 && !error) return null;
+  if (!visible && !error && !rows?.length) return null;
 
-  const { shown, more } = visibleRows(rows, meta.limit);
+  const { shown, more } = visibleRows(rows ?? [], meta.limit);
   const select = (obj: Record<string, any>) =>
     void handle({ view: name, hook: "select", args: { obj } });
   const display = isTree
     ? computeTreeDisplay(
-        rows.map((r) => r.row),
+        (rows ?? []).map((r) => r.row),
         meta.hierarchy.separator,
         meta.foldersFirst,
         { expanded, expandAll: meta.expandAll === true },
@@ -252,9 +268,11 @@ function PageWidget({
       slot={slot}
       modifier={isTree ? "sb-page-widget-tree" : undefined}
       error={error}
+      pending={pending}
+      loading={visible}
       collapsed={collapsed}
       onToggleCollapsed={toggle}
-      hasBody={!error}
+      hasBody={!error && !!rows?.length}
     >
       {display ? (
         <TreeView
@@ -375,7 +393,9 @@ export function renderPageSlot(
 ): void {
   const report = createSettleTracker(
     views.map((v) => v.name),
-    onAllSettled,
+    () => {
+      if (!div.querySelector('[aria-busy="true"]')) onAllSettled();
+    },
   );
   render(
     <PageSlotWidgets

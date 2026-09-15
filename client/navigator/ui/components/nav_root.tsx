@@ -1,3 +1,5 @@
+import { useLoading } from "../hooks/use_loading.ts";
+import { LoadingIndicator } from "./loading_indicator.tsx";
 import {
   useCallback,
   useEffect,
@@ -46,6 +48,7 @@ export function NavRoot({
   mode?: number | string;
 }) {
   const engine = engineFor(slot);
+  const { pending, visible: loading } = useLoading(engine.loading);
   const [view, setView] = useState<ActiveView | undefined>(undefined);
   const [bootError, setBootError] = useState<string | undefined>(undefined);
   const [phrase, setPhrase] = useState("");
@@ -126,13 +129,14 @@ export function NavRoot({
     if (
       token === undefined ||
       token === readySignaledToken.current ||
-      (view === undefined && bootError === undefined)
+      (view === undefined && bootError === undefined && !loading)
     ) {
       return;
     }
     // Only when there is something to render: an empty content view draws
     // nothing and would otherwise never be revealed at all.
     if (
+      !loading &&
       content !== undefined &&
       content.trim() !== "" &&
       paintedContent !== content
@@ -141,7 +145,7 @@ export function NavRoot({
     }
     readySignaledToken.current = token;
     markSlotReady(slot, token);
-  }, [view, bootError, paintedContent]);
+  }, [view, bootError, paintedContent, loading]);
 
   const derived = useDerived({
     engine,
@@ -163,7 +167,7 @@ export function NavRoot({
     bodyRef.current?.scrollTo({ top: 0 });
   }, [phrase, segmentIndex, dropdownValue]);
 
-  const loading = useSourceQuery({
+  useSourceQuery({
     engine,
     view,
     sourceMode: derived.sourceMode,
@@ -236,6 +240,7 @@ export function NavRoot({
         (showResizer ? " sb-nav-resizable" : "")
       }
       data-slot={slot}
+      aria-busy={pending}
       style={mode === undefined ? undefined : { flex: mode }}
       onMouseDownCapture={(e) => {
         const target = e.target as HTMLElement;
@@ -306,13 +311,7 @@ export function NavRoot({
               })
             }
           />
-          {loading && (
-            <span
-              className="sb-nav-spinner"
-              role="status"
-              aria-label="Searching"
-            />
-          )}
+          {loading && <LoadingIndicator />}
           {/* The same Copy the page-docked container puts in its own strip,
               and the same one the inline Lua widget button bar has: the
               markdown source, on the clipboard. */}

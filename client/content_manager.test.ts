@@ -3,6 +3,10 @@ import { EditorState, type TransactionSpec } from "@codemirror/state";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { PermissionDeniedError } from "./spaces/http_space_primitives.ts";
 import type { Client } from "./client.ts";
+import {
+  notFoundError,
+  offlineError,
+} from "@silverbulletmd/silverbullet/constants";
 
 // Mock the editor extension chain because it touches document at module
 // load; ContentManager itself runs against real EditorState transactions.
@@ -25,7 +29,10 @@ vi.mock("./codemirror/editor_state.ts", async () => {
 const { ContentManager } = await import("./content_manager.ts");
 
 // Provide the DOM shape used by the enriched-meta decoration refresh.
-(globalThis as unknown as { document: { body: unknown } }).document = {
+(
+  globalThis as unknown as { document: { body: unknown; baseURI: string } }
+).document = {
+  baseURI: "http://example.test/",
   body: {
     className: "",
     removeAttribute(this: { className: string }, name: string) {
@@ -56,14 +63,25 @@ function makeEditorViewStub(initialDoc: string) {
 }
 
 type ReadPageResult = { text: string; meta: PageMeta };
+type ReadDocumentResult = {
+  data: Uint8Array;
+  meta: {
+    name: string;
+    created: string;
+    lastModified: string;
+    perm: "ro" | "rw";
+  };
+};
 
 function makeClientStub(opts: {
   initialDoc: string;
   readPage: () => Promise<ReadPageResult>;
+  readDocument?: () => Promise<ReadDocumentResult>;
   writePage?: (name: string, text: string) => Promise<PageMeta>;
   hasFullIndexCompleted?: () => Promise<boolean>;
   getObjectByRef?: () => Promise<PageMeta | undefined>;
   flashNotification?: (message: string, type?: string) => void;
+  documentExtensions?: string[];
 }) {
   const editorView = makeEditorViewStub(opts.initialDoc);
   const viewState: {
@@ -76,6 +94,8 @@ function makeClientStub(opts: {
   let currentPathValue = "";
   const dispatchedEvents: { name: string; args: unknown[] }[] = [];
   const viewDispatched: { type: string; [key: string]: unknown }[] = [];
+  const watchedFiles: string[] = [];
+  const unwatchedFiles: string[] = [];
 
   const declaredBases: { path: string; baseText: string }[] = [];
   // Set by a test that needs the declare to stay in flight while it does
@@ -86,6 +106,8 @@ function makeClientStub(opts: {
     editorView,
     viewState,
     declaredBases,
+    watchedFiles,
+    unwatchedFiles,
     set blockDeclareOn(p: Promise<void>) {
       blockDeclare = p;
     },
@@ -115,10 +137,11 @@ function makeClientStub(opts: {
     },
     space: {
       readPage: opts.readPage,
+      readDocument: opts.readDocument,
       writePage:
         opts.writePage ?? (async () => pageMeta("2026-01-01T00:00:00.000")),
-      unwatchFile: () => {},
-      watchFile: () => {},
+      unwatchFile: (path: string) => unwatchedFiles.push(path),
+      watchFile: (path: string) => watchedFiles.push(path),
     },
     objectIndex: {
       hasFullIndexCompleted: opts.hasFullIndexCompleted ?? (async () => false),
@@ -126,6 +149,19 @@ function makeClientStub(opts: {
     },
     widgetCache: { clearPrewarm: () => {} },
     pageMetaAugmenter: { setAugmentation: async () => {} },
+    clientSystem: {
+      documentEditorHook: {
+        documentEditors: new Map([
+          [
+            "test",
+            {
+              extensions: opts.documentExtensions ?? ["pdf"],
+              callback: async () => ({ html: "" }),
+            },
+          ],
+        ]),
+      },
+    },
     eventHook: {
       dispatchEvent: async (name: string, ...args: unknown[]) => {
         dispatchedEvents.push({ name, args });
@@ -135,6 +171,7 @@ function makeClientStub(opts: {
     canDeferExternalUpdate: () => true,
     isReadOnlyMode: () => false,
     dispatchAppEvent: async () => [],
+    openUrl: vi.fn(),
     currentPath: () => currentPathValue,
     currentName: () => currentPathValue.replace(/\.md$/, ""),
     dispatchedEvents,
@@ -142,6 +179,106 @@ function makeClientStub(opts: {
   };
   return client;
 }
+
+describe("ContentManager failed loads", () => {
+  test("offline page navigation leaves the current editor untouched", async () => {
+    const client = makeClientStub({
+      initialDoc: "Keep this page\n",
+      readPage: async () => {
+        throw offlineError;
+      },
+    });
+    client.currentPathValue = "Current.md";
+    client.viewState.current = {
+      path: "Current.md",
+      meta: pageMeta("2026-01-01T00:00:00.000"),
+    };
+    const cm = new ContentManager(client as unknown as Client);
+
+    await expect(cm.loadPage({ path: "Other.md" }, false)).rejects.toThrow(
+      offlineError.message,
+    );
+
+    expect(client.editorView.state.sliceDoc()).toBe("Keep this page\n");
+    expect(client.viewState.current.path).toBe("Current.md");
+    expect(client.viewDispatched).not.toContainEqual(
+      expect.objectContaining({ type: "page-loaded", path: "Other.md" }),
+    );
+    expect(client.unwatchedFiles).not.toContain("Current.md");
+  });
+
+  test("a confirmed missing page still opens as a new empty page", async () => {
+    const client = makeClientStub({
+      initialDoc: "Previous page\n",
+      readPage: async () => {
+        throw notFoundError;
+      },
+    });
+    client.currentPathValue = "New.md";
+    const cm = new ContentManager(client as unknown as Client);
+
+    await cm.loadPage({ path: "New.md" }, false);
+
+    expect(client.editorView.state.sliceDoc()).toBe("");
+    expect(client.viewDispatched).toContainEqual(
+      expect.objectContaining({ type: "page-loaded", path: "New.md" }),
+    );
+  });
+
+  test("a failed document read does not switch away from the current editor", async () => {
+    const client = makeClientStub({
+      initialDoc: "Keep this page\n",
+      readPage: async () => ({
+        text: "Keep this page\n",
+        meta: pageMeta("2026-01-01T00:00:00.000"),
+      }),
+      readDocument: async () => {
+        throw offlineError;
+      },
+    });
+    client.currentPathValue = "Current.md";
+    const cm = new ContentManager(client as unknown as Client);
+    const switchEditor = vi
+      .spyOn(cm, "switchToDocumentEditor")
+      .mockImplementation(async () => {
+        cm.documentEditor = {
+          openFile: () => {},
+        } as unknown as typeof cm.documentEditor;
+      });
+
+    await expect(
+      cm.loadDocumentEditor({ path: "Attachment.pdf" }),
+    ).rejects.toThrow(offlineError.message);
+
+    expect(switchEditor).not.toHaveBeenCalled();
+    expect(client.editorView.state.sliceDoc()).toBe("Keep this page\n");
+  });
+
+  test("an unsupported document opens externally without reading it into memory", async () => {
+    const readDocument = vi.fn(async () => {
+      throw new Error("must not read");
+    });
+    const client = makeClientStub({
+      initialDoc: "Keep this page\n",
+      readPage: async () => ({
+        text: "Keep this page\n",
+        meta: pageMeta("2026-01-01T00:00:00.000"),
+      }),
+      readDocument,
+      documentExtensions: ["pdf"],
+    });
+    client.currentPathValue = "Current.md";
+    const cm = new ContentManager(client as unknown as Client);
+
+    await expect(
+      cm.loadDocumentEditor({ path: "Archive.zip" }),
+    ).rejects.toThrow("Opened externally");
+
+    expect(readDocument).not.toHaveBeenCalled();
+    expect(client.openUrl).toHaveBeenCalledOnce();
+    expect(client.editorView.state.sliceDoc()).toBe("Keep this page\n");
+  });
+});
 
 function pageMeta(lastModified: string): PageMeta {
   return {

@@ -1,3 +1,4 @@
+import type { Route } from "@playwright/test";
 import { login, test } from "../fixtures/authenticated.ts";
 import { expect, mod } from "../fixtures/core.ts";
 
@@ -89,6 +90,25 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   await expect(page.locator("#clipboard-check")).toHaveValue(/Copy this text/);
   await page.reload();
   await expect(editor).toContainText("A durable HTTP note.");
+  const offlineRoute = (route: Route) =>
+    route.fulfill({ status: 503, body: "Temporary server failure" });
+  await page.route("**/*", offlineRoute);
+  await page.evaluate(() =>
+    (globalThis as any).client.navigate({ path: "HTTP Offline Target.md" }),
+  );
+  await expect(page).toHaveURL(/\/notes\/HTTP%20Note$/);
+  await expect(editor).toContainText("A durable HTTP note.");
+  await expect(page.getByText("Failed to navigate: Offline")).toBeVisible();
+  expect(
+    await page.evaluate(() => (globalThis as any).client.ui.viewState.isOnline),
+  ).toBe(false);
+  await page.unroute("**/*", offlineRoute);
+  await page.evaluate(() =>
+    (globalThis as any).client.httpSpacePrimitives.ping(),
+  );
+  expect(
+    await page.evaluate(() => (globalThis as any).client.ui.viewState.isOnline),
+  ).toBe(true);
   await page.route("**/notes/.fs/**", (route) =>
     ["PUT", "POST"].includes(route.request().method())
       ? route.fulfill({ status: 503, body: "Temporary write failure" })
@@ -108,6 +128,13 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
       () => (globalThis as any).client.ui.viewState.unsavedChanges,
     ),
   ).toBe(true);
+  expect(
+    await page.evaluate(() => {
+      const event = new Event("beforeunload", { cancelable: true });
+      globalThis.dispatchEvent(event);
+      return event.defaultPrevented;
+    }),
+  ).toBe(true);
   expect((await request(notePath)).text).not.toContain("Retain this edit");
   await page.unroute("**/notes/.fs/**");
   await page.evaluate(() =>
@@ -116,6 +143,13 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   await expect
     .poll(async () => (await request(notePath)).text)
     .toContain("Retain this edit until saving recovers");
+  expect(
+    await page.evaluate(() => {
+      const event = new Event("beforeunload", { cancelable: true });
+      globalThis.dispatchEvent(event);
+      return event.defaultPrevented;
+    }),
+  ).toBe(false);
   const other = await page.context().newPage();
   await other.goto(`${server.url}/notes/HTTP%20Note`);
   await expect(other.locator("#sb-editor .cm-content")).toBeVisible();
