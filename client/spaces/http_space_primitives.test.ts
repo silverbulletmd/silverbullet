@@ -260,6 +260,36 @@ describe("direct connection status", () => {
 
     expect(statuses).toEqual([false]);
   });
+
+  test("an older successful request cannot hide a newer offline result", async () => {
+    const statuses: boolean[] = [];
+    let finishOlderRequest!: (response: Response) => void;
+    let requestCount = 0;
+    const primitives = makePrimitives({
+      fetch: async () => {
+        requestCount++;
+        if (requestCount === 1) {
+          return new Promise<Response>((resolve) => {
+            finishOlderRequest = resolve;
+          });
+        }
+        return new Response("", { status: requestCount === 2 ? 503 : 200 });
+      },
+      authErrorCallback: () => {},
+      connectivityCallback: (isOnline) => statuses.push(isOnline),
+    });
+
+    const olderRequest = primitives.authenticatedFetch("http://x/older", {});
+    await expect(
+      primitives.authenticatedFetch("http://x/newer", {}),
+    ).rejects.toThrow("Offline");
+    finishOlderRequest(new Response("", { status: 200 }));
+    await olderRequest;
+    expect(statuses).toEqual([false]);
+
+    await primitives.authenticatedFetch("http://x/recovered", {});
+    expect(statuses).toEqual([false, true]);
+  });
 });
 
 describe("permission errors", () => {

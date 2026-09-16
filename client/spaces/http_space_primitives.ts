@@ -101,6 +101,9 @@ function encodeExtensionDot(url: string): string {
 }
 
 export class HttpSpacePrimitives implements SpacePrimitives {
+  private nextRequestId = 0;
+  private latestConnectivityRequestId = 0;
+
   constructor(
     readonly url: string,
     readonly expectedSpacePath: string,
@@ -120,11 +123,18 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return headers;
   }
 
+  private reportConnectivity(requestId: number, isOnline: boolean): void {
+    if (requestId < this.latestConnectivityRequestId) return;
+    this.latestConnectivityRequestId = requestId;
+    this.connectivityCallback?.(isOnline);
+  }
+
   public async authenticatedFetch(
     url: string,
     options: RequestInit,
     fetchTimeout: number = defaultFetchTimeout,
   ): Promise<Response> {
+    const requestId = ++this.nextRequestId;
     if (!options.headers) {
       options.headers = {};
     }
@@ -149,10 +159,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.redirect = "manual";
       const result = await fetch(url, options);
       if (result.status >= 500 && result.status < 600) {
-        this.connectivityCallback?.(false);
+        this.reportConnectivity(requestId, false);
         throw offlineError;
       }
-      this.connectivityCallback?.(true);
+      this.reportConnectivity(requestId, true);
       const redirectHeader = result.headers.get("location");
 
       if (result.type === "opaqueredirect" && !redirectHeader) {
@@ -207,12 +217,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       // unavailable until a later request succeeds.
       if (e.name === "TimeoutError") {
         console.warn("Request timed out for", url);
-        this.connectivityCallback?.(false);
+        this.reportConnectivity(requestId, false);
         throw new Error(`Request timed out after ${fetchTimeout}ms`);
       }
       if (isNetworkError(e)) {
         console.error("Got error fetching, throwing offline", url, e.message);
-        this.connectivityCallback?.(false);
+        this.reportConnectivity(requestId, false);
         throw offlineError;
       }
       throw e;
