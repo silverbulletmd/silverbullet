@@ -10,3 +10,5 @@ At the header of each page, you see the currently open page name. Let’s call t
   * Black (in light mode) indicates the page is currently saved
   * Gray (in light mode) indicates the page is currently not saved
 * By changing the page name and hitting `Enter` (or clicking/tapping outside of it) you **rename** the [[Page|page]], automatically updating all references to it as well.
+
+If you rename a page into another folder, documents in its original folder that are linked only from that page move with it, and their links in the page are updated. Documents _also_ linked from other pages stay where they are.
