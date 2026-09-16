@@ -95,7 +95,7 @@ test("Progress clamps value to a width percentage", () => {
 
 test("UrlPrefixInput shows the origin it is given, not the ambient one", () => {
   // The desktop app configures a *remote* sync server, so the origin cannot
-  // be read from `location` the way the server-hosted Space Manager does.
+  // be read from `location` the way the server-hosted Dashboard does.
   const html = render(
     h(UrlPrefixInput, {
       origin: "https://sb.example.com",

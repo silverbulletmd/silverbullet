@@ -3,7 +3,7 @@
 A [[Space]] does not have to be yours alone. This guide walks through running one that several people share: giving them accounts, deciding what each of them may do, working in the same pages without stepping on each other, addressing one another in the content itself, and seeing who changed what.
 
 # Setting up a shared space
-The [[Space Manager]] is used to create spaces, accounts and decide what each account can do on which space.
+The [[Dashboard]] is used to create spaces, accounts and decide what each account can do on which space.
 
 Access to a space then resolves to one of three levels:
 * `none`: no access at all

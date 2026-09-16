@@ -23,7 +23,7 @@ test("failed saving preserves edits until explicit force logout deletes local da
     data: "Notebook for recovery",
   });
   await openLivePage(page, base, "Notebook for recovery");
-  await page.goto(`${base}/.spaces/`);
+  await page.goto(`${base}/.dashboard/`);
   const editor = await context.newPage();
   await editor.goto(`${base}/RecoveryDraft`);
   await expect(editor.locator("#sb-editor .cm-editor")).toBeVisible();
@@ -48,9 +48,9 @@ test("failed saving preserves edits until explicit force logout deletes local da
   await expect(
     page.getByRole("button", { name: "Force logout", exact: true }),
   ).toBeVisible();
-  expect((await page.request.get(`${base}/.spaces/api/session`)).status()).toBe(
-    200,
-  );
+  expect(
+    (await page.request.get(`${base}/.dashboard/api/session`)).status(),
+  ).toBe(200);
   await expect(editor).toHaveURL(`${base}/RecoveryDraft`);
   expect(await editor.evaluate(() => document.documentElement.inert)).toBe(
     false,
@@ -76,9 +76,9 @@ test("failed saving preserves edits until explicit force logout deletes local da
   await expect(
     editor.getByText("Local space data has been removed from this browser."),
   ).toBeVisible();
-  expect((await page.request.get(`${base}/.spaces/api/session`)).status()).toBe(
-    401,
-  );
+  expect(
+    (await page.request.get(`${base}/.dashboard/api/session`)).status(),
+  ).toBe(401);
   await expect
     .poll(() =>
       page.evaluate(async () =>

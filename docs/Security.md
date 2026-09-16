@@ -11,7 +11,7 @@ SilverBullet [[Space|spaces]] are scriptable environments. This is where a lot o
 **TL;DR:** you need to trust people with `write` access. Anyone who can write to a space can author content — [[Space Lua]], and dynamic content generally — that runs in the browser of anyone who later opens that space.
 
 # Access levels
-Each space resolves to one of three [[Space Manager#Access|access levels]] for a given visitor, plus a separate admin flag:
+Each space resolves to one of three [[Dashboard#Access|access levels]] for a given visitor, plus a separate admin flag:
 
 | Level | Meaning |
 | --- | --- |
@@ -19,7 +19,7 @@ Each space resolves to one of three [[Space Manager#Access|access levels]] for a
 | `read` | May view content, will run all scripts and queries locally. Cannot modify anything or reach any capability endpoint. |
 | `write` | Full access to the space's content **and** capabilities. |
 
-Admins get `write` on every space, plus the `/.spaces` management UI.
+Admins get `write` on every space, plus the `/.dashboard` management UI.
 
 # What `write` really means
 `write` is not just “can edit files” in the narrow sense — a `write` member can create content that runs, unattended, as whoever else opens that space. That includes admins.

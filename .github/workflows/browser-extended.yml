@@ -17,7 +17,7 @@ on:
       - "client/logout*.ts"
       - "client/html/auth.html"
       - "client/html/authorize.html"
-      - "client/spaces_ui/**"
+      - "client/dashboard/**"
       - "client/data/**"
       - "client/service_worker/**"
       - "client/service_worker*"

@@ -497,7 +497,7 @@ mod tests {
                 true,
             ),
             (
-                host("team.example.com", "/.spaces"),
+                host("team.example.com", "/.dashboard"),
                 host("other.example.com", "/wiki"),
                 false,
             ),
@@ -982,7 +982,7 @@ mod tests {
                 space(
                     "A",
                     Binding::Prefix {
-                        prefix: "/.spaces".into(),
+                        prefix: "/.dashboard".into(),
                     },
                 ),
             ),

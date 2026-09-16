@@ -12,7 +12,7 @@ references:
 - client/spaces/base_store.ts
 - plugs/index/conflict.ts
 ---
-A [[Space]] can be shared: several people with [[Space Manager|accounts]] on the same server, editing the same pages, alongside whatever scripts and agents write to those same files. SilverBullet supports this, but it does so in a very specific way.
+A [[Space]] can be shared: several people with [[Dashboard|accounts]] on the same server, editing the same pages, alongside whatever scripts and agents write to those same files. SilverBullet supports this, but it does so in a very specific way.
 
 One core premise of SilverBullet has always been that your [[Space]] is just files on disk, and those files are the source of truth. This commitment extends to _who and how_ those files may be edited. SilverBullet deliberately does not want to be the “owner” of your files: third-party tools (or other people) should also be able to freely edit files.
 

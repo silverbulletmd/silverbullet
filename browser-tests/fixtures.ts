@@ -5,11 +5,11 @@ import { build } from "esbuild";
 export const origin = "http://spaces.test";
 export const secureOrigin = "https://spaces.test";
 export { expect };
-export const test = base.extend<{}, { spacesJavascript: string }>({
-  spacesJavascript: [
+export const test = base.extend<{}, { dashboardJavascript: string }>({
+  dashboardJavascript: [
     async ({ playwright: _playwright }, use) => {
       const result = await build({
-        entryPoints: ["client/spaces_ui/spaces.tsx"],
+        entryPoints: ["client/dashboard/dashboard.tsx"],
         bundle: true,
         write: false,
         format: "esm",
@@ -20,13 +20,13 @@ export const test = base.extend<{}, { spacesJavascript: string }>({
     },
     { scope: "worker" },
   ],
-  page: async ({ page, spacesJavascript }, use) => {
+  page: async ({ page, dashboardJavascript }, use) => {
     await page.route(/^https?:\/\/spaces\.test\//, async (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path.endsWith("/assets/spaces.js"))
+      if (path.endsWith("/assets/dashboard.js"))
         return route.fulfill({
           contentType: "text/javascript",
-          body: spacesJavascript,
+          body: dashboardJavascript,
         });
       if (path.endsWith("/assets/app.css"))
         return route.fulfill({
@@ -51,12 +51,12 @@ export const test = base.extend<{}, { spacesJavascript: string }>({
         });
       if (path.includes("/api/"))
         throw new Error(
-          `Unmocked manager API: ${route.request().method()} ${path}`,
+          `Unmocked Dashboard API: ${route.request().method()} ${path}`,
         );
       if (route.request().isNavigationRequest())
         return route.fulfill({
           contentType: "text/html",
-          body: await readFile("client/html/spaces.html", "utf8"),
+          body: await readFile("client/html/dashboard.html", "utf8"),
         });
       return route.fulfill({ status: 404 });
     });

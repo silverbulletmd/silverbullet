@@ -42,7 +42,7 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
       seedIndex: true,
     });
     const { page, context } = await newPocketUserPage(fixture);
-    await page.goto(`${oidc.centralOrigin}/.spaces/login`);
+    await page.goto(`${oidc.centralOrigin}/.dashboard/login`);
     await page.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
     await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Log in", exact: true }).click();
@@ -65,14 +65,14 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
     );
     expect(
       await page.evaluate(async () =>
-        (await fetch("/.spaces/api/session")).json(),
+        (await fetch("/.dashboard/api/session")).json(),
       ),
     ).toEqual({ username: "river", admin: false });
     for (const endpoint of ["users", "spaces", "authentication"]) {
       expect(
         await page.evaluate(
           async (endpoint) =>
-            (await fetch(`/.spaces/api/admin/${endpoint}`)).status,
+            (await fetch(`/.dashboard/api/admin/${endpoint}`)).status,
           endpoint,
         ),
       ).toBe(403);
@@ -86,7 +86,7 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
         await page.evaluate(
           async ({ endpoint, body }) =>
             (
-              await fetch(`/.spaces/api/admin/${endpoint}`, {
+              await fetch(`/.dashboard/api/admin/${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
@@ -114,15 +114,15 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
     await expect(second.page.locator("#sb-editor .cm-editor")).toBeVisible();
     expect(
       await page.evaluate(
-        async () => (await fetch("/.spaces/api/logout")).status,
+        async () => (await fetch("/.dashboard/api/logout")).status,
       ),
     ).toBe(200);
     const expired = await context.newPage();
-    await expired.goto(`${oidc.notesOrigin}/.spaces/login?signedOut=true`);
+    await expired.goto(`${oidc.notesOrigin}/.dashboard/login?signedOut=true`);
     expect(
       await expired.evaluate(async () => (await fetch("/.config")).status),
     ).toBe(401);
-    await page.goto(`${oidc.researchOrigin}/.spaces/login?signedOut=true`);
+    await page.goto(`${oidc.researchOrigin}/.dashboard/login?signedOut=true`);
     expect(
       await page.evaluate(async () => (await fetch("/.config")).status),
     ).toBe(401);

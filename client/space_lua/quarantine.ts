@@ -10,7 +10,7 @@ function defaultStore(): QuarantineStore {
 }
 
 /**
- * Space Manager can host multiple spaces on the same origin, sharing
+ * Dashboard can host multiple spaces on the same origin, sharing
  * localStorage. Namespace by document.baseURI the same way boot.ts's
  * cachedFetch does (and client.ts's deriveDbName), so one space's
  * quarantine entries never collide with or get pruned by another's.

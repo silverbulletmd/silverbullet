@@ -80,7 +80,7 @@ test("failed synchronization keeps the session and offers force logout", async (
   });
   await expect(logoutBrowserSession(async () => {})).rejects.toThrow("Offline");
   expect(fetcher).not.toHaveBeenCalled();
-  expect(location.href).toBe("https://notes.example/.spaces/");
+  expect(location.href).toBe("https://notes.example/.dashboard/");
 });
 
 test("an unresponsive worker is identified instead of blaming another tab", async () => {
@@ -125,7 +125,7 @@ function logoutEnvironment(worker?: {
   const fetcher = vi.fn(async () => ({ ok: true }));
   vi.stubGlobal("fetch", fetcher);
   vi.stubGlobal("document", { documentElement: { inert: false } });
-  vi.stubGlobal("location", { href: "https://notes.example/.spaces/" });
+  vi.stubGlobal("location", { href: "https://notes.example/.dashboard/" });
   vi.stubGlobal("navigator", {
     serviceWorker: {
       getRegistrations: async () => (worker ? [{ active: worker }] : []),
@@ -165,7 +165,7 @@ test("a failed server revocation restores the current tab", async () => {
   await expect(logoutBrowserSession(async () => {})).rejects.toThrow(
     "Could not log out",
   );
-  expect(location.href).toBe("https://notes.example/.spaces/");
+  expect(location.href).toBe("https://notes.example/.dashboard/");
   expect(document.documentElement.inert).toBe(false);
 });
 
@@ -196,7 +196,7 @@ test("successful logout finishes local cleanup before navigating", async () => {
     scriptURL: "https://notes.example/notes/service_worker.js",
     postMessage(message, ports) {
       messages.push(message.type);
-      expect(location.href).toBe("https://notes.example/.spaces/");
+      expect(location.href).toBe("https://notes.example/.dashboard/");
       ports?.[0]?.postMessage({ ok: true });
     },
   });
@@ -207,7 +207,7 @@ test("successful logout finishes local cleanup before navigating", async () => {
     "logout-clear",
     "logout-complete",
   ]);
-  expect(location.href).toBe("/.spaces/login?signedOut=true");
+  expect(location.href).toBe("/.dashboard/login?signedOut=true");
 });
 
 test("revoked unsaved editors stay editable without allowing automatic auth redirects", async () => {

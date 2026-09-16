@@ -37,13 +37,13 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
     );
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`${server.url}/.spaces/login`);
+  await page.goto(`${server.url}/.dashboard/login`);
   expect(await page.evaluate(() => isSecureContext)).toBe(false);
   await expect(page.getByLabel("Encrypt local data")).toHaveCount(0);
   await login(page, server);
   expect(
     (
-      await request("/.spaces/api/admin/server-config", "PUT", {
+      await request("/.dashboard/api/admin/server-config", "PUT", {
         primaryUrl: server.url,
       })
     ).status,
@@ -54,7 +54,7 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   expect((await request("/.auth/central/start")).status).toBe(403);
   expect(
     (
-      await request("/.spaces/api/admin/spaces", "POST", {
+      await request("/.dashboard/api/admin/spaces", "POST", {
         name: "HTTP Notebook",
         binding: { prefix: "/notes" },
       })
@@ -158,7 +158,7 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   await expect(
     page.getByText(/Close other SilverBullet tabs and windows/),
   ).toBeVisible();
-  expect((await request("/.spaces/api/session")).status).toBe(200);
+  expect((await request("/.dashboard/api/session")).status).toBe(200);
   await other.close();
   await page.locator("#sb-top button:has(.sb-profile-avatar)").click();
   await page.getByRole("button", { name: "Log out", exact: true }).click();
@@ -173,6 +173,6 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   await expect(
     page.getByRole("heading", { name: "You are signed out" }),
   ).toBeVisible();
-  expect((await request("/.spaces/api/session")).status).toBe(401);
+  expect((await request("/.dashboard/api/session")).status).toBe(401);
   expect(errors).toEqual([]);
 });

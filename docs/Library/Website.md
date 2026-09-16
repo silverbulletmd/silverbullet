@@ -64,8 +64,9 @@ local navPages = {
 
   -- Admin
   "Administration",
-  { name = "Administration/Space Manager", ref = "Space Manager"}, 
+  { name = "Administration/Dashboard", ref = "Dashboard"},
   { name = "Administration/Authentication", ref = "Authentication"}, 
+  { name = "Administration/Accounts", ref = "Account"}, 
   { name = "Administration/Single Sign-On", ref = "Single Sign-On"}, 
   { name = "Administration/Security", ref = "Security"}, 
   { name = "Administration/Client Encryption", ref = "Client Encryption"}, 

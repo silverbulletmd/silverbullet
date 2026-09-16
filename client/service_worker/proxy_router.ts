@@ -51,7 +51,7 @@ const locallyServed = ["/.client", "/.fs"];
 // Matched as a prefix of the *space-relative* path.
 const alwaysProxy = [
   ...spaceSurfaces.filter((surface) => !locallyServed.includes(surface)),
-  "/.spaces",
+  "/.dashboard",
   "/.setup",
   "/.instance",
 ];

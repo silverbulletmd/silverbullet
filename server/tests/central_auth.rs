@@ -68,7 +68,7 @@ async fn provider_configuration_is_admin_only() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri("/.spaces/api/admin/authentication")
+                .uri("/.dashboard/api/admin/authentication")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -365,7 +365,7 @@ async fn primary_origin_enables_local_central_login_and_restricts_central_routes
     for path in [
         "/.auth/central/context",
         "/.auth/central/login",
-        "/.spaces/api/admin/authentication",
+        "/.dashboard/api/admin/authentication",
     ] {
         let response = app
             .clone()
@@ -391,7 +391,7 @@ async fn primary_origin_enables_local_central_login_and_restricts_central_routes
         .oneshot(request(
             "GET",
             "manager.example.com",
-            "/.auth/central/start?destination=https%3A%2F%2Fmanager.example.com%2F.spaces",
+            "/.auth/central/start?destination=https%3A%2F%2Fmanager.example.com%2F.dashboard",
             "",
             None,
         ))

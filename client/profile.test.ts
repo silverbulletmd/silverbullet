@@ -47,7 +47,7 @@ describe("loadProfile", () => {
       seen = String(url);
       return res(401);
     });
-    expect(seen).toBe("/.spaces/api/profile");
+    expect(seen).toBe("/.dashboard/api/profile");
   });
 });
 

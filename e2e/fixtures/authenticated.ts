@@ -11,7 +11,7 @@ export const test = core.extend<{ adminPage: Page }>({
   provisionAdmin: true,
   adminPage: async ({ page, sbServer }, use) => {
     const response = await page.request.post(
-      `${sbServer.url}/.spaces/api/login`,
+      `${sbServer.url}/.dashboard/api/login`,
       {
         data: { username: ADMIN_USER, password: ADMIN_PASSWORD },
       },
@@ -29,7 +29,7 @@ export async function adminApi<T = any>(
   data?: unknown,
 ): Promise<T> {
   const response = await page.request.fetch(
-    `${server.url}/.spaces/api/admin/${path}`,
+    `${server.url}/.dashboard/api/admin/${path}`,
     { method, data },
   );
   expect(response.ok(), await response.text()).toBe(true);
@@ -42,9 +42,9 @@ export async function login(
   username = ADMIN_USER,
   password = ADMIN_PASSWORD,
 ) {
-  await page.goto(`${server.url}/.spaces/login`);
+  await page.goto(`${server.url}/.dashboard/login`);
   await page.getByLabel("Username", { exact: true }).fill(username);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Log in", exact: true }).click();
-  await expect(page).toHaveURL(`${server.url}/.spaces/`);
+  await expect(page).toHaveURL(`${server.url}/.dashboard/`);
 }

@@ -71,10 +71,10 @@ pub fn synthesize_config(config: &Config) -> SpaceConfig {
     synthesize(config, ShellConfig::from_env(config.read_only))
 }
 
-/// The router mounted at `/.spaces` in single mode: there is no space/account
+/// The router mounted at `/.dashboard` in single mode: there is no space/account
 /// management UI (the one space is configured through env vars, not accounts),
 /// so every path under it explains that and 404s.
-fn single_spaces_info_router() -> axum::Router {
+fn single_dashboard_info_router() -> axum::Router {
     axum::Router::new().fallback(|| async {
         (
             axum::http::StatusCode::NOT_FOUND,
@@ -160,7 +160,7 @@ pub(crate) async fn run_single(
 
     let router = build_main_router(
         manager,
-        Some(single_spaces_info_router()),
+        Some(single_dashboard_info_router()),
         crate::VERSION.to_string(),
     );
     let router = if config.http_logging {

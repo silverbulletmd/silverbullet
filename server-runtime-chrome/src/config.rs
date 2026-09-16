@@ -1,7 +1,7 @@
 use std::path::Path;
 
 /// Why the headless-Chrome runtime could not be configured. The two causes are
-/// kept apart because the Space Manager shows the administrator which one it
+/// kept apart because the Dashboard shows the administrator which one it
 /// hit — "install a browser" and "you turned this off" need different answers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeUnavailable {

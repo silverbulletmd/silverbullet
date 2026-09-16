@@ -200,7 +200,7 @@ test("SSO continues App authorization and browser logout preserves device creden
       await expect(user.page.locator("#sb-editor .cm-editor")).toBeVisible();
       expect(
         await user.page.evaluate(async () => {
-          const response = await fetch("/.spaces/api/logout");
+          const response = await fetch("/.dashboard/api/logout");
           return response.status;
         }),
       ).toBe(200);

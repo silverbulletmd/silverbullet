@@ -160,7 +160,7 @@ Self-update the CLI binary to the latest stable or edge release.
 # Authentication
 The CLI supports three authentication methods, configured per-space during `space add`:
 
-* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on a [[Space Manager#Single-space mode|single-space]] server, or with a per-account [[Space Manager#API tokens|API token]] on an accounts-based server.
+* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on a [[Dashboard#Single-space mode|single-space]] server, or with a per-account [[Dashboard#API tokens|API token]] on an accounts-based server.
 * **Password** — authenticates via `POST /.auth` (username/password), then uses the returned session cookie. Use this with `SB_USER` on a single-space server, or with an account username/password on a space you’re a member of.
 * **None** — no authentication (for local or trusted-network setups, or public spaces).
 

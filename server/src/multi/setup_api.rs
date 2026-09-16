@@ -116,7 +116,7 @@ struct DirsQuery {
 }
 
 /// Folder-picker backend for the wizard, mirroring the admin's
-/// `GET /.spaces/api/admin/fs/dirs`. Same trust model as the rest of `/.setup`:
+/// `GET /.dashboard/api/admin/fs/dirs`. Same trust model as the rest of `/.setup`:
 /// unauthenticated, but only reachable while the server is unconfigured — the
 /// whole surface vanishes the moment setup completes.
 async fn handle_fs_dirs(
@@ -430,7 +430,7 @@ mod tests {
     async fn unknown_path_redirects_to_setup() {
         let dir = tempfile::tempdir().unwrap();
         let r = build_setup_router(state(&dir, true, Arc::new(AtomicBool::new(false))));
-        for uri in ["/", "/index", "/anything/here", "/.spaces/"] {
+        for uri in ["/", "/index", "/anything/here", "/.dashboard/"] {
             let resp = send(&r, get(uri)).await;
             assert_eq!(
                 resp.status(),

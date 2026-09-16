@@ -239,7 +239,7 @@ fn host_bound_runtime_boots_core_and_reads_its_space() {
         serde_json::json!({"result": "# Fictional runtime notes\n"})
     );
     let response = http
-        .put(format!("{base}/.spaces/api/admin/server-config"))
+        .put(format!("{base}/.dashboard/api/admin/server-config"))
         .bearer_auth(&token)
         .header("content-type", "application/json")
         .body(r#"{"runtimeApi":false}"#)

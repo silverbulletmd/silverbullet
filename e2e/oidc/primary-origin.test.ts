@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { coreApi, startCoreOidcFixture } from "./core-fixture.ts";
 
-test("primary manager isolates administration from sibling and cross-site space origins", async () => {
+test("primary Dashboard isolates administration from sibling and cross-site space origins", async () => {
   test.setTimeout(180_000);
   const fixture = await startCoreOidcFixture({ disableServiceWorker: false });
   const { adminPage, oidc } = fixture;
@@ -33,15 +33,15 @@ test("primary manager isolates administration from sibling and cross-site space 
     );
     expect((await originConfig.json()).primaryUrl).toBe(oidc.centralOrigin);
     for (const space of [sibling.origin, oidc.notesOrigin]) {
-      const direct = await serverRequest(`${space}/.spaces/api/admin/users`);
+      const direct = await serverRequest(`${space}/.dashboard/api/admin/users`);
       expect(direct.status()).toBe(403);
       const sso = await serverRequest(
-        `${space}/.spaces/api/admin/authentication`,
+        `${space}/.dashboard/api/admin/authentication`,
       );
       expect(sso.status()).toBe(403);
-      const navigation = await serverRequest(`${space}/.spaces/profile`);
+      const navigation = await serverRequest(`${space}/.dashboard/profile`);
       expect(navigation.headers().location).toBe(
-        `${oidc.centralOrigin}/.spaces/profile`,
+        `${oidc.centralOrigin}/.dashboard/profile`,
       );
       const hostile = await adminPage.context().newPage();
       await hostile.route(`${space}/probe`, (route) =>
@@ -52,13 +52,13 @@ test("primary manager isolates administration from sibling and cross-site space 
       );
       await hostile.goto(`${space}/probe`);
       const results = await hostile.evaluate(async (primary) => {
-        const read = await fetch(`${primary}/.spaces/api/admin/users`, {
+        const read = await fetch(`${primary}/.dashboard/api/admin/users`, {
           credentials: "include",
         })
           .then((r) => r.status)
           .catch(() => "blocked");
         const write = await fetch(
-          `${primary}/.spaces/api/admin/server-config`,
+          `${primary}/.dashboard/api/admin/server-config`,
           {
             method: "PUT",
             credentials: "include",
@@ -70,7 +70,7 @@ test("primary manager isolates administration from sibling and cross-site space 
         )
           .then((r) => r.status)
           .catch(() => "blocked");
-        const logout = await fetch(`${primary}/.spaces/api/logout`, {
+        const logout = await fetch(`${primary}/.dashboard/api/logout`, {
           credentials: "include",
         })
           .then((r) => r.status)

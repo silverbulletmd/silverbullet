@@ -57,13 +57,13 @@ export async function buildClient(): Promise<void> {
       },
     ],
     [
-      "spaces ui",
+      "dashboard UI",
       {
         ...baseBuildConfig,
         entryPoints: [
           {
-            in: "client/spaces_ui/spaces.tsx",
-            out: ".client/spaces",
+            in: "client/dashboard/dashboard.tsx",
+            out: ".client/dashboard",
           },
         ],
         splitting: false,
@@ -75,7 +75,7 @@ export async function buildClient(): Promise<void> {
         ...baseBuildConfig,
         entryPoints: [
           {
-            in: "client/spaces_ui/setup.tsx",
+            in: "client/dashboard/setup.tsx",
             out: ".client/setup",
           },
         ],
@@ -88,10 +88,10 @@ export async function buildClient(): Promise<void> {
         ...baseBuildConfig,
         entryPoints: [
           {
-            in: "client/spaces_ui/auth.tsx",
+            in: "client/dashboard/auth.tsx",
             out: ".client/auth",
           },
-          { in: "client/spaces_ui/central.tsx", out: ".client/central" },
+          { in: "client/dashboard/central.tsx", out: ".client/central" },
         ],
         splitting: false,
       },
@@ -149,7 +149,7 @@ async function copyAssets(dist: string) {
   await writeFile(`${dist}/client.js`, bundleJs, "utf-8");
 }
 
-// Shells and bundles for the server-level surfaces (Space Manager at /.spaces,
+// Shells and bundles for the server-level surfaces (Dashboard at /.dashboard,
 // the setup wizard at /.setup) and the per-space login page. None of these are
 // part of the offline app shell: they are entry points the service worker must
 // never answer from cache. Add an entry here when adding a bundle entry point.
@@ -160,8 +160,8 @@ const NOT_PRECACHED = new Set([
   "index.html",
   "central.html",
   "central.js",
-  "spaces.html",
-  "spaces.js",
+  "dashboard.html",
+  "dashboard.js",
   "setup.html",
   "setup.js",
   "app.css",

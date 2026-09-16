@@ -73,7 +73,7 @@ hostnameTest(
       access: "write",
     });
 
-    await page.goto(`${sbServer.url}/.spaces/`);
+    await page.goto(`${sbServer.url}/.dashboard/`);
     await page.getByRole("link", { name: "Create space", exact: true }).click();
     await page.getByLabel("Name", { exact: true }).fill("Wiki");
     const knownHost = page
@@ -159,11 +159,11 @@ test("an administrator creates a member and saves a space grant", async ({
   adminPage: page,
   sbServer,
 }) => {
-  await page.goto(`${sbServer.url}/.spaces/users/new`);
+  await page.goto(`${sbServer.url}/.dashboard/users/new`);
   await page.getByLabel("Username", { exact: true }).fill("casey");
   await page.getByLabel("Password", { exact: true }).fill("casey-password");
   await page.getByRole("button", { name: "Create user", exact: true }).click();
-  await expect(page).toHaveURL(/\/\.spaces\/users\/casey/);
+  await expect(page).toHaveURL(/\/\.dashboard\/users\/casey/);
   const space = await adminApi<{ id: string }>(
     page,
     sbServer,
@@ -174,7 +174,7 @@ test("an administrator creates a member and saves a space grant", async ({
       binding: { prefix: "/notes" },
     },
   );
-  await page.goto(`${sbServer.url}/.spaces/${space.id}?section=access`);
+  await page.goto(`${sbServer.url}/.dashboard/${space.id}?section=access`);
   await page
     .getByRole("checkbox", { name: "casey: Write", exact: true })
     .check();

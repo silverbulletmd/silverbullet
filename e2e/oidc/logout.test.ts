@@ -120,7 +120,7 @@ for (const uploadBlocked of [false, true]) {
                     await fetch(
                       isolated
                         ? "/.auth/central/profile"
-                        : "/.spaces/api/session",
+                        : "/.dashboard/api/session",
                     )
                   ).status,
                 isolated,
@@ -131,10 +131,10 @@ for (const uploadBlocked of [false, true]) {
           }
 
           await expect(page).toHaveURL(
-            `${fixture.oidc.researchOrigin}${isolated ? "/.auth/central/signed-out" : "/.spaces/login?signedOut=true"}`,
+            `${fixture.oidc.researchOrigin}${isolated ? "/.auth/central/signed-out" : "/.dashboard/login?signedOut=true"}`,
           );
           await expect(other).toHaveURL(
-            `${fixture.oidc.researchOrigin}${isolated ? "/.auth/central/signed-out" : "/.spaces/login?signedOut=true"}`,
+            `${fixture.oidc.researchOrigin}${isolated ? "/.auth/central/signed-out" : "/.dashboard/login?signedOut=true"}`,
           );
           await expect(
             page.getByText("You are signed out", { exact: true }),
@@ -179,7 +179,7 @@ for (const uploadBlocked of [false, true]) {
                   await fetch(
                     isolated
                       ? "/.auth/central/profile"
-                      : "/.spaces/api/profile",
+                      : "/.dashboard/api/profile",
                   )
                 ).status,
               isolated,

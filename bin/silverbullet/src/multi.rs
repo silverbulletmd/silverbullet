@@ -1,5 +1,5 @@
 //! Multi-space mode wiring: env validation, embedded-asset and Chrome-runtime
-//! factories, unified /.spaces surface construction, and the serve loop.
+//! factories, unified /.dashboard surface construction, and the serve loop.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -10,12 +10,12 @@ use silverbullet_server::auth::{
 use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::access::SessionPolicy;
 use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState};
+use silverbullet_server::multi::dashboard::{build_dashboard_router, DashboardState};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{
     AssetFactories, InstanceAuth, InstanceDeps, RuntimeFactory, RuntimeRequest,
 };
 use silverbullet_server::multi::manager::MultiManager;
-use silverbullet_server::multi::space_index::{build_spaces_router, SpaceIndexState};
 use silverbullet_server::multi::users::UserStore;
 use silverbullet_server::runtime::RuntimeAvailability;
 
@@ -130,7 +130,7 @@ pub async fn build_multi_stack(
     let manager = MultiManager::boot(root.clone(), deps, known_users)?;
     tracing::debug!(
         elapsed_ms = started.elapsed().as_millis(),
-        "multi-space manager booted"
+        "multi-dashboard booted"
     );
     tracing::info!(
         "SilverBullet multi-space mode: {} space(s) configured",
@@ -248,7 +248,7 @@ pub async fn build_multi_stack(
         .with_primary_url(Arc::new(move || primary_manager.primary_url()))
         .with_server_name(Arc::new(move || name_manager.server_name())),
     );
-    let spaces_state = Arc::new(SpaceIndexState::new(
+    let dashboard_state = Arc::new(DashboardState::new(
         manager.clone(),
         store,
         authenticator,
@@ -257,16 +257,17 @@ pub async fn build_multi_stack(
     ));
     let router = build_main_router(
         manager,
-        Some(build_spaces_router(
-            spaces_state,
+        Some(build_dashboard_router(
+            dashboard_state,
             build_admin_api_router(admin_state),
         )),
         crate::VERSION.to_string(),
     )
     .merge(silverbullet_server::handlers::central_auth::router(central));
     let addr = format!("{}:{}", config.bind_host, config.port);
-    let log =
-        format!("SilverBullet multi-space server running: http://{addr} (spaces at /.spaces)");
+    let log = format!(
+        "SilverBullet multi-space server running: http://{addr} (Dashboard at /.dashboard)"
+    );
     Ok((router, log))
 }
 

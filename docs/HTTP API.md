@@ -3,7 +3,7 @@ references:
 - bin/silverbullet/src/server.rs
 - server-common/src/space/http.rs
 - server/src/handlers/revisions.rs
-- server/src/multi/space_index.rs
+- server/src/multi/dashboard.rs
 - server/src/multi/admin_api.rs
 ---
 The server API is relatively small. The client primarily communicates with the server for file “CRUD” (Create, Read, Update, Delete) style operations.
@@ -19,12 +19,12 @@ When authentication is enabled, most endpoints require a valid session cookie (J
 * **Bearer token**: When [[Install/Configuration#Authentication|SB_AUTH_TOKEN]] is set, requests can authenticate via the `Authorization: Bearer <token>` header instead of cookies.
 
 # Accounts (multi-space mode)
-In [[Space Manager|multi-space mode]] every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.spaces` prefix and require the session cookie described in [[Space Manager#Space index]].
+In [[Dashboard|multi-space mode]] every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.dashboard` prefix and require the session cookie described in [[Dashboard#Dashboard access]].
 
-* `GET /.spaces/api/profile`: The caller's own profile: `{"username", "admin", "fullName", "email"}`. `fullName`/`email` are `null` until set. `401` without a session.
-* `PUT /.spaces/api/profile`: Sets the caller's own profile. Body: `{"fullName": string, "email": string}`. The username always comes from the session — there is no way to address another account through this endpoint. An empty string clears a field. `400` with `{"errors":[{"field", "message"}]}` if a value contains `<`, `>`, a line break, or (for `email`) whitespace.
-* `POST /.spaces/api/admin/users` (admin only): Creates an account. Body: `{"username", "password", "admin", "fullName", "email"}` — `fullName`/`email` are optional, validated the same way.
-* `PUT /.spaces/api/admin/users/<name>/profile` (admin only): Sets another account's profile. Same body and validation as `PUT /.spaces/api/profile`.
+* `GET /.dashboard/api/profile`: The caller's own profile: `{"username", "admin", "fullName", "email"}`. `fullName`/`email` are `null` until set. `401` without a session.
+* `PUT /.dashboard/api/profile`: Sets the caller's own profile. Body: `{"fullName": string, "email": string}`. The username always comes from the session — there is no way to address another account through this endpoint. An empty string clears a field. `400` with `{"errors":[{"field", "message"}]}` if a value contains `<`, `>`, a line break, or (for `email`) whitespace.
+* `POST /.dashboard/api/admin/users` (admin only): Creates an account. Body: `{"username", "password", "admin", "fullName", "email"}` — `fullName`/`email` are optional, validated the same way.
+* `PUT /.dashboard/api/admin/users/<name>/profile` (admin only): Sets another account's profile. Same body and validation as `PUT /.dashboard/api/profile`.
 
 # Profile
 * `GET /.accounts`: Every account with access to this space, as `[{"username", "fullName", "me"}]`, with the caller's own entry marked `me`. `username` is `null` where the deployment keeps no accounts (the caller is still reported, marked `me`, so their name is known even though they are nobody the space can address), `fullName` is omitted when unset, and `me` is omitted when false.

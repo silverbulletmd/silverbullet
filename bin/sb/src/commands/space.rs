@@ -101,7 +101,9 @@ pub fn space_add_with_options(preset_url: Option<&str>, no_browser: bool) -> Res
                 .send()
                 .is_ok_and(|r| r.status().is_success());
             return Err(if multi {
-                format!("This is a multi-space server. Use a specific space URL; see {url}/.spaces")
+                format!(
+                    "This is a multi-space server. Use a specific space URL; see {url}/.dashboard"
+                )
             } else {
                 "No SilverBullet space at this URL. Check the space URL.".into()
             });

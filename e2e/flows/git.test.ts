@@ -84,7 +84,7 @@ test.beforeAll(async () => {
     },
   );
   base = `http://${process.env.SB_E2E_HOST ?? "127.0.0.1"}:${port}`;
-  await waitForServer(`${base}/.spaces`);
+  await waitForServer(`${base}/.dashboard`);
 });
 
 test.afterAll(async () => {
@@ -102,12 +102,12 @@ test("an administrator connects a repository, pauses sync and pulls a remote upd
   page,
 }) => {
   test.setTimeout(120_000);
-  await page.goto(`${base}/.spaces/login`);
+  await page.goto(`${base}/.dashboard/login`);
   await page.getByLabel("Username").fill(ADMIN_USER);
   await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Log in", exact: true }).click();
-  await expect(page).toHaveURL(`${base}/.spaces/`);
-  await page.goto(`${base}/.spaces/sample/git`);
+  await expect(page).toHaveURL(`${base}/.dashboard/`);
+  await page.goto(`${base}/.dashboard/sample/git`);
   await page
     .getByRole("button", { name: "Connect repository", exact: true })
     .click();
@@ -128,7 +128,7 @@ test("an administrator connects a repository, pauses sync and pulls a remote upd
   await expect(
     page.getByRole("status", { name: "Git sync status" }),
   ).toContainText("Up to date");
-  const statusUrl = `${base}/.spaces/api/admin/spaces/sample/git`;
+  const statusUrl = `${base}/.dashboard/api/admin/spaces/sample/git`;
   const success = (await (await page.request.get(statusUrl)).json())
     .lastSuccess;
   expect(success).toBeGreaterThan(0);

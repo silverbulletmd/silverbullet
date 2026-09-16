@@ -19,7 +19,7 @@
   Logo used for PWA docking
 
 - **logo-dock-96x96.png**  
-  The same dock icon for inline use in the UI (the Space Manager's wordmark),
+  The same dock icon for inline use in the UI (the Dashboard's wordmark),
   where the 1024px original would be 405 KB to draw ~26 px. Regenerate from the
   original after any change to it:
 

@@ -14,7 +14,7 @@ The server that owns the space’s files is what maintains it: so `git` has to b
 Revisions only work when online.
 
 # Modes
-The revision mode is configured at a per-space level in [[Space Manager]]:
+The revision mode is configured at a per-space level in [[Dashboard]]:
 
 * **Managed:** Creates a git repository in the space folder if there isn't one, and commits your changes for you.
 * **Unmanaged:** Reads the history of a repository that is already there, and **never** commits to it. For a space you version yourself.
@@ -23,21 +23,21 @@ The revision mode is configured at a per-space level in [[Space Manager]]:
 Switching modes later is safe and takes effect on the next restart of the space. A repository SilverBullet created for itself is marked as such (`silverbullet.managed` in the repo's local git config): clearing that mark stops the automatic commits, whatever the configured mode says.
 
 ## Setting the mode
-* **[[Space Manager|Multi-space]] server**: in the space's settings, under **Revisions**.
+* **[[Dashboard|Multi-space]] server**: in the space's settings, under **Revisions**.
 * **Single-space server**: the `SB_REVISIONS` environment variable (`managed`, `unmanaged`, or `disabled`). The default is **unmanaged**.
 
 ## Upgrading to a version with revisions
 Nothing starts committing to your files on upgrade. What an existing space gets depends on where it runs:
 
-* **[[Space Manager|Multi-space]] server**: spaces already in your config have no `revisions` setting, which reads as **Disabled**. Turn it on per space.
+* **[[Dashboard|Multi-space]] server**: spaces already in your config have no `revisions` setting, which reads as **Disabled**. Turn it on per space.
 * **Single-space server**: with no `SB_REVISIONS` set you get **Unmanaged**. On a space that is already a git repository its history shows up immediately; on a plain folder the views are simply empty until you `git init` it yourself — which the running server picks up without a restart.
 
 # Automatic commits
-In _Managed_ mode, changes are committed a short while after things go quiet — about 30 seconds by default, and at least every 5 minutes during a long editing session. On a [[Space Manager|multi-space]] server you can change this per space, under **Commit frequency**: **Responsive** (the default), **Balanced**, or **Relaxed**. A slower setting means fewer, larger commits — and, if [[#Syncing with a remote]] is on, less frequent pushes. One commit is made per author, so two people editing at once produce two commits.
+In _Managed_ mode, changes are committed a short while after things go quiet — about 30 seconds by default, and at least every 5 minutes during a long editing session. On a [[Dashboard|multi-space]] server you can change this per space, under **Commit frequency**: **Responsive** (the default), **Balanced**, or **Relaxed**. A slower setting means fewer, larger commits — and, if [[#Syncing with a remote]] is on, less frequent pushes. One commit is made per author, so two people editing at once produce two commits.
 
 Commits are attributed to whoever made the change:
 
-* On a [[Space Manager|multi-space]] server, the acting account's **Full name** and **Email** — set by an admin (on the create-user form or the user's detail page), or by the user themselves on their own **Profile** page.
+* On a [[Dashboard|multi-space]] server, the acting account's **Full name** and **Email** — set by an admin (on the create-user form or the user's detail page), or by the user themselves on their own **Profile** page.
 * **SilverBullet**, for a change made through SilverBullet with no account attached — a single-user server without authentication.
 * **External**, for a change SilverBullet detected, but did not make: e.g. another editor, a script, or coding agent.
 

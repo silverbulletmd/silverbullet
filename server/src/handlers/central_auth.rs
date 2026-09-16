@@ -130,7 +130,7 @@ impl CentralAuth {
             return None;
         }
         if url.origin() == central.origin()
-            && (url.path() == "/.spaces" || url.path().starts_with("/.spaces/"))
+            && (url.path() == "/.dashboard" || url.path().starts_with("/.dashboard/"))
         {
             return Some("/".into());
         }
@@ -230,11 +230,11 @@ pub fn error(status: StatusCode, message: &str) -> Response {
 pub fn browser_error(status: StatusCode, message: &str) -> Response {
     let mut env = minijinja::Environment::new();
     env.set_auto_escape_callback(|_| minijinja::AutoEscape::Html);
-    let template = r#"<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign-in could not be completed</title><style>body{font:1rem/1.5 system-ui,sans-serif;max-width:36rem;margin:12vh auto;padding:0 1.5rem}h1{font-size:1.5rem}</style><main><h1>Sign-in could not be completed</h1><p>{{ message }}</p><p><a href="/.spaces/login">Try signing in again</a></p></main></html>"#;
+    let template = r#"<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign-in could not be completed</title><style>body{font:1rem/1.5 system-ui,sans-serif;max-width:36rem;margin:12vh auto;padding:0 1.5rem}h1{font-size:1.5rem}</style><main><h1>Sign-in could not be completed</h1><p>{{ message }}</p><p><a href="/.dashboard/login">Try signing in again</a></p></main></html>"#;
     let html = env
         .render_str(template, minijinja::context! { message => message })
         .unwrap_or_else(|_| {
-            "Sign-in could not be completed. Open /.spaces/login to try again.".into()
+            "Sign-in could not be completed. Open /.dashboard/login to try again.".into()
         });
     (status, Html(html)).into_response()
 }
@@ -345,20 +345,26 @@ pub fn router(state: Arc<CentralAuth>) -> Router {
         .route("/.auth/central/unlock", get(unlock_page))
         .route("/.auth/central/resume", get(resume_context))
         .route(
-            "/.spaces/api/admin/authentication/test",
+            "/.dashboard/api/admin/authentication/test",
             post(test_provider),
         )
         .route(
-            "/.spaces/api/admin/authentication/test/{id}",
+            "/.dashboard/api/admin/authentication/test/{id}",
             get(test_result),
         )
-        .route("/.spaces/api/admin/authentication", get(status))
+        .route("/.dashboard/api/admin/authentication", get(status))
         .route(
-            "/.spaces/api/admin/authentication/draft",
+            "/.dashboard/api/admin/authentication/draft",
             axum::routing::put(draft),
         )
-        .route("/.spaces/api/admin/authentication/activate", post(activate))
-        .route("/.spaces/api/admin/authentication/disable", post(disable))
+        .route(
+            "/.dashboard/api/admin/authentication/activate",
+            post(activate),
+        )
+        .route(
+            "/.dashboard/api/admin/authentication/disable",
+            post(disable),
+        )
         .layer(axum::extract::DefaultBodyLimit::max(32 * 1024))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
@@ -401,7 +407,7 @@ async fn origin_guard(
             | "/.auth/central/profile"
             | "/.auth/central/logout"
             | "/.auth/central/signed-out"
-            | "/.spaces/api/admin/authentication"
+            | "/.dashboard/api/admin/authentication"
     ) && !path.starts_with("/.auth/central/assets/")
         && crate::auth::oidc::config::validated_url(&origin(request.headers())).is_err()
     {
@@ -1118,7 +1124,7 @@ async fn test_provider(
         id.clone(),
         Attempt {
             expires: now() + 600,
-            destination: format!("{}/.spaces/authentication", origin(&headers)),
+            destination: format!("{}/.dashboard/authentication", origin(&headers)),
             scope: "/".into(),
             binding: random_secret(),
             central_binding: None,

@@ -38,7 +38,7 @@ While [[Self Hosted]] is the intended path, if this is too much hassle for you. 
 PikaPods contribute a part of their revenue back to the projects they host, so it’s a source of [[Funding]] for SilverBullet itself.
 
 # First run
-When you point the server at an **empty** folder — or one that doesn’t exist yet — it opens a browser-based setup wizard that creates an admin account and your first space — see [[Space Manager]].
+When you point the server at an **empty** folder — or one that doesn’t exist yet — it opens a browser-based setup wizard that creates an admin account and your first space — see [[Dashboard]].
 
 # Notes on file systems
 ## Case insensitive file systems (Mac and Windows)

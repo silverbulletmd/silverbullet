@@ -861,9 +861,9 @@ async fn prefixed_host_runtime_forwards_only_its_path_and_credential() {
         json!("# Fictional runtime notes")
     );
     for path in [
-        "/.spaces",
-        "/.spaces/api/server-config",
-        "/work/.spaces/api/server-config",
+        "/.dashboard",
+        "/.dashboard/api/server-config",
+        "/work/.dashboard/api/server-config",
     ] {
         assert_eq!(
             request_at(&main, host, "GET", path, cookie(&child), "")
@@ -950,7 +950,7 @@ async fn host_bound_runtime_uses_a_private_local_origin() {
         Some(f.bearer("keeper")),
         Some(("cookie", format!("{}=invalid", headless_cookie_name(&id)))),
     ] {
-        for path in ["/", "/.fs/Test.md", "/.spaces/api/server-config"] {
+        for path in ["/", "/.fs/Test.md", "/.dashboard/api/server-config"] {
             assert_eq!(
                 request_at(&main, host, "GET", path, credential.clone(), "")
                     .await
@@ -1019,7 +1019,7 @@ async fn host_bound_runtime_uses_a_private_local_origin() {
             &main,
             host,
             "GET",
-            "/.spaces/api/server-config",
+            "/.dashboard/api/server-config",
             Some(("cookie", child.cookie.clone())),
             ""
         )

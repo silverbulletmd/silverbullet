@@ -300,7 +300,7 @@ export class MainUI {
       status: "unavailable",
     });
     useEffect(() => {
-      // `/.spaces/*` only exists on account-managed servers; asking for it
+      // `/.dashboard/*` only exists on account-managed servers; asking for it
       // anywhere else is a guaranteed 404 on every boot.
       if (!client.bootConfig.accountManaged) return;
       void loadProfile().then(setProfile);

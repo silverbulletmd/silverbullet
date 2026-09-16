@@ -7,7 +7,7 @@ import {
   startCoreOidcFixture,
 } from "./core-fixture.ts";
 
-test("SSO defers encryption in the manager, then chooses and safely unlocks the space", async ({
+test("SSO defers encryption in the Dashboard, then chooses and safely unlocks the space", async ({
   browserName: _browserName,
 }, testInfo) => {
   test.setTimeout(180_000);
@@ -36,7 +36,7 @@ test("SSO defers encryption in the manager, then chooses and safely unlocks the 
     });
     const { context, page } = await newPocketUserPage(fixture);
     try {
-      await page.goto(`${fixture.oidc.centralOrigin}/.spaces/login`);
+      await page.goto(`${fixture.oidc.centralOrigin}/.dashboard/login`);
       await expect(page).toHaveURL(/login\.sb\.test.*\/central\/login/);
       await page
         .getByRole("checkbox", { name: /encryption|Encrypt local/ })

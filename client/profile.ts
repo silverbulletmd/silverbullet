@@ -1,4 +1,4 @@
-import { managerSessionRoutes } from "./manager_navigation.ts";
+import { dashboardSessionRoutes } from "./dashboard_navigation.ts";
 export type ProfileState =
   | {
       status: "signed-in";
@@ -13,7 +13,7 @@ export async function loadProfile(
   fetchFn: typeof fetch = fetch,
 ): Promise<ProfileState> {
   try {
-    const { profile } = await managerSessionRoutes(fetchFn);
+    const { profile } = await dashboardSessionRoutes(fetchFn);
     const response = await fetchFn(profile);
     if (response.status === 401) {
       return { status: "signed-out" };

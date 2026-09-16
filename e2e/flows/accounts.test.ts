@@ -41,7 +41,9 @@ test("a member signs in, edits their space and signs out", async ({
   await page.getByRole("button", { name: "Log out", exact: true }).click();
   await expect
     .poll(async () =>
-      (await page.request.get(`${sbServer.url}/.spaces/api/session`)).status(),
+      (
+        await page.request.get(`${sbServer.url}/.dashboard/api/session`)
+      ).status(),
     )
     .toBe(401);
   await expect(

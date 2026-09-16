@@ -40,7 +40,7 @@ export async function coreApi<T>(
 ): Promise<T> {
   return page.evaluate(
     async ({ method, path, body }) => {
-      const response = await fetch(`/.spaces/api/${path}`, {
+      const response = await fetch(`/.dashboard/api/${path}`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -66,7 +66,7 @@ async function configurePocketId(
     providerPage,
     `${oidc.centralOrigin}/.auth/central/oidc/callback`,
   );
-  await adminPage.goto(`${oidc.centralOrigin}/.spaces/login`);
+  await adminPage.goto(`${oidc.centralOrigin}/.dashboard/login`);
   await adminPage.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
   await adminPage.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
   await adminPage.getByRole("button", { name: "Log in", exact: true }).click();
@@ -200,7 +200,7 @@ export async function startCoreOidcFixture(
     process.stdout?.on("data", (data) => {
       output += data.toString();
     });
-    await waitForServer(`http://127.0.0.1:${port}/.spaces`);
+    await waitForServer(`http://127.0.0.1:${port}/.dashboard`);
     browser = await chromium.launch({
       args: oidc.browserArgs,
       channel: env.SB_TEST_CHROME_CHANNEL,

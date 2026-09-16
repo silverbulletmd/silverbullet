@@ -199,7 +199,9 @@ export const test = base.extend<SBFixtures>({
       });
       const url = `http://${process.env.SB_E2E_HOST ?? "127.0.0.1"}:${port}`;
       try {
-        await waitForServer(`${url}/${provisionAdmin ? ".spaces" : ".ping"}`);
+        await waitForServer(
+          `${url}/${provisionAdmin ? ".dashboard" : ".ping"}`,
+        );
       } catch (error) {
         throw new Error(
           `Server failed to start. Output:\n${serverOutput}\n${error}`,

@@ -1,4 +1,7 @@
-import { managerUrl, managerSessionRoutes } from "../manager_navigation.ts";
+import {
+  dashboardUrl,
+  dashboardSessionRoutes,
+} from "../dashboard_navigation.ts";
 import type { FunctionalComponent } from "preact";
 import * as featherIcons from "preact-feather";
 import type { Client } from "../client.ts";
@@ -70,7 +73,7 @@ export function profileMenuHeader(profile: ProfileState): {
 
 export type ProfileMenuActions = {
   editProfile: () => void;
-  allSpaces: () => void;
+  dashboard: () => void;
   logIn: () => void;
   logOut: () => void;
 };
@@ -84,7 +87,7 @@ export function profileMenuItems(
   }
   return [
     { name: "Edit profile", run: actions.editProfile },
-    { name: "All spaces", run: actions.allSpaces },
+    { name: "Dashboard", run: actions.dashboard },
     { name: "Log out", run: actions.logOut },
   ];
 }
@@ -97,12 +100,12 @@ export function editorProfileMenuItems(
     logIn: () => {
       location.href = `.auth?from=${encodeURIComponent(location.pathname)}`;
     },
-    editProfile: async () => client.openUrl(await managerUrl("/profile")),
-    allSpaces: async () => {
-      location.href = await managerUrl();
+    editProfile: async () => client.openUrl(await dashboardUrl("/profile")),
+    dashboard: async () => {
+      location.href = await dashboardUrl();
     },
     logOut: async () => {
-      const { logout } = await managerSessionRoutes();
+      const { logout } = await dashboardSessionRoutes();
       const force = async () => {
         if (!window.confirm(forceLogoutWarning)) return;
         try {

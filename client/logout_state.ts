@@ -62,7 +62,7 @@ export async function waitForLogout(): Promise<boolean> {
       location.replace(
         state.destination === "/.auth/central/signed-out"
           ? state.destination
-          : "/.spaces/login?signedOut=true",
+          : "/.dashboard/login?signedOut=true",
       );
       return false;
     }

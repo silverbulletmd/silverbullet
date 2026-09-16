@@ -52,13 +52,13 @@ test("a read-only member cannot write or enter another space or administration",
   expect(
     (await page.request.get(`${sbServer.url}/private/.fs/Note.md`)).status(),
   ).toBe(403);
-  await page.goto(`${sbServer.url}/.spaces/admin`);
+  await page.goto(`${sbServer.url}/.dashboard/admin`);
   await expect(
     page.getByRole("heading", { name: "Not found", exact: true }),
   ).toBeVisible();
   expect(
     (
-      await page.request.get(`${sbServer.url}/.spaces/api/admin/users`)
+      await page.request.get(`${sbServer.url}/.dashboard/api/admin/users`)
     ).status(),
   ).toBe(403);
 });

@@ -1,4 +1,4 @@
-//! The main listener's request dispatcher: `/.spaces` is reserved, then Host
+//! The main listener's request dispatcher: `/.dashboard` is reserved, then Host
 //! header, then longest prefix. Matched requests are forwarded to the space's
 //! own (unchanged) Core router with the prefix stripped.
 
@@ -18,20 +18,20 @@ use crate::multi::manager::MultiManager;
 #[derive(Clone)]
 struct MainState {
     manager: Arc<MultiManager>,
-    /// Whether `/.spaces` is mounted. The fallback only needs to know *if* the
+    /// Whether `/.dashboard` is mounted. The fallback only needs to know *if* the
     /// surface exists (to redirect `/` there), never to invoke it.
-    spaces_mounted: bool,
+    dashboard_mounted: bool,
 }
 
 pub fn build_main_router(
     manager: Arc<MultiManager>,
-    spaces_router: Option<Router>,
+    dashboard_router: Option<Router>,
     version: String,
 ) -> Router {
     // Serve before host/prefix resolution so hostname probes and Docker
     // health checks work regardless of space bindings. Only a per-boot UUID
     // is exposed across origins.
-    let spaces_mounted = spaces_router.is_some();
+    let dashboard_mounted = dashboard_router.is_some();
     let instance_id = uuid::Uuid::new_v4().to_string();
     let body = serde_json::json!({ "instance": instance_id, "version": version }).to_string();
     let instance_handler = move || {
@@ -47,14 +47,14 @@ pub fn build_main_router(
         }
     };
     let mut router = Router::new().route("/.instance", axum::routing::get(instance_handler));
-    if let Some(spaces) = spaces_router {
-        router = router.nest_service(crate::multi::space_index::SPACES_PREFIX, spaces);
+    if let Some(dashboard) = dashboard_router {
+        router = router.nest_service(crate::multi::dashboard::DASHBOARD_PREFIX, dashboard);
     }
     router
         .fallback(dispatch)
         .layer(middleware::from_fn_with_state(
             manager.clone(),
-            manager_origin,
+            dashboard_origin,
         ))
         .layer(middleware::from_fn_with_state(
             manager.clone(),
@@ -62,7 +62,7 @@ pub fn build_main_router(
         ))
         .with_state(MainState {
             manager,
-            spaces_mounted,
+            dashboard_mounted,
         })
 }
 
@@ -99,13 +99,13 @@ async fn runtime_origin(
             .runtime_authorizer
             .as_ref()
             .is_some_and(|auth| auth.is_authorized(&context))
-        || context.path == "/.spaces"
-        || context.path.starts_with("/.spaces/")
+        || context.path == "/.dashboard"
+        || context.path.starts_with("/.dashboard/")
     {
         return StatusCode::FORBIDDEN.into_response();
     }
     if let Some(path) = context.path.strip_prefix(&instance.prefix) {
-        if path == "/.spaces" || path.starts_with("/.spaces/") {
+        if path == "/.dashboard" || path.starts_with("/.dashboard/") {
             return StatusCode::FORBIDDEN.into_response();
         }
     }
@@ -153,8 +153,8 @@ fn same_origin_request(primary: Option<&str>, headers: &HeaderMap) -> bool {
     true
 }
 
-fn manager_ui_path(path: &str) -> bool {
-    let rest = path.strip_prefix("/.spaces").unwrap_or("");
+fn dashboard_ui_path(path: &str) -> bool {
+    let rest = path.strip_prefix("/.dashboard").unwrap_or("");
     if rest.is_empty() || rest == "/" || rest == "/index.html" {
         return true;
     }
@@ -176,22 +176,22 @@ fn manager_ui_path(path: &str) -> bool {
         || (parts.len() == 2 && parts[1] == "git" && uuid::Uuid::parse_str(parts[0]).is_ok())
 }
 
-async fn manager_origin(
+async fn dashboard_origin(
     State(manager): State<Arc<MultiManager>>,
     req: Request,
     next: Next,
 ) -> Response {
     let path = req.uri().path();
-    if path != "/.spaces" && !path.starts_with("/.spaces/") {
+    if path != "/.dashboard" && !path.starts_with("/.dashboard/") {
         return next.run(req).await;
     }
     let primary = manager.primary_url();
-    let api = path.starts_with("/.spaces/api/") || path == "/.spaces/api";
+    let api = path.starts_with("/.dashboard/api/") || path == "/.dashboard/api";
     let mut response = if primary.as_deref().is_some_and(|origin| {
         !primary_host_matches(origin, req.headers())
             || origin.starts_with("https://") != crate::auth::is_secure_request(req.headers())
     }) {
-        if req.method() == Method::GET && manager_ui_path(path) {
+        if req.method() == Method::GET && dashboard_ui_path(path) {
             Redirect::temporary(&format!("{}{path}", primary.as_deref().unwrap())).into_response()
         } else {
             (StatusCode::FORBIDDEN, "Use the primary server origin").into_response()
@@ -200,7 +200,11 @@ async fn manager_origin(
         && (!same_origin_request(primary.as_deref(), req.headers())
             || primary.is_some() && req.headers().contains_key(header::AUTHORIZATION))
     {
-        (StatusCode::FORBIDDEN, "Cross-origin manager request denied").into_response()
+        (
+            StatusCode::FORBIDDEN,
+            "Cross-origin dashboard request denied",
+        )
+            .into_response()
     } else {
         next.run(req).await
     };
@@ -226,10 +230,13 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
     let table = state.manager.registry().current();
     let host = crate::auth::request_host(req.headers());
     let path = req.uri().path().to_string();
+    if path.starts_with("/.spaces") {
+        return Redirect::temporary(crate::multi::dashboard::DASHBOARD_PREFIX).into_response();
+    }
     let Some((inst, prefix)) = table.resolve_main(&host, &path) else {
         if path == "/" {
-            if state.spaces_mounted && !table.claims_host(&host) {
-                return Redirect::temporary(crate::multi::space_index::SPACES_PREFIX)
+            if state.dashboard_mounted && !table.claims_host(&host) {
+                return Redirect::temporary(crate::multi::dashboard::DASHBOARD_PREFIX)
                     .into_response();
             }
             return (StatusCode::NOT_FOUND, "No space here").into_response();
@@ -237,7 +244,7 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
         return (
             StatusCode::NOT_FOUND,
             [(axum::http::header::CONTENT_TYPE, "text/html")],
-            "<html><body><h1>No space here</h1><p>Manage spaces in the <a href=\"/.spaces\">spaces UI</a>.</p></body></html>",
+            "<html><body><h1>No space here</h1><p>Manage spaces in the <a href=\"/.dashboard\">Dashboard</a>.</p></body></html>",
         )
             .into_response();
     };
@@ -357,8 +364,8 @@ mod tests {
         }
     }
 
-    /// Manager with a /work space and a host-bound space, plus a dummy spaces
-    /// router answering 299 (a sentinel status).
+    /// Multi-space server with a /work space, a host-bound space, and a dummy
+    /// Dashboard router answering 299 (a sentinel status).
     fn setup(dir: &tempfile::TempDir) -> axum::Router {
         let m = MultiManager::boot(
             dir.path().to_path_buf(),
@@ -387,9 +394,9 @@ mod tests {
             true,
         )
         .unwrap();
-        let spaces = axum::Router::new()
-            .fallback(|| async { (StatusCode::from_u16(299).unwrap(), "spaces") });
-        build_main_router(m, Some(spaces), "test".to_string())
+        let dashboard = axum::Router::new()
+            .fallback(|| async { (StatusCode::from_u16(299).unwrap(), "dashboard") });
+        build_main_router(m, Some(dashboard), "test".to_string())
     }
 
     async fn get(router: &axum::Router, host: &str, uri: &str) -> axum::response::Response {
@@ -404,6 +411,29 @@ mod tests {
             )
             .await
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn legacy_spaces_urls_redirect_to_dashboard_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let router = setup(&dir);
+        for uri in ["/.spaces", "/.spaces/users?tab=accounts", "/.spaces-old"] {
+            let response = get(&router, "localhost", uri).await;
+            assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT, "{uri}");
+            assert_eq!(response.headers()[header::LOCATION], "/.dashboard", "{uri}");
+        }
+    }
+
+    #[tokio::test]
+    async fn dashboard_urls_reach_the_dashboard_router() {
+        let dir = tempfile::tempdir().unwrap();
+        let router = setup(&dir);
+        assert_eq!(
+            get(&router, "localhost", "/.dashboard/users")
+                .await
+                .status(),
+            StatusCode::from_u16(299).unwrap()
+        );
     }
 
     #[tokio::test]
@@ -488,7 +518,7 @@ mod tests {
             StatusCode::OK
         );
         assert_eq!(
-            get(&r, "notes.example.test", "/.spaces/api/test")
+            get(&r, "notes.example.test", "/.dashboard/api/test")
                 .await
                 .status(),
             StatusCode::IM_A_TEAPOT
@@ -589,27 +619,27 @@ mod tests {
             )
             .unwrap();
         manager
-            .set_primary_url("https://manager.example.test")
+            .set_primary_url("https://dashboard.example.test")
             .unwrap();
         let router = build_main_router(
             manager,
-            Some(Router::new().fallback(|| async { "manager" })),
+            Some(Router::new().fallback(|| async { "dashboard" })),
             "test".into(),
         );
         assert_eq!(
-            get(&router, "manager.example.test", "/notes/.config")
+            get(&router, "dashboard.example.test", "/notes/.config")
                 .await
                 .status(),
             StatusCode::OK
         );
         assert_eq!(
-            get(&router, "manager.example.test", "/.spaces")
+            get(&router, "dashboard.example.test", "/.dashboard")
                 .await
                 .status(),
             StatusCode::TEMPORARY_REDIRECT
         );
         assert_eq!(
-            get(&router, "notes.example.test", "/.spaces/api/session")
+            get(&router, "notes.example.test", "/.dashboard/api/session")
                 .await
                 .status(),
             StatusCode::FORBIDDEN
@@ -617,11 +647,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn primary_origin_isolates_manager_and_rejects_sibling_requests() {
+    async fn primary_origin_isolates_dashboard_and_rejects_sibling_requests() {
         let dir = tempfile::tempdir().unwrap();
         let m =
             MultiManager::boot(dir.path().into(), deps(dir.path()), Default::default()).unwrap();
-        m.set_primary_url("https://manager.example.test").unwrap();
+        m.set_primary_url("https://dashboard.example.test").unwrap();
         m.create(
             payload(
                 "Notes",
@@ -633,10 +663,10 @@ mod tests {
             false,
         )
         .unwrap();
-        let spaces = Router::new().fallback(|| async { "manager secret" });
-        let r = build_main_router(m, Some(spaces), "test".into());
+        let dashboard = Router::new().fallback(|| async { "dashboard secret" });
+        let r = build_main_router(m, Some(dashboard), "test".into());
         assert_eq!(
-            get(&r, "notes.example.test", "/.spaces/api/session")
+            get(&r, "notes.example.test", "/.dashboard/api/session")
                 .await
                 .status(),
             StatusCode::FORBIDDEN
@@ -644,19 +674,19 @@ mod tests {
         let response = get(
             &r,
             "notes.example.test",
-            "/.spaces/users?redirect=//evil.test",
+            "/.dashboard/users?redirect=//evil.test",
         )
         .await;
         assert_eq!(
             response.headers()["location"],
-            "https://manager.example.test/.spaces/users"
+            "https://dashboard.example.test/.dashboard/users"
         );
         assert_eq!(
-            get(&r, "manager.example.test", "/.config").await.status(),
+            get(&r, "dashboard.example.test", "/.config").await.status(),
             StatusCode::NOT_FOUND
         );
         assert_eq!(
-            get(&r, "unknown.example.test", "/.spaces/api/session")
+            get(&r, "unknown.example.test", "/.dashboard/api/session")
                 .await
                 .status(),
             StatusCode::FORBIDDEN
@@ -670,8 +700,8 @@ mod tests {
                 .oneshot(
                     Request::builder()
                         .method(method)
-                        .uri("/.spaces/api/session")
-                        .header("host", "manager.example.test")
+                        .uri("/.dashboard/api/session")
+                        .header("host", "dashboard.example.test")
                         .header("x-forwarded-proto", "https")
                         .header("sec-fetch-site", site)
                         .header("origin", origin)
@@ -690,11 +720,11 @@ mod tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri("/.spaces/api/session")
-                    .header("host", "manager.example.test")
+                    .uri("/.dashboard/api/session")
+                    .header("host", "dashboard.example.test")
                     .header("x-forwarded-proto", "https")
                     .header("sec-fetch-site", "same-origin")
-                    .header("origin", "https://manager.example.test")
+                    .header("origin", "https://dashboard.example.test")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -844,11 +874,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn spaces_prefix_always_reserved() {
+    async fn dashboard_prefix_always_reserved() {
         let dir = tempfile::tempdir().unwrap();
         let r = setup(&dir);
         assert_eq!(
-            get(&r, "localhost", "/.spaces/anything")
+            get(&r, "localhost", "/.dashboard/anything")
                 .await
                 .status()
                 .as_u16(),
@@ -857,7 +887,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn bare_spaces_prefix_resolves_into_the_nested_router() {
+    async fn bare_dashboard_prefix_resolves_into_the_nested_router() {
         let dir = tempfile::tempdir().unwrap();
         let m = MultiManager::boot(
             dir.path().to_path_buf(),
@@ -865,20 +895,20 @@ mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        let spaces = axum::Router::new()
-            .route("/", axum::routing::get(|| async { "SPACES-ROOT" }))
-            .fallback(|| async { "spaces-fallback" });
-        let r = build_main_router(m, Some(spaces), "test".to_string());
+        let dashboard = axum::Router::new()
+            .route("/", axum::routing::get(|| async { "DASHBOARD-ROOT" }))
+            .fallback(|| async { "dashboard-fallback" });
+        let r = build_main_router(m, Some(dashboard), "test".to_string());
 
-        let resp = get(&r, "localhost", "/.spaces").await;
+        let resp = get(&r, "localhost", "/.dashboard").await;
         assert_eq!(resp.status(), StatusCode::OK);
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .unwrap();
         assert_eq!(
             &body[..],
-            b"SPACES-ROOT",
-            "bare /.spaces must reach the nested router's root handler"
+            b"DASHBOARD-ROOT",
+            "bare /.dashboard must reach the nested router's root handler"
         );
     }
 
@@ -945,7 +975,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn root_redirects_to_spaces_when_unbound_and_unknown_paths_404() {
+    async fn root_redirects_to_dashboard_when_unbound_and_unknown_paths_404() {
         let dir = tempfile::tempdir().unwrap();
         let m = MultiManager::boot(
             dir.path().to_path_buf(),
@@ -963,17 +993,17 @@ mod tests {
             true,
         )
         .unwrap();
-        let spaces = axum::Router::new().fallback(|| async { "spaces" });
-        let r = build_main_router(m, Some(spaces), "test".to_string());
+        let dashboard = axum::Router::new().fallback(|| async { "dashboard" });
+        let r = build_main_router(m, Some(dashboard), "test".to_string());
         let resp = get(&r, "localhost", "/").await;
         assert_eq!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
-        assert_eq!(resp.headers()["location"], "/.spaces");
+        assert_eq!(resp.headers()["location"], "/.dashboard");
         let resp = get(&r, "localhost", "/nothing/here").await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
-    async fn claimed_prefixed_hostname_root_does_not_redirect_to_manager() {
+    async fn claimed_prefixed_hostname_root_does_not_redirect_to_dashboard() {
         let dir = tempfile::tempdir().unwrap();
         let m = MultiManager::boot(
             dir.path().to_path_buf(),
@@ -994,7 +1024,7 @@ mod tests {
         .unwrap();
         let r = build_main_router(
             m,
-            Some(Router::new().fallback(|| async { "spaces" })),
+            Some(Router::new().fallback(|| async { "dashboard" })),
             "test".into(),
         );
         let resp = get(&r, "team.example.test", "/").await;
@@ -1002,11 +1032,11 @@ mod tests {
         assert!(resp.headers().get("location").is_none());
     }
 
-    /// With no spaces surface mounted at all, `/` has nowhere to send the
+    /// With no Dashboard surface mounted at all, `/` has nowhere to send the
     /// browser — it must 404 rather than redirect into a route that isn't
     /// there.
     #[tokio::test]
-    async fn root_404s_when_no_spaces_router_is_mounted() {
+    async fn root_404s_when_no_dashboard_router_is_mounted() {
         let dir = tempfile::tempdir().unwrap();
         let m = MultiManager::boot(
             dir.path().to_path_buf(),

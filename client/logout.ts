@@ -1,6 +1,6 @@
 import { randomUUID } from "../plug-api/lib/crypto.ts";
 import { registerLogoutPresence } from "./logout_presence.ts";
-import type { LogoutRoute } from "./manager_navigation.ts";
+import type { LogoutRoute } from "./dashboard_navigation.ts";
 import {
   setLogoutState,
   rememberLogoutForTab,
@@ -9,7 +9,7 @@ import {
 } from "./logout_state.ts";
 import type { Client } from "./client.ts";
 
-export const signedOutUrl = "/.spaces/login?signedOut=true";
+export const signedOutUrl = "/.dashboard/login?signedOut=true";
 
 export type LogoutMessage = {
   type:
@@ -369,7 +369,7 @@ export async function logoutBrowserSession(
         );
       }
     }
-    const response = await fetch(route?.endpoint ?? "/.spaces/api/logout", {
+    const response = await fetch(route?.endpoint ?? "/.dashboard/api/logout", {
       ...(route ? { method: route.method } : {}),
       signal: AbortSignal.timeout(5000),
     });

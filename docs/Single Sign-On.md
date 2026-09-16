@@ -1,7 +1,7 @@
 SilverBullet (in multi-server mode) supports SSO via OpenID Connect (OIDC). Administrators provision accounts individually and assign them to spaces. Local username/password accounts remain available alongside SSO accounts.
 
 ## Connect a provider
-1. Sign in as a local administrator and open **Admin → Authentication** in the Space Manager.
+1. Sign in as a local administrator and open **Admin → Authentication** in the Dashboard.
 2. Choose Google Workspace or OpenID Connect.
 3. The central login origin comes from **Admin → Server** when a primary URL is configured.
 4. Copy the displayed callback URL into the provider's client configuration. The path is `/.auth/central/oidc/callback`; each space does not need a separate provider callback.

@@ -1,5 +1,5 @@
-//! Black-box tests for multi-space mode: login on the unified `/.spaces`
-//! surface, space CRUD over the admin API nested at `/.spaces/api/admin`,
+//! Black-box tests for multi-space mode: login on the unified `/.dashboard`
+//! surface, space CRUD over the admin API nested at `/.dashboard/api/admin`,
 //! shared sessions, per-space authorization, and the boot-detection error
 //! cases around a provisioned (`spaces.json`) root.
 //!
@@ -10,8 +10,8 @@
 //! driving its HTTP surface with `reqwest::blocking`. The runtime API is
 //! disabled (`SB_RUNTIME_API=0`) so no headless Chrome launches.
 //!
-//! Readiness is probed via `/.spaces/api/admin/spaces` returning 401 (server
-//! up, the spaces router mounted, gating active), keeping the assertions
+//! Readiness is probed via `/.dashboard/api/admin/spaces` returning 401 (server
+//! up, the Dashboard router mounted, gating active), keeping the assertions
 //! independent of browser-side rendering.
 
 use std::process::{Child, Command, Stdio};
@@ -136,7 +136,7 @@ fn start_multi_with_service_worker(
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         if let Ok(resp) = client
-            .get(format!("{base}/.spaces/api/admin/spaces"))
+            .get(format!("{base}/.dashboard/api/admin/spaces"))
             .send()
         {
             if resp.status().as_u16() == 401 {
@@ -159,7 +159,7 @@ fn admin_client(base: &str) -> reqwest::blocking::Client {
         .build()
         .unwrap();
     let resp = client
-        .post(format!("{base}/.spaces/api/login"))
+        .post(format!("{base}/.dashboard/api/login"))
         .json(&serde_json::json!({ "username": ADMIN_USER, "password": ADMIN_PASSWORD }))
         .send()
         .unwrap();
@@ -169,7 +169,7 @@ fn admin_client(base: &str) -> reqwest::blocking::Client {
 }
 
 #[test]
-fn boots_empty_root_with_authenticated_space_index() {
+fn boots_empty_root_with_authenticated_dashboard() {
     let (_srv, _root, base) = start_multi(&[]);
 
     // With no space bound at `/`, the root points the browser at the one
@@ -181,16 +181,16 @@ fn boots_empty_root_with_authenticated_space_index() {
         .unwrap();
     let resp = no_redirect.get(format!("{base}/")).send().unwrap();
     assert_eq!(resp.status().as_u16(), 307);
-    assert_eq!(resp.headers()["location"], "/.spaces");
+    assert_eq!(resp.headers()["location"], "/.dashboard");
 
     let client = reqwest::blocking::Client::new();
     let resp = client
-        .get(format!("{base}/.spaces/api/spaces"))
+        .get(format!("{base}/.dashboard/api/spaces"))
         .send()
         .unwrap();
     assert_eq!(resp.status().as_u16(), 401);
     let resp = client
-        .get(format!("{base}/.spaces/api/session"))
+        .get(format!("{base}/.dashboard/api/session"))
         .send()
         .unwrap();
     assert_eq!(resp.status().as_u16(), 401);
@@ -200,7 +200,7 @@ fn boots_empty_root_with_authenticated_space_index() {
         .build()
         .unwrap();
     let resp = client
-        .post(format!("{base}/.spaces/api/login"))
+        .post(format!("{base}/.dashboard/api/login"))
         .json(&serde_json::json!({ "username": ADMIN_USER, "password": ADMIN_PASSWORD }))
         .send()
         .unwrap();
@@ -209,7 +209,7 @@ fn boots_empty_root_with_authenticated_space_index() {
     // One login, both halves of the surface: the session reports admin-ness
     // and the admin-only API accepts the very same cookie.
     let session = client
-        .get(format!("{base}/.spaces/api/session"))
+        .get(format!("{base}/.dashboard/api/session"))
         .send()
         .unwrap()
         .json::<serde_json::Value>()
@@ -219,7 +219,7 @@ fn boots_empty_root_with_authenticated_space_index() {
 
     // The space list is the visible-space array itself, with no envelope.
     let body = client
-        .get(format!("{base}/.spaces/api/spaces"))
+        .get(format!("{base}/.dashboard/api/spaces"))
         .send()
         .unwrap()
         .json::<serde_json::Value>()
@@ -227,7 +227,7 @@ fn boots_empty_root_with_authenticated_space_index() {
     assert_eq!(body, serde_json::json!([]));
 
     assert!(client
-        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .get(format!("{base}/.dashboard/api/admin/spaces"))
         .send()
         .unwrap()
         .status()
@@ -343,7 +343,7 @@ fn fresh_folder_serves_setup_and_hot_swaps_into_multi() {
     // The admin API isn't mounted yet: it falls through to the setup redirect,
     // not the gated 401 the live multi stack returns.
     let resp = no_redirect
-        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .get(format!("{base}/.dashboard/api/admin/spaces"))
         .send()
         .unwrap();
     assert_eq!(resp.status().as_u16(), 307, "admin API absent pre-setup");
@@ -367,7 +367,7 @@ fn fresh_folder_serves_setup_and_hot_swaps_into_multi() {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         if let Ok(resp) = no_redirect
-            .get(format!("{base}/.spaces/api/admin/spaces"))
+            .get(format!("{base}/.dashboard/api/admin/spaces"))
             .send()
         {
             if resp.status().as_u16() == 401 {
@@ -388,7 +388,7 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
     let admin = admin_client(&base);
 
     let resp = admin
-        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .post(format!("{base}/.dashboard/api/admin/spaces"))
         .json(&serde_json::json!({ "name": "Open", "binding": { "prefix": "/open" }, "public": true }))
         .send()
         .unwrap();
@@ -397,7 +397,7 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
     // Private (default) space at /locked — no `public`, no `members`: only
     // the admin account (via users.json) can authenticate against it.
     admin
-        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .post(format!("{base}/.dashboard/api/admin/spaces"))
         .json(&serde_json::json!({ "name": "Locked", "binding": { "prefix": "/locked" } }))
         .send()
         .unwrap();
@@ -432,7 +432,7 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
             .as_u16(),
         401
     );
-    // The session established under /.spaces is server-wide, so the same
+    // The session established under /.dashboard is server-wide, so the same
     // client reaches every private space the admin is authorized for.
     assert!(admin
         .get(format!("{base}/locked/.fs"))
@@ -460,7 +460,7 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
         .status()
         .is_success());
     assert!(space_admin
-        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .get(format!("{base}/.dashboard/api/admin/spaces"))
         .send()
         .unwrap()
         .status()
@@ -479,7 +479,7 @@ fn custom_hostname_prefixes_route_without_cross_host_fallback() {
     let admin = admin_client(&base);
     let create = |name: &str, binding: serde_json::Value| {
         admin
-            .post(format!("{base}/.spaces/api/admin/spaces"))
+            .post(format!("{base}/.dashboard/api/admin/spaces"))
             .json(&serde_json::json!({
                 "name": name,
                 "binding": binding,
@@ -623,7 +623,7 @@ fn hostname_scope_rejects_duplicate_nested_and_root_prefix_conflicts() {
     let admin = admin_client(&base);
     let create = |name: &str, binding: serde_json::Value| {
         admin
-            .post(format!("{base}/.spaces/api/admin/spaces"))
+            .post(format!("{base}/.dashboard/api/admin/spaces"))
             .json(&serde_json::json!({ "name": name, "binding": binding }))
             .send()
             .unwrap()
@@ -690,7 +690,7 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         if reqwest::blocking::Client::new()
-            .get(format!("{base}/.spaces/api/admin/spaces"))
+            .get(format!("{base}/.dashboard/api/admin/spaces"))
             .send()
             .is_ok_and(|response| response.status().as_u16() == 401)
         {
@@ -702,7 +702,7 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
     let _server = server;
     let admin = admin_client(&base);
     let spaces = admin
-        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .get(format!("{base}/.dashboard/api/admin/spaces"))
         .send()
         .unwrap()
         .json::<serde_json::Value>()
@@ -717,7 +717,7 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
     }
 
     let unrelated = admin
-        .patch(format!("{base}/.spaces/api/admin/spaces/work"))
+        .patch(format!("{base}/.dashboard/api/admin/spaces/work"))
         .json(&serde_json::json!({ "description": "Updated while resolving binding" }))
         .send()
         .unwrap();
@@ -727,7 +727,7 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
         unrelated.text().unwrap()
     );
     let spaces_after_patch = admin
-        .get(format!("{base}/.spaces/api/admin/spaces"))
+        .get(format!("{base}/.dashboard/api/admin/spaces"))
         .send()
         .unwrap()
         .json::<serde_json::Value>()
@@ -746,7 +746,7 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
     }
 
     let rejected = admin
-        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .post(format!("{base}/.dashboard/api/admin/spaces"))
         .json(&serde_json::json!({
             "name": "Wiki",
             "binding": { "host": "team.localhost", "prefix": "/wiki" }
@@ -756,12 +756,12 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
     assert_eq!(rejected.status(), 400, "{}", rejected.text().unwrap());
 
     let removed = admin
-        .delete(format!("{base}/.spaces/api/admin/spaces/root"))
+        .delete(format!("{base}/.dashboard/api/admin/spaces/root"))
         .send()
         .unwrap();
     assert!(removed.status().is_success(), "{}", removed.text().unwrap());
     assert!(admin
-        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .post(format!("{base}/.dashboard/api/admin/spaces"))
         .json(&serde_json::json!({
             "name": "Wiki",
             "binding": { "host": "team.localhost", "prefix": "/wiki" }
@@ -778,7 +778,7 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
     let admin = admin_client(&base);
 
     let resp = admin
-        .post(format!("{base}/.spaces/api/admin/users"))
+        .post(format!("{base}/.dashboard/api/admin/users"))
         .json(&serde_json::json!({
             "username": "alice",
             "password": "alicepw1",
@@ -790,7 +790,7 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
 
     for prefix in ["/a", "/b"] {
         let resp = admin
-            .post(format!("{base}/.spaces/api/admin/spaces"))
+            .post(format!("{base}/.dashboard/api/admin/spaces"))
             .json(&serde_json::json!({
                 "name": prefix,
                 "binding": { "prefix": prefix },
@@ -837,7 +837,7 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
     // the signed-in user through an unresolvable login loop.
     assert_eq!(
         alice
-            .get(format!("{base}/.spaces/api/admin/spaces"))
+            .get(format!("{base}/.dashboard/api/admin/spaces"))
             .send()
             .unwrap()
             .status()
@@ -846,7 +846,7 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
     );
 
     let resp = admin
-        .post(format!("{base}/.spaces/api/admin/users/alice/password"))
+        .post(format!("{base}/.dashboard/api/admin/users/alice/password"))
         .json(&serde_json::json!({ "password": "newalicepw1" }))
         .send()
         .unwrap();
@@ -866,7 +866,7 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
 /// The session-policy environment variables are documented for both modes, and
 /// multi-space sessions are server-wide, so `SB_REMEMBER_ME_HOURS` must size
 /// the remember-me window on both account-managed login surfaces: the unified
-/// `/.spaces` JSON login and a space's own `/.auth` form post.
+/// `/.dashboard` JSON login and a space's own `/.auth` form post.
 #[test]
 fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
     let (_srv, _root, base) = start_multi(&[("SB_REMEMBER_ME_HOURS", "2")]);
@@ -876,7 +876,7 @@ fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
         .build()
         .unwrap();
     let login = admin
-        .post(format!("{base}/.spaces/api/login"))
+        .post(format!("{base}/.dashboard/api/login"))
         .json(&serde_json::json!({
             "username": ADMIN_USER,
             "password": ADMIN_PASSWORD,
@@ -887,12 +887,12 @@ fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
     assert!(login.status().is_success());
     assert!(
         max_ages(&login).iter().all(|age| age == "7200"),
-        "/.spaces session must last SB_REMEMBER_ME_HOURS=2, got {:?}",
+        "/.dashboard session must last SB_REMEMBER_ME_HOURS=2, got {:?}",
         max_ages(&login)
     );
 
     let resp = admin
-        .post(format!("{base}/.spaces/api/admin/spaces"))
+        .post(format!("{base}/.dashboard/api/admin/spaces"))
         .json(&serde_json::json!({
             "name": "Private",
             "binding": { "prefix": "/private" }
@@ -936,7 +936,7 @@ fn lockout_env_vars_apply_in_multi_space_mode() {
     let client = reqwest::blocking::Client::new();
     let attempt = |password: &str| -> String {
         client
-            .post(format!("{base}/.spaces/api/login"))
+            .post(format!("{base}/.dashboard/api/login"))
             .json(&serde_json::json!({ "username": ADMIN_USER, "password": password }))
             .send()
             .unwrap()

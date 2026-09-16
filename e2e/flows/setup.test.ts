@@ -13,7 +13,7 @@ test.use({ singleSpace: false });
 
 /**
  * Fill the wizard's admin step and advance. Field ids come from
- * `client/spaces_ui/components/Wizard.tsx`.
+ * `client/dashboard/components/Wizard.tsx`.
  */
 async function fillAdminStep(
   page: Page,
@@ -30,10 +30,10 @@ async function fillAdminStep(
 }
 
 /**
- * Poll `/.spaces` until the live router has swapped from the setup wizard
+ * Poll `/.dashboard` until the live router has swapped from the setup wizard
  * into the multi-space stack. Before the swap the wizard's fallback redirects
- * every non-`/.setup` path (307 → `/.setup/`); after it, the spaces shell
- * answers 200. `/.spaces` is a reserved prefix served ahead of space dispatch,
+ * every non-`/.setup` path (307 → `/.setup/`); after it, the Dashboard shell
+ * answers 200. `/.dashboard` is a reserved prefix served ahead of space dispatch,
  * so this discriminator holds even when a space is bound at the root (which
  * would otherwise shadow `/.setup/*` with its own SPA shell). `redirect:
  * "manual"` keeps the pre-swap 307 visible instead of following it to a 200.
@@ -45,7 +45,7 @@ async function waitForHotSwap(baseUrl: string): Promise<void> {
     .poll(
       async () => {
         try {
-          const r = await fetch(`${baseUrl}/.spaces`, {
+          const r = await fetch(`${baseUrl}/.dashboard`, {
             redirect: "manual",
           });
           return r.status;
@@ -58,7 +58,7 @@ async function waitForHotSwap(baseUrl: string): Promise<void> {
     .toBe(200);
 }
 
-/** Log in on the unified `/.spaces` UI (shares LoginForm with `.auth`). */
+/** Log in on the unified `/.dashboard` UI (shares LoginForm with `.auth`). */
 async function loginToAdmin(
   page: Page,
   username: string,
@@ -99,7 +99,7 @@ test("wizard provisions a hostname-prefix space with selected revisions mode", a
   await page.getByLabel("Revisions").selectOption("unmanaged");
   await page.getByRole("button", { name: "Finish setup" }).click();
   await waitForHotSwap(setupUrl);
-  await page.goto(`${setupUrl}/.spaces`);
+  await page.goto(`${setupUrl}/.dashboard`);
   await loginToAdmin(page, ADMIN_USER, ADMIN_PASSWORD);
   await expect(page.locator(".sb-space-list")).toContainText("Notes");
   await access(join(sbServer.spaceDir, "spaces", "notes", "index.md"));

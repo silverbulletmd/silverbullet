@@ -86,7 +86,7 @@ impl Credentials for SpaceUsersAuth {
 }
 
 /// Account credentials without an authorization check. Used by the unified
-/// `/.spaces` surface, where any valid account may log in before the page
+/// `/.dashboard` surface, where any valid account may log in before the page
 /// filters the space list — and, for administrators, the management screens —
 /// to that account's actual access.
 pub struct AnyUserAuth {

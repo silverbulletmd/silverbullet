@@ -1,6 +1,6 @@
 //! The admin-only REST API: space and account management. It carries no shell,
 //! assets or login of its own — it is nested under `/api/admin` on the unified
-//! `/.spaces` surface (see `space_index`), which owns the session. Sessions use
+//! `/.dashboard` surface (see `dashboard`), which owns the session. Sessions use
 //! the same host-wide account cookie as every prefix-bound space.
 
 use std::path::{Path, PathBuf};
@@ -40,7 +40,7 @@ pub struct AdminState {
 
 impl AdminState {
     /// Uses the same server-wide authenticator as every space. Sessions are
-    /// minted by the unified `/.spaces` surface; this state only *authorizes*,
+    /// minted by the unified `/.dashboard` surface; this state only *authorizes*,
     /// and both cookie sessions and bearer tokens are restricted to current
     /// administrators.
     pub fn new(
@@ -1176,8 +1176,8 @@ mod tests {
         (router, users, provider_id)
     }
 
-    /// The API no longer mints sessions — `/.spaces/api/login` does (see
-    /// `space_index`). `test_authenticator()` is deterministic, so forge the
+    /// The API no longer mints sessions — `/.dashboard/api/login` does (see
+    /// `dashboard`). `test_authenticator()` is deterministic, so forge the
     /// very cookie that surface would have set. Reading `credential_version`
     /// live keeps the forged session subject to revocation exactly as a real
     /// one is.
@@ -1477,7 +1477,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::FORBIDDEN);
     }
 
-    /// The 401/403 split the unified `/.spaces` client depends on: no session
+    /// The 401/403 split the unified `/.dashboard` client depends on: no session
     /// at all is 401 (go log in), a valid non-admin session is 403 (a dead
     /// end the client must render as an error, never as a redirect).
     #[tokio::test]
@@ -2642,7 +2642,7 @@ mod tests {
         );
         // A session minted after the reset is accepted again. (Whether the
         // *password* itself now works at login is the unified surface's
-        // concern — see `space_index`'s
+        // concern — see `dashboard`'s
         // `password_reset_through_the_admin_api_changes_the_login_result`.)
         let new_cookie = session_cookie(&users, "admin");
         assert_eq!(

@@ -3,9 +3,10 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 * Significant **visual refresh**:
   * Doubling down on the monospace fonts. This is a more “techy” tool and it seems fitting..
-  * More consistent UX across and control the increasingly large UI surface (mostly the [[Space Manager]] UI).
+  * More consistent UX across and control the increasingly large UI surface (mostly the [[Dashboard]] UI).
   * There are probably still issues, this will need some time
 * Significant **multi-space server upgrade and revamp**:
+  * The **Space Manager** is now the **Dashboard**, served at `/.dashboard`, old `/.spaces*` links redirect to the Dashboard.
   * Profile menu giving access to profile editing, list of all spaces, login, logout
   * Hostname and path-prefix bindings can now be composed, so one custom hostname can serve multiple non-overlapping spaces such as `/work` and `/wiki`, with shared setup, creation, and settings controls.
   * Read/Write/Runtime API permissions per user
@@ -41,8 +42,8 @@ An attempt at documenting the changes/new features introduced in each release.
   * Nested blockquotes now draw one accent bar per level, with real per-level indentation. Previously every level shared a single bar and the indent was an accident of the whitespace left behind by hidden quote markers.
   * A heading inside a blockquote or a list item no longer jumps sideways when you put the cursor in it: its `#` markers hang back into the margin the way a top-level heading's always have, instead of shoving the whole line right.
   * A quoted heading's accent bar now runs the full height of its line, instead of stopping short of the heading's breathing room at both ends and breaking the bar into dashes.
-* [[Space Manager|Multi-space]] mode: an **account menu** in the editor's top bar.
-* Fix: the first-run **setup wizard** and the [[Space Manager]] are usable on a phone.
+* [[Dashboard|Multi-space]] mode: an **account menu** in the editor's top bar.
+* Fix: the first-run **setup wizard** and the [[Dashboard]] are usable on a phone.
 * A batch of mobile (iOS) fixes:
   * Pickers no longer show keyboard shortcuts on touch devices, where they cannot be pressed and only crowd out the page names.
   * Filter boxes no longer autocapitalize or autocorrect: command and page names are identifiers, and the phone's corrections only fought the fuzzy match.
@@ -57,7 +58,7 @@ An attempt at documenting the changes/new features introduced in each release.
 * Fix: a `.gitignore` file in the space root was applied as a SilverBullet ignore list
 * Fix: the docker image ignored `PUID`/`PGID` and space folder ownership, running as `root` and creating root-owned files
 * Fix: the FreeBSD **server** binary is being built and released again
-* Fix: [[Space Manager|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Install/Configuration]] documents.
+* Fix: [[Dashboard|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Install/Configuration]] documents.
 * The [[Runtime API]] now uses a separate Chrome process and temporary profile for each user and space, isolating cookies, browser storage, and logs. Runtime requests carry the user’s identity; revoking access stops the affected browser. Chrome detection is reported at startup.
 * Fix: the Runtime API failed to start when authentication was enabled.
 * **[[CLI|CLI]] remote file operations:** `sb fs` lists, reads, creates, edits, and deletes space files without the Runtime API. Exact text replacements support batches and revision checks to detect concurrent changes.
@@ -68,7 +69,7 @@ An attempt at documenting the changes/new features introduced in each release.
   * On case-insensitive filesystems, writing a file whose folder differs only in casing from an existing one now re-cases that folder to match — so writing `notes/foo` when the disk holds `Notes/` renames the folder, changing the reported path of every page inside it.
 
 ## 2.10.0
-* [[Space Manager]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
+* [[Dashboard]]: multi-space hosting with multiple accounts is here. A fresh install pointed at an empty folder opens a browser-based first-run **setup wizard** that creates an admin account and your first space, then serves it in place with no restart. One server can host any number of [[Space|spaces]], each bound to a URL prefix or hostname.
 * [[Baked Sections]]: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`).
 * Space Lua: **code complete now shows documentation** (where available), all available via [[API/spacelua]] reflection APIs.

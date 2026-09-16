@@ -6,7 +6,7 @@ references:
 SilverBullet is partially configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Docker|docker-compose file]].
 
 > **note** Single-space vs. multi-space
-> The environment variables below configure a **single-space** server. A fresh install pointed at an empty folder instead runs the [[Space Manager|setup wizard]] and stores per-space settings in `spaces.json` — the variables marked _single-space only_ below don’t apply there. Setting any of them (or passing `--single`) selects single-space mode. See [[Space Manager#Boot modes]].
+> The environment variables below configure a **single-space** server. A fresh install pointed at an empty folder instead runs the [[Dashboard|setup wizard]] and stores per-space settings in `spaces.json` — the variables marked _single-space only_ below don’t apply there. Setting any of them (or passing `--single`) selects single-space mode. See [[Dashboard#Boot modes]].
 
 # General configuration
 
@@ -29,7 +29,7 @@ SilverBullet is partially configured via environment variables. This page gives 
 > The **credentials** here configure a **single-space** server. In multi-space mode, accounts live in `users.json` and access is per space, so setting `SB_USER` alongside a `spaces.json` is an error — see [[Authentication]]. The lockout and session-duration variables apply in **both** modes: in multi-space mode they are server-wide, matching the session, which spans every space.
 
 * `SB_USER` (single-space only): Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
-* `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Space Manager#API tokens|API tokens]].
+* `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Dashboard#API tokens|API tokens]].
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
 * `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days. Sessions where "Remember me" was left unchecked always last one week.
@@ -38,7 +38,7 @@ SilverBullet is partially configured via environment variables. This page gives 
 * `SB_READ_ONLY`: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
 # Spaces and accounts
-Hosting more than one space is is configured through `spaces.json`, `users.json`, and the admin UI rather than environment variables — see [[Space Manager]].
+Hosting more than one space is is configured through `spaces.json`, `users.json`, and the admin UI rather than environment variables — see [[Dashboard]].
 
 To force the classic single-space server on an empty folder, pass `--single` (or set any of the single-space `SB_*` variables above).
 
@@ -51,11 +51,11 @@ To force the classic single-space server on an empty folder, pass `--single` (or
 
 # Security
 > **note** Note
-> These variables configure authentication for a **single-space** server. In [[Space Manager|multi-space]] mode, these options are enabled at a per-space level from the UI
+> These variables configure authentication for a **single-space** server. In [[Dashboard|multi-space]] mode, these options are enabled at a per-space level from the UI
 
 See [[Security]] for the trust model behind these settings, and [[Security Profiles]] for which combination fits your deployment.
 
-* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]]. Unlike the other variables in this section, this one still applies in [[Space Manager|multi-space]] mode, where it acts as a server-wide kill switch: setting it to `off` disables shell commands for **every** space regardless of that space's own setting. It can only ever disable — it will not enable the shell for a space that has it turned off.
+* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]]. Unlike the other variables in this section, this one still applies in [[Dashboard|multi-space]] mode, where it acts as a server-wide kill switch: setting it to `off` disables shell commands for **every** space regardless of that space's own setting. It can only ever disable — it will not enable the shell for a space that has it turned off.
 * `SB_SHELL_WHITELIST`: Allow only a specific list of shell commands (just the first command name, not arguments). When not set, allows all shell commands. Example: `SB_SHELL_WHITELIST="git pandoc"`
 
 # Docker

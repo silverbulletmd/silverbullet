@@ -173,7 +173,10 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
     let probe = reqwest::blocking::Client::new();
     let deadline = Instant::now() + Duration::from_secs(30);
     loop {
-        if let Ok(r) = probe.get(format!("{base}/.spaces/api/admin/spaces")).send() {
+        if let Ok(r) = probe
+            .get(format!("{base}/.dashboard/api/admin/spaces"))
+            .send()
+        {
             if r.status().as_u16() == 401 {
                 break;
             }
@@ -187,7 +190,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         .build()
         .unwrap();
     let r = admin
-        .post(format!("{base}/.spaces/api/login"))
+        .post(format!("{base}/.dashboard/api/login"))
         .json(&serde_json::json!({ "username": ADMIN_USER, "password": ADMIN_PASSWORD }))
         .send()
         .unwrap();
@@ -198,7 +201,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         ("Notes", "/notes", "spaceNotes"),
     ] {
         let r = admin
-            .post(format!("{base}/.spaces/api/admin/spaces"))
+            .post(format!("{base}/.dashboard/api/admin/spaces"))
             .json(&serde_json::json!({
                 "name": name,
                 "folder": folder,
@@ -229,7 +232,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
 
     let r = admin
         .post(format!(
-            "{base}/.spaces/api/admin/users/{ADMIN_USER}/tokens"
+            "{base}/.dashboard/api/admin/users/{ADMIN_USER}/tokens"
         ))
         .json(&serde_json::json!({ "name": "e2e" }))
         .send()

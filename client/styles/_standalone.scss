@@ -1,5 +1,5 @@
 // Page chrome for the standalone (non-editor) pages: the login page, the setup
-// wizard and the Space Manager. Everything here is scoped under
+// wizard and the Dashboard. Everything here is scoped under
 // `body.sb-standalone` so this partial can share one stylesheet with the plug
 // panels, which are the same components without the page furniture.
 @use "tokens";
@@ -94,11 +94,11 @@ body.sb-standalone {
     font-size: 0.9em;
   }
 
-  .sb-spaces-error {
+  .sb-dashboard-error {
     color: var(--danger-color);
   }
 
-  .sb-spaces-ok {
+  .sb-dashboard-ok {
     color: #1a7f37;
 
     // Live regions are rendered before they have anything to announce; an
@@ -108,7 +108,7 @@ body.sb-standalone {
     }
   }
 
-  .sb-spaces-warn {
+  .sb-dashboard-warn {
     color: #9a6700;
   }
 }
@@ -258,7 +258,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
    opened with an <h1>. Those headings are gone from the list screens (the tab
    bar names them), so 2rem left the content stranded — and on a list the first
    row adds another 0.5rem of its own padding before any text. */
-.sb-standalone .sb-spaces-header {
+.sb-standalone .sb-dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -266,7 +266,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   margin-bottom: 1rem;
 }
 
-.sb-standalone .sb-spaces-header-left {
+.sb-standalone .sb-dashboard-header-left {
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -335,7 +335,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   border-top: 1px solid #8884;
 }
 
-/* Server-side folder picker (client/spaces_ui/FolderPicker.tsx). */
+/* Server-side folder picker (client/dashboard/FolderPicker.tsx). */
 .sb-standalone .sb-folder-picker-status {
   display: flex;
   align-items: center;
@@ -597,17 +597,17 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
      the wordmark and tabs out of their wrapper so all three become siblings of
      the flex container, which lets the tab bar claim a full-width row of its
      own below the wordmark and the profile menu. */
-  .sb-standalone .sb-spaces-header {
+  .sb-standalone .sb-dashboard-header {
     flex-wrap: wrap;
     row-gap: 0.25rem;
     padding-bottom: 0.25rem;
   }
 
-  .sb-standalone .sb-spaces-header-left {
+  .sb-standalone .sb-dashboard-header-left {
     display: contents;
   }
 
-  .sb-standalone .sb-spaces-header .sb-tabs {
+  .sb-standalone .sb-dashboard-header .sb-tabs {
     order: 1;
     flex: 1 0 100%;
     display: flex;
@@ -712,7 +712,7 @@ body.sb-standalone .sb-git-page {
   }
 }
 
-body.sb-standalone.sb-page:has(.sb-spaces-header) {
+body.sb-standalone.sb-page:has(.sb-dashboard-header) {
   max-width: 1040px;
 }
 
@@ -759,7 +759,7 @@ body.sb-standalone .sb-settings-fields { border: 0; margin: 0; padding: 0; min-w
   }
 }
 
-.sb-standalone .sb-spaces-profile {
+.sb-standalone .sb-dashboard-profile {
   display: inline-flex;
   align-items: center;
   justify-content: center;

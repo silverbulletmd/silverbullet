@@ -296,7 +296,7 @@ async fn a_stolen_test_url_cannot_start_provider_authentication_without_admin_pr
         .oneshot(request(
             "POST",
             "login.test",
-            "/.spaces/api/admin/authentication/test",
+            "/.dashboard/api/admin/authentication/test",
             &admin_cookie,
             Some(json!({"revision":1})),
         ))
@@ -357,7 +357,7 @@ async fn central_management_destination_requires_a_path_segment_boundary() {
         .oneshot(request(
             "GET",
             "login.test",
-            "/.auth/central/start?destination=https%3A%2F%2Flogin.test%2F.spaces-unregistered",
+            "/.auth/central/start?destination=https%3A%2F%2Flogin.test%2F.dashboard-unregistered",
             "",
             None,
         ))
@@ -451,7 +451,7 @@ async fn callback_errors_show_a_retry_page_without_echoing_provider_input() {
     )
     .unwrap();
     assert!(html.contains("Unknown or already completed sign-in"));
-    assert!(html.contains("href=\"/.spaces/login\""));
+    assert!(html.contains("href=\"/.dashboard/login\""));
     assert!(!html.contains("unsafe"));
 }
 
@@ -476,7 +476,7 @@ async fn browser_error_escapes_message_html_and_preserves_its_status() {
     assert!(html.contains("alert"));
     assert!(html.contains("&amp; context"));
     assert!(!html.contains("<script>"));
-    assert!(html.contains("href=\"/.spaces/login\""));
+    assert!(html.contains("href=\"/.dashboard/login\""));
 }
 
 #[tokio::test]
@@ -487,7 +487,7 @@ async fn configuration_api_errors_remain_json() {
         .oneshot(request(
             "GET",
             "login.test",
-            "/.spaces/api/admin/authentication",
+            "/.dashboard/api/admin/authentication",
             "",
             None,
         ))
@@ -524,7 +524,7 @@ async fn expired_hostname_handoff_shows_the_browser_retry_page() {
             .to_vec(),
     )
     .unwrap();
-    assert!(html.contains("href=\"/.spaces/login\""));
+    assert!(html.contains("href=\"/.dashboard/login\""));
 }
 
 #[tokio::test]

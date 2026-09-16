@@ -382,7 +382,7 @@ mod tests {
         for unhashed in [
             "client.js",
             "service_worker.js",
-            "spaces.js",
+            "dashboard.js",
             "main.css",
             "components.css",
             "index.html",
