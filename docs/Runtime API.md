@@ -31,12 +31,12 @@ services:
       - SB_USER=me:secret        # optional
       - SB_AUTH_TOKEN=mytoken    # optional, for API auth
     volumes:
-      - myspace:/space
+      - ./data:/data
     ports:
       - "3000:3000"
 ```
 
-The image stores isolated temporary Chrome profiles under `/space/.chrome-data`. A new runtime receives a fresh profile and rebuilds its client index; profiles are removed on Reset, permission revocation, or server shutdown. Administrative Stop retains the profile for reuse within the current server lifetime.
+The image stores isolated temporary Chrome profiles under `/data/.chrome-data`. A new runtime receives a fresh profile and rebuilds its client index; profiles are removed on Reset, permission revocation, or server shutdown. Administrative Stop retains the profile for reuse within the current server lifetime.
 
 Use a `-slim` tag such as `latest-slim` if you do not need the Runtime API and want a smaller image without Chromium. The old `-runtime-api` tags remain available as compatibility aliases for the default image.
 

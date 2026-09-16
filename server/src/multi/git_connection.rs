@@ -785,7 +785,7 @@ fn instance(
         .map_err(|e| e.to_string())?
         .starts_with(repo.canonicalize().map_err(|e| e.to_string())?)
     {
-        return Err("a Git connection cannot include the server data directory".into());
+        return Err("a Git connection cannot include the data folder".into());
     }
     Ok((instance, repo))
 }

@@ -90,9 +90,9 @@ pub(crate) async fn run_single(
     config: Config,
     shutdown: crate::server::Shutdown,
 ) -> Result<(), String> {
-    let root = PathBuf::from(&config.space_folder);
+    let root = PathBuf::from(&config.data_folder);
     std::fs::create_dir_all(&root)
-        .map_err(|e| format!("could not create space folder {}: {e}", root.display()))?;
+        .map_err(|e| format!("could not create data folder {}: {e}", root.display()))?;
 
     let space = synthesize_config(&config);
 
@@ -198,7 +198,7 @@ mod tests {
             port: 3000,
             unix_socket: None,
             metrics_port: None,
-            space_folder: "/tmp/space".into(),
+            data_folder: "/tmp/data".into(),
             gitignore: String::new(),
             read_only: false,
             index_page: "index".into(),

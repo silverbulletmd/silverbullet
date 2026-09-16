@@ -58,8 +58,8 @@ pub async fn build_multi_stack(
         }
     }
 
-    let root = PathBuf::from(&config.space_folder);
-    std::fs::create_dir_all(&root).map_err(|e| format!("could not create server root: {e}"))?;
+    let root = PathBuf::from(&config.data_folder);
+    std::fs::create_dir_all(&root).map_err(|e| format!("could not create data folder: {e}"))?;
     warn_if_world_readable(&root.join("spaces.json"));
     warn_if_world_readable(&root.join("users.json"));
     warn_if_world_readable(&root.join(MULTI_AUTH_FILE_NAME));

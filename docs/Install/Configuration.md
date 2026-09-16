@@ -10,6 +10,7 @@ SilverBullet is partially configured via environment variables. This page gives 
 
 # General configuration
 
+* `SB_FOLDER`: The data folder to serve, e.g. `SB_FOLDER=/home/user/silverbullet`. In single-space mode this folder is your space, in multi-space mode it holds the server configuration and (by default) the spaces, see [[Dashboard]].
 * `SB_INDEX_PAGE`: Sets the default page to load, defaults to `index`.
 * `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder's actual `.gitignore` file is not read.
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
@@ -46,7 +47,7 @@ To force the classic single-space server on an empty folder, pass `--single` (or
 * `SB_RUNTIME_API`: In single-instance mode, the [[Runtime API]] is enabled when Chrome/Chromium is detected; set to `0` or `false` to disable. Multi-space mode ignores this variable and uses the **Server** tab’s runtime toggle and each space’s permissions. Runtime access requires Write access.
 * `SB_CHROME_PATH`: Optional explicit path to the Chrome, Chromium, or headless-shell binary. Falls back to the `CHROMIUM_PATH` environment variable (pre-set in the default Docker image), then auto-detection, which prefers headless shell on `PATH`.
 * `SB_CHROME_SHOW`: Set to any non-empty value to run Chrome with a visible window instead of headless (useful for debugging). Requires full Chrome/Chromium; auto-detection skips headless shell in this mode.
-* `SB_CHROME_DATA_DIR`: Parent directory for isolated temporary Chrome profiles, defaulting to `.chrome-data` inside the server root. Each user and space runtime receives a fresh profile, removed on shutdown. Profiles are not reused across restarts.
+* `SB_CHROME_DATA_DIR`: Parent directory for isolated temporary Chrome profiles, defaulting to `.chrome-data` inside the data folder. Each user and space runtime receives a fresh profile, removed on shutdown. Profiles are not reused across restarts.
 * `SB_CHROME_LOG_CONSOLE`: Forward the headless Chrome page’s `console.*` output to the server log (so you can see what the runtime is doing). Enabled by default; set to `0` to disable. The same log is also available via `/.runtime/logs` (e.g. `sb logs`).
 
 # Security
@@ -61,8 +62,8 @@ See [[Security]] for the trust model behind these settings, and [[Security Profi
 # Docker
 Configuration only relevant to docker deployments:
 
-* `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
-* `PGID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)\
+* `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/data` mapped folder)
+* `PGID`: Runs the server process with the specified GID (default: whatever group owns the `/data` mapped folder)\
 
 # Metrics
 SilverBullet offers a few basic Prometheus metrics, these can be configured with the following environment variables:

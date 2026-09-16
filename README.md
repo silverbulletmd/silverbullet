@@ -83,7 +83,7 @@ Run the server in development with `cargo run`. A **debug** build serves the cli
 
 ```shell
 npm run build
-cargo run <PATH-TO-YOUR-SPACE>
+cargo run <PATH-TO-YOUR-DATA-FOLDER>
 ```
 
 **When you change only the client** (TypeScript in `client/`): you do **not** need to restart the server. Rebuild just the client bundle and reload the page in your browser — the debug server serves the freshly-built bundle straight from disk:
@@ -96,7 +96,7 @@ To build a self-contained **release** binary (with the client bundle embedded), 
 
 ```shell
 make
-./target/release/silverbullet <PATH-TO-YOUR-SPACE>
+./target/release/silverbullet <PATH-TO-YOUR-DATA-FOLDER>
 ```
 
 ### Useful development tasks
@@ -115,7 +115,7 @@ make bench
 ```
 
 ### Build a docker container
-Note, you do not need Node.js nor Go locally installed for this to work:
+Note, you do not need Node.js nor Rust locally installed for this to work:
 
 ```shell
 docker build -t silverbullet .
@@ -123,5 +123,5 @@ docker build -t silverbullet .
 
 To run:
 ```shell
-docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space silverbullet
+docker run -p 3000:3000 -v <PATH-TO-YOUR-DATA-FOLDER>:/data silverbullet
 ```

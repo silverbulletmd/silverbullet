@@ -23,7 +23,7 @@ struct Cli {
     /// Port to listen on (env: SB_PORT)
     #[arg(short = 'p', long, env = "SB_PORT")]
     port: Option<u16>,
-    /// The space folder to serve (env: SB_FOLDER)
+    /// The data folder to serve (env: SB_FOLDER)
     folder: Option<String>,
     /// Force single-space mode (classic env-var-configured server)
     #[arg(long)]

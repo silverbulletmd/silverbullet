@@ -58,8 +58,8 @@ pub(crate) async fn run_setup_server(
         );
     }
 
-    let root = std::path::PathBuf::from(&config.space_folder);
-    std::fs::create_dir_all(&root).map_err(|e| format!("could not create server root: {e}"))?;
+    let root = std::path::PathBuf::from(&config.data_folder);
+    std::fs::create_dir_all(&root).map_err(|e| format!("could not create data folder: {e}"))?;
 
     // `on_complete` runs on the request thread and must stay cheap and
     // non-blocking, so it only signals. A dedicated task does the heavy lifting
@@ -236,11 +236,11 @@ mod tests {
     }
 
     /// A minimal `Config` for tests that don't care about most fields.
-    fn test_config(space_folder: &str, unix_socket: Option<&str>) -> crate::config::Config {
+    fn test_config(data_folder: &str, unix_socket: Option<&str>) -> crate::config::Config {
         let mut config = crate::config::Config::from_env(
             Some("127.0.0.1".to_string()),
             Some(0),
-            Some(space_folder.to_string()),
+            Some(data_folder.to_string()),
         )
         .unwrap();
         config.unix_socket = unix_socket.map(str::to_string);

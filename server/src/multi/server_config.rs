@@ -91,7 +91,12 @@ impl ServerConfig {
                 &space.folder,
             ));
             if folder != root && root.starts_with(&folder) {
-                return Err(vec![FieldError { field: format!("{id}.folder"), message: "a space cannot contain the server data directory; choose a separate space folder".into() }]);
+                return Err(vec![FieldError {
+                    field: format!("{id}.folder"),
+                    message:
+                        "a space cannot contain the data folder; choose a separate space folder"
+                            .into(),
+                }]);
             }
         }
         Ok(())

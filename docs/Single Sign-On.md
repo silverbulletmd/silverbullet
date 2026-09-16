@@ -8,7 +8,7 @@ SilverBullet (in multi-server mode) supports SSO via OpenID Connect (OIDC). Admi
 5. Enter the issuer URL, client ID and client secret. Save and test sign-in, then finish provider sign-in in the test window.
 6. Review the returned identity and enable SSO. The test does not create an account or replace your administrator session. Changing a draft requires another successful test before activation.
 
-Keep at least one working local administrator for recovery. Client secrets are stored in the server root's `authentication.json`. Protect and back up this file together with `users.json` and the server’s authentication state.
+Keep at least one working local administrator for recovery. Client secrets are stored in the data folder's `authentication.json`. Protect and back up this file together with `users.json` and the server’s authentication state.
 
 ### Google Workspace
 Create a **Web application** OAuth client in Google Cloud, configure its consent audience for your organization, and register the exact callback shown by SilverBullet. Enter your Workspace domain in the wizard. SilverBullet checks the signed `hd` organization claim and requires a verified email, an email suffix alone is not proof of Workspace membership. See [Google's OpenID Connect documentation](https://developers.google.com/identity/openid-connect/openid-connect).

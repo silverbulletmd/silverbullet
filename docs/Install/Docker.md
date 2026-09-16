@@ -25,8 +25,8 @@ The default image includes Chromium and enables the [[Runtime API]]. For the sma
 
 # Container
 * The container binds to port `3000`, so be sure to port-map that, e.g. via `-p 3000:3000` (note: the first `3000` is the external port)
-* The container uses whatever is volume-mapped to `/space` as the space root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/space:/space`
-* SilverBullet will detect the UNIX owner (UID and GID) of the folder mapped into `/space` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables (see [[Install/Configuration]] for details).
+* The container uses whatever is volume-mapped to `/data` as the data root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/silverbullet:/data`
+* SilverBullet will detect the UNIX owner (UID and GID) of the folder mapped into `/data` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables (see [[Install/Configuration]] for details).
 * The Docker image is based on [Alpine](https://alpinelinux.org/). If you'd like to install additional packages into it, see [[#Installing additional packages]] below.
 
 > **note** Note
@@ -42,8 +42,7 @@ Below is a basic `compose.yml` that runs SilverBullet, check [[Install/Configura
 
 Instructions:
 * Replace the password defined in `SB_USER` with something sensible such as `admin:b3stp4ssword3vah`
-* This volume uses the `./space` directory (will be auto-created if it doesn’t already exist) in the same directory as the `compose.yml` file as the place where SB will keep its space. You may replace this with whatever location you keep your notes.
-
+* This volume uses the `./data` directory (will be auto-created if it doesn’t already exist) in the same directory as the `compose.yml` file as the place where SB will keep its data. 
 ```yaml
 services:
   silverbullet:
@@ -52,7 +51,7 @@ services:
     environment:
     - SB_USER=admin:password
     volumes:
-      - ./space:/space
+      - ./data:/data
     ports:
       - 3000:3000
 ```
@@ -82,13 +81,13 @@ docker compose up -d
 If you don’t want to use docker compose, you can run SilverBullet “raw” as follows:
 
 ```shell
-# Create a local folder "space" to keep files in
-mkdir -p space
+# Create a local folder "data" to keep files in
+mkdir -p data
 # Run the docker container in the background
 docker run -d --restart unless-stopped \
   --name silverbullet \
   -p 3000:3000 \
-  -v ./space:/space \
+  -v ./data:/data \
   ghcr.io/silverbulletmd/silverbullet:latest
 ```
 

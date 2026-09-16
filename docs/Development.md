@@ -56,13 +56,13 @@ SilverBullet has two halves you rebuild **independently** — knowing which one 
 Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it). Use `SB_DISABLE_SERVICE_WORKER=1` so the service worker doesn't cache stale assets:
 
 ```shell
-SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- <PATH-TO-YOUR-SPACE>
+SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- <PATH-TO-YOUR-DATA-FOLDER>
 ```
 
 To pass arguments like `-p` or `-L`, put them after `--`:
 
 ```shell
-SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- -L 0.0.0.0 <PATH-TO-YOUR-SPACE>
+SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- -L 0.0.0.0 <PATH-TO-YOUR-DATA-FOLDER>
 ```
 
 **When you change the server** (any Rust code): rebuild **and restart** it — stop the process and re-run `cargo run` (it recompiles). A running server does *not* pick up source changes.
@@ -79,7 +79,7 @@ To build a self-contained **release** binary (with the client bundle embedded) a
 
 ```shell
 make build-rs          # -> target/release/silverbullet
-./target/release/silverbullet <PATH-TO-YOUR-SPACE>
+./target/release/silverbullet <PATH-TO-YOUR-DATA-FOLDER>
 ```
 
 ### Useful development tasks
@@ -108,7 +108,7 @@ Both images are mirrored to `ghcr.io/silverbulletmd/silverbullet` under the same
 To run one:
 
 ```shell
-docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space zefhemel/silverbullet:edge
+docker run -p 3000:3000 -v <PATH-TO-YOUR-DATA-FOLDER>:/data zefhemel/silverbullet:edge
 ```
 
 These are built by `.github/workflows/ci.yml`, which cross-compiles the binary natively (`cargo build --target` with installed musl cross-toolchains) and copies it into a small Alpine image.

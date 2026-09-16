@@ -16,7 +16,13 @@ pub async fn run(
     tracing::info!("SilverBullet {}", crate::VERSION);
 
     let shutdown = Shutdown::install();
-    let root = std::path::PathBuf::from(&config.space_folder);
+    let root = std::path::PathBuf::from(&config.data_folder);
+    tracing::info!(
+        "Data folder: {}",
+        root.canonicalize()
+            .unwrap_or_else(|_| root.clone())
+            .display()
+    );
     match crate::boot::detect(&root, single, &|k| std::env::var(k).ok())? {
         crate::boot::BootMode::Single => crate::single::run_single(config, shutdown).await,
         crate::boot::BootMode::Setup => crate::boot::run_setup_server(config, shutdown).await,

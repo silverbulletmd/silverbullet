@@ -10,7 +10,7 @@ pub struct Config {
     pub port: u16,
     pub unix_socket: Option<String>,
     pub metrics_port: Option<u16>,
-    pub space_folder: String,
+    pub data_folder: String,
     pub gitignore: String,
     pub read_only: bool,
     pub index_page: String,
@@ -47,7 +47,7 @@ fn normalize_prefix(raw: &str) -> String {
 
 impl Config {
     /// Build from the environment plus the (already-parsed) CLI flags. `folder`
-    /// is the positional space-folder argument. Returns `Err` with a
+    /// is the positional data-folder argument. Returns `Err` with a
     /// user-facing message when required config is missing or malformed.
     pub fn from_env(
         hostname: Option<String>,
@@ -76,7 +76,7 @@ impl Config {
             None => None,
         };
 
-        let space_folder = folder
+        let data_folder = folder
             .or_else(|| env_nonempty("SB_FOLDER"))
             .ok_or_else(|| {
                 "No folder specified. Pass a folder argument or set SB_FOLDER.".to_string()
@@ -87,7 +87,7 @@ impl Config {
             port,
             unix_socket: env_nonempty("SB_UNIX_SOCKET"),
             metrics_port,
-            space_folder,
+            data_folder,
             gitignore: env::var("SB_SPACE_IGNORE").unwrap_or_default(),
             read_only: env_nonempty("SB_READ_ONLY").is_some(),
             index_page: env_nonempty("SB_INDEX_PAGE").unwrap_or_else(|| "index".to_string()),
@@ -130,8 +130,8 @@ mod tests {
     fn folder_from_arg_takes_precedence_and_defaults_apply() {
         // Pass the folder explicitly so the test doesn't depend on the ambient
         // environment; defaults for the rest.
-        let c = Config::from_env(None, Some(8080), Some("/tmp/space".into())).unwrap();
-        assert_eq!(c.space_folder, "/tmp/space");
+        let c = Config::from_env(None, Some(8080), Some("/tmp/data".into())).unwrap();
+        assert_eq!(c.data_folder, "/tmp/data");
         assert_eq!(c.port, 8080);
         assert_eq!(c.bind_host, "127.0.0.1");
         assert_eq!(c.index_page, "index");

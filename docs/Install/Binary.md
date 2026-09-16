@@ -37,12 +37,12 @@ Since `sb-data` is empty, this opens a first-run setup wizard for accounts and y
 
 The server listens on `http://localhost:3000` by default. To pick a different port, use `-p`:
 ```bash
-./silverbullet -p 3001 my-space
+./silverbullet -p 3001 sb-data
 ```
 
 And to bind on an address other than `127.0.0.1` (e.g. to make it reachable on your LAN), use `-L`:
 ```bash
-./silverbullet -L 0.0.0.0 my-space
+./silverbullet -L 0.0.0.0 sb-data
 ```
 
 To force classic single-space behavior add `--single`:
