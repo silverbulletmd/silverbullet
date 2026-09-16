@@ -3,216 +3,43 @@ tags: api/space-lua
 references:
 - client/navigator/navigator.ts
 ---
-The `view` API creates reusable lists, trees, and Markdown views. Render them inside a page with `${...}` or register them as [[View]] panels.
+The `view` API creates reusable lists, trees, and Markdown views. They can be rendered as dockable panels, or inline using [[Space Lua#Expressions]].
 
 ## view.new(spec)
-Creates a view as a value.
+Creates a view value with either `source` (rows) or `content` (Markdown). The options below belong to this value, panel-only options take effect when it is registered with `view.define`.
 
-### Inline state
-Optional `stateKey` saves tree expansion locally, scoped to the containing page and key. Use distinct keys for independent views on one page. Sharing a key shares saved preferences without live synchronization; renaming the page resets the identity. Without a key, expansion is transient. Focus and selection are not saved.
-
-### Registering a value
-```lua
-view.define {
-  name = "my.projects",
-  view = projectView(),
-  title = "Projects",
-  command = "Navigate: Projects",
-  dock = "rhs",
-}
-```
-
-Registration fields (name, title, commands, docking, open settings, and `followEditor`) belong to `view.define`. With `view = ...`, put content options such as `source` and `presentation` inside that value, not alongside it. Docked state uses the registered name, independently of inline `stateKey`.
-
-### List example
-Paste this expression into a page. It shows icons, status chips, and a conditional Complete action. Completion is held in memory for this rendering and resets when the widget is recreated.
-
-${(function()
-  local completed = {}
-  return view.new {
-    source = function()
-      return {
-        { name = "Sketchbook", detail = "Explore cover designs" },
-        { name = "Garden journal", detail = "Collect planting notes" },
-      }
-    end,
-    presentation = {
-      mode = "list",
-      row = {
-        icon = "book",
-        description = "detail",
-        decorations = function(obj)
-          return {{
-            text = completed[obj.name] and "Done" or "Active",
-            cssClass = "sb-hashtag",
-          }}
-        end,
-      },
-    },
-    actions = {
-      {
-        icon = "check",
-        label = "Complete",
-        when = function(obj) return not completed[obj.name] end,
-        run = function(obj) completed[obj.name] = true end,
-      },
-    },
-  }
-end)()}
-
-
-The row itself has no `onSelect`; only the button performs an action. After completion, the chip changes and the button disappears.
-
-### Tree example
-This example groups pages by path, remembers expanded folders, and provides Open and Hide actions for leaf rows. Hide removes a row from this rendering only; it does not delete a page.
-
-${(function()
-  local hidden = {}
-  return view.new {
-    stateKey = "example-project-tree",
-    source = function()
-      local rows = {}
-      for _, name in ipairs({
-        "Projects/Sketchbook/Cover ideas",
-        "Projects/Sketchbook/Paper studies",
-        "Projects/Garden journal",
-      }) do
-        if not hidden[name] then
-          table.insert(rows, { name = name })
-        end
-      end
-      return rows
-    end,
-    presentation = {
-      mode = "tree",
-      expandAll = true,
-      row = {
-        icon = function(obj)
-          return obj.isFolder and "folder" or "file-text"
-        end,
-      },
-    },
-    actions = {
-      {
-        icon = "external-link",
-        label = "Open",
-        when = function(obj) return not obj.isFolder end,
-        run = function(obj) editor.navigate(obj.name) end,
-      },
-      {
-        icon = "eye-off",
-        label = "Hide",
-        when = function(obj) return not obj.isFolder end,
-        run = function(obj) hidden[obj.name] = true end,
-      },
-    },
-  }
-end)()}
-
-Use distinct `stateKey` values for independent trees on the same page. Replace the sample source with a query and action callbacks with your own updates for persistent data. Actions that write to the space should declare `requireMode = "rw"`; request confirmation inside a destructive callback.
-
-## view.define(spec)
-Registers a view and optionally a [[Command]] to open it. Accepts `name` plus a `view.new` value, or the flat shorthand:
-
-```lua
-view.define {
-  name = "my.projects",
-  command = "Navigate: Projects",
-  source = function()
-    return {{ name = "Projects/Sketchbook" }}
-  end,
-  onSelect = function(obj) editor.navigate(obj.name) end,
-}
-```
-
-The flat row form requires `onSelect`; `view.new` values and content views do not. Reusing a name replaces its definition, except for reserved built-ins (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) and names starting with `__pick:`. `std.toc` is a Lua-defined view and can be replaced.
-
-### Identity and chrome
-* `name`: unique registered identifier.
-* `title`: panel title.
-* `label`: short picker verb, such as `"Open"`, shown in place of the title.
-* `placeholder`: filter input placeholder.
-
-### Command
-* `command`: command that opens the view.
-* `key` / `mac`: key bindings; require `command`.
-* `menu` / `menuMac` / `menuWindows` / `menuLinux`: native-menu placement (SilverBullet+ only).
-* `hide`: hide the command from the command palette.
-
-### Position target
-* `dock`: `"modal"` (default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"`, or `"page-bottom"`.
-* `supportedDocks`: allowed docks; defaults to `{ dock }` and must include `dock`. Invalid docks throw.
-* `defaultOpen`: initial open state for page docks; defaults to `false`.
-* `openOnStart`: open at every boot regardless of saved state. Only valid for `lhs`, `rhs`, and `bhs`.
-
-| Dock | Behavior |
-|---|---|
-| `lhs` / `rhs` | Resizable sidebars; remember open state, width, and filter phrase across re-focus. |
-| `bhs` | Resizable bottom panel; remembers open state and height. |
-| `page-top` / `page-bottom` | Widgets above/below the document, without a filter input. Empty results hide the entire widget. |
-| `modal` | Transient picker; clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. |
-
-Each sidebar/bottom slot holds one view. Opening another temporarily displaces the previous view, which returns when the newcomer leaves (one level deep).
-
-Below 600px, sidebars become full-width drawers and dismiss on selection. Sidebars and bottom panels have no resize handle there, and skip boot restoration and `openOnStart`.
-
-In page docks, `Enter`/`Space` activate selectable rows; `ArrowRight`/`ArrowLeft` expand/collapse tree rows. Lists honor `presentation.limit`; trees are uncapped.
-
-#### Persisted state and precedence
-Registered views save `dock`, `open`, `collapsed`, `width`, and `height` under `["navigator", name, field]` in the local datastore. Valid saved values override `view.defaults`, which overrides the definition.
-
-```lua
-config.set("view.defaults", {
-  ["std.toc"] = { dock = "page-top", open = true, width = 320 },
-  ["std.spaceTree"] = { open = true },
-})
-```
-
-* `dock` must be in the view's `supportedDocks`.
-* `open` applies to all docks except modal.
-* `collapsed` applies only to page docks.
-* `width` applies to sidebars; `height` to the bottom panel. Both accept 160–600 pixels.
-
-`Navigate: Reset All Views` clears the client's saved choices so defaults apply again.
-
-#### The dock menu
-Views with two or more `supportedDocks` get a dock menu. Choosing a dock moves the view immediately. Closing a view preserves its dock preference; its command reopens it there. Page widgets also have a fold control whose state is remembered.
-
-### Data source
+### source
 * `source(ctx)`: returns the objects to display. Mutually exclusive with `content`.
 * `search`: `"client"` (default) or `"source"`; see below.
-* `refreshOn`: events that rerun the source; defaults to none. For space-backed views, use `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }`.
-* `refreshOnOpen`: reload on activation of an already-open panel. Does not apply to inline or page-docked views.
-* `followEditor`: a registered sidebar follows the page you navigate to.
+* `refreshOn`: events that rerun the source; defaults to none.
 
 #### The source context
-`source` receives `{ phrase, segment, dock }`: the filter text, active segment label (or `nil`), and resolved rendering location. `content` receives `phrase` and `dock` too. Use `ctx.dock` to vary results by location; inline views receive `"inline"`.
+`source` receives `{ phrase, segment, dock }`: the filter text, active segment label (or `nil`), and resolved rendering location. `content` receives `phrase` and `dock` too. Use `ctx.dock` to vary results by location, inline views receive `"inline"`.
 
-#### Search modes
+### search
 * `"client"`: loads once, filters segments using their `where` predicates, and fuzzy-ranks by the phrase.
 * `"source"`: reruns the source when the phrase or segment changes. Requests are debounced and stale responses discarded. The source controls ordering and segment filtering; segment `where` predicates are ignored.
 
-#### Re-opening a view
-Opening a closed panel reloads its source. Reactivating an open panel or revisiting a cached sibling reuses its rows unless `refreshOnOpen = true`. `refreshOn` events refresh loaded views.
+### stateKey
+Optional `stateKey` saves tree expansion locally, scoped to the containing page and key. Use distinct keys for independent views on one page. Sharing a key shares saved preferences without live synchronization; renaming the page resets the identity. Without a key, expansion is transient. Focus and selection are not saved.
 
 ### content
 `content(ctx)` returns Markdown, or `nil` for no content:
 
 ```lua
-view.define {
-  name = "my.mentions",
-  title = "Linked Mentions",
-  command = "Navigate: My Linked Mentions",
-  dock = "page-bottom",
-  defaultOpen = true,
+local mentions = view.new {
   refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
   content = function() return widgets.linkedMentionsMarkdown() end,
 }
 ```
 
-Content uses the Lua widget Markdown renderer, including wiki links, command buttons, transclusions, expressions, and custom syntax. Task checkboxes with `[[page@pos]]` references (as produced by `templates.taskItem`) update their source page; references are checked before writing. Tasks without a reference use the current page.
+Content uses the markdown renderer for rendering.
 
-Content views have no filter input or row options (`presentation.row`, `onSelect`, `onCreate`, `onMove`, `actions`, `keymap`, `segments`, `dropdown`). Refresh options rerun `content`. Page-docked content has a Copy button; inline content uses Edit only. `view.pick` does not accept content.
+Content views have no filter input or row options. Refresh options rerun `content`.
+
+### Panel labels
+* `label`: short picker verb, such as `"Open"`, shown in place of the title.
+* `placeholder`: filter input placeholder.
 
 ### Filter
 Panel filtering options:
@@ -260,8 +87,6 @@ presentation = {
 * `text`: required plain text; HTML and Markdown remain literal.
 * `label`: optional plain text above the excerpt.
 * `highlights`: optional `{ start, end }` pairs, using zero-based UTF-16 offsets with exclusive ends (not Lua byte offsets). The example highlights `walking`.
-
-Overlapping/adjacent ranges merge; invalid ranges, including split surrogate pairs, are ignored. Highlights are supplied explicitly, not inferred from the filter. When `description` is in `filter.fields`, both label and text are searched.
 
 #### Row decorations
 `presentation.row.decorations(obj)` returns a list of chips, or `nil`:
@@ -369,6 +194,117 @@ prefixViews = { ["$"] = "std.anchors", ["#"] = "std.tags" },
 #### Drag and drop
 `onMove(obj, newName)` enables desktop tree dragging. Dropping onto a folder or root calls it with `<target folder>/<last segment>`. Hovering a collapsed folder opens it; duplicate destinations abort with an error. Folder objects include `isFolder = true`. Use `view.moveByRename` to rename pages, documents, and whole folders.
 
+
+```lua
+function projectView()
+  return view.new {
+    stateKey = "projects",
+    source = function()
+      return {
+        { name = "Projects/Sketchbook" },
+        { name = "Projects/Garden journal" },
+      }
+    end,
+    presentation = { mode = "tree" },
+    onSelect = function(obj) editor.navigate(obj.name) end,
+  }
+end
+```
+
+Render it in Markdown:
+
+```markdown
+${projectView()}
+```
+
+Provide exactly one of `source` or `content`, using the options below. `onSelect` is optional; without it, rows are informational and trees still expand.
+## view.define(spec)
+Registers a view and optionally a [[Command]] to open it. Accepts `name` plus a `view.new` value, or the flat shorthand:
+
+```lua
+view.define {
+  name = "my.projects",
+  command = "Navigate: Projects",
+  source = function()
+    return {{ name = "Projects/Sketchbook" }}
+  end,
+  onSelect = function(obj) editor.navigate(obj.name) end,
+}
+```
+
+The flat row form requires `onSelect`; `view.new` values and content views do not. Reusing a name replaces its definition, except for reserved built-ins (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) and names starting with `__pick:`. `std.toc` is a Lua-defined view and can be replaced.
+
+### Registering a value
+```lua
+view.define {
+  name = "my.projects",
+  view = view.new {
+    source = function() return {{ name = "Projects/Sketchbook" }} end,
+    onSelect = function(obj) editor.navigate(obj.name) end,
+  },
+  title = "Projects",
+  command = "Navigate: Projects",
+  dock = "rhs",
+}
+```
+
+Registration fields (name, title, commands, docking, open settings, and `followEditor`) belong to `view.define`. With `view = ...`, put content options such as `source` and `presentation` inside that value, not alongside it. Docked state uses the registered name, independently of inline `stateKey`.
+
+### Identity and chrome
+* `name`: unique registered identifier.
+* `title`: panel title.
+
+### Command
+* `command`: command that opens the view.
+* `key` / `mac`: key bindings; require `command`.
+* `menu` / `menuMac` / `menuWindows` / `menuLinux`: native-menu placement (SilverBullet+ only).
+* `hide`: hide the command from the command palette.
+
+### Position target
+* `dock`: `"modal"` (default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"`, or `"page-bottom"`.
+* `supportedDocks`: allowed docks; defaults to `{ dock }` and must include `dock`. Invalid docks throw.
+* `defaultOpen`: initial open state for page docks; defaults to `false`.
+* `openOnStart`: open at every boot regardless of saved state. Only valid for `lhs`, `rhs`, and `bhs`.
+
+| Dock | Behavior |
+|---|---|
+| `lhs` / `rhs` | Resizable sidebars; remember open state, width, and filter phrase across re-focus. |
+| `bhs` | Resizable bottom panel; remembers open state and height. |
+| `page-top` / `page-bottom` | Widgets above/below the document, without a filter input. Empty results hide the entire widget. |
+| `modal` | Transient picker; clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. |
+
+Each sidebar/bottom slot holds one view. Opening another temporarily displaces the previous view, which returns when the newcomer leaves (one level deep).
+
+Below 600px, sidebars become full-width drawers and dismiss on selection. Sidebars and bottom panels have no resize handle there, and skip boot restoration and `openOnStart`.
+
+In page docks, `Enter`/`Space` activate selectable rows; `ArrowRight`/`ArrowLeft` expand/collapse tree rows. Lists honor `presentation.limit`; trees are uncapped.
+
+#### Persisted state and precedence
+Registered views save `dock`, `open`, `collapsed`, `width`, and `height` under `["navigator", name, field]` in the local datastore. Valid saved values override `view.defaults`, which overrides the definition.
+
+```lua
+config.set("view.defaults", {
+  ["std.toc"] = { dock = "page-top", open = true, width = 320 },
+  ["std.spaceTree"] = { open = true },
+})
+```
+
+* `dock` must be in the view's `supportedDocks`.
+* `open` applies to all docks except modal.
+* `collapsed` applies only to page docks.
+* `width` applies to sidebars; `height` to the bottom panel. Both accept 160–600 pixels.
+
+`Navigate: Reset All Views` clears the client's saved choices so defaults apply again.
+
+#### The dock menu
+Views with two or more `supportedDocks` get a dock menu. Choosing a dock moves the view immediately. Closing a view preserves its dock preference; its command reopens it there. Page widgets also have a fold control whose state is remembered.
+
+### Re-opening a view
+* `refreshOnOpen`: reload on activation of an already-open panel. Does not apply to inline or page-docked views.
+* `followEditor`: a registered sidebar follows the page you navigate to.
+
+Opening a closed panel reloads its source. Reactivating an open panel or revisiting a cached sibling reuses its rows unless `refreshOnOpen = true`. `refreshOn` events refresh loaded views.
+
 ## view.pick(spec)
 Opens a one-shot modal and suspends the script until selection. Returns the selected object, or `nil` on dismissal or replacement by another view:
 
@@ -393,10 +329,3 @@ Opens or focuses a registered view and returns whether it opened. Options:
 
 ## view.focus(slot?)
 Focuses an open view panel's input without changing selection. `slot` is `"modal"`, `"lhs"`, `"rhs"`, or `"bhs"`; omit it to focus any open panel.
-
-## view.moveByRename(obj, newName)
-Renames the page, document, or folder represented by `obj`. Use as a space-backed tree's move handler:
-
-```lua
-onMove = view.moveByRename,
-```
