@@ -71,7 +71,6 @@ impl Fixture {
         });
         let config = ProviderConfig {
             provider_id: "work".into(),
-            preset: "oidc".into(),
             issuer,
             central_origin: "https://login.example.test".into(),
             client_id: "test-client".into(),
@@ -259,7 +258,6 @@ async fn refuses_unverified_email_and_uses_verified_hosted_domain_for_google() {
     .await
     .is_err());
     fixture.provider.claims.lock().unwrap()["email_verified"] = true.into();
-    fixture.config.preset = "google".into();
     fixture.config.workspace_domain = "other.test".into();
     assert!(finish(
         &fixture.config,
@@ -281,6 +279,26 @@ async fn refuses_unverified_email_and_uses_verified_hosted_domain_for_google() {
     .await
     .is_ok());
 }
+
+#[tokio::test]
+async fn only_google_workspace_authorization_includes_the_hosted_domain_hint() {
+    let mut fixture = Fixture::new(false).await;
+    let generic = begin(&fixture.config, &fixture.http).await.unwrap();
+    let generic_url = reqwest::Url::parse(&generic.url).unwrap();
+    assert!(generic_url.query_pairs().all(|(key, _)| key != "hd"));
+
+    fixture.config.workspace_domain = "example.test".into();
+    let workspace = begin(&fixture.config, &fixture.http).await.unwrap();
+    let workspace_url = reqwest::Url::parse(&workspace.url).unwrap();
+    assert_eq!(
+        workspace_url
+            .query_pairs()
+            .find(|(key, _)| key == "hd")
+            .map(|(_, value)| value.into_owned()),
+        Some("example.test".into())
+    );
+}
+
 #[tokio::test]
 async fn userinfo_email_fallback_requires_matching_subject() {
     let fixture = Fixture::new(false).await;

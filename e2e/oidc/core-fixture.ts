@@ -78,9 +78,7 @@ async function configurePocketId(
   await adminPage
     .getByRole("button", { name: "Set up SSO", exact: true })
     .click();
-  await adminPage
-    .getByLabel("Provider", { exact: true })
-    .selectOption("pocket-id");
+  await adminPage.getByLabel("Provider", { exact: true }).selectOption("oidc");
   await adminPage
     .getByLabel("Central login URL", { exact: true })
     .fill(oidc.centralOrigin);
@@ -93,6 +91,9 @@ async function configurePocketId(
   await adminPage
     .getByLabel("Client secret", { exact: true })
     .fill(client.clientSecret);
+  await adminPage
+    .getByLabel("Sign-in button label", { exact: true })
+    .fill("Sign in with Pocket ID");
   const popupPromise = adminPage.waitForEvent("popup");
   await adminPage
     .getByRole("button", { name: "Save and test sign-in", exact: true })

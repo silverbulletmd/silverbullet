@@ -35,9 +35,11 @@ test("wizard UI tests a saved draft before activation and preserves the local ad
       });
     if (pathname.endsWith("/authentication/draft")) {
       changes.push("save");
-      submittedSecrets.push(route.request().postDataJSON().clientSecret);
+      const submitted = route.request().postDataJSON();
+      expect(submitted).not.toHaveProperty("preset");
+      submittedSecrets.push(submitted.clientSecret);
       draft = {
-        ...route.request().postDataJSON(),
+        ...submitted,
         clientSecret: "",
         hasClientSecret: true,
         providerId: "fixture-provider",
@@ -76,7 +78,10 @@ test("wizard UI tests a saved draft before activation and preserves the local ad
   await page.goto(`${origin}/.spaces/authentication`);
   expect(await page.evaluate(() => globalThis.isSecureContext)).toBe(true);
   await page.getByRole("button", { name: "Set up SSO" }).click();
-  await page.getByLabel("Provider", { exact: true }).selectOption("pocket-id");
+  await expect(
+    page.getByLabel("Provider", { exact: true }).locator("option"),
+  ).toHaveText(["Google Workspace", "OpenID Connect"]);
+  await page.getByLabel("Provider", { exact: true }).selectOption("oidc");
   await page.getByLabel("Issuer URL").fill("https://provider.test");
   await page.getByLabel("Central login URL").fill(origin);
   await page.getByLabel("Client ID", { exact: true }).fill("fixture-client");
@@ -99,7 +104,9 @@ test("wizard UI tests a saved draft before activation and preserves the local ad
     page.getByText("fixture-user@example.test", { exact: true }),
   ).toBeVisible();
   expect(changes).toEqual(["save", "test", "save", "test"]);
-  await page.getByLabel("Sign-in button label").fill("Continue with Pocket ID");
+  await page
+    .getByLabel("Sign-in button label")
+    .fill("Continue with Example SSO");
   await expect(page.getByRole("button", { name: "Enable SSO" })).toHaveCount(0);
   await page.getByRole("button", { name: "Save and test sign-in" }).click();
   await expect(page.getByRole("button", { name: "Enable SSO" })).toBeVisible();

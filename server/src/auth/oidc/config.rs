@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 pub struct ProviderConfig {
     #[serde(default)]
     pub provider_id: String,
-    pub preset: String,
     pub issuer: String,
     pub central_origin: String,
     pub client_id: String,
@@ -17,15 +16,10 @@ pub struct ProviderConfig {
 
 impl ProviderConfig {
     pub fn validate(&mut self) -> Result<(), String> {
-        if !["google", "pocket-id", "oidc"].contains(&self.preset.as_str()) {
-            return Err("Choose Google Workspace, Pocket ID, or Other OIDC".into());
-        }
-        if self.preset == "google" {
+        self.workspace_domain = self.workspace_domain.trim().to_ascii_lowercase();
+        if !self.workspace_domain.is_empty() {
             self.issuer = "https://accounts.google.com".into();
-            self.workspace_domain = self.workspace_domain.trim().to_ascii_lowercase();
-            if self.workspace_domain.is_empty()
-                || self.workspace_domain.contains(['/', '@', ':', ' '])
-            {
+            if self.workspace_domain.contains(['/', '@', ':', ' ']) {
                 return Err("Enter your Google Workspace domain".into());
             }
         }
@@ -77,7 +71,6 @@ mod tests {
     fn config() -> ProviderConfig {
         ProviderConfig {
             provider_id: "pocket".into(),
-            preset: "pocket-id".into(),
             issuer: "https://identity.test".into(),
             central_origin: "https://login.sb.test".into(),
             client_id: "client".into(),
@@ -101,11 +94,16 @@ mod tests {
         }
     }
     #[test]
-    fn google_requires_a_workspace_domain_and_uses_its_real_issuer() {
-        let mut c = config();
-        c.preset = "google".into();
-        assert!(c.validate().is_err());
-        c.workspace_domain = "Example.COM".into();
+    fn workspace_policy_selects_google_and_normalizes_the_domain() {
+        let mut c: ProviderConfig = serde_json::from_value(serde_json::json!({
+            "issuer": "https://identity.test",
+            "centralOrigin": "https://login.sb.test",
+            "clientId": "client",
+            "clientSecret": "secret",
+            "workspaceDomain": "Example.COM",
+            "buttonLabel": "Sign in with Google"
+        }))
+        .unwrap();
         c.validate().unwrap();
         assert_eq!(c.issuer, "https://accounts.google.com");
         assert_eq!(c.workspace_domain, "example.com");

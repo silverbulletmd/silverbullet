@@ -2,7 +2,6 @@ use silverbullet_server::auth::oidc::{config::ProviderConfig, store::ProviderSto
 fn config() -> ProviderConfig {
     ProviderConfig {
         provider_id: String::new(),
-        preset: "pocket-id".into(),
         issuer: "https://identity.test".into(),
         central_origin: "https://login.sb.test".into(),
         client_id: "client".into(),

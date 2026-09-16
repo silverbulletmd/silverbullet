@@ -150,7 +150,6 @@ impl Fixture {
 fn config() -> ProviderConfig {
     ProviderConfig {
         provider_id: String::new(),
-        preset: "oidc".into(),
         issuer: "https://identity.test".into(),
         central_origin: "https://login.test".into(),
         client_id: "client".into(),

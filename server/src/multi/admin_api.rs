@@ -1152,7 +1152,6 @@ mod tests {
         let revision = providers
             .save_draft(crate::auth::oidc::config::ProviderConfig {
                 provider_id: String::new(),
-                preset: "oidc".into(),
                 issuer: "https://identity.example.test".into(),
                 central_origin: "https://login.example.test".into(),
                 client_id: "silverbullet".into(),

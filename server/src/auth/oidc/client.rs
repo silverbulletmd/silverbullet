@@ -141,7 +141,7 @@ pub async fn begin(
         .add_scope(Scope::new("email".into()))
         .add_scope(Scope::new("profile".into()))
         .set_pkce_challenge(challenge);
-    if config.preset == "google" {
+    if !config.workspace_domain.is_empty() {
         request = request.add_extra_param("hd", &config.workspace_domain);
     }
     let (url, state, nonce) = request.url();
@@ -237,12 +237,11 @@ pub fn validate_identity_policy(
     if !identity.email_verified || identity.email.as_ref().is_none_or(|email| email.is_empty()) {
         return Err("The identity provider must supply a verified email address".into());
     }
-    if config.preset == "google"
-        && (config.workspace_domain.is_empty()
-            || !identity
-                .hosted_domain
-                .as_ref()
-                .is_some_and(|domain| domain.eq_ignore_ascii_case(&config.workspace_domain)))
+    if !config.workspace_domain.is_empty()
+        && !identity
+            .hosted_domain
+            .as_ref()
+            .is_some_and(|domain| domain.eq_ignore_ascii_case(&config.workspace_domain))
     {
         return Err(
             "This account does not belong to the configured Google Workspace organization".into(),

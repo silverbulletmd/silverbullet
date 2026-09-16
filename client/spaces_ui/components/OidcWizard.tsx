@@ -11,7 +11,6 @@ import { adminApi, formatApiError } from "../api.ts";
 
 export type ProviderConfig = {
   providerId?: string;
-  preset: "google" | "pocket-id" | "oidc";
   issuer: string;
   centralOrigin: string;
   clientId: string;
@@ -20,6 +19,8 @@ export type ProviderConfig = {
   buttonLabel: string;
   hasClientSecret?: boolean;
 };
+
+type ProviderMode = "google" | "oidc";
 
 export type ProviderStatus = {
   primaryUrl?: string | null;
@@ -54,16 +55,18 @@ export function OidcWizard({
   onCancel: () => void;
   onUnauthorized: () => void;
 }) {
+  const savedConfig = status.draft ?? status.active;
+  const [providerMode, setProviderMode] = useState<ProviderMode>(() =>
+    savedConfig ? (savedConfig.workspaceDomain ? "google" : "oidc") : "google",
+  );
   const [config, setConfig] = useState<ProviderConfig>(() => ({
-    ...(status.draft ??
-      status.active ?? {
-        preset: "google",
-        issuer: "https://accounts.google.com",
-        centralOrigin: location.origin,
-        clientId: "",
-        buttonLabel: "Sign in with Google",
-        workspaceDomain: "",
-      }),
+    ...(savedConfig ?? {
+      issuer: "https://accounts.google.com",
+      centralOrigin: location.origin,
+      clientId: "",
+      buttonLabel: "Sign in with Google",
+      workspaceDomain: "",
+    }),
     ...(status.primaryUrl ? { centralOrigin: status.primaryUrl } : {}),
     clientSecret: "",
   }));
@@ -86,8 +89,7 @@ export function OidcWizard({
   const replacement =
     !!status.active &&
     (status.active.issuer !== config.issuer ||
-      status.active.clientId !== config.clientId ||
-      status.active.preset !== config.preset);
+      status.active.clientId !== config.clientId);
 
   function failed(error: any) {
     if (error.unauthorized) onUnauthorized();
@@ -258,30 +260,25 @@ export function OidcWizard({
         }}
       >
         <fieldset disabled={busy || !!testId}>
-          <label for="oidc-preset">Provider</label>
+          <label for="oidc-provider">Provider</label>
           <Select
-            id="oidc-preset"
-            value={config.preset}
+            id="oidc-provider"
+            value={providerMode}
             onChange={(event) => {
-              const preset = event.currentTarget
-                .value as ProviderConfig["preset"];
+              const mode = event.currentTarget.value as ProviderMode;
+              setProviderMode(mode);
               edit({
-                preset,
-                issuer:
-                  preset === "google" ? "https://accounts.google.com" : "",
+                issuer: mode === "google" ? "https://accounts.google.com" : "",
                 workspaceDomain: "",
                 buttonLabel:
-                  preset === "google"
+                  mode === "google"
                     ? "Sign in with Google"
-                    : preset === "pocket-id"
-                      ? "Sign in with Pocket ID"
-                      : "Sign in with SSO",
+                    : "Sign in with SSO",
               });
             }}
           >
             <option value="google">Google Workspace</option>
-            <option value="pocket-id">Pocket ID</option>
-            <option value="oidc">Other OIDC</option>
+            <option value="oidc">OpenID Connect</option>
           </Select>
           <label for="oidc-central">Central login URL</label>
           <Input
@@ -304,21 +301,15 @@ export function OidcWizard({
             id="oidc-issuer"
             type="url"
             required
-            readOnly={config.preset === "google"}
+            readOnly={providerMode === "google"}
             value={config.issuer}
             onInput={(event) => edit({ issuer: event.currentTarget.value })}
           />
-          {config.preset === "google" ? (
+          {providerMode === "google" ? (
             <p class="sb-help-text">
               Create a Web application OAuth client in Google Cloud and add the
               callback below as an authorized redirect URI. Configure the
               consent screen for your Workspace organization.
-            </p>
-          ) : config.preset === "pocket-id" ? (
-            <p class="sb-help-text">
-              Create an OIDC client in Pocket ID, add this callback URL, and
-              enable PKCE. Pocket ID must return a verified email; the sign-in
-              test checks this before activation.
             </p>
           ) : (
             <p class="sb-help-text">
@@ -369,7 +360,7 @@ export function OidcWizard({
               edit({ clientSecret: event.currentTarget.value })
             }
           />
-          {config.preset === "google" && (
+          {providerMode === "google" && (
             <>
               <label for="oidc-domain">Workspace domain</label>
               <Input
@@ -477,7 +468,7 @@ export function OidcWizard({
                 <dd>{result.provisionedUsername ?? "No account added yet"}</dd>
               </>
             )}
-            {config.preset === "google" && (
+            {providerMode === "google" && (
               <>
                 <dt>Workspace domain</dt>
                 <dd>{config.workspaceDomain}</dd>

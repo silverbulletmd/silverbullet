@@ -74,10 +74,7 @@ impl ProviderStore {
         self.mutate(|state| {
             if config.client_secret.is_empty() {
                 if let Some(previous) = state.draft.as_ref().or(state.active.as_ref()) {
-                    if previous.client_id == config.client_id
-                        && previous.preset == config.preset
-                        && (previous.issuer == config.issuer || config.preset == "google")
-                    {
+                    if previous.client_id == config.client_id && previous.issuer == config.issuer {
                         config.client_secret = previous.client_secret.clone();
                     }
                 }
