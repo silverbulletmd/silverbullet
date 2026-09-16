@@ -23,6 +23,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { resolveASTReference } from "../space_lua.ts";
 import type { Client } from "../client.ts";
+import { isViewValue } from "../navigator/view_value.ts";
 import {
   classifyResult,
   renderResultToCleanMarkdown,
@@ -142,6 +143,9 @@ export async function expressionToPortableMarkdown(
     expressionText,
     currentPageMeta,
   );
+  if (isViewValue(rawResult)) {
+    return { ok: false, reason: "A view has no portable Markdown rendering" };
+  }
   if (rawResult === null || rawResult === undefined) {
     return { ok: true, markdown: "" };
   }

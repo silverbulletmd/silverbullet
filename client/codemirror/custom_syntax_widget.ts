@@ -9,6 +9,7 @@ import {
 import type { Client } from "../client.ts";
 import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
 import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
+import { isViewValue } from "../navigator/view_value.ts";
 
 export type CustomSyntaxExtension = CustomSyntaxSpec & {
   // CSS class applied to the start delimiter in the editor
@@ -112,6 +113,7 @@ export function customSyntaxPlugin(client: Client) {
                       spec.renderClass &&
                       result &&
                       typeof result === "object" &&
+                      !isViewValue(result) &&
                       !Array.isArray(result)
                     ) {
                       result.cssClasses = [

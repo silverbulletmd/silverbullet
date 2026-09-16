@@ -152,3 +152,117 @@ test.describe("configuration extension", () => {
     ).toBe(before);
   });
 });
+
+const inlineViewConfig = `# Inline views
+\`\`\`space-lua
+function workshopTree()
+  return view.new {
+    stateKey = "workshop",
+    refreshOn = {"fixture:refresh"},
+    source = function()
+      local rows = {{name = "Sketchbook/Cover ideas"}}
+      if fixtureRefreshed then table.insert(rows, {name = "Sketchbook/Paper studies"}) end
+      return rows
+    end,
+    presentation = { mode = "tree" },
+  }
+end
+function readingList()
+  return view.new {
+    source = function() return {{name = "Paper studies", details = "Notes on paper, texture, and binding"}} end,
+    presentation = { row = {description = "details"} },
+    onSelect = function() editor.navigate("Destination") end,
+  }
+end
+function weeklyContent()
+  return view.new {content = function() return "A **small** experiment." end}
+end
+view.define {
+  name = "fixture.inlineReading",
+  view = readingList(),
+  command = "Fixture: Open Reading",
+}
+\`\`\`
+`;
+
+const inlineViewPage =
+  "# Workshop\n\n${workshopTree()}\n\n${readingList()}\n\n${weeklyContent()}\n\n${weeklyContent()}\n\nEnd of page.";
+
+test.describe("inline view values", () => {
+  test.use({
+    spaceFiles: {
+      "CONFIG.md": inlineViewConfig,
+      "index.md": inlineViewPage,
+      "Destination.md": "# Destination",
+    },
+  });
+
+  test("views render inline, retain keyed expansion, and use the Lua widget Edit control", async ({
+    sbPage,
+  }) => {
+    const views = sbPage.locator(".sb-lua-view");
+    await expect(views).toHaveCount(4);
+    for (const [index, expression] of [
+      [0, "${workshopTree()}"],
+      [1, "${readingList()}"],
+    ] as const) {
+      await views.nth(index).hover();
+      await views
+        .nth(index)
+        .getByRole("button", { name: "Edit", exact: true })
+        .click({ timeout: 3000 });
+      expect(
+        await sbPage.evaluate(() =>
+          (globalThis as any).sbRuntime.evalLua("editor.getCursor()"),
+        ),
+      ).toBe(inlineViewPage.indexOf(expression));
+      await sbPage.evaluate(() =>
+        (globalThis as any).sbRuntime.evalLua("editor.moveCursor(0)"),
+      );
+      await expect(views).toHaveCount(4);
+    }
+    const tree = views.nth(0);
+    await expect(tree.getByText("Sketchbook", { exact: true })).toBeVisible();
+    await tree.getByText("Sketchbook", { exact: true }).click();
+    await expect(tree.getByText("Cover ideas", { exact: true })).toBeVisible();
+    await expect(views.nth(2).locator("strong")).toHaveText("small");
+    await expect(views.nth(3).locator("strong")).toHaveText("small");
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua(
+        '(function() fixtureRefreshed = true; event.dispatch("fixture:refresh") end)()',
+      ),
+    );
+    await expect(
+      tree.getByText("Paper studies", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      views.locator(
+        'button[data-button="copy"], button[data-button="bake"], button[data-button="reload"]',
+      ),
+    ).toHaveCount(0);
+    await views.nth(1).getByText("Paper studies", { exact: true }).click();
+    await expect(currentPage(sbPage)).toHaveValue("Destination");
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua('editor.navigate("index")'),
+    );
+    await expect(
+      views.nth(0).getByText("Cover ideas", { exact: true }),
+    ).toBeVisible();
+    const secondContent = views.nth(3);
+    await secondContent.hover();
+    await secondContent.locator('button[data-button="edit"]').click();
+    const selection = await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua("editor.getCursor()"),
+    );
+    expect(selection).toBe(inlineViewPage.lastIndexOf("${weeklyContent()}"));
+    await expect(
+      sbPage.locator(".cm-line", { hasText: "${weeklyContent()}" }),
+    ).toBeVisible();
+    await runCommandViaPalette(sbPage, "Fixture: Open Reading");
+    await expect(
+      navFrame(sbPage).getByText("Paper studies", { exact: true }),
+    ).toBeVisible();
+    await navFrame(sbPage).getByText("Paper studies", { exact: true }).click();
+    await expect(currentPage(sbPage)).toHaveValue("Destination");
+  });
+});

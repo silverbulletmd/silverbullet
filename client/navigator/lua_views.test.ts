@@ -304,6 +304,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     createIcon: undefined,
     mode: "list",
     hasContent: false,
+    hasSelect: true,
     dock: "modal",
     supportedDocks: ["modal"],
     hierarchy: { field: "name", separator: "/" },
@@ -320,6 +321,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     keys: undefined,
     actions: undefined,
     segments: undefined,
+    dropdown: undefined,
     limit: 200,
     search: "client",
     hasRowIcon: false,
@@ -767,6 +769,11 @@ test("view.pick keeps the content fields and stands them up as an ephemeral moda
   expect(meta.ephemeral).toBe(true);
   expect(meta.title).toBe("Pick");
   expect(meta.placeholder).toBe("Fruit");
+});
+
+test("view.pick remains selectable without an onSelect callback", () => {
+  const internal = buildPickSpec(luaSpec(`{ ${SOURCE} }`), "__pick:1:0.5");
+  expect(wireMeta(internal).hasSelect).toBe(true);
 });
 
 test("the rows hook runs the spec's own closures", async () => {

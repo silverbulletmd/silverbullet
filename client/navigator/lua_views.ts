@@ -515,7 +515,7 @@ function filterFields(spec: ViewSpec): Record<string, any> | undefined {
 export function wireMeta(spec: ViewSpec): ViewMeta {
   const p = or(field(spec, "presentation"), {});
   const f = or(field(spec, "filter"), {});
-  const name = field(spec, "name");
+  const name = field(spec, "name") ?? "";
   const title = field(spec, "title");
   const hasContent = present(field(spec, "content"));
   return {
@@ -527,6 +527,9 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     createIcon: toJS(field(p, "createIcon")),
     mode: presentationMode(spec),
     hasContent,
+    hasSelect:
+      present(field(spec, "onSelect")) ||
+      (typeof name === "string" && name.startsWith(RESERVED_PICK_PREFIX)),
     dock: dockSlot(spec),
     supportedDocks: supportedDocks(spec),
     hierarchy: hierarchy(spec),
@@ -558,8 +561,12 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
 }
 
 /** Validation only -- `wireMeta` is what callers project with once this returns without throwing. */
-export function validateViewSpec(spec: ViewSpec, caller: string) {
-  if (!truthy(field(spec, "name"))) {
+export function validateViewSpec(
+  spec: ViewSpec,
+  caller: string,
+  requireName = true,
+) {
+  if (requireName && !truthy(field(spec, "name"))) {
     throw new Error(`${caller}: name is required`);
   }
   const content = contentFn(spec, caller);
@@ -592,16 +599,15 @@ export function validateViewSpec(spec: ViewSpec, caller: string) {
   expansionScope(spec);
 }
 
-export function validateDefineSpec(spec: ViewSpec) {
+export function validateDefineSpec(spec: ViewSpec, requireSelection = true) {
   const name = field(spec, "name");
   if (luaType(name) === "string" && name.startsWith(RESERVED_PICK_PREFIX)) {
     throw new Error(
       `view.define: names starting with '${RESERVED_PICK_PREFIX}' are reserved for view.pick`,
     );
   }
-  // A content view renders a document, not a list: there is no row to select,
-  // so it is the one shape of view that needs no `onSelect`.
   if (
+    requireSelection &&
     !present(field(spec, "content")) &&
     luaType(field(spec, "onSelect")) !== "function"
   ) {

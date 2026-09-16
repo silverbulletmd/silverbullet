@@ -786,6 +786,41 @@ $comment-border: 1px;
     }
   }
 
+  .sb-lua-view {
+    > div > .content {
+      padding-right: 44px;
+
+      &:has(.sb-nav-row) {
+        padding-right: 0;
+      }
+    }
+
+    > div > .button-bar {
+      z-index: 1;
+      display: block;
+      opacity: 0;
+      pointer-events: none;
+
+      button {
+        min-width: 44px;
+        min-height: 44px;
+      }
+    }
+
+    &:hover > div > .button-bar,
+    &:focus-within > div > .button-bar {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      > div > .button-bar {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+  }
+
   // Page-docked content views share document typography; panel views use
   // .sb-nav-root .sb-nav-content. Scope this to content bodies: row widgets
   // flatten lists inline, and these higher-specificity bullets would override

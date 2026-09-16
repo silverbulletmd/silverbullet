@@ -3,6 +3,7 @@ import { Decoration, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
+import { isViewValue } from "../navigator/view_value.ts";
 import { activeWidgets } from "./code_widget.ts";
 import { pageSlotViews } from "../navigator/page_slots.ts";
 import {
@@ -12,6 +13,15 @@ import {
 
 class ArrayWidget extends WidgetType {
   public dom?: HTMLElement;
+  private children: LuaWidget[] = [];
+  private renderVersion = 0;
+
+  override destroy(): void {
+    this.renderVersion++;
+    for (const child of this.children) child.destroy();
+    this.children = [];
+    activeWidgets.delete(this);
+  }
 
   constructor(
     readonly client: Client,
@@ -55,7 +65,11 @@ class ArrayWidget extends WidgetType {
   }
 
   async renderContent(div: HTMLElement) {
+    const version = ++this.renderVersion;
     const content = await this.callback(this.client.currentName());
+    if (version !== this.renderVersion) return;
+    for (const child of this.children) child.destroy();
+    this.children = [];
     if (!content) return;
 
     const renderedWidgets: HTMLElement[] = [];
@@ -67,6 +81,7 @@ class ArrayWidget extends WidgetType {
         !widgetContent ||
         widgetContent === "" ||
         (widgetContent instanceof Object &&
+          !isViewValue(widgetContent) &&
           !widgetContent.markdown &&
           !widgetContent.html)
       )
@@ -80,7 +95,8 @@ class ArrayWidget extends WidgetType {
         inPage: false,
       });
 
-      const html = widget.toDOM().querySelector<HTMLDivElement>(":scope > div");
+      const wrapper = widget.toDOM();
+      const html = wrapper.querySelector<HTMLDivElement>(":scope > div");
       if (!html) {
         console.log("There was an error rendering one of the panel widgets");
         continue;
@@ -88,7 +104,8 @@ class ArrayWidget extends WidgetType {
 
       html.classList.add(this.childClass);
 
-      renderedWidgets.push(html);
+      this.children.push(widget);
+      renderedWidgets.push(wrapper);
     }
 
     if (renderedWidgets.length === 0) {
@@ -102,6 +119,7 @@ class ArrayWidget extends WidgetType {
 
     // Wait for the clientHeight to settle
     setTimeout(() => {
+      if (version !== this.renderVersion || !div.isConnected) return;
       this.client.widgetCache.setCachedWidgetMeta(this.cacheKey, {
         height: div.clientHeight,
         block: true,

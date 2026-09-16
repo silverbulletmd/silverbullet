@@ -38,6 +38,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import type { Space } from "../space.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
+import { isViewValue } from "../navigator/view_value.ts";
 
 // Synthetic node type used to represent pre-resolved custom syntax HTML in the parse tree
 export const CustomSyntaxRenderedHtmlType = "CustomSyntaxRenderedHtml";
@@ -171,6 +172,9 @@ export async function expandMarkdown(
           sf,
         );
 
+        if (isViewValue(result)) {
+          return parse(mdLang, "*This view requires the live editor.*");
+        }
         if (result?.markdown) {
           result = result.markdown;
         } else if (result instanceof LuaTable && result.has("markdown")) {

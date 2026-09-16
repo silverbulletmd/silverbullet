@@ -4,6 +4,7 @@ import {
   datastore,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
+import { LuaTable } from "../space_lua/runtime.ts";
 import { createDockState } from "./dock_state.ts";
 import {
   buildPickSpec,
@@ -24,6 +25,7 @@ import {
   selectInFlight,
   unregister,
 } from "./registry.ts";
+import { normalizeDefineSpec } from "./view_value.ts";
 import type { ViewDefaultsTable } from "./view_defaults.ts";
 
 export type OpenOptions = {
@@ -287,10 +289,17 @@ export function restoreDocks(): Promise<void> {
 }
 
 export async function defineView(spec: ViewSpec): Promise<void> {
-  validateDefineSpec(spec);
-  const meta = wireMeta(spec);
-  register({ meta, spec });
-  const command = commandDefinition(spec, openCommand(meta.name));
+  const view =
+    spec &&
+    typeof spec === "object" &&
+    (spec instanceof LuaTable ? spec.rawGet("view") : spec.view);
+  const explicitView = view !== undefined && view !== null;
+  if (!explicitView) validateDefineSpec(spec);
+  const normalized = normalizeDefineSpec(spec);
+  if (explicitView) validateDefineSpec(normalized, false);
+  const meta = wireMeta(normalized);
+  register({ meta, spec: normalized });
+  const command = commandDefinition(normalized, openCommand(meta.name));
   if (!command.name) return;
   // Written to config rather than registered with the command hook, so a
   // script reload's `config.clear()` retires it alongside the view itself.

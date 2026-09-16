@@ -419,7 +419,9 @@ export function NavRoot({
             readOnly={readOnly}
             scrollContainerSelector=".sb-nav-body"
             onToggle={cmd.toggleExpanded}
-            onSelect={cmd.onTreeRowClick}
+            onSelect={
+              view.meta.hasSelect !== false ? cmd.onTreeRowClick : undefined
+            }
             onMove={(from, to) => void cmd.moveNode(from, to)}
             onAction={(node, index) =>
               void cmd.runAction(index, nodeObject(node))
@@ -451,7 +453,11 @@ export function NavRoot({
                     />
                   )
             }
-            onSelect={(i) => void cmd.selectRow(i)}
+            onSelect={
+              view.meta.hasSelect !== false
+                ? (i) => void cmd.selectRow(i)
+                : undefined
+            }
             onAction={(i, index) => {
               const row = listItems[i]?.row;
               if (row) void cmd.runAction(index, row.obj);

@@ -18,6 +18,8 @@ import {
   renderResultToMarkdown,
 } from "../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
+import { isViewValue, type ViewValue } from "../navigator/view_value.ts";
+import { mountInlineView } from "../navigator/ui/components/inline_view.tsx";
 import {
   attachWidgetEventHandlers,
   buildResolveTransclusion,
@@ -37,6 +39,7 @@ export type EventPayLoad = {
 };
 
 export type LuaWidgetContent =
+  | ViewValue
   | {
       _isWidget?: true;
       html?: string | HTMLElement;
@@ -72,6 +75,15 @@ export interface LuaWidgetOptions {
 
 export class LuaWidget extends WidgetType {
   public dom?: HTMLElement;
+  private renderVersion = 0;
+  private unmount?: () => void;
+
+  override destroy(): void {
+    this.renderVersion++;
+    this.unmount?.();
+    this.unmount = undefined;
+    activeWidgets.delete(this);
+  }
 
   constructor(readonly opts: LuaWidgetOptions) {
     super();
@@ -164,6 +176,9 @@ export class LuaWidget extends WidgetType {
   }
 
   async renderContent(div: HTMLElement) {
+    const version = ++this.renderVersion;
+    this.unmount?.();
+    this.unmount = undefined;
     const currentName = this.opts.client.currentName();
     let widgetContent = this.opts.inPage
       ? await this.opts.client.widgetCache.prewarmResult(
@@ -171,7 +186,38 @@ export class LuaWidget extends WidgetType {
           () => this.opts.callback(this.opts.expressionText, currentName),
         )
       : await this.opts.callback(this.opts.expressionText, currentName);
+    if (version !== this.renderVersion) return;
     activeWidgets.add(this);
+    if (isViewValue(widgetContent)) {
+      div.className = "sb-lua-directive-block sb-lua-view";
+      const host = document.createElement("div");
+      host.className = "sb-inline-view";
+      div.replaceChildren(
+        this.wrapHtml(true, host, undefined, undefined, true),
+      );
+      div.style.minHeight = "";
+      attachWidgetEventHandlers(div, this.opts.client, this.opts.codeText);
+      const unmount = mountInlineView(
+        host,
+        this.opts.client,
+        widgetContent,
+        currentName,
+      );
+      const observer = new ResizeObserver(() => {
+        if (version !== this.renderVersion || !div.isConnected) return;
+        this.opts.client.widgetCache.setCachedWidgetMeta(this.opts.cacheKey, {
+          height: div.offsetHeight,
+          block: true,
+        });
+        this.opts.client.editorView.requestMeasure();
+      });
+      observer.observe(div);
+      this.unmount = () => {
+        observer.disconnect();
+        unmount();
+      };
+      return;
+    }
     if (widgetContent === null || widgetContent === undefined) {
       if (!this.opts.renderEmpty) {
         div.innerHTML = "";
@@ -209,7 +255,7 @@ export class LuaWidget extends WidgetType {
     }
 
     // After normalization `widgetContent` is always the object form
-    const wc = widgetContent as Exclude<LuaWidgetContent, string>;
+    const wc = widgetContent as Exclude<LuaWidgetContent, string | ViewValue>;
 
     if (wc.cssClasses) {
       div.className = wc.cssClasses.join(" ");
@@ -339,6 +385,7 @@ export class LuaWidget extends WidgetType {
       );
     }
     if (html) {
+      if (version !== this.renderVersion) return;
       const bakeBody = wc.html
         ? typeof wc.markdown === "string"
           ? wc.markdown.trim()
@@ -355,6 +402,7 @@ export class LuaWidget extends WidgetType {
     }
 
     setTimeout(() => {
+      if (version !== this.renderVersion || !div.isConnected) return;
       this.opts.client.widgetCache.setCachedWidgetMeta(this.opts.cacheKey, {
         height: div.offsetHeight,
         block,
@@ -374,6 +422,7 @@ export class LuaWidget extends WidgetType {
     html: string | HTMLElement,
     copyContent: string | undefined,
     bakeBody?: string | undefined,
+    editOnly = false,
   ): HTMLElement {
     if (typeof html === "string") {
       html = parseHtmlString(html);
@@ -395,28 +444,31 @@ export class LuaWidget extends WidgetType {
       listener: (event: MouseEvent) => void;
     }) => {
       const button = document.createElement("button");
+      button.type = "button";
       button.setAttribute("data-button", title.toLowerCase());
       button.setAttribute("title", title);
+      button.setAttribute("aria-label", title);
       button.innerHTML = icon;
       button.addEventListener("click", listener);
 
       return button;
     };
 
-    buttonBar.appendChild(
-      createButton({
-        title: "Reload",
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
-        listener: (e) => {
-          e.stopPropagation();
-          this.opts.client.clientSystem
-            .localSyscall("system.invokeFunction", ["index.refreshWidgets"])
-            .catch(console.error);
-        },
-      }),
-    );
+    if (!editOnly)
+      buttonBar.appendChild(
+        createButton({
+          title: "Reload",
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
+          listener: (e) => {
+            e.stopPropagation();
+            this.opts.client.clientSystem
+              .localSyscall("system.invokeFunction", ["index.refreshWidgets"])
+              .catch(console.error);
+          },
+        }),
+      );
 
-    if (copyContent) {
+    if (!editOnly && copyContent) {
       buttonBar.appendChild(
         createButton({
           title: "Copy",
@@ -433,6 +485,7 @@ export class LuaWidget extends WidgetType {
     }
 
     if (
+      !editOnly &&
       this.opts.bakeable &&
       bakeBody !== undefined &&
       this.opts.codeText &&
@@ -468,7 +521,7 @@ export class LuaWidget extends WidgetType {
       );
     }
 
-    if (this.opts.inPage) {
+    if (this.opts.inPage && (!editOnly || !this.opts.client.isReadOnlyMode())) {
       buttonBar.appendChild(
         createButton({
           title: "Edit",
@@ -485,7 +538,7 @@ export class LuaWidget extends WidgetType {
       );
     }
 
-    if (this.opts.openRef) {
+    if (!editOnly && this.opts.openRef) {
       buttonBar.appendChild(
         createButton({
           title: "Open",

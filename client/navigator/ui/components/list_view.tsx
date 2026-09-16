@@ -39,7 +39,7 @@ export function ListView({
    * from the top row means "create it instead".
    */
   createRow?: (selected: boolean) => ComponentChildren;
-  onSelect: (index: number) => void;
+  onSelect?: (index: number) => void;
   onAction: (index: number, actionIndex: number) => void;
 }) {
   const selectedRef = useRef<HTMLDivElement>(null);
@@ -96,7 +96,7 @@ export function ListView({
             readOnly={readOnly}
             phrase={phrase}
             elRef={i === selectedIndex ? selectedRef : undefined}
-            onClick={() => onSelect(i)}
+            onClick={onSelect ? () => onSelect(i) : undefined}
             onAction={(actionIndex) => onAction(i, actionIndex)}
           />
         ),

@@ -370,3 +370,7 @@
 .sb-nav-row:hover:not(.sb-nav-selected) {
   background-color: var(--subtle-background-color);
 }
+
+.sb-nav-root .sb-nav-row.sb-nav-passive:hover:not(.sb-nav-selected) {
+  background-color: transparent;
+}

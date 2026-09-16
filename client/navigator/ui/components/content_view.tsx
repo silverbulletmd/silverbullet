@@ -20,10 +20,10 @@ import { renderMarkdownToHtml } from "../../../markdown_renderer/markdown_render
 export async function renderContentMarkdown(
   client: Client,
   markdown: string,
+  pageName = client.currentName(),
 ): Promise<HTMLElement | undefined> {
   if (!markdown.trim()) return undefined;
   const syntaxExtensions = client.config.get("syntaxExtensions", {});
-  const pageName = client.currentName();
   const resolveTransclusion = buildResolveTransclusion(client);
   let tree = await expandMarkdown(
     client.space,

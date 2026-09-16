@@ -107,7 +107,7 @@ export function RowItem({
   readOnly: boolean;
   /** The phrase ranking rows, for matched-character highlighting -- undefined while it's empty. */
   phrase?: string;
-  onClick: () => void;
+  onClick?: () => void;
   onAction: (index: number) => void;
   elRef?: Ref<HTMLDivElement>;
 }) {
@@ -124,6 +124,7 @@ export function RowItem({
       className={
         "sb-nav-row" +
         (selected ? " sb-nav-selected" : "") +
+        (!onClick ? " sb-nav-passive" : "") +
         (row.cssClass ? ` ${row.cssClass}` : "")
       }
       data-index={index}

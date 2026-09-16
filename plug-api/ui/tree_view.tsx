@@ -13,6 +13,15 @@ const SPRING_LOAD_MS = 700;
 
 const DRAG_MIME = "application/x-sb-nav-path";
 
+export function activateTreeRow<T extends { path: string; isFolder: boolean }>(
+  node: T,
+  onSelect: ((node: T) => void) | undefined,
+  onToggle: (path: string) => void,
+): void {
+  if (onSelect) onSelect(node);
+  else if (node.isFolder) onToggle(node.path);
+}
+
 function Chip({ decoration }: { decoration: Decoration }) {
   return (
     <span
@@ -41,7 +50,7 @@ export type TreeViewProps = {
   hasIcon: boolean;
   readOnly: boolean;
   onToggle: (path: string) => void;
-  onSelect: (node: TreeNode) => void;
+  onSelect?: (node: TreeNode) => void;
   onMove: (draggedPath: string, targetFolder: string) => void;
   onAction: (node: TreeNode, actionIndex: number) => void;
   scrollContainerSelector?: string;
@@ -281,7 +290,7 @@ function TreeItem({
   hasIcon: boolean;
   readOnly: boolean;
   onToggle: (path: string) => void;
-  onSelect: (node: TreeNode) => void;
+  onSelect?: (node: TreeNode) => void;
   onAction: (node: TreeNode, actionIndex: number) => void;
   selectedRef: { current: HTMLDivElement | null };
   focusableRows?: boolean;
@@ -308,10 +317,13 @@ function TreeItem({
           (node.isFolder ? " sb-nav-folder" : "") +
           (node.isFolder && node.row ? " sb-nav-dual" : "") +
           (selected ? " sb-nav-selected" : "") +
+          (!onSelect && !node.isFolder ? " sb-nav-passive" : "") +
           (dropTarget === node.path ? " sb-nav-droptarget" : "") +
           (node.row?.cssClass ? ` ${node.row.cssClass}` : "")
         }
-        style={{ paddingLeft: `${depth * 1.2}rem` }}
+        style={{
+          paddingLeft: `calc(var(--sb-tree-row-inset, 0px) + ${depth} * var(--sb-tree-indent, 1.2rem))`,
+        }}
         data-path={node.path}
         aria-current={currentPath === node.path ? "page" : undefined}
         draggable={draggable}
@@ -321,7 +333,11 @@ function TreeItem({
             ? (e) => onRowKeyDown(node, e as KeyboardEvent)
             : undefined
         }
-        onClick={() => onSelect(node)}
+        onClick={
+          onSelect || node.isFolder
+            ? () => activateTreeRow(node, onSelect, onToggle)
+            : undefined
+        }
       >
         {node.isFolder ? (
           <span

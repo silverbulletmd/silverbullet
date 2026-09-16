@@ -261,6 +261,7 @@ export function createCommands({
       await runCreate();
       return;
     }
+    if (view.meta.hasSelect === false) return;
     const entry = rowAtIndex(index);
     if (!entry) return;
     const kept = await engine.select(
@@ -276,6 +277,10 @@ export function createCommands({
 
   async function selectTreeNode(node: TreeNode) {
     if (!view) return;
+    if (view.meta.hasSelect === false) {
+      if (node.isFolder) tree.toggleExpanded(node.path);
+      return;
+    }
     if (node.isFolder && view.meta.selectableFolders) {
       if (node.row) {
         const kept = await engine.select(

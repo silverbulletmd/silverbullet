@@ -68,6 +68,7 @@ export type ViewMeta = {
   stripPrefix?: string;
   mode: "list" | "tree";
   hasContent?: boolean;
+  hasSelect?: boolean;
   dock: (typeof ALL_DOCKS)[number];
   supportedDocks?: string[];
   hierarchy: { field: string; separator: string };

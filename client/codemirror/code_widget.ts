@@ -2,6 +2,7 @@ export const activeWidgets = new Set<DomWidget>();
 
 export interface DomWidget {
   dom?: HTMLElement;
+  destroy?(): void;
 
   // Drop any prewarmed callback result so the next renderContent runs the
   // callback fresh. Used by reloadAllWidgets so refresh forces fresh data.
@@ -15,7 +16,8 @@ export interface DomWidget {
 
 export async function reloadAllWidgets() {
   for (const widget of [...activeWidgets]) {
-    if (!widget.dom || !widget.dom.parentNode) {
+    if (!widget.dom?.isConnected) {
+      widget.destroy?.();
       activeWidgets.delete(widget);
       continue;
     }
@@ -29,7 +31,8 @@ export async function reloadAllWidgets() {
 
 function garbageCollectWidgets() {
   for (const widget of activeWidgets) {
-    if (!widget.dom || !widget.dom.parentNode) {
+    if (!widget.dom?.isConnected) {
+      widget.destroy?.();
       activeWidgets.delete(widget);
     }
   }

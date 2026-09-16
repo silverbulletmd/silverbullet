@@ -296,6 +296,33 @@ test("defineView registers the view and mirrors its command into config", async 
   expect(command).toMatchObject({ name: "Space: V", key: "Ctrl-j" });
 });
 
+test("defineView registers an explicit value without onSelect", async () => {
+  const nav = await freshNavigator();
+  const { newView } = await import("./view_value.ts");
+  const source = vi.fn(() => []);
+  const value = newView({ source, presentation: { mode: "tree" } });
+
+  await nav.defineView({
+    name: "space.readOnly",
+    dock: "page-top",
+    view: value,
+  });
+
+  expect(source).not.toHaveBeenCalled();
+  const registered = registry.register.mock.calls[0][0] as {
+    meta: { name: string; dock: string; mode: string };
+    spec: InstanceType<typeof import("../space_lua/runtime.ts").LuaTable>;
+  };
+  expect(registered.meta).toMatchObject({
+    name: "space.readOnly",
+    dock: "page-top",
+    mode: "tree",
+    hasSelect: false,
+  });
+  expect(registered.spec.rawGet("source")).toBe(source);
+  expect(config.set).not.toHaveBeenCalled();
+});
+
 // Lua view menu metadata must become plain MenuContribution objects for
 // the App native-menu assembler.
 test("defineView mirrors a Lua `menu` table into the command's config entry intact", async () => {

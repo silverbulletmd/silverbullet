@@ -31,6 +31,7 @@ An attempt at documenting the changes/new features introduced in each release.
 * **Completely revamped [[Navigator]] and dockable panel UX (includes a file tree!):** one configurable navigation UI that presents any object collection as a fuzzy-filterable list **or tree**, either as a modal or as a sidebar. A lot of views have been rebuilt on this. Oh yeah: ${widgets.commandButton("Navigate: Tree")} 🤯
   * **Unified docking:** every navigator view now has a single, consistent notion of where it lives: `"modal"`, `"lhs"`/`"rhs"` sidebar, `"bhs"` resizable bottom panel, or `"page-top"`/`"page-bottom"` (rendered as an in-document widget). You can move all of them, and those docking positions and panel sizes persist between reloads.
   * The Table of Contents, Linked Mentions, Linked Tasks are now movable, dockable widgets rather than fixed page decorations.
+  * **Inline views:** `view.new` creates reusable list, tree, and Markdown views renderable in `${...}` expressions, with optional saved tree expansion.
   * **Markdown-content views:** `view.define` defines a view that renders a markdown document instead of a list of rows, through the very same pipeline.
 * **New [[Page Decorations|page decorations]]:** `icon` gives a page its own (Feather) icon in the navigator, auto complete, page links, and the top bar, `tree.priority` floats a page above its siblings in the otherwise alphabetical space tree, and `tree.hide` keeps a page out of the tree alone. `hide` now also hides a page from the tree, not just from the page picker and completions.
 * Docker images:

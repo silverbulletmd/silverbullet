@@ -3,14 +3,66 @@ tags: api/space-lua
 references:
 - client/navigator/navigator.ts
 ---
-The `view` API defines and opens [[Navigator]] views: filterable list or tree panels, shown as a modal, sidebar, bottom panel, or page widget over any collection of objects your Lua returns.
+The `view` API constructs reusable list, tree, and Markdown views. Render a value directly inside a page with `${...}`, or register it as a [[Navigator]] panel shown in a modal, sidebar, bottom panel, or page dock.
 
-`navigator.*` is a permanent alias for every function below (`navigator.define`, `navigator.open`, `navigator.pick`, `navigator.focus`, `navigator.moveByRename`) -- same implementation, just the pre-rename name. It is fully supported, not deprecated; use whichever reads better in your own scripts. Everything past this point uses the canonical `view.*` names.
+`navigator.*` is a permanent alias for every function below (`navigator.new`, `navigator.define`, `navigator.open`, `navigator.pick`, `navigator.focus`, `navigator.moveByRename`) -- same implementation, just the pre-rename name. It is fully supported, not deprecated; use whichever reads better in your own scripts. Everything past this point uses the canonical `view.*` names.
+
+## view.new(spec)
+
+Constructs a view value without registering it, opening a panel, or running its source. Return it from a function to render it inside Markdown:
+
+```lua
+function projectView()
+  return view.new {
+    stateKey = "projects",
+    source = function()
+      return {
+        { name = "Projects/Sketchbook" },
+        { name = "Projects/Garden journal" },
+      }
+    end,
+    presentation = { mode = "tree" },
+    onSelect = function(obj)
+      editor.navigate(obj.name)
+    end,
+  }
+end
+```
+
+```markdown
+${projectView()}
+```
+
+Use the data source, presentation, and interaction fields documented below. `source` and `content` are mutually exclusive; one is required. `onSelect` is optional: omit it for informational rows. Embedded links and tree expansion still work. `content` renders the Markdown string it returns through the same content-view pipeline.
+
+Inline views use the lightweight document presentation: rows, expandable trees, and Markdown content. They do not show panel titles, docking controls, search, segments, dropdowns, or action toolbars. The Lua widget's **Edit** button reveals the expression for editing; Copy, Bake, and Reload buttons are not offered for view values. Static Markdown expansion shows a notice instead of a live view.
+
+Each rendering loads its own data and subscribes to `refreshOn`. Its source receives `ctx.dock = "inline"`; `inline` is a rendering context, not a dock accepted by `view.define`. Removing the rendering releases its subscriptions.
+
+### Inline state
+
+`stateKey` is optional. When provided, tree expansion is saved locally on this device, scoped to the containing page and key. Different pages keep independent state. Two views on the same page need different keys for independent saved state; sharing a key shares saved preferences, without synchronizing mounted views live. Renaming the page starts a new state identity. Without a key, state is transient and can be lost when the view is recreated. Focus and selection are not persisted.
+
+### Registering a value
+
+Pass the value to `view.define` alongside its registration fields:
+
+```lua
+view.define {
+  name = "my.projects",
+  view = projectView(),
+  title = "Projects",
+  command = "Navigate: Projects",
+  dock = "rhs",
+}
+```
+
+Names, titles, command metadata, docking, and open/follow-editor settings belong to `view.define`, not `view.new`. Do not combine `view = ...` with flat content fields such as `source`, `content`, or `presentation`; put those in the value. Docked persistence continues to use the registered view name, independently of inline `stateKey`.
 
 ## view.define(spec)
 `view.define(spec)`
 
-Registers a view, and optionally a [[Command]] that opens it. `name`, `source` and `onSelect` are required; everything else is optional. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) is reserved and cannot be redefined: `view.define` throws instead. `std.toc` (Table of Contents) is *not* one of these any more -- it's itself a `view.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Command]] (or key) to it, rather than trying to redefine the built-in's name.
+Registers a view, and optionally a [[Command]] that opens it. Supply `name` and a `view.new` value as `view`, or use the existing flat shorthand with `name`, `source`, and `onSelect` (a `content` view does not require `onSelect`). The flat form constructs a value internally and registers it through the same path. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) is reserved and cannot be redefined: `view.define` throws instead. `std.toc` (Table of Contents) is *not* one of these any more -- it's itself a `view.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Command]] (or key) to it, rather than trying to redefine the built-in's name.
 
 ### Identity and chrome
 * `name`: (globally) unique identifier for the navigator view; reserved names (the built-ins above, and anything starting with `__pick:`) throw at definition time.

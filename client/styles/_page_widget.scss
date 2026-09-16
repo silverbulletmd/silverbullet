@@ -139,3 +139,115 @@
     vertical-align: text-bottom;
   }
 }
+
+.sb-inline-view-body {
+  --sb-nav-muted: var(--subtle-color);
+  min-height: 1.2em;
+
+  .sb-nav-row {
+    height: auto;
+    min-height: 36px;
+    white-space: normal;
+
+    &:focus-visible {
+      outline: 2px solid var(--ui-accent-color);
+      outline-offset: -2px;
+    }
+  }
+
+  .sb-nav-passive {
+    cursor: default;
+    -webkit-user-select: text;
+    user-select: text;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
+
+  .sb-nav-chevron {
+    cursor: pointer;
+  }
+
+  .sb-page-widget-row {
+    padding-left: 0;
+  }
+}
+
+.sb-inline-view-loading {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 6px 0;
+  color: var(--subtle-color);
+}
+
+#sb-main .sb-lua-view .sb-inline-view-body {
+  --sb-tree-row-inset: 8px;
+  --sb-tree-indent: 20px;
+
+  &:has(.sb-nav-row) {
+    padding: 4px;
+  }
+
+  .sb-tree,
+  .sb-tree ul[role="group"] {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sb-treeitem {
+    display: block;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    &::before,
+    &::marker {
+      content: none;
+    }
+  }
+
+  .sb-nav-row {
+    box-sizing: border-box;
+    min-height: 32px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    line-height: 20px;
+
+    &:not(.sb-nav-passive):hover {
+      background-color: color-mix(in srgb, var(--ui-surface-hover-background-color) 50%, transparent);
+    }
+  }
+
+  > .sb-nav-row:first-child,
+  > .sb-tree > .sb-treeitem:first-child > .sb-nav-row {
+    padding-right: 40px;
+
+    @media (hover: none) and (pointer: coarse) {
+      min-height: 44px;
+      padding-right: 48px;
+    }
+  }
+
+  .sb-nav-primary,
+  .sb-nav-description {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .sb-nav-description {
+    max-width: none;
+
+    &:not(.sb-nav-description-structured) {
+      flex: 1 1 9rem;
+    }
+  }
+}

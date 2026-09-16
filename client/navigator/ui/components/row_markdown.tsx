@@ -20,13 +20,14 @@ import type { Row } from "../../types.ts";
 export async function renderRowMarkdown(
   client: Client,
   text: string,
+  pageName = client.currentName(),
 ): Promise<HTMLElement | undefined> {
   if (!text || !needsMarkdown(text)) return undefined;
   try {
     const syntaxExtensions = client.config.get("syntaxExtensions", {});
     const tree = await expandMarkdown(
       client.space,
-      client.currentName(),
+      pageName,
       parse(buildExtendedMarkdownLanguage(syntaxExtensions), text),
       client.clientSystem.spaceLuaEnv,
       {
@@ -67,15 +68,16 @@ export function renderRows(
   client: Client,
   rows: Row[],
   isTree: boolean,
+  pageName = client.currentName(),
 ): Promise<RenderedRow[]> {
   if (isTree) return Promise.resolve(rows.map((row) => ({ row })));
   return Promise.all(
     rows.map(async (row) => ({
       row,
-      primaryNode: await renderRowMarkdown(client, row.primary ?? ""),
+      primaryNode: await renderRowMarkdown(client, row.primary ?? "", pageName),
       descriptionNode:
         typeof row.description === "string"
-          ? await renderRowMarkdown(client, row.description)
+          ? await renderRowMarkdown(client, row.description, pageName)
           : undefined,
     })),
   );

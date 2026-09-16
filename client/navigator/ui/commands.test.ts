@@ -27,12 +27,12 @@ function treeNode(path: string, page: boolean): TreeNode {
   };
 }
 
-function setup(selectableFolders = false) {
+function setup(selectableFolders = false, hasSelect?: boolean, slot = "lhs") {
   navigated.length = 0;
   const selected: Record<string, any>[] = [];
   let expanded = new Set<string>();
   const cmd = createCommands({
-    slot: "lhs",
+    slot,
     // `expansionScope: "page"` keeps a toggle out of the datastore, which has
     // no host here.
     view: {
@@ -41,6 +41,7 @@ function setup(selectableFolders = false) {
         expansionScope: "page",
         hierarchy: { separator: "/" },
         selectableFolders,
+        hasSelect,
       },
     } as unknown as ActiveView,
     engine: {
@@ -55,6 +56,9 @@ function setup(selectableFolders = false) {
     derived: {
       treeFiltering: false,
       treeDisplay: { effectiveExpanded: new Set<string>() },
+      createIndex: -1,
+      rowAtIndex: (index: number) =>
+        index === 0 ? { row: { obj: { name: "One" } } } : undefined,
     } as unknown as DerivedView,
     refs: {
       input: { current: null },
@@ -88,6 +92,15 @@ describe("selecting a tree node", () => {
     expect(selected).toEqual([{ name: "Projects" }]);
     expect([...expanded()]).toEqual([]);
   });
+});
+
+it("informational rows neither select nor dismiss a modal", async () => {
+  const { cmd, selected, expanded } = setup(false, false, "modal");
+  await cmd.selectRow(0);
+  await cmd.selectTreeNode(treeNode("Projects", true));
+
+  expect(selected).toEqual([]);
+  expect([...expanded()]).toEqual(["Projects"]);
 });
 
 // A tree whose folders may name something openable -- the space tree. Folders
