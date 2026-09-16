@@ -555,3 +555,16 @@ end, "unfinished capture")
 assertError(function()
     string.match("abc", "(ab(c)")
 end, "unfinished capture")
+
+local backslash = string.char(92)
+local unicodeResult, unicodeCount = string.gsub("표", backslash, "X")
+assertEqual(unicodeResult, "표")
+assertEqual(unicodeCount, 0)
+
+unicodeResult, unicodeCount = string.gsub("갯bar", "^/", "")
+assertEqual(unicodeResult, "갯bar")
+assertEqual(unicodeCount, 0)
+
+assertEqual(string.find("a갮md", "%.md$"), nil)
+assertEqual(string.match("표", backslash), nil)
+assertEqual(string.gmatch("표", backslash)(), nil)

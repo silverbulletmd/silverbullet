@@ -38,21 +38,21 @@ interface Capture {
 }
 
 export interface MatchState {
-  src: string; // original source string (for substring extraction)
-  s: Uint8Array; // source bytes
+  src: string;
+  s: Uint16Array;
   slen: number;
-  p: Uint8Array; // pattern bytes
+  p: Uint16Array;
   plen: number;
   level: number;
   capture: Capture[]; // pre-allocated, length `MAX_CAPTURES`
   matchdepth: number;
 }
 
-function toBytes(s: string): Uint8Array {
+function toCodeUnits(s: string): Uint16Array {
   const len = s.length;
-  const arr = new Uint8Array(len);
+  const arr = new Uint16Array(len);
   for (let i = 0; i < len; i++) {
-    arr[i] = s.charCodeAt(i) & 0xff;
+    arr[i] = s.charCodeAt(i);
   }
   return arr;
 }
@@ -106,7 +106,7 @@ function matchClass(c: number, cl: number): boolean {
   return cl >= 97 && cl <= 122 ? res : !res;
 }
 
-function classEnd(p: Uint8Array, plen: number, pi: number): number {
+function classEnd(p: Uint16Array, plen: number, pi: number): number {
   const ch = p[pi];
   pi++;
   if (ch === CH_ESC) {
@@ -136,7 +136,7 @@ function classEnd(p: Uint8Array, plen: number, pi: number): number {
 
 function matchBracketClass(
   c: number,
-  p: Uint8Array,
+  p: Uint16Array,
   pi: number,
   ec: number,
 ): boolean {
@@ -402,8 +402,8 @@ function match(ms: MatchState, si: number, pi: number): number {
 }
 
 function createMatchState(s: string, p: string): MatchState {
-  const sb = toBytes(s);
-  const pb = toBytes(p);
+  const sb = toCodeUnits(s);
+  const pb = toCodeUnits(p);
   const capture: Capture[] = new Array(MAX_CAPTURES);
   for (let i = 0; i < MAX_CAPTURES; i++) {
     capture[i] = { init: 0, len: 0 };
