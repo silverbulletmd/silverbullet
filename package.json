@@ -47,6 +47,7 @@
     "client/plugos/**/*.ts",
     "!client/plugos/**/*.test.ts",
     "client/asset_bundle/bundle.ts",
+    "client/config.ts",
     "client/data/kv_primitives.ts",
     "client/data/datastore.ts",
     "client/space_lua/**/*.ts",
@@ -54,6 +55,7 @@
     "!client/space_lua/**/*.bench.ts",
     "client/markdown_parser/constants.ts",
     "plugs/builtin_plugs.ts",
+    "plugs/index/types.ts",
     "dist/plug-compile.js"
   ],
   "scripts": {
@@ -101,6 +103,7 @@
     "@noble/hashes": "2.0.1",
     "@replit/codemirror-lang-nix": "6.0.1",
     "@replit/codemirror-vim": "6.3.0",
+    "@types/js-yaml": "^4.0.9",
     "commander": "^14.0.3",
     "crelt": "1.0.6",
     "d3-force": "^3.0.0",
@@ -125,7 +128,6 @@
     "@preact/preset-vite": "^2.10.3",
     "@types/d3-force": "^3.0.10",
     "@types/gitignore-parser": "^0.0.3",
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.6",
     "fake-indexeddb": "6.0.1",

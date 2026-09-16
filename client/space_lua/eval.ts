@@ -7,6 +7,7 @@ import type {
   LuaTableField,
   NumericType,
 } from "./ast.ts";
+import type { Config } from "../config.ts";
 import { LuaAttribute } from "./ast.ts";
 import { budgetTick, LuaBudgetStopped } from "./budget.ts";
 import { evalPromiseValues } from "./util.ts";
@@ -91,6 +92,11 @@ import {
 import { getBlockGotoMeta } from "./labels.ts";
 
 const astNumberKindCache = new WeakMap<LuaExpression, NumericType>();
+
+function getClientConfig(): Config | undefined {
+  return (globalThis as typeof globalThis & { client?: { config: Config } })
+    .client?.config;
+}
 
 function astNumberKind(e: LuaExpression | undefined): NumericType | undefined {
   if (!e) return undefined;
@@ -1165,7 +1171,7 @@ export function evalExpression(
             }
 
             return (collection as any)
-              .query(query, env, sf, globalThis.client?.config)
+              .query(query, env, sf, getClientConfig())
               .then(jsToLuaValue);
           })();
         }
@@ -1259,7 +1265,7 @@ export function evalExpression(
             }
 
             return (collection as any)
-              .query(query, env, sf, globalThis.client?.config)
+              .query(query, env, sf, getClientConfig())
               .then(jsToLuaValue);
           },
         );

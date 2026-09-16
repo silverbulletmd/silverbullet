@@ -66,6 +66,7 @@ An attempt at documenting the changes/new features introduced in each release.
 * **[[CLI|CLI]] remote file operations:** `sb fs` lists, reads, creates, edits, and deletes space files without the Runtime API. Exact text replacements support batches and revision checks to detect concurrent changes.
 * Removed the experimental `sb repl` command and its dedicated runtime support. Use `sb lua`, `sb lua-script`, and `sb logs` for terminal access.
 * Fix: moving a page with an image linked only from that page now updates the image link when the image moves with it, so the image remains visible and can move back with the page.
+* Fix: plug projects can type-check against the published `@silverbulletmd/silverbullet/syscalls` package without errors from missing files and types inside the package.
 * Fixes around casing in page/file names:
   * Renaming a page or folder to a different casing of the same name now works on case-insensitive filesystems (macOS, Windows)
   * Renames are now rejected when the new name differs only in casing from an existing page or document, so spaces stay portable between case-sensitive and case-insensitive hosts.
