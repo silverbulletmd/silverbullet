@@ -186,6 +186,32 @@ Things a content view doesn't have, because it has no rows: `onSelect` (the one 
 * `createIcon`: the create row's icon (see [[#Row icons]] for the accepted forms), resolved once for the view since its "object" is whatever is being typed.
 * `row`: `{ primary, label, description, decorations, cssClass, icon }`. `primary`/`label`/`description`/`cssClass` are each either a field name or a function of the object; `cssClass` adds classes to the row element itself; `icon` is described under [[#Row icons]].
 
+#### Row descriptions
+
+`presentation.row.description` can name a field or be a function returning a string or a structured description. Strings keep their existing inline layout (and Markdown rendering in page widgets). A structured description appears below the primary text, with an optional label on its own line and an excerpt of up to two visible lines. This works in lists and trees, in every dock.
+
+```lua
+presentation = {
+  row = {
+    description = function(obj)
+      return {
+        label = "Weekend routes",
+        text = "A quiet walking route through pine forest.",
+        highlights = { { 8, 15 } },
+      }
+    end,
+  },
+}
+```
+
+The structured form accepts:
+
+* `text`: required plain text. HTML and Markdown are displayed literally.
+* `label`: optional plain text, displayed above `text`.
+* `highlights`: optional list of `{ start, end }` pairs marking portions of `text`. Offsets are **zero-based UTF-16 code units**, with an exclusive end, matching editor positions rather than Lua string byte offsets. The example highlights `walking`. Characters outside the Basic Multilingual Plane, such as many emoji, count as two code units.
+
+Ranges are sorted and overlapping or adjacent ranges are combined. Invalid ranges, including out-of-bounds offsets and boundaries that split a surrogate pair, are ignored. An omitted or empty list leaves the text unhighlighted. The view supplies these ranges explicitly; the navigator does not infer highlights from the current filter phrase. When `description` is included in `filter.fields`, both its label and text are searchable.
+
 #### Row decorations
 `presentation.row.decorations` puts chips on a row. It is a function of the object returning a **list** of chips — a single chip has to be wrapped in a list of one — or `nil` for an undecorated row.
 

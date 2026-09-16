@@ -42,7 +42,6 @@ An attempt at documenting the changes/new features introduced in each release.
   * A heading inside a blockquote or a list item no longer jumps sideways when you put the cursor in it: its `#` markers hang back into the margin the way a top-level heading's always have, instead of shoving the whole line right.
   * A quoted heading's accent bar now runs the full height of its line, instead of stopping short of the heading's breathing room at both ends and breaking the bar into dashes.
 * [[Space Manager|Multi-space]] mode: an **account menu** in the editor's top bar.
-  * Worth knowing before you upgrade: the first admin save of *any* space rewrites the whole `spaces.json`, dropping `public` from **every** entry, not just the one edited. Rolling back to an older SilverBullet after that point makes every previously-public space private until you restore `public: true` by hand. It fails safe — a published wiki goes dark rather than leaking — but the effect is server-wide.
 * Fix: the first-run **setup wizard** and the [[Space Manager]] are usable on a phone.
 * A batch of mobile (iOS) fixes:
   * Pickers no longer show keyboard shortcuts on touch devices, where they cannot be pressed and only crowd out the page names.
