@@ -214,7 +214,7 @@ async function renamePage(oldName: string, newName: string) {
 
   const oldFolder = folderName(oldName);
   const newFolder = folderName(newName);
-  const documentsToMove = new Set<string>();
+  const documentsToMove = new Map<string, string>();
   // Links only need to be updated if the folder changes
   if (oldFolder !== newFolder) {
     // Pull every relation on this page that points at a page or file —
@@ -239,10 +239,11 @@ async function renamePage(oldName: string, newName: string) {
       if (rel.toTag === "document" && folderName(rel.to) === oldFolder) {
         const backRels = await getTextualBackRelations(rel.to);
         if (backRels.filter((a) => a.page !== oldName).length === 0) {
-          // Document is in the same folder as the page and is only
-          // linked from this page — move it along with the page.
-          documentsToMove.add(rel.to);
-          continue;
+          const newDocumentName =
+            oldFolder.length === 0
+              ? `${newFolder}/${rel.to}`
+              : rel.to.replace(oldFolder, newFolder).replace(/^\//, "");
+          documentsToMove.set(rel.to, newDocumentName);
         }
       }
       linksToUpdate.push(rel);
@@ -252,17 +253,14 @@ async function renamePage(oldName: string, newName: string) {
     linksToUpdate.sort((a, b) => b.range[0] - a.range[0]);
 
     for (const rel of linksToUpdate) {
-      const pos = rel.range[0];
-      // Only markdown-link forms `[text](path)` have a relative path to
-      // rewrite. Wikilinks (`[[...]]`) reference targets by absolute
-      // name and need no path rewrite when the source page moves.
-      if (text.substring(pos, pos + 2) === "[[") continue;
+      const movedDocument = documentsToMove.get(rel.to);
+      if (isWikiLinkAt(text, rel.range) && !movedDocument) continue;
 
       text = spliceReference({
         text,
         range: rel.range,
         oldName: rel.to,
-        newName: rel.to,
+        newName: movedDocument ?? rel.to,
         pageToEdit: newName,
       });
     }
@@ -270,16 +268,8 @@ async function renamePage(oldName: string, newName: string) {
 
   await space.writePage(newName, text);
 
-  const batchRenameDocuments: [string, string][] = [];
-  for (const document of documentsToMove) {
-    const newAttName =
-      oldFolder.length === 0
-        ? `${newFolder}/${document}`
-        : document.replace(oldFolder, newFolder).replace(/^\//, "");
-    batchRenameDocuments.push([document, newAttName]);
-  }
-  if (batchRenameDocuments.length > 0) {
-    await batchRenameFiles(batchRenameDocuments);
+  if (documentsToMove.size > 0) {
+    await batchRenameFiles([...documentsToMove]);
   }
 
   // A server-side re-case can fail (a Windows sharing violation, a symlinked

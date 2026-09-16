@@ -42,6 +42,44 @@ test("cross-folder rename rewrites only the URL of relative markdown links", asy
   );
 });
 
+test("moving a page rewrites links to its moved image and moves the image back with the page", async () => {
+  const { space, system } = createMockSystem();
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+
+  const original = "![[Inbox/photo.jpg]] and ![image](photo.jpg)";
+  await space.writePage("Inbox/sample", original);
+  await space.writeDocument("Inbox/photo.jpg", new Uint8Array([1, 2, 3]));
+  await indexPageForTest("Inbox/sample", original);
+
+  expect(
+    await batchRenameFiles([["Inbox/sample.md", "Journal/2026/09/sample.md"]]),
+  ).toBe(true);
+  const moved = (await space.readPage("Journal/2026/09/sample")).text;
+  expect(moved).toBe("![[Journal/2026/09/photo.jpg]] and ![image](photo.jpg)");
+  expect(
+    (await (globalThis as any).syscall("space.listDocuments")).map(
+      (doc: { name: string }) => doc.name,
+    ),
+  ).toEqual(["Journal/2026/09/photo.jpg"]);
+
+  await indexPageForTest("Journal/2026/09/sample", moved);
+  expect(
+    await batchRenameFiles([["Journal/2026/09/sample.md", "Inbox/sample.md"]]),
+  ).toBe(true);
+  expect((await space.readPage("Inbox/sample")).text).toBe(original);
+  expect(
+    (await (globalThis as any).syscall("space.listDocuments")).map(
+      (doc: { name: string }) => doc.name,
+    ),
+  ).toEqual(["Inbox/photo.jpg"]);
+});
+
 test("cross-folder rename leaves an @mention's text byte-identical", async () => {
   const { space, system } = createMockSystem();
   system.registerSyscalls([], {
