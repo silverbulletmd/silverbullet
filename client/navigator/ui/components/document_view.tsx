@@ -1,11 +1,16 @@
-import { datastore } from "@silverbulletmd/silverbullet/syscalls";
+import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
+import { Icon } from "../../../../plug-api/ui/icon.tsx";
+import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
+import type { RowStates } from "../../../../plug-api/ui/tree_types.ts";
+import { Chip } from "./row_item.tsx";
+import { createDocumentRowLoader } from "../document_row_state.ts";
 import { RowText } from "../../../../plug-api/ui/row_text.tsx";
 import {
   computeTreeDisplay,
   nodeObject,
 } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Client } from "../../../client.ts";
 import {
   activateOnKey,
@@ -14,7 +19,6 @@ import {
   createLoadGate,
   isRowActivation,
   loadIdentity,
-  rowsIdentity,
   settlesSlot,
   subscribeRefresh,
   treeKeyAction,
@@ -36,8 +40,13 @@ import { LoadingIndicator } from "./loading_indicator.tsx";
 import { MarkdownText, type RenderedRow, renderRows } from "./row_markdown.tsx";
 
 export type DocumentDispatch = (
-  hook: "rows" | "content" | "select",
-  args: { ctx?: { phrase: string; dock: string }; obj?: Record<string, any> },
+  hook: "rows" | "content" | "select" | "rowState" | "action",
+  args: {
+    ctx?: { phrase: string; dock: string };
+    obj?: Record<string, any>;
+    objs?: Record<string, any>[];
+    index?: number;
+  },
 ) => Promise<any>;
 
 export type PageDocumentFrame = {
@@ -199,6 +208,11 @@ export function DocumentRowsBody({
   expanded,
   onToggle,
   onSelect,
+  onAction,
+  rowState,
+  actionIcons,
+  actionsDisabled = false,
+  readOnly = false,
 }: {
   rows: RenderedRow[];
   meta: ViewMeta;
@@ -206,6 +220,11 @@ export function DocumentRowsBody({
   expanded: Set<string>;
   onToggle: (path: string) => void;
   onSelect?: (obj: Record<string, any>) => void;
+  onAction?: (index: number, obj: Record<string, any>) => void;
+  rowState?: RowStates;
+  actionIcons?: (Element | undefined)[];
+  actionsDisabled?: boolean;
+  readOnly?: boolean;
 }) {
   const isTree = meta.mode === "tree";
   const { shown, more } = visibleRows(rows, meta.limit);
@@ -226,8 +245,13 @@ export function DocumentRowsBody({
           showEmpty={false}
           separator={meta.hierarchy.separator}
           canDrag={false}
-          hasIcon={false}
-          readOnly
+          hasIcon={!!meta.hasRowIcon}
+          rowState={rowState}
+          actions={meta.actions}
+          actionIcons={actionIcons}
+          documentActions
+          actionsDisabled={actionsDisabled}
+          readOnly={readOnly}
           focusableRows
           onRowKeyDown={(node, event) => {
             const action = treeKeyAction(event.key, {
@@ -243,11 +267,13 @@ export function DocumentRowsBody({
           onToggle={onToggle}
           onSelect={onSelect ? (node) => onSelect(nodeObject(node)) : undefined}
           onMove={() => {}}
-          onAction={() => {}}
+          onAction={(node, index) => onAction?.(index, nodeObject(node))}
         />
       ) : (
         shown.map(({ row, primaryNode, descriptionNode }, index) => {
           const activate = () => onSelect?.(row.obj);
+          const state = rowState?.byRow?.get(row);
+          const decorations = row.decorations ?? [];
           return (
             <div
               key={`${index}:${row.primary}`}
@@ -256,7 +282,7 @@ export function DocumentRowsBody({
                 (onSelect ? "" : " sb-nav-passive") +
                 (row.cssClass ? ` ${row.cssClass}` : "")
               }
-              role={onSelect ? "button" : undefined}
+              role={onSelect && !meta.actions?.length ? "button" : undefined}
               tabIndex={onSelect ? 0 : undefined}
               onClick={
                 onSelect
@@ -269,6 +295,17 @@ export function DocumentRowsBody({
                 onSelect ? (event) => activateOnKey(event, activate) : undefined
               }
             >
+              {meta.hasRowIcon &&
+                (state?.icon ? (
+                  <Icon node={state.icon} class="sb-nav-icon" />
+                ) : (
+                  <span className="sb-nav-icon" />
+                ))}
+              {decorations
+                .filter((d) => d.position === "left")
+                .map((decoration, i) => (
+                  <Chip key={i} decoration={decoration} />
+                ))}
               <RowText
                 primary={
                   primaryNode ? (
@@ -292,6 +329,22 @@ export function DocumentRowsBody({
                   ) : undefined
                 }
               />
+              {decorations
+                .filter((d) => d.position !== "left")
+                .map((decoration, i) => (
+                  <Chip key={i} decoration={decoration} />
+                ))}
+              {meta.actions && (
+                <RowActions
+                  actions={meta.actions}
+                  icons={actionIcons}
+                  mask={state?.actions}
+                  readOnly={readOnly}
+                  documentMode
+                  disabled={actionsDisabled}
+                  onRun={(index) => onAction?.(index, row.obj)}
+                />
+              )}
             </div>
           );
         })
@@ -314,6 +367,37 @@ function DocumentRows({
   frame,
 }: DocumentProps) {
   const [rows, setRows] = useState<RenderedRow[] | undefined>();
+  const loadRowState = useMemo(
+    () => createDocumentRowLoader(dispatch, meta),
+    [dispatch, meta],
+  );
+  const [features, setFeatures] = useState<{
+    rowState: RowStates;
+    actionIcons: (Element | undefined)[];
+  }>();
+  const [actionsDisabled, setActionsDisabled] = useState(false);
+  const actionPending = useRef(false);
+  const lifecycle = useRef(0);
+  const refresh = useRef<() => Promise<void>>();
+  const runAction = async (index: number, obj: Record<string, any>) => {
+    if (actionPending.current || loading.pending) return;
+    actionPending.current = true;
+    setActionsDisabled(true);
+    const generation = lifecycle.current;
+    try {
+      await dispatch("action", { index: index + 1, obj });
+    } catch (cause) {
+      await editor.flashNotification(String(cause), "error");
+    } finally {
+      if (generation === lifecycle.current) {
+        await refresh.current?.();
+        if (generation === lifecycle.current) {
+          actionPending.current = false;
+          setActionsDisabled(false);
+        }
+      }
+    }
+  };
   const [error, setError] = useState<string | undefined>();
   const [loading] = useState(() => new LoadingState());
   const { pending, visible } = useLoading(loading);
@@ -328,7 +412,6 @@ function DocumentRows({
       () => setVersion((previous) => previous + 1),
     ),
   );
-  const gate = useRef(createLoadGate());
   const firstExpansion = useRef(true);
 
   useEffect(() => {
@@ -346,9 +429,12 @@ function DocumentRows({
 
   useEffect(() => {
     let live = true;
+    lifecycle.current++;
+    actionPending.current = false;
+    setActionsDisabled(false);
     const load = () => {
       const ticket = loading.begin();
-      void dispatch("rows", { ctx: { phrase: "", dock } })
+      return dispatch("rows", { ctx: { phrase: "", dock } })
         .then(async (result) => {
           if (!live || !ticket.isCurrent()) return;
           const loadError =
@@ -356,17 +442,14 @@ function DocumentRows({
               ? String(result.error)
               : undefined;
           const incoming: Row[] = Array.isArray(result) ? result : [];
-          const identity = loadIdentity(
-            loadError,
-            loadError ? "" : rowsIdentity(incoming),
-          );
-          if (!gate.current.shouldCommit(identity)) return;
+
           if (loadError) {
             setError(loadError);
             setRows([]);
-            gate.current.committed(identity);
             return;
           }
+          const rowFeatures = await loadRowState(incoming);
+          if (!live || !ticket.isCurrent()) return;
           const rendered = await renderRows(
             client,
             incoming,
@@ -376,17 +459,17 @@ function DocumentRows({
           if (!live || !ticket.isCurrent()) return;
           setError(undefined);
           setRows(rendered);
-          gate.current.committed(identity);
+          setFeatures(rowFeatures);
         })
         .catch((cause) => {
           if (!live || !ticket.isCurrent()) return;
           setError(cause?.message ?? String(cause));
           setRows([]);
-          gate.current.failed();
         })
         .finally(ticket.finish);
     };
-    load();
+    refresh.current = load;
+    void load();
     const unsubscribe = subscribeRefresh(
       client.eventHook,
       meta.refreshOn ?? [],
@@ -394,10 +477,12 @@ function DocumentRows({
     );
     return () => {
       live = false;
+      lifecycle.current++;
+      refresh.current = undefined;
       loading.cancel();
       unsubscribe();
     };
-  }, [dispatch, dock, pageName]);
+  }, [dispatch, dock, pageName, loadRowState]);
 
   useEffect(() => {
     if (frame && !pending && rows !== undefined) frame.onSettled(frame.name);
@@ -406,6 +491,11 @@ function DocumentRows({
   const body =
     rows?.length && expansion.ready && !error ? (
       <DocumentRowsBody
+        rowState={features?.rowState}
+        actionIcons={features?.actionIcons}
+        onAction={runAction}
+        actionsDisabled={actionsDisabled || pending}
+        readOnly={client.isReadOnlyMode()}
         rows={rows}
         meta={meta}
         client={client}

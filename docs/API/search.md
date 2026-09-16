@@ -13,7 +13,7 @@ The `search` API exposes SilverBullet’s fuzzy ranker to any [[Space Lua]] code
 
 `search.rank(objects, phrase, options?)`
 
-Fuzzy-ranks objects against a phrase, best match first. The same ranker the navigator's own filtering uses.
+Fuzzy-ranks objects against a phrase, best match first. The same ranker view panels use for filtering.
 
 **Parameters:**
 

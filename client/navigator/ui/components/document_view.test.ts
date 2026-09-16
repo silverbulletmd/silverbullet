@@ -74,3 +74,41 @@ test("expandAll treats restored paths as collapsed tree exceptions", () => {
   expect(draw(new Set())).toContain('data-path="Folder/Child"');
   expect(draw(new Set(["Folder"]))).not.toContain('data-path="Folder/Child"');
 });
+
+test("document lists render icons, positioned chips, and conditional actions without selection", () => {
+  const row = {
+    primary: "Sketchbook",
+    obj: { name: "Sketchbook" },
+    decorations: [
+      { text: "Before", position: "left" as const },
+      { text: "After", position: "right" as const },
+    ],
+  };
+  const html = renderToString(
+    h(DocumentRowsBody, {
+      rows: [{ row }],
+      meta: {
+        ...meta,
+        hasRowIcon: true,
+        actions: [
+          { label: "Complete", hasWhen: true },
+          { label: "Delete", hasWhen: true },
+        ],
+      },
+      client: {} as Client,
+      expanded: new Set<string>(),
+      onToggle() {},
+      onAction() {},
+      rowState: {
+        byRow: new WeakMap([
+          [row, { icon: {} as Element, actions: [true, false] }],
+        ]),
+      },
+    }),
+  );
+  expect(html).toContain('class="sb-nav-icon"');
+  expect(html.indexOf("Before")).toBeLessThan(html.indexOf("Sketchbook"));
+  expect(html.indexOf("After")).toBeGreaterThan(html.indexOf("Sketchbook"));
+  expect(html).toContain('aria-label="Complete"');
+  expect(html).not.toContain('aria-label="Delete"');
+});

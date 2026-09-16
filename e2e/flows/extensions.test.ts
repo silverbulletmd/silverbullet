@@ -164,13 +164,30 @@ function workshopTree()
       if fixtureRefreshed then table.insert(rows, {name = "Sketchbook/Paper studies"}) end
       return rows
     end,
-    presentation = { mode = "tree" },
+    presentation = { mode = "tree", row = {
+      icon = function(obj) return obj.isFolder and "folder" or "file-text" end,
+    } },
+    actions = {
+      {label = "Add study", icon = "plus", requireMode = "rw",
+        when = function(obj) return not obj.isFolder end,
+        run = function() fixtureRefreshed = true end},
+    },
   }
 end
+readingDone = false
 function readingList()
   return view.new {
     source = function() return {{name = "Paper studies", details = "Notes on paper, texture, and binding"}} end,
-    presentation = { row = {description = "details"} },
+    presentation = { row = {
+      description = function(obj) return readingDone and "Finished" or obj.details end,
+      icon = "book",
+      decorations = function() return {{text = "Active", cssClass = "sb-hashtag"}} end,
+    } },
+    actions = {
+      {label = "Complete", icon = "check", requireMode = "rw",
+        when = function() return not readingDone end,
+        run = function() readingDone = true end},
+    },
     onSelect = function() editor.navigate("Destination") end,
   }
 end
@@ -197,6 +214,36 @@ test.describe("inline view values", () => {
     },
   });
 
+  test("inline list and tree actions refresh rows without selecting them", async ({
+    sbPage,
+  }) => {
+    const views = sbPage.locator(".sb-lua-view");
+    await expect(views).toHaveCount(4);
+    const list = views.nth(1);
+    await expect(list.locator(".sb-nav-icon svg")).toHaveCount(1);
+    await expect(list.locator(".sb-nav-chip")).toHaveText("Active");
+    await list.hover();
+    await expect(
+      list
+        .getByRole("button", { name: "Complete", exact: true })
+        .locator("svg"),
+    ).toHaveCount(1);
+    await list.getByRole("button", { name: "Complete", exact: true }).click();
+    await expect(currentPage(sbPage)).toHaveValue("index");
+    await expect(list.getByText("Finished", { exact: true })).toBeVisible();
+    await expect(
+      list.getByRole("button", { name: "Complete", exact: true }),
+    ).toHaveCount(0);
+    const tree = views.nth(0);
+    await tree.getByText("Sketchbook", { exact: true }).click();
+    await expect(tree.locator(".sb-nav-icon svg")).toHaveCount(2);
+    await tree.getByText("Cover ideas", { exact: true }).hover();
+    await tree.getByRole("button", { name: "Add study", exact: true }).click();
+    await expect(
+      tree.getByText("Paper studies", { exact: true }),
+    ).toBeVisible();
+    await expect(currentPage(sbPage)).toHaveValue("index");
+  });
   test("views render inline, retain keyed expansion, and use the Lua widget Edit control", async ({
     sbPage,
   }) => {

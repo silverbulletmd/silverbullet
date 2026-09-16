@@ -1,22 +1,43 @@
 ---
-description: A configurable list/tree navigation UI, built with Space Lua and TypeScript built-ins.
+description: Reusable lists, trees, and Markdown content, displayed inline or in dockable panels.
 tags: maturity/beta
 references:
 - client/navigator/*
 ---
-The **navigator** is SilverBullet’s generalized navigation UI: it takes any collection of [[Object|objects]] and shows it as a fuzzy-filterable **list** or **tree**, as a modal overlay, persistent sidebar or bottom panel, or page widget. The [[Page Picker]], the [[Command Palette]], and many others are all built on this abstraction.
+A **view** displays a collection of [[Object|objects]] as a list or tree, or renders Markdown content. Views can appear inline within a page, in a modal, in a sidebar or bottom panel, or above and below the document.
 
-# Built-in navigators
+The [[Page Picker]] and [[Command Palette]] use views for navigation. Other views show task lists, linked mentions, or custom content with action buttons. You can create your own with [[Space Lua]] and [[API/view]].
+
+# Built-in views
 * [[Page Picker]]: `Cmd-k`/`Ctrl-k`. The whole space as a modal list, most recently opened first.
 * [[Command Palette]]: `Cmd-/`/`Ctrl-/`. What you ran most recently first, each row showing its key binding.
 * **Anchor picker**: type `$` into the page picker. Every [[Markdown/Anchor]] in the space, with the line it sits on.
 * **Tag picker** — `Ctrl-Alt-t`, or `#` from the page picker. Every tag, with how many things carry it.
-* ${widgets.commandButton("Navigate: Tree")}: `Cmd-o`/`Ctrl-o`, or `Cmd-Shift-o`/`Ctrl-Shift-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel. On Safari, `Cmd-O` is reserved by the app at the OS level, so web content never even sees the keydown — use `Cmd-Shift-O` there instead; `Cmd-O` works normally in the desktop App and every other browser.
+* ${widgets.commandButton("Navigate: Tree")}: `Cmd-o`/`Ctrl-o`, or `Cmd-Shift-o`/`Ctrl-Shift-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel. On Safari, `Cmd-O` is reserved by the app at the OS level, so web content never even sees the keydown — use `Cmd-Shift-O` there instead; `Cmd-O` works normally in SilverBullet+ and every other browser.
 * ${widgets.commandButton("Navigate: Table of Contents")}: the current page’s headers as a tree, fully expanded and live as you type. Opens as a modal by default; use its dock menu (see [[#The dock menu]]) to move it to the top of the page, the bottom, a sidebar, or back to modal -- the choice is remembered from then on.
 * ${widgets.commandButton("Navigate: Linked Mentions")}: every other page that links to the one you're on, with a snippet of surrounding context. Docks at the bottom of the page by default, open. See [[Linked Mention]].
 * ${widgets.commandButton("Navigate: Linked Tasks")}: incomplete tasks on *other* pages that link to the one you're on. Docks at the top of the page by default, open. Tick a task's checkbox right in the widget and the new state is written back to the page the task lives on. See [[Linked Tasks]].
 
-# Using a view
+# Inline views
+Use `view.new` inside a `${...}` expression to render a view in a page:
+
+```markdown
+${view.new {
+  source = function()
+    return {
+      { name = "Projects/Sketchbook" },
+      { name = "Projects/Garden journal" },
+    }
+  end,
+  presentation = { mode = "tree" },
+}}
+```
+
+Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget's Edit button reveals the expression. Use `stateKey` to remember tree expansion locally for that page.
+
+For examples with actions and the full option reference, see [[API/view]]. Search, segments, and docking controls belong to view panels.
+
+# Using a panel
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
 * `Enter` opens the selected row. `Escape` closes the panel, whether or not you have typed anything.
 * Typing ranks rows fuzzily, highlighting the matched characters in each row’s name, list or tree alike.
@@ -31,8 +52,8 @@ The **navigator** is SilverBullet’s generalized navigation UI: it takes any co
 
 In a tree that supports it: drag a row onto a folder to move it (renaming through SilverBullet’s own machinery, so backlinks follow).
 
-# Custom navigators
-You can define custom navigators with [[Space Lua]]. Example, adding a task navigator modal:
+# Custom views
+Register a view with `view.define` to give it a name, a command, and a dock. This example adds a task-list modal:
 ```lua
 view.define {
   name = "tasks",
@@ -59,9 +80,9 @@ view.define {
 }
 ```
 
-`name`, `source` and `onSelect` are the only required keys, `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`. (`navigator.*` is a permanent alias for `view.*` -- `navigator.define`, `navigator.open`, etc. still work.)
+In this flat row definition, `name`, `source` and `onSelect` are required; `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`.
 
-See **[[API/view]] for the full field reference**: every key of `spec` and of `presentation`, with what each one does.
+To reuse an inline value as a panel, pass it as `view` to `view.define`. See [[API/view#Registering a value]].
 
 # Docks
 `dock` decides where a view opens, out of six places:
@@ -69,7 +90,7 @@ See **[[API/view]] for the full field reference**: every key of `spec` and of `p
 * `"modal"` (the default) is a centered overlay. It clears its phrase on open and dismisses when you pick something.
 * `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar holds one view at a time -- docking a second view there displaces whichever one was already showing, which comes back on its own once the newcomer moves away.
 * `"bhs"` is a persistent bottom panel below the editor. It is resizable by its top edge, the height is remembered per view, and it otherwise behaves like the sidebars.
-* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in navigators|Table of Contents]] can be moved to one from its dock menu but opens as a modal by default.
+* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its dock menu but opens as a modal by default.
 
 A view's body is a list, a tree, or — for a [[API/view#content|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 

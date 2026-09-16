@@ -85,7 +85,7 @@ local navPages = {
   { name = "Features/Live Preview", ref = "Live Preview" },
   { name = "Features/Completion", ref = "Completion" },
   { name = "Features/Page Picker", ref = "Page Picker" },
-  { name = "Features/Navigator", ref = "Navigator" },
+  { name = "Features/Views", ref = "View" },
   { name = "Features/Command Palette", ref = "Command Palette" },
   { name = "Features/Full Text Search", ref = "Full Text Search" },
   { name = "Features/Meta Picker", ref = "Meta Picker" },

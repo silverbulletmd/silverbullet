@@ -84,7 +84,7 @@ ${widgets.commandButton("System: Reload")}
 * `widgets.subPages(pageName?)` — renders a list of sub-pages (pages with the given prefix). Defaults to the current page.
 
 ## Docked widgets
-These are [[Navigator]] views, not automatic page decorations. Each ships docked into the page and can be moved to a sidebar or a modal from its own dock menu, closed with its ×, or folded to its title bar:
+These are [[View|view]]s, not automatic page decorations. Each ships docked into the page and can be moved to a sidebar or a modal from its own dock menu, closed with its ×, or folded to its title bar:
 
 * **Linked mentions** — pages that link to the current page, docked at the bottom
 * **Linked tasks** — incomplete tasks that mention the current page, docked at the top

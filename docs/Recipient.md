@@ -12,7 +12,7 @@ A **recipient** is an [[Identity]] you address. When mentioned with `@name`, it 
 See [[At-Mention]] for the `@name` syntax, and [[Identity]] for where names come from (accounts, `identity.define`, or simply being mentioned).
 
 # The Mention Inbox
-The Mention Inbox is a [[Navigator]] view listing open `@mention`s, grouped by page. It opens in the right sidebar by default, and its dock menu can move it to a modal. Open it with `Navigate: Mentions`, or by clicking any mention.
+The Mention Inbox is a [[View|view]] listing open `@mention`s, grouped by page. It opens in the right sidebar by default, and its dock menu can move it to a modal. Open it with `Navigate: Mentions`, or by clicking any mention.
 
 # The `recipients` attribute
 Every mention also sets a `recipients` attribute onto the object that hosts it, holding the `@name` identifier of each name mentioned.

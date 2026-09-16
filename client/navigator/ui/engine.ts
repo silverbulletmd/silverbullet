@@ -1,6 +1,5 @@
 import { descriptionText } from "../../../plug-api/ui/description.ts";
 import { LoadingState } from "./loading.ts";
-import { icon } from "@silverbulletmd/silverbullet/syscalls";
 import {
   type ContentResult,
   normalizeContent,
@@ -23,7 +22,7 @@ import type {
   SourceCtx,
   ViewMeta,
 } from "../types.ts";
-import { createSvgNode, parseIcon } from "../../lib/icon.ts";
+import { IconResolver } from "./icon_resolver.ts";
 
 export type { RowState, RowStates };
 
@@ -37,8 +36,6 @@ const DEFAULT_FILTER_FIELDS: FilterFields = {
   primary: { weight: 1.0, segments: true },
   description: 0.5,
 };
-
-type IconRef = string;
 
 type RawRowState = {
   icon?: string;
@@ -88,10 +85,7 @@ export class NavigatorEngine {
 
   private cache = new Map<string, ViewState>();
   private indexCache = new WeakMap<Row[], IndexedRow[]>();
-  private iconCache = new Map<string, string | undefined>();
-  private nodeCache = new Map<string, Element | undefined>();
-  private warnedPrefixes = new Set<string>();
-  private warnedIconResolveFailure = false;
+  private icons = new IconResolver();
   private tokens = 0;
   activeName?: string;
 
@@ -354,23 +348,23 @@ export class NavigatorEngine {
       }
     }
     if (entry.loadToken !== token) return;
-    await this.resolveIcons([
+    await this.icons.resolveIcons([
       ...(meta.actions ?? []).map((a) => a.icon),
       ...(meta.segments ?? []).map((s) => s.icon),
       meta.createIcon,
       ...raw.map((r) => r?.icon),
     ]);
     if (entry.loadToken !== token) return;
-    entry.actionIcons = meta.actions?.map((a) => this.iconNode(a.icon));
-    entry.segmentIcons = meta.segments?.map((s) => this.iconNode(s.icon));
-    entry.createIcon = this.iconNode(meta.createIcon);
+    entry.actionIcons = meta.actions?.map((a) => this.icons.iconNode(a.icon));
+    entry.segmentIcons = meta.segments?.map((s) => this.icons.iconNode(s.icon));
+    entry.createIcon = this.icons.iconNode(meta.createIcon);
     if (!needsState) {
       commit();
       return;
     }
     const states: RowState[] = raw.map((r) => ({
       actions: Array.isArray(r?.actions) ? r.actions : [],
-      icon: this.iconNode(r?.icon),
+      icon: this.icons.iconNode(r?.icon),
     }));
     rowState = nodes
       ? { byPath: new Map(nodes.map((n, i) => [n.path, states[i] ?? {}])) }
@@ -389,63 +383,6 @@ export class NavigatorEngine {
       segmentMasks = masks;
     }
     commit();
-  }
-
-  private warnUnknownPrefix(prefix: string): void {
-    if (this.warnedPrefixes.has(prefix)) return;
-    this.warnedPrefixes.add(prefix);
-    console.error(`navigator: unknown icon namespace "${prefix}:"`);
-  }
-
-  private iconNode(icon: IconRef | undefined): Element | undefined {
-    if (!icon) return undefined;
-    const parsed = parseIcon(icon);
-    let svg: string | undefined;
-    if (parsed.kind === "svg") {
-      svg = parsed.markup;
-    } else if (parsed.kind === "feather") {
-      svg = this.iconCache.get(parsed.name);
-    } else if (parsed.kind === "unknown") {
-      this.warnUnknownPrefix(parsed.prefix);
-    }
-    if (!svg) return undefined;
-    if (this.nodeCache.has(svg)) return this.nodeCache.get(svg);
-    const node = createSvgNode(svg);
-    this.nodeCache.set(svg, node);
-    return node;
-  }
-
-  private async resolveIcons(icons: (IconRef | undefined)[]): Promise<void> {
-    const missing = [
-      ...new Set(
-        icons
-          .filter((icon): icon is string => !!icon)
-          .map((icon) => parseIcon(icon))
-          .filter(
-            (p): p is { kind: "feather"; name: string } => p.kind === "feather",
-          )
-          .map((p) => p.name)
-          .filter((name) => !this.iconCache.has(name)),
-      ),
-    ];
-    if (missing.length === 0) return;
-    if (this.warnedIconResolveFailure) {
-      for (const name of missing) this.iconCache.set(name, undefined);
-      return;
-    }
-    try {
-      const resolved = await icon.resolveFeather(missing);
-      for (const name of missing) this.iconCache.set(name, resolved?.[name]);
-    } catch (e) {
-      for (const name of missing) this.iconCache.set(name, undefined);
-      if (!this.warnedIconResolveFailure) {
-        this.warnedIconResolveFailure = true;
-        console.warn(
-          "navigator: icon resolution failed, rendering without icons",
-          e,
-        );
-      }
-    }
   }
 
   private index(rows: Row[]): IndexedRow[] {

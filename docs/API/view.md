@@ -3,50 +3,15 @@ tags: api/space-lua
 references:
 - client/navigator/navigator.ts
 ---
-The `view` API constructs reusable list, tree, and Markdown views. Render a value directly inside a page with `${...}`, or register it as a [[Navigator]] panel shown in a modal, sidebar, bottom panel, or page dock.
-
-`navigator.*` is a permanent alias for every function below (`navigator.new`, `navigator.define`, `navigator.open`, `navigator.pick`, `navigator.focus`, `navigator.moveByRename`) -- same implementation, just the pre-rename name. It is fully supported, not deprecated; use whichever reads better in your own scripts. Everything past this point uses the canonical `view.*` names.
+The `view` API creates reusable lists, trees, and Markdown views. Render them inside a page with `${...}` or register them as [[View]] panels.
 
 ## view.new(spec)
-
-Constructs a view value without registering it, opening a panel, or running its source. Return it from a function to render it inside Markdown:
-
-```lua
-function projectView()
-  return view.new {
-    stateKey = "projects",
-    source = function()
-      return {
-        { name = "Projects/Sketchbook" },
-        { name = "Projects/Garden journal" },
-      }
-    end,
-    presentation = { mode = "tree" },
-    onSelect = function(obj)
-      editor.navigate(obj.name)
-    end,
-  }
-end
-```
-
-```markdown
-${projectView()}
-```
-
-Use the data source, presentation, and interaction fields documented below. `source` and `content` are mutually exclusive; one is required. `onSelect` is optional: omit it for informational rows. Embedded links and tree expansion still work. `content` renders the Markdown string it returns through the same content-view pipeline.
-
-Inline views use the lightweight document presentation: rows, expandable trees, and Markdown content. They do not show panel titles, docking controls, search, segments, dropdowns, or action toolbars. The Lua widget's **Edit** button reveals the expression for editing; Copy, Bake, and Reload buttons are not offered for view values. Static Markdown expansion shows a notice instead of a live view.
-
-Each rendering loads its own data and subscribes to `refreshOn`. Its source receives `ctx.dock = "inline"`; `inline` is a rendering context, not a dock accepted by `view.define`. Removing the rendering releases its subscriptions.
+Creates a view as a value.
 
 ### Inline state
-
-`stateKey` is optional. When provided, tree expansion is saved locally on this device, scoped to the containing page and key. Different pages keep independent state. Two views on the same page need different keys for independent saved state; sharing a key shares saved preferences, without synchronizing mounted views live. Renaming the page starts a new state identity. Without a key, state is transient and can be lost when the view is recreated. Focus and selection are not persisted.
+Optional `stateKey` saves tree expansion locally, scoped to the containing page and key. Use distinct keys for independent views on one page. Sharing a key shares saved preferences without live synchronization; renaming the page resets the identity. Without a key, expansion is transient. Focus and selection are not saved.
 
 ### Registering a value
-
-Pass the value to `view.define` alongside its registration fields:
-
 ```lua
 view.define {
   name = "my.projects",
@@ -57,58 +22,144 @@ view.define {
 }
 ```
 
-Names, titles, command metadata, docking, and open/follow-editor settings belong to `view.define`, not `view.new`. Do not combine `view = ...` with flat content fields such as `source`, `content`, or `presentation`; put those in the value. Docked persistence continues to use the registered view name, independently of inline `stateKey`.
+Registration fields (name, title, commands, docking, open settings, and `followEditor`) belong to `view.define`. With `view = ...`, put content options such as `source` and `presentation` inside that value, not alongside it. Docked state uses the registered name, independently of inline `stateKey`.
+
+### List example
+Paste this expression into a page. It shows icons, status chips, and a conditional Complete action. Completion is held in memory for this rendering and resets when the widget is recreated.
+
+${(function()
+  local completed = {}
+  return view.new {
+    source = function()
+      return {
+        { name = "Sketchbook", detail = "Explore cover designs" },
+        { name = "Garden journal", detail = "Collect planting notes" },
+      }
+    end,
+    presentation = {
+      mode = "list",
+      row = {
+        icon = "book",
+        description = "detail",
+        decorations = function(obj)
+          return {{
+            text = completed[obj.name] and "Done" or "Active",
+            cssClass = "sb-hashtag",
+          }}
+        end,
+      },
+    },
+    actions = {
+      {
+        icon = "check",
+        label = "Complete",
+        when = function(obj) return not completed[obj.name] end,
+        run = function(obj) completed[obj.name] = true end,
+      },
+    },
+  }
+end)()}
+
+
+The row itself has no `onSelect`; only the button performs an action. After completion, the chip changes and the button disappears.
+
+### Tree example
+This example groups pages by path, remembers expanded folders, and provides Open and Hide actions for leaf rows. Hide removes a row from this rendering only; it does not delete a page.
+
+${(function()
+  local hidden = {}
+  return view.new {
+    stateKey = "example-project-tree",
+    source = function()
+      local rows = {}
+      for _, name in ipairs({
+        "Projects/Sketchbook/Cover ideas",
+        "Projects/Sketchbook/Paper studies",
+        "Projects/Garden journal",
+      }) do
+        if not hidden[name] then
+          table.insert(rows, { name = name })
+        end
+      end
+      return rows
+    end,
+    presentation = {
+      mode = "tree",
+      expandAll = true,
+      row = {
+        icon = function(obj)
+          return obj.isFolder and "folder" or "file-text"
+        end,
+      },
+    },
+    actions = {
+      {
+        icon = "external-link",
+        label = "Open",
+        when = function(obj) return not obj.isFolder end,
+        run = function(obj) editor.navigate(obj.name) end,
+      },
+      {
+        icon = "eye-off",
+        label = "Hide",
+        when = function(obj) return not obj.isFolder end,
+        run = function(obj) hidden[obj.name] = true end,
+      },
+    },
+  }
+end)()}
+
+Use distinct `stateKey` values for independent trees on the same page. Replace the sample source with a query and action callbacks with your own updates for persistent data. Actions that write to the space should declare `requireMode = "rw"`; request confirmation inside a destructive callback.
 
 ## view.define(spec)
-`view.define(spec)`
+Registers a view and optionally a [[Command]] to open it. Accepts `name` plus a `view.new` value, or the flat shorthand:
 
-Registers a view, and optionally a [[Command]] that opens it. Supply `name` and a `view.new` value as `view`, or use the existing flat shorthand with `name`, `source`, and `onSelect` (a `content` view does not require `onSelect`). The flat form constructs a value internally and registers it through the same path. Re-defining a view under the same `name` replaces it -- but a name already claimed by a built-in view (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) is reserved and cannot be redefined: `view.define` throws instead. `std.toc` (Table of Contents) is *not* one of these any more -- it's itself a `view.define` call in the std library, kept under its historical name for dock/width continuity. To change what a built-in-bound command opens, define your own view under your own name and bind your own [[Command]] (or key) to it, rather than trying to redefine the built-in's name.
+```lua
+view.define {
+  name = "my.projects",
+  command = "Navigate: Projects",
+  source = function()
+    return {{ name = "Projects/Sketchbook" }}
+  end,
+  onSelect = function(obj) editor.navigate(obj.name) end,
+}
+```
+
+The flat row form requires `onSelect`; `view.new` values and content views do not. Reusing a name replaces its definition, except for reserved built-ins (`std.pages`, `std.tags`, `std.anchors`, `std.commands`, `std.spaceTree`, `std.pageHistory`, `std.spaceLog`) and names starting with `__pick:`. `std.toc` is a Lua-defined view and can be replaced.
 
 ### Identity and chrome
-* `name`: (globally) unique identifier for the navigator view; reserved names (the built-ins above, and anything starting with `__pick:`) throw at definition time.
+* `name`: unique registered identifier.
 * `title`: panel title.
-* `label`: a short verb shown where the title goes (`"Open"`, `"Run"`), for picker chrome.
-* `placeholder`: the filter input’s placeholder, naming what is being picked.
+* `label`: short picker verb, such as `"Open"`, shown in place of the title.
+* `placeholder`: filter input placeholder.
 
 ### Command
-* `command`: registers a command that opens this view.
-* `key` / `mac`: key bindings; both require `command`.
+* `command`: command that opens the view.
+* `key` / `mac`: key bindings; require `command`.
 * `menu` / `menuMac` / `menuWindows` / `menuLinux`: native-menu placement (SilverBullet+ only).
-* `hide`: keep the command out of the command palette.
+* `hide`: hide the command from the command palette.
 
 ### Position target
-Where the view opens -- and where it's allowed to be moved to -- is configured via:
+* `dock`: `"modal"` (default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"`, or `"page-bottom"`.
+* `supportedDocks`: allowed docks; defaults to `{ dock }` and must include `dock`. Invalid docks throw.
+* `defaultOpen`: initial open state for page docks; defaults to `false`.
+* `openOnStart`: open at every boot regardless of saved state. Only valid for `lhs`, `rhs`, and `bhs`.
 
-* `dock`: the view's default dock, one of `"modal"` (the default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"` or `"page-bottom"`.
-* `supportedDocks`: the list of docks the view's own dock menu offers, e.g. `{ "page-top", "page-bottom", "bhs", "rhs", "modal" }`. Defaults to `{ dock }` (just the default, no menu). Must include `dock` itself, and every entry must be one of the six dock names above -- `view.define` throws otherwise. A view with fewer than two supported docks gets no dock menu at all; there'd be nothing to switch to.
-* `defaultOpen`: whether a **page-docked** view (`page-top`/`page-bottom`) starts open before anyone has touched it. Ignored for `lhs`/`rhs`/`bhs`/`modal`, which have their own open/closed story (below). Defaults to `false`.
-* `openOnStart`: open the view at every boot regardless of what was remembered, whether or not it was open last time. Only valid with `dock = "lhs"`, `"rhs"` or `"bhs"` -- `view.define` throws for any other dock, page docks included.
+| Dock | Behavior |
+|---|---|
+| `lhs` / `rhs` | Resizable sidebars; remember open state, width, and filter phrase across re-focus. |
+| `bhs` | Resizable bottom panel; remembers open state and height. |
+| `page-top` / `page-bottom` | Widgets above/below the document, without a filter input. Empty results hide the entire widget. |
+| `modal` | Transient picker; clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. |
 
-There are three families of dock, each with its own notion of "open":
+Each sidebar/bottom slot holds one view. Opening another temporarily displaces the previous view, which returns when the newcomer leaves (one level deep).
 
-* **`lhs` / `rhs`** (sidebars) persist across navigation and boot. Whichever sidebar views are open when a client shuts down are opened again on its next boot, per side. Closing a sidebar is what un-remembers it. They're resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar is single-slot: docking a second view onto an already-occupied side displaces the current resident, which comes back on its own the moment the newcomer leaves (one level of displacement is remembered, no deeper).
-* **`bhs`** (bottom-half screen) is a persistent panel below the editor. Drag its top edge to resize it; its height is remembered per view. Like either sidebar, it holds one view at a time and participates in the same one-level displacement behavior.
-* **`page-top` / `page-bottom`** render as in-document widgets, above and below the page content respectively -- not as panels with a filter box. A page-docked view renders when its persisted (or default) open state is `true` and refreshes on the events its `refreshOn` names. `refreshOnOpen` does **not** apply: that is a panel activation, and a page dock has no such moment -- it is simply present or not. A **list** view caps its rows at `presentation.limit` (default 200) with an "*N* more" line for the rest; a **tree** view is deliberately uncapped, because a cap that removed a subtree would change the shape of the tree rather than just its length. Every row is keyboard-activatable (`Enter`/`Space`, same as a click) and runs `onSelect`; in a tree, `ArrowRight`/`ArrowLeft` expand and collapse the focused row. There's no fuzzy filter box on a page dock. A page widget with an empty result (no rows, no error) renders **nothing at all** -- no title bar, no dock button, no × -- even while its persisted open state is `true`; the chrome only appears once there's something to show.
-* **`modal`** is a centered, transient overlay: it clears its phrase on open and dismisses when you pick something. It has no persisted open state -- there's nowhere to "stay open". Picking a different dock from its own dock menu closes the modal it was picked from, the same as any other dock-to-dock move.
+Below 600px, sidebars become full-width drawers and dismiss on selection. Sidebars and bottom panels have no resize handle there, and skip boot restoration and `openOnStart`.
 
-On narrow screens (below 600px) a sidebar dock becomes a full-width drawer over the editor, spanning everything below the top bar. It dismisses on selection like the modal, and has no resize handle. The bottom panel also has no resize handle there. Boot restore and `openOnStart` are skipped there entirely. Page docks are unaffected by screen width -- they're already part of the document flow.
+In page docks, `Enter`/`Space` activate selectable rows; `ArrowRight`/`ArrowLeft` expand/collapse tree rows. Lists honor `presentation.limit`; trees are uncapped.
 
 #### Persisted state and precedence
-A few pieces of state are remembered per view, in the client’s local datastore:
-
-* `["navigator", <name>, "dock"]`: which dock the view currently sits in, once you've moved it (see [[#The dock menu]] below).
-* `["navigator", <name>, "open"]`: whether the view is currently showing, for both dock families.
-* `["navigator", <name>, "collapsed"]`: whether a page-docked view is folded to its title bar.
-* `["navigator", <name>, "width"]`: the sidebar width the view was last dragged to, in pixels. Ignored outside `lhs`/`rhs`.
-* `["navigator", <name>, "height"]`: the bottom panel height the view was last dragged to, in pixels. Ignored outside `bhs`.
-
-Each of those is resolved the same way, falling through whenever a level's value isn't valid for the view:
-
-1. the datastore value above, if the view still supports it;
-2. the space’s `view.defaults` config (below);
-3. the view’s own declared value — `dock` and `defaultOpen` from `view.define`. `collapsed`, `width` and `height` have no declared level.
-
-`view.defaults` is a space-wide table of presentation defaults, set in [[CONFIG]] and keyed by view name:
+Registered views save `dock`, `open`, `collapsed`, `width`, and `height` under `["navigator", name, field]` in the local datastore. Valid saved values override `view.defaults`, which overrides the definition.
 
 ```lua
 config.set("view.defaults", {
@@ -117,69 +168,35 @@ config.set("view.defaults", {
 })
 ```
 
-Because config paths nest, one view's defaults can also be set on their own -- `config.set({"view", "defaults", "std.toc"}, { dock = "page-top" })` -- so a library can ship a default that a space overrides one view at a time.
+* `dock` must be in the view's `supportedDocks`.
+* `open` applies to all docks except modal.
+* `collapsed` applies only to page docks.
+* `width` applies to sidebars; `height` to the bottom panel. Both accept 160–600 pixels.
 
-Five fields, and they are defaults: a client that has moved, resized, folded or closed the view keeps its own choice. `Navigate: Reset All Views` forgets every such choice on that client, which is what makes a later `CONFIG` edit visible there.
-
-* `dock`: one of the six dock names. Only takes effect for a view whose `supportedDocks` includes it.
-* `open`: whether the view is showing. On a page dock that is the difference between the widget rendering and nothing rendering at all; on a sidebar or the bottom panel it is whether the panel comes back at boot. Ignored for `modal`, which has no persisted open state. It overrides a page-docked view's declared `defaultOpen`; on a window dock there is no declared level, because `defaultOpen` remains page-dock-only.
-* `collapsed`: whether a page widget starts folded to its title bar. Ignored outside `page-top`/`page-bottom`.
-* `width`: a sidebar's width in pixels, which must be between 160 and 600.
-* `height`: the `bhs` panel's height in pixels, which must be between 160 and 600.
+`Navigate: Reset All Views` clears the client's saved choices so defaults apply again.
 
 #### The dock menu
-Every container a navigator view renders in -- sidebar, modal, or page widget -- gets this chrome in its header/title bar automatically, with no code required beyond declaring `supportedDocks`:
-
-* A **dock button**, whose icon depicts the view's current dock. Clicking it opens a menu listing every dock in `supportedDocks` by name -- "Top of page", "Bottom of page", "Left sidebar", "Right sidebar", "Bottom panel", "Modal only" -- picking one moves the view there immediately, closing whichever dock (including the modal) it was picked from. A view with fewer than two `supportedDocks` gets no dock button.
-* An unconditional **× close button**. Closing never changes the view's dock preference -- only whether it's currently open. Re-invoking the view's command afterwards shows-or-focuses it again in whichever dock it was last moved to.
-* On a **page dock only**, a **fold triangle** at the left of the title, and the title itself, toggle the widget between its full body and its title bar alone. A sidebar or the modal is already its own container and gets no triangle. The choice is persisted per view like the dock is, so a folded widget stays folded across a reload and a page navigation.
+Views with two or more `supportedDocks` get a dock menu. Choosing a dock moves the view immediately. Closing a view preserves its dock preference; its command reopens it there. Page widgets also have a fold control whose state is remembered.
 
 ### Data source
-* `source`: takes the [[#The source context|source context]] (`{ phrase, segment, dock }`) as an argument and returns the objects to show. Mutually exclusive with `content` (below): a view either lists rows or renders a document, and `view.define` throws `content and source are mutually exclusive` if given both, `source is required` if given neither.
-* `search`: `"client"` (default: the source runs once, the panel ranks) or `"source"` (typing re-invokes the source, whose order wins).
-* `refreshOn`: event names that re-run the source. Defaults to none. For a view over the space (a page/document listing, a tree), the recommended set is `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }` -- the built-in pickers and the space tree all declare it explicitly.
-* `refreshOnOpen`: re-run the source every time the view is activated in a panel that is already open, for a view whose rows are a fact about *now*.
-* `followEditor`: a sidebar view tracks the page you navigate to.
+* `source(ctx)`: returns the objects to display. Mutually exclusive with `content`.
+* `search`: `"client"` (default) or `"source"`; see below.
+* `refreshOn`: events that rerun the source; defaults to none. For space-backed views, use `{ "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" }`.
+* `refreshOnOpen`: reload on activation of an already-open panel. Does not apply to inline or page-docked views.
+* `followEditor`: a registered sidebar follows the page you navigate to.
 
 #### The source context
-`source` is handed a context table: `{ phrase = <what is typed>, segment = <active segment's label, or nil>, dock = <the dock it is being rendered in> }`. A [[#content|content view]]'s `content` function gets `phrase` and `dock` too.
-
-`ctx.dock` is the view's **resolved** dock — the same value the dock menu and `view.defaults` settle on, never the declared default — so a view can present itself differently in a document than in a panel. The built-in Table of Contents uses it for exactly that:
-
-```lua
-source = function(ctx)
-  local headers = widgets.tocHeaders()
-  -- In a page dock, too short an outline is worse than none: it takes space
-  -- at the top of every page. Returning no rows renders nothing at all --
-  -- no title bar, no chrome, no reserved height.
-  if ctx.dock == "page-top" or ctx.dock == "page-bottom" then
-    -- Hoisted: `<` binds tighter than `or`, so inlining the fallback would
-    -- read as `(#headers < minHeaders) or 3` and always be truthy.
-    local minHeaders = config.get("std.widgets.toc", {}).minHeaders or 3
-    if #headers < minHeaders then
-      return {}
-    end
-  end
-  -- In a sidebar or the modal you opened it deliberately, so you get every
-  -- header however few.
-  return headers
-end
-```
+`source` receives `{ phrase, segment, dock }`: the filter text, active segment label (or `nil`), and resolved rendering location. `content` receives `phrase` and `dock` too. Use `ctx.dock` to vary results by location; inline views receive `"inline"`.
 
 #### Search modes
-What `source` does with `phrase` and `segment` is what `search` decides.
-
-`search = "client"` (the default) runs the source once per load, hands it the state at that moment, and does everything else in the panel: the phrase ranks fuzzily and the segments subset by `where`, both without leaving the panel. Sources that ignore `ctx` entirely — the common case — are exactly this mode.
-
-`search = "source"` makes the source the search. Typing or switching segments re-invokes it (debounced, and a response overtaken by a newer request is dropped), and the order it returns is the order shown — the panel does no ranking of its own, and `where` predicates are never consulted. Use it when the data set is too large to hand over whole, or when something else already does the searching.
+* `"client"`: loads once, filters segments using their `where` predicates, and fuzzy-ranks by the phrase.
+* `"source"`: reruns the source when the phrase or segment changes. Requests are debounced and stale responses discarded. The source controls ordering and segment filtering; segment `where` predicates are ignored.
 
 #### Re-opening a view
-A view's rows are loaded once and then kept, refreshed by its `refreshOn` events.
-
-Opening a panel that was closed re-runs `source` once, since a closed panel hears none of its `refreshOn` events. Everything else reuses what the view already has: re-activating the view a panel is already showing, or hopping to a sibling it has visited before. That is right for a tree of the space, and wrong for anything whose order or membership is a fact about *now*: recency, the page you are currently on, which commands the cursor's context allows. `refreshOnOpen = true` re-runs `source` for those activations too.
+Opening a closed panel reloads its source. Reactivating an open panel or revisiting a cached sibling reuses its rows unless `refreshOnOpen = true`. `refreshOn` events refresh loaded views.
 
 ### content
-Some views aren't lists at all. `content` defines a **content view**: instead of `source`, it takes the same [[#The source context|source context]] (`phrase` and `dock`; a content view has no segments) and returns a **markdown string** (or `nil` for "nothing to show"), and the view renders that markdown in place of a row list.
+`content(ctx)` returns Markdown, or `nil` for no content:
 
 ```lua
 view.define {
@@ -187,60 +204,44 @@ view.define {
   title = "Linked Mentions",
   command = "Navigate: My Linked Mentions",
   dock = "page-bottom",
-  supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = true,
   refreshOn = { "editor:pageLoaded", "mq:emptyQueue:indexQueue" },
-  content = function(ctx)
-    return widgets.linkedMentionsMarkdown()
-  end,
+  content = function() return widgets.linkedMentionsMarkdown() end,
 }
 ```
 
-What you get:
+Content uses the Lua widget Markdown renderer, including wiki links, command buttons, transclusions, expressions, and custom syntax. Task checkboxes with `[[page@pos]]` references (as produced by `templates.taskItem`) update their source page; references are checked before writing. Tasks without a reference use the current page.
 
-* The markdown goes through **the same renderer an inline Lua widget's `markdown` goes through**. Wiki links resolve and navigate locally, `widgets.commandButton` buttons run their commands, transclusions and `${...}` directives expand, and custom syntax renders.
-* **Tasks are tickable.** A task carrying a `[[page@pos]]` ref — everything `templates.taskItem` builds — renders a live checkbox that writes the new state straight back to the page the task lives on. (A task without one gets a ref to the current page; the write is re-checked against the marker before it lands, so a stale ref does nothing.)
-* The title bar carries a **Copy** button putting the markdown *source* on the clipboard, exactly like the inline Lua widget button bar's Copy.
-* It renders **identically in every dock** — page-top, page-bottom, either sidebar, the bottom panel, or a modal. Only the frame around it differs.
-
-Things a content view doesn't have, because it has no rows: `onSelect` (the one shape of view that doesn't require it), a filter input (suppressed automatically, whatever `filter` says), `presentation.row`, `segments`, `dropdown`, `actions`, `keymap`, `onCreate` and `onMove`. Everything else — the chrome, the docking fields, `refreshOn`/`refreshOnOpen`, `defaultOpen`, `openOnStart` — works exactly as it does for a row view; `refreshOn` re-runs `content` rather than `source`.
-
-`view.pick` never takes `content`: a pick resolves to a selected row, and a content view has none.
+Content views have no filter input or row options (`presentation.row`, `onSelect`, `onCreate`, `onMove`, `actions`, `keymap`, `segments`, `dropdown`). Refresh options rerun `content`. Page-docked content has a Copy button; inline content uses Edit only. `view.pick` does not accept content.
 
 ### Filter
-`filter` is a table of everything about how the phrase matches:
+Panel filtering options:
 
-* `fields`: `{ <field> = <weight> }`, what the phrase is fuzzy-matched against. See [[API/search]] for the same shape.
-* `pathCompletion`: `Space` completes the current folder, `Alt-Space` the next path segment.
-* `hashtagFilter`: read a `#tag` in the phrase as a tag filter.
-* `stripPrefix`: a leading character dropped before ranking, for rows named without a sigil people type.
+* `fields`: field weights, `{ <field> = <weight> }`; see [[API/search]].
+* `pathCompletion`: enable folder completion.
+* `hashtagFilter`: enable tag-prefix filtering.
+* `stripPrefix`: leading character to remove before ranking.
 
-`filter = false` turns the phrase filter off entirely: the input is hidden, and printable keys do nothing. Everything else about the panel's keyboard contract is unchanged — the arrows, `Enter`, `Escape`, `Tab` and a view's own `keymap` all keep working. For views whose rows are short snippets and whose scoping happens elsewhere (a `dropdown`, `segments`).
+`filter = false` hides the input and disables typing a filter. Navigation keys and custom keymaps still work.
 
 #### Path completion
-`filter.pathCompletion = true` adds two completion features:
-
-* **`Space` on an empty phrase** inserts the folder the editor is currently in (or, at the root, the current page's own name as a folder), so a picker opened from `Projects/Alpha` starts scoped to `Projects/` with one keystroke.
-* **`Alt-Space`** extends the phrase by one more segment of the best-matching row, so a deep hierarchy is walked rather than typed.
+With `pathCompletion = true`, `Space` on an empty phrase inserts the editor's current folder (or page name at the root). `Alt-Space` completes one path segment from the best match.
 
 #### Hashtag filtering
-`filter.hashtagFilter = true` reads a `#tag` in the phrase as a filter rather than as something to fuzzy-match a name against. `#meet` keeps the rows whose `tags` field contains a tag *starting* with `meet`, and the `#meet` itself is taken out of the phrase before ranking.
+With `hashtagFilter = true`, `#meet` matches rows with a `tags` entry starting with `meet`. The tag expression is removed before fuzzy ranking.
 
 ### Presentation
-`presentation` is a table of:
-
 * `mode`: `"list"` (default) or `"tree"`.
-* `hierarchy`: `{ field = <string>, separator = <string> }` (a table of named keys, not a positional pair), defaults to `{ field = "name", separator = "/" }`. Tree only. The field's value is the row's path and thus its identity: it must be unique per row — rows sharing a path collapse onto a single tree node.
-* `foldersFirst`: group folders above everything else. Tree only. Default on.
-* `expandAll`: every folder starts open, and what is remembered is what you *closed*. Tree only.
-* `expansionScope`: `"view"` (default, persisted per view) or `"page"` (kept only while you are on the page, for a tree of the current page's own content). Tree only. A `"page"` tree keeps its expansion in memory only, in a page dock exactly as in a panel -- its paths belong to the page you are on, so a stored set would arrive on top of a different page's rows.
-* `limit`: (default 200) rows rendered before the `N more matches` footer.
-* `createIcon`: the create row's icon (see [[#Row icons]] for the accepted forms), resolved once for the view since its "object" is whatever is being typed.
-* `row`: `{ primary, label, description, decorations, cssClass, icon }`. `primary`/`label`/`description`/`cssClass` are each either a field name or a function of the object; `cssClass` adds classes to the row element itself; `icon` is described under [[#Row icons]].
+* `hierarchy`: tree path field and separator; defaults to `{ field = "name", separator = "/" }`. Paths must be unique; duplicate paths merge into one node.
+* `foldersFirst`: group folders first in trees; defaults to `true`.
+* `expandAll`: start all folders open and remember those closed.
+* `expansionScope`: for registered trees, `"view"` (default, persisted) or `"page"` (transient while on the page). Inline trees use `stateKey` instead.
+* `limit`: maximum displayed rows, default 200. Inline/page-docked trees are uncapped.
+* `createIcon`: icon for the panel's create row, resolved once per view.
+* `row`: `{ primary, label, description, decorations, cssClass, icon }`. `primary`, `label`, `description`, and `cssClass` accept a field name or function of the object. `primary` supplies list text; `label` overrides a tree's path-segment label.
 
 #### Row descriptions
-
-`presentation.row.description` can name a field or be a function returning a string or a structured description. Strings keep their existing inline layout (and Markdown rendering in page widgets). A structured description appears below the primary text, with an optional label on its own line and an excerpt of up to two visible lines. This works in lists and trees, in every dock.
+`presentation.row.description` accepts a string or structured description. Strings appear inline and support Markdown in document lists. Structured descriptions appear below the primary text, with an optional label and up to two excerpt lines:
 
 ```lua
 presentation = {
@@ -256,203 +257,120 @@ presentation = {
 }
 ```
 
-The structured form accepts:
+* `text`: required plain text; HTML and Markdown remain literal.
+* `label`: optional plain text above the excerpt.
+* `highlights`: optional `{ start, end }` pairs, using zero-based UTF-16 offsets with exclusive ends (not Lua byte offsets). The example highlights `walking`.
 
-* `text`: required plain text. HTML and Markdown are displayed literally.
-* `label`: optional plain text, displayed above `text`.
-* `highlights`: optional list of `{ start, end }` pairs marking portions of `text`. Offsets are **zero-based UTF-16 code units**, with an exclusive end, matching editor positions rather than Lua string byte offsets. The example highlights `walking`. Characters outside the Basic Multilingual Plane, such as many emoji, count as two code units.
-
-Ranges are sorted and overlapping or adjacent ranges are combined. Invalid ranges, including out-of-bounds offsets and boundaries that split a surrogate pair, are ignored. An omitted or empty list leaves the text unhighlighted. The view supplies these ranges explicitly; the navigator does not infer highlights from the current filter phrase. When `description` is included in `filter.fields`, both its label and text are searchable.
+Overlapping/adjacent ranges merge; invalid ranges, including split surrogate pairs, are ignored. Highlights are supplied explicitly, not inferred from the filter. When `description` is in `filter.fields`, both label and text are searched.
 
 #### Row decorations
-`presentation.row.decorations` puts chips on a row. It is a function of the object returning a **list** of chips — a single chip has to be wrapped in a list of one — or `nil` for an undecorated row.
+`presentation.row.decorations(obj)` returns a list of chips, or `nil`:
 
 ```lua
-presentation = {
-  row = {
-    decorations = function(obj)
-      return { { text = obj.text, cssClass = "sb-hashtag", position = "right" } }
-    end,
-  },
-}
+decorations = function(obj)
+  return {{ text = obj.status, cssClass = "sb-hashtag", position = "right" }}
+end,
 ```
 
-A chip is `{ text?, icon?, cssClass?, position?, title? }`:
-
-* `text`: the chip's label.
-* `icon`: see [[#Row icons]] for the three accepted forms.
-* `cssClass`: yours to pick — `"sb-hashtag"` gets SilverBullet’s own tag pill, and `"sb-nav-chip-hint"` the **hint slot**: right-aligned at the row's edge.
-* `position`: `"left"` or `"right"` (default), which end of the row the chip sits at.
-* `title`: native tooltip, for a chip whose text is deliberately imprecise.
+Each chip accepts `text`, `icon`, `cssClass`, `position` (`"left"` or default `"right"`), and `title` (tooltip). `sb-hashtag` gives tag-pill styling; `sb-nav-chip-hint` right-aligns a hint at the row's edge.
 
 #### Row icons
-`presentation.row.icon` puts an icon at the start of every row — a string, or a function of the object returning one; `nil` (or a function returning `nil`) means no icon. A string is one of three forms:
-
-* a bare [Feather](https://feathericons.com) name — `"lock"`
-* a namespaced name — `"feather:lock"`, equivalent to the bare form; the prefix is how future icon sets (`"lucide:lock"`, say) will arrive
-* literal SVG markup — any string starting with `<svg` (after trimming leading whitespace) is used as-is
-
-`actions[i].icon`, `segments[i].icon` and `presentation.createIcon` take the same three forms.
-
-```lua
-presentation = {
-  mode = "tree",
-  row = {
-    icon = function(obj)
-      if obj.isFolder then return "folder" else return "file-text" end
-    end,
-  },
-}
-```
+`presentation.row.icon` accepts an icon string or a function returning one; `nil` omits it. Supported strings are a [Feather](https://feathericons.com) name (`"lock"`), its namespaced form (`"feather:lock"`), or literal `<svg...>` markup. `actions[i].icon`, `segments[i].icon`, and `presentation.createIcon` use the same forms.
 
 ### Callbacks and interaction modes
-* `onSelect`: `(obj, ctx)` for the picked row. **Required**, except on a [[#content|content view]], which has no rows to pick. Returning `false` keeps the panel open.
-* `onCreate`: takes the typed phrase, for the create row. The create row appears iff `onCreate` is defined.
-* `onMove`:`(obj, newName)`, when defined makes a tree drag-and-drop capable.
-* `keymap`: key name to function map of the selected row’s object. Navigation keys are rejected.
-* `actions`: per-row buttons.
-* `segments`: segmented control entries.
-* `dropdown`: an in-panel select subsetting the rows by a value.
-* `prefixViews`: single character mappings to the name of a sibling view it routes to.
-
-The create row only appears while the phrase is non-empty and matches no row exactly. Pick it with `Enter` while it is selected, or with `Shift-Enter` from anywhere in the list.
+`onSelect` and `actions` work inline and in panels. Creation, keymaps, segments, dropdowns, prefix routing, and dragging are panel features.
 
 #### onSelect
-`onSelect(obj, ctx)` is handed the object of the row that was picked, and a context table with one field:
-
-* `ctx.from`: the view a [[#Prefix routing|prefix]] arrived from, if this view was reached that way, the view to hand the slot back to.
-
-Returning `false` **keeps the panel open**. A modal otherwise dismisses itself the moment a row is picked, which would shut the panel an `onSelect` that re-opened the navigator itself just put up.
-
-A common body, for a view whose rows are pages or page-like objects:
+`onSelect(obj, ctx)` receives the selected object. `ctx.from` identifies a view that routed here through a prefix, when applicable. Returning `false` keeps the panel open.
 
 ```lua
 onSelect = function(obj) editor.navigate(obj.ref or obj.name) end,
 ```
 
+Required for flat `view.define` row definitions; optional for `view.new` and `view.pick`. Content views do not use it.
+
+`onCreate(phrase)` adds a create row when the phrase is nonempty and has no exact match. Activate it with `Enter` when selected, or `Shift-Enter` from anywhere in the list.
+
 #### Keymaps
-`keymap` gives a view its own key actions on top of the built-in navigation:
+`keymap` maps browser `KeyboardEvent.key` names to callbacks receiving the selected object:
 
 ```lua
 keymap = {
-  [" "] = function(obj)
-    editor.navigate(obj.ref or obj.name)
-  end,
+  [" "] = function(obj) editor.navigate(obj.ref or obj.name) end,
 }
 ```
 
-Key names are the browser's `KeyboardEvent.key` values. A key fires only when there is something to act on: a pure folder row and the create row have no object of their own, so they don’t trigger it.
-
-Printable keys (a single character, like `" "` or `"r"`) only act while you are **navigating** — that is, after an arrow/Page/Home/End keypress moved the selection.
+Reserved navigation keys are rejected. Pure folders and create rows have no object and do not invoke keymaps. Printable keys activate callbacks only after arrow/Page/Home/End navigation. Panel `Tab` and pointer interactions retain filter-input focus.
 
 #### Row actions
-`actions` gives a view per-row buttons, shown at the right edge of a row while the pointer is over it and on the selected row.
+`actions` adds row buttons. Inline and page-docked actions appear on hover or focus, and remain visible on touch screens. They run independently of `onSelect`, then refresh the view while preserving tree expansion. Buttons are disabled while an action runs.
 
 ```lua
 actions = {
-  { icon = "edit-3", label = "Rename", requireMode = "rw",
-    run = function(obj) ... end },
-  { icon = "trash-2", label = "Delete", requireMode = "rw",
-    run = function(obj)
-      if not editor.confirm("Delete " .. obj.name .. "?") then return end
-      ...
-    end },
-  { icon = "plus", label = "New page here", requireMode = "rw",
-    when = function(obj) return obj.isFolder end,
-    run = function(obj) ... end },
+  {
+    icon = "file-text",
+    label = "Open",
+    run = function(obj) editor.navigate(obj.name) end,
+  },
 }
 ```
 
 * `label`: tooltip and accessible name.
-* `run`: function invoked with the row's object. Confirm inside it (`editor.confirm(...)`, as above) if the action needs it -- there is no declarative `confirm` key.
-* `icon`: see [[#Row icons]] for the three accepted forms.
-* `when` (optional): predicate deciding whether the action applies to an object.
-* `requireMode` (optional): `"rw"` hides the action while the client is in read-only mode.
+* `run(obj)`: callback; ask for confirmation inside it when needed.
+* `icon`: an icon string.
+* `when(obj)`: optional visibility predicate.
+* `requireMode = "rw"`: hide in read-only mode.
 
-In a tree, actions appear on folder rows too: a folder reaches `run` as `{ name = <path>, isFolder = true }`, and a page that also has children carries both its own fields and `isFolder`, the same object `onMove` gets.
+Tree folders reach callbacks as `{ name = <path>, isFolder = true }`; a page with children retains its own fields and gains `isFolder`.
 
 #### Segments
-`segments` puts a segmented control under the phrase input: named subsets of the view’s own rows, switchable without re-running the source.
+`segments` defines named subsets below the panel filter:
 
 ```lua
 segments = {
-  { label = "All", icon = "layers", default = true },
+  { label = "All", default = true },
   { label = "Pages", icon = "file-text",
     where = function(obj) return obj.tag == "page" end },
-  { label = "Documents", icon = "file",
-    where = function(obj) return obj.tag == "document" end },
 }
 ```
 
-* `label`: the segment's text, its tooltip, its accessible name, and the key the active segment is persisted under — so labels must be unique.
-* `where`: predicate callback function deciding whether an object belongs to this segment.
-* `icon`: see [[#Row icons]] for the three accepted forms.
-* `default`: the segment the view starts on, when omitted: the first.
-* `prefix`: a single character that activates this segment when it is the first thing typed into an empty phrase (see [[#Prefix routing]]).
-* `placeholder` (optional): the filter input's placeholder while this segment is active, overriding the view’s.
-
-Filtering composes with the phrase: the segment subsets the rows, then the phrase ranks what is left. In a tree the subset is rebuilt into a tree, so the folders its rows live under come back on their own.
-
-The active segment is remembered per view and restored when it is reopened.
-
-`Tab` is claimed by the panel whether or not it has segments: focus lives in the filter input for the panel’s whole life, and letting `Tab` walk the browser's focus order would strand the user somewhere they cannot type. Pointer interactions hold to the same contract: clicking a row, a folder chevron, a segment, an action or the panel’s own background never moves focus off the filter input (or hands it straight back), so the panel’s keys keep working after any click — the one exception is a drag canceled mid-gesture (Escape, or a drop somewhere invalid), which can leave focus stranded until the next interaction.
+Each entry accepts a unique `label`, `where(obj)` predicate, optional `icon`, `default` flag (otherwise the first entry), single-character `prefix`, and `placeholder` override. The selected segment is remembered per view. In client search mode, segment filtering precedes fuzzy ranking.
 
 #### Dropdown
-`dropdown` puts a select control in the panel header: a subset of the view’s rows picked from a list of values, for value sets too large or too dynamic for segments.
+`dropdown` filters rows by a selected value:
 
 ```lua
 dropdown = {
-  placeholder = "Recipient",
-  options = function()
-    return {
-      { label = "PeteSmith", value = "People/Pete Smith" },
-      { label = "AnnaJones", value = "People/Anna Jones" },
-    }
-  end,
-  key = function(obj) return obj.target end,
+  placeholder = "Status",
+  options = {
+    { label = "Active", value = "active" },
+    { label = "Paused", value = "paused" },
+  },
+  key = function(obj) return obj.status end,
 }
 ```
 
-* `options`: a function returning a list of `{ label, value }` entries, or such a list directly. The function is re-evaluated **every time the view’s source loads or refreshes** (the `refreshOn`/`refreshOnOpen` cycle), not once at define time, so a dynamic option set stays fresh.
-* `key`: callback returning the option value an object belongs under. Called **once per row**, and its result compared to each option by equality.
-* `where`: predicate deciding whether an object belongs under the selected `value`. The general form, for membership that is not a plain equality — a row under several values, or a range. Called **once per row per option**, so a view with many rows and many options pays `rows × options` calls on every refresh; prefer `key` whenever the predicate is really `obj.field == value`.
-* `placeholder` (optional): what the select reads as while nothing is selected -- and, absent `allLabel`, the built-in "All" option's label too.
-* `allLabel` (optional): label of the built-in "All" option, overriding `placeholder` for that one entry. Defaults to "All" if not given.
-* `default` (optional): the value to open on — a string, or a function returning one, re-evaluated on the same cycle as `options`. Ignored when it is not among the options that cycle resolved, and overridden by a value the user last picked.
+* `options`: list of `{ label, value }` entries, or a function returning one on each source load/refresh.
+* `key(obj)`: row's option value; evaluated once per row.
+* `where(obj, value)`: alternative predicate, evaluated per row per option. `key` takes precedence if both are set.
+* `placeholder`: select placeholder and fallback label for the unfiltered option.
+* `allLabel`: override the unfiltered option's label; otherwise uses `placeholder` or `"All"`.
+* `default`: initial value, or function evaluated with `options`. Ignored if absent from the available options.
 
-A dropdown declares `key` or `where` — one of the two; `key` wins if both are given.
-
-The first entry is always a built-in **All** — no filtering — and it is what the view opens on unless a `default` says otherwise. Filtering composes with everything else the panel does: the active segment (if the view has both) subsets the rows, the dropdown selection subsets them further, and the phrase ranks what is left.
-
-The active selection is remembered per view and restored when it is reopened, like the active segment — falling back to `default`, and then to All, when it was never touched, or when the remembered value is no longer among the options.
-
-The select is a pointer affordance: picking a value hands focus straight back to the filter input, and `Tab` stays the panel’s (see above).
+The unfiltered option is always available. Saved selection overrides `default`; if unavailable, selection falls back to `default`, then All. Segment, dropdown, and phrase filters compose.
 
 #### Prefix routing
-A character typed as the *first* thing into an empty phrase can mean something other than itself. Two mechanisms share that gesture, and the difference between them is what they reach:
-
-**A segment prefix** (`segments[i].prefix`) narrows to a subset of the rows this view already has — same source, same presentation, one fewer thing on screen:
-
-```lua
-segments = {
-  { label = "Pages", default = true },
-  { label = "Meta", prefix = "^", where = isMetaPage },
-}
-```
-
-**A prefix view** (`prefixViews`) hands the slot to a different view entirely — its own source, its own segments, its own actions:
+A prefix at the start of an empty phrase can activate a segment (`segments[i].prefix`) or route to another registered view:
 
 ```lua
 prefixViews = { ["$"] = "std.anchors", ["#"] = "std.tags" },
 ```
 
 #### Drag and drop
-A tree view with `onMove` lets you drag rows to a new place in the hierarchy. Drop targets are folders and the tree’s root area. Hovering a collapsed folder for some time opens it. The drop renames the dragged item to `<target folder>/<last segment>` and calls `onMove(obj, newName)`. Dragging a folder moves everything under it. A name that already exists in the tree aborts the drop with an error notification. Folder rows reach `onMove` with an added `isFolder = true`; a page that also has children carries both `isFolder` and its own fields. Desktop only.
+`onMove(obj, newName)` enables desktop tree dragging. Dropping onto a folder or root calls it with `<target folder>/<last segment>`. Hovering a collapsed folder opens it; duplicate destinations abort with an error. Folder objects include `isFolder = true`. Use `view.moveByRename` to rename pages, documents, and whole folders.
 
 ## view.pick(spec)
-`view.pick(spec)`
-
-A one-shot modal picker: opens, suspends the calling script, and returns the selected row’s object — or `nil` if it was dismissed (Escape, backdrop) or superseded by a newer navigator open before anything was picked.
+Opens a one-shot modal and suspends the script until selection. Returns the selected object, or `nil` on dismissal or replacement by another view:
 
 ```lua
 local task = view.pick {
@@ -463,37 +381,21 @@ local task = view.pick {
 if task then editor.navigate(task.ref) end
 ```
 
-It’s the successor to `editor.filterBox` for a rich, filterable, optionally-segmented or tree-shaped picker inline in a script.
-
-**`onSelect`** is optional, same signature as `view.define`‘s (`(obj, ctx)`):
-* Absent: picking a row resolves `view.pick` with that row’s `obj` and closes the panel.
-* Present: it runs, returning `false` keeps the panel open (unchanged semantics — the handler has taken the slot over itself), anything else resolves `view.pick` with the selected `obj` regardless of what `onSelect` returned.
+Optional `onSelect(obj, ctx)` runs before resolving. Returning `false` keeps the picker open; any other return resolves it with the selected object. `content` is not supported.
 
 ## view.open(name, opts?)
-`view.open(name, opts?)`
+Opens or focuses a registered view and returns whether it opened. Options:
 
-Opens the view registered under `name`, and returns whether the view opened. (A page-docked view opens without a panel coming up, and still returns `true`.) Opening a view whose dock is already visible re-focuses its filter input (unless `focus = false`).
-
-**Parameters:**
-
-* `name`: the view's `name`.
-* `opts?`:
-  * `segment`: the label of the segment to open on, overriding both the view's `default` segment and the one it remembers
-  * `phrase`: the phrase to open with.
-  * `dropdown`: the [[#Dropdown|dropdown]] value to open selected, overriding the remembered one for this open only — it is never persisted, so the next open without one restores the remembered (hand-picked) selection or All. A value not (yet) among the loaded options filters as the built-in "All" until a refresh brings its option in.
-  * `focus`: `false` opens the panel without taking keyboard focus — the editor keeps it. Only the focus grab is skipped: the rows still refresh and the phrase/selection reset like any other open (unlike a boot restore, which is fully passive). Such an open also never toggles an already-focused panel closed.
+* `segment`: segment label, overriding the default and remembered segment.
+* `phrase`: initial filter text.
+* `dropdown`: selected dropdown value for this open only; does not replace saved preferences. An unavailable value leaves rows unfiltered until a refresh supplies it.
+* `focus = false`: retain editor focus. The view still refreshes/resets as on a normal open, but never toggles closed from reactivation.
 
 ## view.focus(slot?)
-`view.focus(slot?)`
-
-Returns focus to an open navigator panel's input, keeping its current selection.
-
-* `slot?`: which panel -- `"modal"`, `"lhs"`, `"rhs"` or `"bhs"`. Defaults to any open one.
+Focuses an open view panel's input without changing selection. `slot` is `"modal"`, `"lhs"`, `"rhs"`, or `"bhs"`; omit it to focus any open panel.
 
 ## view.moveByRename(obj, newName)
-`view.moveByRename(obj, newName)`
-
-Renames the page, document or folder an object stands for -- the default `onMove` for space-backed views:
+Renames the page, document, or folder represented by `obj`. Use as a space-backed tree's move handler:
 
 ```lua
 onMove = view.moveByRename,

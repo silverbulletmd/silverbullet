@@ -45,6 +45,8 @@ export type TreeViewProps = {
   canDrag: boolean;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
+  documentActions?: boolean;
+  actionsDisabled?: boolean;
   rowState?: RowStates;
   /** Whether the tree defines row icons at all, i.e. reserves the slot. */
   hasIcon: boolean;
@@ -69,6 +71,8 @@ export function TreeView({
   canDrag,
   actions,
   actionIcons,
+  documentActions,
+  actionsDisabled,
   rowState,
   hasIcon,
   readOnly,
@@ -238,6 +242,8 @@ export function TreeView({
           phrase={phrase}
           actions={actions}
           actionIcons={actionIcons}
+          documentActions={documentActions}
+          actionsDisabled={actionsDisabled}
           rowState={rowState}
           hasIcon={hasIcon}
           readOnly={readOnly}
@@ -265,6 +271,8 @@ function TreeItem({
   phrase,
   actions,
   actionIcons,
+  documentActions,
+  actionsDisabled,
   rowState,
   hasIcon,
   readOnly,
@@ -286,6 +294,8 @@ function TreeItem({
   phrase?: string;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
+  documentActions?: boolean;
+  actionsDisabled?: boolean;
   rowState?: RowStates;
   hasIcon: boolean;
   readOnly: boolean;
@@ -371,12 +381,14 @@ function TreeItem({
         {decorations.map((d, i) => (
           <Chip key={i} decoration={d} />
         ))}
-        {actions && (selected || hovered) && (
+        {actions && (documentActions || selected || hovered) && (
           <RowActions
             actions={actions}
             icons={actionIcons}
             mask={state?.actions}
             readOnly={readOnly}
+            documentMode={documentActions}
+            disabled={actionsDisabled}
             onRun={(actionIndex) => onAction(node, actionIndex)}
           />
         )}
@@ -397,6 +409,8 @@ function TreeItem({
               phrase={phrase}
               actions={actions}
               actionIcons={actionIcons}
+              documentActions={documentActions}
+              actionsDisabled={actionsDisabled}
               rowState={rowState}
               hasIcon={hasIcon}
               readOnly={readOnly}

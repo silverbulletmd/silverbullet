@@ -51,3 +51,57 @@ test("passive folders expand on row activation while passive leaves do nothing",
   );
   expect(actions).toEqual(["toggle:Notes", "select:Notes"]);
 });
+
+test("document actions render on every expanded row and can be disabled", () => {
+  const tree = buildTree(
+    [{ primary: "Guide", obj: { name: "Notes/Guide" } }],
+    "/",
+    true,
+  );
+  const html = render(
+    h(TreeView, {
+      tree,
+      expanded: new Set(["Notes"]),
+      showEmpty: true,
+      separator: "/",
+      canDrag: false,
+      actions: [{ label: "Open", hasWhen: false }],
+      documentActions: true,
+      actionsDisabled: true,
+      hasIcon: false,
+      readOnly: false,
+      onToggle() {},
+      onMove() {},
+      onAction() {},
+    }),
+  );
+  expect(html.match(/aria-label="Open"/g)).toHaveLength(2);
+  expect(html.match(/tabindex="0"/g)).toHaveLength(2);
+  expect(html.match(/ disabled/g)).toHaveLength(2);
+});
+
+test("panel actions are only mounted for selected or hovered rows", () => {
+  const tree = buildTree(
+    [{ primary: "Guide", obj: { name: "Notes/Guide" } }],
+    "/",
+    true,
+  );
+  const html = render(
+    h(TreeView, {
+      tree,
+      expanded: new Set(["Notes"]),
+      selectedPath: "Notes/Guide",
+      showEmpty: true,
+      separator: "/",
+      canDrag: false,
+      actions: [{ label: "Open", hasWhen: false }],
+      hasIcon: false,
+      readOnly: false,
+      onToggle() {},
+      onMove() {},
+      onAction() {},
+    }),
+  );
+  expect(html.match(/aria-label="Open"/g)).toHaveLength(1);
+  expect(html).toContain('tabindex="-1"');
+});

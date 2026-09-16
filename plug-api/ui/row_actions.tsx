@@ -8,21 +8,18 @@ export type RowActionsProps = {
   /** Per-action `when` result; undefined while none has been computed yet. */
   mask?: boolean[];
   readOnly: boolean;
+  documentMode?: boolean;
+  disabled?: boolean;
   onRun: (index: number) => void;
 };
 
-/**
- * The quiet icon buttons at a row's right edge. Meant to be mounted only for
- * the selected row and the row under the pointer, shown by CSS on hover and
- * on the selected row -- so a long list carries no button DOM it isn't about
- * to show, and the selected row remains the keyboard/touch path to the same
- * actions.
- */
 export function RowActions({
   actions,
   icons,
   mask,
   readOnly,
+  documentMode,
+  disabled,
   onRun,
 }: RowActionsProps) {
   const visible = actions
@@ -41,15 +38,12 @@ export function RowActions({
             key={index}
             type="button"
             class="sb-row-action"
-            // Not a tab stop: the caller's own input keeps focus throughout,
-            // and keyboard users reach the same operations another way.
-            tabIndex={-1}
+            tabIndex={documentMode ? 0 : -1}
             title={action.label}
             aria-label={action.label}
-            // A mousedown on a button blurs whatever input has focus before
-            // the click ever lands; suppressing the default keeps focus where
-            // it belongs (and keeps the row's own click handler out of it).
-            onMouseDown={(e) => e.preventDefault()}
+            disabled={disabled}
+            onMouseDown={documentMode ? undefined : (e) => e.preventDefault()}
+            onKeyDown={documentMode ? (e) => e.stopPropagation() : undefined}
             onClick={(e) => {
               e.stopPropagation();
               onRun(index);

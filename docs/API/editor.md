@@ -230,7 +230,7 @@ editor.downloadFile("test.txt", "data:text/plain;base64,SGVsbG8=")
 
 `editor.filterBox(label, options, helpText?, placeHolder?)`
 
-Shows a filterable option picker similar to the page navigator.
+Shows a filterable option picker similar to the page picker.
 
 **Parameters:**
 
@@ -614,7 +614,7 @@ Opens the command palette.
 
 `editor.openNavigator(name, opts?)`
 
-Opens a navigator view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.
+Opens a view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.
 
 **Parameters:**
 
@@ -629,11 +629,11 @@ Opens a navigator view, returning whether it opened. False means the view isn't 
 
 `editor.openPageNavigator(mode?)`
 
-Opens the page picker in the requested browsing mode. Each mode maps to a segment of the `std.pages` navigator view.
+Opens the page picker in the requested browsing mode. Each mode maps to a segment of the `std.pages` view.
 
 **Parameters:**
 
-- `mode?` (`page | meta | document | all`) — The navigator mode.
+- `mode?` (`page | meta | document | all`) — The picker mode.
 
 ## editor.openSearchPanel
 
