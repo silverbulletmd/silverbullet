@@ -1,3 +1,5 @@
+import type { Description } from "./description.ts";
+
 export type Decoration = {
   text?: string;
   icon?: string;
@@ -16,7 +18,7 @@ export type Row = {
    * what nests the row and this is what it reads as.
    */
   label?: string;
-  description?: string;
+  description?: Description;
   decorations?: Decoration[];
   /** Extra CSS classes for the row element itself. */
   cssClass?: string;

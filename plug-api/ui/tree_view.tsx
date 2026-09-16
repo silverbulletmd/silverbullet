@@ -1,3 +1,4 @@
+import { RowText } from "./row_text.tsx";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { highlightMatches } from "./highlight.tsx";
 import { HoverTracker, resolveHover, useHovered } from "./hover.ts";
@@ -343,15 +344,14 @@ function TreeItem({
             // resolved an icon.
             <span class="sb-nav-icon" />
           ))}
-        <span class="sb-nav-primary">
-          {/* The row's own label wins over the path segment, for a view whose
-              hierarchy is synthesized and whose paths carry escaping the
-              reader must never see -- see `Row.label`. */}
-          {highlightMatches(node.row?.label ?? node.segment, phrase)}
-        </span>
-        {node.row?.description && (
-          <span class="sb-nav-description">{node.row.description}</span>
-        )}
+        <RowText
+          primary={
+            <span class="sb-nav-primary">
+              {highlightMatches(node.row?.label ?? node.segment, phrase)}
+            </span>
+          }
+          description={node.row?.description}
+        />
         {decorations.map((d, i) => (
           <Chip key={i} decoration={d} />
         ))}

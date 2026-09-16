@@ -1,3 +1,4 @@
+import { RowText } from "../../../../plug-api/ui/row_text.tsx";
 import type { Ref } from "preact";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { highlightMatches } from "../../../../plug-api/ui/highlight.tsx";
@@ -139,12 +140,14 @@ export function RowItem({
       {left.map((d, i) => (
         <Chip key={`l${i}`} decoration={d} />
       ))}
-      <span className="sb-nav-primary">
-        {highlightMatches(row.primary, phrase)}
-      </span>
-      {row.description && (
-        <span className="sb-nav-description">{row.description}</span>
-      )}
+      <RowText
+        primary={
+          <span className="sb-nav-primary">
+            {highlightMatches(row.primary, phrase)}
+          </span>
+        }
+        description={row.description}
+      />
       {right.length > 0 && <TrailingChips decorations={right} />}
       {actions && showActions && (
         <RowActions

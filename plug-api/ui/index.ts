@@ -33,6 +33,8 @@ export { ResizeHandle } from "./resize_handle.tsx";
 export type { ResizeHandleProps } from "./resize_handle.tsx";
 export { RowActions } from "./row_actions.tsx";
 export type { RowActionsProps } from "./row_actions.tsx";
+export { RowText } from "./row_text.tsx";
+export type { Description, StructuredDescription } from "./description.ts";
 export { highlightMatches } from "./highlight.tsx";
 export { HoverTracker, resolveHover, useHovered } from "./hover.ts";
 export { revealInClosest, revealInContainer } from "./scroll.ts";

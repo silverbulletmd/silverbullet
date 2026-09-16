@@ -1,3 +1,4 @@
+import { RowText } from "../../../../plug-api/ui/row_text.tsx";
 import { render } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { Client } from "../../../client.ts";
@@ -320,26 +321,29 @@ function PageWidget({
               }}
               onKeyDown={(ev) => activateOnKey(ev, activate)}
             >
-              {primaryNode ? (
-                <MarkdownText
-                  node={primaryNode}
-                  className="sb-nav-primary"
-                  client={client}
-                />
-              ) : (
-                <span className="sb-nav-primary">{row.primary}</span>
-              )}
-              {descriptionNode ? (
-                <MarkdownText
-                  node={descriptionNode}
-                  className="sb-nav-description"
-                  client={client}
-                />
-              ) : (
-                row.description && (
-                  <span className="sb-nav-description">{row.description}</span>
-                )
-              )}
+              <RowText
+                primary={
+                  primaryNode ? (
+                    <MarkdownText
+                      node={primaryNode}
+                      className="sb-nav-primary"
+                      client={client}
+                    />
+                  ) : (
+                    <span className="sb-nav-primary">{row.primary}</span>
+                  )
+                }
+                description={row.description}
+                renderedDescription={
+                  descriptionNode ? (
+                    <MarkdownText
+                      node={descriptionNode}
+                      className="sb-nav-description"
+                      client={client}
+                    />
+                  ) : undefined
+                }
+              />
             </div>
           );
         })

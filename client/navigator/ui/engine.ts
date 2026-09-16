@@ -1,3 +1,4 @@
+import { descriptionText } from "../../../plug-api/ui/description.ts";
 import { LoadingState } from "./loading.ts";
 import { icon } from "@silverbulletmd/silverbullet/syscalls";
 import {
@@ -453,7 +454,7 @@ export class NavigatorEngine {
       indexed = rows.map((row, i) => ({
         ...row.obj,
         primary: row.primary,
-        description: row.description,
+        description: descriptionText(row.description),
         __row: row,
         __idx: i,
       }));

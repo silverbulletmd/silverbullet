@@ -186,6 +186,11 @@
   --sb-nav-band: transparent;
 }
 
+.sb-nav-row:has(> .sb-nav-text) {
+  height: auto;
+  min-height: var(--sb-nav-row-height);
+}
+
 .sb-nav-selected {
   background-color: var(--modal-selected-option-background-color);
   color: var(--modal-selected-option-color);

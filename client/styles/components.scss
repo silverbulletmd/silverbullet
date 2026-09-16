@@ -510,7 +510,8 @@ textarea,
   white-space: nowrap;
 }
 
-.sb-nav-primary mark {
+.sb-nav-primary mark,
+.sb-nav-description mark {
   background-color: var(--editor-highlight-background-color);
   color: inherit;
   line-height: inherit;
@@ -600,3 +601,35 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
 }
 
 .sb-tab[data-dirty]::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 0.5rem; border-radius: 50%; background: currentColor; vertical-align: middle; }
+
+.sb-nav-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  gap: 0.15em;
+}
+
+.sb-nav-description.sb-nav-description-structured {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  max-width: 100%;
+  white-space: normal;
+  gap: 0.15em;
+}
+
+.sb-nav-description-label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-nav-description-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}

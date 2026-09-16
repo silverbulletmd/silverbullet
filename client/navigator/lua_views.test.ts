@@ -1056,3 +1056,20 @@ test("the content hook hands its function the same dock", async () => {
     luaHandle(spec, "content", { ctx: { phrase: "", dock: "rhs" } }),
   ).resolves.toEqual({ markdown: "dock=rhs" });
 });
+
+test("row descriptions carry labels and explicit ranges through Lua", async () => {
+  const spec = luaSpec(`{
+    name = "v",
+    source = function() return { { name = "Walks" } } end,
+    presentation = { row = { description = function(obj)
+      return { label = "Weekend routes", text = "A quiet walking route.", highlights = { { 8, 15 } } }
+    end } },
+    ${ON_SELECT},
+  }`);
+  const rows = await luaHandle(spec, "rows", {});
+  expect(rows[0].description).toEqual({
+    label: "Weekend routes",
+    text: "A quiet walking route.",
+    highlights: [[8, 15]],
+  });
+});

@@ -1,3 +1,4 @@
+import { normalizeDescription } from "../../plug-api/ui/description.ts";
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
@@ -784,7 +785,9 @@ async function buildRows(
         obj?.name ??
         obj?.ref,
       label: await resolveField(sf, field(row, "label"), obj),
-      description: await resolveField(sf, field(row, "description"), obj),
+      description: normalizeDescription(
+        await resolveField(sf, field(row, "description"), obj),
+      ),
       decorations: await resolveDecorations(sf, field(row, "decorations"), obj),
       cssClass: await resolveField(sf, field(row, "cssClass"), obj),
     });

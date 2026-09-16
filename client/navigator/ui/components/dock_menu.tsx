@@ -9,7 +9,7 @@ const LABELS: Record<string, string> = {
   lhs: "Left sidebar",
   rhs: "Right sidebar",
   bhs: "Bottom panel",
-  modal: "Modal only",
+  modal: "Modal window",
 };
 
 function dockIcon(dock: string) {

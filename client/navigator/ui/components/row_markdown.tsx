@@ -73,7 +73,10 @@ export function renderRows(
     rows.map(async (row) => ({
       row,
       primaryNode: await renderRowMarkdown(client, row.primary ?? ""),
-      descriptionNode: await renderRowMarkdown(client, row.description ?? ""),
+      descriptionNode:
+        typeof row.description === "string"
+          ? await renderRowMarkdown(client, row.description)
+          : undefined,
     })),
   );
 }

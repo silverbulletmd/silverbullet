@@ -13,7 +13,7 @@ view.define {
   title = "Routes",
   command = "Fixture: Open Routes",
   dock = "modal",
-  presentation = { mode = "list" },
+  presentation = { mode = "list", row = { description = "details" } },
   source = function()
     return js.importFromSpace("routes.js").rows()
   end,
@@ -29,7 +29,7 @@ test.describe("Lua-defined views", () => {
       "CONFIG.md": viewConfig,
       "routes.js": `export function rows() {
         return new Promise(resolve => {
-          globalThis.finishRoutes = () => resolve([{ name: "Open Destination", ref: "Destination" }]);
+          globalThis.finishRoutes = () => resolve([{ name: "Open Destination", ref: "Destination", details: { label: "Weekend routes", text: "A quiet walking route through pine forest.", highlights: [[8, 15]] } }]);
         });
       }`,
       "Destination.md": "# Destination",
@@ -47,7 +47,23 @@ test.describe("Lua-defined views", () => {
     await expect(frame.locator(".sb-nav-title")).toHaveText("Routes");
     await expect(navInput(sbPage)).toHaveValue("Destination");
     await expect(frame.getByRole("status", { name: "Loading" })).toHaveCount(0);
-    await frame.locator(".sb-nav-row", { hasText: "Open Destination" }).click();
+    const row = frame.locator(".sb-nav-row", { hasText: "Open Destination" });
+    await expect(row.locator(".sb-nav-description-label")).toHaveText(
+      "Weekend routes",
+    );
+    await expect(row.locator(".sb-nav-description mark")).toHaveText("walking");
+    const fits = await row.evaluate((element) => {
+      const rowBounds = element.getBoundingClientRect();
+      const description = element
+        .querySelector(".sb-nav-description")!
+        .getBoundingClientRect();
+      return (
+        description.top >= rowBounds.top &&
+        description.bottom <= rowBounds.bottom
+      );
+    });
+    expect(fits).toBe(true);
+    await row.click();
 
     await expect(currentPage(sbPage)).toHaveValue("Destination");
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
