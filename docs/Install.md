@@ -1,6 +1,3 @@
----
-pageDecoration.tree.priority: 95
----
 #getting-started
 
 Excited to use SilverBullet? Here are a few ways for you to deploy it.
