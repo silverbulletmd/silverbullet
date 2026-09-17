@@ -673,6 +673,10 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 body.sb-standalone .sb-git-page {
+  :is(.sb-input, .sb-select) {
+    width: 100%;
+  }
+
   h4 {
     font-size: 1rem;
     font-weight: 600;

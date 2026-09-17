@@ -720,95 +720,11 @@ test("std.spaceLog sends no phrase when the filter is empty", async () => {
   expect(space.getSpaceLog).toHaveBeenCalledWith(undefined, undefined);
 });
 
-test("std.pageHistory restore action is rw-gated and calls editor.setText with isolated history", async () => {
-  const meta = builtinMeta("std.pageHistory")!;
-  expect(meta.actions).toEqual([
-    { icon: "rotate-ccw", label: "Restore", hasWhen: true, requireMode: "rw" },
-  ]);
-  editor.getCurrentPath.mockResolvedValue("note.md");
-  space.getRevision.mockResolvedValue("old text");
-  await runAction(
-    1,
-    { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" },
-    undefined,
-    "std.pageHistory",
-  );
-  expect(editor.setText).toHaveBeenCalledWith("old text", true);
-});
-
-test("restoring a deletion commit falls back to the parent revision", async () => {
-  editor.getCurrentPath.mockResolvedValue("Doomed.md");
-  system.getMode.mockResolvedValue("rw");
-  editor.getUiOption.mockResolvedValue(false);
-  space.getRevision.mockImplementation(
-    async (_path: string, _rev: string, parent?: boolean) => {
-      if (!parent) {
-        throw Object.assign(new Error("Could not load revision: 404"), {
-          status: 404,
-        });
-      }
-      return "alpha";
-    },
-  );
-
-  await builtinHandle("std.pageHistory", "action", {
-    index: 1,
-    obj: { name: "r", page: "Doomed.md", rev: "a".repeat(40) },
-  });
-
-  expect(space.getRevision).toHaveBeenCalledWith(
-    "Doomed.md",
-    "a".repeat(40),
-    true,
-  );
-  expect(editor.setText).toHaveBeenCalledWith("alpha", true);
-});
-
-test("restoring a deletion commit does not retry on a non-404 failure", async () => {
-  editor.getCurrentPath.mockResolvedValue("Doomed.md");
-  system.getMode.mockResolvedValue("rw");
-  editor.getUiOption.mockResolvedValue(false);
-  space.getRevision.mockRejectedValue(
-    Object.assign(new Error("Could not load revision: 500"), {
-      status: 500,
-    }),
-  );
-
-  await builtinHandle("std.pageHistory", "action", {
-    index: 1,
-    obj: { name: "r", page: "Doomed.md", rev: "a".repeat(40) },
-  });
-
-  // Exactly one call, and never with the parent flag: a bare
-  // catch-and-retry would call this twice regardless of status.
-  expect(space.getRevision).toHaveBeenCalledTimes(1);
-  expect(space.getRevision).not.toHaveBeenCalledWith(
-    "Doomed.md",
-    "a".repeat(40),
-    true,
-  );
-  expect(editor.flashNotification).toHaveBeenCalledWith(
-    expect.stringContaining("500"),
-    "error",
-  );
-  expect(editor.setText).not.toHaveBeenCalled();
-});
-
-test("restoring from Space History navigates to the row's page first", async () => {
-  editor.getCurrentPath
-    .mockResolvedValueOnce("index.md")
-    .mockResolvedValue("Other.md");
-  system.getMode.mockResolvedValue("rw");
-  editor.getUiOption.mockResolvedValue(false);
-  space.getRevision.mockResolvedValue("restored body");
-
-  await builtinHandle("std.spaceLog", "action", {
-    index: 1,
-    obj: { name: "r", rev: "b".repeat(40), file: "Other.md" },
-  });
-
-  expect(editor.navigate).toHaveBeenCalledWith({ path: "Other.md" });
-  expect(editor.setText).toHaveBeenCalledWith("restored body", true);
+test("history panels leave restoring to the revision preview", () => {
+  expect(builtinMeta("std.pageHistory")!.actions).toBeUndefined();
+  expect(
+    builtinMeta("std.spaceLog")!.actions?.map((action) => action.label),
+  ).toEqual(["Sync now", "Review conflicts"]);
 });
 
 test("std.spaceLog gives each file an icon reflecting what happened to it", async () => {
@@ -1153,6 +1069,7 @@ test("std.spaceLog previews a page child row and expands a bare commit row", asy
   );
   expect(currentPreview()!.header).toContain("Projects/Alpha.md @ cccccccc");
   expect(currentPreview()!.header).toContain("alice");
+  expect(currentPreview()!.canRestore).toBe(true);
   expect(editor.navigate).not.toHaveBeenCalled();
   expect(fileResult).toBe(false);
 

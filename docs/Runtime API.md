@@ -19,7 +19,7 @@ If Chrome is not auto-detected, for some reason, set the path explicitly:
 SB_CHROME_PATH=/usr/bin/chromium
 ```
 
-In single-instance mode, set `SB_RUNTIME_API=0` to disable the Runtime API. In multi-space mode this variable is ignored: use the **Enable runtime API** toggle in the administrator’s **Server** tab. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
+In single-instance mode, set `SB_RUNTIME_API=0` to disable the Runtime API. In multi-space mode this variable is ignored: use the **Enable runtime API** toggle in the administrator’s **Runtimes** tab. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
 
 # Docker setup
 The default Docker image includes Chromium headless shell, so no special image variant is required:

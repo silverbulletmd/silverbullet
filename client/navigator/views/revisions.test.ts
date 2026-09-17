@@ -175,16 +175,6 @@ test("selecting a conflicted path navigates straight to the page, not a diff pre
   expect(space.getRevisionDiff).not.toHaveBeenCalled();
 });
 
-test("the Restore action never targets a sync row", async () => {
-  space.getSpaceLog.mockResolvedValueOnce(
-    log({ sync: { state: "conflicted", paths: ["a.md"] } }),
-  );
-  const rows = await spaceLogView.source({ phrase: "" } as any);
-  const restore = spaceLogView.actions!.find((a) => a.label === "Restore")!;
-  expect(restore.when!(rows[0])).toBe(false);
-  expect(restore.when!(rows[1])).toBe(false);
-});
-
 test("Git Sync now does not mutate for read members", async () => {
   system.getMode.mockResolvedValueOnce("ro");
   await requestGitSync();

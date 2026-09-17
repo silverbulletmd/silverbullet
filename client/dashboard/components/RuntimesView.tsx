@@ -1,6 +1,8 @@
-import { Alert, Button } from "@silverbulletmd/silverbullet/ui";
+import { Alert, Button, CheckboxField } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { adminApi, formatApiError } from "../api.ts";
+import { adminApi, formatApiError, getServerInfo } from "../api.ts";
+import { SaveConfirmation, useNotification } from "../notifications.tsx";
+import { runtimeApiUnavailableReason } from "../runtime_availability.ts";
 
 type RuntimeInfo = {
   id: string;
@@ -30,12 +32,50 @@ export function RuntimesView({
   onUnauthorized: () => void;
 }) {
   const [rows, setRows] = useState<RuntimeInfo[] | null>(null);
+  const [runtimeApi, setRuntimeApi] = useState<boolean | null>(null);
+  const [runtimeReason, setRuntimeReason] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
   const [pending, setPending] = useState("");
+  const notify = useNotification("runtimes");
   const manage = useRef<(id: string, action: "stop" | "reset") => void>(
     () => {},
   );
+  useEffect(() => {
+    void getServerInfo()
+      .then((info) =>
+        setRuntimeReason(runtimeApiUnavailableReason(info.runtimeApi)),
+      )
+      .catch((error) => {
+        if (error.unauthorized) onUnauthorized();
+        else setError(formatApiError(error));
+      });
+    void adminApi("GET", "server-config")
+      .then((config) => setRuntimeApi(config.runtimeApi))
+      .catch((error) => {
+        if (error.unauthorized) onUnauthorized();
+        else setError(formatApiError(error));
+      });
+  }, []);
+
+  async function saveRuntimeApi() {
+    if (runtimeApi === null) return;
+    setSaving(true);
+    setError("");
+    notify("");
+    try {
+      const config = await adminApi("PUT", "server-config", { runtimeApi });
+      setRuntimeApi(config.runtimeApi);
+      notify("Runtime API setting saved.");
+    } catch (error: any) {
+      if (error.unauthorized) onUnauthorized();
+      else setError(formatApiError(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   useEffect(() => {
     let disposed = false;
     let fetching = false;
@@ -104,6 +144,31 @@ export function RuntimesView({
   return (
     <div>
       {error && <Alert variant="error">{error}</Alert>}
+      {runtimeApi === null && !error && <p>Loading settings…</p>}
+      {runtimeApi !== null && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveRuntimeApi();
+          }}
+        >
+          <SaveConfirmation scope="runtimes" />
+          <CheckboxField
+            label="Enable runtime API"
+            checked={runtimeApi}
+            disabled={runtimeReason !== null}
+            onChange={(event) => setRuntimeApi(event.currentTarget.checked)}
+          />
+          {runtimeReason && <p class="sb-help-text">{runtimeReason}</p>}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={saving || runtimeReason !== null}
+          >
+            Save
+          </Button>
+        </form>
+      )}
       <p class="sb-help-text">
         This page lists currently active Runtime API users.
       </p>

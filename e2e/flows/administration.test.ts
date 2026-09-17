@@ -1,3 +1,4 @@
+import { chromium } from "@playwright/test";
 import { adminApi, login, test } from "../fixtures/authenticated.ts";
 import {
   expect,
@@ -19,6 +20,54 @@ hostnameTest.skip(
   ({ browserName }) => browserName !== "chromium" && !process.env.SB_E2E_HOST,
   "The fixture hostname mapping uses Chromium; set SB_E2E_HOST for other browsers.",
 );
+
+test.describe("runtime administration", () => {
+  test.use({
+    serverEnv: {
+      SB_RUNTIME_API: "1",
+      SB_CHROME_PATH: chromium.executablePath(),
+    },
+  });
+
+  test("runtime setting lives on Runtimes and survives saving Server settings", async ({
+    adminPage: page,
+    sbServer,
+  }) => {
+    await page.goto(`${sbServer.url}/.dashboard/admin?section=server`);
+    await expect(page.getByLabel("Enable runtime API")).toHaveCount(0);
+
+    await page.getByRole("link", { name: "Runtimes" }).click();
+    const toggle = page.getByLabel("Enable runtime API");
+    await expect(toggle).toBeEnabled();
+    await toggle.uncheck();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect
+      .poll(
+        async () =>
+          (
+            await adminApi<{ runtimeApi: boolean }>(
+              page,
+              sbServer,
+              "GET",
+              "server-config",
+            )
+          ).runtimeApi,
+      )
+      .toBe(false);
+
+    await page.getByRole("link", { name: "Server", exact: true }).click();
+    await page.getByLabel("Server Name").fill("Example Server");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    const config = await adminApi<{
+      runtimeApi: boolean;
+      serverName: string;
+    }>(page, sbServer, "GET", "server-config");
+    expect(config).toMatchObject({
+      runtimeApi: false,
+      serverName: "Example Server",
+    });
+  });
+});
 
 hostnameTest(
   "an administrator reuses a hostname for sibling spaces, edits and opens them",

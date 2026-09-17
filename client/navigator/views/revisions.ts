@@ -13,12 +13,7 @@ import {
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import {
-  type DiffLine,
-  openPreview,
-  parseDiff,
-  restoreInto,
-} from "./revision_preview.ts";
+import { type DiffLine, openPreview, parseDiff } from "./revision_preview.ts";
 import {
   type BuiltinView,
   baseMeta,
@@ -314,34 +309,6 @@ function peekRevision(
   return showRevisionPreview(obj, false, dock);
 }
 
-/** A deletion commit has no content of its own, so "restore this" can only
- * mean the version immediately before it. */
-async function revisionText(
-  page: string,
-  rev: string,
-): Promise<{ text: string; fromParent: boolean }> {
-  try {
-    return { text: await space.getRevision(page, rev), fromParent: false };
-  } catch (e) {
-    if ((e as { status?: number } | undefined)?.status !== 404) throw e;
-    return {
-      text: await space.getRevision(page, rev, true),
-      fromParent: true,
-    };
-  }
-}
-
-async function restoreRevision(obj: RevisionRow): Promise<void> {
-  if (!obj.rev) return;
-  const { text, fromParent } = await revisionText(obj.page, obj.rev);
-  await restoreInto(obj.page, text);
-  await editor.flashNotification(
-    fromParent
-      ? `Restored ${obj.page} as it was before ${obj.rev.slice(0, 8)}`
-      : `Restored revision ${obj.rev.slice(0, 8)}`,
-  );
-}
-
 export const pageHistoryView: BuiltinView<RevisionRow> = {
   meta: baseMeta({
     title: "Page History",
@@ -379,15 +346,6 @@ export const pageHistoryView: BuiltinView<RevisionRow> = {
       obj.name === MORE ? "chevron-down" : obj.rev ? "clock" : "edit-3",
     cssClass: () => "sb-nav-noband",
   },
-  actions: [
-    {
-      icon: "rotate-ccw",
-      label: "Restore",
-      requireMode: "rw",
-      when: (obj) => !!obj.rev,
-      run: restoreRevision,
-    },
-  ],
   keymap: {
     " ": (obj, ctx) =>
       obj.name === MORE ? false : peekRevision(obj, ctx.dock),
@@ -652,14 +610,6 @@ export const spaceLogView: BuiltinView<LogRow> = {
   },
   actions: [
     {
-      icon: "rotate-ccw",
-      label: "Restore",
-      requireMode: "rw",
-      when: (obj) =>
-        !obj.sync && !!obj.file?.endsWith(".md") && obj.rev !== UNCOMMITTED,
-      run: (obj) => restoreRevision({ ...obj, page: obj.file! }),
-    },
-    {
       icon: "refresh-cw",
       label: "Sync now",
       requireMode: "rw",
@@ -710,7 +660,7 @@ export const gitStatusView: BuiltinView<LogRow> = {
   },
   source: async () => [gitStatusRow(await loadGitSyncStatus())],
   onSelect: async () => false,
-  actions: spaceLogView.actions!.filter((action) => action.label !== "Restore"),
+  actions: spaceLogView.actions,
 };
 
 export async function requestGitSync(): Promise<void> {
