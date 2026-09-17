@@ -136,7 +136,10 @@ test("draft editing invalidates a late check and Cancel preserves the active con
     expect(dialog.message()).toContain("Discard your unsaved space settings");
     await dialog.dismiss();
   });
-  await page.getByRole("link", { name: "← Dashboard", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "← Dashboard", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: "Spaces", exact: true }).click();
   await expect(page).toHaveURL(`${origin}/.dashboard/sample?section=revisions`);
   expect(warned).toBe(true);
   expect(deleted).toBe(false);
