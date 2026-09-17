@@ -19,7 +19,7 @@ end)}
 ${widgets.commandButton("System: Reload")}
 
 ## Docked widgets
-* **Table of Contents** (`std.toc`, command `Navigate: Table of Contents`): the current page's headers as a tree, live as you type. Opens as a modal. A page with fewer than `minHeaders` headers has no outline worth showing, and the view renders nothing at all in a page dock there.
+* **Table of Contents** (`std.toc`, command `Navigate: Table of Contents`): the current page's headers as a tree, live as you type. Opens in the right sidebar. A page with fewer than `minHeaders` headers has no outline worth showing, and the view renders nothing at all in a page dock there.
 * **Linked Mentions** (`std.linkedMentions`, command `Navigate: Linked Mentions`): every other page linking to this one, with a snippet of context. Docks at the bottom of the page, open until you close it.
 * **Linked Tasks** (`std.linkedTasks`, command `Navigate: Linked Tasks`): incomplete tasks on other pages that link to this one. Docks at the top of the page, open until you close it.
 
@@ -141,7 +141,7 @@ view.define {
   placeholder = "Header",
   command = "Navigate: Table of Contents",
   menu = { location = "view", group = "1_views", order = 1, label = "Table of Contents" },
-  dock = "modal",
+  dock = "rhs",
   supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = false,
   refreshOn = { "editor:pageModified", "editor:pageLoaded", "editor:documentLoaded" },

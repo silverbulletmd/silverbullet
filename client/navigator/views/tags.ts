@@ -13,6 +13,7 @@ export const tagPicker: BuiltinView<TagRow> = {
     title: "Tags",
     label: "Open",
     placeholder: "Tag",
+    supportedDocks: ["modal", "lhs", "rhs", "bhs"],
     refreshOn: INDEX_REFRESH_EVENTS,
     // As with anchors: the `#` is the icon's job, not the label's.
     stripPrefix: "#",
