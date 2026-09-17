@@ -63,6 +63,7 @@
     "build:plugs": "tsx build/build_plugs.ts",
     "build:client": "tsx build/build_client.ts",
     "build:plug-compile": "tsx build/build_plug_compile.ts",
+    "prebuild:client": "node build/patch_codemirror_view.mjs",
     "prepublishOnly": "npm run build:plug-compile",
     "test": "vitest run",
     "check": "tsc --noEmit && tsc -p tsconfig.e2e.json",
