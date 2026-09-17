@@ -2,6 +2,7 @@ import { useLayoutEffect } from "preact/hooks";
 import type { Client } from "../../client.ts";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import { hide } from "../navigator.ts";
+import { currentPreview } from "../views/revision_preview.ts";
 import { NavErrorBoundary } from "./components/nav_error_boundary.tsx";
 import { NavRoot } from "./components/nav_root.tsx";
 import type { NavSlotState } from "./slots.ts";
@@ -45,6 +46,7 @@ export function NavigatorModal({
     if (token === undefined) return;
     const onKeyDown = (ev: KeyboardEvent) => {
       if (ev.key !== "Escape") return;
+      if (currentPreview()) return;
       // A keystroke the panel itself received is the panel's to answer.
       if ((ev.target as HTMLElement | null)?.closest?.(".sb-nav-root")) return;
       ev.preventDefault();

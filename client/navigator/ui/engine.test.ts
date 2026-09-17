@@ -69,6 +69,22 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+test("selection and key handlers receive the active dock", async () => {
+  const engine = new NavigatorEngine("lhs");
+  await engine.select("std.pageHistory", { name: "note.md" });
+  await engine.key("std.pageHistory", " ", { name: "note.md" });
+  expect(handle).toHaveBeenNthCalledWith(1, {
+    view: "std.pageHistory",
+    hook: "select",
+    args: { obj: { name: "note.md" }, from: undefined, dock: "lhs" },
+  });
+  expect(handle).toHaveBeenNthCalledWith(2, {
+    view: "std.pageHistory",
+    hook: "key",
+    args: { key: " ", obj: { name: "note.md" }, dock: "lhs" },
+  });
+});
+
 test("an empty table from decorations becomes no decorations at all", async () => {
   bridge(meta(), [
     {

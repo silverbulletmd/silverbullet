@@ -53,10 +53,13 @@ export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
    * @returns `false` to keep the panel open (see the Lua `onSelect` docs), or
    * {@link EXPAND_ROW} for a tree row that should open rather than act.
    */
-  onSelect: (obj: T, ctx: { from?: string }) => Promise<any>;
+  onSelect: (obj: T, ctx: { from?: string; dock?: string }) => Promise<any>;
   onCreate?: (phrase: string) => Promise<any>;
   /** Keyed by `KeyboardEvent.key`; see `navigator.define`'s `keymap` field. */
-  keymap?: Record<string, (obj: T) => Promise<any> | any>;
+  keymap?: Record<
+    string,
+    (obj: T, ctx: { dock?: string }) => Promise<any> | any
+  >;
   onMove?: (obj: T, newName: string) => Promise<any>;
 };
 

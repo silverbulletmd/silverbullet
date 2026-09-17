@@ -204,7 +204,7 @@ export class NavigatorEngine {
     obj: Record<string, any>,
     from?: string,
   ): Promise<any> {
-    return this.handle(viewName, "select", { obj, from });
+    return this.handle(viewName, "select", { obj, from, dock: this.slot });
   }
 
   create(viewName: string, phrase: string): Promise<any> {
@@ -212,7 +212,7 @@ export class NavigatorEngine {
   }
 
   key(viewName: string, key: string, obj: Record<string, any>): Promise<any> {
-    return this.handle(viewName, "key", { key, obj });
+    return this.handle(viewName, "key", { key, obj, dock: this.slot });
   }
 
   move(

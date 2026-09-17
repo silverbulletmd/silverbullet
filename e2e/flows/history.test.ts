@@ -41,9 +41,19 @@ test("an editor snapshots a change, previews history and restores a saved revisi
   const history = page.locator(".sb-nav-root-rhs");
   await expect(history.locator(".sb-nav-title")).toHaveText("Page History");
   await expect(history.locator(".sb-nav-row")).toHaveCount(2);
-  await history.locator(".sb-nav-row").last().click();
+  await history.getByRole("button", { name: /Change placement/ }).click();
+  await history.getByRole("menuitem", { name: "Modal window" }).click();
+  const modalHistory = page.locator('.sb-nav-root[data-slot="modal"]');
+  await expect(modalHistory.locator(".sb-nav-title")).toHaveText(
+    "Page History",
+  );
+  await modalHistory.locator(".sb-nav-row").last().click();
   const preview = page.locator(".sb-revision-preview");
   await expect(preview).toContainText("First version.");
+  await page.keyboard.press("Escape");
+  await expect(preview).toBeHidden();
+  await expect(modalHistory).toBeVisible();
+  await modalHistory.locator(".sb-nav-row").last().click();
   await preview.getByRole("button", { name: "Restore", exact: true }).click();
   await expect(preview).toBeHidden();
   await waitForPersistedContent(sbServer, "index.md", "First version.\n");

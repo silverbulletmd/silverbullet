@@ -88,6 +88,34 @@ test("the revision views vanish entirely when revisions are unavailable", async 
   expect(builtinMeta("std.spaceTree")).toBeDefined();
 });
 
+test("history views default to the right sidebar and can move between window docks and modal", () => {
+  for (const name of ["std.pageHistory", "std.spaceLog"]) {
+    const meta = builtinMeta(name)!;
+    expect(meta.dock).toBe("rhs");
+    expect(meta.supportedDocks).toEqual(["rhs", "lhs", "bhs", "modal"]);
+  }
+});
+
+test("history preview returns focus to the dock that opened it", async () => {
+  space.getRevisionDiff.mockResolvedValue("@@ -1 +1 @@\n-old\n+new\n");
+  await builtinHandle("std.pageHistory", "select", {
+    obj: { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" },
+    dock: "lhs",
+  });
+  expect(currentPreview()!.dock).toBe("lhs");
+
+  await builtinHandle("std.spaceLog", "key", {
+    key: " ",
+    obj: {
+      name: "b".repeat(40),
+      rev: "b".repeat(40),
+      file: "note.md",
+    },
+    dock: "bhs",
+  });
+  expect(currentPreview()!.dock).toBe("bhs");
+});
+
 test("with an index, the rows are the indexed objects", async () => {
   index.isAvailable.mockResolvedValue(true);
   index.queryLuaObjects.mockImplementation((tag) =>

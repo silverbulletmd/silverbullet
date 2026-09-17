@@ -223,7 +223,7 @@ export async function builtinHandle(
       const view = views[name];
       if (!view) return undefined;
       return await runHandler("onSelect", () =>
-        view.onSelect(args.obj, { from: args.from }),
+        view.onSelect(args.obj, { from: args.from, dock: args.dock }),
       );
     }
     case "create": {
@@ -234,7 +234,9 @@ export async function builtinHandle(
     case "key": {
       const fn = views[name]?.keymap?.[args.key];
       if (!fn) return undefined;
-      return await runHandler("keymap", () => fn(args.obj));
+      return await runHandler("keymap", () =>
+        fn(args.obj, { dock: args.dock }),
+      );
     }
     case "action": {
       // `index` is 1-based from the engine (`engine.ts`'s `action()`), same

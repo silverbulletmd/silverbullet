@@ -85,8 +85,8 @@ function describeFailure(e: unknown): Error {
 /** Commits changed without any file changing, so nothing else would refresh. */
 export const REVISIONS_CHANGED_EVENT = "revisions:snapshot";
 
-/** Both views dock here, and the preview hands focus back to it on close. */
 const DOCK = "rhs";
+const HISTORY_DOCKS = ["rhs", "lhs", "bhs", "modal"];
 
 type RevisionRow = {
   name: string;
@@ -240,6 +240,7 @@ async function isReadOnly(): Promise<boolean> {
 async function showUncommittedPreview(
   page: string,
   focus: boolean,
+  dock = DOCK,
 ): Promise<false | undefined> {
   let diff: DiffLine[];
   try {
@@ -255,7 +256,7 @@ async function showUncommittedPreview(
     diff,
     canRestore: false,
     focus,
-    dock: DOCK,
+    dock,
   });
   return false;
 }
@@ -263,8 +264,9 @@ async function showUncommittedPreview(
 async function showRevisionPreview(
   obj: RevisionRow,
   focus: boolean,
+  dock = DOCK,
 ): Promise<false | undefined> {
-  if (!obj.rev) return showUncommittedPreview(obj.page, focus);
+  if (!obj.rev) return showUncommittedPreview(obj.page, focus, dock);
   let diff: DiffLine[] | undefined;
   try {
     diff = parseDiff(await space.getRevisionDiff(obj.page, obj.rev));
@@ -293,17 +295,23 @@ async function showRevisionPreview(
     diff,
     canRestore: !(await isReadOnly()),
     focus,
-    dock: DOCK,
+    dock,
   });
   return false;
 }
 
-function previewRevision(obj: RevisionRow): Promise<false | undefined> {
-  return showRevisionPreview(obj, true);
+function previewRevision(
+  obj: RevisionRow,
+  dock?: string,
+): Promise<false | undefined> {
+  return showRevisionPreview(obj, true, dock);
 }
 
-function peekRevision(obj: RevisionRow): Promise<false | undefined> {
-  return showRevisionPreview(obj, false);
+function peekRevision(
+  obj: RevisionRow,
+  dock?: string,
+): Promise<false | undefined> {
+  return showRevisionPreview(obj, false, dock);
 }
 
 /** A deletion commit has no content of its own, so "restore this" can only
@@ -340,6 +348,7 @@ export const pageHistoryView: BuiltinView<RevisionRow> = {
     noFilter: true,
     mode: "tree",
     dock: DOCK,
+    supportedDocks: HISTORY_DOCKS,
     expandAll: true,
     expansionScope: "page",
     foldersFirst: false,
@@ -380,17 +389,18 @@ export const pageHistoryView: BuiltinView<RevisionRow> = {
     },
   ],
   keymap: {
-    " ": (obj) => (obj.name === MORE ? false : peekRevision(obj)),
+    " ": (obj, ctx) =>
+      obj.name === MORE ? false : peekRevision(obj, ctx.dock),
   },
   source: pageHistoryRows,
-  onSelect: (obj) => {
+  onSelect: (obj, ctx) => {
     if (obj.name === MORE) {
       return loadMorePageHistory(obj.page).then(async (didLoad) => {
         if (didLoad) await events.dispatchEvent(REVISIONS_CHANGED_EVENT, {});
         return false;
       });
     }
-    return previewRevision(obj);
+    return previewRevision(obj, ctx.dock);
   },
 };
 
@@ -569,12 +579,13 @@ function logRowLabel(obj: LogRow): string {
 function previewLogFile(
   obj: LogRow,
   focus: boolean,
+  dock = DOCK,
 ): Promise<false | undefined> {
   if (!obj.file?.endsWith(".md")) return Promise.resolve(false);
   if (obj.rev === UNCOMMITTED) {
-    return showUncommittedPreview(obj.file, focus);
+    return showUncommittedPreview(obj.file, focus, dock);
   }
-  return showRevisionPreview({ ...obj, page: obj.file }, focus);
+  return showRevisionPreview({ ...obj, page: obj.file }, focus, dock);
 }
 
 export const spaceLogView: BuiltinView<LogRow> = {
@@ -583,6 +594,7 @@ export const spaceLogView: BuiltinView<LogRow> = {
     placeholder: "Search commit message or author",
     mode: "tree",
     dock: DOCK,
+    supportedDocks: HISTORY_DOCKS,
     foldersFirst: false,
     hasRowIcon: true,
     refreshOn: ["file:changed", "file:deleted", REVISIONS_CHANGED_EVENT],
@@ -614,7 +626,7 @@ export const spaceLogView: BuiltinView<LogRow> = {
     cssClass: () => "sb-nav-noband",
   },
   source: spaceLogRows,
-  onSelect: (obj) => {
+  onSelect: (obj, ctx) => {
     // Banner rows are informational. Conflicted paths open the page directly:
     // there is no commit to preview.
     if (obj.sync === "header") return Promise.resolve(false);
@@ -630,11 +642,13 @@ export const spaceLogView: BuiltinView<LogRow> = {
     // A commit row's only meaningful selection is opening it up; the pages it
     // touched preview exactly like a Page History row does.
     if (!obj.file) return Promise.resolve(EXPAND_ROW);
-    return previewLogFile(obj, true);
+    return previewLogFile(obj, true, ctx.dock);
   },
   keymap: {
-    " ": (obj) =>
-      obj.sync || obj.name === MORE ? false : previewLogFile(obj, false),
+    " ": (obj, ctx) =>
+      obj.sync || obj.name === MORE
+        ? false
+        : previewLogFile(obj, false, ctx.dock),
   },
   actions: [
     {
