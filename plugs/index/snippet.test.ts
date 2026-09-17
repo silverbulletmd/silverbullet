@@ -77,3 +77,49 @@ test("extractSnippet neutralizes transclusions into plain links", () => {
     "[[API]]",
   );
 });
+
+test("extractSnippet references a task whose body is shorter than two characters", () => {
+  // A one- or two-character body is still a task, and without the injected
+  // `Page@pos` reference it cannot be toggled from a Linked Mentions widget.
+  const text1 = `* Parent [[Target]]
+  * [ ] Hi`;
+  const pos1 = text1.indexOf("* [ ]");
+  expect(extractSnippet("test", text1, text1.indexOf("* Parent"))).toEqual(
+    `* Parent [[Target]]\n  * [ ] [[test@${pos1}]] Hi`,
+  );
+
+  const text2 = `* Parent [[Target]]
+  * [ ] H`;
+  const pos2 = text2.indexOf("* [ ]");
+  expect(extractSnippet("test", text2, text2.indexOf("* Parent"))).toEqual(
+    `* Parent [[Target]]\n  * [ ] [[test@${pos2}]] H`,
+  );
+});
+
+test("extractSnippet references a task whose body opens with a bracket", () => {
+  // Only a leading `[[` means "already referenced"; a markdown link or an
+  // attribute opens with a single `[` and must still get a reference.
+  const text1 = `* Parent [[Target]]
+  * [ ] [Google](https://google.com) look it up`;
+  const pos1 = text1.indexOf("* [ ]");
+  expect(extractSnippet("test", text1, text1.indexOf("* Parent"))).toEqual(
+    `* Parent [[Target]]\n  * [ ] [[test@${pos1}]] [Google](https://google.com) look it up`,
+  );
+
+  const text2 = `* Parent [[Target]]
+  * [ ] [due: 2026-01-01] pay rent`;
+  const pos2 = text2.indexOf("* [ ]");
+  expect(extractSnippet("test", text2, text2.indexOf("* Parent"))).toEqual(
+    `* Parent [[Target]]\n  * [ ] [[test@${pos2}]] [due: 2026-01-01] pay rent`,
+  );
+});
+
+test("extractSnippet leaves an already-referenced task alone", () => {
+  // (control) A body that opens with `[[` is already a reference; adding a
+  // second one would point the widget's toggle at the wrong offset.
+  const text = `* Parent [[Target]]
+  * [ ] [[test@40]] Already referenced`;
+  expect(extractSnippet("test", text, text.indexOf("* Parent"))).toEqual(
+    "* Parent [[Target]]\n  * [ ] [[test@40]] Already referenced",
+  );
+});

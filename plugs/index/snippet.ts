@@ -88,8 +88,11 @@ export function extractSnippet(
       break;
     }
 
-    // Find tasks that don't have a page reference, and add one
-    const taskMatch = line.match(/^(\s*)([*-]\s+\[[^\]]+\]\s+)([^[][^[].+)$/);
+    // Find tasks that don't have a page reference, and add one. The body only
+    // counts as already-referenced when it opens with a `[[`; anything else
+    // (including a one-character body, or a body opening with a markdown link
+    // or an attribute) still needs a reference to stay toggleable.
+    const taskMatch = line.match(/^(\s*)([*-]\s+\[[^\]]+\]\s+)((?!\[\[).+)$/);
     if (taskMatch) {
       const pos = lineOffsets[i] + taskMatch[1].length;
       line = `${taskMatch[1] + taskMatch[2]}[[${pageName}@${pos}]] ${taskMatch[3]}`;
