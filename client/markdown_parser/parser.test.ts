@@ -7,7 +7,7 @@ import {
 import { parseMarkdown } from "./parser.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { renderHashtag } from "../../plugs/index/tags.ts";
-import { mdLinkRegex } from "./constants.ts";
+import { mdLinkRegex, tagRegex } from "./constants.ts";
 
 const sample1 = `---
 type: page
@@ -109,12 +109,15 @@ lines>
 #no#spacing also works.
 Hashtags can start with number if there's something after it: #3dprint #15-52_Trip-to-NYC.
 But magazine issue #1 or #123 are not hashtags.
+Nor are number references followed by sentence punctuation: issue #38's fix, ticket #23/24, item #34; also, range #1–5.
+Nor is a dangling trailing hyphen with nothing after it: see case #38- above.
 Should support other languages, like #żółć or #井号
 `;
 
 test("Test hashtag parser", () => {
   const tree = parseMarkdown(hashtagSample);
   const hashtags = collectNodesOfType(tree, "Hashtag");
+  // count stays 14: #38's, #23/24, #34;, #1–5, and #38- must not add any hashtags
   expect(hashtags.length).toEqual(14);
 
   expect(hashtags[0].children![0].text).toEqual("#mytag");
@@ -131,6 +134,33 @@ test("Test hashtag parser", () => {
   expect(hashtags[11].children![0].text).toEqual("#15-52_Trip-to-NYC");
   expect(hashtags[12].children![0].text).toEqual("#żółć");
   expect(hashtags[13].children![0].text).toEqual("#井号");
+});
+
+const anchoredMatch = (s: string) =>
+  new RegExp(`^${tagRegex.source}`).exec(s)?.[0];
+
+test("Test hashtag false-positive rejection", () => {
+  // digit run + weak punctuation as anchor: never a tag, with or without
+  // trailing content
+  expect(anchoredMatch("#38's")).toBeUndefined();
+  expect(anchoredMatch("#23/24")).toBeUndefined();
+  expect(anchoredMatch("#34;")).toBeUndefined();
+  expect(anchoredMatch("#1–5")).toBeUndefined();
+  expect(anchoredMatch("#1—5")).toBeUndefined();
+
+  // ASCII hyphen anchor: not when it's the last character of the match,
+  // however that happens: end of string, or truncated by a following '#'
+  expect(anchoredMatch("#38-")).toBeUndefined();
+  expect(anchoredMatch("#1-#2")).toBeUndefined();
+
+  // still can't tag a bare number
+  expect(anchoredMatch("#123")).toBeUndefined();
+});
+
+test("Test hashtag anchor still accepts legit hyphenated tags", () => {
+  // ASCII hyphen anchor: still fine when real content follows the hyphen
+  expect(anchoredMatch("#1-5")).toEqual("#1-5");
+  expect(anchoredMatch("#38-word")).toEqual("#38-word");
 });
 
 test("Test hashtag helper functions", () => {

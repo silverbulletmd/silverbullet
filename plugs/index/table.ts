@@ -15,6 +15,7 @@ import type {
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { FrontMatter } from "./frontmatter.ts";
 import { isReservedObjectAttribute } from "./position_attributes.ts";
+import { collectAnchor } from "./anchor.ts";
 
 type TableRowObject = ObjectValue<{
   tableref: string;
@@ -86,9 +87,12 @@ export function indexTables(
 
       const cells = collectNodesOfType(row, "TableCell");
 
+      // First anchor wins, as for paragraphs and items; lint flags duplicates.
+      const anchor = collectAnchor(row);
+
       const tableRow: TableRowObject = {
         tableref: `${pageMeta.name}@${table.from}`,
-        ref: `${pageMeta.name}@${row.from}`,
+        ref: anchor ? anchor.name : `${pageMeta.name}@${row.from}`,
         tag: "table",
         tags: [...tags],
         page: pageMeta.name,
