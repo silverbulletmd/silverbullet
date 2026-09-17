@@ -299,17 +299,6 @@ jobs:
             dist-artifacts/silverbullet-server-*.zip
             dist-artifacts/sb-*.zip
 
-      # npm publish ONLY on tag pushes.
-      - name: Build npm package
-        if: needs.config.outputs.is_tag == 'true'
-        run: npm run build
-
-      - name: Publish to npm
-        if: needs.config.outputs.is_tag == 'true'
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
   docker:
     needs: [config, build, test-frontend, test-rust, test-e2e, test-e2e-release]
     if: needs.config.outputs.publish == 'true'
