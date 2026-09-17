@@ -1,5 +1,5 @@
 ---
-tags: api/space-lua
+tags: api/space-lua maturity/experimental
 references:
 - client/navigator/navigator.ts
 ---

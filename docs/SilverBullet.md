@@ -1,13 +1,14 @@
-# Introduction
 SilverBullet is a [[Malleable]], [[Private]], [[Open Source]], [[Self Hosted]], [[Knowledge Management System]].
 
 _Yowza!_ That surely is a lot of adjectives to describe, effectively, a browser-based [[Markdown]] editor programmable with [[Lua]].
 
 Let’s get more specific.
 
-SilverBullet combines a clean [[Live Preview]] markdown editor with wiki-style linking, a database with query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a programmable system that grows with you, or your team.
+SilverBullet combines a clean [[Live Preview]] markdown editor (that you’re looking at right now) with wiki-style linking, a database with query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a live, programmable system that grows with you, or your team.
 
-In SilverBullet you keep your content as a collection of [[Markdown]] [[Page|Pages]] (called a [[Space]]). You navigate your space using the [[Page Picker]] or [[File Tree]] like a traditional notes app, or through [[Link|Links]] like a wiki (except they are [[Linked Mention|bi-directional]]). A space may be yours alone, or shared with a handful of people — see [[Guide/Working Together]].
+SilverBullet keeps your content as a [[Revisions|versioned]] set of files on disk. Primarily as [[Markdown]] [[Page|Pages]] (called a [[Space]]). You navigate your space using the [[Page Picker]] or [[File Tree]] like a traditional notes app, or through [[Link|Links]] like a wiki (except they are [[Linked Mention|bi-directional]]).
+
+A space may be yours alone, or shared with your team — see [[Guide/Working Together]].
 
 If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]] (SLIQ).
 
@@ -57,7 +58,7 @@ ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
 Want to see even more? Here is a whole [playlist with instruction videos](https://www.youtube.com/watch?v=bb1USz_cEBY&list=PLxFAb_vXRcEp4465MVI6Ha9wzNiX5VevQ) that go more in depth.
 
 # [[Install]]
-As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, a VPS somewhere in the cloud, or a box your team already runs. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
+As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, a VPS somewhere in the cloud, or a box your team already runs. SilverBullet is distributed as a single self-contained server [[Install/Server Binary]] or [[Install/Docker]] container.
 
 Want a **pure desktop app experience**? Give [SilverBullet+](https://silverbullet.plus) a try.
 
@@ -65,10 +66,4 @@ While this is a bit more complicated to set up than simply downloading desktop a
 
 Ready? Proceed to [[Install]], then follow [[Getting Started]] to learn the basics.
 
-# What’s next?
-* [[Manual]]: SilverBullet’s official manual.
-* [[CHANGELOG]]: we’re in active development, so things change rapidly. Watch this page to keep up.
-* [[Architecture]]: Learn more about how SilverBullet works
-* [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.
-* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas or find bugs, please report them.
-* [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/).
+Enjoy!

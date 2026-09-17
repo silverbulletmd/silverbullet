@@ -30,7 +30,7 @@ Single-space mode serves one folder as one space, authenticated the â€œclassicâ€
 > Single-space is considered legacy, please migrate to multi-space mode
 
 ## Enabling authentication
-Set `SB_USER` when starting the server. For the [[Install/Binary]]:
+Set `SB_USER` when starting the server. For the [[Install/Server Binary]]:
 
 ```shell
 SB_USER=pete:1234 ./silverbullet my-space

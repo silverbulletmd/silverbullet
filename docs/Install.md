@@ -6,39 +6,35 @@ pageDecoration.tree.priority: 95
 Excited to use SilverBullet? Here are a few ways for you to deploy it.
 
 > **note** Note
-> There is now an additional option: the [desktop app](https://silverbullet.plus) version of SilverBullet.
+> There is now also a [[Install/Desktop]] version of SilverBullet.
 
 # localhost (desktop, laptop)
 While this is not an ideal deployment (it limits accessing your space to _just your own machine_), it is an easy way to get started (although [SilverBullet+](https://silverbullet.plus) may be an even lower-friction option to consider): simply run the SilverBullet server on your own laptop or desktop.
 
 Steps:
 1. Install SilverBullet following the instructions of one of these options:
-   * [[Install/Binary]] — a single self-contained binary
+   * [[Install/Server Binary]] — a single self-contained binary
    * [[Install/Docker]] — a docker container
 3. Access it via `http://localhost:3000` and go through the setup flow.
 4. Follow [[Getting Started]] to learn the basics
 
 Is that working out for you? Great, then proceed to deploy SilverBullet _properly_ on a server so you can also access it from other devices (like your phone).
 
-# Self hosted (server)
-You can self host SilverBullet on essentially any Intel-compatible 64-bit or ARM 64-bit machine you have terminal access to. The server needs very limited resources (a few hundred megabytes of RAM is sufficient), so even a Raspberry Pi (with a 64-bit OS) is sufficient.
+# Self hosted server
+You can self host SilverBullet on essentially any Intel-compatible 64-bit or ARM 64-bit machine you have terminal access to. The server needs very limited resources (a few hundred megabytes of RAM is sufficient), so even a Raspberry Pi (with a 64-bit OS) works.
 
 There are three things to take care of, in this order (follow the links in each for instructions):
 
 1. Install SilverBullet:
-   * [[Install/Binary]] — a single self-contained binary
+   * [[Install/Server Binary]] — a single self-contained binary
    * [[Install/Docker]] — a docker container
-2. Be sure you enable [[Authentication]] for security
-3. Deploy a [[TLS]] layer in front of SilverBullet for encrypted connections and the full feature set. Plain LAN `http://` also works in online-only mode, see [[TLS#LAN HTTP (no TLS)]] for limitations.
-4. Once that’s all set up, go through the setup flow and then follow [[Getting Started]] to learn the basics of using SilverBullet itself.
+2. Deploy a [[TLS]] layer in front of SilverBullet for encrypted connections and the full feature set. Plain LAN `http://` also works in online-only mode, see [[TLS#LAN HTTP (no TLS)]] for limitations.
+3. Once that’s all set up, go through the setup flow and then follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud
-While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
+While [[Self Hosted]] is the intended path, if this is too much hassle for you, there is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
 
 PikaPods contribute a part of their revenue back to the projects they host, so it’s a source of [[Funding]] for SilverBullet itself.
-
-# First run
-When you point the server at an **empty** folder — or one that doesn’t exist yet — it opens a browser-based setup wizard that creates an admin account and your first space — see [[Dashboard]].
 
 # Notes on file systems
 ## Case insensitive file systems (Mac and Windows)

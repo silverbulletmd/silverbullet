@@ -1,8 +1,9 @@
 #guide
 
-Welcome! This guide helps you get started with SilverBullet assuming you have it successfully [[Install|installed as a server]] or [desktop app](https://silverbullet.plus).
+Welcome! This guide helps you get started with SilverBullet assuming you have it successfully [[Install|installed as a server]] or [[Install/Desktop]] app.
 
-# Welcome
+---
+
 Once you launch SilverBullet on a fresh [[Space]], you will be greeted by its automatically generated [[Index Page]] that contains a few sections:
 
 1. Recent quick notes

@@ -1,10 +1,7 @@
 ---
 tags: meta
-references:
-- libraries/Library/Std/Infrastructure/Share.md
 ---
-
-Some silverbullet.md specific widgets etc.
+Some silverbullet.md specific widgets and styles.
 
 ```space-lua
 event.listen {
@@ -49,197 +46,122 @@ html[data-theme="dark"] .website-warning {
 The left-hand **Navigate** view: a hand-curated tree of this site.
 
 ```space-lua
--- Curated order. A page's position among its siblings is where it appears
--- here; a section's position is where its first entry appears, so an entry
--- must stay with its section.
 local navPages = {
   -- Orientation
-  "SilverBullet",
-  "CHANGELOG",
-  "Funding",
-  "Install",
-  "Install/Docker",
-  "Install/Binary",
-  "Manual",
+  { name = "SilverBullet", ref = "SilverBullet", icon = "home" },
+  { name = "CHANGELOG", ref = "CHANGELOG", icon = "clock" },
+  { name = "Funding", ref = "Funding", icon = "heart" },
+  { name = "Install", ref = "Install", icon = "download" },
+  { name = "Install/Docker", ref = "Install/Docker", icon = "package" },
+  { name = "Install/Server Binary", ref = "Install/Server Binary", icon = "server" },
+  { name = "Install/Desktop", ref = "Install/Desktop", icon = "monitor" },
+  { name = "Install/Configuration", ref = "Install/Configuration", icon = "settings" },
 
   -- Admin
-  "Administration",
-  { name = "Administration/Dashboard", ref = "Dashboard"},
-  { name = "Administration/Authentication", ref = "Authentication"}, 
-  { name = "Administration/Accounts", ref = "Account"}, 
-  { name = "Administration/Single Sign-On", ref = "Single Sign-On"}, 
-  { name = "Administration/Security", ref = "Security"}, 
-  { name = "Administration/Client Encryption", ref = "Client Encryption"}, 
-  { name = "Administration/Runtime API", ref = "Runtime API"}, 
+  { name = "Administration", ref = "Administration", icon = "settings" },
+  { name = "Administration/Dashboard", ref = "Dashboard", icon = "grid" },
+  { name = "Administration/Authentication", ref = "Authentication", icon = "key" },
+  { name = "Administration/Accounts", ref = "Account", icon = "users" },
+  { name = "Administration/Single Sign-On", ref = "Single Sign-On", icon = "log-in" },
+  { name = "Administration/Security", ref = "Security", icon = "shield" },
+  { name = "Administration/Client Encryption", ref = "Client Encryption", icon = "lock" },
+  { name = "Administration/Runtime API", ref = "Runtime API", icon = "cpu" },
+
+  { name = "Manual", ref = "Manual", icon = "book-open" },
+  { name = "Manual/Page Picker", ref = "Page Picker", icon = "search" },
+  { name = "Manual/Command Palette", ref = "Command Palette", icon = "terminal" },
+  { name = "Manual/File Tree", ref = "File Tree", icon = "folder" },
+  { name = "Manual/Live Preview", ref = "Live Preview", icon = "eye" },
+  { name = "Manual/Revisions", ref = "Revisions", icon = "git-commit" },
+  { name = "Manual/Collaboration", ref = "Collaboration", icon = "users" },
+  { name = "Manual/Share", ref = "Share", icon = "share-2" },
+  { name = "Manual/Sync", ref = "Sync", icon = "refresh-cw" },
+  { name = "Manual/Object Graph", ref = "Object Graph", icon = "share-2" },
+  { name = "Manual/Vim", ref = "Vim", icon = "edit-3" },
+  { name = "Manual/Configuration Manager", ref = "Configuration Manager", icon = "sliders" },
+  { name = "Manual/Extensions", ref = "Extensions", icon = "package" },
+  { name = "Manual/Client Encryption", ref = "Client Encryption", icon = "lock" },
+  { name = "Manual/CLI", ref = "CLI", icon = "terminal" },
 
   -- Guides
-  { name = "Guides", ref = "Guide" },
-  { name = "Guides/Getting Started", ref = "Getting Started" },
-  { name = "Guides/Best Practices", ref = "Guide/Best Practices" },
-  { name = "Guides/Knowledge Base", ref = "Guide/Knowledge Base" },
-  { name = "Guides/Task Management", ref = "Guide/Task Management" },
-  { name = "Guides/Working Together", ref = "Guide/Working Together" },
-  { name = "Guides/Aggregator Pages", ref = "Guide/Aggregator Pages" },
+  { name = "Guides", ref = "Guide", icon = "compass" },
+  { name = "Guides/Videos", ref = "Videos", icon = "video" },
+  { name = "Guides/Getting Started", ref = "Getting Started", icon = "play-circle" },
+  { name = "Guides/Best Practices", ref = "Guide/Best Practices", icon = "check-circle" },
+  { name = "Guides/Knowledge Base", ref = "Guide/Knowledge Base", icon = "book" },
+  { name = "Guides/Task Management", ref = "Guide/Task Management", icon = "check-square" },
+  { name = "Guides/Working Together", ref = "Guide/Working Together", icon = "users" },
+  { name = "Guides/Aggregator Pages", ref = "Guide/Aggregator Pages", icon = "layers" },
 
-  { name = "Features/Editor", ref = "Editor" },
-  { name = "Features/Live Preview", ref = "Live Preview" },
-  { name = "Features/Completion", ref = "Completion" },
-  { name = "Features/Page Picker", ref = "Page Picker" },
-  { name = "Features/Views", ref = "View" },
-  { name = "Features/Command Palette", ref = "Command Palette" },
-  { name = "Features/Full Text Search", ref = "Full Text Search" },
-  { name = "Features/Meta Picker", ref = "Meta Picker" },
-  { name = "Features/Tag Picker", ref = "Tag Picker" },
-  { name = "Features/Anything Picker", ref = "Anything Picker" },
-  { name = "Features/Page Namer", ref = "Page Namer" },
-  { name = "Features/File Tree", ref = "File Tree" },
-  { name = "Features/Journal", ref = "Journal" },
-  { name = "Features/Document Editor", ref = "Document Editor" },
-  { name = "Features/Slash Templates", ref = "Slash Templates" },
-  { name = "Features/Revisions", ref = "Revisions" },
-  { name = "Features/Collaboration", ref = "Collaboration" },
-  { name = "Features/Share", ref = "Share" },
-  { name = "Features/Sync", ref = "Sync" },
-  { name = "Features/PWA", ref = "PWA" },
-  { name = "Features/Object Graph", ref = "Object Graph" },
-  { name = "Features/X-Ray", ref = "X-Ray" },
-  { name = "Features/Virtual Pages", ref = "Virtual Pages" },
-  { name = "Features/Vim", ref = "Vim" },
-  { name = "Features/Configuration Manager", ref = "Configuration Manager" },
-  { name = "Features/Extensions", ref = "Extensions" },
-  { name = "Features/Client Encryption", ref = "Client Encryption" },
-  { name = "Features/CLI", ref = "CLI" },
-  { name = "Features/Runtime API", ref = "Runtime API" },
+  -- Concepts
+  { name = "Concepts/Space", ref = "Space", icon = "folder" },
+  { name = "Concepts/Page", ref = "Page", icon = "file-text" },
+  { name = "Concepts/Meta Page", ref = "Meta Page", icon = "settings" },
+  { name = "Concepts/Aspiring Pages", ref = "Aspiring Pages", icon = "file-plus" },
+  { name = "Concepts/Document", ref = "Document", icon = "file" },
+  { name = "Concepts/Metadata", ref = "Metadata", icon = "info" },
+  { name = "Concepts/Frontmatter", ref = "Frontmatter", icon = "sidebar" },
+  { name = "Concepts/Attribute", ref = "Attribute", icon = "sliders" },
+  { name = "Concepts/Tag", ref = "Tag", icon = "hash" },
+  { name = "Concepts/Outlines", ref = "Outlines", icon = "list" },
+  { name = "Concepts/Task", ref = "Task", icon = "check-square" },
+  { name = "Concepts/Link", ref = "Link", icon = "link" },
+  { name = "Concepts/Linked Mention", ref = "Linked Mention", icon = "corner-down-left" },
+  { name = "Concepts/Linked Tasks", ref = "Linked Tasks", icon = "check-square" },
+  { name = "Concepts/Command", ref = "Command", icon = "terminal" },
+  { name = "Concepts/Transclusions", ref = "Transclusions", icon = "copy" },
+  { name = "Concepts/Object Index", ref = "Object Index", icon = "database" },
+  { name = "Concepts/Page Template", ref = "Page Template", icon = "layout" },
+  { name = "Concepts/Slash Command", ref = "Slash Command", icon = "terminal" },
+  { name = "Concepts/Page Decorations", ref = "Page Decorations", icon = "star" },
+  { name = "Concepts/Space Style", ref = "Space Style", icon = "droplet" },
+  { name = "Concepts/Library", ref = "Library", icon = "package" },
+  { name = "Concepts/Repository", ref = "Repository", icon = "archive" },
+  { name = "Concepts/Baked Sections", ref = "Baked Sections", icon = "save" },
 
-  { name = "Concepts/Space", ref = "Space" },
-  { name = "Concepts/Page", ref = "Page" },
-  { name = "Concepts/Folder", ref = "Folder" },
-  { name = "Concepts/Paths", ref = "Paths" },
-  { name = "Concepts/Document", ref = "Document" },
-  { name = "Concepts/Meta Page", ref = "Meta Page" },
-  { name = "Concepts/Aspiring Pages", ref = "Aspiring Pages" },
-  { name = "Concepts/Link", ref = "Link" },
-  { name = "Concepts/Linked Mention", ref = "Linked Mention" },
-  { name = "Concepts/Transclusions", ref = "Transclusions" },
-  { name = "Concepts/Tag", ref = "Tag" },
-  { name = "Concepts/Task", ref = "Task" },
-  { name = "Concepts/Linked Tasks", ref = "Linked Tasks" },
-  { name = "Concepts/Outlines", ref = "Outlines" },
-  { name = "Concepts/At-Mention", ref = "At-Mention" },
-  { name = "Concepts/Frontmatter", ref = "Frontmatter" },
-  { name = "Concepts/Attribute", ref = "Attribute" },
-  { name = "Concepts/Metadata", ref = "Metadata" },
-  { name = "Concepts/Object Index", ref = "Object Index" },
-  { name = "Concepts/Page Template", ref = "Page Template" },
-  { name = "Concepts/Slash Command", ref = "Slash Command" },
-  { name = "Concepts/Command", ref = "Command" },
-  { name = "Concepts/Page Decorations", ref = "Page Decorations" },
-  { name = "Concepts/Space Style", ref = "Space Style" },
-  { name = "Concepts/Library", ref = "Library" },
-  { name = "Concepts/Repository", ref = "Repository" },
-  { name = "Concepts/Authorship", ref = "Authorship" },
-  { name = "Concepts/Recipient", ref = "Recipient" },
-  { name = "Concepts/Baked Sections", ref = "Baked Sections" },
-  { name = "Concepts/End-User Programming", ref = "End-User Programming" },
-  { name = "Concepts/Knowledge Management System", ref = "Knowledge Management System" },
+  -- Collaboration
+  { name = "Collaboration", ref = "Collaboration", icon = "users" },
+  { name = "Collaboration/At-Mention", ref = "At-Mention", icon = "at-sign" },
+  { name = "Collaboration/Authorship", ref = "Authorship", icon = "edit-3" },
+  { name = "Collaboration/Recipient", ref = "Recipient", icon = "inbox" },
+  { name = "Collaboration/Comment", ref = "Markdown/Comment", icon = "message-square" },
 
-  "Markdown",
-  "Markdown/Basics",
-  "Markdown/Extensions",
-  "Markdown/Hashtags",
-  "Markdown/Admonition",
-  "Markdown/Anchor",
-  "Markdown/Footnotes",
-  "Markdown/Fenced Code Block",
-  "Markdown/Syntax Highlighting",
-  "Markdown/Comment",
-  "Markdown/HTML",
+  -- Markdown reference
+  { name = "Markdown", ref = "Markdown", icon = "file-text" },
+  { name = "Markdown/Basics", ref = "Markdown/Basics", icon = "type" },
+  { name = "Markdown/Extensions", ref = "Markdown/Extensions", icon = "plus-square" },
+  { name = "Markdown/Hashtags", ref = "Markdown/Hashtags", icon = "hash" },
+  { name = "Markdown/Admonition", ref = "Markdown/Admonition", icon = "alert-circle" },
+  { name = "Markdown/Anchor", ref = "Markdown/Anchor", icon = "anchor" },
+  { name = "Markdown/Footnotes", ref = "Markdown/Footnotes", icon = "corner-down-left" },
+  { name = "Markdown/Fenced Code Block", ref = "Markdown/Fenced Code Block", icon = "code" },
+  { name = "Markdown/Syntax Highlighting", ref = "Markdown/Syntax Highlighting", icon = "droplet" },
+  { name = "Markdown/Comment", ref = "Markdown/Comment", icon = "message-square" },
+  { name = "Markdown/HTML", ref = "Markdown/HTML", icon = "code" },
 
   -- Programming your space
-  "Space Lua",
-  "Space Lua/Integrated Query",
-  "Space Lua/Standard Library",
-  "Space Lua/Widget",
-  "Space Lua/DOM",
-  "Space Lua/Conventions",
-  "Space Lua/Thread Locals",
-  "Space Lua/JavaScript Interop",
-  "Space Lua/Quirks",
+  { name = "Space Lua", ref = "Space Lua", icon = "code" },
+  { name = "Space Lua/Integrated Query", ref = "Space Lua/Integrated Query", icon = "filter" },
+  { name = "Space Lua/Object", ref = "Object", icon = "box" },
 
-  -- API reference
-  "API",
-  "API/index",
-  "API/editor",
-  "API/space",
-  "API/system",
-  "API/command",
-  "API/slashCommand",
-  "API/event",
-  "API/config",
-  "API/view",
-  "API/widget",
-  "API/codeWidget",
-  "API/template",
-  "API/spacelua",
-  "API/syntax",
-  "API/tag",
-  "API/taskState",
-  "API/search",
-  "API/markdown",
-  "API/dom",
-  "API/datastore",
-  "API/clientStore",
-  "API/asset",
-  "API/service",
-  "API/sync",
-  "API/identity",
-  "API/http",
-  "API/net",
-  "API/mq",
-  "API/shell",
-  "API/os",
-  "API/js",
-  "API/jsonschema",
-  "API/language",
-  "API/encoding",
-  "API/icon",
-  "API/global",
-  "API/lua",
-  "API/string",
-  "API/table",
-  "API/math",
-  "API/yaml",
-
-  -- The object index
-  "Object",
-  "Object/page",
-  "Object/task",
-  "Object/item",
-  "Object/paragraph",
-  "Object/header",
-  "Object/link",
-  "Object/tag",
-  "Object/data",
-  "Object/anchor",
-  "Object/document",
-  "Object/table",
-  "Object/relation",
-  "Object/aspiring-page",
-  "Object/ambiguous-link",
-  "Object/space-lua",
+  { name = "Space Lua/Standard Library", ref = "Space Lua/Standard Library", icon = "book" },
+  { name = "Space Lua/API", ref = "API", icon = "cpu" },
+  { name = "Space Lua/Conventions", ref = "Space Lua/Conventions", icon = "check-circle" },
+  { name = "Space Lua/Thread Locals", ref = "Space Lua/Thread Locals", icon = "box" },
+  { name = "Space Lua/JavaScript Interop", ref = "Space Lua/JavaScript Interop", icon = "repeat" },
 
   -- Principles
-  { name = "Principles/Malleable", ref = "Malleable" },
-  { name = "Principles/Local First", ref = "Local First" },
-  { name = "Principles/Private", ref = "Private" },
-  { name = "Principles/Self Hosted", ref = "Self Hosted" },
-  { name = "Principles/Data Sovereignty", ref = "Data Sovereignty" },
-  { name = "Principles/Open Source", ref = "Open Source" },
-  { name = "Principles/Zero Tracking", ref = "Zero Tracking" },
+  { name = "Principles/Malleable", ref = "Malleable", icon = "tool" },
+  { name = "Principles/Local First", ref = "Local First", icon = "hard-drive" },
+  { name = "Principles/Private", ref = "Private", icon = "lock" },
+  { name = "Principles/Self Hosted", ref = "Self Hosted", icon = "server" },
+  { name = "Principles/Data Sovereignty", ref = "Data Sovereignty", icon = "key" },
+  { name = "Principles/Open Source", ref = "Open Source", icon = "code" },
+  { name = "Principles/Zero Tracking", ref = "Zero Tracking", icon = "eye-off" },
 
   -- Internals
-  "Architecture",
-  { name = "Architecture/ADR", ref = "ADR" },
+  { name = "Architecture", ref = "Architecture", icon = "layers" },
+  { name = "Architecture/ADR", ref = "ADR", icon = "clipboard" },
 }
 
 
@@ -253,28 +175,46 @@ view.define {
   placeholder = "Filter pages...",
   refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
   source = function()
-    local exists = {}
-    for _, name in ipairs(query[[from p = index.pages() select p.name]]) do
-      exists[name] = true
+    local pages = {}
+    for _, page in ipairs(query[[from index.pages()]]) do
+      pages[page.name] = page
     end
     local rows = {}
     for _, entry in ipairs(navPages) do
       local name = type(entry) == "string" and entry or entry.name
       local ref = type(entry) == "string" and entry or entry.ref
-      -- A renamed or deleted page drops out rather than offering a row that
-      -- lands a reader on a page that isn't there.
-      if exists[ref] then
-        rows[#rows + 1] = { name = name, ref = ref }
+      local page = pages[ref]
+      if page then
+        rows[#rows + 1] = {
+          name = name,
+          ref = ref,
+          icon = type(entry) == "table" and entry.icon or nil,
+          pageDecoration = page.pageDecoration,
+          perm = page.perm,
+        }
       end
     end
     return rows
   end,
   presentation = {
     mode = "tree",
-    -- Sections and loose pages interleave in the curated order; the default
-    -- would hoist every section above every page.
     foldersFirst = false,
     limit = 500,
+    row = {
+      icon = function(o)
+        if o.isFolder and not o.ref then
+          return "folder"
+        end
+        if type(o.icon) == "string" and o.icon ~= "" then
+          return o.icon
+        end
+        local decorated = o.pageDecoration and o.pageDecoration.icon
+        if type(decorated) == "string" and decorated ~= "" then
+          return decorated
+        end
+        return o.perm == "ro" and "lock" or "file-text"
+      end,
+    },
   },
   onSelect = function(o)
     editor.navigate(o.ref or o.name)

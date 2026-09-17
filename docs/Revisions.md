@@ -7,11 +7,7 @@ references:
 - server/src/auth/identity.rs
 - client/navigator/views/revisions.ts
 ---
-SilverBullet can keep a full revision history of your [[Space]], backed by an [git](https://git-scm.com/) repository in the space folder. Nothing about it is proprietary: the history is a normal repo you can clone, inspect with `git log`, or pull and push to a remote.
-
-The server that owns the space’s files is what maintains it: so `git` has to be installed there.
-
-Revisions only work when online.
+SilverBullet automatically keeps a full revision history of your [[Space]] backed by an [git](https://git-scm.com/) repository.
 
 # Modes
 The revision mode is configured at a per-space level in [[Dashboard]]:
@@ -20,30 +16,16 @@ The revision mode is configured at a per-space level in [[Dashboard]]:
 * **Unmanaged:** Reads the history of a repository that is already there, and **never** commits to it. For a space you version yourself.
 * **Disabled:** Nothing. No history is read or written, all `Revisions: *` commands are hidden.
 
-Switching modes later is safe and takes effect on the next restart of the space. A repository SilverBullet created for itself is marked as such (`silverbullet.managed` in the repo's local git config): clearing that mark stops the automatic commits, whatever the configured mode says.
-
-## Setting the mode
-* **[[Dashboard|Multi-space]] server**: in the space's settings, under **Revisions**.
-* **Single-space server**: the `SB_REVISIONS` environment variable (`managed`, `unmanaged`, or `disabled`). The default is **unmanaged**.
-
-## Upgrading to a version with revisions
-Nothing starts committing to your files on upgrade. What an existing space gets depends on where it runs:
-
-* **[[Dashboard|Multi-space]] server**: spaces already in your config have no `revisions` setting, which reads as **Disabled**. Turn it on per space.
-* **Single-space server**: with no `SB_REVISIONS` set you get **Unmanaged**. On a space that is already a git repository its history shows up immediately; on a plain folder the views are simply empty until you `git init` it yourself — which the running server picks up without a restart.
-
 # Automatic commits
-In _Managed_ mode, changes are committed a short while after things go quiet — about 30 seconds by default, and at least every 5 minutes during a long editing session. On a [[Dashboard|multi-space]] server you can change this per space, under **Commit frequency**: **Responsive** (the default), **Balanced**, or **Relaxed**. A slower setting means fewer, larger commits — and, if [[#Syncing with a remote]] is on, less frequent pushes. One commit is made per author, so two people editing at once produce two commits.
+In _Managed_ mode, changes are committed a short while after things go quiet — about 30 seconds by default, and at least every 5 minutes during a long editing session. You can change this per space, under **Commit frequency**: **Responsive** (the default), **Balanced**, or **Relaxed**. A slower setting means fewer, larger commits.
 
 Commits are attributed to whoever made the change:
 
-* On a [[Dashboard|multi-space]] server, the acting account's **Full name** and **Email** — set by an admin (on the create-user form or the user's detail page), or by the user themselves on their own **Profile** page.
+* If known, the acting account’s **Full name** and **Email**.
 * **SilverBullet**, for a change made through SilverBullet with no account attached — a single-user server without authentication.
 * **External**, for a change SilverBullet detected, but did not make: e.g. another editor, a script, or coding agent.
 
-When an identity has no email of its own, one is synthesized from its name at the `silverbullet.local` domain (e.g. `alice@silverbullet.local`).
-
-${widgets.commandButton("Revision: Create snapshot")} commits everything outstanding immediately, rather than waiting.
+${widgets.commandButton("Revision: Create snapshot")} can be used to commit everything outstanding immediately rather than waiting.
 
 # Syncing with a remote
 A managed space can automatically fetch, merge, and push its Git repository. This is primarily a **backup mechanism**, it should not be considered for any type of collaboration.

@@ -1,6 +1,6 @@
 An attempt at documenting the changes/new features introduced in each release.
 
-## Edge
+## 2.11.0
 * Significant **visual refresh**:
   * Doubling down on the monospace fonts. This is a more “techy” tool and it seems fitting..
   * More consistent UX across and control the increasingly large UI surface (mostly the [[Dashboard]] UI).
