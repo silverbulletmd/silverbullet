@@ -45,6 +45,14 @@ export const test = base.extend<{}, { dashboardJavascript: string }>({
         return route.fulfill({
           json: { runtimeApi: { available: false }, runtimeApiEnabled: false },
         });
+      if (path.endsWith("/api/admin/server-config"))
+        return route.fulfill({
+          json: {
+            primaryUrl: null,
+            serverName: "SilverBullet",
+            runtimeApi: true,
+          },
+        });
       if (path.endsWith("/api/admin/fs/dirs"))
         return route.fulfill({
           json: { status: "exists", writable: true, suggestions: [] },
