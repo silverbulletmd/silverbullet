@@ -265,7 +265,17 @@ function signatureScope(
 
   const before = pageText.slice(block.from, sig.from!);
   const after = pageText.slice(sig.to!, block.to);
-  if (/\S/.test(before) || /\S/.test(after)) {
+  if (/\S/.test(after)) {
+    const lineStart = Math.max(
+      block.from,
+      pageText.lastIndexOf("\n", sig.from! - 1) + 1,
+    );
+    const scopeStart = /\S/.test(pageText.slice(lineStart, sig.from!))
+      ? lineStart
+      : block.from;
+    return [scopeStart, sig.to!];
+  }
+  if (/\S/.test(before)) {
     return [block.from, block.to];
   }
 

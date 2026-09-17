@@ -511,7 +511,7 @@ test("AtMention names do not contain slashes", () => {
   expect(renderToText(found[0])).toBe("@ops");
 });
 
-test("AtMentionSignature parses a block-terminating signature", () => {
+test("AtMentionSignature parses a trailing signature", () => {
   let tree = parseMarkdown("Why not? -- @zef");
   const sigs = collectNodesOfType(tree, "AtMentionSignature");
   expect(sigs.length).toBe(1);
@@ -537,7 +537,7 @@ test("AtMentionSignature parses a block-terminating signature", () => {
   expect(collectNodesOfType(tree, "AtMention").length).toBe(1);
 });
 
-test("AtMentionSignature must terminate its block", () => {
+test("AtMentionSignature must terminate its line", () => {
   let tree = parseMarkdown("Why not? -- @zef thinks otherwise");
   expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(0);
   expect(collectNodesOfType(tree, "AtMention").length).toBe(1);
@@ -547,6 +547,15 @@ test("AtMentionSignature must terminate its block", () => {
 
   tree = parseMarkdown("re--@zef");
   expect(collectNodesOfType(tree, "AtMentionSignature").length).toBe(0);
+});
+
+test("AtMentionSignature can end a line inside a paragraph", () => {
+  const tree = parseMarkdown(
+    "@team Can you check this? -- @ada\n@team I can check it",
+  );
+  const sigs = collectNodesOfType(tree, "AtMentionSignature");
+  expect(sigs).toHaveLength(1);
+  expect(renderToText(sigs[0])).toBe("-- @ada");
 });
 
 test("AtMentionSignature accepts several names", () => {

@@ -11,16 +11,16 @@ references:
 An **author** is an [[Identity]] you credit. A signature is an [[At-Mention]] used the other way around: an `@mention` **addresses** someone, while a signature **credits** someone. The same identities serve both — anyone you can mention, you can also sign as, including yourself.
 
 # The `-- @name` notation
-End a block with `-- @name` — or the em dash `— @name`, or the en dash `– @name` — to sign it.
+End a line or block with `-- @name` — or the em dash `— @name`, or the en dash `– @name` — to sign it.
 
 Rules:
-* The marker has to **terminate its block**. `-- @zef` in the middle of a paragraph is not a signature.
+* The marker has to **end its line**. `-- @zef` followed by more text on the same line is not a signature. A single newline is enough.
 * Several names can sign together: `-- @ada @zef` credits both.
 
 # What signing does
-A signature is not a [[Recipient]] [[At-Mention]]. It does not enter somebody’s Mention Inbox. Instead, it **attributes** the block it ends: every `@mention` inside that block is stamped with a `by` value naming who signed it, and the signature emits its own `authored` relation.
+A signature is not a [[Recipient]] [[At-Mention]]. It does not enter somebody’s Mention Inbox. Instead, it **attributes** the text it signs: every `@mention` in that text is stamped with a `by` value naming who signed it, and the signature emits its own `authored` relation.
 
-“The block it ends” is usually the enclosing paragraph, list item, task, blockquote, or HTML comment. When a signature stands alone on its own line, it applies to the surrounding comment, list item, or blockquote instead of claiming just the empty-looking line it sits on, so the whole exchange above it is credited, not only the last line.
+“The block it ends” is usually the enclosing paragraph, list item, task, blockquote, or HTML comment. If a paragraph continues after a signed line, the signature credits the text before it on that line, while the following line remains unsigned. When a signature stands alone on its own line, it applies to the surrounding comment, list item, or blockquote instead of claiming just the empty-looking line it sits on, so the whole exchange above it is credited, not only the last line.
 
 # `authors:` frontmatter
 Declaring `authors:` in a page's frontmatter credits the whole page, the same way `recipients:` addresses the whole page:

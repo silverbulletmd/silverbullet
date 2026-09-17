@@ -357,7 +357,7 @@ const AtMention: MarkdownConfig = {
   ],
 };
 
-// AtMentionSignature: a block-terminating `-- @name` marking text as written
+// AtMentionSignature: a line-ending `-- @name` marking text as written
 // BY someone rather than addressed TO them. Fires on the marker, which comes
 // before the `@` the AtMention parser waits for, so it wins the position and
 // the mentions it consumes are not re-parsed.
@@ -412,9 +412,8 @@ const AtMentionSignature: MarkdownConfig = {
         }
         if (count === 0) return -1;
 
-        // Only whitespace may follow: a signature terminates its block, and
-        // `cx.end` is the end of the block's inline content.
-        if (!/^\s*$/.test(cx.slice(at, cx.end))) {
+        const rest = cx.slice(at, cx.end);
+        if (!/^[ \t]*(?:\n|$)/.test(rest)) {
           return -1;
         }
         return cx.addElement(cx.elt("AtMentionSignature", pos, at, children));

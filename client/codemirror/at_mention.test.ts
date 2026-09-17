@@ -18,4 +18,5 @@ test("recipient mention gets a pill, signature-nested mention does not", () => {
   expect(pillCount("Ask @ada please")).toBe(1);
   // a signature: @zef is nested in AtMentionSignature -> NO pill
   expect(pillCount("Because reasons -- @zef")).toBe(0);
+  expect(pillCount("Ask @team -- @ada\n@team replied")).toBe(2);
 });

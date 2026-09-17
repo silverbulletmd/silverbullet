@@ -807,6 +807,20 @@ test("an inline signature attributes the block it ends", async () => {
   expect(mention.by).toEqual(["@zef"]);
 });
 
+test("a line-ending signature does not attribute the next line", async () => {
+  const relations = await relationsFor(
+    "@team Can you check this? -- @ada\n@team I can check it",
+  );
+  const mentions = relations.filter((r) => r.kind === "at-mention");
+  expect(mentions.map((r) => [r.to, r.by])).toEqual([
+    ["@team", ["@ada"]],
+    ["@team", undefined],
+  ]);
+  expect(
+    relations.filter((r) => r.kind === "authored").map((r) => r.to),
+  ).toEqual(["@ada"]);
+});
+
 test("a standalone signature widens to its comment block", async () => {
   const relations = await relationsFor(
     "<!--\n@robin Why is this a heuristic?\n\n-- @zef\n-->\n",
