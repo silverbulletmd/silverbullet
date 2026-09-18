@@ -2,15 +2,6 @@ Welcome to the wonderful world of SilverBullet. The goal of this manual is to gi
 
 However, that is all unlikely to happen unless you understand what SilverBullet can actually do. So let's give you a bit of a sense.
 
-# Videos
-Are you a visual learning? Give these videos a watch:
-
-${embed.youtube "https://youtu.be/bb1USz_cEBY"}
-${embed.youtube "https://youtu.be/7hyLvEfw34w"}
-${embed.youtube "https://youtu.be/bZ79-RbyNoU"}
-${embed.youtube "https://www.youtube.com/watch?v=Of7zE0AVApc"}
-${embed.youtube "https://www.youtube.com/watch?v=cH9cs8fowhY"}
-${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
 # Getting started
 Start with [[Install]], followed by [[Getting Started]]. These will walk through the basics.
 

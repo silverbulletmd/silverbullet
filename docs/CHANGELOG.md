@@ -1,6 +1,6 @@
 An attempt at documenting the changes/new features introduced in each release.
 
-## Edge
+## 2.11.0
 * Significant **visual refresh**:
   * Doubling down on the monospace fonts. This is a more “techy” tool and it seems fitting..
   * More consistent UX across and control the increasingly large UI surface (mostly the [[Dashboard]] UI).
@@ -55,6 +55,7 @@ An attempt at documenting the changes/new features introduced in each release.
 * [[Space Lua]]: scripts that runs too long no longer freeze the editor: after a couple of seconds it offers to stop the script, while the rest of the app stays responsive.
 * Fix: Space Lua patterns no longer mistake some non-ASCII characters for ASCII punctuation, which could corrupt page names in `string.gsub` or produce false matches.
 * Fix: releasing a drag-selection on top of a link no longer navigates to it — only a real click (pointer down and up in the same spot) follows a link.
+* Fix: on Safari/WebKit, selecting a word in a wrapped paragraph could highlight the entire visual line even though only the word was selected.
 * Fix: a markdown table whose column happens to be named `ref`, `tag`, `tags`, `itags`, `page` or `tableref` no longer overwrites the indexed row’s own identity.
 * Fix: the [[Runtime API]]’s headless Chrome crashed and restarted every few seconds on the `-runtime-api` docker image, spamming the server log (and the host’s console with core dumps) and leaving the API only intermittently available.
 * Fix: the server-side rendered HTML of a public, read-only space now resolves `[[wiki links]]` the same way the client does (space-wide by basename), instead of emitting the raw link text as the href. Crawlers and no-JS visitors get working links.

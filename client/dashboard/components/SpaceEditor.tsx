@@ -151,7 +151,6 @@ export function SpaceEditor({
   if (!id || !space) return form;
   return (
     <main class="sb-space-settings">
-      <a href={dashboardUrl("/")}>← Dashboard</a>
       <header class="sb-settings-heading">
         <div>
           <h1>{space.name}</h1>

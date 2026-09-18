@@ -114,10 +114,10 @@ test.describe("persistent docks", () => {
     await expect(sbPage.locator(".sb-nav-root-bhs")).toBeVisible();
 
     await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
-    const modal = sbPage.locator(".sb-nav-root-modal");
-    await expect(modal).toBeVisible();
-    await modal.locator(".sb-dock-button").click();
-    await modal
+    const right = sbPage.locator(".sb-nav-root-rhs");
+    await expect(right).toBeVisible();
+    await right.locator(".sb-dock-button").click();
+    await right
       .locator(".sb-dock-menu-item", { hasText: "Bottom panel" })
       .click();
     await expect(sbPage.locator(".sb-nav-root-bhs .sb-nav-title")).toHaveText(
@@ -147,23 +147,17 @@ test.describe("page-aware docks", () => {
     },
   });
 
-  test("a table of contents moved from the modal follows page navigation", async ({
+  test("a table of contents opens on the right and follows page navigation", async ({
     sbPage,
   }) => {
     await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
-    const modal = sbPage.locator(".sb-nav-root-modal");
-    await expect(navRows(modal)).toHaveText(["Home", "Overview", "Notes"], {
-      timeout: 20_000,
-    });
-
-    await modal.locator(".sb-dock-button").click();
-    await modal
-      .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
-      .click();
     const right = sbPage.locator(".sb-nav-root-rhs");
     await expect(right.locator(".sb-nav-title")).toHaveText(
       "Table of Contents",
     );
+    await expect(navRows(right)).toHaveText(["Home", "Overview", "Notes"], {
+      timeout: 20_000,
+    });
     await expect(sbPage.locator(".sb-nav-root-modal")).toHaveCount(0);
 
     await sbPage.locator("#sb-editor .cm-content").click();

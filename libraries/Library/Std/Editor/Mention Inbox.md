@@ -92,7 +92,7 @@ view.define {
   name = "inbox",
   title = "Mention Inbox",
   dock = "rhs",
-  supportedDocks = { "rhs", "modal" },
+  supportedDocks = { "rhs", "lhs", "bhs", "modal" },
   command = "Navigate: Mentions",
   menu = { location = "view", group = "1_views", order = 5, label = "Mentions" },
   key = "Ctrl-Alt-i",

@@ -7,7 +7,7 @@ references:
 ---
 
 > **note** This is **not** the server
-> `sb` is the optional **CLI client**, it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.
+> `sb` is the optional **CLI client**, it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Server Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.
 
 The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server over HTTP. File commands use the [[HTTP API]] directly; Lua expressions, scripts, and logs use the [[Runtime API]].
 

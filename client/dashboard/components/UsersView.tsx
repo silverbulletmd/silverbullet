@@ -381,7 +381,6 @@ export function UserDetail({
   const tokenNames = Object.keys(user.tokens);
   return (
     <main class="sb-space-settings">
-      <a href={dashboardUrl("/users")}>← All users</a>
       <header class="sb-settings-heading">
         <div>
           <h1>
