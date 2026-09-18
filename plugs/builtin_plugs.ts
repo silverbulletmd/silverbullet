@@ -7,6 +7,7 @@ export const builtinPlugNames = [
   "image-viewer",
   "configuration-manager",
   "object-graph",
+  "git-blame",
 ];
 
 export const builtinPlugPaths = builtinPlugNames.map(

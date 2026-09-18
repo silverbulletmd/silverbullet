@@ -63,6 +63,7 @@ import {
   prepareFrontmatterFoldPlaceholder,
 } from "./frontmatter_folding.ts";
 import { createIconElement } from "../lib/icon.ts";
+import { editorGutterExtension } from "./gutter.ts";
 
 type DecoratedCompletion = Completion & { icon?: unknown };
 
@@ -140,6 +141,10 @@ export function createEditorState(
 
       client.vimCompartment.of([]),
       readOnlyExtensions,
+      editorGutterExtension(
+        client.currentPath(),
+        client.getEditorGutters(pageName),
+      ),
 
       // The uber markdown mode (in a compartment so it can be reconfigured on reload)
       markdownLanguageExtension,
@@ -346,6 +351,7 @@ export function createEditorState(
               }
             }
             if (update.docChanged) {
+              client.invalidateEditorGutters(pageName);
               if (
                 update.transactions.some((t) => t.annotation(externalUpdate))
               ) {

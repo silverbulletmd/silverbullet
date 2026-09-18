@@ -295,6 +295,15 @@ async function showRevisionPreview(
   return false;
 }
 
+/** Opens the preview for a gutter's committed or uncommitted line history. */
+export function openRevisionPreview(
+  page: string,
+  rev?: string,
+  focus = true,
+): Promise<false | undefined> {
+  return showRevisionPreview({ name: rev ?? UNCOMMITTED, page, rev }, focus);
+}
+
 function previewRevision(
   obj: RevisionRow,
   dock?: string,
