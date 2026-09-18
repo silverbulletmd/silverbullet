@@ -410,6 +410,39 @@ Returns the full text of the currently open page or document.
 
 - `string` — The editor contents.
 
+## editor.setGutter
+
+`editor.setGutter(id, gutter)`
+
+Replaces a plug-owned line gutter in the page editor. Markers use one-based
+line numbers and are rendered before the editor content. The last render stays
+visible and follows document changes until a provider refreshes it, so a
+provider should still refresh it after edits.
+
+**Parameters:**
+
+- `id` (`string`) — The gutter identifier. It is scoped to the calling plug.
+- `gutter` (`EditorGutter`) — An object with a `markers` array and optional
+  `page`, `width` (character units), and `className` fields. Each marker has a
+  `line`, `text`, and optional `title`, `className`, or full Git `rev` hash.
+  Git markers can also provide `revisionLine`, the one-based line number in
+  that revision. Adjacent markers with the same `rev` are presented as one
+  clickable group, and the group's matching diff is shown inline. Clicking
+  its preview action opens the full revision preview; omitting `rev` opens the
+  page's uncommitted change preview.
+
+## editor.clearGutter
+
+`editor.clearGutter(id, page?)`
+
+Removes a plug-owned line gutter. Pass the page name when clearing in an
+asynchronous operation to avoid clearing a newer page's gutter.
+
+**Parameters:**
+
+- `id` (`string`) — The gutter identifier.
+- `page?` (`string`) — Optional page name guard.
+
 ## editor.getUiOption
 
 `editor.getUiOption(key)`
@@ -954,4 +987,3 @@ Executes a Vim Ex command in the active Vim-mode editor.
 
 - `exCommand` (`string`) — The Ex command to execute.
 <!--/lua-->
-

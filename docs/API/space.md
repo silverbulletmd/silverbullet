@@ -189,4 +189,3 @@ Writes an arbitrary binary file and returns its metadata.
 
 Writes Markdown text to a page and returns its metadata.
 <!--/lua-->
-

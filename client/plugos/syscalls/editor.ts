@@ -80,6 +80,11 @@ import type { VimConfig } from "@silverbulletmd/silverbullet/type/config";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
+import {
+  gutterOwnerForPlug,
+  normalizeEditorGutter,
+  validateEditorGutterId,
+} from "../../codemirror/gutter.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
 import { isMobileDevice, isNarrowScreen } from "../../lib/mobile.ts";
 import { hide as hideNavigatorSlot } from "../../navigator/navigator.ts";
@@ -183,6 +188,60 @@ export function editorSyscalls(client: Client): SysCallMapping {
       description:
         "Returns the full text of the currently open page or document.",
       returns: [{ type: "string", description: "The editor contents." }],
+    },
+    "editor.setGutter": {
+      callback: (ctx, id: unknown, value: unknown) => {
+        validateEditorGutterId(id);
+        const page =
+          value && typeof value === "object"
+            ? (value as { page?: unknown }).page
+            : undefined;
+        if (page !== undefined && typeof page !== "string") {
+          throw new Error("editor.setGutter page must be a string");
+        }
+        const gutter = normalizeEditorGutter(value);
+        client.setEditorGutter(
+          gutterOwnerForPlug(ctx.plug),
+          id,
+          page ?? client.currentName(),
+          gutter,
+        );
+      },
+      description:
+        "Replaces a plug-owned line gutter in the page editor. Marker lines are one-based.",
+      parameters: [
+        { name: "id", type: "string", description: "The gutter identifier." },
+        {
+          name: "gutter",
+          type: "EditorGutter",
+          description:
+            "The markers and optional page, width, and CSS class settings.",
+        },
+      ],
+    },
+    "editor.clearGutter": {
+      callback: (ctx, id: unknown, page?: unknown) => {
+        validateEditorGutterId(id);
+        if (page !== undefined && typeof page !== "string") {
+          throw new Error("editor.clearGutter page must be a string");
+        }
+        client.clearEditorGutter(
+          gutterOwnerForPlug(ctx.plug),
+          id,
+          page as string | undefined,
+        );
+      },
+      description: "Removes a plug-owned line gutter.",
+      parameters: [
+        { name: "id", type: "string", description: "The gutter identifier." },
+        {
+          name: "page",
+          type: "string",
+          description:
+            "Optional page name guard for an asynchronous clear operation.",
+          optional: true,
+        },
+      ],
     },
     "editor.getCurrentLine": {
       callback: (): {

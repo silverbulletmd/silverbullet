@@ -6,7 +6,7 @@ import type {
 import type { PageMeta } from "../../plug-api/types/index.ts";
 import type { Path, Ref } from "../lib/ref.ts";
 import { syscall } from "../syscall.ts";
-import type { PanelMode } from "../types/client.ts";
+import type { EditorGutter, PanelMode } from "../types/client.ts";
 
 /**
  * Important: These syscalls are only available in the client.
@@ -51,6 +51,27 @@ export function getCurrentEditor(): Promise<string> {
 
 export function getText(): Promise<string> {
   return syscall("editor.getText");
+}
+
+/**
+ * Replaces a plug-owned line gutter in the page editor.
+ *
+ * Markers use one-based line numbers. A Git marker can provide `rev` and the
+ * corresponding one-based `revisionLine`; adjacent markers for the same
+ * revision are grouped and can open an inline diff. The core renders markers
+ * before the editor content and keeps the last render visible, mapped through
+ * document changes, until the provider publishes a refresh.
+ */
+export function setGutter(id: string, gutter: EditorGutter): Promise<void> {
+  return syscall("editor.setGutter", id, gutter);
+}
+
+/**
+ * Removes a plug-owned line gutter. Passing a page name prevents an older
+ * asynchronous update from clearing a newer page's gutter.
+ */
+export function clearGutter(id: string, page?: string): Promise<void> {
+  return syscall("editor.clearGutter", id, page);
 }
 
 /**

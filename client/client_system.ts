@@ -181,6 +181,10 @@ export class ClientSystem {
 
     this.system.addHook(new SyscallHook());
 
+    this.system.on({
+      plugUnloaded: (name) => this.client.clearEditorGuttersForOwner(name),
+    });
+
     this.eventHook.addLocalListener("editor:reloadState", async () => {
       await this.reloadState();
     });
