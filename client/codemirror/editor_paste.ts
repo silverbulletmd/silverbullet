@@ -9,9 +9,12 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
+import {
+  defaultAttachmentPath,
+  maximumDocumentSize,
+} from "@silverbulletmd/silverbullet/constants";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import { resolveAttachmentPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
@@ -268,6 +271,11 @@ export function documentExtension(editor: Client) {
     const maxSize = maximumDocumentSize;
     const invalidPathMessage =
       "Unable to upload file, invalid target filename or path";
+    // Keep in sync with plugs/editor/upload.ts
+    const attachmentPath = editor.config.get(
+      "attachmentPath",
+      defaultAttachmentPath,
+    );
 
     if (file.content.length > maxSize * 1024 * 1024) {
       editor.ui.flashNotification(
@@ -279,8 +287,9 @@ export function documentExtension(editor: Client) {
 
     let desiredFilePath = await editor.ui.prompt(
       "File name for pasted document",
-      resolveMarkdownLink(
+      resolveAttachmentPath(
         client.currentPath(),
+        attachmentPath,
         ensureValidFilenameWithExtension(file.name),
       ),
     );
@@ -299,10 +308,9 @@ export function documentExtension(editor: Client) {
       if (await doesFileExist(editor, desiredFilePath)) {
         let confirmedFilePath = await editor.ui.prompt(
           "A file with that name already exists, keep the same name to replace it, or rename your file",
-          resolveMarkdownLink(
-            client.currentPath(),
-            ensureValidFilenameWithExtension(desiredFilePath),
-          ),
+          // Already a space-root path from the first prompt; do not resolve
+          // it relative to the current page again.
+          desiredFilePath,
         );
         if (confirmedFilePath === undefined) {
           // Unlike the initial filename prompt, we're inside a workflow here
