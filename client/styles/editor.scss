@@ -134,6 +134,166 @@ $comment-border: 1px;
   .cm-gutters {
     background-color: transparent;
     border-right: none;
+    overflow: visible;
+  }
+
+  // Plug-provided line annotations, such as Git blame data.
+  .sb-plugin-gutter {
+    color: var(--editor-gutter-color, var(--editor-line-meta-color));
+    font-family: var(--editor-font);
+    font-size: 0.75em;
+    min-width: max-content;
+    overflow: visible;
+    position: relative;
+    user-select: none;
+
+    // CodeMirror renders one gutter element per visual line. Remove any
+    // inline spacing from that wrapper so adjacent rows in one group touch.
+    .cm-gutterElement {
+      padding: 0;
+      display: flex;
+      align-items: stretch;
+      overflow: visible;
+    }
+
+    .sb-editor-gutter-line {
+      display: flex;
+      align-items: stretch;
+      align-self: stretch;
+      height: 100%;
+      min-height: 100%;
+    }
+
+    .sb-editor-gutter-cell {
+      box-sizing: border-box;
+      display: inline-block;
+      flex: 0 0 auto;
+      overflow: hidden;
+      padding: 0 0.35em;
+      align-self: stretch;
+      margin-block: 0;
+      text-align: right;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sb-editor-gutter-clickable {
+      cursor: pointer;
+    }
+
+    .sb-editor-gutter-group-start {
+      border-top-left-radius: 3px;
+      border-top-right-radius: 3px;
+    }
+
+    .sb-editor-gutter-group-end {
+      border-bottom-left-radius: 3px;
+      border-bottom-right-radius: 3px;
+    }
+
+    .sb-editor-gutter-group-middle {
+      border-radius: 0;
+    }
+
+    .sb-editor-gutter-group-start,
+    .sb-editor-gutter-group-middle,
+    .sb-editor-gutter-group-end {
+      background-color: color-mix(in srgb, currentColor 12%, transparent);
+      box-shadow: inset 2px 0 0 color-mix(in srgb, currentColor 45%, transparent);
+    }
+
+    .sb-editor-gutter-clickable:hover,
+    .sb-editor-gutter-clickable:focus-visible {
+      background-color: color-mix(in srgb, currentColor 20%, transparent);
+    }
+  }
+
+  // The second gutter layer is a block widget anchored after the selected
+  // commit's last line. It stays in the editor column and does not move the
+  // surrounding document horizontally.
+  .sb-editor-gutter-diff {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0.65em 0 1em;
+    padding: 0.65em 0.8em;
+    border: 1px solid var(--ui-surface-border-color);
+    border-left: 3px solid var(--ui-accent-color);
+    border-radius: 4px;
+    background: var(--ui-surface-section-background-color);
+    color: var(--ui-surface-color);
+    font-family: var(--editor-font), monospace;
+    font-size: 0.8em;
+    line-height: 1.4;
+    user-select: text;
+  }
+
+  .sb-editor-gutter-diff-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75em;
+    margin-bottom: 0.45em;
+    font-family: var(--ui-font);
+    font-size: 0.9em;
+  }
+
+  .sb-editor-gutter-diff-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sb-editor-gutter-diff-actions {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35em;
+  }
+
+  .sb-editor-gutter-diff-action {
+    border: 1px solid var(--button-border-color);
+    border-radius: 3px;
+    padding: 0.2em 0.5em;
+    background: var(--button-background-color);
+    color: var(--button-color);
+    cursor: pointer;
+    font: inherit;
+    white-space: nowrap;
+  }
+
+  .sb-editor-gutter-diff-action:hover,
+  .sb-editor-gutter-diff-action:focus-visible {
+    background: var(--button-hover-background-color);
+  }
+
+  .sb-editor-gutter-diff-body {
+    max-height: 18em;
+    overflow: auto;
+    white-space: pre;
+  }
+
+  .sb-editor-gutter-diff-body .sb-revision-diff-add {
+    color: var(--editor-code-inserted-color, #16a34a);
+    background-color: var(
+      --editor-code-inserted-bg,
+      rgba(187, 247, 208, 0.25)
+    );
+  }
+
+  .sb-editor-gutter-diff-body .sb-revision-diff-del {
+    color: var(--editor-code-deleted-color, #dc2626);
+    background-color: var(
+      --editor-code-deleted-bg,
+      rgba(254, 202, 202, 0.25)
+    );
+  }
+
+  .sb-editor-gutter-diff-body .sb-revision-diff-hunk {
+    color: var(--ui-surface-subtle-color);
+    font-weight: 600;
   }
 
   .sb-external-delete-marker {
