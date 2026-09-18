@@ -296,6 +296,27 @@ $comment-border: 1px;
     font-weight: 600;
   }
 
+  // Git blame gutter (`plugs/git-blame`): the committer column plus a colored
+  // edge per committer, so the same person keeps the same color down the page.
+  .sb-plugin-gutter .git-blame-gutter {
+    align-self: stretch;
+    min-height: 100%;
+    margin: 0 0.25em 0 0;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+  }
+
+  .sb-plugin-gutter .git-blame-author-0 { border-left-color: #e06c75; }
+  .sb-plugin-gutter .git-blame-author-1 { border-left-color: #d19a66; }
+  .sb-plugin-gutter .git-blame-author-2 { border-left-color: #e5c07b; }
+  .sb-plugin-gutter .git-blame-author-3 { border-left-color: #98c379; }
+  .sb-plugin-gutter .git-blame-author-4 { border-left-color: #56b6c2; }
+  .sb-plugin-gutter .git-blame-author-5 { border-left-color: #61afef; }
+  .sb-plugin-gutter .git-blame-author-6 { border-left-color: #c678dd; }
+  .sb-plugin-gutter .git-blame-author-7 { border-left-color: #be5046; }
+  .sb-plugin-gutter .git-blame-author-8 { border-left-color: #2bbac5; }
+  .sb-plugin-gutter .git-blame-author-9 { border-left-color: #7fbbb3; }
+
   .sb-external-delete-marker {
     position: relative;
     display: inline-block;
