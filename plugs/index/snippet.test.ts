@@ -78,7 +78,7 @@ test("extractSnippet neutralizes transclusions into plain links", () => {
   );
 });
 
-test("extractSnippet references a task whose body is shorter than two characters", () => {
+test("extractSnippet references one- and two-character task bodies", () => {
   // A one- or two-character body is still a task, and without the injected
   // `Page@pos` reference it cannot be toggled from a Linked Mentions widget.
   const text1 = `* Parent [[Target]]
@@ -115,8 +115,8 @@ test("extractSnippet references a task whose body opens with a bracket", () => {
 });
 
 test("extractSnippet references a task whose body has a bracket past the first character", () => {
-  // The old two-character guard also rejected bodies whose *second* character
-  // was a `[`, and short bodies that are nothing but brackets.
+  // A single bracket, including one after the first character, must not
+  // suppress the task reference.
   const text1 = `* Parent [[Target]]
   * [ ] a[b: c] thing`;
   const pos1 = text1.indexOf("* [ ]");
@@ -227,6 +227,17 @@ test("extractSnippet leaves an already-referenced task alone", () => {
   * [ ] [[test@40]] Already referenced`;
   expect(extractSnippet("test", text, text.indexOf("* Parent"))).toEqual(
     "* Parent [[Target]]\n  * [ ] [[test@40]] Already referenced",
+  );
+});
+
+test("extractSnippet leaves an already-referenced task alone behind extra spaces", () => {
+  // The separator is greedy, but it must not hand a space back to the body so
+  // that the body no longer opens with `[[`: the task would be referenced twice.
+  const text = `* Parent [[Target]]
+  * [ ]  [[test@40]] Already referenced`;
+  expect(extractSnippet("test", text, text.indexOf("* Parent"))).toEqual(
+    "* Parent [[Target]]
+  * [ ]  [[test@40]] Already referenced",
   );
 });
 
