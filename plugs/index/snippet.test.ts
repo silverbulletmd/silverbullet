@@ -236,8 +236,7 @@ test("extractSnippet leaves an already-referenced task alone behind extra spaces
   const text = `* Parent [[Target]]
   * [ ]  [[test@40]] Already referenced`;
   expect(extractSnippet("test", text, text.indexOf("* Parent"))).toEqual(
-    "* Parent [[Target]]
-  * [ ]  [[test@40]] Already referenced",
+    "* Parent [[Target]]\n  * [ ]  [[test@40]] Already referenced",
   );
 });
 
