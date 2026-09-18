@@ -24,7 +24,7 @@ fn probe() -> bool {
             }
         }
     }
-    Command::new("git")
+    git_command()
         .arg("--version")
         .output()
         .map(|o| o.status.success())
@@ -39,8 +39,21 @@ fn which_git() -> Option<std::path::PathBuf> {
         .find(|c| c.is_file())
 }
 
+pub(super) fn git_command() -> Command {
+    let cmd = Command::new("git");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut cmd = cmd;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        cmd
+    }
+    #[cfg(not(windows))]
+    cmd
+}
+
 fn command(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Command {
-    let mut cmd = Command::new("git");
+    let mut cmd = git_command();
     cmd.arg("-C").arg(repo);
     if envs
         .iter()

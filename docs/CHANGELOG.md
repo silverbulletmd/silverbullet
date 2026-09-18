@@ -1,5 +1,9 @@
 An attempt at documenting the changes/new features introduced in each release.
 
+## Edge
+
+* Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
+
 ## 2.11.0
 * Significant **visual refresh**:
   * Doubling down on the monospace fonts. This is a more “techy” tool and it seems fitting..

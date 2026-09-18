@@ -7,7 +7,7 @@ use silverbullet_server_common::revision::sha256_hex;
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Stage {
@@ -350,7 +350,7 @@ fn reconstruct_text(repo: &Path, entry: &Entry, size: usize) -> Result<bool, Syn
         std::fs::write(temp.path().join(number.to_string()), bytes)
             .map_err(|e| SyncError::Other(e.to_string()))?;
     }
-    let output = Command::new("git")
+    let output = git::git_command()
         .arg("-C")
         .arg(repo)
         .args(["merge-file", "-p", "--marker-size", &size.to_string()])
@@ -379,7 +379,7 @@ fn reopen(repo: &Path, entry: &Entry) -> Result<(), SyncError> {
         input.extend_from_slice(&entry.path);
         input.push(0);
     }
-    let mut child = Command::new("git")
+    let mut child = git::git_command()
         .arg("-C")
         .arg(repo)
         .args(["update-index", "-z", "--index-info"])
@@ -539,7 +539,7 @@ pub fn list(repo: &Path) -> Result<ConflictList, SyncError> {
 fn stage_bytes(repo: &Path, entry: &Entry, bytes: &[u8], mode: &str) -> Result<(), SyncError> {
     let path = std::str::from_utf8(&entry.path)
         .map_err(|_| SyncError::Other("unsupported path".into()))?;
-    let mut child = Command::new("git")
+    let mut child = git::git_command()
         .arg("-C")
         .arg(repo)
         .args(["hash-object", "-w", "--stdin"])
