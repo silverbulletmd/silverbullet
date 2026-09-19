@@ -23,3 +23,54 @@ export function isMobileDevice(): boolean {
   // Without matchMedia (SSR, tests), default to desktop.
   return query ? !query.matches : false;
 }
+
+let hardwareKeyboardLikely = false;
+
+function isShortcutLike(ev: KeyboardEvent): boolean {
+  if (ev.isComposing) return false;
+  // Shift-only is typing (and OSK case transforms), not a command chord.
+  return ev.metaKey || ev.ctrlKey || ev.altKey;
+}
+
+/**
+ * Record a keydown that may have opened a modal. Installed at module load
+ * so the chord is seen before the async command/open path asks for focus.
+ */
+export function noteKeyboardActivity(ev: KeyboardEvent): void {
+  if (!isShortcutLike(ev)) return;
+  // A modifier chord on a coarse-pointer device is almost always a real
+  // keyboard (iPad / Android tablet). Remember it for later tap-opens too.
+  hardwareKeyboardLikely = true;
+}
+
+function onKeyDown(ev: Event): void {
+  if (ev instanceof KeyboardEvent) noteKeyboardActivity(ev);
+}
+
+function installKeyboardPresenceListener(): void {
+  const target = globalThis.document ?? globalThis;
+  if (typeof target.addEventListener !== "function") return;
+  target.addEventListener("keydown", onKeyDown, true);
+}
+
+installKeyboardPresenceListener();
+
+/** Test-only: forget hardware-keyboard state between cases. */
+export function resetModalFilterFocusForTests(): void {
+  hardwareKeyboardLikely = false;
+}
+
+/**
+ * Whether a modal filter should take programmatic focus (and `autofocus`).
+ *
+ * Desktop (fine primary pointer) always focuses.
+ *
+ * On a touch device, a tap-open that `.focus()`es the filter leaves it
+ * focused with no on-screen keyboard, and no tap can recover one — that
+ * skip stays. A keyboard shortcut, or a physical keyboard already seen
+ * this session, still focuses so Cmd+/ (and friends) can type immediately
+ * on a tablet with a keyboard attached.
+ */
+export function shouldFocusModalFilter(): boolean {
+  return !isMobileDevice() || hardwareKeyboardLikely;
+}

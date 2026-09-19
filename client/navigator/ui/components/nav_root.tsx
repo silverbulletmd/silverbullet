@@ -13,6 +13,7 @@ import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx"
 import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import type { Client } from "../../../client.ts";
+import { shouldFocusModalFilter } from "../../../lib/mobile.ts";
 import { resize } from "../../navigator.ts";
 import { createCommands } from "../commands.ts";
 import { engineFor } from "../engine.ts";
@@ -265,6 +266,7 @@ export function NavRoot({
             ref={inputRef}
             className="sb-nav-input"
             type="text"
+            autofocus={slot === "modal" && shouldFocusModalFilter()}
             autocapitalize="off"
             autocorrect="off"
             spellcheck={false}
