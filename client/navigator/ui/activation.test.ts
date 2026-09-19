@@ -285,3 +285,21 @@ test("typing during a slow modal activation survives its completion", async () =
   await pending;
   expect(set.setPhrase).not.toHaveBeenCalled();
 });
+
+test("a superseded activation does not grab focus after a later focus:false open", async () => {
+  const { activate, focusInput, engine, state } = makeHarness(undefined);
+  let releaseFirst!: (value: unknown) => void;
+  engine.activate.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        releaseFirst = resolve;
+      }),
+  );
+
+  const first = activate({ view: "inbox", token: 1 });
+  await activate({ view: "inbox", token: 2, focus: false });
+  releaseFirst(state);
+  await first;
+  await settled();
+  expect(focusInput).not.toHaveBeenCalled();
+});

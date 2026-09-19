@@ -119,6 +119,18 @@ test.describe("page and command navigation", () => {
     ).toBe(true);
   });
 
+  test("opening the page picker focuses the filter so typing starts immediately", async ({
+    sbPage,
+  }) => {
+    await openPagePicker(sbPage);
+    await expect(sbPage.locator(".sb-modal-paint-pending")).toHaveCount(0);
+    await expectNavInputFocused(sbPage);
+    // Send the key to the page, not the locator: Locator.press() would
+    // focus the input itself and hide a dropped Cmd-K autofocus.
+    await sbPage.keyboard.press("F");
+    await expect(navInput(sbPage)).toHaveValue("F");
+  });
+
   test("keyboard selection opens a page and returns focus to the editor", async ({
     sbPage,
   }) => {
