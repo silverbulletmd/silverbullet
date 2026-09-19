@@ -650,3 +650,47 @@ test("expandMarkdown strips a transcluded page's frontmatter", async () => {
   expect(roundTripped).not.toContain("references:");
   expect(roundTripped).not.toContain("---");
 });
+
+// Regression #1914: TOC entries render a header's name as markdown so that
+// inline syntax -- attributes above all -- still styles there. Rendering the
+// name as a full document instead turned a header like "1. Foo" into an <ol>,
+// which is why it was switched to raw text; that silently dropped attribute
+// rendering along with it. `inline` keeps inline syntax and drops only the
+// block-level interpretation.
+test("inline rendering keeps attributes (#1914)", () => {
+  const tree = parse(extendedMarkdownLanguage, "Task [FINI: 2026-01-01]");
+  const html = renderMarkdownToHtml(tree, { inline: true });
+  expect(html).toContain('class="sb-attribute" data-FINI="2026-01-01"');
+  // no block wrapper: the result has to be safe inside an <a>
+  expect(html).not.toContain('<span class="p">');
+});
+
+test("inline rendering does not turn a numbered header into a list (#1914)", () => {
+  const tree = parse(extendedMarkdownLanguage, "1. Foo");
+  const html = renderMarkdownToHtml(tree, { inline: true });
+  expect(html).not.toContain("<ol>");
+  expect(html).not.toContain("<li>");
+  expect(html).toContain("1. Foo");
+});
+
+test("inline rendering keeps inline emphasis", () => {
+  const tree = parse(extendedMarkdownLanguage, "A **bold** header");
+  const html = renderMarkdownToHtml(tree, { inline: true });
+  expect(html).toContain("<strong>");
+  expect(html).not.toContain('<span class="p">');
+});
+
+test("inline rendering falls back to text for multiple blocks", () => {
+  const tree = parse(extendedMarkdownLanguage, "a\n\nb");
+  const html = renderMarkdownToHtml(tree, { inline: true });
+  expect(html).not.toContain('<span class="p">');
+  expect(html).toContain("a");
+  expect(html).toContain("b");
+});
+
+test("inline rendering falls back to text for frontmatter", () => {
+  const tree = parse(extendedMarkdownLanguage, "---\nfoo: bar\n---\nHello");
+  const html = renderMarkdownToHtml(tree, { inline: true });
+  expect(html).not.toContain('<span class="p">');
+  expect(html).toContain("Hello");
+});

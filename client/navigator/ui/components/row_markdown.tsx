@@ -21,6 +21,7 @@ export async function renderRowMarkdown(
   client: Client,
   text: string,
   pageName = client.currentName(),
+  inline = false,
 ): Promise<HTMLElement | undefined> {
   if (!text || !needsMarkdown(text)) return undefined;
   try {
@@ -43,6 +44,7 @@ export async function renderRowMarkdown(
         {
           shortWikiLinks: client.config.get("shortWikiLinks", true),
           translateUrls: buildTranslateUrls(client),
+          ...(inline ? { inline: true as const } : {}),
         },
         client.ui.viewState.allPages,
       ),
@@ -61,8 +63,42 @@ export type RenderedRow = {
 };
 
 /**
- * Tree rows are left plain: their text is a header label, and a tree reads as
- * structure rather than content.
+ * A tree reads as structure rather than content, so its labels render
+ * inline-only: no block construct can appear -- a header named "1. Foo" must
+ * not become a list -- while inline syntax, attributes above all, still
+ * styles (#1914).
+ *
+ * Keyed by row rather than returned on it: `Row` is the view-facing wire type
+ * and has no business carrying a DOM node, and the tree's own nodes are built
+ * from these very row objects.
+ *
+ * Both tree surfaces call this -- the page-docked widget through
+ * `document_view.tsx` and the sidebar panels through `nav_root.tsx` -- because
+ * each owns its own row pipeline.
+ */
+export async function renderTreeLabels(
+  client: Client,
+  rows: Row[],
+  pageName = client.currentName(),
+): Promise<WeakMap<Row, HTMLElement>> {
+  const labelNodes = new WeakMap<Row, HTMLElement>();
+  await Promise.all(
+    rows.map(async (row) => {
+      if (!row.label) return;
+      const node = await renderRowMarkdown(client, row.label, pageName, true);
+      if (!node) return;
+      // Same wiring every other rendered widget gets: a wiki link navigates
+      // in-app instead of reloading the page.
+      attachWidgetEventHandlers(node, client);
+      labelNodes.set(row, node);
+    }),
+  );
+  return labelNodes;
+}
+
+/**
+ * Tree rows are left plain here: their labels are rendered separately by
+ * `renderTreeLabels`, which both tree surfaces share.
  */
 export function renderRows(
   client: Client,
