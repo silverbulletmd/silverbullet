@@ -40,6 +40,9 @@ export type MarkdownRenderOptions = {
   // (see buildResolveTransclusion)
   resolveTransclusion?: (t: Transclusion) => void;
   expand?: true;
+  // Render only the inline content, dropping block-level interpretation. For
+  // contexts that must stay inline, such as a TOC link (#1914).
+  inline?: true;
 };
 
 function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
@@ -938,11 +941,42 @@ function traverseTag(t: Tag, fn: (t: Tag) => void) {
   }
 }
 
+/**
+ * Reduce a parsed document to the inline content of its one paragraph.
+ *
+ * Returns null for anything else -- a list, a heading, several blocks -- which
+ * has no inline-only equivalent and is better shown literally.
+ *
+ * Whitespace-only nodes between blocks are dropped, which also trims leading
+ * and trailing whitespace off the document. Harmless for a label; worth
+ * knowing before reusing this somewhere whitespace carries meaning.
+ */
+function inlineContentOf(t: ParseTree): ParseTree | null {
+  const blocks = (t.children ?? []).filter(
+    (c) => c.text === undefined || c.text.trim() !== "",
+  );
+  if (blocks.length !== 1 || blocks[0].type !== "Paragraph") {
+    return null;
+  }
+  return { type: "Document", children: blocks[0].children ?? [] };
+}
+
 export function renderMarkdownToHtml(
   t: ParseTree,
   options: MarkdownRenderOptions = {},
   allPages: PageMeta[] = [],
 ) {
+  if (options.inline) {
+    const inlineTree = inlineContentOf(t);
+    // A block construct has no inline rendering, so fall back to the source
+    // text, escaped. This is what keeps a header named "1. Foo" from becoming
+    // a list. Not byte-for-byte the source: `htmlEscape` still turns newlines
+    // into `<br/>` and collapses runs of spaces.
+    if (!inlineTree) {
+      return renderHtml(renderToText(t));
+    }
+    t = inlineTree;
+  }
   preprocess(t);
   const htmlTree = posPreservingRender(t, options);
   if (htmlTree) {

@@ -37,7 +37,12 @@ import {
 } from "./content_view.tsx";
 import { PageWidgetFrame } from "./page_widget_frame.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
-import { MarkdownText, type RenderedRow, renderRows } from "./row_markdown.tsx";
+import {
+  MarkdownText,
+  type RenderedRow,
+  renderRows,
+  renderTreeLabels,
+} from "./row_markdown.tsx";
 
 export type DocumentDispatch = (
   hook: "rows" | "content" | "select" | "rowState" | "action",
@@ -210,6 +215,7 @@ export function DocumentRowsBody({
   onSelect,
   onAction,
   rowState,
+  labelNodes,
   actionIcons,
   actionsDisabled = false,
   readOnly = false,
@@ -222,6 +228,7 @@ export function DocumentRowsBody({
   onSelect?: (obj: Record<string, any>) => void;
   onAction?: (index: number, obj: Record<string, any>) => void;
   rowState?: RowStates;
+  labelNodes?: WeakMap<Row, HTMLElement>;
   actionIcons?: (Element | undefined)[];
   actionsDisabled?: boolean;
   readOnly?: boolean;
@@ -247,6 +254,7 @@ export function DocumentRowsBody({
           canDrag={false}
           hasIcon={!!meta.hasRowIcon}
           rowState={rowState}
+          labelNodes={labelNodes}
           actions={meta.actions}
           actionIcons={actionIcons}
           documentActions
@@ -371,6 +379,9 @@ function DocumentRows({
     () => createDocumentRowLoader(dispatch, meta),
     [dispatch, meta],
   );
+  const [labelNodes, setLabelNodes] = useState<
+    WeakMap<Row, HTMLElement> | undefined
+  >();
   const [features, setFeatures] = useState<{
     rowState: RowStates;
     actionIcons: (Element | undefined)[];
@@ -456,9 +467,14 @@ function DocumentRows({
             meta.mode === "tree",
             pageName,
           );
+          const labels =
+            meta.mode === "tree"
+              ? await renderTreeLabels(client, incoming, pageName)
+              : undefined;
           if (!live || !ticket.isCurrent()) return;
           setError(undefined);
           setRows(rendered);
+          setLabelNodes(labels);
           setFeatures(rowFeatures);
         })
         .catch((cause) => {
@@ -492,6 +508,7 @@ function DocumentRows({
     rows?.length && expansion.ready && !error ? (
       <DocumentRowsBody
         rowState={features?.rowState}
+        labelNodes={labelNodes}
         actionIcons={features?.actionIcons}
         onAction={runAction}
         actionsDisabled={actionsDisabled || pending}

@@ -12,6 +12,8 @@ import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
+import type { Row } from "../../../../plug-api/ui/tree_types.ts";
+import { renderTreeLabels } from "./row_markdown.tsx";
 import type { Client } from "../../../client.ts";
 import { resize } from "../../navigator.ts";
 import { createCommands } from "../commands.ts";
@@ -223,6 +225,27 @@ export function NavRoot({
     truncated,
   } = derived;
 
+  // A tree label may carry inline markdown -- an attribute above all -- which
+  // only the client can render (#1914). The sidebar panels own a row pipeline
+  // separate from the page widget's, so they render their labels here.
+  const [labelNodes, setLabelNodes] = useState<
+    WeakMap<Row, HTMLElement> | undefined
+  >();
+  const panelRows = view?.rows;
+  useEffect(() => {
+    if (!isTreeMode || !panelRows?.length) {
+      setLabelNodes(undefined);
+      return;
+    }
+    let live = true;
+    void renderTreeLabels(client, panelRows).then((nodes) => {
+      if (live) setLabelNodes(nodes);
+    });
+    return () => {
+      live = false;
+    };
+  }, [client, isTreeMode, panelRows]);
+
   const isDock = slot !== "modal";
   const placeholder =
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
@@ -415,6 +438,7 @@ export function NavRoot({
             actions={view.meta.actions}
             actionIcons={view.actionIcons}
             rowState={view.rowState}
+            labelNodes={labelNodes}
             hasIcon={!!view.meta.hasRowIcon}
             readOnly={readOnly}
             scrollContainerSelector=".sb-nav-body"
