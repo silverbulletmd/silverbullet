@@ -19,6 +19,7 @@ export class CommandHook
   constructor(
     private readOnly: boolean,
     private additionalCommands: Map<string, Command>,
+    private disableServiceWorker = false,
   ) {
     super();
   }
@@ -65,6 +66,9 @@ export class CommandHook
       if (cmd.requireMode === "rw" && this.readOnly) {
         continue;
       }
+      if (cmd.requireServiceWorker && this.disableServiceWorker) {
+        continue;
+      }
       commands.set(name, cmd);
     }
     if (!this.system) {
@@ -79,6 +83,9 @@ export class CommandHook
         }
         const cmd = functionDef.command;
         if (cmd.requireMode === "rw" && this.readOnly) {
+          continue;
+        }
+        if (cmd.requireServiceWorker && this.disableServiceWorker) {
           continue;
         }
         this.mergeCommand(commands, cmd.name, {

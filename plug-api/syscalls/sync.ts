@@ -6,6 +6,14 @@ import { syscall } from "../syscall.ts";
  */
 
 /**
+ * Whether client Sync is enabled. False when the service worker is off
+ * (`SB_DISABLE_SERVICE_WORKER` / `bootConfig.disableServiceWorker`).
+ */
+export function isEnabled(): Promise<boolean> {
+  return syscall("sync.isEnabled");
+}
+
+/**
  * Checks if an initial sync has completed
  */
 export function hasInitialSyncCompleted(): Promise<boolean> {

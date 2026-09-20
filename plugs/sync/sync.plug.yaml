@@ -5,6 +5,7 @@ functions:
     path: "./sync.ts:syncSpaceCommand"
     command:
       name: "Sync: Space"
+      requireServiceWorker: true
       menu:
         location: space
         group: "1_sync"
@@ -15,6 +16,7 @@ functions:
     path: "./sync.ts:syncFileCommand"
     command:
       name: "Sync: File"
+      requireServiceWorker: true
       menu:
         location: space
         group: "1_sync"

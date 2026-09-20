@@ -147,7 +147,11 @@ export class ClientSystem {
     this.documentEditorHook = new DocumentEditorHook();
     this.system.addHook(this.documentEditorHook);
 
-    this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
+    this.commandHook = new CommandHook(
+      this.readOnlyMode,
+      this.scriptCommands,
+      !!this.client.bootConfig.disableServiceWorker,
+    );
     registerEditorCommands(client, this.commandHook);
     const gitAvailable =
       !!this.client.bootConfig.revisions &&
