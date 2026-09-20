@@ -21,6 +21,18 @@ function client(overrides: Partial<Client> = {}): Partial<Client> {
   };
 }
 
+function isEnabled(c: Partial<Client>): boolean {
+  const syscall = syncSyscalls(c as Client)["sync.isEnabled"] as any;
+  return syscall.callback({});
+}
+
+test("sync is enabled unless the service worker is disabled", () => {
+  expect(isEnabled(client())).toBe(true);
+  expect(
+    isEnabled(client({ bootConfig: { disableServiceWorker: true } as any })),
+  ).toBe(false);
+});
+
 test("a fast server makes every file ready", () => {
   expect(readiness(client({ serverPingMs: 5 }), ["a.md", "b.md"])).toEqual([
     true,

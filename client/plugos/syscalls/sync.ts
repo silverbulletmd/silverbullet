@@ -65,6 +65,20 @@ export function syncSyscalls(client: Client): SysCallMapping {
   }
 
   return {
+    "sync.isEnabled": {
+      callback: (): boolean => {
+        return !client.bootConfig.disableServiceWorker;
+      },
+      description:
+        "Whether client Sync is enabled. False when the service worker is off.",
+      returns: [
+        {
+          type: "boolean",
+          description:
+            "False when SB_DISABLE_SERVICE_WORKER is set or the browser has no service worker.",
+        },
+      ],
+    },
     "sync.hasInitialSyncCompleted": {
       callback: (): boolean => {
         return client.fullSyncCompleted;

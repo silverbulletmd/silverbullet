@@ -91,6 +91,7 @@ export function systemSyscalls(
             hide: def.hide,
             requireMode: def.requireMode,
             requireEditor: def.requireEditor,
+            requireServiceWorker: def.requireServiceWorker,
             menu: def.menu,
             menuMac: def.menuMac,
             menuWindows: def.menuWindows,

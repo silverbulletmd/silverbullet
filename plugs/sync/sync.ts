@@ -8,13 +8,30 @@ import {
 let lastProgress = -1;
 let lastProgressAt = 0;
 
+const syncDisabledMessage =
+  "Sync is disabled because the service worker is off";
+
+async function requireSyncEnabled(): Promise<boolean> {
+  if (await sync.isEnabled()) {
+    return true;
+  }
+  await editor.flashNotification(syncDisabledMessage, "error");
+  return false;
+}
+
 export async function syncSpaceCommand() {
+  if (!(await requireSyncEnabled())) {
+    return;
+  }
   await editor.flashNotification("Syncing space...");
   await sync.performSpaceSync();
   await editor.flashNotification("Done.");
 }
 
 export async function syncFileCommand() {
+  if (!(await requireSyncEnabled())) {
+    return;
+  }
   await editor.flashNotification("Syncing file...");
   await sync.performFileSync(await editor.getCurrentPath());
   await editor.flashNotification("Done.");

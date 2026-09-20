@@ -79,9 +79,10 @@ toggleDarkMode:
     key: "Ctrl-Alt-d"
     requireMode: rw          # "rw" or "ro"
     requireEditor: page      # "any", "page", "notpage", or a string editor name
+    requireServiceWorker: true  # hide when SB_DISABLE_SERVICE_WORKER is set
 ```
 
-All command fields: `name` (required), `key` / `mac`, `priority`, `contexts`, `requireMode`, `requireEditor`, `hide`, `disableInVim`.
+All command fields: `name` (required), `key` / `mac`, `priority`, `contexts`, `requireMode`, `requireEditor`, `requireServiceWorker`, `hide`, `disableInVim`.
 
 ```typescript
 import { editor } from "@silverbulletmd/silverbullet/syscalls";

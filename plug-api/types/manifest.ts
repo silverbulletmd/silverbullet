@@ -77,6 +77,13 @@ export type CommandDef = {
   hide?: boolean;
   requireMode?: "rw" | "ro";
   requireEditor?: "any" | "page" | "notpage" | string;
+  /**
+   * When true, the command is omitted from the palette, menus, and
+   * `buildAllCommands()` while `bootConfig.disableServiceWorker` is set
+   * (`SB_DISABLE_SERVICE_WORKER`). Same space-wide drop as `requireMode: rw`
+   * in a read-only space.
+   */
+  requireServiceWorker?: boolean;
 
   // When true, this binding is NOT registered while vim mode is active,
   // so the key falls through to vim.
