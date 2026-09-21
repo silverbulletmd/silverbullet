@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
+* `identity.mentions(recipient, options)` exposes the Mention Inbox data to Space Lua and the CLI, including authorship, source references, and pagination.
 
 ## 2.11.0
 * Significant **visual refresh**:

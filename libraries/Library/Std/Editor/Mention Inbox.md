@@ -12,7 +12,6 @@ local SEP = "\31"
 -- "- [x] "); the row's own icon already says what kind of row it is, so strip
 -- the marker for display.
 local function stripMarker(text)
-  if not text then return text end
   local stripped = text:gsub("^[-*+]%s*%[.?%]%s*", "")
   if stripped == text then
     stripped = text:gsub("^[-*+]%s+", "")
@@ -22,59 +21,29 @@ end
 
 local function inboxRows()
   local rows = {}
-  local names = {}
-  for _, r in ipairs(system.invokeFunction("index.listIdentities")) do
-    names[r.id] = r.name
-  end
-  local mentions = query[[
-    from index.relations "at-mention"
-  ]]
-  for _, m in ipairs(mentions) do
-    local hidden = false
-    if m.fromTag == "task" then
-      local task = index.getObjectByRef(m.page, "task", m.from)
-      hidden = task and task.done or false
+  for _, m in ipairs(identity.mentions().mentions) do
+    local declared = m.kind == "page"
+    local recipient = "@" .. (m.nickname or m.target:sub(2))
+    local snippet = recipient
+    if type(m.snippet) == "string" then
+      snippet = declared and m.snippet or stripMarker(m.snippet)
     end
-    if not hidden then
-      local snippet = stripMarker(m.snippet) or ("@" .. (m.alias or ""))
-      -- Mentions can share a snippet; their range offsets keep tree paths unique.
-      table.insert(rows, {
-        name = m.page .. SEP .. snippet .. "\30" .. m.range[1],
-        snippet = snippet,
-        ref = m.page .. "@" .. m.range[1],
-        page = m.page,
-        range = m.range,
-        nickname = m.alias,
-        target = m.to,
-        fromTag = m.fromTag,
-        by = (function()
-          if not m.by or #m.by == 0 then return nil end
-          local out = {}
-          for _, id in ipairs(m.by) do
-            table.insert(out, "@" .. (names[id] or id:gsub("^@", "")))
-          end
-          return table.concat(out, " ")
-        end)(),
-      })
+    local authors = {}
+    for _, name in ipairs(m.by) do
+      table.insert(authors, "@" .. name)
     end
-  end
-  -- Recipients declared in `recipients:` frontmatter address the whole page,
-  -- so they have no `@nickname` span to act on: the row navigates and that's
-  -- all. Its own `ref` uniquifies the tree path, the way a range does above.
-  local declared = query[[
-    from index.relations "recipients" where _.toTag == "identity"
-  ]]
-  for _, d in ipairs(declared) do
-    local recipient = "@" .. d.alias
-    local label = d.snippet or recipient
     table.insert(rows, {
-      name = d.page .. SEP .. label .. "\30" .. d.ref,
-      snippet = label,
-      recipient = recipient,
-      ref = d.page,
-      page = d.page,
-      target = d.to,
-      declared = true,
+      name = m.page .. SEP .. snippet .. "\30" .. (declared and (m.ref .. m.target) or m.pos),
+      snippet = snippet,
+      recipient = declared and recipient or nil,
+      ref = m.ref,
+      page = m.page,
+      range = m.range,
+      nickname = m.nickname,
+      target = m.target,
+      fromTag = m.fromTag,
+      by = #authors > 0 and table.concat(authors, " ") or nil,
+      declared = declared,
     })
   end
   return rows
