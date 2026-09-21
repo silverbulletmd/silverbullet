@@ -1,0 +1,12 @@
+name: git-blame
+requiredPermissions:
+  - shell
+functions:
+  refreshGitBlame:
+    path: "./git-blame.ts:refreshGitBlame"
+    events:
+      - editor:init
+      - editor:pageLoaded
+      - editor:pageReloaded
+      - editor:pageSaved
+      - plugs:loaded

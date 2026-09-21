@@ -42,6 +42,12 @@ import {
   createEditorState,
 } from "./codemirror/editor_state.ts";
 import { originLabel } from "./codemirror/external_presence.ts";
+import {
+  type EditorGutterDefinition,
+  EditorGutterStore,
+  type NamedEditorGutter,
+  setEditorGuttersEffect,
+} from "./codemirror/gutter.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
@@ -185,6 +191,7 @@ export class Client {
   commandAugmenter!: Augmenter;
 
   editorView!: EditorView;
+  readonly editorGutterStore = new EditorGutterStore();
   commandKeyHandlerCompartment?: Compartment;
   vimCompartment?: Compartment;
   indentUnitCompartment?: Compartment;
@@ -667,6 +674,51 @@ export class Client {
     return getNameFromPath(
       this.ui.viewState.current?.path || this.onLoadRef.path,
     );
+  }
+
+  getEditorGutters(pageName: string): NamedEditorGutter[] {
+    return this.editorGutterStore.forPage(pageName);
+  }
+
+  setEditorGutter(
+    owner: string,
+    id: string,
+    page: string,
+    gutter: EditorGutterDefinition,
+  ): void {
+    if (page !== this.currentName() || this.contentManager.isDocumentEditor()) {
+      return;
+    }
+    this.editorGutterStore.set(owner, id, page, gutter);
+    this.refreshEditorGutters();
+  }
+
+  clearEditorGutter(owner: string, id: string, page?: string): void {
+    if (this.editorGutterStore.clear(owner, id, page)) {
+      this.refreshEditorGutters();
+    }
+  }
+
+  clearEditorGuttersForOwner(owner: string): void {
+    if (this.editorGutterStore.clearOwner(owner)) {
+      this.refreshEditorGutters();
+    }
+  }
+
+  /** Drops cached provider data while a provider refreshes it for new text. */
+  invalidateEditorGutters(page: string): void {
+    this.editorGutterStore.clearPage(page);
+  }
+
+  private refreshEditorGutters(): void {
+    if (!this.editorView) {
+      return;
+    }
+    this.editorView.dispatch({
+      effects: setEditorGuttersEffect.of(
+        this.getEditorGutters(this.currentName()),
+      ),
+    });
   }
 
   currentPageMeta(): PageMeta | undefined {

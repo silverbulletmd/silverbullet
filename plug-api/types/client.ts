@@ -38,6 +38,32 @@ export type Notification = {
 // fixed-width sidebar.
 export type PanelMode = number | string;
 
+export type EditorGutterMarker = {
+  /** One-based line number in the current editor document. */
+  line: number;
+  /** Text rendered in the gutter for this line. */
+  text: string;
+  /** Optional tooltip shown when hovering the marker. */
+  title?: string;
+  /** Optional CSS class names for this marker. */
+  className?: string;
+  /** Full Git commit hash opened when this marker is clicked. */
+  rev?: string;
+  /** One-based line number in the revision identified by `rev`. */
+  revisionLine?: number;
+};
+
+export type EditorGutter = {
+  /** The page this data belongs to; omitted means the current page. */
+  page?: string;
+  /** A named gutter's line markers. Replacing the same id replaces all rows. */
+  markers: readonly EditorGutterMarker[];
+  /** Fixed width in editor-font character units. */
+  width?: number;
+  /** Optional CSS class names applied to every marker in this gutter. */
+  className?: string;
+};
+
 export type CodeWidgetContent = {
   html?: string;
   script?: string;
