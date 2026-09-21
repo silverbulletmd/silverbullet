@@ -13,6 +13,14 @@ To create a document, you have a few options:
 
 All options will prompt you for a file name to use to store the document, and then include the document as an embedded image (if it was an image) or link to the file.
 
+Set `attachmentPath` in [[CONFIG]] to pre-fill a folder in that prompt so you do not type it every time:
+
+```lua
+config.set("attachmentPath", "/Assets/")
+```
+
+A leading `/` is from the space root. Without one, the prefix is relative to the current page’s folder (`attachments/` next to the page). Leave it empty (the default) to keep suggesting the current page’s folder.
+
 # Managment
 Using ${widgets.commandButton("Navigate: Document Picker")} you can open the document picker, which will display all documents in your Silverbullet space. You can either:
   - Delete or rename documents for which no [[Document Editor]] is available (indicated by the grey hint)
