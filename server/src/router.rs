@@ -228,6 +228,14 @@ async fn count_requests(
 /// Build the HTTP router for the file/config/bundle endpoints. Protected routes
 /// require authorization when an authorizer is configured.
 pub fn build_router(state: Arc<ServerState>) -> Router {
+    let fs_compression = CompressionLayer::new().compress_when(DefaultPredicate::new().and(
+        |status: axum::http::StatusCode,
+         _version: axum::http::Version,
+         _headers: &axum::http::HeaderMap,
+         _extensions: &axum::http::Extensions| {
+            status != axum::http::StatusCode::PARTIAL_CONTENT
+        },
+    ));
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
         .route("/.accounts", get(accounts::handle_accounts))
@@ -242,7 +250,9 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         )
         .route(
             "/.fs/{*path}",
-            get(fs::handle_fs_get).layer(CompressionLayer::new()),
+            get(fs::handle_fs_get)
+                .head(fs::handle_fs_head)
+                .layer(fs_compression),
         )
         .route("/.fs/{*path}", put(fs::handle_fs_put))
         .route("/.fs/{*path}", delete(fs::handle_fs_delete))
@@ -1093,6 +1103,41 @@ mod auth_tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+}
+
+#[cfg(test)]
+mod fs_range_tests {
+    use std::sync::Arc;
+
+    use crate::test_support::test_state;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn compression_layer_never_transforms_partial_content() {
+        let state = test_state();
+        let data = vec![b'a'; 1024];
+        state.space.write_file("large.txt", &data, None).unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/large.txt")
+                    .header("Range", "bytes=0-511")
+                    .header("Accept-Encoding", "gzip")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(response.headers().get("content-length").unwrap(), "512");
+        assert!(response.headers().get("content-encoding").is_none());
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], &data[..512]);
     }
 }
 

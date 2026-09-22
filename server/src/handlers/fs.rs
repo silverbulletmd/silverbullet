@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::extract::{Extension, Path, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use silverbullet_server_common::reconcile::{
     ReconcileRequest, ReconcileResponse, ReconcileRevision,
@@ -13,6 +13,7 @@ use silverbullet_server_common::{FileMeta, SpaceError};
 use silverbullet_server_merge::{contains_conflict_markers, merge, MergeOutcome};
 
 use crate::auth::Actor;
+use crate::handlers::byte_range::{parse_range_header, RequestedRange};
 use crate::handlers::{http_date, space_error_response};
 use crate::router::run_blocking;
 use crate::state::ServerState;
@@ -89,18 +90,26 @@ pub async fn handle_fs_get(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     if headers.get("X-Get-Meta").is_some() {
+        let cheap = headers
+            .get("X-Get-Meta")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.eq_ignore_ascii_case("cheap"));
         let state_inner = state.clone();
         let path_inner = path.clone();
         return match run_blocking(move || {
             let meta = state_inner.space.get_file_meta(&path_inner)?;
-            let hash = match state_inner
-                .fs_guard
-                .hash_for(&*state_inner.space, &path_inner)
-            {
-                Ok(hash) => Some(hash),
-                Err(e) => {
-                    tracing::debug!("fs_guard hash_for {path_inner} failed: {e}");
-                    None
+            let hash = if cheap {
+                None
+            } else {
+                match state_inner
+                    .fs_guard
+                    .hash_for(&*state_inner.space, &path_inner)
+                {
+                    Ok(hash) => Some(hash),
+                    Err(e) => {
+                        tracing::debug!("fs_guard hash_for {path_inner} failed: {e}");
+                        None
+                    }
                 }
             };
             Ok::<_, silverbullet_server_common::SpaceError>((meta, hash))
@@ -148,6 +157,14 @@ pub async fn handle_fs_get(
         .map(|v| v.contains("application/octet-stream"))
         .unwrap_or(false);
 
+    if headers.get(axum::http::header::RANGE).is_some() {
+        match range_response(&state, &path, &headers, force_octet_stream).await {
+            Ok(Some(response)) => return response,
+            Ok(None) => {}
+            Err(error) => return space_error_response(error),
+        }
+    }
+
     let state_inner = state.clone();
     let path_inner = path.clone();
     match run_blocking(move || {
@@ -171,30 +188,241 @@ pub async fn handle_fs_get(
             if force_octet_stream {
                 meta.content_type = "application/octet-stream".to_string();
             }
-            let mut builder =
-                set_file_meta_headers(Response::builder().status(StatusCode::OK), &meta)
-                    .header("X-Content-Type", &real_content_type)
-                    // Mutable file: revalidate every load. The `Last-Modified`
-                    // validator lets the browser get a 304 (handled above)
-                    // instead of refetching the full body.
-                    .header("Cache-Control", "no-cache")
-                    // The body's `Content-Type` depends on the request's `Accept`
-                    // (octet-stream vs the real type), so cache must key on it.
-                    .header(axum::http::header::VARY, "Accept")
-                    .header(axum::http::header::ETAG, etag_for_hash(&hash));
-            let last_modified = http_date(meta.last_modified);
-            if !last_modified.is_empty() {
-                builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
-            }
-            if !force_octet_stream && !is_inline_safe(&real_content_type) {
-                builder = builder
-                    .header(axum::http::header::CONTENT_DISPOSITION, "attachment")
-                    .header(axum::http::header::X_CONTENT_TYPE_OPTIONS, "nosniff");
-            }
-            builder.body(Body::from(data)).unwrap()
+            file_response_builder(
+                StatusCode::OK,
+                &meta,
+                &real_content_type,
+                force_octet_stream,
+                Some(&hash),
+            )
+            .header(axum::http::header::CONTENT_LENGTH, data.len().to_string())
+            .body(Body::from(data))
+            .unwrap()
         }
         Err(e) => space_error_response(e),
     }
+}
+
+pub async fn handle_fs_head(
+    State(state): State<Arc<ServerState>>,
+    Path(path): Path<String>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let force_octet_stream = headers
+        .get(axum::http::header::ACCEPT)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.contains("application/octet-stream"));
+    let state_inner = state.clone();
+    let path_inner = path.clone();
+    match run_blocking(move || state_inner.space.get_file_meta(&path_inner)).await {
+        Ok(mut meta) => {
+            let hash = state.fs_guard.cached_hash(&path, &meta);
+            let real_content_type = meta.content_type.clone();
+            if force_octet_stream {
+                meta.content_type = "application/octet-stream".to_string();
+            }
+            file_response_builder(
+                StatusCode::OK,
+                &meta,
+                &real_content_type,
+                force_octet_stream,
+                hash.as_deref(),
+            )
+            .header(axum::http::header::CONTENT_LENGTH, meta.size.to_string())
+            .body(Body::empty())
+            .unwrap()
+        }
+        Err(error) => space_error_response(error),
+    }
+}
+
+async fn range_response(
+    state: &Arc<ServerState>,
+    path: &str,
+    headers: &HeaderMap,
+    force_octet_stream: bool,
+) -> Result<Option<Response>, SpaceError> {
+    let range_values = headers.get_all(axum::http::header::RANGE);
+    let mut range_values = range_values.iter();
+    let range_header = range_values.next().cloned();
+    if range_values.next().is_some() {
+        return Ok(None);
+    }
+    let if_range = headers.get(axum::http::header::IF_RANGE).cloned();
+    let mut meta = get_file_meta(state, path).await?;
+
+    for attempt in 0..2 {
+        let size = file_size(&meta)?;
+        let requested = parse_range_header(range_header.as_ref(), size);
+        if requested == RequestedRange::Full {
+            return Ok(None);
+        }
+        let cached_hash = state.fs_guard.cached_hash(path, &meta);
+        if !if_range_matches(if_range.as_ref(), &meta, cached_hash.as_deref()) {
+            return Ok(None);
+        }
+        let RequestedRange::Partial { start, end } = requested else {
+            return Ok(Some(unsatisfiable_response(
+                &meta,
+                size,
+                force_octet_stream,
+                cached_hash.as_deref(),
+            )));
+        };
+        let length = usize::try_from(end - start + 1).map_err(|_| inconsistent_range_error())?;
+        let state_inner = state.clone();
+        let path_inner = path.to_string();
+        let range_read = run_blocking(move || {
+            state_inner
+                .space
+                .read_file_range(&path_inner, start, length)
+        })
+        .await;
+        let (data, returned_meta) = match range_read {
+            Ok(result) => result,
+            Err(SpaceError::Io(error)) if error.kind() == std::io::ErrorKind::UnexpectedEof => {
+                if attempt == 1 {
+                    return Err(inconsistent_range_error());
+                }
+                meta = get_file_meta(state, path).await?;
+                continue;
+            }
+            Err(error) => return Err(error),
+        };
+
+        if returned_meta.size == meta.size {
+            if data.len() != length {
+                return Err(inconsistent_range_error());
+            }
+            let hash = state.fs_guard.cached_hash(path, &returned_meta);
+            if !if_range_matches(if_range.as_ref(), &returned_meta, hash.as_deref()) {
+                return Ok(None);
+            }
+            return Ok(Some(partial_response(
+                data,
+                &returned_meta,
+                start,
+                end,
+                size,
+                force_octet_stream,
+                hash.as_deref(),
+            )));
+        }
+        if attempt == 1 {
+            return Err(inconsistent_range_error());
+        }
+        meta = get_file_meta(state, path).await?;
+    }
+    unreachable!()
+}
+
+async fn get_file_meta(state: &Arc<ServerState>, path: &str) -> Result<FileMeta, SpaceError> {
+    let state_inner = state.clone();
+    let path_inner = path.to_string();
+    run_blocking(move || state_inner.space.get_file_meta(&path_inner)).await
+}
+
+fn file_size(meta: &FileMeta) -> Result<u64, SpaceError> {
+    u64::try_from(meta.size).map_err(|_| inconsistent_range_error())
+}
+
+fn inconsistent_range_error() -> SpaceError {
+    SpaceError::Io(std::io::Error::other(
+        "file changed while reading byte range",
+    ))
+}
+
+fn if_range_matches(value: Option<&HeaderValue>, meta: &FileMeta, hash: Option<&str>) -> bool {
+    let Some(value) = value else {
+        return true;
+    };
+    let Ok(value) = value.to_str() else {
+        return false;
+    };
+    if value.starts_with('"') {
+        return hash.is_some_and(|hash| value == etag_for_hash(hash));
+    }
+    let last_modified = http_date(meta.last_modified);
+    !last_modified.is_empty() && value == last_modified
+}
+
+fn partial_response(
+    data: Vec<u8>,
+    meta: &FileMeta,
+    start: u64,
+    end: u64,
+    size: u64,
+    force_octet_stream: bool,
+    hash: Option<&str>,
+) -> Response {
+    let real_content_type = meta.content_type.clone();
+    file_response_builder(
+        StatusCode::PARTIAL_CONTENT,
+        meta,
+        &real_content_type,
+        force_octet_stream,
+        hash,
+    )
+    .header(
+        axum::http::header::CONTENT_RANGE,
+        format!("bytes {start}-{end}/{size}"),
+    )
+    .header(axum::http::header::CONTENT_LENGTH, data.len().to_string())
+    .body(Body::from(data))
+    .unwrap()
+}
+
+fn unsatisfiable_response(
+    meta: &FileMeta,
+    size: u64,
+    force_octet_stream: bool,
+    hash: Option<&str>,
+) -> Response {
+    let real_content_type = meta.content_type.clone();
+    file_response_builder(
+        StatusCode::RANGE_NOT_SATISFIABLE,
+        meta,
+        &real_content_type,
+        force_octet_stream,
+        hash,
+    )
+    .header(axum::http::header::CONTENT_RANGE, format!("bytes */{size}"))
+    .header(axum::http::header::CONTENT_LENGTH, "0")
+    .body(Body::empty())
+    .unwrap()
+}
+
+fn file_response_builder(
+    status: StatusCode,
+    meta: &FileMeta,
+    real_content_type: &str,
+    force_octet_stream: bool,
+    hash: Option<&str>,
+) -> axum::http::response::Builder {
+    let mut builder = set_file_meta_headers(Response::builder().status(status), meta)
+        .header("X-Content-Type", real_content_type)
+        .header(axum::http::header::ACCEPT_RANGES, "bytes")
+        .header(axum::http::header::CACHE_CONTROL, "no-cache")
+        .header(axum::http::header::VARY, "Accept");
+    if force_octet_stream {
+        builder.headers_mut().unwrap().insert(
+            axum::http::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/octet-stream"),
+        );
+    }
+    if let Some(hash) = hash {
+        builder = builder.header(axum::http::header::ETAG, etag_for_hash(hash));
+    }
+    let last_modified = http_date(meta.last_modified);
+    if !last_modified.is_empty() {
+        builder = builder.header(axum::http::header::LAST_MODIFIED, last_modified);
+    }
+    if !force_octet_stream && !is_inline_safe(real_content_type) {
+        builder = builder
+            .header(axum::http::header::CONTENT_DISPOSITION, "attachment")
+            .header(axum::http::header::X_CONTENT_TYPE_OPTIONS, "nosniff");
+    }
+    builder
 }
 
 /// Set the `X-*` file-metadata headers the client reads off `/.fs` responses.
@@ -759,13 +987,269 @@ fn file_meta_from_headers(headers: &HeaderMap, path: &str) -> FileMeta {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
     use super::is_inline_safe;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
+    use silverbullet_server_common::revision::etag_for_hash;
+    use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
     use tower::ServiceExt;
+
+    struct ObservedSpace {
+        data: Vec<u8>,
+        meta: FileMeta,
+        meta_reads: AtomicUsize,
+        full_reads: AtomicUsize,
+        range_reads: AtomicUsize,
+    }
+
+    impl ObservedSpace {
+        fn new(data: &[u8], content_type: &str) -> Self {
+            Self {
+                data: data.to_vec(),
+                meta: FileMeta {
+                    name: "clip.bin".to_string(),
+                    created: 1,
+                    last_modified: 2,
+                    content_type: content_type.to_string(),
+                    size: data.len() as i64,
+                    perm: "rw".to_string(),
+                },
+                meta_reads: AtomicUsize::new(0),
+                full_reads: AtomicUsize::new(0),
+                range_reads: AtomicUsize::new(0),
+            }
+        }
+    }
+
+    impl SpacePrimitives for ObservedSpace {
+        fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+            Ok(vec![self.meta.clone()])
+        }
+
+        fn get_file_meta(&self, _path: &str) -> Result<FileMeta, SpaceError> {
+            self.meta_reads.fetch_add(1, Ordering::Relaxed);
+            Ok(self.meta.clone())
+        }
+
+        fn read_file(&self, _path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            self.full_reads.fetch_add(1, Ordering::Relaxed);
+            Ok((self.data.clone(), self.meta.clone()))
+        }
+
+        fn read_file_range(
+            &self,
+            _path: &str,
+            start: u64,
+            length: usize,
+        ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            self.range_reads.fetch_add(1, Ordering::Relaxed);
+            let start = start as usize;
+            Ok((self.data[start..start + length].to_vec(), self.meta.clone()))
+        }
+
+        fn write_file(
+            &self,
+            _path: &str,
+            _data: &[u8],
+            _meta: Option<&FileMeta>,
+        ) -> Result<FileMeta, SpaceError> {
+            unreachable!()
+        }
+
+        fn delete_file(&self, _path: &str) -> Result<(), SpaceError> {
+            unreachable!()
+        }
+    }
+
+    struct RacingRangeSpace {
+        range_reads: AtomicUsize,
+        stabilize: bool,
+        short_first: bool,
+    }
+
+    impl RacingRangeSpace {
+        fn meta(size: i64) -> FileMeta {
+            FileMeta {
+                name: "clip.bin".to_string(),
+                created: 1,
+                last_modified: size,
+                content_type: "application/octet-stream".to_string(),
+                size,
+                perm: "rw".to_string(),
+            }
+        }
+    }
+
+    impl SpacePrimitives for RacingRangeSpace {
+        fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+            unreachable!()
+        }
+
+        fn get_file_meta(&self, _path: &str) -> Result<FileMeta, SpaceError> {
+            let reads = self.range_reads.load(Ordering::Relaxed);
+            Ok(Self::meta(if reads == 0 { 10 } else { 11 }))
+        }
+
+        fn read_file(&self, _path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            unreachable!()
+        }
+
+        fn read_file_range(
+            &self,
+            _path: &str,
+            _start: u64,
+            length: usize,
+        ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            let read = self.range_reads.fetch_add(1, Ordering::Relaxed);
+            let size = if read == 0 || !self.stabilize {
+                11 + read as i64
+            } else {
+                11
+            };
+            let returned_length = if read == 0 && self.short_first {
+                length - 1
+            } else {
+                length
+            };
+            Ok((b"2345"[..returned_length].to_vec(), Self::meta(size)))
+        }
+
+        fn write_file(
+            &self,
+            _path: &str,
+            _data: &[u8],
+            _meta: Option<&FileMeta>,
+        ) -> Result<FileMeta, SpaceError> {
+            unreachable!()
+        }
+
+        fn delete_file(&self, _path: &str) -> Result<(), SpaceError> {
+            unreachable!()
+        }
+    }
+
+    struct RangeReadErrorSpace {
+        range_reads: AtomicUsize,
+        error_kind: std::io::ErrorKind,
+        fail_every_read: bool,
+    }
+
+    impl RangeReadErrorSpace {
+        fn meta(size: i64) -> FileMeta {
+            FileMeta {
+                name: "clip.bin".to_string(),
+                created: 1,
+                last_modified: size,
+                content_type: "application/octet-stream".to_string(),
+                size,
+                perm: "rw".to_string(),
+            }
+        }
+    }
+
+    impl SpacePrimitives for RangeReadErrorSpace {
+        fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+            unreachable!()
+        }
+
+        fn get_file_meta(&self, _path: &str) -> Result<FileMeta, SpaceError> {
+            let range_reads = self.range_reads.load(Ordering::Relaxed);
+            Ok(Self::meta(if range_reads == 0 { 10 } else { 6 }))
+        }
+
+        fn read_file(&self, _path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            unreachable!()
+        }
+
+        fn read_file_range(
+            &self,
+            _path: &str,
+            _start: u64,
+            length: usize,
+        ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            let read = self.range_reads.fetch_add(1, Ordering::Relaxed);
+            if read == 0 || self.fail_every_read {
+                return Err(SpaceError::Io(std::io::Error::new(
+                    self.error_kind,
+                    "simulated range read failure",
+                )));
+            }
+            assert_eq!(length, 4);
+            Ok((b"2345".to_vec(), Self::meta(6)))
+        }
+
+        fn write_file(
+            &self,
+            _path: &str,
+            _data: &[u8],
+            _meta: Option<&FileMeta>,
+        ) -> Result<FileMeta, SpaceError> {
+            unreachable!()
+        }
+
+        fn delete_file(&self, _path: &str) -> Result<(), SpaceError> {
+            unreachable!()
+        }
+    }
+
+    struct SameSizeReplacementSpace;
+
+    impl SameSizeReplacementSpace {
+        fn meta(last_modified: i64) -> FileMeta {
+            FileMeta {
+                name: "clip.bin".to_string(),
+                created: 1,
+                last_modified,
+                content_type: "application/octet-stream".to_string(),
+                size: 10,
+                perm: "rw".to_string(),
+            }
+        }
+    }
+
+    impl SpacePrimitives for SameSizeReplacementSpace {
+        fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+            unreachable!()
+        }
+
+        fn get_file_meta(&self, _path: &str) -> Result<FileMeta, SpaceError> {
+            Ok(Self::meta(0))
+        }
+
+        fn read_file(&self, _path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            Ok((b"ABCDEFGHIJ".to_vec(), Self::meta(1_000)))
+        }
+
+        fn read_file_range(
+            &self,
+            _path: &str,
+            start: u64,
+            length: usize,
+        ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+            let start = start as usize;
+            Ok((
+                b"ABCDEFGHIJ"[start..start + length].to_vec(),
+                Self::meta(1_000),
+            ))
+        }
+
+        fn write_file(
+            &self,
+            _path: &str,
+            _data: &[u8],
+            _meta: Option<&FileMeta>,
+        ) -> Result<FileMeta, SpaceError> {
+            unreachable!()
+        }
+
+        fn delete_file(&self, _path: &str) -> Result<(), SpaceError> {
+            unreachable!()
+        }
+    }
 
     #[test]
     fn inline_safe_classification() {
@@ -842,6 +1326,644 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&bytes[..], b"hello");
+    }
+
+    #[tokio::test]
+    async fn get_range_returns_exact_uncompressed_bytes_and_complete_metadata() {
+        let state = test_state();
+        state
+            .space
+            .write_file("clip.bin", b"0123456789", None)
+            .unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("Accept-Encoding", "gzip")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            response.headers().get("content-range").unwrap(),
+            "bytes 2-5/10"
+        );
+        assert_eq!(response.headers().get("content-length").unwrap(), "4");
+        assert_eq!(response.headers().get("accept-ranges").unwrap(), "bytes");
+        assert!(response.headers().get("content-encoding").is_none());
+        assert!(response.headers().get("X-Created").is_some());
+        assert!(response.headers().get("X-Last-Modified").is_some());
+        assert_eq!(response.headers().get("X-Content-Length").unwrap(), "10");
+        assert_eq!(response.headers().get("X-Permission").unwrap(), "rw");
+        assert_eq!(
+            response.headers().get("X-Content-Type").unwrap(),
+            "application/octet-stream"
+        );
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"2345");
+    }
+
+    #[tokio::test]
+    async fn get_supports_open_ended_and_suffix_ranges() {
+        let state = test_state();
+        state
+            .space
+            .write_file("clip.bin", b"0123456789", None)
+            .unwrap();
+        let router = crate::build_router(Arc::new(state));
+        for (range, content_range, expected) in [
+            ("bytes=7-", "bytes 7-9/10", &b"789"[..]),
+            ("bytes=-4", "bytes 6-9/10", &b"6789"[..]),
+        ] {
+            let response = router
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri("/.fs/clip.bin")
+                        .header("Range", range)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT, "{range}");
+            assert_eq!(
+                response.headers().get("content-range").unwrap(),
+                content_range
+            );
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            assert_eq!(&body[..], expected, "{range}");
+        }
+    }
+
+    #[tokio::test]
+    async fn get_returns_416_for_valid_empty_ranges() {
+        let state = test_state();
+        state
+            .space
+            .write_file("clip.bin", b"0123456789", None)
+            .unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=10-12")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::RANGE_NOT_SATISFIABLE);
+        assert_eq!(
+            response.headers().get("content-range").unwrap(),
+            "bytes */10"
+        );
+        assert_eq!(response.headers().get("accept-ranges").unwrap(), "bytes");
+    }
+
+    #[tokio::test]
+    async fn malformed_and_multipart_ranges_fall_back_to_full_get() {
+        let state = test_state();
+        state
+            .space
+            .write_file("clip.bin", b"0123456789", None)
+            .unwrap();
+        let router = crate::build_router(Arc::new(state));
+        for range in ["items=0-1", "bytes=0-1,4-5", "bytes=wat"] {
+            let response = router
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri("/.fs/clip.bin")
+                        .header("Range", range)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{range}");
+            assert_eq!(response.headers().get("accept-ranges").unwrap(), "bytes");
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            assert_eq!(&body[..], b"0123456789", "{range}");
+        }
+    }
+
+    #[tokio::test]
+    async fn repeated_range_header_fields_fall_back_to_full_get() {
+        let state = test_state();
+        state
+            .space
+            .write_file("clip.bin", b"0123456789", None)
+            .unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=0-1")
+                    .header("Range", "bytes=4-5")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(response.headers().get("content-range").is_none());
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"0123456789");
+    }
+
+    #[tokio::test]
+    async fn head_reads_only_metadata_and_returns_full_length() {
+        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
+        let mut state = test_state();
+        state.space = Box::new(observed.clone());
+        state
+            .fs_guard
+            .record("clip.bin", &observed.meta, "cached-hash".to_string());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .method("HEAD")
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers().get("content-length").unwrap(), "10");
+        assert_eq!(response.headers().get("accept-ranges").unwrap(), "bytes");
+        assert_eq!(response.headers().get("X-Content-Length").unwrap(), "10");
+        assert_eq!(
+            response.headers().get("X-Content-Type").unwrap(),
+            "video/mp4"
+        );
+        assert!(response.headers().get("etag").is_some());
+        assert!(response.headers().get("last-modified").is_some());
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(body.is_empty());
+        assert_eq!(observed.meta_reads.load(Ordering::Relaxed), 1);
+        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 0);
+    }
+
+    #[tokio::test]
+    async fn if_range_accepts_matching_date_and_rejects_stale_date() {
+        let state = Arc::new(test_state());
+        state
+            .space
+            .write_file("clip.bin", b"0123456789", None)
+            .unwrap();
+        let first = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let last_modified = first.headers().get("last-modified").unwrap().clone();
+
+        let matching = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", last_modified)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(matching.status(), StatusCode::PARTIAL_CONTENT);
+
+        let stale = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", "Tue, 01 Jan 1980 00:00:00 GMT")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(stale.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(stale.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"0123456789");
+    }
+
+    #[tokio::test]
+    async fn uncached_if_range_etag_falls_back_without_a_validator_body_read() {
+        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
+        let mut state = test_state();
+        state.space = Box::new(observed.clone());
+        let state = Arc::new(state);
+        let response = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", "\"uncached\"")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"0123456789");
+        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 1);
+        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(state.fs_guard.hash_for_call_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn if_range_accepts_only_a_cached_matching_strong_etag() {
+        let matching_space = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
+        let mut matching_state = test_state();
+        matching_state.space = Box::new(matching_space.clone());
+        matching_state
+            .fs_guard
+            .record("clip.bin", &matching_space.meta, "cached-hash".to_string());
+        let matching_state = Arc::new(matching_state);
+
+        let matching = crate::build_router(matching_state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", etag_for_hash("cached-hash"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(matching.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(matching_space.full_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(matching_space.range_reads.load(Ordering::Relaxed), 1);
+        assert_eq!(matching_state.fs_guard.hash_for_call_count(), 0);
+
+        let mismatching_space = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
+        let mut mismatching_state = test_state();
+        mismatching_state.space = Box::new(mismatching_space.clone());
+        mismatching_state.fs_guard.record(
+            "clip.bin",
+            &mismatching_space.meta,
+            "cached-hash".to_string(),
+        );
+        let mismatching_state = Arc::new(mismatching_state);
+
+        let mismatching = crate::build_router(mismatching_state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", "\"different\"")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(mismatching.status(), StatusCode::OK);
+        assert_eq!(mismatching_space.full_reads.load(Ordering::Relaxed), 1);
+        assert_eq!(mismatching_space.range_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(mismatching_state.fs_guard.hash_for_call_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn weak_if_range_etag_falls_back_to_the_full_representation() {
+        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
+        let mut state = test_state();
+        state.space = Box::new(observed.clone());
+        state
+            .fs_guard
+            .record("clip.bin", &observed.meta, "cached-hash".to_string());
+        let state = Arc::new(state);
+        let response = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", format!("W/{}", etag_for_hash("cached-hash")))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 1);
+        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(state.fs_guard.hash_for_call_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn if_range_date_falls_back_to_full_after_same_size_replacement() {
+        let mut state = test_state();
+        state.space = Box::new(SameSizeReplacementSpace);
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", "Thu, 01 Jan 1970 00:00:00 GMT")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"ABCDEFGHIJ");
+    }
+
+    #[tokio::test]
+    async fn if_range_etag_falls_back_to_full_after_same_size_replacement() {
+        let mut state = test_state();
+        let old_meta = SameSizeReplacementSpace::meta(0);
+        state.space = Box::new(SameSizeReplacementSpace);
+        state
+            .fs_guard
+            .record("clip.bin", &old_meta, "old-hash".to_string());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .header("If-Range", etag_for_hash("old-hash"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"ABCDEFGHIJ");
+    }
+
+    #[tokio::test]
+    async fn partial_responses_preserve_type_negotiation_and_inline_safety() {
+        let state = test_state();
+        state.space.write_file("pic.png", b"PNG!", None).unwrap();
+        state
+            .space
+            .write_file("evil.html", b"<b>x</b>", None)
+            .unwrap();
+        state.space.write_file("note.md", b"hello", None).unwrap();
+        let router = crate::build_router(Arc::new(state));
+
+        let image = router
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/pic.png")
+                    .header("Range", "bytes=0-1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(image.status(), StatusCode::PARTIAL_CONTENT);
+        assert!(image.headers().get("content-disposition").is_none());
+        assert!(image.headers().get("x-content-type-options").is_none());
+
+        let html = router
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/evil.html")
+                    .header("Range", "bytes=0-1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(html.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            html.headers().get("content-disposition").unwrap(),
+            "attachment"
+        );
+        assert_eq!(
+            html.headers().get("x-content-type-options").unwrap(),
+            "nosniff"
+        );
+
+        let octets = router
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/note.md")
+                    .header("Range", "bytes=0-1")
+                    .header("Accept", "application/octet-stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(octets.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            octets.headers().get("content-type").unwrap(),
+            "application/octet-stream"
+        );
+        assert_ne!(
+            octets.headers().get("x-content-type").unwrap(),
+            "application/octet-stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn partial_get_uses_range_primitive_instead_of_full_read() {
+        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
+        let mut state = test_state();
+        state.space = Box::new(observed.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 1);
+    }
+
+    #[tokio::test]
+    async fn partial_get_retries_once_when_size_changes() {
+        let racing = Arc::new(RacingRangeSpace {
+            range_reads: AtomicUsize::new(0),
+            stabilize: true,
+            short_first: false,
+        });
+        let mut state = test_state();
+        state.space = Box::new(racing.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            response.headers().get("content-range").unwrap(),
+            "bytes 2-5/11"
+        );
+        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
+    }
+
+    #[tokio::test]
+    async fn partial_get_retries_a_short_read_when_the_size_also_changed() {
+        let racing = Arc::new(RacingRangeSpace {
+            range_reads: AtomicUsize::new(0),
+            stabilize: true,
+            short_first: true,
+        });
+        let mut state = test_state();
+        state.space = Box::new(racing.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
+    }
+
+    #[tokio::test]
+    async fn partial_get_returns_500_when_size_keeps_changing() {
+        let racing = Arc::new(RacingRangeSpace {
+            range_reads: AtomicUsize::new(0),
+            stabilize: false,
+            short_first: false,
+        });
+        let mut state = test_state();
+        state.space = Box::new(racing.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-5")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
+    }
+
+    #[tokio::test]
+    async fn partial_get_retries_unexpected_eof_after_refreshing_metadata() {
+        let racing = Arc::new(RangeReadErrorSpace {
+            range_reads: AtomicUsize::new(0),
+            error_kind: std::io::ErrorKind::UnexpectedEof,
+            fail_every_read: false,
+        });
+        let mut state = test_state();
+        state.space = Box::new(racing.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            response.headers().get("content-range").unwrap(),
+            "bytes 2-5/6"
+        );
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"2345");
+        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
+    }
+
+    #[tokio::test]
+    async fn partial_get_stops_after_retrying_unexpected_eof_once() {
+        let racing = Arc::new(RangeReadErrorSpace {
+            range_reads: AtomicUsize::new(0),
+            error_kind: std::io::ErrorKind::UnexpectedEof,
+            fail_every_read: true,
+        });
+        let mut state = test_state();
+        state.space = Box::new(racing.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
+    }
+
+    #[tokio::test]
+    async fn partial_get_does_not_retry_other_range_read_errors() {
+        let failing = Arc::new(RangeReadErrorSpace {
+            range_reads: AtomicUsize::new(0),
+            error_kind: std::io::ErrorKind::PermissionDenied,
+            fail_every_read: true,
+        });
+        let mut state = test_state();
+        state.space = Box::new(failing.clone());
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.bin")
+                    .header("Range", "bytes=2-")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(failing.range_reads.load(Ordering::Relaxed), 1);
     }
 
     #[tokio::test]
@@ -972,6 +2094,32 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&content_body[..], b"hello");
+    }
+
+    #[tokio::test]
+    async fn cheap_meta_probe_does_not_read_or_hash_cold_content() {
+        let observed = Arc::new(ObservedSpace::new(b"large media payload", "video/mp4"));
+        let mut state = test_state();
+        state.space = Box::new(observed.clone());
+        let state = Arc::new(state);
+
+        let response = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/clip.mp4")
+                    .header("X-Get-Meta", "cheap")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers().get("X-Content-Length").unwrap(), "19");
+        assert!(response.headers().get("ETag").is_none());
+        assert_eq!(observed.meta_reads.load(Ordering::Relaxed), 1);
+        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 0);
+        assert_eq!(state.fs_guard.hash_for_call_count(), 0);
     }
 
     #[tokio::test]

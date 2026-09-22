@@ -1,10 +1,11 @@
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
+use std::{fs, io::Read, io::Seek};
 
 use walkdir::WalkDir;
 
 use super::disk::lookup_content_type;
-use crate::types::{FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
 
 /// Compile-time build timestamp (unix millis), injected by build.rs.
 /// Used as the constant lastModified for every file in this read-only space.
@@ -153,6 +154,29 @@ impl SpacePrimitives for ReadOnlyDirSpacePrimitives {
         Ok((data, meta))
     }
 
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        let full = self.resolve_path(path)?;
+        let mut file = fs::File::open(&full).map_err(|_| SpaceError::NotFound)?;
+        let metadata = file.metadata()?;
+        let length_u64 = u64::try_from(length).map_err(|_| range_read_error(path))?;
+        let end = start
+            .checked_add(length_u64)
+            .ok_or_else(|| range_read_error(path))?;
+        if end > metadata.len() {
+            return Err(range_read_error(path));
+        }
+        file.seek(std::io::SeekFrom::Start(start))?;
+        let mut data = vec![0; length];
+        file.read_exact(&mut data)?;
+        let meta = self.get_file_meta(path)?;
+        Ok((data, meta))
+    }
+
     fn write_file(
         &self,
         path: &str,
@@ -208,6 +232,17 @@ impl SpacePrimitives for FallthroughSpacePrimitives {
         self.primary
             .read_file(path)
             .or_else(|_| self.fallback.read_file(path))
+    }
+
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        self.primary
+            .read_file_range(path, start, length)
+            .or_else(|_| self.fallback.read_file_range(path, start, length))
     }
 
     fn write_file(
@@ -379,6 +414,29 @@ mod tests {
                 "get_file_meta({evil:?}) must be PathOutsideRoot"
             );
         }
+    }
+
+    #[test]
+    fn read_only_dir_reads_exact_file_range() {
+        let (_td, p) = make_readonly_with_file("range.bin", b"0123456789");
+        let (data, meta) = p.read_file_range("range.bin", 2, 5).unwrap();
+        assert_eq!(data, b"23456");
+        assert_eq!(meta.size, 10);
+        assert!(p.read_file_range("range.bin", 8, 5).is_err());
+    }
+
+    #[test]
+    fn fallthrough_range_reads_use_primary_then_fallback() {
+        let primary_td = TempDir::new().unwrap();
+        std::fs::write(primary_td.path().join("primary.bin"), b"abcdefghij").unwrap();
+        let primary = make_disk(&primary_td);
+        let (_fallback_td, fallback) = make_readonly_with_file("fallback.bin", b"0123456789");
+        let ft = FallthroughSpacePrimitives::new(primary, fallback);
+
+        assert_eq!(ft.read_file_range("primary.bin", 2, 5).unwrap().0, b"cdefg");
+        let (data, meta) = ft.read_file_range("fallback.bin", 2, 5).unwrap();
+        assert_eq!(data, b"23456");
+        assert_eq!(meta.size, 10);
     }
 
     #[test]

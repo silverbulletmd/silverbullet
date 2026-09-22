@@ -83,11 +83,32 @@ pub enum SpaceError {
     ReconcileIneligible,
 }
 
+pub(crate) fn range_read_error(path: &str) -> SpaceError {
+    SpaceError::Io(std::io::Error::new(
+        std::io::ErrorKind::UnexpectedEof,
+        format!("could not read requested range from {path}"),
+    ))
+}
+
 /// The core storage abstraction for a space's files.
 pub trait SpacePrimitives: Send + Sync {
     fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError>;
     fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError>;
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError>;
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        let (data, meta) = self.read_file(path)?;
+        let start = usize::try_from(start).map_err(|_| range_read_error(path))?;
+        let end = start
+            .checked_add(length)
+            .ok_or_else(|| range_read_error(path))?;
+        let slice = data.get(start..end).ok_or_else(|| range_read_error(path))?;
+        Ok((slice.to_vec(), meta))
+    }
     fn write_file(
         &self,
         path: &str,
@@ -106,6 +127,14 @@ impl<T: SpacePrimitives + ?Sized> SpacePrimitives for std::sync::Arc<T> {
     }
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
         (**self).read_file(path)
+    }
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        (**self).read_file_range(path, start, length)
     }
     fn write_file(
         &self,

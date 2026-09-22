@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod auth;
 pub mod bundle;
+pub mod byte_range;
 pub mod control;
 pub mod device;
 pub mod events;

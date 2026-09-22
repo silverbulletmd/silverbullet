@@ -3,7 +3,7 @@ use std::sync::RwLock;
 use crate::reconcile::{ReconcileRequest, ReconcileResponse};
 use crate::revision::{etag_for_hash, hash_from_etag};
 use crate::space::conditional::{ConditionalSpacePrimitives, WritePrecondition};
-use crate::types::{FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
 
 /// How to authenticate HTTP requests to the remote server.
 #[derive(Clone)]
@@ -205,7 +205,8 @@ impl HttpSpacePrimitives {
             .and_then(|v| v.parse().ok())
             .unwrap_or(0i64);
         let content_type = headers
-            .get("Content-Type")
+            .get("X-Content-Type")
+            .or_else(|| headers.get("Content-Type"))
             .and_then(|v| v.to_str().ok())
             .unwrap_or("application/octet-stream")
             .to_string();
@@ -223,6 +224,25 @@ impl HttpSpacePrimitives {
             size,
             perm,
         }
+    }
+
+    fn parse_range_file_meta(
+        path: &str,
+        headers: &reqwest::header::HeaderMap,
+    ) -> Result<FileMeta, SpaceError> {
+        let size = headers
+            .get("X-Content-Length")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<u64>().ok())
+            .and_then(|value| i64::try_from(value).ok())
+            .ok_or_else(|| {
+                SpaceError::WriteError(format!(
+                    "read_file_range failed: missing or invalid X-Content-Length for {path}"
+                ))
+            })?;
+        let mut meta = Self::parse_file_meta(path, headers);
+        meta.size = size;
+        Ok(meta)
     }
 
     fn hash_from_response(headers: &reqwest::header::HeaderMap) -> Option<String> {
@@ -402,6 +422,46 @@ impl SpacePrimitives for HttpSpacePrimitives {
 
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
         let (data, meta, _hash) = self.read_file_with_hash(path)?;
+        Ok((data, meta))
+    }
+
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        let length_u64 = u64::try_from(length).map_err(|_| range_read_error(path))?;
+        let end = start
+            .checked_add(length_u64)
+            .and_then(|end| end.checked_sub(1))
+            .ok_or_else(|| range_read_error(path))?;
+        let send = |this: &Self| {
+            this.request(reqwest::Method::GET, path)
+                .header("Range", format!("bytes={start}-{end}"))
+                .header("Accept", "application/octet-stream")
+                .send()
+                .map_err(Self::map_error)
+        };
+        let mut resp = send(self)?;
+        if resp.status() == reqwest::StatusCode::UNAUTHORIZED && self.try_reauth() {
+            resp = send(self)?;
+        }
+        if resp.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+            Self::check_response_status(resp.status(), "read_file_range")?;
+            return Err(SpaceError::WriteError(format!(
+                "read_file_range failed: expected 206, got {}",
+                resp.status()
+            )));
+        }
+        let meta = Self::parse_range_file_meta(path, resp.headers())?;
+        let data = resp
+            .bytes()
+            .map_err(|e| SpaceError::WriteError(e.to_string()))?
+            .to_vec();
+        if data.len() != length {
+            return Err(range_read_error(path));
+        }
         Ok((data, meta))
     }
 
@@ -585,6 +645,72 @@ impl HttpSpacePrimitives {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{Read, Write};
+
+    fn serve_once(response: &'static [u8]) -> (String, std::thread::JoinHandle<String>) {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let handle = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0u8; 4096];
+            let read = stream.read(&mut request).unwrap();
+            stream.write_all(response).unwrap();
+            String::from_utf8(request[..read].to_vec()).unwrap()
+        });
+        (format!("http://{address}"), handle)
+    }
+
+    #[test]
+    fn range_read_sends_headers_and_uses_full_file_metadata() {
+        let (base_url, request) = serve_once(
+            b"HTTP/1.1 206 Partial Content\r\nContent-Length: 5\r\nX-Content-Length: 10\r\nContent-Type: application/octet-stream\r\nX-Content-Type: image/png\r\nX-Created: 11\r\nX-Last-Modified: 12\r\nX-Permission: ro\r\nConnection: close\r\n\r\n23456",
+        );
+        let sp = HttpSpacePrimitives::new(&base_url, None);
+
+        let (data, meta) = sp.read_file_range("range.bin", 2, 5).unwrap();
+        assert_eq!(data, b"23456");
+        assert_eq!(meta.size, 10);
+        assert_eq!(meta.content_type, "image/png");
+        let request = request.join().unwrap().to_ascii_lowercase();
+        assert!(request.contains("range: bytes=2-6\r\n"), "{request}");
+        assert!(
+            request.contains("accept: application/octet-stream\r\n"),
+            "{request}"
+        );
+    }
+
+    #[test]
+    fn range_read_rejects_short_response_body() {
+        let (base_url, request) = serve_once(
+            b"HTTP/1.1 206 Partial Content\r\nContent-Length: 4\r\nX-Content-Length: 10\r\nConnection: close\r\n\r\n2345",
+        );
+        let sp = HttpSpacePrimitives::new(&base_url, None);
+
+        assert!(sp.read_file_range("range.bin", 2, 5).is_err());
+        request.join().unwrap();
+    }
+
+    #[test]
+    fn range_read_rejects_missing_full_file_length() {
+        let (base_url, request) = serve_once(
+            b"HTTP/1.1 206 Partial Content\r\nContent-Length: 5\r\nConnection: close\r\n\r\n23456",
+        );
+        let sp = HttpSpacePrimitives::new(&base_url, None);
+
+        assert!(sp.read_file_range("range.bin", 2, 5).is_err());
+        request.join().unwrap();
+    }
+
+    #[test]
+    fn range_read_rejects_malformed_full_file_length() {
+        let (base_url, request) = serve_once(
+            b"HTTP/1.1 206 Partial Content\r\nContent-Length: 5\r\nX-Content-Length: invalid\r\nConnection: close\r\n\r\n23456",
+        );
+        let sp = HttpSpacePrimitives::new(&base_url, None);
+
+        assert!(sp.read_file_range("range.bin", 2, 5).is_err());
+        request.join().unwrap();
+    }
 
     fn cookie_name(base_url: &str) -> String {
         let header = auth_cookie_header(base_url, "jwt");

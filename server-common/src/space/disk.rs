@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{Read, Seek};
 use std::ops::ControlFlow;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -7,7 +8,7 @@ use ignore::gitignore::GitignoreBuilder;
 use walkdir::WalkDir;
 
 use crate::space::case;
-use crate::types::{FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
 
 /// A snapshot of a space's gitignore-style ignore rules, for checking whether
 /// paths are visible without rebuilding the matcher on every call. See
@@ -345,6 +346,34 @@ impl SpacePrimitives for DiskSpacePrimitives {
         Ok((data, self.file_info_to_meta(path, &metadata)))
     }
 
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        let local_path = self.safe_path(path)?;
+        let mut file = fs::File::open(&local_path).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound || is_syntax_error(&e) {
+                SpaceError::NotFound
+            } else {
+                SpaceError::Io(e)
+            }
+        })?;
+        let metadata = file.metadata()?;
+        let length_u64 = u64::try_from(length).map_err(|_| range_read_error(path))?;
+        let end = start
+            .checked_add(length_u64)
+            .ok_or_else(|| range_read_error(path))?;
+        if end > metadata.len() {
+            return Err(range_read_error(path));
+        }
+        file.seek(std::io::SeekFrom::Start(start))?;
+        let mut data = vec![0; length];
+        file.read_exact(&mut data)?;
+        Ok((data, self.file_info_to_meta(path, &metadata)))
+    }
+
     fn write_file(
         &self,
         path: &str,
@@ -444,6 +473,7 @@ pub fn lookup_content_type(path: &str) -> String {
     match ext.as_str() {
         "md" => "text/markdown".to_string(),
         "lua" => "text/x-lua".to_string(),
+        "ts" => "text/typescript".to_string(),
         _ => mime_guess::from_path(path)
             .first_or_octet_stream()
             .to_string(),
@@ -487,6 +517,16 @@ mod plan_tests {
     use tempfile::tempdir;
 
     #[test]
+    fn typescript_extension_has_a_text_content_type() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+        let meta = sp
+            .write_file("index.ts", b"export const value = 1;", None)
+            .unwrap();
+        assert_eq!(meta.content_type, "text/typescript");
+    }
+
+    #[test]
     fn write_read_list_delete_roundtrip() {
         let dir = tempdir().unwrap();
         let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
@@ -504,6 +544,18 @@ mod plan_tests {
             sp.read_file("notes/a.md"),
             Err(crate::types::SpaceError::NotFound) | Err(crate::types::SpaceError::Io(_))
         ));
+    }
+
+    #[test]
+    fn reads_exact_file_range_with_complete_metadata() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+        sp.write_file("range.bin", b"0123456789", None).unwrap();
+
+        let (data, meta) = sp.read_file_range("range.bin", 3, 4).unwrap();
+        assert_eq!(data, b"3456");
+        assert_eq!(meta.size, 10);
+        assert!(sp.read_file_range("range.bin", 9, 2).is_err());
     }
 
     #[test]

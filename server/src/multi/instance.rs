@@ -206,6 +206,18 @@ impl SpacePrimitives for ServerControlFileFilter {
         self.inner.read_file(path)
     }
 
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        if Self::reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.read_file_range(path, start, length)
+    }
+
     fn write_file(
         &self,
         path: &str,
@@ -727,6 +739,24 @@ mod tests {
             assert!(ServerControlFileFilter::reserved(path), "{path}");
         }
         assert!(!ServerControlFileFilter::reserved("notes/server.json"));
+    }
+
+    #[test]
+    fn control_file_filter_delegates_range_reads_for_visible_files() {
+        let inner = MemorySpacePrimitives::new();
+        inner.write_file("range.bin", b"0123456789", None).unwrap();
+        inner
+            .write_file("server.json", b"0123456789", None)
+            .unwrap();
+        let filtered = ServerControlFileFilter::new(Box::new(inner));
+
+        let (data, meta) = filtered.read_file_range("range.bin", 2, 5).unwrap();
+        assert_eq!(data, b"23456");
+        assert_eq!(meta.size, 10);
+        assert!(matches!(
+            filtered.read_file_range("server.json", 2, 5),
+            Err(SpaceError::NotFound)
+        ));
     }
 
     #[test]

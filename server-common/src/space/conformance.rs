@@ -32,6 +32,23 @@ pub fn run_read_write_conformance(sp: &dyn SpacePrimitives) {
     binary_content_roundtrips(sp);
     empty_file_roundtrips(sp);
     deep_nested_path_roundtrips(sp);
+    range_reads_exact_bytes_with_complete_metadata(sp);
+}
+
+fn range_reads_exact_bytes_with_complete_metadata(sp: &dyn SpacePrimitives) {
+    sp.write_file("conf/range.bin", b"0123456789", None)
+        .unwrap();
+    let (data, meta) = sp.read_file_range("conf/range.bin", 2, 5).unwrap();
+    assert_eq!(data, b"23456", "range read returns exactly five bytes");
+    assert_eq!(meta.size, 10, "range metadata describes the complete file");
+    let error = sp.read_file_range("conf/range.bin", 8, 5).unwrap_err();
+    match error {
+        SpaceError::Io(error) => {
+            assert_eq!(error.kind(), std::io::ErrorKind::UnexpectedEof);
+            assert!(error.to_string().contains("conf/range.bin"));
+        }
+        other => panic!("a short range read must be an IO error, got {other:?}"),
+    }
 }
 
 fn write_then_read_roundtrip(sp: &dyn SpacePrimitives) {

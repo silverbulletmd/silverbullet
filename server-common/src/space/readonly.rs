@@ -23,6 +23,14 @@ impl SpacePrimitives for ReadOnlySpacePrimitives {
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
         self.inner.read_file(path)
     }
+    fn read_file_range(
+        &self,
+        path: &str,
+        start: u64,
+        length: usize,
+    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
+        self.inner.read_file_range(path, start, length)
+    }
     fn write_file(
         &self,
         path: &str,
@@ -57,6 +65,17 @@ mod tests {
         let (data, _) = ro.read_file("a.md").unwrap();
         assert_eq!(data, b"hi");
         assert_eq!(ro.fetch_file_list().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn range_reads_pass_through() {
+        let inner = MemorySpacePrimitives::new();
+        inner.write_file("range.bin", b"0123456789", None).unwrap();
+        let ro = ReadOnlySpacePrimitives::new(Box::new(inner));
+
+        let (data, meta) = ro.read_file_range("range.bin", 2, 5).unwrap();
+        assert_eq!(data, b"23456");
+        assert_eq!(meta.size, 10);
     }
 
     #[test]
