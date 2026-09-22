@@ -250,9 +250,11 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
     use serde_json::json;
     let folder = draft_dir(root, id, &draft.id)?;
     std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+    let folder = folder.canonicalize().map_err(|e| e.to_string())?;
+    let repo = repo.canonicalize().map_err(|e| e.to_string())?;
     let inspection = Inspection(folder.join(format!("inspect-{}", uuid::Uuid::new_v4())));
     git::run(
-        repo,
+        &repo,
         &[
             "clone",
             "--bare",
@@ -264,7 +266,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
         &[("SB_GIT_NO_HOOKS", "1")],
     )?;
     let config_path = git::run(
-        repo,
+        &repo,
         &["rev-parse", "--git-path", "config"],
         &[("SB_GIT_NO_HOOKS", "1")],
     )?;
@@ -487,6 +489,42 @@ mod tests {
                 .trim(),
             "git@example.test:original.git"
         );
+    }
+    #[test]
+    fn draft_check_accepts_relative_space_folder() {
+        let cwd = std::env::current_dir().unwrap();
+        let root = tempfile::TempDir::new_in(&cwd).unwrap();
+        let relative_root = root.path().strip_prefix(&cwd).unwrap();
+        let repo = relative_root.join("space");
+        let remote = root.path().join("remote");
+        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(&remote).unwrap();
+        git::run(&repo, &["init", "-q"], &[]).unwrap();
+        git::run(&remote, &["init", "-q", "--bare"], &[]).unwrap();
+        std::fs::write(repo.join("Note.md"), "A note\n").unwrap();
+        git::run(&repo, &["add", "Note.md"], &[]).unwrap();
+        git::run(
+            &repo,
+            &[
+                "-c",
+                "user.name=Sample",
+                "-c",
+                "user.email=sample@example.test",
+                "commit",
+                "-qm",
+                "Create note",
+            ],
+            &[],
+        )
+        .unwrap();
+        let mut draft =
+            create_draft(relative_root, "sample", &repo, GitSyncConfig::default()).unwrap();
+        draft.mode = GitSyncMode::Manual;
+        draft.url = remote.to_string_lossy().into_owned();
+
+        check_draft(relative_root, "sample", &repo, &mut draft).unwrap();
+
+        assert_eq!(draft.test.as_ref().unwrap()["kind"], "ok");
     }
     #[test]
     fn stale_draft_version_cannot_read_current_approval() {
