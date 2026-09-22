@@ -8,9 +8,9 @@ import {
 } from "../../../../plug-api/ui/tree_model.ts";
 import type { Client } from "../../../client.ts";
 import {
-  isMobileDevice,
   isNarrowScreen,
   MOBILE_MEDIA_QUERY,
+  shouldFocusModalFilter,
 } from "../../../lib/mobile.ts";
 import { createActivate } from "../activation.ts";
 import type { NavigatorEngine } from "../engine.ts";
@@ -84,7 +84,10 @@ export function usePanelEvents({
     // for the modal always and for a sidebar only when it's coming back with
     // a non-empty phrase already in it.
     function focusInput(select: boolean) {
-      if (isMobileDevice()) return;
+      // Touch phones skip this so a tap-open does not leave the field
+      // focused without an on-screen keyboard. Keyboard shortcuts and
+      // attached keyboards still focus (see `shouldFocusModalFilter`).
+      if (!shouldFocusModalFilter()) return;
       refs.input.current?.focus();
       if (select) refs.input.current?.select();
     }
