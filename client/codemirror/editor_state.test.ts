@@ -68,6 +68,22 @@ function clientStub(): Client {
   } as unknown as Client;
 }
 
+test("editor theme follows the system preference when dark mode is unset", () => {
+  const originalMatchMedia = globalThis.matchMedia;
+  globalThis.matchMedia = vi.fn().mockReturnValue({ matches: true });
+  try {
+    const state = createEditorState(
+      clientStub(),
+      { kind: "page", pageName: "Example" },
+      "# Heading",
+      false,
+    );
+    expect(state.facet(EditorView.darkTheme)).toBe(true);
+  } finally {
+    globalThis.matchMedia = originalMatchMedia;
+  }
+});
+
 test("page mode retains Markdown parsing and wrapping", () => {
   const client = clientStub();
   const state = createEditorState(

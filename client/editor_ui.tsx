@@ -1,5 +1,5 @@
 import { closeSearchPanel } from "@codemirror/search";
-import { runScopeHandlers } from "@codemirror/view";
+import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { getNameFromPath } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   FilterOption,
@@ -338,6 +338,20 @@ export class MainUI {
             : viewState.uiOptions.darkMode;
 
         document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+
+        const editorView = this.client.editorView;
+        const themeCompartment = this.client.themeCompartment;
+        if (
+          editorView &&
+          themeCompartment?.get(editorView.state) !== undefined &&
+          editorView.state.facet(EditorView.darkTheme) !== darkMode
+        ) {
+          editorView.dispatch({
+            effects: themeCompartment.reconfigure(
+              EditorView.theme({}, { dark: darkMode }),
+            ),
+          });
+        }
 
         if (this.client.contentManager.isDocumentEditor()) {
           this.client.contentManager.documentEditor.updateTheme();

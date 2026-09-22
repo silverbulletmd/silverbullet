@@ -184,6 +184,7 @@ export class Client {
   editorView!: EditorView;
   commandKeyHandlerCompartment?: Compartment;
   vimCompartment?: Compartment;
+  themeCompartment?: Compartment;
   indentUnitCompartment?: Compartment;
   undoHistoryCompartment?: Compartment;
   markdownLanguageCompartment?: Compartment;

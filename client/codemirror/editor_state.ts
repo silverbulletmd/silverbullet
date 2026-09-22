@@ -128,6 +128,7 @@ export function buildSharedEditorExtensions(
 ): Extension[] {
   client.commandKeyHandlerCompartment = new Compartment();
   client.vimCompartment = new Compartment();
+  client.themeCompartment = new Compartment();
   const commandKeyBindings = client.commandKeyHandlerCompartment.of(
     createCommandKeyBindings(client, mode, readOnly),
   );
@@ -157,12 +158,16 @@ export function buildSharedEditorExtensions(
       : [];
 
   return [
-    // Not using CM theming right now, but some extensions depend on the "dark" thing
-    EditorView.theme(
-      {},
-      {
-        dark: client.ui.viewState.uiOptions.darkMode,
-      },
+    client.themeCompartment.of(
+      EditorView.theme(
+        {},
+        {
+          dark:
+            client.ui.viewState.uiOptions.darkMode ??
+            globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ??
+            false,
+        },
+      ),
     ),
 
     // Insert our command key bindings *before* vim mode. Vim in normal-mode is
