@@ -264,9 +264,9 @@ pub async fn build_multi_stack(
         crate::VERSION.to_string(),
     )
     .merge(silverbullet_server::handlers::central_auth::router(central));
-    let addr = format!("{}:{}", config.bind_host, config.port);
     let log = format!(
-        "SilverBullet multi-space server running: http://{addr} (Dashboard at /.dashboard)"
+        "SilverBullet multi-space server running: {} (Dashboard at /.dashboard)",
+        crate::server::startup_url(&config.bind_host, config.port)
     );
     Ok((router, log))
 }

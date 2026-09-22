@@ -102,7 +102,10 @@ pub(crate) async fn run_setup_server(
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
-    tracing::info!("SilverBullet setup wizard running: http://{addr}/.setup/");
+    tracing::info!(
+        "SilverBullet setup wizard running: {}/.setup/",
+        crate::server::startup_url(&config.bind_host, config.port)
+    );
     axum::serve(listener, outer)
         .with_graceful_shutdown(shutdown.future)
         .await

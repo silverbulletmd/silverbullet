@@ -38,6 +38,14 @@ pub(crate) struct Shutdown {
     pub(crate) future: Pin<Box<dyn Future<Output = ()> + Send>>,
 }
 
+pub(crate) fn startup_url(host: &str, port: u16) -> String {
+    if host == "127.0.0.1" {
+        format!("http://localhost:{port}")
+    } else {
+        format!("http://{host}:{port}")
+    }
+}
+
 impl Shutdown {
     pub(crate) fn install() -> Self {
         let (tx, rx) = tokio::sync::watch::channel(());
@@ -60,11 +68,7 @@ pub(crate) async fn serve_tcp(
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
-    let shown = if host == "127.0.0.1" {
-        format!("http://localhost:{port}")
-    } else {
-        format!("http://{addr}")
-    };
+    let shown = startup_url(host, port);
     tracing::info!("SilverBullet is now running: {shown}");
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown.future)
@@ -116,5 +120,21 @@ async fn wait_for_os_signal() {
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn startup_url_shows_localhost_for_default_loopback_binding() {
+        assert_eq!(
+            super::startup_url("127.0.0.1", 3000),
+            "http://localhost:3000"
+        );
+    }
+
+    #[test]
+    fn startup_url_preserves_other_bind_hosts() {
+        assert_eq!(super::startup_url("0.0.0.0", 4000), "http://0.0.0.0:4000");
     }
 }
