@@ -7,6 +7,8 @@ const index = {
 const space = {
   listPages: vi.fn<() => Promise<unknown[]>>(),
   listDocuments: vi.fn<() => Promise<unknown[]>>(),
+  fileExists: vi.fn<(name: string) => Promise<boolean>>(),
+  writeDocument: vi.fn<(name: string, data: Uint8Array) => Promise<unknown>>(),
   deletePage: vi.fn<(name: string) => Promise<void>>(),
   deleteDocument: vi.fn<(name: string) => Promise<void>>(),
   listRevisions: vi.fn<(path: string, before?: string) => Promise<any>>(),
@@ -23,6 +25,23 @@ const editor = {
   getCurrentPage: vi.fn<() => Promise<string>>(),
   getLastOpenedMap: vi.fn<() => Promise<Record<string, number>>>(),
   getViewableExtensions: vi.fn<() => Promise<string[]>>(),
+  getDocumentCapabilities:
+    vi.fn<
+      (
+        documents: Array<{
+          name: string;
+          extension: string;
+          contentType: string;
+          size: number;
+        }>,
+      ) => Promise<
+        Array<{
+          kind: "plug" | "text" | "media" | "external";
+          editor?: string;
+          reason?: string;
+        }>
+      >
+    >(),
   getText: vi.fn<() => Promise<string>>(),
   prompt: vi.fn<(msg: string, def?: string) => Promise<string | undefined>>(),
   confirm: vi.fn<(msg: string) => Promise<boolean>>(),
@@ -66,13 +85,44 @@ const { spaceContents } = await import("./views/pages.ts");
 
 beforeEach(() => {
   vi.clearAllMocks();
+  space.fileExists.mockResolvedValue(false);
   system.getMode.mockResolvedValue("rw");
   editor.getUiOption.mockResolvedValue(false);
   editor.getCurrentPath.mockResolvedValue("Current.md");
   editor.getLastOpenedMap.mockResolvedValue({});
   editor.getViewableExtensions.mockResolvedValue([]);
+  editor.getDocumentCapabilities.mockResolvedValue([]);
   setRevisionsAvailable(true);
   closePreview();
+});
+
+test("creating a document from the picker writes it before navigation", async () => {
+  await builtinHandle("std.pages", "create", { phrase: "test.txt" });
+
+  expect(space.writeDocument).toHaveBeenCalledWith(
+    "test.txt",
+    new Uint8Array(),
+  );
+  expect(editor.navigate).toHaveBeenCalledWith("test.txt");
+  expect(space.writeDocument.mock.invocationCallOrder[0]).toBeLessThan(
+    editor.navigate.mock.invocationCallOrder[0],
+  );
+});
+
+test("creating a page does not write a document", async () => {
+  await builtinHandle("std.pages", "create", { phrase: "New page" });
+
+  expect(space.writeDocument).not.toHaveBeenCalled();
+  expect(editor.navigate).toHaveBeenCalledWith("New page");
+});
+
+test("creating a document does not overwrite one already present", async () => {
+  space.fileExists.mockResolvedValue(true);
+
+  await builtinHandle("std.pages", "create", { phrase: "test.txt" });
+
+  expect(space.writeDocument).not.toHaveBeenCalled();
+  expect(editor.navigate).toHaveBeenCalledWith("test.txt");
 });
 
 test("the revision views vanish entirely when revisions are unavailable", async () => {
@@ -242,6 +292,82 @@ test("the page picker keeps the current page below activity-ordered pages", asyn
   const rows = (await builtinRows("std.pages")) as any[];
 
   expect(rows.map((row) => row.primary)).toEqual(["Other", "Current"]);
+});
+
+test("the page picker decorates documents from one batched capability decision", async () => {
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) => {
+    if (tag === "page") {
+      return Promise.resolve([{ name: "Readable page", tag: "page" }]);
+    }
+    if (tag === "document") {
+      return Promise.resolve([
+        {
+          name: "src/example.rs",
+          tag: "document",
+          extension: "rs",
+          contentType: "text/rust",
+          size: 120,
+        },
+        {
+          name: "media/clip.mp3",
+          tag: "document",
+          extension: "mp3",
+          contentType: "audio/mpeg",
+          size: 4_096,
+        },
+        {
+          name: "archive/data.bin",
+          tag: "document",
+          extension: "bin",
+          contentType: "application/octet-stream",
+          size: 800,
+        },
+      ]);
+    }
+    return Promise.resolve([]);
+  });
+  editor.getDocumentCapabilities.mockResolvedValue([
+    { kind: "text" },
+    { kind: "media" },
+    { kind: "external", reason: "binary" },
+  ]);
+
+  const rows = (await builtinRows("std.pages")) as any[];
+
+  expect(editor.getDocumentCapabilities).toHaveBeenCalledTimes(1);
+  expect(editor.getDocumentCapabilities).toHaveBeenCalledWith([
+    {
+      name: "src/example.rs",
+      extension: "rs",
+      contentType: "text/rust",
+      size: 120,
+    },
+    {
+      name: "media/clip.mp3",
+      extension: "mp3",
+      contentType: "audio/mpeg",
+      size: 4_096,
+    },
+    {
+      name: "archive/data.bin",
+      extension: "bin",
+      contentType: "application/octet-stream",
+      size: 800,
+    },
+  ]);
+  expect(editor.getViewableExtensions).not.toHaveBeenCalled();
+  expect(rows.map((row) => row.primary)).toEqual([
+    "Readable page",
+    "src/example.rs",
+    "media/clip.mp3",
+    "archive/data.bin",
+  ]);
+  expect(rows.slice(1).map((row) => row.decorations)).toEqual([
+    [{ text: "RS", position: "right", cssClass: undefined }],
+    [{ text: "MP3", position: "right", cssClass: undefined }],
+    [{ text: "BIN", position: "right", cssClass: "sb-nav-chip-inactive" }],
+  ]);
 });
 
 test("a throwing handler is flashed, not left as a rejection", async () => {

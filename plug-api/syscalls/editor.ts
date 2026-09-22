@@ -1,4 +1,6 @@
 import type {
+  DocumentCapability,
+  DocumentCapabilityDescriptor,
   FilterOption,
   NotificationType,
   UploadFile,
@@ -38,11 +40,21 @@ export function getLastOpenedMap(): Promise<Record<string, number>> {
 }
 
 /**
- * Returns the file extensions (without a leading dot) that have a document
- * editor registered, i.e. the documents this client can open.
+ * Returns the file extensions (without a leading dot) claimed by explicitly
+ * registered document editors.
  */
 export function getViewableExtensions(): Promise<string[]> {
   return syscall("editor.getViewableExtensions");
+}
+
+/**
+ * Resolves the editor capability for a batch of documents without reading
+ * their bodies.
+ */
+export function getDocumentCapabilities(
+  documents: DocumentCapabilityDescriptor[],
+): Promise<DocumentCapability[]> {
+  return syscall("editor.getDocumentCapabilities", documents);
 }
 
 export function getCurrentEditor(): Promise<string> {

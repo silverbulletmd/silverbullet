@@ -37,10 +37,7 @@ import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
 import { ClientSystem } from "./client_system.ts";
 import { withCompletionInfo } from "./codemirror/completion_info.ts";
-import {
-  buildMarkdownLanguageExtension,
-  createEditorState,
-} from "./codemirror/editor_state.ts";
+import { createEditorState } from "./codemirror/editor_state.ts";
 import { originLabel } from "./codemirror/external_presence.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
@@ -326,7 +323,7 @@ export class Client {
     this.registerUnsavedChangesWarning();
 
     this.editorView = new EditorView({
-      state: createEditorState(this, "", "", true),
+      state: createEditorState(this, { kind: "page", pageName: "" }, "", true),
       parent: document.getElementById("sb-editor")!,
     });
 
@@ -565,7 +562,8 @@ export class Client {
         }
         this.realtimeOrigins.set(name, { origin, time: now });
       },
-      probeFile: (name) => this.eventedSpacePrimitives.getFileMeta(name),
+      probeFile: (name) =>
+        this.eventedSpacePrimitives.getFileMeta(name, false, "cheap"),
       syncFile: (name, lastModified, revisionHash) =>
         this.clientSystem
           .localSyscall("sync.performFileSync", [
@@ -1002,50 +1000,11 @@ export class Client {
   }
 
   reconfigureLanguage() {
-    if (this.markdownLanguageCompartment) {
-      this.editorView.dispatch({
-        effects: this.markdownLanguageCompartment.reconfigure(
-          buildMarkdownLanguageExtension(this),
-        ),
-      });
-    }
+    this.contentManager.reconfigureLanguage();
   }
 
   rebuildEditorState() {
-    const editorView = this.editorView;
-    // Preserve selection + scroll across the rebuild — this fires on
-    // widget loading→ready transitions after the editor is already
-    // interactive, so a reset to pos 0 / scrollTop 0 is jarring.
-    const previousSelection = editorView.state.selection;
-    const previousScrollTop = editorView.scrollDOM.scrollTop;
-
-    let cursorWasVisible = false;
-    try {
-      const block = editorView.lineBlockAt(previousSelection.main.head);
-      const scrollBottom =
-        previousScrollTop + editorView.scrollDOM.clientHeight;
-      cursorWasVisible =
-        block.bottom > previousScrollTop && block.top < scrollBottom;
-    } catch {
-      // fall back to no-scroll
-    }
-
-    editorView.setState(
-      createEditorState(
-        this,
-        this.currentName(),
-        editorView.state.sliceDoc(),
-        this.currentPageMeta()?.perm === "ro",
-        previousSelection,
-      ),
-    );
-    editorView.scrollDOM.scrollTop = previousScrollTop;
-
-    if (cursorWasVisible) {
-      editorView.dispatch({
-        effects: EditorView.scrollIntoView(previousSelection.main.head),
-      });
-    }
+    this.contentManager.rebuildEditorState();
   }
 
   async completeWithEvent(

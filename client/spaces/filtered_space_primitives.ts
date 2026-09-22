@@ -1,5 +1,5 @@
-import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../plug-api/types/index.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 export class FilteredSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -19,8 +19,12 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
     return this.wrapped.readFile(path);
   }
 
-  getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
-    return this.wrapped.getFileMeta(path, observing);
+  getFileMeta(
+    path: string,
+    observing?: boolean,
+    mode?: "cheap",
+  ): Promise<FileMeta> {
+    return this.wrapped.getFileMeta(path, observing, mode);
   }
 
   writeFile(

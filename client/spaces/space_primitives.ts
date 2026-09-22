@@ -11,7 +11,11 @@ export interface SpacePrimitives {
    * @param path The path of the file to retrieve metadata for.
    * @param observing used to hint at the sync engine this file is under regular observation (and may sync more aggressively)
    */
-  getFileMeta(path: string, observing?: boolean): Promise<FileMeta>;
+  getFileMeta(
+    path: string,
+    observing?: boolean,
+    mode?: "cheap",
+  ): Promise<FileMeta>;
 
   readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }>;
 

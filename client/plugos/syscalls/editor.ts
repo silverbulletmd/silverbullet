@@ -1,4 +1,3 @@
-import { copyToClipboard } from "../../clipboard.ts";
 import {
   acceptCompletion,
   closeCompletion,
@@ -70,6 +69,8 @@ import {
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
+  DocumentCapability,
+  DocumentCapabilityDescriptor,
   FilterOption,
   NotificationAction,
   NotificationType,
@@ -80,8 +81,11 @@ import type { VimConfig } from "@silverbulletmd/silverbullet/type/config";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
+import { copyToClipboard } from "../../clipboard.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
+import { resolveDocumentCapability } from "../../document_editor_resolver.ts";
 import { isMobileDevice, isNarrowScreen } from "../../lib/mobile.ts";
+import { browserMediaCapabilities } from "../../media.ts";
 import { hide as hideNavigatorSlot } from "../../navigator/navigator.ts";
 import type { PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
@@ -168,11 +172,39 @@ export function editorSyscalls(client: Client): SysCallMapping {
           ),
         ];
       },
-      description: `Returns the file extensions that have a document editor registered, i.e. the documents this client can actually open. Extensions carry no leading dot. Which editors are loaded depends on the plugs installed, so this is a property of the client rather than of the space.`,
+      description: `Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included.`,
       returns: [
         {
           type: "string[]",
           description: "Extensions with a registered document editor.",
+        },
+      ],
+    },
+    "editor.getDocumentCapabilities": {
+      callback: (
+        _ctx,
+        documents: DocumentCapabilityDescriptor[],
+      ): DocumentCapability[] =>
+        documents.map((document) =>
+          resolveDocumentCapability(
+            document,
+            client.clientSystem.documentEditorHook.documentEditors,
+            browserMediaCapabilities,
+          ),
+        ),
+      description:
+        "Resolves the available editor capability for each document from metadata only, in input order.",
+      parameters: [
+        {
+          name: "documents",
+          type: "DocumentCapabilityDescriptor[]",
+          description: "Document metadata to resolve without reading bodies.",
+        },
+      ],
+      returns: [
+        {
+          type: "DocumentCapability[]",
+          description: "Capabilities in the same order as the input.",
         },
       ],
     },
@@ -1571,7 +1603,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: (_ctx, type: string, data: any) => {
         if (!client.contentManager.isDocumentEditor()) return;
 
-        client.contentManager.documentEditor.sendPublicMessage({
+        client.contentManager.documentEditor.sendPublicMessage?.({
           type,
           data,
         });

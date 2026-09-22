@@ -39,6 +39,7 @@ import {
 import type { Space } from "../space.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
 import { isViewValue } from "../navigator/view_value.ts";
+import { createMediaElement as createNativeMediaElement } from "../media.ts";
 
 // Synthetic node type used to represent pre-resolved custom syntax HTML in the parse tree
 export const CustomSyntaxRenderedHtmlType = "CustomSyntaxRenderedHtml";
@@ -303,50 +304,12 @@ export function createMediaElement(
     return null;
   }
 
-  const style =
-    `max-width: 100%;` +
-    (transclusion.dimension?.width
-      ? `width: ${transclusion.dimension.width}px;`
-      : "") +
-    (transclusion.dimension?.height
-      ? `height: ${transclusion.dimension.height}px;`
-      : "");
-
-  const sanitizedUrl = sanitizeTransclusionUrl(transclusion.url);
-
-  if (mimeType.startsWith("image/")) {
-    const img = document.createElement("img");
-    img.src = sanitizedUrl;
-    img.alt = transclusion.alias;
-    img.style = style;
-    return img;
-  } else if (mimeType.startsWith("video/")) {
-    const video = document.createElement("video");
-    video.src = sanitizedUrl;
-    video.title = transclusion.alias;
-    video.controls = true;
-    video.autoplay = false;
-    video.style = style;
-    return video;
-  } else if (mimeType.startsWith("audio/")) {
-    const audio = document.createElement("audio");
-    audio.src = sanitizedUrl;
-    audio.title = transclusion.alias;
-    audio.controls = true;
-    audio.autoplay = false;
-    audio.style = style;
-    return audio;
-  } else if (mimeType === "application/pdf") {
-    const embed = document.createElement("object");
-    embed.type = mimeType;
-    embed.data = sanitizedUrl;
-    embed.style.width = "100%";
-    embed.style.height = "20em";
-    embed.style = style;
-    return embed;
-  }
-
-  return null;
+  return createNativeMediaElement({
+    url: sanitizeTransclusionUrl(transclusion.url),
+    contentType: mimeType,
+    title: transclusion.alias,
+    dimensions: transclusion.dimension,
+  });
 }
 
 /**

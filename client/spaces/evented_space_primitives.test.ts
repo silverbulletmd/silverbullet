@@ -1,9 +1,11 @@
-import { describe, expect, test } from "vitest";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
-import { EventedSpacePrimitives } from "./evented_space_primitives.ts";
-import type { SpacePrimitives } from "./space_primitives.ts";
-import type { EventHook } from "../plugos/hooks/event.ts";
+import { describe, expect, test } from "vitest";
 import type { DataStore } from "../data/datastore.ts";
+import type { EventHook } from "../plugos/hooks/event.ts";
+import { CheckedSpacePrimitives } from "./checked_space_primitives.ts";
+import { EventedSpacePrimitives } from "./evented_space_primitives.ts";
+import { FilteredSpacePrimitives } from "./filtered_space_primitives.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 function meta(name: string, lastModified: number): FileMeta {
   return {
@@ -93,6 +95,33 @@ describe("EventedSpacePrimitives fetchFileList single-flight", () => {
     await sp.fetchFileList();
     expect(listCalls()).toBe(2);
   });
+});
+
+test("metadata probe options pass through the evented wrapper", async () => {
+  const calls: unknown[][] = [];
+  const { sp } = setup();
+  (sp as unknown as { wrapped: SpacePrimitives }).wrapped = {
+    getFileMeta: async (...args: unknown[]) => {
+      calls.push(args);
+      return meta("clip.mp4", 2000);
+    },
+  } as unknown as SpacePrimitives;
+  await sp.getFileMeta("clip.mp4", true, "cheap");
+  expect(calls).toEqual([["clip.mp4", true, "cheap"]]);
+});
+
+test("metadata probe options pass through checked and filtered wrappers", async () => {
+  const calls: unknown[][] = [];
+  const wrapped = {
+    getFileMeta: async (...args: unknown[]) => {
+      calls.push(args);
+      return meta("clip.mp4", 2000);
+    },
+  } as unknown as SpacePrimitives;
+  const checked = new CheckedSpacePrimitives(wrapped, false);
+  const filtered = new FilteredSpacePrimitives(checked, () => true);
+  await filtered.getFileMeta("clip.mp4", true, "cheap");
+  expect(calls).toEqual([["clip.mp4", true, "cheap"]]);
 });
 
 // file:changedBatch aggregates a dispatch cascade's file:changed events into

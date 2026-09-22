@@ -1,14 +1,15 @@
-import { describe, expect, test } from "vitest";
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
+import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { describe, expect, test, vi } from "vitest";
+import { createMockSystem } from "../plug-api/system_mock.ts";
+import { resolveAnchor } from "../plugs/index/api.ts";
+import { indexMarkdown } from "../plugs/index/indexer.ts";
 import { MemoryKvPrimitives } from "./data/memory_kv_primitives.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import { Space } from "./space.ts";
 import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
-import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
-import { createMockSystem } from "../plug-api/system_mock.ts";
-import { indexMarkdown } from "../plugs/index/indexer.ts";
-import { resolveAnchor } from "../plugs/index/api.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 
 const testPage = `
 Some paragraph
@@ -22,6 +23,35 @@ Some text
   * Sub item 2
     * Sub-sub item
 `.trim();
+
+test("watched files use cheap observing metadata probes", async () => {
+  vi.useFakeTimers();
+  const calls: unknown[][] = [];
+  const primitives = {
+    fetchFileList: async () => [],
+    getFileMeta: async (...args: unknown[]) => {
+      calls.push(args);
+      return {
+        name: "clip.mp4",
+        contentType: "video/mp4",
+        size: 10,
+        created: 0,
+        lastModified: 0,
+        perm: "rw",
+      };
+    },
+  } as unknown as SpacePrimitives;
+  const space = new Space(primitives, new EventHook());
+  try {
+    space.watchFile("clip.mp4");
+    space.watch();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(calls).toContainEqual(["clip.mp4", true, "cheap"]);
+  } finally {
+    space.unwatch();
+    vi.useRealTimers();
+  }
+});
 
 test("readRef checks", async () => {
   const kv = new MemoryKvPrimitives();

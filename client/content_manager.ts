@@ -1,40 +1,60 @@
-import { EditorView } from "@codemirror/view";
-import type { ChangeSet, Text } from "@codemirror/state";
 import { isolateHistory } from "@codemirror/commands";
+import type { ChangeSet, Text } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import {
+  encodePageURI,
   getNameFromPath,
   getOffsetFromHeader,
   getOffsetFromLineColumn,
-  getPathExtension,
   isMarkdownPath,
   type Path,
+  type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type {
   PageCreatingContent,
   PageCreatingEvent,
 } from "@silverbulletmd/silverbullet/type/event";
-import { notFoundError } from "@silverbulletmd/silverbullet/constants";
-import {
-  createEditorState,
-  externalUpdate,
-  forceParseVisibleRegion,
-} from "./codemirror/editor_state.ts";
-import { externalSource } from "./codemirror/external_presence.ts";
+import type {
+  DocumentMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
+import type { Client } from "./client.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import {
   type ConflictHunk,
   findConflictHunks,
 } from "./codemirror/conflict_markers.ts";
+import {
+  buildMarkdownLanguageExtension,
+  createEditorState,
+  createInactiveEditorState,
+  type EditorMode,
+  externalUpdate,
+  forceParseVisibleRegion,
+} from "./codemirror/editor_state.ts";
+import { externalSource } from "./codemirror/external_presence.ts";
+import {
+  type ActiveDocumentEditor,
+  IFrameDocumentEditor,
+} from "./document_editor.ts";
+import {
+  type DocumentEditorResolution,
+  resolveDocumentEditor,
+} from "./document_editor_resolver.ts";
 import { computeExternalChanges } from "./external_merge.ts";
 import { parsePageMetaLastModified } from "./lib/page_meta.ts";
-import { DocumentEditor } from "./document_editor.ts";
+import { parseMarkdown } from "./markdown_parser/parser.ts";
+import { browserMediaCapabilities, type MediaCapabilities } from "./media.ts";
+import { MediaDocumentViewer } from "./media_document_viewer.ts";
+import type { LocationState } from "./navigator.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { PermissionDeniedError } from "./spaces/http_space_primitives.ts";
-import { parseMarkdown } from "./markdown_parser/parser.ts";
-import type { Client } from "./client.ts";
-import type { LocationState } from "./navigator.ts";
+import {
+  TextDocumentEditor,
+  TextDocumentOpenError,
+} from "./text_document_editor.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -56,7 +76,10 @@ const autoSaveInterval = 1000;
  * for both markdown pages and non-markdown documents.
  */
 export class ContentManager {
-  documentEditor: DocumentEditor | null = null;
+  documentEditor: ActiveDocumentEditor | null = null;
+  private documentEditorResolution?: DocumentEditorResolution;
+  hostEditorMode: EditorMode | null = { kind: "page", pageName: "" };
+  private inactiveDocumentReadOnly = false;
   saveTimeout?: ReturnType<typeof setTimeout>;
   private scrollRestoreCleanup?: () => void;
   // Last content known to be on disk (base for 3-way external merges)
@@ -82,7 +105,66 @@ export class ContentManager {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
-  constructor(private client: Client) {}
+  constructor(
+    private client: Client,
+    private mediaCapabilities: MediaCapabilities = browserMediaCapabilities,
+  ) {}
+
+  reconfigureLanguage(): void {
+    if (
+      this.hostEditorMode?.kind === "page" &&
+      this.client.markdownLanguageCompartment
+    ) {
+      this.client.editorView.dispatch({
+        effects: this.client.markdownLanguageCompartment.reconfigure(
+          buildMarkdownLanguageExtension(this.client),
+        ),
+      });
+    }
+  }
+
+  rebuildEditorState(): void {
+    const editorView = this.client.editorView;
+    const previousSelection = editorView.state.selection;
+    const previousScrollTop = editorView.scrollDOM.scrollTop;
+    const previousScrollLeft = editorView.scrollDOM.scrollLeft;
+
+    let cursorWasVisible = false;
+    try {
+      const block = editorView.lineBlockAt(previousSelection.main.head);
+      const scrollBottom =
+        previousScrollTop + editorView.scrollDOM.clientHeight;
+      cursorWasVisible =
+        block.bottom > previousScrollTop && block.top < scrollBottom;
+    } catch {
+      // The view may not have layout yet during initial loading.
+    }
+
+    const text = editorView.state.sliceDoc();
+    editorView.setState(
+      this.hostEditorMode
+        ? createEditorState(
+            this.client,
+            this.hostEditorMode,
+            text,
+            this.client.currentPageMeta()?.perm === "ro",
+            previousSelection,
+          )
+        : createInactiveEditorState(
+            this.client,
+            editorView.state,
+            this.inactiveDocumentReadOnly,
+          ),
+    );
+    editorView.scrollDOM.scrollTop = previousScrollTop;
+    editorView.scrollDOM.scrollLeft = previousScrollLeft;
+
+    if (this.hostEditorMode?.kind === "page" && cursorWasVisible) {
+      editorView.dispatch({
+        effects: EditorView.scrollIntoView(previousSelection.main.head),
+      });
+    }
+  }
 
   // Save the current page or document
   save(immediate = false): Promise<void> {
@@ -93,7 +175,11 @@ export class ContentManager {
       this.saveTimeout = setTimeout(
         async () => {
           if (
-            !this.client.ui.viewState.unsavedChanges ||
+            (!this.client.ui.viewState.unsavedChanges &&
+              !(
+                this.documentEditor instanceof TextDocumentEditor &&
+                this.documentEditor.hasUnsavedChanges
+              )) ||
             this.client.isReadOnlyMode()
           ) {
             return resolve();
@@ -109,9 +195,23 @@ export class ContentManager {
               this.client.currentPath(),
             );
 
-            this.documentEditor.requestSave();
-
-            return resolve();
+            try {
+              const editor = this.documentEditor;
+              for (;;) {
+                await editor.requestSave();
+                if (
+                  this.documentEditor !== editor ||
+                  !(editor instanceof TextDocumentEditor) ||
+                  !editor.hasUnsavedChanges ||
+                  this.client.editorView.state.readOnly ||
+                  this.client.isReadOnlyMode()
+                ) {
+                  return resolve();
+                }
+              }
+            } catch (error) {
+              return reject(error);
+            }
           } else {
             if (this.client.editorView.composing) {
               this.saveTimeout = setTimeout(
@@ -287,49 +387,63 @@ export class ContentManager {
     const { previousPath, loadingDifferentPath } =
       await this.leaveCurrentPage(path);
 
-    const extension = getPathExtension(path as Path);
-    const needsEditorSwitch =
-      !this.isDocumentEditor() || this.documentEditor.extension !== extension;
-    if (
-      needsEditorSwitch &&
-      !Array.from(
-        this.client.clientSystem.documentEditorHook.documentEditors.values(),
-      ).some(({ extensions }) => extensions.includes(extension))
-    ) {
-      this.client.openUrl(
-        `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${path}`,
-      );
-      throw new Error("Opened externally");
+    let meta = await this.client.space.getDocumentMeta(path, "cheap");
+    const resolution = resolveDocumentEditor(
+      meta,
+      this.client.clientSystem.documentEditorHook.documentEditors,
+      this.mediaCapabilities,
+    );
+    if (resolution.kind === "external") {
+      this.openDocumentExternally(path, resolution.reason);
     }
-    const doc = await this.client.space.readDocument(path);
-
-    if (needsEditorSwitch) {
-      try {
-        await this.switchToDocumentEditor(extension);
-      } catch (e: any) {
-        if (e.message.includes("Couldn't find")) {
-          this.client.openUrl(
-            `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${path}`,
-          );
-          throw new Error("Opened externally");
+    let data: Uint8Array | undefined;
+    if (resolution.needsBytes) {
+      const doc = await this.client.space.readDocument(path);
+      data = doc.data;
+      meta = doc.meta;
+    }
+    const active = this.documentEditorResolution;
+    const sameImplementation =
+      active?.kind === resolution.kind &&
+      (resolution.kind !== "media" ||
+        (active.kind === "media" &&
+          active.mediaType === resolution.mediaType)) &&
+      (resolution.kind !== "plug" ||
+        (active.kind === "plug" &&
+          active.name === resolution.name &&
+          active.callback === resolution.callback));
+    try {
+      if (this.documentEditor && sameImplementation) {
+        await this.documentEditor.openFile(data, meta, locationState.details);
+        if (resolution.kind !== "text") {
+          const readOnly = meta.perm === "ro";
+          if (this.inactiveDocumentReadOnly !== readOnly) {
+            this.inactiveDocumentReadOnly = readOnly;
+            this.client.rebuildEditorState();
+          }
         }
-
-        throw e;
+      } else {
+        await this.switchToDocumentEditor(
+          resolution,
+          data,
+          meta,
+          locationState.details,
+        );
       }
-
-      if (!this.isDocumentEditor()) {
-        throw new Error("Problem setting up document editor");
+    } catch (error) {
+      if (error instanceof TextDocumentOpenError) {
+        this.openDocumentExternally(path, error.reason);
       }
+      throw error;
     }
-
-    this.documentEditor!.openFile(doc.data, doc.meta, locationState.details);
+    this.documentEditorResolution = resolution;
 
     if (previousPath) this.client.space.unwatchFile(previousPath);
     this.client.space.watchFile(path);
 
     this.client.ui.viewDispatch({
       type: "document-editor-loaded",
-      meta: doc.meta,
+      meta,
       path: path,
     });
 
@@ -342,6 +456,23 @@ export class ContentManager {
         previousPath,
       )
       .catch(console.error);
+  }
+
+  private openDocumentExternally(
+    path: Path,
+    reason: Extract<DocumentEditorResolution, { kind: "external" }>["reason"],
+  ): never {
+    const message =
+      reason === "too-large"
+        ? "This document exceeds the 5 MiB text limit. Opening externally."
+        : reason === "unsupported-media"
+          ? "This media type cannot be viewed here. Opening externally."
+          : "This document cannot be edited as UTF-8 text. Opening externally.";
+    this.client.ui.flashNotification(message);
+    this.client.openUrl(
+      `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${encodePageURI(path)}`,
+    );
+    throw new Error("Opened externally");
   }
 
   async loadPage(
@@ -404,8 +535,8 @@ export class ContentManager {
       }
     }
 
-    // This could create an invalid editor state, but that doesn't matter, we'll update it later
     this.switchToPageEditor();
+    this.hostEditorMode = { kind: "page", pageName };
 
     // Record last-opened time best-effort and non-blocking: this is a write
     // to the shared index store, and awaiting it would stall navigation
@@ -433,7 +564,7 @@ export class ContentManager {
       );
       const editorState = createEditorState(
         this.client,
-        pageName,
+        this.hostEditorMode,
         doc.text,
         doc.meta.perm === "ro",
       );
@@ -488,61 +619,89 @@ export class ContentManager {
     }
   }
 
-  isDocumentEditor(): this is { documentEditor: DocumentEditor } & this {
+  isDocumentEditor(): this is { documentEditor: ActiveDocumentEditor } & this {
     return this.documentEditor !== null;
   }
 
   switchToPageEditor() {
-    if (!this.isDocumentEditor()) return;
+    this.hostEditorMode = { kind: "page", pageName: this.client.currentName() };
+    this.inactiveDocumentReadOnly = false;
+    if (!this.documentEditor) return;
 
-    // Deliberately not awaiting this function as destroying & last-save can be handled in the background
-    this.documentEditor.destroy();
-    // @ts-expect-error: This is there the hacked type-guard from isDocumentEditor fails
+    void Promise.resolve(this.documentEditor.destroy()).catch(console.error);
     this.documentEditor = null;
-
-    this.client.rebuildEditorState();
+    this.documentEditorResolution = undefined;
 
     document.getElementById("sb-editor")!.classList.remove("hide-cm");
   }
 
-  async switchToDocumentEditor(extension: string) {
-    if (this.documentEditor) {
-      // Deliberately not awaiting this function as destroying & last-save can be handled in the background
-      this.documentEditor.destroy();
+  async switchToDocumentEditor(
+    resolution: Extract<
+      DocumentEditorResolution,
+      { kind: "text" | "plug" | "media" }
+    >,
+    data: Uint8Array | undefined,
+    meta: DocumentMeta,
+    details: Ref["details"],
+  ) {
+    const parent = document.getElementById("sb-editor")!;
+    const nextEditor =
+      resolution.kind === "text"
+        ? new TextDocumentEditor(parent, this.client)
+        : resolution.kind === "media"
+          ? new MediaDocumentViewer(parent, this.client, this.mediaCapabilities)
+          : new IFrameDocumentEditor(parent, this.client, (path, content) => {
+              this.client.space
+                .writeDocument(path, content)
+                .then(async (meta) => {
+                  this.client.ui.viewDispatch({
+                    type: "document-editor-saved",
+                  });
+
+                  await this.client.dispatchAppEvent(
+                    "editor:documentSaved",
+                    path,
+                    meta,
+                  );
+                })
+                .catch(() => {
+                  this.client.ui.flashNotification(
+                    "Could not save document, retrying again in 10 seconds",
+                    "error",
+                  );
+                  this.saveTimeout = setTimeout(this.save.bind(this), 10000);
+                });
+            });
+
+    if (
+      nextEditor instanceof IFrameDocumentEditor &&
+      resolution.kind === "plug"
+    ) {
+      await nextEditor.init(resolution);
     }
-
-    document.getElementById("sb-editor")!.classList.add("hide-cm");
-
-    this.documentEditor = new DocumentEditor(
-      document.getElementById("sb-editor")!,
-      this.client,
-      (path, content) => {
-        this.client.space
-          .writeDocument(path, content)
-          .then(async (meta) => {
-            this.client.ui.viewDispatch({ type: "document-editor-saved" });
-
-            await this.client.dispatchAppEvent(
-              "editor:documentSaved",
-              path,
-              meta,
-            );
-          })
-          .catch(() => {
-            this.client.ui.flashNotification(
-              "Could not save document, retrying again in 10 seconds",
-              "error",
-            );
-            this.saveTimeout = setTimeout(this.save.bind(this), 10000);
-          });
-      },
-    );
-
-    await this.documentEditor.init(extension);
-
-    // We have to rebuild the editor state here to update the keymap correctly
-    this.client.rebuildEditorState();
-    this.client.editorView.contentDOM.blur();
+    if (nextEditor instanceof TextDocumentEditor) {
+      const install = await nextEditor.prepareFile(data, meta, details);
+      await this.documentEditor?.destroy();
+      install();
+    } else if (nextEditor instanceof MediaDocumentViewer) {
+      await this.documentEditor?.destroy();
+      nextEditor.openFile(data, meta, details);
+    } else {
+      await nextEditor.openFile(data, meta, details);
+      if (this.documentEditor) {
+        void Promise.resolve(this.documentEditor.destroy()).catch(
+          console.error,
+        );
+      }
+    }
+    this.documentEditor = nextEditor;
+    if (resolution.kind !== "text") {
+      parent.classList.add("hide-cm");
+      this.hostEditorMode = null;
+      this.inactiveDocumentReadOnly = meta.perm === "ro";
+      this.client.rebuildEditorState();
+      this.client.editorView.contentDOM.blur();
+    }
   }
 
   setEditorText(newText: string, shouldIsolateHistory = false) {

@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
+import { mediaTestDocument } from "../test_media_dom.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 
@@ -7,10 +8,57 @@ import {
   buildExtendedMarkdownLanguage,
   extendedMarkdownLanguage,
 } from "../markdown_parser/parser.ts";
-import { CustomSyntaxRenderedHtmlType, expandMarkdown } from "./inline.ts";
+import {
+  CustomSyntaxRenderedHtmlType,
+  expandMarkdown,
+  createMediaElement,
+} from "./inline.ts";
+import { parseTransclusion } from "@silverbulletmd/silverbullet/lib/transclusion";
 import type { Space } from "../space.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
 import { LuaEnv } from "../space_lua/runtime.ts";
+
+test.each([
+  ["clip.mp3", "AUDIO"],
+  ["movie.mp4", "VIDEO"],
+  ["drawing.svg", "IMG"],
+])("native transclusion for %s preserves its source and controls", (path, tag) => {
+  vi.stubGlobal("document", mediaTestDocument());
+  try {
+    const element = createMediaElement(
+      parseTransclusion(`![[${path}|Sample]]`)!,
+    )!;
+    expect(element.tagName).toBe(tag);
+    expect(element.getAttribute("src")).toBe(`.fs/${path}`);
+    const html = renderMarkdownToHtml(
+      parse(extendedMarkdownLanguage, `![[${path}|Sample]]`),
+    );
+    expect(html).toContain(`<${tag}`);
+    expect(html).toContain(`.fs/${path}`);
+    if (tag === "AUDIO" || tag === "VIDEO") {
+      expect(html).toContain('preload="metadata"');
+      expect(html).toContain("controls");
+    }
+    if (tag === "VIDEO") expect(html).toContain("playsinline");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("live PDF transclusions preserve their object element", () => {
+  vi.stubGlobal("document", mediaTestDocument());
+  try {
+    const element = createMediaElement(
+      parseTransclusion("![[paper.pdf|Sample]]")!,
+    ) as HTMLObjectElement;
+    expect(element.tagName).toBe("OBJECT");
+    expect(element.data).toBe(".fs/paper.pdf");
+    expect(element.type).toBe("application/pdf");
+    expect(element.title).toBe("Sample");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
 
 const sampleMarkdown = `---
 name: Sup

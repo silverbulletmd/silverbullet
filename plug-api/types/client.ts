@@ -1,5 +1,8 @@
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  DocumentMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 
 export type FilterOption = {
   name: string;
@@ -49,6 +52,17 @@ export type CodeWidgetContent = {
 export type DocumentEditorCallback = () => Promise<DocumentEditorContent>;
 export type DocumentEditorContent = {
   html: string;
+};
+
+export type DocumentCapabilityDescriptor = Pick<
+  DocumentMeta,
+  "name" | "extension" | "contentType" | "size"
+>;
+
+export type DocumentCapability = {
+  kind: "plug" | "text" | "media" | "external";
+  editor?: string;
+  reason?: string;
 };
 
 export type LintDiagnostic = {

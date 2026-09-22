@@ -1,14 +1,20 @@
+import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  isMarkdownPath,
+  isValidName,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import {
   editor,
   index,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
+import type { DocumentCapability } from "@silverbulletmd/silverbullet/type/client";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { parsePageMetaLastModified } from "../../lib/page_meta.ts";
 import type { Decoration } from "../types.ts";
-import { baseMeta, type BuiltinView, INDEX_REFRESH_EVENTS } from "./types.ts";
+import { type BuiltinView, baseMeta, INDEX_REFRESH_EVENTS } from "./types.ts";
 
 /** A page or document from the index (or its pre-index file-listing
  * fallback), or a synthesized aspiring-page row (see `aspiringRows`) -- both
@@ -35,13 +41,12 @@ export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
 }
 
-/**
- * Extensions this client has a document editor for, as of the last source
- * run. A property of the client (which plugs are loaded), not of the object,
- * so no query reaches it -- and read again by the row decorators below, which
- * run per row and must not each cost a syscall.
- */
-let viewableExtensions = new Set<string>();
+let documentCapabilities = new Map<string, DocumentCapability>();
+
+function canViewDocument(name: string): boolean {
+  const capability = documentCapabilities.get(name);
+  return capability !== undefined && capability.kind !== "external";
+}
 
 /**
  * Pages and documents from the index when there is one and from the space's
@@ -106,16 +111,28 @@ function lastActivityOf(obj: PageObj, opened: Record<string, number>): number {
 }
 
 async function pagePickerSource(): Promise<PageObj[]> {
-  const [opened, path, extensions, mode, contents, aspiring] =
-    await Promise.all([
-      editor.getLastOpenedMap(),
-      editor.getCurrentPath(),
-      editor.getViewableExtensions(),
-      system.getMode(),
-      spaceContents(),
-      aspiringRows(),
-    ]);
-  viewableExtensions = new Set(extensions);
+  const [opened, path, mode, contents, aspiring] = await Promise.all([
+    editor.getLastOpenedMap(),
+    editor.getCurrentPath(),
+    system.getMode(),
+    spaceContents(),
+    aspiringRows(),
+  ]);
+  const documents = contents.filter((obj) => obj.tag === "document");
+  const capabilities = await editor.getDocumentCapabilities(
+    documents.map(({ name, extension, contentType, size }) => ({
+      name,
+      extension,
+      contentType,
+      size,
+    })),
+  );
+  documentCapabilities = new Map(
+    documents.map((document, index) => [
+      document.name,
+      capabilities[index] ?? { kind: "external", reason: "unavailable" },
+    ]),
+  );
   const readOnly =
     mode === "ro" || (await editor.getUiOption("forcedROMode")) === true;
 
@@ -124,7 +141,7 @@ async function pagePickerSource(): Promise<PageObj[]> {
   const unopenable: PageObj[] = [];
   for (const obj of contents) {
     const isDocument = obj.tag === "document";
-    if (isDocument && !viewableExtensions.has(obj.extension)) {
+    if (isDocument && !canViewDocument(obj.name)) {
       // Nothing on this client can render it. Still listed, so it can be
       // renamed or deleted -- but not in read-only mode, where there is
       // nothing left to do with it at all.
@@ -237,7 +254,7 @@ export const pagePicker: BuiltinView<PageObj> = {
           position: "right",
           // Greyed out when this client has no editor for it: the row is still
           // selectable, it just isn't an offer.
-          cssClass: viewableExtensions.has(obj.extension)
+          cssClass: canViewDocument(obj.name)
             ? undefined
             : "sb-nav-chip-inactive",
         });
@@ -257,5 +274,13 @@ export const pagePicker: BuiltinView<PageObj> = {
   // you back where you left it. A create is a fresh page and has nothing to
   // restore.
   onSelect: (obj) => editor.open(obj.ref ?? obj.name),
-  onCreate: (phrase) => editor.navigate(phrase),
+  onCreate: async (phrase) => {
+    if (isValidName(phrase)) {
+      const path = parseToRef(phrase)!.path;
+      if (!isMarkdownPath(path) && !(await space.fileExists(path))) {
+        await space.writeDocument(path, new Uint8Array());
+      }
+    }
+    await editor.navigate(phrase);
+  },
 };

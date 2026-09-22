@@ -1,7 +1,3 @@
-import type { SpacePrimitives } from "./space_primitives.ts";
-import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-import { flushCachesAndUnregisterServiceWorker } from "../../client/service_worker/util.ts";
-import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import {
   isNetworkError,
   notFoundError,
@@ -9,8 +5,12 @@ import {
   pingTimeout,
   wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
+import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
+import { flushCachesAndUnregisterServiceWorker } from "../../client/service_worker/util.ts";
 import { headersToFileMeta } from "../lib/util.ts";
 import { etagForHash, hashFromEtag } from "./revision.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 
@@ -384,7 +384,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
   }
 
-  async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+  async getFileMeta(
+    path: string,
+    observing?: boolean,
+    mode?: "cheap",
+  ): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodePageURI(path)}`,
       // Use GET with X-Get-Meta because iOS Safari omits credentials on HEAD.
@@ -392,7 +396,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       {
         method: "GET",
         headers: {
-          "X-Get-Meta": "true",
+          "X-Get-Meta": mode === "cheap" ? "cheap" : "true",
           ...(observing ? { "X-Observing": "true" } : {}),
         },
       },

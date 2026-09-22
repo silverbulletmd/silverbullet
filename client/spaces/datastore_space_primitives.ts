@@ -1,8 +1,8 @@
-import type { SpacePrimitives } from "./space_primitives.ts";
-import mime from "mime";
-import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
+import mime from "mime";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 const filesMetaPrefix = ["meta"];
 const filesContentPrefix = ["content"];
@@ -85,7 +85,11 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     ]);
   }
 
-  async getFileMeta(path: string, _observing?: boolean): Promise<FileMeta> {
+  async getFileMeta(
+    path: string,
+    _observing?: boolean,
+    _mode?: "cheap",
+  ): Promise<FileMeta> {
     const [fileMeta] = await this.kv.batchGet([[...filesMetaPrefix, path]]);
     if (!fileMeta) {
       throw notFoundError;

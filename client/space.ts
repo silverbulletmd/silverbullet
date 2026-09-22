@@ -1,19 +1,11 @@
-import type { EventHook } from "./plugos/hooks/event.ts";
 import { jitter, safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
-import type {
-  DocumentMeta,
-  FileMeta,
-  PageMeta,
-} from "@silverbulletmd/silverbullet/type/index";
-import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import {
   getOffsetFromLineColumn,
   getPathExtension,
   type Path,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { parseMarkdown } from "./markdown_parser/parser.ts";
 import {
   addParentPointers,
   findNodeMatching,
@@ -21,7 +13,15 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import type {
+  DocumentMeta,
+  FileMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
+import { parseMarkdown } from "./markdown_parser/parser.ts";
+import type { EventHook } from "./plugos/hooks/event.ts";
+import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 
 export type AnchorResolver = (
   name: string,
@@ -253,8 +253,10 @@ export class Space {
     return { data: file.data, meta: fileMetaToDocumentMeta(file.meta) };
   }
 
-  async getDocumentMeta(name: string): Promise<DocumentMeta> {
-    return fileMetaToDocumentMeta(await this.spacePrimitives.getFileMeta(name));
+  async getDocumentMeta(name: string, mode?: "cheap"): Promise<DocumentMeta> {
+    return fileMetaToDocumentMeta(
+      await this.spacePrimitives.getFileMeta(name, false, mode),
+    );
   }
 
   async writeDocument(name: string, data: Uint8Array): Promise<DocumentMeta> {
@@ -281,7 +283,7 @@ export class Space {
         }
         for (const fileName of this.watchedFiles) {
           // Setting observing to true here to hint that we may be interested in more active syncing
-          await this.spacePrimitives.getFileMeta(fileName, true);
+          await this.spacePrimitives.getFileMeta(fileName, true, "cheap");
         }
       });
     }, pageWatchInterval + jitter());

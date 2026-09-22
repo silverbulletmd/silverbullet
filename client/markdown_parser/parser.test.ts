@@ -607,7 +607,7 @@ test("AtMentionSignature renders with its own class", async () => {
 
 test("AtMentionSignature highlights the nested mention as a byline in the editor", async () => {
   const { highlightTree } = await import("@lezer/highlight");
-  const { default: highlightStyles } = await import("../style.ts");
+  const { editorHighlightStyle: highlightStyles } = await import("../style.ts");
   const { extendedMarkdownLanguage } = await import("./parser.ts");
   const highlighter = highlightStyles();
 

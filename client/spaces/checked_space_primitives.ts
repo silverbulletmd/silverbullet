@@ -1,6 +1,6 @@
+import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { SpacePrimitives } from "./space_primitives.ts";
-import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 
 /**
  * Adds checks for two things:
@@ -26,11 +26,15 @@ export class CheckedSpacePrimitives implements SpacePrimitives {
     return this.wrapped.readFile(path);
   }
 
-  getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+  getFileMeta(
+    path: string,
+    observing?: boolean,
+    mode?: "cheap",
+  ): Promise<FileMeta> {
     if (!this.isReadable(path)) {
       throw new Error("Couldn't get file meta, path isn't readable");
     }
-    return this.wrapped.getFileMeta(path, observing);
+    return this.wrapped.getFileMeta(path, observing, mode);
   }
 
   async writeFile(

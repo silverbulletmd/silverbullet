@@ -4,8 +4,26 @@ import type { DocumentMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import documentEditorJS from "./document_editor_js.ts";
 import type { DocumentEditorContent } from "@silverbulletmd/silverbullet/type/client";
+import type { DocumentEditorResolution } from "./document_editor_resolver.ts";
 
-export class DocumentEditor {
+export type ActiveDocumentEditor = {
+  name: string;
+  extension: string;
+  needsBytes: boolean;
+  openFile(
+    data: Uint8Array | undefined,
+    meta: DocumentMeta,
+    details: Ref["details"],
+  ): Promise<void> | void;
+  requestSave(): Promise<void> | void;
+  focus(): void;
+  destroy(): Promise<void> | void;
+  updateTheme(): void;
+  sendPublicMessage?(message: { type: string; data?: any }): void;
+};
+
+export class IFrameDocumentEditor implements ActiveDocumentEditor {
+  readonly needsBytes = true;
   iframe!: HTMLIFrameElement;
   name!: string;
   extension!: string;
@@ -18,25 +36,15 @@ export class DocumentEditor {
     readonly saveMethod: (path: string, content: Uint8Array) => void,
   ) {}
 
-  async init(extension: string) {
-    this.extension = extension;
+  async init(resolution: Extract<DocumentEditorResolution, { kind: "plug" }>) {
+    this.extension = resolution.extension;
+    this.name = resolution.name;
 
-    const entry = Array.from(
-      this.client.clientSystem.documentEditorHook.documentEditors.entries(),
-    ).find(([_, { extensions }]) => extensions.includes(this.extension));
-
-    if (!entry) {
-      throw new Error("Couldn't find plug for specified extension");
-    }
-
-    const [name, { callback }] = entry;
-    this.name = name;
-
-    const content = await callback();
+    const content = await resolution.callback();
 
     globalThis.addEventListener("message", this.handleMessage.bind(this));
 
-    const { iframe, ready } = DocumentEditor.createIframe(content);
+    const { iframe, ready } = IFrameDocumentEditor.createIframe(content);
     this.iframe = iframe;
 
     this.parent.appendChild(this.iframe);
@@ -57,7 +65,12 @@ export class DocumentEditor {
     this.sendMessage(message);
   }
 
-  openFile(data: Uint8Array, meta: DocumentMeta, details: Ref["details"]) {
+  openFile(
+    data: Uint8Array | undefined,
+    meta: DocumentMeta,
+    details: Ref["details"],
+  ) {
+    if (!data) throw new Error("Document editor requires file bytes");
     this.sendMessage({
       type: "file-open",
       data: {
@@ -68,6 +81,7 @@ export class DocumentEditor {
     });
 
     this.currentPath = meta.name;
+    this.extension = meta.extension.toLowerCase();
   }
 
   requestSave() {

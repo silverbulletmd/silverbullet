@@ -1,9 +1,8 @@
-import type { EventHook } from "../plugos/hooks/event.ts";
-
-import type { SpacePrimitives } from "./space_primitives.ts";
+import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { DataStore } from "../data/datastore.ts";
-import { sleep } from "@silverbulletmd/silverbullet/lib/async";
+import type { EventHook } from "../plugos/hooks/event.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 export type ChangedFile = {
   name: string;
@@ -263,14 +262,18 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     await this.saveSnapshot();
   }
 
-  async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+  async getFileMeta(
+    path: string,
+    observing?: boolean,
+    mode?: "cheap",
+  ): Promise<FileMeta> {
     if (!this.enabled) {
-      return this.wrapped.getFileMeta(path, observing);
+      return this.wrapped.getFileMeta(path, observing, mode);
     }
 
     this.operationCount++;
     try {
-      const newMeta = await this.wrapped.getFileMeta(path, observing);
+      const newMeta = await this.wrapped.getFileMeta(path, observing, mode);
       if (this.operationCount === 1) {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
       }

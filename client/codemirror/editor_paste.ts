@@ -125,111 +125,125 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
 
 export function documentExtension(editor: Client) {
   let shiftDown = false;
+  let activeView: EditorView | undefined;
 
-  // Embedders (including Tauri) can dispatch silverbullet:upload-files on
-  // document with { files: File[] } in detail to upload through the editor.
-  document.addEventListener("silverbullet:upload-files", (event) => {
-    const files = (event as CustomEvent<{ files?: File[] }>).detail?.files;
-    if (!files?.length) return;
-    safeRun(async () => {
-      await processFileTransfer(files);
-    });
-  });
-
-  return EditorView.domEventHandlers({
-    dragover: (event) => {
-      event.preventDefault();
-    },
-    keydown: (event) => {
-      if (event.key === "Shift") {
-        shiftDown = true;
-      }
-      return false;
-    },
-    keyup: (event) => {
-      if (event.key === "Shift") {
-        shiftDown = false;
-      }
-      return false;
-    },
-    drop: (event: DragEvent) => {
-      // TODO: This doesn't take into account the target cursor position,
-      // it just drops the document wherever the cursor was last.
-      if (event.dataTransfer) {
-        const payload = [...event.dataTransfer.files];
-        if (!payload.length) {
-          return;
-        }
-        // Without this the browser falls through to its default action
-        // (navigating to the dropped file)
-        event.preventDefault();
+  return [
+    ViewPlugin.define((view) => {
+      activeView = view;
+      const ownerDocument = view.dom.ownerDocument;
+      const uploadFiles = (event: Event) => {
+        const files = (event as CustomEvent<{ files?: File[] }>).detail?.files;
+        if (!files?.length) return;
         safeRun(async () => {
-          await processFileTransfer(payload);
+          await processFileTransfer(files);
         });
-      }
-    },
-    paste: (event: ClipboardEvent) => {
-      // Schedule a WebKit caret re-sync regardless of which paste path runs
-      // below (or CodeMirror's own default paste handling, which fires after
-      // this handler returns a falsy value).
-      fixupWebKitCaretAfterPaste(editor.editorView);
-
-      const payload = [...event.clipboardData!.items];
-      const richText = event.clipboardData?.getData("text/html");
-
-      if (richText && !shiftDown) {
-        const editorText = editor.editorView.state.sliceDoc();
-        const tree = lezerToParseTree(
-          editorText,
-          syntaxTree(editor.editorView.state).topNode,
-        );
-        addParentPointers(tree);
-        const currentNode = nodeAtPos(
-          tree,
-          editor.editorView.state.selection.main.from,
-        );
-        if (currentNode) {
-          const fencedParentNode = findParentMatching(currentNode, (t) =>
-            ["FrontMatter", "FencedCode"].includes(t.type!),
+      };
+      ownerDocument.addEventListener("silverbullet:upload-files", uploadFiles);
+      return {
+        destroy() {
+          activeView = undefined;
+          ownerDocument.removeEventListener(
+            "silverbullet:upload-files",
+            uploadFiles,
           );
-          if (
-            fencedParentNode ||
-            ["FrontMatter", "FencedCode"].includes(currentNode.type!)
-          ) {
-            console.log("Inside of fenced code block, not pasting rich text");
-            return false;
-          }
-        }
-
+        },
+      };
+    }),
+    EditorView.domEventHandlers({
+      dragover: (event) => {
         event.preventDefault();
-        const markdown = striptHtmlComments(
-          turndownService.turndown(richText),
-        ).trim();
-        const view = editor.editorView;
-        const selection = view.state.selection.main;
-        view.dispatch({
-          changes: [
-            {
-              from: selection.from,
-              to: selection.to,
-              insert: markdown,
-            },
-          ],
-          selection: {
-            anchor: selection.from + markdown.length,
-          },
-          scrollIntoView: true,
-        });
-        return true;
-      }
-      if (!payload.length || payload.length === 0) {
+      },
+      keydown: (event) => {
+        if (event.key === "Shift") {
+          shiftDown = true;
+        }
         return false;
-      }
-      safeRun(async () => {
-        await processItemTransfer(payload);
-      });
-    },
-  });
+      },
+      keyup: (event) => {
+        if (event.key === "Shift") {
+          shiftDown = false;
+        }
+        return false;
+      },
+      drop: (event: DragEvent) => {
+        // TODO: This doesn't take into account the target cursor position,
+        // it just drops the document wherever the cursor was last.
+        if (event.dataTransfer) {
+          const payload = [...event.dataTransfer.files];
+          if (!payload.length) {
+            return;
+          }
+          // Without this the browser falls through to its default action
+          // (navigating to the dropped file)
+          event.preventDefault();
+          safeRun(async () => {
+            await processFileTransfer(payload);
+          });
+        }
+      },
+      paste: (event: ClipboardEvent) => {
+        // Schedule a WebKit caret re-sync regardless of which paste path runs
+        // below (or CodeMirror's own default paste handling, which fires after
+        // this handler returns a falsy value).
+        fixupWebKitCaretAfterPaste(editor.editorView);
+
+        const payload = [...event.clipboardData!.items];
+        const richText = event.clipboardData?.getData("text/html");
+
+        if (richText && !shiftDown) {
+          const editorText = editor.editorView.state.sliceDoc();
+          const tree = lezerToParseTree(
+            editorText,
+            syntaxTree(editor.editorView.state).topNode,
+          );
+          addParentPointers(tree);
+          const currentNode = nodeAtPos(
+            tree,
+            editor.editorView.state.selection.main.from,
+          );
+          if (currentNode) {
+            const fencedParentNode = findParentMatching(currentNode, (t) =>
+              ["FrontMatter", "FencedCode"].includes(t.type!),
+            );
+            if (
+              fencedParentNode ||
+              ["FrontMatter", "FencedCode"].includes(currentNode.type!)
+            ) {
+              console.log("Inside of fenced code block, not pasting rich text");
+              return false;
+            }
+          }
+
+          event.preventDefault();
+          const markdown = striptHtmlComments(
+            turndownService.turndown(richText),
+          ).trim();
+          const view = editor.editorView;
+          const selection = view.state.selection.main;
+          view.dispatch({
+            changes: [
+              {
+                from: selection.from,
+                to: selection.to,
+                insert: markdown,
+              },
+            ],
+            selection: {
+              anchor: selection.from + markdown.length,
+            },
+            scrollIntoView: true,
+          });
+          return true;
+        }
+        if (!payload.length || payload.length === 0) {
+          return false;
+        }
+        safeRun(async () => {
+          await processItemTransfer(payload);
+        });
+      },
+    }),
+  ];
 
   async function processFileTransfer(payload: File[]) {
     const data = await payload[0].arrayBuffer();
@@ -265,6 +279,8 @@ export function documentExtension(editor: Client) {
   }
 
   async function saveFile(file: UploadFile) {
+    const view = activeView;
+    if (!view) return;
     const maxSize = maximumDocumentSize;
     const invalidPathMessage =
       "Unable to upload file, invalid target filename or path";
@@ -328,15 +344,16 @@ export function documentExtension(editor: Client) {
     }
 
     await editor.space.writeDocument(finalFilePath, file.content);
+    if (activeView !== view) return;
     let documentMarkdown = `[[${finalFilePath}]]`;
     if (file.contentType.startsWith("image/")) {
       documentMarkdown = `!${documentMarkdown}`;
     }
-    editor.editorView.dispatch({
+    view.dispatch({
       changes: [
         {
           insert: documentMarkdown,
-          from: editor.editorView.state.selection.main.from,
+          from: view.state.selection.main.from,
         },
       ],
     });

@@ -7,6 +7,7 @@ const yamlStreamLanguage = StreamLanguage.define(yamlLanguage);
 const eagerLanguages: Record<string, Language> = {
   meta: yamlStreamLanguage,
   yaml: yamlStreamLanguage,
+  yml: yamlStreamLanguage,
   include: yamlStreamLanguage,
   "space-config": yamlStreamLanguage,
   data: yamlStreamLanguage,
@@ -24,10 +25,20 @@ export const lazyLanguages: Record<string, () => Promise<Language>> = {
     (await import("@codemirror/lang-javascript")).javascriptLanguage,
   js: async () =>
     (await import("@codemirror/lang-javascript")).javascriptLanguage,
+  jsx: async () => (await import("@codemirror/lang-javascript")).jsxLanguage,
   typescript: async () =>
     (await import("@codemirror/lang-javascript")).typescriptLanguage,
   ts: async () =>
     (await import("@codemirror/lang-javascript")).typescriptLanguage,
+  tsx: async () => (await import("@codemirror/lang-javascript")).tsxLanguage,
+  tex: async () =>
+    StreamLanguage.define(
+      (await import("@codemirror/legacy-modes/mode/stex")).stex,
+    ),
+  latex: async () =>
+    StreamLanguage.define(
+      (await import("@codemirror/legacy-modes/mode/stex")).stex,
+    ),
   json: async () =>
     StreamLanguage.define(
       (await import("@codemirror/legacy-modes/mode/javascript")).json,
@@ -260,3 +271,8 @@ export async function loadLanguageFor(name: string): Promise<Language | null> {
 export const allLanguageNames = [
   ...new Set([...Object.keys(eagerLanguages), ...Object.keys(lazyLanguages)]),
 ];
+
+export function languageNameForExtension(extension: string): string | null {
+  if (!allLanguageNames.includes(extension)) return null;
+  return extension === "yml" ? "yaml" : extension;
+}

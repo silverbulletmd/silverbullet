@@ -2,7 +2,7 @@ import { HighlightStyle } from "@codemirror/language";
 import { tagHighlighter, tags as t } from "@lezer/highlight";
 import * as ct from "./markdown_parser/customtags.ts";
 
-export default function highlightStyles() {
+export function editorHighlightStyle() {
   tagHighlighter;
   return HighlightStyle.define([
     { tag: t.heading1, class: "sb-h1" },

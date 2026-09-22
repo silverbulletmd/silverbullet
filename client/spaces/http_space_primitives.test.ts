@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   HttpSpacePrimitives,
-  parseReconcileResponse,
   PermissionDeniedError,
+  parseReconcileResponse,
   ReconcileIneligibleError,
 } from "./http_space_primitives.ts";
 
@@ -174,6 +174,21 @@ describe("HttpSpacePrimitives client identity headers", () => {
     const headers = new Headers(calls[0].init.headers);
     expect(headers.has("X-Client-Id")).toBe(false);
     expect(headers.has("X-Source")).toBe(false);
+  });
+
+  test("cheap metadata requests keep GET credentials semantics and request no hash", async () => {
+    const calls = stubFetch();
+    await space().getFileMeta("clip.mp4", true, "cheap");
+    expect(calls[0].init.method).toBe("GET");
+    const headers = new Headers(calls[0].init.headers);
+    expect(headers.get("X-Get-Meta")).toBe("cheap");
+    expect(headers.get("X-Observing")).toBe("true");
+  });
+
+  test("ordinary metadata requests retain content-etag mode", async () => {
+    const calls = stubFetch();
+    await space().getFileMeta("note.md");
+    expect(new Headers(calls[0].init.headers).get("X-Get-Meta")).toBe("true");
   });
 });
 
