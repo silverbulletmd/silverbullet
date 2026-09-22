@@ -170,3 +170,33 @@ test.describe("page-aware docks", () => {
     );
   });
 });
+
+// #1914: a header's inline markdown has to survive into the TOC -- attributes
+// above all, which users style via `.sb-attribute[data-NAME]`. It must not
+// bring block markdown with it: "1. Numbered" is a header name, not a list.
+test.describe("table of contents label markdown", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "# Task [FINI: 2026-01-01]\n\n# 1. Numbered\n\n# Plain\n",
+    },
+  });
+
+  test("renders attributes in header labels without making a list", async ({
+    sbPage,
+  }) => {
+    await runCommandViaPalette(sbPage, "Navigate: Table of Contents");
+    const right = sbPage.locator(".sb-nav-root-rhs");
+    await expect(right.locator(".sb-nav-title")).toHaveText(
+      "Table of Contents",
+    );
+
+    const attribute = right.locator(".sb-attribute[data-FINI]");
+    await expect(attribute).toHaveCount(1, { timeout: 20_000 });
+    await expect(attribute).toHaveAttribute("data-FINI", "2026-01-01");
+
+    // The numbered header stays text: no list markup anywhere in the panel.
+    await expect(right.locator("ol")).toHaveCount(0);
+    await expect(right.locator("li ol, li ul")).toHaveCount(0);
+    await expect(right.getByText("1. Numbered")).toBeVisible();
+  });
+});

@@ -1,12 +1,43 @@
 import { RowText } from "./row_text.tsx";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { highlightMatches } from "./highlight.tsx";
 import { HoverTracker, resolveHover, useHovered } from "./hover.ts";
 import { Icon } from "./icon.tsx";
 import { RowActions } from "./row_actions.tsx";
 import { revealInClosest } from "./scroll.ts";
 import { allFolderPaths, type TreeNode } from "./tree_model.ts";
-import type { ActionMeta, Decoration, RowStates } from "./tree_types.ts";
+import type { ActionMeta, Decoration, Row, RowStates } from "./tree_types.ts";
+
+/**
+ * Mounts a label the view already rendered (see `Row.labelNode`). Highlighting
+ * a search phrase needs the raw string, so a filtered tree falls back to it.
+ */
+function LabelNode({ node }: { node: HTMLElement }) {
+  const host = useRef<HTMLSpanElement>(null);
+  // Layout, not passive: the row would otherwise paint an empty label and fill
+  // it a frame later, after `revealInClosest` has measured the row.
+  useLayoutEffect(() => {
+    host.current?.replaceChildren(node);
+  }, [node]);
+  return (
+    <span
+      ref={host}
+      // A link inside a label answers its own click; the row must not activate
+      // on top of it.
+      onClick={(event) => {
+        if ((event.target as Element | null)?.closest?.("a")) {
+          event.stopPropagation();
+        }
+      }}
+    />
+  );
+}
 
 /** How long a collapsed folder has to be hovered before it springs open. */
 const SPRING_LOAD_MS = 700;
@@ -48,6 +79,9 @@ export type TreeViewProps = {
   documentActions?: boolean;
   actionsDisabled?: boolean;
   rowState?: RowStates;
+  /** Labels pre-rendered to inline markdown by the owning view, keyed by
+   * row. Rendering needs the client's markdown pipeline, out of reach here. */
+  labelNodes?: WeakMap<Row, HTMLElement>;
   /** Whether the tree defines row icons at all, i.e. reserves the slot. */
   hasIcon: boolean;
   readOnly: boolean;
@@ -74,6 +108,7 @@ export function TreeView({
   documentActions,
   actionsDisabled,
   rowState,
+  labelNodes,
   hasIcon,
   readOnly,
   onToggle,
@@ -245,6 +280,7 @@ export function TreeView({
           documentActions={documentActions}
           actionsDisabled={actionsDisabled}
           rowState={rowState}
+          labelNodes={labelNodes}
           hasIcon={hasIcon}
           readOnly={readOnly}
           onToggle={onToggle}
@@ -274,6 +310,7 @@ function TreeItem({
   documentActions,
   actionsDisabled,
   rowState,
+  labelNodes,
   hasIcon,
   readOnly,
   onToggle,
@@ -297,6 +334,9 @@ function TreeItem({
   documentActions?: boolean;
   actionsDisabled?: boolean;
   rowState?: RowStates;
+  /** Labels pre-rendered to inline markdown by the owning view, keyed by
+   * row. Rendering needs the client's markdown pipeline, out of reach here. */
+  labelNodes?: WeakMap<Row, HTMLElement>;
   hasIcon: boolean;
   readOnly: boolean;
   onToggle: (path: string) => void;
@@ -313,6 +353,7 @@ function TreeItem({
   const hovered = useHovered(hover, node.path);
   const decorations = node.row?.decorations ?? [];
   const state = rowState?.byPath?.get(node.path);
+  const labelNode = node.row ? labelNodes?.get(node.row) : undefined;
 
   return (
     <li
@@ -373,7 +414,11 @@ function TreeItem({
         <RowText
           primary={
             <span class="sb-nav-primary">
-              {highlightMatches(node.row?.label ?? node.segment, phrase)}
+              {labelNode && !phrase?.trim() ? (
+                <LabelNode node={labelNode} />
+              ) : (
+                highlightMatches(node.row?.label ?? node.segment, phrase)
+              )}
             </span>
           }
           description={node.row?.description}
@@ -412,6 +457,7 @@ function TreeItem({
               documentActions={documentActions}
               actionsDisabled={actionsDisabled}
               rowState={rowState}
+              labelNodes={labelNodes}
               hasIcon={hasIcon}
               readOnly={readOnly}
               onToggle={onToggle}
