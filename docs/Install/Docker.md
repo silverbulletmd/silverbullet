@@ -12,9 +12,6 @@ Conveniently, SilverBullet is published as a [docker image on GHCR](https://gith
 * 64-bit ARM (e.g. for Raspberry Pis and Apple Silicon macs)
 * 32-bit ARM (ARMv7, e.g. for older Raspberry Pis running 32-bit Linux)
 
-> **warning** Warning
-> To access SilverBullet outside of `localhost` you will need to set up [[TLS]].
-
 # Release channels
 Every release version of SilverBullet is tagged with its version number, but there are two release channels you can use:
 
@@ -41,15 +38,12 @@ To check the version you’re running, use the ${widgets.commandButton("Client: 
 Below is a basic `compose.yml` that runs SilverBullet, check [[Install/Configuration]] for additional configuration options.
 
 Instructions:
-* Replace the password defined in `SB_USER` with something sensible such as `admin:b3stp4ssword3vah`
 * This volume uses the `./data` directory (will be auto-created if it doesn’t already exist) in the same directory as the `compose.yml` file as the place where SB will keep its data. 
 ```yaml
 services:
   silverbullet:
     image: ghcr.io/silverbulletmd/silverbullet:latest
     restart: unless-stopped
-    environment:
-    - SB_USER=admin:password
     volumes:
       - ./data:/data
     ports:
@@ -111,5 +105,5 @@ If you would like to install additional packages into your docker container (e.g
 
 In practice, you’ll likely want to put `apk add` commands install the (Alpine) packages you would like to install.
 
-# What next
+# Next
 After your container is running, head over to `http://localhost:3000` (or whatever port you have configured) to setup your server.

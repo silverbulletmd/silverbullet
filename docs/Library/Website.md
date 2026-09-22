@@ -56,6 +56,7 @@ local navPages = {
   { name = "Install/Server Binary", ref = "Install/Server Binary", icon = "server" },
   { name = "Install/Desktop", ref = "Install/Desktop", icon = "monitor" },
   { name = "Install/Configuration", ref = "Install/Configuration", icon = "settings" },
+  { name = "Install/Server Modes", ref = "Install/Server Modes"},
 
   -- Admin
   { name = "Administration", ref = "Administration", icon = "settings" },

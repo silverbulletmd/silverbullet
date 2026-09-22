@@ -24,12 +24,12 @@ Unzip this archive somewhere convenient. You’ll get a single `silverbullet` ex
 Then, create a folder to hold your data (your server configuration and space files will live here):
 
 ```bash
-mkdir sb-data
+mkdir data
 ```
 
 Run the server, pointing it at that folder:
 ```bash
-./silverbullet sb-data
+./silverbullet data
 ```
 
 Since `sb-data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Dashboard]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
@@ -43,14 +43,6 @@ And to bind on an address other than `127.0.0.1` (e.g. to make it reachable on y
 ```bash
 ./silverbullet -L 0.0.0.0 sb-data
 ```
-
-To force classic single-space behavior add `--single`:
-```bash
-./silverbullet --single my-space
-```
-
-> **note** Note
-> If you want to access SilverBullet from another machine, you need [[TLS]] _and_ you should enable [[Authentication]] first.
 
 Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Dashboard]], once that’s all done, head to [[Getting Started]] to learn the basics.
 
@@ -71,3 +63,4 @@ To upgrade your client, be sure to refresh your page _twice_ somewhat slowly.
 
 # Version
 To check which version of SilverBullet you’re running, run the ${widgets.commandButton("Client: Version")} command.
+
