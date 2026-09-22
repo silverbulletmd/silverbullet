@@ -1,5 +1,23 @@
 import { expect, test } from "vitest";
-import { isInlineSafeContentType } from "./inline_safe.ts";
+import {
+  isInlineFileContentType,
+  isInlineSafeContentType,
+} from "./inline_safe.ts";
+
+test("serves trusted HTML, CSS, and JavaScript files inline", () => {
+  for (const contentType of [
+    "text/html",
+    "text/html; charset=utf-8",
+    "text/css",
+    "text/javascript",
+    "application/javascript",
+  ]) {
+    expect(isInlineFileContentType(contentType)).toBe(true);
+  }
+  expect(isInlineSafeContentType("text/html")).toBe(false);
+  expect(isInlineFileContentType("image/svg+xml")).toBe(false);
+  expect(isInlineFileContentType("application/xml")).toBe(false);
+});
 
 test("mirrors the server allowlist", () => {
   for (const ok of [

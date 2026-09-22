@@ -1,5 +1,5 @@
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
-import { isInlineSafeContentType } from "../lib/inline_safe.ts";
+import { isInlineFileContentType } from "../lib/inline_safe.ts";
 import { fileMetaToHeaders, utcDateString } from "../lib/util.ts";
 
 export type ByteRangeResult =
@@ -81,7 +81,7 @@ export function parseByteRange(
 function localFileHeaders(meta: FileMeta): Headers {
   const headers = new Headers(fileMetaToHeaders(meta));
   headers.set("Accept-Ranges", "bytes");
-  if (!isInlineSafeContentType(meta.contentType)) {
+  if (!isInlineFileContentType(meta.contentType)) {
     headers.set("Content-Disposition", "attachment");
     headers.set("X-Content-Type-Options", "nosniff");
   }

@@ -219,7 +219,7 @@ test("an empty If-Range never matches missing local Last-Modified metadata", asy
   );
 });
 
-test("unsafe partial content is forced to download", () => {
+test("HTML partial content remains inline", () => {
   const response = buildLocalFileResponse(
     fileMeta("page.html", 10, "text/html"),
     bytes("0123456789"),
@@ -228,6 +228,6 @@ test("unsafe partial content is forced to download", () => {
     }),
   );
 
-  expect(response.headers.get("Content-Disposition")).toBe("attachment");
-  expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  expect(response.headers.get("Content-Disposition")).toBeNull();
+  expect(response.headers.get("X-Content-Type-Options")).toBeNull();
 });

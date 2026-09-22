@@ -187,14 +187,14 @@ test("initial sync: non-fs paths are not local-read candidates", () => {
   ).toBe(false);
 });
 
-test("serves html from cache as a forced download", async () => {
+test("serves html from cache inline", async () => {
   const router = routerWithFile("text/html");
   const resp = await router.handleGet(
     "note.html",
     new Request("http://localhost/.fs/note.html"),
   );
-  expect(resp.headers.get("Content-Disposition")).toBe("attachment");
-  expect(resp.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  expect(resp.headers.get("Content-Disposition")).toBeNull();
+  expect(resp.headers.get("X-Content-Type-Options")).toBeNull();
 });
 
 test("serves images inline (no download header)", async () => {
@@ -229,11 +229,11 @@ async function onFetchLocalRead(
   }
 }
 
-test("onFetch initial-sync fast path forces html to download", async () => {
+test("onFetch initial-sync fast path serves html inline", async () => {
   const router = routerWithFile("text/html");
   const resp = await onFetchLocalRead(router, "evil.html");
-  expect(resp.headers.get("Content-Disposition")).toBe("attachment");
-  expect(resp.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  expect(resp.headers.get("Content-Disposition")).toBeNull();
+  expect(resp.headers.get("X-Content-Type-Options")).toBeNull();
 });
 
 test("onFetch initial-sync fast path serves images inline (no download header)", async () => {

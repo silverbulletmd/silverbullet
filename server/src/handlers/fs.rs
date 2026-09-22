@@ -61,6 +61,16 @@ pub(crate) fn is_inline_safe(content_type: &str) -> bool {
         || ct.starts_with("audio/")
 }
 
+fn is_inline_file_content_type(content_type: &str) -> bool {
+    let lowered = content_type.trim().to_ascii_lowercase();
+    let ct = lowered.split(';').next().unwrap_or("").trim();
+    is_inline_safe(content_type)
+        || matches!(
+            ct,
+            "text/html" | "text/css" | "text/javascript" | "application/javascript"
+        )
+}
+
 pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let state_inner = state.clone();
     match run_blocking(move || state_inner.space.fetch_file_list()).await {
@@ -417,7 +427,7 @@ fn file_response_builder(
     if !last_modified.is_empty() {
         builder = builder.header(axum::http::header::LAST_MODIFIED, last_modified);
     }
-    if !force_octet_stream && !is_inline_safe(real_content_type) {
+    if !force_octet_stream && !is_inline_file_content_type(real_content_type) {
         builder = builder
             .header(axum::http::header::CONTENT_DISPOSITION, "attachment")
             .header(axum::http::header::X_CONTENT_TYPE_OPTIONS, "nosniff");
@@ -1268,6 +1278,21 @@ mod tests {
         assert!(!is_inline_safe("IMAGE/SVG+XML"));
     }
 
+    #[test]
+    fn trusted_web_files_are_served_inline() {
+        for content_type in [
+            "text/html",
+            "text/html; charset=utf-8",
+            "text/css",
+            "text/javascript",
+            "application/javascript",
+        ] {
+            assert!(super::is_inline_file_content_type(content_type));
+        }
+        assert!(!super::is_inline_file_content_type("image/svg+xml"));
+        assert!(!super::is_inline_file_content_type("application/xml"));
+    }
+
     #[tokio::test]
     async fn list_returns_written_files() {
         let state = test_state();
@@ -1728,7 +1753,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn partial_responses_preserve_type_negotiation_and_inline_safety() {
+    async fn partial_responses_preserve_type_negotiation_and_inline_files() {
         let state = test_state();
         state.space.write_file("pic.png", b"PNG!", None).unwrap();
         state
@@ -1765,14 +1790,8 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(html.status(), StatusCode::PARTIAL_CONTENT);
-        assert_eq!(
-            html.headers().get("content-disposition").unwrap(),
-            "attachment"
-        );
-        assert_eq!(
-            html.headers().get("x-content-type-options").unwrap(),
-            "nosniff"
-        );
+        assert!(html.headers().get("content-disposition").is_none());
+        assert!(html.headers().get("x-content-type-options").is_none());
 
         let octets = router
             .oneshot(
@@ -2155,16 +2174,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn html_attachment_is_forced_to_download() {
-        // Non-inline-safe content type (text/html, inferred from the .html
-        // extension by the in-memory space) must be forced to download with
-        // nosniff, even against a browser-like Accept header.
+    async fn html_file_is_served_inline() {
         let state = test_state();
         state
             .space
             .write_file("evil.html", b"<script>alert(1)</script>", None)
             .unwrap();
         state.space.write_file("pic.png", b"\x89PNG", None).unwrap();
+        state
+            .space
+            .write_file("drawing.svg", b"<svg></svg>", None)
+            .unwrap();
         let app = crate::build_router(Arc::new(state));
 
         let html_resp = app
@@ -2182,16 +2202,11 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(html_resp.status(), StatusCode::OK);
-        assert_eq!(
-            html_resp.headers().get("Content-Disposition").unwrap(),
-            "attachment"
-        );
-        assert_eq!(
-            html_resp.headers().get("X-Content-Type-Options").unwrap(),
-            "nosniff"
-        );
+        assert!(html_resp.headers().get("Content-Disposition").is_none());
+        assert!(html_resp.headers().get("X-Content-Type-Options").is_none());
 
         let png_resp = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/.fs/pic.png")
@@ -2207,6 +2222,21 @@ mod tests {
         assert_eq!(png_resp.status(), StatusCode::OK);
         assert!(png_resp.headers().get("Content-Disposition").is_none());
         assert!(png_resp.headers().get("X-Content-Type-Options").is_none());
+
+        let svg_resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/drawing.svg")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(svg_resp.status(), StatusCode::OK);
+        assert_eq!(
+            svg_resp.headers().get("Content-Disposition").unwrap(),
+            "attachment"
+        );
     }
 
     #[tokio::test]
