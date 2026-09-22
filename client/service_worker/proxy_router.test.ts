@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import { expect, test, vi } from "vitest";
 import {
   belongsToAnotherSpace,
   belongsToSiblingSpace,
@@ -209,13 +210,14 @@ test("serves images inline (no download header)", async () => {
 async function onFetchLocalRead(
   router: ProxyRouter,
   path: string,
+  init?: RequestInit,
 ): Promise<Response> {
   const originalCaches = (globalThis as any).caches;
   (globalThis as any).caches = { match: async () => undefined };
   try {
     let responsePromise: Promise<Response> | undefined;
     const event = {
-      request: new Request(`http://localhost/.fs/${path}`),
+      request: new Request(`http://localhost/.fs/${path}`, init),
       respondWith: (p: Promise<Response>) => {
         responsePromise = p;
       },
@@ -239,4 +241,174 @@ test("onFetch initial-sync fast path serves images inline (no download header)",
   const resp = await onFetchLocalRead(router, "photo.png");
   expect(resp.headers.get("Content-Disposition")).toBeNull();
   expect(resp.headers.get("X-Content-Type-Options")).toBeNull();
+});
+
+test("handleGet serves a local byte range", async () => {
+  const router = routerWithFile(
+    "video/mp4",
+    new TextEncoder().encode("0123456789"),
+  );
+  const response = await router.handleGet(
+    "clip.bin",
+    new Request("http://localhost/.fs/clip.bin", {
+      headers: { Range: "bytes=2-5" },
+    }),
+  );
+
+  expect(response.status).toBe(206);
+  expect(response.headers.get("Content-Range")).toBe("bytes 2-5/10");
+  expect(await response.text()).toBe("2345");
+});
+
+test("the initial-sync local fast path serves a byte range", async () => {
+  const router = routerWithFile(
+    "video/mp4",
+    new TextEncoder().encode("0123456789"),
+  );
+  const response = await onFetchLocalRead(router, "clip.bin", {
+    headers: { Range: "bytes=2-5" },
+  });
+
+  expect(response.status).toBe(206);
+  expect(response.headers.get("Content-Range")).toBe("bytes 2-5/10");
+  expect(await response.text()).toBe("2345");
+});
+
+test("the initial-sync local fast path serves HEAD without a network request", async () => {
+  const router = routerWithFile(
+    "video/mp4",
+    new TextEncoder().encode("0123456789"),
+  );
+  const originalFetch = globalThis.fetch;
+  const fetchMock = vi.fn(
+    async (_request: RequestInfo | URL) => new Response(null, { status: 502 }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  try {
+    const response = await onFetchLocalRead(router, "clip.bin", {
+      method: "HEAD",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Length")).toBe("10");
+    expect(response.headers.get("X-Content-Length")).toBe("10");
+    expect(response.headers.get("Accept-Ranges")).toBe("bytes");
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  } finally {
+    vi.stubGlobal("fetch", originalFetch);
+  }
+});
+
+test("HEAD is served from local storage without a body", async () => {
+  const router = routerWithFile(
+    "video/mp4",
+    new TextEncoder().encode("0123456789"),
+  );
+  const originalFetch = globalThis.fetch;
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  try {
+    const response = await router.handleRequest(
+      "/.fs/clip.bin",
+      new Request("http://localhost/.fs/clip.bin", { method: "HEAD" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Length")).toBe("10");
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  } finally {
+    vi.stubGlobal("fetch", originalFetch);
+  }
+});
+
+test("a missing local file proxies the original range request untouched", async () => {
+  const router = routerWithFile("video/mp4");
+  router.localSpacePrimitives = {
+    readFile: async () => {
+      throw new Error(notFoundError.message);
+    },
+  } as any;
+  const request = new Request("http://localhost/.fs/remote.mp4", {
+    headers: {
+      Range: "bytes=4-7",
+      "If-Range": "Wed, 21 Oct 2015 07:28:00 GMT",
+    },
+  });
+  const upstream = new Response("4567", {
+    status: 206,
+    headers: { "Content-Range": "bytes 4-7/10" },
+  });
+  const originalFetch = globalThis.fetch;
+  const fetchMock = vi.fn(async (_request: RequestInfo | URL) => upstream);
+  vi.stubGlobal("fetch", fetchMock);
+  try {
+    const response = await router.handleGet("remote.mp4", request);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]![0]).toBe(request);
+    const proxiedRequest = fetchMock.mock.calls[0]![0] as Request;
+    expect(proxiedRequest.headers.get("Range")).toBe("bytes=4-7");
+    expect(proxiedRequest.headers.get("If-Range")).toBe(
+      "Wed, 21 Oct 2015 07:28:00 GMT",
+    );
+    expect(response).toBe(upstream);
+    expect(response.status).toBe(206);
+    expect(response.headers.get("Content-Range")).toBe("bytes 4-7/10");
+    expect(await response.text()).toBe("4567");
+  } finally {
+    vi.stubGlobal("fetch", originalFetch);
+  }
+});
+
+test("a local cheap metadata probe reads metadata without reading the body", async () => {
+  const router = routerWithFile("video/mp4");
+  const getFileMeta = vi.fn(async () => ({
+    name: "clip.mp4",
+    contentType: "video/mp4",
+    size: 10,
+    created: 0,
+    lastModified: 0,
+    perm: "rw",
+  }));
+  const readFile = vi.fn(async () => {
+    throw new Error("body must not be read");
+  });
+  router.localSpacePrimitives = { getFileMeta, readFile } as any;
+  const response = await router.handleGet(
+    "clip.mp4",
+    new Request("http://localhost/.fs/clip.mp4", {
+      headers: { "X-Get-Meta": "cheap" },
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(response.headers.get("X-Content-Length")).toBe("10");
+  expect(getFileMeta).toHaveBeenCalledOnce();
+  expect(readFile).not.toHaveBeenCalled();
+});
+
+test("a missing local cheap metadata probe is proxied with its mode intact", async () => {
+  const router = routerWithFile("video/mp4");
+  router.localSpacePrimitives = {
+    getFileMeta: async () => {
+      throw new Error(notFoundError.message);
+    },
+  } as any;
+  const request = new Request("http://localhost/.fs/remote.mp4", {
+    headers: { "X-Get-Meta": "cheap", "X-Observing": "true" },
+  });
+  const upstream = new Response(null, { status: 200 });
+  const originalFetch = globalThis.fetch;
+  const fetchMock = vi.fn(async (_request: RequestInfo | URL) => upstream);
+  vi.stubGlobal("fetch", fetchMock);
+  try {
+    expect(await router.handleGet("remote.mp4", request)).toBe(upstream);
+    expect(fetchMock).toHaveBeenCalledWith(request);
+    const proxied = fetchMock.mock.calls[0][0] as Request;
+    expect(proxied.headers.get("X-Get-Meta")).toBe("cheap");
+    expect(proxied.headers.get("X-Observing")).toBe("true");
+  } finally {
+    vi.stubGlobal("fetch", originalFetch);
+  }
 });

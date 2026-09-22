@@ -5,26 +5,12 @@ import {
   pingInterval,
 } from "@silverbulletmd/silverbullet/constants";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
-import { isInlineSafeContentType } from "../lib/inline_safe.ts";
 import { fileMetaToHeaders, headersToFileMeta } from "../lib/util.ts";
 import { EventEmitter } from "../plugos/event.ts";
 import { fsEndpoint } from "../spaces/constants.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
+import { buildLocalFileResponse } from "./byte_range.ts";
 import type { SyncEngine } from "./sync_engine.ts";
-
-/**
- * Builds the `Response` for a file read straight from local storage
- * (IndexedDB).
- */
-function buildLocalFileResponse(meta: FileMeta, data: Uint8Array): Response {
-  const headers: Record<string, string> = fileMetaToHeaders(meta);
-  if (!isInlineSafeContentType(meta.contentType)) {
-    headers["Content-Disposition"] = "attachment";
-    headers["X-Content-Type-Options"] = "nosniff";
-  }
-  return new Response(data as any, { headers });
-}
 
 // The server surfaces every space carries under its own base path. This worker
 // can answer exactly two of them for its OWN space — `.client` from the
@@ -113,7 +99,7 @@ export function belongsToSiblingSpace(
 /**
  * Whether a request may be answered from the local base store while the very
  * first sync cycle is still running (i.e. before `fullSyncConfirmed`).
- * Non-markdown GETs qualify even without the X-Sync-Mode header: plug worker
+ * Non-markdown reads qualify even without the X-Sync-Mode header: plug worker
  * scripts and attachments are fetched by the browser itself, and proxying an
  * already-synced .plug.js on a slow link can push the worker boot past its
  * 5s creation timeout. Bare .md navigations keep proxy-first behavior.
@@ -124,7 +110,7 @@ export function isInitialSyncLocalReadCandidate(
   headers: Headers,
 ): boolean {
   return (
-    method === "GET" &&
+    (method === "GET" || method === "HEAD") &&
     pathname.startsWith(`${fsEndpoint}/`) &&
     pathname.length > fsEndpoint.length + 1 &&
     (headers.has("X-Sync-Mode") || !pathname.endsWith(".md"))
@@ -331,7 +317,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
                 }
                 const { meta, data } =
                   await this.localSpacePrimitives.readFile(path);
-                return buildLocalFileResponse(meta, data);
+                return buildLocalFileResponse(meta, data, request);
               } catch {
                 // Not synced yet (or unreadable) — proxy as before.
               }
@@ -401,6 +387,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           return this.handleGet(path, request);
         }
       }
+      case "HEAD": {
+        return path ? this.handleGet(path, request) : fetch(request);
+      }
       case "PUT": {
         return this.handlePut(path, request);
       }
@@ -458,7 +447,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         });
       } else {
         const { meta, data } = await this.localSpacePrimitives.readFile(path);
-        return buildLocalFileResponse(meta, data);
+        return buildLocalFileResponse(meta, data, request);
       }
     } catch (err: any) {
       if (err.message === notFoundError.message && this.online) {

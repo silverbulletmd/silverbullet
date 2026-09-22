@@ -1,15 +1,16 @@
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 export function utcDateString(mtime: number): string {
-  return new Date(mtime).toUTCString();
+  const date = new Date(mtime);
+  return Number.isNaN(date.getTime()) ? "" : date.toUTCString();
 }
 
 export function authCookieName(host: string) {
   return `auth_${host.replaceAll(/\W/g, "_")}`;
 }
 
-export function fileMetaToHeaders(fileMeta: FileMeta) {
-  return {
+export function fileMetaToHeaders(fileMeta: FileMeta): Record<string, string> {
+  const headers: Record<string, string> = {
     "Content-Type": fileMeta.contentType,
     "X-Last-Modified": `${fileMeta.lastModified}`,
     "X-Created": `${fileMeta.created}`,
@@ -17,6 +18,11 @@ export function fileMetaToHeaders(fileMeta: FileMeta) {
     "X-Permission": fileMeta.perm,
     "X-Content-Length": `${fileMeta.size}`,
   };
+  const lastModified = utcDateString(fileMeta.lastModified);
+  if (lastModified) {
+    headers["Last-Modified"] = lastModified;
+  }
+  return headers;
 }
 
 export function headersToFileMeta(
