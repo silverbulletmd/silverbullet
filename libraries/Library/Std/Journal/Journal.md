@@ -111,17 +111,16 @@ end
 ```space-lua
 -- priority: -1
 if config.get("journal.enabled", true) then
-  -- using command.update here (instead of command.define) to support key binding overrides (executed before)
   command.update {
     name = "Journal: Today",
-    key = "Ctrl-q j",
+    key = config.get({"commands", "Journal: Today", "key"}, "Ctrl-q j"),
     run = function()
       journal.openOrCreate(date.today())
     end,
   }
   command.update {
     name = "Journal: Previous Day",
-    key = "Ctrl-q p",
+    key = config.get({"commands", "Journal: Previous Day", "key"}, "Ctrl-q p"),
     run = function()
       local entry = journal.neighbor("previous")
       if entry then
@@ -133,7 +132,7 @@ if config.get("journal.enabled", true) then
   }
   command.update {
     name = "Journal: Next Day",
-    key = "Ctrl-q n",
+    key = config.get({"commands", "Journal: Next Day", "key"}, "Ctrl-q n"),
     run = function()
       local entry = journal.neighbor("next")
       if entry then
