@@ -3,7 +3,7 @@ import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { indexHeaders } from "./header.ts";
+import { headerComplete, indexHeaders } from "./header.ts";
 
 const testPage = `
 # Header 1
@@ -90,4 +90,38 @@ test("user `range` attribute cannot overwrite a header's source offsets", async 
   expect(header).toBeTruthy();
   expect(header.range).toEqual([0, md.length]);
   expect(typeof header.pos).toBe("number");
+});
+
+test.each([
+  ["[[page name#he", "page name"],
+  ["[[#he", "Home"],
+  ["[link](page name#he", "page name"],
+])("header completion replaces only the heading in %s", async (linePrefix, pageName) => {
+  createMockSystem();
+  const source = "# Heading One\n# Other";
+  const tree = parseMarkdown(source);
+  const headers = await indexHeaders(
+    makePageMeta(pageName),
+    await extractFrontMatter(tree),
+    tree,
+  );
+  await (globalThis as any).syscall("index.indexObjects", pageName, headers);
+
+  const result = await headerComplete({
+    linePrefix,
+    pos: linePrefix.length,
+    pageName,
+    parentNodes: [],
+  });
+
+  expect(result).toEqual({
+    from: linePrefix.length - 2,
+    options: [
+      { label: "Heading One", type: "header" },
+      { label: "Other", type: "header" },
+    ],
+  });
+  expect(linePrefix.slice(0, result!.from) + result!.options[0].label).toBe(
+    linePrefix.replace(/he$/, "Heading One"),
+  );
 });
