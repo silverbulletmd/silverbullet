@@ -93,7 +93,9 @@ export function extractSnippet(
     // spaces: the separator must not give a space back to the body to get
     // past the check. A one-character body, a markdown link or an attribute
     // still needs a reference to stay toggleable.
-    const taskMatch = line.match(/^(\s*)([*-]\s+\[[^\]]+\]\s+)((?!\s*\[\[).+)$/);
+    const taskMatch = line.match(
+      /^(\s*)([*-]\s+\[[^\]]+\]\s+)((?!\s*\[\[).+)$/,
+    );
     if (taskMatch) {
       const pos = lineOffsets[i] + taskMatch[1].length;
       line = `${taskMatch[1] + taskMatch[2]}[[${pageName}@${pos}]] ${taskMatch[3]}`;
