@@ -96,7 +96,7 @@ fn command(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Command {
     cmd
 }
 
-fn output(mut command: Command) -> Result<Output, String> {
+fn output(mut command: Command, timeout: Duration) -> Result<Output, String> {
     command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -124,7 +124,7 @@ fn output(mut command: Command) -> Result<Output, String> {
         if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
             break status;
         }
-        if started.elapsed() > Duration::from_secs(60) {
+        if started.elapsed() > timeout {
             #[cfg(unix)]
             {
                 let _ = Command::new("kill")
@@ -277,10 +277,29 @@ impl ManagedTransport {
 }
 
 pub fn run(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<String, String> {
-    run_bytes(repo, args, envs).map(|b| String::from_utf8_lossy(&b).into_owned())
+    run_with_timeout(repo, args, envs, Duration::from_secs(60))
+}
+
+pub fn run_with_timeout(
+    repo: &Path,
+    args: &[&str],
+    envs: &[(&str, &str)],
+    timeout: Duration,
+) -> Result<String, String> {
+    run_bytes_with_timeout(repo, args, envs, timeout)
+        .map(|b| String::from_utf8_lossy(&b).into_owned())
 }
 
 pub fn run_bytes(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<Vec<u8>, String> {
+    run_bytes_with_timeout(repo, args, envs, Duration::from_secs(60))
+}
+
+fn run_bytes_with_timeout(
+    repo: &Path,
+    args: &[&str],
+    envs: &[(&str, &str)],
+    timeout: Duration,
+) -> Result<Vec<u8>, String> {
     if !available() {
         return Err("git is not installed".to_string());
     }
@@ -294,7 +313,7 @@ pub fn run_bytes(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<Ve
                 .collect()
         })
         .unwrap_or_else(|| envs.to_vec());
-    let out = output(command(repo, args, &selected))?;
+    let out = output(command(repo, args, &selected), timeout)?;
     if out.status.success() {
         if let Some(transport) = &transport {
             transport.finish()?;
@@ -312,7 +331,7 @@ pub fn run_diff(repo: &Path, args: &[&str]) -> Result<String, String> {
     if !available() {
         return Err("git is not installed".to_string());
     }
-    let out = output(command(repo, args, &[]))?;
+    let out = output(command(repo, args, &[]), Duration::from_secs(60))?;
     match out.status.code() {
         Some(0) | Some(1) => Ok(String::from_utf8_lossy(&out.stdout).into_owned()),
         _ => Err(String::from_utf8_lossy(&out.stderr).trim().to_string()),
@@ -323,7 +342,7 @@ pub fn check(repo: &Path, args: &[&str], false_code: i32) -> Result<bool, String
     if !available() {
         return Err("git is not installed".to_string());
     }
-    let out = output(command(repo, args, &[]))?;
+    let out = output(command(repo, args, &[]), Duration::from_secs(60))?;
     match out.status.code() {
         Some(0) => Ok(true),
         Some(c) if c == false_code => Ok(false),
@@ -335,6 +354,17 @@ pub fn check(repo: &Path, args: &[&str], false_code: i32) -> Result<bool, String
 mod transport_tests {
     use super::*;
     use crate::{multi::config::GitSyncMode, revisions::keys};
+    #[test]
+    fn git_command_respects_operation_timeout() {
+        let repo = tempfile::TempDir::new().unwrap();
+        run(repo.path(), &["init", "-q"], &[]).unwrap();
+        let args = &["-c", "alias.wait=!sleep 0.1", "wait"];
+        assert_eq!(
+            run_with_timeout(repo.path(), args, &[], Duration::from_millis(20)),
+            Err("git operation timed out".into())
+        );
+        assert!(run_with_timeout(repo.path(), args, &[], Duration::from_secs(1)).is_ok());
+    }
     #[test]
     fn a_late_repository_rewrite_cannot_redirect_the_managed_key() {
         use std::os::unix::fs::PermissionsExt;

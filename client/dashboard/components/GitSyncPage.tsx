@@ -60,6 +60,7 @@ export function GitSyncPage({
   const [statusError, setStatusError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [checkElapsed, setCheckElapsed] = useState(0);
   const [session, setSession] = useState<GitDraftSession>();
   const [, render] = useState(0);
   const [repository, setRepository] = useState("");
@@ -78,6 +79,16 @@ export function GitSyncPage({
   const settingsUrl = dashboardUrl(
     `/${encodeURIComponent(spaceId)}?section=revisions`,
   );
+  useEffect(() => {
+    if (busy !== "test") return;
+    const started = Date.now();
+    setCheckElapsed(0);
+    const timer = setInterval(
+      () => setCheckElapsed(Math.floor((Date.now() - started) / 1000)),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, [busy]);
 
   const fail = (cause: any) => {
     if (cause?.kind === "staleDraft") {
@@ -659,6 +670,12 @@ export function GitSyncPage({
                   >
                     {busy === "test" ? "Checking…" : "Check connection"}
                   </Button>
+                  {busy === "test" && (
+                    <span role="status">
+                      Checking repository ({formatDuration(checkElapsed)}).
+                      Large histories may take several minutes.
+                    </span>
+                  )}
                   <Button
                     variant="primary"
                     disabled={

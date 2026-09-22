@@ -2,6 +2,9 @@ use super::config::{GitSyncConfig, GitSyncMode};
 use crate::revisions::{git, keys};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+const CONNECTION_CHECK_TIMEOUT: Duration = Duration::from_secs(600);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -253,7 +256,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
     let folder = folder.canonicalize().map_err(|e| e.to_string())?;
     let repo = repo.canonicalize().map_err(|e| e.to_string())?;
     let inspection = Inspection(folder.join(format!("inspect-{}", uuid::Uuid::new_v4())));
-    git::run(
+    git::run_with_timeout(
         &repo,
         &[
             "clone",
@@ -264,6 +267,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
             &inspection.0.to_string_lossy(),
         ],
         &[("SB_GIT_NO_HOOKS", "1")],
+        CONNECTION_CHECK_TIMEOUT,
     )?;
     let config_path = git::run(
         &repo,
@@ -303,6 +307,35 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
     }
     envs.push(("SB_GIT_NO_HOOKS".into(), "1".into()));
     let envs: Vec<_> = envs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    if git::run(
+        &repo,
+        &["config", "--get", &format!("branch.{}.merge", draft.branch)],
+        &[],
+    )
+    .is_err()
+    {
+        if let Ok(refs) = git::run_with_timeout(
+            &inspection.0,
+            &["ls-remote", "--symref", "--", &draft.url, "HEAD"],
+            &envs,
+            CONNECTION_CHECK_TIMEOUT,
+        ) {
+            if let Some(branch) = refs.lines().find_map(|line| {
+                line.strip_prefix("ref: refs/heads/")
+                    .and_then(|s| s.strip_suffix("\tHEAD"))
+            }) {
+                if git::run(
+                    &inspection.0,
+                    &["check-ref-format", &format!("refs/heads/{branch}")],
+                    &[],
+                )
+                .is_ok()
+                {
+                    draft.remote_branch = branch.to_string();
+                }
+            }
+        }
+    }
     let local_head = git::run(
         &inspection.0,
         &["rev-parse", "--verify", "HEAD"],
@@ -311,7 +344,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
     .ok()
     .map(|s| s.trim().to_string());
     let mut result = json!({"reachable":false,"writable":false,"kind":"other","message":"Connection check failed", "checkedUrl":draft.url,"checkedAt":now(),"branch":draft.branch,"remoteBranch":draft.remote_branch,"localHead":local_head,"remoteHead":null,"ahead":null,"behind":null,"unrelated":false,"credentialIdentity":keys::connection_identity(&inspection.0,&folder,"key",draft.mode).ok()});
-    match git::run(
+    match git::run_with_timeout(
         &inspection.0,
         &[
             "ls-remote",
@@ -321,6 +354,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
             &format!("refs/heads/{}", draft.remote_branch),
         ],
         &envs,
+        CONNECTION_CHECK_TIMEOUT,
     ) {
         Err(error) => {
             let (kind, message) = super::admin_api::classify_git_test_error(&error);
@@ -332,10 +366,11 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
             let remote_head = refs.split_whitespace().next().map(String::from);
             result["remoteHead"] = json!(remote_head);
             if remote_head.is_some() {
-                match git::run(
+                match git::run_with_timeout(
                     &inspection.0,
                     &["fetch", "--no-tags", "--", &draft.url, &draft.remote_branch],
                     &envs,
+                    CONNECTION_CHECK_TIMEOUT,
                 ) {
                     Ok(_) => {
                         if local_head.is_some() {
@@ -357,6 +392,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
                         let (kind, message) = super::admin_api::classify_git_test_error(&error);
                         result["kind"] = json!(kind);
                         result["message"] = json!(message);
+                        result["checkedAt"] = json!(now());
                         draft.test = Some(result);
                         return Ok(());
                     }
@@ -375,7 +411,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
                 result["kind"] = json!("emptyRepo");
                 result["message"] = json!("Repository reachable. Push preflight is inconclusive until this space has a commit.");
             } else {
-                match git::run(
+                match git::run_with_timeout(
                     &inspection.0,
                     &[
                         "push",
@@ -386,6 +422,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
                         &format!("HEAD:refs/heads/{}", draft.remote_branch),
                     ],
                     &envs,
+                    CONNECTION_CHECK_TIMEOUT,
                 ) {
                     Ok(_) => {
                         result["writable"] = json!(true);
@@ -401,6 +438,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
             }
         }
     }
+    result["checkedAt"] = json!(now());
     draft.test = Some(result);
     Ok(())
 }
@@ -489,6 +527,62 @@ mod tests {
                 .trim(),
             "git@example.test:original.git"
         );
+    }
+    #[test]
+    fn new_connection_uses_remote_default_branch() {
+        let root = tempfile::TempDir::new().unwrap();
+        let repo = tempfile::TempDir::new().unwrap();
+        let remote = tempfile::TempDir::new().unwrap();
+        git::run(repo.path(), &["init", "-q", "-b", "master"], &[]).unwrap();
+        git::run(remote.path(), &["init", "-q", "--bare", "-b", "main"], &[]).unwrap();
+        std::fs::write(repo.path().join("Local.md"), "local\n").unwrap();
+        git::run(repo.path(), &["add", "Local.md"], &[]).unwrap();
+        git::run(
+            repo.path(),
+            &[
+                "-c",
+                "user.name=Sample",
+                "-c",
+                "user.email=sample@example.test",
+                "commit",
+                "-qm",
+                "Local",
+            ],
+            &[],
+        )
+        .unwrap();
+        let seed = tempfile::TempDir::new().unwrap();
+        git::run(seed.path(), &["init", "-q", "-b", "main"], &[]).unwrap();
+        std::fs::write(seed.path().join("Remote.md"), "remote\n").unwrap();
+        git::run(seed.path(), &["add", "Remote.md"], &[]).unwrap();
+        git::run(
+            seed.path(),
+            &[
+                "-c",
+                "user.name=Sample",
+                "-c",
+                "user.email=sample@example.test",
+                "commit",
+                "-qm",
+                "Remote",
+            ],
+            &[],
+        )
+        .unwrap();
+        git::run(
+            seed.path(),
+            &["push", "-q", &remote.path().to_string_lossy(), "main"],
+            &[],
+        )
+        .unwrap();
+        let mut draft =
+            create_draft(root.path(), "sample", repo.path(), GitSyncConfig::default()).unwrap();
+        draft.mode = GitSyncMode::Manual;
+        draft.url = remote.path().to_string_lossy().into_owned();
+        check_draft(root.path(), "sample", repo.path(), &mut draft).unwrap();
+        assert_eq!(draft.branch, "master");
+        assert_eq!(draft.remote_branch, "main");
+        assert_eq!(draft.test.as_ref().unwrap()["remoteBranch"], "main");
     }
     #[test]
     fn draft_check_accepts_relative_space_folder() {
