@@ -542,6 +542,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     followEditor: field(spec, "followEditor") === true,
     refreshOn: refreshOnEvents(spec),
     hasMove: present(field(spec, "onMove")),
+    uploadFiles: field(p, "uploadFiles") === true,
     hasCreate: present(field(spec, "onCreate")),
     refreshOnOpen: field(spec, "refreshOnOpen") === true,
     keys: keymapKeys(spec),

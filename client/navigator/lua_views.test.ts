@@ -316,6 +316,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     followEditor: false,
     refreshOn: undefined,
     hasMove: false,
+    uploadFiles: false,
     hasCreate: false,
     refreshOnOpen: false,
     keys: undefined,
@@ -769,6 +770,20 @@ test("view.pick keeps the content fields and stands them up as an ephemeral moda
   expect(meta.ephemeral).toBe(true);
   expect(meta.title).toBe("Pick");
   expect(meta.placeholder).toBe("Fruit");
+});
+
+test("tree pickers can opt into Space file uploads", () => {
+  const pick = buildPickSpec(
+    luaSpec(
+      `{ ${SOURCE}, presentation = { mode = "tree", uploadFiles = true } }`,
+    ),
+    "__pick:files",
+  );
+  expect(wireMeta(pick).uploadFiles).toBe(true);
+  expect(
+    wireMeta(luaSpec(`{ ${SOURCE}, presentation = { mode = "tree" } }`))
+      .uploadFiles,
+  ).toBe(false);
 });
 
 test("view.pick remains selectable without an onSelect callback", () => {

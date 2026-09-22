@@ -12,6 +12,7 @@ import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
+import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
 import type { Client } from "../../../client.ts";
 import { resize } from "../../navigator.ts";
 import { createCommands } from "../commands.ts";
@@ -27,6 +28,11 @@ import { CloseIcon } from "./chrome_icons.tsx";
 import { ContentBody, CopyMarkdownButton } from "./content_view.tsx";
 import { CreateRow } from "./create_row.tsx";
 import { DockMenu } from "./dock_menu.tsx";
+import {
+  collectDroppedFiles,
+  uploadFiles,
+  uploadPathExists,
+} from "../file_drop_upload.ts";
 import { ListView } from "./list_view.tsx";
 
 /**
@@ -423,6 +429,46 @@ export function NavRoot({
               view.meta.hasSelect !== false ? cmd.onTreeRowClick : undefined
             }
             onMove={(from, to) => void cmd.moveNode(from, to)}
+            onExternalFiles={
+              view.meta.uploadFiles && !readOnly && !treeFiltering
+                ? (transfer, folder) => {
+                    void (async () => {
+                      try {
+                        const files = await collectDroppedFiles(transfer);
+                        await uploadFiles(files, folder, {
+                          prompt: (message, initial) =>
+                            client.ui.prompt(message, initial),
+                          exists: (path) =>
+                            uploadPathExists(
+                              (name) =>
+                                client.space.spacePrimitives.getFileMeta(name),
+                              path,
+                            ),
+                          writePage: (name, content) =>
+                            client.space.writePage(name, content),
+                          writeDocument: (name, content) =>
+                            client.space.writeDocument(name, content),
+                          notify: (message, type) =>
+                            client.ui.flashNotification(message, type),
+                          refresh: () => refresh.current(),
+                          maxSizeBytes:
+                            client.config.get(
+                              "maximumDocumentSize",
+                              maximumDocumentSize,
+                            ) *
+                            1024 *
+                            1024,
+                        });
+                      } catch (error) {
+                        client.ui.flashNotification(
+                          `Upload failed: ${String(error)}`,
+                          "error",
+                        );
+                      }
+                    })();
+                  }
+                : undefined
+            }
             onAction={(node, index) =>
               void cmd.runAction(index, nodeObject(node))
             }

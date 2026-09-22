@@ -269,6 +269,82 @@ test.describe("space tree", () => {
       )
       .toBe(404);
   });
+
+  test("dropping multiple files on a folder confirms the destination and saves them", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    const tree = sbPage.locator(".sb-nav-root-lhs");
+    await expect(tree.locator("[data-path='Projects']")).toBeVisible({
+      timeout: 20_000,
+    });
+    const rowTop = (await tree.locator("[data-path='Projects']").boundingBox())!
+      .y;
+    const rowOffset = await tree
+      .locator("[data-path='Projects']")
+      .evaluate((element) => (element as HTMLElement).offsetTop);
+    await sbPage.evaluate(() => {
+      const folder = document.querySelector(
+        ".sb-nav-root-lhs [data-path='Projects']",
+      )!;
+      const transfer = new DataTransfer();
+      transfer.items.add(
+        new File(["# Draft"], "Draft.md", { type: "text/markdown" }),
+      );
+      transfer.items.add(
+        new File(["details"], "Details.txt", { type: "text/plain" }),
+      );
+      folder.dispatchEvent(
+        new DragEvent("dragover", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: transfer,
+        }),
+      );
+    });
+    await expect(tree.locator("[data-path='Projects']")).toHaveClass(
+      /sb-nav-droptarget/,
+    );
+    await expect(tree.locator(".sb-nav-upload-target")).toHaveText(
+      "Upload to Projects",
+    );
+    await expect(tree.locator(".sb-nav-upload-target span")).toBeInViewport();
+    expect(
+      (await tree.locator("[data-path='Projects']").boundingBox())!.y,
+    ).toBe(rowTop);
+    expect(
+      await tree
+        .locator("[data-path='Projects']")
+        .evaluate((element) => (element as HTMLElement).offsetTop),
+    ).toBe(rowOffset);
+    await sbPage.evaluate(() => {
+      const folder = document.querySelector(
+        ".sb-nav-root-lhs [data-path='Projects']",
+      )!;
+      const transfer = new DataTransfer();
+      transfer.items.add(
+        new File(["# Draft"], "Draft.md", { type: "text/markdown" }),
+      );
+      transfer.items.add(
+        new File(["details"], "Details.txt", { type: "text/plain" }),
+      );
+      folder.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: transfer,
+        }),
+      );
+    });
+    const prompt = sbPage.locator(".sb-prompt");
+    await expect(prompt).toContainText("Upload 2 files to folder");
+    await expect(prompt.locator(".sb-prompt-input")).toHaveValue("Projects");
+    await prompt.getByRole("button", { name: /Ok/ }).click();
+    await expect(prompt).toBeHidden();
+    await waitForPersistedContent(sbServer, "Projects/Draft.md", "# Draft");
+    await waitForPersistedContent(sbServer, "Projects/Details.txt", "details");
+  });
 });
 
 const historyPage =

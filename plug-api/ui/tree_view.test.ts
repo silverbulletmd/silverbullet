@@ -2,7 +2,25 @@ import { h } from "preact";
 import { render } from "preact-render-to-string";
 import { expect, test } from "vitest";
 import { buildTree } from "./tree_model.ts";
-import { activateTreeRow, TreeView } from "./tree_view.tsx";
+import {
+  activateTreeRow,
+  externalFilesDrag,
+  targetFolderForPath,
+  TreeView,
+} from "./tree_view.tsx";
+
+test("external file drags target folders, file parents, and root without catching internal moves", () => {
+  const folders = new Set(["Notes", "Notes/Sub"]);
+  expect(targetFolderForPath("Notes/Sub", folders, "/")).toBe("Notes/Sub");
+  expect(targetFolderForPath("Notes/Page", folders, "/")).toBe("Notes");
+  expect(targetFolderForPath("Root", folders, "/")).toBe("");
+  expect(externalFilesDrag(["Files"], true)).toBe(true);
+  expect(externalFilesDrag(["Files", "application/x-sb-nav-path"], true)).toBe(
+    false,
+  );
+  expect(externalFilesDrag(["text/plain"], true)).toBe(false);
+  expect(externalFilesDrag(["Files"], false)).toBe(false);
+});
 
 test("current page remains independent of target and retains tree hooks", () => {
   const tree = buildTree(

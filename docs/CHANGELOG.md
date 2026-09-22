@@ -6,6 +6,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
 * `identity.mentions(recipient, options)` exposes the Mention Inbox data to Space Lua and the CLI, including authorship, source references, and pagination.
 * More non-Markdown files can now be edited with syntax highlighting. Supported supported audio, video, and PDF documents open in native in-editor viewers with efficient seeking.
+* Files and folders can be dragged into the Space tree to upload them. The tree highlights the destination and asks for confirmation before writing, preserving nested folder paths and prompting before replacing existing files.
 
 ## 2.11.0
 * Significant **visual refresh**:

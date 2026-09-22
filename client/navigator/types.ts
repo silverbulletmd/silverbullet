@@ -84,6 +84,7 @@ export type ViewMeta = {
   followEditor: boolean;
   refreshOn: string[];
   hasMove: boolean;
+  uploadFiles?: boolean;
   hasCreate: boolean;
   refreshOnOpen: boolean;
   keys?: string[];

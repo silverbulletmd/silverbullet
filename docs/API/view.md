@@ -61,6 +61,7 @@ With `hashtagFilter = true`, `#meet` matches rows with a `tags` entry starting w
 * `mode`: `"list"` (default) or `"tree"`.
 * `hierarchy`: tree path field and separator; defaults to `{ field = "name", separator = "/" }`. Paths must be unique; duplicate paths merge into one node.
 * `foldersFirst`: group folders first in trees; defaults to `true`.
+* `uploadFiles`: set to `true` to accept files and folders dropped onto a panel tree. The tree paths must be Space folder paths; the user confirms the proposed destination before files are uploaded. Ignored by list and inline views.
 * `expandAll`: start all folders open and remember those closed.
 * `expansionScope`: for registered trees, `"view"` (default, persisted) or `"page"` (transient while on the page). Inline trees use `stateKey` instead.
 * `limit`: maximum displayed rows, default 200. Inline/page-docked trees are uncapped.

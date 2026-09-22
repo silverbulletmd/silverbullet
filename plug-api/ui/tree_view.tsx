@@ -13,6 +13,24 @@ const SPRING_LOAD_MS = 700;
 
 const DRAG_MIME = "application/x-sb-nav-path";
 
+export function externalFilesDrag(
+  types: readonly string[],
+  enabled: boolean,
+): boolean {
+  return enabled && types.includes("Files") && !types.includes(DRAG_MIME);
+}
+
+export function targetFolderForPath(
+  path: string | undefined,
+  folders: Set<string>,
+  separator: string,
+): string {
+  if (path === undefined) return "";
+  if (folders.has(path)) return path;
+  const index = path.lastIndexOf(separator);
+  return index === -1 ? "" : path.slice(0, index);
+}
+
 export function activateTreeRow<T extends { path: string; isFolder: boolean }>(
   node: T,
   onSelect: ((node: T) => void) | undefined,
@@ -54,6 +72,7 @@ export type TreeViewProps = {
   onToggle: (path: string) => void;
   onSelect?: (node: TreeNode) => void;
   onMove: (draggedPath: string, targetFolder: string) => void;
+  onExternalFiles?: (transfer: DataTransfer, targetFolder: string) => void;
   onAction: (node: TreeNode, actionIndex: number) => void;
   scrollContainerSelector?: string;
   focusableRows?: boolean;
@@ -79,6 +98,7 @@ export function TreeView({
   onToggle,
   onSelect,
   onMove,
+  onExternalFiles,
   onAction,
   scrollContainerSelector,
   focusableRows,
@@ -117,8 +137,8 @@ export function TreeView({
   useEffect(() => () => clearTimeout(springTimer.current), []);
 
   function parentOf(path: string): string {
-    const idx = path.lastIndexOf(separator);
-    return idx === -1 ? "" : path.slice(0, idx);
+    const index = path.lastIndexOf(separator);
+    return index === -1 ? "" : path.slice(0, index);
   }
 
   /**
@@ -130,8 +150,7 @@ export function TreeView({
   function targetFor(e: DragEvent): string {
     const row = (e.target as HTMLElement | null)?.closest?.("[data-path]");
     const path = (row as HTMLElement | null)?.dataset?.path;
-    if (path === undefined) return "";
-    return folderPaths.has(path) ? path : parentOf(path);
+    return targetFolderForPath(path, folderPaths, separator);
   }
 
   function isValidTarget(from: string, to: string): boolean {
@@ -175,8 +194,15 @@ export function TreeView({
 
   function onDragOver(e: DragEvent) {
     const from = dragging.current;
-    // Anything dragged in from outside the tree (a file, a text selection)
-    // is not ours to accept.
+    if (
+      from === undefined &&
+      externalFilesDrag([...(e.dataTransfer?.types ?? [])], !!onExternalFiles)
+    ) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+      setTarget(targetFor(e));
+      return;
+    }
     if (from === undefined) return;
     const to = targetFor(e);
     if (!isValidTarget(from, to)) {
@@ -200,16 +226,23 @@ export function TreeView({
   }
 
   function onDrop(e: DragEvent) {
+    const types = [...(e.dataTransfer?.types ?? [])];
+    const external = externalFilesDrag(types, !!onExternalFiles);
+    if (!dragging.current && !external && !types.includes(DRAG_MIME)) return;
     e.preventDefault();
     const from = dragging.current ?? e.dataTransfer?.getData(DRAG_MIME);
     const to = targetFor(e);
     // Drags emit no pointer events; save the drop position for hover resolution.
     hover.track(e, pathAt);
     endDrag();
+    if (external && e.dataTransfer) {
+      onExternalFiles?.(e.dataTransfer, to);
+      return;
+    }
     if (from && isValidTarget(from, to)) onMove(from, to);
   }
 
-  if (tree.children.length === 0) {
+  if (tree.children.length === 0 && !onExternalFiles) {
     return showEmpty ? <div class="sb-nav-empty">No results</div> : null;
   }
 
@@ -221,13 +254,18 @@ export function TreeView({
       // Delegated: one set of listeners for the whole tree, and the row a
       // drop resolves to isn't always the row under the pointer anyway.
       onDragStart={canDrag ? onDragStart : undefined}
-      onDragOver={canDrag ? onDragOver : undefined}
-      onDragLeave={canDrag ? onDragLeave : undefined}
-      onDrop={canDrag ? onDrop : undefined}
-      onDragEnd={canDrag ? endDrag : undefined}
+      onDragOver={canDrag || onExternalFiles ? onDragOver : undefined}
+      onDragLeave={canDrag || onExternalFiles ? onDragLeave : undefined}
+      onDrop={canDrag || onExternalFiles ? onDrop : undefined}
+      onDragEnd={canDrag || onExternalFiles ? endDrag : undefined}
       onPointerOver={(e) => hover.track(e, pathAt)}
       onPointerLeave={() => hover.set(undefined)}
     >
+      {dropTarget !== undefined && onExternalFiles && !dragging.current && (
+        <li role="presentation" class="sb-nav-upload-target">
+          <span>Upload to {dropTarget || "Space root"}</span>
+        </li>
+      )}
       {tree.children.map((n) => (
         <TreeItem
           key={n.path}

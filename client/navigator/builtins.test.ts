@@ -531,6 +531,7 @@ test("std.spaceTree's ordering honours the space's queryCollation config, not ra
 test("std.spaceTree's meta carries hasMove, the three actions, and the Space keymap", () => {
   const meta = builtinMeta("std.spaceTree")!;
   expect(meta.hasMove).toBe(true);
+  expect(meta.uploadFiles).toBe(true);
   expect(meta.keys).toEqual([" "]);
   expect(meta.actions).toEqual([
     {

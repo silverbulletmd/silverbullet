@@ -174,6 +174,7 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     mode: "tree",
     followEditor: true,
     hasCreate: true,
+    uploadFiles: true,
     foldersFirst: false,
     // Every folder here names a page, whether or not one exists yet, so
     // clicking one opens that page as well as expanding the row.
