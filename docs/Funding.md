@@ -3,7 +3,7 @@ While SilverBullet is free to use, **it is not free to develop**. A lot of time 
 If you are a SilverBullet user, consider sponsoring the project financially. You likely already pay for other (non-open source) software, why not SilverBullet as well?
 
 # Why?
-While the project is largely a labor of love, and a lot of volunteers contribute significantly, it does benefit from funding. The more funding, the more time can be spent to make this product as good as it can be and to recoup some of its costs.
+While the project is largely a labor of love, and a lot of volunteers contribute significantly, it does benefit from funding. The more funding, the more time can be spent to make this product as good as it can be.
 
 # How?
 SilverBullet has a commercial desktop edition named [SilverBullet+](https://silverbullet.plus/), that you may like. Buying SilverBullet+ is one way to support the project financially.
@@ -11,8 +11,7 @@ SilverBullet has a commercial desktop edition named [SilverBullet+](https://silv
 Not a SilverBullet+ user? Here are a few ways to financially support the project at the moment, ordered by preference:
 1. [LiberaPay](https://liberapay.com/zef) (preferred)
 2. [Github sponsors](https://github.com/sponsors/silverbulletmd)
-3. [Patreon](https://www.patreon.com/cw/silverbulletmd)
-4. [PayPal](https://paypal.me/zefhemel)
+3. [PayPal](https://paypal.me/zefhemel)
 
 If you are interested in becoming a corporate sponsor, reach out to [Zef Hemel directly](mailto:zef@zef.me) to discuss options.
 

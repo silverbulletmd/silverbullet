@@ -1,0 +1,1 @@
+Git is a [free and open source version control system](https://git-scm.com/) originally developed by Linus Torvalds (of Linux fame) and the de-facto standard in the industry.
