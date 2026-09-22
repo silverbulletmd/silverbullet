@@ -3,6 +3,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
+* Nothing yet since 2.11.1
+
+## 2.11.1
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
 * Fix: HTML, CSS, and JavaScript files in a space open directly again, restoring print preview libraries that serve generated HTML from `/.fs/`.
 * Fix: X-Ray and lint tooltips remain readable when dark mode follows the system setting, including when that setting changes while SilverBullet is open.
