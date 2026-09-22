@@ -2,7 +2,7 @@
 description: A non-page file (such as an image, PDF, or other attachment) stored in your space.
 tags: glossary
 ---
-While SilverBullet is aimed at primarily text-based content, life can not fully be represented in text always. Therefore, SilverBullet supports documents. Documents, like [[Page]] ultimately are — once again — just files on disk. Using plugs, documents of specific file types can also be viewed and edited.
+While SilverBullet is aimed primarily at text-based content, documents let a space contain source files, images, PDFs, audio, video, and other attachments. Documents, like [[Page|pages]], are ultimately just files on disk. Installed plugs can provide specialized editors, while built-in fallbacks edit UTF-8 text and display browser-supported media.
 
 # Uploading
 To create a document, you have a few options:
@@ -13,10 +13,10 @@ To create a document, you have a few options:
 
 All options will prompt you for a file name to use to store the document, and then include the document as an embedded image (if it was an image) or link to the file.
 
-# Managment
-Using ${widgets.commandButton("Navigate: Document Picker")} you can open the document picker, which will display all documents in your Silverbullet space. You can either:
-  - Delete or rename documents for which no [[Document Editor]] is available (indicated by the grey hint)
-  - Open and view documents for which a [[Document Editor]] is available (indicated by the blue hint)
+# Management
+Using ${widgets.commandButton("Navigate: Document Picker")} you can open the document picker, which displays all documents in your SilverBullet space. A blue extension indicates that an installed plug, the built-in text editor, or a browser media viewer can handle the document; gray indicates that the file opens externally. Unknown small files may still require a UTF-8 check when opened.
+
+The built-in text editor accepts valid UTF-8 documents up to 5 MiB, with syntax highlighting for known source formats and plain text for other formats. In the host fallback, HTML, SVG, XML, JavaScript, and similar active content is edited as source rather than executed; the specialized image-viewer plug claims SVG first. Browser-supported images, audio, video, and PDFs can be viewed in the editor; media that the current browser cannot display opens externally.
 
 # Linking
 Documents can be linked to in two ways:
@@ -24,8 +24,7 @@ Documents can be linked to in two ways:
 * Via the wiki link syntax: `[[document.pdf]]`. These paths are absolute and relative to your space’s root, just like regular page links. That is: on a page `MyFolder/Hello` a document link `[[document.pdf]]` would link to the file `document.pdf` in the space’s root folder.
 
 # Embedding
-Media can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`:
-Images, videos, audio and PDFs are currently supported.
+Media can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`. Images, video, audio, and PDFs are supported using the browser's native media elements and range-capable file responses.
 
 * `![alternate text](image.png)`
 * `![[image.png]]`

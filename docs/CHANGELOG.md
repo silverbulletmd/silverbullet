@@ -1,9 +1,11 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
+_These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
 * `identity.mentions(recipient, options)` exposes the Mention Inbox data to Space Lua and the CLI, including authorship, source references, and pagination.
+* More non-Markdown files can now be edited with syntax highlighting. Supported supported audio, video, and PDF documents open in native in-editor viewers with efficient seeking.
 
 ## 2.11.0
 * Significant **visual refresh**:

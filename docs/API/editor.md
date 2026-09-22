@@ -360,6 +360,20 @@ Returns the cursor position as a character offset from the start of the document
 
 - `number` — The cursor offset.
 
+## editor.getDocumentCapabilities
+
+`editor.getDocumentCapabilities(documents)`
+
+Resolves the editor capability available for each document from metadata only. Results retain the input order. A `text` result with reason `probe-required` means navigation will read the document and validate it as UTF-8 before opening the text editor.
+
+**Parameters:**
+
+- `documents` (`DocumentCapabilityDescriptor[]`) — Document descriptors containing `name`, `extension`, `contentType`, and `size`.
+
+**Returns:**
+
+- `DocumentCapability[]` — One `plug`, `text`, `media`, or `external` capability per input document. Plug results may include `editor`; text and external results may include `reason`.
+
 ## editor.getFocusedPanelSlot
 
 `editor.getFocusedPanelSlot()`
@@ -428,7 +442,7 @@ Returns the current value of an editor UI option.
 
 `editor.getViewableExtensions()`
 
-Returns the file extensions that have a document editor registered, i.e. the documents this client can actually open. Extensions carry no leading dot. Which editors are loaded depends on the plugs installed, so this is a property of the client rather than of the space.
+Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included; use `editor.getDocumentCapabilities` to determine whether the client can open particular documents.
 
 **Returns:**
 
@@ -954,4 +968,3 @@ Executes a Vim Ex command in the active Vim-mode editor.
 
 - `exCommand` (`string`) — The Ex command to execute.
 <!--/lua-->
-
