@@ -213,6 +213,22 @@ test.describe("space tree", () => {
     });
     await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 
+    const expandAll = tree.getByRole("button", { name: "Expand all folders" });
+    const collapseAll = tree.getByRole("button", {
+      name: "Collapse all folders",
+    });
+    await expect(expandAll).toBeEnabled();
+    await expect(collapseAll).toBeDisabled();
+    await expandAll.click();
+    await expect(tree.locator("[data-path='Projects/Alpha']")).toBeVisible();
+    await expect(expandAll).toBeDisabled();
+    await tree.getByRole("radio", { name: "Meta" }).click();
+    await expect(expandAll).toBeEnabled();
+    await expect(collapseAll).toBeDisabled();
+    await tree.getByRole("radio", { name: "All" }).click();
+    await collapseAll.click();
+    await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
+
     await tree.locator("[data-path='Projects'] .sb-nav-chevron").click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toBeVisible();
     await tree.locator("[data-path='Projects/Alpha'] .sb-nav-primary").click();

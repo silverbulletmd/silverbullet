@@ -5,9 +5,11 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
 * Fix: HTML, CSS, and JavaScript files in a space open directly again, restoring print preview libraries that serve generated HTML from `/.fs/`.
-* `identity.mentions(recipient, options)` exposes the Mention Inbox data to Space Lua and the CLI, including authorship, source references, and pagination.
-* More non-Markdown files can now be edited with syntax highlighting. Supported supported audio, video, and PDF documents open in native in-editor viewers with efficient seeking.
-* Files and folders can be dragged into the Space tree to upload them. The tree highlights the destination and asks for confirmation before writing, preserving nested folder paths and prompting before replacing existing files.
+* Fix: X-Ray and lint tooltips remain readable when dark mode follows the system setting, including when that setting changes while SilverBullet is open.
+* Git connection checks now allow more time for large repositories and detect an existing remote's default branch when a new space connects.
+* `identity.mentions(recipient, options)` exposes the Mention Inbox data to Space Lua and the CLI.
+* More non-Markdown files can now be edited with syntax highlighting in the editor. Supported supported audio, video, and PDF documents open in native in-editor viewers with efficient seeking. Do not ask for fancy code editing features, SB will not devolve in to a general purpose code editor! (famous last words)
+* Files and folders can be dragged into the file tree to upload them.
 
 ## 2.11.0
 * Significant **visual refresh**:

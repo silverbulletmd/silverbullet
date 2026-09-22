@@ -1,5 +1,9 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
-import { planMove, withExpanded } from "../../../plug-api/ui/tree_model.ts";
+import {
+  allFolderPaths,
+  planMove,
+  withExpanded,
+} from "../../../plug-api/ui/tree_model.ts";
 import type { NavigatorEngine } from "./engine.ts";
 import { expansionKey } from "./expansion.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
@@ -73,6 +77,22 @@ export function createTreeCommands({
     });
   }
 
+  function setAllFoldersExpanded(open: boolean) {
+    if (!view || !treeDisplay || treeFiltering) return;
+    inputRef.current?.focus();
+    const paths = allFolderPaths(treeDisplay.tree);
+    expandedDirty.current = true;
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      for (const path of paths) {
+        if (open === expandAll) next.delete(path);
+        else next.add(path);
+      }
+      persistExpanded(next);
+      return next;
+    });
+  }
+
   /** A completed drag: `targetFolder` is `""` for a drop on the root area. */
   async function moveNode(draggedPath: string, targetFolder: string) {
     // The drag's own mousedown blurred the input (same exemption as above).
@@ -104,5 +124,11 @@ export function createTreeCommands({
     refresh();
   }
 
-  return { toggleExpanded, expandPath, moveNode };
+  return {
+    toggleExpanded,
+    expandPath,
+    expandAllFolders: () => setAllFoldersExpanded(true),
+    collapseAllFolders: () => setAllFoldersExpanded(false),
+    moveNode,
+  };
 }

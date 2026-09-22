@@ -36,7 +36,7 @@ Open the space’s settings and choose **Connect repository** or **Manage Git sy
 1. Enter a **Repository** URL. A repository web address can be converted to its clone address. The effective address is shown before testing.
 2. Choose **Deploy key for this space** or **Use server credentials**. The latter means that you manage the server's Git authentication yourself.
 3. For a deploy key, generate it, copy its public key, and install it at the repository host with write access. The key must be installed before the connection check can succeed.
-4. **Check connection**. The check uses the candidate address and credentials on this page. Editing them invalidates the result. A push preflight is useful, but repository hooks or branch protection can still reject the actual push.
+4. **Check connection**. The check uses the candidate address and credentials on this page. For a new connection, it detects the remote's default branch and shows the local-to-remote mapping. Editing the address or credentials invalidates the result. A push preflight is useful, but repository hooks or branch protection can still reject the actual push. Large repositories may take several minutes to check.
 5. Review the destination, branch, local history that will be shared, and remote-check frequency, then **Enable sync**. The connected overview shows the first sync's actual progress and result.
 
 A connection shares committed history, including older versions of files, rather than only the space's current contents. If both repositories have unrelated histories, combining them requires a separate one-time choice. Conflicting pages are resolved as described below.

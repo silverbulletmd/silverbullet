@@ -4,14 +4,19 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "preact/hooks";
 import { ResizeHandle } from "../../../../plug-api/ui/resize_handle.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
-import { nodeObject } from "../../../../plug-api/ui/tree_model.ts";
+import {
+  allFolderPaths,
+  nodeObject,
+} from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
+import { MinusSquare, PlusSquare } from "preact-feather";
 import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
 import type { Client } from "../../../client.ts";
 import { resize } from "../../navigator.ts";
@@ -233,6 +238,17 @@ export function NavRoot({
   const placeholder =
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
   const noFilter = !!view?.meta.noFilter;
+  const spaceTree = view?.name === "std.spaceTree";
+  const folderPaths = useMemo(
+    () =>
+      spaceTree && treeDisplay
+        ? allFolderPaths(treeDisplay.tree)
+        : new Set<string>(),
+    [spaceTree, treeDisplay?.tree],
+  );
+  const openFolders = [...folderPaths].filter((path) =>
+    treeDisplay?.effectiveExpanded.has(path),
+  ).length;
 
   // A drawer has no draggable edge, so it needs no room reserved beside its
   // scrollbar either -- the class that reserves it goes with the handle.
@@ -342,17 +358,47 @@ export function NavRoot({
           </button>
         </div>
         {segments && (
-          <SegmentedControl
-            items={segments.map((s, i) => ({
-              label: s.label,
-              icon: view?.segmentIcons?.[i],
-              // Say the prefix explicitly because it is not otherwise displayed.
-              tooltip: s.prefix ? `${s.label} (${s.prefix})` : undefined,
-            }))}
-            activeIndex={segmentIndex}
-            onPick={cmd.pickSegment}
-            ariaLabel="Segments"
-          />
+          <div
+            className={
+              spaceTree
+                ? "sb-nav-segment-row sb-nav-segment-row-actions"
+                : "sb-nav-segment-row"
+            }
+          >
+            <SegmentedControl
+              items={segments.map((s, i) => ({
+                label: s.label,
+                icon: view?.segmentIcons?.[i],
+                // Say the prefix explicitly because it is not otherwise displayed.
+                tooltip: s.prefix ? `${s.label} (${s.prefix})` : undefined,
+              }))}
+              activeIndex={segmentIndex}
+              onPick={cmd.pickSegment}
+              ariaLabel="Segments"
+            />
+            {spaceTree && (
+              <div className="sb-nav-tree-actions">
+                <button
+                  type="button"
+                  title="Collapse all folders"
+                  aria-label="Collapse all folders"
+                  disabled={treeFiltering || openFolders === 0}
+                  onClick={cmd.collapseAllFolders}
+                >
+                  <MinusSquare size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  title="Expand all folders"
+                  aria-label="Expand all folders"
+                  disabled={treeFiltering || openFolders === folderPaths.size}
+                  onClick={cmd.expandAllFolders}
+                >
+                  <PlusSquare size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {view?.meta.dropdown && (
           <select
