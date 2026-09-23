@@ -76,3 +76,36 @@ test("registered document capability syscall resolves a mixed batch without body
   ).resolves.toEqual(expected);
   expect(readDocument).not.toHaveBeenCalled();
 });
+
+test("download space file saves its current bytes under the file basename", async () => {
+  const readFile = vi.fn(async () => ({
+    data: new Uint8Array([0, 1, 255]),
+    meta: { contentType: "application/pdf" },
+  }));
+  const link = { href: "", download: "", click: vi.fn() };
+  vi.stubGlobal("document", { createElement: () => link });
+  const objectUrl = vi
+    .spyOn(URL, "createObjectURL")
+    .mockReturnValue("blob:report");
+  try {
+    const client = {
+      space: { spacePrimitives: { readFile } },
+    } as unknown as Client;
+    const system = new System();
+    system.registerSyscalls([], editorSyscalls(client));
+    await system.localSyscall("editor.downloadSpaceFile", ["Files/report.pdf"]);
+
+    expect(readFile).toHaveBeenCalledWith("Files/report.pdf");
+    expect(link.download).toBe("report.pdf");
+    expect(link.href).toBe("blob:report");
+    expect(link.click).toHaveBeenCalledOnce();
+    const blob = objectUrl.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("application/pdf");
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(
+      new Uint8Array([0, 1, 255]),
+    );
+  } finally {
+    objectUrl.mockRestore();
+    vi.unstubAllGlobals();
+  }
+});

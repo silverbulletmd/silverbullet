@@ -14,6 +14,7 @@ import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
+import { handleTreeFileDrop, insertTreeFileLink } from "./tree_file_drop.ts";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import TurndownService from "turndown";
 // @ts-expect-error - No type definitions available for this package
@@ -166,6 +167,7 @@ export function documentExtension(editor: Client) {
         return false;
       },
       drop: (event: DragEvent) => {
+        if (handleTreeFileDrop(event, editor.editorView)) return true;
         // TODO: This doesn't take into account the target cursor position,
         // it just drops the document wherever the cursor was last.
         if (event.dataTransfer) {
@@ -176,6 +178,30 @@ export function documentExtension(editor: Client) {
           // Without this the browser falls through to its default action
           // (navigating to the dropped file)
           event.preventDefault();
+          const desktopResolve = (
+            globalThis as typeof globalThis & {
+              silverbulletDesktop?: {
+                resolveSpaceFileDrop(file: File): Promise<{
+                  path: string;
+                  kind: "page" | "document";
+                  contentType?: string;
+                } | null>;
+              };
+            }
+          ).silverbulletDesktop?.resolveSpaceFileDrop;
+          if (payload.length === 1 && desktopResolve) {
+            const view = editor.editorView;
+            const coords = { x: event.clientX, y: event.clientY };
+            safeRun(async () => {
+              const file = await desktopResolve(payload[0]);
+              if (file) {
+                if (activeView === view) insertTreeFileLink(file, coords, view);
+              } else {
+                await processFileTransfer(payload);
+              }
+            });
+            return true;
+          }
           safeRun(async () => {
             await processFileTransfer(payload);
           });

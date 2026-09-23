@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
+* Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported. **File: Download** saves the current page or document when drag-out is unavailable; the upload command is now **File: Upload**.
 * Fix (iOS): `Upload: File` now reliably opens the file picker and uploads the selected file in Safari and the installed web app.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 

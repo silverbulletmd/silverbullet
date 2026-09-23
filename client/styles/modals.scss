@@ -12,10 +12,10 @@
   }
 
   @media only screen and (max-width: 600px) {
-    margin-top: 8px;
+    margin-top: calc(8px + var(--sb-standalone-top-offset, 0px));
     width: 100%;
     max-width: 100%;
-    max-height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px - var(--sb-standalone-top-offset, 0px));
     border-radius: 0;
   }
 

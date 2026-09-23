@@ -40,6 +40,7 @@ import {
   uploadPathExists,
 } from "../file_drop_upload.ts";
 import { ListView } from "./list_view.tsx";
+import { fileDragData } from "../file_drag_export.ts";
 
 /**
  * The panel itself: the input state a view is browsed with, wired to the
@@ -240,6 +241,11 @@ export function NavRoot({
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
   const noFilter = !!view?.meta.noFilter;
   const spaceTree = view?.name === "std.spaceTree";
+  const desktopFileDrag = (
+    globalThis as typeof globalThis & {
+      silverbulletDesktop?: { startSpaceFileDrag(item: unknown): void };
+    }
+  ).silverbulletDesktop?.startSpaceFileDrag;
   const folderPaths = useMemo(
     () =>
       spaceTree && treeDisplay
@@ -466,6 +472,28 @@ export function NavRoot({
             showEmpty={!canCreate}
             separator={view.meta.hierarchy.separator}
             canDrag={canDrag}
+            fileDragData={
+              view.name === "std.spaceTree" &&
+              (globalThis.matchMedia?.("(pointer: fine)").matches ?? false)
+                ? (node) =>
+                    node.row
+                      ? fileDragData(
+                          node.row.obj as {
+                            name: string;
+                            tag?: string;
+                            contentType?: string;
+                            isAspiring?: boolean;
+                          },
+                          client.httpSpacePrimitives.url,
+                        )
+                      : null
+                : undefined
+            }
+            nativeFileDrag={
+              spaceTree && desktopFileDrag
+                ? (payload) => desktopFileDrag(JSON.parse(payload))
+                : undefined
+            }
             actions={view.meta.actions}
             actionIcons={view.actionIcons}
             rowState={view.rowState}

@@ -199,6 +199,10 @@ export function downloadFile(filename: string, dataUrl: string): Promise<void> {
   return syscall("editor.downloadFile", filename, dataUrl);
 }
 
+export function downloadSpaceFile(name: string): Promise<void> {
+  return syscall("editor.downloadSpaceFile", name);
+}
+
 export function uploadFile(
   accept?: string,
   capture?: string,

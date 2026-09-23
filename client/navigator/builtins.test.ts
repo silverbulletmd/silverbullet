@@ -528,7 +528,7 @@ test("std.spaceTree's ordering honours the space's queryCollation config, not ra
   ]);
 });
 
-test("std.spaceTree's meta carries hasMove, the three actions, and the Space keymap", () => {
+test("std.spaceTree's meta carries hasMove, file actions, and the Space keymap", () => {
   const meta = builtinMeta("std.spaceTree")!;
   expect(meta.hasMove).toBe(true);
   expect(meta.uploadFiles).toBe(true);
@@ -590,6 +590,8 @@ test("std.spaceTree's row state: icon per kind, and the action mask", async () =
   // page nor a document behind it.
   expect(folder.actions).toEqual([true, true, false]);
   expect(page.actions).toEqual([false, true, true]);
+  expect(doc.actions).toEqual([false, true, true]);
+  expect(aspiring.actions).toEqual([false, true, true]);
   // A page that also heads a folder (a "dual") keeps its own Delete -- the
   // one case a bare folder-or-page pair doesn't exercise on either side.
   expect(dual.actions).toEqual([true, true, true]);

@@ -1,5 +1,13 @@
 @use "profile_menu";
 
+@media (display-mode: standalone) {
+  @supports (-webkit-touch-callout: none) and selector(:heading) {
+    :root {
+      --sb-standalone-top-offset: 20px;
+    }
+  }
+}
+
 #sb-top {
   display: flex;
   flex-direction: row;
@@ -13,7 +21,7 @@
   // enough to put every glyph row at full contrast; clearing all 35px buys nothing.
   @media (display-mode: standalone) {
     @supports (-webkit-touch-callout: none) and selector(:heading) {
-      padding-top: 20px;
+      padding-top: var(--sb-standalone-top-offset);
     }
   }
 

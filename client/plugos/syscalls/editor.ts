@@ -498,6 +498,29 @@ export function editorSyscalls(client: Client): SysCallMapping {
         },
       ],
     },
+    "editor.downloadSpaceFile": {
+      callback: async (_ctx, name: string) => {
+        const { data, meta } =
+          await client.space.spacePrimitives.readFile(name);
+        const url = URL.createObjectURL(
+          new Blob([new Uint8Array(data)], {
+            type: meta.contentType || "application/octet-stream",
+          }),
+        );
+        try {
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = name.split("/").at(-1)!;
+          link.click();
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+      },
+      description: "Downloads a space file using its current contents.",
+      parameters: [
+        { name: "name", type: "string", description: "Space file path." },
+      ],
+    },
     "editor.uploadFile": {
       callback: (
         _ctx,

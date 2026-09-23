@@ -75,6 +75,21 @@ test.describe("page and command navigation", () => {
     },
   });
 
+  test("the page picker clears the standalone iOS top band", async ({
+    sbPage,
+  }) => {
+    await sbPage.setViewportSize({ width: 390, height: 844 });
+    await sbPage.addStyleTag({
+      content: ":root { --sb-standalone-top-offset: 20px; }",
+    });
+    await openPagePicker(sbPage);
+
+    const top = await sbPage
+      .locator(".sb-modal-centered")
+      .evaluate((element) => element.getBoundingClientRect().top);
+    expect(top).toBe(28);
+  });
+
   test("page titles take precedence over tags at narrow widths", async ({
     sbPage,
   }) => {
@@ -190,9 +205,10 @@ test.describe("anchor navigation", () => {
 test.describe("space tree", () => {
   test.use({
     spaceFiles: {
-      "index.md": "Welcome",
+      "index.md": "Before\n\nAfter",
       "Projects/Alpha.md": "# Alpha",
       "Projects/Beta.md": "# Beta",
+      "Files/report.txt": "Report text",
       "Journal/Today.md": "# Today\n\nPlanning notes.",
       ...Object.fromEntries(
         Array.from({ length: 80 }, (_, index) => [
@@ -201,6 +217,63 @@ test.describe("space tree", () => {
         ]),
       ),
     },
+  });
+
+  test("dragging Space tree files into the editor inserts links without uploading", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    const tree = sbPage.locator(".sb-nav-root-lhs");
+    await expect(tree.locator("[data-path='Projects']")).toBeVisible({
+      timeout: 20_000,
+    });
+    await tree.locator("[data-path='Projects'] .sb-nav-chevron").click();
+    await tree.locator("[data-path='Files'] .sb-nav-chevron").click();
+    await tree.locator(".sb-tree").evaluate((element) => {
+      (window as any).__treeDownloads = [];
+      element.addEventListener("dragstart", (event) => {
+        (window as any).__treeDownloads.push(
+          (event as DragEvent).dataTransfer?.getData("DownloadURL"),
+        );
+      });
+    });
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await tree.locator("[data-path='Projects/Alpha']").dragTo(editor);
+    await expect
+      .poll(() =>
+        sbPage.evaluate(() =>
+          (globalThis as any).client.editorView.state.doc.toString(),
+        ),
+      )
+      .toContain("[[Projects/Alpha]]");
+    await tree.locator("[data-path='Files/report.txt']").dragTo(editor);
+    await expect
+      .poll(() =>
+        sbPage.evaluate(() =>
+          (globalThis as any).client.editorView.state.doc.toString(),
+        ),
+      )
+      .toContain("[[Files/report.txt]]");
+    await waitForPersistedContent(
+      sbServer,
+      "index.md",
+      /(?=.*\[\[Projects\/Alpha\]\])(?=.*\[\[Files\/report\.txt\]\])/s,
+    );
+    const downloads = await sbPage.evaluate(async () =>
+      Promise.all(
+        ((window as any).__treeDownloads as string[]).map(async (value) => {
+          const match = /^[^:]+:[^:]+:(.+)$/.exec(value);
+          return match
+            ? [value, await (await fetch(match[1])).text()]
+            : [value];
+        }),
+      ),
+    );
+    expect(downloads).toEqual([
+      [expect.stringContaining("text/markdown:Alpha.md:"), "# Alpha"],
+      [expect.stringContaining("text/plain:report.txt:"), "Report text"],
+    ]);
   });
 
   test("expanding and selecting a tree row navigates while the dock stays open", async ({

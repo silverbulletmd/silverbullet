@@ -17,8 +17,15 @@ export function externalFilesDrag(
   types: readonly string[],
   enabled: boolean,
 ): boolean {
-  return enabled && types.includes("Files") && !types.includes(DRAG_MIME);
+  return (
+    enabled &&
+    types.includes("Files") &&
+    !types.includes(DRAG_MIME) &&
+    !types.includes("application/x-sb-space-file")
+  );
 }
+
+type FileDragData = { mime: string; payload: string; downloadURL: string };
 
 export function targetFolderForPath(
   path: string | undefined,
@@ -61,6 +68,8 @@ export type TreeViewProps = {
   separator: string;
   /** Whether rows are drag sources / drop targets at all. */
   canDrag: boolean;
+  fileDragData?: (node: TreeNode) => FileDragData | null;
+  nativeFileDrag?: (payload: string) => void;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
   documentActions?: boolean;
@@ -88,6 +97,8 @@ export function TreeView({
   showEmpty,
   separator,
   canDrag,
+  fileDragData,
+  nativeFileDrag,
   actions,
   actionIcons,
   documentActions,
@@ -116,6 +127,17 @@ export function TreeView({
   const springTimer = useRef<number | undefined>(undefined);
 
   const folderPaths = useMemo(() => allFolderPaths(tree), [tree]);
+  const filesByPath = useMemo(() => {
+    const files = new Map<string, FileDragData>();
+    if (!fileDragData) return files;
+    const visit = (node: TreeNode) => {
+      const data = fileDragData(node);
+      if (data) files.set(node.path, data);
+      node.children.forEach(visit);
+    };
+    tree.children.forEach(visit);
+    return files;
+  }, [tree, fileDragData]);
 
   /** The path a DOM node's row carries, if it is in one. */
   const pathAt = (node: Element | null) =>
@@ -187,9 +209,26 @@ export function TreeView({
     const row = (e.target as HTMLElement | null)?.closest?.("[data-path]");
     const path = (row as HTMLElement | null)?.dataset?.path;
     if (!path) return;
-    dragging.current = path;
-    e.dataTransfer?.setData(DRAG_MIME, path);
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+    const file = filesByPath.get(path);
+    if (file && nativeFileDrag) {
+      e.preventDefault();
+      nativeFileDrag(file.payload);
+      return;
+    }
+    if (canDrag) {
+      dragging.current = path;
+      e.dataTransfer?.setData(DRAG_MIME, path);
+    }
+    if (file) {
+      e.dataTransfer?.setData(file.mime, file.payload);
+      e.dataTransfer?.setData("DownloadURL", file.downloadURL);
+    }
+    if (e.dataTransfer)
+      e.dataTransfer.effectAllowed = file
+        ? canDrag
+          ? "copyMove"
+          : "copy"
+        : "move";
   }
 
   function onDragOver(e: DragEvent) {
@@ -253,11 +292,13 @@ export function TreeView({
       class={"sb-tree" + (dropTarget === "" ? " sb-nav-droptarget" : "")}
       // Delegated: one set of listeners for the whole tree, and the row a
       // drop resolves to isn't always the row under the pointer anyway.
-      onDragStart={canDrag ? onDragStart : undefined}
+      onDragStart={canDrag || fileDragData ? onDragStart : undefined}
       onDragOver={canDrag || onExternalFiles ? onDragOver : undefined}
       onDragLeave={canDrag || onExternalFiles ? onDragLeave : undefined}
       onDrop={canDrag || onExternalFiles ? onDrop : undefined}
-      onDragEnd={canDrag || onExternalFiles ? endDrag : undefined}
+      onDragEnd={
+        canDrag || fileDragData || onExternalFiles ? endDrag : undefined
+      }
       onPointerOver={(e) => hover.track(e, pathAt)}
       onPointerLeave={() => hover.set(undefined)}
     >
@@ -277,6 +318,7 @@ export function TreeView({
           hover={hover}
           dropTarget={dropTarget}
           draggable={canDrag}
+          filePaths={filesByPath}
           phrase={phrase}
           actions={actions}
           actionIcons={actionIcons}
@@ -306,6 +348,7 @@ function TreeItem({
   hover,
   dropTarget,
   draggable,
+  filePaths,
   phrase,
   actions,
   actionIcons,
@@ -329,6 +372,7 @@ function TreeItem({
   hover: HoverTracker;
   dropTarget?: string;
   draggable: boolean;
+  filePaths: Map<string, FileDragData>;
   phrase?: string;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
@@ -374,7 +418,7 @@ function TreeItem({
         }}
         data-path={node.path}
         aria-current={currentPath === node.path ? "page" : undefined}
-        draggable={draggable}
+        draggable={draggable || filePaths.has(node.path)}
         tabIndex={focusableRows ? 0 : undefined}
         onKeyDown={
           onRowKeyDown
@@ -444,6 +488,7 @@ function TreeItem({
               hover={hover}
               dropTarget={dropTarget}
               draggable={draggable}
+              filePaths={filePaths}
               phrase={phrase}
               actions={actions}
               actionIcons={actionIcons}

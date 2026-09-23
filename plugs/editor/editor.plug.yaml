@@ -312,9 +312,15 @@ functions:
   uploadFileCommand:
     path: ./upload.ts:uploadFile
     command:
-      name: "Upload: File"
+      name: "File: Upload"
       requireMode: rw
       menu: { location: file, group: "5_insert", label: "Insert File..." }
+
+  downloadFileCommand:
+    path: ./download.ts:downloadCurrentFile
+    command:
+      name: "File: Download"
+      menu: { location: file, group: "5_insert", label: "Download File..." }
 
   # Outline commands
   outlineMoveUp:

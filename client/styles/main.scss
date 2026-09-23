@@ -207,15 +207,15 @@ body {
     // showPanel("modal", N) so the modal sits closer to the edges. It keeps
     // its rounded corners since (unlike .sb-modal-box) it isn't edge-to-edge.
     inset: 8px !important;
+    top: calc(8px + var(--sb-standalone-top-offset, 0px)) !important;
 
     &.sb-modal-centered {
-      top: 8px !important;
       bottom: auto !important;
       left: 8px !important;
       right: 8px !important;
       width: auto;
       max-width: none;
-      max-height: calc(100% - 16px) !important;
+      max-height: calc(100% - 16px - var(--sb-standalone-top-offset, 0px)) !important;
     }
   }
 }

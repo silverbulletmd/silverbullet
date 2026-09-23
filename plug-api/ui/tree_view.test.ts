@@ -123,3 +123,31 @@ test("panel actions are only mounted for selected or hovered rows", () => {
   expect(html.match(/aria-label="Open"/g)).toHaveLength(1);
   expect(html).toContain('tabindex="-1"');
 });
+
+test("read-only Space file rows remain draggable without making folder-only rows exportable", () => {
+  const tree = buildTree(
+    [{ primary: "Guide", obj: { name: "Notes/Guide", tag: "page" } }],
+    "/",
+    true,
+  );
+  const html = render(
+    h(TreeView, {
+      tree,
+      expanded: new Set(["Notes"]),
+      showEmpty: true,
+      separator: "/",
+      canDrag: false,
+      fileDragData: (node) =>
+        node.row
+          ? { mime: "application/x-test", payload: node.path, downloadURL: "x" }
+          : null,
+      hasIcon: false,
+      readOnly: true,
+      onToggle() {},
+      onMove() {},
+      onAction() {},
+    }),
+  );
+  expect(html).toMatch(/data-path="Notes"[^>]*draggable="false"/);
+  expect(html).toMatch(/data-path="Notes\/Guide"[^>]*draggable="true"/);
+});

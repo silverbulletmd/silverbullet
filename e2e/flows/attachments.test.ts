@@ -70,7 +70,7 @@ test("uploading a binary file writes exact bytes and links it", async ({
   await page.locator("#sb-editor .cm-content").click();
 
   const chooserPromise = page.waitForEvent("filechooser");
-  await runCommandViaPalette(page, "Upload: File");
+  await runCommandViaPalette(page, "File: Upload");
   const chooser = await chooserPromise;
   await chooser.setFiles({
     name: "payload.bin",
