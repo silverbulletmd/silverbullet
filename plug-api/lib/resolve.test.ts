@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 
 test("Test URL resolver", () => {
   // Absolute paths
@@ -18,4 +21,24 @@ test("Test URL resolver", () => {
   expect(resolveMarkdownLink("bar/qux", "foo/../baz")).toEqual(
     "bar/foo/../baz",
   );
+});
+
+test("application protocols are external regardless of URL shape", () => {
+  for (const url of [
+    "message://example-id",
+    "custom+notes.v2:open-item",
+    "MAILTO:reader@example.com",
+    "tel:+1234567890",
+  ]) {
+    expect(isLocalURL(url)).toBe(false);
+  }
+  for (const url of [
+    "Notes/Page",
+    "../Page",
+    "/Page",
+    "#Heading",
+    "Notes/Meeting: today",
+  ]) {
+    expect(isLocalURL(url)).toBe(true);
+  }
 });

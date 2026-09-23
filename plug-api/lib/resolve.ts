@@ -1,14 +1,7 @@
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 
-/**
- * Determines wether a url points into the world wide web or to the local SB instance
- */
 export function isLocalURL(url: string): boolean {
-  return (
-    !url.includes("://") &&
-    !url.startsWith("mailto:") &&
-    !url.startsWith("tel:")
-  );
+  return !/^[a-z][a-z0-9+.-]*:/i.test(url);
 }
 
 /**

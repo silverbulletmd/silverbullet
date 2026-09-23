@@ -76,3 +76,46 @@ test("recurses into nested children", () => {
 test("passes strings through untouched", () => {
   expect(sanitizeTag("plain text")).toBe("plain text");
 });
+
+test("custom protocols are allowed only in clickable links", () => {
+  for (const url of ["message://example-id", "custom-notes:open-item"]) {
+    expect(sanitizeTag({ name: "a", attrs: { href: url }, body: [] })).toEqual({
+      name: "a",
+      body: [],
+      attrs: { href: url },
+    });
+    for (const [name, attr] of [
+      ["img", "src"],
+      ["form", "action"],
+      ["link", "href"],
+    ]) {
+      expect(sanitizeTag({ name, attrs: { [attr]: url }, body: [] })).toEqual({
+        name,
+        body: [],
+        attrs: {},
+      });
+    }
+  }
+});
+
+test("clickable links reject browser and executable protocols", () => {
+  for (const url of [
+    "javascript:alert(1)",
+    "java\tscript:alert(1)",
+    "data:text/html,x",
+    "vbscript:msgbox(1)",
+    "file:///tmp/note",
+    "blob:https://example.com/id",
+    "filesystem:https://example.com/temporary/note",
+    "about:blank",
+    "chrome://settings",
+    "chrome-extension://example/page",
+    "devtools://devtools/",
+  ]) {
+    expect(sanitizeTag({ name: "a", attrs: { href: url }, body: [] })).toEqual({
+      name: "a",
+      body: [],
+      attrs: {},
+    });
+  }
+});

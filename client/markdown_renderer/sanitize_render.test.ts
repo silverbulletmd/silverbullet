@@ -47,3 +47,13 @@ test("href hiding javascript: behind a control character is neutralized", () => 
   expect(html).not.toContain("href=");
   expect(html).toContain("click");
 });
+
+test("application links survive Markdown rendering", () => {
+  for (const url of [
+    "message://example-id",
+    "custom+notes.v2://open/item",
+    "custom-notes:open-item",
+  ]) {
+    expect(render(`[Open item](${url})`)).toContain(`href="${url}"`);
+  }
+});

@@ -4,6 +4,7 @@ An attempt at documenting the changes/new features introduced in each release.
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
 * Fix (iOS): `Upload: File` now reliably opens the file picker and uploads the selected file in Safari and the installed web app.
+* Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 
 ## 2.11.1
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.

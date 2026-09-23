@@ -284,8 +284,8 @@ export function getMimeTypeFromUrl(
  * Sanitize a transclusion URL for use in HTML elements.
  * Local URLs get prefixed with the fs endpoint.
  */
-function sanitizeTransclusionUrl(url: string): string {
-  return isLocalURL(url)
+function sanitizeTransclusionUrl(url: string, allowExternal: boolean): string {
+  return !allowExternal || isLocalURL(url)
     ? `${fsEndpoint.slice(1)}/${url.replace(":", "%3A")}`
     : url;
 }
@@ -305,7 +305,7 @@ export function createMediaElement(
   }
 
   return createNativeMediaElement({
-    url: sanitizeTransclusionUrl(transclusion.url),
+    url: sanitizeTransclusionUrl(transclusion.url, allowExternal),
     contentType: mimeType,
     title: transclusion.alias,
     dimensions: transclusion.dimension,

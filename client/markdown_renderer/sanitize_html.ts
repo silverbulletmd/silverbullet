@@ -18,7 +18,22 @@ const URL_ATTRS = new Set([
   "action",
 ]);
 
-export function isSafeUrl(url: string): boolean {
+const BROWSER_SCHEMES = new Set([
+  "about",
+  "blob",
+  "chrome",
+  "chrome-extension",
+  "chrome-untrusted",
+  "data",
+  "devtools",
+  "file",
+  "filesystem",
+  "javascript",
+  "vbscript",
+  "view-source",
+]);
+
+export function isSafeUrl(url: string, allowApplicationLinks = false): boolean {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — strip the control chars (0x00-0x1F) that browsers remove from URLs before scheme resolution, so obfuscated `java\tscript:` etc. cannot slip past the scheme check.
   const stripped = url.replace(/[\t\n\r\x00-\x1f]/g, "");
   const m = /^\s*([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(stripped);
@@ -26,6 +41,9 @@ export function isSafeUrl(url: string): boolean {
     return true; // no scheme → relative/anchor/local
   }
   const scheme = m[1].toLowerCase();
+  if (allowApplicationLinks) {
+    return !BROWSER_SCHEMES.has(scheme);
+  }
   return (
     scheme === "http" ||
     scheme === "https" ||
@@ -48,7 +66,11 @@ export function sanitizeTag(tag: Tag): Tag {
       if (k.startsWith("on")) {
         continue; // event handler
       }
-      if (URL_ATTRS.has(k) && typeof value === "string" && !isSafeUrl(value)) {
+      if (
+        URL_ATTRS.has(k) &&
+        typeof value === "string" &&
+        !isSafeUrl(value, tag.name.toLowerCase() === "a" && k === "href")
+      ) {
         continue; // unsafe URL scheme
       }
       cleaned[key] = value;

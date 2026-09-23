@@ -33,6 +33,7 @@ import type {
 import type { SyncState } from "@silverbulletmd/silverbullet/type/revisions";
 import { keyboardHint } from "../plug-api/lib/shortcut.ts";
 import type { StyleObject } from "../plugs/index/space_style.ts";
+import { isSafeUrl } from "./markdown_renderer/sanitize_html.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
 import { ClientSystem } from "./client_system.ts";
@@ -1205,6 +1206,7 @@ export class Client {
   }
 
   openUrl(url: string, existingWindow = false) {
+    if (!isSafeUrl(url, true)) return;
     if (!existingWindow) {
       const win = globalThis.open(url, "_blank");
       if (win) {
