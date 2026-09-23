@@ -13,6 +13,7 @@ const slots = {
   showSlot: vi.fn<(...args: unknown[]) => void>(),
   hideSlot: vi.fn<(slot: string) => void>(),
   focusedSlot: vi.fn<() => string | undefined>(),
+  setDockTarget: vi.fn<(slot: string, view?: string) => void>(),
 };
 const mobile = {
   isNarrowScreen: vi.fn<() => boolean>(),
@@ -157,6 +158,88 @@ test("resize re-shows the dock at the dragged width, and a commit persists it", 
     ["navigator", "std.spaceTree", "width"],
     321,
   );
+});
+
+test("a mobile dock button switches sides and toggles its drawer without forgetting either target", async () => {
+  const nav = await freshNavigator();
+  mobile.isNarrowScreen.mockReturnValue(true);
+  registry.resolveMeta.mockImplementation((name: string) => ({
+    dock: name === "history" ? "rhs" : "lhs",
+    refreshOn: [],
+  }));
+
+  await nav.open("tree");
+  await nav.toggleMobileDock("rhs", "history");
+  expect(slots.hideSlot).toHaveBeenCalledWith("lhs");
+  expect(slots.showSlot).toHaveBeenLastCalledWith(
+    "rhs",
+    expect.anything(),
+    expect.objectContaining({ view: "history" }),
+    false,
+  );
+  await nav.toggleMobileDock("rhs", "history");
+  expect(slots.hideSlot).toHaveBeenCalledWith("rhs");
+  expect(datastore.del).not.toHaveBeenCalledWith([
+    "navigator",
+    "docked",
+    "rhs",
+  ]);
+});
+
+test("opening a side view by command on a narrow screen dismisses the other drawer", async () => {
+  const nav = await freshNavigator();
+  mobile.isNarrowScreen.mockReturnValue(true);
+  registry.resolveMeta.mockImplementation((name: string) => ({
+    dock: name === "history" ? "rhs" : "lhs",
+    refreshOn: [],
+  }));
+
+  await nav.open("tree");
+  await nav.open("history");
+
+  expect(slots.hideSlot).toHaveBeenCalledWith("lhs");
+  expect(slots.showSlot).toHaveBeenLastCalledWith(
+    "rhs",
+    expect.anything(),
+    expect.objectContaining({ view: "history" }),
+    false,
+  );
+});
+
+test("switching sides does not restore a view displaced behind the old drawer", async () => {
+  const nav = await freshNavigator();
+  mobile.isNarrowScreen.mockReturnValue(true);
+  registry.resolveMeta.mockImplementation((name: string) => ({
+    dock: name === "history" ? "rhs" : "lhs",
+    refreshOn: [],
+  }));
+
+  await nav.open("tree");
+  await nav.open("pages");
+  slots.showSlot.mockClear();
+  await nav.open("history");
+
+  expect(slots.hideSlot).toHaveBeenCalledWith("lhs");
+  expect(slots.showSlot).toHaveBeenCalledTimes(1);
+  expect(slots.showSlot).toHaveBeenCalledWith(
+    "rhs",
+    expect.anything(),
+    expect.objectContaining({ view: "history" }),
+    false,
+  );
+});
+
+test("concurrent narrow-screen opens leave only one side drawer visible", async () => {
+  const nav = await freshNavigator();
+  mobile.isNarrowScreen.mockReturnValue(true);
+  registry.resolveMeta.mockImplementation((name: string) => ({
+    dock: name === "history" ? "rhs" : "lhs",
+    refreshOn: [],
+  }));
+
+  await Promise.all([nav.open("tree"), nav.open("history")]);
+
+  expect(slots.hideSlot).toHaveBeenCalledTimes(1);
 });
 
 test("a stray resize with nothing docked in the slot is dropped", async () => {

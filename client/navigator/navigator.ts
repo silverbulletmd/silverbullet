@@ -5,6 +5,7 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { LuaTable } from "../space_lua/runtime.ts";
+import { isNarrowScreen } from "../lib/mobile.ts";
 import { createDockState } from "./dock_state.ts";
 import {
   buildPickSpec,
@@ -86,6 +87,38 @@ const lifecycle = createPanelLifecycle({
   sidebarDefaultOpen: (name) => dockState.sidebarDefaultOpen(name),
 });
 
+let mobileSideTransition: Promise<void> = Promise.resolve();
+
+function serializeMobileSide<T>(action: () => Promise<T>): Promise<T> {
+  const result = mobileSideTransition.then(action);
+  mobileSideTransition = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
+async function activateMobileSide(
+  slot: "lhs" | "rhs",
+  name: string,
+  opts?: OpenOptions,
+): Promise<boolean> {
+  const opposite = slot === "lhs" ? "rhs" : "lhs";
+  if (lifecycle.current(opposite)) {
+    await lifecycle.hide(opposite, undefined, {
+      recordIntent: false,
+      restoreDisplaced: false,
+    });
+  }
+  return lifecycle.open(name, {
+    quiet: opts?.quiet,
+    phrase: opts?.phrase,
+    segment: opts?.segment,
+    dropdown: opts?.dropdown,
+    focus: opts?.focus,
+  });
+}
+
 /**
  * Reveal a page-docked widget and put the keyboard somewhere useful in it,
  * reporting whether it actually took focus.
@@ -166,6 +199,12 @@ async function openWithFocus(
     client.rebuildEditorState();
     return { opened: true, focused: await revealPageWidget(name, dock) };
   }
+  if (isNarrowScreen() && (dock === "lhs" || dock === "rhs")) {
+    const opened = await serializeMobileSide(() =>
+      activateMobileSide(dock, name, opts),
+    );
+    return { opened, focused: opened };
+  }
   // A panel focuses its own input when it opens, so the two coincide here.
   const opened = await lifecycle.open(name, {
     quiet: opts?.quiet,
@@ -179,6 +218,22 @@ async function openWithFocus(
 
 export async function open(name: string, opts?: OpenOptions): Promise<boolean> {
   return (await openWithFocus(name, opts)).opened;
+}
+
+export async function toggleMobileDock(
+  slot: "lhs" | "rhs",
+  name: string,
+): Promise<void> {
+  await serializeMobileSide(async () => {
+    if (lifecycle.current(slot)) {
+      await lifecycle.hide(slot, undefined, {
+        recordIntent: false,
+        restoreDisplaced: false,
+      });
+    } else if ((await resolvedDock(name)) === slot) {
+      await activateMobileSide(slot, name);
+    }
+  });
 }
 
 export async function moveDock(name: string, dock: string): Promise<void> {

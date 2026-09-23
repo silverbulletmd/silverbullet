@@ -219,12 +219,75 @@ test.describe("space tree", () => {
     },
   });
 
+  test("a narrow-screen tree can be reopened from the side where it is docked", async ({
+    sbPage,
+  }) => {
+    await sbPage.setViewportSize({ width: 390, height: 844 });
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    const leftTree = sbPage.locator(".sb-nav-root-lhs");
+    await expect(leftTree.locator("[data-path='Projects']")).toBeVisible();
+    await leftTree.locator("[data-path='Projects'] .sb-nav-chevron").click();
+    await leftTree.locator("[data-path='Projects/Alpha']").click();
+    await expect(currentPage(sbPage)).toHaveValue("Projects/Alpha");
+    await expect(leftTree).toBeHidden();
+
+    const leftButton = sbPage.locator(".sb-mobile-dock-left");
+    await expect(leftButton).toBeVisible();
+    const leftButtonRight = await leftButton.evaluate(
+      (element) => element.getBoundingClientRect().right,
+    );
+    const titleWithDockLeft = await sbPage
+      .locator("#sb-current-page")
+      .evaluate((element) => element.getBoundingClientRect().left);
+    expect(titleWithDockLeft - leftButtonRight).toBe(8);
+    await leftButton.click();
+    await expect(leftTree).toBeVisible();
+
+    await leftTree
+      .getByRole("button", { name: /Shown as: Left sidebar/ })
+      .click();
+    await leftTree.getByRole("menuitem", { name: "Right sidebar" }).click();
+    const rightTree = sbPage.locator(".sb-nav-root-rhs");
+    await expect(rightTree).toBeVisible();
+    await expect(leftButton).toBeHidden();
+    await rightTree.locator("[data-path='Projects/Beta']").click();
+    await expect(currentPage(sbPage)).toHaveValue("Projects/Beta");
+    await expect(rightTree).toBeHidden();
+
+    const rightButton = sbPage.locator(".sb-mobile-dock-right");
+    await expect(rightButton).toBeVisible();
+    await sbPage.reload();
+    await expect(rightButton).toBeVisible();
+    await rightButton.click();
+    await expect(rightTree).toBeVisible();
+    const drawerLeft = await rightTree.evaluate(
+      (element) => element.getBoundingClientRect().left,
+    );
+    expect(drawerLeft).toBeGreaterThanOrEqual(40);
+    await rightTree.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(rightTree).toBeHidden();
+    await expect(rightButton).toBeHidden();
+    await sbPage.reload();
+    await expect(rightButton).toBeHidden();
+    const titleLeft = await sbPage
+      .locator("#sb-current-page")
+      .evaluate((element) => element.getBoundingClientRect().left);
+    const bodyLeft = await sbPage
+      .locator(".cm-line")
+      .first()
+      .evaluate((element) => element.getBoundingClientRect().left);
+    expect(Math.abs(titleLeft - bodyLeft)).toBeLessThanOrEqual(1);
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    await expect(rightTree).toBeVisible();
+  });
+
   test("dragging Space tree files into the editor inserts links without uploading", async ({
     sbPage,
     sbServer,
   }) => {
     await runCommandViaPalette(sbPage, "Navigate: Tree");
     const tree = sbPage.locator(".sb-nav-root-lhs");
+    await expect(sbPage.locator(".sb-mobile-dock-scrim")).toHaveCount(0);
     await expect(tree.locator("[data-path='Projects']")).toBeVisible({
       timeout: 20_000,
     });

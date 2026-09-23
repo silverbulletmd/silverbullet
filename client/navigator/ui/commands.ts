@@ -104,7 +104,7 @@ export function createCommands({
 
   // The drawer getting out of the way of what was just opened is not the
   // client saying it wants this view closed from now on.
-  const dismiss = () => close({ recordIntent: false });
+  const dismiss = () => close({ recordIntent: false, restoreDisplaced: false });
 
   async function runCreate() {
     if (!view || !canCreate) return;

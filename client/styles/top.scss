@@ -141,7 +141,44 @@
   }
 }
 
+#sb-top .sb-mobile-dock-button {
+  display: none;
+}
+
 @media only screen and (max-width: 600px) {
+
+  #sb-top .sb-mobile-dock-button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  #sb-top .sb-mobile-dock-right svg {
+    transform: scaleX(-1);
+  }
+
+  #sb-top .sb-mobile-dock-button[aria-expanded="true"] {
+    background: var(--ui-surface-hover-background-color);
+  }
+
+  #sb-top .sb-mobile-dock-button:hover {
+    background: var(--ui-surface-hover-background-color);
+  }
+
+  #sb-top:has(.sb-mobile-dock-left) .main .inner .wrapper {
+    padding-left: 8px;
+  }
+
+  #sb-top:has(.sb-mobile-dock-right) .main .inner .wrapper {
+    padding-right: 8px;
+  }
 
   /* Let the hamburger fly-out escape the top bar's scroll container */
   #sb-top .main {

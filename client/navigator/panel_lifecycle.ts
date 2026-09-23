@@ -10,6 +10,7 @@ import { isNarrowScreen } from "../lib/mobile.ts";
 import {
   focusedSlot,
   hideSlot,
+  setDockTarget,
   type NavActivation,
   showSlot,
 } from "./ui/slots.ts";
@@ -201,6 +202,7 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         visibleDockView.set(slot, name);
         await datastore.set(dockedKey(slot), name);
         await datastore.set([NAMESPACE, name, "open"], true);
+        if (slot === "lhs" || slot === "rhs") setDockTarget(slot, name);
       }
       return true;
     } finally {
@@ -273,7 +275,10 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     if (pending) config.onSlotClosedWithoutSuccessor?.(pending.view);
     if (sidebarSlots.includes(slot)) {
       const resident = await datastore.get(dockedKey(slot));
-      await datastore.del(dockedKey(slot));
+      if (opts?.recordIntent !== false) {
+        await datastore.del(dockedKey(slot));
+        if (slot === "lhs" || slot === "rhs") setDockTarget(slot);
+      }
       if (opts?.recordIntent !== false) {
         if (pending) {
           await datastore.set([NAMESPACE, pending.view, "open"], false);
@@ -324,8 +329,8 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
   }
 
   async function restoreDocks(): Promise<void> {
-    // Boot with narrow-screen drawers closed so they do not obscure the page.
-    if (isNarrowScreen()) return;
+    const narrow = isNarrowScreen();
+    const narrowTargets = new Map<string, string>();
 
     const forced = new Map<string, string>();
     for (const view of config.getForcedOpens?.() ?? []) {
@@ -349,7 +354,8 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         }
         name = saved;
       }
-      await activateShow(name, true);
+      if (narrow) narrowTargets.set(slot, name);
+      else await activateShow(name, true);
     }
 
     const configuredOpens = [...(config.getDefaultOpens?.() ?? [])].sort();
@@ -360,7 +366,9 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         ? await config.resolveDock(name, meta)
         : meta.dock;
       if (!sidebarSlots.includes(slot)) continue;
-      const occupant = pendingActivation.get(slot)?.view;
+      const occupant = narrow
+        ? narrowTargets.get(slot)
+        : pendingActivation.get(slot)?.view;
       if (occupant) {
         // Silent when it is this very view: the slot loop above already
         // restored it from the docked key, which is the same outcome.
@@ -374,7 +382,14 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         continue;
       }
       if (!(await config.sidebarDefaultOpen?.(name))) continue;
-      await activateShow(name, true);
+      if (narrow) narrowTargets.set(slot, name);
+      else await activateShow(name, true);
+    }
+
+    if (narrow) {
+      for (const slot of ["lhs", "rhs"]) {
+        setDockTarget(slot, narrowTargets.get(slot));
+      }
     }
   }
 

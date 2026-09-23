@@ -20,8 +20,13 @@ import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { kebabToPascal } from "./lib/feather_icons.ts";
 import { FilterList } from "./components/filter.tsx";
 import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
+import { resolveMeta } from "./navigator/registry.ts";
+import { toggleMobileDock } from "./navigator/navigator.ts";
 import { RevisionPreviewModal } from "./navigator/ui/components/revision_preview.tsx";
-import { useNavigatorSlot } from "./navigator/ui/slots.ts";
+import {
+  useNavigatorDockTarget,
+  useNavigatorSlot,
+} from "./navigator/ui/slots.ts";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import { AnchoredMenu } from "./components/anchored_menu.tsx";
@@ -315,6 +320,18 @@ export class MainUI {
       rhs: useNavigatorSlot("rhs"),
       bhs: useNavigatorSlot("bhs"),
       modal: useNavigatorSlot("modal"),
+    };
+    const leftDockTarget = useNavigatorDockTarget("lhs");
+    const rightDockTarget = useNavigatorDockTarget("rhs");
+    const mobileDockButton = (slot: "lhs" | "rhs", name?: string) => {
+      if (!name) return undefined;
+      const meta = resolveMeta(name);
+      if (!meta) return undefined;
+      return {
+        label: meta.title ?? meta.label ?? name,
+        expanded: !!navSlots[slot],
+        onClick: () => void toggleMobileDock(slot, name),
+      };
     };
 
     useEffect(() => {
@@ -610,6 +627,8 @@ export class MainUI {
           ]}
           rhs={sidebarSpacer("rhs")}
           lhs={sidebarSpacer("lhs")}
+          leftDock={mobileDockButton("lhs", leftDockTarget)}
+          rightDock={mobileDockButton("rhs", rightDockTarget)}
           pageNamePrefix={
             client.currentPageMeta()?.pageDecoration?.prefix ?? ""
           }

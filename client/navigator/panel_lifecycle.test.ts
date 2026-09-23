@@ -21,6 +21,7 @@ const slots = {
   showSlot: vi.fn<(...args: unknown[]) => void>(),
   hideSlot: vi.fn<(slot: string) => void>(),
   focusedSlot: vi.fn<() => string | undefined>(),
+  setDockTarget: vi.fn<(slot: string, view?: string) => void>(),
 };
 const mobile = {
   isNarrowScreen: vi.fn<() => boolean>(),
@@ -290,6 +291,24 @@ test("hide un-remembers a sidebar dock (datastore.del) but never touches the mod
   expect(datastore.del).not.toHaveBeenCalled();
 });
 
+test("dismissing a mobile drawer keeps its reopen target and saved occupant", async () => {
+  const { config, getMeta } = makeConfig({ sidebarSlots: ["rhs"] });
+  getMeta.mockReturnValue({ dock: "rhs" });
+  const lc = createPanelLifecycle(config);
+
+  await lc.open("history");
+  await lc.hide("rhs", undefined, { recordIntent: false });
+
+  expect(lc.current("rhs")).toBeUndefined();
+  expect(datastore.del).not.toHaveBeenCalledWith([
+    "navigator",
+    "docked",
+    "rhs",
+  ]);
+  expect(slots.setDockTarget).toHaveBeenCalledWith("rhs", "history");
+  expect(slots.setDockTarget).not.toHaveBeenCalledWith("rhs", undefined);
+});
+
 test("replaceInSlot never persists to dockedKey, unlike open", async () => {
   const { config, getMeta } = makeConfig();
   getMeta.mockReturnValue({ dock: "lhs" });
@@ -503,14 +522,31 @@ test("an open cleared during dock resolution never creates an activation", async
   expect(slots.showSlot).not.toHaveBeenCalled();
 });
 
-test("restoreDocks skips entirely on a narrow screen", async () => {
-  const { config, getForcedOpens } = makeConfig();
+test("restoreDocks keeps a saved right dock available without opening its drawer on a narrow screen", async () => {
+  const { config, getMeta } = makeConfig({ sidebarSlots: ["rhs"] });
   mobile.isNarrowScreen.mockReturnValue(true);
+  datastore.get.mockResolvedValue("history");
+  getMeta.mockReturnValue({ dock: "rhs" });
   const lc = createPanelLifecycle(config);
 
   await lc.restoreDocks();
-  expect(getForcedOpens).not.toHaveBeenCalled();
-  expect(datastore.get).not.toHaveBeenCalled();
+  expect(slots.setDockTarget).toHaveBeenCalledWith("rhs", "history");
+  expect(slots.showSlot).not.toHaveBeenCalled();
+});
+
+test("a configured-open left dock gets a mobile button without opening the drawer", async () => {
+  const { config, getMeta } = makeConfig({
+    sidebarSlots: ["lhs"],
+    getDefaultOpens: () => ["tree"],
+    sidebarDefaultOpen: async () => true,
+  });
+  mobile.isNarrowScreen.mockReturnValue(true);
+  getMeta.mockReturnValue({ dock: "lhs" });
+  const lc = createPanelLifecycle(config);
+
+  await lc.restoreDocks();
+
+  expect(slots.setDockTarget).toHaveBeenCalledWith("lhs", "tree");
   expect(slots.showSlot).not.toHaveBeenCalled();
 });
 
@@ -734,7 +770,7 @@ test("closing after a route hop records both views as closed", async () => {
   expect(store.get(JSON.stringify(["navigator", "pages", "open"]))).toBe(false);
 });
 
-test("a close the client did not ask for un-docks without recording intent", async () => {
+test("a close the client did not ask for preserves the dock and open preference", async () => {
   const { config, getMeta } = makeConfig();
   getMeta.mockReturnValue({ dock: "lhs" });
   datastore.get.mockResolvedValue(undefined);
@@ -743,7 +779,11 @@ test("a close the client did not ask for un-docks without recording intent", asy
   await lifecycle.open("tree");
   datastore.set.mockClear();
   await lifecycle.hide("lhs", undefined, { recordIntent: false });
-  expect(datastore.del).toHaveBeenCalledWith(["navigator", "docked", "lhs"]);
+  expect(datastore.del).not.toHaveBeenCalledWith([
+    "navigator",
+    "docked",
+    "lhs",
+  ]);
   expect(datastore.set).not.toHaveBeenCalledWith(
     ["navigator", "tree", "open"],
     expect.anything(),

@@ -3,6 +3,7 @@ import { Icon, Input } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { Sidebar } from "preact-feather";
 import { resolveIconNode } from "../lib/icon.ts";
 
 export type ActionButton = {
@@ -16,6 +17,33 @@ export type ActionButton = {
   hasPopup?: boolean;
   expanded?: boolean;
 };
+
+export type MobileDockButton = {
+  label: string;
+  expanded: boolean;
+  onClick: () => void;
+};
+
+function DockButton({
+  side,
+  dock,
+}: {
+  side: "left" | "right";
+  dock?: MobileDockButton;
+}) {
+  if (!dock) return null;
+  return (
+    <button
+      type="button"
+      className={`sb-mobile-dock-button sb-mobile-dock-${side}`}
+      aria-label={`${dock.expanded ? "Close" : "Open"} ${dock.label}`}
+      aria-expanded={dock.expanded}
+      onClick={dock.onClick}
+    >
+      <Sidebar size={20} />
+    </button>
+  );
+}
 
 function pageNameClass(
   isLoading: boolean,
@@ -266,6 +294,8 @@ export function TopBar({
   cssClass,
   mobileMenuStyle,
   readOnly,
+  leftDock,
+  rightDock,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -285,10 +315,13 @@ export function TopBar({
   cssClass?: string;
   mobileMenuStyle?: string;
   readOnly: boolean;
+  leftDock?: MobileDockButton;
+  rightDock?: MobileDockButton;
 }) {
   const pageIconNode = resolveIconNode(pageIcon);
   return (
     <div id="sb-top" className={isOnline ? undefined : "sb-sync-error"}>
+      <DockButton side="left" dock={leftDock} />
       {lhs}
       <div className="main">
         <div className="inner">
@@ -335,6 +368,7 @@ export function TopBar({
         </div>
       </div>
       {rhs}
+      <DockButton side="right" dock={rightDock} />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 const navigated: string[] = [];
+const hide = vi.fn();
+vi.mock("../navigator.ts", () => ({ hide, route: vi.fn() }));
 vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   datastore: {},
   editor: {
@@ -8,6 +10,7 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
       navigated.push(ref);
       return Promise.resolve();
     },
+    focus: () => Promise.resolve(),
   },
 }));
 
@@ -27,7 +30,12 @@ function treeNode(path: string, page: boolean): TreeNode {
   };
 }
 
-function setup(selectableFolders = false, hasSelect?: boolean, slot = "lhs") {
+function setup(
+  selectableFolders = false,
+  hasSelect?: boolean,
+  slot = "lhs",
+  mobile = false,
+) {
   navigated.length = 0;
   const selected: Record<string, any>[] = [];
   let expanded = new Set<string>();
@@ -50,7 +58,7 @@ function setup(selectableFolders = false, hasSelect?: boolean, slot = "lhs") {
         return Promise.resolve(undefined);
       },
     } as unknown as NavigatorEngine,
-    mobile: false,
+    mobile,
     phrase: "",
     segmentIndex: 0,
     derived: {
@@ -77,6 +85,23 @@ function setup(selectableFolders = false, hasSelect?: boolean, slot = "lhs") {
   });
   return { cmd, selected, expanded: () => expanded, navigated };
 }
+
+it("closing a mobile side drawer records a real close", async () => {
+  hide.mockClear();
+  const { cmd } = setup(false, true, "rhs", true);
+  await cmd.close();
+  expect(hide).toHaveBeenCalledWith("rhs", undefined, undefined);
+});
+
+it("selecting from a mobile side drawer leaves its reopen target available", async () => {
+  hide.mockClear();
+  const { cmd } = setup(false, true, "rhs", true);
+  await cmd.selectRow(0);
+  expect(hide).toHaveBeenCalledWith("rhs", undefined, {
+    recordIntent: false,
+    restoreDisplaced: false,
+  });
+});
 
 describe("selecting a tree node", () => {
   it("expands a plain folder", async () => {

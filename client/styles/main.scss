@@ -139,15 +139,25 @@ body {
     position: relative;
   }
 
-  // Drawers overlay the editor, so there is no sidebar seam.
+  // Drawers overlay the editor, leaving a strip visible on the other side.
   #sb-main .sb-nav-root-lhs,
   #sb-main .sb-nav-root-rhs {
     position: absolute;
-    inset: 0;
-    // Above the editor, below #sb-top (z-index 20) — the top bar stays on top.
+    top: 0;
+    bottom: 0;
+    width: calc(100% - 44px);
     z-index: 15;
     border: 0;
-    flex: 1 1 100% !important;
+    flex: none !important;
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.18);
+  }
+
+  #sb-main .sb-nav-root-lhs {
+    left: 0;
+  }
+
+  #sb-main .sb-nav-root-rhs {
+    right: 0;
   }
 
   // Drawers reserve no title space because they overlay the editor.

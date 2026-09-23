@@ -41,6 +41,7 @@ export type NavSlotState = {
 };
 
 const states = new Map<string, NavSlotState>();
+const dockTargets = new Map<string, string>();
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -71,6 +72,15 @@ export function hideSlot(slot: string): void {
   if (states.delete(slot)) notify();
 }
 
+export function setDockTarget(slot: string, view?: string): void {
+  if (view === undefined) {
+    if (dockTargets.delete(slot)) notify();
+  } else if (dockTargets.get(slot) !== view) {
+    dockTargets.set(slot, view);
+    notify();
+  }
+}
+
 export function markSlotReady(slot: string, token: number): void {
   const state = states.get(slot);
   if (!state || state.paintReady || state.activation.token !== token) return;
@@ -97,4 +107,15 @@ export function useNavigatorSlot(slot: string): NavSlotState | undefined {
     };
   }, [slot]);
   return state;
+}
+
+export function useNavigatorDockTarget(slot: string): string | undefined {
+  const [target, setTarget] = useState(() => dockTargets.get(slot));
+  useEffect(() => {
+    setTarget(dockTargets.get(slot));
+    const listener = () => setTarget(dockTargets.get(slot));
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  }, [slot]);
+  return target;
 }
