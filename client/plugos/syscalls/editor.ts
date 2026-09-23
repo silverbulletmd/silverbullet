@@ -515,6 +515,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           }
 
           input.onchange = () => {
+            input.remove();
             const file = input.files?.item(0);
             if (!file) {
               reject(new Error("No file found"));
@@ -541,11 +542,21 @@ export function editorSyscalls(client: Client): SysCallMapping {
           input.onabort = (e) => {
             reject(e);
           };
+          input.oncancel = () => {
+            input.remove();
+          };
 
           input.style.display = "none";
           document.body.appendChild(input);
-          input.click();
-          setTimeout(() => document.body.removeChild(input), 1000);
+          // WebKit only opens the picker from click() while still inside the
+          // originating user gesture, which is lost by the time this syscall
+          // arrives from a plug worker; showPicker() checks transient
+          // activation instead, which is still active.
+          try {
+            input.showPicker();
+          } catch {
+            input.click();
+          }
         });
       },
       description:
