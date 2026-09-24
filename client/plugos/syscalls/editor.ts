@@ -571,13 +571,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
 
           input.style.display = "none";
           document.body.appendChild(input);
-          // WebKit only opens the picker from click() while still inside the
-          // originating user gesture, which is lost by the time this syscall
-          // arrives from a plug worker; showPicker() checks transient
-          // activation instead, which is still active.
-          try {
-            input.showPicker();
-          } catch {
+          if (isMobileDevice()) {
+            try {
+              input.showPicker();
+            } catch {
+              input.click();
+            }
+          } else {
             input.click();
           }
         });

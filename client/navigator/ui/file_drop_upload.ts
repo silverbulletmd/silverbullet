@@ -60,7 +60,16 @@ export async function collectDroppedFiles(
       for (const child of batch) await visit(child, path);
     }
   }
-  for (const entry of entries) await visit(entry, "");
+  try {
+    for (const entry of entries) await visit(entry, "");
+  } catch (error) {
+    if (
+      !entries.every((entry) => entry.isFile) ||
+      transfer.files.length !== entries.length
+    )
+      throw error;
+    return [...transfer.files].map((file) => ({ path: file.name, file }));
+  }
   return files;
 }
 

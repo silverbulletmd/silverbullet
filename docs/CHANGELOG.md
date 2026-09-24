@@ -5,7 +5,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported. **File: Download** saves the current page or document when drag-out is unavailable; the upload command is now **File: Upload**.
 * On narrow screens, left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
-* Fix (iOS): `Upload: File` now reliably opens the file picker and uploads the selected file in Safari and the installed web app.
+* Fix (Safari): **File: Upload** opens the file picker on iPhone, iPad, and desktop, and dropping files into the Space tree uploads them on desktop Safari.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 * Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and a checked unrelated-history merge tolerates new commits on either side before its first sync.
 

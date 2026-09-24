@@ -52,6 +52,28 @@ test("collects every file from a directory reader that returns multiple batches"
   ).toEqual(["Notes/One.md", "Notes/Two.txt"]);
 });
 
+test("falls back to transferred files when a file entry cannot be read", async () => {
+  const uploaded = file("Draft.md", "# Draft");
+  const transfer = {
+    items: [
+      {
+        kind: "file",
+        webkitGetAsEntry: () => ({
+          isFile: true,
+          name: uploaded.name,
+          file: (_done: (file: File) => void, fail: (error: Error) => void) =>
+            fail(new DOMException("Path does not exist", "NotFoundError")),
+        }),
+      },
+    ],
+    files: [uploaded],
+  } as unknown as DataTransfer;
+
+  expect(await collectDroppedFiles(transfer)).toEqual([
+    { path: "Draft.md", file: uploaded },
+  ]);
+});
+
 test("cancelling destination leaves all files unwritten", async () => {
   const writePage = vi.fn();
   const writeDocument = vi.fn();
