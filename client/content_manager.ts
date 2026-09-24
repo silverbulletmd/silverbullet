@@ -22,6 +22,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import type { Client } from "./client.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
+import { reloadAllWidgets } from "./codemirror/code_widget.ts";
 import {
   type ConflictHunk,
   findConflictHunks,
@@ -44,7 +45,10 @@ import {
   resolveDocumentEditor,
 } from "./document_editor_resolver.ts";
 import { computeExternalChanges } from "./external_merge.ts";
-import { parsePageMetaLastModified } from "./lib/page_meta.ts";
+import {
+  pageMetaContentChanged,
+  parsePageMetaLastModified,
+} from "./lib/page_meta.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { browserMediaCapabilities, type MediaCapabilities } from "./media.ts";
 import { MediaDocumentViewer } from "./media_document_viewer.ts";
@@ -272,24 +276,11 @@ export class ContentManager {
 
                 resolve();
 
-                const enrichedMeta =
-                  await this.client.objectIndex.getObjectByRef(
-                    this.client.currentName(),
-                    "page",
-                    this.client.currentName(),
-                  );
-                if (enrichedMeta) {
-                  this.client.ui.viewDispatch({
-                    type: "update-current-page-meta",
-                    meta: enrichedMeta,
-                  });
-
-                  if (!this.client.editorView.composing) {
-                    // Trigger editor re-render to update Lua widgets
-                    // with the new metadata
-                    this.client.editorView.dispatch({});
-                  }
-                }
+                // The write already succeeded: a failure here must not
+                // land in the save-retry path below.
+                this.refreshPageMetaAfterSave(pageName).catch((e) =>
+                  console.error("Could not refresh page meta after save", e),
+                );
               })
               .catch((e) => {
                 if (e instanceof PermissionDeniedError) {
@@ -312,6 +303,50 @@ export class ContentManager {
         immediate ? 0 : autoSaveInterval,
       );
     });
+  }
+
+  /**
+   * Picks up the re-indexed meta of a page we just saved, and re-renders
+   * widgets when its frontmatter or tags changed, so that something like
+   * `${editor.getCurrentPageMeta().status}` shows the new value (#1623).
+   */
+  private async refreshPageMetaAfterSave(pageName: string) {
+    const previousMeta = this.client.currentPageMeta();
+    // The write queued the page for re-indexing. Reading the index right away
+    // returns the meta from before this edit, so wait for the queue first,
+    // capped like in leaveCurrentPage to keep this cheap on large spaces.
+    await Promise.race([
+      this.client.objectIndex.awaitIndexQueueDrain(),
+      new Promise<void>((resolve) => setTimeout(resolve, 2000)),
+    ]);
+    if (this.client.currentName() !== pageName) {
+      return;
+    }
+    const enrichedMeta = await this.client.objectIndex.getObjectByRef(
+      pageName,
+      "page",
+      pageName,
+    );
+    if (!enrichedMeta || this.client.currentName() !== pageName) {
+      return;
+    }
+    this.client.ui.viewDispatch({
+      type: "update-current-page-meta",
+      meta: enrichedMeta,
+    });
+    if (this.client.editorView.composing) {
+      return;
+    }
+    // Recompute decorations that read the page meta directly (e.g. the
+    // renderWidgets page decoration).
+    this.client.editorView.dispatch({});
+    // Lua widgets compare equal by cache key and reuse their prewarmed
+    // result, so the dispatch above doesn't re-evaluate them. Only force that
+    // when the meta actually changed: every save would otherwise re-run every
+    // query on the page.
+    if (pageMetaContentChanged(previousMeta, enrichedMeta)) {
+      await reloadAllWidgets();
+    }
   }
 
   /**
