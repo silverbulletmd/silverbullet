@@ -127,7 +127,10 @@ test("describeSyncError: known kinds get specific copy", () => {
     "Could not reach the remote host.",
   );
   expect(describeSyncError("UnrelatedHistories", "")).toBe(
-    "The remote already contains history unrelated to this space.",
+    "The remote already contains history unrelated to this space. Edit the connection, check it again, and confirm combining the histories.",
+  );
+  expect(describeSyncError("ConsentStale", "")).toBe(
+    "The history changed since you approved combining it. Edit the connection, check it again, and confirm combining the histories.",
   );
 });
 

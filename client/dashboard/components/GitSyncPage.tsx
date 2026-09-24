@@ -289,7 +289,13 @@ export function GitSyncPage({
                     <>
                       <dl>
                         <dt>Branch</dt>
-                        <dd>{status.branch ?? "Not known yet"}</dd>
+                        <dd>
+                          {status.branch ?? "Not known yet"}
+                          {status.remoteBranch &&
+                          status.remoteBranch !== status.branch
+                            ? ` → ${status.remoteBranch}`
+                            : ""}
+                        </dd>
                         <dt>Authentication</dt>
                         <dd>
                           {status.credentialMode === "key"
@@ -488,9 +494,32 @@ export function GitSyncPage({
                     </>
                   )}
                 </details>
-                <p>
-                  Branch: {draft.branch ?? "Not known yet"}
-                  {draft.remoteBranch ? ` → ${draft.remoteBranch}` : ""}
+                <p>Local branch: {draft.branch ?? "Not known yet"}</p>
+                <label>
+                  <Checkbox
+                    checked={draft.remoteBranchSelected}
+                    disabled={busy === "apply"}
+                    onChange={(event) =>
+                      edit({
+                        remoteBranchSelected: event.currentTarget.checked,
+                      })
+                    }
+                  />{" "}
+                  Choose a remote branch
+                </label>
+                <label for="git-remote-branch">Remote branch</label>
+                <Input
+                  id="git-remote-branch"
+                  value={draft.remoteBranch ?? ""}
+                  disabled={busy === "apply" || !draft.remoteBranchSelected}
+                  onInput={(event) =>
+                    edit({ remoteBranch: event.currentTarget.value })
+                  }
+                />
+                <p class="sb-help-text">
+                  Leave this unchecked to use the existing branch mapping or
+                  detect the remote's default branch. A missing remote branch is
+                  created on the first push.
                 </p>
                 <Subheading>Authentication</Subheading>
                 <label for="git-authentication">Authentication</label>
@@ -681,7 +710,6 @@ export function GitSyncPage({
                     disabled={
                       !!busy ||
                       !session.canApply ||
-                      (connected && !session.changed) ||
                       (!!test?.unrelated && !combine)
                     }
                     onClick={() =>

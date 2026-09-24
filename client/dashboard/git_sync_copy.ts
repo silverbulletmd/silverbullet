@@ -118,7 +118,9 @@ const SYNC_ERROR_COPY: Record<string, string> = {
   PushRejected:
     "The push was rejected — the remote has changes this space doesn't have yet.",
   UnrelatedHistories:
-    "The remote already contains history unrelated to this space.",
+    "The remote already contains history unrelated to this space. Edit the connection, check it again, and confirm combining the histories.",
+  ConsentStale:
+    "The history changed since you approved combining it. Edit the connection, check it again, and confirm combining the histories.",
 };
 
 const GENERIC_SYNC_ERROR = "Sync failed — check the space's git settings.";

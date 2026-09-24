@@ -20,6 +20,8 @@ pub struct Draft {
     pub branch: String,
     pub remote_branch: String,
     pub remote_name: String,
+    #[serde(default)]
+    pub remote_branch_selected: bool,
     expires_at: u64,
     base_generation: String,
     #[serde(default)]
@@ -167,6 +169,7 @@ fn create_draft(
         branch,
         remote_branch,
         remote_name: remote_name.clone(),
+        remote_branch_selected: false,
         expires_at: now() + 86_400_000,
         base_generation: generation(root, id),
         base_connection_revision: live_connection_revision(root, id, repo, &remote_name)?,
@@ -249,12 +252,37 @@ impl Drop for Inspection {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
+fn validate_remote_branch(repo: &Path, branch: &str) -> Result<(), String> {
+    if branch.trim() != branch || branch.is_empty() {
+        return Err("choose a valid remote branch".into());
+    }
+    git::run(
+        repo,
+        &["check-ref-format", &format!("refs/heads/{branch}")],
+        &[],
+    )
+    .map(|_| ())
+    .map_err(|_| "choose a valid remote branch".into())
+}
 fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<(), String> {
     use serde_json::json;
     let folder = draft_dir(root, id, &draft.id)?;
     std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
     let folder = folder.canonicalize().map_err(|e| e.to_string())?;
     let repo = repo.canonicalize().map_err(|e| e.to_string())?;
+    let detect_remote_default = if draft.remote_branch_selected {
+        false
+    } else {
+        let upstream = git::run(
+            &repo,
+            &["config", "--get", &format!("branch.{}.merge", draft.branch)],
+            &[],
+        )
+        .ok()
+        .and_then(|s| s.trim().strip_prefix("refs/heads/").map(String::from));
+        draft.remote_branch = upstream.clone().unwrap_or_else(|| draft.branch.clone());
+        upstream.is_none()
+    };
     let inspection = Inspection(folder.join(format!("inspect-{}", uuid::Uuid::new_v4())));
     git::run_with_timeout(
         &repo,
@@ -307,13 +335,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
     }
     envs.push(("SB_GIT_NO_HOOKS".into(), "1".into()));
     let envs: Vec<_> = envs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
-    if git::run(
-        &repo,
-        &["config", "--get", &format!("branch.{}.merge", draft.branch)],
-        &[],
-    )
-    .is_err()
-    {
+    if detect_remote_default {
         if let Ok(refs) = git::run_with_timeout(
             &inspection.0,
             &["ls-remote", "--symref", "--", &draft.url, "HEAD"],
@@ -583,6 +605,81 @@ mod tests {
         assert_eq!(draft.branch, "master");
         assert_eq!(draft.remote_branch, "main");
         assert_eq!(draft.test.as_ref().unwrap()["remoteBranch"], "main");
+    }
+
+    #[test]
+    fn selected_remote_branch_is_checked_even_when_it_is_not_the_default() {
+        let root = tempfile::TempDir::new().unwrap();
+        let local = repo();
+        let remote = crate::revisions::sync::tests::bare_remote();
+        let _seed = crate::revisions::sync::tests::seeded_clone(remote.path());
+        let mut draft = create_draft(
+            root.path(),
+            "sample",
+            local.path(),
+            GitSyncConfig::default(),
+        )
+        .unwrap();
+        draft.mode = GitSyncMode::Manual;
+        draft.url = remote.path().to_string_lossy().into_owned();
+        draft.remote_branch = "notes".into();
+        draft.remote_branch_selected = true;
+        check_draft(root.path(), "sample", local.path(), &mut draft).unwrap();
+        assert_eq!(draft.remote_branch, "notes");
+        assert_eq!(draft.test.as_ref().unwrap()["remoteBranch"], "notes");
+
+        draft.remote_branch = draft.branch.clone();
+        check_draft(root.path(), "sample", local.path(), &mut draft).unwrap();
+        assert_eq!(draft.remote_branch, draft.branch);
+        assert_eq!(draft.test.as_ref().unwrap()["remoteBranch"], draft.branch);
+
+        draft.remote_branch_selected = false;
+        check_draft(root.path(), "sample", local.path(), &mut draft).unwrap();
+        assert_eq!(draft.remote_branch, "main");
+        assert_eq!(draft.test.as_ref().unwrap()["remoteBranch"], "main");
+    }
+
+    #[test]
+    fn automatic_branch_selection_restores_the_existing_upstream() {
+        let root = tempfile::TempDir::new().unwrap();
+        let local = repo();
+        let remote = crate::revisions::sync::tests::bare_remote();
+        let _seed = crate::revisions::sync::tests::seeded_clone(remote.path());
+        let branch = git::run(local.path(), &["symbolic-ref", "--short", "HEAD"], &[]).unwrap();
+        git::run(
+            local.path(),
+            &[
+                "config",
+                &format!("branch.{}.merge", branch.trim()),
+                "refs/heads/main",
+            ],
+            &[],
+        )
+        .unwrap();
+        let mut draft = create_draft(
+            root.path(),
+            "sample",
+            local.path(),
+            GitSyncConfig::default(),
+        )
+        .unwrap();
+        draft.mode = GitSyncMode::Manual;
+        draft.url = remote.path().to_string_lossy().into_owned();
+        draft.remote_branch = "invalid..name".into();
+        draft.remote_branch_selected = false;
+
+        check_draft(root.path(), "sample", local.path(), &mut draft).unwrap();
+        assert_eq!(draft.remote_branch, "main");
+        assert_eq!(draft.test.as_ref().unwrap()["remoteBranch"], "main");
+    }
+
+    #[test]
+    fn remote_branch_must_be_a_valid_git_branch_name() {
+        let repo = repo();
+        assert!(validate_remote_branch(repo.path(), "notes/archive").is_ok());
+        assert!(validate_remote_branch(repo.path(), "main..other").is_err());
+        assert!(validate_remote_branch(repo.path(), "").is_err());
+        assert!(validate_remote_branch(repo.path(), " main").is_err());
     }
     #[test]
     fn draft_check_accepts_relative_space_folder() {
@@ -867,6 +964,9 @@ struct Update {
     url: String,
     mode: GitSyncMode,
     pull_interval_secs: u64,
+    remote_branch: Option<String>,
+    #[serde(default)]
+    remote_branch_selected: Option<bool>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -940,14 +1040,26 @@ async fn update(
     Json(body): Json<Update>,
 ) -> Response {
     operation(state, id, move |manager, id| {
-        instance(manager, id)?;
+        let (_, repo) = instance(manager, id)?;
         let mut draft = load_draft(manager.root(), id, &draft_id, body.version)?;
         if body.mode.is_off() || body.url.trim().is_empty() || keys::is_unsafe_url(&body.url) {
             return Err("choose a repository and authentication method".into());
         }
+        if let Some(branch) = body.remote_branch.as_deref().filter(|_| {
+            body.remote_branch_selected
+                .unwrap_or(draft.remote_branch_selected)
+        }) {
+            validate_remote_branch(&repo, branch)?;
+        }
         draft.url = body.url;
         draft.mode = body.mode;
         draft.pull_interval_secs = body.pull_interval_secs;
+        if let Some(selected) = body.remote_branch_selected {
+            draft.remote_branch_selected = selected;
+        }
+        if let Some(branch) = body.remote_branch {
+            draft.remote_branch = branch;
+        }
         draft.test = None;
         draft.version += 1;
         save_draft(manager.root(), id, &draft)?;

@@ -15,6 +15,8 @@ export class GitDraftSession {
     return (
       this.value.url !== this.initial.url ||
       this.value.mode !== this.initial.mode ||
+      this.value.remoteBranch !== this.initial.remoteBranch ||
+      this.value.remoteBranchSelected !== this.initial.remoteBranchSelected ||
       this.value.pullIntervalSecs !== this.initial.pullIntervalSecs ||
       this.value.publicKey !== this.initial.publicKey ||
       this.value.fingerprint !== this.initial.fingerprint
@@ -32,7 +34,16 @@ export class GitDraftSession {
   }
 
   edit(
-    fields: Partial<Pick<GitDraft, "url" | "mode" | "pullIntervalSecs">>,
+    fields: Partial<
+      Pick<
+        GitDraft,
+        | "url"
+        | "mode"
+        | "pullIntervalSecs"
+        | "remoteBranch"
+        | "remoteBranchSelected"
+      >
+    >,
   ): void {
     this.revision++;
     this.dirty = true;

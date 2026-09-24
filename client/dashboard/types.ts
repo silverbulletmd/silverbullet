@@ -38,6 +38,7 @@ export type GitStatus = {
   remoteUrl: string | null;
   remoteName: string | null;
   branch: string | null;
+  remoteBranch: string | null;
   // The mode configured in `spaces.json`, not one derived from whether a key
   // file exists — the two can disagree, and the configured mode wins.
   credentialMode: GitSyncMode;
@@ -96,7 +97,7 @@ export type SpaceInfo = {
 };
 
 /** GET /api/users entry: `{ "<username>": UserInfo }`. */
-export interface UserInfo {
+export type UserInfo = {
   admin: boolean;
   disabled: boolean;
   loginMethod: "local" | "sso";
@@ -109,9 +110,9 @@ export interface UserInfo {
     identity?: { issuer: string; subject: string };
   } | null;
   tokens: Record<string, { createdAt: string }>;
-}
+};
 
-export interface AuthenticationStatus {
+export type AuthenticationStatus = {
   enabled: boolean;
   active: {
     providerId: string;
@@ -121,15 +122,15 @@ export interface AuthenticationStatus {
     providerId: string;
     buttonLabel?: string;
   } | null;
-}
+};
 
 /** GET/PUT `api/profile`: the caller's own account. */
-export interface ProfileInfo {
+export type ProfileInfo = {
   username: string;
   admin: boolean;
   fullName: string | null;
   email: string | null;
-}
+};
 
 /**
  * What `GET api/spaces` returns to an ordinary account — an allowlist, not a
@@ -152,6 +153,7 @@ export type AuthState =
 export type GitDraft = {
   branch?: string | null;
   remoteBranch?: string | null;
+  remoteBranchSelected: boolean;
   remoteName?: string | null;
   id: string;
   version: number;

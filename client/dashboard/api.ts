@@ -203,6 +203,8 @@ export function updateGitDraft(
       url: draft.url,
       mode: draft.mode,
       pullIntervalSecs: draft.pullIntervalSecs,
+      remoteBranch: draft.remoteBranch,
+      remoteBranchSelected: draft.remoteBranchSelected,
     },
   );
 }

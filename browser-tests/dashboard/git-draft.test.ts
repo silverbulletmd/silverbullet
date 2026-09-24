@@ -9,6 +9,9 @@ test("draft editing invalidates a late check and Cancel preserves the active con
     id: "draft-1",
     version: 1,
     url: activeUrl,
+    branch: "master",
+    remoteBranch: "main",
+    remoteBranchSelected: false,
     mode: "key",
     pullIntervalSecs: 300,
     publicKey: "ssh-ed25519 sample-key",
@@ -59,7 +62,8 @@ test("draft editing invalidates a late check and Cancel preserves the active con
       return route.fulfill({
         json: {
           remoteUrl: activeUrl,
-          branch: "main",
+          branch: "master",
+          remoteBranch: "main",
           remoteName: "origin",
           credentialMode: "key",
           publicKey: null,
@@ -87,6 +91,7 @@ test("draft editing invalidates a late check and Cancel preserves the active con
     throw new Error(`Unexpected connection mutation: ${method} ${path}`);
   });
   await page.goto(`${origin}/.dashboard/sample/git`);
+  await expect(page.getByText("master → main")).toBeVisible();
   await page.getByRole("button", { name: "Edit connection" }).click();
   const revisionsLink = page.getByRole("link", {
     name: "Revisions",
@@ -150,4 +155,13 @@ test("draft editing invalidates a late check and Cancel preserves the active con
   await expect(page.getByLabel("Repository", { exact: true })).toHaveValue(
     activeUrl,
   );
+  await page.getByLabel("Choose a remote branch").check();
+  await page.getByLabel("Remote branch", { exact: true }).fill("notes");
+  await page.getByRole("button", { name: "Check connection" }).click();
+  await expect.poll(() => draft.remoteBranch).toBe("notes");
+  await page.getByLabel("Remote branch", { exact: true }).fill("main");
+  await page.getByRole("button", { name: "Check connection" }).click();
+  await expect(
+    page.getByRole("button", { name: "Apply changes" }),
+  ).toBeEnabled();
 });

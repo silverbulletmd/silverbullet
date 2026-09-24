@@ -13,6 +13,7 @@ pub enum SyncError {
     AuthFailed,
     HostUnreachable,
     UnrelatedHistories,
+    ConsentStale,
     PushRejected,
     MergeInProgress,
     RemoteBranchMissing,
@@ -173,6 +174,17 @@ fn local_commit_count(repo: &Path) -> usize {
         .unwrap_or(0)
 }
 
+fn consent_matches(repo: &Path, consent: &serde_json::Value) -> bool {
+    [("localHead", "HEAD"), ("remoteHead", "FETCH_HEAD")]
+        .into_iter()
+        .all(|(key, current)| {
+            consent[key].as_str().is_some_and(|checked| {
+                git::check(repo, &["merge-base", "--is-ancestor", checked, current], 1)
+                    .unwrap_or(false)
+            })
+        })
+}
+
 pub fn tick(
     repo: &Path,
     envs: &[(String, String)],
@@ -246,13 +258,13 @@ fn tick_once(
             .as_ref()
             .and_then(|p| std::fs::read(p).ok())
             .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok());
-        let consent_matches = consent.as_ref().is_some_and(|consent| {
-            let head = git::run(repo, &["rev-parse", "HEAD"], &[]).unwrap_or_default();
-            let incoming = git::run(repo, &["rev-parse", "FETCH_HEAD"], &[]).unwrap_or_default();
-            consent["localHead"].as_str() == Some(head.trim())
-                && consent["remoteHead"].as_str() == Some(incoming.trim())
-        });
-        if (settings.is_none() && allow_unrelated) || consent_matches {
+        let approved = consent
+            .as_ref()
+            .is_some_and(|consent| consent_matches(repo, consent));
+        if consent.is_some() && !approved {
+            return Err(SyncError::ConsentStale);
+        }
+        if (settings.is_none() && allow_unrelated) || approved {
             args.push("--allow-unrelated-histories");
         }
         if let Some(path) = consent_path {
@@ -382,7 +394,7 @@ pub fn try_complete_merge(repo: &Path) -> Result<MergeCompletion, SyncError> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::revisions::git;
+    use crate::{multi::config::GitSyncMode, revisions::git};
 
     fn repo_with_remote(remote_name: &str) -> tempfile::TempDir {
         let dir = tempfile::TempDir::new().unwrap();
@@ -970,5 +982,71 @@ pub(crate) mod tests {
         assert_eq!(outcome, TickOutcome::MergedAndPushed);
         assert!(work.path().join("note.md").exists());
         assert!(work.path().join("own.md").exists());
+    }
+
+    #[test]
+    fn unrelated_consent_accepts_descendants_of_both_checked_heads() {
+        let remote = bare_remote();
+        let seed = seeded_clone(remote.path());
+        let work = unpushed_repo(remote.path());
+        git::run(work.path(), &["fetch", "origin", "main"], &[]).unwrap();
+        let local = git::run(work.path(), &["rev-parse", "HEAD"], &[]).unwrap();
+        let incoming = git::run(work.path(), &["rev-parse", "FETCH_HEAD"], &[]).unwrap();
+        let consent = serde_json::json!({"localHead": local.trim(), "remoteHead": incoming.trim()});
+
+        commit_file(work.path(), "later.md", "local\n", "later local");
+        commit_file(seed.path(), "remote.md", "remote\n", "later remote");
+        git::run(seed.path(), &["push", "origin", "main"], &[]).unwrap();
+        git::run(work.path(), &["fetch", "origin", "main"], &[]).unwrap();
+
+        assert!(consent_matches(work.path(), &consent));
+        assert!(!consent_matches(
+            work.path(),
+            &serde_json::json!({
+                "localHead": incoming.trim(), "remoteHead": local.trim()
+            })
+        ));
+
+        let server_root = tempfile::TempDir::new().unwrap();
+        let connection_dir = server_root.path().join("git-connections");
+        std::fs::create_dir(&connection_dir).unwrap();
+        std::fs::write(connection_dir.join("sample.consent"), consent.to_string()).unwrap();
+        let settings = super::super::engine::SyncSettings {
+            server_root: server_root.path().to_path_buf(),
+            space_id: "sample".into(),
+            mode: GitSyncMode::Manual,
+            pull_interval: None,
+            paused: false,
+        };
+        assert_eq!(
+            tick_guarded(work.path(), &[], false, None, Some(&settings)).unwrap(),
+            TickOutcome::MergedAndPushed
+        );
+        assert!(!connection_dir.join("sample.consent").exists());
+    }
+
+    #[test]
+    fn changed_unrelated_history_requires_a_new_connection_check() {
+        let remote = bare_remote();
+        let _seed = seeded_clone(remote.path());
+        let work = unpushed_repo(remote.path());
+        let server_root = tempfile::TempDir::new().unwrap();
+        let connection_dir = server_root.path().join("git-connections");
+        std::fs::create_dir(&connection_dir).unwrap();
+        let consent = connection_dir.join("sample.consent");
+        std::fs::write(&consent, r#"{"localHead":"old","remoteHead":"old"}"#).unwrap();
+        let settings = super::super::engine::SyncSettings {
+            server_root: server_root.path().to_path_buf(),
+            space_id: "sample".into(),
+            mode: GitSyncMode::Manual,
+            pull_interval: None,
+            paused: false,
+        };
+
+        assert_eq!(
+            tick_guarded(work.path(), &[], false, None, Some(&settings)),
+            Err(SyncError::ConsentStale)
+        );
+        assert!(consent.exists());
     }
 }

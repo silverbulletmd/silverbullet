@@ -7,6 +7,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * On narrow screens, left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
 * Fix (iOS): `Upload: File` now reliably opens the file picker and uploads the selected file in Safari and the installed web app.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
+* Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and a checked unrelated-history merge tolerates new commits on either side before its first sync.
 
 ## 2.11.1
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.

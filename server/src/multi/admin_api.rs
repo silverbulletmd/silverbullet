@@ -389,6 +389,7 @@ struct GitStatus {
     remote_url: Option<String>,
     remote_name: Option<String>,
     branch: Option<String>,
+    remote_branch: Option<String>,
     credential_mode: GitSyncMode,
     public_key: Option<String>,
     fingerprint: Option<String>,
@@ -433,10 +434,7 @@ fn ahead_behind_status(
     let Some(target) = target else {
         return (local_commit_count(repo), None);
     };
-    if let Ok((a, b)) = sync::ahead_behind(repo, &target.branch) {
-        return (Some(a), Some(b));
-    }
-    let tracking_ref = format!("refs/remotes/{}/{}", target.remote, target.branch);
+    let tracking_ref = format!("refs/remotes/{}/{}", target.remote, target.remote_branch);
     if git::check(
         repo,
         &["rev-parse", "--verify", "--quiet", &tracking_ref],
@@ -497,6 +495,7 @@ fn git_status(repo: &Path, server_root: &Path, id: &str, mode: GitSyncMode) -> G
         remote_url,
         remote_name: target.as_ref().map(|t| t.remote.clone()),
         branch: target.as_ref().map(|t| t.branch.clone()),
+        remote_branch: target.as_ref().map(|t| t.remote_branch.clone()),
         credential_mode: mode,
         public_key,
         fingerprint,
@@ -1577,6 +1576,67 @@ mod tests {
         crate::revisions::git::run(repo, args, &[]).unwrap()
     }
 
+    #[test]
+    fn status_uses_remote_branch_when_local_branch_has_another_name() {
+        let remote = crate::revisions::sync::tests::bare_remote();
+        let _seed = crate::revisions::sync::tests::seeded_clone(remote.path());
+        let local = tempfile::TempDir::new().unwrap();
+        git_run(local.path(), &["init", "-q", "-b", "master"]);
+        git_run(local.path(), &["config", "user.name", "Sample"]);
+        git_run(
+            local.path(),
+            &["config", "user.email", "sample@example.test"],
+        );
+        std::fs::write(local.path().join("Local.md"), "local").unwrap();
+        git_run(local.path(), &["add", "Local.md"]);
+        git_run(local.path(), &["commit", "-qm", "Local"]);
+        git_run(
+            local.path(),
+            &["remote", "add", "origin", remote.path().to_str().unwrap()],
+        );
+        git_run(local.path(), &["fetch", "origin", "main"]);
+        let fetch_head = git_run(local.path(), &["rev-parse", "--git-path", "FETCH_HEAD"]);
+        std::fs::remove_file(local.path().join(fetch_head.trim())).unwrap();
+
+        assert_eq!(
+            ahead_behind_status(
+                local.path(),
+                Some(&sync::RemoteTarget {
+                    remote: "origin".into(),
+                    branch: "master".into(),
+                    remote_branch: "main".into(),
+                })
+            ),
+            (Some(1), Some(1))
+        );
+    }
+
+    #[test]
+    fn status_ignores_fetch_head_from_a_previously_selected_branch() {
+        let remote = crate::revisions::sync::tests::bare_remote();
+        let seed = crate::revisions::sync::tests::seeded_clone(remote.path());
+        git_run(seed.path(), &["checkout", "-qb", "notes"]);
+        std::fs::write(seed.path().join("Notes.md"), "notes").unwrap();
+        git_run(seed.path(), &["add", "Notes.md"]);
+        git_run(seed.path(), &["commit", "-qm", "Notes"]);
+        git_run(seed.path(), &["push", "origin", "notes"]);
+        let local = crate::revisions::sync::tests::plain_clone(remote.path());
+        git_run(local.path(), &["fetch", "origin", "notes"]);
+        git_run(local.path(), &["fetch", "origin", "main"]);
+
+        assert_eq!(
+            ahead_behind_status(
+                local.path(),
+                Some(&sync::RemoteTarget {
+                    remote: "origin".into(),
+                    branch: "main".into(),
+                    remote_branch: "notes".into(),
+                })
+            ),
+            (Some(0), Some(1))
+        );
+    }
+
     fn space_folder(root: &std::path::Path, id: &str) -> std::path::PathBuf {
         root.join("spaces").join(id)
     }
@@ -1756,6 +1816,61 @@ mod tests {
         let value = body_json(response).await;
         assert_eq!(status, StatusCode::OK, "{value}");
         value
+    }
+
+    #[tokio::test]
+    async fn selected_remote_branch_is_saved_as_the_connection_upstream() {
+        let (router, cookie, id, dir) = git_fixture().await;
+        let repo = space_folder(dir.path(), &id);
+        let remote = tempfile::TempDir::new().unwrap();
+        git_run(remote.path(), &["init", "-q", "--bare", "-b", "main"]);
+        let draft = draft_request(&router, &cookie, &id, "POST", "/draft", json!({})).await;
+        let draft_id = draft["id"].as_str().unwrap();
+        let draft = draft_request(
+            &router,
+            &cookie,
+            &id,
+            "PUT",
+            &format!("/draft/{draft_id}"),
+            json!({
+                "version": draft["version"],
+                "url": remote.path().to_str().unwrap(),
+                "mode": "manual",
+                "pullIntervalSecs": 0,
+                "remoteBranch": "notes",
+                "remoteBranchSelected": true
+            }),
+        )
+        .await;
+        let checked = draft_request(
+            &router,
+            &cookie,
+            &id,
+            "POST",
+            &format!("/draft/{draft_id}/test"),
+            json!({"version": draft["version"]}),
+        )
+        .await;
+        assert_eq!(checked["remoteBranch"], "notes");
+        assert_eq!(checked["test"]["remoteBranch"], "notes");
+        draft_request(
+            &router,
+            &cookie,
+            &id,
+            "POST",
+            &format!("/draft/{draft_id}/apply"),
+            json!({"version": checked["version"]}),
+        )
+        .await;
+        let branch = checked["branch"].as_str().unwrap();
+        assert_eq!(
+            git_run(
+                &repo,
+                &["config", "--get", &format!("branch.{branch}.merge")]
+            )
+            .trim(),
+            "refs/heads/notes"
+        );
     }
     #[tokio::test]
     async fn draft_key_and_cancel_preserve_live_connection() {

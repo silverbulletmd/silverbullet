@@ -7,6 +7,7 @@ const draft: GitDraft = {
   version: 1,
   url: "git@example.org:team/notes.git",
   mode: "key",
+  remoteBranchSelected: false,
   pullIntervalSecs: 300,
   publicKey: "ssh-ed25519 sample",
   fingerprint: "SHA256:sample",
@@ -102,4 +103,28 @@ test("generating a replacement key is a pending connection change", async () => 
     fingerprint: "SHA256:replacement",
   }));
   expect(session.changed).toBe(true);
+});
+
+test("changing the remote branch invalidates the connection check", () => {
+  const session = new GitDraftSession({
+    ...draft,
+    branch: "master",
+    remoteBranch: "main",
+    test: checked,
+  });
+  session.edit({ remoteBranch: "notes" });
+  expect(session.changed).toBe(true);
+  expect(session.value.test).toBeUndefined();
+  expect(session.canApply).toBe(false);
+});
+
+test("explicitly choosing the suggested branch still marks the draft changed", () => {
+  const session = new GitDraftSession({
+    ...draft,
+    remoteBranch: "master",
+    test: checked,
+  });
+  session.edit({ remoteBranchSelected: true });
+  expect(session.changed).toBe(true);
+  expect(session.value.test).toBeUndefined();
 });
