@@ -240,6 +240,7 @@ export function NavRoot({
   const placeholder =
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
   const noFilter = !!view?.meta.noFilter;
+  const helpText = segments?.[segmentIndex]?.helpText ?? view?.meta.helpText;
   const spaceTree = view?.name === "std.spaceTree";
   const desktopFileDrag = (
     globalThis as typeof globalThis & {
@@ -436,6 +437,7 @@ export function NavRoot({
           </select>
         )}
       </div>
+      {helpText && <div className="sb-nav-help">{helpText}</div>}
       <div className="sb-nav-body" ref={bodyRef}>
         {error && !fatalError && (
           <div className="sb-nav-error sb-nav-error-inline">{error}</div>

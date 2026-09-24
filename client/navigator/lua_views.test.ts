@@ -59,6 +59,11 @@ const rejections: [string, string, string][] = [
   ],
   ["missing name", `${SOURCE}, ${ON_SELECT}`, "view.define: name is required"],
   [
+    "help text that is not a string",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, helpText = 7`,
+    "view.define: helpText must be a string",
+  ],
+  [
     "missing source",
     `name = "v", ${ON_SELECT}`,
     "view.define: source is required",
@@ -138,6 +143,11 @@ const rejections: [string, string, string][] = [
     "segment icon table",
     `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "A", icon = {} } }`,
     'view.define: segments[1].icon must be an icon name ("lock"), a namespaced name ("feather:lock"), or literal SVG markup (a string starting with "<svg")',
+  ],
+  [
+    "segment help text that is not a string",
+    `name = "v", ${SOURCE}, ${ON_SELECT}, segments = { { label = "All", helpText = 7 } }`,
+    "view.define: segments[1].helpText must be a string",
   ],
   [
     "dropdown that is not a table",
@@ -300,6 +310,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     title: "v",
     label: undefined,
     placeholder: undefined,
+    helpText: undefined,
     stripPrefix: undefined,
     createIcon: undefined,
     mode: "list",
@@ -377,6 +388,7 @@ test("declared chrome projects into the meta the panel draws from", () => {
       title = "Title",
       label = "Open",
       placeholder = "Thing",
+      helpText = "Choose an item",
       dock = "rhs",
       openOnStart = true,
       followEditor = true,
@@ -401,7 +413,7 @@ test("declared chrome projects into the meta the panel draws from", () => {
           when = function() return true end },
       },
       segments = {
-        { label = "All", icon = "layers", default = true, placeholder = "Anything" },
+        { label = "All", icon = "layers", default = true, placeholder = "Anything", helpText = "Choose anything" },
         { label = "Pages", prefix = "^", where = function() return true end },
       },
       onMove = function() end,
@@ -415,6 +427,7 @@ test("declared chrome projects into the meta the panel draws from", () => {
     title: "Title",
     label: "Open",
     placeholder: "Thing",
+    helpText: "Choose an item",
     dock: "rhs",
     openOnStart: true,
     followEditor: true,
@@ -446,6 +459,7 @@ test("declared chrome projects into the meta the panel draws from", () => {
         icon: "layers",
         default: true,
         placeholder: "Anything",
+        helpText: "Choose anything",
         hasWhere: false,
       },
       { label: "Pages", prefix: "^", default: false, hasWhere: true },
@@ -759,7 +773,7 @@ test("view.pick rejects a non-table spec and a sourceless one", () => {
 test("view.pick keeps the content fields and stands them up as an ephemeral modal", () => {
   const internal = buildPickSpec(
     luaSpec(
-      `{ ${SOURCE}, title = "Pick", placeholder = "Fruit", ${ON_SELECT} }`,
+      `{ ${SOURCE}, title = "Pick", placeholder = "Fruit", helpText = "Choose fruit", ${ON_SELECT} }`,
     ),
     "__pick:1:0.5",
   );
@@ -770,6 +784,7 @@ test("view.pick keeps the content fields and stands them up as an ephemeral moda
   expect(meta.ephemeral).toBe(true);
   expect(meta.title).toBe("Pick");
   expect(meta.placeholder).toBe("Fruit");
+  expect(meta.helpText).toBe("Choose fruit");
 });
 
 test("tree pickers can opt into Space file uploads", () => {

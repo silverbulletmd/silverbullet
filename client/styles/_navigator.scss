@@ -71,6 +71,15 @@
   border-bottom: 1px solid var(--ui-surface-border-color);
 }
 
+.sb-nav-help {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ui-surface-border-color);
+  background-color: var(--modal-help-background-color);
+  color: var(--modal-help-color);
+  font-size: 0.8em;
+}
+
 .sb-nav-header-row {
   display: flex;
   align-items: baseline;

@@ -30,6 +30,7 @@ export type SegmentMeta = {
   default?: boolean;
   prefix?: string;
   placeholder?: string;
+  helpText?: string;
 };
 
 export type DropdownMeta = {
@@ -65,6 +66,7 @@ export type ViewMeta = {
   title: string;
   label?: string;
   placeholder?: string;
+  helpText?: string;
   stripPrefix?: string;
   mode: "list" | "tree";
   hasContent?: boolean;

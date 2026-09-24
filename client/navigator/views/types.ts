@@ -31,6 +31,7 @@ export type Segment<T = ObjectValue<Record<string, any>>> = {
   icon?: string;
   prefix?: string;
   placeholder?: string;
+  helpText?: string;
   default?: boolean;
   where?: (obj: T) => boolean;
 };

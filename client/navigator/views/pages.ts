@@ -195,6 +195,7 @@ export const pagePicker: BuiltinView<PageObj> = {
   meta: baseMeta({
     title: "Pages",
     label: "Open",
+    helpText: "Press Shift-Enter to create a new page with this exact name.",
     supportedDocks: ["modal", "lhs", "rhs", "bhs"],
     hasCreate: true,
     createIcon: "file-text",
@@ -223,6 +224,8 @@ export const pagePicker: BuiltinView<PageObj> = {
       label: "Meta",
       icon: "settings",
       placeholder: "Meta page",
+      helpText:
+        "Press Shift-Enter to create a new meta page with this exact name.",
       prefix: "^",
       where: (obj) => isMetaPage(obj) && !isHiddenPage(obj),
     },
@@ -230,6 +233,8 @@ export const pagePicker: BuiltinView<PageObj> = {
       label: "Documents",
       icon: "file",
       placeholder: "Document",
+      helpText:
+        "Press Shift-Enter to create a new document with this exact name.",
       where: (obj) => obj.tag === "document",
     },
     // The one segment that keeps hidden pages.

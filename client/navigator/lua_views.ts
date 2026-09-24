@@ -281,6 +281,10 @@ function segmentMeta(spec: ViewSpec): SegmentMeta[] | undefined {
       throw new Error(`view.define: ${what}.where must be a function`);
     }
     validateIcon(field(segment, "icon"), `${what}.icon`);
+    const helpText = field(segment, "helpText");
+    if (present(helpText) && luaType(helpText) !== "string") {
+      throw new Error(`view.define: ${what}.helpText must be a string`);
+    }
     out.push({
       label,
       icon: toJS(field(segment, "icon")),
@@ -288,6 +292,7 @@ function segmentMeta(spec: ViewSpec): SegmentMeta[] | undefined {
       default: field(segment, "default") === true,
       prefix: toJS(field(segment, "prefix")),
       placeholder: toJS(field(segment, "placeholder")),
+      helpText: toJS(helpText),
     });
   }
   if (out.length === 0) return undefined;
@@ -523,6 +528,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     title: truthy(title) ? title : name,
     label: toJS(field(spec, "label")),
     placeholder: toJS(field(spec, "placeholder")),
+    helpText: toJS(field(spec, "helpText")),
     stripPrefix: toJS(field(f, "stripPrefix")),
     createIcon: toJS(field(p, "createIcon")),
     mode: presentationMode(spec),
@@ -575,6 +581,10 @@ export function validateViewSpec(
     throw new Error(`${caller}: source is required`);
   }
   const p = or(field(spec, "presentation"), {});
+  const helpText = field(spec, "helpText");
+  if (present(helpText) && luaType(helpText) !== "string") {
+    throw new Error(`${caller}: helpText must be a string`);
+  }
   validateIcon(field(p, "createIcon"), "presentation.createIcon");
   validateRowIcon(
     field(or(field(p, "row"), {}), "icon"),
@@ -657,6 +667,7 @@ const PICK_CONTENT_FIELDS = [
   "dropdown",
   "presentation",
   "placeholder",
+  "helpText",
   "title",
   "label",
   "search",

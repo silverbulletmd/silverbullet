@@ -40,6 +40,7 @@ Content views have no filter input or row options. Refresh options rerun `conten
 ### Panel labels
 * `label`: short picker verb, such as `"Open"`, shown in place of the title.
 * `placeholder`: filter input placeholder.
+* `helpText`: plain text shown below the filter input. A segment can override it with its own `helpText`; an empty string hides it for that segment.
 
 ### Filter
 Panel filtering options:
@@ -160,7 +161,7 @@ segments = {
 }
 ```
 
-Each entry accepts a unique `label`, `where(obj)` predicate, optional `icon`, `default` flag (otherwise the first entry), single-character `prefix`, and `placeholder` override. The selected segment is remembered per view. In client search mode, segment filtering precedes fuzzy ranking.
+Each entry accepts a unique `label`, `where(obj)` predicate, optional `icon`, `default` flag (otherwise the first entry), single-character `prefix`, `placeholder` override, and `helpText` override. The selected segment is remembered per view. In client search mode, segment filtering precedes fuzzy ranking.
 
 #### Dropdown
 `dropdown` filters rows by a selected value:
