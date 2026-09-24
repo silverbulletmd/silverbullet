@@ -227,6 +227,8 @@ functions:
   # Tasks
   updateTaskState:
     path: task.ts:updateTaskState
+  setTaskStateByRef:
+    path: task.ts:setTaskStateByRef
 
   taskToggle:
     path: "./task.ts:taskToggle"
