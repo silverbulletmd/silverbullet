@@ -13,6 +13,11 @@ To create a document, you have a few options:
 
 All options will prompt you for a file name to use to store the document, and then include the document as an embedded image (if it was an image) or link to the file.
 
+By default the maximum allowed filesize for an upload is 10MB, you can change that with the `maximumDocumentSize` option.
+```lua
+config.set("maximumDocumentSize", 100)
+```
+
 # Management
 Using ${widgets.commandButton("Navigate: Document Picker")} you can open the document picker, which displays all documents in your SilverBullet space. A blue extension indicates that an installed plug, the built-in text editor, or a browser media viewer can handle the document; gray indicates that the file opens externally. Unknown small files may still require a UTF-8 check when opened.
 
