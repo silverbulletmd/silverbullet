@@ -149,7 +149,6 @@ export function useDerived({
   }, [view, sourceMode, filteredRows, rankPhrase]);
 
   const limit = view?.meta.limit || DEFAULT_LIMIT;
-  // Cap rendered matches to keep broad queries from creating thousands of rows.
   const visible = ranked.length > limit ? ranked.slice(0, limit) : ranked;
 
   const segments = view?.meta.segments;

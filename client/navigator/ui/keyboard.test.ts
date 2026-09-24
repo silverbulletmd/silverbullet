@@ -362,3 +362,15 @@ describe("tree keys", () => {
     ]);
   });
 });
+
+it("table filters let Tab reach headers and row controls", () => {
+  const trace: Trace = [];
+  const ctx = makeCtx(trace, {
+    segments: [{ label: "All" }, { label: "Open" }],
+  });
+  ctx.view!.meta.mode = "table";
+  const event = press({ key: "Tab" });
+  handleKeyDown(event.e, ctx);
+  expect(event.prevented()).toBe(false);
+  expect(trace).toEqual([]);
+});

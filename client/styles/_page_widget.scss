@@ -144,6 +144,19 @@
   --sb-nav-muted: var(--subtle-color);
   min-height: 1.2em;
 
+  .sb-inline-view-header {
+    box-sizing: border-box;
+    font-family: var(--ui-font);
+    font-size: 16px;
+    background: var(--modal-background-color);
+    color: var(--modal-color);
+
+    .sb-nav-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
   .sb-nav-row {
     height: auto;
     min-height: 36px;

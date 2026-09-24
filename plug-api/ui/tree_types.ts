@@ -12,6 +12,7 @@ export type Decoration = {
 export type Row = {
   obj: Record<string, any>;
   primary: string;
+  cells?: unknown[];
   /**
    * What a *tree* row shows in place of its last path segment. For a view
    * whose hierarchy is synthesized rather than read off a name, the path is

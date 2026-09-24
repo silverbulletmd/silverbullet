@@ -1,3 +1,5 @@
+import { inferColumns } from "../../table_model.ts";
+import { TableView } from "./table_view.tsx";
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { Icon } from "../../../../plug-api/ui/icon.tsx";
 import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
@@ -26,7 +28,8 @@ import {
   widgetKind,
 } from "../../page_widget_logic.ts";
 import { normalizeContent } from "../../registry.ts";
-import type { Row, ViewMeta } from "../../types.ts";
+import type { Row, TableColumn, ViewMeta } from "../../types.ts";
+import { indexViewRows, rankViewRows } from "../../row_filter.ts";
 import { createInlineExpansion } from "../expansion.ts";
 import { useLoading } from "../hooks/use_loading.ts";
 import { LoadingState } from "../loading.ts";
@@ -104,6 +107,24 @@ function InlineBody({
   );
 }
 
+function InlineHeader({
+  title,
+  children,
+}: {
+  title?: string;
+  children?: preact.ComponentChildren;
+}) {
+  if (!title && !children) return null;
+  return (
+    <div className="sb-nav-header sb-inline-view-header">
+      <div className="sb-nav-header-row">
+        {title && <span className="sb-nav-title">{title}</span>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function DocumentContent({
   meta,
   client,
@@ -173,6 +194,7 @@ function DocumentContent({
         loading={visible}
         error={state?.error}
       >
+        <InlineHeader title={meta.title} />
         {state?.node && <ContentNode client={client} node={state.node} />}
       </InlineBody>
     );
@@ -213,6 +235,8 @@ export function DocumentRowsBody({
   actionIcons,
   actionsDisabled = false,
   readOnly = false,
+  pageName,
+  columns: suppliedColumns,
 }: {
   rows: RenderedRow[];
   meta: ViewMeta;
@@ -220,12 +244,45 @@ export function DocumentRowsBody({
   expanded: Set<string>;
   onToggle: (path: string) => void;
   onSelect?: (obj: Record<string, any>) => void;
-  onAction?: (index: number, obj: Record<string, any>) => void;
+  onAction?: (index: number, obj: Record<string, any>) => void | Promise<void>;
   rowState?: RowStates;
   actionIcons?: (Element | undefined)[];
   actionsDisabled?: boolean;
   readOnly?: boolean;
+  pageName?: string;
+  columns?: TableColumn[];
 }) {
+  const sourceRows = useMemo(() => rows.map((entry) => entry.row), [rows]);
+  const columns = useMemo(
+    () =>
+      meta.mode === "table"
+        ? (suppliedColumns ?? meta.columns ?? inferColumns(sourceRows))
+        : [],
+    [meta.mode, meta.columns, sourceRows, suppliedColumns],
+  );
+  if (meta.mode === "table") {
+    const { shown, more } = visibleRows(sourceRows, meta.limit);
+    return (
+      <>
+        <TableView
+          rows={shown}
+          columns={columns}
+          client={client}
+          pageName={pageName}
+          actions={meta.actions}
+          actionIcons={actionIcons}
+          rowState={rowState}
+          readOnly={readOnly}
+          actionsDisabled={actionsDisabled}
+          onSelect={
+            onSelect ? (index) => onSelect(shown[index].obj) : undefined
+          }
+          onAction={(index, action) => onAction?.(action, shown[index].obj)}
+        />
+        {more > 0 && <div className="sb-nav-more">{more} more</div>}
+      </>
+    );
+  }
   const isTree = meta.mode === "tree";
   const { shown, more } = visibleRows(rows, meta.limit);
   const display = isTree
@@ -367,6 +424,9 @@ function DocumentRows({
   frame,
 }: DocumentProps) {
   const [rows, setRows] = useState<RenderedRow[] | undefined>();
+  const [phrase, setPhrase] = useState("");
+  const inlineFilter = !frame && meta.inlineFilter === true;
+  const sourcePhrase = inlineFilter && meta.search === "source" ? phrase : "";
   const loadRowState = useMemo(
     () => createDocumentRowLoader(dispatch, meta),
     [dispatch, meta],
@@ -434,7 +494,7 @@ function DocumentRows({
     setActionsDisabled(false);
     const load = () => {
       const ticket = loading.begin();
-      return dispatch("rows", { ctx: { phrase: "", dock } })
+      return dispatch("rows", { ctx: { phrase: sourcePhrase, dock } })
         .then(async (result) => {
           if (!live || !ticket.isCurrent()) return;
           const loadError =
@@ -450,12 +510,15 @@ function DocumentRows({
           }
           const rowFeatures = await loadRowState(incoming);
           if (!live || !ticket.isCurrent()) return;
-          const rendered = await renderRows(
-            client,
-            incoming,
-            meta.mode === "tree",
-            pageName,
-          );
+          const rendered =
+            meta.mode === "table"
+              ? incoming.map((row) => ({ row }))
+              : await renderRows(
+                  client,
+                  incoming,
+                  meta.mode === "tree",
+                  pageName,
+                );
           if (!live || !ticket.isCurrent()) return;
           setError(undefined);
           setRows(rendered);
@@ -469,7 +532,8 @@ function DocumentRows({
         .finally(ticket.finish);
     };
     refresh.current = load;
-    void load();
+    const timer = sourcePhrase ? setTimeout(() => void load(), 150) : undefined;
+    if (!timer) void load();
     const unsubscribe = subscribeRefresh(
       client.eventHook,
       meta.refreshOn ?? [],
@@ -480,23 +544,49 @@ function DocumentRows({
       lifecycle.current++;
       refresh.current = undefined;
       loading.cancel();
+      if (timer) clearTimeout(timer);
       unsubscribe();
     };
-  }, [dispatch, dock, pageName, loadRowState]);
+  }, [dispatch, dock, pageName, loadRowState, sourcePhrase]);
 
   useEffect(() => {
     if (frame && !pending && rows !== undefined) frame.onSettled(frame.name);
   }, [rows, error, pending]);
 
+  const sourceRows = useMemo(
+    () => rows?.map((entry) => entry.row) ?? [],
+    [rows],
+  );
+  const indexedRows = useMemo(() => indexViewRows(sourceRows), [sourceRows]);
+  const displayedRows = useMemo(() => {
+    if (!rows || !inlineFilter || meta.search === "source" || !phrase.trim())
+      return rows;
+    const byRow = new Map(rows.map((entry) => [entry.row, entry]));
+    return rankViewRows(indexedRows, phrase, meta.filterFields)
+      .map(({ row }) => byRow.get(row))
+      .filter((entry): entry is RenderedRow => entry !== undefined);
+  }, [rows, inlineFilter, meta.search, meta.filterFields, phrase, indexedRows]);
+  const columns = useMemo(
+    () =>
+      meta.mode === "table"
+        ? (meta.columns ?? inferColumns(sourceRows))
+        : undefined,
+    [meta.mode, meta.columns, sourceRows],
+  );
   const body =
-    rows?.length && expansion.ready && !error ? (
+    rows !== undefined &&
+    (displayedRows?.length || meta.mode === "table") &&
+    expansion.ready &&
+    !error ? (
       <DocumentRowsBody
+        pageName={pageName}
         rowState={features?.rowState}
         actionIcons={features?.actionIcons}
         onAction={runAction}
         actionsDisabled={actionsDisabled || pending}
         readOnly={client.isReadOnlyMode()}
-        rows={rows}
+        rows={displayedRows ?? []}
+        columns={columns}
         meta={meta}
         client={client}
         expanded={expansion.expanded}
@@ -513,7 +603,33 @@ function DocumentRows({
         loading={visible}
         error={error}
       >
+        <InlineHeader title={meta.title}>
+          {inlineFilter && (
+            <input
+              className="sb-nav-input"
+              type="text"
+              aria-label="Filter view"
+              placeholder={meta.placeholder ?? "Filter"}
+              value={phrase}
+              onInput={(event) => setPhrase(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (event.key === "Escape" && !event.isComposing) {
+                  event.preventDefault();
+                  setPhrase("");
+                }
+              }}
+            />
+          )}
+        </InlineHeader>
         {body}
+        {inlineFilter &&
+          phrase &&
+          !pending &&
+          !error &&
+          displayedRows?.length === 0 && (
+            <div className="sb-nav-empty">{meta.emptyText ?? "No results"}</div>
+          )}
       </InlineBody>
     );
   }

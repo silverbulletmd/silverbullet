@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
+* Inline list, tree, and table views can opt into a panel-style filter input with `filter = { inline = true }` and set a `title` for the embedded header.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported. **File: Download** saves the current page or document when drag-out is unavailable; the upload command is now **File: Upload**.
 * On narrow screens, left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
 * Fix (Safari): **File: Upload** opens the file picker on iPhone, iPad, and desktop, and dropping files into the Space tree uploads them on desktop Safari.
@@ -50,6 +51,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * **Docked views:** every `view.define`d view has a single, consistent notion of where it lives: `"modal"`, `"lhs"`/`"rhs"` sidebar, `"bhs"` resizable bottom panel, or `"page-top"`/`"page-bottom"` (rendered as an in-document widget). You can move them, and those docking positions and panel sizes persist between reloads.
   * The Table of Contents, Linked Mentions, Linked Tasks are now movable, dockable widgets rather than fixed page decorations.
   * **Inline views:** `view.new` creates views that are renderable inline using `${...}` expressions and support most of the dockable view features.
+  * **Table views:** display source objects inline or in panels with automatic or explicit columns, Markdown cells, and row actions. Columns can declare reference, number, boolean, URL, text, or Markdown types for rendering.
   * See the [[API/view]] API docs to see how you can build your own.
 * **New [[Page Decorations|page decorations]]:** `icon` gives a page its own (Feather) icon in views, auto complete, page links, and the top bar, `tree.priority` floats a page above its siblings in the otherwise alphabetical space tree, and `tree.hide` keeps a page out of the tree alone. `hide` now also hides a page from the tree, not just from the page picker and completions.
 * Docker images:

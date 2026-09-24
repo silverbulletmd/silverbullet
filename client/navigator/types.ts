@@ -61,6 +61,22 @@ export function isWindowDock(dock: string): boolean {
   return (WINDOW_DOCKS as readonly string[]).includes(dock);
 }
 
+export const TABLE_COLUMN_TYPES = [
+  "ref",
+  "number",
+  "boolean",
+  "url",
+  "text",
+  "markdown",
+] as const;
+export type TableColumnType = (typeof TABLE_COLUMN_TYPES)[number];
+
+export type TableColumn = {
+  attribute?: string;
+  label: string;
+  type?: TableColumnType;
+};
+
 export type ViewMeta = {
   name: string;
   title: string;
@@ -68,7 +84,8 @@ export type ViewMeta = {
   placeholder?: string;
   helpText?: string;
   stripPrefix?: string;
-  mode: "list" | "tree";
+  mode: "list" | "tree" | "table";
+  columns?: TableColumn[];
   hasContent?: boolean;
   hasSelect?: boolean;
   dock: (typeof ALL_DOCKS)[number];
@@ -79,6 +96,7 @@ export type ViewMeta = {
   expandAll: boolean;
   expansionScope: "view" | "page";
   filterFields?: FilterFields;
+  inlineFilter?: boolean;
   /** `filter = false`: no phrase filtering; the input is hidden but stays the
    * panel's focus home so the keyboard pipeline keeps working. */
   noFilter?: boolean;

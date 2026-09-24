@@ -3,7 +3,7 @@ import { renderToString } from "preact-render-to-string";
 import { expect, test, vi } from "vitest";
 import type { Client } from "../../../client.ts";
 import type { ViewMeta } from "../../types.ts";
-import { DocumentRowsBody } from "./document_view.tsx";
+import { DocumentRowsBody, DocumentView } from "./document_view.tsx";
 
 vi.mock("./content_view.tsx", () => ({
   ContentNode: () => null,
@@ -23,6 +23,52 @@ const meta = {
   expandAll: false,
 } as ViewMeta;
 const rows = [{ row: { primary: "A row", obj: { name: "Notes/First" } } }];
+
+test("inline filter input is opt-in for embedded row views", () => {
+  const draw = (inlineFilter: boolean) =>
+    renderToString(
+      h(DocumentView, {
+        meta: { ...meta, inlineFilter },
+        client: {} as Client,
+        pageName: "index",
+        dock: "inline",
+        dispatch: async () => [],
+        selectable: false,
+      }),
+    );
+  expect(draw(true)).toContain('aria-label="Filter view"');
+  expect(draw(true)).toContain('class="sb-nav-header sb-inline-view-header"');
+  expect(draw(false)).not.toContain('aria-label="Filter view"');
+});
+
+test("an inline title uses the panel header with or without filtering", () => {
+  const draw = (inlineFilter: boolean) =>
+    renderToString(
+      h(DocumentView, {
+        meta: { ...meta, title: "Projects", inlineFilter },
+        client: {} as Client,
+        pageName: "index",
+        dock: "inline",
+        dispatch: async () => [],
+        selectable: false,
+      }),
+    );
+  expect(draw(false)).toContain('class="sb-nav-title">Projects</span>');
+  expect(draw(false)).not.toContain('aria-label="Filter view"');
+  expect(draw(true)).toContain('class="sb-nav-title">Projects</span>');
+  expect(draw(true)).toContain('class="sb-nav-input"');
+  const content = renderToString(
+    h(DocumentView, {
+      meta: { ...meta, title: "Notes", hasContent: true },
+      client: {} as Client,
+      pageName: "index",
+      dock: "inline",
+      dispatch: async () => [],
+      selectable: false,
+    }),
+  );
+  expect(content).toContain('class="sb-nav-title">Notes</span>');
+});
 
 test("passive inline rows remain readable without exposing a row button", () => {
   const html = renderToString(

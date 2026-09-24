@@ -72,6 +72,20 @@ test("onSelect is optional and marks interactive values", () => {
   expect(interactive.meta.hasSelect).toBe(true);
 });
 
+test("view.new accepts an inline title and registration can override it", async () => {
+  const value = newView(
+    luaSpec(`{ source = function() return {} end, title = "Projects" }`),
+  );
+  expect(value.meta.title).toBe("Projects");
+  const definition = luaSpec('{ name = "example", title = "Docked projects" }');
+  await definition.rawSet("view", value);
+  const normalized = normalizeDefineSpec(definition) as LuaTable;
+  expect(normalized.rawGet("title")).toBe("Docked projects");
+  expect(() =>
+    newView(luaSpec(`{ source = function() return {} end, title = 42 }`)),
+  ).toThrow("title must be a string");
+});
+
 test.each([
   ["missing source", "{}", "source is required"],
   ["bad source", "{ source = true }", "source must be a function"],
@@ -105,7 +119,7 @@ test.each([
   [
     "bad presentation",
     '{ source = function() end, presentation = { mode = "grid" } }',
-    'presentation.mode must be "list" or "tree"',
+    'presentation.mode must be "list", "tree", or "table"',
   ],
 ])("view.new rejects %s", (_label, source, message) => {
   expect(() => newView(luaSpec(source))).toThrow(`view.new: ${message}`);

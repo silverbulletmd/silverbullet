@@ -313,3 +313,381 @@ test.describe("inline view values", () => {
     await expect(currentPage(sbPage)).toHaveValue("Destination");
   });
 });
+
+const tableConfig = `# Table views
+\`\`\`space-lua
+function projectTable(selectable)
+  return view.new {
+    refreshOn = {"fixture:table"},
+    source = function()
+      if tableEmpty then return {} end
+      if tableError then error("Table unavailable") end
+      return {
+      {name = "**Sketchbook**", completed = tableUpdated and 1 or 12, total = 20},
+      {name = "[[Destination|Garden]]", completed = 3, total = 20},
+      {name = "Orchard", completed = 7, total = 20},
+    } end,
+    presentation = {mode = "table", limit = 2, columns = {
+      {attribute = "name", label = "Project"},
+      {attribute = "completed", label = "Progress", value = function(obj) return obj.completed .. "/" .. obj.total end},
+    }},
+    actions = {{label = "Refresh values", run = function() tableUpdated = true end}},
+    onSelect = selectable and function(obj) tableSelected = obj.completed; return false end or nil,
+  }
+end
+function automaticTable()
+  return view.new {
+    source = function() return {{name = "Maple", count = 2}, {name = "Cedar", status = false}} end,
+    presentation = {mode = "table"},
+  }
+end
+function typedTable()
+  return view.new {
+    source = function() return {
+      {ref = "Destination", amount = "12", done = "false", url = "https://example.com/one", text = "**literal**", markdown = "**rich**"},
+      {ref = "[[Destination|Already linked]]", amount = "3", done = true, url = "javascript:alert(1)", text = "[[Destination]]", markdown = "*other*"},
+    } end,
+    presentation = {mode = "table", columns = {
+      {attribute = "ref", type = "ref", value = function(obj) return obj.ref end},
+      {attribute = "amount", type = "number", value = function(obj) return 100 - tonumber(obj.amount) end},
+      {attribute = "done", type = "boolean"},
+      {attribute = "url", type = "url"},
+      {attribute = "text", type = "text"},
+      {attribute = "markdown", type = "markdown"},
+      {label = "Computed", type = "number", value = function(obj) return 100 - tonumber(obj.amount) end},
+    }},
+    onSelect = function() typedSelected = true; return false end,
+  }
+end
+view.define {name = "fixture.typedTable", view = typedTable(), command = "Fixture: Open Typed Table"}
+view.define {name = "fixture.dockedTable", view = typedTable(), dock = "rhs", title = "Typed table", command = "Fixture: Open Docked Table"}
+view.define {name = "fixture.bottomTable", view = typedTable(), dock = "bhs", title = "Typed table", command = "Fixture: Open Bottom Table"}
+view.define {name = "fixture.table", view = projectTable(true), command = "Fixture: Open Table"}
+\`\`\`
+`;
+
+test.describe("table views", () => {
+  test.use({
+    spaceFiles: {
+      "CONFIG.md": tableConfig,
+      "index.md":
+        "# Projects\n\n${projectTable(false)}\n\n${automaticTable()}\n\nEnd.",
+      "Destination.md": "# Destination",
+    },
+  });
+
+  test("tables render Markdown and retain source order through refreshes and actions", async ({
+    sbPage,
+  }) => {
+    const tables = sbPage.locator(".sb-lua-view table");
+    await expect(tables).toHaveCount(2);
+    const table = sbPage.locator(".sb-lua-view").nth(0).locator("table");
+    const names = table.locator("tbody tr td:first-child");
+    await expect(table.locator("strong")).toHaveText("Sketchbook");
+    await expect(names).toHaveText(["Sketchbook", "Garden"]);
+    await expect(table.locator("tbody tr[tabindex]")).toHaveCount(0);
+    await expect(
+      table.locator(".sb-nav-selected, .sb-table-selectable"),
+    ).toHaveCount(0);
+    await expect(tables.nth(1).locator("thead th")).toHaveText([
+      "name",
+      "count",
+      "status",
+    ]);
+    await expect(
+      tables.nth(1).locator("tbody tr").nth(1).locator("td"),
+    ).toHaveText(["Cedar", "", "false"]);
+    await expect(table.locator("thead button")).toHaveCount(0);
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua(
+        '(function() tableEmpty = true; event.dispatch("fixture:table") end)()',
+      ),
+    );
+    await expect(table.locator("tbody tr")).toHaveCount(0);
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua(
+        '(function() tableEmpty = false; event.dispatch("fixture:table") end)()',
+      ),
+    );
+    await expect(names).toHaveText(["Sketchbook", "Garden"]);
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua(
+        '(function() tableError = true; event.dispatch("fixture:table") end)()',
+      ),
+    );
+    await expect(
+      sbPage.locator(".sb-lua-view").nth(0).getByRole("alert"),
+    ).toContainText("Table unavailable");
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua(
+        '(function() tableError = false; event.dispatch("fixture:table") end)()',
+      ),
+    );
+    await expect(names).toHaveText(["Sketchbook", "Garden"]);
+    await table.locator("tbody tr").first().hover();
+    await table.getByRole("button", { name: "Refresh values" }).first().click();
+    await expect(names).toHaveText(["Sketchbook", "Garden"]);
+    await expect(table.locator("tbody tr td:nth-child(2)")).toHaveText([
+      "1/20",
+      "3/20",
+    ]);
+    await expect(currentPage(sbPage)).toHaveValue("index");
+    await sbPage.locator(".cm-content").focus();
+    await runCommandViaPalette(sbPage, "Fixture: Open Table");
+    const panel = navFrame(sbPage);
+    const panelTable = panel.locator("table");
+    await expect(panelTable.locator("tbody tr")).toHaveCount(2);
+    await expect(panelTable.locator("thead button")).toHaveCount(0);
+    await expect(panelTable.locator("tbody tr td:first-child")).toHaveText([
+      "Sketchbook",
+      "Garden",
+    ]);
+    await navInput(sbPage).focus();
+    await navInput(sbPage).press("Enter");
+    expect(
+      await sbPage.evaluate(() =>
+        (globalThis as any).sbRuntime.evalLua("tableSelected"),
+      ),
+    ).toBe(1);
+    await navInput(sbPage).press("Tab");
+    await expect(navInput(sbPage)).not.toBeFocused();
+    await panel.getByRole("button", { name: "Close", exact: true }).click();
+    await table.getByRole("link", { name: "Garden" }).click();
+    await expect(currentPage(sbPage)).toHaveValue("Destination");
+  });
+
+  test("typed columns render callback values and keep links independent of row selection", async ({
+    sbPage,
+  }) => {
+    await runCommandViaPalette(sbPage, "Fixture: Open Typed Table");
+    const table = navFrame(sbPage).locator("table");
+    const rows = table.locator("tbody tr");
+    const first = rows.nth(0);
+    const second = rows.nth(1);
+    await expect(first.locator("td").nth(0).getByRole("link")).toHaveText(
+      "Destination",
+    );
+    await expect(second.locator("td").nth(0).getByRole("link")).toHaveText(
+      "Already linked",
+    );
+    await expect(
+      first.locator("td").nth(2).getByRole("checkbox", { name: "false" }),
+    ).toBeVisible();
+    await expect(
+      second.locator("td").nth(2).getByRole("checkbox", { name: "true" }),
+    ).toBeVisible();
+    await expect(table.getByRole("checkbox")).toHaveCount(2);
+    await expect(
+      table.getByRole("checkbox", { name: "false" }),
+    ).not.toBeChecked();
+    await expect(table.getByRole("checkbox", { name: "false" })).toBeDisabled();
+    await expect(table.getByRole("checkbox", { name: "true" })).toBeChecked();
+    await expect(table.getByRole("checkbox", { name: "true" })).toBeDisabled();
+    await expect(first.locator("td").nth(3).getByRole("link")).toHaveAttribute(
+      "href",
+      "https://example.com/one",
+    );
+    await expect(second.locator("td").nth(3).locator("a")).toHaveCount(0);
+    await expect(table.locator("thead th").nth(4)).toHaveText("text");
+    await expect(
+      table.locator("thead th").nth(4).getByRole("button"),
+    ).toHaveCount(0);
+    await expect(first.locator("td").nth(4)).toHaveText("**literal**");
+    await expect(second.locator("td").nth(4)).toHaveText("[[Destination]]");
+    await expect(
+      table.locator('td[data-type="text"] a, td[data-type="text"] strong'),
+    ).toHaveCount(0);
+    await expect(first.locator("td").nth(5).locator("strong")).toHaveText(
+      "rich",
+    );
+    await expect(table.locator("tbody tr td:nth-child(2)")).toHaveText([
+      "88",
+      "97",
+    ]);
+    await expect(table.locator("tbody tr td:nth-child(2)").first()).toHaveCSS(
+      "text-align",
+      "right",
+    );
+    await expect(table.locator("thead button")).toHaveCount(0);
+    await expect(table.locator("tbody tr td:nth-child(7)")).toHaveText([
+      "88",
+      "97",
+    ]);
+    await table
+      .getByRole("link", { name: "Already linked", exact: true })
+      .click();
+    await expect(currentPage(sbPage)).toHaveValue("Destination");
+    expect(
+      await sbPage.evaluate(() =>
+        (globalThis as any).sbRuntime.evalLua("typedSelected == nil"),
+      ),
+    ).toBe(true);
+  });
+
+  test("a defined table fits a right dock and scrolls wide columns", async ({
+    sbPage,
+  }) => {
+    await runCommandViaPalette(sbPage, "Fixture: Open Docked Table");
+    const dock = sbPage.locator(".sb-nav-root-rhs");
+    const scroll = dock.locator(".sb-table-scroll");
+    const table = scroll.locator("table");
+    await expect(table.locator("thead th")).toHaveCount(7);
+    await expect(table.getByRole("checkbox", { name: "true" })).toBeChecked();
+    await expect(table.getByRole("checkbox", { name: "true" })).toBeDisabled();
+    await expect(table.locator("thead button")).toHaveCount(0);
+    const widths = await scroll.evaluate((element) => ({
+      client: element.clientWidth,
+      content: element.scrollWidth,
+      parent: element.parentElement?.clientWidth,
+    }));
+    expect(widths.content).toBeGreaterThan(widths.client);
+    expect(widths.client).toBeLessThanOrEqual(widths.parent ?? 0);
+    await dock.screenshot({ path: "/tmp/silverbullet-table-dock-wide.png" });
+    await sbPage.setViewportSize({ width: 980, height: 720 });
+    await expect(dock).toBeVisible();
+    await dock.screenshot({ path: "/tmp/silverbullet-table-dock-narrow.png" });
+    await scroll.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    await expect(table.locator("tbody tr td:nth-child(7)")).toHaveText([
+      "88",
+      "97",
+    ]);
+    await scroll.screenshot({
+      path: "/tmp/silverbullet-table-dock-scrolled.png",
+    });
+    const lastCell = table.locator("tbody tr").first().locator("td").last();
+    const visible = await lastCell.evaluate((cell) => {
+      const scroll = cell.closest(".sb-table-scroll")!;
+      const cellBounds = cell.getBoundingClientRect();
+      const scrollBounds = scroll.getBoundingClientRect();
+      return (
+        cellBounds.left >= scrollBounds.left - 1 &&
+        cellBounds.right <= scrollBounds.right + 1
+      );
+    });
+    expect(visible).toBe(true);
+  });
+
+  test("a defined table lays out in the bottom dock", async ({ sbPage }) => {
+    await runCommandViaPalette(sbPage, "Fixture: Open Bottom Table");
+    const dock = sbPage.locator(".sb-nav-root-bhs");
+    const table = dock.locator("table");
+    await expect(table.locator("thead th")).toHaveCount(7);
+    await expect(table.getByRole("checkbox", { name: "true" })).toBeChecked();
+    await dock.screenshot({ path: "/tmp/silverbullet-table-bottom-dock.png" });
+  });
+});
+
+const inlineFilterConfig = `# Inline filters
+\`\`\`space-lua
+function clientFilteredTable()
+  return view.new {
+    title = "Projects",
+    source = function() return {
+      {name = "Maple", count = 1},
+      {name = "Cedar", status = "Ready"},
+      {name = "Birch", count = 3},
+    } end,
+    filter = {inline = true},
+    presentation = {mode = "table", limit = 2},
+  }
+end
+function secondFilteredTable()
+  return view.new {
+    source = function() return {{name = "Finch"}, {name = "Robin"}} end,
+    filter = {inline = true},
+    presentation = {mode = "table"},
+  }
+end
+function sourceFilteredTable()
+  return view.new {
+    source = function(ctx)
+      sourcePhraseSeen = ctx.phrase
+      if ctx.phrase == "Owl" then return {{name = "Owl"}} end
+      return {{name = "Owl"}, {name = "Wren"}}
+    end,
+    search = "source",
+    filter = {inline = true},
+    presentation = {mode = "table"},
+  }
+end
+function clientFilteredList()
+  return view.new {
+    source = function() return {{name = "Hawk"}, {name = "Sparrow"}} end,
+    filter = {inline = true},
+  }
+end
+\`\`\`
+`;
+
+test.describe("inline view filters", () => {
+  test.use({
+    spaceFiles: {
+      "CONFIG.md": inlineFilterConfig,
+      "index.md":
+        "# Views\n\n${clientFilteredTable()}\n\n${secondFilteredTable()}\n\n${sourceFilteredTable()}\n\n${clientFilteredList()}",
+    },
+  });
+
+  test("embedded tables filter independently before limits and pass source phrases", async ({
+    sbPage,
+  }) => {
+    const views = sbPage.locator(".sb-lua-view");
+    await expect(views).toHaveCount(4);
+    const first = views.nth(0);
+    const second = views.nth(1);
+    const source = views.nth(2);
+    const firstRows = first.locator("tbody tr td:first-child");
+    await expect(
+      first.locator(".sb-inline-view-header .sb-nav-title"),
+    ).toHaveText("Projects");
+    await expect(
+      first.locator(".sb-inline-view-header .sb-nav-input"),
+    ).toBeVisible();
+    await expect(firstRows).toHaveText(["Maple", "Cedar"]);
+    await expect(first.locator("thead th")).toHaveText([
+      "name",
+      "count",
+      "status",
+    ]);
+    await first.getByRole("textbox", { name: "Filter view" }).fill("Birch");
+    await expect(firstRows).toHaveText(["Birch"]);
+    await first.screenshot({
+      path: "/tmp/silverbullet-inline-table-filter.png",
+    });
+    await expect(first.locator("thead th")).toHaveText([
+      "name",
+      "count",
+      "status",
+    ]);
+    await expect(second.locator("tbody tr td:first-child")).toHaveText([
+      "Finch",
+      "Robin",
+    ]);
+    await source.getByRole("textbox", { name: "Filter view" }).fill("Owl");
+    await expect(source.locator("tbody tr td:first-child")).toHaveText(["Owl"]);
+    await expect
+      .poll(() =>
+        sbPage.evaluate(() =>
+          (globalThis as any).sbRuntime.evalLua("sourcePhraseSeen"),
+        ),
+      )
+      .toBe("Owl");
+    await first
+      .getByRole("textbox", { name: "Filter view" })
+      .fill("unfindable");
+    await expect(first.locator("tbody tr")).toHaveCount(0);
+    await expect(first.getByText("No results")).toBeVisible();
+    await expect(first.locator("thead th")).toHaveText([
+      "name",
+      "count",
+      "status",
+    ]);
+    await first.getByRole("textbox", { name: "Filter view" }).press("Escape");
+    await expect(firstRows).toHaveText(["Maple", "Cedar"]);
+    const list = views.nth(3);
+    await list.getByRole("textbox", { name: "Filter view" }).fill("Sparrow");
+    await expect(list.locator(".sb-nav-primary")).toHaveText(["Sparrow"]);
+  });
+});

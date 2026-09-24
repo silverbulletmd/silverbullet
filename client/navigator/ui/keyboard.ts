@@ -47,6 +47,7 @@ export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   const { view, phrase, derived, cmd, set } = ctx;
   const { setPhrase, setSelectedIndex } = set;
   if (e.isComposing) return;
+  if (view?.meta.mode === "table" && e.key === "Tab") return;
   if (tryKeymap(e, ctx)) return;
   if (cycleSegment(e, ctx)) return;
   // A filterless view (`filter = false`) has no phrase: a printable key would

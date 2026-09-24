@@ -60,6 +60,7 @@ export function newView(spec: ViewSpec): ViewValue {
       ? new LuaTable(Object.fromEntries(entries(spec)))
       : { ...spec };
   for (const key of REGISTRATION_FIELDS) {
+    if (key === "title") continue;
     if (field(captured, key) !== undefined && field(captured, key) !== null) {
       throw new Error(`view.new: ${key} is not allowed`);
     }

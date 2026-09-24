@@ -1,11 +1,9 @@
-import { descriptionText } from "../../../plug-api/ui/description.ts";
 import { LoadingState } from "./loading.ts";
 import {
   type ContentResult,
   normalizeContent,
   handle as runHook,
 } from "../registry.ts";
-import { rank } from "../../../plug-api/lib/fuzzy.ts";
 import {
   allNodes,
   buildTree,
@@ -16,12 +14,16 @@ import { defaultSegmentIndex, type SegmentMasks } from "./segments.ts";
 import type { DropdownMasks } from "./dropdown.ts";
 import type {
   DropdownOption,
-  FilterFields,
   NavigatorHook,
   Row,
   SourceCtx,
   ViewMeta,
 } from "../types.ts";
+import {
+  indexViewRows,
+  rankViewRows,
+  type IndexedViewRow,
+} from "../row_filter.ts";
 import { IconResolver } from "./icon_resolver.ts";
 
 export type { RowState, RowStates };
@@ -31,11 +33,6 @@ export type HookRunner = (data: {
   hook: NavigatorHook;
   args?: any;
 }) => Promise<any>;
-
-const DEFAULT_FILTER_FIELDS: FilterFields = {
-  primary: { weight: 1.0, segments: true },
-  description: 0.5,
-};
 
 type RawRowState = {
   icon?: string;
@@ -66,8 +63,6 @@ export type ViewState = {
 
 export type RankedRow = { row: Row; score: number };
 
-type IndexedRow = Record<string, any> & { __row: Row; __idx: number };
-
 function metaChanged(a: ViewMeta, b: ViewMeta): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
 }
@@ -84,7 +79,7 @@ export class NavigatorEngine {
   }
 
   private cache = new Map<string, ViewState>();
-  private indexCache = new WeakMap<Row[], IndexedRow[]>();
+  private indexCache = new WeakMap<Row[], IndexedViewRow[]>();
   private icons = new IconResolver();
   private tokens = 0;
   activeName?: string;
@@ -192,11 +187,7 @@ export class NavigatorEngine {
   }
 
   rankRows(rows: Row[], phrase: string, meta: ViewMeta): RankedRow[] {
-    const ranked = rank(this.index(rows), phrase, {
-      fields: meta.filterFields ?? DEFAULT_FILTER_FIELDS,
-      orderId: (o) => o.__idx,
-    });
-    return ranked.map((o) => ({ row: o.__row, score: o.score }));
+    return rankViewRows(this.index(rows), phrase, meta.filterFields);
   }
 
   select(
@@ -385,16 +376,10 @@ export class NavigatorEngine {
     commit();
   }
 
-  private index(rows: Row[]): IndexedRow[] {
+  private index(rows: Row[]): IndexedViewRow[] {
     let indexed = this.indexCache.get(rows);
     if (!indexed) {
-      indexed = rows.map((row, i) => ({
-        ...row.obj,
-        primary: row.primary,
-        description: descriptionText(row.description),
-        __row: row,
-        __idx: i,
-      }));
+      indexed = indexViewRows(rows);
       this.indexCache.set(rows, indexed);
     }
     return indexed;

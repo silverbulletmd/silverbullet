@@ -246,8 +246,8 @@ const rejections: [string, string, string][] = [
   ],
   [
     "unknown presentation mode",
-    `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "table" }`,
-    'view.define: presentation.mode must be "list" or "tree"',
+    `name = "v", ${SOURCE}, ${ON_SELECT}, presentation = { mode = "unknown" }`,
+    'view.define: presentation.mode must be "list", "tree", or "table"',
   ],
   [
     "incomplete hierarchy",
@@ -324,6 +324,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     expansionScope: "view",
     filterFields: undefined,
     noFilter: false,
+    inlineFilter: false,
     followEditor: false,
     refreshOn: undefined,
     hasMove: false,
@@ -360,6 +361,16 @@ test("filter = false projects noFilter, a filter table does not", () => {
   );
   expect(on.noFilter).toBe(false);
   expect(on.filterFields).toEqual({ name: 1 });
+});
+
+test("inline filtering is opt-in and validates its flag", () => {
+  expect(
+    wireMeta(luaSpec(`{ ${SOURCE}, filter = { inline = true } }`)).inlineFilter,
+  ).toBe(true);
+  expect(wireMeta(luaSpec(`{ ${SOURCE} }`)).inlineFilter).toBe(false);
+  expect(() =>
+    wireMeta(luaSpec(`{ ${SOURCE}, filter = { inline = "yes" } }`)),
+  ).toThrow("filter.inline must be a boolean");
 });
 
 // Both plausible spellings of "nothing here": each has to become absent, or
@@ -1109,4 +1120,94 @@ test("row descriptions carry labels and explicit ranges through Lua", async () =
     text: "A quiet walking route.",
     highlights: [[8, 15]],
   });
+});
+
+test("table columns retain raw attributes and prepare Lua display callbacks", async () => {
+  const spec = luaSpec(`{
+    source = function() return {{completed = 3, total = 10, status = false}} end,
+    presentation = {mode = "table", columns = {
+      {attribute = "completed", label = "Progress", value = function(obj) return obj.completed .. "/" .. obj.total end},
+      {attribute = "status"},
+      {attribute = "missing"},
+    }},
+  }`);
+  expect(wireMeta(spec).mode).toBe("table");
+  expect(wireMeta(spec).columns).toEqual([
+    { attribute: "completed", label: "Progress" },
+    { attribute: "status", label: "status" },
+    { attribute: "missing", label: "missing" },
+  ]);
+  const rows = await luaHandle(spec, "rows", {});
+  expect(rows[0].cells).toEqual(["3/10", false, undefined]);
+  expect(rows[0].obj.completed).toBe(3);
+});
+
+test("tables can infer columns without requiring a name attribute", async () => {
+  const spec = luaSpec(
+    `{source = function() return {{count = 12}} end, presentation = {mode = "table"}}`,
+  );
+  expect(wireMeta(spec).columns).toBeUndefined();
+  const rows = await luaHandle(spec, "rows", {});
+  expect(rows[0].primary).toBe("12");
+});
+
+test.each([
+  ['columns = "name"', "columns must be a list"],
+  ['columns = {{label = "Empty"}}', "requires attribute or value"],
+  [
+    'columns = {{attribute = "count", value = "count"}}',
+    "value must be a function",
+  ],
+  ['columns = {{attribute = "count", label = 2}}', "label must be a string"],
+])("table columns reject malformed definitions: %s", (columns, error) => {
+  expect(() =>
+    wireMeta(luaSpec(`{presentation = {mode = "table", ${columns}}}`)),
+  ).toThrow(error);
+});
+
+test.each([
+  "ref",
+  "number",
+  "boolean",
+  "url",
+  "text",
+  "markdown",
+])("table columns carry the %s type and preserve callback results", async (type) => {
+  const spec = luaSpec(
+    `{source = function() return {{name = "Maple"}} end, presentation = {mode = "table", columns = {{attribute = "name", type = "${type}", value = function() return "Cedar" end}}}}`,
+  );
+  expect(wireMeta(spec).columns).toEqual([
+    { attribute: "name", label: "name", type },
+  ]);
+  const rows = await luaHandle(spec, "rows", {});
+  expect(rows[0].cells).toEqual(["Cedar"]);
+  expect(rows[0].obj.name).toBe("Maple");
+});
+
+test.each([
+  '"date"',
+  "42",
+  "false",
+])("table columns reject unsupported types: %s", (type) => {
+  expect(() =>
+    wireMeta(
+      luaSpec(
+        `{presentation = {mode = "table", columns = {{attribute = "name", type = ${type}}}}}`,
+      ),
+    ),
+  ).toThrow("type must be one of");
+});
+
+test("computed table columns need no attribute and default to an empty label", async () => {
+  const spec =
+    luaSpec(`{source = function() return {{amount = 3}} end, presentation = {mode = "table", columns = {
+    {label = "Double", type = "number", value = function(obj) return obj.amount * 2 end},
+    {value = function(obj) return obj.amount end}
+  }}}`);
+  expect(wireMeta(spec).columns).toEqual([
+    { label: "Double", type: "number" },
+    { label: "" },
+  ]);
+  const rows = await luaHandle(spec, "rows", {});
+  expect(rows[0].cells).toEqual([6, 3]);
 });

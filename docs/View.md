@@ -1,5 +1,5 @@
 ---
-description: Reusable lists, trees, and Markdown content, displayed inline or in dockable panels.
+description: Reusable lists, trees, tables, and Markdown content, displayed inline or in dockable panels.
 tags: maturity/beta
 references:
 - client/navigator/*
@@ -35,14 +35,16 @@ ${view.new {
 
 Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget's Edit button reveals the expression. Use `stateKey` to remember tree expansion locally for that page.
 
-For examples with actions and the full option reference, see [[API/view]]. Search, segments, and docking controls belong to view panels.
+Use `presentation = { mode = "table" }` to display source objects in a table with automatic columns and Markdown cells. Explicit column definitions let you choose attributes, labels, types, and display callbacks. Tables support the same selection and action callbacks as other views.
+
+For examples with actions and the full option reference, see [[API/view]]. Inline views can opt into a filter input; segments and docking controls belong to panels.
 
 # Using a panel
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
 * `Enter` opens the selected row. `Escape` closes the panel, whether or not you have typed anything.
 * Typing ranks rows fuzzily, highlighting the matched characters in each row’s name, list or tree alike.
 * In a tree, `Right` expands (or steps into) a folder and `Left` collapses it (or steps out to its parent). `Enter` on a plain folder expands it, on a folder that is *also* a page it opens the page.
-* `Tab` / `Shift-Tab` step through the segments.
+* `Tab` / `Shift-Tab` step through the segments in lists and trees. In tables they move keyboard focus between controls; use `Ctrl-Left` / `Ctrl-Right` in the filter input to switch segments.
 * `Shift-Enter` creates whatever you typed, in views that allow it. A create row also appears on its own: second in a list, pinned below the tree in a tree.
 * The **first character typed into an empty box can route**:
   * `^` narrows the page picker to [[Meta Page|meta pages]].

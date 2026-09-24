@@ -17,6 +17,8 @@ import {
   type NavigatorHook,
   type SegmentMeta,
   type ViewMeta,
+  type TableColumn,
+  TABLE_COLUMN_TYPES,
   isWindowDock,
 } from "./types.ts";
 
@@ -457,13 +459,63 @@ function defaultOpen(spec: ViewSpec): boolean {
   return value;
 }
 
-function presentationMode(spec: ViewSpec): "list" | "tree" {
+function presentationMode(spec: ViewSpec): ViewMeta["mode"] {
   const mode = field(or(field(spec, "presentation"), {}), "mode");
   if (mode === undefined || mode === null) return "list";
-  if (mode !== "list" && mode !== "tree") {
-    throw new Error('view.define: presentation.mode must be "list" or "tree"');
+  if (mode !== "list" && mode !== "tree" && mode !== "table") {
+    throw new Error(
+      'view.define: presentation.mode must be "list", "tree", or "table"',
+    );
   }
   return mode;
+}
+
+function tableColumns(spec: ViewSpec): TableColumn[] | undefined {
+  const p = field(spec, "presentation");
+  const columns = field(p, "columns");
+  if (!present(columns)) return undefined;
+  if (presentationMode(spec) !== "table") {
+    throw new Error('view.define: presentation.columns requires mode "table"');
+  }
+  if (luaType(columns) !== "table") {
+    throw new Error("view.define: presentation.columns must be a list");
+  }
+  const entries = sequence(columns);
+  if (keysOf(columns).length !== entries.length) {
+    throw new Error("view.define: presentation.columns must be a list");
+  }
+  return entries.map((column, index) => {
+    const what = `view.define: presentation.columns[${index + 1}]`;
+    const attribute = field(column, "attribute");
+    const label = field(column, "label");
+    const value = field(column, "value");
+    const type = field(column, "type");
+    if (
+      present(attribute) &&
+      (typeof attribute !== "string" || attribute.length === 0)
+    ) {
+      throw new Error(`${what}.attribute must be a non-empty string`);
+    }
+    if (!present(attribute) && !present(value)) {
+      throw new Error(`${what} requires attribute or value`);
+    }
+    if (present(label) && typeof label !== "string") {
+      throw new Error(`${what}.label must be a string`);
+    }
+    if (present(value) && luaType(value) !== "function") {
+      throw new Error(`${what}.value must be a function`);
+    }
+    if (present(type) && !TABLE_COLUMN_TYPES.includes(type)) {
+      throw new Error(
+        `${what}.type must be one of ${TABLE_COLUMN_TYPES.join(", ")}`,
+      );
+    }
+    return {
+      ...(present(attribute) ? { attribute } : {}),
+      label: label ?? attribute ?? "",
+      ...(present(type) ? { type } : {}),
+    };
+  });
 }
 
 function hierarchy(spec: ViewSpec): { field: string; separator: string } {
@@ -517,6 +569,15 @@ function filterFields(spec: ViewSpec): Record<string, any> | undefined {
   return toJS(fields);
 }
 
+function inlineFilter(spec: ViewSpec): boolean {
+  const inline = field(field(spec, "filter"), "inline");
+  if (!present(inline)) return false;
+  if (typeof inline !== "boolean") {
+    throw new Error("view.define: filter.inline must be a boolean");
+  }
+  return inline;
+}
+
 export function wireMeta(spec: ViewSpec): ViewMeta {
   const p = or(field(spec, "presentation"), {});
   const f = or(field(spec, "filter"), {});
@@ -532,6 +593,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     stripPrefix: toJS(field(f, "stripPrefix")),
     createIcon: toJS(field(p, "createIcon")),
     mode: presentationMode(spec),
+    columns: tableColumns(spec),
     hasContent,
     hasSelect:
       present(field(spec, "onSelect")) ||
@@ -543,6 +605,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     expandAll: expandAll(spec),
     expansionScope: expansionScope(spec),
     filterFields: filterFields(spec),
+    inlineFilter: inlineFilter(spec),
     // Content views hide the filter but retain its input as the keyboard focus home.
     noFilter: hasContent || noFilter(spec),
     followEditor: field(spec, "followEditor") === true,
@@ -581,6 +644,10 @@ export function validateViewSpec(
     throw new Error(`${caller}: source is required`);
   }
   const p = or(field(spec, "presentation"), {});
+  const title = field(spec, "title");
+  if (present(title) && typeof title !== "string") {
+    throw new Error(`${caller}: title must be a string`);
+  }
   const helpText = field(spec, "helpText");
   if (present(helpText) && luaType(helpText) !== "string") {
     throw new Error(`${caller}: helpText must be a string`);
@@ -602,10 +669,12 @@ export function validateViewSpec(
   supportedDocks(spec);
   defaultOpen(spec);
   presentationMode(spec);
+  tableColumns(spec);
   hierarchy(spec);
   refreshOnEvents(spec);
   noFilter(spec);
   filterFields(spec);
+  inlineFilter(spec);
   expandAll(spec);
   expansionScope(spec);
 }
@@ -793,15 +862,36 @@ async function buildRows(
       `navigator: source must return a list, got ${luaType(objs)}`,
     );
   }
+  const columns = tableColumns(spec);
+  const definitions = sequence(field(field(spec, "presentation"), "columns"));
+  const isTable = presentationMode(spec) === "table";
   const rows: any[] = [];
   // A Lua table with no array part converts to an object, which is what `ipairs` walks zero times.
   for (const obj of Array.isArray(objs) ? objs : []) {
+    const cells = columns
+      ? await Promise.all(
+          columns.map((column, index) => {
+            const value = field(definitions[index], "value");
+            return present(value)
+              ? callLua(sf, value as ILuaFunction, obj)
+              : column.attribute === undefined
+                ? undefined
+                : obj?.[column.attribute];
+          }),
+        )
+      : undefined;
     rows.push({
       obj,
+      ...(cells ? { cells } : {}),
       primary:
         (await resolveField(sf, field(row, "primary"), obj)) ??
         obj?.name ??
-        obj?.ref,
+        obj?.ref ??
+        (isTable
+          ? Object.values(obj ?? {})
+              .map(String)
+              .join(" ")
+          : undefined),
       label: await resolveField(sf, field(row, "label"), obj),
       description: normalizeDescription(
         await resolveField(sf, field(row, "description"), obj),

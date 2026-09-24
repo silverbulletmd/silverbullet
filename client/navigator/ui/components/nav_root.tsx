@@ -1,3 +1,5 @@
+import { inferColumns } from "../../table_model.ts";
+import { TableView } from "./table_view.tsx";
 import { useLoading } from "../hooks/use_loading.ts";
 import { LoadingIndicator } from "./loading_indicator.tsx";
 import {
@@ -160,6 +162,13 @@ export function NavRoot({
     markSlotReady(slot, token);
   }, [view, bootError, paintedContent, loading]);
 
+  const tableColumns = useMemo(
+    () =>
+      view?.meta.mode === "table"
+        ? (view.meta.columns ?? inferColumns(view.rows))
+        : [],
+    [view?.meta, view?.rows],
+  );
   const derived = useDerived({
     engine,
     view,
@@ -272,9 +281,22 @@ export function NavRoot({
       data-slot={slot}
       aria-busy={pending}
       style={mode === undefined ? undefined : { flex: mode }}
+      onKeyDownCapture={(event) => {
+        if (
+          event.key === "Escape" &&
+          (event.target as HTMLElement).closest(".sb-table-scroll")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          void cmd.close();
+        }
+      }}
       onMouseDownCapture={(e) => {
         const target = e.target as HTMLElement;
-        if (target.closest("input, select, [draggable='true']")) return;
+        if (
+          target.closest("input, select, [draggable='true'], .sb-table-scroll")
+        )
+          return;
         if (
           target === bodyRef.current &&
           (e.offsetX >= target.clientWidth || e.offsetY >= target.clientHeight)
@@ -549,6 +571,42 @@ export function NavRoot({
             }
             onAction={(node, index) =>
               void cmd.runAction(index, nodeObject(node))
+            }
+          />
+        ) : view?.meta.mode === "table" ? (
+          <TableView
+            key={view.name}
+            rows={listItems.map((entry) => entry?.row)}
+            columns={tableColumns}
+            client={client}
+            actions={view.meta.actions}
+            actionIcons={view.actionIcons}
+            rowState={view.rowState}
+            readOnly={readOnly}
+            actionsDisabled={pending}
+            selectedIndex={activeIndex}
+            onSelect={
+              view.meta.hasSelect
+                ? (index) => void cmd.selectRow(index)
+                : undefined
+            }
+            onAction={(index, action) => {
+              const row = listItems[index]?.row;
+              return row ? cmd.runAction(action, row.obj) : undefined;
+            }}
+            createRow={
+              createIndex < 0
+                ? undefined
+                : (selected) => (
+                    <CreateRow
+                      phrase={trimmedPhrase}
+                      icon={view.createIcon}
+                      hasIcon={!!view.meta.hasRowIcon}
+                      selected={selected}
+                      elRef={selected ? createRef : undefined}
+                      onClick={() => void cmd.runCreate()}
+                    />
+                  )
             }
           />
         ) : view ? (
