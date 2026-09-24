@@ -2,6 +2,7 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { EditorSelection, Transaction } from "@codemirror/state";
 import type { Client } from "../client.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import {
@@ -307,7 +308,10 @@ export function documentExtension(editor: Client) {
   async function saveFile(file: UploadFile) {
     const view = activeView;
     if (!view) return;
-    const maxSize = maximumDocumentSize;
+    const maxSize = await system.getConfig<number>(
+      "maximumDocumentSize",
+      maximumDocumentSize,
+    );
     const invalidPathMessage =
       "Unable to upload file, invalid target filename or path";
 
