@@ -1,24 +1,23 @@
 import { syntaxTree } from "@codemirror/language";
-import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { EditorSelection, Transaction } from "@codemirror/state";
-import type { Client } from "../client.ts";
-
-import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
+import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+// @ts-expect-error - No type definitions available for this package
+import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
+import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
+import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
+import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   addParentPointers,
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
-import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
-import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
-import { handleTreeFileDrop, insertTreeFileLink } from "./tree_file_drop.ts";
-import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import TurndownService from "turndown";
-// @ts-expect-error - No type definitions available for this package
-import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
+import type { Client } from "../client.ts";
+import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
+import { handleTreeFileDrop, insertTreeFileLink } from "./tree_file_drop.ts";
 
 const turndownService = new TurndownService({
   hr: "---",
@@ -307,7 +306,10 @@ export function documentExtension(editor: Client) {
   async function saveFile(file: UploadFile) {
     const view = activeView;
     if (!view) return;
-    const maxSize = maximumDocumentSize;
+    const maxSize = editor.config.get<number>(
+      "maximumDocumentSize",
+      maximumDocumentSize,
+    );
     const invalidPathMessage =
       "Unable to upload file, invalid target filename or path";
 
