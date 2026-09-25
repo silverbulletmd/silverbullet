@@ -53,6 +53,21 @@ test("watched files use cheap observing metadata probes", async () => {
   }
 });
 
+test("document list hides paths starting with an underscore", async () => {
+  const space = new Space(
+    new DataStoreSpacePrimitives(new MemoryKvPrimitives()),
+    new EventHook(),
+  );
+  for (const name of ["_private.txt", "visible.txt", "Folder/_nested.txt"]) {
+    await space.writeDocument(name, new Uint8Array());
+  }
+  await space.writePage("_private", "hidden");
+
+  expect(
+    (await space.fetchDocumentList()).map((document) => document.name),
+  ).toEqual(["Folder/_nested.txt", "visible.txt"]);
+});
+
 test("readRef checks", async () => {
   const kv = new MemoryKvPrimitives();
   const eventHook = new EventHook();

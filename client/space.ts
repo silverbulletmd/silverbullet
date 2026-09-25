@@ -202,12 +202,10 @@ export class Space {
     return fileMeta.name.endsWith(".md") && !fileMeta.name.startsWith("_");
   }
 
-  // Checks if this a document to be listed meaning:
-  // - it's not a markdown file
-  // - it's not a javascript of javascript source map (.map)
   isListedDocument(fileMeta: FileMeta): boolean {
     return (
       !this.isListedPage(fileMeta) &&
+      !fileMeta.name.startsWith("_") &&
       !fileMeta.name.endsWith(".js") &&
       !fileMeta.name.endsWith(".map")
     );

@@ -187,6 +187,26 @@ test("with an index, the rows are the indexed objects", async () => {
   ]);
 });
 
+test("indexed space contents hide documents whose paths start with an underscore", async () => {
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) =>
+    Promise.resolve(
+      tag === "page"
+        ? []
+        : [
+            { name: "_private.txt", tag: "document" },
+            { name: "visible.txt", tag: "document" },
+            { name: "Folder/_nested.txt", tag: "document" },
+          ],
+    ),
+  );
+
+  expect((await spaceContents()).map((entry) => entry.name)).toEqual([
+    "visible.txt",
+    "Folder/_nested.txt",
+  ]);
+});
+
 test("without one, the rows come from the space's own file listing", async () => {
   index.isAvailable.mockResolvedValue(false);
   space.listPages.mockResolvedValue([

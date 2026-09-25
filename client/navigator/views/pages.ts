@@ -11,7 +11,10 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { DocumentCapability } from "@silverbulletmd/silverbullet/type/client";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  DocumentMeta,
+  ObjectValue,
+} from "@silverbulletmd/silverbullet/type/index";
 import { parsePageMetaLastModified } from "../../lib/page_meta.ts";
 import type { Decoration } from "../types.ts";
 import { type BuiltinView, baseMeta, INDEX_REFRESH_EVENTS } from "./types.ts";
@@ -65,9 +68,12 @@ export async function spaceContents(): Promise<PageObj[]> {
   if (await index.isAvailable()) {
     const [pages, documents] = await Promise.all([
       index.queryLuaObjects("page", {} as any),
-      index.queryLuaObjects("document", {} as any),
+      index.queryLuaObjects<DocumentMeta>("document", {} as any),
     ]);
-    return [...pages, ...documents] as PageObj[];
+    return [
+      ...pages,
+      ...documents.filter((document) => !document.name.startsWith("_")),
+    ] as PageObj[];
   }
   const [pages, documents] = await Promise.all([
     space.listPages(),
