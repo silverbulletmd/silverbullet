@@ -921,6 +921,24 @@ export async function getTextualBackRelations(
   );
 }
 
+/**
+ * The textual back-relations of every name in `targets`, from one query.
+ * Calling `getTextualBackRelations` per name costs one full scan of the
+ * relation index each, which a burst of new files (a cold space load delivers
+ * every file at once) turns into thousands of concurrent scans.
+ */
+export async function getTextualBackRelationsToAny(
+  targets: Set<string>,
+): Promise<RelationObject[]> {
+  const relations = await index.queryLuaObjects<RelationObject>("relation", {
+    objectVariable: "_",
+    where: await lua.parseExpression(
+      `_.kind ~= "co-mention" and _.kind ~= "at-mention" and _.toTag ~= "url"`,
+    ),
+  });
+  return relations.filter((relation) => targets.has(relation.to));
+}
+
 function* frontmatterStringEntries(
   fmNode: ParseTree,
 ): Generator<{ key: string; valueNode: ParseTree }> {
