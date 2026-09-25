@@ -1,3 +1,4 @@
+import { runCommandViaPalette } from "../fixtures/actions.ts";
 import {
   expect,
   gotoSilverBulletPage,
@@ -128,5 +129,35 @@ test.describe("page links and lifecycle", () => {
       .toBe(404);
     await gotoSilverBulletPage(page, sbServer, "Published Target");
     await expect(editor).toContainText("The page now has durable content.");
+  });
+
+  test("prompt and confirmation dialogs clear the top bar on a narrow screen", async ({
+    page,
+    sbServer,
+  }) => {
+    await page.setViewportSize({ width: 596, height: 961 });
+    await gotoSilverBulletPage(page, sbServer, "Source");
+
+    const topBarBottom = await page
+      .locator("#sb-top")
+      .evaluate((element) => element.getBoundingClientRect().bottom);
+
+    await runCommandViaPalette(page, "Page: Copy");
+    const prompt = page.locator("dialog.sb-modal-box");
+    await expect(prompt).toBeVisible();
+    const promptTop = await prompt.evaluate(
+      (element) => element.getBoundingClientRect().top,
+    );
+    expect(promptTop).toBeGreaterThanOrEqual(topBarBottom);
+    await prompt.getByRole("button", { name: /Cancel/ }).click();
+
+    await runCommandViaPalette(page, "Page: Delete");
+    const confirmation = page.locator("dialog.sb-modal-box");
+    await expect(confirmation).toBeVisible();
+    const confirmationTop = await confirmation.evaluate(
+      (element) => element.getBoundingClientRect().top,
+    );
+    expect(confirmationTop).toBeGreaterThanOrEqual(topBarBottom);
+    await confirmation.getByRole("button", { name: /Cancel/ }).click();
   });
 });
