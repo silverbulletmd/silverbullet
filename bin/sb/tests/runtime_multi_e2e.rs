@@ -193,7 +193,12 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         .post(format!("{base}/.dashboard/api/login"))
         .json(&serde_json::json!({ "username": ADMIN_USER, "password": ADMIN_PASSWORD }))
         .send()
-        .unwrap();
+        .unwrap_or_else(|error| {
+            panic!(
+                "admin login request failed: {error}; server log: {}",
+                server_proc.log.lock().unwrap()
+            )
+        });
     assert!(r.status().is_success(), "admin login failed");
 
     for (name, prefix, folder) in [
