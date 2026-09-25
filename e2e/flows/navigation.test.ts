@@ -6,11 +6,13 @@ import {
   navInput,
   navRows,
   openPagePicker,
+  openPicker,
   runCommandViaPalette,
 } from "../fixtures/actions.ts";
 import {
   expect,
   gotoSilverBulletPage,
+  mod,
   test,
   waitForPersistedContent,
 } from "../fixtures/core.ts";
@@ -87,7 +89,37 @@ test.describe("page and command navigation", () => {
     const top = await sbPage
       .locator(".sb-modal-centered")
       .evaluate((element) => element.getBoundingClientRect().top);
-    expect(top).toBe(28);
+    const topBarBottom = await sbPage
+      .locator("#sb-top")
+      .evaluate((element) => element.getBoundingClientRect().bottom);
+    expect(top).toBeGreaterThanOrEqual(topBarBottom);
+  });
+
+  test("command and document pickers keep their headers visible on a phone", async ({
+    sbPage,
+  }) => {
+    await sbPage.setViewportSize({ width: 602, height: 961 });
+
+    const commandFrame = await openPicker(sbPage, `${mod}+/`, "Command");
+    await sbPage.setViewportSize({ width: 596, height: 961 });
+    const commandTop = await commandFrame
+      .locator(".sb-nav-header")
+      .evaluate((element) => element.getBoundingClientRect().top);
+    const topBarBottom = await sbPage
+      .locator("#sb-top")
+      .evaluate((element) => element.getBoundingClientRect().bottom);
+    expect(commandTop).toBeGreaterThanOrEqual(topBarBottom);
+    await sbPage.keyboard.press("Escape");
+
+    await sbPage.setViewportSize({ width: 602, height: 961 });
+    await runCommandViaPalette(sbPage, "Navigate: Document Picker");
+    await sbPage.setViewportSize({ width: 596, height: 961 });
+    const documentFrame = navFrame(sbPage);
+    await expect(navInput(sbPage)).toHaveAttribute("placeholder", "Document");
+    const documentTop = await documentFrame
+      .locator(".sb-nav-header")
+      .evaluate((element) => element.getBoundingClientRect().top);
+    expect(documentTop).toBeGreaterThanOrEqual(topBarBottom);
   });
 
   test("page titles take precedence over tags at narrow widths", async ({

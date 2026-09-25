@@ -220,12 +220,13 @@ body {
     top: calc(8px + var(--sb-standalone-top-offset, 0px)) !important;
 
     &.sb-modal-centered {
+      top: calc(8px + var(--sb-top-height) + var(--sb-standalone-top-offset, 0px)) !important;
       bottom: auto !important;
       left: 8px !important;
       right: 8px !important;
       width: auto;
       max-width: none;
-      max-height: calc(100% - 16px - var(--sb-standalone-top-offset, 0px)) !important;
+      max-height: calc(100% - 16px - var(--sb-top-height) - var(--sb-standalone-top-offset, 0px)) !important;
     }
   }
 }
