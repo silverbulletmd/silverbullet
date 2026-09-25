@@ -78,7 +78,6 @@ export function fencedCodePlugin(client: Client) {
               .slice(1, lineStrings.length - 1)
               .join("\n");
             const pageName = client.currentName();
-            const currentPageMeta = client.currentPageMeta();
             const widget =
               renderMode === "loading"
                 ? new LoadingWidget(true)
@@ -92,7 +91,7 @@ export function fencedCodePlugin(client: Client) {
                         client,
                         luaWidgetDef.render,
                         [bodyText, pageName],
-                        currentPageMeta,
+                        client.currentPageMeta(),
                       ),
                     renderEmpty: false,
                     inPage: true,

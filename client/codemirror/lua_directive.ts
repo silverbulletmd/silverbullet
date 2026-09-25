@@ -70,18 +70,19 @@ export function luaDirectivePlugin(client: Client) {
 
         const codeText = state.sliceDoc(node.from, node.to);
         const expressionText = codeText.slice(2, -1);
-        const currentPageMeta = client.currentPageMeta();
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget({
               client,
-              cacheKey: `lua:${expressionText}:${currentPageMeta?.name}`,
+              cacheKey: `lua:${expressionText}:${client.currentPageMeta()?.name}`,
               expressionText,
               codeText,
               // Only `${…}` directives can be baked into `<!--#lua EXPR -->`.
               bakeable: true,
+              // Read the meta when evaluating, not when decorating, so a
+              // widget refresh after a frontmatter edit sees the new values.
               callback: (bodyText) =>
-                renderLuaExpression(client, bodyText, currentPageMeta),
+                renderLuaExpression(client, bodyText, client.currentPageMeta()),
               renderEmpty: true,
               inPage: true,
             }),

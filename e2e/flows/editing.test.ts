@@ -227,3 +227,29 @@ test.describe("extension-assisted editing", () => {
     expect(saved).not.toMatch(/<!--|-->/);
   });
 });
+
+test.describe("page meta in widgets", () => {
+  test.use({
+    spaceFiles: {
+      "Status.md":
+        "---\nstatus: draft\n---\n# Status\n\nMeta: ${editor.getCurrentPageMeta().status}\n\nContext: ${_CTX.currentPage.status}\n",
+    },
+  });
+
+  test("widgets reflect frontmatter edits without a reload", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "Status");
+    const content = page.locator("#sb-editor .cm-content");
+    await expect(content).toContainText("Meta: draft");
+    await expect(content).toContainText("Context: draft");
+
+    await selectText(page, "draft");
+    await page.keyboard.insertText("published");
+    await waitForPersistedContent(sbServer, "Status.md", /status: published/);
+
+    await expect(content).toContainText("Meta: published");
+    await expect(content).toContainText("Context: published");
+  });
+});
