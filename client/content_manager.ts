@@ -685,7 +685,7 @@ export class ContentManager {
       install();
     } else if (nextEditor instanceof MediaDocumentViewer) {
       await this.documentEditor?.destroy();
-      nextEditor.openFile(data, meta, details);
+      await nextEditor.openFile(data, meta, details);
     } else {
       await nextEditor.openFile(data, meta, details);
       if (this.documentEditor) {
