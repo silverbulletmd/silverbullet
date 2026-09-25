@@ -282,15 +282,18 @@ test.each([
   ["Navigate: Tree", "std.spaceTree"],
   ["Revision: Page History", "std.pageHistory"],
   ["Revision: Space History", "std.spaceLog"],
-])("%s opens %s and returns false, keeping the panel focused", async (command, view) => {
-  const commands = await registeredCommands();
+])(
+  "%s opens %s and returns false, keeping the panel focused",
+  async (command, view) => {
+    const commands = await registeredCommands();
 
-  expect(await commands.get(command).run()).toBe(false);
-  expect(slots.showSlot).toHaveBeenCalled();
-  // Pins the view: any of these wrappers would return false and call
-  // showPanel, so those two alone don't prove which view was opened.
-  expect(registry.resolveMeta).toHaveBeenCalledWith(view);
-});
+    expect(await commands.get(command).run()).toBe(false);
+    expect(slots.showSlot).toHaveBeenCalled();
+    // Pins the view: any of these wrappers would return false and call
+    // showPanel, so those two alone don't prove which view was opened.
+    expect(registry.resolveMeta).toHaveBeenCalledWith(view);
+  },
+);
 
 test("the revision commands are absent when revisions are disabled", async () => {
   const commands = await registeredCommands(false);

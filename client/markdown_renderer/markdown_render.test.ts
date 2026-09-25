@@ -22,28 +22,31 @@ test.each([
   ["clip.mp3", "AUDIO"],
   ["movie.mp4", "VIDEO"],
   ["drawing.svg", "IMG"],
-])("native transclusion for %s preserves its source and controls", (path, tag) => {
-  vi.stubGlobal("document", mediaTestDocument());
-  try {
-    const element = createMediaElement(
-      parseTransclusion(`![[${path}|Sample]]`)!,
-    )!;
-    expect(element.tagName).toBe(tag);
-    expect(element.getAttribute("src")).toBe(`.fs/${path}`);
-    const html = renderMarkdownToHtml(
-      parse(extendedMarkdownLanguage, `![[${path}|Sample]]`),
-    );
-    expect(html).toContain(`<${tag}`);
-    expect(html).toContain(`.fs/${path}`);
-    if (tag === "AUDIO" || tag === "VIDEO") {
-      expect(html).toContain('preload="metadata"');
-      expect(html).toContain("controls");
+])(
+  "native transclusion for %s preserves its source and controls",
+  (path, tag) => {
+    vi.stubGlobal("document", mediaTestDocument());
+    try {
+      const element = createMediaElement(
+        parseTransclusion(`![[${path}|Sample]]`)!,
+      )!;
+      expect(element.tagName).toBe(tag);
+      expect(element.getAttribute("src")).toBe(`.fs/${path}`);
+      const html = renderMarkdownToHtml(
+        parse(extendedMarkdownLanguage, `![[${path}|Sample]]`),
+      );
+      expect(html).toContain(`<${tag}`);
+      expect(html).toContain(`.fs/${path}`);
+      if (tag === "AUDIO" || tag === "VIDEO") {
+        expect(html).toContain('preload="metadata"');
+        expect(html).toContain("controls");
+      }
+      if (tag === "VIDEO") expect(html).toContain("playsinline");
+    } finally {
+      vi.unstubAllGlobals();
     }
-    if (tag === "VIDEO") expect(html).toContain("playsinline");
-  } finally {
-    vi.unstubAllGlobals();
-  }
-});
+  },
+);
 
 test("live PDF transclusions preserve their object element", () => {
   vi.stubGlobal("document", mediaTestDocument());

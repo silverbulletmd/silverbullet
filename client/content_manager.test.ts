@@ -478,101 +478,104 @@ describe("ContentManager document resolution and host lifecycle", () => {
     }
   });
 
-  test.each([
-    "valid",
-    "invalid",
-  ])("%s text validation precedes the active iframe's save and teardown", async (content) => {
-    await loadLanguageFor("rs");
-    vi.useFakeTimers();
-    const { client, cm } = setupDocuments({
-      readDocument: async (path) => ({
-        data:
-          content === "valid"
-            ? new TextEncoder().encode("fn main() {}")
-            : new Uint8Array([0xff]),
-        meta: documentMeta(path),
-      }),
-    });
-    const messages: unknown[] = [];
-    const frame = {
-      contentWindow: {
-        postMessage: (message: unknown) => messages.push(message),
-      },
-      remove: vi.fn(() => {
-        editorParent.children = editorParent.children.filter(
-          (child) => child !== (frame as unknown as Element),
-        );
-      }),
-    };
-    const previous = new IFrameDocumentEditor(
-      editorParent as unknown as HTMLElement,
-      client as unknown as Client,
-      () => {},
-    );
-    previous.name = "ExampleEditor";
-    previous.iframe = frame as unknown as HTMLIFrameElement;
-    client.currentPathValue = "drawing.custom";
-    client.viewState.current = {
-      path: "drawing.custom",
-      meta: documentMeta("drawing.custom"),
-    };
-    editorParent.children = [
-      client.editorView.dom as HTMLElement,
-      previous.iframe,
-    ];
-    cm.documentEditor = previous;
-    cm.hostEditorMode = null;
-    client.viewState.unsavedChanges = true;
-    const destroy = vi.spyOn(previous, "destroy");
-    try {
-      const opening = cm.loadDocumentEditor({ path: "sample.rs" });
-      const outcome = opening.then(
-        () => "opened",
-        (error: Error) => error.message,
+  test.each(["valid", "invalid"])(
+    "%s text validation precedes the active iframe's save and teardown",
+    async (content) => {
+      await loadLanguageFor("rs");
+      vi.useFakeTimers();
+      const { client, cm } = setupDocuments({
+        readDocument: async (path) => ({
+          data:
+            content === "valid"
+              ? new TextEncoder().encode("fn main() {}")
+              : new Uint8Array([0xff]),
+          meta: documentMeta(path),
+        }),
+      });
+      const messages: unknown[] = [];
+      const frame = {
+        contentWindow: {
+          postMessage: (message: unknown) => messages.push(message),
+        },
+        remove: vi.fn(() => {
+          editorParent.children = editorParent.children.filter(
+            (child) => child !== (frame as unknown as Element),
+          );
+        }),
+      };
+      const previous = new IFrameDocumentEditor(
+        editorParent as unknown as HTMLElement,
+        client as unknown as Client,
+        () => {},
       );
-      await vi.advanceTimersByTimeAsync(0);
-      expect(frame.remove).not.toHaveBeenCalled();
-      expect(cm.documentEditor).toBe(previous);
-      expect(client.editorView.state.doc.toString()).toBe("Current page");
-      expect(messages).toEqual([{ type: "request-save", internal: false }]);
-      if (content === "valid") {
-        expect(destroy).toHaveBeenCalledOnce();
-        previous.savePromise!.resolve();
-        expect(await outcome).toBe("opened");
-        expect(frame.remove).toHaveBeenCalledOnce();
-        expect(cm.documentEditor?.name).toBe("TextEditor");
-        expect(client.editorView.state.doc.toString()).toBe("fn main() {}");
-      } else {
-        expect(await outcome).toBe("Opened externally");
-        expect(destroy).not.toHaveBeenCalled();
-        expect(cm.hostEditorMode).toBeNull();
-        previous.savePromise!.resolve();
+      previous.name = "ExampleEditor";
+      previous.iframe = frame as unknown as HTMLIFrameElement;
+      client.currentPathValue = "drawing.custom";
+      client.viewState.current = {
+        path: "drawing.custom",
+        meta: documentMeta("drawing.custom"),
+      };
+      editorParent.children = [
+        client.editorView.dom as HTMLElement,
+        previous.iframe,
+      ];
+      cm.documentEditor = previous;
+      cm.hostEditorMode = null;
+      client.viewState.unsavedChanges = true;
+      const destroy = vi.spyOn(previous, "destroy");
+      try {
+        const opening = cm.loadDocumentEditor({ path: "sample.rs" });
+        const outcome = opening.then(
+          () => "opened",
+          (error: Error) => error.message,
+        );
+        await vi.advanceTimersByTimeAsync(0);
+        expect(frame.remove).not.toHaveBeenCalled();
+        expect(cm.documentEditor).toBe(previous);
+        expect(client.editorView.state.doc.toString()).toBe("Current page");
+        expect(messages).toEqual([{ type: "request-save", internal: false }]);
+        if (content === "valid") {
+          expect(destroy).toHaveBeenCalledOnce();
+          previous.savePromise!.resolve();
+          expect(await outcome).toBe("opened");
+          expect(frame.remove).toHaveBeenCalledOnce();
+          expect(cm.documentEditor?.name).toBe("TextEditor");
+          expect(client.editorView.state.doc.toString()).toBe("fn main() {}");
+        } else {
+          expect(await outcome).toBe("Opened externally");
+          expect(destroy).not.toHaveBeenCalled();
+          expect(cm.hostEditorMode).toBeNull();
+          previous.savePromise!.resolve();
+        }
+      } finally {
+        editorParent.children = [];
+        vi.useRealTimers();
       }
-    } finally {
-      editorParent.children = [];
-      vi.useRealTimers();
-    }
-  });
+    },
+  );
 
   test.each([
     ["archive.bin", "application/octet-stream", 6_000_000],
     ["clip.mp4", "video/mp4", 20],
     ["archive.zip", "application/zip", 20],
-  ])("%s fetches metadata but never fetches external bytes", async (path, mime, size) => {
-    const getDocumentMeta = vi.fn(async () => documentMeta(path, mime, size));
-    const readDocument = vi.fn(async () => {
-      throw new Error("must not read bytes");
-    });
-    const { client, cm } = setupDocuments({ getDocumentMeta, readDocument });
-    await expect(
-      cm.loadDocumentEditor({ path: path as `${string}.${string}` }),
-    ).rejects.toThrow("Opened externally");
-    expect(getDocumentMeta).toHaveBeenCalledWith(path, "cheap");
-    expect(readDocument).not.toHaveBeenCalled();
-    expect(client.openUrl).toHaveBeenCalledOnce();
-    expect(client.editorView.state.doc.toString()).toBe("Current page");
-    expect(client.unwatchedFiles).toEqual([]);
-  });
+  ])(
+    "%s fetches metadata but never fetches external bytes",
+    async (path, mime, size) => {
+      const getDocumentMeta = vi.fn(async () => documentMeta(path, mime, size));
+      const readDocument = vi.fn(async () => {
+        throw new Error("must not read bytes");
+      });
+      const { client, cm } = setupDocuments({ getDocumentMeta, readDocument });
+      await expect(
+        cm.loadDocumentEditor({ path: path as `${string}.${string}` }),
+      ).rejects.toThrow("Opened externally");
+      expect(getDocumentMeta).toHaveBeenCalledWith(path, "cheap");
+      expect(readDocument).not.toHaveBeenCalled();
+      expect(client.openUrl).toHaveBeenCalledOnce();
+      expect(client.editorView.state.doc.toString()).toBe("Current page");
+      expect(client.unwatchedFiles).toEqual([]);
+    },
+  );
 
   test("text navigation loads metadata before bytes and keeps document events and watches", async () => {
     const order: string[] = [];
@@ -780,95 +783,96 @@ describe("ContentManager document resolution and host lifecycle", () => {
     expect(client.viewState.unsavedChanges).toBe(false);
   });
 
-  test.each([
-    "navigation",
-    "save",
-    "concurrent saves",
-  ])("%s drains alpha → beta → alpha before returning", async (operation) => {
-    let diskText = "alpha";
-    const writes: { text: string; finish: () => void }[] = [];
-    const { client, cm } = setupDocuments({
-      readDocument: async (path) => ({
-        data: new TextEncoder().encode(diskText),
-        meta: documentMeta(path),
-      }),
-      writeDocument: (path, bytes) => {
-        const write = Promise.withResolvers<DocumentMeta>();
-        const text = new TextDecoder().decode(bytes);
-        writes.push({
-          text,
-          finish: () => {
-            diskText = text;
-            write.resolve(documentMeta(path));
-          },
-        });
-        return write.promise;
-      },
-    });
-    try {
-      await cm.loadDocumentEditor({ path: "sample.txt" });
-      vi.useFakeTimers();
-      const editor = cm.documentEditor!;
-      client.viewState.unsavedChanges = true;
-      let boundaryFinished = false;
-      const alphaSave =
-        operation !== "navigation"
-          ? cm.save(true)
-          : Promise.resolve(editor.requestSave());
-      let boundary =
-        operation !== "navigation"
-          ? alphaSave.then(() => {
-              boundaryFinished = true;
-            })
-          : undefined;
-      await vi.advanceTimersByTimeAsync(0);
-      client.editorView.dispatch({
-        changes: { from: 0, to: 5, insert: "beta" },
+  test.each(["navigation", "save", "concurrent saves"])(
+    "%s drains alpha → beta → alpha before returning",
+    async (operation) => {
+      let diskText = "alpha";
+      const writes: { text: string; finish: () => void }[] = [];
+      const { client, cm } = setupDocuments({
+        readDocument: async (path) => ({
+          data: new TextEncoder().encode(diskText),
+          meta: documentMeta(path),
+        }),
+        writeDocument: (path, bytes) => {
+          const write = Promise.withResolvers<DocumentMeta>();
+          const text = new TextDecoder().decode(bytes);
+          writes.push({
+            text,
+            finish: () => {
+              diskText = text;
+              write.resolve(documentMeta(path));
+            },
+          });
+          return write.promise;
+        },
       });
-      client.viewState.unsavedChanges = true;
-      const betaSave =
-        operation === "concurrent saves" ? cm.save(true) : editor.requestSave();
-      await vi.advanceTimersByTimeAsync(0);
-      client.editorView.dispatch({
-        changes: { from: 0, to: 4, insert: "alpha" },
-      });
-      client.viewState.unsavedChanges = true;
-      writes[0].finish();
-      await vi.advanceTimersByTimeAsync(0);
-      if (operation === "navigation") {
-        boundary = cm.loadPage({ path: "Next.md" }, false).then(() => {
-          boundaryFinished = true;
-        });
+      try {
+        await cm.loadDocumentEditor({ path: "sample.txt" });
+        vi.useFakeTimers();
+        const editor = cm.documentEditor!;
+        client.viewState.unsavedChanges = true;
+        let boundaryFinished = false;
+        const alphaSave =
+          operation !== "navigation"
+            ? cm.save(true)
+            : Promise.resolve(editor.requestSave());
+        let boundary =
+          operation !== "navigation"
+            ? alphaSave.then(() => {
+                boundaryFinished = true;
+              })
+            : undefined;
         await vi.advanceTimersByTimeAsync(0);
-      }
-      const returnedBeforeQueuedWrite = boundaryFinished;
-      writes[1].finish();
-      await vi.advanceTimersByTimeAsync(0);
-      expect(writes.map((write) => write.text)).toEqual([
-        "alpha",
-        "beta",
-        "alpha",
-      ]);
-      writes[2].finish();
-      await vi.advanceTimersByTimeAsync(0);
-      expect(boundaryFinished).toBe(true);
-      await Promise.all([alphaSave, betaSave, boundary]);
+        client.editorView.dispatch({
+          changes: { from: 0, to: 5, insert: "beta" },
+        });
+        client.viewState.unsavedChanges = true;
+        const betaSave =
+          operation === "concurrent saves"
+            ? cm.save(true)
+            : editor.requestSave();
+        await vi.advanceTimersByTimeAsync(0);
+        client.editorView.dispatch({
+          changes: { from: 0, to: 4, insert: "alpha" },
+        });
+        client.viewState.unsavedChanges = true;
+        writes[0].finish();
+        await vi.advanceTimersByTimeAsync(0);
+        if (operation === "navigation") {
+          boundary = cm.loadPage({ path: "Next.md" }, false).then(() => {
+            boundaryFinished = true;
+          });
+          await vi.advanceTimersByTimeAsync(0);
+        }
+        const returnedBeforeQueuedWrite = boundaryFinished;
+        writes[1].finish();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(writes.map((write) => write.text)).toEqual([
+          "alpha",
+          "beta",
+          "alpha",
+        ]);
+        writes[2].finish();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(boundaryFinished).toBe(true);
+        await Promise.all([alphaSave, betaSave, boundary]);
 
-      expect(diskText).toBe("alpha");
-      expect(returnedBeforeQueuedWrite).toBe(false);
-      expect(writes.map((write) => write.text)).toEqual([
-        "alpha",
-        "beta",
-        "alpha",
-      ]);
-      expect(client.viewState.unsavedChanges).toBe(false);
-      expect(client.viewState.current?.path).toBe(
-        operation === "navigation" ? "Next.md" : "sample.txt",
-      );
-    } finally {
-      vi.useRealTimers();
-    }
-  });
+        expect(diskText).toBe("alpha");
+        expect(returnedBeforeQueuedWrite).toBe(false);
+        expect(writes.map((write) => write.text)).toEqual([
+          "alpha",
+          "beta",
+          "alpha",
+        ]);
+        expect(client.viewState.unsavedChanges).toBe(false);
+        expect(client.viewState.current?.path).toBe(
+          operation === "navigation" ? "Next.md" : "sample.txt",
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
 });
 
 describe("ContentManager host editor rebuilds", () => {

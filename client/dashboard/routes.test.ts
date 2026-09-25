@@ -161,10 +161,13 @@ test.each([
   "javascript:alert(1)",
   "  //evil.example/x",
   "/.dashboard/../secret",
-])("safeDashboardDestination rejects open-redirect payload: %s", async (payload) => {
-  const { safeDashboardDestination } = await load("/.dashboard/login");
-  expect(safeDashboardDestination(payload)).toBe(undefined);
-});
+])(
+  "safeDashboardDestination rejects open-redirect payload: %s",
+  async (payload) => {
+    const { safeDashboardDestination } = await load("/.dashboard/login");
+    expect(safeDashboardDestination(payload)).toBe(undefined);
+  },
+);
 
 test("loginUrl encodes a safe next destination as the query param", async () => {
   const { loginUrl } = await load("/.dashboard/users", "");

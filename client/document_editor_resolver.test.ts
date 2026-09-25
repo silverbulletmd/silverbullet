@@ -57,57 +57,62 @@ test.each([
   ["sample.html", "text/html", "html", false],
   ["notes.xyz", "application/x-unknown", null, true],
   ["notes.bin", "application/octet-stream", null, true],
-])("%s (%s) resolves as a text candidate", (name, contentType, languageName, requiresUtf8Probe) => {
-  expect(
-    resolveDocumentEditor(meta(name, contentType), noPlugins, capabilities),
-  ).toEqual(
-    expect.objectContaining({
-      kind: "text",
-      languageName,
-      requiresUtf8Probe,
-      needsBytes: true,
-    }),
-  );
-});
+])(
+  "%s (%s) resolves as a text candidate",
+  (name, contentType, languageName, requiresUtf8Probe) => {
+    expect(
+      resolveDocumentEditor(meta(name, contentType), noPlugins, capabilities),
+    ).toEqual(
+      expect.objectContaining({
+        kind: "text",
+        languageName,
+        requiresUtf8Probe,
+        needsBytes: true,
+      }),
+    );
+  },
+);
 
-test.each([
-  true,
-  false,
-])("index.ts resolves as TypeScript even when video MIME support is %s", (supported) => {
-  expect(
-    resolveDocumentEditor(
-      meta("index.ts", "video/vnd.dlna.mpeg-tts"),
-      noPlugins,
-      { supports: () => supported },
-    ),
-  ).toEqual(
-    expect.objectContaining({
-      kind: "text",
-      languageName: "ts",
-      needsBytes: true,
-    }),
-  );
-});
+test.each([true, false])(
+  "index.ts resolves as TypeScript even when video MIME support is %s",
+  (supported) => {
+    expect(
+      resolveDocumentEditor(
+        meta("index.ts", "video/vnd.dlna.mpeg-tts"),
+        noPlugins,
+        { supports: () => supported },
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        kind: "text",
+        languageName: "ts",
+        needsBytes: true,
+      }),
+    );
+  },
+);
 
-test.each([
-  "text/plain",
-  "application/octet-stream",
-])("the text limit accepts 5 MiB and rejects one byte more (%s)", (contentType) => {
-  expect(
-    resolveDocumentEditor(
-      meta("sample.rs", contentType, 5_242_880),
-      noPlugins,
-      capabilities,
-    ).kind,
-  ).toBe("text");
-  expect(
-    resolveDocumentEditor(
-      meta("sample.rs", contentType, 5_242_881),
-      noPlugins,
-      capabilities,
-    ),
-  ).toEqual(expect.objectContaining({ kind: "external", reason: "too-large" }));
-});
+test.each(["text/plain", "application/octet-stream"])(
+  "the text limit accepts 5 MiB and rejects one byte more (%s)",
+  (contentType) => {
+    expect(
+      resolveDocumentEditor(
+        meta("sample.rs", contentType, 5_242_880),
+        noPlugins,
+        capabilities,
+      ).kind,
+    ).toBe("text");
+    expect(
+      resolveDocumentEditor(
+        meta("sample.rs", contentType, 5_242_881),
+        noPlugins,
+        capabilities,
+      ),
+    ).toEqual(
+      expect.objectContaining({ kind: "external", reason: "too-large" }),
+    );
+  },
+);
 
 test.each([
   ["image/png", "image"],

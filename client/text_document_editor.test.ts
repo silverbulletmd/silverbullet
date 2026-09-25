@@ -235,25 +235,24 @@ test("queued saves retain the BOM policy of the document that created them", asy
   );
 });
 
-test.each([
-  "document",
-  "space",
-  "forced",
-])("%s read-only prevents text writes", async (source) => {
-  const { client, editor, view, writeDocument } = setup();
-  client.bootConfig.readOnly = source === "space";
-  Object.assign(client.ui.viewState.uiOptions, {
-    forcedROMode: source === "forced",
-  });
-  await editor.openFile(
-    new TextEncoder().encode("plain text"),
-    meta("sample.txt", source === "document" ? "ro" : "rw"),
-    undefined,
-  );
-  expect(view.state.readOnly).toBe(true);
-  await editor.requestSave();
-  expect(writeDocument).not.toHaveBeenCalled();
-});
+test.each(["document", "space", "forced"])(
+  "%s read-only prevents text writes",
+  async (source) => {
+    const { client, editor, view, writeDocument } = setup();
+    client.bootConfig.readOnly = source === "space";
+    Object.assign(client.ui.viewState.uiOptions, {
+      forcedROMode: source === "forced",
+    });
+    await editor.openFile(
+      new TextEncoder().encode("plain text"),
+      meta("sample.txt", source === "document" ? "ro" : "rw"),
+      undefined,
+    );
+    expect(view.state.readOnly).toBe(true);
+    await editor.requestSave();
+    expect(writeDocument).not.toHaveBeenCalled();
+  },
+);
 
 test("save resolves only after storage confirms the write", async () => {
   const { editor, writeDocument, client } = setup();

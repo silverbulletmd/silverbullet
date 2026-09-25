@@ -296,11 +296,12 @@ const rejections: [string, string, string][] = [
   ],
 ];
 
-test.each(
-  rejections,
-)("view.define rejects %s at define time", (_what, fields, message) => {
-  expect(define(fields)).toThrow(message);
-});
+test.each(rejections)(
+  "view.define rejects %s at define time",
+  (_what, fields, message) => {
+    expect(define(fields)).toThrow(message);
+  },
+);
 
 test("a fully defaulted spec projects the meta the panel expects", () => {
   const meta = wireMeta(luaSpec(`{ name = "v", ${SOURCE}, ${ON_SELECT} }`));
@@ -1165,38 +1166,33 @@ test.each([
   ).toThrow(error);
 });
 
-test.each([
-  "ref",
-  "number",
-  "boolean",
-  "url",
-  "text",
-  "markdown",
-])("table columns carry the %s type and preserve callback results", async (type) => {
-  const spec = luaSpec(
-    `{source = function() return {{name = "Maple"}} end, presentation = {mode = "table", columns = {{attribute = "name", type = "${type}", value = function() return "Cedar" end}}}}`,
-  );
-  expect(wireMeta(spec).columns).toEqual([
-    { attribute: "name", label: "name", type },
-  ]);
-  const rows = await luaHandle(spec, "rows", {});
-  expect(rows[0].cells).toEqual(["Cedar"]);
-  expect(rows[0].obj.name).toBe("Maple");
-});
+test.each(["ref", "number", "boolean", "url", "text", "markdown"])(
+  "table columns carry the %s type and preserve callback results",
+  async (type) => {
+    const spec = luaSpec(
+      `{source = function() return {{name = "Maple"}} end, presentation = {mode = "table", columns = {{attribute = "name", type = "${type}", value = function() return "Cedar" end}}}}`,
+    );
+    expect(wireMeta(spec).columns).toEqual([
+      { attribute: "name", label: "name", type },
+    ]);
+    const rows = await luaHandle(spec, "rows", {});
+    expect(rows[0].cells).toEqual(["Cedar"]);
+    expect(rows[0].obj.name).toBe("Maple");
+  },
+);
 
-test.each([
-  '"date"',
-  "42",
-  "false",
-])("table columns reject unsupported types: %s", (type) => {
-  expect(() =>
-    wireMeta(
-      luaSpec(
-        `{presentation = {mode = "table", columns = {{attribute = "name", type = ${type}}}}}`,
+test.each(['"date"', "42", "false"])(
+  "table columns reject unsupported types: %s",
+  (type) => {
+    expect(() =>
+      wireMeta(
+        luaSpec(
+          `{presentation = {mode = "table", columns = {{attribute = "name", type = ${type}}}}}`,
+        ),
       ),
-    ),
-  ).toThrow("type must be one of");
-});
+    ).toThrow("type must be one of");
+  },
+);
 
 test("computed table columns need no attribute and default to an empty label", async () => {
   const spec =

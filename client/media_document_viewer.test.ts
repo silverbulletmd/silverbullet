@@ -70,42 +70,43 @@ test.each([
   ["application/pdf", "object", "load"],
   ["audio/mpeg", "audio", "loadedmetadata"],
   ["video/mp4", "video", "loadedmetadata"],
-])("%s announces loading until the media is ready", (contentType, tag, readyEvent) => {
-  const { viewer } = setup();
-  viewer.openFile(undefined, { ...meta, contentType }, undefined);
+])(
+  "%s announces loading until the media is ready",
+  (contentType, tag, readyEvent) => {
+    const { viewer } = setup();
+    viewer.openFile(undefined, { ...meta, contentType }, undefined);
 
-  const status = doc.parent.find("p")!;
-  expect(status.getAttribute("role")).toBe("status");
-  expect(status.textContent).toBe("Loading document…");
-  expect(status.hidden).toBe(false);
+    const status = doc.parent.find("p")!;
+    expect(status.getAttribute("role")).toBe("status");
+    expect(status.textContent).toBe("Loading document…");
+    expect(status.hidden).toBe(false);
 
-  doc.parent.find(tag)!.dispatchEvent(new Event(readyEvent));
-  expect(status.hidden).toBe(true);
-});
+    doc.parent.find(tag)!.dispatchEvent(new Event(readyEvent));
+    expect(status.hidden).toBe(true);
+  },
+);
 
-test.each([
-  "image/png",
-  "audio/mpeg",
-  "video/mp4",
-  "application/pdf",
-])("%s errors retain an actionable fallback", (contentType) => {
-  const { viewer } = setup();
-  viewer.openFile(undefined, { ...meta, contentType }, undefined);
-  const tag = {
-    "image/png": "img",
-    "audio/mpeg": "audio",
-    "video/mp4": "video",
-    "application/pdf": "object",
-  }[contentType]!;
-  doc.parent.find(tag)!.dispatchEvent(new Event("error"));
-  expect(doc.parent.find("p")?.textContent).toBe(
-    "This document could not be displayed.",
-  );
-  expect(doc.parent.find("p")?.hidden).toBe(false);
-  expect(doc.parent.find("button")?.hidden).toBe(false);
-  viewer.focus();
-  expect(doc.parent.find("button")?.focus).toHaveBeenCalledOnce();
-});
+test.each(["image/png", "audio/mpeg", "video/mp4", "application/pdf"])(
+  "%s errors retain an actionable fallback",
+  (contentType) => {
+    const { viewer } = setup();
+    viewer.openFile(undefined, { ...meta, contentType }, undefined);
+    const tag = {
+      "image/png": "img",
+      "audio/mpeg": "audio",
+      "video/mp4": "video",
+      "application/pdf": "object",
+    }[contentType]!;
+    doc.parent.find(tag)!.dispatchEvent(new Event("error"));
+    expect(doc.parent.find("p")?.textContent).toBe(
+      "This document could not be displayed.",
+    );
+    expect(doc.parent.find("p")?.hidden).toBe(false);
+    expect(doc.parent.find("button")?.hidden).toBe(false);
+    viewer.focus();
+    expect(doc.parent.find("button")?.focus).toHaveBeenCalledOnce();
+  },
+);
 
 test("PDF always has external fallback and focuses it", () => {
   const { viewer } = setup();
@@ -120,19 +121,18 @@ test("PDF always has external fallback and focuses it", () => {
   expect(doc.parent.find("button")?.focus).toHaveBeenCalledOnce();
 });
 
-test.each([
-  "image/svg+xml",
-  "text/html",
-  "application/xhtml+xml",
-])("host viewer rejects active content %s even with permissive capabilities", (contentType) => {
-  const { viewer } = setup();
-  viewer.openFile(undefined, { ...meta, contentType }, undefined);
-  expect(doc.parent.find("img")).toBeUndefined();
-  expect(doc.parent.find("object")).toBeUndefined();
-  expect(doc.parent.find("iframe")).toBeUndefined();
-  expect(doc.parent.find("p")?.hidden).toBe(false);
-  expect(doc.parent.find("button")?.hidden).toBe(false);
-});
+test.each(["image/svg+xml", "text/html", "application/xhtml+xml"])(
+  "host viewer rejects active content %s even with permissive capabilities",
+  (contentType) => {
+    const { viewer } = setup();
+    viewer.openFile(undefined, { ...meta, contentType }, undefined);
+    expect(doc.parent.find("img")).toBeUndefined();
+    expect(doc.parent.find("object")).toBeUndefined();
+    expect(doc.parent.find("iframe")).toBeUndefined();
+    expect(doc.parent.find("p")?.hidden).toBe(false);
+    expect(doc.parent.find("button")?.hidden).toBe(false);
+  },
+);
 
 test("errors from a released source cannot hide a reloaded document", () => {
   const { viewer } = setup();
@@ -172,23 +172,23 @@ test("a late ready event cannot clear an error from the current source", () => {
   expect(doc.parent.find("button")?.hidden).toBe(false);
 });
 
-test.each([
-  "audio/mpeg",
-  "video/mp4",
-])("destroy releases %s and removes only owned DOM", async (contentType) => {
-  const { viewer, cm } = setup();
-  viewer.openFile(undefined, { ...meta, contentType }, undefined);
-  const element = doc.parent.find(
-    contentType.startsWith("audio") ? "audio" : "video",
-  )!;
-  await viewer.requestSave();
-  viewer.updateTheme();
-  viewer.destroy();
-  expect(element.pause).toHaveBeenCalledOnce();
-  expect(element.getAttribute("src")).toBeNull();
-  expect(element.load).toHaveBeenCalledOnce();
-  expect(doc.parent.children).toEqual([cm]);
-  expect(doc.parent.classList.contains("hide-cm")).toBe(false);
-  viewer.destroy();
-  expect(element.pause).toHaveBeenCalledOnce();
-});
+test.each(["audio/mpeg", "video/mp4"])(
+  "destroy releases %s and removes only owned DOM",
+  async (contentType) => {
+    const { viewer, cm } = setup();
+    viewer.openFile(undefined, { ...meta, contentType }, undefined);
+    const element = doc.parent.find(
+      contentType.startsWith("audio") ? "audio" : "video",
+    )!;
+    await viewer.requestSave();
+    viewer.updateTheme();
+    viewer.destroy();
+    expect(element.pause).toHaveBeenCalledOnce();
+    expect(element.getAttribute("src")).toBeNull();
+    expect(element.load).toHaveBeenCalledOnce();
+    expect(doc.parent.children).toEqual([cm]);
+    expect(doc.parent.classList.contains("hide-cm")).toBe(false);
+    viewer.destroy();
+    expect(element.pause).toHaveBeenCalledOnce();
+  },
+);

@@ -855,17 +855,18 @@ test("Git conflict controls render with the caret on the first line", () => {
 });
 
 describe("Git conflict marker sizes", () => {
-  test.each([
-    3, 9, 32,
-  ])("resolves a diff3 hunk with %i-character markers", (size) => {
-    const source = `${"<".repeat(size)} HEAD\nlocal\n${"|".repeat(size)} base\nbase\n${"=".repeat(size)}\nremote\n${">".repeat(size)} incoming\n`;
-    const hunks = findConflictHunks(docOf(source));
-    expect(hunks).toHaveLength(1);
-    expect(hunks[0].first.text).toBe("local\n");
-    expect(hunks[0].base?.text).toBe("base\n");
-    expect(hunks[0].second.text).toBe("remote\n");
-    expect(hunks[0].first.label).toBe("HEAD");
-  });
+  test.each([3, 9, 32])(
+    "resolves a diff3 hunk with %i-character markers",
+    (size) => {
+      const source = `${"<".repeat(size)} HEAD\nlocal\n${"|".repeat(size)} base\nbase\n${"=".repeat(size)}\nremote\n${">".repeat(size)} incoming\n`;
+      const hunks = findConflictHunks(docOf(source));
+      expect(hunks).toHaveLength(1);
+      expect(hunks[0].first.text).toBe("local\n");
+      expect(hunks[0].base?.text).toBe("base\n");
+      expect(hunks[0].second.text).toBe("remote\n");
+      expect(hunks[0].first.label).toBe("HEAD");
+    },
+  );
 
   test("does not accept mismatched marker widths", () => {
     expect(

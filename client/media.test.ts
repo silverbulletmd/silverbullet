@@ -34,41 +34,39 @@ test("rejects unsupported media and retains codec parameters", () => {
   expect(mediaKindFor("application/pdf", { supports })).toBeNull();
 });
 
-test.each([
-  "",
-  "maybe",
-  "probably",
-])("browser adapter honors canPlayType result %s", (result) => {
-  const doc = mediaTestDocument();
-  const elements: ReturnType<typeof doc.createElement>[] = [];
-  vi.stubGlobal("document", {
-    ...doc,
-    createElement(tag: string) {
-      const element = doc.createElement(tag);
-      element.canPlayType.mockReturnValue(result);
-      elements.push(element);
-      return element;
-    },
-  });
-  for (const kind of ["audio", "video"] as const) {
-    expect(browserMediaCapabilities.supports(kind, `${kind}/test`)).toBe(
-      result !== "",
-    );
-    expect(elements.at(-1)?.canPlayType).toHaveBeenCalledWith(`${kind}/test`);
-    expect(elements.at(-1)?.parentElement).toBeNull();
-  }
-});
+test.each(["", "maybe", "probably"])(
+  "browser adapter honors canPlayType result %s",
+  (result) => {
+    const doc = mediaTestDocument();
+    const elements: ReturnType<typeof doc.createElement>[] = [];
+    vi.stubGlobal("document", {
+      ...doc,
+      createElement(tag: string) {
+        const element = doc.createElement(tag);
+        element.canPlayType.mockReturnValue(result);
+        elements.push(element);
+        return element;
+      },
+    });
+    for (const kind of ["audio", "video"] as const) {
+      expect(browserMediaCapabilities.supports(kind, `${kind}/test`)).toBe(
+        result !== "",
+      );
+      expect(elements.at(-1)?.canPlayType).toHaveBeenCalledWith(`${kind}/test`);
+      expect(elements.at(-1)?.parentElement).toBeNull();
+    }
+  },
+);
 
-test.each([
-  true,
-  false,
-  undefined,
-])("PDF capability %s supports known or guarded viewing", (pdfViewerEnabled) => {
-  vi.stubGlobal("navigator", { pdfViewerEnabled });
-  expect(mediaKindFor("application/pdf", browserMediaCapabilities)).toBe(
-    pdfViewerEnabled === false ? null : "pdf",
-  );
-});
+test.each([true, false, undefined])(
+  "PDF capability %s supports known or guarded viewing",
+  (pdfViewerEnabled) => {
+    vi.stubGlobal("navigator", { pdfViewerEnabled });
+    expect(mediaKindFor("application/pdf", browserMediaCapabilities)).toBe(
+      pdfViewerEnabled === false ? null : "pdf",
+    );
+  },
+);
 
 test.each([
   ["image/png", "IMG"],

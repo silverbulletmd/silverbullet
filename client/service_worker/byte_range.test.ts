@@ -29,21 +29,19 @@ test.each([
   expect(parseByteRange(value, 10)).toEqual(expected);
 });
 
-test.each([
-  "bytes=10-12",
-  "bytes=5-4",
-  "bytes=-0",
-])("marks the range %s as unsatisfiable", (value) => {
-  expect(parseByteRange(value, 10)).toEqual({ type: "unsatisfiable" });
-});
+test.each(["bytes=10-12", "bytes=5-4", "bytes=-0"])(
+  "marks the range %s as unsatisfiable",
+  (value) => {
+    expect(parseByteRange(value, 10)).toEqual({ type: "unsatisfiable" });
+  },
+);
 
-test.each([
-  "bytes=0-0",
-  "bytes=0-",
-  "bytes=-1",
-])("marks the range %s on an empty file as unsatisfiable", (value) => {
-  expect(parseByteRange(value, 0)).toEqual({ type: "unsatisfiable" });
-});
+test.each(["bytes=0-0", "bytes=0-", "bytes=-1"])(
+  "marks the range %s on an empty file as unsatisfiable",
+  (value) => {
+    expect(parseByteRange(value, 0)).toEqual({ type: "unsatisfiable" });
+  },
+);
 
 test.each([
   null,
@@ -131,22 +129,22 @@ test("builds an empty unsatisfiable local response", async () => {
   expect((await response.arrayBuffer()).byteLength).toBe(0);
 });
 
-test.each([
-  "bytes=abc-1",
-  "bytes=0-1,4-5",
-])("serves the full representation for unsupported range %s", async (range) => {
-  const response = buildLocalFileResponse(
-    fileMeta("clip.bin", 10, "video/mp4"),
-    bytes("0123456789"),
-    new Request("http://local/.fs/clip.bin", { headers: { Range: range } }),
-  );
+test.each(["bytes=abc-1", "bytes=0-1,4-5"])(
+  "serves the full representation for unsupported range %s",
+  async (range) => {
+    const response = buildLocalFileResponse(
+      fileMeta("clip.bin", 10, "video/mp4"),
+      bytes("0123456789"),
+      new Request("http://local/.fs/clip.bin", { headers: { Range: range } }),
+    );
 
-  expect(response.status).toBe(200);
-  expect(response.headers.get("Content-Range")).toBeNull();
-  expect(new Uint8Array(await response.arrayBuffer())).toEqual(
-    bytes("0123456789"),
-  );
-});
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Range")).toBeNull();
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+      bytes("0123456789"),
+    );
+  },
+);
 
 test("HEAD returns full metadata without a body", async () => {
   const response = buildLocalFileResponse(
@@ -180,24 +178,24 @@ test("a matching date If-Range serves the requested range", async () => {
   expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes("2345"));
 });
 
-test.each([
-  "Tue, 20 Oct 2015 07:28:00 GMT",
-  '"content-etag"',
-])("If-Range %s falls back to the full representation", async (ifRange) => {
-  const response = buildLocalFileResponse(
-    fileMeta("clip.bin", 10, "video/mp4"),
-    bytes("0123456789"),
-    new Request("http://local/.fs/clip.bin", {
-      headers: { Range: "bytes=2-5", "If-Range": ifRange },
-    }),
-  );
+test.each(["Tue, 20 Oct 2015 07:28:00 GMT", '"content-etag"'])(
+  "If-Range %s falls back to the full representation",
+  async (ifRange) => {
+    const response = buildLocalFileResponse(
+      fileMeta("clip.bin", 10, "video/mp4"),
+      bytes("0123456789"),
+      new Request("http://local/.fs/clip.bin", {
+        headers: { Range: "bytes=2-5", "If-Range": ifRange },
+      }),
+    );
 
-  expect(response.status).toBe(200);
-  expect(response.headers.get("Content-Range")).toBeNull();
-  expect(new Uint8Array(await response.arrayBuffer())).toEqual(
-    bytes("0123456789"),
-  );
-});
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Range")).toBeNull();
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+      bytes("0123456789"),
+    );
+  },
+);
 
 test("an empty If-Range never matches missing local Last-Modified metadata", async () => {
   const meta = {

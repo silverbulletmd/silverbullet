@@ -155,23 +155,22 @@ test("text mode installs Rust without accessing page completion or widgets", asy
   vi.restoreAllMocks();
 });
 
-test.each([
-  "document",
-  "forced",
-  "space",
-])("text mode honors %s read-only", (source) => {
-  const client = clientStub();
-  client.ui.viewState.uiOptions.forcedROMode = source === "forced";
-  client.bootConfig.readOnly = source === "space";
-  const state = createEditorState(
-    client,
-    { kind: "text-document", path: "example.txt", language: null },
-    "plain text",
-    source === "document",
-  );
-  expect(state.readOnly).toBe(true);
-  expect(state.facet(EditorView.editable)).toBe(false);
-});
+test.each(["document", "forced", "space"])(
+  "text mode honors %s read-only",
+  (source) => {
+    const client = clientStub();
+    client.ui.viewState.uiOptions.forcedROMode = source === "forced";
+    client.bootConfig.readOnly = source === "space";
+    const state = createEditorState(
+      client,
+      { kind: "text-document", path: "example.txt", language: null },
+      "plain text",
+      source === "document",
+    );
+    expect(state.readOnly).toBe(true);
+    expect(state.facet(EditorView.editable)).toBe(false);
+  },
+);
 
 function dispatchAnyKeyBinding(
   state: EditorState,
@@ -229,145 +228,148 @@ test("text quote key handling stays literal while page mode retains smart quotes
   expect(pageResult.state.doc.toString()).toBe("word “");
 });
 
-test.each([
-  "MediaViewer",
-  "SpecialEditor",
-])("inactive %s state runs global and matching editor commands only", async (editorName) => {
-  const client = clientStub();
-  const ran: string[] = [];
-  client.contentManager.documentEditor = {
-    name: editorName,
-  } as typeof client.contentManager.documentEditor;
-  const definitions: Array<[string, string | undefined, string]> = [
-    ["global", undefined, "Ctrl-Alt-g"],
-    ["matching", editorName, "Ctrl-Alt-m"],
-    ["text", "TextEditor", "Ctrl-Alt-t"],
-  ];
-  client.clientSystem.commandHook.buildAllCommands = () =>
-    new Map<string, Command>(
-      definitions.map(([name, requireEditor, key]) => [
-        name,
-        {
+test.each(["MediaViewer", "SpecialEditor"])(
+  "inactive %s state runs global and matching editor commands only",
+  async (editorName) => {
+    const client = clientStub();
+    const ran: string[] = [];
+    client.contentManager.documentEditor = {
+      name: editorName,
+    } as typeof client.contentManager.documentEditor;
+    const definitions: Array<[string, string | undefined, string]> = [
+      ["global", undefined, "Ctrl-Alt-g"],
+      ["matching", editorName, "Ctrl-Alt-m"],
+      ["text", "TextEditor", "Ctrl-Alt-t"],
+    ];
+    client.clientSystem.commandHook.buildAllCommands = () =>
+      new Map<string, Command>(
+        definitions.map(([name, requireEditor, key]) => [
           name,
-          requireEditor,
-          key,
-          run: async () => {
-            ran.push(name);
-          },
-        } as Command,
-      ]),
+          {
+            name,
+            requireEditor,
+            key,
+            run: async () => {
+              ran.push(name);
+            },
+          } as Command,
+        ]),
+      );
+    let state = createInactiveEditorState(
+      client,
+      EditorState.create({ doc: "hidden document" }),
     );
-  let state = createInactiveEditorState(
-    client,
-    EditorState.create({ doc: "hidden document" }),
-  );
-  const view = {
-    get state() {
-      return state;
-    },
-    dispatch: (transaction: import("@codemirror/state").Transaction) => {
-      state = transaction.state;
-    },
-  } as unknown as EditorView;
-  const keyEvent = (key: string) =>
-    ({
-      key,
-      keyCode: key.toUpperCase().charCodeAt(0),
-      ctrlKey: true,
-      altKey: true,
-      metaKey: false,
-      shiftKey: false,
-      preventDefault() {},
-      stopPropagation() {},
-    }) as KeyboardEvent;
-
-  expect(runScopeHandlers(view, keyEvent("g"), "editor")).toBe(true);
-  expect(runScopeHandlers(view, keyEvent("m"), "editor")).toBe(true);
-  expect(runScopeHandlers(view, keyEvent("t"), "editor")).toBe(false);
-  await Promise.resolve();
-  expect(ran).toEqual(["global", "matching"]);
-  expect(state.readOnly).toBe(true);
-  expect(state.facet(language)).toBeNull();
-  expect(undoDepth(state)).toBe(0);
-
-  client.clientSystem.commandHook.buildAllCommands = () =>
-    new Map([
-      [
-        "late",
-        {
-          name: "late",
-          key: "Ctrl-Alt-l",
-          run: async () => {
-            ran.push("late");
-          },
-        } as Command,
-      ],
-    ]);
-  state = state.update({
-    effects: client.commandKeyHandlerCompartment!.reconfigure(
-      createCommandKeyBindings(client),
-    ),
-  }).state;
-  expect(runScopeHandlers(view, keyEvent("l"), "editor")).toBe(true);
-  await Promise.resolve();
-  expect(ran).toEqual(["global", "matching", "late"]);
-});
-
-test.each([
-  ["CRLF", "first\r\nsecond\r\n"],
-  ["LF", "first\nsecond\n"],
-])("%s text state rebuilds into an inactive command state", async (_name, text) => {
-  const client = clientStub();
-  const ran = vi.fn();
-  client.contentManager.documentEditor = {
-    name: "MediaViewer",
-  } as typeof client.contentManager.documentEditor;
-  client.clientSystem.commandHook.buildAllCommands = () =>
-    new Map([
-      [
-        "global",
-        {
-          name: "global",
-          key: "Ctrl-Alt-g",
-          run: async () => ran(),
-        } as Command,
-      ],
-    ]);
-  const source = createEditorState(
-    client,
-    { kind: "text-document", path: "sample.txt", language: null },
-    text,
-    false,
-  );
-  const selected = source.update({
-    selection: EditorSelection.single(source.doc.length),
-  }).state;
-
-  const inactive = createInactiveEditorState(client, selected);
-  expect(inactive.doc.eq(selected.doc)).toBe(true);
-  expect(inactive.selection.main.head).toBe(selected.selection.main.head);
-  expect(inactive.sliceDoc()).toBe(text);
-
-  const view = { state: inactive } as unknown as EditorView;
-  expect(
-    runScopeHandlers(
-      view,
-      {
-        key: "g",
-        keyCode: 71,
+    const view = {
+      get state() {
+        return state;
+      },
+      dispatch: (transaction: import("@codemirror/state").Transaction) => {
+        state = transaction.state;
+      },
+    } as unknown as EditorView;
+    const keyEvent = (key: string) =>
+      ({
+        key,
+        keyCode: key.toUpperCase().charCodeAt(0),
         ctrlKey: true,
         altKey: true,
         metaKey: false,
         shiftKey: false,
         preventDefault() {},
         stopPropagation() {},
-      } as KeyboardEvent,
-      "editor",
-    ),
-  ).toBe(true);
-  await Promise.resolve();
-  expect(ran).toHaveBeenCalledOnce();
-});
+      }) as KeyboardEvent;
+
+    expect(runScopeHandlers(view, keyEvent("g"), "editor")).toBe(true);
+    expect(runScopeHandlers(view, keyEvent("m"), "editor")).toBe(true);
+    expect(runScopeHandlers(view, keyEvent("t"), "editor")).toBe(false);
+    await Promise.resolve();
+    expect(ran).toEqual(["global", "matching"]);
+    expect(state.readOnly).toBe(true);
+    expect(state.facet(language)).toBeNull();
+    expect(undoDepth(state)).toBe(0);
+
+    client.clientSystem.commandHook.buildAllCommands = () =>
+      new Map([
+        [
+          "late",
+          {
+            name: "late",
+            key: "Ctrl-Alt-l",
+            run: async () => {
+              ran.push("late");
+            },
+          } as Command,
+        ],
+      ]);
+    state = state.update({
+      effects: client.commandKeyHandlerCompartment!.reconfigure(
+        createCommandKeyBindings(client),
+      ),
+    }).state;
+    expect(runScopeHandlers(view, keyEvent("l"), "editor")).toBe(true);
+    await Promise.resolve();
+    expect(ran).toEqual(["global", "matching", "late"]);
+  },
+);
+
+test.each([
+  ["CRLF", "first\r\nsecond\r\n"],
+  ["LF", "first\nsecond\n"],
+])(
+  "%s text state rebuilds into an inactive command state",
+  async (_name, text) => {
+    const client = clientStub();
+    const ran = vi.fn();
+    client.contentManager.documentEditor = {
+      name: "MediaViewer",
+    } as typeof client.contentManager.documentEditor;
+    client.clientSystem.commandHook.buildAllCommands = () =>
+      new Map([
+        [
+          "global",
+          {
+            name: "global",
+            key: "Ctrl-Alt-g",
+            run: async () => ran(),
+          } as Command,
+        ],
+      ]);
+    const source = createEditorState(
+      client,
+      { kind: "text-document", path: "sample.txt", language: null },
+      text,
+      false,
+    );
+    const selected = source.update({
+      selection: EditorSelection.single(source.doc.length),
+    }).state;
+
+    const inactive = createInactiveEditorState(client, selected);
+    expect(inactive.doc.eq(selected.doc)).toBe(true);
+    expect(inactive.selection.main.head).toBe(selected.selection.main.head);
+    expect(inactive.sliceDoc()).toBe(text);
+
+    const view = { state: inactive } as unknown as EditorView;
+    expect(
+      runScopeHandlers(
+        view,
+        {
+          key: "g",
+          keyCode: 71,
+          ctrlKey: true,
+          altKey: true,
+          metaKey: false,
+          shiftKey: false,
+          preventDefault() {},
+          stopPropagation() {},
+        } as KeyboardEvent,
+        "editor",
+      ),
+    ).toBe(true);
+    await Promise.resolve();
+    expect(ran).toHaveBeenCalledOnce();
+  },
+);
 
 test("change callbacks retain the plugin update phase", () => {
   const state = EditorState.create({
@@ -379,103 +381,104 @@ test("change callbacks retain the plugin update phase", () => {
   expect(state.facet(EditorView.updateListener)).toHaveLength(0);
 });
 
-test.each([
-  "undo",
-  "redo",
-])("text %s shortcuts work with page commands filtered out", (operation) => {
-  const client = clientStub();
-  const commands = new Map<string, Command>();
-  registerEditorCommands(client, {
-    registerCommand: (command: Command) => commands.set(command.name, command),
-  } as unknown as CommandHook);
-  client.clientSystem.commandHook.buildAllCommands = () => commands;
-  client.contentManager.documentEditor = {
-    name: "TextEditor",
-  } as typeof client.contentManager.documentEditor;
-  let state = createEditorState(
-    client,
-    { kind: "text-document", path: "example.txt", language: null },
-    "hello",
-    false,
-  );
-  const view = {
-    get state() {
-      return state;
-    },
-    dispatch: (transaction: import("@codemirror/state").Transaction) => {
-      state = transaction.state;
-    },
-  } as unknown as EditorView;
-  client.editorView = view;
-  state = state.update({ changes: { from: 5, insert: "!" } }).state;
-  expect(undoDepth(state)).toBe(1);
-  if (operation === "redo") {
-    expect(undo(view)).toBe(true);
-    expect(redoDepth(state)).toBe(1);
-  }
-  const event = {
-    key: operation === "undo" ? "z" : "y",
-    keyCode: operation === "undo" ? 90 : 89,
-    ctrlKey: true,
-    metaKey: false,
-    shiftKey: false,
-    altKey: false,
-    preventDefault() {},
-    stopPropagation() {},
-  } as KeyboardEvent;
-  expect(runScopeHandlers(view, event, "editor")).toBe(true);
-  expect(state.sliceDoc()).toBe(operation === "undo" ? "hello" : "hello!");
-  expect(operation === "undo" ? redoDepth(state) : undoDepth(state)).toBe(1);
-});
-
-test.each([
-  "page",
-  "text-document",
-] as const)("%s edits save and dispatch only their own events", (kind) => {
-  const client = clientStub();
-  client.save = vi.fn(async () => {});
-  client.dispatchAppEvent = vi.fn(async () => []);
-  client.contentManager.debouncedUpdateEvent = Object.assign(vi.fn(), {
-    flush: vi.fn(),
-  });
-  const mode: EditorMode =
-    kind === "page"
-      ? { kind, pageName: "Example" }
-      : { kind, path: "example.txt", language: null };
-  const state = EditorState.create({
-    doc: "hello",
-  });
-  const listener = createEditorUpdateHandler(client, mode);
-  const transaction = state.update({ changes: { from: 5, insert: "!" } });
-  listener({
-    docChanged: true,
-    transactions: [transaction],
-    changes: transaction.changes,
-    view: { composing: false },
-  } as unknown as ViewUpdate);
-  expect(client.ui.viewDispatch).toHaveBeenCalledWith({
-    type: kind === "page" ? "page-changed" : "document-editor-changed",
-  });
-  expect(client.save).toHaveBeenCalledOnce();
-  if (kind === "page") {
-    expect(client.dispatchAppEvent).toHaveBeenCalledWith(
-      "editor:pageModified",
-      {
-        changes: [
-          {
-            inserted: "!",
-            oldRange: { from: 5, to: 5 },
-            newRange: { from: 5, to: 6 },
-          },
-        ],
-      },
+test.each(["undo", "redo"])(
+  "text %s shortcuts work with page commands filtered out",
+  (operation) => {
+    const client = clientStub();
+    const commands = new Map<string, Command>();
+    registerEditorCommands(client, {
+      registerCommand: (command: Command) =>
+        commands.set(command.name, command),
+    } as unknown as CommandHook);
+    client.clientSystem.commandHook.buildAllCommands = () => commands;
+    client.contentManager.documentEditor = {
+      name: "TextEditor",
+    } as typeof client.contentManager.documentEditor;
+    let state = createEditorState(
+      client,
+      { kind: "text-document", path: "example.txt", language: null },
+      "hello",
+      false,
     );
-    expect(client.contentManager.debouncedUpdateEvent).toHaveBeenCalledOnce();
-  } else {
-    expect(client.dispatchAppEvent).not.toHaveBeenCalled();
-    expect(client.contentManager.debouncedUpdateEvent).not.toHaveBeenCalled();
-  }
-});
+    const view = {
+      get state() {
+        return state;
+      },
+      dispatch: (transaction: import("@codemirror/state").Transaction) => {
+        state = transaction.state;
+      },
+    } as unknown as EditorView;
+    client.editorView = view;
+    state = state.update({ changes: { from: 5, insert: "!" } }).state;
+    expect(undoDepth(state)).toBe(1);
+    if (operation === "redo") {
+      expect(undo(view)).toBe(true);
+      expect(redoDepth(state)).toBe(1);
+    }
+    const event = {
+      key: operation === "undo" ? "z" : "y",
+      keyCode: operation === "undo" ? 90 : 89,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      altKey: false,
+      preventDefault() {},
+      stopPropagation() {},
+    } as KeyboardEvent;
+    expect(runScopeHandlers(view, event, "editor")).toBe(true);
+    expect(state.sliceDoc()).toBe(operation === "undo" ? "hello" : "hello!");
+    expect(operation === "undo" ? redoDepth(state) : undoDepth(state)).toBe(1);
+  },
+);
+
+test.each(["page", "text-document"] as const)(
+  "%s edits save and dispatch only their own events",
+  (kind) => {
+    const client = clientStub();
+    client.save = vi.fn(async () => {});
+    client.dispatchAppEvent = vi.fn(async () => []);
+    client.contentManager.debouncedUpdateEvent = Object.assign(vi.fn(), {
+      flush: vi.fn(),
+    });
+    const mode: EditorMode =
+      kind === "page"
+        ? { kind, pageName: "Example" }
+        : { kind, path: "example.txt", language: null };
+    const state = EditorState.create({
+      doc: "hello",
+    });
+    const listener = createEditorUpdateHandler(client, mode);
+    const transaction = state.update({ changes: { from: 5, insert: "!" } });
+    listener({
+      docChanged: true,
+      transactions: [transaction],
+      changes: transaction.changes,
+      view: { composing: false },
+    } as unknown as ViewUpdate);
+    expect(client.ui.viewDispatch).toHaveBeenCalledWith({
+      type: kind === "page" ? "page-changed" : "document-editor-changed",
+    });
+    expect(client.save).toHaveBeenCalledOnce();
+    if (kind === "page") {
+      expect(client.dispatchAppEvent).toHaveBeenCalledWith(
+        "editor:pageModified",
+        {
+          changes: [
+            {
+              inserted: "!",
+              oldRange: { from: 5, to: 5 },
+              newRange: { from: 5, to: 6 },
+            },
+          ],
+        },
+      );
+      expect(client.contentManager.debouncedUpdateEvent).toHaveBeenCalledOnce();
+    } else {
+      expect(client.dispatchAppEvent).not.toHaveBeenCalled();
+      expect(client.contentManager.debouncedUpdateEvent).not.toHaveBeenCalled();
+    }
+  },
+);
 
 test("text composition defers saving and ignores external updates", () => {
   const client = clientStub();

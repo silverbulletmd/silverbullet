@@ -106,13 +106,12 @@ test("a prefix-bound worker only scopes prefixes nested under its own base", () 
   ).toEqual(["/sub"]);
 });
 
-test.each([
-  "/private",
-  "/private/",
-  "/private/some/page",
-])("%s belongs to a sibling space", (path) => {
-  expect(belongsToSiblingSpace(path, ["/private"])).toBe(true);
-});
+test.each(["/private", "/private/", "/private/some/page"])(
+  "%s belongs to a sibling space",
+  (path) => {
+    expect(belongsToSiblingSpace(path, ["/private"])).toBe(true);
+  },
+);
 
 test.each([
   // Boundary: a page merely sharing the prefix's characters.
@@ -169,14 +168,14 @@ test("initial sync: markdown navigations (no X-Sync-Mode) keep proxy-first behav
 // local-read candidates too: on a slow link, proxying an already-synced
 // .plug.js can push the worker boot past its 5s creation timeout — plugs sync
 // first precisely so their files are available early.
-test.each([
-  "/.fs/Library/Std/Plugs/index.plug.js",
-  "/.fs/photo.png",
-])("initial sync: non-markdown GET of %s may be served locally without the header", (path) => {
-  expect(isInitialSyncLocalReadCandidate("GET", path, new Headers())).toBe(
-    true,
-  );
-});
+test.each(["/.fs/Library/Std/Plugs/index.plug.js", "/.fs/photo.png"])(
+  "initial sync: non-markdown GET of %s may be served locally without the header",
+  (path) => {
+    expect(isInitialSyncLocalReadCandidate("GET", path, new Headers())).toBe(
+      true,
+    );
+  },
+);
 
 test("initial sync: non-fs paths are not local-read candidates", () => {
   expect(

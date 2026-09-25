@@ -29,16 +29,19 @@ test.each([
     '{"path":"Assets/photo.png","kind":"document","contentType":"image/png"}',
     "![[Assets/photo.png]]",
   ],
-])("tree file drop inserts the correct link at the pointer", (payload, link) => {
-  const { event, view, preventDefault, dispatch } = drop(payload);
-  expect(handleTreeFileDrop(event as never, view as never)).toBe(true);
-  expect(preventDefault).toHaveBeenCalledOnce();
-  expect(dispatch).toHaveBeenCalledWith({
-    changes: { from: 4, to: 4, insert: link },
-    selection: { anchor: 4 + link.length },
-    scrollIntoView: true,
-  });
-});
+])(
+  "tree file drop inserts the correct link at the pointer",
+  (payload, link) => {
+    const { event, view, preventDefault, dispatch } = drop(payload);
+    expect(handleTreeFileDrop(event as never, view as never)).toBe(true);
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(dispatch).toHaveBeenCalledWith({
+      changes: { from: 4, to: 4, insert: link },
+      selection: { anchor: 4 + link.length },
+      scrollIntoView: true,
+    });
+  },
+);
 
 test("drop on a selection replaces that selection", () => {
   const { event, view, dispatch } = drop('{"path":"Guide","kind":"page"}', 4, {
