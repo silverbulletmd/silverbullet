@@ -17,8 +17,8 @@
 use std::path::Path;
 
 use aes_gcm::{
-    aead::{rand_core::RngCore, Aead, KeyInit, OsRng},
-    Aes256Gcm, Key, Nonce,
+    aead::{consts::U12, Aead, KeyInit},
+    Aes256Gcm, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 
@@ -40,14 +40,14 @@ pub enum CryptoError {
 
 /// Encrypt `plaintext` with `key`, producing `base64(iv):base64(tag):base64(ciphertext)`.
 pub fn encrypt_with_key(key: &[u8; KEY_LEN], plaintext: &str) -> Result<String, CryptoError> {
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Aead(e.to_string()))?;
 
     let mut iv = [0u8; IV_LEN];
-    OsRng.fill_bytes(&mut iv);
-    let nonce = Nonce::from_slice(&iv);
+    getrandom::fill(&mut iv).map_err(|e| CryptoError::Aead(e.to_string()))?;
+    let nonce = Nonce::<U12>::from(iv);
 
     let sealed = cipher
-        .encrypt(nonce, plaintext.as_bytes())
+        .encrypt(&nonce, plaintext.as_bytes())
         .map_err(|e| CryptoError::Aead(e.to_string()))?;
 
     // The `aes-gcm` crate appends the 16-byte tag to the ciphertext. Split it
@@ -82,10 +82,10 @@ pub fn decrypt_with_key(key: &[u8; KEY_LEN], encoded: &str) -> Result<String, Cr
     let mut sealed = ct;
     sealed.extend_from_slice(&tag);
 
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
-    let nonce = Nonce::from_slice(&iv);
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Aead(e.to_string()))?;
+    let nonce = Nonce::<U12>::try_from(iv.as_slice()).map_err(|_| CryptoError::Format)?;
     let pt = cipher
-        .decrypt(nonce, sealed.as_ref())
+        .decrypt(&nonce, sealed.as_ref())
         .map_err(|e| CryptoError::Aead(e.to_string()))?;
 
     String::from_utf8(pt).map_err(|e| CryptoError::Aead(format!("not valid utf-8: {e}")))
@@ -117,7 +117,7 @@ pub fn load_or_create_key(config_dir: &Path) -> Result<[u8; KEY_LEN], CryptoErro
             std::fs::create_dir_all(config_dir)
                 .map_err(|e| key_file_err(format!("creating config dir: {e}")))?;
             let mut key = [0u8; KEY_LEN];
-            OsRng.fill_bytes(&mut key);
+            getrandom::fill(&mut key).map_err(|e| key_file_err(format!("random key: {e}")))?;
             write_private(&path, &key).map_err(|e| key_file_err(format!("writing: {e}")))?;
             Ok(key)
         }

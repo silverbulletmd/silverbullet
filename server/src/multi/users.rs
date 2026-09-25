@@ -257,7 +257,7 @@ fn hex(bytes: &[u8]) -> String {
 
 fn generate_token() -> String {
     let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes).expect("OS RNG must be available");
+    getrandom::fill(&mut bytes).expect("OS RNG must be available");
     format!("sbt_{}", hex(&bytes))
 }
 

@@ -402,7 +402,7 @@ fn now_secs() -> u64 {
 
 fn random_bytes(n: usize) -> Vec<u8> {
     let mut buf = vec![0u8; n];
-    getrandom::getrandom(&mut buf).expect("OS RNG must be available");
+    getrandom::fill(&mut buf).expect("OS RNG must be available");
     buf
 }
 

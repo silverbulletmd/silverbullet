@@ -2,15 +2,13 @@
 //! `users.json`; classic single-space mode derives the same representation from
 //! its configured credentials. Plaintext is never persisted.
 
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use argon2::password_hash::{phc::PasswordHash, PasswordHasher, PasswordVerifier};
 use argon2::Argon2;
 
 /// Hash a plaintext password to an argon2id PHC string (default params).
 pub fn hash_password(plain: &str) -> Result<String, String> {
-    let salt = SaltString::generate(&mut OsRng);
     Argon2::default()
-        .hash_password(plain.as_bytes(), &salt)
+        .hash_password(plain.as_bytes())
         .map(|h| h.to_string())
         .map_err(|e| format!("password hashing failed: {e}"))
 }
@@ -42,6 +40,13 @@ mod tests {
         assert!(phc.starts_with("$argon2id$"), "{phc}");
         assert!(verify_password("s3cret", &phc));
         assert!(!verify_password("wrong", &phc));
+    }
+
+    #[test]
+    fn verifies_phc_written_by_previous_argon2_release() {
+        let phc = "$argon2id$v=19$m=65536,t=2,p=1$c29tZXNhbHQ$CTFhFdXPJO1aFaMaO6Mm5c8y7cJHAph8ArZWb2GRPPc";
+        assert!(verify_password("password", phc));
+        assert!(!verify_password("different", phc));
     }
 
     #[test]

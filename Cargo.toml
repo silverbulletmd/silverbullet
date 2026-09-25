@@ -20,7 +20,7 @@ all = "warn"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "2"
-argon2 = { version = "0.5", features = ["std"] }
+argon2 = "0.6"
 walkdir = "2"
 ignore = "0.4"
 libc = "0.2"
@@ -33,26 +33,26 @@ filetime = "0.2"
 # aws-lc-rs (C/CMake), which is fragile to cross-compile for those arches.
 # Revisit only once the full cross-compile/release matrix is in place.
 reqwest = { version = "0.12", features = ["rustls-tls", "json", "blocking", "stream"], default-features = false }
-base64 = "0.22"
+base64 = "0.23"
 percent-encoding = "2"
 regex = "1"
-pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 minijinja = "2"
-prometheus = { version = "0.13", default-features = false }
+prometheus = { version = "0.14", default-features = false }
 tracing = "0.1"
-tower-http = "0.6"
+tower-http = "0.7"
 axum = "0.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }
-jsonwebtoken = "9"
+jsonwebtoken = { version = "11", features = ["rust_crypto"] }
 sha2 = "0.10"
-getrandom = "0.2"
+getrandom = "0.4"
 clap = { version = "4", features = ["derive", "env"] }
 rust-embed = { version = "8", features = ["interpolate-folder-path", "mime-guess"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde_yaml = "0.9"
 uuid = { version = "1", features = ["v4"] }
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 tempfile = "3"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "8", default-features = false, features = ["deflate"] }
 notify = "8"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }

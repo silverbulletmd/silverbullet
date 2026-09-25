@@ -52,7 +52,7 @@ pub struct Attempts {
 pub fn random_secret() -> String {
     use base64::Engine;
     let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes).expect("OS random source");
+    getrandom::fill(&mut bytes).expect("OS random source");
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
 pub fn now() -> u64 {

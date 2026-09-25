@@ -53,7 +53,7 @@ impl BrowserSessions {
             return Err(io::Error::other("invalid browser session"));
         }
         let mut bytes = [0u8; 32];
-        getrandom::getrandom(&mut bytes).map_err(|error| io::Error::other(error.to_string()))?;
+        getrandom::fill(&mut bytes).map_err(|error| io::Error::other(error.to_string()))?;
         let id = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes);
         self.mutate(|sessions| {
             if sessions.len() >= MAX_SESSIONS {

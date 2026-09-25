@@ -57,7 +57,7 @@ fn render_auth_page(
         space_name => space_name,
         encryption_salt => encryption_salt,
         remember_me_days => remember_me_days,
-        account_managed => account_managed,
+        account_managed => account_managed.to_string(),
     };
     match env.render_str(&shell, ctx) {
         Ok(rendered) => rendered.into_bytes(),

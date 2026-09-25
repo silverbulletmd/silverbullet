@@ -101,7 +101,7 @@ impl AuthCodeStore {
 
     pub fn issue_at(&self, grant: CodeGrant, now: u64) -> String {
         let mut bytes = [0u8; 32];
-        getrandom::getrandom(&mut bytes).expect("OS RNG must be available");
+        getrandom::fill(&mut bytes).expect("OS RNG must be available");
         let code: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         let mut entries = self.entries.lock().unwrap();
         entries.retain(|_, e| now.saturating_sub(e.issued_at) <= CODE_TTL_SECS);
