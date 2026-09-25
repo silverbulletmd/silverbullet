@@ -53,6 +53,7 @@ Here is a list of built-in events triggered by SilverBullet's core:
 * `editor:complete`: Editor completion triggered — return completion results to extend [[Completion]]
 * `slash:complete`: Slash completion triggered — return completion results
 * `editor:lint`: Lint request — return errors to show in the editor
+* `task:stateChange`: A [[Task]] changed state, either toggled in the page itself or from a query result that links to it. The data has `newState`, `oldState` and `text` (the task as it was before the change). `from` and `to` give the task's position in the editor, and are only set when the task lives in the page you're looking at. Tasks changed from a query result also carry `ref`, `page` and `pos` pointing to where the task lives.
 
 ## System events
 * `page:index`: A page has changed and needs to be indexed (used by [[Object]] indexing)

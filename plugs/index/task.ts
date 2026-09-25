@@ -139,15 +139,42 @@ async function cycleTaskState(
     from: node.parent!.from,
     to: node.parent!.to,
     newState: changeTo,
+    oldState: stateText,
     text: renderToText(node.parent),
   });
+}
+
+/**
+ * Where a task changed through a ref lives, used to fill the
+ * `task:stateChange` event.
+ */
+export type UpdatedTask = {
+  page: string;
+  pos: number;
+  /** The task's text before the change, same as for an in-page toggle */
+  text: string;
+  /** Editor range of the task, only set when it's in the page being edited */
+  from?: number;
+  to?: number;
+};
+
+/**
+ * Finds the Task node of the list item a task ref points to (`pos` is the
+ * start of that item).
+ */
+export function findTaskNodeAtRefPos(
+  tree: ParseTree,
+  pos: number,
+): ParseTree | null {
+  const itemNode = nodeAtPos(tree, pos + 1);
+  return itemNode ? findNodeOfType(itemNode, "Task") : null;
 }
 
 export async function updateTaskState(
   path: string,
   oldState: string,
   newState: string,
-) {
+): Promise<UpdatedTask | undefined> {
   const currentPath = await editor.getCurrentPath();
   const ref = parseToRef(path);
 
@@ -202,6 +229,10 @@ export async function updateTaskState(
       console.error("Reference not a task marker, out of date?", targetText);
       return;
     }
+    const taskNode = findTaskNodeAtRefPos(
+      await markdown.parseMarkdown(editorText),
+      targetPos,
+    );
     await editor.dispatch({
       changes: {
         from: targetPos + 3,
@@ -209,6 +240,13 @@ export async function updateTaskState(
         insert: newState,
       },
     });
+    return {
+      page: getNameFromPath(ref.path),
+      pos: targetPos,
+      text: taskNode ? renderToText(taskNode) : "",
+      from: taskNode?.from,
+      to: taskNode?.to,
+    };
   } else {
     const pageName = getNameFromPath(ref.path);
     let text = await space.readPage(pageName);
@@ -229,6 +267,8 @@ export async function updateTaskState(
       console.error("Cannot find a task state", taskStateNode);
       return;
     }
+    const taskNode = findNodeOfType(itemNode, "Task");
+    const taskText = taskNode ? renderToText(taskNode) : "";
     taskStateNode.children![1].text = newState;
     text = renderToText(referenceMdTree);
     await space.writePage(pageName, text);
@@ -236,7 +276,31 @@ export async function updateTaskState(
     sync.performFileSync(`${pageName}.md`).catch((e) => {
       console.warn("File sync after task update failed:", e.message);
     });
+    return { page: pageName, pos: targetPos, text: taskText };
   }
+}
+
+/**
+ * Changes the state of the task a ref points to, like when it's toggled from
+ * a query widget, and fires `task:stateChange` for it (#788). Returns whether
+ * the task was updated.
+ */
+export async function setTaskStateByRef(
+  path: string,
+  oldState: string,
+  newState: string,
+): Promise<boolean> {
+  const updated = await updateTaskState(path, oldState, newState);
+  if (!updated) {
+    return false;
+  }
+  await events.dispatchEvent("task:stateChange", {
+    ...updated,
+    ref: path,
+    newState,
+    oldState,
+  });
+  return true;
 }
 
 let taskCycleLock = false;
@@ -409,9 +473,6 @@ export async function cycleTaskStateByRef(
     }
     newState = states[(idx + 1) % states.length];
   }
-  await updateTaskState(path, oldState, newState);
-  await events.dispatchEvent("task:stateChange", {
-    newState,
-  });
+  await setTaskStateByRef(path, oldState, newState);
   return newState;
 }

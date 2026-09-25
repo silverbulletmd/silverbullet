@@ -150,7 +150,7 @@ export function attachWidgetEventHandlers(
         console.log("Toggling task", taskRef);
         client.clientSystem
           .localSyscall("system.invokeFunction", [
-            "index.updateTaskState",
+            "index.setTaskStateByRef",
             taskRef,
             oldState,
             newState,
