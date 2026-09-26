@@ -177,10 +177,18 @@ pub async fn finish(
         .to_string()
         .parse()
         .map_err(|_| "Provider returned an invalid ID token")?;
-    let verifier = client.id_token_verifier();
+    // Extra audiences (e.g. ZITADEL project ID) are safe: azp must still be our client.
+    let verifier = client
+        .id_token_verifier()
+        .set_other_audience_verifier_fn(|_| true);
     let claims = id_token
         .claims(&verifier, &Nonce::new(nonce.into()))
         .map_err(|_| "ID token signature or claims did not validate")?;
+    // openidconnect skips azp checks (OIDC Core 3.1.3.7 steps 4-5).
+    let azp = claims.authorized_party().map(|azp| azp.as_str());
+    if (claims.audiences().len() > 1 || azp.is_some()) && azp != Some(&config.client_id) {
+        return Err("ID token was not issued to this client".into());
+    }
     if let Some(expected) = claims.access_token_hash() {
         let actual = AccessTokenHash::from_token(
             tokens.access_token(),
