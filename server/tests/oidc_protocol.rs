@@ -244,6 +244,52 @@ async fn rejects_invalid_issuer_audience_expiry_nonce_and_access_token_hash() {
     }
 }
 #[tokio::test]
+async fn accepts_additional_audiences_authorized_for_the_client() {
+    let fixture = Fixture::new(false).await;
+    let auth = fixture.authorize().await;
+    {
+        let mut claims = fixture.provider.claims.lock().unwrap();
+        claims["aud"] = json!(["test-client", "project-123"]);
+        claims["azp"] = json!("test-client");
+    }
+    let identity = finish(
+        &fixture.config,
+        &fixture.http,
+        "valid-code",
+        &auth.nonce,
+        &auth.verifier,
+    )
+    .await
+    .unwrap();
+    assert_eq!(identity.subject, "subject-river");
+}
+#[tokio::test]
+async fn rejects_additional_audiences_without_matching_authorized_party() {
+    for azp in [None, Some("other")] {
+        let fixture = Fixture::new(false).await;
+        let auth = fixture.authorize().await;
+        {
+            let mut claims = fixture.provider.claims.lock().unwrap();
+            claims["aud"] = json!(["test-client", "other"]);
+            if let Some(azp) = azp {
+                claims["azp"] = azp.into();
+            }
+        }
+        assert!(
+            finish(
+                &fixture.config,
+                &fixture.http,
+                "valid-code",
+                &auth.nonce,
+                &auth.verifier
+            )
+            .await
+            .is_err(),
+            "{azp:?}"
+        );
+    }
+}
+#[tokio::test]
 async fn refuses_unverified_email_and_uses_verified_hosted_domain_for_google() {
     let mut fixture = Fixture::new(false).await;
     let auth = fixture.authorize().await;
