@@ -65,6 +65,7 @@ import {
   prepareFrontmatterFoldPlaceholder,
 } from "./frontmatter_folding.ts";
 import { inlineContentPlugin } from "./inline_content.ts";
+import { iosEnterHandling } from "./ios_enter.ts";
 import { lineWrapper } from "./line_wrapper.ts";
 import { plugLinter } from "./lint.ts";
 import { customEnterCommand } from "./markdown_enter.ts";
@@ -634,6 +635,7 @@ export function buildMarkdownLanguageExtension(client: Client): Extension[] {
         { key: "Backspace", run: deleteMarkupBackward },
       ]),
     ),
+    client.ui.viewState.uiOptions.vimMode ? [] : iosEnterHandling(),
     markdownLanguage.data.of({
       closeBrackets: {
         brackets: client.config.get("autoCloseBrackets", "([{").split(""),
