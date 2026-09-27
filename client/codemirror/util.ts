@@ -209,12 +209,16 @@ export const readOnlyCursorActive = StateField.define<boolean>({
 
 /**
  * Check if any of the editor cursors is in the given range
+ *
+ * Read-only mode never reveals the underlying Markdown source just because
+ * the cursor moved there, so rendered links, query results and widgets stay
+ * visible while navigating with the keyboard.
  * @param state - Editor state
  * @param range - Range to check
  * @returns True if the cursor is in the range
  */
 export function isCursorInRange(state: EditorState, range: [number, number]) {
-  if (state.readOnly && !state.field(readOnlyCursorActive, false)) {
+  if (state.readOnly) {
     return false;
   }
   return state.selection.ranges.some((selection) =>
