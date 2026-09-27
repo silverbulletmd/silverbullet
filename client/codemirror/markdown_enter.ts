@@ -4,7 +4,7 @@
 // 2. Never insert extra blank lines for non-tight list continuation
 
 import { markdownLanguage } from "@codemirror/lang-markdown";
-import { indentUnit, syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree, indentUnit, syntaxTree } from "@codemirror/language";
 import type { EditorState, Text } from "@codemirror/state";
 import {
   countColumn,
@@ -187,8 +187,15 @@ function normalizeIndent(content: string, state: EditorState): string {
 }
 
 export const customEnterCommand: StateCommand = ({ state, dispatch }) => {
-  const tree = syntaxTree(state),
-    { doc } = state;
+  const { doc } = state;
+  // A freshly created state (e.g. after rebuildEditorState) is only partially
+  // parsed; without list nodes at the cursor we'd fall through to a plain newline.
+  const tree =
+    ensureSyntaxTree(
+      state,
+      Math.max(...state.selection.ranges.map((r) => r.to)),
+      500,
+    ) ?? syntaxTree(state);
   // deno-lint-ignore no-explicit-any
   let dont: any = null;
   const changes = state.changeByRange((range) => {
