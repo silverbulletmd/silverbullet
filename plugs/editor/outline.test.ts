@@ -65,6 +65,17 @@ describe("Bullet list move up/down", () => {
 `);
   });
 
+  test("move up last item at end of file", () => {
+    expect(
+      applyOp(
+        moveUp,
+        `- alpha
+- beta|^|`,
+      ),
+    ).toEqual(`- beta|^|
+- alpha`);
+  });
+
   test("boundary bullet is no-op", () => {
     const upInput = `- fir|^|st
 - second
@@ -228,6 +239,47 @@ describe("Bullet list indent/outdent", () => {
   - second
   - th|^|ird
 `);
+  });
+
+  // Issue #2107: a cursor after the last character (no trailing newline)
+  // must indent and outdent the same item as a cursor inside that line.
+  test("last item at end of file", () => {
+    const flat = `- first
+- second|^|`;
+    const nested = `- first
+  - second|^|`;
+    expect(applyOp(indent, flat)).toEqual(nested);
+    expect(applyOp(outdent, nested)).toEqual(flat);
+  });
+
+  test("nested item at end of file", () => {
+    const shallow = `- first
+  - second|^|`;
+    const deep = `- first
+    - second|^|`;
+    expect(applyOp(indent, shallow)).toEqual(deep);
+    expect(applyOp(outdent, deep)).toEqual(shallow);
+  });
+
+  test("multi-line item at end of file", () => {
+    const flat = `- first
+- second
+  continuation|^|`;
+    const nested = `- first
+  - second
+    continuation|^|`;
+    expect(applyOp(indent, flat)).toEqual(nested);
+    expect(applyOp(moveUp, flat)).toEqual(`- second
+  continuation|^|
+- first`);
+  });
+
+  test("first item at end of file is blocked rather than unrecognized", () => {
+    const input = `- only|^|`;
+    const pos = input.indexOf(CURSOR);
+    const clean = input.slice(0, pos) + input.slice(pos + CURSOR.length);
+    expect(indent(clean, parseMarkdown(clean), pos)).toEqual("blocked");
+    expect(outdent(clean, parseMarkdown(clean), pos)).toEqual("blocked");
   });
 });
 
@@ -600,6 +652,13 @@ describe("Heading indent/outdent", () => {
     expect(applyOp(indent, shallow)).toEqual(deep);
     expect(applyOp(outdent, deep)).toEqual(shallow);
   });
+
+  test("at end of file with no trailing newline", () => {
+    const h2 = `## Heading|^|`;
+    const h3 = `### Heading|^|`;
+    expect(applyOp(indent, h2)).toEqual(h3);
+    expect(applyOp(outdent, h3)).toEqual(h2);
+  });
 });
 
 describe("Paragraph operations", () => {
@@ -701,6 +760,15 @@ describe("Ordered list operations", () => {
 2. sec|^|ond
 `);
   });
+
+  test("indent and outdent at end of file", () => {
+    const flat = `1. first
+2. second|^|`;
+    const nested = `1. first
+   2. second|^|`;
+    expect(applyOp(indent, flat)).toEqual(nested);
+    expect(applyOp(outdent, nested)).toEqual(flat);
+  });
 });
 
 describe("Edge cases", () => {
@@ -771,6 +839,14 @@ describe("Cursor positions in bullet list", () => {
     expect(ctx?.type).toEqual("listItem");
     if (ctx?.type === "listItem") {
       expect(ctx.itemIndex).toEqual(0);
+    }
+  });
+
+  test("after last character with no trailing newline", () => {
+    const ctx = detect("- one\n- two|^|");
+    expect(ctx?.type).toEqual("listItem");
+    if (ctx?.type === "listItem") {
+      expect(ctx.item.from).toBeGreaterThan(0);
     }
   });
 

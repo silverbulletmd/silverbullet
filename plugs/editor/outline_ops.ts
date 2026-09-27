@@ -47,16 +47,27 @@ export type CursorContext =
 /**
  * Classifies the cursor position as a listItem, heading, tableRow, or
  * paragraph context for outline operations. At node boundaries, resolves to
- * the preceding typed node (drilling into nested children). Returns null for
- * positions where no outline operation applies (code blocks, frontmatter,
- * past end of document).
+ * the preceding typed node (drilling into nested children). A cursor placed
+ * just after the last character of a document with no trailing newline is
+ * included.
+ * Returns null for positions where no outline operation applies (code blocks,
+ * frontmatter, past end of document).
  */
 export function detectContext(
   tree: ParseTree,
   cursor: number,
 ): CursorContext | null {
   addParentPointers(tree);
-  const initial = nodeAtPos(tree, cursor);
+  let initial = nodeAtPos(tree, cursor);
+  // nodeAtPos uses a half-open range, so a cursor after the final character
+  // (`pos === tree.to`, typical when the file has no trailing newline) is
+  // outside every node and outline commands no-op. Step back onto that
+  // character. A file that does end in a newline still falls through the
+  // boundary walk below and stays a no-op when the cursor is past the last
+  // block.
+  if (!initial && cursor > 0 && cursor === tree.to) {
+    initial = nodeAtPos(tree, cursor - 1);
+  }
   if (!initial) {
     return null;
   }
