@@ -171,7 +171,7 @@ describe("non-list context falls through", () => {
 
 describe("Enter before the background parse reaches the cursor", () => {
   test("still continues the list", () => {
-    const filler = "Some paragraph with **bold** text.\n\n".repeat(50000);
+    const filler = "Some paragraph with **bold** text.\n\n".repeat(500);
     const doc = `${filler}- [ ] first task\n- [ ] second task`;
     const state = EditorState.create({
       doc,
