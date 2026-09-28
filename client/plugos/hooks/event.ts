@@ -66,6 +66,18 @@ export class EventHook implements EventHookI {
   }
 
   async dispatchEvent(eventName: string, ...args: any[]): Promise<any[]> {
+    return this.dispatch(eventName, args, false);
+  }
+
+  async dispatchEventStrict(eventName: string, ...args: any[]): Promise<any[]> {
+    return this.dispatch(eventName, args, true);
+  }
+
+  private async dispatch(
+    eventName: string,
+    args: any[],
+    strict: boolean,
+  ): Promise<any[]> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
@@ -135,7 +147,12 @@ export class EventHook implements EventHookI {
       }
     }
 
-    return (await Promise.allSettled(promises))
+    const settled = await Promise.allSettled(promises);
+    if (strict) {
+      const failure = settled.find((result) => result.status === "rejected");
+      if (failure?.status === "rejected") throw failure.reason;
+    }
+    return settled
       .filter((result) => {
         if (result.status === "rejected") {
           console.error(

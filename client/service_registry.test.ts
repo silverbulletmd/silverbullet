@@ -74,3 +74,30 @@ test("Test services", async () => {
     "Hello 2 Pete!",
   );
 });
+
+test("a failed service invocation rejects while other discovery results survive", async () => {
+  const system = new System<EventHookT>();
+  const config = new Config();
+  const eventHook = new EventHook(config);
+  system.addHook(eventHook);
+  const registry = new ServiceRegistry(eventHook, config);
+  registry.define({
+    selector: "capture",
+    match: async () => {
+      throw new Error("match failed");
+    },
+    run: async () => undefined,
+  });
+  registry.define({
+    selector: "capture",
+    match: { name: "Working action" },
+    run: async () => {
+      throw new Error("action failed");
+    },
+  });
+  const matches = await registry.discover("capture", { text: "example" });
+  expect(matches.map((match) => match.name)).toEqual(["Working action"]);
+  await expect(registry.invoke(matches[0], {})).rejects.toThrow(
+    "action failed",
+  );
+});

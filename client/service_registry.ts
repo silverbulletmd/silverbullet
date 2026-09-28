@@ -53,7 +53,7 @@ export class ServiceRegistry {
   }
 
   public async invoke(match: ServiceMatch, data: any): Promise<any> {
-    const results = await this.eventHook.dispatchEvent(
+    const results = await this.eventHook.dispatchEventStrict(
       `service:${match.id}`,
       data,
     );
