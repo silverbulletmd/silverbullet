@@ -1,4 +1,5 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
+import { taskifyLines } from "./taskify.ts";
 
 export async function quoteSelection() {
   let text = await editor.getText();
@@ -39,6 +40,32 @@ export async function listifySelection() {
   text = text.slice(from, selection.to);
   text = `* ${text.replaceAll(/\n(?!\n)/g, "\n* ")}`;
   await editor.replaceRange(from, selection.to, text);
+}
+
+export async function taskifyLine() {
+  const selection = await editor.getSelection();
+  const result = taskifyLines(
+    await editor.getText(),
+    selection.from,
+    selection.to,
+    await editor.getCursor(),
+  );
+  if (!result) return;
+  await editor.replaceRange(result.from, result.to, result.insert);
+  await editor.moveCursor(result.cursor);
+}
+
+export async function wikiLinkSelection() {
+  const selection = await editor.getSelection();
+  if (selection.from !== selection.to) {
+    const text = await editor.getText();
+    const linked = `[[${text.slice(selection.from, selection.to)}]]`;
+    await editor.replaceRange(selection.from, selection.to, linked);
+    await editor.moveCursor(selection.from + linked.length);
+    return;
+  }
+  await editor.insertAtCursor("[[|^|]]", false, true);
+  await editor.startCompletion();
 }
 
 export async function numberListifySelection() {

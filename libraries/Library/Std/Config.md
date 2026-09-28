@@ -479,6 +479,30 @@ config.define("actionButtons", {
   }
 })
 
+config.define("keyboardBar", {
+  description = "Buttons in the bar shown above the on-screen keyboard (or at the bottom with an external keyboard) while editing on a touch device. Set to an empty list to hide the bar. See [[^Library/Std/APIs/Keyboard Bar]].",
+  type = "array",
+  items = {
+    type = "object",
+    properties = {
+      icon = {
+        type = "string",
+        description = "Icon name: a Feather icon (https://feathericons.com) or one of the md-* editor icons"
+      },
+      description = schema.string(),
+      command = {
+        type = "string",
+        description = "Command to run when tapped (replaces run)"
+      },
+      run = schema.func(),
+      onlyContexts = schema.nullableArray "string",
+      exceptContexts = schema.nullableArray "string",
+    },
+    required = {"icon"},
+    additionalProperties = false
+  }
+})
+
 config.define("view.defaults", {
   description = "Per-view presentation defaults, keyed by view name.",
   type = "object",
@@ -546,5 +570,42 @@ config.set("actionButtons", {
     accountManaged = true,
     priority = -2,
   },
+})
+
+-- Inserts a character that opens completion (`#`, `/`), separated from a
+-- preceding word so the completer recognizes it. Local to this bootstrap page
+-- so the default buttons work before the index has loaded any other Lua.
+local function insertCompletionTrigger(char)
+  local pos = editor.getCursor()
+  if string.match(string.sub(editor.getText(), pos, pos), "[%w_]") then
+    char = " " .. char
+  end
+  editor.insertAtCursor(char)
+  editor.startCompletion()
+end
+
+config.set("keyboardBar", {
+  { icon = "md-format-list-bulleted", description = "Bullet list", command = "Text: Listify Selection", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  { icon = "md-checklist", description = "New task", command = "Text: Taskify Line", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  { icon = "md-format-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
+  { icon = "md-format-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
+  { icon = "md-checklist", description = "Make task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
+  { icon = "check-square", description = "Cycle task state", command = "Task: Cycle State", onlyContexts = {"Task"} },
+  { icon = "arrow-up", description = "Move up", command = "Outline: Move Up", onlyContexts = {"ListItem"} },
+  { icon = "arrow-down", description = "Move down", command = "Outline: Move Down", onlyContexts = {"ListItem"} },
+  { icon = "chevrons-right", description = "Tab", command = "Editor: Indent", onlyContexts = {"FencedCode"} },
+  { icon = "chevrons-left", description = "Shift-Tab", command = "Editor: Outdent", onlyContexts = {"FencedCode"} },
+  { icon = "md-link", description = "Wiki link", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "hash", description = "Tag", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
+    insertCompletionTrigger("#")
+  end },
+  { icon = [[<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="16" y1="4" x2="8" y2="20"/></svg>]], description = "Slash command", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
+    insertCompletionTrigger("/")
+  end },
+  { icon = "rotate-ccw", description = "Undo", command = "Editor: Undo" },
+  { icon = "rotate-cw", description = "Redo", command = "Editor: Redo" },
+  { icon = "terminal", description = "Run command", command = "Open Command Palette" },
 })
 ```

@@ -25,6 +25,7 @@ export function isMobileDevice(): boolean {
 }
 
 let hardwareKeyboardLikely = false;
+let softKeyboardVisible = false;
 
 function isShortcutLike(ev: KeyboardEvent): boolean {
   if (ev.isComposing) return false;
@@ -55,9 +56,15 @@ function installKeyboardPresenceListener(): void {
 
 installKeyboardPresenceListener();
 
-/** Test-only: forget hardware-keyboard state between cases. */
+/** Reported by `keyboard_viewport.ts` as the on-screen keyboard comes and goes. */
+export function noteSoftKeyboardVisible(visible: boolean): void {
+  softKeyboardVisible = visible;
+}
+
+/** Test-only: forget keyboard state between cases. */
 export function resetModalFilterFocusForTests(): void {
   hardwareKeyboardLikely = false;
+  softKeyboardVisible = false;
 }
 
 /**
@@ -69,8 +76,10 @@ export function resetModalFilterFocusForTests(): void {
  * focused with no on-screen keyboard, and no tap can recover one — that
  * skip stays. A keyboard shortcut, or a physical keyboard already seen
  * this session, still focuses so Cmd+/ (and friends) can type immediately
- * on a tablet with a keyboard attached.
+ * on a tablet with a keyboard attached. So does an on-screen keyboard that is
+ * already up (e.g. opened from the keyboard bar): focus moves to the filter
+ * and the keyboard stays, instead of typing on into the editor behind it.
  */
 export function shouldFocusModalFilter(): boolean {
-  return !isMobileDevice() || hardwareKeyboardLikely;
+  return !isMobileDevice() || hardwareKeyboardLikely || softKeyboardVisible;
 }

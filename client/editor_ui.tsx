@@ -17,7 +17,7 @@ import {
 } from "./action_buttons.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
-import { kebabToPascal } from "./lib/feather_icons.ts";
+import { resolveButtonIcon } from "./lib/feather_icons.ts";
 import { FilterList } from "./components/filter.tsx";
 import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
 import { resolveMeta } from "./navigator/registry.ts";
@@ -29,6 +29,11 @@ import {
 } from "./navigator/ui/slots.ts";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
+import {
+  KeyboardBar,
+  type KeyboardBarButton,
+} from "./components/keyboard_bar.tsx";
+import { installKeyboardViewport } from "./lib/keyboard_viewport.ts";
 import { CaptureController } from "./capture/CaptureController.tsx";
 import { AnchoredMenu } from "./components/anchored_menu.tsx";
 import {
@@ -38,7 +43,6 @@ import {
   profileMenuLabel,
 } from "./components/profile_button.tsx";
 import { loadProfile, type ProfileState } from "./profile.ts";
-import * as mdi from "./filtered_material_icons.ts";
 import reducer from "./reducer.ts";
 import {
   type Action,
@@ -344,6 +348,10 @@ export class MainUI {
     }, [viewState.current]);
 
     useEffect(() => {
+      installKeyboardViewport();
+    }, []);
+
+    useEffect(() => {
       void this.client.rebuildEditorState();
       void this.client.dispatchAppEvent("editor:modeswitch");
     }, [viewState.uiOptions.vimMode]);
@@ -562,12 +570,6 @@ export class MainUI {
               )
               .map((button) => {
                 const isProfileButton = button.icon === "profile";
-                const iconName = kebabToPascal(button.icon);
-                const mdiIcon = (mdi as any)[iconName];
-                let featherIcon = (featherIcons as any)[iconName];
-                if (!featherIcon) {
-                  featherIcon = featherIcons.HelpCircle;
-                }
                 let description = button.description || "";
                 if (button.command) {
                   const cmd = viewState.commands.get(button.command);
@@ -584,9 +586,7 @@ export class MainUI {
                 return {
                   icon: isProfileButton
                     ? profileAvatarComponent
-                    : mdiIcon
-                      ? mdiIcon
-                      : featherIcon,
+                    : resolveButtonIcon(button.icon),
                   description,
                   dropdown: button.dropdown,
                   hasPopup: isProfileButton ? true : undefined,
@@ -699,6 +699,12 @@ export class MainUI {
             <Panel config={viewState.panels.bhs} editor={client} slot="bhs" />
           </div>
         ) : null}
+        {viewState.isMobile && viewState.uiOptions.keyboardBar && (
+          <KeyboardBar
+            client={client}
+            buttons={client.config.get<KeyboardBarButton[]>("keyboardBar", [])}
+          />
+        )}
       </>
     );
   }

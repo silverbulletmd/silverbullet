@@ -15,6 +15,10 @@ functions:
     path: "./editor.ts:toggleMarkdownSyntaxRendering"
     command:
       name: "Editor: Toggle Markdown Syntax Rendering"
+  toggleKeyboardBar:
+    path: "./editor.ts:toggleKeyboardBar"
+    command:
+      name: "Editor: Toggle Keyboard Bar"
   openTagNavigator:
     path: editor.ts:openTagNavigator
     command:
@@ -175,6 +179,19 @@ functions:
       requireMode: rw
       requireEditor: page
       menu: { location: edit.format, group: "2_block", order: 1, label: "Bullet List" }
+  taskifyLine:
+    path: ./text.ts:taskifyLine
+    command:
+      name: "Text: Taskify Line"
+      requireMode: rw
+      requireEditor: page
+      menu: { location: edit.format, group: "2_block", order: 4, label: "Task" }
+  wikiLinkSelection:
+    path: ./text.ts:wikiLinkSelection
+    command:
+      name: "Text: Wiki Link"
+      requireMode: rw
+      requireEditor: page
   numberListifySelection:
     path: ./text.ts:numberListifySelection
     command:

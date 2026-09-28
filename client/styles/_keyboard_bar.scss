@@ -1,0 +1,85 @@
+// `keyboard_viewport.ts` sets the variables and the class on touch devices.
+html.sb-viewport-tracked #sb-root {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--sb-viewport-top, 0px);
+  height: var(--sb-viewport-height, 100%);
+}
+
+// Plug and navigator modals are viewport-fixed, not inside the pinned root.
+html.sb-viewport-tracked .sb-modal-backdrop {
+  top: var(--sb-viewport-top, 0px);
+  bottom: auto;
+  height: var(--sb-viewport-height, 100%);
+}
+
+// The scroll-past-end padding would otherwise keep the scroller at least
+// 20em tall and push it over the keyboard bar once the keyboard is up.
+html.sb-viewport-tracked #sb-main .cm-editor .cm-scroller {
+  padding-bottom: min(20em, calc(var(--sb-viewport-height, 100vh) * 0.4));
+}
+
+.sb-keyboard-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 4px 4px 4px 6px;
+  background-color: var(--top-background-color);
+  border-top: 1px solid var(--top-border-color);
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+
+  // No keyboard below the bar (external keyboard): clear the home indicator.
+  &[data-docked] {
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  button {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--action-button-color);
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      background-color: var(--top-border-color);
+    }
+  }
+}
+
+.sb-keyboard-bar-buttons {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.sb-keyboard-bar-svg {
+  display: flex;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.sb-keyboard-bar-dismiss {
+  margin-left: 4px;
+  border-left: 1px solid var(--top-border-color) !important;
+  border-radius: 0 !important;
+}

@@ -15,7 +15,7 @@
     margin-top: calc(8px + var(--sb-top-height) + var(--sb-standalone-top-offset, 0px));
     width: 100%;
     max-width: 100%;
-    max-height: calc(100vh - 16px - var(--sb-top-height) - var(--sb-standalone-top-offset, 0px));
+    max-height: calc(var(--sb-viewport-height, 100vh) - 16px - var(--sb-top-height) - var(--sb-standalone-top-offset, 0px));
     border-radius: 0;
   }
 

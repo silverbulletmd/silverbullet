@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "vitest";
 import {
   noteKeyboardActivity,
+  noteSoftKeyboardVisible,
   resetModalFilterFocusForTests,
   shouldFocusModalFilter,
 } from "./mobile.ts";
@@ -132,6 +133,18 @@ test("once a hardware shortcut is seen, later tap-opens on that session still fo
     // A later check with no new keydown still focuses: the session saw a
     // keyboard, so a tap-open should not force the user back to the editor.
     expect(shouldFocusModalFilter()).toBe(true);
+  } finally {
+    restore();
+  }
+});
+
+test("a coarse pointer focuses while the on-screen keyboard is already up", () => {
+  const restore = mockPointer("coarse");
+  try {
+    noteSoftKeyboardVisible(true);
+    expect(shouldFocusModalFilter()).toBe(true);
+    noteSoftKeyboardVisible(false);
+    expect(shouldFocusModalFilter()).toBe(false);
   } finally {
     restore();
   }

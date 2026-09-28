@@ -40,6 +40,9 @@ export async function setEditorMode() {
     );
     await editor.rebuildEditorState();
   }
+  if ((await clientStore.get("keyboardBar")) === false) {
+    await editor.setUiOption("keyboardBar", false);
+  }
 }
 
 export async function openTagNavigator() {
@@ -62,6 +65,12 @@ export async function toggleMarkdownSyntaxRendering() {
   await clientStore.set("markdownSyntaxRendering", renderingSyntax);
   await editor.setUiOption("markdownSyntaxRendering", renderingSyntax);
   await editor.rebuildEditorState();
+}
+
+export async function toggleKeyboardBar() {
+  const enabled = !(await editor.getUiOption("keyboardBar"));
+  await clientStore.set("keyboardBar", enabled);
+  await editor.setUiOption("keyboardBar", enabled);
 }
 
 export async function centerCursorCommand() {

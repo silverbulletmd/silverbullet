@@ -51,6 +51,7 @@ import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import { languageFor, lazyLanguages, loadLanguageFor } from "../languages.ts";
 import { isValidEditor } from "../lib/command_filters.ts";
 import { createIconElement } from "../lib/icon.ts";
+import { keyboardAwareTooltips } from "../lib/keyboard_viewport.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { editorHighlightStyle } from "../style.ts";
 import { loadVim } from "../vim_loader.ts";
@@ -65,7 +66,9 @@ import {
   prepareFrontmatterFoldPlaceholder,
 } from "./frontmatter_folding.ts";
 import { inlineContentPlugin } from "./inline_content.ts";
+import { iosCompletionTapHandling } from "./ios_completion.ts";
 import { iosEnterHandling } from "./ios_enter.ts";
+import { iosDebugPlugin } from "./ios_debug_tmp.ts";
 import { lineWrapper } from "./line_wrapper.ts";
 import { plugLinter } from "./lint.ts";
 import { customEnterCommand } from "./markdown_enter.ts";
@@ -188,6 +191,9 @@ export function buildSharedEditorExtensions(
     drawSelection(),
     regularKeyBindings,
     closeBrackets(),
+    keyboardAwareTooltips,
+    iosCompletionTapHandling(),
+    iosDebugPlugin,
     buildEditorUpdateListener(client, mode),
   ];
 }

@@ -1,4 +1,5 @@
 import * as featherIcons from "preact-feather";
+import * as mdi from "../filtered_material_icons.ts";
 
 /**
  * Feather icon names are kebab-case
@@ -7,6 +8,16 @@ export function kebabToPascal(name: string): string {
   return name
     .replace(/-(\w)/g, (_, c: string) => c.toUpperCase())
     .replace(/^./, (c) => c.toUpperCase());
+}
+
+/** Resolves a configured button icon name: `md-*` Material icons, else Feather. */
+export function resolveButtonIcon(name: string): any {
+  const iconName = kebabToPascal(name);
+  return (
+    (mdi as Record<string, any>)[iconName] ??
+    (featherIcons as Record<string, any>)[iconName] ??
+    featherIcons.HelpCircle
+  );
 }
 
 /**

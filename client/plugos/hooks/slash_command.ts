@@ -14,6 +14,7 @@ import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
+import { matchesNodeContexts } from "../../lib/node_contexts.ts";
 
 const slashCommandRegexp = /([^\w:]|^)\/[\w#-]*/;
 
@@ -77,19 +78,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
 
     const parentNodes = this.client.extractParentNodes(ctx.state, currentNode);
     for (const def of this.slashCommands) {
-      if (
-        def.onlyContexts &&
-        !def.onlyContexts.some((context) =>
-          parentNodes.some((node) => node.startsWith(context)),
-        )
-      ) {
-        continue;
-      }
-      if (
-        def.exceptContexts?.some((context) =>
-          parentNodes.some((node) => node.startsWith(context)),
-        )
-      ) {
+      if (!matchesNodeContexts(def, parentNodes)) {
         continue;
       }
       options.push({

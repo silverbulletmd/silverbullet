@@ -27,6 +27,12 @@ export async function buildClient(): Promise<void> {
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "preact",
+    // react-icons (the md-* action button icons) would otherwise bundle real
+    // React, whose elements Preact renders as nothing.
+    alias: {
+      react: "preact/compat",
+      "react/jsx-runtime": "preact/jsx-runtime",
+    },
   };
 
   const buildConfigs: Array<[String, esbuild.BuildOptions]> = [
