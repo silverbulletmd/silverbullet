@@ -1,7 +1,7 @@
-import { describe, expect, test } from "vitest";
-import { EditorSelection, EditorState } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { ensureSyntaxTree } from "@codemirror/language";
+import { EditorSelection, EditorState } from "@codemirror/state";
+import { describe, expect, test } from "vitest";
 import { customEnterCommand } from "./markdown_enter.ts";
 
 const CURSOR = "|^|";
@@ -172,6 +172,29 @@ describe("non-list context falls through", () => {
 describe("Enter before the background parse reaches the cursor", () => {
   test("still continues the list", () => {
     const filler = "Some paragraph with **bold** text.\n\n".repeat(500);
+    const doc = `${filler}- [ ] first task\n- [ ] second task`;
+    const state = EditorState.create({
+      doc,
+      selection: EditorSelection.cursor(doc.length),
+      extensions: [markdown()],
+    });
+
+    let newState: EditorState | null = null;
+    const result = customEnterCommand({
+      state,
+      dispatch: (tr) => {
+        newState = tr.state;
+      },
+    });
+
+    expect(result).toBe(true);
+    expect(
+      (newState as EditorState | null)?.doc.sliceString(filler.length),
+    ).toBe("- [ ] first task\n- [ ] second task\n- [ ] ");
+  });
+
+  test("falls back to the line marker when parsing times out", () => {
+    const filler = "Some paragraph with **bold** text.\n\n".repeat(250000);
     const doc = `${filler}- [ ] first task\n- [ ] second task`;
     const state = EditorState.create({
       doc,

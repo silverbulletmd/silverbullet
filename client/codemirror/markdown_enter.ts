@@ -4,7 +4,7 @@
 // 2. Never insert extra blank lines for non-tight list continuation
 
 import { markdownLanguage } from "@codemirror/lang-markdown";
-import { ensureSyntaxTree, indentUnit, syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree, indentUnit } from "@codemirror/language";
 import type { EditorState, Text } from "@codemirror/state";
 import {
   countColumn,
@@ -15,15 +15,25 @@ import type { SyntaxNode } from "@lezer/common";
 
 // --- Inlined helpers from @codemirror/lang-markdown (not exported) ---
 
+type ContextNode = {
+  name: string;
+};
+
+type ListItemNode = {
+  name: string;
+  from: number;
+  nextSibling: SyntaxNode | null;
+};
+
 class Context {
   constructor(
-    public node: SyntaxNode,
+    public node: ContextNode,
     public from: number,
     public to: number,
     public spaceBefore: string,
     public spaceAfter: string,
     public type: string,
-    public item: SyntaxNode | null,
+    public item: ListItemNode | null,
   ) {}
 
   blank(maxWidth: number | null, trailing = true): string {
@@ -135,14 +145,83 @@ function getContext(node: SyntaxNode, doc: Text): Context[] {
   return context;
 }
 
-function itemNumber(item: SyntaxNode, doc: Text): RegExpExecArray {
+function getLineContext(lineFrom: number, lineText: string): Context[] {
+  const context: Context[] = [];
+  let startPos = 0;
+
+  for (;;) {
+    const match = /^ *>( ?)/.exec(lineText.slice(startPos));
+    if (!match) break;
+    context.push(
+      new Context(
+        { name: "Blockquote" },
+        startPos,
+        startPos + match[0].length,
+        "",
+        match[1],
+        ">",
+        null,
+      ),
+    );
+    startPos += match[0].length;
+  }
+
+  let match;
+  if ((match = /^( *)\d+([.)])( *)/.exec(lineText.slice(startPos)))) {
+    let after = match[3],
+      len = match[0].length;
+    if (after.length >= 4) {
+      after = after.slice(0, after.length - 4);
+      len -= 4;
+    }
+    context.push(
+      new Context(
+        { name: "OrderedList" },
+        startPos,
+        startPos + len,
+        match[1],
+        after,
+        match[2],
+        { name: "ListItem", from: lineFrom + startPos, nextSibling: null },
+      ),
+    );
+  } else if (
+    (match = /^( *)([-+*])( {1,4}\[[ xX]\])?( +)/.exec(
+      lineText.slice(startPos),
+    ))
+  ) {
+    let after = match[4],
+      len = match[0].length;
+    if (after.length > 4) {
+      after = after.slice(0, after.length - 4);
+      len -= 4;
+    }
+    let type = match[2];
+    if (match[3]) type += match[3].replace(/[xX]/, " ");
+    context.push(
+      new Context(
+        { name: "BulletList" },
+        startPos,
+        startPos + len,
+        match[1],
+        after,
+        type,
+        { name: "ListItem", from: lineFrom + startPos, nextSibling: null },
+      ),
+    );
+  }
+
+  return context;
+}
+
+function itemNumber(item: ListItemNode, doc: Text): RegExpExecArray {
   return /^(\s*)(\d+)(?=[.)])/.exec(
     doc.sliceString(item.from, item.from + 10),
   )!;
 }
 
 function renumberList(
-  after: SyntaxNode,
+  after: ListItemNode,
   doc: Text,
   changes: { from: number; to: number; insert: string }[],
   offset = 0,
@@ -190,12 +269,11 @@ export const customEnterCommand: StateCommand = ({ state, dispatch }) => {
   const { doc } = state;
   // A freshly created state (e.g. after rebuildEditorState) is only partially
   // parsed; without list nodes at the cursor we'd fall through to a plain newline.
-  const tree =
-    ensureSyntaxTree(
-      state,
-      Math.max(...state.selection.ranges.map((r) => r.to)),
-      500,
-    ) ?? syntaxTree(state);
+  const tree = ensureSyntaxTree(
+    state,
+    Math.max(...state.selection.ranges.map((r) => r.to)),
+    500,
+  );
   // deno-lint-ignore no-explicit-any
   let dont: any = null;
   const changes = state.changeByRange((range) => {
@@ -208,7 +286,9 @@ export const customEnterCommand: StateCommand = ({ state, dispatch }) => {
     }
     const pos = range.from,
       line = doc.lineAt(pos);
-    const context = getContext(tree.resolveInner(pos, -1), doc);
+    const context = tree
+      ? getContext(tree.resolveInner(pos, -1), doc)
+      : getLineContext(line.from, line.text);
     while (
       context.length &&
       context[context.length - 1].from > pos - line.from

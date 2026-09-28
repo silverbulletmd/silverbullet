@@ -392,7 +392,7 @@ test.describe("space tree", () => {
     await expect(expandAll).toBeDisabled();
     await tree.getByRole("radio", { name: "Meta" }).click();
     await expect(expandAll).toBeEnabled();
-    await expect(collapseAll).toBeDisabled();
+    await expect(collapseAll).toBeEnabled();
     await tree.getByRole("radio", { name: "All" }).click();
     await collapseAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
