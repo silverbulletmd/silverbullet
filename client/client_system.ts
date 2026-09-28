@@ -49,6 +49,8 @@ import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
 import { registerEditorCommands } from "./editor_commands.ts";
 import { ServiceRegistry } from "./service_registry.ts";
 import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
+import { captureSyscalls } from "./plugos/syscalls/capture.ts";
+import type { CaptureInvocationContext } from "./capture/invocation.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
 import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
@@ -96,6 +98,7 @@ export class ClientSystem {
   mqHook!: MQHook;
 
   serviceRegistry!: ServiceRegistry;
+  captureContext?: CaptureInvocationContext;
 
   spaceLuaEnv: SpaceLuaEnvironment;
   readonly scriptCommands = new Map<string, Command>();
@@ -235,6 +238,7 @@ export class ClientSystem {
       luaSyscalls(this.system, () => this.spaceLuaEnv.env),
       mqSyscalls(this.mq),
       serviceRegistrySyscalls(this.serviceRegistry),
+      captureSyscalls(() => this.captureContext, this.client),
       dataStoreReadSyscalls(this.ds, this),
       dataStoreWriteSyscalls(this.ds),
       syncSyscalls(this.client),

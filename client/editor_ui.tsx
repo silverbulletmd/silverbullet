@@ -29,6 +29,7 @@ import {
 } from "./navigator/ui/slots.ts";
 import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
+import { CaptureController } from "./capture/CaptureController.tsx";
 import { AnchoredMenu } from "./components/anchored_menu.tsx";
 import {
   ProfileAvatar,
@@ -666,6 +667,10 @@ export class MainUI {
         </div>
         <NavigatorModal state={navSlots.modal} client={client} />
         <RevisionPreviewModal />
+        <CaptureController
+          client={client}
+          initialId={globalThis.sbRuntime.captureId}
+        />
         {modalVisible && (
           <div className="sb-modal-backdrop">
             <div

@@ -238,6 +238,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     ));
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
+        .route("/.client/manifest.json", get(control::handle_manifest))
         .route("/.accounts", get(accounts::handle_accounts))
         // x-content-length must retain the uncompressed file size.
         .route(
@@ -328,7 +329,6 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     // Open: liveness + the SPA shell/assets must always load.
     let open = Router::new()
         .route("/.ping", get(control::handle_ping))
-        .route("/.client/manifest.json", get(control::handle_manifest))
         .route("/.logout", get(crate::handlers::auth::handle_logout))
         .merge(auth_routes);
 

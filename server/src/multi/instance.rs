@@ -533,6 +533,7 @@ fn try_build_state(
     } else {
         None
     };
+    let enable_client_encryption = authorizer.is_some() && config.access() == SpaceAccess::None;
     let authorizer = match &runtime {
         Some(runtime) => Some(Arc::new(crate::runtime::scoped::ScopedRuntimeAuthorizer {
             inner: authorizer,
@@ -632,7 +633,7 @@ fn try_build_state(
             index_page: config.index_page.clone(),
             read_only: config.read_only,
             log_push: config.log_push,
-            enable_client_encryption: authorizer.is_some() && config.access() == SpaceAccess::None,
+            enable_client_encryption,
             account_managed,
             shell_backend: if shell_enabled {
                 "local".into()
@@ -1095,6 +1096,7 @@ mod tests {
         );
         let writable = try_build_state("o", &cfg, "/o", &deps).unwrap();
         assert!(writable.anonymous_writable);
+        assert!(!writable.boot_config.enable_client_encryption);
 
         cfg.read_only = true;
         let frozen = try_build_state("o", &cfg, "/o", &deps).unwrap();

@@ -165,6 +165,8 @@ safeRun(async () => {
   await augmentBootConfig(bootConfig!, config!);
 
   const isHeadless = new URLSearchParams(location.search).has("headless");
+  globalThis.sbRuntime.captureId =
+    new URLSearchParams(location.search).get("capture") ?? undefined;
   const reviewGitConflicts =
     new URLSearchParams(location.search).get("gitConflicts") === "1";
   // Expose headless flag on the runtime bridge so client.init() can detect

@@ -133,6 +133,7 @@ function pickerSegment(mode: "page" | "meta" | "document" | "all") {
 // Runtime API bridge: written by the client when running headless to evaluate Lua in the live client.
 export type SBRuntime = {
   headless?: boolean;
+  captureId?: string;
   ready?: boolean;
   evalLua?: (expr: string) => Promise<unknown>;
   evalLuaScript?: (script: string) => Promise<unknown>;

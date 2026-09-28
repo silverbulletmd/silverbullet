@@ -24,6 +24,7 @@ struct ConfigResponse<'a> {
     #[serde(flatten)]
     boot_config: &'a silverbullet_server_common::BootConfig,
     space_prefixes: Vec<String>,
+    share_owner_id: String,
 }
 
 pub(crate) async fn handle_config(
@@ -46,6 +47,14 @@ pub(crate) async fn handle_config(
         axum::Json(ConfigResponse {
             boot_config: &boot_config,
             space_prefixes: state.space_prefixes.current(),
+            share_owner_id: silverbullet_server_common::revision::sha256_hex(
+                format!(
+                    "{}\0{}",
+                    state.space_folder_path,
+                    actor.username.as_deref().unwrap_or("single-user")
+                )
+                .as_bytes(),
+            ),
         })
         .into_response(),
     )
@@ -58,6 +67,28 @@ struct ManifestIcon {
     #[serde(rename = "type")]
     icon_type: String,
     sizes: String,
+}
+
+#[derive(serde::Serialize)]
+struct ManifestShareFile {
+    name: &'static str,
+    accept: Vec<&'static str>,
+}
+
+#[derive(serde::Serialize)]
+struct ManifestShareParams {
+    title: &'static str,
+    text: &'static str,
+    url: &'static str,
+    files: Vec<ManifestShareFile>,
+}
+
+#[derive(serde::Serialize)]
+struct ManifestShareTarget {
+    action: String,
+    method: &'static str,
+    enctype: &'static str,
+    params: ManifestShareParams,
 }
 
 /// The PWA `manifest.json` document. Field names match the web app manifest
@@ -74,12 +105,21 @@ struct Manifest {
     scope: String,
     theme_color: String,
     description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    share_target: Option<ManifestShareTarget>,
 }
 
 /// Render the PWA manifest from space configuration, prefixing icon, start,
 /// and scope URLs so installations work under a sub-path mount.
-pub async fn handle_manifest(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
+pub async fn handle_manifest(
+    State(state): State<Arc<ServerState>>,
+    axum::Extension(actor): axum::Extension<crate::auth::Actor>,
+) -> impl IntoResponse {
     let prefix = &state.host_url_prefix;
+    let eligible = actor.level >= crate::auth::AccessLevel::Write
+        && !state.boot_config.read_only
+        && !state.boot_config.enable_client_encryption
+        && !state.boot_config.disable_service_worker;
     let manifest = Manifest {
         short_name: state.boot_config.space_name.clone(),
         name: state.boot_config.space_name.clone(),
@@ -95,6 +135,20 @@ pub async fn handle_manifest(State(state): State<Arc<ServerState>>) -> impl Into
         scope: format!("{prefix}/"),
         theme_color: state.theme_color.clone(),
         description: state.space_description.clone(),
+        share_target: eligible.then(|| ManifestShareTarget {
+            action: format!("{prefix}/.client/share-target"),
+            method: "POST",
+            enctype: "multipart/form-data",
+            params: ManifestShareParams {
+                title: "title",
+                text: "text",
+                url: "url",
+                files: vec![ManifestShareFile {
+                    name: "files",
+                    accept: vec!["*/*"],
+                }],
+            },
+        }),
     };
     (
         StatusCode::OK,
@@ -259,5 +313,93 @@ mod tests {
         assert_eq!(v["icons"][0]["src"], "/.client/logo-dock.png");
         assert_eq!(v["icons"][0]["type"], "image/png");
         assert_eq!(v["theme_color"], "#e1e1e1");
+        assert!(v.get("share_target").is_none());
+    }
+
+    #[tokio::test]
+    async fn writable_space_manifest_advertises_multipart_share_target() {
+        let mut state = test_state();
+        state.boot_config.disable_service_worker = false;
+        let app = crate::build_router(Arc::new(state));
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/.client/manifest.json")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let manifest: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(manifest["share_target"]["action"], "/.client/share-target");
+        assert_eq!(manifest["share_target"]["method"], "POST");
+        assert_eq!(manifest["share_target"]["enctype"], "multipart/form-data");
+        assert_eq!(manifest["share_target"]["params"]["title"], "title");
+        assert_eq!(manifest["share_target"]["params"]["text"], "text");
+        assert_eq!(manifest["share_target"]["params"]["url"], "url");
+        assert_eq!(
+            manifest["share_target"]["params"]["files"][0]["name"],
+            "files"
+        );
+        assert_eq!(
+            manifest["share_target"]["params"]["files"][0]["accept"][0],
+            "*/*"
+        );
+    }
+
+    #[tokio::test]
+    async fn ineligible_spaces_do_not_advertise_a_share_target() {
+        for (read_only, encrypted, level) in [
+            (true, false, crate::auth::AccessLevel::Write),
+            (false, true, crate::auth::AccessLevel::Write),
+            (false, false, crate::auth::AccessLevel::Read),
+        ] {
+            let mut state = test_state();
+            state.boot_config.disable_service_worker = false;
+            state.boot_config.read_only = read_only;
+            state.boot_config.enable_client_encryption = encrypted;
+            let actor = crate::auth::Actor {
+                level,
+                ..Default::default()
+            };
+            let response = super::handle_manifest(
+                axum::extract::State(Arc::new(state)),
+                axum::Extension(actor),
+            )
+            .await
+            .into_response();
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let manifest: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert!(manifest.get("share_target").is_none());
+        }
+    }
+
+    #[tokio::test]
+    async fn config_has_a_stable_share_owner_marker() {
+        let app = crate::build_router(Arc::new(test_state()));
+        let request = || {
+            Request::builder()
+                .uri("/.config")
+                .body(Body::empty())
+                .unwrap()
+        };
+        let first = app.clone().oneshot(request()).await.unwrap();
+        let second = app.oneshot(request()).await.unwrap();
+        let json = async |response: axum::response::Response| {
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+        };
+        let first = json(first).await;
+        let second = json(second).await;
+        assert!(first["shareOwnerId"].as_str().is_some());
+        assert_eq!(first["shareOwnerId"], second["shareOwnerId"]);
     }
 }

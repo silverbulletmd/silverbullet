@@ -157,6 +157,7 @@ export type Action =
  */
 export type BootConfig = {
   spaceFolderPath: string;
+  shareOwnerId: string;
   indexPage: string;
   readOnly: boolean;
   logPush?: boolean;

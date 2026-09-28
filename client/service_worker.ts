@@ -9,6 +9,12 @@ import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { initLogger } from "./lib/logger.ts";
+import {
+  handleShareTarget,
+  isShareTarget,
+  refreshShareEligibility,
+} from "./capture/intake.ts";
+import { openCaptureStore } from "./capture/store.ts";
 import { WorkerLogout } from "./service_worker/logout.ts";
 import { ProxyRouter } from "./service_worker/proxy_router.ts";
 import { SyncEngine } from "./service_worker/sync_engine.ts";
@@ -49,6 +55,7 @@ const precacheFiles = Object.fromEntries(
 ); // Cache busting
 
 const proxyRouter = new ProxyRouter(basePathName, baseURI, precacheFiles);
+const captureStore = openCaptureStore(`${location.origin}${location.pathname}`);
 
 let configuring = false;
 
@@ -74,6 +81,7 @@ const workerLogout = new WorkerLogout(
     keyGeneration++;
     encryptionKeyMemoryStore = undefined;
     proxyRouter.reset();
+    await (await captureStore).destroy();
     // @ts-expect-error: service worker API
     await self.registration.unregister();
   },
@@ -148,6 +156,7 @@ self.addEventListener("message", async (event: any) => {
       break;
     }
     case "wipe-data": {
+      await (await captureStore).clear();
       if (proxyRouter.syncEngine) {
         await proxyRouter.syncEngine.wipe();
         broadcastMessage({
@@ -253,6 +262,13 @@ self.addEventListener("message", async (event: any) => {
       const generation = keyGeneration;
       const encryptionKey = encryptionKeyMemoryStore;
       const config = message.config;
+      await (await captureStore).configure(
+        config.shareOwnerId ?? "",
+        !!config.shareOwnerId &&
+          !config.readOnly &&
+          !config.enableClientEncryption &&
+          !config.disableServiceWorker,
+      );
       // Refreshed ahead of the configured check: a space added since this
       // worker booted must stop being answered locally right away.
       proxyRouter.setSpacePrefixes(config.spacePrefixes ?? []);
@@ -462,6 +478,38 @@ const throttledServiceWorkerStarted = throttleImmediately(() => {
 self.addEventListener("fetch", (event: any) => {
   if (!isConfigured()) {
     throttledServiceWorkerStarted();
+  }
+
+  if (isShareTarget(event.request, basePathName, location.origin)) {
+    event.respondWith(
+      captureStore.then(async (store) => {
+        await refreshShareEligibility(store, `${baseURI}/.config`);
+        return handleShareTarget(event.request, basePathName, store);
+      }),
+    );
+    return;
+  }
+
+  const url = new URL(event.request.url);
+  const captureId = url.searchParams.get("capture");
+  if (
+    event.request.mode === "navigate" &&
+    url.origin === location.origin &&
+    url.pathname === `${basePathName}/` &&
+    captureId
+  ) {
+    event.respondWith(
+      (async () => {
+        const store = await captureStore;
+        const config = await store.getConfiguration();
+        if (config && (await store.get(captureId, config.ownerId))) {
+          const shell = await caches.match(precacheFiles["/"]);
+          if (shell) return shell;
+        }
+        return fetch(event.request);
+      })(),
+    );
+    return;
   }
 
   proxyRouter.onFetch(event);

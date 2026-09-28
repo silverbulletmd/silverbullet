@@ -1,4 +1,5 @@
 import { randomUUID } from "../plug-api/lib/crypto.ts";
+import { pendingCaptureCount } from "./capture/store.ts";
 import { registerLogoutPresence } from "./logout_presence.ts";
 import type { LogoutRoute } from "./dashboard_navigation.ts";
 import {
@@ -336,6 +337,22 @@ export async function logoutBrowserSession(
       }
     } catch (error) {
       preparationFailure = `Could not check open SilverBullet windows: ${error instanceof Error ? error.message : String(error)}`;
+    }
+
+    if (!force && workers.length > 0 && typeof indexedDB !== "undefined") {
+      const count = await pendingCaptureCount(
+        workers.map((worker) => worker.scriptURL),
+      );
+      if (
+        count > 0 &&
+        !confirm(
+          `Signing out will discard ${count} pending capture${count === 1 ? "" : "s"} from this browser. Continue?`,
+        )
+      ) {
+        clearLogoutState(id);
+        await current.handle({ type: "logout-cancel", id });
+        return;
+      }
     }
 
     if (!force) {

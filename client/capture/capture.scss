@@ -1,0 +1,67 @@
+.sb-capture-backdrop {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  padding: calc(8px + var(--sb-top-height) + var(--sb-standalone-top-offset, 0px)) 8px 8px;
+  z-index: 1100;
+}
+
+.sb-capture {
+  background: var(--modal-background-color);
+  border: 1px solid var(--modal-border-color);
+  border-radius: 4px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  color: var(--modal-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: fit-content;
+  max-height: 100%;
+  overflow: auto;
+  padding: 1rem;
+  position: relative;
+  width: min(38rem, 100%);
+}
+
+.sb-capture-header,
+.sb-capture-footer,
+.sb-capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sb-capture-header {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sb-capture label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sb-capture textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.sb-capture input,
+.sb-capture textarea {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.sb-capture-error {
+  color: var(--editor-error-color);
+}
+
+.sb-capture-pending {
+  bottom: 1rem;
+  position: fixed;
+  right: 1rem;
+  z-index: 1099;
+}

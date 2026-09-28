@@ -591,7 +591,18 @@ mod tests {
             .await
             .unwrap();
         assert!(String::from_utf8_lossy(&bytes).contains(r#"<base href="/work/">"#));
-        let response = get(&r, "notes.example.test", "/work/.client/manifest.json").await;
+        let response = r
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/work/.client/manifest.json")
+                    .header("host", "notes.example.test")
+                    .header("authorization", "Bearer fixture-token")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
