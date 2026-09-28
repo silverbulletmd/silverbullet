@@ -5,7 +5,6 @@ import {
 } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
-import { dbg } from "./ios_debug_tmp.ts";
 
 const isIOS =
   typeof navigator !== "undefined" &&
@@ -57,7 +56,7 @@ const iosCompletionTapPlugin = ViewPlugin.fromClass(
       }
       event.preventDefault();
       this.view.dispatch({ effects: setSelectedCompletion(index) });
-      dbg("tap-accept " + acceptCompletion(this.view));
+      acceptCompletion(this.view);
     };
   },
 );

@@ -6,9 +6,9 @@ If you are a SilverBullet user, consider sponsoring the project financially. You
 While the project is largely a labor of love, and a lot of volunteers contribute significantly, it does benefit from funding. The more funding, the more time can be spent to make this product as good as it can be.
 
 # How?
-SilverBullet has a commercial desktop edition named [SilverBullet+](https://silverbullet.plus/), that you may like. Buying SilverBullet+ is one way to support the project financially.
+The native SilverBullet app is described at [SilverBullet Desktop](https://silverbullet.plus/desktop). Its Pro subscriptions support premium SilverBullet+ features and help fund the open source Server project.
 
-Not a SilverBullet+ user? Here are a few ways to financially support the project at the moment, ordered by preference:
+Not using the desktop app? Here are a few ways to financially support the project at the moment, ordered by preference:
 1. [LiberaPay](https://liberapay.com/zef) (preferred)
 2. [Github sponsors](https://github.com/sponsors/silverbulletmd)
 3. [PayPal](https://paypal.me/zefhemel)

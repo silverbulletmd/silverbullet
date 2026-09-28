@@ -68,7 +68,6 @@ import {
 import { inlineContentPlugin } from "./inline_content.ts";
 import { iosCompletionTapHandling } from "./ios_completion.ts";
 import { iosEnterHandling } from "./ios_enter.ts";
-import { iosDebugPlugin } from "./ios_debug_tmp.ts";
 import { lineWrapper } from "./line_wrapper.ts";
 import { plugLinter } from "./lint.ts";
 import { customEnterCommand } from "./markdown_enter.ts";
@@ -193,7 +192,6 @@ export function buildSharedEditorExtensions(
     closeBrackets(),
     keyboardAwareTooltips,
     iosCompletionTapHandling(),
-    iosDebugPlugin,
     buildEditorUpdateListener(client, mode),
   ];
 }

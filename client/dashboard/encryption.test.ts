@@ -57,7 +57,7 @@ test("the persisted verifier binds the derived key to the account and never stor
   );
 });
 
-test("cache inspection uses Core's trailing-slash-free database identity and leaves mismatched encrypted caches intact", async () => {
+test("cache inspection uses Server's trailing-slash-free database identity and leaves mismatched encrypted caches intact", async () => {
   const fake = await import("fake-indexeddb");
   for (const [name, value] of Object.entries(fake)) {
     if (name.startsWith("IDB")) vi.stubGlobal(name, value);

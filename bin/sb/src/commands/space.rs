@@ -220,7 +220,7 @@ pub fn space_login(name: &str, no_browser: bool) -> Result<(), String> {
     let space = config::resolve_space(&cfg, Some(name))?;
     if space.url.is_empty() || !space.folder_path.is_empty() {
         return Err(
-            "Browser sign-in is for remote URL spaces. Local folder spaces use App authentication."
+            "Browser sign-in is for remote URL spaces. Local folder spaces use Desktop authentication."
                 .into(),
         );
     }

@@ -14,7 +14,7 @@
 //! }
 //! ```
 //!
-//! Unknown per-space fields (added by the App layer) survive load→save
+//! Unknown per-space fields (added by the Desktop layer) survive load→save
 //! round-trips via a flattened [`serde_json::Map`] on [`SpaceConfig`].
 //!
 //! The file is written with 2-space JSON indentation + trailing newline, mode
@@ -87,7 +87,7 @@ fn is_false(b: &bool) -> bool {
 
 /// A configured SilverBullet space.
 ///
-/// Unknown JSON fields (added by the App layer) are preserved in `extra` and
+/// Unknown JSON fields (added by the Desktop layer) are preserved in `extra` and
 /// round-trip transparently through serialize/deserialize.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct SpaceConfig {
@@ -104,7 +104,7 @@ pub struct SpaceConfig {
     pub auth: AuthConfig,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub env: Option<SpaceEnv>,
-    /// Preserves any App-specific fields that Core does not model.
+    /// Preserves any Desktop-specific fields that Server does not model.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }

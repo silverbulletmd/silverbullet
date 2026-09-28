@@ -9,7 +9,7 @@ use crate::conn::SpaceConnection;
 use crate::output::{self, OutputMode};
 
 // Lua scripts — call the index.* schema introspection API (single source of
-// truth in Core); whitespace-significant, do not reformat.
+// truth in Server); whitespace-significant, do not reformat.
 
 /// "describe all": raw JSON Schemas from the API plus the SLIQ reference syntax block.
 const DESCRIBE_ALL_SCRIPT: &str = "

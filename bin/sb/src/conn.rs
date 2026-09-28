@@ -146,7 +146,7 @@ pub fn new_client(timeout: std::time::Duration) -> Result<Client, String> {
 
 /// Build a [`SpaceConnection`] from the shared [`GlobalFlags`] and loaded config.
 ///
-/// Takes `&GlobalFlags` (not `&Cli`) so a downstream binary — the App's CLI —
+/// Takes `&GlobalFlags` (not `&Cli`) so a downstream binary — the Desktop's CLI —
 /// can flatten the same flags into its own parser and reuse this resolver
 /// unchanged.
 ///
@@ -185,7 +185,7 @@ pub fn resolve_typed(
 
     // A space with no URL is folder-based: it's served by a local SilverBullet
     // app instance on a per-space port, and resolving that (ping/launch the app,
-    // inject the localhost URL + token) is App-CLI logic the standalone Core
+    // inject the localhost URL + token) is Desktop-CLI logic the standalone Server
     // `sb` deliberately does not implement. Fail with a clear message instead of
     // letting reqwest choke on an empty base URL ("builder error").
     if base_url.is_empty() {

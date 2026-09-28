@@ -2,7 +2,7 @@
 //!
 //! This is a pure library;
 //! callers pass `is_tty` rather than probing the terminal themselves, so the
-//! App's CLI can reuse the resolution logic unchanged.
+//! Desktop CLI can reuse the resolution logic unchanged.
 
 use std::io::{self, Write};
 

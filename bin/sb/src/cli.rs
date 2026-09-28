@@ -14,7 +14,7 @@ Getting started:
 
 Select a saved connection with --space (optional when only one exists), or use
 --url and optionally --token to connect directly. Flags may appear before or
-after the command. Core requires a running server.
+after the command. Space commands require a running server.
 
 Use sb <command> --help for examples and detailed rules; -h gives compact help.
 Use sb describe to inspect the connected space's query schemas and SLIQ syntax.";

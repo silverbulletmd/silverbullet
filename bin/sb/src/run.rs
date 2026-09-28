@@ -5,7 +5,7 @@
 //! command modules.
 //!
 //! Both `resolve_conn` and `resolve_out` are `pub` so a downstream binary (the
-//! App's CLI) can call the same command functions with a connection it built
+//! Desktop CLI) can call the same command functions with a connection it built
 //! itself, without going through this dispatch layer.
 
 use std::io::{IsTerminal, Read};
@@ -57,7 +57,7 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
     }
 }
 
-/// Dispatch one of the [`CoreCommand`]s shared with the App CLI. The
+/// Dispatch one of the [`CoreCommand`]s shared with the Desktop CLI. The
 /// connection and output mode are resolved lazily from `g` — the upgrade
 /// variants never need one (check `CoreCommand::needs_connection`).
 pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, String> {

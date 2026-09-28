@@ -70,7 +70,7 @@ impl SpaceConnection {
         let bytes = read_response(resp, MAX_EVAL_RESPONSE_BYTES, "runtime response")?;
 
         if status.is_success() {
-            // On 200, the body is the `{ "result": <value> }` envelope (Core's
+            // On 200, the body is the `{ "result": <value> }` envelope (Server's
             // runtime handlers wrap eval results; see `docs/Runtime API.md`).
             // A Lua-level failure arrives as `{ "error": <msg> }`.
             let v: Value = serde_json::from_slice(&bytes)

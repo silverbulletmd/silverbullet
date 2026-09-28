@@ -213,7 +213,7 @@ The same function can render an inline `${projectView()}` expression. With `view
 | `title` | Panel title. |
 | `command` | Command that opens the view. |
 | `key`, `mac` | Key bindings; require `command`. |
-| `menu`, `menuMac`, `menuWindows`, `menuLinux` | Native-menu placement in SilverBullet+. |
+| `menu`, `menuMac`, `menuWindows`, `menuLinux` | Native-menu placement in SilverBullet Desktop. |
 | `hide` | Hide the command from the command palette. |
 | `dock` | Initial location: `"modal"` (default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"`, or `"page-bottom"`. |
 | `supportedDocks` | Allowed locations; defaults to `{ dock }` and must include the initial dock. |
