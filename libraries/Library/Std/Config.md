@@ -147,6 +147,37 @@ config.define("frontmatterFolding", {
       description = "Fold frontmatter automatically when it has more than this positive whole number of lines and auto-fold is set to long",
       ui = { category = "Editor", label = "Frontmatter auto-fold lines", priority = -2 },
     },
+    preview = {
+      type = "array",
+      description = "Fields to render while frontmatter is folded",
+      items = {
+        type = "object",
+        properties = {
+          field = {
+            type = "string",
+            description = "Frontmatter field to render",
+          },
+          type = {
+            type = "string",
+            enum = { "text", "markdown", "tags", "date" },
+            default = "text",
+            description = "How to render the field value",
+          },
+          template = {
+            type = "string",
+            default = "${value}",
+            description = "Template used to render the field value",
+          },
+          separator = {
+            type = "string",
+            default = ", ",
+            description = "Separator used for array values",
+          },
+        },
+        required = { "field" },
+        additionalProperties = false,
+      },
+    },
   },
   additionalProperties = false,
 })
