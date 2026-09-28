@@ -82,6 +82,14 @@ export async function openCaptureStore(
       return db.count("captures");
     },
     async stage(fields, files) {
+      const blobs: Record<string, ArrayBuffer> = {};
+      const metadata = await Promise.all(
+        files.map(async (file) => {
+          const handle = crypto.randomUUID();
+          blobs[handle] = await file.arrayBuffer();
+          return { handle, name: file.name, type: file.type, size: file.size };
+        }),
+      );
       const transaction = db.transaction(["captures", "config"], "readwrite");
       const config = (await transaction.objectStore("config").get("current")) as
         | StoredConfiguration
@@ -90,12 +98,6 @@ export async function openCaptureStore(
         throw new Error("This space cannot receive shares");
       }
       const id = crypto.randomUUID();
-      const blobs: Record<string, Blob> = {};
-      const metadata = files.map((file) => {
-        const handle = crypto.randomUUID();
-        blobs[handle] = file.slice();
-        return { handle, name: file.name, type: file.type, size: file.size };
-      });
       const record: StoredCapture = {
         id,
         ownerId: config.ownerId,
@@ -126,7 +128,9 @@ export async function openCaptureStore(
       const record = await owned(id, ownerId);
       const blob = record?.blobs[handle];
       if (!blob) throw new Error("Capture file is unavailable");
-      return blob;
+      if (blob instanceof Blob) return blob;
+      const type = record.files.find((file) => file.handle === handle)?.type;
+      return new Blob([blob], { type });
     },
     async remove(id, ownerId) {
       if (!(await owned(id, ownerId)))

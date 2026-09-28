@@ -16,7 +16,7 @@ export type CaptureDraft = {
 };
 
 export type CaptureRecord = CaptureDraft & {
-  blobs: Record<string, Blob>;
+  blobs: Record<string, Blob | ArrayBuffer>;
 };
 
 export type CaptureActionData = Omit<CaptureDraft, "ownerId">;

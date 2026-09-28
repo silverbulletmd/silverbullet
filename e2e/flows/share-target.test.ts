@@ -109,11 +109,10 @@ test("two incoming shares stay queued independently", async ({
 
 test("a previously opened space receives a share while offline", async ({
   page,
-  context,
   sbServer,
 }) => {
   await openLivePage(page, sbServer.url, "Share target space");
-  await context.setOffline(true);
+  await sbServer.stop();
   await page.evaluate(() => {
     const form = document.createElement("form");
     form.method = "POST";
@@ -127,7 +126,6 @@ test("a previously opened space receives a share while offline", async ({
     form.submit();
   });
   await expect(page.getByLabel("Text")).toHaveValue("Offline shared item");
-  await context.setOffline(false);
 });
 
 test.describe("programmable actions", () => {

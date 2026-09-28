@@ -3,7 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
-* Eligible installed SilverBullet web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome. Review a share before saving it as a Quick Note with file links, or choose a Space Lua capture action; pending shares survive offline use and can be resumed later.
+* Eligible installed SilverBullet web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome. Review a share before saving it as a Quick Note with file links, or choose a Space Lua capture action; pending shares survive offline use and can be resumed later. File captures also work in WebKit browsers.
 * Inline list, tree, and table views can opt into a panel-style filter input with `filter = { inline = true }` and set a `title` for the embedded header.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported. **File: Download** saves the current page or document when drag-out is unavailable; the upload command is now **File: Upload**.
 * On narrow screens, left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
