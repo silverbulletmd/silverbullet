@@ -1,5 +1,5 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { taskifyLines } from "./taskify.ts";
+import { listifyLines, taskifyLines } from "./line_prefix.ts";
 
 export async function quoteSelection() {
   let text = await editor.getText();
@@ -20,26 +20,14 @@ export async function quoteSelection() {
 }
 
 export async function listifySelection() {
-  let text = await editor.getText();
   const selection = await editor.getSelection();
-
-  if (selection.to === 0 && selection.from === 0) {
-    await editor.insertAtCursor("* ");
-    return;
-  }
-
-  let from = selection.from;
-  if (text[from] === "\n") {
-    //end of line, need to find previous line break
-    from--;
-  }
-  while (from >= 0 && text[from] !== "\n") {
-    from--;
-  }
-  from++;
-  text = text.slice(from, selection.to);
-  text = `* ${text.replaceAll(/\n(?!\n)/g, "\n* ")}`;
-  await editor.replaceRange(from, selection.to, text);
+  const result = listifyLines(
+    await editor.getText(),
+    selection.from,
+    selection.to,
+  );
+  await editor.replaceRange(result.from, result.to, result.insert);
+  if (result.cursor !== undefined) await editor.moveCursor(result.cursor);
 }
 
 export async function taskifyLine() {
