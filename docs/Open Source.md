@@ -5,4 +5,4 @@ tags: feature
 ---
 SilverBullet is [MIT licensed](https://github.com/silverbulletmd/silverbullet/blob/main/LICENSE.md), open source software. This license allows you to basically use it however you like, for whatever purpose. No restrictions. Enjoy.
 
-While free to use, open source software is not free to develop. If you use SilverBullet, consider [[Funding]] its development.
+While free to use, open source software is not free to develop. If you use SilverBullet, consider [funding](https://silverbullet.md/funding) its development.

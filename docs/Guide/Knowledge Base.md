@@ -73,4 +73,4 @@ You now have the core pattern: create pages, link them, add structure with tags 
 
 * [[Journal]] — set up a daily journal
 * [[Guide/Task Management]] — track projects and tasks
-* [[Manual]] — the full user manual
+* [[SilverBullet|The documentation]] — every section of the manual, from writing to customizing

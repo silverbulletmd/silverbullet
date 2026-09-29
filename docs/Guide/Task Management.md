@@ -98,4 +98,4 @@ You now have a project tracking system: project pages with frontmatter, tasks sc
 
 * [[Journal]] — set up a daily journal
 * [[Guide/Knowledge Base]] — build a knowledge base
-* [[Manual]] — the full user manual
+* [[SilverBullet|The documentation]] — every section of the manual, from writing to customizing

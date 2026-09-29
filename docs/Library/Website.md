@@ -50,6 +50,7 @@ docsNav = docsNav or {}
 
 docsNav.sections = {
   { name = "Start", description = "What SilverBullet is, choosing a setup, and first steps." },
+  { name = "Why SilverBullet", description = "The ideas SilverBullet is built on: your files, your data, and a tool you can reshape." },
   { name = "Desktop", description = "The native app for macOS, Windows and Linux: local spaces, sync, Meta Space and licensing." },
   { name = "Server", description = "Install, configure, secure and publish a self-hosted SilverBullet Server." },
   { name = "Writing", description = "The editor, pages, tasks, templates and the pickers you use every day." },
@@ -58,7 +59,7 @@ docsNav.sections = {
   { name = "Customizing", description = "Space Lua, Space Style, commands, views and libraries." },
   { name = "Working Together", description = "Sharing a space: mentions, comments, authorship, revisions and sync." },
   { name = "Reference", description = "Markdown syntax, the Space Lua API, configuration options and the CLI." },
-  { name = "Contributing", description = "Developing SilverBullet: architecture, decisions, changelog and funding." },
+  { name = "Contributing", description = "Developing SilverBullet: architecture, decisions and the changelog." },
 }
 
 docsNav.pages = {
@@ -66,19 +67,18 @@ docsNav.pages = {
   { name = "Start", ref = "SilverBullet", icon = "home" },
   { name = "Start/Getting Started", ref = "Getting Started", icon = "play-circle" },
   { name = "Start/Videos", ref = "Videos", icon = "video" },
-  { name = "Start/Manual", ref = "Manual", icon = "book-open" },
   { name = "Start/Guides", ref = "Guide", icon = "compass" },
   { name = "Start/Best Practices", ref = "Guide/Best Practices", icon = "check-circle" },
-  { name = "Start/Why SilverBullet", ref = "Why SilverBullet", icon = "heart" },
-  { name = "Start/Why SilverBullet/Knowledge Management System", ref = "Knowledge Management System", icon = "book" },
-  { name = "Start/Why SilverBullet/Malleable", ref = "Malleable", icon = "tool" },
-  { name = "Start/Why SilverBullet/Local First", ref = "Local First", icon = "hard-drive" },
-  { name = "Start/Why SilverBullet/Data Sovereignty", ref = "Data Sovereignty", icon = "key" },
-  { name = "Start/Why SilverBullet/Private", ref = "Private", icon = "lock" },
-  { name = "Start/Why SilverBullet/Self Hosted", ref = "Self Hosted", icon = "server" },
-  { name = "Start/Why SilverBullet/Open Source", ref = "Open Source", icon = "code" },
-  { name = "Start/Why SilverBullet/Zero Tracking", ref = "Zero Tracking", icon = "eye-off" },
-  { name = "Start/Why SilverBullet/End-User Programming", ref = "End-User Programming", icon = "edit" },
+  { name = "Why SilverBullet", ref = "Why SilverBullet", icon = "heart" },
+  { name = "Why SilverBullet/Knowledge Management System", ref = "Knowledge Management System", icon = "book" },
+  { name = "Why SilverBullet/Malleable", ref = "Malleable", icon = "tool" },
+  { name = "Why SilverBullet/Local First", ref = "Local First", icon = "hard-drive" },
+  { name = "Why SilverBullet/Data Sovereignty", ref = "Data Sovereignty", icon = "key" },
+  { name = "Why SilverBullet/Private", ref = "Private", icon = "lock" },
+  { name = "Why SilverBullet/Self Hosted", ref = "Self Hosted", icon = "server" },
+  { name = "Why SilverBullet/Open Source", ref = "Open Source", icon = "code" },
+  { name = "Why SilverBullet/Zero Tracking", ref = "Zero Tracking", icon = "eye-off" },
+  { name = "Why SilverBullet/End-User Programming", ref = "End-User Programming", icon = "edit" },
 
   -- Desktop
   { name = "Desktop", ref = "Desktop", icon = "monitor" },
@@ -174,7 +174,7 @@ docsNav.pages = {
   { name = "Queries & Data/Baked Sections", ref = "Baked Sections", icon = "save" },
 
   -- Customizing
-  { name = "Customizing", ref = "Space Lua", icon = "code" },
+  { name = "Customizing", ref = "Customizing", icon = "code" },
   { name = "Customizing/Space Lua", ref = "Space Lua", icon = "moon" },
   { name = "Customizing/Conventions", ref = "Space Lua/Conventions", icon = "check-circle" },
   { name = "Customizing/Quirks", ref = "Space Lua/Quirks", icon = "alert-triangle" },
@@ -242,7 +242,6 @@ docsNav.pages = {
   { name = "Contributing/Architecture", ref = "Architecture", icon = "layers" },
   { name = "Contributing/ADR", ref = "ADR", icon = "clipboard" },
   { name = "Contributing/CHANGELOG", ref = "CHANGELOG", icon = "clock" },
-  { name = "Contributing/Funding", ref = "Funding", icon = "heart" },
 }
 
 function docsNav.entryByName(name)

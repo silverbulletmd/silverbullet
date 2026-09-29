@@ -86,6 +86,6 @@ Now that you know the basics, explore these guides for real-world workflows:
 * [[Journal]] — a little more depth on the daily journal setup
 * [[Guide/Knowledge Base]] — build a knowledge base
 * [[Guide/Task Management]] — track projects and tasks
-* [[Manual]] — the full user manual
+* [[SilverBullet|The documentation]] — every section of the manual, from writing to customizing
 * [[Space Lua]] — learn more about the scripting language that gives SilverBullet a lot of its power
 * [[Object]] — understand how SilverBullet indexes your content

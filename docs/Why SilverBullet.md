@@ -9,4 +9,4 @@ SilverBullet is a note-taking and knowledge management system you can reshape, w
 
 **Your data, your call.** You decide where your data lives: on your own machine with the [[Install/Desktop|desktop app]], or on a [[Self Hosted]] server, with [[Zero Tracking]] and no third party to trust. See [[Data Sovereignty]] and [[Local First]]. Read more at [Your data](https://silverbullet.md/your-data).
 
-${docsNav.sectionList("Start/Why SilverBullet")}
+${docsNav.sectionList("Why SilverBullet")}

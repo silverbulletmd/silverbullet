@@ -20,6 +20,7 @@ const librariesDir = path.join(root, "libraries");
 
 const SECTIONS = [
   "Start",
+  "Why SilverBullet",
   "Desktop",
   "Server",
   "Writing",
@@ -75,7 +76,7 @@ function allFiles(dir: string): string[] {
   });
 }
 
-test("sections are the ten documented sections, in order", async () => {
+test("sections are the eleven documented sections, in order", async () => {
   const { sections } = await loadNav();
   expect(sections.map((s) => s.name)).toEqual(SECTIONS);
   for (const s of sections) expect(s.description).toBeTruthy();
