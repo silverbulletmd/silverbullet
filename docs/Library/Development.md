@@ -1,4 +1,5 @@
 ---
+description: "The steps for building your own SilverBullet library, starting with frontmatter on a page under Library/."
 tags: development
 references:
 - plugs/configuration-manager/libraries.ts

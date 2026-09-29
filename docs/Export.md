@@ -1,4 +1,5 @@
 ---
+description: "The Export command copies a page or selection as rich text or clean markdown."
 references:
 - libraries/Library/Std/Infrastructure/Export.md
 ---

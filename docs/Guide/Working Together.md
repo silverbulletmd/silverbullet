@@ -43,3 +43,6 @@ Attribution shows up in two places, both drawing on the full name and email from
 In the editor, text arriving from elsewhere is briefly highlighted as it lands.
 
 Over longer spans, [[Revisions]] carries the same information into page and space history, so a change can be traced back to the account that made it after the fact.
+
+# In this section
+${docsNav.sectionList("Working Together")}

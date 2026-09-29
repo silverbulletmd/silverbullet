@@ -13,6 +13,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix (iOS): pressing Return in a list reliably continues it, instead of sometimes inserting extra blank lines or editing the wrong line, especially right after opening a page.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 * Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and a checked unrelated-history merge tolerates new commits on either side before its first sync.
+* The documentation moved to [docs.silverbullet.md](https://docs.silverbullet.md), reorganized into sections; old silverbullet.md links redirect.
 
 ## 2.11.1
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
@@ -142,7 +143,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * UX: a _lot_ of little visual tweaks and usability fixes all over the place that hopefully will trigger less of your OCD, including:
   * On narrow viewports (<800px) header `#` markers no longer get pushed off-screen when the cursor enters a heading
   * Positioning of the page title is now (more) left-aligned with editor text.
-  * List/outline alignment: bullets, checkboxes and ordered-list numbers now line up in a clean column regardless of nesting depth, list type, or whether items are tasks, see [[Outline Stress Test]].
+  * List/outline alignment: bullets, checkboxes and ordered-list numbers now line up in a clean column regardless of nesting depth, list type, or whether items are tasks, see [Outline Stress Test](https://github.com/silverbulletmd/silverbullet/blob/main/dev-docs/Outline%20Stress%20Test.md).
     * Note: potentially **breaking CSS change for theme authors**: per-nesting-level indent values previously carried by `.sb-line-ul.sb-line-li-N`, `.sb-line-ol.sb-line-li-N`, `.sb-line-task` and `.sb-line-blockquote.sb-line-li-N` selectors have been removed.
   * Task checkboxes are now drawn in CSS (`appearance: none` + bordered box + rotated-rectangle checkmark) instead of relying on the native checkboxes. Should improve rendering on webkit browsers, and gives more control over the width.
 * Start of shared UI components (between SB core and plugs): component styles (for buttons, inputs, selects, checkboxes, tabs, alerts, badges, progress bars), and a `@silverbulletmd/silverbullet/ui` package export providing optional Preact wrappers. See [[Plugs/Development/Reference]] for notes on how to use this as a plug author. Built-in plugs like [[Configuration Manager]]  and [[Object Graph]] use these components already. In addition, these now also load [[Space Style]] inside the iframe, so components should become themable.

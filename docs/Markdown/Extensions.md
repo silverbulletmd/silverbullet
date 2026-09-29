@@ -1,4 +1,5 @@
 ---
+description: "The syntax SilverBullet adds on top of CommonMark, such as wiki-links, hashtags, anchors and Space Lua expressions."
 references:
 - client/markdown_parser/custom_syntax.ts
 - client/markdown_parser/parser.ts

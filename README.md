@@ -24,7 +24,7 @@ You were told there’s no such thing as a silver bullet. You were told wrong.
 [Much more detail can be found on silverbullet.md](https://silverbullet.md)
 
 ## Installing SilverBullet
-Check out the [instructions](https://silverbullet.md/Install).
+Check out the [instructions](https://docs.silverbullet.md/Install).
 
 ## Developing SilverBullet
 SilverBullet's frontend ("client") is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io) is used to build the frontend.
@@ -46,7 +46,7 @@ The server backend is written in [Rust](https://www.rust-lang.org/) (a Cargo wor
   * `syscalls/`: TypeScript wrappers around syscalls
   * `types/`: Various (client) types that can be references from plugs
 * `scripts/`: Useful scripts
-* `docs/`: documentation (also serves a silverbullet.md website content)
+* `docs/`: documentation (published as docs.silverbullet.md and bundled as Desktop's Help)
 
 ### Requirements
 * [Node.js](https://nodejs.org/) 24+ and npm 10+: Used to build the frontend (client) and plugs

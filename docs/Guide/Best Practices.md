@@ -1,3 +1,6 @@
+---
+description: "Recommended ways to structure your space, from page names to folders."
+---
 #guide
 
 Let’s be clear upfront: your space is your own, you can structure it however you like. That said, over the years a few “best practices” of how to structure your space have emerged.

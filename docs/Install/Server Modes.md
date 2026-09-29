@@ -1,3 +1,6 @@
+---
+description: "SilverBullet Server runs in multi-space mode (the default) or in the legacy single-space mode."
+---
 SilverBullet can run in two modes:
 
 1. Single-Space mode (legacy)

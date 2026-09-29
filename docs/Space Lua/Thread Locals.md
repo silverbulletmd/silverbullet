@@ -1,4 +1,5 @@
 ---
+description: "The _CTX global gives Space Lua code access to context-specific values such as the current page."
 tags: maturity/experimental
 references:
 - client/space_lua/runtime.ts

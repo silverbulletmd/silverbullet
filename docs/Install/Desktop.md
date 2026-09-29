@@ -1,7 +1,7 @@
 ---
-tags: getting-started
+tags: getting-started desktop
 ---
- [SilverBullet Desktop](https://silverbullet.plus/desktop) is a native app for macOS, Windows and Linux built on the open source SilverBullet web client. While Desktop is not open source software, it is free to use for personal and education use.
+SilverBullet is a desktop app for macOS, Windows and Linux built on the open source SilverBullet web client. While Desktop is not open source software, it is free to use for personal and education use.
 
 The goal of the project is to provide a smoother desktop experience, and act as a sustainable source of [[Funding]] of the SilverBullet project in general. It is created and maintained by [[Zef Hemel]], just like the open source project. It works great in combination with a SilverBullet server (e.g. for sync).
 

@@ -1,4 +1,4 @@
-# Docker image deployed to silverbullet.md
+# Docker image deployed to docs.silverbullet.md
 ARG BASE_IMAGE=zefhemel/silverbullet:edge-slim
 FROM ${BASE_IMAGE}
 

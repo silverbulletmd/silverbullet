@@ -1,3 +1,6 @@
+---
+description: "End-user programming lets people modify their own software, and SilverBullet supports it through Space Lua, objects and metadata."
+---
 An excellent [essay from Ink & Switch](https://www.inkandswitch.com/end-user-programming/) introduces **end-user programming** as follows:
 
 > Today’s software apps are like appliances: we can only use the capabilities exactly as programmed by the developer. What if we, and all computer users, could reach in and modify our favorite apps? Or even create new apps on the fly according to our needs in the moment?

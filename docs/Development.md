@@ -112,3 +112,6 @@ docker run -p 3000:3000 -v <PATH-TO-YOUR-DATA-FOLDER>:/data zefhemel/silverbulle
 ```
 
 These are built by `.github/workflows/ci.yml`, which cross-compiles the binary natively (`cargo build --target` with installed musl cross-toolchains) and copies it into a small Alpine image.
+
+# In this section
+${docsNav.sectionList("Contributing")}

@@ -8,7 +8,7 @@ The goal of the standard library is provide a base-level of useful commands, sla
 The remainder of this page documents what's included.
 
 # Config
-SilverBullet is configured via the [config APIs](https://silverbullet.md/API/config). Built-in configuration options and their default values are defined in [[^Library/Std/Config]].
+SilverBullet is configured via the [config APIs](https://docs.silverbullet.md/API/config). Built-in configuration options and their default values are defined in [[^Library/Std/Config]].
 
 # Page templates
 Page templates can be triggered via the ${widgets.commandButton "Page: From Template"} command (some of them have command or keyboard shortcuts) and provide a convenient way to create pages of a certain type. You can create your own page templates using the [[^Library/Std/Page Templates/Page Template]] template.

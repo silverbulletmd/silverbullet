@@ -265,9 +265,9 @@ API/codeWidget
 Render three incomplete tasks:
 
 <!--#lua query[[from t = index.tasks() where not t.done limit 3 select templates.taskItem(t)]] -->
-* [ ] [[Outline Stress Test@1458]] A task as ordered's child
-* [ ] [[Outline Stress Test@1559]] Task inside ordered child and now what will happen when this starts to wrap. Oh it looks nice!
-* [ ] [[Attribute@1612]] Task with an attribute, I’m so cool
+* [ ] [[Attribute@1611]] Task with an attribute, I’m so cool
+* [ ] [[Markdown/Basics@1679]] This is a task
+* [ ] [[Markdown/Basics@1700]] And this is another
 <!--/lua-->
 
 Ad-hoc index a Markdown fragment and select its list items:

@@ -1,4 +1,5 @@
 ---
+description: "How you authenticate depends on the server mode: accounts in multi-space mode, environment-variable credentials in single-space mode, or none."
 tags: administration
 references:
 - bin/silverbullet/src/config.rs

@@ -1,4 +1,5 @@
 ---
+description: "Objects carry default attributes, which you can extend with tags, frontmatter, attributes and other metadata."
 references:
 - plugs/index/frontmatter.ts
 - plugs/index/attribute.ts

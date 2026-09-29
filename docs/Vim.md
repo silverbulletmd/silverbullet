@@ -1,4 +1,5 @@
 ---
+description: "SilverBullet has a basic Vim mode with ex commands, key mappings and custom command definitions in CONFIG."
 tags: customization
 references:
 - plugs/editor/vim.ts

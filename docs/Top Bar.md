@@ -1,4 +1,5 @@
 ---
+description: "The bar across the top of the editor holds the page name, the home button, the page picker and the command palette, and its color shows your connection status."
 references:
 - client/components/top_bar.tsx
 - client/editor_ui.tsx

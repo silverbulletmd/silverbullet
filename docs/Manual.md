@@ -1,3 +1,6 @@
+---
+description: "A broad tour of what SilverBullet can do and where to learn more."
+---
 Welcome to the wonderful world of SilverBullet. The goal of this manual is to give you a broad sense of how to use this tool and what it’s capable of. However, its full capabilities are yet to be discovered. You too may find new and creative ways to use the various SilverBullet features in ways nobody previously thought of.
 
 However, that is all unlikely to happen unless you understand what SilverBullet can actually do. So let's give you a bit of a sense.

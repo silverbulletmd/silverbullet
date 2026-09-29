@@ -50,3 +50,6 @@ If you’re deploying **Linux**, you’re likely using a file system that is cas
 While using a NAS to store your space files should be fine, if you encounter issues (unreliable saving, sync issues) it is worth switching to a local file system to see if this resolves those issues. The same goes for synchronizing your files from your server elsewhere, e.g. using tools like SyncThing. They _should_ work fine, but if you run into [[Sync]] issues, disable everything, switch to a local file system and see if the issues persist to [[Troubleshooting]].
 
 SilverBullet’s sync engine relies on reliably persisting **last modified timestamps** for your files, and those timestamps only being touched when actual changes to those file occur. If your file system (or NAS) does not persist these consistently, or you have some external sync process that updates them — this may lead to problems.
+
+# In this section
+${docsNav.sectionList("Server")}

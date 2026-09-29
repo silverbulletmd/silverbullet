@@ -1,4 +1,5 @@
 ---
+description: "How to download and run SilverBullet as a single self-contained server binary on macOS, Linux, Windows or FreeBSD."
 tags: getting-started
 references:
 - bin/silverbullet/src/main.rs

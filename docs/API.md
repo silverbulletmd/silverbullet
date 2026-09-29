@@ -1,4 +1,5 @@
 ---
+description: "The APIs available in Space Lua, with the standard library and syscalls."
 references:
 - client/space_lua/stdlib.ts
 - client/plugos/syscalls/index.ts
