@@ -93,9 +93,8 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
               insert: "",
             },
           });
-          safeRun(async () => {
+          this.runSlash(async () => {
             await def.run!();
-            this.client.focus();
           });
         },
       });
@@ -118,12 +117,11 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
                 insert: "",
               },
             });
-            safeRun(async () => {
+            this.runSlash(async () => {
               await this.client.clientSystem.system.invokeFunction(
                 slashCompletion.invoke,
                 [slashCompletion],
               );
-              this.client.focus();
             });
           },
         });
@@ -135,6 +133,21 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       from: prefix.from + prefixText.indexOf("/") + 1,
       options: options,
     };
+  }
+
+  /**
+   * Slash templates used to fail only in the browser console (`safeRun`),
+   * matching https://github.com/silverbulletmd/silverbullet/issues/815.
+   */
+  private runSlash(fn: () => Promise<void>): void {
+    safeRun(async () => {
+      try {
+        await fn();
+        this.client.focus();
+      } catch (e: any) {
+        this.client.reportError(e, "slash command");
+      }
+    });
   }
 
   apply(system: System<SlashCommandHookT>): void {
