@@ -2,7 +2,7 @@ A Meta Space is one of your [[Local Space|local spaces]] that SilverBullet Deskt
 
 SilverBullet Desktop supports unlimited spaces. That's great for keeping contexts separate. The downside: anything you want available _everywhere_ — a shared snippet of `CONFIG.md`, a [[Space Lua]] library you wrote once and want to reuse — has to be copied into every space, and kept in sync. Not great.
 
-The **Meta Space** is the way out. It's a SilverBullet+ feature available with [Desktop Pro](https://silverbullet.plus/desktop/buy) that lets you nominate one of your spaces as a shared underlay for all the others. Anything you put in your meta space (config, libraries, custom commands, templates) automatically becomes available in every other space. The dashboard currently labels it a beta feature.
+The **Meta Space** is the way out. It's a SilverBullet+ feature available with [Desktop Pro](https://silverbullet.md/pricing) that lets you nominate one of your spaces as a shared underlay for all the others. Anything you put in your meta space (config, libraries, custom commands, templates) automatically becomes available in every other space. The dashboard currently labels it a beta feature.
 
 # How it works
 Conceptually, every space in SilverBullet is a stack of layers. At the top is your folder on disk, which you can read and write freely. Underneath sits a bundle of built-in libraries and plugs that implement a lot of SilverBullet core functionality. The meta space slots in between: your own folder on top, your meta space's files in the middle, the built-ins underneath.
