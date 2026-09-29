@@ -34,7 +34,7 @@ The environment variables below configure a **single-space** server. A fresh ins
 
 ## General configuration
 * `SB_FOLDER`: The data folder to serve, e.g. `SB_FOLDER=/home/user/silverbullet`. In single-space mode this folder is your space, in multi-space mode it holds the server configuration and (by default) the spaces, see [[Dashboard]].
-* `SB_INDEX_PAGE`: Sets the default page to load, defaults to `index`.
+* `SB_INDEX_PAGE` *(legacy)*: Sets the default page to load, defaults to `index`. Prefer the per-space **Index page** setting in the [[Dashboard]] (**Space settings → General**).
 * `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder's actual `.gitignore` file is not read.
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
 * `SB_LOG_PUSH`: Set to any value to ask clients to push their logs to the server (for debugging purposes)
@@ -54,7 +54,7 @@ The environment variables below configure a **single-space** server. A fresh ins
 * `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days. Sessions where "Remember me" was left unchecked always last one week.
 
 ## Run mode
-* `SB_READ_ONLY`: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.
+* `SB_READ_ONLY` *(legacy)*: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled. Prefer the per-space settings in the [[Dashboard]]: give the public read access to publish a space (see [[Publishing]]), or **Freeze this space** to stop all writes.
 
 ## Web app manifest
 Configure aspects of web app appearance as well as the authentication page:

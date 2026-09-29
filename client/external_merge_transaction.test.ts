@@ -3,6 +3,7 @@ import { history, isolateHistory, redo, undo } from "@codemirror/commands";
 import { EditorState, Transaction } from "@codemirror/state";
 import { computeExternalChanges } from "./external_merge.ts";
 import {
+  externalPresenceField,
   externalSource,
   externalUndoField,
 } from "./codemirror/external_presence.ts";
@@ -181,5 +182,30 @@ describe("undo/redo of an external edit preserves the user's cursor (regression)
     expect(undo(target as any)).toBe(true);
     expect(state.sliceDoc()).toBe("Hello");
     expect(state.selection.main.head).toBe(0);
+  });
+});
+
+describe("external presence after a remote line insertion", () => {
+  test("typing at the end of a remotely inserted line is not attributed to the remote author", () => {
+    const base = "* [ ] @ada write docs\n* [ ] @bob fix build\n";
+    const disk =
+      "* [ ] @ada write docs\n* [ ] @cy review plan\n* [ ] @bob fix build\n";
+    let state = EditorState.create({
+      doc: base,
+      extensions: [externalPresenceField],
+    });
+    const { changes } = computeExternalChanges(base, disk, base);
+    state = state.update({
+      changes,
+      annotations: [isolateHistory.of("full"), externalSource.of("Cy")],
+    }).state;
+    expect(state.sliceDoc()).toBe(disk);
+
+    const lineEnd = disk.indexOf("\n", disk.indexOf("@cy"));
+    const own = " <!-- on it -->";
+    state = state.update({ changes: { from: lineEnd, insert: own } }).state;
+
+    const [hunk] = state.field(externalPresenceField).hunks;
+    expect(state.sliceDoc(hunk.from, hunk.to)).toBe("* [ ] @cy review plan");
   });
 });

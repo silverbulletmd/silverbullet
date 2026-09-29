@@ -1,12 +1,17 @@
-You can publish a space as a read-only website by running SilverBullet Server in read-only mode; this documentation site is published that way.
+You can publish a space as a website by giving the public read access to it: visitors can browse it without an account, while you and your team keep editing the same space.
 
-# Read-only mode
-Set the `SB_READ_ONLY` environment variable to a non-empty value (see [[Install/Configuration]]). Visitors get the full SilverBullet client, including navigation, [[Linked Mention|linked mentions]] and live [[Space Lua/Integrated Query|queries]], but all edit functionality and commands are disabled. On start the server indexes the whole space, after which all writes are refused.
+# Make a space public
+In the [[Dashboard]], open the space’s **Space settings → Access**. Under **Who has access**, set **Public (not signed in)** to **Read**. Anyone can now read the space without signing in; page history and [[Revisions]] stay members-only.
 
-Set `SB_INDEX_PAGE` to choose the page visitors land on (see [[Index Page]]).
+Visitors get the full SilverBullet client, including navigation, [[Linked Mention|linked mentions]] and live [[Space Lua/Integrated Query|queries]], but can’t edit anything or reach capability endpoints such as the shell or the [[Runtime API]]. Members with `write` access keep editing as usual, and visitors see changes as soon as they’re saved. See [[Dashboard#Access]] for how public access combines with member roles.
+
+Under **Space settings → General**, set **Index page** to choose the page visitors land on (see [[Index Page]]).
+
+# Freeze a space
+To make a published space read-only for everyone, including members and admins, check **Freeze this space** under **Space settings → Access**. Member permissions are kept for when you unfreeze it.
 
 # Example: this site
-The image behind this site is built from `Dockerfile.website` in the [SilverBullet repository](https://github.com/silverbulletmd/silverbullet): it starts from the SilverBullet Server image, copies the `docs` folder in as the space, sets `SB_READ_ONLY=1` and `SB_INDEX_PAGE=SilverBullet`, and adds the Silversearch plug for [[Full Text Search]]. Its navigation and section pages are plain [[Space Lua]] in [[^Library/Website]].
+This documentation is a SilverBullet space published for public reading, built from `Dockerfile.website` in the [SilverBullet repository](https://github.com/silverbulletmd/silverbullet). It adds the Silversearch plug for [[Full Text Search]], and its navigation and section pages are plain [[Space Lua]] in [[^Library/Website]].
 
 # Styling
 A published space is styled like any other: use [[Space Style]] for CSS and [[Page Decorations]] for icons and prefixes.

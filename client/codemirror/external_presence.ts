@@ -67,8 +67,15 @@ export const externalPresenceField = StateField.define<PresenceState>({
     if (source !== undefined) {
       const now = Date.now();
       const added: PresenceHunk[] = [];
-      tr.changes.iterChanges((_fromA, _toA, fromB, toB) => {
-        added.push({ from: fromB, to: toB, time: now, source });
+      tr.changes.iterChanges((_fromA, _toA, fromB, toB, inserted) => {
+        // Ending a line's hunk before its newline keeps local typing at the
+        // end of that line out of it (`to` maps with assoc -1).
+        const end =
+          inserted.length > 1 &&
+          inserted.sliceString(inserted.length - 1) === "\n"
+            ? toB - 1
+            : toB;
+        added.push({ from: fromB, to: end, time: now, source });
       });
       if (added.length > 0) {
         hunks = [...hunks, ...added];

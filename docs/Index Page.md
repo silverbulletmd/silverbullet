@@ -1,6 +1,6 @@
 The index page is the [[Page|page]] that opens by default when either clicking the “home” button in the [[Top Bar]], or when you visit your SilverBullet’s URL without a page name in the URL.
 
-The default index page’s name is `index`, but this is configurable via [[Install/Configuration]]’s `SB_INDEX_PAGE` variable.
+The default index page’s name is `index`. You can change it per space in the [[Dashboard]], under **Space settings → General → Index page** (the older `SB_INDEX_PAGE` variable in [[Install/Configuration]] still works, but is legacy).
 
 # How to set a dynamic index page
 Some people want to set their index page to be e.g. their daily note, and the daily note changes every... day.

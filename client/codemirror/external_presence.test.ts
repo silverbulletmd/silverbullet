@@ -61,7 +61,7 @@ function stateWithDoc(doc: string) {
 }
 
 describe("externalPresenceField", () => {
-  it("records inserted ranges from externally-annotated transactions", () => {
+  it("records inserted lines without their trailing newline", () => {
     const state = stateWithDoc("Hello\n");
     const tr = state.update({
       changes: { from: 6, insert: "External\n" },
@@ -70,7 +70,7 @@ describe("externalPresenceField", () => {
     const hunks = tr.state.field(externalPresenceField).hunks;
     expect(hunks).toHaveLength(1);
     expect(hunks[0].from).toBe(6);
-    expect(hunks[0].to).toBe(15);
+    expect(hunks[0].to).toBe(14);
     expect(hunks[0].source).toBe("external");
   });
 
@@ -89,7 +89,7 @@ describe("externalPresenceField", () => {
     const tr2 = tr1.state.update({ changes: { from: 0, insert: "Hi " } });
     const hunks = tr2.state.field(externalPresenceField).hunks;
     expect(hunks[0].from).toBe(9);
-    expect(hunks[0].to).toBe(18);
+    expect(hunks[0].to).toBe(17);
   });
 
   it("records a zero-width hunk for a pure deletion", () => {
