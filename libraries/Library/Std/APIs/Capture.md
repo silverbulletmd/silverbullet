@@ -1,3 +1,7 @@
+---
+description: APIs to define share targets for e.g. Android
+tags: meta/api
+---
 On some platforms (notably Android), SilverBullet can receive links, text, and files through a supported operating system share sheet. Each installed space appears once in the share sheet. SilverBullet then shows an editable draft and discovers actions with the `capture` service selector. Changes to Space Lua actions appear when Space Lua reloads.
 
 The `match` function receives `id`, `receivedAt`, `title`, `text`, `url`, and `files`. Each file has a `handle`, `name`, `type`, and `size`; file bytes are omitted during discovery. Return `nil` to hide an action for this draft or a table with `name`, `description`, and optional `priority` to offer it.
