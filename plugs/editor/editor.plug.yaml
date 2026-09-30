@@ -152,12 +152,16 @@ functions:
     path: "./navigate.ts:navigateBack"
     command:
       name: "Navigate: Back in History"
+      key: "Alt-ArrowLeft"
+      mac: "Cmd-["
       menu: { location: navigate, group: "1_home", order: 2, label: "Back" }
 
   navigateForward:
     path: "./navigate.ts:navigateForward"
     command:
       name: "Navigate: Forward in History"
+      key: "Alt-ArrowRight"
+      mac: "Cmd-]"
       menu: { location: navigate, group: "1_home", order: 3, label: "Forward" }
 
   # Text editing commands
