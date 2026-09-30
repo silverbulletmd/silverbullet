@@ -25,6 +25,10 @@ const syncSnapshotKey = ["$sync", "snapshot"];
 const syncInterval = 20;
 const syncIntervalRealtimeHealthy = 60;
 const realtimeHealthTtlMs = 45_000;
+// A snapshot write serializes every entry, so saving it after each file would
+// make a first sync of a large space quadratic. The cycle saves it once more
+// when it ends.
+const progressSnapshotSaveIntervalMs = 2_000;
 
 type SyncEngineEvents = {
   // Full sync cycle has completed
@@ -157,9 +161,14 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       onScheduleResync: (path) => this.queue.mark(path, { type: "any" }),
     });
 
+    let lastProgressSave = 0;
     this.spaceSync.on({
       syncProgress: async (status, snapshot) => {
         void this.emit("syncProgress", status, snapshot);
+        if (Date.now() - lastProgressSave < progressSnapshotSaveIntervalMs) {
+          return;
+        }
+        lastProgressSave = Date.now();
         await this.saveSnapshot(snapshot);
       },
       snapshotUpdated: this.saveSnapshot.bind(this),
