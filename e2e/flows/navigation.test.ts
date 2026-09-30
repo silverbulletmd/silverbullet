@@ -242,6 +242,10 @@ test.describe("space tree", () => {
       "Projects/Beta.md": "# Beta",
       "Files/report.txt": "Report text",
       "Journal/Today.md": "# Today\n\nPlanning notes.",
+      // A folder in both the All and Meta segments, so the Meta segment has
+      // an open folder after "Expand all" without relying on bundled Library pages.
+      "Setup/Notes.md": "# Notes",
+      "Setup/Config.md": "---\ntags: meta\n---\n# Config",
       ...Object.fromEntries(
         Array.from({ length: 80 }, (_, index) => [
           `Archive ${index}/Note.md`,
