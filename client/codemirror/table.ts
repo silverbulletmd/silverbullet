@@ -22,6 +22,7 @@ import {
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;
+  private rowCount: number;
 
   constructor(
     readonly client: Client,
@@ -29,17 +30,28 @@ class TableViewWidget extends WidgetType {
   ) {
     super();
     this.tableBodyText = renderToText(t);
+    this.rowCount =
+      t.children?.filter(
+        (child) => child.type === "TableHeader" || child.type === "TableRow",
+      ).length ?? 0;
   }
 
   override get estimatedHeight(): number {
-    return this.client.widgetCache.getCachedWidgetHeight(
+    const cachedHeight = this.client.widgetCache.getCachedWidgetHeight(
       `table:${this.tableBodyText}`,
     );
+    // Tables are replaced by a single widget. Without a height estimate,
+    // CodeMirror has to revise the document height as each large table enters
+    // the viewport, which can move the scroll position by thousands of pixels.
+    return cachedHeight > 0 ? cachedHeight : this.rowCount * 42;
   }
 
   toDOM(): HTMLElement {
     const dom = document.createElement("span");
     dom.classList.add("sb-table-widget");
+    // expandMarkdown is asynchronous. Reserve the widget's height until the
+    // table is ready so its insertion does not collapse the scrollable area.
+    dom.style.minHeight = `${this.estimatedHeight}px`;
     dom.addEventListener("click", (e) => {
       const dataAttributes = (e.target as any).dataset;
       const fallbackPos = this.client.editorView.posAtDOM(dom, 0);
@@ -69,7 +81,9 @@ class TableViewWidget extends WidgetType {
         translateUrls: buildTranslateUrls(this.client),
         resolveTransclusion,
       });
+      dom.style.minHeight = "";
       setTimeout(() => {
+        if (!dom.isConnected) return;
         attachWidgetEventHandlers(dom, this.client, this.tableBodyText);
 
         this.client.widgetCache.setCachedWidgetMeta(
@@ -107,6 +121,7 @@ export function tablePlugin(editor: Client) {
               editor,
               lezerToParseTree(text, node.node),
             ),
+            block: true,
           }).range(from),
         );
       },
