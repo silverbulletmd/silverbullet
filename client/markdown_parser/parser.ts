@@ -534,8 +534,10 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         "TableDelimiter StrikethroughMark": t.processingInstruction,
         "TableHeader/...": t.heading,
         TableCell: t.content,
-        CodeInfo: ct.CodeInfoTag,
-        HorizontalRule: ct.HorizontalRuleTag,
+        // @lezer/markdown already styles these, and at equal specificity its
+        // rules win. The `*/` parent context makes ours take precedence.
+        "*/CodeInfo": ct.CodeInfoTag,
+        "*/HorizontalRule": ct.HorizontalRuleTag,
         Hashtag: ct.HashtagTag,
         NakedURL: ct.NakedURLTag,
         NamedAnchor: ct.NamedAnchorTag,
