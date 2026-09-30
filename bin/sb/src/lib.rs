@@ -16,5 +16,6 @@ pub mod fs_edit;
 mod fs_listing;
 pub mod output;
 pub mod run;
+pub mod search;
 
 pub use silverbullet_server_common::crypto;

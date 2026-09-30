@@ -114,6 +114,28 @@ pub enum CoreCommand {
     /// (hidden) old file-arg form of script.
     #[command(hide = true, name = "lua-script")]
     LuaScript { file: Option<String> },
+    /// Search note content.
+    #[command(
+        after_long_help = "Uses the Runtime API to run full-text search through an installed search library (silversearch or basic-search) and reads only the matched notes for line-level results. Zero results are validated against the notes so a stale index can never hide a match; without a search library (or with --no-index) a full scan runs instead. Requires a connected space.
+
+Examples:\n  sb search 'silverbullet'\n  sb search 'project' --json\n  sb search 'todo' --no-index"
+    )]
+    Search {
+        /// Search term (case-insensitive literal).
+        term: String,
+        /// Results per page for the index path (default: 10).
+        #[arg(long, default_value_t = 10)]
+        max: usize,
+        /// 1-based result page for the index path.
+        #[arg(long, default_value_t = 1)]
+        page: usize,
+        /// Always full-scan; never contact the Runtime API.
+        #[arg(long, conflicts_with = "force_index")]
+        no_index: bool,
+        /// Require the full-text index; error when unavailable.
+        #[arg(long, conflicts_with = "no_index")]
+        force_index: bool,
+    },
     /// Run a SLIQ query.
     #[command(
         after_long_help = "Requires the Runtime API. Use sb describe to discover the connected space's types and SLIQ syntax.\n\nExample:\n  sb query 'from tags.page select name' --json"

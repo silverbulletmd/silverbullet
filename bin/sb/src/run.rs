@@ -98,6 +98,22 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                     };
                     commands::script::run(&conn, &script, mode, &mut out)?
                 }
+                CoreCommand::Search {
+                    term,
+                    max,
+                    page,
+                    no_index,
+                    force_index,
+                } => {
+                    let search_mode = if no_index {
+                        crate::search::SearchMode::Scan
+                    } else if force_index {
+                        crate::search::SearchMode::Index
+                    } else {
+                        crate::search::SearchMode::Auto
+                    };
+                    crate::search::run(&conn, &term, search_mode, max, page, mode, &mut out)?
+                }
                 CoreCommand::Query { expression } => {
                     commands::query::run(&conn, &expression, mode, &mut out)?
                 }

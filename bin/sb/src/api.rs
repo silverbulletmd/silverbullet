@@ -89,6 +89,40 @@ impl SpaceConnection {
         self.post_runtime("/.runtime/lua", expr)
     }
 
+    /// Evaluate a Lua script via `POST /.runtime/lua_script` (alias kept for
+    /// search; identical to `eval_lua_script`).
+    pub fn eval_script(&self, code: &str) -> Result<Value, String> {
+        self.eval_lua_script(code)
+    }
+
+    /// List all files in the space via `GET /.fs`.
+    pub fn list_files(&self) -> Result<Value, String> {
+        let url = format!("{}/.fs", self.base_url);
+        let req = self.client.get(&url);
+        let req = self.apply_auth(req);
+        let resp = req.send().map_err(|e| format!("request failed: {e}"))?;
+        let status = resp.status();
+        let bytes = read_response(resp, MAX_EVAL_RESPONSE_BYTES, "file listing")?;
+        if !status.is_success() {
+            return Err(runtime_error(status, &bytes));
+        }
+        serde_json::from_slice(&bytes).map_err(|e| format!("parsing file listing: {e}"))
+    }
+
+    /// Read a single file's bytes as text via `GET /.fs/<name>`.
+    pub fn read_file(&self, name: &str) -> Result<String, String> {
+        let url = format!("{}/.fs/{}", self.base_url, urlencode_path(name));
+        let req = self.client.get(&url);
+        let req = self.apply_auth(req);
+        let resp = req.send().map_err(|e| format!("request failed: {e}"))?;
+        let status = resp.status();
+        let bytes = read_response(resp, MAX_EVAL_RESPONSE_BYTES, "file read")?;
+        if !status.is_success() {
+            return Err(runtime_error(status, &bytes));
+        }
+        String::from_utf8(bytes).map_err(|e| format!("file is not valid UTF-8: {e}"))
+    }
+
     /// Execute a Lua script via `POST /.runtime/lua_script`.
     pub fn eval_lua_script(&self, code: &str) -> Result<Value, String> {
         self.post_runtime("/.runtime/lua_script", code)
@@ -191,6 +225,22 @@ impl SpaceConnection {
             Err(_) => false,
         }
     }
+}
+
+
+
+/// Percent-encode a space-relative path for use in an /.fs URL.
+fn urlencode_path(path: &str) -> String {
+    let mut out = String::with_capacity(path.len());
+    for byte in path.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' => {
+                out.push(byte as char)
+            }
+            _ => out.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    out
 }
 
 #[cfg(test)]
