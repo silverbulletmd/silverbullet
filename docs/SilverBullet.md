@@ -14,4 +14,4 @@ ${docsNav.sectionIndex()}
 ${docsNav.sectionList("Start")}
 
 # Community
-Ask questions and share what you built on the [community forum](https://community.silverbullet.md/), follow the [No SilverBullet](https://no.silverbullet.plus/) newsletter and blog, and find the code on [GitHub](https://github.com/silverbulletmd/silverbullet).
+Ask questions and share what you built on the [community forum](https://community.silverbullet.md/), follow the [No SilverBullet](https://no.silverbullet.md/) newsletter and blog, and find the code of the MIT-licensed [[Install|SilverBullet Server]] on [GitHub](https://github.com/silverbulletmd/silverbullet).

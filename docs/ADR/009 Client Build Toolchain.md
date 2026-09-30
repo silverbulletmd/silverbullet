@@ -38,4 +38,4 @@ The client build toolchain moved from **Deno to Node.js** (npm + ESBuild, with [
 
 # References
 * Client toolchain migration: [PR1839](https://github.com/silverbulletmd/silverbullet/pull/1839).
-* Blog: [On Tech Stacks](https://no.silverbullet.plus/tech-stacks) — the decision criteria behind these moves.
+* Blog: [On Tech Stacks](https://no.silverbullet.md/tech-stacks) — the decision criteria behind these moves.

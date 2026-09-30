@@ -1,8 +1,17 @@
 ---
 tags: getting-started desktop
 ---
-SilverBullet is a desktop app for macOS, Windows and Linux built on the open source SilverBullet web client. While Desktop is not open source software, it is free to use for personal and education use.
+SilverBullet Desktop runs on macOS, Windows and Linux.
 
-The goal of the project is to provide a smoother desktop experience, and act as a sustainable source of [funding](https://silverbullet.md/funding) of the SilverBullet project in general. It is created and maintained by [[Zef Hemel]], just like the open source project. It works great in combination with a SilverBullet server (e.g. for sync).
+# Download
+Get the installer for your platform from the [download page](https://silverbullet.md/desktop/download): a disk image for macOS, an installer for Windows, and an AppImage or Flatpak for Linux. 
 
-You can download [SilverBullet Desktop here](https://silverbullet.md/desktop/download).
+# First launch
+Desktop opens on its dashboard, which lists your spaces:
+* **New space** creates a [[Local Space]] from a folder on your computer. Pick an empty folder to start fresh, or an existing folder of Markdown files.
+* **Join Space** connects a local folder to a space on a SilverBullet Server, see [[Desktop Sync]].
+
+Once a space is open, follow [[Getting Started]].
+
+# Updates
+Desktop keeps itself up to date, see [[Desktop Updates]]. For using Desktop at work, see [[Licensing]].

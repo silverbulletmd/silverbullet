@@ -1,3 +1,5 @@
+#desktop
+
 A Meta Space is one of your [[Local Space|local spaces]] that SilverBullet Desktop underlays into all the others, so its configuration, libraries and templates are available everywhere.
 
 SilverBullet Desktop supports unlimited spaces. That's great for keeping contexts separate. The downside: anything you want available _everywhere_ — a shared snippet of `CONFIG.md`, a [[Space Lua]] library you wrote once and want to reuse — has to be copied into every space, and kept in sync. Not great.

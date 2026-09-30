@@ -50,7 +50,6 @@ docsNav = docsNav or {}
 
 docsNav.sections = {
   { name = "Start", description = "What SilverBullet is, choosing a setup, and first steps." },
-  { name = "Why SilverBullet", description = "The ideas SilverBullet is built on: your files, your data, and a tool you can reshape." },
   { name = "Desktop", description = "The native app for macOS, Windows and Linux: local spaces, sync, Meta Space and licensing." },
   { name = "Server", description = "Install, configure, secure and publish a self-hosted SilverBullet Server." },
   { name = "Writing", description = "The editor, pages, tasks, templates and the pickers you use every day." },
@@ -69,16 +68,7 @@ docsNav.pages = {
   { name = "Start/Videos", ref = "Videos", icon = "video" },
   { name = "Start/Guides", ref = "Guide", icon = "compass" },
   { name = "Start/Best Practices", ref = "Guide/Best Practices", icon = "check-circle" },
-  { name = "Why SilverBullet", ref = "Why SilverBullet", icon = "heart" },
-  { name = "Why SilverBullet/Knowledge Management System", ref = "Knowledge Management System", icon = "book" },
-  { name = "Why SilverBullet/Malleable", ref = "Malleable", icon = "tool" },
-  { name = "Why SilverBullet/Local First", ref = "Local First", icon = "hard-drive" },
-  { name = "Why SilverBullet/Data Sovereignty", ref = "Data Sovereignty", icon = "key" },
-  { name = "Why SilverBullet/Private", ref = "Private", icon = "lock" },
-  { name = "Why SilverBullet/Self Hosted", ref = "Self Hosted", icon = "server" },
-  { name = "Why SilverBullet/Open Source", ref = "Open Source", icon = "code" },
-  { name = "Why SilverBullet/Zero Tracking", ref = "Zero Tracking", icon = "eye-off" },
-  { name = "Why SilverBullet/End-User Programming", ref = "End-User Programming", icon = "edit" },
+  { name = "Start/Knowledge Management System", ref = "Knowledge Management System", icon = "book" },
 
   -- Desktop
   { name = "Desktop", ref = "Desktop", icon = "monitor" },
@@ -88,7 +78,6 @@ docsNav.pages = {
   { name = "Desktop/Meta Space", ref = "Meta Space", icon = "layers" },
   { name = "Desktop/Licensing", ref = "Licensing", icon = "award" },
   { name = "Desktop/Updates", ref = "Desktop Updates", icon = "download-cloud" },
-  { name = "Desktop/FAQ", ref = "Desktop FAQ", icon = "help-circle" },
 
   -- Server
   { name = "Server", ref = "Install", icon = "server" },
@@ -108,6 +97,7 @@ docsNav.pages = {
   { name = "Server/Security", ref = "Security", icon = "shield" },
   { name = "Server/Security/Security Profiles", ref = "Security Profiles", icon = "sliders" },
   { name = "Server/Client Encryption", ref = "Client Encryption", icon = "lock" },
+  { name = "Server/Zero Tracking", ref = "Zero Tracking", icon = "eye-off" },
   { name = "Server/PWA", ref = "PWA", icon = "smartphone" },
   { name = "Server/Publishing", ref = "Publishing", icon = "globe" },
   { name = "Server/Runtime API", ref = "Runtime API", icon = "cpu" },
@@ -364,6 +354,14 @@ view.define {
     for _, page in ipairs(query[[from index.pages()]]) do
       pages[page.name] = page
     end
+    -- Entries with children below them, so onSelect can unfold them.
+    local parents = {}
+    for _, entry in ipairs(docsNav.pages) do
+      local slash = entry.name:find("/[^/]*$")
+      if slash then
+        parents[entry.name:sub(1, slash - 1)] = true
+      end
+    end
     local rows = {}
     for _, entry in ipairs(docsNav.pages) do
       local page = pages[entry.ref]
@@ -374,6 +372,7 @@ view.define {
           icon = entry.icon,
           pageDecoration = page.pageDecoration,
           perm = page.perm,
+          hasChildren = parents[entry.name] or false,
         }
       end
     end
@@ -402,6 +401,10 @@ view.define {
   onSelect = function(o)
     if o.ref then
       editor.navigate(o.ref)
+    end
+    -- Opening a section page also unfolds its node in the tree.
+    if o.hasChildren then
+      return "navigator:expand"
     end
   end,
 }

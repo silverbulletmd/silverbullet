@@ -12,12 +12,8 @@ For this you need to install [[Install|SilverBullet Server]] somewhere.
 
 **Important:** this deployment cannot live behind an auth proxy (other than SilverBullet’s [[Authentication]]), auth proxies are not (yet) supported.
 
-## PikaPods
-[PikaPods](https://www.pikapods.com/pods?run=silverbullet) is a popular, independent hoster of open source apps. You can deploy various popular open source projects there with just a few clicks, and at a very reasonable cost. Yes, SilverBullet is one of them!
-
-This gives you a fully functional SilverBullet Server deployment you can access in a desktop or mobile browser. It can also act as a sync point for SilverBullet Desktop.
-
-[Deploy SilverBullet on PikaPods](https://www.pikapods.com/pods?run=silverbullet)
+## Hosted
+A hosting provider can run SilverBullet Server for you, see [Hosted SilverBullet](https://silverbullet.md/hosting). This gives you a fully functional SilverBullet Server you can access in a desktop or mobile browser, and it can act as a sync point for SilverBullet Desktop.
 
 ## Setup
 * In your SilverBullet Desktop dashboard, hover over the space you want to set up for sync and click the gear icon.

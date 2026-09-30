@@ -25,9 +25,7 @@ There are three things to take care of, in this order:
 3. Follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud
-While [[Self Hosted]] is the intended path, you can also get [PikaPods](https://www.pikapods.com/pods?run=silverbullet) to host an instance for you. For a small fee (about $2 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups, and exposes SilverBullet securely via TLS.
-
-PikaPods contributes a part of their revenue back to the projects they host, so it’s a source of [funding](https://silverbullet.md/funding) for SilverBullet itself.
+If you’d rather not run a server yourself, a hosting provider can run SilverBullet Server for you. See [Hosted SilverBullet](https://silverbullet.md/hosting) for the options.
 
 # Notes on file systems
 ## Case insensitive file systems (Mac and Windows)

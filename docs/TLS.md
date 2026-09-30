@@ -30,7 +30,7 @@ A few options:
 If you’re _already_ using a proxy like [Pangolin](https://pangolin.net/), [Authelia](https://www.authelia.com/) or [Authentik](https://goauthentik.io/), you are likely already set up with everything you need and can just reverse-proxy a subdomain to SilverBullet. Be sure to check the notes on using a [[Authentication Proxy]] on how to configure this.
 
 ## Tailscale SSL certificate
-If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a solid service, very friendly to [[Self Hosted|self hosters]], and _free_ for this use case.
+If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a solid service, very friendly to self hosters, and _free_ for this use case.
 
 Part of the [guide to setup SilverBullet on Linux](https://community.silverbullet.md/t/install-silverbullet-on-a-64-bit-debian-ubuntu-raspianos-internet-accessible-via-tailscale/48) are instructions on how to install  (a free service) and use it to expose a local server (like SilverBullet) locally on your VPN, or the Internet — a setup that gives you a `.ts.net` subdomain with TLS certificate.
 

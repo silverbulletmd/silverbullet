@@ -1,13 +1,9 @@
-SilverBullet Desktop is free for personal and education use; using it at work requires a Pro license.
-
-# Tiers
-The core editing experience is the same in both tiers. Pro is required for professional use and adds a few power-user features, such as the [[Meta Space]]. The full comparison and prices are on the [pricing page](https://silverbullet.md/pricing).
-
-# Seats
-A seat is a single user. A Pro license is valid for one user, on as many devices as that user likes. Buying several seats gives you one license key per seat to hand out to your team; keys can be revoked individually and reissued to new team members.
+SilverBullet Desktop is free for personal and education use; using it at work requires a Pro license. Tiers, prices and seats are explained on the [pricing page](https://silverbullet.md/pricing) and in the [FAQ](https://silverbullet.md/faq).
 
 # Activating a license
-Open the Desktop dashboard, go to the **Pro** tab, paste your license key (it looks like `SBPLS-XXXXX-XXXXX-XXXXX-XXXXX`) and click **Activate**. To stop using a key on a device, click **Remove key** on the same tab.
+Open the Desktop dashboard, go to the **Pro** tab, paste your license key (it looks like `SBPLS-XXXXX-XXXXX-XXXXX-XXXXX`) and click **Activate**. A Pro license belongs to one user, who can activate it on as many of their own devices as they like.
+
+To stop using a key on a device, click **Remove key** on the same tab.
 
 # Invoices and subscriptions
-Manage your subscription and download invoices from your [account page](https://silverbullet.plus/account).
+Manage your subscription, license keys and invoices from your [account page](https://silverbullet.md/account). The [FAQ](https://silverbullet.md/faq) explains how to get an invoice with your company details.

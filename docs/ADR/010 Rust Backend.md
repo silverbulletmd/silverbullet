@@ -18,7 +18,7 @@ references:
 # Context
 The server does very little. Since [[ADR/007 Core Application Logic on the Client|all application logic moved to the client]], the server is primarily a file store: it lists, reads, writes and deletes files, handles authentication, serves the static client, and runs shell commands. When the [[Runtime API]] is enabled, it manages a Chrome sub-process and delegates calls to it. This makes the server's *implementation language* a relatively low-stakes, swappable choice, and over the project’s life it has changed several times.
 
-The server has been, in turn: Node.js (earliest prototypes), then **Deno** for years, then **Go** (2025), and now **Rust** (2026). (The separate move of the *client* build toolchain from Deno to Node is [[ADR/009 Client Build Toolchain|its own decision]].) This is further discussed in [On Tech Stacks](https://no.silverbullet.plus/tech-stacks).
+The server has been, in turn: Node.js (earliest prototypes), then **Deno** for years, then **Go** (2025), and now **Rust** (2026). (The separate move of the *client* build toolchain from Deno to Node is [[ADR/009 Client Build Toolchain|its own decision]].) This is further discussed in [On Tech Stacks](https://no.silverbullet.md/tech-stacks).
 
 # Decision
 The server is written in **Rust** (as of v2.10.0). The progression was **Node.js -> Deno -> Go -> Rust**:
@@ -43,4 +43,4 @@ The server is written in **Rust** (as of v2.10.0). The progression was **Node.js
 
 # References
 * Go backend: [PR1555](https://github.com/silverbulletmd/silverbullet/pull/1555). Rust backend: [PR2010](https://github.com/silverbulletmd/silverbullet/pull/2010).
-* Blog: [On Tech Stacks](https://no.silverbullet.plus/tech-stacks) — the decision criteria behind these moves (avoid technology zoos, maturity, leverage, fun).
+* Blog: [On Tech Stacks](https://no.silverbullet.md/tech-stacks) — the decision criteria behind these moves (avoid technology zoos, maturity, leverage, fun).
