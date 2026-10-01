@@ -61,6 +61,7 @@ import { conflictMarkers } from "./conflict_markers.ts";
 import { documentExtension, pasteLinkExtension } from "./editor_paste.ts";
 import { externalPresence } from "./external_presence.ts";
 import {
+  clientFrontmatterFoldingConfig,
   frontmatterFoldingExtension,
   frontmatterFoldPlaceholderDOM,
   prepareFrontmatterFoldPlaceholder,
@@ -245,7 +246,12 @@ export function buildPageExtensions(
     externalPresence(),
     conflictMarkers(client),
     codeFolding({
-      preparePlaceholder: prepareFrontmatterFoldPlaceholder,
+      preparePlaceholder: (state, range) =>
+        prepareFrontmatterFoldPlaceholder(
+          state,
+          range,
+          clientFrontmatterFoldingConfig(client),
+        ),
       placeholderDOM: (view, onclick, prepared) =>
         frontmatterFoldPlaceholderDOM(view, onclick, prepared, client),
     }),

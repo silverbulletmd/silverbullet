@@ -197,17 +197,49 @@ $comment-border: 1px;
     box-sizing: border-box;
     cursor: pointer;
     display: inline-flex;
-    align-items: baseline;
+    flex-direction: column;
+    align-items: stretch;
     gap: 3px;
     padding: 2px 7px !important;
     user-select: none;
     width: 100%;
   }
 
+  .cm-frontmatterPreview {
+    display: block;
+    width: 100%;
+    white-space: normal;
+  }
+
+  .cm-frontmatterPreview-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .cm-frontmatterPreviewHeading {
+    display: block;
+    font-weight: bold;
+  }
+
+  .cm-frontmatterPreviewHeading-1 {
+    font-size: 2em;
+    line-height: 1.2;
+    margin: 0.25em 0;
+  }
+
+  .cm-frontmatterPreviewHeading-2 {
+    font-size: 1.5em;
+    line-height: 1.25;
+  }
+
+  .cm-frontmatterPreview-markdown .wrapper {
+    display: contents;
+  }
+
   .cm-frontmatterFoldStatus {
     color: var(--subtle-color);
     font-size: 0.85em;
-    margin-left: 0.4em;
     opacity: 0.75;
   }
 

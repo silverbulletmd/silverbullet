@@ -9,6 +9,7 @@ import {
   frontmatterFoldPlaceholderDOM,
   frontmatterFoldPlaceholderText,
   frontmatterFoldTags,
+  formatFrontmatterDate,
   frontmatterFoldTagTarget,
   normalizeFrontmatterFoldingConfig,
   prepareFrontmatterFoldPlaceholder,
@@ -73,8 +74,45 @@ describe("frontmatter folding config", () => {
     ).toEqual({
       foldByDefault: "always",
       foldByDefaultLines: 12,
+      preview: [
+        {
+          field: "tags",
+          type: "tags",
+          template: "${value}",
+          separator: " ",
+        },
+      ],
     });
   });
+});
+
+test("normalizes explicit preview entries and preserves empty preview", () => {
+  expect(
+    normalizeFrontmatterFoldingConfig({
+      preview: [{ field: "description" }, { field: "tags", type: "tags" }],
+    }).preview,
+  ).toEqual([
+    {
+      field: "description",
+      type: "text",
+      template: "${value}",
+      separator: ", ",
+    },
+    {
+      field: "tags",
+      type: "tags",
+      template: "${value}",
+      separator: " ",
+    },
+  ]);
+  expect(normalizeFrontmatterFoldingConfig({ preview: [] }).preview).toEqual(
+    [],
+  );
+});
+
+test("formats valid ISO dates and rejects unsupported strings", () => {
+  expect(formatFrontmatterDate("2026-09-28")).toBe("28.09.2026");
+  expect(formatFrontmatterDate("28/09/2026")).toBeUndefined();
 });
 
 describe("frontmatter folding defaults", () => {
@@ -82,6 +120,14 @@ describe("frontmatter folding defaults", () => {
     expect(defaultFrontmatterFoldingConfig).toEqual({
       foldByDefault: "long",
       foldByDefaultLines: 5,
+      preview: [
+        {
+          field: "tags",
+          type: "tags",
+          template: "${value}",
+          separator: " ",
+        },
+      ],
     });
   });
 });
@@ -229,8 +275,40 @@ describe("frontmatter fold placeholder", () => {
       to: 17,
       editPos: 4,
       lines: 4,
-      tags: [],
+      preview: [],
     });
+  });
+
+  test("extracts configured preview values in configuration order", () => {
+    const state = stateWithDoc(
+      "---\ndisplayName: Torino\ndescription: Test\ntags: feature\n---\nBody",
+    );
+    const block = findFrontmatterBlock(state)!;
+    const config = normalizeFrontmatterFoldingConfig({
+      preview: [
+        { field: "displayName", type: "markdown", template: "# ${value}" },
+        { field: "description", type: "text" },
+        { field: "missing", type: "text" },
+      ],
+    });
+
+    const prepared = prepareFrontmatterFoldPlaceholder(
+      state,
+      { from: block.from, to: block.to },
+      config,
+    );
+
+    expect(prepared.type).toBe("frontmatter");
+    if (prepared.type === "frontmatter") {
+      expect(prepared.preview.map((item) => item.config.field)).toEqual([
+        "displayName",
+        "description",
+      ]);
+      expect(prepared.preview.map((item) => item.value)).toEqual([
+        "Torino",
+        "Test",
+      ]);
+    }
   });
 
   test("extracts folded frontmatter tags from scalar and list values", () => {
@@ -282,7 +360,7 @@ describe("frontmatter fold placeholder", () => {
         to: 17,
         editPos: 4,
         lines: 4,
-        tags: [],
+        preview: [],
       }),
     ).toBe("");
     expect(frontmatterFoldPlaceholderText({ type: "generic" })).toBe("…");
@@ -293,7 +371,14 @@ describe("frontmatter fold placeholder", () => {
     const placeholder = frontmatterFoldPlaceholderDOM(
       { state: { phrase: (phrase: string) => phrase } } as EditorView,
       onclick,
-      { type: "frontmatter", from: 0, to: 17, editPos: 4, lines: 4, tags: [] },
+      {
+        type: "frontmatter",
+        from: 0,
+        to: 17,
+        editPos: 4,
+        lines: 4,
+        preview: [],
+      },
     );
 
     expect(placeholder.textContent).toBe("4 frontmatter lines hidden");
@@ -316,7 +401,17 @@ describe("frontmatter fold placeholder", () => {
         to: 17,
         editPos: 4,
         lines: 4,
-        tags: ["feature", "beta"],
+        preview: [
+          {
+            config: {
+              field: "tags",
+              type: "tags",
+              template: "${value}",
+              separator: " ",
+            },
+            value: ["feature", "beta"],
+          },
+        ],
       },
     );
 
@@ -349,7 +444,17 @@ describe("frontmatter fold placeholder", () => {
           to: 17,
           editPos: 4,
           lines: 4,
-          tags: ["feature"],
+          preview: [
+            {
+              config: {
+                field: "tags",
+                type: "tags",
+                template: "${value}",
+                separator: " ",
+              },
+              value: ["feature"],
+            },
+          ],
         },
         {
           config: {
@@ -397,7 +502,17 @@ describe("frontmatter fold placeholder", () => {
           to: 17,
           editPos: 4,
           lines: 4,
-          tags: ["feature"],
+          preview: [
+            {
+              config: {
+                field: "tags",
+                type: "tags",
+                template: "${value}",
+                separator: " ",
+              },
+              value: ["feature"],
+            },
+          ],
         },
       );
 

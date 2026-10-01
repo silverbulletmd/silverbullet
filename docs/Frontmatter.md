@@ -68,6 +68,53 @@ config.set("frontmatterFolding", {
 })
 ```
 
+## Folded frontmatter preview
+
+Use `frontmatterFolding.preview` to choose which frontmatter fields remain visible while the block is folded.
+
+```lua
+config.set("frontmatterFolding", {
+  foldByDefault = "long",
+  foldByDefaultLines = 5,
+  preview = {
+    { field = "displayName", type = "markdown", template = "# ${value}" },
+    { field = "description", type = "text", template = "📒 ${value}" },
+    { field = "date", type = "date", template = "📅 ${value}" },
+    { field = "places", type = "markdown", template = "🗺️ ${value}", separator = " · " },
+    { field = "tags", type = "tags" },
+  },
+})
+```
+
+Preview entries are rendered in configuration order.
+
+| Property | Description |
+| --- | --- |
+| `field` | Frontmatter field to display |
+| `type` | `text`, `markdown`, `tags`, or `date` |
+| `template` | `${value}` is replaced by the rendered field value |
+| `separator` | Separator for array values; defaults to `", "` (`" "` for tags) |
+
+Missing and empty values are skipped. Scalar strings, numbers, and booleans are supported. Arrays are flattened and joined with `separator`. Complex YAML mappings are ignored.
+
+### Preview types
+
+`text`
+: Renders plain text. Markdown and HTML are not interpreted.
+
+`markdown`
+: Uses SilverBullet's Markdown parser for presentation such as emphasis, WikiLinks, URLs, and heading-like styling. It does not run Space Lua, transclusions, or Markdown expansion. Heading-like content is presentation-only and does not add entries to the page outline or Table of Contents.
+
+`tags`
+: Uses the existing folded-frontmatter tag chips and navigation behavior.
+
+`date`
+: Renders ISO `YYYY-MM-DD` as `DD.MM.YYYY`. Invalid values are not shown.
+
+If `preview` is omitted, SilverBullet keeps its existing tags-only behavior. An explicit empty `preview = {}` shows only the fold-status line.
+
+Links and tags remain interactive. Clicking elsewhere in folded frontmatter unfolds it and places the cursor inside the frontmatter.
+
 # Special attributes
 While SilverBullet allows arbitrary metadata to be added to pages, there are a few attributes with special meaning:
 

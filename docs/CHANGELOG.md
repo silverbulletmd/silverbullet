@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
+* Folded frontmatter can now preview configured metadata fields, not only tags. `frontmatterFolding.preview` supports plain text, short Markdown, tags, dates, templates, and array separators while preserving the existing tags-only behavior by default.
 * Eligible installed SilverBullet web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome. Review a share before saving it as a Quick Note with file links, or choose a Space Lua capture action; pending shares survive offline use and can be resumed later. File captures also work in WebKit browsers.
 * Inline list, tree, and table views can opt into a panel-style filter input with `filter = { inline = true }` and set a `title` for the embedded header.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported. **File: Download** saves the current page or document when drag-out is unavailable; the upload command is now **File: Upload**.
