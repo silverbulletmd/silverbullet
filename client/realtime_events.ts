@@ -73,6 +73,27 @@ const MAX_RETRY_MS = 30_000;
 const UNSUPPORTED_RETRY_MS = 60_000;
 const HEARTBEAT_THROTTLE_MS = 5_000;
 
+/** How long one heartbeat from the stream vouches for it: the same window the
+ * service worker's sync engine trusts (the server pings every 30s). */
+export const REALTIME_HEALTH_TTL_MS = 45_000;
+const FILE_LIST_BACKSTOP_MS = 60_000;
+
+/**
+ * Whether the periodic file-list poll should run now. Without a service
+ * worker each listing is a full walk of the space on the server, and while
+ * the event stream is live it already reports every change, so the poll
+ * drops to the backstop pace the service worker's sync uses.
+ */
+export function fileListPollDue(
+  now: number,
+  lastPoll: number,
+  realtimeHealthyUntil: number,
+  serviceWorkerActive: boolean,
+): boolean {
+  if (serviceWorkerActive || now >= realtimeHealthyUntil) return true;
+  return now - lastPoll >= FILE_LIST_BACKSTOP_MS;
+}
+
 export class RealtimeEvents {
   private source?: EventSource;
   private retryDelay = 1000;

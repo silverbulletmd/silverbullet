@@ -8,6 +8,7 @@ pub mod auth;
 pub mod fs_guard;
 pub mod handlers;
 pub mod link_resolve;
+pub mod listing_cache;
 pub mod metrics;
 pub mod multi;
 pub mod revisions;
@@ -19,6 +20,7 @@ pub mod state;
 pub mod watcher;
 
 pub use fs_guard::FsGuard;
+pub use listing_cache::ListingCachedSpace;
 pub use router::{build_router, metrics_router};
 pub use state::{ServerState, ServerVersion};
 pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};

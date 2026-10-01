@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  fileListPollDue,
   RealtimeEvents,
   type RealtimeFsEventOrigin,
   type RealtimeHooks,
@@ -493,5 +494,24 @@ describe("RealtimeEvents connection lifecycle", () => {
       (globalThis as any).addEventListener = origAdd;
       (globalThis as any).removeEventListener = origRemove;
     }
+  });
+});
+
+describe("fileListPollDue", () => {
+  const now = 1_000_000;
+  it("polls every tick while the stream is down", () => {
+    expect(fileListPollDue(now, now - 10_000, 0, false)).toBe(true);
+  });
+  it("backs off to once a minute while the stream is healthy", () => {
+    const healthy = now + 30_000;
+    expect(fileListPollDue(now, now - 10_000, healthy, false)).toBe(false);
+    expect(fileListPollDue(now, now - 59_000, healthy, false)).toBe(false);
+    expect(fileListPollDue(now, now - 60_000, healthy, false)).toBe(true);
+  });
+  it("resumes the fast pace once the last heartbeat has expired", () => {
+    expect(fileListPollDue(now, now - 10_000, now, false)).toBe(true);
+  });
+  it("keeps polling the service worker's local listing at full pace", () => {
+    expect(fileListPollDue(now, now - 10_000, now + 30_000, true)).toBe(true);
   });
 });

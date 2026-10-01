@@ -411,7 +411,8 @@ fn try_build_state(
 
     let disk = DiskSpacePrimitives::new(&folder_str, &config.space_ignore)
         .map_err(|e| format!("failed to open space folder {folder_str}: {e}"))?;
-    let mut disk: Box<dyn SpacePrimitives> = Box::new(disk);
+    let listing = Arc::new(crate::ListingCachedSpace::new(disk));
+    let mut disk: Box<dyn SpacePrimitives> = Box::new(listing.clone());
     let account_managed = matches!(&deps.auth, InstanceAuth::Accounts { .. });
     let folder_is_server_root = folder.canonicalize().ok() == deps.root.canonicalize().ok();
     if account_managed && folder_is_server_root {
@@ -565,6 +566,9 @@ fn try_build_state(
         crate::WatchMode::from_env(),
         fs_guard.clone(),
     );
+    if let Some(events) = &fs_events {
+        listing.attach(events);
+    }
     tracing::debug!(
         space_id = id,
         elapsed_ms = started.elapsed().as_millis(),

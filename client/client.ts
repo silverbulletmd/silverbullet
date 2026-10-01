@@ -70,6 +70,8 @@ import {
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import {
+  fileListPollDue,
+  REALTIME_HEALTH_TTL_MS,
   RealtimeEvents,
   type RealtimeFsEventOrigin,
 } from "./realtime_events.ts";
@@ -167,6 +169,8 @@ export class Client {
   eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
   realtimeEvents?: RealtimeEvents;
+  private realtimeHealthyUntil = 0;
+  private lastFileListPoll = 0;
   private syncNotificationId?: number;
   private lastSyncState?: SyncState;
   private realtimeOrigins = new Map<
@@ -483,6 +487,18 @@ export class Client {
     );
 
     setInterval(() => {
+      const now = Date.now();
+      if (
+        !fileListPollDue(
+          now,
+          this.lastFileListPoll,
+          this.realtimeHealthyUntil,
+          !!globalThis.navigator?.serviceWorker?.controller,
+        )
+      ) {
+        return;
+      }
+      this.lastFileListPoll = now;
       void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
 
@@ -584,6 +600,9 @@ export class Client {
       serviceWorkerActive: () =>
         !!globalThis.navigator?.serviceWorker?.controller,
       notifyStatus: (connected) => {
+        this.realtimeHealthyUntil = connected
+          ? Date.now() + REALTIME_HEALTH_TTL_MS
+          : 0;
         if (setGitSyncStreamConnected(connected)) {
           void this.eventHook.dispatchEvent(REVISIONS_CHANGED_EVENT, {});
         }
