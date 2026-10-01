@@ -245,12 +245,34 @@ export function computeTreeDisplay(
   state: { expanded: Set<string>; expandAll: boolean },
   scores?: Map<string, number>,
 ): TreeDisplay {
+  return expandTreeDisplay(
+    buildDisplayTree(rows, separator, foldersFirst, scores),
+    state,
+    scores !== undefined,
+  );
+}
+
+/** The tree half of `computeTreeDisplay`: kept apart so expanding a folder
+ * reuses the same nodes instead of rebuilding them all. */
+export function buildDisplayTree(
+  rows: Row[],
+  separator: string,
+  foldersFirst: boolean,
+  scores?: Map<string, number>,
+): TreeNode {
   const built = buildTree(rows, separator, foldersFirst);
-  const tree = scores ? pruneTree(built, scores) : built;
+  return scores ? pruneTree(built, scores) : built;
+}
+
+export function expandTreeDisplay(
+  tree: TreeNode,
+  state: { expanded: Set<string>; expandAll: boolean },
+  filtering: boolean,
+): TreeDisplay {
   // Filtering force-expands the pruned tree either way, so the two readings
   // converge there and neither set is consulted -- no double bookkeeping.
   let effectiveExpanded: Set<string>;
-  if (scores) {
+  if (filtering) {
     effectiveExpanded = allFolderPaths(tree);
   } else if (state.expandAll) {
     effectiveExpanded = allFolderPaths(tree);

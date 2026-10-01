@@ -1,17 +1,33 @@
 import { RowText } from "./row_text.tsx";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { Component } from "preact";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { highlightMatches } from "./highlight.tsx";
 import { HoverTracker, resolveHover, useHovered } from "./hover.ts";
 import { Icon } from "./icon.tsx";
 import { RowActions } from "./row_actions.tsx";
 import { revealInClosest } from "./scroll.ts";
-import { allFolderPaths, type TreeNode } from "./tree_model.ts";
+import { allFolderPaths, findNode, type TreeNode } from "./tree_model.ts";
 import type { ActionMeta, Decoration, RowStates } from "./tree_types.ts";
 
 /** How long a collapsed folder has to be hovered before it springs open. */
 const SPRING_LOAD_MS = 700;
 
 const DRAG_MIME = "application/x-sb-nav-path";
+
+/** Sibling lists longer than this render in steps as they scroll into view. */
+const RENDER_CHUNK = 200;
+/** An unrendered row's height until the rendered ones have been measured. */
+const ESTIMATED_ROW_PX = 36;
+/** A window that outgrows this sheds the rows furthest from the viewport. */
+const MAX_WINDOW = 5 * RENDER_CHUNK;
+
+const NOTHING_EXPANDED = new Set<string>();
 
 export function externalFilesDrag(
   types: readonly string[],
@@ -127,17 +143,40 @@ export function TreeView({
   const springTimer = useRef<number | undefined>(undefined);
 
   const folderPaths = useMemo(() => allFolderPaths(tree), [tree]);
-  const filesByPath = useMemo(() => {
-    const files = new Map<string, FileDragData>();
-    if (!fileDragData) return files;
-    const visit = (node: TreeNode) => {
-      const data = fileDragData(node);
-      if (data) files.set(node.path, data);
-      node.children.forEach(visit);
+  // Hosts pass fresh closures on every render; rows reach them through this
+  // ref so a memoized row doesn't re-render just because a callback did.
+  const latest = useRef({
+    onToggle,
+    onSelect,
+    onAction,
+    onRowKeyDown,
+    fileDragData,
+  });
+  latest.current = { onToggle, onSelect, onAction, onRowKeyDown, fileDragData };
+  const handlers = useMemo<RowHandlers>(
+    () => ({
+      toggle: (path) => latest.current.onToggle(path),
+      select: (node) => latest.current.onSelect?.(node),
+      action: (node, index) => latest.current.onAction(node, index),
+      keyDown: (node, event) => latest.current.onRowKeyDown?.(node, event),
+    }),
+    [],
+  );
+  const hasFileDrag = !!fileDragData;
+  // Only for rows that are actually drawn (or dragged), once per node.
+  const fileDragFor = useMemo(() => {
+    const cache = new WeakMap<TreeNode, FileDragData | null>();
+    return (node: TreeNode): FileDragData | null => {
+      const compute = latest.current.fileDragData;
+      if (!compute) return null;
+      let data = cache.get(node);
+      if (data === undefined) {
+        data = compute(node);
+        cache.set(node, data);
+      }
+      return data;
     };
-    tree.children.forEach(visit);
-    return files;
-  }, [tree, fileDragData]);
+  }, [tree, hasFileDrag]);
 
   /** The path a DOM node's row carries, if it is in one. */
   const pathAt = (node: Element | null) =>
@@ -209,7 +248,8 @@ export function TreeView({
     const row = (e.target as HTMLElement | null)?.closest?.("[data-path]");
     const path = (row as HTMLElement | null)?.dataset?.path;
     if (!path) return;
-    const file = filesByPath.get(path);
+    const node = findNode(tree, path);
+    const file = node ? fileDragFor(node) : null;
     if (file && nativeFileDrag) {
       e.preventDefault();
       nativeFileDrag(file.payload);
@@ -307,72 +347,57 @@ export function TreeView({
           <span>Upload to {dropTarget || "Space root"}</span>
         </li>
       )}
-      {tree.children.map((n) => (
-        <TreeItem
-          key={n.path}
-          node={n}
-          depth={0}
-          expanded={expanded}
-          selectedPath={selectedPath}
-          currentPath={currentPath}
-          hover={hover}
-          dropTarget={dropTarget}
-          draggable={canDrag}
-          filePaths={filesByPath}
-          phrase={phrase}
-          actions={actions}
-          actionIcons={actionIcons}
-          documentActions={documentActions}
-          actionsDisabled={actionsDisabled}
-          rowState={rowState}
-          hasIcon={hasIcon}
-          readOnly={readOnly}
-          onToggle={onToggle}
-          onSelect={onSelect}
-          onAction={onAction}
-          selectedRef={selectedRef}
-          focusableRows={focusableRows}
-          onRowKeyDown={onRowKeyDown}
-        />
-      ))}
+      <ChildList
+        nodes={tree.children}
+        depth={0}
+        parent={tree}
+        props={{
+          expanded,
+          selectedPath,
+          currentPath,
+          hover,
+          dropTarget,
+          draggable: canDrag,
+          fileDragFor,
+          phrase,
+          actions,
+          actionIcons,
+          documentActions,
+          actionsDisabled,
+          rowState,
+          hasIcon,
+          readOnly,
+          selectable: !!onSelect,
+          keyed: !!onRowKeyDown,
+          handlers,
+          selectedRef,
+          focusableRows,
+          separator,
+          scrollContainerSelector,
+        }}
+      />
     </ul>
   );
 }
 
-function TreeItem({
-  node,
-  depth,
-  expanded,
-  selectedPath,
-  currentPath,
-  hover,
-  dropTarget,
-  draggable,
-  filePaths,
-  phrase,
-  actions,
-  actionIcons,
-  documentActions,
-  actionsDisabled,
-  rowState,
-  hasIcon,
-  readOnly,
-  onToggle,
-  onSelect,
-  onAction,
-  selectedRef,
-  focusableRows,
-  onRowKeyDown,
-}: {
-  node: TreeNode;
-  depth: number;
+type RowHandlers = {
+  toggle: (path: string) => void;
+  select: (node: TreeNode) => void;
+  action: (node: TreeNode, actionIndex: number) => void;
+  keyDown: (node: TreeNode, event: KeyboardEvent) => void;
+};
+
+/** What every row of one tree shares. `expanded`, `selectedPath`,
+ * `currentPath` and `dropTarget` are narrowed per row (see `rowProps`), which
+ * is what lets a memoized row skip renders that can't change it. */
+type SharedRowProps = {
   expanded: Set<string>;
   selectedPath?: string;
   currentPath?: string;
   hover: HoverTracker;
   dropTarget?: string;
   draggable: boolean;
-  filePaths: Map<string, FileDragData>;
+  fileDragFor: (node: TreeNode) => FileDragData | null;
   phrase?: string;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
@@ -381,13 +406,288 @@ function TreeItem({
   rowState?: RowStates;
   hasIcon: boolean;
   readOnly: boolean;
-  onToggle: (path: string) => void;
-  onSelect?: (node: TreeNode) => void;
-  onAction: (node: TreeNode, actionIndex: number) => void;
+  selectable: boolean;
+  keyed: boolean;
+  handlers: RowHandlers;
   selectedRef: { current: HTMLDivElement | null };
   focusableRows?: boolean;
-  onRowKeyDown?: (node: TreeNode, event: KeyboardEvent) => void;
+  separator: string;
+  scrollContainerSelector?: string;
+};
+
+function inSubtree(
+  path: string | undefined,
+  node: TreeNode,
+  separator: string,
+): boolean {
+  if (path === undefined) return false;
+  // The root has no path of its own; everything is under it.
+  if (node.path === "") return true;
+  return (
+    path === node.path ||
+    (node.isFolder && path.startsWith(node.path + separator))
+  );
+}
+
+function rowProps(node: TreeNode, shared: SharedRowProps): SharedRowProps {
+  const { separator } = shared;
+  const within = (path: string | undefined) =>
+    inSubtree(path, node, separator) ? path : undefined;
+  return {
+    ...shared,
+    expanded:
+      node.isFolder && shared.expanded.has(node.path)
+        ? shared.expanded
+        : NOTHING_EXPANDED,
+    selectedPath: within(shared.selectedPath),
+    currentPath: within(shared.currentPath),
+    dropTarget: within(shared.dropTarget),
+  };
+}
+
+/** The rendered slice of a long list, moved to include each `required`
+ * index: extended when it lies close by, re-centred when it lies far away. */
+export function windowIncluding(
+  window: [number, number],
+  required: number[],
+  length: number,
+): [number, number] {
+  let [start, end] = window;
+  for (const index of required) {
+    if (index >= start && index < end) continue;
+    if (index < start - RENDER_CHUNK || index >= end + RENDER_CHUNK) {
+      start = Math.max(0, index - RENDER_CHUNK / 2);
+      end = start + RENDER_CHUNK;
+    } else {
+      start = Math.min(start, index);
+      end = Math.max(end, index + 1);
+    }
+  }
+  end = Math.min(end, length);
+  start = Math.max(0, Math.min(start, end - RENDER_CHUNK));
+  return [start, end];
+}
+
+/** The rendered slice after rows `visible` came into view: extended when they
+ * border it, moved when the scrollbar jumped far, and trimmed on the far side
+ * once it outgrows `MAX_WINDOW`. */
+export function windowShowing(
+  window: [number, number],
+  visible: [number, number],
+  length: number,
+): [number, number] {
+  const [from, to] = visible;
+  let [start, end] = window;
+  if (to >= start - RENDER_CHUNK && from <= end + RENDER_CHUNK) {
+    start = Math.min(start, from);
+    end = Math.max(end, to);
+  } else {
+    start = from;
+    end = to;
+  }
+  if (end - start > MAX_WINDOW) {
+    start = Math.max(start, from - RENDER_CHUNK);
+    end = Math.min(end, to + RENDER_CHUNK);
+  }
+  start = Math.max(0, Math.min(start, from - RENDER_CHUNK / 2));
+  end = Math.min(length, Math.max(end, to + RENDER_CHUNK / 2));
+  return [start, end];
+}
+
+/**
+ * A sibling list. Short ones render whole; a long one (a flat folder of
+ * thousands of pages) renders a window of rows between two spacers sized
+ * like the rows they stand in for, and grows the window as a spacer scrolls
+ * into view. The window always includes the selected and current rows.
+ */
+function ChildList({
+  nodes,
+  depth,
+  parent,
+  props,
+}: {
+  nodes: TreeNode[];
+  depth: number;
+  parent: TreeNode;
+  props: SharedRowProps;
 }) {
+  const progressive =
+    nodes.length > RENDER_CHUNK && typeof IntersectionObserver !== "undefined";
+  const windowRef = useRef<[number, number]>([0, RENDER_CHUNK]);
+  // Only a selection or current page that *moved* pulls the window to it;
+  // otherwise scrolling away from it would snap straight back.
+  const requiredKey = useRef<string | undefined>(undefined);
+  const [, rerender] = useState(0);
+  // Measured from the rendered rows, since font size, touch layouts and
+  // wrapping descriptions all change it; spacers and scroll math both use it.
+  const rowHeight = useRef(ESTIMATED_ROW_PX);
+  const before = useRef<HTMLLIElement>(null);
+  const after = useRef<HTMLLIElement>(null);
+  const { selectedPath, currentPath, separator, scrollContainerSelector } =
+    props;
+  let start = 0;
+  let end = nodes.length;
+  if (progressive) {
+    const required: number[] = [];
+    for (const path of [selectedPath, currentPath]) {
+      if (path === undefined || !inSubtree(path, parent, separator)) continue;
+      const index = nodes.findIndex((n) => inSubtree(path, n, separator));
+      if (index !== -1) required.push(index);
+    }
+    const key = required.join(",");
+    if (key !== requiredKey.current) {
+      requiredKey.current = key;
+      windowRef.current = windowIncluding(
+        windowRef.current,
+        required,
+        nodes.length,
+      );
+    }
+    [start, end] = windowRef.current;
+    end = Math.min(end, nodes.length);
+    start = Math.min(start, end);
+  }
+
+  useLayoutEffect(() => {
+    if (!progressive) return;
+    const rows: Element[] = [];
+    if (after.current) {
+      let row = after.current.previousElementSibling;
+      while (row && row !== before.current) {
+        rows.push(row);
+        row = row.previousElementSibling;
+      }
+    } else {
+      let row = before.current?.nextElementSibling ?? null;
+      while (row) {
+        rows.push(row);
+        row = row.nextElementSibling;
+      }
+    }
+    // A row's own line, not its `<li>`: an expanded folder's subtree isn't
+    // what the spacers stand in for.
+    let total = 0;
+    let measured = 0;
+    for (const row of rows) {
+      if (row.getAttribute("role") !== "treeitem") continue;
+      const height = (row.firstElementChild as HTMLElement | null)
+        ?.offsetHeight;
+      if (height) {
+        total += height;
+        measured++;
+      }
+    }
+    if (measured === 0) return;
+    const average = total / measured;
+    if (Math.abs(average - rowHeight.current) < 0.5) return;
+    rowHeight.current = average;
+    rerender((n) => n + 1);
+  }, [progressive, start, end]);
+
+  useEffect(() => {
+    if (!progressive) return;
+    const edges = [before.current, after.current].filter(
+      (e): e is HTMLLIElement => e !== null,
+    );
+    if (edges.length === 0) return;
+    const root = scrollContainerSelector
+      ? edges[0].closest(scrollContainerSelector)
+      : null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let next = windowRef.current;
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const rect = entry.boundingClientRect;
+          const top = Math.max(rect.top, entry.intersectionRect.top);
+          const bottom = Math.min(rect.bottom, entry.intersectionRect.bottom);
+          const offset = entry.target === before.current ? 0 : next[1];
+          // Observer geometry is in rendered pixels, which CSS `zoom` makes
+          // differ from the layout pixels the rows were measured in.
+          const layoutHeight = (entry.target as HTMLElement).offsetHeight;
+          const scale = layoutHeight > 0 ? rect.height / layoutHeight : 1;
+          const rendered = rowHeight.current * scale;
+          const from = offset + Math.floor((top - rect.top) / rendered);
+          const to = offset + Math.ceil((bottom - rect.top) / rendered);
+          next = windowShowing(next, [from, to], nodes.length);
+        }
+        const [currentStart, currentEnd] = windowRef.current;
+        if (next[0] === currentStart && next[1] === currentEnd) return;
+        windowRef.current = next;
+        rerender((n) => n + 1);
+      },
+      { root, rootMargin: "600px 0px" },
+    );
+    for (const edge of edges) observer.observe(edge);
+    return () => observer.disconnect();
+  }, [progressive, start, end, nodes, scrollContainerSelector]);
+
+  const rows = (
+    start === 0 && end === nodes.length ? nodes : nodes.slice(start, end)
+  ).map((n) => (
+    <TreeItem key={n.path} {...rowProps(n, props)} node={n} depth={depth} />
+  ));
+  if (start === 0 && end === nodes.length) return <>{rows}</>;
+  const spacer = (ref: typeof before, count: number) =>
+    count > 0 && (
+      <li
+        ref={ref}
+        role="presentation"
+        class="sb-tree-more"
+        style={{ height: `${count * rowHeight.current}px` }}
+      />
+    );
+  return (
+    <>
+      {spacer(before, start)}
+      {rows}
+      {spacer(after, nodes.length - end)}
+    </>
+  );
+}
+
+type TreeItemProps = SharedRowProps & { node: TreeNode; depth: number };
+
+/** A row re-renders only when one of its (narrowed) props changed. Not
+ * `preact/compat`'s `memo`: that would pull compat into every plug bundle. */
+class TreeItem extends Component<TreeItemProps> {
+  override shouldComponentUpdate(next: TreeItemProps): boolean {
+    for (const key in next) {
+      if ((next as any)[key] !== (this.props as any)[key]) return true;
+    }
+    return false;
+  }
+
+  override render() {
+    return <TreeItemRow {...this.props} />;
+  }
+}
+
+function TreeItemRow(props: TreeItemProps) {
+  const {
+    node,
+    depth,
+    expanded,
+    selectedPath,
+    currentPath,
+    hover,
+    dropTarget,
+    draggable,
+    fileDragFor,
+    phrase,
+    actions,
+    actionIcons,
+    documentActions,
+    actionsDisabled,
+    rowState,
+    hasIcon,
+    readOnly,
+    selectable,
+    keyed,
+    handlers,
+    selectedRef,
+    focusableRows,
+  } = props;
   const isExpanded = node.isFolder && expanded.has(node.path);
   const selected = selectedPath === node.path;
   // Unconditional: a hook call behind `selected ||` would change the hook
@@ -409,7 +709,7 @@ function TreeItem({
           (node.isFolder ? " sb-nav-folder" : "") +
           (node.isFolder && node.row ? " sb-nav-dual" : "") +
           (selected ? " sb-nav-selected" : "") +
-          (!onSelect && !node.isFolder ? " sb-nav-passive" : "") +
+          (!selectable && !node.isFolder ? " sb-nav-passive" : "") +
           (dropTarget === node.path ? " sb-nav-droptarget" : "") +
           (node.row?.cssClass ? ` ${node.row.cssClass}` : "")
         }
@@ -418,16 +718,19 @@ function TreeItem({
         }}
         data-path={node.path}
         aria-current={currentPath === node.path ? "page" : undefined}
-        draggable={draggable || filePaths.has(node.path)}
+        draggable={draggable || fileDragFor(node) !== null}
         tabIndex={focusableRows ? 0 : undefined}
         onKeyDown={
-          onRowKeyDown
-            ? (e) => onRowKeyDown(node, e as KeyboardEvent)
-            : undefined
+          keyed ? (e) => handlers.keyDown(node, e as KeyboardEvent) : undefined
         }
         onClick={
-          onSelect || node.isFolder
-            ? () => activateTreeRow(node, onSelect, onToggle)
+          selectable || node.isFolder
+            ? () =>
+                activateTreeRow(
+                  node,
+                  selectable ? handlers.select : undefined,
+                  handlers.toggle,
+                )
             : undefined
         }
       >
@@ -436,7 +739,7 @@ function TreeItem({
             class="sb-nav-chevron"
             onClick={(e) => {
               e.stopPropagation();
-              onToggle(node.path);
+              handlers.toggle(node.path);
             }}
           >
             {isExpanded ? "▾" : "▸"}
@@ -471,40 +774,18 @@ function TreeItem({
             readOnly={readOnly}
             documentMode={documentActions}
             disabled={actionsDisabled}
-            onRun={(actionIndex) => onAction(node, actionIndex)}
+            onRun={(actionIndex) => handlers.action(node, actionIndex)}
           />
         )}
       </div>
       {isExpanded && (
         <ul role="group">
-          {node.children.map((c) => (
-            <TreeItem
-              key={c.path}
-              node={c}
-              depth={depth + 1}
-              expanded={expanded}
-              selectedPath={selectedPath}
-              currentPath={currentPath}
-              hover={hover}
-              dropTarget={dropTarget}
-              draggable={draggable}
-              filePaths={filePaths}
-              phrase={phrase}
-              actions={actions}
-              actionIcons={actionIcons}
-              documentActions={documentActions}
-              actionsDisabled={actionsDisabled}
-              rowState={rowState}
-              hasIcon={hasIcon}
-              readOnly={readOnly}
-              onToggle={onToggle}
-              onSelect={onSelect}
-              onAction={onAction}
-              selectedRef={selectedRef}
-              focusableRows={focusableRows}
-              onRowKeyDown={onRowKeyDown}
-            />
-          ))}
+          <ChildList
+            nodes={node.children}
+            depth={depth + 1}
+            parent={node}
+            props={props}
+          />
         </ul>
       )}
     </li>

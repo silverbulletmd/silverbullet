@@ -7,6 +7,8 @@ import {
   externalFilesDrag,
   targetFolderForPath,
   TreeView,
+  windowIncluding,
+  windowShowing,
 } from "./tree_view.tsx";
 
 test("external file drags target folders, file parents, and root without catching internal moves", () => {
@@ -150,4 +152,71 @@ test("read-only Space file rows remain draggable without making folder-only rows
   );
   expect(html).toMatch(/data-path="Notes"[^>]*draggable="false"/);
   expect(html).toMatch(/data-path="Notes\/Guide"[^>]*draggable="true"/);
+});
+
+test("long sibling lists render a first chunk, extended to reach the selected row", () => {
+  const rows = Array.from({ length: 1000 }, (_, i) => {
+    const name = `Page ${String(i).padStart(4, "0")}`;
+    return { primary: name, obj: { name } };
+  });
+  const tree = buildTree(rows, "/", true);
+  const props = {
+    tree,
+    expanded: new Set<string>(),
+    showEmpty: true,
+    separator: "/",
+    canDrag: false,
+    hasIcon: false,
+    readOnly: false,
+    onToggle() {},
+    onSelect() {},
+    onMove() {},
+    onAction() {},
+  };
+  const original = globalThis.IntersectionObserver;
+  (globalThis as any).IntersectionObserver = class {
+    observe() {}
+    disconnect() {}
+  };
+  try {
+    const rowCount = (html: string) =>
+      (html.match(/role="treeitem"/g) ?? []).length;
+    const first = render(h(TreeView, props));
+    expect(rowCount(first)).toBe(200);
+    expect(first).toContain('class="sb-tree-more"');
+    const reaching = render(
+      h(TreeView, { ...props, selectedPath: "Page 0600" }),
+    );
+    expect(rowCount(reaching)).toBe(200);
+    expect(reaching).toContain('data-path="Page 0600"');
+    expect(reaching).not.toContain('data-path="Page 0000"');
+  } finally {
+    (globalThis as any).IntersectionObserver = original;
+  }
+});
+
+test("the rendered window extends to nearby rows and re-centres on distant ones", () => {
+  expect(windowIncluding([0, 200], [], 1000)).toEqual([0, 200]);
+  expect(windowIncluding([0, 200], [250], 1000)).toEqual([0, 251]);
+  expect(windowIncluding([0, 200], [600], 1000)).toEqual([500, 700]);
+  expect(windowIncluding([500, 700], [20], 1000)).toEqual([0, 200]);
+  expect(windowIncluding([0, 200], [990], 1000)).toEqual([800, 1000]);
+  expect(windowIncluding([0, 200], [5], 150)).toEqual([0, 150]);
+});
+
+test("scrolling extends the window nearby, moves it on a jump, and caps its size", () => {
+  expect(windowShowing([0, 200], [200, 230], 25000)).toEqual([0, 330]);
+  expect(windowShowing([0, 200], [12000, 12030], 25000)).toEqual([
+    11900, 12130,
+  ]);
+  const [start, end] = windowShowing([0, 1000], [1100, 1130], 25000);
+  expect(end - start).toBeLessThanOrEqual(1000);
+  expect(start).toBeLessThanOrEqual(1000);
+  expect(end).toBeGreaterThanOrEqual(1130);
+  expect(windowShowing([24000, 24200], [24300, 24330], 25000)).toEqual([
+    24000, 24430,
+  ]);
+  expect(windowShowing([24000, 24200], [24990, 25000], 25000)).toEqual([
+    24890, 25000,
+  ]);
 });
