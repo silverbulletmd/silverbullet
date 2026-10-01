@@ -1,4 +1,14 @@
 import {
+  encodePageURI,
+  encodeRef,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  parseTransclusion,
+  type Transclusion,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
+import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
@@ -8,25 +18,14 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  encodePageURI,
-  encodeRef,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
-import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
-import { sanitizeTag } from "./sanitize_html.ts";
-import { CustomSyntaxRenderedHtmlType } from "./inline.ts";
-import * as TagConstants from "../../plugs/index/constants.ts";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
-import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import { createMediaElement } from "./inline.ts";
-import {
-  parseTransclusion,
-  type Transclusion,
-} from "@silverbulletmd/silverbullet/lib/transclusion";
+import * as TagConstants from "../../plugs/index/constants.ts";
 import { parseHtmlTag } from "../codemirror/html_element.ts";
 import { resolveIconMarkup } from "../lib/icon.ts";
+import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
+import { CustomSyntaxRenderedHtmlType, createMediaElement } from "./inline.ts";
+import { justifiedTableRender } from "./justified_tables.ts";
+import { sanitizeTag } from "./sanitize_html.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -456,7 +455,10 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       const literal = renderToText(t);
       return {
         name: "span",
-        attrs: { class: "sb-at-mention" },
+        attrs: {
+          class: "sb-at-mention",
+          "data-mention-name": literal.slice(1),
+        },
         body: [
           { name: "span", attrs: { class: "sb-at-mention-mark" }, body: "@" },
           literal.slice(1),

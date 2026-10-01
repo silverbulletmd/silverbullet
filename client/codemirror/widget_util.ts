@@ -1,14 +1,15 @@
-import { parseToRef, type Path } from "@silverbulletmd/silverbullet/lib/ref";
-import {
-  resolveTransclusionUrl,
-  type Transclusion,
-} from "@silverbulletmd/silverbullet/lib/transclusion";
-import type { Client } from "../client.ts";
-import type { EventPayLoad } from "./lua_widget.ts";
+import { type Path, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  resolveTransclusionUrl,
+  type Transclusion,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
+import { identityId } from "../../plugs/index/identity_id.ts";
+import type { Client } from "../client.ts";
+import type { EventPayLoad } from "./lua_widget.ts";
 
 /**
  * Gives widget renderers the same wiki-link resolution the editor's own link
@@ -117,6 +118,20 @@ export function attachWidgetEventHandlers(
         false,
         e.ctrlKey || e.metaKey,
       );
+    });
+  });
+
+  // Like a mention in the editor: open the Mention Inbox on that recipient,
+  // leaving focus where it is.
+  div.querySelectorAll("[data-mention-name]").forEach((el_) => {
+    const el = el_ as HTMLElement;
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void client.openNavigatorView("inbox", {
+        dropdown: identityId(el.dataset.mentionName!),
+        focus: false,
+      });
     });
   });
 

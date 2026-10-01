@@ -1,22 +1,21 @@
-import { expect, test, vi } from "vitest";
-import { mediaTestDocument } from "../test_media_dom.ts";
-import { parse } from "../markdown_parser/parse_tree.ts";
+import { parseTransclusion } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
-
-import { renderMarkdownToHtml } from "./markdown_render.ts";
+import { expect, test, vi } from "vitest";
+import { parse } from "../markdown_parser/parse_tree.ts";
 import {
   buildExtendedMarkdownLanguage,
   extendedMarkdownLanguage,
 } from "../markdown_parser/parser.ts";
+import type { Space } from "../space.ts";
+import { LuaEnv } from "../space_lua/runtime.ts";
+import type { SpaceLuaEnvironment } from "../space_lua.ts";
+import { mediaTestDocument } from "../test_media_dom.ts";
 import {
   CustomSyntaxRenderedHtmlType,
-  expandMarkdown,
   createMediaElement,
+  expandMarkdown,
 } from "./inline.ts";
-import { parseTransclusion } from "@silverbulletmd/silverbullet/lib/transclusion";
-import type { Space } from "../space.ts";
-import type { SpaceLuaEnvironment } from "../space_lua.ts";
-import { LuaEnv } from "../space_lua/runtime.ts";
+import { renderMarkdownToHtml } from "./markdown_render.ts";
 
 test.each([
   ["clip.mp3", "AUDIO"],
@@ -672,7 +671,7 @@ test("renders at-mentions as plain styled text", () => {
   const tree = parse(extendedMarkdownLanguage, "Hello @PeteSmith");
   const html = renderMarkdownToHtml(tree);
   expect(html).toContain(
-    `<span class="sb-at-mention"><span class="sb-at-mention-mark">@</span>PeteSmith</span>`,
+    `<span class="sb-at-mention" data-mention-name="PeteSmith"><span class="sb-at-mention-mark">@</span>PeteSmith</span>`,
   );
   expect(html).not.toContain("<a");
 });
