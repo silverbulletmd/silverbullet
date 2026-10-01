@@ -648,6 +648,18 @@ async function evalSelectExpression(
   return result;
 }
 
+/** Whether `value` passes the query's `where`, as `applyQuery` filters it. */
+export async function matchesWhere(
+  value: any,
+  query: LuaCollectionQuery,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): Promise<boolean> {
+  if (!query.where) return true;
+  const itemEnv = buildItemEnvLocal(query.objectVariable, value, env, sf);
+  return !!(await evalExpression(query.where, itemEnv, sf));
+}
+
 export async function applyQuery(
   results: any[],
   query: LuaCollectionQuery,
@@ -659,8 +671,7 @@ export async function applyQuery(
   if (query.where) {
     const filteredResults = [];
     for (const value of results) {
-      const itemEnv = buildItemEnvLocal(query.objectVariable, value, env, sf);
-      if (await evalExpression(query.where, itemEnv, sf)) {
+      if (await matchesWhere(value, query, env, sf)) {
         filteredResults.push(value);
       }
     }

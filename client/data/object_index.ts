@@ -22,6 +22,7 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
   type LuaQueryCollection,
+  matchesWhere,
 } from "../space_lua/query_collection.ts";
 import {
   jsToLuaValue,
@@ -618,9 +619,42 @@ export class ObjectIndex {
   scanMemoTTLMs = 5000;
   private scanMemo = new Map<string, { rows: KV[]; at: number }>();
   private scanInFlight = new Map<string, Promise<KV[]>>();
+  // Bumped on every invalidation, so a scan that was already running when a
+  // write landed doesn't memoize what it read before the write.
+  private scanGenerations = new Map<string, number>();
+  private allScansGeneration = 0;
 
-  private invalidateScanMemo() {
-    this.scanMemo.clear();
+  private scanGeneration(tag: string): string {
+    return `${this.allScansGeneration}:${this.scanGenerations.get(tag) ?? 0}`;
+  }
+
+  /** Without `tags`, drops every tag's memo. */
+  private invalidateScanMemo(tags?: Iterable<string>) {
+    if (!tags) {
+      this.allScansGeneration++;
+      this.scanMemo.clear();
+      this.scanInFlight.clear();
+      return;
+    }
+    for (const tag of tags) {
+      this.scanGenerations.set(tag, (this.scanGenerations.get(tag) ?? 0) + 1);
+      this.scanMemo.delete(tag);
+      this.scanInFlight.delete(tag);
+    }
+  }
+
+  /** Invalidates on both sides of the write: a scan starting while it is in
+   * flight may or may not see it. */
+  private async writeInvalidating(
+    tags: Set<string>,
+    write: () => Promise<void>,
+  ): Promise<void> {
+    this.invalidateScanMemo(tags);
+    try {
+      await write();
+    } finally {
+      this.invalidateScanMemo(tags);
+    }
   }
 
   /**
@@ -637,17 +671,22 @@ export class ObjectIndex {
     if (inFlight) {
       return inFlight;
     }
+    const generation = this.scanGeneration(tag);
     const scan = (async () => {
       const rows: KV[] = [];
       for await (const row of this.ds.query({ prefix: [indexKey, tag] })) {
         rows.push(row);
       }
-      this.scanMemo.set(tag, { rows, at: performance.now() });
+      if (this.scanGeneration(tag) === generation) {
+        this.scanMemo.set(tag, { rows, at: performance.now() });
+      }
       return rows;
     })();
     this.scanInFlight.set(tag, scan);
     return scan.finally(() => {
-      this.scanInFlight.delete(tag);
+      if (this.scanInFlight.get(tag) === scan) {
+        this.scanInFlight.delete(tag);
+      }
     });
   }
 
@@ -655,7 +694,8 @@ export class ObjectIndex {
    * Drop-in equivalent of `ds.luaQuery(["idx", tag], ...)` backed by the
    * memoized scan. Values are cloned per caller so consumers can mutate
    * results freely, exactly as they can with the structured clones IndexedDB
-   * hands out.
+   * hands out. Only rows that pass `where` are cloned: the filter reads the
+   * memoized values themselves, which must stay unmodified.
    */
   private async memoLuaQuery<T>(
     tag: string,
@@ -666,18 +706,27 @@ export class ObjectIndex {
     config?: Config,
   ): Promise<T[]> {
     const rawRows = await this.scanTagRawRows(tag);
+    const materialize = (key: KvKey, value: any) => {
+      const item = structuredClone(value);
+      return enricher ? enricher(key, item) : item;
+    };
     const results: any[] = [];
     for (const { key, value } of rawRows) {
-      let item = structuredClone(value);
-      if (enricher) {
-        item = enricher(key, item);
-        if (item === undefined) {
-          continue;
-        }
+      if (query.where) {
+        const probe = enricher ? enricher(key, value) : value;
+        if (probe === undefined) continue;
+        if (!(await matchesWhere(probe, query, env, sf))) continue;
       }
-      results.push(item);
+      const item = materialize(key, value);
+      if (item !== undefined) results.push(item);
     }
-    return applyQuery(results, query, env, sf, config);
+    return applyQuery(
+      results,
+      query.where ? { ...query, where: undefined } : query,
+      env,
+      sf,
+      config,
+    );
   }
 
   queryLuaObjects<T>(
@@ -703,7 +752,6 @@ export class ObjectIndex {
   }
 
   batchSet(page: string, kvs: KV[]): Promise<void> {
-    this.invalidateScanMemo();
     const finalBatch: KV[] = [];
     for (const { key, value } of kvs) {
       finalBatch.push(
@@ -718,16 +766,19 @@ export class ObjectIndex {
         },
       );
     }
-    return this.ds.batchSet(finalBatch);
+    return this.writeInvalidating(tagsOf(kvs.map((kv) => kv.key)), () =>
+      this.ds.batchSet(finalBatch),
+    );
   }
 
   batchDelete(page: string, keys: KvKey[]): Promise<void> {
-    this.invalidateScanMemo();
     const finalBatch: KvKey[] = [];
     for (const key of keys) {
       finalBatch.push([indexKey, ...key, page]);
     }
-    return this.ds.batchDelete(finalBatch);
+    return this.writeInvalidating(tagsOf(keys), () =>
+      this.ds.batchDelete(finalBatch),
+    );
   }
 
   /**
@@ -739,14 +790,17 @@ export class ObjectIndex {
       file = file.replace(/\.md$/, "");
     }
     const allKeys: KvKey[] = [];
+    const indexKeys: KvKey[] = [];
     for await (const { key } of this.ds.query({
       prefix: [pageKey, file],
     })) {
       allKeys.push(key);
       allKeys.push([indexKey, ...key.slice(2), file]);
+      indexKeys.push(key.slice(2));
     }
-    this.invalidateScanMemo();
-    await this.ds.batchDelete(allKeys);
+    await this.writeInvalidating(tagsOf(indexKeys), () =>
+      this.ds.batchDelete(allKeys),
+    );
   }
 
   /**
@@ -951,4 +1005,9 @@ export class ObjectIndex {
   deleteObject(page: string, tag: string, ref: string): Promise<void> {
     return this.batchDelete(page, [[tag, this.cleanKey(ref, page)]]);
   }
+}
+
+/** The tags a set of `[tag, ...]` index keys write to. */
+function tagsOf(keys: KvKey[]): Set<string> {
+  return new Set(keys.map((key) => String(key[0])));
 }

@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "preact/hooks";
 import {
-  computeTreeDisplay,
+  buildDisplayTree,
+  expandTreeDisplay,
   type TreeDisplay,
   type TreeNode,
   type VisibleRow,
@@ -221,18 +222,28 @@ export function useDerived({
   }, [treeFiltering, visible]);
 
   const expandAll = view?.meta.expandAll === true;
-  const treeDisplay = useMemo(() => {
+  const displayTree = useMemo(() => {
     if (!view || !isTreeMode) return undefined;
     // The filtered subset, not every row: the folders its rows hang off are
     // rebuilt from their names, so ancestors come back without pruning twice.
-    return computeTreeDisplay(
+    return buildDisplayTree(
       filteredRows,
       view.meta.hierarchy.separator,
       view.meta.foldersFirst,
-      { expanded, expandAll },
       treeScores,
     );
-  }, [view, isTreeMode, filteredRows, expanded, expandAll, treeScores]);
+  }, [view, isTreeMode, filteredRows, treeScores]);
+  const treeDisplay = useMemo(
+    () =>
+      displayTree
+        ? expandTreeDisplay(
+            displayTree,
+            { expanded, expandAll },
+            treeScores !== undefined,
+          )
+        : undefined,
+    [displayTree, expanded, expandAll, treeScores],
+  );
 
   const treeVisible = treeDisplay?.visible ?? [];
   // The create row is pinned one slot past the last tree row, so tree
