@@ -202,7 +202,7 @@ export function SpaceForm({
     connectionDraft &&
     revisions !== initial?.revisions;
   const visible = (value: SpaceSection) =>
-    id ? section === value : value === "general";
+    id ? section === value : value === "general" || value === "revisions";
 
   return (
     <form
@@ -387,6 +387,7 @@ export function SpaceForm({
           </label>
         </div>
         <div hidden={!visible("revisions")}>
+          {!id && <h3>Revisions</h3>}
           <label for="space-revisions">Mode</label>
           <Select
             id="space-revisions"
