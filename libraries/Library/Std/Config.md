@@ -596,6 +596,7 @@ config.set("keyboardBar", {
   { icon = "chevrons-right", description = "Tab", command = "Editor: Indent", onlyContexts = {"FencedCode"} },
   { icon = "chevrons-left", description = "Shift-Tab", command = "Editor: Outdent", onlyContexts = {"FencedCode"} },
   { icon = "md-link", description = "Wiki link", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "paperclip", description = "Attach file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "hash", description = "Tag", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
