@@ -574,6 +574,19 @@ test("clean: scalar JS array renders as newline-separated lines", async () => {
   expect(await renderResultToCleanMarkdown([1, 2, 3])).toBe("1\n2\n3");
 });
 
+test("clean: scalar array keeps leading indentation of each line", async () => {
+  // Template results for a nested list: indented, with a trailing newline.
+  const tbl = new LuaTable();
+  await tbl.rawSet(1, "- [ ] Foo\n");
+  await tbl.rawSet(2, "  - [ ] Bar\n");
+  await tbl.rawSet(3, "  - [ ] Baz\n");
+  await tbl.rawSet(4, "- [ ] Floomp\n");
+
+  expect(await renderResultToCleanMarkdown(tbl)).toBe(
+    "- [ ] Foo\n  - [ ] Bar\n  - [ ] Baz\n- [ ] Floomp",
+  );
+});
+
 test("clean: nested LuaTable in cell renders as Lua literal", async () => {
   const inner = new LuaTable();
   await inner.rawSet("a", 1);
