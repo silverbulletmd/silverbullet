@@ -268,44 +268,6 @@ function docsNav.summary(ref)
   end
 end
 
-function docsNav.sectionList(section)
-  local prefix = section .. "/"
-  local lines = {}
-  local shown = {}
-  for _, entry in ipairs(docsNav.pages) do
-    if entry.name:startsWith(prefix) then
-      local segments = string.split(entry.name:sub(#prefix + 1), "/")
-      local path = section
-      for depth = 1, #segments - 1 do
-        path = path .. "/" .. segments[depth]
-        if not shown[path] and not docsNav.entryByName(path) then
-          table.insert(lines, string.rep("  ", depth - 1) .. "* **" .. segments[depth] .. "**")
-        end
-        shown[path] = true
-      end
-      shown[entry.name] = true
-      local item = string.rep("  ", #segments - 1) .. "* [[" .. entry.ref .. "|" .. segments[#segments] .. "]]"
-      local summary = docsNav.summary(entry.ref)
-      if summary then
-        item = item .. ": " .. summary
-      end
-      table.insert(lines, item)
-    end
-  end
-  return table.concat(lines, "\n")
-end
-
-function docsNav.sectionIndex()
-  local lines = {}
-  for _, section in ipairs(docsNav.sections) do
-    local entry = docsNav.entryByName(section.name)
-    if entry and section.name ~= "Start" then
-      table.insert(lines, "* [[" .. entry.ref .. "|" .. section.name .. "]]: " .. section.description)
-    end
-  end
-  return table.concat(lines, "\n")
-end
-
 function docsNav.problems()
   local existing = {}
   for _, page in ipairs(query[[from index.pages()]]) do

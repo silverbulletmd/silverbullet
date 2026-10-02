@@ -50,4 +50,8 @@ While using a NAS to store your space files should be fine, if you encounter iss
 SilverBullet’s sync engine relies on reliably persisting **last modified timestamps** for your files, and those timestamps only being touched when actual changes to those file occur. If your file system (or NAS) does not persist these consistently, or you have some external sync process that updates them — this may lead to problems.
 
 # In this section
-${docsNav.sectionList("Server")}
+${query[[
+  from e = docsNav.pages
+  where e.name:match "^Server/[^/]+$"
+  select templates.docsPage(e)
+]]}

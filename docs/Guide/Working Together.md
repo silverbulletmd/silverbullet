@@ -45,4 +45,8 @@ In the editor, text arriving from elsewhere is briefly highlighted as it lands.
 Over longer spans, [[Revisions]] carries the same information into page and space history, so a change can be traced back to the account that made it after the fact.
 
 # In this section
-${docsNav.sectionList("Working Together")}
+${query[[
+  from e = docsNav.pages
+  where e.name:match "^Working Together/[^/]+$"
+  select templates.docsPage(e)
+]]}

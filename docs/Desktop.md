@@ -5,7 +5,11 @@ SilverBullet Desktop is the native SilverBullet app for macOS, Windows and Linux
 Desktop runs the same editor and features as [[Install|SilverBullet Server]], so everything in the other sections of this manual applies to Desktop too; pages about running a server are marked as such by living in the Server section. Downloads and pricing are on the [SilverBullet Desktop page](https://silverbullet.md/desktop).
 
 # In this section
-${docsNav.sectionList("Desktop")}
+${query[[
+  from e = docsNav.pages
+  where e.name:match "^Desktop/[^/]+$"
+  select templates.docsPage(e)
+]]}
 
 # Videos
 * [SilverBullet Desktop Tour](https://www.youtube.com/watch?v=Jcw4T0EgO2o)

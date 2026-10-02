@@ -108,4 +108,8 @@ In addition to quirks, Space introduces a (minimal) set of new features on top c
 2. [[Space Lua/Thread Locals]]
 
 # In this section
-${docsNav.sectionList("Customizing")}
+${query[[
+  from e = docsNav.pages
+  where e.name:match "^Customizing/[^/]+$"
+  select templates.docsPage(e)
+]]}
