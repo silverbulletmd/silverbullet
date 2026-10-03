@@ -1,14 +1,23 @@
 import { createElement } from "preact";
 import { renderToString } from "preact-render-to-string";
 import { expect, test } from "vitest";
+import type { Client } from "../../../client.ts";
 import type { ViewMeta } from "../../types.ts";
 import { PageWidgetFrame } from "./page_widget_frame.tsx";
 
-function frame(pending: boolean, loading: boolean, collapsed = false) {
+const client: Pick<Client, "navigate"> = { navigate: async () => {} };
+
+function frame(
+  pending: boolean,
+  loading: boolean,
+  collapsed = false,
+  meta: ViewMeta = { title: "Related pages" } as ViewMeta,
+) {
   return renderToString(
     createElement(PageWidgetFrame, {
       name: "test-view",
-      meta: { title: "Related pages" } as ViewMeta,
+      meta,
+      client,
       slot: "page-bottom",
       pending,
       loading,
@@ -39,4 +48,22 @@ test("a settled widget removes its loading indicator and busy state", () => {
   expect(html).toContain('aria-busy="false"');
   expect(html).not.toContain('aria-label="Loading"');
   expect(html).toContain("Previous result");
+});
+
+test("a page widget shows Edit definition only when its source is known", () => {
+  const without = frame(false, false);
+  const withDefinition = frame(false, false, false, {
+    ...({ title: "Related pages" } as ViewMeta),
+    definition: {
+      path: "Test/Page.md",
+      details: { type: "position", pos: 42 },
+    },
+  });
+  expect(without).not.toContain('aria-label="Edit definition"');
+  expect(withDefinition).toContain(
+    'class="sb-nav-edit" title="Edit definition" aria-label="Edit definition"',
+  );
+  expect(withDefinition.indexOf('aria-label="Edit definition"')).toBeLessThan(
+    withDefinition.indexOf('aria-label="Close"'),
+  );
 });

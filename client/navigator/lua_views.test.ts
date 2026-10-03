@@ -12,8 +12,8 @@ import {
 } from "./lua_views.ts";
 
 /** A real Lua table, closures and all -- the same value `lua:view.define` receives. */
-function luaSpecIn(env: LuaEnv, source: string): LuaTable {
-  const node = parseBlock(`e(${source})`)
+function luaSpecIn(env: LuaEnv, source: string, ref?: string): LuaTable {
+  const node = parseBlock(`e(${source})`, { ref })
     .statements[0] as LuaFunctionCallStatement;
   const sf = new LuaStackFrame(env, node.ctx);
   return evalExpression(node.call.args[0], env, sf) as LuaTable;
@@ -345,7 +345,36 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     ephemeral: false,
     openOnStart: false,
     defaultOpen: false,
+    definition: undefined,
   });
+});
+
+test("view metadata points at content before other callbacks", () => {
+  const spec =
+    '{ name = "v", content = function() end, source = function() end }';
+  const meta = wireMeta(
+    luaSpecIn(new LuaEnv(luaBuildStandardEnv()), spec, "Test/Page@10"),
+  );
+  expect(meta.definition).toEqual({
+    path: "Test/Page.md",
+    details: { type: "position", pos: 57 },
+  });
+});
+
+test("row view metadata points at its source callback", () => {
+  const spec =
+    '{ name = "v", source = function() end, onSelect = function() end }';
+  const meta = wireMeta(
+    luaSpecIn(new LuaEnv(luaBuildStandardEnv()), spec, "Test/Page@10"),
+  );
+  expect(meta.definition).toEqual({
+    path: "Test/Page.md",
+    details: { type: "position", pos: 56 },
+  });
+});
+
+test("plain JavaScript view metadata has no definition", () => {
+  expect(wireMeta({ name: "v", source: () => [] }).definition).toBeUndefined();
 });
 
 test("filter = false projects noFilter, a filter table does not", () => {

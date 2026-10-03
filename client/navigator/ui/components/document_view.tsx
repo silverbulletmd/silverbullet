@@ -203,6 +203,7 @@ function DocumentContent({
   const { markdown = "", node, error } = state ?? {};
   return (
     <PageWidgetFrame
+      client={client}
       name={frame.name}
       meta={meta}
       slot={frame.slot}
@@ -636,6 +637,7 @@ function DocumentRows({
   if (!error && !rows?.length) return null;
   return (
     <PageWidgetFrame
+      client={client}
       name={frame.name}
       meta={meta}
       slot={frame.slot}

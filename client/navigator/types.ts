@@ -3,6 +3,7 @@ import type {
   Decoration,
   Row,
 } from "../../plug-api/ui/tree_types.ts";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 export type { ActionMeta, Decoration, Row };
 
@@ -80,6 +81,7 @@ export type TableColumn = {
 export type ViewMeta = {
   name: string;
   title: string;
+  definition?: Ref;
   label?: string;
   placeholder?: string;
   helpText?: string;

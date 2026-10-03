@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import type { Client } from "../../../client.ts";
 import { closeView, setViewCollapsed } from "../../navigator.ts";
 import {
   activateOnKey,
@@ -7,7 +8,7 @@ import {
   toggleCollapsed,
 } from "../../page_widget_logic.ts";
 import type { ViewMeta } from "../../types.ts";
-import { CloseIcon } from "./chrome_icons.tsx";
+import { CloseIcon, EditIcon } from "./chrome_icons.tsx";
 import { DockMenu } from "./dock_menu.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
 
@@ -22,6 +23,7 @@ import { LoadingIndicator } from "./loading_indicator.tsx";
  * `nav_root.tsx` and never comes through here.
  */
 function WidgetBar({
+  client,
   name,
   meta,
   slot,
@@ -31,6 +33,7 @@ function WidgetBar({
   collapsed,
   onToggleCollapsed,
 }: {
+  client: Pick<Client, "navigate">;
   name: string;
   meta: ViewMeta;
   slot: string;
@@ -75,6 +78,17 @@ function WidgetBar({
       </span>
       <span className="sb-page-widget-tools">
         {loading && <LoadingIndicator />}
+        {meta.definition && (
+          <button
+            type="button"
+            className="sb-nav-edit"
+            title="Edit definition"
+            aria-label="Edit definition"
+            onClick={() => void client.navigate(meta.definition!)}
+          >
+            <EditIcon />
+          </button>
+        )}
         {tools}
         <DockMenu
           name={name}
@@ -148,6 +162,7 @@ export function useCollapsed(
  * is what lets the slot re-measure to the bar's own height.
  */
 export function PageWidgetFrame({
+  client,
   name,
   meta,
   slot,
@@ -161,6 +176,7 @@ export function PageWidgetFrame({
   hasBody,
   children,
 }: {
+  client: Pick<Client, "navigate">;
   name: string;
   meta: ViewMeta;
   slot: string;
@@ -191,6 +207,7 @@ export function PageWidgetFrame({
       tabIndex={-1}
     >
       <WidgetBar
+        client={client}
         name={name}
         meta={meta}
         slot={slot}

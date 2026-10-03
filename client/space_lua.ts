@@ -1,6 +1,12 @@
 import type { System } from "./plugos/system.ts";
 import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
-import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
+import {
+  LuaEnv,
+  LuaFunction,
+  luaFunctionInfo,
+  LuaRuntimeError,
+  LuaStackFrame,
+} from "./space_lua/runtime.ts";
 import { parseBlock, parseExpressionString } from "./space_lua/parse.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import {
@@ -164,4 +170,16 @@ export function resolveASTReference(ctx?: ASTCtx): Ref | null {
   }
 
   return ref;
+}
+
+export function luaDefinitionRef(fn: unknown): Ref | null {
+  const info =
+    fn instanceof LuaFunction
+      ? fn.info
+      : typeof fn === "function"
+        ? (fn as typeof fn & { [luaFunctionInfo]?: LuaFunction["info"] })[
+            luaFunctionInfo
+          ]
+        : undefined;
+  return info?.kind === "lua" ? resolveASTReference(info.source) : null;
 }

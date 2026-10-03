@@ -54,7 +54,7 @@ export type LuaWidgetContent =
     }
   | string;
 
-export interface LuaWidgetOptions {
+export type LuaWidgetOptions = {
   client: Client;
   /** Key to use for caching */
   cacheKey: string;
@@ -71,7 +71,11 @@ export interface LuaWidgetOptions {
   bakeable?: boolean;
   renderEmpty?: boolean;
   openRef?: Ref | null;
-}
+  editRef?: Ref | null;
+};
+
+const editIcon =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
 
 export class LuaWidget extends WidgetType {
   public dom?: HTMLElement;
@@ -91,6 +95,7 @@ export class LuaWidget extends WidgetType {
       codeText: "",
       renderEmpty: false,
       openRef: null,
+      editRef: null,
       ...opts,
     };
     if (this.opts.inPage) {
@@ -427,7 +432,7 @@ export class LuaWidget extends WidgetType {
     if (typeof html === "string") {
       html = parseHtmlString(html);
     }
-    if (!isBlock) {
+    if (!isBlock && (this.opts.inPage || !this.opts.editRef)) {
       return html;
     }
     const container = document.createElement("div");
@@ -525,7 +530,7 @@ export class LuaWidget extends WidgetType {
       buttonBar.appendChild(
         createButton({
           title: "Edit",
-          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+          icon: editIcon,
           listener: (e) => {
             e.stopPropagation();
             moveCursorToWidgetStart(
@@ -533,6 +538,19 @@ export class LuaWidget extends WidgetType {
               this.dom!,
               this.opts.codeText,
             );
+          },
+        }),
+      );
+    }
+
+    if (!this.opts.inPage && this.opts.editRef) {
+      buttonBar.appendChild(
+        createButton({
+          title: "Edit",
+          icon: editIcon,
+          listener: (e) => {
+            e.stopPropagation();
+            void this.opts.client.navigate(this.opts.editRef!);
           },
         }),
       );

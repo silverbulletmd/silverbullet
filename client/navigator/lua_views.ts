@@ -1,4 +1,5 @@
 import { normalizeDescription } from "../../plug-api/ui/description.ts";
+import { luaDefinitionRef } from "../space_lua.ts";
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
@@ -587,6 +588,11 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
   return {
     name,
     title: truthy(title) ? title : name,
+    definition:
+      luaDefinitionRef(field(spec, "content")) ??
+      luaDefinitionRef(field(spec, "source")) ??
+      luaDefinitionRef(field(spec, "onSelect")) ??
+      undefined,
     label: toJS(field(spec, "label")),
     placeholder: toJS(field(spec, "placeholder")),
     helpText: toJS(field(spec, "helpText")),

@@ -10,6 +10,7 @@ import {
   renderPageSlot,
   unmountPageSlot,
 } from "../navigator/ui/components/page_widget.tsx";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 class ArrayWidget extends WidgetType {
   public dom?: HTMLElement;
@@ -26,7 +27,9 @@ class ArrayWidget extends WidgetType {
   constructor(
     readonly client: Client,
     readonly cacheKey: string,
-    readonly callback: (pageName: string) => Promise<LuaWidgetContent[] | null>,
+    readonly callback: (
+      pageName: string,
+    ) => Promise<{ value: LuaWidgetContent; definition: Ref | null }[] | null>,
     readonly childClass: string,
   ) {
     super();
@@ -74,7 +77,7 @@ class ArrayWidget extends WidgetType {
 
     const renderedWidgets: HTMLElement[] = [];
 
-    for (const [i, widgetContent] of content.entries()) {
+    for (const [i, { value: widgetContent, definition }] of content.entries()) {
       // Filter out any "empty" widgets. Leaving the content empty, but
       // returning a valid widgets, seems to be a common pattern
       if (
@@ -93,6 +96,7 @@ class ArrayWidget extends WidgetType {
         expressionText: "",
         callback: () => Promise.resolve(widgetContent),
         inPage: false,
+        editRef: definition,
       });
 
       const wrapper = widget.toDOM();
@@ -227,7 +231,8 @@ export function postScriptPrefacePlugin(editor: Client) {
         widget: new ArrayWidget(
           editor,
           `top:lua:${editor.currentPath()}`,
-          async () => await client.dispatchAppEvent("hooks:renderTopWidgets"),
+          async () =>
+            await client.dispatchAppEventWithSources("hooks:renderTopWidgets"),
           "sb-lua-top-widget",
         ),
         side: -1,
@@ -241,7 +246,9 @@ export function postScriptPrefacePlugin(editor: Client) {
           editor,
           `bottom:lua:${editor.currentPath()}`,
           async () =>
-            await client.dispatchAppEvent("hooks:renderBottomWidgets"),
+            await client.dispatchAppEventWithSources(
+              "hooks:renderBottomWidgets",
+            ),
           "sb-lua-bottom-widget",
         ),
         side: 1,

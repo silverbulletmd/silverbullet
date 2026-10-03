@@ -3,6 +3,11 @@ import type { EventHookI } from "../eventhook.ts";
 import type { EventSubscription } from "@silverbulletmd/silverbullet/type/event";
 import { LuaStackFrame, luaValueToJS } from "../../space_lua/runtime.ts";
 import type { Client } from "../../client.ts";
+import { luaDefinitionRef } from "../../space_lua.ts";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+
+export const listenerDefinition = Symbol("listenerDefinition");
+export type DefinedListener = Function & { [listenerDefinition]?: Ref | null };
 
 export function eventSyscalls(
   eventHook: EventHookI,
@@ -38,13 +43,13 @@ export function eventSyscalls(
      */
     "event.listen": {
       callback: (_ctx, def: EventSubscription) => {
-        client.config.insert(
-          ["eventListeners", def.name],
-          async (...args: any[]) => {
-            const val = await def.run(...args);
-            return luaValueToJS(val, LuaStackFrame.lostFrame);
-          },
-        );
+        const definition = luaDefinitionRef(def.run);
+        const listener = async (...args: any[]) => {
+          const val = await def.run(...args);
+          return luaValueToJS(val, LuaStackFrame.lostFrame);
+        };
+        (listener as DefinedListener)[listenerDefinition] = definition;
+        client.config.insert(["eventListeners", def.name], listener);
       },
       description: "Registers a Space Lua listener on the event bus.",
       parameters: [

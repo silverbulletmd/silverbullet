@@ -90,6 +90,7 @@ import {
   luaValueToJS,
 } from "./space_lua/runtime.ts";
 import { resolveASTReference } from "./space_lua.ts";
+import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { getOrCreateClientId } from "./spaces/client_id.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -695,6 +696,13 @@ export class Client {
 
   dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
     return this.eventHook.dispatchEvent(name, ...args);
+  }
+
+  dispatchAppEventWithSources(
+    name: AppEvent,
+    ...args: any[]
+  ): Promise<EventResultWithSource[]> {
+    return this.eventHook.dispatchEventWithSources(name, ...args);
   }
 
   dispatchClickEvent(clickEvent: ClickEvent) {

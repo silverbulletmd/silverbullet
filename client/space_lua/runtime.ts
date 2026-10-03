@@ -12,6 +12,7 @@ import type {
 } from "../../plug-api/types/index.ts";
 
 let boundaryBudgetFactory: (() => LuaBudget) | undefined;
+export const luaFunctionInfo = Symbol("luaFunctionInfo");
 
 export function setBoundaryBudgetFactory(
   f: (() => LuaBudget) | undefined,
@@ -1825,7 +1826,7 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     value instanceof LuaFunction ||
     value instanceof LuaBuiltinFunction
   ) {
-    return (...args: any[]) => {
+    const fn = (...args: any[]) => {
       // A converted closure captures one frame forever; without a fresh
       // thread state per call, every invocation would share one budget.
       const boundaryBudget = boundaryBudgetFactory?.();
@@ -1868,6 +1869,12 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
         throw e;
       }
     };
+    if (value instanceof LuaFunction) {
+      (fn as typeof fn & { [luaFunctionInfo]: LuaFunctionInfo })[
+        luaFunctionInfo
+      ] = value.info;
+    }
+    return fn;
   }
   if (isTaggedFloat(value)) {
     return value.value;

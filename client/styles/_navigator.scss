@@ -194,6 +194,7 @@
 }
 
 .sb-nav-copy,
+.sb-nav-edit,
 .sb-dock-button,
 .sb-page-widget-tools .sb-nav-close,
 .sb-nav-header-row .sb-nav-close {
@@ -211,11 +212,13 @@
   cursor: pointer;
 }
 
-.sb-nav-copy {
+.sb-nav-copy,
+.sb-nav-edit {
   color: var(--subtle-color);
 }
 
-.sb-nav-copy:hover {
+.sb-nav-copy:hover,
+.sb-nav-edit:hover {
   color: var(--modal-header-label-color);
 }
 

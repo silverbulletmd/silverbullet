@@ -3,6 +3,10 @@ import type { System } from "../system.ts";
 import type { EventHookI } from "../eventhook.ts";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import type { Config } from "../../config.ts";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import { listenerDefinition, type DefinedListener } from "../syscalls/event.ts";
+
+export type EventResultWithSource = { value: any; definition: Ref | null };
 
 // System events:
 // - plug:load (plugName: string)
@@ -66,22 +70,33 @@ export class EventHook implements EventHookI {
   }
 
   async dispatchEvent(eventName: string, ...args: any[]): Promise<any[]> {
-    return this.dispatch(eventName, args, false);
+    return (await this.dispatch(eventName, args, false)).map(
+      ({ value }) => value,
+    );
   }
 
   async dispatchEventStrict(eventName: string, ...args: any[]): Promise<any[]> {
-    return this.dispatch(eventName, args, true);
+    return (await this.dispatch(eventName, args, true)).map(
+      ({ value }) => value,
+    );
+  }
+
+  async dispatchEventWithSources(
+    eventName: string,
+    ...args: any[]
+  ): Promise<EventResultWithSource[]> {
+    return this.dispatch(eventName, args, false);
   }
 
   private async dispatch(
     eventName: string,
     args: any[],
     strict: boolean,
-  ): Promise<any[]> {
+  ): Promise<EventResultWithSource[]> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    const promises: Promise<any>[] = [];
+    const promises: { promise: Promise<any>; definition: Ref | null }[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       const manifest = plug.manifest;
       for (const [name, functionDef] of Object.entries(manifest!.functions)) {
@@ -92,8 +107,9 @@ export class EventHook implements EventHookI {
               eventNameToRegex(event).test(eventName)
             ) {
               if (plug.canInvoke(name)) {
-                promises.push(
-                  (async () => {
+                promises.push({
+                  definition: null,
+                  promise: (async () => {
                     try {
                       return await plug.invoke(name, args);
                     } catch (e: any) {
@@ -103,7 +119,7 @@ export class EventHook implements EventHookI {
                       throw e;
                     }
                   })(),
-                );
+                });
               }
             }
           }
@@ -114,25 +130,25 @@ export class EventHook implements EventHookI {
     for (const [name, localListeners] of this.localListeners) {
       if (eventNameToRegex(name).test(eventName)) {
         for (const localListener of localListeners) {
-          promises.push(
-            (async () => {
+          promises.push({
+            definition: null,
+            promise: (async () => {
               return await Promise.resolve(localListener(...args));
             })(),
-          );
+          });
         }
       }
     }
 
     if (this.config) {
-      const configListeners: Record<string, Function[]> = this.config.get(
-        "eventListeners",
-        {},
-      );
+      const configListeners: Record<string, DefinedListener[]> =
+        this.config.get("eventListeners", {});
       for (const [name, listeners] of Object.entries(configListeners)) {
         if (eventNameToRegex(name).test(eventName)) {
           for (const listener of listeners) {
-            promises.push(
-              (async () => {
+            promises.push({
+              definition: listener[listenerDefinition] ?? null,
+              promise: (async () => {
                 return await Promise.resolve(
                   listener({
                     name: eventName,
@@ -141,19 +157,25 @@ export class EventHook implements EventHookI {
                   }),
                 );
               })(),
-            );
+            });
           }
         }
       }
     }
 
-    const settled = await Promise.allSettled(promises);
+    const settled = await Promise.allSettled(
+      promises.map(({ promise }) => promise),
+    );
     if (strict) {
       const failure = settled.find((result) => result.status === "rejected");
       if (failure?.status === "rejected") throw failure.reason;
     }
     return settled
-      .filter((result) => {
+      .map((result, index) => ({
+        result,
+        definition: promises[index].definition,
+      }))
+      .filter(({ result }) => {
         if (result.status === "rejected") {
           console.error(
             "Error while dispatching event",
@@ -164,8 +186,11 @@ export class EventHook implements EventHookI {
         }
         return result.status === "fulfilled";
       })
-      .map((result) => result.value)
-      .filter((result) => result != null); // This keeps non-null/undefined results
+      .map(({ result, definition }) => ({
+        value: result.status === "fulfilled" ? result.value : undefined,
+        definition,
+      }))
+      .filter(({ value }) => value != null); // This keeps non-null/undefined results
   }
 
   apply(system: System<EventHookT>): void {
