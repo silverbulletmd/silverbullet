@@ -29,7 +29,7 @@ export function cleanModePlugins(client: Client) {
     cleanWikiLinkPlugin(client),
     hashtagPlugin(client),
     atMentionPlugin(),
-    attributePlugin(),
+    attributePlugin(client),
     frontmatterPlugin(client),
     customSyntaxPlugin(client),
   ];
