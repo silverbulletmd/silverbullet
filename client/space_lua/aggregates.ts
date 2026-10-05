@@ -24,13 +24,13 @@ import type { Config } from "../config.ts";
 import { coerceToNumber, isTaggedFloat } from "./numeric.ts";
 import YAML from "js-yaml";
 
-export interface AggregateSpec {
+export type AggregateSpec = {
   name: string;
   description?: string;
   initialize: LuaValue; // ILuaFunction
   iterate: LuaValue; // ILuaFunction
   finish?: LuaValue; // ILuaFunction | undefined
-}
+};
 
 // Helper to build an ILuaFunction from a plain function.  Equivalent to
 // LuaBuiltinFunction but without referencing the class.
@@ -54,11 +54,11 @@ function unboxValue(value: LuaValue): LuaValue {
 }
 
 // Welford's online algorithm (for variance and standard deviation)
-interface WelfordState {
+type WelfordState = {
   n: number;
   mean: number;
   m2: number;
-}
+};
 
 function welfordInit(): WelfordState {
   return { n: 0, mean: 0, m2: 0 };
@@ -119,11 +119,11 @@ type QuantileMethod =
   | "nearest"
   | "midpoint";
 
-interface QuantileState {
+type QuantileState = {
   values: number[];
   q: number;
   method: QuantileMethod;
-}
+};
 
 const quantileNameDefaults: Record<string, QuantileMethod> = {
   percentile_cont: "linear",

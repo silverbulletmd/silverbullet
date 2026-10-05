@@ -2,10 +2,10 @@ import type { NumericType } from "./ast.ts";
 import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaTypeName } from "./runtime.ts";
 
-export interface LuaTaggedFloat {
+export type LuaTaggedFloat = {
   readonly value: number;
   readonly isFloat: true;
-}
+};
 
 const FLOAT_POS_ZERO: LuaTaggedFloat = { value: 0, isFloat: true };
 const FLOAT_NEG_ZERO: LuaTaggedFloat = { value: -0, isFloat: true };

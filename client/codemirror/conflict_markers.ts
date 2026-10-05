@@ -38,22 +38,22 @@ const SB_END_PREFIX = ">>>>>>> SB sha256:";
 
 export type ConflictKind = "sb" | "git";
 
-export interface ConflictSection {
+export type ConflictSection = {
   from: number;
   to: number;
   hash: string;
   label?: string;
   text: string;
-}
+};
 
-export interface ConflictHunk {
+export type ConflictHunk = {
   from: number;
   to: number;
   kind: ConflictKind;
   first: ConflictSection;
   base?: ConflictSection;
   second: ConflictSection;
-}
+};
 
 export type ConflictResolveAction = "first" | "second" | "both" | "base";
 
@@ -65,12 +65,12 @@ function splitLabel(rest: string): string {
   return rest.startsWith(" ") ? rest.slice(1) : rest;
 }
 
-interface MarkerMatch {
+type MarkerMatch = {
   markerSize: number;
   kind: ConflictKind;
   hash: string;
   label?: string;
-}
+};
 
 function matchStartLine(lineText: string): MarkerMatch | null {
   const stripped = stripTrailingCR(lineText);

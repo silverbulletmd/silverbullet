@@ -1,13 +1,13 @@
 export const MANAGED_MARKER = "-- managed-by: configuration-manager";
 
-export interface ManagedBlock {
+export type ManagedBlock = {
   /** Start index of the opening ``` fence line in the full text */
   start: number;
   /** End index (exclusive) of the closing ``` fence line */
   end: number;
   /** The content inside the fences (without the fences themselves) */
   innerContent: string;
-}
+};
 
 /**
  * Find the managed space-lua block in a CONFIG.md text.

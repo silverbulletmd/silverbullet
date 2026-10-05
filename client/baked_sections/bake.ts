@@ -2,11 +2,11 @@ import type { Client } from "../client.ts";
 import { expressionToPortableMarkdown } from "../space_lua/render_widget.ts";
 import { escapeBakedBody, findBakedSections } from "./regions.ts";
 
-interface BodyEdit {
+type BodyEdit = {
   from: number;
   to: number;
   insert: string;
-}
+};
 
 /**
  * Compute the body replacements needed to (re-)bake every baked section in

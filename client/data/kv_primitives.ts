@@ -4,7 +4,7 @@ export type KvQueryOptions = {
   prefix?: KvKey;
 };
 
-export interface KvPrimitives {
+export type KvPrimitives = {
   batchGet(keys: KvKey[]): Promise<(any | undefined)[]>;
 
   batchSet(entries: KV[]): Promise<void>;
@@ -22,4 +22,4 @@ export interface KvPrimitives {
   clear(): Promise<void>;
 
   close(): void;
-}
+};

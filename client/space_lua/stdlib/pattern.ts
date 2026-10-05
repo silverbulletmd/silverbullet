@@ -32,12 +32,12 @@ const MAX_MATCH_DEPTH = 200;
 const CAP_UNFINISHED = -1;
 const CAP_POSITION = -2;
 
-interface Capture {
+type Capture = {
   init: number;
   len: number;
-}
+};
 
-export interface MatchState {
+export type MatchState = {
   src: string;
   s: Uint16Array;
   slen: number;
@@ -46,7 +46,7 @@ export interface MatchState {
   level: number;
   capture: Capture[]; // pre-allocated, length `MAX_CAPTURES`
   matchdepth: number;
-}
+};
 
 function toCodeUnits(s: string): Uint16Array {
   const len = s.length;
@@ -434,11 +434,11 @@ function noSpecials(p: string): boolean {
 
 export type CaptureResult = { s: string } | { position: number };
 
-interface RawCapture {
+type RawCapture = {
   kind: 0 | 1; // 0 = string slice, 1 = position
   start: number;
   len: number; // kind = 0: substring length; kind = 1: 1-based position
-}
+};
 
 function getOneRawCapture(
   ms: MatchState,
@@ -622,13 +622,13 @@ function expandReplacementString(
   return parts.join("");
 }
 
-export interface GsubCallbacks {
+export type GsubCallbacks = {
   replString?: string;
   replFunction?: (
     ...captures: CaptureResult[]
   ) => Promise<string | null | undefined> | string | null | undefined;
   replTable?: (key: string) => string | null | undefined;
-}
+};
 
 export async function patternGsub(
   s: string,

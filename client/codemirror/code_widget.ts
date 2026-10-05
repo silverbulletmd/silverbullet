@@ -1,6 +1,6 @@
 export const activeWidgets = new Set<DomWidget>();
 
-export interface DomWidget {
+export type DomWidget = {
   dom?: HTMLElement;
   destroy?(): void;
 
@@ -12,7 +12,7 @@ export interface DomWidget {
     div: HTMLElement,
     cachedHtml: string | undefined,
   ): Promise<void>;
-}
+};
 
 export async function reloadAllWidgets() {
   for (const widget of [...activeWidgets]) {

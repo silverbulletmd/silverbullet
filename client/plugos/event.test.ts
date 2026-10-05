@@ -1,14 +1,14 @@
 import { expect, test } from "vitest";
 import { EventEmitter } from "./event.ts";
 
-interface TestEvents {
+type TestEvents = {
   message: (content: string) => void | Promise<void>;
   count: (num: number) => void | Promise<void>;
   multi: (a: string, b: number, c: boolean) => void | Promise<void>;
   async: () => void | Promise<void>;
   sync: () => void | Promise<void>;
   error: () => void | Promise<void>;
-}
+};
 
 class TestEventEmitter extends EventEmitter<TestEvents> {}
 

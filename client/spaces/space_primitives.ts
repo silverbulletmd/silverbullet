@@ -3,7 +3,7 @@ import type { FileMeta } from "../../plug-api/types/index.ts";
 /**
  * A generic interface used by `Space` to interact with the underlying storage, designed to be easy to implement for different storage backends
  */
-export interface SpacePrimitives {
+export type SpacePrimitives = {
   fetchFileList(): Promise<FileMeta[]>;
 
   /**
@@ -27,4 +27,4 @@ export interface SpacePrimitives {
   ): Promise<FileMeta>;
 
   deleteFile(path: string): Promise<void>;
-}
+};

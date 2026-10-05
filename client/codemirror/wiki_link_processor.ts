@@ -38,14 +38,14 @@ function pageByPath(allPages: PageMeta[]): Map<string, PageMeta> {
   return map;
 }
 
-export interface WikiLinkMatch {
+export type WikiLinkMatch = {
   leadingTrivia: string;
   stringRef: string;
   alias?: string;
   trailingTrivia: string;
-}
+};
 
-export interface WikiLinkProcessorOptions {
+export type WikiLinkProcessorOptions = {
   from: number;
   to: number;
   match: WikiLinkMatch;
@@ -55,7 +55,7 @@ export interface WikiLinkProcessorOptions {
   state: EditorState;
   shortWikiLinks: boolean;
   callback: (e: MouseEvent, ref: any) => void;
-}
+};
 
 export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   const { from, to, match, matchFrom, matchTo, client, state, callback } =

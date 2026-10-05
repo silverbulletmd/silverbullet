@@ -2,13 +2,13 @@ import type { KvPrimitives } from "../data/kv_primitives.ts";
 import type { Plug } from "./plug.ts";
 import type { Manifest } from "./types.ts";
 
-export interface ManifestCache<T> {
+export type ManifestCache<T> = {
   getManifest(
     plug: Plug<T>,
     cacheKey: string,
     cacheHash: number,
   ): Promise<Manifest<T>>;
-}
+};
 
 export class KVPrimitivesManifestCache<T> implements ManifestCache<T> {
   constructor(

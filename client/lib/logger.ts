@@ -1,10 +1,10 @@
 // Logger that monkey patches console methods with prefixes and can capture logs for server transmission
 
-export interface LogEntry {
+export type LogEntry = {
   level: "log" | "info" | "warn" | "error" | "debug";
   timestamp: number;
   message: string;
-}
+};
 
 export class Logger {
   private originalConsole: {

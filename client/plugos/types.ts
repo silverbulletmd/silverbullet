@@ -4,7 +4,7 @@ import type { AssetJson } from "../asset_bundle/bundle.ts";
 /** The generic top level of a plug manifest file.
  * Defines plug metadata and functions.
  */
-export interface Manifest<HookT> {
+export type Manifest<HookT> = {
   /** The plug's name. Typically this is the name of the manifest file, without the file extension. */
   name: string;
 
@@ -42,7 +42,7 @@ export interface Manifest<HookT> {
    * which runs esbuild in bundle mode on `in` and writes the result to `out`.
    */
   build?: BuildStep[];
-}
+};
 
 /** A pre-asset-bundling transformation, e.g. bundling a TypeScript entry point
  * into a single JS file that is then loaded from plug assets.
@@ -52,14 +52,14 @@ export interface Manifest<HookT> {
  *   - `sass`: compile an SCSS/SASS file at `in` to CSS at `out`.
  *   - `copy`: copy `in` verbatim to `out`.
  */
-export interface BuildStep {
+export type BuildStep = {
   /** Transformation type. Defaults to "esbuild" when omitted. */
   type?: "esbuild" | "sass" | "copy";
   /** Input path relative to the manifest. */
   in: string;
   /** Output path relative to the manifest. */
   out: string;
-}
+};
 
 /** Associates hooks with a function. This is the generic base structure, that identifies the function. Hooks are defined by the type parameter. */
 export type FunctionDef<HookT> = {
@@ -78,8 +78,8 @@ export type FunctionDef<HookT> = {
   env?: string;
 } & HookT;
 
-export interface Hook<HookT> {
+export type Hook<HookT> = {
   validateManifest(manifest: Manifest<HookT>): string[];
 
   apply(system: System<HookT>): void;
-}
+};

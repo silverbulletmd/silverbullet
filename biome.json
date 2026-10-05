@@ -19,7 +19,11 @@
         "useIterableCallbackReturn": "off"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": { "style": "type" }
+        }
       },
       "complexity": {
         "noBannedTypes": "off"

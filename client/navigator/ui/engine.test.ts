@@ -7,18 +7,10 @@ const handle = vi.fn<(data: any) => Promise<any>>();
 vi.mock("@silverbulletmd/silverbullet/syscall", () => ({
   syscall: (name: string, ...args: any[]) => syscall(name, ...args),
 }));
-vi.mock("../registry.ts", () => ({
+vi.mock("../registry.ts", async (importOriginal) => ({
   handle: (data: any) => handle(data),
-  // Use the real pure result-shaping code to validate the content path.
-  normalizeContent: (result: any) =>
-    result && typeof result.error === "string"
-      ? { error: result.error }
-      : result?.widget
-        ? { widget: result.widget }
-        : {
-            markdown:
-              typeof result?.markdown === "string" ? result.markdown : "",
-          },
+  normalizeContent: (await importOriginal<typeof import("../registry.ts")>())
+    .normalizeContent,
 }));
 
 const { NavigatorEngine, parseIcon } = await import("./engine.ts");

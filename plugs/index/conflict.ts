@@ -42,10 +42,10 @@ function isSeparator(line: string): boolean {
   return stripTrailingCR(line) === SEPARATOR_LINE;
 }
 
-interface DocLine {
+type DocLine = {
   text: string;
   from: number;
-}
+};
 
 function splitLines(text: string): DocLine[] {
   const lines: DocLine[] = [];

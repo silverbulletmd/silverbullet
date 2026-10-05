@@ -86,7 +86,7 @@ export class SyncSnapshot {
   }
 }
 
-interface ConditionalSecondary {
+type ConditionalSecondary = {
   writeFileConditional(
     path: string,
     data: Uint8Array,
@@ -97,7 +97,7 @@ interface ConditionalSecondary {
     path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta; remoteHash?: string }>;
   deleteFileConditional(path: string, expectedHash?: string): Promise<void>;
-}
+};
 
 function asConditional(
   secondary: SpacePrimitives,

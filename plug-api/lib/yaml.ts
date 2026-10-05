@@ -1,8 +1,8 @@
-export interface YamlPatch {
+export type YamlPatch = {
   op: "set-key" | "delete-key";
   path: string; // Top-level key names only
   value?: any; // Required for set-key, not used for delete-key
-}
+};
 
 function serializeToYamlScalar(
   value: string | number | boolean | null,

@@ -40,27 +40,27 @@ export type LuaFunctionDefinition<Callback> = {
   callback: Callback;
 } & LuaFunctionDefinitionMetadata;
 
-export interface ILuaFunction {
+export type ILuaFunction = {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
 
   asString(): string;
 
   info?: LuaFunctionInfo;
-}
+};
 
-export interface ILuaSettable {
+export type ILuaSettable = {
   set(
     key: LuaValue,
     value: LuaValue,
     sf?: LuaStackFrame,
     numType?: NumericType,
   ): void | Promise<void>;
-}
+};
 
-export interface ILuaGettable {
+export type ILuaGettable = {
   get(key: LuaValue, sf?: LuaStackFrame): LuaValue | Promise<LuaValue> | null;
   getNumericType?(key: LuaValue): NumericType | undefined;
-}
+};
 
 export function isILuaFunction(v: unknown): v is ILuaFunction {
   return !!v && typeof (v as any).call === "function";

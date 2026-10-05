@@ -9,9 +9,9 @@ import {
 } from "../../plugs/builtin_plugs.ts";
 import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
 
-export interface SysCallMapping {
+export type SysCallMapping = {
   [key: string]: SyscallSignature | SyscallDefinition;
-}
+};
 
 export type SystemEvents<HookT> = {
   plugLoaded: (plug: Plug<HookT>) => void | Promise<void>;

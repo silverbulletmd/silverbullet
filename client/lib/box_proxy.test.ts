@@ -99,9 +99,9 @@ test("Test LateBinder - complex object interactions", () => {
 });
 
 test("Test LateBinder - target switching with different interfaces", () => {
-  interface Calculator {
+  type Calculator = {
     add(a: number, b: number): number;
-  }
+  };
 
   const calc1: Calculator = {
     add: (a, b) => a + b,

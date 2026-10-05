@@ -28,16 +28,16 @@ type KOption =
   | "paddalign"
   | "nop";
 
-interface ParsedOption {
+type ParsedOption = {
   opt: KOption;
   size: number; // byte width
   ntoalign: number; // padding bytes before this field
-}
+};
 
-interface Header {
+type Header = {
   islittle: boolean;
   maxalign: number;
-}
+};
 
 function makeHeader(): Header {
   return { islittle: NATIVE_LITTLE, maxalign: NATIVE_MAXALIGN };

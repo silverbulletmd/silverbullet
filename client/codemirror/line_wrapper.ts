@@ -3,11 +3,11 @@ import { Decoration } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { decoratorStateField } from "./util.ts";
 
-interface WrapElement {
+type WrapElement = {
   selector: string;
   class: string;
   nesting?: boolean;
-}
+};
 
 export function lineWrapper(wrapElements: WrapElement[]) {
   return decoratorStateField((state: EditorState) => {

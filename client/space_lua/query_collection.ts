@@ -162,14 +162,14 @@ export type LuaCollectionQuery = {
   having?: LuaExpression;
 };
 
-export interface LuaQueryCollection {
+export type LuaQueryCollection = {
   query(
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
     config?: Config,
   ): Promise<any[]>;
-}
+};
 
 export class ArrayQueryCollection<T> implements LuaQueryCollection {
   constructor(private readonly array: T[]) {}

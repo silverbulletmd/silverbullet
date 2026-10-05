@@ -9,7 +9,7 @@ const CLOSE_MARKER = "<!--/lua-->";
  *  so it stops at the first `-->`). Global: callers reset lastIndex. */
 const OPEN_RE = /<!--#lua\s+([\s\S]*?)-->/g;
 
-export interface BakedSection {
+export type BakedSection = {
   // The Lua expression text from the opening marker, trimmed.
   expr: string;
   // Document offset at the start of the opening `<!--#lua` marker.
@@ -20,7 +20,7 @@ export interface BakedSection {
   bodyFrom: number;
   // Document offset at the start of the closing `<!--/lua-->` marker.
   bodyTo: number;
-}
+};
 
 /**
  * Find every baked sectionin `text`.
