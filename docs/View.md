@@ -4,9 +4,21 @@ tags: maturity/beta
 references:
 - client/navigator/*
 ---
-A **view** displays a collection of [[Object|objects]] as a list or tree, or renders Markdown content. Views can appear inline within a page, in a modal, in a sidebar or bottom panel, or above and below the document.
+A **view** shows a widget — a list, tree or table of [[Object|objects]], Markdown, or HTML — in a modal, in a sidebar or bottom panel, or above and below the document. The same widgets can also appear inline within a page.
 
-The [[Page Picker]] and [[Command Palette]] use views for navigation. Other views show task lists, linked mentions, or custom content with action buttons. You can create your own with [[Space Lua]] and [[API/view]].
+The [[Page Picker]] and [[Command Palette]] use views for navigation. Other views show task lists, linked mentions, or custom content with action buttons. You can create your own with [[Space Lua]], [[API/widget]] and [[API/view]].
+
+# Widgets and views
+A [[Widget]] is *what* gets shown: a value describing something renderable — Markdown, HTML, or a live list, tree or table of objects. You create one with `widget.new` (or a shortcut like `widget.markdown`), and it has no name and remembers nothing.
+
+A **view** is *where* it’s shown. `view.define` places a widget in a dock — a modal, a sidebar, the bottom panel, or above or below the page — gives it a name, and lets readers move, close or fold it, remembering their choice.
+
+The same widget can appear in a `${…}` expression inside a page *or* be docked by a view. Rule of thumb: if it belongs to the page text, write a `${…}` expression; if it belongs to your space and readers should be able to move it or turn it off, define a view.
+
+| Placement | Placed by | Has a name | Readers can move or close it |
+|---|---|---|---|
+| `${…}`, fenced code, frontmatter preview | the page text | no — its position is its handle | only by editing the text |
+| `view.define` dock | your space or a library | yes | yes, and the choice is remembered |
 
 # Built-in views
 * [[Page Picker]]: `Cmd-k`/`Ctrl-k`. The whole space as a modal list, most recently opened first.
@@ -19,10 +31,10 @@ The [[Page Picker]] and [[Command Palette]] use views for navigation. Other view
 * ${widgets.commandButton("Navigate: Linked Tasks")}: incomplete tasks on *other* pages that link to the one you're on. Docks at the top of the page by default, open. Tick a task's checkbox right in the widget and the new state is written back to the page the task lives on. See [[Linked Tasks]].
 
 # Inline views
-Use `view.new` inside a `${...}` expression to render a view in a page:
+Use a live `widget.new` (one with a `source`) inside a `${...}` expression to render a list, tree or table in a page:
 
 ```markdown
-${view.new {
+${widget.new {
   source = function()
     return {
       { name = "Projects/Sketchbook" },
@@ -37,7 +49,7 @@ Inline views support row icons, descriptions, decorations, and custom action but
 
 Use `presentation = { mode = "table" }` to display source objects in a table with automatic columns and Markdown cells. Explicit column definitions let you choose attributes, labels, types, and display callbacks. Tables support the same selection and action callbacks as other views.
 
-For examples with actions and the full option reference, see [[API/view]]. Inline views can opt into a filter input; segments and docking controls belong to panels.
+For examples with actions and the full option reference, see [[API/widget#Live widgets]]. Inline views can opt into a filter input; segments and docking controls belong to panels.
 
 # Using a panel
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
@@ -84,7 +96,7 @@ view.define {
 
 In this flat row definition, `name`, `source` and `onSelect` are required; `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`.
 
-To reuse an inline value as a panel, pass it as `view` to `view.define`. See [[API/view#Registering a value]].
+To reuse a live widget as a panel, pass it as `widget` to `view.define`. See [[API/view#view.define(spec)]].
 
 # Docks
 `dock` decides where a view opens, out of six places:
@@ -92,9 +104,9 @@ To reuse an inline value as a panel, pass it as `view` to `view.define`. See [[A
 * `"modal"` (the default) is a centered overlay. It clears its phrase on open and dismisses when you pick something.
 * `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar holds one view at a time -- docking a second view there displaces whichever one was already showing, which comes back on its own once the newcomer moves away.
 * `"bhs"` is a persistent bottom panel below the editor. It is resizable by its top edge, the height is remembered per view, and it otherwise behaves like the sidebars.
-* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
+* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. With `frame = "minimal"` even those go: the body reads as page content and its buttons appear on hover. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
 
-A view's body is a list, a tree, or — for a [[API/view#content|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
+A view's body is a list, a tree, or — for a [[API/widget#Data and refresh|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 
 # The dock menu
 Any view whose `supportedDocks` lists more than one place gets a **dock menu**: a button in its header (sidebar/modal title bar, or page-widget bar) whose icon shows the current dock, opening a list of the places it can move to.

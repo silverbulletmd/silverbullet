@@ -6,7 +6,7 @@ references:
 - client/lib/feather_icons.ts
 ---
 
-The `icon` API renders icons as SVG markup, for [[Space Lua/Widget|widget]] HTML and other custom panel content that wants one without bundling an icon set of its own.
+The `icon` API renders icons as SVG markup, for [[Widget|widget]] HTML and other custom panel content that wants one without bundling an icon set of its own.
 
 <!--#lua spacelua.renderApiDocumentation("icon") -->
 ## icon.feather
@@ -44,6 +44,6 @@ Renders a batch of Feather icons to SVG markup in one round trip, so panels can 
 - `table` — Map of icon name to SVG markup.
 <!--/lua-->
 
-Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel's content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/view|view]] icons use internally — don't call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the view resolves them, lazily and in one batch per view refresh. See [[API/view#Row icons]].
+Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel's content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/view|view]] icons use internally — don't call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the view resolves them, lazily and in one batch per view refresh. See [[API/widget#Presentation]].
 
 [Feathericons.com](https://feathericons.com) lists the available names. The namespace is the point, not the implementation: `icon.feather`/`icon.resolveFeather` are the first of what could eventually be more than one icon set, each reached the same way (`icon.<set>...`) if and when a second one arrives — `icon.lucide`, say.

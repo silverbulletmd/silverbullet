@@ -27,6 +27,7 @@ Defines a tag explicitly.
 * `schema` [[Schema]] to validate against
 * `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
+* `renderFrontmatter` callback function `function(pageMeta)` that renders the [[Frontmatter]] of pages with this tag as a custom widget in the editor. See [[#Frontmatter live previews]].
 
 When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback.
 
@@ -130,6 +131,29 @@ The result is the following:
 |--|--|--|
 |Hello |false|2026-12-31|
 <!--/lua-->
+
+## Frontmatter live previews
+A tag can replace the YAML [[Frontmatter]] of its pages with a custom widget in the editor, e.g. a header card. `renderFrontmatter` receives `pageMeta`: the current (possibly unsaved) frontmatter values, plus the page's name in `pageMeta.name`. It returns a widget, typically built with `widget.htmlBlock` and the [[API/dom|dom]] API.
+
+```lua
+tag.define {
+  name = "team",
+  renderFrontmatter = function(pageMeta)
+    return widget.htmlBlock(dom.div {
+      class = "team-header",
+      pageMeta.name .. " · " .. (pageMeta.status or "Unknown status"),
+    })
+  end,
+}
+```
+
+How it behaves:
+* When multiple tags in a page’s `tags` field define a renderer, the first one wins. Without a renderer, frontmatter keeps its ordinary display and [[Frontmatter|folding]] behavior.
+* Click Edit, Alt-click the preview, or click its noninteractive space to reveal the YAML and edit it directly. The preview returns when the cursor leaves the frontmatter.
+* Go to definition (`</>`) jumps to the `renderFrontmatter` function.
+* Explicit Markdown syntax mode shows the source.
+
+For a full example, see the `adr` tag in [[CONFIG]], which renders every [[ADR]] as a decision card.
 
 ## Styling
 Tags get assigned a `data-tag-name` attribute in the DOM, which you can use to do custom styling with [[Space Style]].

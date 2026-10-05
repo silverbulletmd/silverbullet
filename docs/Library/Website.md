@@ -4,29 +4,26 @@ tags: meta
 Widgets, styles and navigation for the docs.silverbullet.md site and Desktop's built-in Help.
 
 ```space-lua
-event.listen {
-  name = "hooks:renderTopWidgets",
-  run = function(e)
+view.define {
+  name = "website.maturity",
+  dock = "page-top",
+  frame = "minimal",
+  content = function()
     local meta = editor.getCurrentPageMeta()
     if not meta then
       return
     end
-    local maturityTag = nil
     for _, tagName in ipairs(meta.tags) do
       if tagName:startsWith("maturity/") then
-        maturityTag = tagName
+        return widget.new {
+          markdown = spacelua.interpolate([==[
+**Note:** This is a #${maturityTag} feature. Feel free to use it, but it may change (significantly) in the future or potentially be replaced.
+]==], {maturityTag=tagName}),
+          cssClasses = {"website-warning"},
+        }
       end
     end
-    if maturityTag then
-      return widget.new {
-        markdown = spacelua.interpolate([==[
-**Note:** This is a #${maturityTag} feature. Feel free to use it, but it may change (significantly) in the future or potentially be replaced.
-]==], {maturityTag=maturityTag}),
-        cssClasses = {"website-warning"},
-        display = "block"
-      }
-    end
-  end
+  end,
 }
 ```
 
@@ -34,7 +31,7 @@ event.listen {
 .website-warning {
   background-color: #fff1d8;
   padding: 10px;
-  margin: 0px !important;
+  margin: 0;
 }
 
 html[data-theme="dark"] .website-warning {
@@ -310,7 +307,7 @@ view.define {
   supportedDocks = { "lhs", "rhs", "modal" },
   followEditor = true,
   placeholder = "Filter pages...",
-  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
+  refreshOn = { "index" },
   source = function()
     local pages = {}
     for _, page in ipairs(query[[from index.pages()]]) do

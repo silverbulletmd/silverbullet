@@ -157,7 +157,7 @@ Save a PNG of the runtime client to `file` (default `screenshot.png`), or write 
 ```bash
 sb eval 'editor.navigate("Projects")'
 sb screenshot projects.png
-sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'
+sb screenshot widget.png --selector '#sb-main .sb-page-slot-page-top'
 ```
 
 | Flag | Description |

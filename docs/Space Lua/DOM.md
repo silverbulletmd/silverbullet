@@ -102,4 +102,4 @@ dom.div {
 # How it works
 Under the hood, `dom` uses a Lua metatable so that any property access (e.g. `dom.span`) returns a constructor function. That function calls `js.window.document.createElement(tag)` and processes the spec table to set attributes, add event listeners, and append children.
 
-See also: [[API/dom]], [[API/widget]], [[Space Lua/Widget]]
+See also: [[API/dom]], [[API/widget]], [[Widget]]

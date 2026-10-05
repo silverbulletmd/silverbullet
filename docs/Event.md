@@ -60,8 +60,8 @@ Here is a list of built-in events triggered by SilverBullet's core:
 * `cron:secondPassed`: One second has passed (useful for implementing periodic behavior)
 
 ## Widget events
-* `hooks:renderTopWidgets`: Top widgets requested to render — return widgets to display above the page content
-* `hooks:renderBottomWidgets`: Bottom widgets requested to render — return widgets to display below the page content
+* `hooks:renderTopWidgets`: Top widgets requested to render — return widgets to display above the page content **Deprecated:** define a `page-top` view instead — see [[Widget#Showing a widget above or below every page]].
+* `hooks:renderBottomWidgets`: Bottom widgets requested to render — return widgets to display below the page content **Deprecated:** define a `page-bottom` view instead — see [[Widget#Showing a widget above or below every page]].
 
 # All subscribed events
 Here’s a dynamically generated list of events that this SilverBullet instance has subscribed to, to give a sense of what’s there:
