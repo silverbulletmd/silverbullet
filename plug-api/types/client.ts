@@ -109,6 +109,7 @@ export type AppEvent =
   | "editor:unfold"
   | "plugs:loaded"
   | "cron:secondPassed"
+  // Deprecated: dock a view at "page-top"/"page-bottom" with view.define instead.
   | "hooks:renderTopWidgets"
   | "hooks:renderBottomWidgets";
 
