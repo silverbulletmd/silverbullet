@@ -34,7 +34,7 @@ class ElementStub {
   }
 }
 
-test("an out-of-page view widget can edit its definition in edit-only mode", async () => {
+test("an out-of-page view widget can go to its definition in edit-only mode", async () => {
   vi.stubGlobal("document", { createElement: () => new ElementStub() });
   const navigate = vi.fn(async () => {});
   const ref = {
@@ -48,7 +48,7 @@ test("an out-of-page view widget can edit its definition in edit-only mode", asy
       expressionText: "",
       callback: async () => null,
       inPage: false,
-      editRef: ref,
+      definitionRef: ref,
     });
     const root = widget.wrapHtml(
       true,
@@ -58,7 +58,7 @@ test("an out-of-page view widget can edit its definition in edit-only mode", asy
       true,
     ) as unknown as ElementStub;
     const button = root.children[0].children.find(
-      (child) => child.attributes.get("data-button") === "edit",
+      (child) => child.attributes.get("data-button") === "definition",
     );
     expect(button).toBeDefined();
     button!.listeners.get("click")!({ stopPropagation: () => {} });
@@ -68,7 +68,48 @@ test("an out-of-page view widget can edit its definition in edit-only mode", asy
   }
 });
 
-test("an inline out-of-page widget can edit its definition", () => {
+test("an in-page widget can edit a known source position without searching its text", () => {
+  vi.stubGlobal("document", { createElement: () => new ElementStub() });
+  const dispatch = vi.fn();
+  const focus = vi.fn();
+  try {
+    const widget = new LuaWidget({
+      client: {
+        editorView: { dispatch },
+        focus,
+        isReadOnlyMode: () => false,
+        widgetCache: {
+          prewarmResult: (_key: string, callback: () => Promise<unknown>) =>
+            callback(),
+        },
+        currentName: () => "Example",
+      } as unknown as Client,
+      cacheKey: "frontmatter",
+      expressionText: "",
+      callback: async () => null,
+      inPage: true,
+      editPos: 4,
+    });
+    const root = widget.wrapHtml(
+      true,
+      new ElementStub() as unknown as HTMLElement,
+      undefined,
+      undefined,
+      true,
+    ) as unknown as ElementStub;
+    const edit = root.children[0].children.find(
+      (child) => child.attributes.get("data-button") === "edit",
+    );
+    expect(edit).toBeDefined();
+    edit!.listeners.get("click")!({ stopPropagation: () => {} });
+    expect(dispatch).toHaveBeenCalledWith({ selection: { anchor: 4 } });
+    expect(focus).toHaveBeenCalledOnce();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("an inline out-of-page widget can go to its definition", () => {
   vi.stubGlobal("document", { createElement: () => new ElementStub() });
   const navigate = vi.fn(async () => {});
   try {
@@ -78,7 +119,7 @@ test("an inline out-of-page widget can edit its definition", () => {
       expressionText: "",
       callback: async () => null,
       inPage: false,
-      editRef: { path: "Test/Page.md" },
+      definitionRef: { path: "Test/Page.md" },
     });
     const content = new ElementStub();
     const root = widget.wrapHtml(
@@ -87,7 +128,7 @@ test("an inline out-of-page widget can edit its definition", () => {
       undefined,
     ) as unknown as ElementStub;
     const button = root.children[0].children.find(
-      (child) => child.attributes.get("data-button") === "edit",
+      (child) => child.attributes.get("data-button") === "definition",
     );
     expect(button).toBeDefined();
     button!.listeners.get("click")!({ stopPropagation: () => {} });
@@ -109,7 +150,7 @@ test("an in-page inline widget keeps its unwrapped content", () => {
       expressionText: "",
       callback: async () => null,
       inPage: true,
-      editRef: { path: "Test/Page.md" },
+      definitionRef: { path: "Test/Page.md" },
     });
     const content = new ElementStub();
     expect(
@@ -120,7 +161,7 @@ test("an in-page inline widget keeps its unwrapped content", () => {
   }
 });
 
-test("an in-page edit-only widget does not show a definition edit button", () => {
+test("a read-only in-page edit-only widget shows no buttons", () => {
   vi.stubGlobal("document", { createElement: () => new ElementStub() });
   try {
     const widget = new LuaWidget({
@@ -133,7 +174,6 @@ test("an in-page edit-only widget does not show a definition edit button", () =>
       expressionText: "",
       callback: async () => null,
       inPage: true,
-      editRef: { path: "Test/Page.md" },
     });
     const root = widget.wrapHtml(
       true,
@@ -143,6 +183,44 @@ test("an in-page edit-only widget does not show a definition edit button", () =>
       true,
     ) as unknown as ElementStub;
     expect(root.children[0].children).toHaveLength(0);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("a frontmatter-style widget offers Go to definition before Edit", () => {
+  vi.stubGlobal("document", { createElement: () => new ElementStub() });
+  const navigate = vi.fn(async () => {});
+  const ref = { path: "CONFIG.md" } as Ref;
+  try {
+    const widget = new LuaWidget({
+      client: {
+        navigate,
+        isReadOnlyMode: () => false,
+        widgetCache: { prewarmResult: async () => null },
+        currentName: () => "Example",
+      } as unknown as Client,
+      cacheKey: "frontmatter",
+      expressionText: "",
+      callback: async () => null,
+      inPage: true,
+      editOnly: true,
+      editPos: 4,
+      definitionRef: ref,
+    });
+    const root = widget.wrapHtml(
+      true,
+      new ElementStub() as unknown as HTMLElement,
+      undefined,
+    ) as unknown as ElementStub;
+    const buttons = root.children[0].children;
+    expect(buttons.map((b) => b.attributes.get("data-button"))).toEqual([
+      "definition",
+      "edit",
+    ]);
+    expect(buttons[0].attributes.get("title")).toBe("Go to definition");
+    buttons[0].listeners.get("click")!({ stopPropagation: () => {} });
+    expect(navigate).toHaveBeenCalledWith(ref);
   } finally {
     vi.unstubAllGlobals();
   }

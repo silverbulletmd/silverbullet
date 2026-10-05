@@ -70,12 +70,18 @@ export type LuaWidgetOptions = {
    */
   bakeable?: boolean;
   renderEmpty?: boolean;
+  editOnly?: boolean;
+  editPos?: number;
   openRef?: Ref | null;
-  editRef?: Ref | null;
+  /** Where this widget is defined (e.g. its Space Lua), for "Go to definition" */
+  definitionRef?: Ref | null;
 };
 
 const editIcon =
   '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+
+const definitionIcon =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-code"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>';
 
 export class LuaWidget extends WidgetType {
   public dom?: HTMLElement;
@@ -94,8 +100,9 @@ export class LuaWidget extends WidgetType {
     this.opts = {
       codeText: "",
       renderEmpty: false,
+      editOnly: false,
       openRef: null,
-      editRef: null,
+      definitionRef: null,
       ...opts,
     };
     if (this.opts.inPage) {
@@ -427,12 +434,12 @@ export class LuaWidget extends WidgetType {
     html: string | HTMLElement,
     copyContent: string | undefined,
     bakeBody?: string | undefined,
-    editOnly = false,
+    editOnly = this.opts.editOnly,
   ): HTMLElement {
     if (typeof html === "string") {
       html = parseHtmlString(html);
     }
-    if (!isBlock && (this.opts.inPage || !this.opts.editRef)) {
+    if (!isBlock && (this.opts.inPage || !this.opts.definitionRef)) {
       return html;
     }
     const container = document.createElement("div");
@@ -441,16 +448,18 @@ export class LuaWidget extends WidgetType {
 
     const createButton = ({
       title,
+      name = title.toLowerCase(),
       icon,
       listener,
     }: {
       title: string;
+      name?: string;
       icon: string;
       listener: (event: MouseEvent) => void;
     }) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.setAttribute("data-button", title.toLowerCase());
+      button.setAttribute("data-button", name);
       button.setAttribute("title", title);
       button.setAttribute("aria-label", title);
       button.innerHTML = icon;
@@ -458,6 +467,20 @@ export class LuaWidget extends WidgetType {
 
       return button;
     };
+
+    if (this.opts.definitionRef) {
+      buttonBar.appendChild(
+        createButton({
+          title: "Go to definition",
+          name: "definition",
+          icon: definitionIcon,
+          listener: (e) => {
+            e.stopPropagation();
+            void this.opts.client.navigate(this.opts.definitionRef!);
+          },
+        }),
+      );
+    }
 
     if (!editOnly)
       buttonBar.appendChild(
@@ -533,24 +556,18 @@ export class LuaWidget extends WidgetType {
           icon: editIcon,
           listener: (e) => {
             e.stopPropagation();
-            moveCursorToWidgetStart(
-              this.opts.client,
-              this.dom!,
-              this.opts.codeText,
-            );
-          },
-        }),
-      );
-    }
-
-    if (!this.opts.inPage && this.opts.editRef) {
-      buttonBar.appendChild(
-        createButton({
-          title: "Edit",
-          icon: editIcon,
-          listener: (e) => {
-            e.stopPropagation();
-            void this.opts.client.navigate(this.opts.editRef!);
+            if (this.opts.editPos === undefined) {
+              moveCursorToWidgetStart(
+                this.opts.client,
+                this.dom!,
+                this.opts.codeText,
+              );
+            } else {
+              this.opts.client.editorView.dispatch({
+                selection: { anchor: this.opts.editPos },
+              });
+              this.opts.client.focus();
+            }
           },
         }),
       );

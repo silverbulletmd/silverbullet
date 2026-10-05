@@ -4,7 +4,7 @@ import {
   navInput,
   runCommandViaPalette,
 } from "../fixtures/actions.ts";
-import { expect, test } from "../fixtures/core.ts";
+import { expect, gotoSilverBulletPage, test } from "../fixtures/core.ts";
 
 const viewConfig = `# Route view
 \`\`\`space-lua
@@ -67,6 +67,117 @@ test.describe("Lua-defined views", () => {
 
     await expect(currentPage(sbPage)).toHaveValue("Destination");
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
+  });
+});
+
+test.describe("frontmatter live preview", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "CONFIG.md": `# Configuration
+\`\`\`space-lua
+config.set("frontmatterFolding", { foldByDefault = "always" })
+tag.define {
+  name = "team",
+  renderFrontmatter = function(pageMeta)
+    return widget.htmlBlock(dom.div {
+      class = "fixture-team-header",
+      dom.span { class = "fixture-team-title", pageMeta.name .. ": " .. pageMeta.points },
+      dom.button { class = "fixture-team-action", onclick = function() end, "Inspect" },
+      dom.a { class = "fixture-team-link", href = "/index", "Open index" },
+    })
+  end,
+}
+tag.define {
+  name = "empty-preview",
+  renderFrontmatter = function() return "" end,
+}
+tag.define {
+  name = "broken-preview",
+  renderFrontmatter = function() error("Fixture render failure") end,
+}
+\`\`\`
+`,
+      "Teams/Example.md": "---\ntags: team\npoints: 306\n---\nBody",
+      "Teams/Empty.md": "---\ntags: empty-preview\n---\nBody",
+      "Teams/Broken.md": "---\ntags: broken-preview\n---\nBody",
+    },
+  });
+
+  test("editing a custom header reveals YAML and refreshes from the current text", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Teams/Example");
+    const preview = sbPage.locator(".sb-frontmatter-preview");
+    await expect(preview.locator(".fixture-team-title")).toHaveText(
+      "Teams/Example: 306",
+    );
+    await preview.hover();
+    await preview.getByRole("button", { name: "Edit" }).click();
+    await expect(preview).toHaveCount(0);
+    await sbPage.evaluate(() => {
+      const view = (globalThis as any).client.editorView;
+      const text = view.state.doc.toString();
+      const from = text.indexOf("306");
+      view.dispatch({
+        changes: { from, to: from + 3, insert: "310" },
+        selection: { anchor: text.length },
+      });
+    });
+    await expect(preview.locator(".fixture-team-title")).toHaveText(
+      "Teams/Example: 310",
+    );
+    await preview.locator(".fixture-team-action").click();
+    await expect(preview).toBeVisible();
+    await preview.locator(".fixture-team-title").click();
+    await expect(preview).toHaveCount(0);
+    await sbPage.evaluate(() => {
+      const view = (globalThis as any).client.editorView;
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+    });
+    await expect(preview.locator(".fixture-team-title")).toBeVisible();
+    await preview.locator(".fixture-team-action").click({ modifiers: ["Alt"] });
+    await expect(preview).toHaveCount(0);
+    await sbPage.evaluate(() => {
+      const view = (globalThis as any).client.editorView;
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+    });
+    await preview.locator(".fixture-team-link").click({ modifiers: ["Alt"] });
+    await expect(preview).toHaveCount(0);
+    await expect(currentPage(sbPage)).toHaveValue("Teams/Example");
+  });
+
+  test("Go to definition jumps to the renderFrontmatter Space Lua", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Teams/Example");
+    const preview = sbPage.locator(".sb-frontmatter-preview");
+    await expect(preview.locator(".fixture-team-title")).toBeVisible();
+    await preview.hover();
+    await preview.getByRole("button", { name: "Go to definition" }).click();
+    await expect(currentPage(sbPage)).toHaveValue("CONFIG");
+  });
+
+  test("empty and failing renderers keep Edit available", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Teams/Empty");
+    const preview = sbPage.locator(".sb-frontmatter-preview");
+    await expect(preview).toContainText(
+      "Frontmatter preview returned no content",
+    );
+    await preview.hover();
+    await preview.getByRole("button", { name: "Edit" }).click();
+    await expect(preview).toHaveCount(0);
+
+    await gotoSilverBulletPage(sbPage, sbServer, "Teams/Broken");
+    await expect(preview).toContainText("Could not render frontmatter preview");
+    await preview.hover();
+    await preview.getByRole("button", { name: "Edit" }).click();
+    await expect(preview).toHaveCount(0);
   });
 });
 

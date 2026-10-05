@@ -663,6 +663,49 @@ $comment-border: 1px;
     min-height: 48px;
   }
 
+  // Padding, not margin: CodeMirror doesn't count a block widget's margins in its height, which shifts every click below it.
+  .sb-frontmatter-preview {
+    width: 100%;
+    padding-bottom: 10px;
+    white-space: normal;
+
+    .sb-lua-wrapper {
+      display: block;
+      width: 100%;
+    }
+
+    .sb-lua-directive-block {
+      border: 0;
+      min-height: 0;
+      background: none;
+
+      > div > .content {
+        overflow: visible;
+        padding-right: 44px;
+      }
+
+      .button-bar {
+        display: block;
+        z-index: 1;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      &:hover .button-bar,
+      &:focus-within .button-bar {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      @media (hover: none) and (pointer: coarse) {
+        .button-bar {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+    }
+  }
+
   .sb-lua-top-widget {
     margin: 0 0 10px 0;
   }

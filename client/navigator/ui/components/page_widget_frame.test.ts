@@ -50,7 +50,7 @@ test("a settled widget removes its loading indicator and busy state", () => {
   expect(html).toContain("Previous result");
 });
 
-test("a page widget shows Edit definition only when its source is known", () => {
+test("a page widget shows Go to definition only when its source is known", () => {
   const without = frame(false, false);
   const withDefinition = frame(false, false, false, {
     ...({ title: "Related pages" } as ViewMeta),
@@ -59,11 +59,11 @@ test("a page widget shows Edit definition only when its source is known", () => 
       details: { type: "position", pos: 42 },
     },
   });
-  expect(without).not.toContain('aria-label="Edit definition"');
+  expect(without).not.toContain('aria-label="Go to definition"');
   expect(withDefinition).toContain(
-    'class="sb-nav-edit" title="Edit definition" aria-label="Edit definition"',
+    'class="sb-nav-definition" title="Go to definition" aria-label="Go to definition"',
   );
-  expect(withDefinition.indexOf('aria-label="Edit definition"')).toBeLessThan(
+  expect(withDefinition.indexOf('aria-label="Go to definition"')).toBeLessThan(
     withDefinition.indexOf('aria-label="Close"'),
   );
 });

@@ -194,7 +194,7 @@
 }
 
 .sb-nav-copy,
-.sb-nav-edit,
+.sb-nav-definition,
 .sb-dock-button,
 .sb-page-widget-tools .sb-nav-close,
 .sb-nav-header-row .sb-nav-close {
@@ -212,13 +212,17 @@
   cursor: pointer;
 }
 
-.sb-nav-copy,
-.sb-nav-edit {
+.sb-nav-copy {
   color: var(--subtle-color);
 }
 
+// Navigating to a definition is always available, so it isn't muted.
+.sb-nav-definition {
+  color: inherit;
+}
+
 .sb-nav-copy:hover,
-.sb-nav-edit:hover {
+.sb-nav-definition:hover {
   color: var(--modal-header-label-color);
 }
 

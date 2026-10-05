@@ -5,7 +5,10 @@
 // A *content* view's body gets its markdown typography from `editor.scss`
 // instead -- see the note there on why that half must stay under `#sb-main`.
 
+// The slots are CodeMirror block widgets, which measure their height without margins: flow-root keeps the
+// page widgets' margins inside the slot, so clicks below it still land on the right line.
 .sb-page-slot {
+  display: flow-root;
   --sb-nav-muted: var(--subtle-color);
 }
 

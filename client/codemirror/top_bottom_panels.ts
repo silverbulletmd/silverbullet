@@ -96,7 +96,7 @@ class ArrayWidget extends WidgetType {
         expressionText: "",
         callback: () => Promise.resolve(widgetContent),
         inPage: false,
-        editRef: definition,
+        definitionRef: definition,
       });
 
       const wrapper = widget.toDOM();

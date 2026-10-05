@@ -12,6 +12,7 @@ import { cleanEscapePlugin } from "./escapes.ts";
 import { fencedCodePlugin } from "./fenced_code.ts";
 import { footnotePlugin } from "./footnote.ts";
 import { frontmatterPlugin } from "./frontmatter.ts";
+import { frontmatterPreviewPlugin } from "./frontmatter_preview.ts";
 import { hashtagPlugin } from "./hashtag.ts";
 import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { htmlBlockPlugin, htmlInlinePlugin } from "./html_widget.ts";
@@ -31,6 +32,7 @@ export function cleanModePlugins(client: Client) {
     atMentionPlugin(),
     attributePlugin(client),
     frontmatterPlugin(client),
+    frontmatterPreviewPlugin(client),
     customSyntaxPlugin(client),
   ];
 

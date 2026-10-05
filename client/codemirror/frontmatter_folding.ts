@@ -1,6 +1,7 @@
 import {
   ensureSyntaxTree,
   foldEffect,
+  foldedRanges,
   syntaxTree,
   unfoldEffect,
 } from "@codemirror/language";
@@ -136,8 +137,16 @@ export function shouldAutoFoldFrontmatter(args: {
   config: FrontmatterFoldingConfig;
   lines: number;
   selectionInside: boolean;
+  previewAvailable?: boolean;
+  malformed?: boolean;
+  syntaxRendering?: boolean;
 }): boolean {
-  if (args.selectionInside) {
+  if (
+    args.selectionInside ||
+    args.previewAvailable ||
+    args.malformed ||
+    args.syntaxRendering
+  ) {
     return false;
   }
 
@@ -148,6 +157,18 @@ export function shouldAutoFoldFrontmatter(args: {
       return args.lines > args.config.foldByDefaultLines;
     case "never":
       return false;
+  }
+}
+
+function malformedFrontmatter(
+  state: EditorState,
+  block: FrontmatterBlock,
+): boolean {
+  try {
+    YAML.load(state.sliceDoc(block.from + 4, block.to - 4));
+    return false;
+  } catch {
+    return true;
   }
 }
 
@@ -297,7 +318,10 @@ function clientFrontmatterFoldingConfig(
   );
 }
 
-export function frontmatterFoldingExtension(client: Client): Extension {
+export function frontmatterFoldingExtension(
+  client: Client,
+  previewAvailable: (state: EditorState) => boolean = () => false,
+): Extension {
   return ViewPlugin.fromClass(
     class {
       private destroyed = false;
@@ -311,7 +335,26 @@ export function frontmatterFoldingExtension(client: Client): Extension {
         });
       }
 
-      update(_update: ViewUpdate): void {}
+      update(_update: ViewUpdate): void {
+        const block = findFrontmatterBlock(this.view.state);
+        if (
+          !block ||
+          (!client.ui.viewState.uiOptions.markdownSyntaxRendering &&
+            !previewAvailable(this.view.state) &&
+            !malformedFrontmatter(this.view.state, block))
+        )
+          return;
+        const ranges = foldedRanges(this.view.state).iter();
+        while (ranges.value) {
+          if (ranges.from === block.from && ranges.to === block.to) {
+            this.view.dispatch({
+              effects: unfoldEffect.of({ from: block.from, to: block.to }),
+            });
+            return;
+          }
+          ranges.next();
+        }
+      }
 
       destroy(): void {
         this.destroyed = true;
@@ -337,6 +380,10 @@ export function frontmatterFoldingExtension(client: Client): Extension {
               block.from,
               block.to,
             ),
+            previewAvailable: previewAvailable(this.view.state),
+            malformed: malformedFrontmatter(this.view.state, block),
+            syntaxRendering:
+              client.ui.viewState.uiOptions.markdownSyntaxRendering,
           })
         ) {
           this.view.dispatch({

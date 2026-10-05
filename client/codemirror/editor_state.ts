@@ -65,6 +65,7 @@ import {
   frontmatterFoldPlaceholderDOM,
   prepareFrontmatterFoldPlaceholder,
 } from "./frontmatter_folding.ts";
+import { frontmatterPreviewForState } from "./frontmatter_preview.ts";
 import { inlineContentPlugin } from "./inline_content.ts";
 import { iosCompletionTapHandling } from "./ios_completion.ts";
 import { iosEnterHandling } from "./ios_enter.ts";
@@ -249,7 +250,9 @@ export function buildPageExtensions(
       placeholderDOM: (view, onclick, prepared) =>
         frontmatterFoldPlaceholderDOM(view, onclick, prepared, client),
     }),
-    frontmatterFoldingExtension(client),
+    frontmatterFoldingExtension(client, (state) =>
+      Boolean(frontmatterPreviewForState(state, client)),
+    ),
     ...cleanModePlugins(client),
     EditorView.lineWrapping,
     plugLinter(client),

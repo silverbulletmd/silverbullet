@@ -1,4 +1,4 @@
-Important [[Architecture]] decisions for SilverBullet are captured as [Architecture Decision Records](https://adr.github.io/) (template: [[^Library/Page Templates/ADR]]).
+Important [[Architecture]] decisions for SilverBullet are captured as [Architecture Decision Records](https://adr.github.io/) (template: [[^Library/Page Templates/ADR]]). In the editor, each ADR's [[Frontmatter]] renders as a decision card via the `adr` tag's `renderFrontmatter` in [[CONFIG]]; click the card to edit the YAML.
 
 # Stats
 ${query[[

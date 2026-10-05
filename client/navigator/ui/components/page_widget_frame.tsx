@@ -8,7 +8,7 @@ import {
   toggleCollapsed,
 } from "../../page_widget_logic.ts";
 import type { ViewMeta } from "../../types.ts";
-import { CloseIcon, EditIcon } from "./chrome_icons.tsx";
+import { CloseIcon, DefinitionIcon } from "./chrome_icons.tsx";
 import { DockMenu } from "./dock_menu.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
 
@@ -81,12 +81,12 @@ function WidgetBar({
         {meta.definition && (
           <button
             type="button"
-            className="sb-nav-edit"
-            title="Edit definition"
-            aria-label="Edit definition"
+            className="sb-nav-definition"
+            title="Go to definition"
+            aria-label="Go to definition"
             onClick={() => void client.navigate(meta.definition!)}
           >
-            <EditIcon />
+            <DefinitionIcon />
           </button>
         )}
         {tools}

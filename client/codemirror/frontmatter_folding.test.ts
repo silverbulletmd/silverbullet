@@ -215,6 +215,39 @@ describe("frontmatter block policy", () => {
   });
 });
 
+test("custom frontmatter previews take precedence over automatic folding", () => {
+  expect(
+    shouldAutoFoldFrontmatter({
+      config: { foldByDefault: "always", foldByDefaultLines: 5 },
+      lines: 8,
+      selectionInside: false,
+      previewAvailable: true,
+    }),
+  ).toBe(false);
+});
+
+test("explicit syntax rendering keeps frontmatter source visible", () => {
+  expect(
+    shouldAutoFoldFrontmatter({
+      config: { foldByDefault: "always", foldByDefaultLines: 5 },
+      lines: 8,
+      selectionInside: false,
+      syntaxRendering: true,
+    }),
+  ).toBe(false);
+});
+
+test("malformed frontmatter stays visible for repair", () => {
+  expect(
+    shouldAutoFoldFrontmatter({
+      config: { foldByDefault: "always", foldByDefaultLines: 5 },
+      lines: 8,
+      selectionInside: false,
+      malformed: true,
+    }),
+  ).toBe(false);
+});
+
 describe("frontmatter fold placeholder", () => {
   const domTest = typeof document === "undefined" ? test.skip : test;
 
