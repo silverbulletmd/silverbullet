@@ -102,3 +102,13 @@ test("names without a resolvable meta are skipped", async () => {
     "bottomOpen",
   ]);
 });
+
+test("a minimal view ignores a saved collapsed state", async () => {
+  METAS.minimalTop = { ...meta("minimalTop", "page-top"), frame: "minimal" };
+  OPEN.add("minimalTop");
+  COLLAPSED.add("minimalTop");
+  registry.allViewNames.mockReturnValue(["minimalTop"]);
+  expect(await pageSlotViews("page-top")).toEqual([
+    { name: "minimalTop", meta: METAS.minimalTop, collapsed: false },
+  ]);
+});

@@ -67,3 +67,45 @@ test("a page widget shows Go to definition only when its source is known", () =>
     withDefinition.indexOf('aria-label="Close"'),
   );
 });
+
+const MINIMAL = {
+  title: "Notice",
+  frame: "minimal",
+  definition: { path: "Test/Page.md", details: { type: "position", pos: 1 } },
+} as unknown as ViewMeta;
+
+test("a minimal widget has no title bar, fold or close, and ignores collapsed", () => {
+  const html = frame(false, false, true, MINIMAL);
+  expect(html).toContain("sb-page-widget-minimal");
+  expect(html).not.toContain("sb-page-widget-bar");
+  expect(html).not.toContain('aria-label="Close"');
+  expect(html).not.toContain("aria-expanded");
+  expect(html).toContain("Previous result");
+  expect(html).toContain('aria-label="Go to definition"');
+});
+
+test("a minimal widget offers the dock menu only with several docks", () => {
+  expect(frame(false, false, false, MINIMAL)).not.toContain("sb-dock-button");
+  expect(
+    frame(false, false, false, {
+      ...MINIMAL,
+      supportedDocks: ["page-top", "rhs"],
+    }),
+  ).toContain("sb-dock-button");
+});
+
+test("a minimal widget shows its error instead of vanishing", () => {
+  const html = renderToString(
+    createElement(PageWidgetFrame, {
+      name: "test-view",
+      meta: MINIMAL,
+      client,
+      slot: "page-top",
+      error: "Notice unavailable",
+      collapsed: false,
+      onToggleCollapsed: () => {},
+      hasBody: false,
+    }),
+  );
+  expect(html).toContain("Notice unavailable");
+});

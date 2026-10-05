@@ -109,6 +109,44 @@ function WidgetBar({
   );
 }
 
+function HoverBar({
+  client,
+  name,
+  meta,
+  slot,
+  loading,
+  tools,
+}: {
+  client: Pick<Client, "navigate">;
+  name: string;
+  meta: ViewMeta;
+  slot: string;
+  loading?: boolean;
+  tools?: ComponentChildren;
+}) {
+  const supported = meta.supportedDocks ?? [slot];
+  return (
+    <span className="sb-page-widget-hoverbar">
+      {loading && <LoadingIndicator />}
+      {meta.definition && (
+        <button
+          type="button"
+          className="sb-nav-definition"
+          title="Go to definition"
+          aria-label="Go to definition"
+          onClick={() => void client.navigate(meta.definition!)}
+        >
+          <DefinitionIcon />
+        </button>
+      )}
+      {tools}
+      {supported.length > 1 && (
+        <DockMenu name={name} current={slot} supported={supported} />
+      )}
+    </span>
+  );
+}
+
 /**
  * The collapse state a page widget runs on: seeded from what `pageSlotViews`
  * already read (never fetched after mount, which would paint expanded and then
@@ -191,6 +229,29 @@ export function PageWidgetFrame({
   hasBody: boolean;
   children?: ComponentChildren;
 }) {
+  if (meta.frame === "minimal") {
+    return (
+      <div
+        className={["sb-page-widget", "sb-page-widget-minimal", modifier]
+          .filter(Boolean)
+          .join(" ")}
+        data-view={name}
+        aria-busy={pending}
+        tabIndex={-1}
+      >
+        <HoverBar
+          client={client}
+          name={name}
+          meta={meta}
+          slot={slot}
+          loading={loading}
+          tools={tools}
+        />
+        {error && <div className="sb-page-widget-error">⚠ {error}</div>}
+        {hasBody && <div className="sb-page-widget-body">{children}</div>}
+      </div>
+    );
+  }
   return (
     <div
       className={[

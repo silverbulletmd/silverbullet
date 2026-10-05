@@ -319,3 +319,41 @@
     }
   }
 }
+
+// A minimal widget reads as part of the page: no border or padding of its
+// own, and its tools surface only on hover or focus, like a Lua widget's.
+.sb-page-widget-minimal {
+  position: relative;
+  border: 0;
+
+  > .sb-page-widget-body {
+    padding: 0;
+  }
+}
+
+.sb-page-widget-hoverbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 0 0 0 5px;
+  background: var(--editor-widget-background-color);
+  color: var(--subtle-color);
+  opacity: 0;
+  pointer-events: none;
+
+  .sb-page-widget-minimal:hover > &,
+  .sb-page-widget-minimal:focus-within > & {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

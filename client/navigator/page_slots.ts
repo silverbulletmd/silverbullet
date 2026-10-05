@@ -24,7 +24,9 @@ export async function pageSlotViews(
     if (!docks.includes("page-top") && !docks.includes("page-bottom")) continue;
     if ((await dockState.resolveDock(name, meta)) !== slot) continue;
     if (!(await dockState.isOpen(name, meta))) continue;
-    out.push({ name, meta, collapsed: await dockState.isCollapsed(name) });
+    const collapsed =
+      meta.frame === "minimal" ? false : await dockState.isCollapsed(name);
+    out.push({ name, meta, collapsed });
   }
   return out;
 }
