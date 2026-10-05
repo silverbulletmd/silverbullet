@@ -4,7 +4,7 @@ import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
 import { isViewValue } from "../navigator/view_value.ts";
-import { activeWidgets } from "./code_widget.ts";
+import { activeWidgets, type DomWidget } from "./code_widget.ts";
 import { pageSlotViews } from "../navigator/page_slots.ts";
 import {
   renderPageSlot,
@@ -136,8 +136,14 @@ class ArrayWidget extends WidgetType {
   }
 }
 
+// CodeMirror reuses an `eq` widget's DOM but destroys through its newest
+// instance, which never mounted: teardown has to find the one that did.
+const slotOwners = new WeakMap<HTMLElement, NavPageSlotWidget>();
+
 /** A page slot: every navigator view whose resolved dock is this slot. */
-class NavPageSlotWidget extends WidgetType {
+export class NavPageSlotWidget extends WidgetType implements DomWidget {
+  public dom?: HTMLElement;
+  private host?: HTMLElement;
   private destroyed = false;
   private measureTimer?: ReturnType<typeof setTimeout>;
 
@@ -164,25 +170,42 @@ class NavPageSlotWidget extends WidgetType {
       div.style.minHeight = `${cachedHeight}px`;
     }
 
+    this.dom = div;
+    slotOwners.set(div, this);
+    activeWidgets.add(this);
+    this.mount(div);
+    return div;
+  }
+
+  invalidatePrewarm(): void {}
+
+  // `reloadAllWidgets` empties `dom` and appends `div` after this resolves, so
+  // the old Preact root must be unmounted here, before its DOM disappears.
+  async renderContent(div: HTMLElement): Promise<void> {
+    if (this.host) unmountPageSlot(this.host);
+    this.mount(div);
+  }
+
+  private mount(host: HTMLElement): void {
+    this.host = host;
     pageSlotViews(this.slot)
       .then((views) => {
-        if (this.destroyed) return;
-        renderPageSlot(div, views, this.slot, this.client, () =>
-          this.measure(div),
+        if (this.destroyed || this.host !== host) return;
+        renderPageSlot(host, views, this.slot, this.client, () =>
+          this.measure(),
         );
       })
       .catch(console.error);
-
-    return div;
   }
 
   /**
    * Measures only once the slot's views have all resolved.
    */
-  private measure(div: HTMLElement): void {
+  private measure(): void {
     clearTimeout(this.measureTimer);
     this.measureTimer = setTimeout(() => {
-      if (this.destroyed) return;
+      const div = this.dom;
+      if (this.destroyed || !div) return;
       div.style.minHeight = "";
       div.dataset.settled = "1";
       if (!div.isConnected) return;
@@ -193,10 +216,17 @@ class NavPageSlotWidget extends WidgetType {
     }, 0);
   }
 
-  override destroy(dom: HTMLElement): void {
+  override destroy(dom?: HTMLElement): void {
+    const owner = (dom && slotOwners.get(dom)) || this;
+    owner.teardown();
+    if (owner !== this) this.teardown();
+  }
+
+  private teardown(): void {
     this.destroyed = true;
     clearTimeout(this.measureTimer);
-    unmountPageSlot(dom);
+    activeWidgets.delete(this);
+    if (this.host) unmountPageSlot(this.host);
   }
 
   override eq(other: WidgetType): boolean {
