@@ -67,7 +67,7 @@ view.define {
   key = "Ctrl-Alt-i",
   mac = "Cmd-Shift-i",
   filter = false,
-  refreshOn = { "file:changed", "file:deleted", "mq:emptyQueue:indexQueue" },
+  refreshOn = { "index" },
   refreshOnOpen = true,
   source = inboxRows,
   presentation = {
