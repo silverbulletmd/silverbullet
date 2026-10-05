@@ -16,6 +16,7 @@ const REGISTRATION_FIELDS = new Set([
   "dock",
   "supportedDocks",
   "defaultOpen",
+  "frame",
   "openOnStart",
   "refreshOnOpen",
   "followEditor",
@@ -24,6 +25,10 @@ const REGISTRATION_FIELDS = new Set([
 
 function field(spec: ViewSpec, key: string): unknown {
   return spec instanceof LuaTable ? spec.rawGet(key) : spec[key];
+}
+
+function present(value: unknown): boolean {
+  return value !== undefined && value !== null;
 }
 
 function entries(spec: ViewSpec): [string, unknown][] {
@@ -45,6 +50,12 @@ export class ViewValue extends LuaTable {
   ) {
     super();
   }
+
+  // A live widget is a description, not data: converting it to a plain object
+  // would silently empty it.
+  override toJS(): any {
+    return this;
+  }
 }
 
 export function isViewValue(value: unknown): value is ViewValue {
@@ -53,16 +64,24 @@ export function isViewValue(value: unknown): value is ViewValue {
 
 export function newView(spec: ViewSpec): ViewValue {
   if (luaTypeOf(spec) !== "table") {
-    throw new Error("view.new: spec must be a table");
+    throw new Error("widget.new: spec must be a table");
   }
   const captured =
     spec instanceof LuaTable
       ? new LuaTable(Object.fromEntries(entries(spec)))
       : { ...spec };
+  if (
+    present(field(captured, "markdown")) ||
+    present(field(captured, "html"))
+  ) {
+    throw new Error(
+      "widget.new: source and content cannot be combined with markdown or html",
+    );
+  }
   for (const key of REGISTRATION_FIELDS) {
     if (key === "title") continue;
     if (field(captured, key) !== undefined && field(captured, key) !== null) {
-      throw new Error(`view.new: ${key} is not allowed`);
+      throw new Error(`widget.new: ${key} is not allowed`);
     }
   }
   const stateKey = field(captured, "stateKey");
@@ -71,7 +90,7 @@ export function newView(spec: ViewSpec): ViewValue {
     stateKey !== null &&
     (typeof stateKey !== "string" || stateKey.trim().length === 0)
   ) {
-    throw new Error("view.new: stateKey must be a non-empty string");
+    throw new Error("widget.new: stateKey must be a non-empty string");
   }
   const source = field(captured, "source");
   if (
@@ -79,7 +98,7 @@ export function newView(spec: ViewSpec): ViewValue {
     source !== null &&
     luaTypeOf(source) !== "function"
   ) {
-    throw new Error("view.new: source must be a function");
+    throw new Error("widget.new: source must be a function");
   }
   const onSelect = field(captured, "onSelect");
   if (
@@ -87,10 +106,10 @@ export function newView(spec: ViewSpec): ViewValue {
     onSelect !== null &&
     luaTypeOf(onSelect) !== "function"
   ) {
-    throw new Error("view.new: onSelect must be a function");
+    throw new Error("widget.new: onSelect must be a function");
   }
   try {
-    validateViewSpec(captured, "view.new", false);
+    validateViewSpec(captured, "widget.new", false);
     return new ViewValue(
       captured,
       wireMeta(captured),
@@ -99,7 +118,7 @@ export function newView(spec: ViewSpec): ViewValue {
     );
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("view.define:")) {
-      throw new Error(error.message.replace(/^view\.define:/, "view.new:"));
+      throw new Error(error.message.replace(/^view\.define:/, "widget.new:"));
     }
     throw error;
   }
@@ -109,32 +128,38 @@ export function normalizeDefineSpec(spec: ViewSpec): ViewSpec {
   if (luaTypeOf(spec) !== "table") {
     throw new Error("view.define: spec must be a table");
   }
-  const view = field(spec, "view");
-  if (view !== undefined && view !== null && !isViewValue(view)) {
-    throw new Error("view.define: view must be a view.new value");
+  const legacy = field(spec, "view");
+  if (legacy !== undefined && legacy !== null) {
+    throw new Error("view.define: 'view' was renamed to 'widget'");
   }
-  const explicit = isViewValue(view);
+  const widget = field(spec, "widget");
+  if (widget !== undefined && widget !== null && !isViewValue(widget)) {
+    throw new Error(
+      "view.define: widget must be a live widget (source or content); return static widgets from content",
+    );
+  }
+  const explicit = isViewValue(widget);
   const registration: Record<string, unknown> = {};
   const content: Record<string, unknown> = {};
   for (const [key, entry] of entries(spec)) {
-    if (key === "view") continue;
+    if (key === "widget") continue;
     if (REGISTRATION_FIELDS.has(key)) {
       registration[key] = entry;
     } else if (explicit) {
-      throw new Error(`view.define: '${key}' cannot be combined with 'view'`);
+      throw new Error(`view.define: '${key}' cannot be combined with 'widget'`);
     } else {
       content[key] = entry;
     }
   }
   let value: ViewValue;
   if (explicit) {
-    value = view;
+    value = widget;
   } else {
     try {
       value = newView(content);
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith("view.new:")) {
-        throw new Error(error.message.replace(/^view\.new:/, "view.define:"));
+      if (error instanceof Error && error.message.startsWith("widget.new:")) {
+        throw new Error(error.message.replace(/^widget\.new:/, "view.define:"));
       }
       throw error;
     }

@@ -1,3 +1,5 @@
+import type { WidgetObject } from "../codemirror/widget_body.ts";
+import type { ContentResult } from "./registry.ts";
 import type { Row, ViewMeta } from "./types.ts";
 
 /**
@@ -104,6 +106,8 @@ export type ContentState = {
   markdown: string;
   node?: HTMLElement;
   error?: string;
+  cssClasses?: string[];
+  events?: WidgetObject["events"];
 };
 
 export type ContentOutcome = "pending" | "error" | "empty" | "ready";
@@ -118,7 +122,7 @@ export function contentOutcome(
 ): ContentOutcome {
   if (state === undefined) return "pending";
   if (state.error !== undefined) return "error";
-  if (!state.markdown.trim() || !state.node) return "empty";
+  if (!state.node) return "empty";
   return "ready";
 }
 
@@ -250,4 +254,17 @@ export function activateOnKey(
   if (ev.key !== "Enter" && ev.key !== " ") return;
   ev.preventDefault();
   activate();
+}
+
+export function contentIdentity(result: ContentResult): string | undefined {
+  if (result.error !== undefined) return loadIdentity(result.error, "");
+  if (result.widget !== undefined) {
+    const { html, markdown, cssClasses } = result.widget;
+    if (html !== undefined && typeof html !== "string") return undefined;
+    return loadIdentity(
+      undefined,
+      JSON.stringify({ html, markdown, cssClasses }),
+    );
+  }
+  return loadIdentity(undefined, result.markdown);
 }

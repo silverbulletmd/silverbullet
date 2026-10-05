@@ -1,4 +1,7 @@
 import { normalizeDescription } from "../../plug-api/ui/description.ts";
+import type { WidgetObject } from "../codemirror/widget_body.ts";
+import { isViewValue } from "./view_value.ts";
+import { expandRefreshTriggers } from "./refresh_triggers.ts";
 import { luaDefinitionRef } from "../space_lua.ts";
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
@@ -409,16 +412,47 @@ function contentFn(spec: ViewSpec, caller: string): unknown {
   return content;
 }
 
-export function contentMarkdown(value: unknown): string {
-  if (value === undefined || value === null || value === false) return "";
-  if (typeof value === "string") return value;
+export type ContentValue = { markdown: string } | { widget: WidgetObject };
+
+function isDomNode(value: unknown): value is HTMLElement {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { nodeType?: unknown }).nodeType === "number"
+  );
+}
+
+export function contentResult(value: unknown): ContentValue {
+  if (value === undefined || value === null || value === false) {
+    return { markdown: "" };
+  }
+  if (typeof value === "string") return { markdown: value };
+  if (isViewValue(value)) {
+    throw new Error("navigator: content cannot return a live widget");
+  }
+  if (isDomNode(value)) return { widget: { html: value } };
   if (luaType(value) === "table") {
-    const markdown = field(value, "markdown");
-    if (typeof markdown === "string") return markdown;
-    if (markdown === undefined || markdown === null) return "";
+    const widget = toJS(value) as WidgetObject;
+    if (widget.sandbox) {
+      throw new Error("navigator: content cannot return a sandboxed widget");
+    }
+    if (
+      widget.html === undefined &&
+      widget.cssClasses === undefined &&
+      widget.events === undefined
+    ) {
+      if (typeof widget.markdown === "string") {
+        return { markdown: widget.markdown };
+      }
+      if (widget.markdown === undefined || widget.markdown === null) {
+        return { markdown: "" };
+      }
+    } else {
+      return { widget };
+    }
   }
   throw new Error(
-    `navigator: content must return a markdown string, got ${luaType(value)}`,
+    `navigator: content must return markdown or a widget, got ${luaType(value)}`,
   );
 }
 
@@ -451,9 +485,20 @@ function supportedDocks(spec: ViewSpec): string[] {
   return docks;
 }
 
+function frameStyle(spec: ViewSpec): "full" | "minimal" {
+  const value = field(spec, "frame");
+  if (!present(value)) return "full";
+  if (value !== "full" && value !== "minimal") {
+    throw new Error('view.define: frame must be "full" or "minimal"');
+  }
+  return value;
+}
+
 function defaultOpen(spec: ViewSpec): boolean {
   const value = field(spec, "defaultOpen");
-  if (value === undefined || value === null) return false;
+  if (value === undefined || value === null) {
+    return frameStyle(spec) === "minimal";
+  }
   if (luaType(value) !== "boolean") {
     throw new Error("view.define: defaultOpen must be a boolean");
   }
@@ -543,7 +588,7 @@ function refreshOnEvents(spec: ViewSpec): string[] | undefined {
     throw new Error("view.define: refreshOn must be a list of event names");
   }
   if (sequence(refreshOn).length === 0) return undefined;
-  return toJS(refreshOn);
+  return expandRefreshTriggers(toJS(refreshOn));
 }
 
 /** `filter = false` turns the phrase filter off entirely; a table configures
@@ -633,6 +678,7 @@ export function wireMeta(spec: ViewSpec): ViewMeta {
     ephemeral: field(spec, "ephemeral") === true,
     openOnStart: field(spec, "openOnStart") === true,
     defaultOpen: defaultOpen(spec),
+    frame: frameStyle(spec),
   } as ViewMeta;
 }
 
@@ -674,6 +720,7 @@ export function validateViewSpec(
   dockSlot(spec);
   supportedDocks(spec);
   defaultOpen(spec);
+  frameStyle(spec);
   presentationMode(spec);
   tableColumns(spec);
   hierarchy(spec);
@@ -686,6 +733,9 @@ export function validateViewSpec(
 }
 
 export function validateDefineSpec(spec: ViewSpec, requireSelection = true) {
+  if (present(field(spec, "view"))) {
+    throw new Error("view.define: 'view' was renamed to 'widget'");
+  }
   const name = field(spec, "name");
   if (luaType(name) === "string" && name.startsWith(RESERVED_PICK_PREFIX)) {
     throw new Error(
@@ -727,6 +777,7 @@ const PICK_REJECTED_FIELDS = [
   "dock",
   "supportedDocks",
   "defaultOpen",
+  "frame",
   "openOnStart",
   "refreshOn",
   "refreshOnOpen",
@@ -1081,14 +1132,12 @@ export async function luaHandle(
       // Same contract as "rows": a throwing content function comes back as
       // data, because there is nothing else left on screen to fall back to.
       try {
-        return {
-          markdown: contentMarkdown(
-            await callLua(sf, content as ILuaFunction, {
-              phrase: incoming.phrase ?? "",
-              dock: incoming.dock,
-            }),
-          ),
-        };
+        return contentResult(
+          await callLua(sf, content as ILuaFunction, {
+            phrase: incoming.phrase ?? "",
+            dock: incoming.dock,
+          }),
+        );
       } catch (e: any) {
         return { error: e?.message ?? String(e) };
       }

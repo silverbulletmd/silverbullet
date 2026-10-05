@@ -255,6 +255,11 @@ const rejections: [string, string, string][] = [
     "view.define: presentation.hierarchy must be { field = <string>, separator = <string> }",
   ],
   [
+    "a frame that is neither full nor minimal",
+    `name = "v", ${CONTENT}, frame = "bare"`,
+    'view.define: frame must be "full" or "minimal"',
+  ],
+  [
     "refreshOn that is not a list",
     `name = "v", ${SOURCE}, ${ON_SELECT}, refreshOn = "file:changed"`,
     "view.define: refreshOn must be a list of event names",
@@ -345,6 +350,7 @@ test("a fully defaulted spec projects the meta the panel expects", () => {
     ephemeral: false,
     openOnStart: false,
     defaultOpen: false,
+    frame: "full",
     definition: undefined,
   });
 });
@@ -780,7 +786,7 @@ test("content may answer with a widget-shaped table carrying markdown", async ()
 test("content answering with something that isn't markdown comes back as an error", async () => {
   const spec = luaSpec(`{ name = "v", content = function() return 42 end }`);
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    error: "navigator: content must return a markdown string, got number",
+    error: "navigator: content must return markdown or a widget, got number",
   });
 });
 
@@ -1235,4 +1241,63 @@ test("computed table columns need no attribute and default to an empty label", a
   ]);
   const rows = await luaHandle(spec, "rows", {});
   expect(rows[0].cells).toEqual([6, 3]);
+});
+
+test("content may answer with an html widget", async () => {
+  const spec = luaSpec(
+    `{ name = "v", content = function() return { _isWidget = true, html = "<b>x</b>", markdown = "x", cssClasses = { "fixture-note" } } end }`,
+  );
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    widget: {
+      _isWidget: true,
+      html: "<b>x</b>",
+      markdown: "x",
+      cssClasses: ["fixture-note"],
+    },
+  });
+});
+
+test("a markdown-only widget keeps the markdown path", async () => {
+  const spec = luaSpec(
+    `{ name = "v", content = function() return { _isWidget = true, markdown = "* [ ] a task" } end }`,
+  );
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    markdown: "* [ ] a task",
+  });
+});
+
+test("content may not return a sandboxed widget", async () => {
+  const spec = luaSpec(
+    `{ name = "v", content = function() return { _isWidget = true, sandbox = true, html = "<p></p>" } end }`,
+  );
+  await expect(luaHandle(spec, "content", {})).resolves.toEqual({
+    error: "navigator: content cannot return a sandboxed widget",
+  });
+});
+
+test("a minimal frame defaults to open, an explicit defaultOpen still wins", () => {
+  expect(
+    wireMeta(
+      luaSpec(
+        `{ name = "v", ${CONTENT}, dock = "page-top", frame = "minimal" }`,
+      ),
+    ),
+  ).toMatchObject({ frame: "minimal", defaultOpen: true });
+  expect(
+    wireMeta(
+      luaSpec(
+        `{ name = "v", ${CONTENT}, dock = "page-top", frame = "minimal", defaultOpen = false }`,
+      ),
+    ),
+  ).toMatchObject({ frame: "minimal", defaultOpen: false });
+});
+
+test("refreshOn expands trigger names at definition time", () => {
+  expect(
+    wireMeta(
+      luaSpec(
+        `{ name = "v", ${CONTENT}, refreshOn = { "navigate", "fixture:ping" } }`,
+      ),
+    ).refreshOn,
+  ).toEqual(["editor:pageLoaded", "editor:documentLoaded", "fixture:ping"]);
 });

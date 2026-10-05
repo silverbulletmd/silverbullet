@@ -60,23 +60,18 @@ export function navigatorSyscalls(): SysCallMapping {
       ],
       examples: [{ code: "onMove = view.moveByRename" }],
     },
-    "lua:view.new": {
+    "lua:widget.newLive": {
       callback: (_ctx, spec: any) => newView(spec),
       description:
-        "Creates a reusable navigator view value without registering or evaluating it.",
+        "Internal: builds a live widget for `widget.new` when its spec has `source` or `content`. Call `widget.new` instead.",
       parameters: [
         {
           name: "spec",
           type: "table",
-          description: "View content and behavior; see the Navigator API docs.",
+          description: "A `widget.new` spec with `source` or `content`.",
         },
       ],
-      returns: [{ type: "table", description: "The reusable view value." }],
-      examples: [
-        {
-          code: "local projects = view.new { source = function() return {} end }",
-        },
-      ],
+      returns: [{ type: "table", description: "The live widget value." }],
     },
     "lua:view.define": {
       callback: (_ctx, spec: any) => {

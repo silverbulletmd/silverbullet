@@ -344,4 +344,7 @@ test("normalizeContent reads markdown, errors, and nothing at all", () => {
   expect(normalizeContent({ error: "broke" })).toEqual({ error: "broke" });
   expect(normalizeContent(undefined)).toEqual({ markdown: "" });
   expect(normalizeContent({})).toEqual({ markdown: "" });
+  expect(normalizeContent({ widget: { html: "<b>x</b>" } })).toEqual({
+    widget: { html: "<b>x</b>" },
+  });
 });

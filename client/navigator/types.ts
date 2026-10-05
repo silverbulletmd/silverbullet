@@ -123,5 +123,6 @@ export type ViewMeta = {
   ephemeral?: boolean;
   openOnStart?: boolean;
   defaultOpen?: boolean;
+  frame?: "full" | "minimal";
   builtin?: boolean;
 };

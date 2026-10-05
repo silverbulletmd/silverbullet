@@ -17,10 +17,10 @@ import type { Client } from "../../../client.ts";
 import {
   activateOnKey,
   type ContentState,
+  contentIdentity,
   contentOutcome,
   createLoadGate,
   isRowActivation,
-  loadIdentity,
   settlesSlot,
   subscribeRefresh,
   treeKeyAction,
@@ -36,7 +36,7 @@ import { LoadingState } from "../loading.ts";
 import {
   ContentNode,
   CopyMarkdownButton,
-  renderContentMarkdown,
+  renderContentResult,
 } from "./content_view.tsx";
 import { PageWidgetFrame } from "./page_widget_frame.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
@@ -146,19 +146,16 @@ function DocumentContent({
         .then(async (raw) => {
           if (!live || !ticket.isCurrent()) return;
           const result = normalizeContent(raw);
-          const identity = loadIdentity(result.error, result.markdown ?? "");
+          const identity = contentIdentity(result);
           if (!gate.current.shouldCommit(identity)) return;
           if (result.error !== undefined) {
             setState({ markdown: "", error: result.error });
             gate.current.committed(identity);
             return;
           }
-          const markdown = result.markdown ?? "";
-          const node = markdown.trim()
-            ? await renderContentMarkdown(client, markdown, pageName)
-            : undefined;
+          const rendered = await renderContentResult(client, result, pageName);
           if (!live || !ticket.isCurrent()) return;
-          setState({ markdown, node });
+          setState(rendered);
           gate.current.committed(identity);
         })
         .catch((error) => {
@@ -195,12 +192,19 @@ function DocumentContent({
         error={state?.error}
       >
         <InlineHeader title={meta.title} />
-        {state?.node && <ContentNode client={client} node={state.node} />}
+        {state?.node && (
+          <ContentNode
+            client={client}
+            node={state.node}
+            cssClasses={state.cssClasses}
+            events={state.events}
+          />
+        )}
       </InlineBody>
     );
   }
   if (outcome === "pending" || outcome === "empty") return null;
-  const { markdown = "", node, error } = state ?? {};
+  const { markdown = "", node, error, cssClasses, events } = state ?? {};
   return (
     <PageWidgetFrame
       client={client}
@@ -216,10 +220,20 @@ function DocumentContent({
       hasBody={!!node}
       tools={
         node &&
-        !error && <CopyMarkdownButton client={client} markdown={markdown} />
+        !error &&
+        markdown.trim() && (
+          <CopyMarkdownButton client={client} markdown={markdown} />
+        )
       }
     >
-      {node && <ContentNode client={client} node={node} />}
+      {node && (
+        <ContentNode
+          client={client}
+          node={node}
+          cssClasses={cssClasses}
+          events={events}
+        />
+      )}
     </PageWidgetFrame>
   );
 }

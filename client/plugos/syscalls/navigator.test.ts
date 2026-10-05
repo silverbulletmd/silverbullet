@@ -34,25 +34,32 @@ test("navigatorSyscalls registers every view.* entry a second time under navigat
   }
 });
 
-test("navigatorSyscalls exposes the whole surface under both names: open, focus, moveByRename, new, define, pick", () => {
+test("navigatorSyscalls exposes the whole surface under both names: open, focus, moveByRename, define, pick", () => {
   const syscalls = navigatorSyscalls();
 
   for (const fn of ["open", "focus", "moveByRename"]) {
     expect(syscalls).toHaveProperty(`view.${fn}`);
     expect(syscalls).toHaveProperty(`navigator.${fn}`);
   }
-  for (const fn of ["new", "define", "pick"]) {
+  for (const fn of ["define", "pick"]) {
     expect(syscalls).toHaveProperty(`lua:view.${fn}`);
     expect(syscalls).toHaveProperty(`lua:navigator.${fn}`);
   }
 });
 
-test("view.new syscall returns a Lua-native value without running its source", () => {
+test("widget.newLive syscall returns a Lua-native value without running its source", () => {
   const source = () => [];
-  const definition = navigatorSyscalls()["lua:view.new"];
+  const definition = navigatorSyscalls()["lua:widget.newLive"];
   if (typeof definition === "function")
     throw new Error("missing syscall metadata");
   const value = definition.callback({}, { source });
   expect(isViewValue(value)).toBe(true);
   expect(value.spec.source).toBe(source);
+});
+
+test("view.new is gone under both names", () => {
+  const syscalls = navigatorSyscalls();
+  expect(syscalls["lua:view.new"]).toBeUndefined();
+  expect(syscalls["lua:navigator.new"]).toBeUndefined();
+  expect(syscalls["lua:widget.newLive"]).toBeDefined();
 });

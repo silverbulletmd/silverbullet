@@ -2,6 +2,7 @@ import { builtinHandle, builtinMeta, builtinViewNames } from "./builtins.ts";
 import { luaHandle, RESERVED_PICK_PREFIX, type ViewSpec } from "./lua_views.ts";
 import type { LuaEnv } from "../space_lua/runtime.ts";
 import type { NavigatorHook, ViewMeta } from "./types.ts";
+import type { WidgetObject } from "../codemirror/widget_body.ts";
 
 export type LuaView = {
   meta: ViewMeta;
@@ -92,15 +93,16 @@ export async function handle(data: {
 
 /** What a content view's `content` hook resolved to: markdown, or why not. */
 export type ContentResult =
-  | { markdown: string; error?: undefined }
-  | {
-      markdown?: undefined;
-      error: string;
-    };
+  | { markdown: string; widget?: undefined; error?: undefined }
+  | { widget: WidgetObject; markdown?: undefined; error?: undefined }
+  | { error: string; markdown?: undefined; widget?: undefined };
 
 export function normalizeContent(result: any): ContentResult {
   if (result && typeof result.error === "string") {
     return { error: result.error };
+  }
+  if (result?.widget && typeof result.widget === "object") {
+    return { widget: result.widget };
   }
   return {
     markdown: typeof result?.markdown === "string" ? result.markdown : "",

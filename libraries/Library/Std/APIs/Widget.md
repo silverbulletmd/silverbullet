@@ -1,11 +1,11 @@
 #meta/api
 
-This implements the widget API. For a Lua Directive to be rendered as a widget, you need to return it via `widget.new`. Consider using [[^Library/Std/APIs/DOM]] to construct these.
+This implements the widget API. Widgets are values describing what to render: static (markdown, html) or live (source, content). See [[View#Widgets and views]]. Consider using [[^Library/Std/APIs/DOM]] to construct HTML widgets.
 
 ```space-lua
 -- priority: 50
 
-widget = {}
+widget = widget or {}
 
 widgets = {}
 
@@ -41,6 +41,9 @@ local widgetSchema = {
 
 -- Creates a widget
 function widget.new(spec)
+  if spec.source ~= nil or spec.content ~= nil then
+    return widget.newLive(spec)
+  end
   local validationResult = jsonschema.validateObject(widgetSchema, spec)
   if validationResult then
     error(validationResult)

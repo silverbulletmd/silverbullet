@@ -391,7 +391,7 @@ test("defineView registers an explicit value without onSelect", async () => {
   await nav.defineView({
     name: "space.readOnly",
     dock: "page-top",
-    view: value,
+    widget: value,
   });
 
   expect(source).not.toHaveBeenCalled();
@@ -616,4 +616,14 @@ test("read members get Git status and conflict commands without history", async 
   expect(commands.has("Git: Review conflicts")).toBe(true);
   expect(commands.has("Revision: Space History")).toBe(false);
   expect(commands.has("Git: Sync now")).toBe(false);
+});
+
+test("defineView points a legacy view key at widget before other checks", async () => {
+  const nav = await freshNavigator();
+  const { newView } = await import("./view_value.ts");
+  const value = newView({ source: () => [] });
+
+  await expect(
+    nav.defineView({ name: "space.legacy", view: value }),
+  ).rejects.toThrow("view.define: 'view' was renamed to 'widget'");
 });

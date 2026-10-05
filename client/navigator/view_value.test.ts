@@ -20,7 +20,7 @@ function luaSpec(
   ) as LuaTable;
 }
 
-test("view.new retains Lua callbacks and defers source evaluation", async () => {
+test("widget.newLive retains Lua callbacks and defers source evaluation", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.setLocal("runs", 0);
   const spec = luaSpec(
@@ -72,13 +72,13 @@ test("onSelect is optional and marks interactive values", () => {
   expect(interactive.meta.hasSelect).toBe(true);
 });
 
-test("view.new accepts an inline title and registration can override it", async () => {
+test("widget.newLive accepts an inline title and registration can override it", async () => {
   const value = newView(
     luaSpec(`{ source = function() return {} end, title = "Projects" }`),
   );
   expect(value.meta.title).toBe("Projects");
   const definition = luaSpec('{ name = "example", title = "Docked projects" }');
-  await definition.rawSet("view", value);
+  await definition.rawSet("widget", value);
   const normalized = normalizeDefineSpec(definition) as LuaTable;
   expect(normalized.rawGet("title")).toBe("Docked projects");
   expect(() =>
@@ -121,8 +121,8 @@ test.each([
     '{ source = function() end, presentation = { mode = "grid" } }',
     'presentation.mode must be "list", "tree", or "table"',
   ],
-])("view.new rejects %s", (_label, source, message) => {
-  expect(() => newView(luaSpec(source))).toThrow(`view.new: ${message}`);
+])("widget.newLive rejects %s", (_label, source, message) => {
+  expect(() => newView(luaSpec(source))).toThrow(`widget.new: ${message}`);
 });
 
 test("explicit registration preserves the value's Lua source and accepts no selection", async () => {
@@ -133,7 +133,7 @@ test("explicit registration preserves the value's Lua source and accepts no sele
   }`),
   );
   const definition = luaSpec('{ name = "example", dock = "rhs" }');
-  await definition.rawSet("view", value);
+  await definition.rawSet("widget", value);
   const normalized = normalizeDefineSpec(definition);
 
   expect(normalized).toBeInstanceOf(LuaTable);
@@ -161,7 +161,7 @@ test("flat registration constructs a value while retaining Lua callbacks", () =>
   expect(normalized.rawGet("custom")).toBe(42);
 });
 
-test("view.new snapshots top-level fields so metadata and dispatch agree", async () => {
+test("widget.newLive snapshots top-level fields so metadata and dispatch agree", async () => {
   const spec = luaSpec(`{
     source = function() return { { name = "Original" } } end,
     presentation = { mode = "tree" },
@@ -188,14 +188,66 @@ test("explicit registration rejects competing flat content", async () => {
     name = "example",
     source = function() return {} end,
   }`);
-  await definition.rawSet("view", value);
+  await definition.rawSet("widget", value);
   expect(() => normalizeDefineSpec(definition)).toThrow(
-    "view.define: 'source' cannot be combined with 'view'",
+    "view.define: 'source' cannot be combined with 'widget'",
   );
 });
 
-test("explicit registration requires a view.new value", () => {
+test("explicit registration requires a live widget", () => {
   expect(() =>
-    normalizeDefineSpec(luaSpec('{ name = "example", view = {} }')),
-  ).toThrow("view.define: view must be a view.new value");
+    normalizeDefineSpec(luaSpec('{ name = "example", widget = {} }')),
+  ).toThrow(
+    "view.define: widget must be a live widget (source or content); return static widgets from content",
+  );
+});
+
+test("the old view key fails with a pointer to widget", async () => {
+  const value = newView(luaSpec("{ source = function() return {} end }"));
+  const definition = luaSpec('{ name = "example" }');
+  await definition.rawSet("view", value);
+  expect(() => normalizeDefineSpec(definition)).toThrow(
+    "view.define: 'view' was renamed to 'widget'",
+  );
+});
+
+test("a static widget table is rejected as a registration widget", () => {
+  const definition = luaSpec(
+    '{ name = "example", widget = { markdown = "# x", _isWidget = true } }',
+  );
+  expect(() => normalizeDefineSpec(definition)).toThrow(
+    "view.define: widget must be a live widget (source or content); return static widgets from content",
+  );
+});
+
+test.each([
+  ["markdown", `{ source = function() return {} end, markdown = "# x" }`],
+  ["html", `{ content = function() return "" end, html = "<b>x</b>" }`],
+])("widget.newLive rejects a live spec carrying %s", (_label, source) => {
+  expect(() => newView(luaSpec(source))).toThrow(
+    "widget.new: source and content cannot be combined with markdown or html",
+  );
+});
+
+test("widget.newLive builds a live content widget", () => {
+  const value = newView(
+    luaSpec(`{ content = function() return "A **small** note." end }`),
+  );
+  expect(isViewValue(value)).toBe(true);
+  expect(value.meta.hasContent).toBe(true);
+});
+
+test("content may not return a live widget", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  env.set(
+    "inner",
+    newView(luaSpec("{ source = function() return {} end }", env)),
+  );
+  const spec = luaSpec(
+    `{ name = "v", content = function() return inner end }`,
+    env,
+  );
+  await expect(luaHandle(spec, "content", {}, env)).resolves.toEqual({
+    error: "navigator: content cannot return a live widget",
+  });
 });

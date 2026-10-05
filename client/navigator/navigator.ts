@@ -344,14 +344,14 @@ export function restoreDocks(): Promise<void> {
 }
 
 export async function defineView(spec: ViewSpec): Promise<void> {
-  const view =
+  const widget =
     spec &&
     typeof spec === "object" &&
-    (spec instanceof LuaTable ? spec.rawGet("view") : spec.view);
-  const explicitView = view !== undefined && view !== null;
-  if (!explicitView) validateDefineSpec(spec);
+    (spec instanceof LuaTable ? spec.rawGet("widget") : spec.widget);
+  const explicitWidget = widget !== undefined && widget !== null;
+  if (!explicitWidget) validateDefineSpec(spec);
   const normalized = normalizeDefineSpec(spec);
-  if (explicitView) validateDefineSpec(normalized, false);
+  if (explicitWidget) validateDefineSpec(normalized, false);
   const meta = wireMeta(normalized);
   register({ meta, spec: normalized });
   const command = commandDefinition(normalized, openCommand(meta.name));

@@ -4,6 +4,13 @@ import { CopyIcon } from "./chrome_icons.tsx";
 import type { Client } from "../../../client.ts";
 import { parseHtmlString } from "../../../codemirror/lua_widget.ts";
 import {
+  bindWidgetEvents,
+  type WidgetObject,
+  widgetBody,
+} from "../../../codemirror/widget_body.ts";
+import type { ContentState } from "../../page_widget_logic.ts";
+import type { ContentResult } from "../../registry.ts";
+import {
   attachWidgetEventHandlers,
   buildResolveTransclusion,
   buildTranslateUrls,
@@ -73,9 +80,13 @@ export async function renderContentMarkdown(
 export function ContentNode({
   client,
   node,
+  cssClasses,
+  events,
 }: {
   client: Client;
   node: HTMLElement;
+  cssClasses?: string[];
+  events?: ContentState["events"];
 }) {
   const host = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -83,29 +94,78 @@ export function ContentNode({
     if (!el) return;
     el.replaceChildren(node);
     attachWidgetEventHandlers(el, client);
+    return bindWidgetEvents(el, events);
   }, [node]);
-  return <div className="sb-nav-content" ref={host} />;
+  return (
+    <div
+      className={["sb-nav-content", ...(cssClasses ?? [])].join(" ")}
+      ref={host}
+    />
+  );
+}
+
+export async function renderContentResult(
+  client: Client,
+  result: ContentResult,
+  pageName: string,
+): Promise<ContentState> {
+  if (result.widget === undefined) {
+    const markdown = result.markdown ?? "";
+    return {
+      markdown,
+      node: markdown.trim()
+        ? await renderContentMarkdown(client, markdown, pageName)
+        : undefined,
+    };
+  }
+  const { cssClasses, events } = result.widget;
+  const body = widgetBody(result.widget);
+  switch (body.kind) {
+    case "empty":
+      return { markdown: "", cssClasses, events };
+    case "markdown":
+      return {
+        markdown: body.markdown,
+        node: await renderContentMarkdown(client, body.markdown, pageName),
+        cssClasses,
+        events,
+      };
+    case "html":
+      return {
+        markdown: body.copyMarkdown ?? "",
+        node:
+          typeof body.html === "string"
+            ? parseHtmlString(body.html)
+            : body.html,
+        cssClasses,
+        events,
+      };
+  }
 }
 
 export function ContentBody({
   client,
   markdown,
+  widget,
   onPainted,
 }: {
   client: Client;
   markdown: string;
+  widget?: WidgetObject;
   onPainted?: (markdown: string) => void;
 }) {
-  const [result, setResult] = useState<
-    { markdown: string; node?: HTMLElement; error?: string } | undefined
-  >(undefined);
+  const [result, setResult] = useState<ContentState | undefined>(undefined);
 
   useEffect(() => {
     let live = true;
-    renderContentMarkdown(client, markdown)
+    renderContentResult(
+      client,
+      widget ? { widget } : { markdown },
+      client.currentName(),
+    )
       .then((rendered) => {
         if (!live) return;
-        setResult({ markdown, node: rendered });
+        setResult({ ...rendered, markdown });
       })
       .catch((e) => {
         if (!live) return;
@@ -115,7 +175,7 @@ export function ContentBody({
     return () => {
       live = false;
     };
-  }, [markdown]);
+  }, [markdown, widget]);
 
   useLayoutEffect(() => {
     if (!result) return;
@@ -128,7 +188,14 @@ export function ContentBody({
     );
   }
   if (!result?.node) return <div className="sb-nav-content" />;
-  return <ContentNode client={client} node={result.node} />;
+  return (
+    <ContentNode
+      client={client}
+      node={result.node}
+      cssClasses={result.cssClasses}
+      events={result.events}
+    />
+  );
 }
 
 export function CopyMarkdownButton({

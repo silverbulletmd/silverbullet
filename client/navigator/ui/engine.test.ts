@@ -13,9 +13,12 @@ vi.mock("../registry.ts", () => ({
   normalizeContent: (result: any) =>
     result && typeof result.error === "string"
       ? { error: result.error }
-      : {
-          markdown: typeof result?.markdown === "string" ? result.markdown : "",
-        },
+      : result?.widget
+        ? { widget: result.widget }
+        : {
+            markdown:
+              typeof result?.markdown === "string" ? result.markdown : "",
+          },
 }));
 
 const { NavigatorEngine, parseIcon } = await import("./engine.ts");
@@ -577,4 +580,20 @@ test("a query from the previous view cannot change the newly active view", async
   expect(await engine.query({ phrase: "old phrase" }, "old-view")).toBe(false);
   expect(vi.mocked(engine.runHook).mock.calls).toHaveLength(calls);
   expect(engine.activeState()?.ctx?.phrase).toBe("");
+});
+
+test("a content view answering with a widget keeps it for the panel", async () => {
+  const widget = { markdown: "# hi", cssClasses: ["fixture-note"] };
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") {
+      return Promise.resolve(meta({ hasContent: true }));
+    }
+    if (payload.hook === "content") return Promise.resolve({ widget });
+    return Promise.resolve(undefined);
+  });
+
+  const state = await new NavigatorEngine("rhs").activate("v");
+
+  expect(state.content).toBe("# hi");
+  expect(state.contentWidget).toEqual(widget);
 });

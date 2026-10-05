@@ -11,6 +11,7 @@ import type { Row } from "./types.ts";
  */
 import {
   activateOnKey,
+  contentIdentity,
   contentOutcome,
   createLoadGate,
   createSettleTracker,
@@ -459,4 +460,26 @@ test("decorations are part of a row's identity", () => {
     { obj: { name: "A" }, primary: "A", decorations: [{ text: "1 hr ago" }] },
   ];
   expect(rowsIdentity(before as any)).not.toBe(rowsIdentity(after as any));
+});
+
+test("an html-only widget with a node is ready even without markdown", () => {
+  expect(contentOutcome({ markdown: "", node: NODE })).toBe("ready");
+});
+
+test("content identity skips identical markdown and string html, never DOM", () => {
+  expect(contentIdentity({ markdown: "# a" })).toBe(
+    contentIdentity({ markdown: "# a" }),
+  );
+  expect(contentIdentity({ widget: { html: "<b>x</b>" } })).toBe(
+    contentIdentity({ widget: { html: "<b>x</b>" } }),
+  );
+  expect(contentIdentity({ widget: { html: "<b>x</b>" } })).not.toBe(
+    contentIdentity({ widget: { html: "<b>y</b>" } }),
+  );
+  expect(
+    contentIdentity({ widget: { html: {} as unknown as HTMLElement } }),
+  ).toBeUndefined();
+  expect(contentIdentity({ error: "broke" })).not.toBe(
+    contentIdentity({ markdown: "" }),
+  );
 });

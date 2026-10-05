@@ -477,10 +477,11 @@ export function NavRoot({
         {fatalError ? (
           <div className="sb-nav-error">{error}</div>
         ) : content !== undefined ? (
-          content.trim() ? (
+          content.trim() || view?.contentWidget ? (
             <ContentBody
               client={client}
               markdown={content}
+              widget={view?.contentWidget}
               onPainted={setPaintedContent}
             />
           ) : null

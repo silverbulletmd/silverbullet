@@ -1,4 +1,5 @@
 import { LoadingState } from "./loading.ts";
+import type { WidgetObject } from "../../codemirror/widget_body.ts";
 import {
   type ContentResult,
   normalizeContent,
@@ -47,6 +48,8 @@ export type ViewState = {
   rows: Row[];
   /** A content view's markdown (`meta.hasContent`); rows stay empty. */
   content?: string;
+  /** Set when the content view answered with a widget rather than markdown. */
+  contentWidget?: WidgetObject;
   error?: string;
   rowState?: RowStates;
   segmentMasks?: SegmentMasks;
@@ -246,7 +249,10 @@ export class NavigatorEngine {
         if (entry.loadToken !== token) return false;
         entry.error = result.error;
         entry.rows = [];
-        if (result.error === undefined) entry.content = result.markdown;
+        entry.contentWidget = result.widget;
+        if (result.error === undefined) {
+          entry.content = result.markdown ?? result.widget?.markdown ?? "";
+        }
         return true;
       }
       let rows: Row[] = [];
