@@ -167,7 +167,7 @@ docsNav.pages = {
   { name = "Customizing/Quirks", ref = "Space Lua/Quirks", icon = "alert-triangle" },
   { name = "Customizing/Thread Locals", ref = "Space Lua/Thread Locals", icon = "box" },
   { name = "Customizing/JavaScript Interop", ref = "Space Lua/JavaScript Interop", icon = "repeat" },
-  { name = "Customizing/Widget", ref = "Space Lua/Widget", icon = "square" },
+  { name = "Customizing/Widget", ref = "Widget", icon = "square" },
   { name = "Customizing/DOM", ref = "Space Lua/DOM", icon = "code" },
   { name = "Customizing/View", ref = "View", icon = "sidebar" },
   { name = "Customizing/Command", ref = "Command", icon = "terminal" },

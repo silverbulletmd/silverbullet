@@ -5,25 +5,25 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 * Mobile improvements:
   * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/keyboardBar]].
-  * Android PWA web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome. Review a share before saving it as a Quick Note with file links, or choose a Space Lua capture action; pending shares survive offline use and can be resumed later. File captures also work in WebKit browsers.
   * On mobile (narrow screens) left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
+  * Android PWA web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome.
   * Fix: pickers, prompts, and confirmations on narrow screens open below the top bar, keeping their controls accessible.
-  * Fix (iOS): **File: Upload** opens the file picker on iPhone, iPad, and desktop, and dropping files into the Space tree uploads them on desktop Safari.
+  * Fix (iOS): `File: Upload` opens the file picker on iPhone, iPad, and desktop, and dropping files into the Space tree uploads them on desktop Safari.
   * Fix (iOS): pressing Return in a list reliably continues it, instead of sometimes inserting extra blank lines or editing the wrong line, especially right after opening a page.
 * Performance improvements:
   * Large spaces (tens of thousands of pages) are much faster: the first sync no longer slows down as it progresses, opening a page no longer re-reads the whole index after unrelated edits, and the space tree only renders the rows near what's on screen, so a flat folder with thousands of pages opens and follows the editor without lag. The server also keeps the space's file list in memory, kept current by its file watcher, instead of re-scanning the whole folder for every client every few seconds, which mattered most on network drives, Docker volumes, and Windows.
 * More iteration on [[API/view]] and [[API/widget]] APIs, still WIP.
-  * **Breaking:** `view.new` is gone; build live list, tree, table and content widgets with `widget.new { source = … }` or `widget.new { content = … }`, and pass them to `view.define` as `widget = …` (previously `view = …`). See [[View#Widgets and views]].
+  * **Breaking:** `view.new` is gone, build live list, tree, table and content widgets with `widget.new { source = … }` or `widget.new { content = … }`, and pass them to `view.define` as `widget = …` (previously `view = …`). See [[View#Widgets and views]].
   * Content views can show HTML and DOM widgets, not just Markdown, in every dock.
   * Views docked above or below the page can use `frame = "minimal"` to render as plain page content with hover-only buttons, replacing top and bottom widgets defined through `hooks:renderTopWidgets`/`hooks:renderBottomWidgets` (now deprecated). `refreshOn` also accepts the trigger names `"index"`, `"navigate"` and `"edit"`.
-* Inline list, tree, and table views can opt into a panel-style filter input with `filter = { inline = true }` and set a `title` for the embedded header.
-* Page tags can define a **custom live preview for frontmatter**, showing a page-specific header in place of the source while keeping the YAML one click away for editing. Go to definition jumps to the renderer's Space Lua. See [[API/tag#Frontmatter live previews]]
+  * Inline list, tree, and table views can opt into a panel-style filter input with `filter = { inline = true }` and set a `title` for the embedded header.
+* Page tags can define a **custom [[Live Preview]] for [[Frontmatter]]**, showing a page-specific header in place of the source while keeping the YAML one click away for editing. Go to definition jumps to the renderer’s Space Lua. See [[API/tag#Frontmatter live previews]]
 * Top and bottom page widgets and page-docked views now have a Go to definition button (`</>`) that jumps to the Space Lua defining them.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported.
-* Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
-* Fix: text you type right after another user's newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
 * The [[Runtime API]] and [[CLI]] can capture screenshots again: `sb screenshot` saves a PNG of the runtime client, optionally clipped to one element with `--selector`.
 * Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and a checked unrelated-history merge tolerates new commits on either side before its first sync.
+* Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
+* Fix: text you type right after another user's newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
 
 ## 2.11.1
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
