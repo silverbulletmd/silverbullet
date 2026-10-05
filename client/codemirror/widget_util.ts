@@ -9,7 +9,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { identityId } from "../../plugs/index/identity_id.ts";
 import type { Client } from "../client.ts";
-import type { EventPayLoad } from "./lua_widget.ts";
+import { bindWidgetEvents, type EventPayLoad } from "./widget_body.ts";
 
 /**
  * Gives widget renderers the same wiki-link resolution the editor's own link
@@ -217,11 +217,5 @@ export function attachWidgetEventHandlers(
     }
   });
 
-  if (events) {
-    for (const [eventName, event] of Object.entries(events)) {
-      div.addEventListener(eventName, (e) => {
-        event({ name: eventName, data: e });
-      });
-    }
-  }
+  if (events) bindWidgetEvents(div, events);
 }

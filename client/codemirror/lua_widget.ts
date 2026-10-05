@@ -1,4 +1,6 @@
 import { WidgetType } from "@codemirror/view";
+import { type WidgetObject, widgetBody } from "./widget_body.ts";
+export type { EventPayLoad } from "./widget_body.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   type ParseTree,
@@ -33,26 +35,7 @@ export type LuaWidgetCallback = (
   pageName: string,
 ) => Promise<LuaWidgetContent | null>;
 
-export type EventPayLoad = {
-  name: string;
-  data: any;
-};
-
-export type LuaWidgetContent =
-  | ViewValue
-  | {
-      _isWidget?: true;
-      html?: string | HTMLElement;
-      markdown?: string;
-      cssClasses?: string[];
-      display?: "block" | "inline";
-      events?: Record<string, (event: EventPayLoad) => void>;
-      // When true, html+script render inside a sandbox iframe (see renderContent).
-      sandbox?: boolean;
-      // Script to run inside the sandbox iframe (only used when `sandbox` is true).
-      script?: string;
-    }
-  | string;
+export type LuaWidgetContent = ViewValue | WidgetObject | string;
 
 export type LuaWidgetOptions = {
   client: Client;
@@ -316,33 +299,26 @@ export class LuaWidget extends WidgetType {
       return;
     }
 
-    if (wc.html) {
-      if (typeof wc.html === "string") {
-        html = parseHtmlString(wc.html);
-      } else {
-        html = wc.html;
-      }
-
+    const body = widgetBody(wc);
+    if (body.kind === "html") {
+      html =
+        typeof body.html === "string" ? parseHtmlString(body.html) : body.html;
       // Widgets may display HTML while exposing Markdown source for copying.
       if (!copyContent) {
         copyContent =
-          typeof wc.html === "string"
-            ? (wc.markdown ?? wc.html)
-            : (wc.markdown ?? wc.html.outerHTML);
+          body.copyMarkdown ??
+          (typeof body.html === "string" ? body.html : body.html.outerHTML);
       }
-
-      block = wc.display === "block";
-      if (block) {
-        div.className += " sb-lua-directive-block";
-      } else {
-        div.className += " sb-lua-directive-inline";
-      }
+      block = body.block;
+      div.className += block
+        ? " sb-lua-directive-block"
+        : " sb-lua-directive-inline";
     }
-    if (!html && wc.markdown) {
+    if (body.kind === "markdown") {
       const syntaxExtensions = this.syntaxExtensions;
       let mdTree = parse(
         buildExtendedMarkdownLanguage(syntaxExtensions),
-        wc.markdown || "",
+        body.markdown,
       );
 
       const resolveTransclusion = buildResolveTransclusion(this.opts.client);
@@ -370,9 +346,7 @@ export class LuaWidget extends WidgetType {
         return;
       }
 
-      block =
-        (wc._isWidget && wc.display === "block") ||
-        isBlockMarkdown(trimmedMarkdown);
+      block = (wc._isWidget && body.block) || isBlockMarkdown(trimmedMarkdown);
       if (block) {
         div.className += " sb-lua-directive-block";
       } else {
