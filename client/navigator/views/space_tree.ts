@@ -1,3 +1,4 @@
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import {
   config,
   editor,
@@ -8,12 +9,7 @@ import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
 import { isHiddenPage, isMetaPage, spaceContents } from "./pages.ts";
-import {
-  baseMeta,
-  type BuiltinView,
-  INDEX_REFRESH_EVENTS,
-  type Segment,
-} from "./types.ts";
+import { baseMeta, type BuiltinView, type Segment } from "./types.ts";
 
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
   name: string;
@@ -179,7 +175,7 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     // Every folder here names a page, whether or not one exists yet, so
     // clicking one opens that page as well as expanding the row.
     selectableFolders: true,
-    refreshOn: INDEX_REFRESH_EVENTS,
+    refreshOn: expandRefreshTriggers(["index"]),
   }),
   row: {
     icon: treeIcon,

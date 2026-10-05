@@ -1,3 +1,4 @@
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   isMarkdownPath,
@@ -17,7 +18,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { parsePageMetaLastModified } from "../../lib/page_meta.ts";
 import type { Decoration } from "../types.ts";
-import { type BuiltinView, baseMeta, INDEX_REFRESH_EVENTS } from "./types.ts";
+import { type BuiltinView, baseMeta } from "./types.ts";
 
 /** A page or document from the index (or its pre-index file-listing
  * fallback), or a synthesized aspiring-page row (see `aspiringRows`) -- both
@@ -205,7 +206,7 @@ export const pagePicker: BuiltinView<PageObj> = {
     supportedDocks: ["modal", "lhs", "rhs", "bhs"],
     hasCreate: true,
     createIcon: "file-text",
-    refreshOn: INDEX_REFRESH_EVENTS,
+    refreshOn: expandRefreshTriggers(["index"]),
     refreshOnOpen: true,
     pathCompletion: true,
     hashtagFilter: true,

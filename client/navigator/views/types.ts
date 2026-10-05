@@ -64,15 +64,6 @@ export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
   onMove?: (obj: T, newName: string) => Promise<any>;
 };
 
-/** Re-run the source when the index has something new to say -- what every
- * file-backed built-in (a picker or tree over the space) declares itself,
- * since `baseMeta`'s own default is no events. */
-export const INDEX_REFRESH_EVENTS = [
-  "file:changed",
-  "file:deleted",
-  "mq:emptyQueue:indexQueue",
-];
-
 /** Everything a view leaves at its defaults, so each one only says what differs. */
 /**
  * `onSelect` sentinel: expand this tree row (if it isn't already) and leave

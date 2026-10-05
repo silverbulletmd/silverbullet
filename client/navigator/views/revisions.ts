@@ -1,3 +1,4 @@
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { base64EncodedDataUrl } from "@silverbulletmd/silverbullet/lib/crypto";
 import { relativeTime } from "@silverbulletmd/silverbullet/lib/dates";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
@@ -320,12 +321,11 @@ export const pageHistoryView: BuiltinView<RevisionRow> = {
     expansionScope: "page",
     foldersFirst: false,
     hasRowIcon: true,
-    refreshOn: [
-      "editor:pageLoaded",
-      "editor:documentLoaded",
-      "editor:pageModified",
+    refreshOn: expandRefreshTriggers([
+      "navigate",
+      "edit",
       REVISIONS_CHANGED_EVENT,
-    ],
+    ]),
     refreshOnOpen: true,
   }),
   row: {

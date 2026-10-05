@@ -1,5 +1,6 @@
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { editor, index } from "@silverbulletmd/silverbullet/syscalls";
-import { baseMeta, type BuiltinView, INDEX_REFRESH_EVENTS } from "./types.ts";
+import { baseMeta, type BuiltinView } from "./types.ts";
 
 const MAX_ANCHOR_DESCRIPTION = 100;
 
@@ -8,7 +9,7 @@ export const anchorPicker: BuiltinView = {
     title: "Anchors",
     label: "Open",
     placeholder: "Anchor",
-    refreshOn: INDEX_REFRESH_EVENTS,
+    refreshOn: expandRefreshTriggers(["index"]),
     // Rows are named bare (the `$` is the row's icon's job), so a phrase that
     // carries the sigil still finds them.
     stripPrefix: "$",

@@ -1,6 +1,7 @@
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { config, editor, index } from "@silverbulletmd/silverbullet/syscalls";
 import { open } from "../navigator.ts";
-import { baseMeta, type BuiltinView, INDEX_REFRESH_EVENTS } from "./types.ts";
+import { baseMeta, type BuiltinView } from "./types.ts";
 
 /** The row this view actually exposes: a tag name and how many things carry
  * it, aggregated from the index's own (genuinely `ObjectValue`) `"tag"`
@@ -14,7 +15,7 @@ export const tagPicker: BuiltinView<TagRow> = {
     label: "Open",
     placeholder: "Tag",
     supportedDocks: ["modal", "lhs", "rhs", "bhs"],
-    refreshOn: INDEX_REFRESH_EVENTS,
+    refreshOn: expandRefreshTriggers(["index"]),
     // As with anchors: the `#` is the icon's job, not the label's.
     stripPrefix: "#",
     filterFields: { primary: { weight: 1.0, segments: true } },
