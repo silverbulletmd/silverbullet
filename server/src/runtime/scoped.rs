@@ -72,6 +72,16 @@ impl RuntimeBackend for RuntimeLease {
         }
         self.backend.eval_global(name, arg, timeout)
     }
+    fn screenshot(
+        &self,
+        selector: Option<&str>,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RuntimeError> {
+        if !self.valid() {
+            return Err(RuntimeError::Forbidden);
+        }
+        self.backend.screenshot(selector, timeout)
+    }
     fn logs(&self, limit: usize, since: Option<i64>) -> Vec<LogEntry> {
         if !self.valid() {
             return vec![];

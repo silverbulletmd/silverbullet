@@ -536,6 +536,29 @@ fn fs_read_only_server_allows_reads_and_rejects_writes() {
 }
 
 #[test]
+fn screenshot_against_server_without_runtime_reports_not_enabled() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = start_server(space.path()) else {
+        eprintln!("skip: silverbullet server binary not built (run `make build-rs` or `cargo build --workspace`)");
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    let target = cfg.path().join("shot.png");
+    let out = run_sb(
+        &["--url", &base, "screenshot", target.to_str().unwrap()],
+        cfg.path(),
+    );
+    assert_ne!(out.code, 0, "expected non-zero exit (runtime disabled)");
+    assert!(
+        out.stderr.to_lowercase().contains("not enabled")
+            || out.stderr.to_lowercase().contains("runtime"),
+        "{:?}",
+        out.stderr
+    );
+    assert!(!target.exists(), "no file should be written on failure");
+}
+
+#[test]
 fn eval_against_server_without_runtime_reports_not_enabled() {
     // `space` is held for the whole test so its tempdir outlives the server.
     let space = tempfile::tempdir().unwrap();

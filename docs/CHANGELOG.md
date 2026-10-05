@@ -16,6 +16,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix (iOS): pressing Return in a list reliably continues it, instead of sometimes inserting extra blank lines or editing the wrong line, especially right after opening a page.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 * Fix: text you type right after another user's newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
+* The [[Runtime API]] and [[CLI]] can capture screenshots again: `sb screenshot` saves a PNG of the runtime client, optionally clipped to one element with `--selector`.
 * Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and a checked unrelated-history merge tolerates new commits on either side before its first sync.
 * The documentation moved to [docs.silverbullet.md](https://docs.silverbullet.md), reorganized into sections; old silverbullet.md links redirect.
 

@@ -299,6 +299,10 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             "/.runtime/logs",
             get(crate::handlers::runtime::handle_runtime_logs),
         )
+        .route(
+            "/.runtime/screenshot",
+            get(crate::handlers::runtime::handle_runtime_screenshot),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             require_authorization,
@@ -704,6 +708,7 @@ mod auth_tests {
             ("POST", "/.runtime/lua"),
             ("POST", "/.runtime/lua_script"),
             ("GET", "/.runtime/logs"),
+            ("GET", "/.runtime/screenshot"),
         ] {
             let status = crate::build_router(st.clone())
                 .oneshot(

@@ -25,6 +25,10 @@ pub enum RuntimeError {
     Transport(String),
     #[error("{0}")]
     Eval(String),
+    #[error("{0}")]
+    SelectorNotFound(String),
+    #[error("{0}")]
+    InvalidSelector(String),
 }
 
 /// What the router/handlers call. A single primitive: evaluate one client
@@ -73,6 +77,14 @@ pub trait RuntimeBackend: Send + Sync {
         arg: &str,
         timeout: Duration,
     ) -> Result<serde_json::Value, RuntimeError>;
+
+    fn screenshot(
+        &self,
+        _selector: Option<&str>,
+        _timeout: Duration,
+    ) -> Result<Vec<u8>, RuntimeError> {
+        Err(RuntimeError::Transport("screenshot unsupported".into()))
+    }
 
     /// Recent console-log entries (most recent `limit`, optionally only those
     /// strictly newer than `since`).

@@ -15,6 +15,6 @@ pub use backend::{RuntimeBackend, RuntimeError};
 pub use client::{build_global_call_js, ClientRuntime};
 pub use logs::{LogBuffer, LogEntry};
 pub use management::{RuntimeInstance, RuntimeSnapshot};
-pub use transport::ClientTransport;
+pub use transport::{CaptureRect, ClientTransport};
 
 pub mod scoped;

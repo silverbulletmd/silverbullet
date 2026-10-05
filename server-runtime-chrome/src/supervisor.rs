@@ -6,14 +6,15 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chromiumoxide::browser::{Browser, BrowserConfig};
 use chromiumoxide::cdp::browser_protocol::network::{CookieParam, CookieSameSite};
+use chromiumoxide::cdp::browser_protocol::page::{CaptureScreenshotFormat, Viewport};
 use chromiumoxide::cdp::js_protocol::runtime::{
     ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled,
 };
 use chromiumoxide::error::CdpError;
-use chromiumoxide::page::Page;
+use chromiumoxide::page::{Page, ScreenshotParams};
 use futures::StreamExt;
 use serde_json::Value;
-use silverbullet_server::runtime::{LogBuffer, LogEntry, RuntimeError};
+use silverbullet_server::runtime::{CaptureRect, LogBuffer, LogEntry, RuntimeError};
 use tokio::sync::{Mutex, Notify};
 
 use crate::config::{ChromeConfig, SpacePage};
@@ -30,6 +31,25 @@ pub(crate) async fn eval_on_page(page: &Page, js: &str) -> Result<Value, Runtime
         .map_err(RuntimeError::Transport)?;
     let result = page.evaluate(params).await.map_err(cdp_error_to_runtime)?;
     Ok(result.value().cloned().unwrap_or(Value::Null))
+}
+
+pub(crate) async fn capture_on_page(
+    page: &Page,
+    clip: Option<CaptureRect>,
+) -> Result<Vec<u8>, RuntimeError> {
+    let mut params = ScreenshotParams::builder().format(CaptureScreenshotFormat::Png);
+    if let Some(c) = clip {
+        params = params.clip(Viewport {
+            x: c.x,
+            y: c.y,
+            width: c.width,
+            height: c.height,
+            scale: 1.0,
+        });
+    }
+    page.screenshot(params.build())
+        .await
+        .map_err(|e| RuntimeError::Transport(e.to_string()))
 }
 
 /// Classify a chromiumoxide error from `page.evaluate`. A thrown client

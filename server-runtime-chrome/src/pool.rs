@@ -7,12 +7,14 @@ use std::time::Duration;
 
 use chromiumoxide::page::Page;
 use serde_json::Value;
-use silverbullet_server::runtime::{ClientTransport, LogBuffer, RuntimeError};
+use silverbullet_server::runtime::{CaptureRect, ClientTransport, LogBuffer, RuntimeError};
 use tokio::runtime::Runtime;
 use tokio::sync::{watch, Mutex, Notify};
 
 use crate::config::{ChromeConfig, SpacePage};
-use crate::supervisor::{eval_on_page, launch_browser, supervise_space, OwnedBrowser};
+use crate::supervisor::{
+    capture_on_page, eval_on_page, launch_browser, supervise_space, OwnedBrowser,
+};
 
 struct Registration {
     supervisor: tokio::task::JoinHandle<()>,
@@ -217,8 +219,12 @@ pub struct SharedChromeTransport {
     management: StdMutex<()>,
 }
 
-impl ClientTransport for SharedChromeTransport {
-    fn eval_js(&self, js: &str, timeout: Duration) -> Result<Value, RuntimeError> {
+impl SharedChromeTransport {
+    fn on_live_page<T, F, Fut>(&self, timeout: Duration, op: F) -> Result<T, RuntimeError>
+    where
+        F: FnOnce(Page) -> Fut,
+        Fut: std::future::Future<Output = Result<T, RuntimeError>>,
+    {
         self.ensure_started();
         self.pool.rt().block_on(async {
             tokio::select! {
@@ -226,11 +232,28 @@ impl ClientTransport for SharedChromeTransport {
                 _ = self.owner.cancelled() => Err(RuntimeError::NotReady),
                 result = tokio::time::timeout(timeout, async {
                     let guard = self.live.lock().await;
-                    let page = guard.as_ref().ok_or(RuntimeError::NotReady)?;
-                    eval_on_page(page, js).await
+                    let page = guard.as_ref().ok_or(RuntimeError::NotReady)?.clone();
+                    op(page).await
                 }) => result.unwrap_or(Err(RuntimeError::Timeout)),
             }
         })
+    }
+}
+
+impl ClientTransport for SharedChromeTransport {
+    fn eval_js(&self, js: &str, timeout: Duration) -> Result<Value, RuntimeError> {
+        self.on_live_page(timeout, |page| async move { eval_on_page(&page, js).await })
+    }
+
+    fn capture(
+        &self,
+        clip: Option<CaptureRect>,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RuntimeError> {
+        self.on_live_page(
+            timeout,
+            |page| async move { capture_on_page(&page, clip).await },
+        )
     }
 
     fn wait_ready(&self, timeout: Duration) -> Result<(), RuntimeError> {

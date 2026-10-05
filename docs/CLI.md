@@ -151,6 +151,21 @@ sb logs -f           # follow (tail) mode
 | `-n, --lines <int>` | Number of entries (default: 100) |
 | `-f, --follow` | Continuously stream new log entries |
 
+## `screenshot [file]`
+Save a PNG of the runtime client to `file` (default `screenshot.png`), or write it to stdout with `-`. With `--json`, prints the path and image dimensions. Requires the Runtime API.
+
+```bash
+sb eval 'editor.navigate("Projects")'
+sb screenshot projects.png
+sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'
+```
+
+| Flag | Description |
+|---|---|
+| `--selector <css>` | Capture the first matching element instead of the viewport |
+
+On SilverBullet Desktop this captures the space's visible editor window.
+
 ## `version`
 Print the installed CLI version.
 

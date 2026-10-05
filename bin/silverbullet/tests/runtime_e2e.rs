@@ -79,6 +79,14 @@ fn dump_and_panic(server: &mut Server, msg: &str) -> ! {
     panic!("{msg}\n--- server stdout ---\n{out}\n--- server stderr ---\n{err}");
 }
 
+fn png_size(bytes: &[u8]) -> (u32, u32) {
+    assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"), "not a PNG");
+    (
+        u32::from_be_bytes(bytes[16..20].try_into().unwrap()),
+        u32::from_be_bytes(bytes[20..24].try_into().unwrap()),
+    )
+}
+
 #[test]
 fn runtime_api_evaluates_lua_against_headless_chrome() {
     if !chrome_available_or_skip("runtime_e2e") {
@@ -86,6 +94,8 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
     }
 
     let space = tempfile::tempdir().unwrap();
+    let long_page: String = (1..=200).map(|i| format!("Line {i}\n\n")).collect();
+    std::fs::write(space.path().join("index.md"), long_page).unwrap();
     let chrome_data = space.path().join(".chrome-data");
     let port = free_port();
 
@@ -165,6 +175,56 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
     }
     let v: serde_json::Value = serde_json::from_str(script.text().unwrap().trim()).unwrap();
     assert_eq!(v, serde_json::json!({ "result": 2 }));
+
+    let full = http
+        .get(format!("{base}/.runtime/screenshot"))
+        .send()
+        .unwrap();
+    if !full.status().is_success() {
+        let status = full.status();
+        let body = full.text().unwrap_or_default();
+        dump_and_panic(
+            &mut server,
+            &format!("/.runtime/screenshot returned {status}: {body}"),
+        );
+    }
+    assert_eq!(full.headers()["content-type"], "image/png");
+    let (fw, fh) = png_size(&full.bytes().unwrap());
+
+    let top = http
+        .get(format!("{base}/.runtime/screenshot?selector=%23sb-top"))
+        .send()
+        .unwrap();
+    assert_eq!(top.status(), 200);
+    let (tw, th) = png_size(&top.bytes().unwrap());
+    assert!(
+        tw * th < fw * fh,
+        "clipped {tw}x{th} should be smaller than {fw}x{fh}"
+    );
+
+    let tall = http
+        .get(format!("{base}/.runtime/screenshot?selector=.cm-content"))
+        .send()
+        .unwrap();
+    assert_eq!(tall.status(), 200);
+    let (cw, ch) = png_size(&tall.bytes().unwrap());
+    assert!(
+        cw <= fw && ch <= fh,
+        "clip taller than the viewport must be clamped: {cw}x{ch} vs {fw}x{fh}"
+    );
+
+    for (query, status, code) in [
+        ("%23does-not-exist", 404, "selector_not_found"),
+        ("%5B%5B", 400, "invalid_selector"),
+    ] {
+        let resp = http
+            .get(format!("{base}/.runtime/screenshot?selector={query}"))
+            .send()
+            .unwrap();
+        assert_eq!(resp.status(), status, "selector {query}");
+        let v: serde_json::Value = serde_json::from_str(&resp.text().unwrap()).unwrap();
+        assert_eq!(v["code"], code);
+    }
 
     drop(server);
 }

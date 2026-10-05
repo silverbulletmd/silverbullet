@@ -22,6 +22,7 @@ pub struct LogEntry {
 
 const MAX_EVAL_RESPONSE_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_LOG_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_SCREENSHOT_RESPONSE_BYTES: u64 = 64 * 1024 * 1024;
 
 fn read_response(
     response: reqwest::blocking::Response,
@@ -132,6 +133,28 @@ impl SpaceConnection {
         Ok(data.logs)
     }
 
+    /// Capture a PNG via `GET /.runtime/screenshot`.
+    pub fn screenshot(&self, selector: Option<&str>) -> Result<Vec<u8>, String> {
+        let url = format!("{}/.runtime/screenshot", self.base_url);
+        let mut req = self
+            .client
+            .get(&url)
+            .header("X-Timeout", self.timeout.as_secs().to_string());
+        if let Some(selector) = selector {
+            req = req.query(&[("selector", selector)]);
+        }
+        let resp = self
+            .apply_auth(req)
+            .send()
+            .map_err(|e| format!("request failed: {e}"))?;
+        let status = resp.status();
+        let bytes = read_response(resp, MAX_SCREENSHOT_RESPONSE_BYTES, "screenshot response")?;
+        if !status.is_success() {
+            return Err(runtime_error(status, &bytes));
+        }
+        Ok(bytes)
+    }
+
     /// GET `/.config` and return the parsed JSON body on 200.
     pub fn config(&self) -> Result<Value, String> {
         let url = format!("{}/.config", self.base_url);
@@ -213,7 +236,7 @@ mod tests {
     #[derive(Debug)]
     struct RecordedRequest {
         _method: String,
-        _path: String,
+        path: String,
         headers: Vec<(String, String)>,
         _body: Vec<u8>,
     }
@@ -273,7 +296,7 @@ mod tests {
 
             RecordedRequest {
                 _method: method,
-                _path: path,
+                path,
                 headers,
                 _body: body,
             }
@@ -414,5 +437,40 @@ mod tests {
             "auth_x=jwt",
             "must send Cookie: auth_x=jwt"
         );
+    }
+
+    #[test]
+    fn screenshot_sends_selector_and_timeout_and_returns_bytes() {
+        let response = concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: image/png\r\n",
+            "Content-Length: 7\r\n",
+            "Connection: close\r\n\r\n",
+            "PNGDATA"
+        );
+        let (base, handle) = mock_server(response);
+        let conn = bearer_conn(&base, "tok");
+        let bytes = conn.screenshot(Some("#sb-top")).unwrap();
+        let req = handle.join().unwrap();
+        assert_eq!(bytes, b"PNGDATA");
+        assert_eq!(req.path, "/.runtime/screenshot?selector=%23sb-top");
+        assert_eq!(req.header("X-Timeout"), Some("30"));
+    }
+
+    #[test]
+    fn screenshot_error_surfaces_server_message() {
+        let response = concat!(
+            "HTTP/1.1 404 Not Found\r\n",
+            "Content-Type: application/json\r\n",
+            "Content-Length: 79\r\n",
+            "Connection: close\r\n\r\n",
+            r#"{"error":"no visible element matches the selector","code":"selector_not_found"}"#
+        );
+        let (base, handle) = mock_server(response);
+        let err = bearer_conn(&base, "tok")
+            .screenshot(Some(".x"))
+            .unwrap_err();
+        handle.join().unwrap();
+        assert!(err.contains("no visible element"), "{err}");
     }
 }

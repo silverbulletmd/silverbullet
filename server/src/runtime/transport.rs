@@ -8,6 +8,14 @@ use std::time::Duration;
 
 use super::backend::RuntimeError;
 
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CaptureRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
 pub trait ClientTransport: Send + Sync {
     /// Evaluate a raw JS expression in the client page and return its JSON
     /// result, blocking up to `timeout`. Implementations run any async work on
@@ -20,6 +28,13 @@ pub trait ClientTransport: Send + Sync {
 
     /// Non-blocking readiness check.
     fn is_ready(&self) -> bool;
+    fn capture(
+        &self,
+        _clip: Option<CaptureRect>,
+        _timeout: Duration,
+    ) -> Result<Vec<u8>, RuntimeError> {
+        Err(RuntimeError::Transport("screenshot unsupported".into()))
+    }
     fn ensure_started(&self) {}
     fn shutdown(&self) {}
     fn snapshot(&self) -> Option<super::RuntimeSnapshot> {
@@ -50,6 +65,13 @@ impl ClientTransport for Box<dyn ClientTransport> {
     }
     fn is_ready(&self) -> bool {
         (**self).is_ready()
+    }
+    fn capture(
+        &self,
+        clip: Option<CaptureRect>,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RuntimeError> {
+        (**self).capture(clip, timeout)
     }
     fn ensure_started(&self) {
         (**self).ensure_started()

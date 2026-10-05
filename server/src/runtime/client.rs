@@ -4,11 +4,11 @@
 //! returns is passed through verbatim — endpoint-specific shaping (e.g. the
 //! objects string→JSON unwrap) lives in the handlers.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::backend::{RuntimeBackend, RuntimeError};
 use super::logs::{LogBuffer, LogEntry};
-use super::transport::ClientTransport;
+use super::transport::{CaptureRect, ClientTransport};
 
 /// Build the JS expression that invokes a global function with a single
 /// JSON-encoded string argument. The transport awaits the returned promise and
@@ -18,6 +18,75 @@ use super::transport::ClientTransport;
 pub fn build_global_call_js(fn_name: &str, arg: &str) -> String {
     let arg_json = serde_json::to_string(arg).unwrap_or_else(|_| "\"\"".to_string());
     format!("{fn_name}({arg_json})")
+}
+
+const SETTLE_JS: &str = r#"(async (selector) => {
+  const frame = () => new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+    setTimeout(resolve, 100);
+  });
+  await document.fonts.ready;
+  await frame();
+  await frame();
+  if (selector === null) return { clip: null };
+  let element;
+  try {
+    element = document.querySelector(selector);
+  } catch (error) {
+    return { invalid: String((error && error.message) || error) };
+  }
+  if (!element) return { missing: true };
+  element.scrollIntoView({ block: "nearest" });
+  await frame();
+  const rect = element.getBoundingClientRect();
+  const left = Math.floor(Math.max(0, rect.left));
+  const top = Math.floor(Math.max(0, rect.top));
+  const right = Math.ceil(Math.min(innerWidth, rect.right));
+  const bottom = Math.ceil(Math.min(innerHeight, rect.bottom));
+  if (right <= left || bottom <= top) return { missing: true };
+  return { clip: { x: left, y: top, width: right - left, height: bottom - top } };
+})"#;
+
+/// Build the JS that waits for rendering to settle and, given a selector,
+/// resolves the element's rectangle clipped to the viewport in whole CSS
+/// pixels. Hidden windows throttle `requestAnimationFrame`, so each frame wait
+/// also races a short timer.
+pub fn build_settle_js(selector: Option<&str>) -> String {
+    let arg = serde_json::to_string(&selector).unwrap_or_else(|_| "null".to_string());
+    format!("{SETTLE_JS}({arg})")
+}
+
+pub(crate) fn parse_settle_result(
+    value: &serde_json::Value,
+) -> Result<Option<CaptureRect>, RuntimeError> {
+    if let Some(message) = value.get("invalid").and_then(|m| m.as_str()) {
+        return Err(RuntimeError::InvalidSelector(format!(
+            "invalid selector: {message}"
+        )));
+    }
+    if value.get("missing").and_then(|m| m.as_bool()) == Some(true) {
+        return Err(RuntimeError::SelectorNotFound(
+            "no visible element matches the selector".into(),
+        ));
+    }
+    match value.get("clip") {
+        Some(serde_json::Value::Null) => Ok(None),
+        Some(clip) => serde_json::from_value(clip.clone())
+            .map(Some)
+            .map_err(|e| RuntimeError::Transport(format!("invalid capture rectangle: {e}"))),
+        None => Err(RuntimeError::Transport(
+            "unexpected screenshot settle result".into(),
+        )),
+    }
+}
+
+fn remaining(deadline: Instant) -> Result<Duration, RuntimeError> {
+    let left = deadline.saturating_duration_since(Instant::now());
+    if left.is_zero() {
+        Err(RuntimeError::Timeout)
+    } else {
+        Ok(left)
+    }
 }
 
 /// A `RuntimeBackend` for any `ClientTransport`. Holds the transport plus the
@@ -49,6 +118,25 @@ impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
         });
         if let Err(e) = &result {
             tracing::warn!("runtime call {fn_name} failed: {e}");
+        }
+        result
+    }
+
+    fn screenshot(
+        &self,
+        selector: Option<&str>,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RuntimeError> {
+        let deadline = Instant::now() + timeout;
+        let result = self.transport.wait_ready(timeout).and_then(|()| {
+            let settled = self
+                .transport
+                .eval_js(&build_settle_js(selector), remaining(deadline)?)?;
+            let clip = parse_settle_result(&settled)?;
+            self.transport.capture(clip, remaining(deadline)?)
+        });
+        if let Err(e) = &result {
+            tracing::warn!("runtime screenshot failed: {e}");
         }
         result
     }
@@ -93,6 +181,8 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
+    use crate::runtime::transport::CaptureRect;
+
     #[test]
     fn unsupported_management_cannot_report_success() {
         let runtime =
@@ -122,6 +212,8 @@ mod tests {
         eval_result: Result<serde_json::Value, RuntimeError>,
         seen_js: Mutex<Vec<String>>,
         started: AtomicBool,
+        captures: Mutex<Vec<(Option<CaptureRect>, Duration)>>,
+        eval_delay: Duration,
     }
 
     impl FakeTransport {
@@ -132,12 +224,15 @@ mod tests {
                 eval_result: Ok(value),
                 seen_js: Mutex::new(Vec::new()),
                 started: AtomicBool::new(false),
+                captures: Mutex::new(Vec::new()),
+                eval_delay: Duration::ZERO,
             }
         }
     }
 
     impl ClientTransport for FakeTransport {
         fn eval_js(&self, js: &str, _timeout: Duration) -> Result<serde_json::Value, RuntimeError> {
+            std::thread::sleep(self.eval_delay);
             self.seen_js.lock().unwrap().push(js.to_string());
             self.eval_result
                 .as_ref()
@@ -148,6 +243,8 @@ mod tests {
                     RuntimeError::Timeout => RuntimeError::Timeout,
                     RuntimeError::Transport(s) => RuntimeError::Transport(s.clone()),
                     RuntimeError::Eval(s) => RuntimeError::Eval(s.clone()),
+                    RuntimeError::SelectorNotFound(s) => RuntimeError::SelectorNotFound(s.clone()),
+                    RuntimeError::InvalidSelector(s) => RuntimeError::InvalidSelector(s.clone()),
                 })
         }
         fn wait_ready(&self, _timeout: Duration) -> Result<(), RuntimeError> {
@@ -158,6 +255,12 @@ mod tests {
                 Err(RuntimeError::Timeout) => Err(RuntimeError::Timeout),
                 Err(RuntimeError::Transport(s)) => Err(RuntimeError::Transport(s.clone())),
                 Err(RuntimeError::Eval(s)) => Err(RuntimeError::Eval(s.clone())),
+                Err(RuntimeError::SelectorNotFound(s)) => {
+                    Err(RuntimeError::SelectorNotFound(s.clone()))
+                }
+                Err(RuntimeError::InvalidSelector(s)) => {
+                    Err(RuntimeError::InvalidSelector(s.clone()))
+                }
             }
         }
         fn is_ready(&self) -> bool {
@@ -165,6 +268,14 @@ mod tests {
         }
         fn ensure_started(&self) {
             self.started.store(true, Ordering::Relaxed);
+        }
+        fn capture(
+            &self,
+            clip: Option<CaptureRect>,
+            timeout: Duration,
+        ) -> Result<Vec<u8>, RuntimeError> {
+            self.captures.lock().unwrap().push((clip, timeout));
+            Ok(b"\x89PNGfake".to_vec())
         }
     }
 
@@ -222,5 +333,108 @@ mod tests {
         let logs = LogBuffer::new();
         let rt = ClientRuntime::new(FakeTransport::ok(serde_json::json!(null)), logs);
         assert!(rt.ready());
+    }
+
+    #[test]
+    fn settle_js_embeds_selector_json_escaped() {
+        let js = build_settle_js(Some(r#"a[title="x\"y"]</script>"#));
+        assert!(js.ends_with(r#"("a[title=\"x\\\"y\"]</script>")"#), "{js}");
+        assert!(build_settle_js(None).ends_with("(null)"));
+    }
+
+    #[test]
+    fn settle_result_maps_each_shape() {
+        use serde_json::json;
+        assert_eq!(parse_settle_result(&json!({"clip": null})).unwrap(), None);
+        assert_eq!(
+            parse_settle_result(
+                &json!({"clip": {"x": 1.0, "y": 2.0, "width": 3.0, "height": 4.0}})
+            )
+            .unwrap(),
+            Some(CaptureRect {
+                x: 1.0,
+                y: 2.0,
+                width: 3.0,
+                height: 4.0
+            })
+        );
+        assert!(matches!(
+            parse_settle_result(&json!({"missing": true})),
+            Err(RuntimeError::SelectorNotFound(_))
+        ));
+        assert!(matches!(
+            parse_settle_result(&json!({"invalid": "'[[' is not a valid selector"})),
+            Err(RuntimeError::InvalidSelector(m)) if m.contains("not a valid selector")
+        ));
+        assert!(matches!(
+            parse_settle_result(&json!(42)),
+            Err(RuntimeError::Transport(_))
+        ));
+    }
+
+    #[test]
+    fn screenshot_settles_then_captures_the_clip() {
+        let rect =
+            serde_json::json!({"clip": {"x": 0.0, "y": 10.0, "width": 50.0, "height": 20.0}});
+        let rt = ClientRuntime::new(FakeTransport::ok(rect), LogBuffer::new());
+        let png = rt
+            .screenshot(Some("#sb-top"), Duration::from_secs(5))
+            .unwrap();
+        assert!(png.starts_with(b"\x89PNG"));
+        assert!(rt.transport.seen_js.lock().unwrap()[0].contains(r##""#sb-top""##));
+        let captures = rt.transport.captures.lock().unwrap();
+        assert_eq!(
+            captures[0].0,
+            Some(CaptureRect {
+                x: 0.0,
+                y: 10.0,
+                width: 50.0,
+                height: 20.0
+            })
+        );
+    }
+
+    #[test]
+    fn screenshot_missing_selector_does_not_capture() {
+        let rt = ClientRuntime::new(
+            FakeTransport::ok(serde_json::json!({"missing": true})),
+            LogBuffer::new(),
+        );
+        let err = rt
+            .screenshot(Some(".nope"), Duration::from_secs(5))
+            .unwrap_err();
+        assert!(matches!(err, RuntimeError::SelectorNotFound(_)));
+        assert!(rt.transport.captures.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn screenshot_with_spent_deadline_times_out_before_capture() {
+        let mut transport = FakeTransport::ok(serde_json::json!({"clip": null}));
+        transport.eval_delay = Duration::from_millis(60);
+        let rt = ClientRuntime::new(transport, LogBuffer::new());
+        let err = rt.screenshot(None, Duration::from_millis(50)).unwrap_err();
+        assert!(matches!(err, RuntimeError::Timeout));
+        assert!(rt.transport.captures.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn default_transport_capture_is_unsupported() {
+        struct Bare;
+        impl ClientTransport for Bare {
+            fn eval_js(&self, _: &str, _: Duration) -> Result<serde_json::Value, RuntimeError> {
+                Ok(serde_json::json!({"clip": null}))
+            }
+            fn wait_ready(&self, _: Duration) -> Result<(), RuntimeError> {
+                Ok(())
+            }
+            fn is_ready(&self) -> bool {
+                true
+            }
+        }
+        let rt = ClientRuntime::new(Bare, LogBuffer::new());
+        assert!(matches!(
+            rt.screenshot(None, Duration::from_secs(1)),
+            Err(RuntimeError::Transport(m)) if m.contains("unsupported")
+        ));
     }
 }

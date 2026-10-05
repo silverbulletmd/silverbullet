@@ -69,6 +69,22 @@ return pages' \
 # => {"result":[{"name":"index"},{"name":"Projects"},{"name":"TODO"}]}
 ```
 
+## Screenshot
+`GET /.runtime/screenshot`
+
+Captures the runtime client as a PNG image, after fonts have loaded and pending rendering has settled.
+
+| Query parameter | Description |
+|---|---|
+| `selector` | Optional CSS selector. The first matching element is scrolled into view and the image is clipped to it. |
+
+```bash
+curl -o page.png http://localhost:3000/.runtime/screenshot
+curl -o top.png 'http://localhost:3000/.runtime/screenshot?selector=%23sb-top'
+```
+
+Navigate first with the Lua endpoint, e.g. `editor.navigate("Projects")`. On SilverBullet Desktop, the runtime is the space's visible editor window: the screenshot shows what the user sees, and fails while that window is minimized or hidden.
+
 ## Console logs
 `GET /.runtime/logs`
 
@@ -99,7 +115,7 @@ Each entry has:
 * `timestamp` — unix milliseconds when the entry was captured
 
 # Timeout
-The Lua endpoints (`/.runtime/lua` and `/.runtime/lua_script`) support an `X-Timeout` header to control the maximum wait time in seconds (default: 30):
+The Lua endpoints (`/.runtime/lua` and `/.runtime/lua_script`) and `/.runtime/screenshot` support an `X-Timeout` header to control the maximum wait time in seconds (default: 30):
 
 ```
 curl -H "X-Timeout: 60" \
@@ -113,7 +129,8 @@ All error responses are JSON with `Content-Type: application/json` and an `error
 Status codes used across the Runtime API:
 
 * **403** — The caller lacks Write or Runtime API permission.
-* **400** — Empty request body: `{"error": "Request body is required"}`.
+* **400** — Empty request body: `{"error": "Request body is required"}`. Invalid screenshot selector syntax: `{"error": "...", "code": "invalid_selector"}`.
+* **404** — No visible element matches the screenshot selector: `{"error": "...", "code": "selector_not_found"}`.
 * **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error): `{"error": "<error message>", "code": "script_error"}`. The message is the concise client error (e.g. `attempt to call a nil value`); the full stack is available in the runtime console log.
 * **503** — Runtime API not enabled or no headless browser running: `{"error": "Runtime API is not enabled"}` or `{"error": "...", "code": "bridge_unavailable"}`.
 * **504** — Timeout exceeded: `{"error": "...", "code": "timeout"}`.

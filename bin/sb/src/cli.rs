@@ -143,6 +143,18 @@ pub enum CoreCommand {
         #[arg(short = 'f', long)]
         follow: bool,
     },
+    /// Capture a PNG screenshot of the runtime client.
+    #[command(
+        after_long_help = "Requires the Runtime API. Captures the client's current viewport, or one element with --selector. Navigate first with eval. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb eval 'editor.navigate(\"index\")'\n  sb screenshot\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
+    )]
+    Screenshot {
+        /// Output PNG path, or - for stdout.
+        #[arg(default_value = "screenshot.png")]
+        file: String,
+        /// CSS selector of the element to capture.
+        #[arg(long)]
+        selector: Option<String>,
+    },
     /// Upgrade to the latest release.
     #[command(
         after_long_help = "Downloads and replaces this CLI executable. No space connection is needed.\n\nExample: sb upgrade"
@@ -322,6 +334,16 @@ mod tests {
                 .unwrap()
                 .command,
             Command::Core(CoreCommand::Logs { follow: true, .. })
+        ));
+    }
+
+    #[test]
+    fn screenshot_defaults_file_and_accepts_selector() {
+        let cli = Cli::try_parse_from(["sb", "screenshot", "--selector", "#sb-top"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s) })
+                if file == "screenshot.png" && s == "#sb-top"
         ));
     }
 

@@ -1,4 +1,4 @@
-//! `/.runtime/{lua,lua_script,logs}` — bridge HTTP to the Lua `RuntimeBackend`.
+//! `/.runtime/{lua,lua_script,logs,screenshot}` — bridge HTTP to the Lua `RuntimeBackend`.
 //! When no backend is configured the runtime API is "not enabled" and every
 //! endpoint returns 503.
 
@@ -8,7 +8,7 @@ use std::time::Duration;
 use crate::auth::Actor;
 use axum::body::Bytes;
 use axum::extract::{Query, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
 use serde_json::json;
@@ -47,6 +47,8 @@ fn runtime_error_response(e: RuntimeError) -> Response {
         // The evaluated code threw (e.g. a Lua error): a user-level failure, not
         // a bridge outage — 500 with the clean message, per `Runtime API.md`.
         RuntimeError::Eval(_) => (StatusCode::INTERNAL_SERVER_ERROR, "script_error"),
+        RuntimeError::SelectorNotFound(_) => (StatusCode::NOT_FOUND, "selector_not_found"),
+        RuntimeError::InvalidSelector(_) => (StatusCode::BAD_REQUEST, "invalid_selector"),
     };
     (
         status,
@@ -162,6 +164,49 @@ pub async fn handle_runtime_logs(
     }
 }
 
+#[derive(serde::Deserialize, Default)]
+pub struct ScreenshotQuery {
+    selector: Option<String>,
+}
+
+pub async fn handle_runtime_screenshot(
+    State(state): State<Arc<ServerState>>,
+    Extension(actor): Extension<Actor>,
+    headers: HeaderMap,
+    Query(params): Query<ScreenshotQuery>,
+) -> Response {
+    let Some(rt) = state.runtime.as_ref() else {
+        return not_enabled();
+    };
+    let runtime = rt.clone();
+    let timeout = parse_timeout(&headers);
+    let selector = params.selector.filter(|s| !s.trim().is_empty());
+    let result = tokio::task::spawn_blocking(move || {
+        let selected = runtime.for_actor(&actor)?;
+        selected
+            .as_ref()
+            .unwrap_or(&runtime)
+            .screenshot(selector.as_deref(), timeout)
+    })
+    .await;
+    match result {
+        Ok(Ok(png)) => (
+            [
+                (header::CONTENT_TYPE, "image/png"),
+                (header::CACHE_CONTROL, "no-store"),
+            ],
+            png,
+        )
+            .into_response(),
+        Ok(Err(e)) => runtime_error_response(e),
+        Err(join) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("runtime task failed: {join}") })),
+        )
+            .into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::runtime::{LogEntry, RuntimeBackend, RuntimeError};
@@ -178,6 +223,13 @@ mod tests {
         eval: Result<serde_json::Value, RuntimeErrorKind>,
         logs: Vec<LogEntry>,
         calls: Arc<Mutex<Vec<(String, String)>>>,
+        shot: Result<Vec<u8>, ShotError>,
+    }
+    #[derive(Clone)]
+    enum ShotError {
+        Missing,
+        Invalid,
+        Timeout,
     }
     /// A `Clone`-able error description (RuntimeError isn't Clone).
     #[derive(Clone)]
@@ -192,6 +244,7 @@ mod tests {
                 eval: Ok(value),
                 logs: vec![],
                 calls: Arc::new(Mutex::new(vec![])),
+                shot: Ok(b"\x89PNG\r\n\x1a\nrest".to_vec()),
             }
         }
         fn failing(kind: RuntimeErrorKind) -> Self {
@@ -199,6 +252,7 @@ mod tests {
                 eval: Err(kind),
                 logs: vec![],
                 calls: Arc::new(Mutex::new(vec![])),
+                shot: Ok(b"\x89PNG\r\n\x1a\nrest".to_vec()),
             }
         }
         fn err(&self) -> RuntimeError {
@@ -221,6 +275,21 @@ mod tests {
                 .unwrap()
                 .push((fn_name.to_string(), arg.to_string()));
             self.eval.clone().map_err(|_| self.err())
+        }
+        fn screenshot(
+            &self,
+            selector: Option<&str>,
+            _t: Duration,
+        ) -> Result<Vec<u8>, RuntimeError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push(("screenshot".into(), selector.unwrap_or("").into()));
+            self.shot.clone().map_err(|e| match e {
+                ShotError::Missing => RuntimeError::SelectorNotFound("no match".into()),
+                ShotError::Invalid => RuntimeError::InvalidSelector("invalid selector: bad".into()),
+                ShotError::Timeout => RuntimeError::Timeout,
+            })
         }
         fn logs(&self, _limit: usize, _since: Option<i64>) -> Vec<LogEntry> {
             self.logs.clone()
@@ -374,5 +443,90 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    async fn get_screenshot(
+        state: Arc<ServerState>,
+        query: &str,
+    ) -> (StatusCode, Option<String>, Vec<u8>) {
+        let resp = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/.runtime/screenshot{query}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = resp.status();
+        let content_type = resp
+            .headers()
+            .get("content-type")
+            .map(|v| v.to_str().unwrap().to_string());
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec();
+        (status, content_type, bytes)
+    }
+
+    #[tokio::test]
+    async fn screenshot_returns_png_and_passes_selector() {
+        let backend = FakeBackend::returning(serde_json::json!(null));
+        let calls = backend.calls.clone();
+        let (status, ct, body) = get_screenshot(
+            state_with_runtime(Some(Box::new(backend))),
+            "?selector=%23sb-top",
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(ct.as_deref(), Some("image/png"));
+        assert!(body.starts_with(b"\x89PNG"));
+        assert_eq!(
+            calls.lock().unwrap()[0],
+            ("screenshot".to_string(), "#sb-top".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn screenshot_empty_selector_means_viewport() {
+        let backend = FakeBackend::returning(serde_json::json!(null));
+        let calls = backend.calls.clone();
+        let (status, _, _) =
+            get_screenshot(state_with_runtime(Some(Box::new(backend))), "?selector=").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(calls.lock().unwrap()[0].1, "");
+    }
+
+    #[tokio::test]
+    async fn screenshot_errors_map_to_status_and_code() {
+        for (error, status, code) in [
+            (
+                ShotError::Missing,
+                StatusCode::NOT_FOUND,
+                "selector_not_found",
+            ),
+            (
+                ShotError::Invalid,
+                StatusCode::BAD_REQUEST,
+                "invalid_selector",
+            ),
+            (ShotError::Timeout, StatusCode::GATEWAY_TIMEOUT, "timeout"),
+        ] {
+            let mut backend = FakeBackend::returning(serde_json::json!(null));
+            backend.shot = Err(error);
+            let (got, ct, body) =
+                get_screenshot(state_with_runtime(Some(Box::new(backend))), "?selector=x").await;
+            assert_eq!(got, status);
+            assert_eq!(ct.as_deref(), Some("application/json"));
+            let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            assert_eq!(v["code"], code);
+        }
+    }
+
+    #[tokio::test]
+    async fn screenshot_without_backend_is_503() {
+        let (status, _, _) = get_screenshot(state_with_runtime(None), "").await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     }
 }
