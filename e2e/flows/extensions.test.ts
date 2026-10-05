@@ -267,7 +267,7 @@ test.describe("configuration extension", () => {
 const inlineViewConfig = `# Inline views
 \`\`\`space-lua
 function workshopTree()
-  return view.new {
+  return widget.new {
     stateKey = "workshop",
     refreshOn = {"fixture:refresh"},
     source = function()
@@ -287,7 +287,7 @@ function workshopTree()
 end
 readingDone = false
 function readingList()
-  return view.new {
+  return widget.new {
     source = function() return {{name = "Paper studies", details = "Notes on paper, texture, and binding"}} end,
     presentation = { row = {
       description = function(obj) return readingDone and "Finished" or obj.details end,
@@ -303,12 +303,34 @@ function readingList()
   }
 end
 function weeklyContent()
-  return view.new {content = function() return "A **small** experiment." end}
+  return widget.new {content = function() return "A **small** experiment." end}
 end
 view.define {
   name = "fixture.inlineReading",
-  view = readingList(),
+  widget = readingList(),
   command = "Fixture: Open Reading",
+}
+view.define {
+  name = "fixture.banner",
+  dock = "page-top",
+  frame = "minimal",
+  content = function()
+    if editor.getCurrentPage() ~= "index" then return nil end
+    return widget.new {
+      html = dom.div { class = "fixture-banner", "Banner for the workshop" },
+      markdown = "Banner for the workshop",
+    }
+  end,
+}
+view.define {
+  name = "fixture.sideNote",
+  dock = "rhs",
+  command = "Fixture: Open Side Note",
+  content = function()
+    return widget.new {
+      html = dom.div { class = "fixture-side-note", "Side note for the workshop" },
+    }
+  end,
 }
 \`\`\`
 `;
@@ -354,6 +376,47 @@ test.describe("inline view values", () => {
       tree.getByText("Paper studies", { exact: true }),
     ).toBeVisible();
     await expect(currentPage(sbPage)).toHaveValue("index");
+  });
+  test("a minimal page-top view renders a bare HTML widget with hover tools", async ({
+    sbPage,
+  }) => {
+    const banner = sbPage.locator(
+      '.sb-page-slot-page-top [data-view="fixture.banner"]',
+    );
+    await expect(banner.locator(".fixture-banner")).toHaveText(
+      "Banner for the workshop",
+    );
+    await expect(banner).toHaveClass(/sb-page-widget-minimal/);
+    await expect(banner.locator(".sb-page-widget-bar")).toHaveCount(0);
+    await expect(banner.getByRole("button", { name: "Close" })).toHaveCount(0);
+    await banner.hover();
+    await expect(
+      banner.getByRole("button", { name: "Copy markdown" }),
+    ).toBeVisible();
+    await expect(
+      banner.getByRole("button", { name: "Go to definition" }),
+    ).toBeVisible();
+    await banner
+      .locator(".fixture-banner")
+      .evaluate((el) => el.setAttribute("data-stale", "1"));
+    await runCommandViaPalette(sbPage, "Widgets: Refresh All");
+    await expect(
+      sbPage.locator('[data-view="fixture.banner"] .fixture-banner'),
+    ).toHaveCount(1);
+    await expect(
+      sbPage.locator(
+        '[data-view="fixture.banner"] .fixture-banner[data-stale]',
+      ),
+    ).toHaveCount(0);
+    await sbPage.evaluate(() =>
+      (globalThis as any).sbRuntime.evalLua('editor.navigate("Destination")'),
+    );
+    await expect(currentPage(sbPage)).toHaveValue("Destination");
+    await expect(sbPage.locator('[data-view="fixture.banner"]')).toHaveCount(0);
+    await runCommandViaPalette(sbPage, "Fixture: Open Side Note");
+    await expect(sbPage.locator(".fixture-side-note")).toHaveText(
+      "Side note for the workshop",
+    );
   });
   test("views render inline, retain keyed expansion, and use the Lua widget Edit control", async ({
     sbPage,
@@ -428,7 +491,7 @@ test.describe("inline view values", () => {
 const tableConfig = `# Table views
 \`\`\`space-lua
 function projectTable(selectable)
-  return view.new {
+  return widget.new {
     refreshOn = {"fixture:table"},
     source = function()
       if tableEmpty then return {} end
@@ -447,13 +510,13 @@ function projectTable(selectable)
   }
 end
 function automaticTable()
-  return view.new {
+  return widget.new {
     source = function() return {{name = "Maple", count = 2}, {name = "Cedar", status = false}} end,
     presentation = {mode = "table"},
   }
 end
 function typedTable()
-  return view.new {
+  return widget.new {
     source = function() return {
       {ref = "Destination", amount = "12", done = "false", url = "https://example.com/one", text = "**literal**", markdown = "**rich**"},
       {ref = "[[Destination|Already linked]]", amount = "3", done = true, url = "javascript:alert(1)", text = "[[Destination]]", markdown = "*other*"},
@@ -470,10 +533,10 @@ function typedTable()
     onSelect = function() typedSelected = true; return false end,
   }
 end
-view.define {name = "fixture.typedTable", view = typedTable(), command = "Fixture: Open Typed Table"}
-view.define {name = "fixture.dockedTable", view = typedTable(), dock = "rhs", title = "Typed table", command = "Fixture: Open Docked Table"}
-view.define {name = "fixture.bottomTable", view = typedTable(), dock = "bhs", title = "Typed table", command = "Fixture: Open Bottom Table"}
-view.define {name = "fixture.table", view = projectTable(true), command = "Fixture: Open Table"}
+view.define {name = "fixture.typedTable", widget = typedTable(), command = "Fixture: Open Typed Table"}
+view.define {name = "fixture.dockedTable", widget = typedTable(), dock = "rhs", title = "Typed table", command = "Fixture: Open Docked Table"}
+view.define {name = "fixture.bottomTable", widget = typedTable(), dock = "bhs", title = "Typed table", command = "Fixture: Open Bottom Table"}
+view.define {name = "fixture.table", widget = projectTable(true), command = "Fixture: Open Table"}
 \`\`\`
 `;
 
@@ -693,7 +756,7 @@ test.describe("table views", () => {
 const inlineFilterConfig = `# Inline filters
 \`\`\`space-lua
 function clientFilteredTable()
-  return view.new {
+  return widget.new {
     title = "Projects",
     source = function() return {
       {name = "Maple", count = 1},
@@ -705,14 +768,14 @@ function clientFilteredTable()
   }
 end
 function secondFilteredTable()
-  return view.new {
+  return widget.new {
     source = function() return {{name = "Finch"}, {name = "Robin"}} end,
     filter = {inline = true},
     presentation = {mode = "table"},
   }
 end
 function sourceFilteredTable()
-  return view.new {
+  return widget.new {
     source = function(ctx)
       sourcePhraseSeen = ctx.phrase
       if ctx.phrase == "Owl" then return {{name = "Owl"}} end
@@ -724,7 +787,7 @@ function sourceFilteredTable()
   }
 end
 function clientFilteredList()
-  return view.new {
+  return widget.new {
     source = function() return {{name = "Hawk"}, {name = "Sparrow"}} end,
     filter = {inline = true},
   }
