@@ -52,9 +52,9 @@ These flags are available on all commands that connect to a space:
 
 Use `sb -h` for a compact command list and `sb --help` for a command guide and starting examples. Every command accepts `--help` without contacting a server; for example, `sb fs edit --help` includes the batch JSON format and revision rules. Connection and output flags are grouped separately from command options. Flags can appear before or after the command.
 
-`sb describe` is live query-schema discovery: it requires a connected space and the Runtime API. It does not describe CLI commands.
+`sb --help` also lists the calls for [[#Exploring your space|exploring your space]]: its tags, Lua API, and commands.
 
-Output selectors are mutually exclusive: choose `--json`, `--text`, or `-o <format>`. Unknown format names are rejected before connecting. `eval`, `script`, and `query` accept `auto`, `text`, `table`, `json`, `jsonl`, and `yaml`; file commands accept `auto`, `text`, `json`, and `jsonl`. Auto selects text on a terminal and JSON when piped, except `fs read`, which emits exact bytes by default. `describe` emits JSON for JSON mode (including auto when piped), otherwise text. Logs, connection management, version, and upgrade commands print their own text output.
+Output selectors are mutually exclusive: choose `--json`, `--text`, or `-o <format>`. Unknown format names are rejected before connecting. `eval`, `script`, and `query` accept `auto`, `text`, `table`, `json`, `jsonl`, and `yaml`; file commands accept `auto`, `text`, `json`, and `jsonl`. Auto selects text on a terminal and JSON when piped, except `fs read`, which emits exact bytes by default. Logs, connection management, version, and upgrade commands print their own text output.
 
 # Commands
 Runtime commands may take a few seconds on first use while the [[Runtime API]] starts its headless client. `sb fs` commands work without the Runtime API or Chromium.
@@ -133,9 +133,9 @@ sb script --file myscript.lua
 echo 'local x = 40; return x + 2' | sb script
 ```
 
-## `query <expression>` and `describe [type]`
+## `query <expression>`
 
-Run a SLIQ query with `sb query 'from tags.page select name' --json`. Use `sb describe` to see available query types and SLIQ syntax, or `sb describe page --json` for a particular tag's schema. These commands require the Runtime API.
+Run a SLIQ query with `sb query 'from tags.page select name' --json`. See [[#Exploring your space]] for listing the space's tags and reading the query syntax reference. Requires the Runtime API.
 
 ## `logs`
 Show console logs from the headless browser client.
@@ -171,6 +171,34 @@ Print the installed CLI version.
 
 ## `upgrade` / `upgrade-edge`
 Self-update the CLI binary to the latest stable or edge release.
+
+# Exploring your space
+These calls inspect the connected space itself, so results reflect its own tags, Space Lua functions, and commands, including those added by its libraries. `sb --help` lists the same calls.
+
+Tags and their fields:
+```bash
+sb query 'from t = index.tags() select t.name'
+sb eval 'index.tagSchema("page")'
+```
+
+Lua API:
+```bash
+sb eval 'table.keys(_G)'                                 # global names, namespaces included
+sb eval 'spacelua.listFunctions()'                       # documented global functions
+sb eval 'spacelua.listFunctions("editor")'               # functions in a namespace
+sb eval 'spacelua.describe("editor.getText")'            # one function's signature and docs
+sb eval 'spacelua.renderApiDocumentation("index")' --text  # Markdown, printed as is
+```
+
+Commands:
+```bash
+sb eval 'system.listCommands()'
+```
+
+Query syntax:
+```bash
+sb fs read 'Library/Std/Docs/SLIQ Reference.md'
+```
 
 # Authentication
 The CLI supports three authentication methods, configured per-space during `space add`:

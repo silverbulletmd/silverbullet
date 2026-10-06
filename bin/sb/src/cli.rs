@@ -1,8 +1,8 @@
 use clap::{Args, Parser, Subcommand};
 
-pub const OVERVIEW: &str = "Command guide:
-  Files: fs ls, read, stat, write, edit, rm — HTTP only; no Runtime API needed.
-  Lua and queries: eval, script, query, describe, logs — require the Runtime API.
+pub const OVERVIEW: &str = r#"Command guide:
+  Files: fs ls, read, stat, write, edit, rm — work on the space's files directly.
+  Lua and queries: eval, script, query, logs, screenshot — run inside the connected space.
   Connections: space add, login, ls, rm.
   CLI maintenance: version, upgrade, upgrade-edge.
 
@@ -17,10 +17,31 @@ Select a saved connection with --space (optional when only one exists), or use
 after the command. Space commands require a running server.
 
 Use sb <command> --help for examples and detailed rules; -h gives compact help.
-Use sb describe to inspect the connected space's query schemas and SLIQ syntax.";
+
+Explore your space:
+  These calls inspect the connected space, so results reflect its own tags,
+  Space Lua functions and commands, including those its libraries add.
+
+  Tags and their fields
+    sb query 'from t = index.tags() select t.name'
+    sb eval 'index.tagSchema("page")'
+  Lua API
+    sb eval 'table.keys(_G)'                           # global names, namespaces included
+    sb eval 'spacelua.listFunctions()'                 # documented global functions
+    sb eval 'spacelua.listFunctions("editor")'         # functions in a namespace
+    sb eval 'spacelua.describe("editor.getText")'      # one function's signature and docs
+    sb eval 'spacelua.renderApiDocumentation("index")' --text   # Markdown; --text prints it as is
+  Commands
+    sb eval 'system.listCommands()'
+  Query syntax
+    sb fs read 'Library/Std/Docs/SLIQ Reference.md'"#;
+
+/// Compact-help (`-h`) pointer to the explore section in the long help.
+pub const COMPACT_HINT: &str =
+    "Run sb --help to see how to explore your space's tags, Lua API and commands.";
 
 #[derive(Parser)]
-#[command(name = "sb", version = crate::VERSION, about = "SilverBullet CLI — work with your spaces", long_about = "SilverBullet CLI — read and edit remote files, run Lua, and query your space.", after_long_help = OVERVIEW)]
+#[command(name = "sb", version = crate::VERSION, about = "SilverBullet CLI — work with your spaces", long_about = "SilverBullet CLI — read and edit remote files, run Lua, and query your space.", after_help = COMPACT_HINT, after_long_help = OVERVIEW)]
 pub struct Cli {
     #[command(flatten)]
     pub global: GlobalFlags,
@@ -62,7 +83,7 @@ pub struct GlobalFlags {
     /// Result format; supported formats depend on the command (see --help).
     ///
     /// Auto uses text on a terminal and JSON when piped. fs read instead emits exact bytes.
-    /// File commands accept auto, text, json and jsonl. eval, script and query also accept table and yaml. describe uses JSON for json/auto-piped, otherwise text. Logs, connection management, version and upgrades print their own text output. Select only one of --json, --text, or -o.
+    /// File commands accept auto, text, json and jsonl. eval, script and query also accept table and yaml. Logs, connection management, version and upgrades print their own text output. Select only one of --json, --text, or -o.
     #[arg(short = 'o', long, global = true, default_value = "auto", help_heading = "Output", hide_possible_values = true, value_parser = ["auto", "text", "table", "json", "jsonl", "yaml"])]
     pub output: String,
 }
@@ -86,12 +107,12 @@ pub enum Command {
 
 #[derive(Subcommand)]
 pub enum CoreCommand {
-    /// Read and modify remote space files without the Runtime API.
+    /// Read and modify remote space files directly.
     #[command(subcommand, after_long_help = crate::fs_cli::OVERVIEW)]
     Fs(crate::fs_cli::FsCommand),
     /// Evaluate a Lua expression.
     #[command(
-        after_long_help = "Requires a connected space and the Runtime API. Prints the expression result.\n\nExamples:\n  sb eval '1 + 1'\n  sb eval 'space.readPage(\"index\")' --json"
+        after_long_help = "Runs in the connected space and prints the expression result.\n\nExamples:\n  sb eval '1 + 1'\n  sb eval 'space.readPage(\"index\")' --json\n\nExplore the Lua API and commands:\n  sb eval 'table.keys(_G)'\n  sb eval 'spacelua.listFunctions()'\n  sb eval 'spacelua.listFunctions(\"editor\")'\n  sb eval 'spacelua.describe(\"editor.getText\")'\n  sb eval 'spacelua.renderApiDocumentation(\"index\")' --text\n  sb eval 'system.listCommands()'"
     )]
     Eval {
         /// Lua expression to evaluate (quote it for your shell).
@@ -102,7 +123,7 @@ pub enum CoreCommand {
     Lua { expression: String },
     /// Run a Lua script (from arg, --file, or stdin).
     #[command(
-        after_long_help = "Requires the Runtime API. Supply inline code or --file; omit both to read stdin. Return a value to print a result.\n\nExamples:\n  sb script 'return 40 + 2'\n  sb script --file sample.lua\n  printf 'return 42\\n' | sb script"
+        after_long_help = "Runs in the connected space. Supply inline code or --file; omit both to read stdin. Return a value to print a result.\n\nExamples:\n  sb script 'return 40 + 2'\n  sb script --file sample.lua\n  printf 'return 42\\n' | sb script"
     )]
     Script {
         /// Inline Lua code; omit to read stdin.
@@ -116,24 +137,15 @@ pub enum CoreCommand {
     LuaScript { file: Option<String> },
     /// Run a SLIQ query.
     #[command(
-        after_long_help = "Requires the Runtime API. Use sb describe to discover the connected space's types and SLIQ syntax.\n\nExample:\n  sb query 'from tags.page select name' --json"
+        after_long_help = "Runs in the connected space.\n\nExample:\n  sb query 'from tags.page select name' --json\n\nExplore tags, their fields and the query syntax:\n  sb query 'from t = index.tags() select t.name'\n  sb eval 'index.tagSchema(\"page\")'\n  sb fs read 'Library/Std/Docs/SLIQ Reference.md'"
     )]
     Query {
         /// SLIQ query expression, quoted for your shell.
         expression: String,
     },
-    /// Describe query types / a tag's schema.
-    #[command(
-        after_long_help = "Inspects live query schemas, not CLI commands. Requires a connected space and the Runtime API. Omit TYPE for all types and query syntax; --json returns the schemas as JSON.\n\nExamples:\n  sb describe\n  sb describe page --json"
-    )]
-    Describe {
-        /// Tag whose schema to inspect; omit to list all query types.
-        #[arg(name = "type")]
-        type_: Option<String>,
-    },
     /// Show server console logs.
     #[command(
-        after_long_help = "Requires the Runtime API. Shows its headless client console logs as text regardless of output flags. --follow continues streaming until interrupted.\n\nExamples:\n  sb logs --lines 20\n  sb logs --follow"
+        after_long_help = "Shows the connected space's client console logs as text regardless of output flags. --follow continues streaming until interrupted.\n\nExamples:\n  sb logs --lines 20\n  sb logs --follow"
     )]
     Logs {
         /// Number of recent log entries.
@@ -145,7 +157,7 @@ pub enum CoreCommand {
     },
     /// Capture a PNG screenshot of the runtime client.
     #[command(
-        after_long_help = "Requires the Runtime API. Captures the client's current viewport, or one element with --selector. Navigate first with eval. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb eval 'editor.navigate(\"index\")'\n  sb screenshot\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
+        after_long_help = "Captures the connected space's current client viewport, or one element with --selector. Navigate first with eval. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb eval 'editor.navigate(\"index\")'\n  sb screenshot\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
     )]
     Screenshot {
         /// Output PNG path, or - for stdout.
@@ -265,7 +277,6 @@ mod tests {
             vec!["sb", "eval", "1 + 1"],
             vec!["sb", "script", "--file", "sample.lua"],
             vec!["sb", "query", "from tags.page select name", "--json"],
-            vec!["sb", "describe", "page", "--json"],
             vec!["sb", "logs", "--follow"],
         ] {
             assert!(Cli::try_parse_from(&args).is_ok(), "{args:?}");
@@ -345,6 +356,66 @@ mod tests {
             Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s) })
                 if file == "screenshot.png" && s == "#sb-top"
         ));
+    }
+
+    #[test]
+    fn long_help_lists_explore_calls() {
+        let root = Cli::try_parse_from(["sb", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(root.contains("Explore your space:"), "{root}");
+        for call in [
+            "index.tags()",
+            "index.tagSchema(\"page\")",
+            "table.keys(_G)",
+            "spacelua.listFunctions(\"editor\")",
+            "spacelua.describe(\"editor.getText\")",
+            "spacelua.renderApiDocumentation(\"index\")",
+            "system.listCommands()",
+            "Library/Std/Docs/SLIQ Reference.md",
+        ] {
+            assert!(root.contains(call), "missing {call}: {root}");
+        }
+        assert!(!root.contains("sb describe"), "{root}");
+        assert!(!root.contains("Runtime API"), "{root}");
+        assert!(!root.contains(COMPACT_HINT), "{root}");
+    }
+
+    #[test]
+    fn compact_help_points_to_explore_section() {
+        let compact = Cli::try_parse_from(["sb", "-h"]).err().unwrap().to_string();
+        assert!(compact.contains(COMPACT_HINT), "{compact}");
+        assert!(!compact.contains("Explore your space:"), "{compact}");
+    }
+
+    #[test]
+    fn command_help_has_no_runtime_api_wording() {
+        for cmd in ["eval", "script", "query", "logs", "screenshot", "fs"] {
+            let help = Cli::try_parse_from(["sb", cmd, "--help"])
+                .err()
+                .unwrap()
+                .to_string();
+            assert!(!help.contains("Runtime API"), "{cmd}: {help}");
+            assert!(!help.contains("sb describe"), "{cmd}: {help}");
+        }
+        let eval = Cli::try_parse_from(["sb", "eval", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(eval.contains("system.listCommands()"), "{eval}");
+        let query = Cli::try_parse_from(["sb", "query", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(query.contains("index.tags()"), "{query}");
+        assert!(query.contains("SLIQ Reference.md"), "{query}");
+    }
+
+    #[test]
+    fn describe_is_not_a_supported_subcommand() {
+        assert!(Cli::try_parse_from(["sb", "describe"]).is_err());
+        assert!(Cli::try_parse_from(["sb", "describe", "page", "--json"]).is_err());
     }
 
     #[test]

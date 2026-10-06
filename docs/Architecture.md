@@ -5,7 +5,6 @@ This page describes the big-picture view of SilverBullet, assembled from its [[#
 # Top-level Architecture
 ${mermaid.diagram(mermaid.relationGraph{
   pages = query[[from index.pages("component")]],
-  relations = {"connectsTo", "consumes"},
   groupBy = "partOf",
   direction = "TB"
 })}

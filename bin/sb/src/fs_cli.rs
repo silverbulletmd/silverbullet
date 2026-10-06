@@ -13,7 +13,7 @@ Examples:
 Output: read defaults to exact bytes, including when piped. Other commands use
 text on a terminal and JSON when piped. Supported formats: auto, text, json,
 jsonl. Use --json explicitly for metadata/revisions alongside UTF-8 content.
-Errors go to stderr. File commands require HTTP access but no Runtime API.
+Errors go to stderr. File commands work even when the server cannot run Lua.
 
 Exit codes: 0 success; 2 invalid input; 3 missing target; 4 access denied;
 5 revision conflict; 6 edit mismatch/ambiguity/overlap; 7 truncated listing;
