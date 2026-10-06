@@ -38,9 +38,10 @@ To set where a view docks space-wide — and whether it starts open, folded, or 
 ```space-lua
 -- priority: 10
 function widgets.button(text, callback, attrs)
+  -- Labels are plain text: as markdown, ">" or "# 1" would render as blocks
   local buttonEl = {
     onclick = callback,
-    text
+    __rawText = text
   }
 
   -- attrs can be used for additional customization
@@ -62,7 +63,7 @@ function widgets.commandButton(text, commandName, args)
     onclick = function()
       editor.invokeCommand(commandName, args)
     end,
-    text
+    __rawText = text
   })
 end
 
