@@ -531,6 +531,23 @@ test("AtMention names may contain dots but never end on one", () => {
   expect(mention("Mail pete@example.com")).toBe(null);
 });
 
+test("AtMention names stop before a possessive apostrophe", () => {
+  const mention = (md: string) => {
+    const found = collectNodesOfType(parseMarkdown(md), "AtMention");
+    return found.length ? renderToText(found[0]) : null;
+  };
+
+  expect(mention("@Foo's thing")).toBe("@Foo");
+  expect(mention("@Foo’s thing")).toBe("@Foo");
+  expect(mention("@Foo'S thing")).toBe("@Foo");
+  expect(mention("@Chris' thing")).toBe("@Chris");
+  expect(mention("@Foo's")).toBe("@Foo");
+
+  expect(mention("Ping @O'Brien about it")).toBe("@O'Brien");
+  expect(mention("@O'Brien's thing")).toBe("@O'Brien");
+  expect(mention("@Foo'sbar")).toBe("@Foo'sbar");
+});
+
 test("AtMention names do not contain slashes", () => {
   // A mention is a name, not a path — `/` reads as a page separator and has
   // no business in one.

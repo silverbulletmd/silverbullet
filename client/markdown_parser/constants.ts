@@ -4,8 +4,10 @@ export const mdLinkRegex =
   /!?\[(?<title>[^\]\\]*(?:\\.[^\]\\]*)*)\]\((?<url>.+)\)/g;
 export const tagRegex =
   /#(?:(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\';\/–—][^\s!@#$%^&*(),.?":{}|<>\\]*)|(?:<[^>\n]+>))(?<!-)/;
+// Dots and apostrophes may only join name segments, so `@pete.` and `@Chris'`
+// end before them; a possessive `'s` never joins, so `@Foo's` is `@Foo`.
 export const atMentionRegex =
-  /@(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\\/][^\s!@#$%^&*(),.?":{}|<>\\\/]*(?:\.[^\s!@#$%^&*(),.?":{}|<>\\\/]+)*)/;
+  /@(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\\/'’][^\s!@#$%^&*(),.?":{}|<>\\\/'’]*(?:(?:\.|['’](?![sS](?![^\s!@#$%^&*(),.?":{}|<>\\\/'’])))[^\s!@#$%^&*(),.?":{}|<>\\\/'’]+)*)/;
 export const nakedUrlRegex =
   /(^https?:\/\/([-a-zA-Z0-9@:%_+~#=]|(?:[.](?!(\s|$)))){1,256})(([-a-zA-Z0-9(@:%_+~#?&=/]|(?:[.,:;)](?!(\s|$))))*)/;
 export const frontmatterQuotesRegex = /["'].*["']/g;
