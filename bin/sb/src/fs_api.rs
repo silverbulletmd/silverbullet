@@ -563,7 +563,12 @@ mod tests {
     }
 
     fn response(status: &str, headers: &[(&str, &str)], body: &[u8]) -> Vec<u8> {
-        let mut response = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\n", body.len());
+        // The mock serves one response per connection; without `Connection:
+        // close` the client may reuse the closed socket for its next request.
+        let mut response = format!(
+            "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n",
+            body.len()
+        );
         for (name, value) in headers {
             response.push_str(&format!("{name}: {value}\r\n"));
         }
