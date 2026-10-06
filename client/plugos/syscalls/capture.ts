@@ -3,8 +3,8 @@ import {
   notFoundError,
 } from "@silverbulletmd/silverbullet/constants";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
-import type { Client } from "../../client.ts";
 import type { CaptureInvocationContext } from "../../capture/invocation.ts";
+import type { Client } from "../../client.ts";
 import type { SysCallMapping } from "../system.ts";
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
@@ -35,6 +35,9 @@ export function captureSyscalls(
         },
       ],
       returns: [{ type: "byteArray", description: "File bytes." }],
+      examples: [
+        { code: "local bytes = capture.readFile(data.files[1].handle)" },
+      ],
     },
     "capture.saveFile": {
       callback: async (
@@ -83,6 +86,18 @@ export function captureSyscalls(
           description: "File handle from the capture.",
         },
         { name: "path", type: "string", description: "New document path." },
+      ],
+      returns: [
+        {
+          type: "boolean",
+          description:
+            "true when the file was created, false when identical bytes already exist.",
+        },
+      ],
+      examples: [
+        {
+          code: 'capture.saveFile(data.files[1].handle, "Inbox/" .. data.files[1].name)',
+        },
       ],
     },
   };

@@ -1,6 +1,5 @@
 SilverBullet is a programmable, open source [[Knowledge Management System]] that keeps your notes, your team’s knowledge and your product’s documentation as Markdown files you own.
 
-
 # Choose your journey
 * **On this computer**: [[Desktop|SilverBullet Desktop]] keeps each space in a folder on your machine, and is free for personal and education use. Start with [[Install/Desktop]].
 * **On my server**: [[Install|SilverBullet Server]] is a self-hosted web app you use from any browser, it keeps working offline as an installable [[PWA]]. Start with [[Install/Docker]] or [[Install/Server Binary]].
