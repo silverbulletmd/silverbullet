@@ -9,6 +9,8 @@ type Props = {
   onToggleHideEdgeLabels: (v: boolean) => void;
   hideOrphans: boolean;
   onToggleHideOrphans: (v: boolean) => void;
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 };
 
 export function Header({
@@ -19,10 +21,34 @@ export function Header({
   onToggleHideEdgeLabels,
   hideOrphans,
   onToggleHideOrphans,
+  sidebarCollapsed,
+  onToggleSidebar,
 }: Props) {
   return (
     <header class="gv-header">
-      <h1 class="gv-header-title">Object Graph</h1>
+      <div class="gv-header-main">
+        <h1 class="gv-header-title">Object Graph</h1>
+        <div class="gv-header-controls">
+          <Button
+            variant="icon"
+            title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+            aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+            aria-expanded={!sidebarCollapsed}
+            onClick={onToggleSidebar}
+          >
+            {sidebarCollapsed ? "▷" : "◁"}
+          </Button>
+          <Button
+            variant="icon"
+            class="gv-close-button"
+            title="Close (Esc)"
+            aria-label="Close (Esc)"
+            onClick={() => editor.hidePanel("modal")}
+          >
+            ×
+          </Button>
+        </div>
+      </div>
       <div class="gv-header-actions">
         <label
           class="gv-header-toggle"
@@ -62,14 +88,6 @@ export function Header({
           onClick={onCollapseAll}
         >
           Focus
-        </Button>
-        <Button
-          variant="icon"
-          class="gv-close-button"
-          title="Close (Esc)"
-          onClick={() => editor.hidePanel("modal")}
-        >
-          ×
         </Button>
       </div>
     </header>
