@@ -3,6 +3,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
+* Nothing yet!
+
+## 2.12.0 
 * Mobile improvements:
   * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/keyboardBar]].
   * On mobile (narrow screens) left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
