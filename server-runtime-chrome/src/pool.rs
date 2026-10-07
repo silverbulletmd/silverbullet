@@ -682,7 +682,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires an installed Chrome browser"]
+    #[ignore = "requires SB_CHROME_PATH pointing at a chrome-headless-shell"]
     fn real_chrome_transports_isolate_storage_processes_and_shutdown() {
         use chromiumoxide::cdp::browser_protocol::system_info::GetProcessInfoParams;
         use chromiumoxide::cdp::browser_protocol::target::GetTargetsParams;
@@ -690,10 +690,16 @@ mod tests {
 
         let root = tempfile::tempdir().unwrap();
         let mut config = config();
-        config.chrome_path = std::env::var("SB_CHROME_PATH")
-            .ok()
-            .or_else(crate::config::find_chrome)
-            .expect("Chrome installed");
+        // Never auto-detect: on macOS that finds the user's own Chrome, which a
+        // leftover headless instance would take over.
+        config.chrome_path =
+            std::env::var("SB_CHROME_PATH").expect("set SB_CHROME_PATH to a chrome-headless-shell");
+        assert!(
+            !crate::config::is_system_browser(&config.chrome_path)
+                || std::env::var("SB_TEST_ALLOW_SYSTEM_CHROME").as_deref() == Ok("1"),
+            "refusing system browser {}; set SB_TEST_ALLOW_SYSTEM_CHROME=1 to override",
+            config.chrome_path
+        );
         config.user_data_dir = root.path().to_string_lossy().into_owned();
         let pool = ChromePool::new(config).unwrap();
         let listener = pool

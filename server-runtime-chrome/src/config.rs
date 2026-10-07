@@ -147,6 +147,20 @@ impl SpacePage {
     }
 }
 
+/// Whether `path` is a browser installed for the user's own browsing: inside a
+/// macOS `/Applications/*.app` bundle, any `Google Chrome.app`/`Chromium.app`
+/// bundle, or a Windows `Google\Chrome\Application` install. Test harnesses
+/// refuse these: on macOS a headless instance of the user's Chrome bundle that
+/// outlives its test hijacks the developer's real browser.
+pub fn is_system_browser(path: &str) -> bool {
+    let normalized = path.replace('\\', "/");
+    let lower = normalized.to_ascii_lowercase();
+    (normalized.starts_with("/Applications/") && normalized.contains(".app/"))
+        || lower.contains("google chrome.app")
+        || lower.contains("chromium.app")
+        || lower.contains("google/chrome/application")
+}
+
 /// Find a Chrome/Chromium executable from platform-specific candidates.
 pub fn find_chrome() -> Option<String> {
     resolve_candidates(&[
@@ -236,6 +250,27 @@ fn which_on_path(name: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn system_browsers_are_recognised() {
+        for path in [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+            "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+            "/Users/someone/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        ] {
+            assert!(is_system_browser(path), "{path}");
+        }
+        for path in [
+            "/opt/browsers/chrome-headless-shell-mac-arm64/chrome-headless-shell",
+            "/usr/bin/chromium-headless-shell",
+            "/usr/bin/chromium",
+            "/home/ci/.cache/ms-playwright/chromium-1208/chrome-linux/chrome",
+        ] {
+            assert!(!is_system_browser(path), "{path}");
+        }
+    }
 
     #[test]
     fn discovery_prefers_headless_shell_except_when_showing_chrome() {
