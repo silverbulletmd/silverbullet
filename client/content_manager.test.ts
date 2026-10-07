@@ -1719,3 +1719,114 @@ describe("ContentManager.save error handling", () => {
     clearTimeout(cm.saveTimeout);
   });
 });
+
+describe("ContentManager.saveOverDiskChanges (system.reboot after an external edit)", () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  async function setUp(initial: string, canDefer = true) {
+    let diskText = initial;
+    let diskModified = "2026-01-01T00:00:00.000";
+    const written: string[] = [];
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => ({ text: diskText, meta: pageMeta(diskModified) }),
+      writePage: async (_name, text) => {
+        written.push(text);
+        diskText = text;
+        diskModified = "2026-01-01T00:00:10.000";
+        return pageMeta(diskModified);
+      },
+    });
+    client.canDeferExternalUpdate = () => canDefer;
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+    await cm.loadPage({ path: "index.md" }, false);
+    const writeExternally = (text: string) => {
+      diskText = text;
+      diskModified = "2026-01-01T00:00:05.000";
+    };
+    const edit = (from: number, to: number, insert: string) => {
+      client.editorView.dispatch({ changes: { from, to, insert } });
+      client.viewState.unsavedChanges = true;
+    };
+    return {
+      client,
+      cm,
+      written,
+      writeExternally,
+      edit,
+      disk: () => diskText,
+    };
+  }
+
+  test("an unmodified buffer picks up the external edit and writes nothing", async () => {
+    const { client, cm, written, writeExternally, disk } =
+      await setUp("Line1\nLine2\n");
+    writeExternally("Line1\nLine2 external\n");
+
+    await cm.saveOverDiskChanges();
+    await flush();
+
+    expect(written).toEqual([]);
+    expect(disk()).toBe("Line1\nLine2 external\n");
+    expect(client.editorView.state.sliceDoc()).toBe("Line1\nLine2 external\n");
+  });
+
+  test("unsaved local edits are merged with the external edit, not written over it", async () => {
+    const { client, cm, written, writeExternally, edit, disk } = await setUp(
+      "Line1\nLine2\nLine3\n",
+    );
+    edit(0, "Line1".length, "Line1 local");
+    writeExternally("Line1\nLine2\nLine3 external\n");
+
+    await cm.saveOverDiskChanges();
+    await flush();
+
+    const merged = "Line1 local\nLine2\nLine3 external\n";
+    expect(client.editorView.state.sliceDoc()).toBe(merged);
+    expect(written).toEqual([merged]);
+    expect(disk()).toBe(merged);
+  });
+
+  test("a colliding local edit is saved against the shared base, as for sync conflicts", async () => {
+    const { client, cm, written, writeExternally, edit } =
+      await setUp("Line1\nLine2\n");
+    edit("Line1\n".length, "Line1\nLine2".length, "Line2 local");
+    writeExternally("Line1\nLine2 external\n");
+
+    await cm.saveOverDiskChanges();
+    await flush();
+
+    expect(client.declaredBases).toEqual([
+      { path: "index.md", baseText: "Line1\nLine2\n" },
+    ]);
+    expect(written).toEqual(["Line1\nLine2 local\n"]);
+  });
+
+  test("a debounced save pending from before cannot write the stale buffer first", async () => {
+    const { cm, written, writeExternally, edit } = await setUp(
+      "Line1\nLine2\nLine3\n",
+    );
+    edit(0, "Line1".length, "Line1 local");
+    void cm.save();
+    writeExternally("Line1\nLine2\nLine3 external\n");
+
+    await cm.saveOverDiskChanges();
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    expect(written).toEqual(["Line1 local\nLine2\nLine3 external\n"]);
+  });
+
+  test("a page that does not exist on disk yet is simply saved", async () => {
+    const { client, cm, written, edit } = await setUp("");
+    client.space.readPage = async () => {
+      throw notFoundError;
+    };
+    edit(0, 0, "new page");
+
+    await cm.saveOverDiskChanges();
+    await flush();
+
+    expect(written).toEqual(["new page"]);
+  });
+});

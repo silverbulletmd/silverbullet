@@ -315,6 +315,30 @@ export class ContentManager {
   }
 
   /**
+   * Saves the current buffer without clobbering an edit made to the page on
+   * disk since it was loaded or last saved: that edit is first pulled in
+   * through the same three-way merge as any other external change, so an
+   * unmodified buffer simply adopts it and local edits are merged (or, when
+   * they collide, saved against the shared base for the sync engine to
+   * reconcile).
+   */
+  async saveOverDiskChanges(): Promise<void> {
+    if (!this.isDocumentEditor() && isMarkdownPath(this.client.currentPath())) {
+      // A debounced save firing during the read below would write the stale
+      // buffer over the very edit being pulled in; save(true) reschedules it.
+      clearTimeout(this.saveTimeout);
+      try {
+        await this.reloadPageContent();
+      } catch (e: any) {
+        if (e.message !== notFoundError.message) {
+          console.error("Could not check the page on disk before saving", e);
+        }
+      }
+    }
+    await this.save(true);
+  }
+
+  /**
    * Records the text we just wrote as the new base, unless a newer state was
    * adopted while this write was in flight: dragging the base backwards would
    * make the next merge apply that newer change a second time.

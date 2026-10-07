@@ -139,8 +139,8 @@ export async function customFlashMessage(_def: any, message: string) {
 }
 
 export async function reloadSystem() {
-  await editor.save();
-  await editor.reloadConfigAndCommands();
+  // Not editor.save(): that would overwrite an external edit to the open page.
+  await system.reboot();
   await codeWidget.refreshAll();
   await editor.flashNotification("System and widgets reloaded!");
 }
