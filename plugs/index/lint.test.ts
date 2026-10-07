@@ -242,6 +242,7 @@ describe("lintYAML on data blocks", () => {
     ].join("\n");
     const diags = await lintYamlFor(md);
     expect(diags).toHaveLength(1);
+    expect(diags[0].source).toBe("yaml");
     expect(diags[0].from).toBeGreaterThan(md.indexOf("age: [unclosed"));
     expect(diags[0].to).toBeLessThanOrEqual(md.lastIndexOf("```"));
   });

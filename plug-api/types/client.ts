@@ -71,6 +71,11 @@ export type LintDiagnostic = {
   severity: "error" | "warning" | "info" | "hint";
   message: string;
   /**
+   * Optional short name of what reported this diagnostic (e.g. `yaml`), as
+   * shown by `space.lint`. Defaults to the reporting listener.
+   */
+  source?: string;
+  /**
    * Optional HTML rendered into the hover tooltip for this diagnostic.
    * When present, takes precedence over `message` for tooltip display.
    * `message` is still used as a plain-text fallback (e.g. in the lint

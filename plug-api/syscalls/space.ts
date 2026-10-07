@@ -26,6 +26,24 @@ export function listPages(): Promise<PageMeta[]> {
 }
 
 /**
+ * Lints pages like the editor does and renders their Lua directives and code
+ * widgets, reporting problems with 1-based line and column.
+ * @param pages a page name or list of names; omit for every page outside `Library/`
+ */
+export function lint(pages?: string | string[]): Promise<
+  {
+    page: string;
+    line: number;
+    column: number;
+    severity: "error" | "warning" | "info" | "hint";
+    message: string;
+    source: string;
+  }[]
+> {
+  return syscall("space.lint", pages);
+}
+
+/**
  * Get metadata for a page in the space.
  * @param name the name of the page to get metadata for
  * @returns the metadata for the page

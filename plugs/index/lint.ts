@@ -80,7 +80,14 @@ export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
     }
     return false;
   });
-  return diagnostics;
+  return withSource("yaml", diagnostics);
+}
+
+function withSource(
+  source: string,
+  diagnostics: LintDiagnostic[],
+): LintDiagnostic[] {
+  return diagnostics.map((d) => ({ ...d, source }));
 }
 
 const errorRegex = /\((\d+):(\d+)\)/;
@@ -192,7 +199,7 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
 
     return false;
   });
-  return diagnostics;
+  return withSource("lua", diagnostics);
 }
 
 /**
@@ -225,6 +232,7 @@ export async function lintObjects({
         to: result.object.range[1],
         severity: "error",
         message: result.error,
+        source: "objects",
       },
     ];
   }
@@ -461,5 +469,5 @@ export async function lintAnchors({
     }
   }
 
-  return diagnostics;
+  return withSource("anchors", diagnostics);
 }

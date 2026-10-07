@@ -25,6 +25,11 @@ import type {
 import type { Client } from "../../client.ts";
 import { fsEndpoint } from "../../spaces/constants.ts";
 import type { SysCallMapping } from "../system.ts";
+import { lintPages, type SpaceLintDiagnostic } from "../../space_lint.ts";
+import {
+  renderLuaCallback,
+  renderLuaExpression,
+} from "../../space_lua/render_widget.ts";
 
 function revisionsUrl(client: Client, suffix: string): string {
   return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.revisions/${suffix}`;
@@ -114,6 +119,64 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
         fetchRevisionsJson(client, "_conflicts"),
       description:
         "Lists unresolved Git conflicts with saved content versions.",
+    },
+    "space.lint": {
+      callback: (
+        _ctx,
+        pages?: string | string[],
+      ): Promise<SpaceLintDiagnostic[]> =>
+        lintPages(
+          {
+            listPageNames: async () =>
+              (await client.space.fetchPageList()).map((p) => p.name),
+            readPage: (name) => client.space.readPage(name),
+            dispatchLint: async (event) =>
+              (
+                await client.dispatchAppEventWithSources("editor:lint", event)
+              ).map(({ value, listener }) => ({
+                listener,
+                diagnostics: value,
+              })),
+            renderDirective: (expressionText, pageMeta) =>
+              renderLuaExpression(client, expressionText, pageMeta),
+            luaCodeWidget: (lang) => {
+              const def = client.clientSystem.luaCodeWidgets.get(lang);
+              if (!def) return undefined;
+              return (body, pageMeta) =>
+                renderLuaCallback(
+                  client,
+                  def.render,
+                  [body, pageMeta.name],
+                  pageMeta,
+                );
+            },
+          },
+          typeof pages === "string" ? [pages] : pages,
+        ),
+      description:
+        "Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page outside `Library/`.",
+      signatures: ["space.lint()", "space.lint(page)", "space.lint(pages)"],
+      parameters: [
+        {
+          name: "pages",
+          description:
+            "A page name or a list of page names; omit to lint all pages outside `Library/`.",
+          optional: true,
+        },
+      ],
+      returns: [
+        {
+          type: "table",
+          description:
+            "A list of `{page, line, column, severity, message, source}`, ordered by page then position. `line` and `column` are 1-based; `severity` is `error`, `warning`, `info` or `hint`; `source` names what reported it: the linter's own name (`yaml`, `lua`, `objects` and `anchors` for the built-in ones) or else its `editor:lint` listener, `widget` (a failing directive or code widget), or `page` (the page could not be read). `hint` diagnostics, such as the X-Ray lens, are left out.",
+        },
+      ],
+      examples: [
+        { code: 'space.lint("Projects/Launch")' },
+        {
+          code: 'for _, d in ipairs(space.lint()) do\n  print(d.page .. ":" .. d.line .. ": " .. d.message)\nend',
+        },
+      ],
     },
     "space.listPages": {
       callback: (): Promise<PageMeta[]> => client.space.fetchPageList(),
@@ -343,7 +406,8 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
           params.length ? `?${params.join("&")}` : "",
         );
       },
-      description: "Lists the space-wide commit log.",
+      description:
+        "Lists the space-wide commit log. Each commit's `files` — and the `uncommitted` list — are tables of `{path, status}`, where `status` is `added`, `modified`, `deleted` or `renamed`.",
       signatures: ["space.getSpaceLog(before?, q?)"],
     },
   };

@@ -6,7 +6,12 @@ import type { Config } from "../../config.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import { listenerDefinition, type DefinedListener } from "../syscalls/event.ts";
 
-export type EventResultWithSource = { value: any; definition: Ref | null };
+export type EventResultWithSource = {
+  value: any;
+  definition: Ref | null;
+  // "plug.function" for plug listeners
+  listener?: string;
+};
 
 // System events:
 // - plug:load (plugName: string)
@@ -96,7 +101,11 @@ export class EventHook implements EventHookI {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    const promises: { promise: Promise<any>; definition: Ref | null }[] = [];
+    const promises: {
+      promise: Promise<any>;
+      definition: Ref | null;
+      listener?: string;
+    }[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       const manifest = plug.manifest;
       for (const [name, functionDef] of Object.entries(manifest!.functions)) {
@@ -109,6 +118,7 @@ export class EventHook implements EventHookI {
               if (plug.canInvoke(name)) {
                 promises.push({
                   definition: null,
+                  listener: `${plug.manifest.name}.${name}`,
                   promise: (async () => {
                     try {
                       return await plug.invoke(name, args);
@@ -174,6 +184,7 @@ export class EventHook implements EventHookI {
       .map((result, index) => ({
         result,
         definition: promises[index].definition,
+        listener: promises[index].listener,
       }))
       .filter(({ result }) => {
         if (result.status === "rejected") {
@@ -186,9 +197,10 @@ export class EventHook implements EventHookI {
         }
         return result.status === "fulfilled";
       })
-      .map(({ result, definition }) => ({
+      .map(({ result, definition, listener }) => ({
         value: result.status === "fulfilled" ? result.value : undefined,
         definition,
+        ...(listener ? { listener } : {}),
       }))
       .filter(({ value }) => value != null); // This keeps non-null/undefined results
   }
