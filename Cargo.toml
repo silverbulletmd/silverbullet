@@ -47,7 +47,7 @@ jsonwebtoken = { version = "11", features = ["rust_crypto"] }
 sha2 = "0.10"
 getrandom = "0.4"
 clap = { version = "4", features = ["derive", "env"] }
-rust-embed = { version = "8", features = ["interpolate-folder-path", "mime-guess"] }
+rust-embed = { version = "8", features = ["interpolate-folder-path", "mime-guess", "include-exclude"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde_yaml = "0.9"
 uuid = { version = "1", features = ["v4"] }

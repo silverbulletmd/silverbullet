@@ -105,6 +105,23 @@ pub async fn handle_client_bundle(
         return builder.body(Body::from(data)).unwrap();
     }
 
+    // Release binaries leave source maps out while the JS still links them, so
+    // DevTools gets a 404 rather than the shell. A page merely named `*.map`
+    // maps no bundle file and still falls through.
+    if let Some(mapped) = path.strip_suffix(".map") {
+        let s = state.clone();
+        let mapped = mapped.to_string();
+        if run_blocking(move || s.client_bundle.get_file_meta(&mapped))
+            .await
+            .is_ok()
+        {
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::from("Not found"))
+                .unwrap();
+        }
+    }
+
     let s = state.clone();
     let shell = run_blocking(move || s.client_bundle.read_file(".client/index.html")).await;
     let shell = match shell {
@@ -522,6 +539,37 @@ mod tests {
             .await
             .unwrap();
         assert!(body.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_left_out_source_map_is_a_404_not_the_spa_shell() {
+        let state = test_state();
+        seed_bundle(&state, ".client/index.html", INDEX_TPL);
+        seed_bundle(&state, ".client/client.js", b"client");
+        seed_bundle(&state, "service_worker.js", b"sw");
+        let state = Arc::new(state);
+        let status = |state: Arc<ServerState>, uri: &'static str| async move {
+            crate::build_router(state)
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap()
+                .status()
+        };
+
+        for uri in ["/.client/client.js.map", "/service_worker.js.map"] {
+            assert_eq!(
+                status(state.clone(), uri).await,
+                StatusCode::NOT_FOUND,
+                "{uri}"
+            );
+        }
+        // Not a login redirect either: assets stay public.
+        assert_eq!(
+            status(gated_state(), "/.client/app.js.map").await,
+            StatusCode::NOT_FOUND
+        );
+        // A page whose name merely ends in `.map` still gets the shell.
+        assert_eq!(status(state, "/Road.map").await, StatusCode::OK);
     }
 
     #[tokio::test]
