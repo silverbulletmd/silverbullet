@@ -5,6 +5,7 @@ import { decoratorStateField } from "./util.ts";
 import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
 import { isViewValue } from "../navigator/view_value.ts";
 import { activeWidgets, type DomWidget } from "./code_widget.ts";
+import { trackRender } from "./render_settle.ts";
 import { pageSlotViews } from "../navigator/page_slots.ts";
 import {
   renderPageSlot,
@@ -62,7 +63,7 @@ class ArrayWidget extends WidgetType {
       div.style.minHeight = `${cachedHeight}px`;
     }
 
-    this.renderContent(div).catch(console.error);
+    trackRender(this.renderContent(div)).catch(console.error);
     this.dom = div;
     return div;
   }
@@ -188,7 +189,7 @@ export class NavPageSlotWidget extends WidgetType implements DomWidget {
 
   private mount(host: HTMLElement): void {
     this.host = host;
-    pageSlotViews(this.slot)
+    trackRender(pageSlotViews(this.slot))
       .then((views) => {
         if (this.destroyed || this.host !== host) return;
         renderPageSlot(host, views, this.slot, this.client, () =>

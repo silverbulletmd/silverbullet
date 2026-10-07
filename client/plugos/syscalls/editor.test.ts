@@ -109,3 +109,31 @@ test("download space file saves its current bytes under the file basename", asyn
     vi.unstubAllGlobals();
   }
 });
+
+test("awaitRender reports whether the editor finished rendering in time", async () => {
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) =>
+    setTimeout(callback, 1),
+  );
+  let busy = true;
+  const querySelector = vi.fn((selector: string) =>
+    busy && selector.includes(".sb-loading-widget") ? {} : null,
+  );
+  try {
+    const client = {
+      widgetsReady: Promise.resolve(),
+      editorView: { dom: { querySelector } },
+    } as unknown as Client;
+    const system = new System();
+    system.registerSyscalls([], editorSyscalls(client));
+
+    await expect(system.localSyscall("editor.awaitRender", [50])).resolves.toBe(
+      false,
+    );
+    busy = false;
+    await expect(system.localSyscall("editor.awaitRender", [])).resolves.toBe(
+      true,
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

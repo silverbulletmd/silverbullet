@@ -1,4 +1,5 @@
 import type { Client } from "../client.ts";
+import { trackRender } from "../codemirror/render_settle.ts";
 import { panelHtml } from "./panel_html.ts";
 import type { CodeWidgetContent } from "@silverbulletmd/silverbullet/type/client";
 
@@ -101,8 +102,8 @@ export function mountIFrame(
 ) {
   const iframe = preloadedIFrame.iframe;
 
-  preloadedIFrame.ready
-    .then(async () => {
+  trackRender(
+    preloadedIFrame.ready.then(async () => {
       const messageListener = (evt: any) => {
         (async () => {
           if (evt.source !== iframe.contentWindow) {
@@ -192,8 +193,8 @@ export function mountIFrame(
           }
         }
       }
-    })
-    .catch(console.error);
+    }),
+  ).catch(console.error);
 }
 
 export function createWidgetSandboxIFrame(

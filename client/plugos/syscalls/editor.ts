@@ -83,6 +83,10 @@ import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { copyToClipboard } from "../../clipboard.ts";
 import { refreshLintEffect } from "../../codemirror/lint.ts";
+import {
+  awaitRenderSettled,
+  renderBusySelector,
+} from "../../codemirror/render_settle.ts";
 import { resolveDocumentCapability } from "../../document_editor_resolver.ts";
 import { isMobileDevice, isNarrowScreen } from "../../lib/mobile.ts";
 import { browserMediaCapabilities } from "../../media.ts";
@@ -172,7 +176,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           ),
         ];
       },
-      description: `Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included.`,
+      description: `Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included; use \`editor.getDocumentCapabilities\` to determine whether the client can open particular documents.`,
       returns: [
         {
           type: "string[]",
@@ -193,18 +197,20 @@ export function editorSyscalls(client: Client): SysCallMapping {
           ),
         ),
       description:
-        "Resolves the available editor capability for each document from metadata only, in input order.",
+        "Resolves the editor capability available for each document from metadata only. Results retain the input order. A `text` result with reason `probe-required` means navigation will read the document and validate it as UTF-8 before opening the text editor.",
       parameters: [
         {
           name: "documents",
           type: "DocumentCapabilityDescriptor[]",
-          description: "Document metadata to resolve without reading bodies.",
+          description:
+            "Document descriptors containing `name`, `extension`, `contentType`, and `size`.",
         },
       ],
       returns: [
         {
           type: "DocumentCapability[]",
-          description: "Capabilities in the same order as the input.",
+          description:
+            "One `plug`, `text`, `media`, or `external` capability per input document. Plug results may include `editor`; text and external results may include `reason`.",
         },
       ],
     },
@@ -364,6 +370,33 @@ export function editorSyscalls(client: Client): SysCallMapping {
         },
       ],
       examples: [{ code: 'editor.open("CHANGELOG")' }],
+    },
+    "editor.awaitRender": {
+      callback: (_ctx, timeout = 10000): Promise<boolean> =>
+        awaitRenderSettled({
+          ready: client.widgetsReady,
+          isBusy: () =>
+            !!client.editorView.dom.querySelector(renderBusySelector),
+          timeoutMs: timeout,
+        }),
+      description:
+        "Waits until the current page has finished rendering: widgets, `${…}` expressions, queries and transclusions are drawn and nothing is still loading. Call it after editor.navigate, e.g. before taking a screenshot.",
+      parameters: [
+        {
+          name: "timeout",
+          type: "number",
+          description: "Maximum time to wait in milliseconds (default 10000).",
+          optional: true,
+        },
+      ],
+      returns: [
+        {
+          type: "boolean",
+          description:
+            "true once rendering settled; false if the timeout passed first.",
+        },
+      ],
+      examples: [{ code: 'editor.navigate("index")\neditor.awaitRender()' }],
     },
     "editor.reloadPage": {
       callback: async () => {
@@ -658,7 +691,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         return client.ui.filterBox(label, options, helpText, placeHolder);
       },
       description:
-        "Shows a filterable option picker similar to the page navigator.",
+        "Shows a filterable option picker similar to the page picker.",
       parameters: [
         {
           name: "label",
@@ -763,7 +796,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           : undefined;
       },
       description:
-        "Returns the slot of the panel (keyed or legacy) whose iframe currently holds focus, or undefined if none does.",
+        "Returns the slot of the panel whose iframe currently holds focus, or undefined if none does.",
       returns: [
         {
           type: '"lhs" | "rhs" | "bhs" | "modal" | undefined',
@@ -1261,12 +1294,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
       callback: (_ctx, mode: "page" | "meta" | "document" | "all" = "page") => {
         void client.startPageNavigate(mode);
       },
-      description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` navigator view.`,
+      description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` view.`,
       parameters: [
         {
           name: "mode",
           type: "page | meta | document | all",
-          description: "The navigator mode.",
+          description: "The picker mode.",
           optional: true,
         },
       ],
@@ -1288,14 +1321,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
           focus?: boolean;
         },
       ) => client.openNavigatorView(name, opts),
-      description: `Opens a navigator view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.`,
+      description: `Opens a view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.`,
       parameters: [
         { name: "name", type: "string", description: "The view's name." },
         {
           name: "opts",
           type: "table",
           description:
-            "Optional `segment` (segment label), `phrase`, `dropdown` (dropdown value to select), and `focus` (`false` opens without taking focus).",
+            "Optional `segment` (segment label), `phrase`, `dropdown` (dropdown value to select), and `focus` (`false` opens without taking focus). See [[API/view#view.open(name, opts?)]] for the full option semantics.",
           optional: true,
         },
       ],

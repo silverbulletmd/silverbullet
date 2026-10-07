@@ -16,10 +16,12 @@ import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import {
   classifyResult,
   isBlockMarkdown,
+  isLuaWidgetError,
   renderResultToCleanMarkdown,
   renderResultToMarkdown,
 } from "../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
+import { trackRender } from "./render_settle.ts";
 import { isViewValue, type ViewValue } from "../navigator/view_value.ts";
 import { mountInlineView } from "../navigator/ui/components/inline_view.tsx";
 import {
@@ -133,7 +135,7 @@ export class LuaWidget extends WidgetType {
     }
 
     const renderStart = performance.now();
-    this.renderContent(innerDiv)
+    trackRender(this.renderContent(innerDiv))
       .then(() => {
         performance.measure(`sb:widget:${this.opts.cacheKey.slice(0, 80)}`, {
           start: renderStart,
@@ -183,6 +185,8 @@ export class LuaWidget extends WidgetType {
       : await this.opts.callback(this.opts.expressionText, currentName);
     if (version !== this.renderVersion) return;
     activeWidgets.add(this);
+    // Stable marker for failed renders (the visible text stays as is).
+    div.classList.toggle("sb-lua-error", isLuaWidgetError(widgetContent));
     if (isViewValue(widgetContent)) {
       div.className = "sb-lua-directive-block sb-lua-view";
       const host = document.createElement("div");

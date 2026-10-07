@@ -154,6 +154,16 @@ export function openNavigator(
   return syscall("editor.openNavigator", name, opts);
 }
 
+/**
+ * Waits until the current page has finished rendering (widgets, `${…}`
+ * expressions, queries and transclusions), e.g. before taking a screenshot.
+ * @param timeout - Maximum time to wait in milliseconds (default 10000)
+ * @returns true once rendering settled; false if the timeout passed first
+ */
+export function awaitRender(timeout?: number): Promise<boolean> {
+  return syscall("editor.awaitRender", timeout);
+}
+
 export function reloadPage(): Promise<void> {
   return syscall("editor.reloadPage");
 }
@@ -221,7 +231,7 @@ export function flashNotification(
 }
 
 /**
- * Exposes a filter box UI (similar to the page navigator and command palette)
+ * Exposes a filter box UI (similar to the page picker and command palette)
  */
 export function filterBox(
   label: string,

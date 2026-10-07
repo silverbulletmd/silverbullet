@@ -225,3 +225,88 @@ test("a frontmatter-style widget offers Go to definition before Edit", () => {
     vi.unstubAllGlobals();
   }
 });
+
+test("rendering an in-page widget holds awaitRenderSettled until its result arrives", async () => {
+  const { awaitRenderSettled } = await import("./render_settle.ts");
+  vi.stubGlobal("document", {
+    createElement: () => Object.assign(new ElementStub(), { style: {} }),
+  });
+  let resolveResult!: (value: null) => void;
+  const result = new Promise<null>((resolve) => {
+    resolveResult = resolve;
+  });
+  try {
+    const widget = new LuaWidget({
+      client: {
+        widgetCache: {
+          prewarmResult: () => result,
+          getCachedWidgetMeta: () => undefined,
+          removeCachedWidgetMeta: () => {},
+        },
+        currentName: () => "Test/Page",
+      } as unknown as Client,
+      cacheKey: "slow",
+      expressionText: "slowQuery()",
+      callback: () => result,
+      inPage: true,
+    });
+    widget.toDOM();
+    let settled = false;
+    const waiting = awaitRenderSettled({
+      nextFrame: () => new Promise((resolve) => setTimeout(resolve, 1)),
+      timeoutMs: 1000,
+    }).then((value) => {
+      settled = true;
+      return value;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(settled).toBe(false);
+    resolveResult(null);
+    expect(await waiting).toBe(true);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("a widget that renders a Lua error is marked with sb-lua-error, and unmarked once fixed", async () => {
+  vi.stubGlobal("document", {
+    createElement: () => Object.assign(new ElementStub(), { style: {} }),
+  });
+  const classes = new Set<string>();
+  const div = {
+    className: "",
+    innerHTML: "",
+    style: {},
+    classList: {
+      toggle: (name: string, force: boolean) => {
+        if (force) classes.add(name);
+        else classes.delete(name);
+      },
+      contains: (name: string) => classes.has(name),
+    },
+  };
+  let result: string | null = "**Lua error:** boom";
+  try {
+    const widget = new LuaWidget({
+      client: {
+        widgetCache: {
+          getCachedWidgetMeta: () => undefined,
+          removeCachedWidgetMeta: () => {},
+        },
+        currentName: () => "Test/Page",
+      } as unknown as Client,
+      cacheKey: "err",
+      expressionText: "boom()",
+      callback: async () => result,
+      inPage: false,
+    });
+    // The rest of rendering needs a full client; only the marker matters here.
+    await widget.renderContent(div as unknown as HTMLElement).catch(() => {});
+    expect(classes.has("sb-lua-error")).toBe(true);
+    result = null;
+    await widget.renderContent(div as unknown as HTMLElement);
+    expect(classes.has("sb-lua-error")).toBe(false);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
