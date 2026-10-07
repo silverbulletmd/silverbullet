@@ -29,6 +29,8 @@ import {
   renderResultToCleanMarkdown,
 } from "./render_lua_markdown.ts";
 
+export { isLuaWidgetError } from "./render_lua_markdown.ts";
+
 /**
  * Run a Space Lua computation and convert its result into something the
  * LuaWidget renderer understands (a widget table, markdown string, or number).
@@ -41,15 +43,21 @@ export async function renderLuaWidgetResult(
   ctx: ASTCtx,
   currentPageMeta?: { name: string } | undefined,
 ): Promise<any> {
+  const currentPage =
+    currentPageMeta ||
+    (client.ui.viewState.current
+      ? { name: getNameFromPath(client.ui.viewState.current.path) }
+      : undefined);
+  // The rendered error only shows inside the page; also log one line so it
+  // reaches the runtime log (`sb logs`).
+  const logError = (msg: string) => {
+    console.error(
+      `Lua widget error on ${currentPage?.name ?? "(unknown page)"}: ${msg.replace(/\s*\n\s*/g, " ")}`,
+    );
+  };
   try {
     const tl = new LuaEnv();
-    tl.setLocal(
-      "currentPage",
-      currentPageMeta ||
-        (client.ui.viewState.current
-          ? { name: getNameFromPath(client.ui.viewState.current.path) }
-          : undefined),
-    );
+    tl.setLocal("currentPage", currentPage);
     const sf = LuaStackFrame.createWithGlobalEnv(
       client.clientSystem.spaceLuaEnv.env,
       ctx,
@@ -75,8 +83,10 @@ export async function renderLuaWidgetResult(
     return luaValueToJS(rawResult, sf);
   } catch (e: any) {
     if (e instanceof LuaBudgetStopped) {
+      logError("timed out; the widget took too long to render and was stopped");
       return `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`;
     }
+    logError(e.message);
     if (e instanceof LuaRuntimeError && e.sf?.astCtx) {
       const source = resolveASTReference(e.sf.astCtx);
       if (source) {

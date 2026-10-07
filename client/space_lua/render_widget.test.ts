@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import type { Client } from "../client.ts";
 import { newView } from "../navigator/view_value.ts";
 import { luaHandle } from "../navigator/lua_views.ts";
@@ -8,6 +8,7 @@ import { LuaEnv, LuaStackFrame, type LuaTable } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 import {
   expressionToPortableMarkdown,
+  isLuaWidgetError,
   renderLuaExpression,
 } from "./render_widget.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
@@ -65,4 +66,43 @@ test("static Markdown expansion does not serialize view internals", async () => 
   );
   expect(renderToText(tree)).toContain("view");
   expect(renderToText(tree)).not.toContain("<table");
+});
+
+test("a failing widget logs one line naming the page, and keeps its visible text", async () => {
+  const { client } = fixture();
+  const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const rendered = await renderLuaExpression(client, "nosuch.field");
+    expect(typeof rendered).toBe("string");
+    expect(rendered).toMatch(/^\*\*Lua error:\*\* /);
+    expect(isLuaWidgetError(rendered)).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]).toHaveLength(1);
+    const line = spy.mock.calls[0][0] as string;
+    expect(line).toMatch(/^Lua widget error on Workshop: /);
+    expect(line).toContain("nosuch");
+    expect(line).not.toContain("\n");
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test("a widget error uses an explicit page name when given", async () => {
+  const { client } = fixture();
+  const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await renderLuaExpression(client, "nosuch.field", { name: "Notes/Day" });
+    expect(spy.mock.calls[0][0]).toMatch(/^Lua widget error on Notes\/Day: /);
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test("isLuaWidgetError only matches rendered failures", () => {
+  expect(isLuaWidgetError("**Lua error:** boom")).toBe(true);
+  expect(isLuaWidgetError("**Lua timeout:** slow")).toBe(true);
+  expect(isLuaWidgetError("**Error:** Empty Lua expression")).toBe(true);
+  expect(isLuaWidgetError("all good")).toBe(false);
+  expect(isLuaWidgetError(42)).toBe(false);
+  expect(isLuaWidgetError(null)).toBe(false);
 });

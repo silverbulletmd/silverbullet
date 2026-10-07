@@ -362,3 +362,17 @@ function renderCellContent(v: any): string {
       return renderArrayToHtmlLines(c.items);
   }
 }
+
+/**
+ * Whether a widget result is one of the markdown failure strings produced by
+ * render_widget.ts (Lua error, timeout, empty expression). The widget renderer
+ * marks such results with the `sb-lua-error` class so tools can detect them.
+ */
+export function isLuaWidgetError(result: unknown): boolean {
+  return (
+    typeof result === "string" &&
+    (result.startsWith("**Lua error:**") ||
+      result.startsWith("**Lua timeout:**") ||
+      result.startsWith("**Error:**"))
+  );
+}
