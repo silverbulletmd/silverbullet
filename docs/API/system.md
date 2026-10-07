@@ -43,6 +43,12 @@ Deprecated environment probe that always returns nil.
 
 Returns rw for read-write mode or ro for read-only mode.
 
+## system.getProfile
+
+`system.getProfile()`
+
+The current user's identity. `username` is "me" when the server has no account for this session.
+
 ## system.getSpaceConfig
 
 `system.getSpaceConfig(key, defaultValue?)`
@@ -84,6 +90,12 @@ Invokes a loaded plug function by its plug-qualified name.
 > **Deprecated:** Use system.invokeFunction instead.
 
 Deprecated alias for system.invokeFunction.
+
+## system.listAccounts
+
+`system.listAccounts()`
+
+Every account with access to this space, with the current user marked.
 
 ## system.listCommands
 
@@ -129,23 +141,11 @@ Deprecated alias for system.loadScripts.
 
 Reloads custom Space Style definitions.
 
-## system.runPaletteCommand
-
-`system.runPaletteCommand(name)`
-
-Runs a command as if it had been picked from the command palette: records it as the most recently run, then invokes it and returns its result.
-
-**Parameters:**
-
-- `name` (`string`) — Command name.
-
-**Returns:** Whatever the command returned.
-
 ## system.reboot
 
 `system.reboot()`
 
-Saves the current editor buffer, detects on-disk changes, waits for indexing, and reloads configuration, scripts, styles, and client state. Because the buffer is saved first, an external edit to the currently open page can be overwritten; edit that page through the editor or navigate away first.
+Saves the current editor buffer, detects on-disk changes, waits for indexing, and reloads configuration, scripts, styles, and client state. An external edit to the currently open page is never overwritten: an unmodified buffer reloads it, and unsaved edits are merged with it first.
 
 ## system.reloadConfig
 
@@ -160,6 +160,20 @@ Deprecated no-op that returns the current configuration.
 `system.reloadPlugs()`
 
 Reloads every plug available to the client.
+
+## system.runPaletteCommand
+
+`system.runPaletteCommand(name)`
+
+Runs a command as if it had been picked from the command palette: records it as the most recently run, then invokes it and returns its result. A command that throws is reported to the user and answered as false, which in this protocol means "do not move focus on my behalf".
+
+**Parameters:**
+
+- `name` (`string`) — Command name.
+
+**Returns:**
+
+- Value — Whatever the command returned.
 
 ## system.serverSyscall
 

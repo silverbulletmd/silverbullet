@@ -1,8 +1,7 @@
 /**
  * Pure schema-introspection helpers over the `["tags"]` config table.
  *
- * Returns raw JSON Schema objects; presentation-layer flattening (into typed
- * property rows) happens in the `sb describe` CLI (describe.rs).
+ * Returns raw JSON Schema objects; callers do any presentation.
  */
 
 /**

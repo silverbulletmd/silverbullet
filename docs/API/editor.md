@@ -30,6 +30,27 @@ Shows a browser alert dialog.
 
 - `message` (`string`) — The alert message.
 
+## editor.awaitRender
+
+`editor.awaitRender(timeout?)`
+
+Waits until the current page has finished rendering: widgets, `${…}` expressions, queries and transclusions are drawn and nothing is still loading. Call it after editor.navigate, e.g. before taking a screenshot.
+
+**Parameters:**
+
+- `timeout?` (`number`) — Maximum time to wait in milliseconds (default 10000).
+
+**Returns:**
+
+- `boolean` — true once rendering settled; false if the timeout passed first.
+
+**Example:**
+
+```lua
+editor.navigate("index")
+editor.awaitRender()
+```
+
 ## editor.closeCompletion
 
 `editor.closeCompletion()`
@@ -61,7 +82,7 @@ Prompts the user to confirm or cancel an action.
 
 `editor.copyToClipboard(data)`
 
-Copies text or binary Blob data to the system clipboard. Clipboard access requires a secure HTTPS context.
+Copies text or binary Blob data to the system clipboard. Binary clipboard access requires HTTPS or localhost; text copying also works over HTTP when supported by the browser.
 
 **Parameters:**
 
@@ -225,6 +246,16 @@ Triggers a browser download of a data URL under the given filename.
 ```lua
 editor.downloadFile("test.txt", "data:text/plain;base64,SGVsbG8=")
 ```
+
+## editor.downloadSpaceFile
+
+`editor.downloadSpaceFile(name)`
+
+Downloads a space file using its current contents.
+
+**Parameters:**
+
+- `name` (`string`) — Space file path.
 
 ## editor.filterBox
 

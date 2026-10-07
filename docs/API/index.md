@@ -17,19 +17,23 @@ The main query API is `index.objects`; the other collection functions are mostly
 
 Returns stored aggregate records as a query collection.
 
+## index.ambiguousLinks
+
+`index.ambiguousLinks()`
+
+Returns links whose page name matches more than one page as a query collection.
+
 ## index.aspiringPages
 
 `index.aspiringPages()`
 
 Returns linked but not yet created pages as a query collection.
 
-## index.isAvailable
+## index.clearFileIndex
 
-`index.isAvailable()`
+`index.clearFileIndex(path)`
 
-Whether a full indexing pass has ever completed for this space. False on a fresh client, and for as long as the first index takes on a large one: every object query answers with whatever has been indexed so far, which is nothing to begin with. Code that must work in that window reads the space directly instead.
-
-**Returns:** `boolean` — Whether the index can be trusted.
+Drops every indexed object belonging to a file, so a re-index replaces them rather than merging on top.
 
 ## index.contentPages
 
@@ -99,6 +103,16 @@ Returns all headers, optionally filtered by an additional tag, as a query collec
 `index.indexObjects(page, objects)`
 
 Indexes a collection of objects for a page.
+
+## index.isAvailable
+
+`index.isAvailable()`
+
+Whether a full indexing pass has ever completed for this space. False on a fresh client, and for as long as the first index takes on a large one: every object query answers with whatever has been indexed so far, which is nothing to begin with. Code that must work in that window reads the space directly instead.
+
+**Returns:**
+
+- `boolean` — Whether the index can be trusted.
 
 ## index.items
 
@@ -258,8 +272,8 @@ Query three sub-pages below the API page:
 
 <!--#lua query[[from p = index.subPages("API") limit 3 select p.name]] -->
 API/asset
+API/capture
 API/clientStore
-API/codeWidget
 <!--/lua-->
 
 Render three incomplete tasks:

@@ -16,7 +16,7 @@ export function searchSyscalls(): SysCallMapping {
         },
       ) => rank(objects, phrase, options as RankOptions<any>),
       description:
-        "Fuzzy-ranks objects against a phrase, best match first. The same ranker the navigator's own filtering uses.",
+        "Fuzzy-ranks objects against a phrase, best match first. The same ranker view panels use for filtering.",
       parameters: [
         { name: "objects", type: "table", description: "Objects to rank." },
         {
