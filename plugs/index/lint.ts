@@ -17,6 +17,7 @@ import YAML from "js-yaml";
 import { isValidAnchorName } from "./anchor.ts";
 import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
+import { splitYamlDocuments } from "./data.ts";
 import { allIndexers } from "./indexer.ts";
 
 /**
@@ -50,16 +51,29 @@ export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
         return true;
       }
       const codeLang = codeInfo.children![0].text!;
+      const isDataBlock = codeLang === "data" || codeLang.startsWith("#");
       // All known YAML formats
-      if (["yaml"].includes(codeLang) || codeLang.startsWith("#")) {
+      if (codeLang === "yaml" || isDataBlock) {
         const codeText = findNodeOfType(node, "CodeText");
         if (!codeText) {
           return true;
         }
         const yamlCode = renderToText(codeText);
-        const lintResult = lintYamlBlock(yamlCode, codeText.from!);
-        if (lintResult) {
-          diagnostics.push(lintResult);
+        // Data blocks are split into documents exactly as the indexer does
+        // (see splitYamlDocuments), so lint flags what indexing would reject.
+        const parts = isDataBlock
+          ? splitYamlDocuments(yamlCode)
+          : [{ text: yamlCode, offset: 0 }];
+        for (const part of parts) {
+          const lintResult = lintYamlBlock(
+            part.text,
+            codeText.from! + part.offset,
+            undefined,
+            isDataBlock,
+          );
+          if (lintResult) {
+            diagnostics.push(lintResult);
+          }
         }
         return true;
       }
@@ -76,16 +90,20 @@ const errorRegex = /\((\d+):(\d+)\)/;
  * @param yamlText - The YAML text to lint
  * @param startPos - The start position of the YAML block
  * @param pageName - The page name to check against
+ * @param flagUnpositioned - Also report errors whose message carries no
+ *   position, over the whole block. Only for data blocks: a plain ```yaml
+ *   block may legitimately hold several documents.
  * @returns A LintDiagnostic if there is an error, undefined otherwise
  */
 function lintYamlBlock(
   yamlText: string,
   startPos: number,
   pageName?: string,
+  flagUnpositioned = false,
 ): LintDiagnostic | undefined {
   try {
     const parsed = YAML.load(yamlText) as any;
-    if (pageName && parsed.name && parsed.name !== pageName) {
+    if (pageName && parsed?.name && parsed.name !== pageName) {
       return {
         from: startPos,
         to: startPos + yamlText.length,
@@ -113,6 +131,17 @@ function lintYamlBlock(
         message: e.message,
       };
     }
+    // No position in the message (e.g. "expected a single document in the
+    // stream"): the indexer rejects this block, so flag all of it.
+    if (!flagUnpositioned) {
+      return;
+    }
+    return {
+      from: startPos,
+      to: startPos + yamlText.length,
+      severity: "error",
+      message: e.message,
+    };
   }
 }
 

@@ -185,3 +185,71 @@ test("a data type occurring only in a comment is marked as commented", async () 
   expect(tagOf("person").range).toBeUndefined();
   expect(tagOf("ghost").range).toBeTruthy();
 });
+
+describe("documents split only on standalone --- lines", () => {
+  test("a quoted value containing --- stays one document", async () => {
+    createMockSystem();
+    const md = ["```#thing", 'cmd: "a\\n---\\nb"', "```"].join("\n");
+    const results = await indexDataForTest(md, "Page");
+    const things = results.filter((o) => o.tag === "thing");
+    expect(things).toHaveLength(1);
+    expect(things[0].cmd).toBe("a\n---\nb");
+  });
+
+  test("an inline --- inside a line does not split", async () => {
+    createMockSystem();
+    const md = ["```#thing", "title: before --- after", "n: 1", "```"].join(
+      "\n",
+    );
+    const results = await indexDataForTest(md, "Page");
+    const things = results.filter((o) => o.tag === "thing");
+    expect(things).toHaveLength(1);
+    expect(things[0].title).toBe("before --- after");
+  });
+
+  test("a separator with trailing spaces splits, and offsets include it", async () => {
+    createMockSystem();
+    const md = ["```#person", "name: Pete", "---  ", "name: Hank", "```"].join(
+      "\n",
+    );
+    const results = await indexDataForTest(md, "Page");
+    const persons = results.filter((o) => o.tag === "person");
+    expect(persons.map((p) => p.name)).toEqual(["Pete", "Hank"]);
+    const [a, b] = persons;
+    expect(b.range[0]).toBe(a.range[1] + "---  ".length);
+    expect(md.slice(b.range[0], b.range[1])).toBe("\nname: Hank");
+  });
+
+  test("an empty leading document keeps later offsets correct", async () => {
+    createMockSystem();
+    const md = ["```#person", "---", "name: Hank", "```"].join("\n");
+    const results = await indexDataForTest(md, "Page");
+    const persons = results.filter((o) => o.tag === "person");
+    expect(persons).toHaveLength(1);
+    expect(md.slice(persons[0].range[0], persons[0].range[1])).toBe(
+      "\nname: Hank",
+    );
+  });
+
+  test("a parse error logs the tag, page and message", async () => {
+    createMockSystem();
+    const errors: string[] = [];
+    const orig = console.error;
+    console.error = (...args: any[]) => {
+      errors.push(args.map(String).join(" "));
+    };
+    try {
+      await indexDataForTest(
+        ["```#thing", "a: [unclosed", "```"].join("\n"),
+        "Some Page",
+      );
+    } finally {
+      console.error = orig;
+    }
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(
+      /^Could not parse data block \(#thing\) on Some Page: /,
+    );
+    expect(errors[0]).not.toContain("[object Object]");
+  });
+});
