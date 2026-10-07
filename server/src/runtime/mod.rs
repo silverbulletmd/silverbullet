@@ -6,6 +6,7 @@
 pub mod availability;
 pub mod backend;
 pub mod client;
+pub mod fullpage;
 pub mod logs;
 pub mod management;
 pub mod transport;

@@ -104,8 +104,22 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                 CoreCommand::Logs { lines, follow } => {
                     commands::logs::run(&conn, lines, follow, &mut out)?
                 }
-                CoreCommand::Screenshot { file, selector } => {
-                    commands::screenshot::run(&conn, &file, selector.as_deref(), mode, &mut out)?
+                CoreCommand::Screenshot {
+                    file,
+                    selector,
+                    full_page,
+                } => {
+                    if full_page {
+                        commands::screenshot::run_full_page(&conn, &file, mode, &mut out)?
+                    } else {
+                        commands::screenshot::run(
+                            &conn,
+                            &file,
+                            selector.as_deref(),
+                            mode,
+                            &mut out,
+                        )?
+                    }
                 }
                 CoreCommand::Fs(_) | CoreCommand::Upgrade | CoreCommand::UpgradeEdge => {
                     unreachable!("handled above")

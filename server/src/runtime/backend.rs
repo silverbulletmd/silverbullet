@@ -86,6 +86,15 @@ pub trait RuntimeBackend: Send + Sync {
         Err(RuntimeError::Transport("screenshot unsupported".into()))
     }
 
+    /// Capture the whole current page by scrolling the editor and stitching
+    /// the screens into one PNG (see `fullpage.rs`).
+    fn screenshot_full_page(
+        &self,
+        _timeout: Duration,
+    ) -> Result<super::fullpage::FullPageShot, RuntimeError> {
+        Err(RuntimeError::Transport("screenshot unsupported".into()))
+    }
+
     /// Recent console-log entries (most recent `limit`, optionally only those
     /// strictly newer than `since`).
     fn logs(&self, limit: usize, since: Option<i64>) -> Vec<LogEntry>;

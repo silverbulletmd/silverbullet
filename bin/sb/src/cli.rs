@@ -31,6 +31,10 @@ Explore your space:
     sb eval 'spacelua.listFunctions("editor")'         # functions in a namespace
     sb eval 'spacelua.describe("editor.getText")'      # one function's signature and docs
     sb eval 'spacelua.renderApiDocumentation("index")' --text   # Markdown; --text prints it as is
+    sb eval 'system.reboot()'                          # pick up edited Space Lua, styles and config
+  Checking pages
+    sb eval 'space.lint("Page")'                       # YAML, Lua and widget errors on a page
+    sb eval 'space.lint()'                             # the same for every page
   Commands
     sb eval 'system.listCommands()'
   Query syntax
@@ -112,7 +116,7 @@ pub enum CoreCommand {
     Fs(crate::fs_cli::FsCommand),
     /// Evaluate a Lua expression.
     #[command(
-        after_long_help = "Runs in the connected space and prints the expression result.\n\nExamples:\n  sb eval '1 + 1'\n  sb eval 'space.readPage(\"index\")' --json\n\nExplore the Lua API and commands:\n  sb eval 'table.keys(_G)'\n  sb eval 'spacelua.listFunctions()'\n  sb eval 'spacelua.listFunctions(\"editor\")'\n  sb eval 'spacelua.describe(\"editor.getText\")'\n  sb eval 'spacelua.renderApiDocumentation(\"index\")' --text\n  sb eval 'system.listCommands()'"
+        after_long_help = "Runs in the connected space and prints the expression result.\n\nExamples:\n  sb eval '1 + 1'\n  sb eval 'space.readPage(\"index\")' --json\n  sb eval 'system.reboot()'   # pick up edited Space Lua, styles and config\n\nExplore the Lua API and commands:\n  sb eval 'table.keys(_G)'\n  sb eval 'spacelua.listFunctions()'\n  sb eval 'spacelua.listFunctions(\"editor\")'\n  sb eval 'spacelua.describe(\"editor.getText\")'\n  sb eval 'spacelua.renderApiDocumentation(\"index\")' --text\n  sb eval 'system.listCommands()'"
     )]
     Eval {
         /// Lua expression to evaluate (quote it for your shell).
@@ -137,7 +141,7 @@ pub enum CoreCommand {
     LuaScript { file: Option<String> },
     /// Run a SLIQ query.
     #[command(
-        after_long_help = "Runs in the connected space.\n\nExample:\n  sb query 'from tags.page select name' --json\n\nExplore tags, their fields and the query syntax:\n  sb query 'from t = index.tags() select t.name'\n  sb eval 'index.tagSchema(\"page\")'\n  sb fs read 'Library/Std/Docs/SLIQ Reference.md'"
+        after_long_help = "Runs in the connected space.\n\nExample:\n  sb query 'from tags.page select name' --json\n\nQuoting: wrap the query in single quotes and use double quotes inside it:\n  sb query 'from p = index.pages(\"book\") where p.status == \"reading\" select {name=p.name}'\nIf the query itself contains a single quote, pass it through a quoted heredoc:\n  sb query \"$(cat <<'EOF'\nfrom p = index.pages() where p.name == \"Bob's Notes\" select p.name\nEOF\n)\"\n\nExplore tags, their fields and the query syntax:\n  sb query 'from t = index.tags() select t.name'\n  sb eval 'index.tagSchema(\"page\")'\n  sb fs read 'Library/Std/Docs/SLIQ Reference.md'"
     )]
     Query {
         /// SLIQ query expression, quoted for your shell.
@@ -157,15 +161,18 @@ pub enum CoreCommand {
     },
     /// Capture a PNG screenshot of the runtime client.
     #[command(
-        after_long_help = "Captures the connected space's current client viewport, or one element with --selector. Navigate first with eval. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb eval 'editor.navigate(\"index\")'\n  sb screenshot\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
+        after_long_help = "Captures the connected space's current client viewport, or one element with --selector. --full-page captures the whole current page, not just the first screen: it scrolls the editor one screen at a time, waits for each screen to render, and stitches the screens into one PNG (the top bar appears once, at the top). Very long pages stop after about 12000 pixels and print a note on stderr. Navigate first with eval, then wait until the page has finished rendering its widgets and queries. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb eval 'editor.navigate(\"index\")'\n  sb eval 'editor.awaitRender()'\n  sb screenshot\n  sb screenshot page.png --full-page\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
     )]
     Screenshot {
         /// Output PNG path, or - for stdout.
         #[arg(default_value = "screenshot.png")]
         file: String,
         /// CSS selector of the element to capture.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "full_page")]
         selector: Option<String>,
+        /// Capture the whole page by scrolling, stitched into one PNG.
+        #[arg(long)]
+        full_page: bool,
     },
     /// Upgrade to the latest release.
     #[command(
@@ -353,9 +360,40 @@ mod tests {
         let cli = Cli::try_parse_from(["sb", "screenshot", "--selector", "#sb-top"]).unwrap();
         assert!(matches!(
             cli.command,
-            Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s) })
+            Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s), full_page: false })
                 if file == "screenshot.png" && s == "#sb-top"
         ));
+    }
+
+    #[test]
+    fn screenshot_accepts_full_page() {
+        let cli = Cli::try_parse_from(["sb", "screenshot", "out.png", "--full-page"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Core(CoreCommand::Screenshot { ref file, selector: None, full_page: true })
+                if file == "out.png"
+        ));
+    }
+
+    #[test]
+    fn screenshot_full_page_conflicts_with_selector() {
+        let err = Cli::try_parse_from(["sb", "screenshot", "--full-page", "--selector", "#x"])
+            .err()
+            .unwrap();
+        assert_eq!(err.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn screenshot_help_mentions_full_page() {
+        let help = Cli::try_parse_from(["sb", "screenshot", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(help.contains("--full-page"), "{help}");
+        assert!(
+            help.contains("sb screenshot page.png --full-page"),
+            "{help}"
+        );
     }
 
     #[test]
@@ -380,6 +418,51 @@ mod tests {
         assert!(!root.contains("sb describe"), "{root}");
         assert!(!root.contains("Runtime API"), "{root}");
         assert!(!root.contains(COMPACT_HINT), "{root}");
+    }
+
+    #[test]
+    fn help_shows_reboot_after_editing_lua_styles_and_config() {
+        let line = "sb eval 'system.reboot()'";
+        let root = Cli::try_parse_from(["sb", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(root.contains(line), "{root}");
+        assert!(
+            root.contains("# pick up edited Space Lua, styles and config"),
+            "{root}"
+        );
+        let eval = Cli::try_parse_from(["sb", "eval", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(eval.contains(line), "{eval}");
+    }
+
+    #[test]
+    fn query_help_shows_shell_safe_quoting() {
+        let help = Cli::try_parse_from(["sb", "query", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(
+            help.contains(r#"sb query 'from p = index.pages("book") where p.status == "reading""#),
+            "{help}"
+        );
+        assert!(help.contains("sb query \"$(cat <<'EOF'"), "{help}");
+        assert!(help.contains("\nEOF\n)\""), "{help}");
+    }
+
+    #[test]
+    fn screenshot_help_waits_for_rendering_after_navigating() {
+        let help = Cli::try_parse_from(["sb", "screenshot", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        let navigate = help.find("editor.navigate(").expect(&help);
+        let wait = help.find("editor.awaitRender()").expect(&help);
+        let capture = help.find("\n  sb screenshot\n").expect(&help);
+        assert!(navigate < wait && wait < capture, "{help}");
     }
 
     #[test]
@@ -416,6 +499,17 @@ mod tests {
     fn describe_is_not_a_supported_subcommand() {
         assert!(Cli::try_parse_from(["sb", "describe"]).is_err());
         assert!(Cli::try_parse_from(["sb", "describe", "page", "--json"]).is_err());
+    }
+
+    #[test]
+    fn lint_is_an_eval_call_not_a_subcommand() {
+        assert!(Cli::try_parse_from(["sb", "lint"]).is_err());
+        let root = Cli::try_parse_from(["sb", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(root.contains("sb eval 'space.lint(\"Page\")'"), "{root}");
+        assert!(root.contains("sb eval 'space.lint()'"), "{root}");
     }
 
     #[test]

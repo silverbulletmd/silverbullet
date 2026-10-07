@@ -36,6 +36,7 @@ tokio-stream = { workspace = true }
 openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
 
 tempfile = "3"
+png = "0.18"
 
 [dev-dependencies]
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }

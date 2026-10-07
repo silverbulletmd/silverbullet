@@ -82,6 +82,15 @@ impl RuntimeBackend for RuntimeLease {
         }
         self.backend.screenshot(selector, timeout)
     }
+    fn screenshot_full_page(
+        &self,
+        timeout: Duration,
+    ) -> Result<super::fullpage::FullPageShot, RuntimeError> {
+        if !self.valid() {
+            return Err(RuntimeError::Forbidden);
+        }
+        self.backend.screenshot_full_page(timeout)
+    }
     fn logs(&self, limit: usize, since: Option<i64>) -> Vec<LogEntry> {
         if !self.valid() {
             return vec![];

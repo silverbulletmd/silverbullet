@@ -7,6 +7,9 @@
 use std::time::{Duration, Instant};
 
 use super::backend::{RuntimeBackend, RuntimeError};
+use super::fullpage::{
+    crop_plan, next_step, stitch, FullPageShot, SegmentMeta, Step, MAX_HEIGHT, MAX_SEGMENTS,
+};
 use super::logs::{LogBuffer, LogEntry};
 use super::transport::{CaptureRect, ClientTransport};
 
@@ -54,6 +57,75 @@ const SETTLE_JS: &str = r#"(async (selector) => {
 pub fn build_settle_js(selector: Option<&str>) -> String {
     let arg = serde_json::to_string(&selector).unwrap_or_else(|_| "null".to_string());
     format!("{SETTLE_JS}({arg})")
+}
+
+/// One full-page step: optionally scroll the editor scroller to `scrollTo`
+/// and wait for the newly visible lines and widgets to render, then measure
+/// the scroller. `original` is the scroll position before scrolling, so the
+/// caller can restore it. `{ none: true }` means no scrollable editor.
+const FULLPAGE_STEP_JS: &str = r##"(async (step) => {
+  const frame = () => new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+    setTimeout(resolve, 100);
+  });
+  const scroller = document.querySelector("#sb-editor > .cm-editor > .cm-scroller");
+  if (!scroller || scroller.clientHeight === 0) return { none: true };
+  const original = Math.round(scroller.scrollTop);
+  if (step.scrollTo !== null) {
+    scroller.scrollTop = step.scrollTo;
+    if (!step.settle) return { original };
+    await frame();
+    await frame();
+    const awaitRender = globalThis.sbRuntime && globalThis.sbRuntime.awaitRender;
+    if (typeof awaitRender === "function") await awaitRender(5000);
+    await frame();
+  }
+  const rect = scroller.getBoundingClientRect();
+  const top = Math.max(0, Math.floor(rect.top));
+  const bottom = Math.min(innerHeight, Math.floor(rect.bottom));
+  const left = Math.max(0, Math.floor(rect.left));
+  const right = Math.min(innerWidth, Math.ceil(rect.right));
+  const scrollTop = Math.round(scroller.scrollTop);
+  let contentEnd = scroller.scrollHeight;
+  const content = scroller.querySelector(".cm-content");
+  if (content) {
+    const end = scrollTop + content.getBoundingClientRect().bottom - rect.top;
+    contentEnd = Math.min(contentEnd, Math.ceil(end) + 24);
+  }
+  return { original, scrollTop, top, bottom, left, width: right - left, contentEnd };
+})"##;
+
+pub fn build_fullpage_step_js(scroll_to: Option<f64>, settle: bool) -> String {
+    let arg = serde_json::json!({ "scrollTo": scroll_to, "settle": settle });
+    format!("{FULLPAGE_STEP_JS}({arg})")
+}
+
+/// The scroller measured by `FULLPAGE_STEP_JS`, in whole CSS pixels.
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ScrollerMeasure {
+    pub original: f64,
+    pub scroll_top: f64,
+    pub top: f64,
+    pub bottom: f64,
+    pub left: f64,
+    pub width: f64,
+    pub content_end: f64,
+}
+
+/// `Ok(None)` when the page has no scrollable editor (e.g. a media viewer).
+pub(crate) fn parse_fullpage_step(
+    value: &serde_json::Value,
+) -> Result<Option<ScrollerMeasure>, RuntimeError> {
+    if value.get("none").and_then(|n| n.as_bool()) == Some(true) {
+        return Ok(None);
+    }
+    let measure: ScrollerMeasure = serde_json::from_value(value.clone())
+        .map_err(|e| RuntimeError::Transport(format!("unexpected full-page measure: {e}")))?;
+    if measure.bottom <= measure.top || measure.width <= 0.0 {
+        return Ok(None);
+    }
+    Ok(Some(measure))
 }
 
 pub(crate) fn parse_settle_result(
@@ -104,6 +176,76 @@ impl<T: ClientTransport> ClientRuntime<T> {
     }
 }
 
+impl<T: ClientTransport> ClientRuntime<T> {
+    fn measure_after_scroll(
+        &self,
+        scroll_to: f64,
+        deadline: Instant,
+    ) -> Result<Option<ScrollerMeasure>, RuntimeError> {
+        let value = self.transport.eval_js(
+            &build_fullpage_step_js(Some(scroll_to), true),
+            remaining(deadline)?,
+        )?;
+        parse_fullpage_step(&value)
+    }
+
+    /// Scroll the editor from the top one screen at a time, capturing each
+    /// screen, then stitch. Sets `original` once the editor has been scrolled.
+    fn capture_full_page(
+        &self,
+        deadline: Instant,
+        original: &mut Option<f64>,
+    ) -> Result<FullPageShot, RuntimeError> {
+        let Some(first) = self.measure_after_scroll(0.0, deadline)? else {
+            // Nothing to scroll: a plain viewport capture is the whole page.
+            let png = self.transport.capture(None, remaining(deadline)?)?;
+            return Ok(FullPageShot {
+                png,
+                truncated: false,
+            });
+        };
+        *original = Some(first.original);
+        let mut segments = Vec::new();
+        let mut captures = Vec::new();
+        let mut measure = first;
+        let mut prev_scroll_top = None;
+        let truncated = loop {
+            let header = if segments.is_empty() {
+                measure.top
+            } else {
+                0.0
+            };
+            let clip = CaptureRect {
+                x: measure.left,
+                y: measure.top - header,
+                width: measure.width,
+                height: measure.bottom - measure.top + header,
+            };
+            captures.push(self.transport.capture(Some(clip), remaining(deadline)?)?);
+            let seg = SegmentMeta {
+                scroll_top: measure.scroll_top,
+                view_height: measure.bottom - measure.top,
+                header,
+            };
+            segments.push(seg);
+            match next_step(seg, prev_scroll_top, measure.content_end, segments.len()) {
+                Step::Done => break false,
+                Step::Truncated => break true,
+                Step::Scroll(target) => {
+                    prev_scroll_top = Some(seg.scroll_top);
+                    match self.measure_after_scroll(target, deadline)? {
+                        Some(next) => measure = next,
+                        None => break false,
+                    }
+                }
+            }
+        };
+        let crops = crop_plan(&segments, measure.content_end);
+        let png = stitch(&captures, &segments, &crops)?;
+        Ok(FullPageShot { png, truncated })
+    }
+}
+
 impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
     fn eval_global(
         &self,
@@ -137,6 +279,32 @@ impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
         });
         if let Err(e) = &result {
             tracing::warn!("runtime screenshot failed: {e}");
+        }
+        result
+    }
+
+    fn screenshot_full_page(&self, timeout: Duration) -> Result<FullPageShot, RuntimeError> {
+        let deadline = Instant::now() + timeout;
+        let mut original = None;
+        let result = self.transport.wait_ready(timeout).and_then(|()| {
+            self.transport
+                .eval_js(&build_settle_js(None), remaining(deadline)?)?;
+            self.capture_full_page(deadline, &mut original)
+        });
+        // Put the editor back where it was, even after a failure.
+        if let Some(top) = original {
+            let restore = build_fullpage_step_js(Some(top), false);
+            let budget = remaining(deadline).unwrap_or(Duration::from_secs(2));
+            if let Err(e) = self.transport.eval_js(&restore, budget) {
+                tracing::warn!("restoring scroll position after full-page screenshot: {e}");
+            }
+        }
+        match &result {
+            Err(e) => tracing::warn!("runtime full-page screenshot failed: {e}"),
+            Ok(shot) if shot.truncated => tracing::info!(
+                "full-page screenshot truncated after {MAX_SEGMENTS} screens or {MAX_HEIGHT}px"
+            ),
+            Ok(_) => {}
         }
         result
     }
@@ -415,6 +583,132 @@ mod tests {
         let err = rt.screenshot(None, Duration::from_millis(50)).unwrap_err();
         assert!(matches!(err, RuntimeError::Timeout));
         assert!(rt.transport.captures.lock().unwrap().is_empty());
+    }
+
+    /// Replays scripted eval results in order and captures blank PNGs of
+    /// the requested clip size, recording every JS snippet and clip.
+    struct ScriptedTransport {
+        evals: Mutex<std::collections::VecDeque<serde_json::Value>>,
+        seen_js: Mutex<Vec<String>>,
+        clips: Mutex<Vec<Option<CaptureRect>>>,
+    }
+
+    impl ScriptedTransport {
+        fn new(evals: Vec<serde_json::Value>) -> Self {
+            Self {
+                evals: Mutex::new(evals.into()),
+                seen_js: Mutex::new(Vec::new()),
+                clips: Mutex::new(Vec::new()),
+            }
+        }
+    }
+
+    fn blank_png(width: u32, height: u32) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut encoder = png::Encoder::new(&mut out, width, height);
+        encoder.set_color(png::ColorType::Rgba);
+        let mut writer = encoder.write_header().unwrap();
+        writer
+            .write_image_data(&vec![255; (width * height * 4) as usize])
+            .unwrap();
+        writer.finish().unwrap();
+        out
+    }
+
+    impl ClientTransport for ScriptedTransport {
+        fn eval_js(&self, js: &str, _: Duration) -> Result<serde_json::Value, RuntimeError> {
+            self.seen_js.lock().unwrap().push(js.to_string());
+            Ok(self
+                .evals
+                .lock()
+                .unwrap()
+                .pop_front()
+                .unwrap_or(serde_json::json!({})))
+        }
+        fn wait_ready(&self, _: Duration) -> Result<(), RuntimeError> {
+            Ok(())
+        }
+        fn is_ready(&self) -> bool {
+            true
+        }
+        fn capture(&self, clip: Option<CaptureRect>, _: Duration) -> Result<Vec<u8>, RuntimeError> {
+            self.clips.lock().unwrap().push(clip);
+            let (w, h) = clip.map_or((8, 6), |c| (c.width as u32, c.height as u32));
+            Ok(blank_png(w, h))
+        }
+    }
+
+    fn measure(original: f64, scroll_top: f64, content_end: f64) -> serde_json::Value {
+        serde_json::json!({"original": original, "scrollTop": scroll_top, "top": 10,
+            "bottom": 110, "left": 0, "width": 2, "contentEnd": content_end})
+    }
+
+    #[test]
+    fn full_page_scrolls_captures_stitches_and_restores() {
+        let transport = ScriptedTransport::new(vec![
+            serde_json::json!({"clip": null}),
+            measure(333.0, 0.0, 250.0),
+            measure(0.0, 60.0, 250.0),
+            measure(60.0, 120.0, 250.0),
+            // Clamped at the maximum scroll position.
+            measure(120.0, 150.0, 250.0),
+            serde_json::json!({"original": 150}),
+        ]);
+        let rt = ClientRuntime::new(transport, LogBuffer::new());
+        let shot = rt.screenshot_full_page(Duration::from_secs(5)).unwrap();
+        assert!(!shot.truncated);
+        assert_eq!(
+            crate::runtime::fullpage::tests_png_size(&shot.png),
+            (2, 10 + 250)
+        );
+        let clips = rt.transport.clips.lock().unwrap();
+        assert_eq!(clips.len(), 4);
+        // The first capture includes the top bar, later ones only the scroller.
+        assert_eq!(clips[0].unwrap().y, 0.0);
+        assert_eq!(clips[0].unwrap().height, 110.0);
+        assert_eq!(clips[1].unwrap().y, 10.0);
+        assert_eq!(clips[1].unwrap().height, 100.0);
+        let js = rt.transport.seen_js.lock().unwrap();
+        assert!(
+            js[1].ends_with(r#"({"scrollTo":0.0,"settle":true})"#),
+            "{}",
+            js[1]
+        );
+        assert!(js[2].contains(r#""scrollTo":60.0"#));
+        assert!(
+            js[5].ends_with(r#"({"scrollTo":333.0,"settle":false})"#),
+            "{}",
+            js[5]
+        );
+    }
+
+    #[test]
+    fn full_page_reports_truncation() {
+        let mut evals = vec![serde_json::json!({"clip": null})];
+        for i in 0..crate::runtime::fullpage::MAX_SEGMENTS {
+            evals.push(measure(0.0, (i * 60) as f64, 1_000_000.0));
+        }
+        let rt = ClientRuntime::new(ScriptedTransport::new(evals), LogBuffer::new());
+        let shot = rt.screenshot_full_page(Duration::from_secs(5)).unwrap();
+        assert!(shot.truncated);
+        assert_eq!(
+            rt.transport.clips.lock().unwrap().len(),
+            crate::runtime::fullpage::MAX_SEGMENTS
+        );
+    }
+
+    #[test]
+    fn full_page_without_an_editor_captures_the_viewport() {
+        let transport = ScriptedTransport::new(vec![
+            serde_json::json!({"clip": null}),
+            serde_json::json!({"none": true}),
+        ]);
+        let rt = ClientRuntime::new(transport, LogBuffer::new());
+        let shot = rt.screenshot_full_page(Duration::from_secs(5)).unwrap();
+        assert!(!shot.truncated);
+        assert_eq!(*rt.transport.clips.lock().unwrap(), vec![None]);
+        // Nothing was scrolled, so nothing is restored.
+        assert_eq!(rt.transport.seen_js.lock().unwrap().len(), 2);
     }
 
     #[test]

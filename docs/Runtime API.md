@@ -77,11 +77,15 @@ Captures the runtime client as a PNG image, after fonts have loaded and pending 
 | Query parameter | Description |
 |---|---|
 | `selector` | Optional CSS selector. The first matching element is scrolled into view and the image is clipped to it. |
+| `fullPage` | `1` or `true` captures the whole page instead of the viewport: the editor is scrolled one screen at a time, each screen is rendered and captured, and the screens are stitched into one PNG. The scroll position is restored afterwards. Cannot be combined with `selector` (400, code `invalid_request`). |
 
 ```bash
 curl -o page.png http://localhost:3000/.runtime/screenshot
 curl -o top.png 'http://localhost:3000/.runtime/screenshot?selector=%23sb-top'
+curl -o full.png 'http://localhost:3000/.runtime/screenshot?fullPage=1'
 ```
+
+A full-page image stops at about 12000 CSS pixels. When the page is longer, the response carries `X-Screenshot-Truncated: true`. A long page can take several seconds to capture, so raise `X-Timeout` if needed.
 
 Navigate first with the Lua endpoint, e.g. `editor.navigate("Projects")`. On SilverBullet Desktop, the runtime is the space's visible editor window: the screenshot shows what the user sees, and fails while that window is minimized or hidden.
 
@@ -121,6 +125,29 @@ The Lua endpoints (`/.runtime/lua` and `/.runtime/lua_script`) and `/.runtime/sc
 curl -H "X-Timeout: 60" \
      -d 'some_long_running_expression()' \
      http://localhost:3000/.runtime/lua
+```
+
+# Results
+The `result` of `/.runtime/lua` and `/.runtime/lua_script` (and the output of `sb eval`, `sb script` and `sb query`) is always plain JSON:
+
+| Lua / JS value | JSON |
+|---|---|
+| `nil`, a missing query column | `null`. Keys are kept, so a row lacking `rating` reads `"rating": null`. |
+| `-0` | `0` |
+| `NaN`, `Infinity`, `-Infinity` | the strings `"NaN"`, `"Infinity"`, `"-Infinity"` |
+| Big integer | a number if it is a safe integer, else a decimal string |
+| Table with only keys `1..n` | array |
+| Any other table (including mixed tables) | object; sequence keys become `"1"`, `"2"`, … |
+| Date | ISO 8601 string |
+| Map / Set | object / array |
+| Query collection, such as `index.pages("book")` or `index.tags()` | array of all its rows, also when nested in a table. At most 1000 rows: a larger collection ends with one extra string, `"<truncated: N more rows; use sb query with where/limit>"`. |
+| Promise | awaited, also when nested |
+
+Values with no JSON form appear as string markers: `"<function>"`, `"<symbol>"`, `"<binary: N bytes>"`, `"<cycle>"` for a self-reference, `"<max depth>"` beyond 200 levels, `"<error: message>"`, and `"<ClassName>"` for other class instances.
+
+```bash
+curl -d 'return {f = print, n = 0/0, d = Date(0)}' http://localhost:3000/.runtime/lua_script
+# => {"result":{"f":"<function>","n":"NaN","d":"1970-01-01T00:00:00.000Z"}}
 ```
 
 # Error handling

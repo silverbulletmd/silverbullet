@@ -1,4 +1,5 @@
-//! `sb screenshot` — save a PNG of the runtime client's viewport or one element.
+//! `sb screenshot` — save a PNG of the runtime client's viewport, one element,
+//! or (with --full-page) the whole page.
 
 use crate::conn::SpaceConnection;
 use crate::output::OutputMode;
@@ -44,6 +45,23 @@ pub fn run(
     out: &mut dyn std::io::Write,
 ) -> Result<(), String> {
     let png = conn.screenshot(selector)?;
+    write_result(&png, file, mode, out)
+}
+
+pub const TRUNCATED_NOTE: &str =
+    "note: the page is longer than a full-page screenshot can hold; the image stops before the end of the page";
+
+/// `sb screenshot --full-page`: the whole page, stitched by the server.
+pub fn run_full_page(
+    conn: &SpaceConnection,
+    file: &str,
+    mode: OutputMode,
+    out: &mut dyn std::io::Write,
+) -> Result<(), String> {
+    let (png, truncated) = conn.screenshot_full_page()?;
+    if truncated {
+        eprintln!("{TRUNCATED_NOTE}");
+    }
     write_result(&png, file, mode, out)
 }
 

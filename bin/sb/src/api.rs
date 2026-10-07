@@ -135,24 +135,40 @@ impl SpaceConnection {
 
     /// Capture a PNG via `GET /.runtime/screenshot`.
     pub fn screenshot(&self, selector: Option<&str>) -> Result<Vec<u8>, String> {
+        let query: Vec<(&str, &str)> = selector.map(|s| ("selector", s)).into_iter().collect();
+        self.screenshot_request(&query).map(|(png, _)| png)
+    }
+
+    /// Capture the whole current page as one stitched PNG via
+    /// `GET /.runtime/screenshot?fullPage=1`. The flag is true when the page
+    /// was longer than the server's cap and the image stops early.
+    pub fn screenshot_full_page(&self) -> Result<(Vec<u8>, bool), String> {
+        self.screenshot_request(&[("fullPage", "1")])
+    }
+
+    fn screenshot_request(&self, query: &[(&str, &str)]) -> Result<(Vec<u8>, bool), String> {
         let url = format!("{}/.runtime/screenshot", self.base_url);
         let mut req = self
             .client
             .get(&url)
             .header("X-Timeout", self.timeout.as_secs().to_string());
-        if let Some(selector) = selector {
-            req = req.query(&[("selector", selector)]);
+        if !query.is_empty() {
+            req = req.query(query);
         }
         let resp = self
             .apply_auth(req)
             .send()
             .map_err(|e| format!("request failed: {e}"))?;
         let status = resp.status();
+        let truncated = resp
+            .headers()
+            .get("X-Screenshot-Truncated")
+            .is_some_and(|v| v.as_bytes() == b"true");
         let bytes = read_response(resp, MAX_SCREENSHOT_RESPONSE_BYTES, "screenshot response")?;
         if !status.is_success() {
             return Err(runtime_error(status, &bytes));
         }
-        Ok(bytes)
+        Ok((bytes, truncated))
     }
 
     /// GET `/.config` and return the parsed JSON body on 200.
@@ -455,6 +471,38 @@ mod tests {
         assert_eq!(bytes, b"PNGDATA");
         assert_eq!(req.path, "/.runtime/screenshot?selector=%23sb-top");
         assert_eq!(req.header("X-Timeout"), Some("30"));
+    }
+
+    #[test]
+    fn full_page_screenshot_sends_flag_and_reads_truncation() {
+        let response = concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: image/png\r\n",
+            "X-Screenshot-Truncated: true\r\n",
+            "Content-Length: 7\r\n",
+            "Connection: close\r\n\r\n",
+            "PNGDATA"
+        );
+        let (base, handle) = mock_server(response);
+        let (bytes, truncated) = bearer_conn(&base, "tok").screenshot_full_page().unwrap();
+        let req = handle.join().unwrap();
+        assert_eq!(bytes, b"PNGDATA");
+        assert!(truncated);
+        assert_eq!(req.path, "/.runtime/screenshot?fullPage=1");
+    }
+
+    #[test]
+    fn plain_screenshot_sends_no_query() {
+        let response = concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: image/png\r\n",
+            "Content-Length: 7\r\n",
+            "Connection: close\r\n\r\n",
+            "PNGDATA"
+        );
+        let (base, handle) = mock_server(response);
+        bearer_conn(&base, "tok").screenshot(None).unwrap();
+        assert_eq!(handle.join().unwrap().path, "/.runtime/screenshot");
     }
 
     #[test]

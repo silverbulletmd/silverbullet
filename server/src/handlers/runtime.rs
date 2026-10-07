@@ -167,6 +167,34 @@ pub async fn handle_runtime_logs(
 #[derive(serde::Deserialize, Default)]
 pub struct ScreenshotQuery {
     selector: Option<String>,
+    #[serde(rename = "fullPage")]
+    full_page: Option<String>,
+}
+
+/// `fullPage=1` / `fullPage=true` (an empty or `0`/`false` value is off).
+fn is_truthy(value: Option<&str>) -> bool {
+    matches!(value.map(str::trim), Some("1" | "true" | "yes"))
+}
+
+/// Set on a full-page screenshot that stopped at the size cap before the end
+/// of the page.
+pub const TRUNCATED_HEADER: &str = "X-Screenshot-Truncated";
+
+fn png_response(png: Vec<u8>, truncated: bool) -> Response {
+    let mut response = (
+        [
+            (header::CONTENT_TYPE, "image/png"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
+        png,
+    )
+        .into_response();
+    if truncated {
+        response
+            .headers_mut()
+            .insert(TRUNCATED_HEADER, header::HeaderValue::from_static("true"));
+    }
+    response
 }
 
 pub async fn handle_runtime_screenshot(
@@ -181,23 +209,33 @@ pub async fn handle_runtime_screenshot(
     let runtime = rt.clone();
     let timeout = parse_timeout(&headers);
     let selector = params.selector.filter(|s| !s.trim().is_empty());
+    let full_page = is_truthy(params.full_page.as_deref());
+    if full_page && selector.is_some() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "fullPage and selector cannot be combined",
+                "code": "invalid_request",
+            })),
+        )
+            .into_response();
+    }
     let result = tokio::task::spawn_blocking(move || {
         let selected = runtime.for_actor(&actor)?;
-        selected
-            .as_ref()
-            .unwrap_or(&runtime)
-            .screenshot(selector.as_deref(), timeout)
+        let backend = selected.as_ref().unwrap_or(&runtime);
+        if full_page {
+            backend
+                .screenshot_full_page(timeout)
+                .map(|shot| (shot.png, shot.truncated))
+        } else {
+            backend
+                .screenshot(selector.as_deref(), timeout)
+                .map(|png| (png, false))
+        }
     })
     .await;
     match result {
-        Ok(Ok(png)) => (
-            [
-                (header::CONTENT_TYPE, "image/png"),
-                (header::CACHE_CONTROL, "no-store"),
-            ],
-            png,
-        )
-            .into_response(),
+        Ok(Ok((png, truncated))) => png_response(png, truncated),
         Ok(Err(e)) => runtime_error_response(e),
         Err(join) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -224,6 +262,7 @@ mod tests {
         logs: Vec<LogEntry>,
         calls: Arc<Mutex<Vec<(String, String)>>>,
         shot: Result<Vec<u8>, ShotError>,
+        truncated: bool,
     }
     #[derive(Clone)]
     enum ShotError {
@@ -245,6 +284,7 @@ mod tests {
                 logs: vec![],
                 calls: Arc::new(Mutex::new(vec![])),
                 shot: Ok(b"\x89PNG\r\n\x1a\nrest".to_vec()),
+                truncated: false,
             }
         }
         fn failing(kind: RuntimeErrorKind) -> Self {
@@ -253,6 +293,7 @@ mod tests {
                 logs: vec![],
                 calls: Arc::new(Mutex::new(vec![])),
                 shot: Ok(b"\x89PNG\r\n\x1a\nrest".to_vec()),
+                truncated: false,
             }
         }
         fn err(&self) -> RuntimeError {
@@ -289,6 +330,19 @@ mod tests {
                 ShotError::Missing => RuntimeError::SelectorNotFound("no match".into()),
                 ShotError::Invalid => RuntimeError::InvalidSelector("invalid selector: bad".into()),
                 ShotError::Timeout => RuntimeError::Timeout,
+            })
+        }
+        fn screenshot_full_page(
+            &self,
+            _t: Duration,
+        ) -> Result<crate::runtime::fullpage::FullPageShot, RuntimeError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push(("screenshot_full_page".into(), String::new()));
+            Ok(crate::runtime::fullpage::FullPageShot {
+                png: b"\x89PNG\r\n\x1a\nfull".to_vec(),
+                truncated: self.truncated,
             })
         }
         fn logs(&self, _limit: usize, _since: Option<i64>) -> Vec<LogEntry> {
@@ -522,6 +576,75 @@ mod tests {
             let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
             assert_eq!(v["code"], code);
         }
+    }
+
+    async fn get_full_page(
+        backend: FakeBackend,
+        query: &str,
+    ) -> (StatusCode, Option<String>, Vec<u8>) {
+        let resp = crate::build_router(state_with_runtime(Some(Box::new(backend))))
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/.runtime/screenshot{query}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = resp.status();
+        let truncated = resp
+            .headers()
+            .get(super::TRUNCATED_HEADER)
+            .map(|v| v.to_str().unwrap().to_string());
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec();
+        (status, truncated, bytes)
+    }
+
+    #[tokio::test]
+    async fn full_page_query_calls_the_full_page_capture() {
+        for query in ["?fullPage=1", "?fullPage=true"] {
+            let backend = FakeBackend::returning(serde_json::json!(null));
+            let calls = backend.calls.clone();
+            let (status, truncated, body) = get_full_page(backend, query).await;
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(truncated, None);
+            assert!(body.ends_with(b"full"));
+            assert_eq!(calls.lock().unwrap()[0].0, "screenshot_full_page");
+        }
+    }
+
+    #[tokio::test]
+    async fn full_page_off_values_take_a_plain_screenshot() {
+        for query in ["?fullPage=0", "?fullPage=", "?fullPage=false"] {
+            let backend = FakeBackend::returning(serde_json::json!(null));
+            let calls = backend.calls.clone();
+            let (status, _, _) = get_full_page(backend, query).await;
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(calls.lock().unwrap()[0].0, "screenshot");
+        }
+    }
+
+    #[tokio::test]
+    async fn truncated_full_page_sets_the_header() {
+        let mut backend = FakeBackend::returning(serde_json::json!(null));
+        backend.truncated = true;
+        let (status, truncated, _) = get_full_page(backend, "?fullPage=1").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(truncated.as_deref(), Some("true"));
+    }
+
+    #[tokio::test]
+    async fn full_page_with_selector_is_rejected() {
+        let backend = FakeBackend::returning(serde_json::json!(null));
+        let calls = backend.calls.clone();
+        let (status, _, body) = get_full_page(backend, "?fullPage=1&selector=%23sb-top").await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["code"], "invalid_request");
+        assert!(calls.lock().unwrap().is_empty());
     }
 
     #[tokio::test]

@@ -121,7 +121,12 @@ sb eval "1 + 1"
 
 sb eval "editor.getCurrentPage()"
 # => "index"
+
+sb eval 'system.reboot()'   # pick up edited Space Lua, styles and config
+sb eval 'space.lint("Page")'   # problems on a page; space.lint() checks every page outside Library/
 ```
+
+To check a page without opening it in the editor, call [[API/space#space.lint]]: it runs the editor's linters (frontmatter and data block YAML, `space-lua` syntax, objects checked against tag schemas, anchors) and renders every `${…}` directive and Lua code widget, returning a list of `{page, line, column, severity, message, source}` for the ones that fail. An empty list means no problems. Widgets render with the Space Lua currently loaded, so after editing `space-lua` blocks run `sb eval 'system.reboot()'` first.
 
 ## `script [code]`
 Execute Lua from inline code, `--file`, or stdin when neither is supplied. Inline code and `--file` are mutually exclusive. The older `lua-script [file]` form remains available for compatibility.
@@ -136,6 +141,20 @@ echo 'local x = 40; return x + 2' | sb script
 ## `query <expression>`
 
 Run a SLIQ query with `sb query 'from tags.page select name' --json`. See [[#Exploring your space]] for listing the space's tags and reading the query syntax reference. Requires the Runtime API.
+
+Quote the query in single quotes and use double quotes inside it. If the query itself contains a single quote, pass it through a quoted heredoc:
+
+```bash
+sb query "$(cat <<'EOF'
+from p = index.pages() where p.name == "Bob's Notes" select p.name
+EOF
+)"
+```
+
+Query errors carry hints where the cause is a common mistake. Using `=` where `==` was meant (such as `where p.name = "x"`) gives `hint: use == to compare`. Calling an undefined name inside a query, such as a function that exists nowhere or a misspelled row variable, names it and says what the query binds instead. Errors about nil values name the global, local, field or method involved, and common habits from other languages get a suggestion: a missing string method such as `contains`, `{name: value}` in a table constructor, and SQL operators such as `like`, `in` and `is null`.
+
+## Results
+`eval`, `script`, and `query` return plain JSON (or the other `-o` formats rendered from it). A missing value, such as a query column absent on some rows, is `null` and the key stays: `{"name":"Books/Beta","rating":null}`. A query collection such as `index.pages("book")` returns its rows as an array, capped at 1000 rows; a longer one ends with a `"<truncated: N more rows; use sb query with where/limit>"` entry, so filter it with `sb query` instead. Values with no JSON form appear as string markers such as `"<function>"`. See [[Runtime API#Results]] for the full mapping.
 
 ## `logs`
 Show console logs from the headless browser client.
@@ -152,17 +171,22 @@ sb logs -f           # follow (tail) mode
 | `-f, --follow` | Continuously stream new log entries |
 
 ## `screenshot [file]`
-Save a PNG of the runtime client to `file` (default `screenshot.png`), or write it to stdout with `-`. With `--json`, prints the path and image dimensions. Requires the Runtime API.
+Save a PNG of the runtime client to `file` (default `screenshot.png`), or write it to stdout with `-`. With `--json`, prints the path and image dimensions. Requires the Runtime API. Navigate first, then wait with [[API/editor#editor.awaitRender]] until widgets, `${…}` expressions and queries have finished rendering.
 
 ```bash
 sb eval 'editor.navigate("Projects")'
+sb eval 'editor.awaitRender()'
 sb screenshot projects.png
+sb screenshot projects-full.png --full-page
 sb screenshot widget.png --selector '#sb-main .sb-page-slot-page-top'
 ```
 
 | Flag | Description |
 |---|---|
 | `--selector <css>` | Capture the first matching element instead of the viewport |
+| `--full-page` | Capture the whole page, not just the first screen. Cannot be combined with `--selector` |
+
+A plain screenshot only shows what fits in the window (800×600 for the headless client). `--full-page` scrolls the editor from the top one screen at a time, waits for the lines, widgets and queries scrolled into view to render, and stitches the screens into one PNG with the top bar once at the top. Afterwards the editor is scrolled back to where it was. Pages taller than about 12000 pixels are cut off there, and `sb` prints a note on stderr.
 
 On SilverBullet Desktop this captures the space's visible editor window.
 
@@ -188,6 +212,12 @@ sb eval 'spacelua.listFunctions()'                       # documented global fun
 sb eval 'spacelua.listFunctions("editor")'               # functions in a namespace
 sb eval 'spacelua.describe("editor.getText")'            # one function's signature and docs
 sb eval 'spacelua.renderApiDocumentation("index")' --text  # Markdown, printed as is
+sb eval 'system.reboot()'                                # pick up edited Space Lua, styles and config
+```
+
+Checking pages:
+```bash
+sb eval 'space.lint("Page")'                             # problems on a page (YAML, Lua, failing widgets); space.lint() for all
 ```
 
 Commands:
