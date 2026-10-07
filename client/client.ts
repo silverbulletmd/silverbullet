@@ -33,6 +33,10 @@ import type {
 import type { SyncState } from "@silverbulletmd/silverbullet/type/revisions";
 import { keyboardHint } from "../plug-api/lib/shortcut.ts";
 import type { StyleObject } from "../plugs/index/space_style.ts";
+import {
+  awaitRenderSettled,
+  renderBusySelector,
+} from "./codemirror/render_settle.ts";
 import { isSafeUrl } from "./markdown_renderer/sanitize_html.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
@@ -83,12 +87,8 @@ import {
   parseBlock as parseLua,
 } from "./space_lua/parse.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
-import {
-  LuaEnv,
-  LuaRuntimeError,
-  LuaStackFrame,
-  luaValueToJS,
-} from "./space_lua/runtime.ts";
+import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
+import { toRuntimeJSON } from "./space_lua/runtime_json.ts";
 import { resolveASTReference } from "./space_lua.ts";
 import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
@@ -140,6 +140,8 @@ export type SBRuntime = {
   ready?: boolean;
   evalLua?: (expr: string) => Promise<unknown>;
   evalLuaScript?: (script: string) => Promise<unknown>;
+  /** Resolves once the current page has finished rendering (see editor.awaitRender). */
+  awaitRender?: (timeoutMs: number) => Promise<boolean>;
 };
 
 declare global {
@@ -468,13 +470,13 @@ export class Client {
       "editor",
       this.bootConfig.disableServiceWorker || !globalThis.isSecureContext
         ? (isOnline) => {
-            if (this.ui.viewState.isOnline !== isOnline) {
-              this.ui.viewDispatch({
-                type: "online-status-change",
-                isOnline,
-              });
-            }
+          if (this.ui.viewState.isOnline !== isOnline) {
+            this.ui.viewDispatch({
+              type: "online-status-change",
+              isOnline,
+            });
           }
+        }
         : undefined,
     );
 
@@ -803,6 +805,12 @@ export class Client {
    * and signal readiness once the full index is complete.
    */
   private initHeadlessRuntime() {
+    globalThis.sbRuntime.awaitRender = (timeoutMs: number) =>
+      awaitRenderSettled({
+        ready: this.widgetsReady,
+        isBusy: () => !!this.editorView.dom.querySelector(renderBusySelector),
+        timeoutMs,
+      });
     if (!globalThis.sbRuntime.headless) {
       return;
     }
@@ -818,13 +826,13 @@ export class Client {
       const result = await evalStatement(ast, scriptEnv, sf);
       const returnValue =
         result &&
-        typeof result === "object" &&
-        "ctrl" in result &&
-        result.ctrl === "return" &&
-        Array.isArray(result.values)
+          typeof result === "object" &&
+          "ctrl" in result &&
+          result.ctrl === "return" &&
+          Array.isArray(result.values)
           ? result.values[0]
           : result;
-      return (await Promise.resolve(luaValueToJS(returnValue, sf))) ?? null;
+      return toRuntimeJSON(returnValue, { env: scriptEnv, sf });
     };
 
     globalThis.sbRuntime.evalLua = (expr: string) =>

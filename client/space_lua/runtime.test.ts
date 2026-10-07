@@ -6,8 +6,11 @@ import {
   LuaMultiRes,
   LuaNativeJSFunction,
   LuaStackFrame,
+  LuaTable,
   luaToString,
+  luaValueToJS,
 } from "./runtime.ts";
+import { SLIQ_NULL } from "./sliq_null.ts";
 
 test("Test Lua Rutime", async () => {
   expect(new LuaMultiRes([]).flatten().values).toEqual([]);
@@ -69,4 +72,22 @@ test("Lua functions accept documented definition objects", () => {
     name: "demo.echo",
     description: "Returns the provided value.",
   });
+});
+
+test("luaValueToJS turns the SQL null sentinel into null, keeping the key", () => {
+  const sf = LuaStackFrame.lostFrame;
+  expect(luaValueToJS(SLIQ_NULL, sf)).toBeNull();
+  const row = luaValueToJS(
+    new LuaTable({ name: "Books/Beta", rating: SLIQ_NULL }),
+    sf,
+  );
+  expect(row).toEqual({ name: "Books/Beta", rating: null });
+  expect(Object.keys(row)).toEqual(["name", "rating"]);
+  // Rows reach plugs through postMessage, which structured-clones them.
+  expect(() => structuredClone(row)).not.toThrow();
+  expect(luaValueToJS(new LuaTable([1, SLIQ_NULL, 3]), sf)).toEqual([
+    1,
+    null,
+    3,
+  ]);
 });

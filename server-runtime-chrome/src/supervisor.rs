@@ -64,6 +64,18 @@ fn cdp_error_to_runtime(e: CdpError) -> RuntimeError {
                 .and_then(|o| o.description.as_deref());
             RuntimeError::Eval(clean_exception_message(&details.text, description))
         }
+        // The page ran fine but CDP could not serialize its result by value
+        // (e.g. a symbol or a cyclic object): a problem with the user's value,
+        // not with the browser connection.
+        CdpError::Chrome(err)
+            if err.message == "Object couldn't be returned by value"
+                || err.message == "Object reference chain is too long" =>
+        {
+            RuntimeError::Eval(format!(
+                "result contains a value that can't be returned ({})",
+                err.message
+            ))
+        }
         other => RuntimeError::Transport(other.to_string()),
     }
 }
@@ -737,5 +749,42 @@ mod tests {
     #[test]
     fn clean_exception_message_never_empty() {
         assert_eq!(clean_exception_message("", None), "client evaluation error");
+    }
+    fn chrome_error(code: i64, message: &str) -> CdpError {
+        CdpError::Chrome(chromiumoxide::types::Error {
+            code,
+            message: message.to_string(),
+        })
+    }
+
+    #[test]
+    fn unreturnable_result_is_an_eval_error_not_a_transport_error() {
+        for message in [
+            "Object couldn't be returned by value",
+            "Object reference chain is too long",
+        ] {
+            match cdp_error_to_runtime(chrome_error(-32000, message)) {
+                RuntimeError::Eval(msg) => {
+                    assert!(
+                        msg.starts_with("result contains a value that can't be returned"),
+                        "{msg}"
+                    );
+                    assert!(msg.contains(message), "{msg}");
+                }
+                other => panic!("expected Eval for {message:?}, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn other_cdp_errors_stay_transport_errors() {
+        assert!(matches!(
+            cdp_error_to_runtime(chrome_error(-32000, "Target closed")),
+            RuntimeError::Transport(_)
+        ));
+        assert!(matches!(
+            cdp_error_to_runtime(CdpError::NoResponse),
+            RuntimeError::Transport(_)
+        ));
     }
 }
