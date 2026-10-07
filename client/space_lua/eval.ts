@@ -61,6 +61,13 @@ import {
 } from "./numeric.ts";
 import { isPromise, rpAll, rpThen } from "./rp.ts";
 import {
+  missingMethodHint,
+  nilPrefixError,
+  nonNilForIndex,
+  withHint,
+  withQueryHint,
+} from "./error_hints.ts";
+import {
   asAssignment,
   asBinary,
   asBlock,
@@ -1172,7 +1179,12 @@ export function evalExpression(
 
             return (collection as any)
               .query(query, env, sf, getClientConfig())
-              .then(jsToLuaValue);
+              .then(jsToLuaValue, (err: unknown) => {
+                throw withQueryHint(
+                  err,
+                  fromSource.sources.map((s) => s.name),
+                );
+              });
           })();
         }
 
@@ -1266,7 +1278,12 @@ export function evalExpression(
 
             return (collection as any)
               .query(query, env, sf, getClientConfig())
-              .then(jsToLuaValue);
+              .then(jsToLuaValue, (err: unknown) => {
+                throw withQueryHint(
+                  err,
+                  objectVariable ? [objectVariable] : [],
+                );
+              });
           },
         );
       }
@@ -1312,29 +1329,32 @@ function evalPrefixExpression(
       const objV = evalPrefixExpression(ta.object, env, sf);
       const keyV = evalExpression(ta.key, env, sf);
 
+      const get = (obj: LuaValue, key: LuaValue) =>
+        luaGet(
+          nonNilForIndex(singleResult(obj), ta.object, env, sf, ta.ctx),
+          singleResult(key),
+          ta.ctx,
+          sf,
+        );
       if (!isPromise(objV) && !isPromise(keyV)) {
-        const table = singleResult(objV);
-        const key = singleResult(keyV);
-        return luaGet(table, key, ta.ctx, sf);
+        return get(objV, keyV);
       }
 
-      return rpThen(objV, (obj) =>
-        rpThen(keyV, (key) =>
-          luaGet(singleResult(obj), singleResult(key), ta.ctx, sf),
-        ),
-      );
+      return rpThen(objV, (obj) => rpThen(keyV, (key) => get(obj, key)));
     }
 
     case "PropertyAccess": {
       const pa = asPropertyAccess(e);
       // Sync-first: evaluate object; avoid Promise when object is sync.
       const objV = evalPrefixExpression(pa.object, env, sf);
-      if (!isPromise(objV)) {
-        return luaGet(singleResult(objV), pa.property, pa.ctx, sf);
-      }
-      return rpThen(objV, (obj) =>
-        luaGet(singleResult(obj), pa.property, pa.ctx, sf),
-      );
+      const get = (obj: LuaValue) =>
+        luaGet(
+          nonNilForIndex(singleResult(obj), pa.object, env, sf, pa.ctx),
+          pa.property,
+          pa.ctx,
+          sf,
+        );
+      return isPromise(objV) ? rpThen(objV, get) : get(objV);
     }
 
     case "FunctionCall": {
@@ -1350,53 +1370,25 @@ function evalPrefixExpression(
       }
 
       const prefixValue = evalPrefixExpression(fc.prefix, env, sf);
-      if (prefixValue === null || prefixValue === undefined) {
-        const nilMsg =
-          fc.prefix.type === "Variable"
-            ? `attempt to call a nil value (global '${
-                asVariable(fc.prefix).name
-              }')`
-            : `attempt to call a nil value`;
-        throw new LuaRuntimeError(nilMsg, sf.withCtx(fc.prefix.ctx));
-      }
 
-      if (!fc.name && !isPromise(prefixValue)) {
-        const argsVal = evalExpressions(fc.args, env, sf);
-        if (!isPromise(argsVal)) {
-          return luaCall(prefixValue, argsVal as LuaValue[], fc.ctx, sf);
-        }
-        return (argsVal as Promise<LuaValue[]>).then((args) =>
-          luaCall(prefixValue, args, fc.ctx, sf),
-        );
-      }
-
-      const handleFunctionCall = (
-        calleeVal: LuaValue,
+      const callWith = (
+        callee: LuaValue,
         selfArgs: LuaValue[],
       ): LuaValue | Promise<LuaValue> => {
-        if (fc.name) {
-          const self = calleeVal;
-          calleeVal = luaIndexValue(calleeVal, fc.name, sf);
-
-          if (isPromise(calleeVal)) {
-            return (calleeVal as Promise<any>).then((cv) =>
-              handleFunctionCall(cv, [self]),
-            );
-          }
-          selfArgs = [self];
-        }
-
         const argsVal = evalExpressions(fc.args, env, sf);
         if (!isPromise(argsVal)) {
-          const allArgs =
+          return luaCall(
+            callee,
             selfArgs.length > 0
               ? [...selfArgs, ...(argsVal as LuaValue[])]
-              : (argsVal as LuaValue[]);
-          return luaCall(calleeVal, allArgs, fc.ctx, sf);
+              : (argsVal as LuaValue[]),
+            fc.ctx,
+            sf,
+          );
         }
         return (argsVal as Promise<LuaValue[]>).then((args) =>
           luaCall(
-            calleeVal,
+            callee,
             selfArgs.length > 0 ? [...selfArgs, ...args] : args,
             fc.ctx,
             sf,
@@ -1404,12 +1396,43 @@ function evalPrefixExpression(
         );
       };
 
-      if (isPromise(prefixValue)) {
-        return (prefixValue as Promise<any>).then((pv) =>
-          handleFunctionCall(pv, []),
-        );
-      }
-      return handleFunctionCall(prefixValue, []);
+      const callMethod = (self: LuaValue, method: LuaValue) => {
+        if (method === null || method === undefined) {
+          throw new LuaRuntimeError(
+            withHint(
+              `attempt to call a nil value (method '${fc.name}')`,
+              missingMethodHint(self, fc.name!),
+            ),
+            sf.withCtx(fc.ctx),
+          );
+        }
+        return callWith(method, [self]);
+      };
+
+      // Like Lua, `f():g()` and `f()()` use only the first result of `f()`.
+      const handleFunctionCall = (
+        value: LuaValue,
+      ): LuaValue | Promise<LuaValue> => {
+        const pv = singleResult(value);
+        if (pv === null || pv === undefined) {
+          throw nilPrefixError(fc, env, sf);
+        }
+        if (!fc.name) {
+          return callWith(pv, []);
+        }
+        // A plain JS array (e.g. an index row's `tags`) is a Lua table
+        // without a metatable, so it has no methods.
+        const method = Array.isArray(pv)
+          ? null
+          : luaIndexValue(pv, fc.name, sf);
+        return isPromise(method)
+          ? (method as Promise<LuaValue>).then((m) => callMethod(pv, m))
+          : callMethod(pv, method);
+      };
+
+      return isPromise(prefixValue)
+        ? (prefixValue as Promise<LuaValue>).then(handleFunctionCall)
+        : handleFunctionCall(prefixValue);
     }
 
     default: {
@@ -2389,8 +2412,15 @@ export function evalStatement(
       for (let i = 0; i < propNames.length - 1; i++) {
         settable = (settable as any).get(propNames[i]);
         if (!settable) {
+          const fnName = fn.name.colonName
+            ? `${fn.name.propNames.join(".")}:${fn.name.colonName}`
+            : fn.name.propNames.join(".");
+          const missing = propNames.slice(0, i + 1).join(".");
           throw new LuaRuntimeError(
-            `Cannot find property ${propNames[i]}`,
+            withHint(
+              `cannot define function ${fnName}: '${missing}' is ${settable === false ? "false" : "nil"}`,
+              `create the table first (${missing} = ${missing} or {}). Space Lua blocks load in priority order; add "-- priority: N" to the block that creates it if it lives elsewhere`,
+            ),
             sf.withCtx(fn.name.ctx),
           );
         }
