@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
-import { CopyIcon } from "./chrome_icons.tsx";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import type { Client } from "../../../client.ts";
 import { parseHtmlString } from "../../../codemirror/lua_widget.ts";
 import {
@@ -8,8 +7,7 @@ import {
   type WidgetObject,
   widgetBody,
 } from "../../../codemirror/widget_body.ts";
-import type { ContentState } from "../../page_widget_logic.ts";
-import type { ContentResult } from "../../registry.ts";
+import { renderLiteralMarkdown } from "../../../codemirror/widget_markdown.ts";
 import {
   attachWidgetEventHandlers,
   buildResolveTransclusion,
@@ -19,6 +17,9 @@ import { parse } from "../../../markdown_parser/parse_tree.ts";
 import { buildExtendedMarkdownLanguage } from "../../../markdown_parser/parser.ts";
 import { expandMarkdown } from "../../../markdown_renderer/inline.ts";
 import { renderMarkdownToHtml } from "../../../markdown_renderer/markdown_render.ts";
+import type { ContentState } from "../../page_widget_logic.ts";
+import type { ContentResult } from "../../registry.ts";
+import { CopyIcon } from "./chrome_icons.tsx";
 
 /**
  * A *content* view's body: the markdown its `content` function returned,
@@ -126,7 +127,22 @@ export async function renderContentResult(
     case "markdown":
       return {
         markdown: body.markdown,
-        node: await renderContentMarkdown(client, body.markdown, pageName),
+        // evaluate = false: no directives, code widgets or transclusions,
+        // the same as the in-editor widget (lua_widget.ts).
+        node: body.evaluate
+          ? await renderContentMarkdown(client, body.markdown, pageName)
+          : body.markdown.trim()
+            ? parseHtmlString(
+                renderLiteralMarkdown(
+                  body.markdown,
+                  client.ui.viewState.allPages,
+                  {
+                    shortWikiLinks: client.config.get("shortWikiLinks", true),
+                    translateUrls: buildTranslateUrls(client),
+                  },
+                ),
+              )
+            : undefined,
         cssClasses,
         events,
       };

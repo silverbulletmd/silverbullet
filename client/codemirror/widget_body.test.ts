@@ -21,6 +21,16 @@ test("markdown-only widgets render markdown", () => {
     kind: "markdown",
     markdown: "# hi",
     block: true,
+    evaluate: true,
+  });
+});
+
+test("evaluate = false is carried to the markdown body", () => {
+  expect(widgetBody({ markdown: "${x}", evaluate: false })).toEqual({
+    kind: "markdown",
+    markdown: "${x}",
+    block: false,
+    evaluate: false,
   });
 });
 

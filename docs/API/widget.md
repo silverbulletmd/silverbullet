@@ -26,6 +26,16 @@ Can be used as follows:
 
 ${helloWorld("Pete")}
 
+### Showing text without evaluating it
+Markdown widgets evaluate what they render: `${...}` expressions run, and `![[Page]]` pulls in other pages. When a widget shows text written by someone else (an imported note, a form entry, an AI agent's output), pass `evaluate = false`. The text is still rendered as Markdown (formatting, lists, links), but expressions and transclusions stay literal text:
+
+```lua
+widget.markdownBlock(importedText, { evaluate = false })
+widget.new { markdown = importedText, evaluate = false }
+```
+
+For text placed inside HTML, escape it with `string.escapeHtml` instead.
+
 ## DOM widgets
 To render a custom HTML-based widget, use the [[API/dom]] elements passed as an argument to `widget.html`:
 

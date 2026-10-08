@@ -12,6 +12,9 @@ export type WidgetObject = {
   events?: Record<string, (event: EventPayLoad) => void>;
   sandbox?: boolean;
   script?: string;
+  // false renders `markdown` without evaluating it: no Lua directives, custom
+  // syntax or transclusions (for showing user- or agent-written text safely).
+  evaluate?: boolean;
 };
 
 export type WidgetBody =
@@ -22,7 +25,7 @@ export type WidgetBody =
       copyMarkdown?: string;
       block: boolean;
     }
-  | { kind: "markdown"; markdown: string; block: boolean };
+  | { kind: "markdown"; markdown: string; block: boolean; evaluate: boolean };
 
 export function widgetBody(wc: WidgetObject): WidgetBody {
   if (wc.html) {
@@ -38,6 +41,7 @@ export function widgetBody(wc: WidgetObject): WidgetBody {
       kind: "markdown",
       markdown: wc.markdown,
       block: wc.display === "block",
+      evaluate: wc.evaluate !== false,
     };
   }
   return { kind: "empty" };

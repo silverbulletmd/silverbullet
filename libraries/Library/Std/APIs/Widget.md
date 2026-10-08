@@ -33,6 +33,9 @@ local widgetSchema = {
       type = "object",
       additionalProperties = true
     },
+    -- false renders markdown without evaluating it: Lua directives, custom
+    -- syntax and transclusions stay literal (for user- or agent-written text).
+    evaluate = { type = "boolean" },
     -- When true, html + script render inside an isolated sandbox iframe.
     sandbox = { type = "boolean" },
     script = { type = "string" },
@@ -67,16 +70,19 @@ function widget.htmlBlock(html)
 end
 
 -- Convenience function for markdown widgets
-function widget.markdown(markdown)
+-- opts.evaluate = false renders the Markdown without evaluating it.
+function widget.markdown(markdown, opts)
   return widget.new {
-    markdown = markdown
+    markdown = markdown,
+    evaluate = opts and opts.evaluate
   }
 end
 
-function widget.markdownBlock(markdown)
+function widget.markdownBlock(markdown, opts)
   return widget.new {
     markdown = markdown,
-    display = "block"
+    display = "block",
+    evaluate = opts and opts.evaluate
   }
 end
 

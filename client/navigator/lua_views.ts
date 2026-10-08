@@ -1,9 +1,6 @@
+import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { normalizeDescription } from "../../plug-api/ui/description.ts";
 import type { WidgetObject } from "../codemirror/widget_body.ts";
-import { isViewValue } from "./view_value.ts";
-import { expandRefreshTriggers } from "./refresh_triggers.ts";
-import { luaDefinitionRef } from "../space_lua.ts";
-import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
   type ILuaFunction,
@@ -13,18 +10,21 @@ import {
   luaTypeOf,
   luaValueToJS,
 } from "../space_lua/runtime.ts";
+import { luaDefinitionRef } from "../space_lua.ts";
+import { expandRefreshTriggers } from "./refresh_triggers.ts";
 import {
   type ActionMeta,
   ALL_DOCKS,
   type DropdownMeta,
   type DropdownOption,
+  isWindowDock,
   type NavigatorHook,
   type SegmentMeta,
-  type ViewMeta,
-  type TableColumn,
   TABLE_COLUMN_TYPES,
-  isWindowDock,
+  type TableColumn,
+  type ViewMeta,
 } from "./types.ts";
+import { isViewValue } from "./view_value.ts";
 
 export const RESERVED_PICK_PREFIX = "__pick:";
 
@@ -436,10 +436,13 @@ export function contentResult(value: unknown): ContentValue {
     if (widget.sandbox) {
       throw new Error("navigator: content cannot return a sandboxed widget");
     }
+    // A markdown-only widget collapses to plain markdown, unless it asks not
+    // to be evaluated: then the renderer must see the flag.
     if (
       widget.html === undefined &&
       widget.cssClasses === undefined &&
-      widget.events === undefined
+      widget.events === undefined &&
+      widget.evaluate !== false
     ) {
       if (typeof widget.markdown === "string") {
         return { markdown: widget.markdown };

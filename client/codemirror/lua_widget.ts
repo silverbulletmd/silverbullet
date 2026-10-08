@@ -1,6 +1,9 @@
 import { WidgetType } from "@codemirror/view";
 import { type WidgetObject, widgetBody } from "./widget_body.ts";
+import { renderLiteralMarkdown } from "./widget_markdown.ts";
+
 export type { EventPayLoad } from "./widget_body.ts";
+
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   type ParseTree,
@@ -13,6 +16,8 @@ import { parse } from "../markdown_parser/parse_tree.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
+import { mountInlineView } from "../navigator/ui/components/inline_view.tsx";
+import { isViewValue, type ViewValue } from "../navigator/view_value.ts";
 import {
   classifyResult,
   isBlockMarkdown,
@@ -22,8 +27,6 @@ import {
 } from "../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
 import { trackRender } from "./render_settle.ts";
-import { isViewValue, type ViewValue } from "../navigator/view_value.ts";
-import { mountInlineView } from "../navigator/ui/components/inline_view.tsx";
 import {
   attachWidgetEventHandlers,
   buildResolveTransclusion,
@@ -318,7 +321,26 @@ export class LuaWidget extends WidgetType {
         ? " sb-lua-directive-block"
         : " sb-lua-directive-inline";
     }
-    if (body.kind === "markdown") {
+    if (body.kind === "markdown" && !body.evaluate) {
+      // evaluate = false: render the text as Markdown without running or
+      // resolving anything in it (directives, custom syntax, transclusions).
+      const trimmedMarkdown = body.markdown.trim();
+      if (!copyContent) copyContent = trimmedMarkdown;
+      block = (wc._isWidget && body.block) || isBlockMarkdown(trimmedMarkdown);
+      div.className += block
+        ? " sb-lua-directive-block"
+        : " sb-lua-directive-inline";
+      html = parseHtmlString(
+        renderLiteralMarkdown(
+          trimmedMarkdown,
+          this.opts.client.ui.viewState.allPages,
+          {
+            shortWikiLinks: this.opts.client.config.get("shortWikiLinks", true),
+            translateUrls: buildTranslateUrls(this.opts.client),
+          },
+        ),
+      );
+    } else if (body.kind === "markdown") {
       const syntaxExtensions = this.syntaxExtensions;
       let mdTree = parse(
         buildExtendedMarkdownLanguage(syntaxExtensions),
