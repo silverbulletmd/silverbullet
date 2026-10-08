@@ -6,9 +6,12 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chromiumoxide::browser::{Browser, BrowserConfig};
 use chromiumoxide::cdp::browser_protocol::network::{CookieParam, CookieSameSite};
-use chromiumoxide::cdp::browser_protocol::page::{CaptureScreenshotFormat, Viewport};
+use chromiumoxide::cdp::browser_protocol::page::{
+    AddScriptToEvaluateOnNewDocumentParams, CaptureScreenshotFormat, EventFrameNavigated,
+    Viewport,
+};
 use chromiumoxide::cdp::js_protocol::runtime::{
-    ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled,
+    ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled, ExecutionContextId,
 };
 use chromiumoxide::error::CdpError;
 use chromiumoxide::page::{Page, ScreenshotParams};
@@ -19,18 +22,55 @@ use tokio::sync::{Mutex, Notify};
 
 use crate::config::{ChromeConfig, SpacePage};
 
-/// Evaluate a raw JS expression in the page with await-promise +
-/// return-by-value semantics, returning its JSON value (`Null` when the
-/// expression produced no value).
-pub(crate) async fn eval_on_page(page: &Page, js: &str) -> Result<Value, RuntimeError> {
+/// Evaluate a JS expression against the client's runtime bridge with
+/// await-promise + return-by-value semantics, returning its JSON value (`Null`
+/// when the expression produced no value).
+///
+/// `Ok(None)` means the expression never ran: the bridge is not up (the client
+/// is still booting, e.g. after reloading itself), or the document has been
+/// replaced. Retrying is safe then. The expression is pinned to the execution
+/// context the readiness check passed in, so a reload between check and call
+/// makes Chrome reject the call rather than run it on a bridgeless page. A
+/// document replaced *while* the expression runs is an error, as it may have
+/// had effects.
+pub(crate) async fn eval_on_bridge(page: &Page, js: &str) -> Result<Option<Value>, RuntimeError> {
+    let Some(context) = page.execution_context().await.map_err(cdp_error_to_runtime)? else {
+        return Ok(None);
+    };
+    match evaluate_in(page, context, READY_JS, false).await {
+        Ok(Value::Bool(true)) => {}
+        Ok(_) => return Ok(None),
+        Err(e) if is_context_gone(&e) => return Ok(None),
+        Err(e) => return Err(cdp_error_to_runtime(e)),
+    }
+    match evaluate_in(page, context, js, true).await {
+        Ok(value) => Ok(Some(value)),
+        Err(e) if is_context_gone(&e) => Ok(None),
+        Err(e) => Err(cdp_error_to_runtime(e)),
+    }
+}
+
+async fn evaluate_in(
+    page: &Page,
+    context: ExecutionContextId,
+    js: &str,
+    await_promise: bool,
+) -> Result<Value, CdpError> {
     let params = EvaluateParams::builder()
         .expression(js)
-        .await_promise(true)
+        .context_id(context)
+        .await_promise(await_promise)
         .return_by_value(true)
         .build()
-        .map_err(RuntimeError::Transport)?;
-    let result = page.evaluate(params).await.map_err(cdp_error_to_runtime)?;
+        .map_err(CdpError::msg)?;
+    let result = page.evaluate(params).await?;
     Ok(result.value().cloned().unwrap_or(Value::Null))
+}
+
+/// Chrome's answer for a context whose document has been replaced; the
+/// expression was never run.
+fn is_context_gone(e: &CdpError) -> bool {
+    matches!(e, CdpError::Chrome(err) if err.message == "Cannot find context with specified id")
 }
 
 pub(crate) async fn capture_on_page(
@@ -84,17 +124,22 @@ fn cdp_error_to_runtime(e: CdpError) -> RuntimeError {
 /// `"Uncaught (in promise) Error: attempt to call a nil value"`), strips the
 /// `Uncaught …` framing and a leading `Error:` label so the underlying message
 /// stands alone, and drops any JS stack (the full detail still reaches the
-/// `runtime_console` log). Falls back to the object `description`'s first line.
+/// `runtime_console` log). Falls back to the object `description`'s first line
+/// when `text` is nothing but framing: a synchronous throw reports bare
+/// `"Uncaught"` there, with the actual message only in `description`.
 fn clean_exception_message(text: &str, description: Option<&str>) -> String {
     let first_line = |s: &str| s.lines().next().unwrap_or("").trim().to_string();
-    let mut msg = first_line(text);
-    if msg.is_empty() {
-        msg = description.map(first_line).unwrap_or_default();
-    }
-    for prefix in ["Uncaught (in promise) ", "Uncaught "] {
-        if let Some(rest) = msg.strip_prefix(prefix) {
-            msg = rest.to_string();
+    let strip_framing = |mut msg: String| {
+        for prefix in ["Uncaught (in promise)", "Uncaught"] {
+            if let Some(rest) = msg.strip_prefix(prefix) {
+                msg = rest.trim_start().to_string();
+            }
         }
+        msg
+    };
+    let mut msg = strip_framing(first_line(text));
+    if msg.is_empty() {
+        msg = strip_framing(description.map(first_line).unwrap_or_default());
     }
     if let Some(rest) = msg.strip_prefix("Error: ") {
         msg = rest.to_string();
@@ -292,6 +337,12 @@ impl<P: ClosablePage> Drop for PageCloseGuard<P> {
     }
 }
 
+/// Runs before any page script in every document the runtime page loads.
+/// `?headless=1` only reaches the first boot — the client strips the query
+/// string — so without this a reload (`editor.reloadUI()`, e.g. Toggle Dark
+/// Mode) would boot a regular client that never exposes the runtime bridge.
+const HEADLESS_INIT_JS: &str = "(globalThis.sbRuntime ??= {}).headless = true;";
+
 /// Open and initialize the space's page, publishing it to `live` when ready.
 /// PageCloseGuard closes it on errors or cancellation during initialization.
 /// Cancellation inside new_page itself can still orphan a browser-side target
@@ -303,6 +354,7 @@ async fn launch_page(
     live: &Arc<Mutex<Option<Page>>>,
     ready: &Arc<AtomicBool>,
     logs: &LogBuffer,
+    navigated: &Arc<Notify>,
 ) -> Result<(), String> {
     let mut guard = PageCloseGuard::new(
         browser
@@ -322,6 +374,13 @@ async fn launch_page(
     attach_console_capture(page, logs, log_console)
         .await
         .map_err(|e| format!("console capture: {e}"))?;
+
+    page.evaluate_on_new_document(AddScriptToEvaluateOnNewDocumentParams::new(HEADLESS_INIT_JS))
+        .await
+        .map_err(|e| format!("headless init script: {e}"))?;
+    attach_navigation_watch(page, ready, navigated)
+        .await
+        .map_err(|e| format!("navigation listener: {e}"))?;
 
     page.goto(page_cfg.page_url().as_str())
         .await
@@ -392,6 +451,34 @@ async fn attach_console_capture(
     Ok(())
 }
 
+/// A main-frame navigation (the client reloading itself) replaces the document
+/// and with it the runtime bridge: mark the runtime not ready at once, so calls
+/// wait instead of hitting the fresh page before it has booted, and wake the
+/// supervisor to wait for the new client's readiness.
+async fn attach_navigation_watch(
+    page: &Page,
+    ready: &Arc<AtomicBool>,
+    navigated: &Arc<Notify>,
+) -> Result<(), String> {
+    let mut events = page
+        .event_listener::<EventFrameNavigated>()
+        .await
+        .map_err(|e| e.to_string())?;
+    let ready = ready.clone();
+    let navigated = navigated.clone();
+    tokio::spawn(async move {
+        while let Some(ev) = events.next().await {
+            if ev.frame.parent_id.is_none() {
+                ready.store(false, Ordering::Relaxed);
+                navigated.notify_one();
+            }
+        }
+    });
+    Ok(())
+}
+
+const READY_JS: &str = "!!(globalThis.sbRuntime && globalThis.sbRuntime.ready)";
+
 /// Poll `globalThis.sbRuntime.ready` every 500ms until it is truthy, giving up
 /// after 60s.
 async fn wait_for_client_ready(page: &Page) -> Result<(), String> {
@@ -399,12 +486,7 @@ async fn wait_for_client_ready(page: &Page) -> Result<(), String> {
     const POLL_INTERVAL: Duration = Duration::from_millis(500);
     let deadline = tokio::time::Instant::now() + READY_TIMEOUT;
     loop {
-        match eval_sync(
-            page,
-            "!!(globalThis.sbRuntime && globalThis.sbRuntime.ready)",
-        )
-        .await
-        {
+        match eval_sync(page, READY_JS).await {
             Ok(Value::Bool(true)) => return Ok(()),
             Ok(_) => {}
             Err(e) => {
@@ -422,18 +504,29 @@ async fn wait_for_client_ready(page: &Page) -> Result<(), String> {
     }
 }
 
-/// Is this space's page still alive? A trivial eval that errors — or that never
-/// answers — means the page (or the whole browser) is gone.
-async fn page_is_alive(live: &Arc<Mutex<Option<Page>>>) -> bool {
+enum PageState {
+    /// The client answers and its runtime bridge is up.
+    Ready,
+    /// The page answers but its client is (re)booting, e.g. after reloading
+    /// itself; the page is returned so the supervisor can await readiness.
+    Booting(Page),
+    /// No page, or one that errors or never answers: restart it.
+    Dead,
+}
+
+/// Probe this space's page. An eval that errors — or that never answers —
+/// means the page (or the whole browser) is gone.
+async fn probe_page(live: &Arc<Mutex<Option<Page>>>) -> PageState {
     let guard = live.lock().await;
-    match guard.as_ref() {
-        None => false,
-        // A timed-out probe reports *not* alive, so the supervisor takes the
-        // restart path rather than waiting on a page that will never answer.
-        Some(page) => matches!(
-            tokio::time::timeout(PROBE_TIMEOUT, eval_sync(page, "1")).await,
-            Ok(Ok(_))
-        ),
+    let Some(page) = guard.as_ref() else {
+        return PageState::Dead;
+    };
+    // A timed-out probe reports dead, so the supervisor takes the restart
+    // path rather than waiting on a page that will never answer.
+    match tokio::time::timeout(PROBE_TIMEOUT, eval_sync(page, READY_JS)).await {
+        Ok(Ok(Value::Bool(true))) => PageState::Ready,
+        Ok(Ok(_)) => PageState::Booting(page.clone()),
+        _ => PageState::Dead,
     }
 }
 
@@ -456,12 +549,41 @@ pub(crate) async fn supervise_space(
 
     trigger.notified().await;
 
+    let navigated = Arc::new(Notify::new());
     let mut backoff = BACKOFF_FLOOR;
     let mut has_launched = false;
     loop {
-        if page_is_alive(&live).await {
-            tokio::time::sleep(LIVENESS_INTERVAL).await;
-            continue;
+        match probe_page(&live).await {
+            PageState::Ready => {
+                // Also restores readiness after a navigation event that turned
+                // out not to replace the client (e.g. a same-document one).
+                ready.store(true, Ordering::Relaxed);
+                tokio::select! {
+                    _ = tokio::time::sleep(LIVENESS_INTERVAL) => {}
+                    _ = navigated.notified() => {}
+                }
+                continue;
+            }
+            PageState::Booting(page) => {
+                // The client reloaded itself: calls wait on `ready` until the
+                // new client has exposed the bridge again.
+                ready.store(false, Ordering::Relaxed);
+                match wait_for_client_ready(&page).await {
+                    Ok(()) => {
+                        ready.store(true, Ordering::Relaxed);
+                        tracing::info!(
+                            "headless client for {} reloaded; runtime ready again",
+                            page_cfg.server_url
+                        );
+                        continue;
+                    }
+                    Err(e) => tracing::warn!(
+                        "headless client for {} did not come back after reloading: {e}",
+                        page_cfg.server_url
+                    ),
+                }
+            }
+            PageState::Dead => {}
         }
 
         if has_launched {
@@ -482,6 +604,7 @@ pub(crate) async fn supervise_space(
                     &live,
                     &ready,
                     &logs,
+                    &navigated,
                 )
                 .await;
                 let dead = result.is_err() && browser_is_dead(&browser).await;
@@ -743,6 +866,21 @@ mod tests {
         assert_eq!(
             clean_exception_message("", Some("Error: from description\nstack")),
             "from description"
+        );
+    }
+
+    #[test]
+    fn clean_exception_message_uses_description_for_bare_uncaught() {
+        assert_eq!(
+            clean_exception_message(
+                "Uncaught",
+                Some("ReferenceError: sbRuntime is not defined\n    at <anonymous>:1:1"),
+            ),
+            "ReferenceError: sbRuntime is not defined"
+        );
+        assert_eq!(
+            clean_exception_message("Uncaught (in promise)", Some("Error: boom\nstack")),
+            "boom"
         );
     }
 

@@ -273,6 +273,82 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
     server.finish(&chrome_data);
 }
 
+/// The client can reload its own UI (`editor.reloadUI()`, e.g. via Toggle Dark
+/// Mode). The reloaded page lost the `?headless` query the first boot saw, and
+/// the supervisor used to keep reporting ready, so every later call failed with
+/// a bare "Uncaught" until the server restarted.
+#[test]
+fn runtime_api_survives_the_client_reloading_its_ui() {
+    let Some(chrome) = test_chrome_or_skip("runtime_reload_e2e") else {
+        return;
+    };
+
+    let space = tempfile::tempdir().unwrap();
+    std::fs::write(space.path().join("index.md"), "hello\n").unwrap();
+    let chrome_data = space.path().join(".chrome-data");
+    let port = free_port();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(space.path())
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .arg("--single")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .env("SB_CHROME_DATA_DIR", &chrome_data);
+    let mut server = Server::spawn(&mut cmd, &chrome);
+    let base = format!("http://127.0.0.1:{port}");
+    let http = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap();
+    wait_until(
+        Duration::from_secs(45),
+        || {
+            http.post(format!("{base}/.runtime/lua"))
+                .body("1")
+                .send()
+                .is_ok_and(|r| r.status().is_success())
+        },
+        &mut server,
+        "runtime never became ready",
+    );
+
+    let lua = |endpoint: &str, code: &str| -> (u16, String) {
+        let resp = http
+            .post(format!("{base}/.runtime/{endpoint}"))
+            .body(code.to_string())
+            .send()
+            .unwrap();
+        (resp.status().as_u16(), resp.text().unwrap_or_default())
+    };
+
+    for reload in [
+        r#"editor.invokeCommand("Editor: Toggle Dark Mode")"#,
+        "editor.reloadUI()",
+    ] {
+        lua("lua_script", reload);
+        // Straight after the reload, without waiting: the call must wait for
+        // the new client rather than fail against a page without a bridge.
+        let (status, body) = lua("lua", "1 + 1");
+        if status != 200 {
+            dump_and_panic(
+                &mut server,
+                &format!("after `{reload}`: /.runtime/lua returned {status}: {body}"),
+            );
+        }
+        let v: serde_json::Value = serde_json::from_str(body.trim()).unwrap();
+        assert_eq!(v, serde_json::json!({ "result": 2 }), "after `{reload}`");
+    }
+
+    // Client errors carry their message, not V8's bare "Uncaught" framing.
+    let (status, body) = lua("lua_script", r#"error("boom")"#);
+    assert_ne!(status, 200);
+    assert!(body.contains("boom"), "{status}: {body}");
+
+    server.finish(&chrome_data);
+}
+
 /// Query results cross CDP by value, which rejects the SLIQ null sentinel and
 /// silently turns functions and Dates into `{}`. Playwright's own serializer
 /// tolerates both, so only a test through the HTTP runtime endpoint catches it.

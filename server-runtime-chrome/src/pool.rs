@@ -13,7 +13,7 @@ use tokio::sync::{watch, Mutex, Notify};
 
 use crate::config::{ChromeConfig, SpacePage};
 use crate::supervisor::{
-    capture_on_page, eval_on_page, launch_browser, supervise_space, OwnedBrowser,
+    capture_on_page, eval_on_bridge, launch_browser, supervise_space, OwnedBrowser,
 };
 
 struct Registration {
@@ -242,7 +242,25 @@ impl SharedChromeTransport {
 
 impl ClientTransport for SharedChromeTransport {
     fn eval_js(&self, js: &str, timeout: Duration) -> Result<Value, RuntimeError> {
-        self.on_live_page(timeout, |page| async move { eval_on_page(&page, js).await })
+        // `ready` can lag a client reloading itself by a moment, so a call can
+        // reach a document whose bridge is gone or not up yet. Such a call
+        // never ran: retry it until the reloaded client's bridge answers.
+        const RETRY_INTERVAL: Duration = Duration::from_millis(100);
+        let bridge_down = std::cell::Cell::new(false);
+        let flag = &bridge_down;
+        let result = self.on_live_page(timeout, |page| async move {
+            loop {
+                if let Some(value) = eval_on_bridge(&page, js).await? {
+                    return Ok(value);
+                }
+                flag.set(true);
+                tokio::time::sleep(RETRY_INTERVAL).await;
+            }
+        });
+        match result {
+            Err(RuntimeError::Timeout) if bridge_down.get() => Err(RuntimeError::NotReady),
+            other => other,
+        }
     }
 
     fn capture(
