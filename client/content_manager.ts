@@ -979,8 +979,16 @@ export class ContentManager {
 
     let adjustedPosition = false;
 
-    if (pageState.scrollTop && pageState.scrollTop > 0) {
-      this.restoreScrollPosition(pageState.scrollTop);
+    // A remembered scrollTop of 0 must still be applied: setState() keeps the
+    // previous page's scroll offset, and the selection restore below skips
+    // the scroll-to-top fallback.
+    if (pageState.scrollTop !== undefined) {
+      if (pageState.scrollTop > 0) {
+        this.restoreScrollPosition(pageState.scrollTop);
+      } else {
+        this.scrollRestoreCleanup?.();
+        this.client.editorView.scrollDOM.scrollTop = 0;
+      }
       adjustedPosition = true;
     }
 
