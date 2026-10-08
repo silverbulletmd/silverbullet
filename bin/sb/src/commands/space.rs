@@ -78,9 +78,9 @@ fn running_port(space: &SpaceConfig) -> Option<u16> {
         return None;
     }
     let host = local::desktop_host(&config::config_dir()).ok()?;
-    let (origin, _) = local::runtime_connection(&host, &space.id).ok()?;
+    let (origin, token) = local::runtime_connection(&host, &space.id).ok()?;
     let port = reqwest::Url::parse(&origin).ok()?.port()?;
-    local::ping_port(port).then_some(port)
+    local::ping_port(port, &token).then_some(port)
 }
 
 /// `sb space ls` — print a table of configured spaces.

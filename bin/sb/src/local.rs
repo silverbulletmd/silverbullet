@@ -164,13 +164,13 @@ pub fn wait_for_runtime(
     mut connection: impl FnMut() -> Result<(String, String), String>,
     mut launch: impl FnMut() -> Result<(), String>,
     mut runtime_ready: impl FnMut(u16, &str) -> bool,
-    mut runtime_alive: impl FnMut(u16) -> bool,
+    mut runtime_alive: impl FnMut(u16, &str) -> bool,
 ) -> Result<(String, String), String> {
     let mut inspect = || {
         let (origin, token) = connection().ok()?;
         let port = reqwest::Url::parse(&origin).ok()?.port()?;
         let ready = runtime_ready(port, &token);
-        let alive = ready || runtime_alive(port);
+        let alive = ready || runtime_alive(port, &token);
         Some(((origin, token), ready, alive))
     };
     if let Some((found, true, _)) = inspect() {
@@ -209,10 +209,11 @@ fn client(secs: u64) -> Option<reqwest::blocking::Client> {
         .ok()
 }
 
-/// `GET /.ping` answers 2xx.
-pub fn ping_port(port: u16) -> bool {
+/// `GET /.ping` answers 2xx. Desktop requires the space's token.
+pub fn ping_port(port: u16, token: &str) -> bool {
     let Some(c) = client(2) else { return false };
     c.get(format!("http://127.0.0.1:{port}/.ping"))
+        .bearer_auth(token)
         .send()
         .is_ok_and(|r| r.status().is_success())
 }
@@ -388,6 +389,35 @@ mod tests {
         assert!(launch(&host("sleep 3"), None).is_ok());
     }
 
+    /// Answers one request: 200 with the expected bearer token, else 401.
+    fn ping_server(token: &'static str) -> u16 {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().take(2) {
+                let mut stream = stream.unwrap();
+                let mut request = [0u8; 2048];
+                let n = stream.read(&mut request).unwrap();
+                let text = String::from_utf8_lossy(&request[..n]).to_lowercase();
+                let status = if text.contains(&format!("authorization: bearer {token}")) {
+                    "200 OK"
+                } else {
+                    "401 Unauthorized"
+                };
+                let _ = write!(stream, "HTTP/1.1 {status}\r\ncontent-length: 0\r\n\r\n");
+            }
+        });
+        port
+    }
+
+    #[test]
+    fn ping_authenticates_like_desktop_requires() {
+        let port = ping_server("secret");
+        assert!(ping_port(port, "secret"));
+        assert!(!ping_port(port, "wrong"));
+    }
+
     #[test]
     fn deep_links_encode_local_paths() {
         let tmp = tempfile::tempdir().unwrap();
@@ -425,7 +455,7 @@ mod tests {
                 Ok(())
             },
             |port, token| port == 43123 && token == "token",
-            |_| true,
+            |_, _| true,
         )
         .unwrap();
         assert_eq!(result.0, "http://127.0.0.1:43123");
@@ -444,7 +474,7 @@ mod tests {
                 Ok(())
             },
             |_, _| launched.get(),
-            |_| true,
+            |_, _| true,
         )
         .unwrap();
         assert!(launched.get());
@@ -468,7 +498,7 @@ mod tests {
                 Ok(())
             },
             |_, _| true,
-            |_| true,
+            |_, _| true,
         )
         .unwrap();
         assert_eq!(launches.get(), 2);
@@ -490,7 +520,7 @@ mod tests {
                 probes.set(probes.get() + 1);
                 probes.get() >= 4
             },
-            |_| true,
+            |_, _| true,
         )
         .unwrap();
         assert_eq!(launches.get(), 1);
@@ -504,7 +534,7 @@ mod tests {
             || Err("not running".into()),
             || Ok(()),
             |_, _| false,
-            |_| false,
+            |_, _| false,
         )
         .unwrap_err();
         assert!(err.contains("timed out"), "{err}");
