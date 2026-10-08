@@ -5,7 +5,6 @@ references:
 - client/markdown_parser/html_block.ts
 - client/codemirror/html_element.ts
 ---
-
 SilverBullet supports embedding raw HTML tags inside your markdown — both **inline** (mid-paragraph, in headings, in table cells) and **block-level** (HTML on its own lines). As with other [[Live Preview]] features, it is rendered live in the editor when the cursor is outside the tag, and falls back to raw source when the cursor enters it. Markdown inside the HTML tag is parsed and rendered too.
 
 This is a power-user feature, use it carefully. Rendered HTML is **sanitized** for safety: event-handler attributes (`onclick`, `onerror`, …), `<script>`, `<iframe>`, `<object>`, `<embed>` and `<base>` tags, and `javascript:`/`data:` URLs in link/source attributes are stripped before rendering.

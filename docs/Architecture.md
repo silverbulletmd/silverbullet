@@ -6,7 +6,7 @@ This page describes the big-picture view of SilverBullet, assembled from its [[#
 ${mermaid.diagram(mermaid.relationGraph{
   pages = query[[from index.pages("component")]],
   groupBy = "partOf",
-  direction = "TB"
+  direction = "LR"
 })}
 
 # The three layers

@@ -46,6 +46,5 @@ The effective level for a request is the **maximum** of three independent source
 | `access` — what a visitor with no session gets | `none` (default), `read`, `write` |
 | `username.role` — what one account gets | absent (no access), `read`, `write` |
 | admin | always `write` on every space |
-
 # Dashboard access
 When no space is bound to the server root (`/`), opening `/` redirects to `/.dashboard` instead of opening a space. Any account can log in there. Ordinary accounts see spaces with anonymous [[#Access|access]] and spaces where they are members, administrators see every space, plus the admin screens.

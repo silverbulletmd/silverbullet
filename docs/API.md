@@ -18,7 +18,6 @@ ${query[[
 # Space Lua APIs
 ${query[[
   from p = index.pages("api/space-lua")
-  where p.tag == "page"
   order by p.name
   select templates.pageItem(p)
 ]]}

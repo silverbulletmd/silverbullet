@@ -7,6 +7,7 @@ import { parseBlock } from "../client/space_lua/parse.ts";
 import {
   LuaEnv,
   LuaStackFrame,
+  LuaTable,
   luaValueToJS,
 } from "../client/space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../client/space_lua/stdlib.ts";
@@ -54,10 +55,19 @@ async function loadNav(): Promise<{
   const env = new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
   await evalStatement(ast, env, sf, false);
-  const docsNav = luaValueToJS(env.get("docsNav"), sf);
+  const docsNav = env.get("docsNav") as LuaTable;
+  // Sections mix fields with child nodes, which luaValueToJS would turn into
+  // a plain array, so pick their fields from the Lua table.
+  const sections = docsNav.get("sections") as LuaTable;
   return {
-    pages: asArray<NavEntry>(docsNav.pages),
-    sections: asArray<NavSection>(docsNav.sections),
+    pages: asArray<NavEntry>(luaValueToJS(docsNav.get("pages"), sf)),
+    sections: Array.from({ length: sections.length }, (_, i) => {
+      const section = sections.get(i + 1) as LuaTable;
+      return {
+        name: section.get("name") as string,
+        description: section.get("description") as string,
+      };
+    }),
   };
 }
 
