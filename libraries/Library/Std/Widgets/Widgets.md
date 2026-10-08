@@ -1,22 +1,6 @@
 #meta
 
-Implements some useful general purpose widgets. Specifically:
-
-## Buttons
-Types of button widgets:
-
-* `widgets.button(text, callback)` renders a simple button running the callback when clicked
-* `widgets.commandButton(commandName)` renders a button for a particular command (where the button text is the command name itself)
-* `widgets.commandButton(text, commandName)` renders a button for a particular command with a custom button text
-* `widgets.commandButton(text, commandName, args)` renders a button for a particular command and arguments (specified as a table list) with a custom button text
-
-Examples:
-
-${widgets.button("Hello", function()
-  editor.flashNotification "Hi there!"
-end)}
-
-${widgets.commandButton("System: Reload")}
+Implements general purpose widgets: buttons, sub-page lists, and visual building blocks for dashboards (chips, bars, number cards, grids).
 
 ## Docked widgets
 * **Table of Contents** (`std.toc`, command `Navigate: Table of Contents`): the current page's headers as a tree, live as you type. Opens in the right sidebar. A page with fewer than `minHeaders` headers has no outline worth showing, and the view renders nothing at all in a page dock there.
@@ -37,6 +21,12 @@ To set where a view docks space-wide — and whether it starts open, folded, or 
 ## Buttons
 ```space-lua
 -- priority: 10
+--- Renders a button that runs `callback` when clicked; `text` is shown literally.
+--- @param text string the button label
+--- @param callback function run on click
+--- @param attrs? table extra attributes for the button element
+--- @return table an inline widget
+--- @see API/widgets
 function widgets.button(text, callback, attrs)
   -- Labels are plain text: as markdown, ">" or "# 1" would render as blocks
   local buttonEl = {
@@ -54,6 +44,12 @@ function widgets.button(text, callback, attrs)
   return widget.html(dom.button(buttonEl))
 end
 
+--- Renders a button that runs a command; with one argument it is both label and command name.
+--- @param text string the button label (or the command name)
+--- @param commandName? string the command to run
+--- @param args? table arguments passed to the command
+--- @return table an inline widget
+--- @see API/widgets
 function widgets.commandButton(text, commandName, args)
   if not commandName then
     -- When only passed one argument, then let's assume it's a command name
@@ -67,6 +63,10 @@ function widgets.commandButton(text, commandName, args)
   })
 end
 
+--- Lists the pages below a page.
+--- @param pageName? string default the current page
+--- @return table a markdown widget
+--- @see API/widgets
 function widgets.subPages(pageName)
   pageName = pageName or editor.getCurrentPage()
   return widget.markdown(table.concat(query[[
@@ -74,6 +74,373 @@ function widgets.subPages(pageName)
     select templates.pageItem(p)
   ]]))
 end
+```
+
+## Chips, bars, stats and grids
+Built with the [[^Library/Std/APIs/DOM]] builder; labels go in as `dom.text`, so they stay literal. With `onClick` an element becomes a button (`role="button"`, focusable, Enter runs it too). Their CSS is in the Styles block below.
+```space-lua
+-- priority: 10
+widgets = widgets or {}
+
+local tones = {
+  success = true, warning = true, danger = true,
+  info = true, neutral = true, accent = true,
+}
+
+local function isColour(value)
+  if type(value) ~= "string" or value == "" then return false end
+  local css = js.window.CSS
+  if css and css.supports then return css.supports("color", value) end
+  return true
+end
+
+-- The class and style for a literal CSS colour if valid, else a tone name,
+-- else the default tone
+local function toneOf(tone, color, default)
+  if isColour(color) then
+    return "sb-tone-custom", {
+      ["--sb-tone"] = color,
+      ["--sb-tone-soft"] = "color-mix(in srgb, " .. color .. " 16%, transparent)",
+    }
+  end
+  if tones[tone] then return "sb-tone-" .. tone, nil end
+  return "sb-tone-" .. default, nil
+end
+
+local function text(s)
+  if s == nil then return dom.text("") end
+  return dom.text(tostring(s))
+end
+
+-- Makes an element act as a button for `handler`: click or Enter runs it
+local function clickable(spec, handler)
+  if handler then
+    spec.role = "button"
+    spec.tabindex = "0"
+    spec.onclick = function() handler() end
+    spec.onkeydown = function(e)
+      if e.key == "Enter" then handler() end
+    end
+  end
+  return spec
+end
+
+-- Reads a field (by name) or computes a value (by function) from a row
+local function pick(row, getter)
+  if type(getter) == "function" then return getter(row) end
+  if getter == nil then return nil end
+  return row[getter]
+end
+
+local function percent(fraction)
+  if fraction ~= fraction or fraction < 0 then fraction = 0 end
+  if fraction > 1 then fraction = 1 end
+  return tostring(math.floor(fraction * 100 + 0.5)) .. "%"
+end
+
+local function empty(message)
+  return widget.htmlBlock(dom.div { class = "sb-empty", dom.text(message) })
+end
+
+--- Renders a small rounded label in a tone colour
+--- @param label string the text to show
+--- @param opts? table `tone` (default "neutral"), `color` (CSS colour, used instead of the tone), `title` (tooltip), `onClick` (function run on click)
+--- @return table an inline widget
+--- @see API/widgets
+function widgets.chip(label, opts)
+  opts = opts or {}
+  local toneClass, toneStyle = toneOf(opts.tone, opts.color, "neutral")
+  return widget.html(dom.span(clickable({
+    class = { "sb-chip", toneClass },
+    style = toneStyle,
+    title = opts.title,
+    text(label),
+  }, opts.onClick)))
+end
+
+--- Renders horizontal bars for counts or a distribution, one per row.
+--- @param rows table a list or query result
+--- @param opts? table `label`, `value` (field names or functions, default "label" and "value"), `tone` (name or function of the row, default the row's `tone` field, else "accent"), `color` (CSS colour or function of the row, used instead of the tone; default the row's `color` field), `max` (full-width value, default the largest), `onClick` (function run with the clicked row)
+--- @return table a block widget
+--- @see API/widgets
+function widgets.bars(rows, opts)
+  opts = opts or {}
+  local labelOf = opts.label or "label"
+  local valueOf = opts.value or "value"
+  local items = {}
+  local max = 0
+  for _, row in ipairs(rows or {}) do
+    local value = tonumber(pick(row, valueOf)) or 0
+    local tone = opts.tone
+    if type(tone) == "function" then
+      tone = tone(row)
+    elseif tone == nil and type(row) == "table" then
+      tone = row.tone
+    end
+    local color = opts.color
+    if type(color) == "function" then
+      color = color(row)
+    elseif color == nil and type(row) == "table" then
+      color = row.color
+    end
+    table.insert(items, {
+      label = pick(row, labelOf),
+      value = value,
+      tone = tone,
+      color = color,
+      row = row,
+    })
+    if value > max then max = value end
+  end
+  if #items == 0 then return empty("Nothing to show") end
+  max = tonumber(opts.max) or max
+  local bars = {}
+  for _, item in ipairs(items) do
+    local toneClass, toneStyle = toneOf(item.tone, item.color, "accent")
+    table.insert(bars, dom.div(clickable({
+      class = { "sb-bars-row", toneClass },
+      style = toneStyle,
+      dom.span { class = "sb-bars-label", text(item.label) },
+      dom.span {
+        class = "sb-bars-track",
+        dom.span {
+          class = "sb-bars-fill",
+          style = { width = percent(max > 0 and item.value / max or 0) },
+        },
+      },
+      dom.span { class = "sb-bars-value", text(item.value) },
+    }, opts.onClick and function() opts.onClick(item.row) end)))
+  end
+  return widget.htmlBlock(dom.div { class = "sb-bars", bars })
+end
+
+--- Renders a number card, for use alone or in `widgets.grid`.
+--- @param label string what the number is
+--- @param value any the number (or short text) to show
+--- @param opts? table `tone` (default "neutral"), `color` (CSS colour, used instead of the tone), `sub` (caption), `bar` (fraction 0..1 drawn as a thin bar), `onClick` (function run on click)
+--- @return table a block widget
+--- @see API/widgets
+function widgets.stat(label, value, opts)
+  opts = opts or {}
+  local toneClass, toneStyle = toneOf(opts.tone, opts.color, "neutral")
+  return widget.htmlBlock(dom.div(clickable({
+    class = { "sb-stat", toneClass },
+    style = toneStyle,
+    dom.div { class = "sb-stat-label", text(label) },
+    dom.div { class = "sb-stat-value", text(value) },
+    opts.sub ~= nil and dom.div { class = "sb-stat-sub", text(opts.sub) },
+    opts.bar ~= nil and dom.div {
+      class = "sb-stat-bar",
+      dom.span { style = { width = percent(tonumber(opts.bar) or 0) } },
+    },
+  }, opts.onClick)))
+end
+
+-- A grid cell: widgets and DOM nodes as they are (event handlers included),
+-- markdown widgets rendered, text and numbers shown literally
+local function cell(w)
+  if type(w) == "table" and w._isWidget then
+    if w.html == nil and w.markdown ~= nil then
+      return widget.html(markdown.markdownToHtml(w.markdown))
+    end
+    return w
+  end
+  if type(w) == "string" or type(w) == "number" then
+    return dom.div { class = "sb-grid-text", text(w) }
+  end
+  return w
+end
+
+--- Lays out widgets in a responsive grid.
+--- @param items table a list or query result
+--- @param fn? function returns the widget (or DOM node) for an item (default: the item itself)
+--- @param opts? table `min`: minimum column width (default "12rem")
+--- @return table a block widget
+--- @see API/widgets
+function widgets.grid(items, fn, opts)
+  if type(fn) == "table" and opts == nil then
+    opts, fn = fn, nil
+  end
+  opts = opts or {}
+  local cells = {}
+  for _, item in ipairs(items or {}) do
+    local w = item
+    if fn then w = fn(item) end
+    table.insert(cells, cell(w))
+  end
+  if #cells == 0 then return empty("Nothing to show") end
+  return widget.htmlBlock(dom.div {
+    class = "sb-grid",
+    style = opts.min and { ["--sb-grid-min"] = tostring(opts.min) } or nil,
+    cells,
+  })
+end
+```
+
+### Styles
+```space-style
+/* Colours come from the tone tokens (Space Style#Tone colours), so both
+   themes work; `color` sets --sb-tone/--sb-tone-soft inline instead. */
+.sb-tone-success { --sb-tone: var(--tone-success); --sb-tone-soft: var(--tone-success-soft); }
+.sb-tone-warning { --sb-tone: var(--tone-warning); --sb-tone-soft: var(--tone-warning-soft); }
+.sb-tone-danger { --sb-tone: var(--tone-danger); --sb-tone-soft: var(--tone-danger-soft); }
+.sb-tone-info { --sb-tone: var(--tone-info); --sb-tone-soft: var(--tone-info-soft); }
+.sb-tone-neutral { --sb-tone: var(--tone-neutral); --sb-tone-soft: var(--tone-neutral-soft); }
+.sb-tone-accent { --sb-tone: var(--tone-accent); --sb-tone-soft: var(--tone-accent-soft); }
+
+/* Chips share the hashtag's geometry (editor.scss .sb-hashtag) so they sit in
+   running text like tags do; the tone only sets the colours. */
+.sb-chip {
+  display: inline-block;
+  padding: 0 4px;
+  margin: 0 1px 0 0;
+  border-radius: 6px;
+  font-size: 0.9em;
+  line-height: inherit;
+  white-space: nowrap;
+  vertical-align: baseline;
+  color: var(--sb-tone, var(--tone-neutral));
+  background: var(--sb-tone-soft, var(--tone-neutral-soft));
+  border: 1px solid color-mix(in srgb, var(--sb-tone, var(--tone-neutral)) 25%, transparent);
+}
+
+/* widgets.* with onClick: role="button", focusable, Enter runs it too */
+.sb-chip[role="button"],
+.sb-stat[role="button"],
+.sb-bars-row[role="button"] {
+  cursor: pointer;
+}
+
+.sb-chip[role="button"]:hover {
+  border-color: var(--sb-tone, var(--tone-neutral));
+}
+
+.sb-chip[role="button"]:focus-visible,
+.sb-stat[role="button"]:focus-visible,
+.sb-bars-row[role="button"]:focus-visible {
+  outline: 2px solid var(--ui-accent-color);
+  outline-offset: 1px;
+}
+
+.sb-bars {
+  display: grid;
+  grid-template-columns: minmax(4em, max-content) 1fr auto;
+  gap: 0.3em 0.75em;
+  align-items: center;
+}
+
+/* Each row spans the grid and lines its cells up with the others; a real
+   box (not display: contents) so a clickable row can take focus. */
+.sb-bars-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  border-radius: 3px;
+}
+
+.sb-bars-row[role="button"]:hover {
+  background: var(--ui-surface-hover-background-color);
+}
+
+.sb-bars-track {
+  height: 0.55em;
+  min-width: 4em;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--sb-tone-soft);
+}
+
+.sb-bars-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sb-tone);
+}
+
+.sb-bars-value {
+  text-align: right;
+  color: var(--subtle-color);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stat cards are flat surfaces like page widgets: a hairline border, no
+   fill; the tone colours the number (except neutral) and the optional bar. */
+.sb-stat {
+  display: block;
+  box-sizing: border-box;
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: 5px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sb-stat[role="button"]:hover {
+  background: var(--ui-surface-hover-background-color);
+}
+
+.sb-stat-label {
+  font-size: 0.85em;
+  color: var(--subtle-color);
+}
+
+.sb-stat-value {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-stat:not(.sb-tone-neutral) .sb-stat-value {
+  color: var(--sb-tone);
+}
+
+.sb-stat-sub {
+  font-size: 0.85em;
+  color: var(--subtle-color);
+}
+
+.sb-stat-bar {
+  height: 4px;
+  margin-top: 0.4em;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--sb-tone-soft);
+}
+
+.sb-stat-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--sb-tone);
+}
+
+.sb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--sb-grid-min, 12rem), 1fr));
+  gap: 0.75em;
+}
+
+/* Cards fill their column; chips and buttons keep their own width. */
+.sb-grid > .sb-chip,
+.sb-grid > button {
+  justify-self: start;
+  align-self: start;
+}
+
+/* Like the navigator's empty state (.sb-nav-empty) */
+.sb-empty {
+  font-size: 0.9em;
+  color: var(--subtle-color);
+}
+
+/* A chip is its own frame, like a hashtag in running text: drop the inline
+   widget frame around it. */
+#sb-main .cm-editor .sb-lua-directive-inline:has(> .sb-chip) {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
 ```
 
 ## Table of contents
