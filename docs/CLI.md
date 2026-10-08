@@ -12,7 +12,19 @@ references:
 The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server over HTTP. File commands use the [[HTTP API]] directly; Lua expressions, scripts, and logs use the [[Runtime API]].
 
 # Installation
-The CLI binary (`sb`) is available alongside the server binary on the [GitHub releases page](https://github.com/silverbulletmd/silverbullet/releases) (or the [edge](https://github.com/silverbulletmd/silverbullet/releases/tag/edge) build). Download the version matching your platform.
+On macOS, Linux and FreeBSD:
+```bash
+curl -fsSL https://silverbullet.md/install-sb.sh | sh
+```
+This installs `sb` to `~/.local/bin` (set `SB_INSTALL_DIR` to change that). Add `-s -- --edge` after `sh` for the edge build, or `-s -- --version <version>` for a specific release.
+
+On Windows (PowerShell):
+```powershell
+irm https://silverbullet.md/install-sb.ps1 | iex
+```
+This installs `sb.exe` to `%LOCALAPPDATA%\SilverBullet\bin` and adds that folder to your user `Path`. Set `$env:SB_CHANNEL = "edge"` or `$env:SB_VERSION` first to choose another build.
+
+The binaries are also available on the [GitHub releases page](https://github.com/silverbulletmd/silverbullet/releases) (or the [edge](https://github.com/silverbulletmd/silverbullet/releases/tag/edge) build).
 
 Once installed, it can self-update:
 ```bash
@@ -21,7 +33,13 @@ sb upgrade-edge  # latest edge (main branch) build
 ```
 
 # Configuring spaces
-Before using the CLI, connect it to a SilverBullet instance. The CLI stores space configurations in `~/.config/silverbullet/config.json` (respects `XDG_CONFIG_HOME`).
+Before using the CLI, connect it to a SilverBullet instance. The CLI stores space configurations in `config.json` in:
+
+* macOS and Linux: `~/.config/silverbullet` (respects `XDG_CONFIG_HOME`)
+* Windows: `%APPDATA%\SilverBullet` (a configuration in the previous location, `%USERPROFILE%\.config\silverbullet`, is copied there on first use)
+* Anywhere: the directory in `SB_CONFIG_DIR`, when set
+
+[[Install/Desktop|SilverBullet Desktop]] uses the same list, so spaces added in either one show up in both. The directory also holds the `key` that encrypts saved tokens and passwords: do not commit it to a dotfiles repository or sync it between machines.
 
 ## Adding a space
 ```bash
@@ -32,11 +50,21 @@ This interactive wizard will prompt for:
 2. The **URL** of your SilverBullet server
 3. **Authentication** method ([[Install/Configuration#Authentication|token]], username/password, or none)
 
+## Folder spaces (SilverBullet Desktop)
+With [[Install/Desktop|SilverBullet Desktop]] installed, `sb` also works with local folders:
+```bash
+sb space add ./notes   # register a folder as a space
+sb .                   # open the current folder in SilverBullet Desktop
+sb open ./notes        # the same, for a given file or folder
+```
+Inside a registered folder, commands pick that space automatically (the most specific folder wins), so `--space` is optional. Commands that need the space's runtime (`eval`, `script`, `query`, `logs`, `screenshot`) start SilverBullet Desktop and wait for the space when it is not open yet. Without SilverBullet Desktop, these commands report that it is required.
+
 ## Listing and removing spaces
 ```bash
-sb space list
+sb space list          # single-file spaces opened in Desktop are hidden; add --all to show them
 sb space remove <name>
 ```
+A folder space cannot be removed while SilverBullet Desktop has it open. Removing a space never deletes its files.
 
 # Global flags
 These flags are available on all commands that connect to a space:

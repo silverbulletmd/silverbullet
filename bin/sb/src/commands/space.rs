@@ -1,10 +1,11 @@
 use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
 use std::time::Duration;
 
 use crate::{
     config::{self, AuthConfig, Config, SpaceConfig},
     conn::{self, Auth, SpaceConnection},
-    crypto, device_auth,
+    crypto, device_auth, local,
 };
 
 pub fn is_valid_space_name(name: &str) -> bool {
@@ -15,7 +16,11 @@ pub fn is_valid_space_name(name: &str) -> bool {
 ///
 /// Returns the full block (leading blank line, header, 70 dashes, rows,
 /// trailing blank line), OR the "No spaces configured." line when empty.
-pub fn render_space_table(cfg: &Config) -> String {
+pub fn render_space_table(
+    cfg: &Config,
+    all: bool,
+    running_port: &dyn Fn(&SpaceConfig) -> Option<u16>,
+) -> String {
     if cfg.spaces.is_empty() {
         return "No spaces configured. Use 'space add' to add one.\n".to_string();
     }
@@ -24,43 +29,106 @@ pub fn render_space_table(cfg: &Config) -> String {
     lines.push(String::new());
     lines.push(format!("{:<20}{:<40}{}", "NAME", "URL", "AUTH"));
     lines.push("-".repeat(70));
-    for s in &cfg.spaces {
+    for s in cfg.spaces.iter().filter(|s| all || !is_single_file(s)) {
         let loc = if s.url.is_empty() && !s.folder_path.is_empty() {
             s.folder_path.clone()
         } else {
             s.url.clone()
         };
-        lines.push(format!("{:<20}{:<40}{}", s.name, loc, s.auth.method));
+        let status = running_port(s)
+            .map(|port| format!("  [running on port {port}]"))
+            .unwrap_or_default();
+        lines.push(format!(
+            "{:<20}{:<40}{}{status}",
+            s.name, loc, s.auth.method
+        ));
     }
     lines.push(String::new());
 
     lines.join("\n")
 }
 
-/// Remove a space by name.  Returns `Err` if not found.
-pub fn remove_space(cfg: &mut Config, name: &str) -> Result<(), String> {
+/// Single-file spaces that SilverBullet Desktop registers when a file is opened.
+fn is_single_file(space: &SpaceConfig) -> bool {
+    space.extra.get("ephemeral").is_some_and(|v| !v.is_null())
+}
+
+/// Remove a space by name (or registered folder path). Returns `Err` if not
+/// found or while SilverBullet Desktop is serving it.
+pub fn remove_space(
+    cfg: &mut Config,
+    name: &str,
+    is_running: &dyn Fn(&SpaceConfig) -> bool,
+) -> Result<(), String> {
     let idx = cfg
         .spaces
         .iter()
-        .position(|s| s.name == name)
+        .position(|s| s.name == name || (!s.folder_path.is_empty() && s.folder_path == name))
         .ok_or_else(|| format!("space {name:?} not found"))?;
+    if is_running(&cfg.spaces[idx]) {
+        return Err("Space is running. Close it in SilverBullet Desktop first.".into());
+    }
     cfg.spaces.remove(idx);
     Ok(())
 }
 
+/// Port of a folder space that SilverBullet Desktop is currently serving.
+fn running_port(space: &SpaceConfig) -> Option<u16> {
+    if space.folder_path.is_empty() {
+        return None;
+    }
+    let host = local::desktop_host(&config::config_dir()).ok()?;
+    let (origin, _) = local::runtime_connection(&host, &space.id).ok()?;
+    let port = reqwest::Url::parse(&origin).ok()?.port()?;
+    local::ping_port(port).then_some(port)
+}
+
 /// `sb space ls` — print a table of configured spaces.
-pub fn space_ls() -> Result<(), String> {
+pub fn space_ls(all: bool) -> Result<(), String> {
     let cfg = config::load()?;
-    print!("{}", render_space_table(&cfg));
+    print!("{}", render_space_table(&cfg, all, &running_port));
     Ok(())
 }
 
 pub fn space_rm(name: &str) -> Result<(), String> {
     let _lock = config::lock(&config::config_dir())?;
     let mut cfg = config::load()?;
-    remove_space(&mut cfg, name)?;
+    remove_space(&mut cfg, name, &|s| running_port(s).is_some())?;
     config::save(&cfg)?;
     println!("Space {name:?} removed.");
+    Ok(())
+}
+
+/// Register `folder` (created if missing) as a folder space named after it.
+pub fn register_folder(cfg: &mut Config, folder: &Path) -> Result<SpaceConfig, String> {
+    std::fs::create_dir_all(folder).map_err(|e| format!("creating directory: {e}"))?;
+    let canonical = std::fs::canonicalize(folder).map_err(|e| format!("resolving path: {e}"))?;
+    let path = config::strip_verbatim(&canonical.to_string_lossy()).to_string();
+    if cfg.spaces.iter().any(|s| s.folder_path == path) {
+        return Err(format!("already registered: {path}"));
+    }
+    let name = Path::new(&path)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let mut space = SpaceConfig {
+        id: config::new_uuid(),
+        name,
+        folder_path: path,
+        ..Default::default()
+    };
+    space.auth.method = "none".into();
+    cfg.spaces.push(space.clone());
+    Ok(space)
+}
+
+/// `sb space add <folder>` — register a folder space for SilverBullet Desktop.
+pub fn space_add_folder(folder: &str) -> Result<(), String> {
+    let _lock = config::lock(&config::config_dir())?;
+    let mut cfg = config::load()?;
+    let space = register_folder(&mut cfg, Path::new(folder))?;
+    config::save(&cfg)?;
+    println!("Added space {:?} at {}", space.name, space.folder_path);
     Ok(())
 }
 
@@ -374,7 +442,7 @@ mod tests {
     #[test]
     fn render_empty_cfg() {
         let cfg = Config { spaces: vec![] };
-        let out = render_space_table(&cfg);
+        let out = render_space_table(&cfg, false, &|_| None);
         assert_eq!(out, "No spaces configured. Use 'space add' to add one.\n");
     }
 
@@ -392,7 +460,7 @@ mod tests {
                 ..Default::default()
             }],
         };
-        let out = render_space_table(&cfg);
+        let out = render_space_table(&cfg, false, &|_| None);
         assert!(out.contains("NAME"), "must contain NAME header");
         assert!(out.contains("URL"), "must contain URL header");
         assert!(out.contains("AUTH"), "must contain AUTH header");
@@ -422,7 +490,7 @@ mod tests {
                 ..Default::default()
             }],
         };
-        let out = render_space_table(&cfg);
+        let out = render_space_table(&cfg, false, &|_| None);
         assert!(
             out.contains("/home/user/notes"),
             "folder path must appear in the URL column"
@@ -456,7 +524,7 @@ mod tests {
                 },
             ],
         };
-        let out = render_space_table(&cfg);
+        let out = render_space_table(&cfg, false, &|_| None);
         assert!(out.contains("url-space"));
         assert!(out.contains("http://example.com"));
         assert!(out.contains("token"));
@@ -479,7 +547,7 @@ mod tests {
                 },
             ],
         };
-        remove_space(&mut cfg, "alpha").unwrap();
+        remove_space(&mut cfg, "alpha", &|_| false).unwrap();
         assert_eq!(cfg.spaces.len(), 1);
         assert_eq!(cfg.spaces[0].name, "beta");
     }
@@ -492,7 +560,7 @@ mod tests {
                 ..Default::default()
             }],
         };
-        let err = remove_space(&mut cfg, "nonexistent").unwrap_err();
+        let err = remove_space(&mut cfg, "nonexistent", &|_| false).unwrap_err();
         assert!(err.contains("not found"), "error was: {err}");
     }
 
@@ -514,9 +582,88 @@ mod tests {
                 },
             ],
         };
-        remove_space(&mut cfg, "b").unwrap();
+        remove_space(&mut cfg, "b", &|_| false).unwrap();
         assert_eq!(cfg.spaces.len(), 2);
         assert_eq!(cfg.spaces[0].name, "a");
         assert_eq!(cfg.spaces[1].name, "c");
+    }
+
+    fn ephemeral(name: &str) -> SpaceConfig {
+        let mut s = SpaceConfig {
+            id: name.into(),
+            name: name.into(),
+            folder_path: format!("/tmp/{name}"),
+            ..Default::default()
+        };
+        s.extra.insert(
+            "ephemeral".into(),
+            serde_json::json!({"entryFile": "Harbor.md"}),
+        );
+        s
+    }
+
+    #[test]
+    fn ls_hides_single_file_spaces_unless_all() {
+        let cfg = Config {
+            spaces: vec![
+                SpaceConfig {
+                    id: "n".into(),
+                    name: "notes".into(),
+                    folder_path: "/tmp/notes".into(),
+                    ..Default::default()
+                },
+                ephemeral("harbor"),
+            ],
+        };
+        let hidden = render_space_table(&cfg, false, &|_| None);
+        assert!(
+            hidden.contains("notes") && !hidden.contains("harbor"),
+            "{hidden}"
+        );
+        let all = render_space_table(&cfg, true, &|_| None);
+        assert!(all.contains("harbor"), "{all}");
+    }
+
+    #[test]
+    fn ls_marks_running_folder_spaces() {
+        let cfg = Config {
+            spaces: vec![SpaceConfig {
+                id: "n".into(),
+                name: "notes".into(),
+                folder_path: "/tmp/notes".into(),
+                ..Default::default()
+            }],
+        };
+        let out = render_space_table(&cfg, false, &|_| Some(43123));
+        assert!(out.contains("[running on port 43123]"), "{out}");
+    }
+
+    #[test]
+    fn folder_spaces_register_by_canonical_path_and_basename() {
+        let tmp = tempfile::tempdir().unwrap();
+        let folder = tmp.path().join("notes");
+        let mut cfg = Config::default();
+        let added = register_folder(&mut cfg, &folder).unwrap();
+        let canonical = std::fs::canonicalize(&folder).unwrap();
+        assert_eq!(added.name, "notes");
+        assert_eq!(added.folder_path, canonical.to_string_lossy());
+        assert_eq!(added.auth.method, "none");
+        assert_eq!(added.id.len(), 36);
+        assert_eq!(cfg.spaces.len(), 1);
+        let err = register_folder(&mut cfg, &folder).unwrap_err();
+        assert!(err.contains("already registered"), "{err}");
+    }
+
+    #[test]
+    fn running_spaces_cannot_be_removed() {
+        let mut cfg = Config {
+            spaces: vec![ephemeral("harbor")],
+        };
+        let err = remove_space(&mut cfg, "harbor", &|_| true).unwrap_err();
+        assert_eq!(
+            err,
+            "Space is running. Close it in SilverBullet Desktop first."
+        );
+        assert_eq!(cfg.spaces.len(), 1);
     }
 }

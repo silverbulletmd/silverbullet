@@ -25,6 +25,8 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use crate::crypto;
+
 /// Authentication credentials for a space.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct AuthConfig {
@@ -126,11 +128,158 @@ pub fn config_dir_from(xdg: Option<&str>, home: &str) -> PathBuf {
     }
 }
 
-/// Returns `$XDG_CONFIG_HOME/silverbullet` if set, else `~/.config/silverbullet`.
+/// The environment inputs that decide where the registry lives.
+#[derive(Debug, Clone, Default)]
+pub struct ConfigEnv {
+    /// `$SB_CONFIG_DIR`: the exact directory, used by SilverBullet Desktop and tests.
+    pub sb_config_dir: Option<String>,
+    pub xdg: Option<String>,
+    pub appdata: Option<String>,
+    pub home: String,
+    pub windows: bool,
+}
+
+impl ConfigEnv {
+    fn current() -> Self {
+        let var = |name| std::env::var(name).ok().filter(|v: &String| !v.is_empty());
+        ConfigEnv {
+            sb_config_dir: var("SB_CONFIG_DIR"),
+            xdg: var("XDG_CONFIG_HOME"),
+            appdata: var("APPDATA"),
+            home: home_dir(),
+            windows: cfg!(windows),
+        }
+    }
+}
+
+/// Registry directory shared with SilverBullet Desktop (pure, testable).
+pub fn config_dir_for(env: &ConfigEnv) -> PathBuf {
+    if let Some(dir) = &env.sb_config_dir {
+        return PathBuf::from(dir);
+    }
+    // Desktop always uses %APPDATA% on Windows, so XDG_CONFIG_HOME (common in
+    // Git Bash and MSYS2) must not move sb elsewhere.
+    if env.windows {
+        if let Some(appdata) = &env.appdata {
+            return PathBuf::from(appdata).join("SilverBullet");
+        }
+    }
+    config_dir_from(env.xdg.as_deref(), &env.home)
+}
+
+/// Returns the registry directory: `$SB_CONFIG_DIR`, `%APPDATA%\SilverBullet`
+/// on Windows, else `$XDG_CONFIG_HOME/silverbullet` or `~/.config/silverbullet`.
 pub fn config_dir() -> PathBuf {
-    let xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    let home = home_dir();
-    config_dir_from(xdg.as_deref(), &home)
+    let env = ConfigEnv::current();
+    let dir = config_dir_for(&env);
+    if env.windows && env.sb_config_dir.is_none() {
+        static MOVED: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+        MOVED.get_or_init(|| {
+            let old = config_dir_from(None, &env.home);
+            match migrate_legacy_dir(&old, &dir) {
+                Ok(true) => eprintln!("Moved sb configuration to {}", dir.display()),
+                Ok(false) => {}
+                Err(e) => eprintln!("Could not move sb configuration to {}: {e}", dir.display()),
+            }
+        });
+    }
+    dir
+}
+
+const LEGACY_MARKER: &str = ".sb-legacy-imported";
+
+/// Bring spaces from a previous registry location (once). When the new
+/// registry already exists (e.g. SilverBullet Desktop created it), legacy
+/// remote spaces are added to it; folder spaces belong to Desktop and are
+/// left out. Secrets are re-encrypted for the new key, which is never
+/// replaced. The old files stay in place as a backup.
+pub fn migrate_legacy_dir(old: &Path, new: &Path) -> Result<bool, String> {
+    if !old.join("config.json").is_file() || new.join(LEGACY_MARKER).exists() {
+        return Ok(false);
+    }
+    let _lock = lock(new)?;
+    if new.join(LEGACY_MARKER).exists() {
+        return Ok(false);
+    }
+    let fresh = !new.join("config.json").exists();
+    let legacy = load_from(old)?;
+    let old_key = read_key(old)?;
+    let new_key = match read_key(new)? {
+        Some(key) => key,
+        None => match old_key {
+            Some(key) => {
+                write_private(&new.join("key"), &key)
+                    .map_err(|e| format!("writing {}: {e}", new.join("key").display()))?;
+                key
+            }
+            None => crypto::load_or_create_key(new).map_err(|e| e.to_string())?,
+        },
+    };
+    let mut cfg = load_from(new)?;
+    for mut space in legacy.spaces {
+        if (!fresh && !space.folder_path.is_empty()) || cfg.spaces.iter().any(|s| s.id == space.id)
+        {
+            continue;
+        }
+        if old_key != Some(new_key) && !reencrypt(&mut space.auth, old_key.as_ref(), &new_key) {
+            eprintln!(
+                "Saved credentials for space {:?} could not be moved; run `sb space login {}` or add it again.",
+                space.name, space.name
+            );
+            space.auth = AuthConfig {
+                method: String::new(),
+                ..Default::default()
+            };
+        }
+        let taken = |name: &str| cfg.spaces.iter().any(|s| s.name == name);
+        if taken(&space.name) {
+            space.name = (2..)
+                .map(|n| format!("{}-{n}", space.name))
+                .find(|candidate| !taken(candidate))
+                .expect("an unused suffix exists");
+        }
+        cfg.spaces.push(space);
+    }
+    save_to(new, &cfg)?;
+    write_private(&new.join(LEGACY_MARKER), b"")
+        .map_err(|e| format!("writing {}: {e}", new.join(LEGACY_MARKER).display()))?;
+    Ok(true)
+}
+
+fn read_key(dir: &Path) -> Result<Option<[u8; crypto::KEY_LEN]>, String> {
+    match std::fs::read(dir.join("key")) {
+        Ok(bytes) => bytes
+            .try_into()
+            .map(Some)
+            .map_err(|_| format!("{} is not a valid key", dir.join("key").display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(format!("reading {}: {e}", dir.join("key").display())),
+    }
+}
+
+/// Re-encrypt every stored secret from `from` to `to`; false if any fails.
+fn reencrypt(
+    auth: &mut AuthConfig,
+    from: Option<&[u8; crypto::KEY_LEN]>,
+    to: &[u8; crypto::KEY_LEN],
+) -> bool {
+    for field in [
+        &mut auth.encrypted_token,
+        &mut auth.encrypted_password,
+        &mut auth.encrypted_refresh_token,
+    ] {
+        if field.is_empty() {
+            continue;
+        }
+        let Some(plain) = from.and_then(|key| crypto::decrypt_with_key(key, field).ok()) else {
+            return false;
+        };
+        let Ok(cipher) = crypto::encrypt_with_key(to, &plain) else {
+            return false;
+        };
+        *field = cipher;
+    }
+    true
 }
 
 /// Returns `config_dir()/config.json`.
@@ -204,14 +353,80 @@ pub fn save(cfg: &Config) -> Result<(), String> {
 /// * `Some(name)` — find by name; error if not found.
 /// * `None` — return the sole space; error if zero or more than one.
 pub fn resolve_space<'a>(cfg: &'a Config, name: Option<&str>) -> Result<&'a SpaceConfig, String> {
+    // Registered folders are canonical paths; canonicalize the cwd to match
+    // (e.g. /tmp vs /private/tmp on macOS).
+    let cwd = std::env::current_dir()
+        .ok()
+        .map(|cwd| std::fs::canonicalize(&cwd).unwrap_or(cwd));
+    resolve_space_at(cfg, name, cwd.as_deref())
+}
+
+/// Single-file and built-in entries that SilverBullet Desktop keeps in the
+/// registry; they are never selected implicitly.
+pub fn is_hidden(space: &SpaceConfig) -> bool {
+    space.extra.get("ephemeral").is_some_and(|v| !v.is_null())
+        || space.extra.get("builtin") == Some(&Value::Bool(true))
+}
+
+/// Strip Windows' `\\?\` verbatim prefix that `canonicalize` adds.
+pub fn strip_verbatim(path: &str) -> &str {
+    path.strip_prefix(r"\\?\").unwrap_or(path)
+}
+
+/// Whether `path` is `folder` or lies inside it. Windows paths compare without
+/// their verbatim prefix and case-insensitively.
+pub fn folder_contains(folder: &str, path: &str, windows: bool) -> bool {
+    let normalize = |p: &str| {
+        if windows {
+            strip_verbatim(p).replace('/', "\\").to_lowercase()
+        } else {
+            p.to_string()
+        }
+    };
+    let separator = if windows { '\\' } else { '/' };
+    let folder = normalize(folder);
+    let folder = folder.trim_end_matches(separator);
+    let path = normalize(path);
+    path == folder
+        || path
+            .strip_prefix(folder)
+            .is_some_and(|rest| rest.starts_with(separator))
+}
+
+/// Like [`resolve_space`], but without a name the folder space containing `cwd`
+/// is chosen first (the most specific folder wins).
+pub fn resolve_space_at<'a>(
+    cfg: &'a Config,
+    name: Option<&str>,
+    cwd: Option<&Path>,
+) -> Result<&'a SpaceConfig, String> {
+    if name.is_none() {
+        if let Some(cwd) = cwd {
+            let cwd = cwd.to_string_lossy();
+            let containing = cfg
+                .spaces
+                .iter()
+                .filter(|s| {
+                    !is_hidden(s)
+                        && !s.folder_path.is_empty()
+                        && folder_contains(&s.folder_path, &cwd, cfg!(windows))
+                })
+                .max_by_key(|s| Path::new(&s.folder_path).components().count());
+            if let Some(space) = containing {
+                return Ok(space);
+            }
+        }
+    }
     if let Some(n) = name {
         cfg.spaces
             .iter()
-            .find(|s| s.name == n)
+            .find(|s| s.name == n && !is_hidden(s))
+            .or_else(|| cfg.spaces.iter().find(|s| s.name == n))
             .ok_or_else(|| format!("space \"{n}\" not found"))
     } else {
-        match cfg.spaces.len() {
-            1 => Ok(&cfg.spaces[0]),
+        let visible: Vec<&SpaceConfig> = cfg.spaces.iter().filter(|s| !is_hidden(s)).collect();
+        match visible.len() {
+            1 => Ok(visible[0]),
             0 => Err("no spaces configured; use 'space add' or pass --url".to_string()),
             _ => Err("multiple spaces configured; use -s <name> to select one".to_string()),
         }
@@ -516,6 +731,232 @@ mod tests {
     fn config_dir_from_empty_xdg_falls_back_to_home() {
         let d = config_dir_from(Some(""), "/home/user");
         assert_eq!(d, PathBuf::from("/home/user/.config/silverbullet"));
+    }
+
+    fn env(windows: bool) -> ConfigEnv {
+        ConfigEnv {
+            sb_config_dir: None,
+            xdg: None,
+            appdata: Some("/appdata".into()),
+            home: "/home/user".into(),
+            windows,
+        }
+    }
+
+    #[test]
+    fn explicit_config_dir_wins_on_every_platform() {
+        for windows in [false, true] {
+            let mut e = env(windows);
+            e.sb_config_dir = Some("/isolated/config".into());
+            e.xdg = Some("/custom/xdg".into());
+            assert_eq!(config_dir_for(&e), PathBuf::from("/isolated/config"));
+        }
+    }
+
+    #[test]
+    fn windows_uses_appdata() {
+        assert_eq!(
+            config_dir_for(&env(true)),
+            PathBuf::from("/appdata").join("SilverBullet")
+        );
+    }
+
+    #[test]
+    fn windows_ignores_xdg_so_desktop_and_sb_agree() {
+        let mut e = env(true);
+        e.xdg = Some("/custom/xdg".into());
+        assert_eq!(
+            config_dir_for(&e),
+            PathBuf::from("/appdata").join("SilverBullet")
+        );
+    }
+
+    #[test]
+    fn windows_folder_matching_ignores_verbatim_prefix_and_case() {
+        assert!(folder_contains(r"\\?\C:\Notes", r"C:\notes\Daily", true));
+        assert!(folder_contains(r"C:\Notes", r"\\?\c:\NOTES", true));
+        assert!(!folder_contains(r"C:\Notes", r"C:\NotesX", true));
+        assert!(folder_contains("/a/b", "/a/b/c", false));
+        assert!(!folder_contains("/a/b", "/a/bc", false));
+        assert!(!folder_contains("/a/B", "/a/b", false));
+    }
+
+    #[test]
+    fn hidden_spaces_do_not_count_for_the_implicit_default() {
+        let mut single = folder("harbor", "/tmp/harbor");
+        single.extra.insert(
+            "ephemeral".into(),
+            serde_json::json!({"entryFile": "Harbor.md"}),
+        );
+        let mut builtin = folder("help", "/tmp/help");
+        builtin.extra.insert("builtin".into(), Value::Bool(true));
+        let cfg = Config {
+            spaces: vec![
+                SpaceConfig {
+                    name: "notes".into(),
+                    url: "https://notes.example.com".into(),
+                    ..Default::default()
+                },
+                single,
+                builtin,
+            ],
+        };
+        assert_eq!(resolve_space_at(&cfg, None, None).unwrap().name, "notes");
+        assert_eq!(
+            resolve_space_at(&cfg, None, Some(Path::new("/tmp/harbor")))
+                .unwrap()
+                .name,
+            "notes"
+        );
+    }
+
+    #[test]
+    fn unix_uses_xdg_then_home() {
+        assert_eq!(
+            config_dir_for(&env(false)),
+            PathBuf::from("/home/user/.config/silverbullet")
+        );
+        let mut e = env(false);
+        e.xdg = Some("/custom/xdg".into());
+        assert_eq!(
+            config_dir_for(&e),
+            PathBuf::from("/custom/xdg/silverbullet")
+        );
+    }
+
+    #[test]
+    fn legacy_dir_is_copied_once_and_kept() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("config.json"), r#"{"spaces":[]}"#).unwrap();
+        std::fs::write(old.join("key"), [7u8; 32]).unwrap();
+        assert!(migrate_legacy_dir(&old, &new).unwrap());
+        assert_eq!(std::fs::read(new.join("key")).unwrap(), vec![7u8; 32]);
+        assert!(old.join("config.json").exists());
+        std::fs::write(old.join("config.json"), r#"{"spaces":[{"bogus":1}]}"#).unwrap();
+        assert!(!migrate_legacy_dir(&old, &new).unwrap());
+        assert!(load_from(&new).unwrap().spaces.is_empty());
+    }
+
+    fn registry(dir: &Path, json: serde_json::Value, key: Option<[u8; 32]>) {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("config.json"), serde_json::to_vec(&json).unwrap()).unwrap();
+        if let Some(key) = key {
+            std::fs::write(dir.join("key"), key).unwrap();
+        }
+    }
+
+    #[test]
+    fn legacy_remote_spaces_join_an_existing_registry_under_its_key() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (old, new) = (tmp.path().join("old"), tmp.path().join("new"));
+        let token = crypto::encrypt_with_key(&[1; 32], "sample-token").unwrap();
+        registry(
+            &old,
+            serde_json::json!({"spaces": [
+                {"id": "b", "name": "notes", "url": "https://notes.example.com", "auth": {"method": "token", "encryptedToken": token}},
+                {"id": "c", "name": "legacy", "folderPath": "/tmp/legacy", "auth": {"method": "none"}}
+            ]}),
+            Some([1; 32]),
+        );
+        registry(
+            &new,
+            serde_json::json!({"spaces": [{"id": "a", "name": "notes", "folderPath": "/tmp/notes", "auth": {"method": "none"}}]}),
+            Some([2; 32]),
+        );
+        assert!(migrate_legacy_dir(&old, &new).unwrap());
+        let cfg = load_from(&new).unwrap();
+        let names: Vec<&str> = cfg.spaces.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, vec!["notes", "notes-2"]);
+        let moved = &cfg.spaces[1].auth.encrypted_token;
+        assert_eq!(
+            crypto::decrypt_with_key(&[2; 32], moved).unwrap(),
+            "sample-token"
+        );
+        assert_eq!(std::fs::read(new.join("key")).unwrap(), vec![2u8; 32]);
+        assert!(!migrate_legacy_dir(&old, &new).unwrap(), "runs once");
+        assert_eq!(load_from(&new).unwrap().spaces.len(), 2);
+    }
+
+    #[test]
+    fn legacy_copy_never_replaces_an_existing_key() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (old, new) = (tmp.path().join("old"), tmp.path().join("new"));
+        let token = crypto::encrypt_with_key(&[1; 32], "sample-token").unwrap();
+        registry(
+            &old,
+            serde_json::json!({"spaces": [{"id": "b", "name": "notes", "url": "https://notes.example.com", "auth": {"method": "token", "encryptedToken": token}}]}),
+            Some([1; 32]),
+        );
+        std::fs::create_dir_all(&new).unwrap();
+        std::fs::write(new.join("key"), [2u8; 32]).unwrap();
+        assert!(migrate_legacy_dir(&old, &new).unwrap());
+        let cfg = load_from(&new).unwrap();
+        assert_eq!(
+            crypto::decrypt_with_key(&[2; 32], &cfg.spaces[0].auth.encrypted_token).unwrap(),
+            "sample-token"
+        );
+        assert_eq!(std::fs::read(new.join("key")).unwrap(), vec![2u8; 32]);
+    }
+
+    #[test]
+    fn legacy_dir_absent_is_a_no_op() {
+        let tmp = tempfile::tempdir().unwrap();
+        assert!(!migrate_legacy_dir(&tmp.path().join("old"), &tmp.path().join("new")).unwrap());
+        assert!(!tmp.path().join("new").exists());
+    }
+
+    fn folder(name: &str, path: &str) -> SpaceConfig {
+        SpaceConfig {
+            name: name.into(),
+            folder_path: path.into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn cwd_selects_the_most_specific_folder_space() {
+        let cfg = Config {
+            spaces: vec![folder("outer", "/a"), folder("inner", "/a/b")],
+        };
+        let at = |cwd: &str| {
+            resolve_space_at(&cfg, None, Some(Path::new(cwd)))
+                .map(|s| s.name.clone())
+                .unwrap_or_default()
+        };
+        assert_eq!(at("/a/b/c"), "inner");
+        assert_eq!(at("/a/b"), "inner");
+        assert_eq!(at("/a/x"), "outer");
+        assert_eq!(at("/a/bc"), "outer");
+    }
+
+    #[test]
+    fn explicit_name_beats_cwd() {
+        let cfg = Config {
+            spaces: vec![folder("outer", "/a"), folder("inner", "/a/b")],
+        };
+        let s = resolve_space_at(&cfg, Some("outer"), Some(Path::new("/a/b"))).unwrap();
+        assert_eq!(s.name, "outer");
+    }
+
+    #[test]
+    fn unmatched_cwd_falls_back_to_the_only_space_or_errors() {
+        let one = Config {
+            spaces: vec![folder("only", "/a")],
+        };
+        assert_eq!(
+            resolve_space_at(&one, None, Some(Path::new("/z")))
+                .unwrap()
+                .name,
+            "only"
+        );
+        let two = Config {
+            spaces: vec![folder("x", "/a"), folder("y", "/b")],
+        };
+        let err = resolve_space_at(&two, None, Some(Path::new("/z"))).unwrap_err();
+        assert!(err.contains("multiple spaces"), "{err}");
     }
 
     #[test]

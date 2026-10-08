@@ -11,10 +11,11 @@
 use std::io::{IsTerminal, Read};
 use std::process::ExitCode;
 
-use crate::cli::{Cli, Command, CoreCommand, GlobalFlags};
+use crate::cli::{Cli, Command, CoreCommand, GlobalFlags, SpaceCmd};
 use crate::commands;
 use crate::config::{self, Config};
 use crate::conn::{self, SpaceConnection};
+use crate::local;
 use crate::output::{self, OutputMode};
 
 /// Top-level entry: dispatch and map errors to an exit code.  `main` calls this.
@@ -29,9 +30,38 @@ pub fn run(cli: Cli) -> ExitCode {
 }
 
 fn dispatch(cli: Cli) -> Result<ExitCode, String> {
-    let g = cli.global.clone();
+    let mut g = cli.global.clone();
+    if cli.open_path.is_some() && cli.command.is_some() {
+        let message = "An open path cannot be combined with a subcommand";
+        if matches!(&cli.command, Some(Command::Core(CoreCommand::Fs(_)))) {
+            return Ok(commands::fs::report_error(
+                &g,
+                crate::fs_api::FsError::new("invalid_arguments", message, 2),
+            ));
+        }
+        return Err(message.into());
+    }
     match cli.command {
-        Command::Version => {
+        None => match cli.open_path {
+            Some(path) if !std::path::Path::new(&path).exists() => Err(format!(
+                "unrecognized subcommand or missing path '{path}'; run sb --help for commands"
+            )),
+            Some(path) => open(Some(&path)),
+            None => {
+                // Without Desktop, a bare `sb` keeps showing help.
+                if local::desktop_host(&config::config_dir()).is_ok() {
+                    open(None)
+                } else {
+                    use clap::CommandFactory;
+                    Cli::command()
+                        .print_help()
+                        .map_err(|e| format!("printing help: {e}"))?;
+                    Ok(ExitCode::SUCCESS)
+                }
+            }
+        },
+        Some(Command::Open { path }) => open(path.as_deref()),
+        Some(Command::Version) => {
             let v = if crate::VERSION.is_empty() {
                 "dev"
             } else {
@@ -40,21 +70,60 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             println!("{v}");
             Ok(ExitCode::SUCCESS)
         }
-        Command::Space(sub) => {
+        Some(Command::Space(sub)) => {
             match sub {
-                crate::cli::SpaceCmd::Add { no_browser } => {
-                    commands::space::space_add_with_options(None, no_browser)?
-                }
-                crate::cli::SpaceCmd::Login { name, no_browser } => {
+                SpaceCmd::Add {
+                    path_or_url,
+                    no_browser,
+                } => match path_or_url {
+                    Some(folder)
+                        if !folder.starts_with("http://") && !folder.starts_with("https://") =>
+                    {
+                        commands::space::space_add_folder(&folder)?
+                    }
+                    url => commands::space::space_add_with_options(url.as_deref(), no_browser)?,
+                },
+                SpaceCmd::Login { name, no_browser } => {
                     commands::space::space_login(&name, no_browser)?
                 }
-                crate::cli::SpaceCmd::Ls => commands::space::space_ls()?,
-                crate::cli::SpaceCmd::Rm { name } => commands::space::space_rm(&name)?,
+                SpaceCmd::Ls { all } => commands::space::space_ls(all)?,
+                SpaceCmd::Rm { name } => commands::space::space_rm(&name)?,
             }
             Ok(ExitCode::SUCCESS)
         }
-        Command::Core(cmd) => run_core_command(&g, cmd),
+        Some(Command::Core(CoreCommand::Fs(cmd))) => {
+            let prepared = commands::fs::validate(&g, &cmd).and_then(|()| {
+                local::prepare(&mut g, false).map_err(|error| {
+                    crate::fs_api::FsError::new(
+                        if error.authentication {
+                            "authentication_required"
+                        } else {
+                            "connection_failed"
+                        },
+                        error.message,
+                        if error.authentication { 4 } else { 8 },
+                    )
+                })
+            });
+            if let Err(error) = prepared {
+                return Ok(commands::fs::report_error(&g, error));
+            }
+            Ok(commands::fs::run(&g, cmd))
+        }
+        Some(Command::Core(cmd)) => {
+            if cmd.needs_connection() {
+                local::prepare(&mut g, true).map_err(|error| error.message)?;
+            }
+            run_core_command(&g, cmd)
+        }
     }
+}
+
+/// Start SilverBullet Desktop, opening `path` when given.
+fn open(path: Option<&str>) -> Result<ExitCode, String> {
+    let host = local::desktop_host(&config::config_dir()).map_err(|error| error.message)?;
+    local::launch(&host, path.map(std::path::Path::new))?;
+    Ok(ExitCode::SUCCESS)
 }
 
 /// Dispatch one of the [`CoreCommand`]s shared with the Desktop CLI. The
@@ -195,6 +264,26 @@ mod tests {
         };
         let mode = output::resolve_mode(g.json, g.text, &g.output, false);
         assert_eq!(mode, OutputMode::Text);
+    }
+
+    #[test]
+    fn unknown_words_are_not_opened_as_paths() {
+        use clap::Parser;
+        for word in ["describe", "lint", "get"] {
+            let cli = Cli::try_parse_from(["sb", word]).unwrap();
+            let err = dispatch(cli).unwrap_err();
+            assert!(err.contains("unrecognized subcommand"), "{word}: {err}");
+        }
+    }
+
+    #[test]
+    fn open_path_cannot_be_combined_with_a_subcommand() {
+        use clap::Parser;
+        let cli = Cli::try_parse_from(["sb", "./notes", "eval", "1"]).unwrap();
+        assert_eq!(
+            dispatch(cli).unwrap_err(),
+            "An open path cannot be combined with a subcommand"
+        );
     }
 
     /// resolve_conn with --url set should NOT try to load config.json

@@ -4,6 +4,7 @@ pub const OVERVIEW: &str = r#"Command guide:
   Files: fs ls, read, stat, write, edit, rm — work on the space's files directly.
   Lua and queries: eval, script, query, logs, screenshot — run inside the connected space.
   Connections: space add, login, ls, rm.
+  SilverBullet Desktop: open, or sb <path> — open a local folder or file.
   CLI maintenance: version, upgrade, upgrade-edge.
 
 Getting started:
@@ -14,7 +15,8 @@ Getting started:
 
 Select a saved connection with --space (optional when only one exists), or use
 --url and optionally --token to connect directly. Flags may appear before or
-after the command. Space commands require a running server.
+after the command. Space commands require a running server; folder spaces
+are served by SilverBullet Desktop, which sb starts when needed.
 
 Use sb <command> --help for examples and detailed rules; -h gives compact help.
 
@@ -49,8 +51,10 @@ pub const COMPACT_HINT: &str =
 pub struct Cli {
     #[command(flatten)]
     pub global: GlobalFlags,
+    /// Local file or folder to open in SilverBullet Desktop.
+    pub open_path: Option<String>,
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -94,10 +98,18 @@ pub struct GlobalFlags {
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// Open a local file or folder in SilverBullet Desktop.
+    #[command(
+        after_long_help = "Requires SilverBullet Desktop. Omit the path to just start it.\n\nExamples:\n  sb open ./notes\n  sb .          # same as sb open ."
+    )]
+    Open {
+        /// Local file or folder; omit to start SilverBullet Desktop.
+        path: Option<String>,
+    },
     /// Manage saved space connections.
     #[command(
         subcommand,
-        after_long_help = "Examples:\n  sb space add\n  sb space ls\n  sb space login notes\n  sb space rm notes\n\nRemoving a saved connection does not delete its remote files."
+        after_long_help = "Examples:\n  sb space add\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space ls\n  sb space login notes\n  sb space rm notes\n\nRemoving a saved connection does not delete its files."
     )]
     Space(SpaceCmd),
     /// Print the version.
@@ -200,9 +212,11 @@ impl CoreCommand {
 pub enum SpaceCmd {
     /// Add a space connection interactively.
     #[command(
-        after_long_help = "Interactive setup prompts for connection details and authentication. Browser sign-in may require completing login outside the terminal.\n\nExample: sb space add"
+        after_long_help = "With a folder path, registers a local folder space served by SilverBullet Desktop. With a URL or no argument, sets up a remote connection; interactive setup prompts for connection details and authentication. Browser sign-in may require completing login outside the terminal.\n\nExamples:\n  sb space add ./notes\n  sb space add https://notes.example.com"
     )]
     Add {
+        /// Local folder or remote server URL; omit for interactive setup.
+        path_or_url: Option<String>,
         /// Print the sign-in URL without opening a browser.
         #[arg(long)]
         no_browser: bool,
@@ -221,9 +235,13 @@ pub enum SpaceCmd {
     /// List saved spaces.
     #[command(
         visible_alias = "list",
-        after_long_help = "Lists saved connections.\n\nExample: sb space ls"
+        after_long_help = "Lists saved connections. Single-file spaces opened in SilverBullet Desktop are hidden unless --all is given.\n\nExample: sb space ls"
     )]
-    Ls,
+    Ls {
+        /// Include single-file spaces opened in SilverBullet Desktop.
+        #[arg(long)]
+        all: bool,
+    },
     /// Remove a saved space.
     #[command(
         visible_alias = "remove",
@@ -337,21 +355,73 @@ mod tests {
 
     #[test]
     fn repl_is_not_a_supported_subcommand() {
-        assert!(Cli::try_parse_from(["sb", "repl"]).is_err());
+        let cli = Cli::try_parse_from(["sb", "repl"]).unwrap();
+        assert!(cli.command.is_none());
+        assert_eq!(cli.open_path.as_deref(), Some("repl"));
         assert!(Cli::try_parse_from(["sb", "repl", "--plain"]).is_err());
+    }
+
+    #[test]
+    fn desktop_open_forms_parse() {
+        let bare = Cli::try_parse_from(["sb"]).unwrap();
+        assert!(bare.command.is_none() && bare.open_path.is_none());
+        assert_eq!(
+            Cli::try_parse_from(["sb", "."])
+                .unwrap()
+                .open_path
+                .as_deref(),
+            Some(".")
+        );
+        assert!(matches!(
+            Cli::try_parse_from(["sb", "open", "./notes"])
+                .unwrap()
+                .command,
+            Some(Command::Open { path: Some(_) })
+        ));
+    }
+
+    #[test]
+    fn space_add_accepts_a_folder_or_url_and_ls_accepts_all() {
+        for (args, expected) in [
+            (vec!["sb", "space", "add", "./notes"], Some("./notes")),
+            (
+                vec![
+                    "sb",
+                    "space",
+                    "add",
+                    "https://notes.example.com",
+                    "--no-browser",
+                ],
+                Some("https://notes.example.com"),
+            ),
+            (vec!["sb", "space", "add"], None),
+        ] {
+            match Cli::try_parse_from(&args).unwrap().command {
+                Some(Command::Space(SpaceCmd::Add { path_or_url, .. })) => {
+                    assert_eq!(path_or_url.as_deref(), expected)
+                }
+                _ => panic!("{args:?}"),
+            }
+        }
+        assert!(matches!(
+            Cli::try_parse_from(["sb", "space", "ls", "--all"])
+                .unwrap()
+                .command,
+            Some(Command::Space(SpaceCmd::Ls { all: true }))
+        ));
     }
 
     #[test]
     fn lua_and_logs_remain_supported() {
         assert!(matches!(
             Cli::try_parse_from(["sb", "lua", "1 + 1"]).unwrap().command,
-            Command::Core(CoreCommand::Lua { .. })
+            Some(Command::Core(CoreCommand::Lua { .. }))
         ));
         assert!(matches!(
             Cli::try_parse_from(["sb", "logs", "--follow"])
                 .unwrap()
                 .command,
-            Command::Core(CoreCommand::Logs { follow: true, .. })
+            Some(Command::Core(CoreCommand::Logs { follow: true, .. }))
         ));
     }
 
@@ -360,7 +430,7 @@ mod tests {
         let cli = Cli::try_parse_from(["sb", "screenshot", "--selector", "#sb-top"]).unwrap();
         assert!(matches!(
             cli.command,
-            Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s), full_page: false })
+            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s), full_page: false }))
                 if file == "screenshot.png" && s == "#sb-top"
         ));
     }
@@ -370,7 +440,7 @@ mod tests {
         let cli = Cli::try_parse_from(["sb", "screenshot", "out.png", "--full-page"]).unwrap();
         assert!(matches!(
             cli.command,
-            Command::Core(CoreCommand::Screenshot { ref file, selector: None, full_page: true })
+            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: None, full_page: true }))
                 if file == "out.png"
         ));
     }
@@ -497,23 +567,16 @@ mod tests {
 
     #[test]
     fn describe_is_not_a_supported_subcommand() {
-        assert!(Cli::try_parse_from(["sb", "describe"]).is_err());
         assert!(Cli::try_parse_from(["sb", "describe", "page", "--json"]).is_err());
     }
 
     #[test]
     fn lint_is_an_eval_call_not_a_subcommand() {
-        assert!(Cli::try_parse_from(["sb", "lint"]).is_err());
         let root = Cli::try_parse_from(["sb", "--help"])
             .err()
             .unwrap()
             .to_string();
         assert!(root.contains("sb eval 'space.lint(\"Page\")'"), "{root}");
         assert!(root.contains("sb eval 'space.lint()'"), "{root}");
-    }
-
-    #[test]
-    fn get_is_not_a_supported_subcommand() {
-        assert!(Cli::try_parse_from(["sb", "get"]).is_err());
     }
 }

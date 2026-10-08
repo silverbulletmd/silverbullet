@@ -183,17 +183,13 @@ pub fn resolve_typed(
         config::resolve_space(cfg, flags.space.as_deref()).map_err(ConnectionError::operational)?;
     let base_url = space.url.trim_end_matches('/').to_string();
 
-    // A space with no URL is folder-based: it's served by a local SilverBullet
-    // app instance on a per-space port, and resolving that (ping/launch the app,
-    // inject the localhost URL + token) is Desktop-CLI logic the standalone Server
-    // `sb` deliberately does not implement. Fail with a clear message instead of
-    // letting reqwest choke on an empty base URL ("builder error").
+    // Folder spaces are normally turned into a localhost URL by
+    // `local::prepare`; reaching here means that did not happen.
     if base_url.is_empty() {
         return Err(ConnectionError::operational(format!(
-            "space \"{}\" has no URL — it is a folder-based space served by the \
-             SilverBullet app. Open it in the app, pass --url <url>, or select a \
-             space that has a URL.",
-            space.name
+            "space \"{}\" is a folder space served by SilverBullet Desktop. {}",
+            space.name,
+            crate::local::REQUIRES_DESKTOP
         )));
     }
 

@@ -1,0 +1,75 @@
+name: Install scripts
+
+# Exercise scripts/install-sb.{sh,ps1} against the published edge release.
+on:
+  push:
+    paths:
+      - scripts/install-sb.sh
+      - scripts/install-sb.ps1
+      - .github/workflows/install-scripts.yml
+  pull_request:
+    paths:
+      - scripts/install-sb.sh
+      - scripts/install-sb.ps1
+      - .github/workflows/install-scripts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shellcheck
+        if: runner.os == 'Linux'
+        run: shellcheck scripts/install-sb.sh
+      - name: Install edge
+        run: |
+          SB_INSTALL_DIR="$RUNNER_TEMP/bin" sh scripts/install-sb.sh --edge
+          "$RUNNER_TEMP/bin/sb" version
+
+  alpine:
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install edge with busybox wget and unzip
+        run: |
+          SB_INSTALL_DIR=/tmp/bin sh scripts/install-sb.sh --edge
+          /tmp/bin/sb version
+
+  debian-slim:
+    runs-on: ubuntu-latest
+    container: debian:bookworm-slim
+    steps:
+      - uses: actions/checkout@v5
+      - name: Missing unzip is reported with a hint
+        run: |
+          apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+          if SB_INSTALL_DIR=/tmp/bin sh scripts/install-sb.sh --edge 2>err.txt; then
+            echo "expected a failure without unzip"; exit 1
+          fi
+          grep -q "unzip is required" err.txt
+      - name: Install edge with unzip
+        run: |
+          apt-get install -y -qq unzip >/dev/null
+          SB_INSTALL_DIR=/tmp/bin sh scripts/install-sb.sh --edge
+          /tmp/bin/sb version
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install edge (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $env:SB_CHANNEL = 'edge'
+          Get-Content -Raw scripts/install-sb.ps1 | Invoke-Expression
+          & "$env:LOCALAPPDATA\SilverBullet\bin\sb.exe" version
+          if ([Environment]::GetEnvironmentVariable('Path', 'User') -notlike "*SilverBullet\bin*") { throw 'user Path not updated' }

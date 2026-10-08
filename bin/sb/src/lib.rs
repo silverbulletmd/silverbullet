@@ -14,6 +14,7 @@ pub mod fs_api;
 pub mod fs_cli;
 pub mod fs_edit;
 mod fs_listing;
+pub mod local;
 pub mod output;
 pub mod run;
 
