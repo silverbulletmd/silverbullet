@@ -2,7 +2,11 @@ import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { expect, test } from "vitest";
 import { addParentPointers, renderToText } from "../../plug-api/lib/tree.ts";
-import { completeStates, removeCompletedTasksFromTree } from "./task.ts";
+import {
+  completeStates,
+  findTaskNodeAtRefPos,
+  removeCompletedTasksFromTree,
+} from "./task.ts";
 
 function removeCompleted(md: string): string {
   createMockSystem();
@@ -88,4 +92,30 @@ test("removeCompletedTasks: no completed tasks, no change", () => {
 `;
   const result = removeCompleted(input);
   expect(result).toEqual(input);
+});
+
+test("findTaskNodeAtRefPos: finds the task a ref position points to", () => {
+  const md = "Intro\n\n* [ ] milk #shopping\n* [x] eggs\n";
+  const tree = parseMarkdown(md);
+  const milkPos = md.indexOf("* [ ] milk");
+  const milk = findTaskNodeAtRefPos(tree, milkPos)!;
+  expect(renderToText(milk)).toEqual("[ ] milk #shopping");
+  expect(md.slice(milk.from, milk.to)).toEqual("[ ] milk #shopping");
+
+  const eggs = findTaskNodeAtRefPos(tree, md.indexOf("* [x] eggs"))!;
+  expect(renderToText(eggs)).toEqual("[x] eggs");
+});
+
+test("findTaskNodeAtRefPos: picks the item's own task, not a nested one", () => {
+  const md = "* [ ] parent\n  * [ ] child\n* [ ] sibling\n";
+  const tree = parseMarkdown(md);
+  const parent = findTaskNodeAtRefPos(tree, 0)!;
+  expect(renderToText(parent)).toEqual("[ ] parent");
+  const child = findTaskNodeAtRefPos(tree, md.indexOf("* [ ] child"))!;
+  expect(renderToText(child)).toEqual("[ ] child");
+});
+
+test("findTaskNodeAtRefPos: returns null outside a list", () => {
+  const tree = parseMarkdown("Just a paragraph\n");
+  expect(findTaskNodeAtRefPos(tree, 0)).toBeNull();
 });
