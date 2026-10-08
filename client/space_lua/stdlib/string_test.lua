@@ -102,3 +102,10 @@ assertEqual(#matches, 3)
 assertEqual(matches[1][1], "ll")
 assertEqual(matches[2][1], "lll")
 assertEqual(matches[3][1], "l")
+
+-- escapeHtml
+assertEqual(string.escapeHtml("plain text"), "plain text")
+assertEqual(string.escapeHtml([[<a href="x">Tom & 'Jerry'</a>]]),
+  "&lt;a href=&quot;x&quot;&gt;Tom &amp; &#39;Jerry&#39;&lt;/a&gt;")
+assertEqual(string.escapeHtml("&lt;"), "&amp;lt;")
+assertEqual(("<b>"):escapeHtml(), "&lt;b&gt;")

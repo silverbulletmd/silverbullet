@@ -328,6 +328,22 @@ export const stringApi = new LuaTable({
     parameters: [{ name: "s", type: "string" }],
     returns: [{ type: "string" }],
   }),
+  escapeHtml: new LuaBuiltinFunction({
+    callback: (_sf, s: string) =>
+      String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;"),
+    description:
+      "Escapes `&`, `<`, `>`, `\"` and `'` so the text can be placed safely inside HTML, for example in a `widget.html` string.",
+    parameters: [{ name: "s", type: "string" }],
+    returns: [{ type: "string" }],
+    examples: [
+      { code: 'widget.html("<b>" .. string.escapeHtml(page.name) .. "</b>")' },
+    ],
+  }),
   matchRegex: new LuaBuiltinFunction({
     callback: (_sf, s: string, pattern: string) => {
       const regex = new RegExp(pattern);
