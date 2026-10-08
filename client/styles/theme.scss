@@ -178,6 +178,21 @@ html {
   --alert-info-border-color: #cfe6fb;
   --badge-background-color: #edf0f3;
   --badge-color: #535d69;
+
+  // Tones for status chips, bars and cards (widgets.chip/bars/stat) and any
+  // space-style: the colour for text and marks, -soft for backgrounds.
+  --tone-success: #1f7a43;
+  --tone-success-soft: #e2f2e7;
+  --tone-warning: #94570a;
+  --tone-warning-soft: #fbeed8;
+  --tone-danger: #b4232f;
+  --tone-danger-soft: #fbe2e4;
+  --tone-info: #1d5fa8;
+  --tone-info-soft: #e1ecf8;
+  --tone-neutral: #55606c;
+  --tone-neutral-soft: #eceff2;
+  --tone-accent: var(--ui-accent-color);
+  --tone-accent-soft: color-mix(in srgb, var(--ui-accent-color) 14%, transparent);
 }
 
 html[data-theme="light"] {
@@ -351,6 +366,19 @@ html[data-theme="light"] {
   --alert-info-border-color: rgba(143, 196, 239, 0.3);
   --badge-background-color: #242a31;
   --badge-color: #b9c2cd;
+
+  --tone-success: #6cc487;
+  --tone-success-soft: #1c3424;
+  --tone-warning: #e7b05a;
+  --tone-warning-soft: #3a2c14;
+  --tone-danger: #f08a8a;
+  --tone-danger-soft: #3d2023;
+  --tone-info: #8fc4ef;
+  --tone-info-soft: #192c40;
+  --tone-neutral: #aab4be;
+  --tone-neutral-soft: #2a3038;
+  --tone-accent: var(--ui-accent-color);
+  --tone-accent-soft: color-mix(in srgb, var(--ui-accent-color) 22%, transparent);
 }
 
 html[data-theme="dark"] {
