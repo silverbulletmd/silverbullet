@@ -113,6 +113,8 @@ sb fs rm 'Projects/Idea.md'
 
 ### Writing and revisions
 
+Filesystem responses carry the content revision in `X-SilverBullet-Revision`, which remains usable when a reverse proxy weakens or replaces `ETag`. The CLI falls back to strong ETags from older servers. A weak ETag alone allows reads but produces a null revision; conditional edits require a usable revision.
+
 Choose exactly one policy for `write`: `--create` creates only when absent, `--if-match <revision>` replaces the revision you inspected, and `--overwrite` explicitly allows unconditional creation or replacement. `--file -` reads stdin, as does an omitted `--file` when stdin is redirected. No input prompt is opened automatically.
 
 `read --json` and `stat --json` include the opaque, quoted `revision` returned by the server. Preserve that string unchanged when passing it to `--if-match`. `edit` always uses a conditional write against its own initial read. Supplying `--if-match` additionally checks that the file still matches your earlier inspection. `rm --if-match` conditionally deletes; plain `rm` is unconditional. Conflicts fail without retry or automatic merging. A lost connection during a mutation can leave its outcome uncertain: inspect the remote file before retrying.

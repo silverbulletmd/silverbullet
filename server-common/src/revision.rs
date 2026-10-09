@@ -1,5 +1,8 @@
 use sha2::{Digest, Sha256};
 
+// Proxies may weaken or replace ETag when transforming the HTTP representation.
+pub const CONTENT_REVISION_HEADER: &str = "x-silverbullet-revision";
+
 pub fn sha256_hex(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);

@@ -7,7 +7,9 @@ use axum::response::{IntoResponse, Response};
 use silverbullet_server_common::reconcile::{
     ReconcileRequest, ReconcileResponse, ReconcileRevision,
 };
-use silverbullet_server_common::revision::{etag_for_hash, hash_from_etag, sha256_hex};
+use silverbullet_server_common::revision::{
+    etag_for_hash, hash_from_etag, sha256_hex, CONTENT_REVISION_HEADER,
+};
 use silverbullet_server_common::space::disk::{is_merge_eligible, MERGE_SIZE_LIMIT};
 use silverbullet_server_common::{FileMeta, SpaceError};
 use silverbullet_server_merge::{contains_conflict_markers, merge, MergeOutcome};
@@ -131,7 +133,9 @@ pub async fn handle_fs_get(
                     set_file_meta_headers(Response::builder().status(StatusCode::OK), &meta)
                         .header("Cache-Control", "no-store");
                 if let Some(hash) = hash {
-                    builder = builder.header(axum::http::header::ETAG, etag_for_hash(&hash));
+                    builder = builder
+                        .header(CONTENT_REVISION_HEADER, etag_for_hash(&hash))
+                        .header(axum::http::header::ETAG, etag_for_hash(&hash));
                 }
                 builder.body(Body::empty()).unwrap()
             }
@@ -255,6 +259,7 @@ fn etag_list_matches(if_none_match: &str, hash: &str) -> bool {
 fn not_modified_by_etag(hash: &str) -> Response {
     Response::builder()
         .status(StatusCode::NOT_MODIFIED)
+        .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
         .header(axum::http::header::ETAG, etag_for_hash(hash))
         .header(axum::http::header::VARY, "Accept")
         .body(Body::empty())
@@ -469,7 +474,9 @@ fn file_response_builder(
         );
     }
     if let Some(hash) = hash {
-        builder = builder.header(axum::http::header::ETAG, etag_for_hash(hash));
+        builder = builder
+            .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
+            .header(axum::http::header::ETAG, etag_for_hash(hash));
     }
     let last_modified = http_date(meta.last_modified);
     if !last_modified.is_empty() {
@@ -557,7 +564,9 @@ fn precondition_failed_response(current: CurrentRevision) -> Response {
     if let Some((meta, hash)) = current {
         builder = set_file_meta_headers(builder, &meta);
         if let Some(hash) = hash {
-            builder = builder.header(axum::http::header::ETAG, etag_for_hash(&hash));
+            builder = builder
+                .header(CONTENT_REVISION_HEADER, etag_for_hash(&hash))
+                .header(axum::http::header::ETAG, etag_for_hash(&hash));
         }
     }
     builder
@@ -634,6 +643,7 @@ pub async fn handle_fs_put(
         Ok(Ok((result_meta, body_hash))) => {
             set_file_meta_headers(Response::builder().status(StatusCode::OK), &result_meta)
                 .header("Cache-Control", "no-store")
+                .header(CONTENT_REVISION_HEADER, etag_for_hash(&body_hash))
                 .header(axum::http::header::ETAG, etag_for_hash(&body_hash))
                 .body(Body::from("OK"))
                 .unwrap()
@@ -989,6 +999,7 @@ fn reconcile_response(resp: ReconcileResponse) -> Response {
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "application/json")
+        .header(CONTENT_REVISION_HEADER, etag_for_hash(&revision.hash))
         .header(axum::http::header::ETAG, etag_for_hash(&revision.hash))
         .header("Cache-Control", "no-store")
         .body(Body::from(json))
@@ -2431,6 +2442,10 @@ mod tests {
             get.headers().get("etag").unwrap().to_str().unwrap(),
             expected
         );
+        assert_eq!(
+            get.headers().get("X-SilverBullet-Revision").unwrap(),
+            expected.as_str()
+        );
 
         let probe = crate::build_router(state.clone())
             .oneshot(
@@ -2445,6 +2460,10 @@ mod tests {
         assert_eq!(
             probe.headers().get("etag").unwrap().to_str().unwrap(),
             expected
+        );
+        assert_eq!(
+            probe.headers().get("X-SilverBullet-Revision").unwrap(),
+            expected.as_str()
         );
     }
 
@@ -2468,6 +2487,10 @@ mod tests {
         assert_eq!(
             put.headers().get("etag").unwrap().to_str().unwrap(),
             expected
+        );
+        assert_eq!(
+            put.headers().get("X-SilverBullet-Revision").unwrap(),
+            expected.as_str()
         );
     }
 
@@ -2682,6 +2705,10 @@ mod tests {
         assert_eq!(
             stale.headers().get("etag").unwrap().to_str().unwrap(),
             etag_v2
+        );
+        assert_eq!(
+            stale.headers().get("X-SilverBullet-Revision").unwrap(),
+            etag_v2.as_str()
         );
         assert!(stale.headers().get("X-Last-Modified").is_some());
         let (data, _) = state.space.read_file("c.md").unwrap();

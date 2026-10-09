@@ -6,6 +6,7 @@ use reqwest::{
     StatusCode, Url,
 };
 use serde_json::{Map, Value};
+use silverbullet_server_common::revision::CONTENT_REVISION_HEADER;
 
 use crate::conn::SpaceConnection;
 
@@ -369,7 +370,8 @@ fn header_text(headers: &HeaderMap, name: &str) -> Option<String> {
 }
 
 fn response_revision(headers: &HeaderMap) -> Result<Option<String>, FsError> {
-    let Some(value) = headers.get(ETAG) else {
+    let dedicated_revision = headers.get(CONTENT_REVISION_HEADER);
+    let Some(value) = dedicated_revision.or_else(|| headers.get(ETAG)) else {
         return Ok(None);
     };
     let revision = value.to_str().map_err(|_| {
@@ -379,6 +381,9 @@ fn response_revision(headers: &HeaderMap) -> Result<Option<String>, FsError> {
             8,
         )
     })?;
+    if dedicated_revision.is_none() && revision.starts_with("W/") {
+        return Ok(None);
+    }
     validate_revision(revision).map_err(|_| {
         FsError::new(
             "invalid_response",
@@ -675,6 +680,63 @@ mod tests {
     }
 
     #[test]
+    fn read_with_weak_etag_succeeds_without_a_write_revision() {
+        let (base_url, request) = mock_server(response(
+            "200 OK",
+            &[("ETag", "W/\"sha256:abc\"")],
+            b"hello",
+        ));
+        let file = connection(&base_url).fs_read("Note.md", 100).unwrap();
+        assert_eq!(file.bytes, b"hello");
+        assert_eq!(file.metadata["revision"], Value::Null);
+        request.join().unwrap();
+    }
+
+    #[test]
+    fn proxy_revision_survives_read_and_conditional_write() {
+        let revision = "\"sha256:original\"";
+        let (base_url, requests) = mock_server_sequence(vec![
+            response(
+                "200 OK",
+                &[
+                    ("ETag", "W/\"sha256:proxy\""),
+                    ("X-SilverBullet-Revision", revision),
+                ],
+                b"hello",
+            ),
+            response(
+                "200 OK",
+                &[("X-SilverBullet-Revision", "\"sha256:updated\"")],
+                b"OK",
+            ),
+        ]);
+        let conn = connection(&base_url);
+        let file = conn.fs_read("Note.md", 100).unwrap();
+        assert_eq!(file.metadata["revision"], revision);
+        let result = conn
+            .fs_write(
+                "Note.md",
+                b"updated".to_vec(),
+                WritePolicy::Match(file.metadata["revision"].as_str().unwrap()),
+            )
+            .unwrap();
+        assert_eq!(result["revision"], "\"sha256:updated\"");
+        let requests = requests.join().unwrap();
+        assert_eq!(requests[1].header("if-match"), Some(revision));
+    }
+
+    #[test]
+    fn invalid_dedicated_revision_does_not_fall_back_to_etag() {
+        let mut headers = HeaderMap::new();
+        headers.insert("ETag", "\"sha256:valid\"".parse().unwrap());
+        headers.insert(
+            "X-SilverBullet-Revision",
+            "W/\"sha256:invalid\"".parse().unwrap(),
+        );
+        assert!(response_revision(&headers).is_err());
+    }
+
+    #[test]
     fn read_rejects_a_body_over_the_explicit_limit() {
         let (base_url, request) = mock_server(response("200 OK", &[], b"12345"));
         let error = connection(&base_url).fs_read("big.bin", 4).unwrap_err();
@@ -687,7 +749,10 @@ mod tests {
     fn conditional_write_reports_both_revisions_on_conflict() {
         let response = response(
             "412 Precondition Failed",
-            &[("ETag", "\"sha256:new\"")],
+            &[
+                ("ETag", "W/\"sha256:new\""),
+                ("X-SilverBullet-Revision", "\"sha256:new\""),
+            ],
             b"Precondition Failed",
         );
         let (base_url, request) = mock_server(response);
