@@ -169,6 +169,24 @@ function stampRecipients(
   });
 }
 
+/**
+ * The cross-indexer passes every page's raw indexer output goes through
+ * before it is stored: comment marking, anchor records, and recipient
+ * stamping. Shared by indexing, ad-hoc indexing and X-Ray so they agree.
+ */
+export function postProcessIndexed(
+  objects: ObjectValue<any>[],
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  tree: ParseTree,
+  text: string,
+): ObjectValue<any>[] {
+  return stampRecipients(
+    appendAnchorRecords(markCommentedObjects(objects, tree), pageMeta, text),
+    frontmatter,
+  );
+}
+
 export const allIndexers: IndexerFunction[] = [
   pageIndexPage,
   indexData,
@@ -204,13 +222,12 @@ export async function indexMarkdown(
       .filter((indexer) => indexer !== pageIndexPage)
       .map((indexer) => indexer(pageMeta, frontmatter, tree, text)),
   );
-  return stampRecipients(
-    appendAnchorRecords(
-      markCommentedObjects(indexResults.flat(), tree),
-      pageMeta,
-      text,
-    ),
+  return postProcessIndexed(
+    indexResults.flat(),
+    pageMeta,
     frontmatter,
+    tree,
+    text,
   );
 }
 
@@ -240,13 +257,6 @@ export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   );
   await index.indexObjects<any>(
     name,
-    stampRecipients(
-      appendAnchorRecords(
-        markCommentedObjects(indexResults.flat(), tree),
-        meta,
-        text,
-      ),
-      frontmatter,
-    ),
+    postProcessIndexed(indexResults.flat(), meta, frontmatter, tree, text),
   );
 }

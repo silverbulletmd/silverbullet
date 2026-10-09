@@ -9,7 +9,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { allIndexers } from "./indexer.ts";
+import { allIndexers, postProcessIndexed } from "./indexer.ts";
 import { stringify as yamlStringify } from "./yaml.ts";
 
 const STORE_KEY = "xray.enabled";
@@ -118,7 +118,13 @@ export async function xrayInfo({
   const indexResults = await Promise.all(
     allIndexers.map((indexer) => indexer(pageMeta, frontmatter, tree, text)),
   );
-  const raw = indexResults.flat() as ObjectValue[];
+  const raw = postProcessIndexed(
+    indexResults.flat(),
+    pageMeta,
+    frontmatter,
+    tree,
+    text,
+  ) as ObjectValue[];
 
   // The `page` object has no natural range (it covers the whole
   // document). When a frontmatter section exists, attach its range to the page object.
