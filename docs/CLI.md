@@ -50,6 +50,14 @@ This interactive wizard will prompt for:
 2. The **URL** of your SilverBullet server
 3. **Authentication** method ([[Install/Configuration#Authentication|token]], username/password, or none)
 
+The name defaults to the URL's last path segment, or else the first part of its host: both `https://sb.example.com/notes` and `https://notes.example.com` become `notes`. To skip the prompts, pass the URL and flags:
+```bash
+sb space add https://notes.example.com --name work --auth browser --no-browser
+echo "$TOKEN" | sb space add https://notes.example.com --auth token
+sb space add https://notes.example.com --auth password --username alice < password.txt
+```
+When stdin is not a terminal (scripts, agents), `sb space add` never prompts. It uses the default name, and browser sign-in when the server requires authentication, unless `--name` or `--auth` say otherwise. A token or password is read as a single line from stdin. Failed authentication exits with an error instead of retrying.
+
 ## Folder spaces (SilverBullet Desktop)
 With [[Install/Desktop|SilverBullet Desktop]] installed, `sb` also works with local folders:
 ```bash

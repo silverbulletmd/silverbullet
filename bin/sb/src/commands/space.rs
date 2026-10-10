@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, IsTerminal, Write};
 use std::path::Path;
 use std::time::Duration;
 
@@ -132,26 +132,68 @@ pub fn space_add_folder(folder: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub fn space_add_interactive(preset_url: Option<&str>) -> Result<(), String> {
-    space_add_with_options(preset_url, false)
+/// Options for `sb space add <url>`; unset fields are prompted for on a
+/// terminal and defaulted (or rejected) otherwise.
+#[derive(Default)]
+pub struct AddOptions {
+    pub url: Option<String>,
+    pub name: Option<String>,
+    pub auth: Option<String>,
+    pub username: Option<String>,
+    pub no_browser: bool,
 }
 
-pub fn space_add_with_options(preset_url: Option<&str>, no_browser: bool) -> Result<(), String> {
+/// Default connection name: the URL's last path segment
+/// (`sb.example.com/hermes` → `hermes`), else the host's first label
+/// (`hermes.example.com` → `hermes`), or the dashed address for IPv4 hosts.
+/// `None` when that is not a valid name (IPv6 hosts) or is already taken.
+pub fn default_space_name(url: &reqwest::Url, cfg: &Config) -> Option<String> {
+    let segment = url
+        .path_segments()
+        .and_then(|mut segments| segments.rfind(|s| !s.is_empty()))
+        .map(str::to_string);
+    let name = match (segment, url.domain()) {
+        (Some(segment), _) => segment,
+        (None, Some(domain)) => domain.split('.').next()?.to_string(),
+        (None, None) => url.host_str()?.replace('.', "-"),
+    };
+    (is_valid_space_name(&name) && !cfg.spaces.iter().any(|s| s.name == name)).then_some(name)
+}
+
+pub fn space_add_remote(opts: AddOptions) -> Result<(), String> {
+    let interactive = std::io::stdin().is_terminal();
     let mut reader = BufReader::new(std::io::stdin());
-    let name = prompt(&mut reader, "Space name: ", "")?;
-    if !is_valid_space_name(&name) {
-        return Err("name must be alphanumeric with hyphens only".into());
-    }
-    if config::load()?.spaces.iter().any(|s| s.name == name) {
-        return Err(format!("space {name:?} already exists"));
-    }
-    let url = match preset_url {
-        Some(url) => url.to_string(),
-        None => prompt(&mut reader, "URL (e.g. https://notes.example.com): ", "")?,
+    let url = match (opts.url, interactive) {
+        (Some(url), _) => url,
+        (None, true) => prompt(&mut reader, "URL (e.g. https://notes.example.com): ", "")?,
+        (None, false) => return Err("a URL is required when stdin is not a terminal".into()),
     };
     let parsed = reqwest::Url::parse(&url).map_err(|_| "invalid URL format".to_string())?;
     if !parsed.has_host() || !matches!(parsed.scheme(), "http" | "https") {
         return Err("invalid URL format".into());
+    }
+    let existing = config::load()?;
+    let default_name = default_space_name(&parsed, &existing).unwrap_or_default();
+    let name = match opts.name {
+        Some(name) => name,
+        None if interactive => {
+            let question = if default_name.is_empty() {
+                "Space name: ".to_string()
+            } else {
+                format!("Space name [{default_name}]: ")
+            };
+            prompt(&mut reader, &question, &default_name)?
+        }
+        None if default_name.is_empty() => {
+            return Err("cannot derive a free space name from the URL; pass --name".into())
+        }
+        None => default_name,
+    };
+    if !is_valid_space_name(&name) {
+        return Err("name must be alphanumeric with hyphens only".into());
+    }
+    if existing.spaces.iter().any(|s| s.name == name) {
+        return Err(format!("space {name:?} already exists"));
     }
     let url = url.trim_end_matches('/').to_string();
     let timeout = Duration::from_secs(30);
@@ -195,12 +237,22 @@ pub fn space_add_with_options(preset_url: Option<&str>, no_browser: bool) -> Res
             "Auth type (password / token) [password]: "
         };
         loop {
-            let method = prompt(&mut reader, question, default)?;
+            let method = match &opts.auth {
+                Some(method) => method.clone(),
+                None if interactive => prompt(&mut reader, question, default)?,
+                None if browser => "browser".into(),
+                None => {
+                    return Err(
+                        "This server does not support device sign-in; pass --auth token or --auth password"
+                            .into(),
+                    )
+                }
+            };
             if method == "browser" {
                 if !browser {
                     return Err("This server does not support device sign-in.".into());
                 }
-                break device_auth::sign_in(&url, no_browser)?;
+                break device_auth::sign_in(&url, opts.no_browser)?;
             }
             let (auth, verify_auth) = match method.as_str() {
                 "token" => {
@@ -217,15 +269,19 @@ pub fn space_add_with_options(preset_url: Option<&str>, no_browser: bool) -> Res
                     )
                 }
                 "password" => {
-                    let username = prompt(&mut reader, "Username: ", "")?;
+                    let username = match &opts.username {
+                        Some(username) => username.clone(),
+                        None => prompt(&mut reader, "Username: ", "")?,
+                    };
                     let password = prompt(&mut reader, "Password: ", "")?;
                     let (name, value) =
                         match conn::login_for_jwt(&client, &url, &username, &password) {
                             Ok(pair) => pair,
-                            Err(e) => {
+                            Err(e) if interactive => {
                                 eprintln!("Authentication failed: {e}. Try again.");
                                 continue;
                             }
+                            Err(e) => return Err(format!("Authentication failed: {e}")),
                         };
                     let key = encryption_key()?;
                     (
@@ -250,10 +306,16 @@ pub fn space_add_with_options(preset_url: Option<&str>, no_browser: bool) -> Res
             if verify.auth_check() {
                 break auth;
             }
+            if !interactive {
+                return Err("Authentication failed.".into());
+            }
             eprintln!("Authentication failed. Try again.");
         }
     } else {
         eprintln!("Server is reachable (no authentication required).");
+        if opts.auth.is_some() {
+            eprintln!("Ignoring --auth.");
+        }
         AuthConfig {
             method: "none".into(),
             ..Default::default()
@@ -418,6 +480,46 @@ mod tests {
         cfg.spaces[0].url = "https://different.example.com".into();
         assert!(replace_auth(&mut cfg, &original, AuthConfig::default()).is_err());
         assert_eq!(cfg.spaces[0].auth.method, "browser");
+    }
+
+    #[test]
+    fn default_name_comes_from_the_url_host() {
+        let name =
+            |url: &str, cfg: &Config| default_space_name(&reqwest::Url::parse(url).unwrap(), cfg);
+        let empty = Config::default();
+        assert_eq!(
+            name("https://hermes.example.com", &empty).as_deref(),
+            Some("hermes")
+        );
+        assert_eq!(
+            name("http://localhost:3000/", &empty).as_deref(),
+            Some("localhost")
+        );
+        assert_eq!(
+            name("http://127.0.0.1:3000", &empty).as_deref(),
+            Some("127-0-0-1")
+        );
+        assert_eq!(name("http://[::1]:3000", &empty), None);
+        assert_eq!(name("https://my_host.example.com", &empty), None);
+        assert_eq!(
+            name("https://sb.zef.pub/hermes", &empty).as_deref(),
+            Some("hermes")
+        );
+        assert_eq!(
+            name("https://sb.zef.pub/team/hermes/", &empty).as_deref(),
+            Some("hermes")
+        );
+        assert_eq!(
+            name("http://127.0.0.1:3000/hermes", &empty).as_deref(),
+            Some("hermes")
+        );
+        let taken = Config {
+            spaces: vec![SpaceConfig {
+                name: "hermes".into(),
+                ..Default::default()
+            }],
+        };
+        assert_eq!(name("https://hermes.example.com", &taken), None);
     }
 
     #[test]

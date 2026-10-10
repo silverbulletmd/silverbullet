@@ -9,6 +9,7 @@ pub const OVERVIEW: &str = r#"Command guide:
 
 Getting started:
   sb space add
+  sb space add https://notes.example.com --auth browser --no-browser   # no prompts
   sb --space notes fs ls
   sb fs read 'Projects/Launch.md'
   sb query 'from tags.page select name' --json
@@ -109,7 +110,7 @@ pub enum Command {
     /// Manage saved space connections.
     #[command(
         subcommand,
-        after_long_help = "Examples:\n  sb space add\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space ls\n  sb space login notes\n  sb space rm notes\n\nRemoving a saved connection does not delete its files."
+        after_long_help = "Examples:\n  sb space add\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space add https://notes.example.com --name work --auth token < token.txt\n  sb space ls\n  sb space login notes\n  sb space rm notes\n\nRemoving a saved connection does not delete its files."
     )]
     Space(SpaceCmd),
     /// Print the version.
@@ -210,13 +211,22 @@ impl CoreCommand {
 
 #[derive(Subcommand)]
 pub enum SpaceCmd {
-    /// Add a space connection interactively.
+    /// Add a space connection.
     #[command(
-        after_long_help = "With a folder path, registers a local folder space served by SilverBullet Desktop. With a URL or no argument, sets up a remote connection; interactive setup prompts for connection details and authentication. Browser sign-in may require completing login outside the terminal.\n\nExamples:\n  sb space add ./notes\n  sb space add https://notes.example.com"
+        after_long_help = "With a folder path, registers a local folder space served by SilverBullet Desktop. With a URL or no argument, sets up a remote connection; interactive setup prompts for connection details and authentication. Browser sign-in may require completing login outside the terminal.\n\nThe name defaults to the URL's last path segment (sb.example.com/notes becomes notes), or else the first part of its host (notes.example.com becomes notes). When stdin is not a terminal, nothing is prompted: give the URL, plus --name or --auth to override the defaults. Tokens and passwords are then read as one line each from stdin.\n\nExamples:\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space add https://notes.example.com --name work --auth browser --no-browser\n  echo \"$TOKEN\" | sb space add https://notes.example.com --auth token"
     )]
     Add {
         /// Local folder or remote server URL; omit for interactive setup.
         path_or_url: Option<String>,
+        /// Name for the connection (default: derived from the URL).
+        #[arg(long)]
+        name: Option<String>,
+        /// Authentication method, used when the server requires it.
+        #[arg(long, value_parser = ["browser", "token", "password"])]
+        auth: Option<String>,
+        /// Username for password authentication.
+        #[arg(long)]
+        username: Option<String>,
         /// Print the sign-in URL without opening a browser.
         #[arg(long)]
         no_browser: bool,
@@ -409,6 +419,38 @@ mod tests {
                 .command,
             Some(Command::Space(SpaceCmd::Ls { all: true }))
         ));
+    }
+
+    #[test]
+    fn space_add_takes_name_and_auth_flags() {
+        match Cli::try_parse_from([
+            "sb",
+            "space",
+            "add",
+            "https://hermes.example.com",
+            "--name",
+            "work",
+            "--auth",
+            "password",
+            "--username",
+            "alice",
+        ])
+        .unwrap()
+        .command
+        {
+            Some(Command::Space(SpaceCmd::Add {
+                name,
+                auth,
+                username,
+                ..
+            })) => {
+                assert_eq!(name.as_deref(), Some("work"));
+                assert_eq!(auth.as_deref(), Some("password"));
+                assert_eq!(username.as_deref(), Some("alice"));
+            }
+            _ => panic!(),
+        }
+        assert!(Cli::try_parse_from(["sb", "space", "add", "--auth", "magic"]).is_err());
     }
 
     #[test]

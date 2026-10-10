@@ -74,6 +74,9 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             match sub {
                 SpaceCmd::Add {
                     path_or_url,
+                    name,
+                    auth,
+                    username,
                     no_browser,
                 } => match path_or_url {
                     Some(folder)
@@ -81,7 +84,13 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
                     {
                         commands::space::space_add_folder(&folder)?
                     }
-                    url => commands::space::space_add_with_options(url.as_deref(), no_browser)?,
+                    url => commands::space::space_add_remote(commands::space::AddOptions {
+                        url,
+                        name,
+                        auth,
+                        username,
+                        no_browser,
+                    })?,
                 },
                 SpaceCmd::Login { name, no_browser } => {
                     commands::space::space_login(&name, no_browser)?
