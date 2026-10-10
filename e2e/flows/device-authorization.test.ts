@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "../fixtures/core.ts";
 
-function startCli(configHome: string, args: string[], input = "") {
+function startCli(configHome: string, args: string[]) {
   const proc = spawn("./target/debug/sb", args, {
     cwd: join(import.meta.dirname, "../.."),
     env: { ...process.env, XDG_CONFIG_HOME: configHome },
@@ -19,7 +19,7 @@ function startCli(configHome: string, args: string[], input = "") {
     proc.once("error", reject);
     proc.once("exit", resolve);
   });
-  proc.stdin.end(input);
+  proc.stdin.end();
   return { proc, exited, stderr: () => stderr };
 }
 
@@ -50,11 +50,16 @@ test("browser approval completes a separately running CLI sign-in", async ({
 }) => {
   const configHome = await mkdtemp(join(tmpdir(), "sb-device-cli-"));
   const configPath = join(configHome, "silverbullet", "config.json");
-  let cli = startCli(
-    configHome,
-    ["space", "add", "--no-browser"],
-    `harbor\n${sbServer.url}\n\n`,
-  );
+  let cli = startCli(configHome, [
+    "space",
+    "add",
+    sbServer.url,
+    "--name",
+    "harbor",
+    "--auth",
+    "browser",
+    "--no-browser",
+  ]);
   try {
     const url = await verificationUrl(cli);
     await page.goto(url);
