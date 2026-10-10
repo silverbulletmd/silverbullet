@@ -53,7 +53,10 @@ export function keyEventToNotation(
 }
 
 function pickPlatformRaw(src: { key?: any; mac?: any }, isMac: boolean): any {
-  return isMac ? (src.mac ?? src.key) : src.key;
+  // `mac = ""` clears a macOS binding. It must not shadow `key`: the runtime
+  // treats an empty mac the same as an omitted one.
+  if (isMac && src.mac != null && src.mac !== "") return src.mac;
+  return src.key;
 }
 
 function toList(raw: any): string[] {
@@ -114,6 +117,18 @@ export function resolvedBindings(
 ): string[] {
   const override = overrideBindings(pendingShortcuts[name], isMac);
   return override ?? manifestBindings(name, commands, isMac);
+}
+
+// Repairs shortcut overrides saved before portable `key`s cleared `mac`.
+// A portable or empty `key` with no `mac` field did not override the command's
+// macOS binding; record the clear explicitly so the next save does.
+export function normalizeLoadedOverride(
+  override: CommandOverride,
+): CommandOverride {
+  if (override.mac !== undefined || override.key === undefined) return override;
+  const list = Array.isArray(override.key) ? override.key : [override.key];
+  if (!list.every(isPortableChord)) return override;
+  return { ...override, mac: "" };
 }
 
 export function collapseBindings(list: string[]): string | string[] {
@@ -198,9 +213,11 @@ export function hasAnyConflict(c: Conflicts): boolean {
   );
 }
 
-// Write `list` as the command's bindings. If every chord is portable we
-// collapse to `key` and drop any `mac`. Otherwise write to the native field
-// for the current platform.
+// Write `list` as the command's bindings. Portable chords, including clearing
+// every chord, are stored in `key` and explicitly clear `mac`. `command.update`
+// merges into the existing command, so omitting `mac` would leave a built-in
+// or previously configured macOS binding in place — and on macOS that binding
+// wins over `key`. Other chords are written to the current platform's field.
 export function writeBindings(
   pendingShortcuts: PendingShortcuts,
   name: string,
@@ -212,7 +229,7 @@ export function writeBindings(
   const allPortable = list.every(isPortableChord);
   if (allPortable) {
     entry.key = collapseBindings(list);
-    delete entry.mac;
+    entry.mac = "";
   } else if (isMac) {
     entry.mac = collapseBindings(list);
   } else {

@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { parseLuaLiteral, parseManagedBlock, toLua, toLuaKey } from "./lua.ts";
+import {
+  formatCommandUpdate,
+  parseLuaLiteral,
+  parseManagedBlock,
+  toLua,
+  toLuaKey,
+} from "./lua.ts";
 
 describe("toLua", () => {
   test("booleans", () => {
@@ -179,16 +185,28 @@ command.update { name = "Other", key = "Ctrl-y" }`;
       lines.push(`config.set(${toLua(path)}, ${toLua(value)})`);
     }
     for (const [name, override] of Object.entries(commandOverrides)) {
-      const parts = [`name = ${toLua(name)}`];
-      if (override.key !== undefined)
-        parts.push(`key = ${toLua(override.key)}`);
-      if (override.mac !== undefined)
-        parts.push(`mac = ${toLua(override.mac)}`);
-      lines.push(`command.update { ${parts.join(", ")} }`);
+      lines.push(formatCommandUpdate(name, override));
     }
 
     const parsed = parseManagedBlock(lines.join("\n"));
     expect(parsed.configOverrides).toEqual(configOverrides);
     expect(parsed.commandOverrides).toEqual(commandOverrides);
+  });
+
+  test("round-trips a cleared mac binding and a portable reassignment", () => {
+    const commandOverrides = {
+      "Share: Page": { key: "", mac: "" },
+      "Open Command Palette": { key: "Mod-p", mac: "" },
+    };
+    const lines = Object.entries(commandOverrides).map(([name, override]) =>
+      formatCommandUpdate(name, override),
+    );
+    expect(lines).toEqual([
+      'command.update { name = "Share: Page", key = "", mac = "" }',
+      'command.update { name = "Open Command Palette", key = "Mod-p", mac = "" }',
+    ]);
+    expect(parseManagedBlock(lines.join("\n")).commandOverrides).toEqual(
+      commandOverrides,
+    );
   });
 });

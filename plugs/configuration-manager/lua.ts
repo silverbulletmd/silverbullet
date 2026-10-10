@@ -86,6 +86,24 @@ export type CommandOverride = {
 };
 
 /**
+ * Serialize one shortcut override the way saveConfiguration writes it.
+ * An explicit empty `mac` is kept: that is what clears a macOS binding.
+ */
+export function formatCommandUpdate(
+  name: string,
+  override: CommandOverride,
+): string {
+  const parts = [`name = ${toLua(name)}`];
+  if (override.key !== undefined) {
+    parts.push(`key = ${toLua(override.key)}`);
+  }
+  if (override.mac !== undefined) {
+    parts.push(`mac = ${toLua(override.mac)}`);
+  }
+  return `command.update { ${parts.join(", ")} }`;
+}
+
+/**
  * Parse a `key = "..."` or `key = { "a", "b" }` field out of a command.update
  * body. Returns undefined if the field isn't present.
  */

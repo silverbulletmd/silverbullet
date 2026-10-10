@@ -7,14 +7,19 @@ import {
   sync,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { buildConfigurationHtml } from "./configuration_html.ts";
-import { type CommandOverride, parseManagedBlock, toLua } from "./lua.ts";
 import {
   findManagedBlock,
   MANAGED_MARKER,
   replaceManagedBlock,
 } from "./config_block.ts";
+import { buildConfigurationHtml } from "./configuration_html.ts";
 import { listLibraries } from "./libraries.ts";
+import {
+  type CommandOverride,
+  formatCommandUpdate,
+  parseManagedBlock,
+  toLua,
+} from "./lua.ts";
 import type { LibrariesFocus, TabId } from "./ui/types.ts";
 
 const CONFIG_PAGE = "CONFIG";
@@ -112,15 +117,7 @@ export async function saveConfiguration(
   }
 
   for (const [name, override] of Object.entries(pendingShortcuts)) {
-    const parts: string[] = [];
-    parts.push(`name = ${toLua(name)}`);
-    if (override.key !== undefined) {
-      parts.push(`key = ${toLua(override.key)}`);
-    }
-    if (override.mac !== undefined) {
-      parts.push(`mac = ${toLua(override.mac)}`);
-    }
-    lines.push(`command.update { ${parts.join(", ")} }`);
+    lines.push(formatCommandUpdate(name, override));
   }
 
   const blockContent = lines.join("\n");
