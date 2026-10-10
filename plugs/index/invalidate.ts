@@ -4,7 +4,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 import { index, mq, space } from "@silverbulletmd/silverbullet/syscalls";
-import { getTextualBackRelations } from "./relation.ts";
+import { getTextualBackRelationsToAny } from "./relation.ts";
 
 const pendingPaths = new Set<string>();
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -40,13 +40,8 @@ export async function collectPagesToReindex(
   }
 
   const pages = new Set<string>();
-  const relationLists = await Promise.all(
-    [...targets].map((target) => getTextualBackRelations(target)),
-  );
-  for (const relations of relationLists) {
-    for (const relation of relations) {
-      pages.add(relation.page);
-    }
+  for (const relation of await getTextualBackRelationsToAny(targets)) {
+    pages.add(relation.page);
   }
 
   // Links that resolved to nothing may have a target now.
