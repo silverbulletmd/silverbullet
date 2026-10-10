@@ -282,7 +282,8 @@ test.describe("space tree", () => {
     await leftTree
       .getByRole("button", { name: /Shown as: Left sidebar/ })
       .click();
-    await leftTree.getByRole("menuitem", { name: "Right sidebar" }).click();
+    // The dock menu opens on document.body, outside the panel
+    await sbPage.getByRole("menuitem", { name: "Right sidebar" }).click();
     const rightTree = sbPage.locator(".sb-nav-root-rhs");
     await expect(rightTree).toBeVisible();
     await expect(leftButton).toBeHidden();

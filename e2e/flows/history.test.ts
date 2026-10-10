@@ -42,7 +42,8 @@ test("an editor snapshots a change, previews history and restores a saved revisi
   await expect(history.locator(".sb-nav-title")).toHaveText("Page History");
   await expect(history.locator(".sb-nav-row")).toHaveCount(2);
   await history.getByRole("button", { name: /Change placement/ }).click();
-  await history.getByRole("menuitem", { name: "Modal window" }).click();
+  // The dock menu opens on document.body, outside the panel
+  await page.getByRole("menuitem", { name: "Modal window" }).click();
   const modalHistory = page.locator('.sb-nav-root[data-slot="modal"]');
   await expect(modalHistory.locator(".sb-nav-title")).toHaveText(
     "Page History",
