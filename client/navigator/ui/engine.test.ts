@@ -491,14 +491,14 @@ test("a content view's load carries the dock as well", async () => {
       return Promise.resolve(meta({ hasContent: true }));
     }
     if (payload.hook === "content") {
-      return Promise.resolve({ markdown: "# hi" });
+      return Promise.resolve({ value: "# hi" });
     }
     return Promise.resolve(undefined);
   });
 
   const state = await new NavigatorEngine("lhs").activate("v");
 
-  expect(state.content).toBe("# hi");
+  expect(state.contentValue).toBe("# hi");
   const contentCall = handle.mock.calls
     .map(([payload]) => payload)
     .find((p) => p.hook === "content");
@@ -574,18 +574,17 @@ test("a query from the previous view cannot change the newly active view", async
   expect(engine.activeState()?.ctx?.phrase).toBe("");
 });
 
-test("a content view answering with a widget keeps it for the panel", async () => {
+test("a content view answering with a widget keeps the value for the panel", async () => {
   const widget = { markdown: "# hi", cssClasses: ["fixture-note"] };
   handle.mockImplementation((payload: any) => {
     if (payload.hook === "meta") {
       return Promise.resolve(meta({ hasContent: true }));
     }
-    if (payload.hook === "content") return Promise.resolve({ widget });
+    if (payload.hook === "content") return Promise.resolve({ value: widget });
     return Promise.resolve(undefined);
   });
 
   const state = await new NavigatorEngine("rhs").activate("v");
 
-  expect(state.content).toBe("# hi");
-  expect(state.contentWidget).toEqual(widget);
+  expect(state.contentValue).toEqual(widget);
 });

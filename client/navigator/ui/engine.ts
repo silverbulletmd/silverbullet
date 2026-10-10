@@ -1,5 +1,4 @@
 import { LoadingState } from "./loading.ts";
-import type { WidgetObject } from "../../codemirror/widget_body.ts";
 import {
   type ContentResult,
   normalizeContent,
@@ -46,10 +45,8 @@ export { parseIcon } from "../../lib/icon.ts";
 export type ViewState = {
   meta: ViewMeta;
   rows: Row[];
-  /** A content view's markdown (`meta.hasContent`); rows stay empty. */
-  content?: string;
-  /** Set when the content view answered with a widget rather than markdown. */
-  contentWidget?: WidgetObject;
+  /** A content view's value (`meta.hasContent`), rendered by the shared value renderer; rows stay empty. */
+  contentValue?: unknown;
   error?: string;
   rowState?: RowStates;
   segmentMasks?: SegmentMasks;
@@ -249,10 +246,7 @@ export class NavigatorEngine {
         if (entry.loadToken !== token) return false;
         entry.error = result.error;
         entry.rows = [];
-        entry.contentWidget = result.widget;
-        if (result.error === undefined) {
-          entry.content = result.markdown ?? result.widget?.markdown ?? "";
-        }
+        if (result.error === undefined) entry.contentValue = result.value;
         return true;
       }
       let rows: Row[] = [];

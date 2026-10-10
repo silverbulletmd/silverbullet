@@ -5,6 +5,8 @@ export const YIELD_COUNT_LIMIT = 200;
 export const BUSY_LIMIT_DEFAULT_MS = 2000;
 export const BUSY_LIMIT_COMMAND_MS = 10000;
 export const KEEP_GOING_MS = 10000;
+export const LUA_TIMEOUT_MESSAGE =
+  "**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.";
 
 export class LuaBudgetStopped extends Error {
   constructor() {

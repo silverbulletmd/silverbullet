@@ -10,8 +10,8 @@ import { isNarrowScreen } from "../lib/mobile.ts";
 import {
   focusedSlot,
   hideSlot,
-  setDockTarget,
   type NavActivation,
+  setDockTarget,
   showSlot,
 } from "./ui/slots.ts";
 

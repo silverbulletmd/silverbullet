@@ -1,0 +1,389 @@
+import { syntaxTree } from "@codemirror/language";
+import { EditorSelection, Transaction } from "@codemirror/state";
+import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+// @ts-expect-error - No type definitions available for this package
+import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
+import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
+import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
+import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  addParentPointers,
+  findParentMatching,
+  nodeAtPos,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
+import TurndownService from "turndown";
+import type { Client } from "../../client.ts";
+import { lezerToParseTree } from "../../markdown_parser/parse_tree.ts";
+import { handleTreeFileDrop, insertTreeFileLink } from "./tree_file_drop.ts";
+
+const turndownService = new TurndownService({
+  hr: "---",
+  codeBlockStyle: "fenced",
+  headingStyle: "atx",
+  emDelimiter: "*",
+  bulletListMarker: "*", // Duh!
+  strongDelimiter: "**",
+  linkStyle: "inlined",
+});
+turndownService.use(taskListItems);
+turndownService.use(tables);
+
+function striptHtmlComments(s: string): string {
+  return s.replace(/<!--[\s\S]*?-->/g, "");
+}
+
+function ensureValidFilenameWithExtension(filename: string): string {
+  if (isValidPath(filename)) {
+    return filename;
+  }
+  const match = filename.match(/\.([^.]+)$/);
+  return `file.${match ? match[1] : "txt"}`;
+}
+
+async function doesFileExist(
+  editor: Client,
+  filePath: string,
+): Promise<boolean> {
+  try {
+    await editor.space.spacePrimitives.getFileMeta(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const urlRegexp =
+  /^https?:\/\/[-a-zA-Z0-9@:%._+~#=]{1,256}([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
+
+// WebKit can retain the pre-paste typing caret after a decoration rebuild
+// even though getSelection reports the new position. Nudge and restore
+// the selection after paste to force a DOM selection write.
+const isWebKit =
+  typeof navigator !== "undefined" && /Apple Computer/.test(navigator.vendor);
+
+function fixupWebKitCaretAfterPaste(view: EditorView): void {
+  if (!isWebKit) return;
+  // Run after the synchronous paste handling + decoration rebuild have
+  // settled, but before the user's next keystroke.
+  queueMicrotask(() => {
+    const sel = view.state.selection;
+    const head = sel.main.head;
+    const docLen = view.state.doc.length;
+    const bump = head > 0 ? head - 1 : docLen > 0 ? head + 1 : head;
+    if (bump === head) return; // empty document, nothing to re-resolve
+    const noHistory = Transaction.addToHistory.of(false);
+    view.dispatch({
+      selection: EditorSelection.cursor(bump),
+      annotations: noHistory,
+    });
+    view.dispatch({ selection: sel, annotations: noHistory });
+  });
+}
+
+// Known iOS Safari paste issue (unrelated to this implementation): https://voxpelli.com/2015/03/ios-safari-url-copy-paste-bug/
+export const pasteLinkExtension = ViewPlugin.fromClass(
+  class {
+    update(update: ViewUpdate): void {
+      update.transactions.forEach((tr) => {
+        if (tr.isUserEvent("input.paste")) {
+          const pastedText: string[] = [];
+          let from = 0;
+          let to = 0;
+          tr.changes.iterChanges((fromA, _toA, _fromB, toB, inserted) => {
+            pastedText.push(inserted.sliceString(0));
+            from = fromA;
+            to = toB;
+          });
+          const pastedString = pastedText.join("");
+          if (pastedString.match(urlRegexp)) {
+            const selection = update.startState.selection.main;
+            if (!selection.empty) {
+              setTimeout(() => {
+                update.view.dispatch({
+                  changes: [
+                    {
+                      from: from,
+                      to: to,
+                      insert: `[${update.startState.sliceDoc(
+                        selection.from,
+                        selection.to,
+                      )}](${pastedString})`,
+                    },
+                  ],
+                });
+              });
+            }
+          }
+        }
+      });
+    }
+  },
+);
+
+export function documentExtension(editor: Client) {
+  let shiftDown = false;
+  let activeView: EditorView | undefined;
+
+  return [
+    ViewPlugin.define((view) => {
+      activeView = view;
+      const ownerDocument = view.dom.ownerDocument;
+      const uploadFiles = (event: Event) => {
+        const files = (event as CustomEvent<{ files?: File[] }>).detail?.files;
+        if (!files?.length) return;
+        safeRun(async () => {
+          await processFileTransfer(files);
+        });
+      };
+      ownerDocument.addEventListener("silverbullet:upload-files", uploadFiles);
+      return {
+        destroy() {
+          activeView = undefined;
+          ownerDocument.removeEventListener(
+            "silverbullet:upload-files",
+            uploadFiles,
+          );
+        },
+      };
+    }),
+    EditorView.domEventHandlers({
+      dragover: (event) => {
+        event.preventDefault();
+      },
+      keydown: (event) => {
+        if (event.key === "Shift") {
+          shiftDown = true;
+        }
+        return false;
+      },
+      keyup: (event) => {
+        if (event.key === "Shift") {
+          shiftDown = false;
+        }
+        return false;
+      },
+      drop: (event: DragEvent) => {
+        if (handleTreeFileDrop(event, editor.editorView)) return true;
+        // TODO: This doesn't take into account the target cursor position,
+        // it just drops the document wherever the cursor was last.
+        if (event.dataTransfer) {
+          const payload = [...event.dataTransfer.files];
+          if (!payload.length) {
+            return;
+          }
+          // Without this the browser falls through to its default action
+          // (navigating to the dropped file)
+          event.preventDefault();
+          const desktopResolve = (
+            globalThis as typeof globalThis & {
+              silverbulletDesktop?: {
+                resolveSpaceFileDrop(file: File): Promise<{
+                  path: string;
+                  kind: "page" | "document";
+                  contentType?: string;
+                } | null>;
+              };
+            }
+          ).silverbulletDesktop?.resolveSpaceFileDrop;
+          if (payload.length === 1 && desktopResolve) {
+            const view = editor.editorView;
+            const coords = { x: event.clientX, y: event.clientY };
+            safeRun(async () => {
+              const file = await desktopResolve(payload[0]);
+              if (file) {
+                if (activeView === view) insertTreeFileLink(file, coords, view);
+              } else {
+                await processFileTransfer(payload);
+              }
+            });
+            return true;
+          }
+          safeRun(async () => {
+            await processFileTransfer(payload);
+          });
+        }
+      },
+      paste: (event: ClipboardEvent) => {
+        // Schedule a WebKit caret re-sync regardless of which paste path runs
+        // below (or CodeMirror's own default paste handling, which fires after
+        // this handler returns a falsy value).
+        fixupWebKitCaretAfterPaste(editor.editorView);
+
+        const payload = [...event.clipboardData!.items];
+        const richText = event.clipboardData?.getData("text/html");
+
+        if (richText && !shiftDown) {
+          const editorText = editor.editorView.state.sliceDoc();
+          const tree = lezerToParseTree(
+            editorText,
+            syntaxTree(editor.editorView.state).topNode,
+          );
+          addParentPointers(tree);
+          const currentNode = nodeAtPos(
+            tree,
+            editor.editorView.state.selection.main.from,
+          );
+          if (currentNode) {
+            const fencedParentNode = findParentMatching(currentNode, (t) =>
+              ["FrontMatter", "FencedCode"].includes(t.type!),
+            );
+            if (
+              fencedParentNode ||
+              ["FrontMatter", "FencedCode"].includes(currentNode.type!)
+            ) {
+              console.log("Inside of fenced code block, not pasting rich text");
+              return false;
+            }
+          }
+
+          event.preventDefault();
+          const markdown = striptHtmlComments(
+            turndownService.turndown(richText),
+          ).trim();
+          const view = editor.editorView;
+          const selection = view.state.selection.main;
+          view.dispatch({
+            changes: [
+              {
+                from: selection.from,
+                to: selection.to,
+                insert: markdown,
+              },
+            ],
+            selection: {
+              anchor: selection.from + markdown.length,
+            },
+            scrollIntoView: true,
+          });
+          return true;
+        }
+        if (!payload.length || payload.length === 0) {
+          return false;
+        }
+        safeRun(async () => {
+          await processItemTransfer(payload);
+        });
+      },
+    }),
+  ];
+
+  async function processFileTransfer(payload: File[]) {
+    const data = await payload[0].arrayBuffer();
+    const fileData: UploadFile = {
+      name: payload[0].name,
+      contentType: payload[0].type,
+      content: new Uint8Array(data),
+    };
+    await saveFile(fileData);
+  }
+
+  async function processItemTransfer(payload: DataTransferItem[]) {
+    const file = payload.find((item) => item.kind === "file");
+    if (!file) {
+      return false;
+    }
+    const fileType = file.type;
+    const ext = fileType.split("/")[1];
+    const fileName = localDateString(new Date())
+      .split(".")[0]
+      .replace("T", "_")
+      .replaceAll(":", "-");
+    const data = await file!.getAsFile()?.arrayBuffer();
+    if (!data) {
+      return false;
+    }
+    const fileData: UploadFile = {
+      name: `${fileName}.${ext}`,
+      contentType: fileType,
+      content: new Uint8Array(data),
+    };
+    await saveFile(fileData);
+  }
+
+  async function saveFile(file: UploadFile) {
+    const view = activeView;
+    if (!view) return;
+    const maxSize = editor.config.get<number>(
+      "maximumDocumentSize",
+      maximumDocumentSize,
+    );
+    const invalidPathMessage =
+      "Unable to upload file, invalid target filename or path";
+
+    if (file.content.length > maxSize * 1024 * 1024) {
+      editor.ui.flashNotification(
+        `Document is too large, maximum is ${maxSize}MiB`,
+        "error",
+      );
+      return;
+    }
+
+    let desiredFilePath = await editor.ui.prompt(
+      "File name for pasted document",
+      resolveMarkdownLink(
+        client.currentPath(),
+        ensureValidFilenameWithExtension(file.name),
+      ),
+    );
+    if (desiredFilePath === undefined) {
+      // User hit cancel, so they know why we stopped and dont need an notification.
+      return;
+    }
+    desiredFilePath = desiredFilePath.trim();
+    if (!isValidName(desiredFilePath)) {
+      editor.ui.flashNotification(invalidPathMessage, "error");
+      return;
+    }
+
+    let finalFilePath = null;
+    while (finalFilePath == null) {
+      if (await doesFileExist(editor, desiredFilePath)) {
+        let confirmedFilePath = await editor.ui.prompt(
+          "A file with that name already exists, keep the same name to replace it, or rename your file",
+          resolveMarkdownLink(
+            client.currentPath(),
+            ensureValidFilenameWithExtension(desiredFilePath),
+          ),
+        );
+        if (confirmedFilePath === undefined) {
+          // Unlike the initial filename prompt, we're inside a workflow here
+          // and should be explicit that the user action cancelled the whole
+          // operation.
+          editor.ui.flashNotification("Upload cancelled by user", "info");
+          return;
+        }
+        confirmedFilePath = confirmedFilePath.trim();
+        if (!isValidPath(confirmedFilePath)) {
+          editor.ui.flashNotification(invalidPathMessage, "error");
+          return;
+        }
+        if (desiredFilePath === confirmedFilePath) {
+          finalFilePath = desiredFilePath;
+        } else {
+          desiredFilePath = confirmedFilePath;
+          confirmedFilePath = undefined;
+        }
+      } else {
+        finalFilePath = desiredFilePath;
+      }
+    }
+
+    await editor.space.writeDocument(finalFilePath, file.content);
+    if (activeView !== view) return;
+    let documentMarkdown = `[[${finalFilePath}]]`;
+    if (file.contentType.startsWith("image/")) {
+      documentMarkdown = `!${documentMarkdown}`;
+    }
+    view.dispatch({
+      changes: [
+        {
+          insert: documentMarkdown,
+          from: view.state.selection.main.from,
+        },
+      ],
+    });
+  }
+}

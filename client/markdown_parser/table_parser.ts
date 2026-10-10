@@ -1,3 +1,4 @@
+import { scanLuaDirectiveEnd } from "../space_lua/directive_scan.ts";
 import type {
   BlockContext,
   Element,
@@ -40,6 +41,16 @@ function parseRow(
   for (let i = startI; i < line.length; i++) {
     const next = line.charCodeAt(i);
 
+    if (next === 36 /* '$' */ && !esc && line.charCodeAt(i + 1) === 123) {
+      const end = scanLuaDirectiveEnd(line, i);
+      if (end > 0) {
+        if (cellStart < 0) cellStart = i;
+        cellEnd = end;
+        i = end - 1;
+        esc = false;
+        continue;
+      }
+    }
     if (next === 91 /* '[' */) {
       bracketDepth++;
     } else if (next === 93 /* ']' */) {

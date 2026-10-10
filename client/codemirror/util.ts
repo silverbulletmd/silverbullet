@@ -20,6 +20,8 @@ type LinkOptions = {
   cssClass: string;
   from: number;
   callback: (e: MouseEvent) => void;
+  /** Renders the label (e.g. an alias with `${}`) into it; `text` shows until then */
+  content?: (label: HTMLElement) => Promise<unknown>;
 };
 
 export class LinkWidget extends WidgetType {
@@ -35,7 +37,14 @@ export class LinkWidget extends WidgetType {
       "sb-page-decoration-icon",
     );
     if (icon) anchor.append(icon);
-    anchor.append(document.createTextNode(this.options.text));
+    if (this.options.content) {
+      const label = document.createElement("span");
+      label.textContent = this.options.text;
+      anchor.append(label);
+      void this.options.content(label);
+    } else {
+      anchor.append(document.createTextNode(this.options.text));
+    }
 
     anchor.addEventListener("click", (e) => {
       if (e.button !== 0) {

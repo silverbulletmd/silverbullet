@@ -149,8 +149,8 @@ tag.define {
 
 How it behaves:
 * When multiple tags in a page’s `tags` field define a renderer, the first one wins. Without a renderer, frontmatter keeps its ordinary display and [[Frontmatter|folding]] behavior.
-* Click Edit, Alt-click the preview, or click its noninteractive space to reveal the YAML and edit it directly. The preview returns when the cursor leaves the frontmatter.
-* Go to definition (`</>`) jumps to the `renderFrontmatter` function.
+* Pick **Edit source** from its ⋯ menu, Alt-click the preview, or click its noninteractive space to reveal the YAML and edit it directly. The preview returns when the cursor leaves the frontmatter.
+* **Go to definition** in its ⋯ menu jumps to the `renderFrontmatter` function.
 * Explicit Markdown syntax mode shows the source.
 
 For a full example, see the `adr` tag in [[CONFIG]], which renders every [[ADR]] as a decision card.

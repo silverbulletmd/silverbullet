@@ -7,8 +7,7 @@ import { DocumentRowsBody, DocumentView } from "./document_view.tsx";
 
 vi.mock("./content_view.tsx", () => ({
   ContentNode: () => null,
-  CopyMarkdownButton: () => null,
-  renderContentMarkdown: async () => undefined,
+  useRenderedValue: () => ({ content: undefined, current: false }),
 }));
 vi.mock("./row_markdown.tsx", () => ({
   MarkdownText: () => null,

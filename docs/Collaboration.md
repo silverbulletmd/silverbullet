@@ -6,7 +6,7 @@ references:
 - server-common/src/space/conditional.rs
 - server-common/src/reconcile.rs
 - client/external_merge.ts
-- client/codemirror/conflict_markers.ts
+- client/codemirror/syntax/conflict_markers.ts
 - client/codemirror/external_presence.ts
 - client/sync_recovery.ts
 - client/spaces/base_store.ts

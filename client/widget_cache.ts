@@ -11,7 +11,11 @@ export class WidgetCache {
   private widgetMetaCache = new LimitedMap<WidgetMeta>(1000);
   // Start widget callbacks before mounting so fast scrolling can reuse
   // in-flight or completed results. This cache lasts only for the session.
-  private pendingResults = new LimitedMap<Promise<any>>(1000);
+  private pendingResults = new LimitedMap<{
+    result: Promise<any>;
+    // Event counts when the result was computed (see live_binding.ts)
+    computedAt?: Map<string, number>;
+  }>(1000);
 
   private debouncedWidgetMetaCacheFlush = throttle(() => {
     this.ds
@@ -58,13 +62,22 @@ export class WidgetCache {
   // callback. Subsequent calls with the same key return the same promise,
   // so calling this from a widget's constructor is safe even when the
   // CodeMirror decoration field re-builds widgets on every state update.
-  prewarmResult<T>(key: string, fn: () => Promise<T>): Promise<T> {
-    let p = this.pendingResults.get(key) as Promise<T> | undefined;
-    if (!p) {
-      p = fn();
-      this.pendingResults.set(key, p);
+  prewarmResult<T>(
+    key: string,
+    fn: () => Promise<T>,
+    stamp?: () => Map<string, number>,
+  ): Promise<T> {
+    let entry = this.pendingResults.get(key);
+    if (!entry) {
+      const computedAt = stamp?.();
+      entry = { result: fn(), computedAt };
+      this.pendingResults.set(key, entry);
     }
-    return p;
+    return entry.result as Promise<T>;
+  }
+
+  computedAt(key: string): Map<string, number> | undefined {
+    return this.pendingResults.get(key)?.computedAt;
   }
 
   invalidatePrewarm(key: string) {

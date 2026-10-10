@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 vi.mock("./codemirror/editor_state.ts", () => ({}));
-vi.mock("./components/widget_sandbox_iframe.ts", () => ({
+vi.mock("./sandbox/widget_sandbox_iframe.ts", () => ({
   broadcastReload: () => {},
   createWidgetSandboxIFrame: () => {},
   mountIFrame: () => {},

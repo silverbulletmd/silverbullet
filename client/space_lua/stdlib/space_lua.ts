@@ -1,8 +1,14 @@
+import { scanLuaDirectiveEnd } from "../directive_scan.ts";
+import { containsWidget, isWidgetValue, makeFragment } from "../fragment.ts";
 import type { LuaFunctionInfo } from "../../../plug-api/types/index.ts";
 import { renderApiDocumentationMarkdown } from "../api_documentation.ts";
 import type { LuaBlock, LuaExpression } from "../ast.ts";
 import { evalExpression } from "../eval.ts";
 import { parseBlock, parseExpressionString } from "../parse.ts";
+import {
+  classifyResult,
+  renderResultToMarkdown,
+} from "../render_lua_markdown.ts";
 import {
   type PrintOptions,
   prettyPrintBlock,
@@ -155,6 +161,27 @@ function apiDocumentationTarget(
   return { functions: listFunctionInfo(sf) };
 }
 
+// Query results and lists whose items or cells are widgets
+function tableWithWidgets(v: unknown): boolean {
+  if (!(v instanceof LuaTable)) return false;
+  const c = classifyResult(v);
+  switch (c.kind) {
+    case "contentList":
+      return true;
+    case "record":
+      return c.headers.some((h) => containsWidget(c.getCell(h)));
+    case "recordArray":
+      for (let i = 0; i < c.rowCount; i++) {
+        if (c.headers.some((h) => containsWidget(c.getCell(i, h)))) {
+          return true;
+        }
+      }
+      return false;
+    default:
+      return false;
+  }
+}
+
 /**
  * Interpolates a string with lua expressions and returns the result.
  *
@@ -167,52 +194,49 @@ export async function interpolateLuaString(
   sf: LuaStackFrame,
   template: string,
   envAugmentation?: LuaTable,
-): Promise<string> {
-  let result = "";
+): Promise<string | LuaTable> {
+  const parts: unknown[] = [];
+  let hasWidget = false;
   let currentIndex = 0;
 
   while (true) {
     const startIndex = template.indexOf("${", currentIndex);
     if (startIndex === -1) {
-      result += template.slice(currentIndex);
+      parts.push(template.slice(currentIndex));
       break;
     }
 
-    result += template.slice(currentIndex, startIndex);
+    parts.push(template.slice(currentIndex, startIndex));
 
-    let nestLevel = 1;
-    let endIndex = startIndex + 2;
-    while (nestLevel > 0 && endIndex < template.length) {
-      if (template[endIndex] === "{") {
-        nestLevel++;
-      } else if (template[endIndex] === "}") {
-        nestLevel--;
-      }
-      if (nestLevel > 0) {
-        endIndex++;
-      }
-    }
-
-    if (nestLevel > 0) {
+    const end = scanLuaDirectiveEnd(template, startIndex);
+    if (end < 0) {
       throw new LuaRuntimeError("Unclosed interpolation expression", sf);
     }
-
-    const expr = template.slice(startIndex + 2, endIndex);
+    const expr = template.slice(startIndex + 2, end - 1);
     try {
       const parsedExpr = parseExpressionString(expr);
       const env = createAugmentedEnv(sf, envAugmentation);
-      // Do `luaToString` before `luaValueToJS` to preserve tagged float
-      // formatting.
       const luaResult = singleResult(await evalExpression(parsedExpr, env, sf));
-      result += await luaToString(luaResult);
+      if (isWidgetValue(luaResult) || tableWithWidgets(luaResult)) {
+        // Rendered later, the way a page-level `${…}` renders it
+        hasWidget = true;
+        parts.push(luaResult);
+      } else if (luaResult instanceof LuaTable) {
+        // A list or table, as a page-level `${…}` shows it
+        parts.push(renderResultToMarkdown(luaResult).markdown);
+      } else {
+        // Do `luaToString` before `luaValueToJS` to preserve tagged float
+        // formatting.
+        parts.push(await luaToString(luaResult));
+      }
     } catch (e: any) {
       throw new LuaRuntimeError(`Error evaluating "${expr}": ${e.message}`, sf);
     }
 
-    currentIndex = endIndex + 1;
+    currentIndex = end;
   }
 
-  return result;
+  return hasWidget ? makeFragment(parts) : (parts as string[]).join("");
 }
 
 /**

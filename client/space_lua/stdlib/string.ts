@@ -3,10 +3,13 @@ import {
   LuaBuiltinFunction,
   LuaMultiRes,
   LuaRuntimeError,
+  type LuaStackFrame,
   LuaTable,
+  type LuaValue,
   luaToString,
 } from "../runtime.ts";
 import { isTaggedFloat, untagNumber } from "../numeric.ts";
+import { isWidgetValue, WIDGET_AS_TEXT_MESSAGE } from "../fragment.ts";
 import { luaFormat } from "./format.ts";
 import {
   type CaptureResult,
@@ -390,3 +393,22 @@ export const stringApi = new LuaTable({
     ],
   }),
 });
+
+// A widget passed as text would otherwise be stringified into its table dump.
+for (const key of stringApi.keys()) {
+  const fn = stringApi.rawGet(key);
+  if (!(fn instanceof LuaBuiltinFunction)) continue;
+  const inner = fn.fn;
+  void stringApi.rawSet(
+    key,
+    new LuaBuiltinFunction({
+      ...(fn.info as any),
+      callback: (sf: LuaStackFrame, ...args: LuaValue[]) => {
+        if (args.some(isWidgetValue)) {
+          throw new LuaRuntimeError(WIDGET_AS_TEXT_MESSAGE, sf);
+        }
+        return inner(sf, ...args);
+      },
+    }),
+  );
+}

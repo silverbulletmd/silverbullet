@@ -94,6 +94,26 @@ export class PromiseQueue {
   }
 }
 
+/** Runs async functions with at most `max` in flight; extra calls wait FIFO. */
+export class ConcurrencyLimiter {
+  private active = 0;
+  private queue: (() => void)[] = [];
+  constructor(private readonly max: number) {}
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.active >= this.max) {
+      await new Promise<void>((resolve) => this.queue.push(resolve));
+    }
+    this.active++;
+    try {
+      return await fn();
+    } finally {
+      this.active--;
+      this.queue.shift()?.();
+    }
+  }
+}
+
 /**
  * Batches up values, and processes in batches of batchSize in parallel
  * then merges the results in the appropriate order.

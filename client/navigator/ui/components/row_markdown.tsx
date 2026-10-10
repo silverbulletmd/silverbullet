@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 import type { Client } from "../../../client.ts";
-import { parseHtmlString } from "../../../codemirror/lua_widget.ts";
 import {
   attachWidgetEventHandlers,
   buildTranslateUrls,
-} from "../../../codemirror/widget_util.ts";
+} from "../../../codemirror/widgets/widget_util.ts";
+import { parseHtmlString } from "../../../lib/dom.ts";
 import { parse } from "../../../markdown_parser/parse_tree.ts";
 import { buildExtendedMarkdownLanguage } from "../../../markdown_parser/parser.ts";
 import { expandMarkdown } from "../../../markdown_renderer/inline.ts";
@@ -32,8 +32,7 @@ export async function renderRowMarkdown(
       client.clientSystem.spaceLuaEnv,
       {
         expandTransclusions: false,
-        expandLuaDirectives: false,
-        rewriteTasks: false,
+        taskRefs: "none",
         syntaxExtensions,
       },
     );

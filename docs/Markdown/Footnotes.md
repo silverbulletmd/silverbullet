@@ -2,7 +2,7 @@
 description: Reference-style and inline footnotes.
 references:
 - client/markdown_parser/footnote.ts
-- client/codemirror/footnote.ts
+- client/codemirror/syntax/footnote.ts
 ---
 
 SilverBullet supports footnotes in two flavors: classic **reference-style** footnotes and **inline** footnotes. Both are rendered as a small widget in [[Live Preview]] and show their content on hover.

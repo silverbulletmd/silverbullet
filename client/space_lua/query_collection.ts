@@ -1,3 +1,10 @@
+import { compareCollated } from "../../plug-api/lib/collation.ts";
+import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
+import type { KvKey } from "../../plug-api/types/datastore.ts";
+import { Config } from "../config.ts";
+import type { DataStore } from "../data/datastore.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
+import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
 import type {
   LuaAggregateCallExpression,
   LuaBinaryExpression,
@@ -11,34 +18,24 @@ import type {
   LuaPropField,
   LuaUnaryExpression,
 } from "./ast.ts";
-
+import { evalExpression, luaOp } from "./eval.ts";
+import { isWidgetValue } from "./fragment.ts";
 import {
   jsToLuaValue,
-  luaCall,
   LuaEnv,
   LuaFunction,
-  luaGet,
-  luaKeys,
   LuaRuntimeError,
   LuaStackFrame,
   LuaTable,
-  luaTruthy,
   type LuaValue,
+  luaCall,
+  luaGet,
+  luaKeys,
+  luaTruthy,
   singleResult,
 } from "./runtime.ts";
 import { isSqlNull, SLIQ_NULL } from "./sliq_null.ts";
-import { evalExpression, luaOp } from "./eval.ts";
 import { asyncMergeSort } from "./util.ts";
-import type { DataStore } from "../data/datastore.ts";
-import type { KvPrimitives } from "../data/kv_primitives.ts";
-
-import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
-import { compareCollated } from "../../plug-api/lib/collation.ts";
-
-import type { KvKey } from "../../plug-api/types/datastore.ts";
-
-import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
-import { Config } from "../config.ts";
 
 // Implicit single group map key (aggregates without `group by`)
 const IMPLICIT_GROUP_KEY: unique symbol = Symbol("implicit-group");
@@ -977,9 +974,22 @@ export async function queryLua<T = any>(
   return applyQuery(results, query, env, sf, config);
 }
 
+// Widgets hold DOM nodes and closures that JSON can't tell apart: compare
+// them by identity so `distinct` never merges two different widgets.
+const widgetKeys = new WeakMap<object, string>();
+let nextWidgetKey = 0;
+
 function generateKey(value: any) {
   if (isSqlNull(value)) {
     return "__SQL_NULL__";
+  }
+  if (isWidgetValue(value)) {
+    let key = widgetKeys.get(value);
+    if (!key) {
+      key = `__widget_${nextWidgetKey++}__`;
+      widgetKeys.set(value, key);
+    }
+    return key;
   }
   if (value instanceof LuaTable) {
     return JSON.stringify(luaTableToJSWithNulls(value));

@@ -681,27 +681,6 @@ $comment-border: 1px;
 
       > div > .content {
         overflow: visible;
-        padding-right: 44px;
-      }
-
-      .button-bar {
-        display: block;
-        z-index: 1;
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      &:hover .button-bar,
-      &:focus-within .button-bar {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      @media (hover: none) and (pointer: coarse) {
-        .button-bar {
-          opacity: 1;
-          pointer-events: auto;
-        }
       }
     }
   }
@@ -717,8 +696,7 @@ $comment-border: 1px;
   .sb-lua-top-widget h1,
   .sb-lua-bottom-widget h1 {
     margin: -10px -10px 10px -10px !important;
-    // Vertical padding chosen so the rendered h1 strip has the same total
-    // height as the hover-revealed `.button-bar` overlay sitting on top of it
+    // Vertical padding gives the h1 strip a header-like height above the content
     padding: 16px 10px !important;
     background-color: var(--editor-widget-background-color);
     font-size: 1.2em;
@@ -791,77 +769,92 @@ $comment-border: 1px;
     .content {
       overflow-y: auto;
     }
+  }
 
-    // Anchored to the frame's own `position: relative` above, which is why
-    // these live here rather than with the typography below.
-    &:hover .button-bar {
-      display: block;
+  // Inline widget tables look like plain Markdown tables. Header and even-row
+  // colours already come from the thead/tbody rules in colors.scss.
+  .sb-table-scroll .sb-view-table {
+    th,
+    td {
+      padding: 8px;
+      border-bottom: 0;
     }
 
-    @media (hover: none) and (pointer: coarse) {
-      .button-bar {
-        display: block !important;
-      }
-    }
-
-    .button-bar {
-      position: absolute;
-      right: 0;
-      top: 0;
-      display: none;
-      background: var(--editor-widget-background-color);
-      padding-inline: 3px;
-      padding: 4px 0;
-      border-radius: 0 0 0 5px;
-
-      button {
-        border: none;
-        background: none;
-        cursor: pointer;
-        color: var(--root-color);
-        margin-right: -8px;
-        padding: 11px 8px;
-      }
-
-      button:last-of-type {
-        margin-right: 2px;
-      }
+    th {
+      font-weight: bold;
     }
   }
 
-  .sb-lua-view {
-    > div > .content {
-      padding-right: 44px;
-
-      &:has(.sb-nav-row) {
-        padding-right: 0;
-      }
+  .sb-lua-directive-block,
+  .sb-lua-directive-inline {
+    th {
+      text-align: left;
     }
+  }
 
-    > div > .button-bar {
-      z-index: 1;
-      display: block;
-      opacity: 0;
-      pointer-events: none;
+  // The ⋯ widget menu button, inside the block's top-right corner
+  // A tab in the widget's top-right corner: its outer corner follows the
+  // widget's 5px radius inside the 1px border, the rest stays square.
+  .sb-widget-menu-bar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    border-radius: 0 4px 0 0;
+    background: var(--editor-widget-background-color);
+    opacity: 0;
+    pointer-events: none;
+  }
 
-      button {
-        min-width: 44px;
-        min-height: 44px;
-      }
-    }
+  :is(.sb-lua-directive-block, .sb-lua-directive-inline):is(:hover, :focus-within)
+    .sb-widget-menu-bar,
+  .sb-widget-menu-bar:has([aria-expanded="true"]) {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
-    &:hover > div > .button-bar,
-    &:focus-within > div > .button-bar {
+  @media (hover: none) and (pointer: coarse) {
+    .sb-widget-menu-bar {
       opacity: 1;
       pointer-events: auto;
     }
 
-    @media (hover: none) and (pointer: coarse) {
-      > div > .button-bar {
-        opacity: 1;
-        pointer-events: auto;
-      }
+    // 44×44 touch target around the 28×24 button without growing it
+    .sb-widget-menu-button::after {
+      content: "";
+      position: absolute;
+      inset: -10px -8px;
     }
+  }
+
+  .sb-widget-menu-button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: var(--subtle-color);
+    cursor: pointer;
+
+    &:hover,
+    &[aria-expanded="true"] {
+      color: var(--action-button-hover-color);
+    }
+  }
+
+  // Above the ⋯ dots, in the tab's corner
+  .sb-widget-live-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tone-success);
   }
 
   // Page-docked content views share document typography; panel views use

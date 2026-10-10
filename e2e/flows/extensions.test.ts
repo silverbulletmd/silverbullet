@@ -114,7 +114,8 @@ tag.define {
       "Teams/Example: 306",
     );
     await preview.hover();
-    await preview.getByRole("button", { name: "Edit" }).click();
+    await preview.locator('button[data-button="menu"]').click();
+    await sbPage.getByRole("menuitem", { name: "Edit source" }).click();
     await expect(preview).toHaveCount(0);
     await sbPage.evaluate(() => {
       const view = (globalThis as any).client.editorView;
@@ -156,7 +157,8 @@ tag.define {
     const preview = sbPage.locator(".sb-frontmatter-preview");
     await expect(preview.locator(".fixture-team-title")).toBeVisible();
     await preview.hover();
-    await preview.getByRole("button", { name: "Go to definition" }).click();
+    await preview.locator('button[data-button="menu"]').click();
+    await sbPage.getByRole("menuitem", { name: "Go to definition" }).click();
     await expect(currentPage(sbPage)).toHaveValue("CONFIG");
   });
 
@@ -170,13 +172,15 @@ tag.define {
       "Frontmatter preview returned no content",
     );
     await preview.hover();
-    await preview.getByRole("button", { name: "Edit" }).click();
+    await preview.locator('button[data-button="menu"]').click();
+    await sbPage.getByRole("menuitem", { name: "Edit source" }).click();
     await expect(preview).toHaveCount(0);
 
     await gotoSilverBulletPage(sbPage, sbServer, "Teams/Broken");
     await expect(preview).toContainText("Could not render frontmatter preview");
     await preview.hover();
-    await preview.getByRole("button", { name: "Edit" }).click();
+    await preview.locator('button[data-button="menu"]').click();
+    await sbPage.getByRole("menuitem", { name: "Edit source" }).click();
     await expect(preview).toHaveCount(0);
   });
 });
@@ -390,12 +394,17 @@ test.describe("inline view values", () => {
     await expect(banner.locator(".sb-page-widget-bar")).toHaveCount(0);
     await expect(banner.getByRole("button", { name: "Close" })).toHaveCount(0);
     await banner.hover();
+    await banner.getByRole("button", { name: "Widget actions" }).click();
     await expect(
-      banner.getByRole("button", { name: "Copy markdown" }),
+      sbPage.getByRole("menuitem", { name: "Go to definition" }),
     ).toBeVisible();
     await expect(
-      banner.getByRole("button", { name: "Go to definition" }),
+      sbPage.getByRole("menuitem", { name: "Copy as Markdown" }),
     ).toBeVisible();
+    await sbPage.keyboard.press("Escape");
+    await expect(sbPage.getByRole("menu")).toHaveCount(0);
+    // Escape hands focus back to ⋯; editor shortcuts need it in the text again
+    await sbPage.getByText("End of page.").click();
     await banner
       .locator(".fixture-banner")
       .evaluate((el) => el.setAttribute("data-stale", "1"));
@@ -422,6 +431,7 @@ test.describe("inline view values", () => {
     sbPage,
   }) => {
     const views = sbPage.locator(".sb-lua-view");
+    const widgetMenu = sbPage.locator(".sb-widget-menu");
     await expect(views).toHaveCount(4);
     for (const [index, expression] of [
       [0, "${workshopTree()}"],
@@ -430,8 +440,9 @@ test.describe("inline view values", () => {
       await views.nth(index).hover();
       await views
         .nth(index)
-        .getByRole("button", { name: "Edit", exact: true })
+        .locator('button[data-button="menu"]')
         .click({ timeout: 3000 });
+      await widgetMenu.locator('[data-action="edit"]').click();
       expect(
         await sbPage.evaluate(() =>
           (globalThis as any).sbRuntime.evalLua("editor.getCursor()"),
@@ -456,11 +467,16 @@ test.describe("inline view values", () => {
     await expect(
       tree.getByText("Paper studies", { exact: true }),
     ).toBeVisible();
-    await expect(
-      views.locator(
-        'button[data-button="copy"], button[data-button="bake"], button[data-button="reload"]',
-      ),
-    ).toHaveCount(0);
+    await views.nth(1).hover();
+    await views.nth(1).locator('button[data-button="menu"]').click();
+    for (const label of ["Edit source", "Reload", "Copy as Markdown"]) {
+      await expect(
+        widgetMenu.getByRole("menuitem", { name: label, exact: true }),
+      ).toBeVisible();
+    }
+    await expect(widgetMenu.locator('[data-action="bake"]')).toHaveCount(0);
+    await sbPage.keyboard.press("Escape");
+    await expect(widgetMenu).toHaveCount(0);
     await views.nth(1).getByText("Paper studies", { exact: true }).click();
     await expect(currentPage(sbPage)).toHaveValue("Destination");
     await sbPage.evaluate(() =>
@@ -471,7 +487,8 @@ test.describe("inline view values", () => {
     ).toBeVisible();
     const secondContent = views.nth(3);
     await secondContent.hover();
-    await secondContent.locator('button[data-button="edit"]').click();
+    await secondContent.locator('button[data-button="menu"]').click();
+    await widgetMenu.locator('[data-action="edit"]').click();
     const selection = await sbPage.evaluate(() =>
       (globalThis as any).sbRuntime.evalLua("editor.getCursor()"),
     );

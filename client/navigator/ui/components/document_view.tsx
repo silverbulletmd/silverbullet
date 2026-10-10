@@ -27,17 +27,13 @@ import {
   visibleRows,
   widgetKind,
 } from "../../page_widget_logic.ts";
-import { normalizeContent } from "../../registry.ts";
+import { type ContentResult, normalizeContent } from "../../registry.ts";
 import type { Row, TableColumn, ViewMeta } from "../../types.ts";
 import { indexViewRows, rankViewRows } from "../../row_filter.ts";
 import { createInlineExpansion } from "../expansion.ts";
 import { useLoading } from "../hooks/use_loading.ts";
 import { LoadingState } from "../loading.ts";
-import {
-  ContentNode,
-  CopyMarkdownButton,
-  renderContentResult,
-} from "./content_view.tsx";
+import { ContentNode, useRenderedValue } from "./content_view.tsx";
 import { PageWidgetFrame } from "./page_widget_frame.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
 import { MarkdownText, type RenderedRow, renderRows } from "./row_markdown.tsx";
@@ -133,7 +129,7 @@ function DocumentContent({
   dispatch,
   frame,
 }: DocumentProps) {
-  const [state, setState] = useState<ContentState | undefined>();
+  const [loaded, setLoaded] = useState<ContentResult | undefined>();
   const [loading] = useState(() => new LoadingState());
   const { pending, visible } = useLoading(loading);
   const gate = useRef(createLoadGate());
@@ -143,25 +139,18 @@ function DocumentContent({
     const load = () => {
       const ticket = loading.begin();
       void dispatch("content", { ctx: { phrase: "", dock } })
-        .then(async (raw) => {
+        .then((raw) => {
           if (!live || !ticket.isCurrent()) return;
           const result = normalizeContent(raw);
           const identity = contentIdentity(result);
           if (!gate.current.shouldCommit(identity)) return;
-          if (result.error !== undefined) {
-            setState({ markdown: "", error: result.error });
-            gate.current.committed(identity);
-            return;
-          }
-          const rendered = await renderContentResult(client, result, pageName);
-          if (!live || !ticket.isCurrent()) return;
-          setState(rendered);
+          setLoaded(result);
           gate.current.committed(identity);
         })
         .catch((error) => {
           if (!live || !ticket.isCurrent()) return;
-          console.error("navigator content view: render failed", error);
-          setState({ markdown: "", error: error?.message ?? String(error) });
+          console.error("navigator content view: load failed", error);
+          setLoaded({ error: error?.message ?? String(error) });
           gate.current.failed();
         })
         .finally(ticket.finish);
@@ -179,15 +168,32 @@ function DocumentContent({
     };
   }, [dispatch, dock, pageName]);
 
+  const { content, current } = useRenderedValue(
+    client,
+    loaded?.error === undefined ? loaded?.value : undefined,
+    pageName,
+  );
+  // A failed render must not make the gate skip the next identical load
+  useEffect(() => {
+    if (content?.error !== undefined) gate.current.failed();
+  }, [content]);
+  const state: ContentState | undefined = useMemo(
+    () => (loaded?.error !== undefined ? { error: loaded.error } : content),
+    [loaded, content],
+  );
+  const rendering =
+    loaded?.error === undefined && loaded !== undefined && !current;
+  const busy = pending || rendering;
+
   const outcome = contentOutcome(state);
   useEffect(() => {
-    if (frame && !pending && settlesSlot(outcome)) frame.onSettled(frame.name);
-  }, [state, pending]);
+    if (frame && !busy && settlesSlot(outcome)) frame.onSettled(frame.name);
+  }, [state, busy]);
 
   if (!frame) {
     return (
       <InlineBody
-        pending={pending || outcome === "pending"}
+        pending={busy || outcome === "pending"}
         loading={visible}
         error={state?.error}
       >
@@ -204,7 +210,7 @@ function DocumentContent({
     );
   }
   if (outcome === "pending" || outcome === "empty") return null;
-  const { markdown = "", node, error, cssClasses, events } = state ?? {};
+  const { copy, node, error, cssClasses, events } = state ?? {};
   return (
     <PageWidgetFrame
       client={client}
@@ -213,18 +219,12 @@ function DocumentContent({
       slot={frame.slot}
       modifier="sb-page-widget-content"
       error={error}
-      pending={pending}
+      pending={busy}
       loading={visible}
       collapsed={frame.collapsed}
       onToggleCollapsed={frame.onToggleCollapsed}
       hasBody={!!node}
-      tools={
-        node &&
-        !error &&
-        markdown.trim() && (
-          <CopyMarkdownButton client={client} markdown={markdown} />
-        )
-      }
+      copy={node && !error ? copy : undefined}
     >
       {node && (
         <ContentNode
@@ -552,7 +552,7 @@ function DocumentRows({
     const unsubscribe = subscribeRefresh(
       client.eventHook,
       meta.refreshOn ?? [],
-      load,
+      () => void load(),
     );
     return () => {
       live = false;

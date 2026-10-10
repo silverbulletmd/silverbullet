@@ -1,9 +1,9 @@
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   ActionMeta,
   Decoration,
   Row,
 } from "../../plug-api/ui/tree_types.ts";
-import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 export type { ActionMeta, Decoration, Row };
 

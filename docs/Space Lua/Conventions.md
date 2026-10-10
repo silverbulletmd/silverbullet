@@ -12,7 +12,7 @@ Use 2 spaces for indentation.
 # Variable naming
 For variables and methods alike use camelCasing as opposed to snake_case. That is: `myVariable` and `myFunction` instead of `my_variable` and `my_function`.
 
-# Name spacing
+# Namespacing
 Since Space Lua has a single global namespace across your entire space, it is good practice to manually namespace functions using the following pattern:
 
 ```lua

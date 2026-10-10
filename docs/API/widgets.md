@@ -4,7 +4,7 @@ references:
 - libraries/Library/Std/Widgets/Widgets.md
 - client/styles/_std_widgets.scss
 ---
-Ready-made widgets for pages, dashboards and overviews: buttons, sub-page lists, and visual building blocks (chips, bars, number cards and grids). Use them in a [[Space Lua#Expressions|${...} expression]] or return them from a [[API/widget#Live widgets|live widget]]'s `content`. They are built with the [[API/dom|DOM builder]] and implemented in [[^Library/Std/Widgets/Widgets]].
+Ready-made widgets for pages, dashboards and overviews: buttons, sub-page lists, and visual building blocks (chips, bars, number cards and grids). Use them in a [[Space Lua#Expressions|`${...}` expression]] or return them from a [[API/widget#Content functions|widget's `content` function]]. They are built with the [[API/dom|DOM builder]] and implemented in [[^Library/Std/Widgets/Widgets]].
 
 # Tones
 The visual widgets color by meaning to make theming easier. The same colours are available to your own CSS as `--tone-<name>` and `--tone-<name>-soft`, see [[Space Style#Tone colours]].

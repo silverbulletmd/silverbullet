@@ -33,17 +33,16 @@ import type {
 import type { SyncState } from "@silverbulletmd/silverbullet/type/revisions";
 import { keyboardHint } from "../plug-api/lib/shortcut.ts";
 import type { StyleObject } from "../plugs/index/space_style.ts";
-import {
-  awaitRenderSettled,
-  renderBusySelector,
-} from "./codemirror/render_settle.ts";
-import { isSafeUrl } from "./markdown_renderer/sanitize_html.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
 import { ClientSystem } from "./client_system.ts";
-import { withCompletionInfo } from "./codemirror/completion_info.ts";
+import { withCompletionInfo } from "./codemirror/editing/completion_info.ts";
 import { createEditorState } from "./codemirror/editor_state.ts";
 import { originLabel } from "./codemirror/external_presence.ts";
+import {
+  awaitRenderSettled,
+  renderBusySelector,
+} from "./codemirror/widgets/render_settle.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
@@ -64,6 +63,7 @@ import {
   saveCurrentEditor,
 } from "./logout.ts";
 import { waitForLogout } from "./logout_state.ts";
+import { isSafeUrl } from "./markdown_renderer/sanitize_html.ts";
 import { open as openNavigatorView } from "./navigator/navigator.ts";
 import {
   REVISIONS_CHANGED_EVENT,
@@ -72,6 +72,7 @@ import {
   SYNC_PAUSED,
 } from "./navigator/views/revisions.ts";
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
+import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import {
   fileListPollDue,
@@ -90,7 +91,6 @@ import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
 import { toRuntimeJSON } from "./space_lua/runtime_json.ts";
 import { resolveASTReference } from "./space_lua.ts";
-import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { getOrCreateClientId } from "./spaces/client_id.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -470,13 +470,13 @@ export class Client {
       "editor",
       this.bootConfig.disableServiceWorker || !globalThis.isSecureContext
         ? (isOnline) => {
-          if (this.ui.viewState.isOnline !== isOnline) {
-            this.ui.viewDispatch({
-              type: "online-status-change",
-              isOnline,
-            });
+            if (this.ui.viewState.isOnline !== isOnline) {
+              this.ui.viewDispatch({
+                type: "online-status-change",
+                isOnline,
+              });
+            }
           }
-        }
         : undefined,
     );
 
@@ -826,10 +826,10 @@ export class Client {
       const result = await evalStatement(ast, scriptEnv, sf);
       const returnValue =
         result &&
-          typeof result === "object" &&
-          "ctrl" in result &&
-          result.ctrl === "return" &&
-          Array.isArray(result.values)
+        typeof result === "object" &&
+        "ctrl" in result &&
+        result.ctrl === "return" &&
+        Array.isArray(result.values)
           ? result.values[0]
           : result;
       return toRuntimeJSON(returnValue, { env: scriptEnv, sf });

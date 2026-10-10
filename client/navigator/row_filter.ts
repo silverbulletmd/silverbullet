@@ -1,5 +1,5 @@
-import { descriptionText } from "../../plug-api/ui/description.ts";
 import { rank } from "../../plug-api/lib/fuzzy.ts";
+import { descriptionText } from "../../plug-api/ui/description.ts";
 import type { FilterFields, Row } from "./types.ts";
 
 const DEFAULT_FILTER_FIELDS: FilterFields = {

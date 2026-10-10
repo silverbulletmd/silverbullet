@@ -58,3 +58,13 @@ export function findBakedSections(text: string): BakedSection[] {
 export function escapeBakedBody(markdown: string): string {
   return markdown.replaceAll(CLOSE_MARKER, "<!-- /lua -->");
 }
+
+/** The body between a baked section's markers. */
+export function bakedBody(markdown: string): string {
+  return `\n${escapeBakedBody(markdown).trim()}\n`;
+}
+
+/** The `<!--#lua EXPR -->` region that bakes `markdown` for `expr`. */
+export function bakedRegionText(expr: string, markdown: string): string {
+  return `<!--#lua ${expr} -->${bakedBody(markdown)}${CLOSE_MARKER}`;
+}

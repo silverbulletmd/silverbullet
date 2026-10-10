@@ -16,3 +16,21 @@ export function placeMenu(
   );
   return { top: trigger.bottom + GAP, right, maxWidth };
 }
+
+/** Below the button and right-aligned to it; flipped above when it would run off the bottom. */
+export function placePopupMenu(
+  button: { top: number; bottom: number; right: number },
+  menu: { width: number; height: number },
+  viewport: { width: number; height: number },
+): { top: number; left: number } {
+  const below = button.bottom + GAP;
+  const top =
+    below + menu.height > viewport.height - GUTTER
+      ? Math.max(GUTTER, button.top - GAP - menu.height)
+      : below;
+  const left = Math.max(
+    GUTTER,
+    Math.min(button.right - menu.width, viewport.width - menu.width - GUTTER),
+  );
+  return { top, left };
+}

@@ -1,6 +1,5 @@
 import {
   encodePageURI,
-  encodeRef,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
@@ -20,12 +19,19 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import * as TagConstants from "../../plugs/index/constants.ts";
-import { parseHtmlTag } from "../codemirror/html_element.ts";
+import { parseHtmlTag } from "../codemirror/syntax/html_element.ts";
 import { resolveIconMarkup } from "../lib/icon.ts";
 import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
 import { CustomSyntaxRenderedHtmlType, createMediaElement } from "./inline.ts";
+import { attributeTag, wikiLinkTag } from "./inline_tags.ts";
 import { justifiedTableRender } from "./justified_tables.ts";
 import { sanitizeTag } from "./sanitize_html.ts";
+import {
+  LuaValueSlotType,
+  SLOT_MARKER_RE,
+  SlotRefType,
+  slotTag,
+} from "./slots.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -39,6 +45,9 @@ export type MarkdownRenderOptions = {
   // (see buildResolveTransclusion)
   resolveTransclusion?: (t: Transclusion) => void;
   expand?: true;
+  // Slot markers with ids below this are a fragment's own slots; others
+  // (e.g. pasted marker characters) render as plain text
+  slotRefLimit?: number;
 };
 
 function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
@@ -280,7 +289,9 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         attrs: {
           class: "sb-code",
         },
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(mapRender(t.children!)).map((c) =>
+          typeof c === "string" ? c.replace(SLOT_MARKER_RE, "[widget]") : c,
+        ),
       };
     case "BulletList":
       return {
@@ -372,33 +383,10 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       }
     }
 
-    case "WikiLink": {
-      const link = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
-      let linkText =
-        options.shortWikiLinks === true ? link.split("/").pop()! : link;
-      const aliasNode = findNodeOfType(t, "WikiLinkAlias");
-      if (aliasNode) {
-        linkText = aliasNode.children![0].text!;
-      }
-
-      // For invalid refs the link just won't link
-      let href: string = `#`;
-
-      const ref = parseToRef(link);
-      if (ref) {
-        href = `/${encodePageURI(encodeRef(ref))}`;
-      }
-
-      return {
-        name: "a",
-        attrs: {
-          href,
-          class: "wiki-link",
-          "data-ref": link,
-        },
-        body: linkText,
-      };
-    }
+    case "WikiLink":
+      return wikiLinkTag(t, options.shortWikiLinks, (c) =>
+        cleanTags(mapRender(c)),
+      );
     case "NakedURL": {
       const url = t.children![0].text!;
       return {
@@ -569,48 +557,8 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         body: cleanTags(mapRender(t.children!), true),
       };
     }
-    case "Attribute": {
-      const nameNode = findNodeOfType(t, "AttributeName");
-      const valueNode = findNodeOfType(t, "AttributeValue");
-      const colonNode = findNodeOfType(t, "AttributeColon");
-      const attrName = nameNode?.children?.[0].text ?? "";
-      const attrValue = valueNode?.children?.[0].text ?? "";
-      const attrColon = colonNode?.children?.[0].text ?? ": ";
-      return {
-        name: "span",
-        attrs: {
-          class: "sb-attribute",
-          ...(attrName ? { [`data-${attrName}`]: attrValue } : {}),
-        },
-        body: [
-          {
-            name: "span",
-            attrs: { class: "sb-frontmatter sb-meta" },
-            body: "[",
-          },
-          {
-            name: "span",
-            attrs: { class: "sb-frontmatter sb-attribute-name" },
-            body: attrName,
-          },
-          {
-            name: "span",
-            attrs: { class: "sb-frontmatter sb-meta" },
-            body: attrColon,
-          },
-          {
-            name: "span",
-            attrs: { class: "sb-frontmatter sb-attribute-value" },
-            body: attrValue,
-          },
-          {
-            name: "span",
-            attrs: { class: "sb-frontmatter sb-meta" },
-            body: "]",
-          },
-        ],
-      };
-    }
+    case "Attribute":
+      return attributeTag(t, (c) => cleanTags(mapRender(c)));
     case "Escape": {
       return {
         name: "span",
@@ -692,6 +640,10 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         name: RawHtml,
         body: renderToText(t),
       };
+
+    case LuaValueSlotType:
+    case SlotRefType:
+      return slotTag(t, options.slotRefLimit);
 
     case "LuaDirective":
       return {
@@ -952,11 +904,11 @@ export function renderMarkdownToHtml(
       if (typeof t === "string") {
         return;
       }
-      if (t.name === "img" && options.translateUrls) {
-        t.attrs!.src = options.translateUrls!(t.attrs!.src!, "image");
+      if (t.name === "img" && options.translateUrls && t.attrs?.src) {
+        t.attrs.src = options.translateUrls(t.attrs.src, "image");
       }
 
-      if (t.name === "a" && t.attrs!.href) {
+      if (t.name === "a" && t.attrs?.href) {
         if (options.translateUrls) {
           t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
         }
@@ -986,7 +938,9 @@ export function renderMarkdownToHtml(
                     },
                   ]
                 : []),
-              (pageMeta.pageDecoration?.prefix ?? "") + t.body,
+              ...(typeof t.body === "string"
+                ? [(pageMeta.pageDecoration?.prefix ?? "") + t.body]
+                : [pageMeta.pageDecoration?.prefix ?? "", ...t.body]),
             ];
             if (pageMeta.pageDecoration?.cssClasses) {
               t.attrs!.class +=

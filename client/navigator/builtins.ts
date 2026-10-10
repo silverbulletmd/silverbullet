@@ -6,17 +6,17 @@
  */
 
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
-import { RESERVED_KEYS } from "./lua_views.ts";
 import type { NavigatorHook, Row, SourceCtx, ViewMeta } from "./types.ts";
+import { RESERVED_KEYS } from "./view_spec.ts";
 import { anchorPicker } from "./views/anchors.ts";
 import { commandPalette } from "./views/commands.ts";
+import { pagePicker } from "./views/pages.ts";
 import {
-  pageHistoryView,
-  spaceLogView,
   gitConflictsView,
   gitStatusView,
+  pageHistoryView,
+  spaceLogView,
 } from "./views/revisions.ts";
-import { pagePicker } from "./views/pages.ts";
 import { spaceTreeView } from "./views/space_tree.ts";
 import { tagPicker } from "./views/tags.ts";
 import type { BuiltinView } from "./views/types.ts";

@@ -3,12 +3,34 @@ tags: api/space-lua
 references:
 - libraries/Library/Std/APIs/Widget.md
 - client/space_lua/render_widget.ts
-- client/codemirror/lua_widget.ts
+- client/codemirror/widgets/lua_widget.ts
 - client/navigator/view_value.ts
 lastReviewed: "2026-06-29"
 ---
 
-Widgets are values describing what to render: static Markdown or HTML, or live content that refreshes. They render wherever they're placed, often through [[Space Lua#Expressions]] — see [[View#Widgets and views]].
+A widget is a value that describes what to render. Three questions decide how it behaves: what value you return, where you place it, and when it re-runs. Widgets render wherever they're placed, often through [[Space Lua#Expressions]] — see [[View#Widgets and views]].
+
+# What a plain `${...}` renders
+You don't need a widget for most things. An expression renders whatever value it returns:
+
+* A string renders as Markdown.
+* A table (a query result, for example) renders as a table, and a list of plain values as one value per line. Lines are joined on purpose: item templates such as `templates.taskItem` concatenate into a list that way.
+* A number or boolean renders as text.
+* A widget renders as that widget, and `..`, `table.concat` and templates can embed widgets (see [[#Combining widgets with text]]).
+* A bare DOM node renders like `widget.html(node)`.
+* A single-line string with a ` - ` in the middle (such as `5 - 3`) stays inline; only a line that starts with a list marker renders as a block.
+
+A plain expression runs once when the page opens and again on Reload. It does not re-run when data changes. Reach for a widget when you need one of the following:
+
+| You want to... | Use |
+| --- | --- |
+| Render as a block, or add CSS classes | `widget.new { markdown = ..., display = "block", cssClasses = {...} }` |
+| Show text without running `${...}` or transclusions inside it | `evaluate = false` |
+| Build custom HTML with listeners | `widget.html(dom...)` |
+| Run JavaScript in isolation | `widget.sandbox { ... }` |
+| Show rows as a list, tree or table with filter, selection and actions | `widget.new { source = ..., presentation = ... }` |
+| Show a panel or a docked view | `view.define { widget = ... }` |
+| Re-run an expression when something changes | `widget.live(value, refreshOn?)` |
 
 # Widget types
 ## Markdown widgets
@@ -62,6 +84,16 @@ We can combine this with some [[Space Style]] to style it:
 This can be used as follows:
 ${marquee "Finally, marqeeeeeee!"}
 
+## Combining widgets with text
+Concatenating a widget with text (`..`), joining a list that contains widgets (`table.concat`), or interpolating a widget in a [[Template|template]] produces a *fragment*: Markdown with the widgets embedded. A fragment renders anywhere a widget does, keeping each embedded widget interactive:
+
+${"* Status: "
+  .. widgets.button("Refresh", function() editor.flashNotification("Look at me, I'm refreshing!") end)
+  .. "\n* Owner: [[Zef Hemel]]"
+}
+
+`widget.markdown` and `widget.markdownBlock` accept a fragment too. A widget or fragment can't be used as text: `tostring`, the `string` functions and APIs that expect a string raise an error. Use `widget.toMarkdown(w)` to get its Markdown (HTML-only widgets contribute nothing).
+
 ## Sandboxed widgets
 For widgets that need to run JavaScript, e.g. to drive a third-party rendering library, set `sandbox = true`. The `html` (and the optional `script`) then run together inside an **isolated sandbox iframe**, so the widget's scripts and styles can't interfere with the editor. (`widget.sandbox` is a shortcut that sets this for you.)
 
@@ -70,7 +102,7 @@ Inside the sandbox the script has access to:
 * `loadJsByUrl(url)` — load an external classic script (returns a promise that resolves once loaded).
 * automatic height — the iframe sizes itself to its content.
 
-The widget's `markdown` value (if set) is what the **Copy** button copies — handy for exposing a scripted widget's source. Sandboxed widgets render as a block.
+The widget's `markdown` value (if set) is what **Copy as Markdown** copies and **Bake into page** writes — handy for exposing a scripted widget's source. Without it the widget has neither. Sandboxed widgets render as a block.
 
 ```space-lua
 function clock()
@@ -87,11 +119,27 @@ end
 
 ${clock()}
 
-# Live widgets
-## widget.new { source | content }
-Creates a live widget: one built from `source(ctx)`, which returns objects, or `content(ctx)`, which returns Markdown or a static widget. It re-runs them when it refreshes. A live widget can’t also set `markdown` or `html`. Render it in a page expression or pass it to `view.define` as `widget`.
+# Re-running on change
+## widget.live(value, refreshOn?)
+Wraps a value so the expression it sits in re-runs when something changes. Without it, an expression runs once per page open. `refreshOn` defaults to `{ "index" }`; it takes the same trigger names as the `refreshOn` option below (`"index"`, `"navigate"`, `"edit"`, or an event name).
 
-**Returns:** A live widget.
+This list of open tasks updates when you add or complete a task:
+
+${widget.live(query[[from index.tag("task") where not _.done select _.name limit 3]])}
+
+To follow the open page while you type, ask for edits instead:
+
+```lua
+${widget.live("This page has " .. #editor.getText() .. " characters", { "edit" })}
+```
+
+The whole expression re-runs on each event, so put `widget.live` around what changes, and one event re-runs the expression once however many `widget.live` calls it contains. It works in `${...}` expressions, Lua code fences and custom syntax. Inside a view's `content` or `source` function it only renders its value; set `refreshOn` on the view instead. Static renders such as *Bake into page* ignore it.
+
+The widget's ⋯ menu shows a green dot and a "Live · re-runs when ..." line for live widgets, and offers *Make static* to remove the wrapper. See [[#Widget menu and commands]].
+
+# Lists, trees and tables
+## widget.new { source }
+Builds a list, tree or table from `source(ctx)`, which returns objects. A widget with `source` can't also set `markdown` or `html`. Render it in a page expression or pass it to `view.define` as `widget`. It reloads when `refreshOn` fires, and on Reload.
 
 For a minimal inline list that navigates on click:
 
@@ -111,28 +159,16 @@ ${widget.new {
 | Option | Effect |
 | --- | --- |
 | `source(ctx)` | Returns the objects to display. Each object is passed unchanged to callbacks. |
-| `content(ctx)` | Returns Markdown, a static widget (`widget.new` with `markdown`, `html` or `cssClasses`, or `widget.html(…)`) or a DOM node, or `nil` to display nothing. Content widgets have no rows or filter input. |
-| `refreshOn` | What reloads the source or content; defaults to nothing. Use the trigger names `"index"` (the space index changed), `"navigate"` (another page or document opened) and `"edit"` (the open page was edited); any other entry is an event name. |
+| `content(ctx)` | Returns any value `${...}` accepts, or `nil` to display nothing. See [[#Content functions]]. Content widgets have no rows or filter input. |
+| `refreshOn` | What reloads the source or content; defaults to nothing, so it runs once per page open. Use the trigger names `"index"` (the space index changed), `"navigate"` (another page or document opened) and `"edit"` (the open page was edited); any other entry is an event name. |
 | `stateKey` | Saves an inline tree's expansion state locally, scoped to the containing page and this key. Without it, expansion is transient. |
 | `title` | Adds a panel-style heading to an inline view. A registration can override it for its panel. |
 | `label`, `placeholder`, `helpText` | Configure panel text: a short picker verb, filter placeholder, and help below the input. A segment can override the last two. |
 
 `source` receives a table with `phrase`, `segment` and `dock` keys: the current filter phrase, active segment label (or `nil`), and rendering location. `content` receives the same context; an inline view has `dock = "inline"`. The source can use `ctx.dock` to return different objects for a panel and an embedded view.
 
-For Markdown content instead of rows:
-```lua
-widget.new {
-  refreshOn = { "navigate" },
-  content = function()
-    return "## Current page\n\n" .. editor.getCurrentPage()
-  end,
-}
-```
-
-Content views use the Markdown renderer and do not support row options. `stateKey` saves expansion only; focus and selection are not persisted.
-
 ### Presentation
-`presentation.mode` supports `"list"` (the default(, `"tree"` for hierarchical paths, or `"table"` for columns. A view with `content` does not use a presentation mode.
+`presentation.mode` supports `"list"` (the default), `"tree"` for hierarchical paths, or `"table"` for columns. A widget with `content` does not use a presentation mode.
 
 | `presentation` option | Effect |
 | --- | --- |
@@ -154,6 +190,8 @@ A string `row.description` appears inline and supports Markdown in document list
 `presentation = { mode = "table" }` derives columns from the union of attributes in the loaded objects. It keeps the first object's attribute order and appends new attributes in the order they first appear in later objects. Filtering and `presentation.limit` do not change those columns in client search mode. Source order is also the row order; table headers do not sort rows, so sort the source before returning it if needed.
 
 This inline table needs no column definitions:
+Inline, it looks like a plain query table with left-aligned headers.
+
 ${widget.new {
   title = "Projects",
   source = function()
@@ -260,17 +298,59 @@ In client search mode, `segments[i].where(obj)` filters before fuzzy ranking. In
 
 `onMove` receives the target folder plus the dragged row's last path segment as `newName`. Hovering a collapsed tree folder opens it; duplicate destinations abort with an error. `presentation.uploadFiles` and `onMove` apply to panel trees, not inline views.
 
+## Content functions
+For content instead of rows, pass `content(ctx)` to `widget.new`. It returns any value a `${...}` expression accepts: Markdown, a table or query result, a number, a fragment, a sandbox, a DOM node, or a nested list, tree or table widget. Add `refreshOn` to re-run it on changes.
+
+```lua
+widget.new {
+  refreshOn = { "navigate" },
+  content = function()
+    return "## Current page\n\n" .. editor.getCurrentPage()
+  end,
+}
+```
+
+A query becomes a table that follows the index:
+
+```lua
+widget.new {
+  refreshOn = { "index" },
+  content = function()
+    return query [[from index.tag("task") where not _.done limit 5]]
+  end,
+}
+```
+
+`widget.live` has no effect inside `content`; `refreshOn` is the switch there. A page-docked content view runs its `content` once per page load. Content views don't support row options. `stateKey` saves expansion only; focus and selection are not persisted.
+
+# Widget menu and commands
+A block widget has one ⋯ menu inside its top-right corner: it appears on hover on desktop and is always visible on touch devices. A green dot on ⋯ marks a live widget. Entries appear only when they apply:
+
+* A "Live · re-runs when ..." line, for live widgets.
+* **Go to definition** and **Open**: jump to the Space Lua that defines the widget, or open what it shows.
+* **Edit source**: moves the cursor into the `${...}`.
+* **Reload** (**Reload now** for a live widget): re-runs this widget only, not the page.
+* **Copy as Markdown**: list, tree and table widgets copy their rows; a view with `content` has nothing to copy.
+* **Bake into page**: replaces the expression with its current Markdown (the same text as Copy). Views stay live and can't be baked.
+* **Make live** / **Make static**: adds or removes `widget.live(...)` around the expression.
+
+Views docked above or below the page have the same ⋯ menu in their title bar (on hover, for a minimal frame), with **Go to definition** and **Copy as Markdown** where they apply; in a sidebar, the bottom panel or the modal, a content view's header has it for **Copy as Markdown**. The dock menu and × stay beside it.
+
+HTML-only widgets have no Markdown, so they have neither Copy nor Bake. Bake and Make live/static are hidden in read-only mode. *Baked Sections: Update* re-bakes fragments the same way.
+
+Inline results have no button. Put the cursor in the `${...}` and run a command instead: *Widget: Copy*, *Widget: Bake*, *Widget: Reload*, *Widget: Make Live* or *Widget: Make Static*. *Widgets: Refresh All* still re-runs every widget on the page.
+
 # API
 ## widget.new(spec)
 To render a widget, call `widget.new` with a `spec` table setting any of the following keys:
 
-* `markdown`: Renders the value as markdown. For `html`/sandbox widgets it is not displayed but is used as the **Copy** button's content.
+* `markdown`: Renders the value as markdown. For `html`/sandbox widgets it is not displayed but is what **Copy as Markdown** and **Bake into page** use.
 * `html`: Renders a HTML DOM as a widget. It is usually used in conjunction with the [[API/dom]] API.
 * `sandbox`: When `true`, render `html` (and `script`) inside an isolated sandbox iframe (see [[#Sandboxed widgets]]).
 * `script`: JavaScript to run inside the sandbox iframe. Only runs when `sandbox = true`.
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`).
 * `cssClasses`: A list of CSS class names to set on the widget's wrapper element.
-* `source` or `content`: Makes it a [[#Live widgets|live widget]] instead. Can’t be combined with `markdown` or `html`.
+* `source` or `content`: Builds a [[#Lists, trees and tables|list, tree or table]] or a [[#Content functions|content function]] instead. Add `refreshOn` to make it re-run on changes. Can’t be combined with `markdown` or `html`.
 
 ## widget.markdown(text)
 Shortcut for `widget.new { markdown = text }`
@@ -290,13 +370,21 @@ Shortcut for `widget.new { markdown = text, display = "block" }`
 
 Block-level version of `widget.markdown`. Useful for content that needs to render as a block element (lists, tables, headings, etc.).
 
+## widget.toMarkdown(w)
+Returns a widget's Markdown, the same text Copy as Markdown and Bake into page use: a fragment's text with each embedded widget's Markdown (tables as GFM), the wrapped value for `widget.live(value)`, a list, tree or table widget's rows, and `""` for HTML-only widgets and content views.
+
 ## widget.sandbox(spec)
 Convenience wrapper for a [[#Sandboxed widgets|sandboxed]] widget — equivalent to `widget.new` with `sandbox = true` (and `display = "block"` by default).
 
 Keys:
 * `html`
 * `script`
-* `markdown` (Copy-button content)
+* `markdown` (what Copy as Markdown and Bake into page use)
 * `cssClasses`
 * `display` (defaults to `block`)
 
+# Legacy
+These still work but can't be moved, closed or configured; use a [[View|view]] instead.
+
+* `hooks:renderTopWidgets` and `hooks:renderBottomWidgets` events return widgets shown above or below every page. Use `view.define` with `dock = "page-top"` or `"page-bottom"` and `frame = "minimal"`.
+* Plug code widgets render in an iframe.

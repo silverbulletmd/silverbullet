@@ -45,11 +45,11 @@ ${widget.new {
 }}
 ```
 
-Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget's Edit button reveals the expression. Use `stateKey` to remember tree expansion locally for that page.
+Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget's ⋯ menu has Edit source, Reload for this widget only, and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
 
 Use `presentation = { mode = "table" }` to display source objects in a table with automatic columns and Markdown cells. Explicit column definitions let you choose attributes, labels, types, and display callbacks. Tables support the same selection and action callbacks as other views.
 
-For examples with actions and the full option reference, see [[API/widget#Live widgets]]. Inline views can opt into a filter input; segments and docking controls belong to panels.
+For examples with actions and the full option reference, see [[API/widget#Lists, trees and tables]]. Inline views can opt into a filter input; segments and docking controls belong to panels.
 
 # Using a panel
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
@@ -96,7 +96,7 @@ view.define {
 
 In this flat row definition, `name`, `source` and `onSelect` are required; `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`.
 
-To reuse a live widget as a panel, pass it as `widget` to `view.define`. See [[API/view#view.define(spec)]].
+To reuse a widget as a panel, pass it as `widget` to `view.define`. See [[API/view#view.define(spec)]].
 
 # Docks
 `dock` decides where a view opens, out of six places:
@@ -106,7 +106,7 @@ To reuse a live widget as a panel, pass it as `widget` to `view.define`. See [[A
 * `"bhs"` is a persistent bottom panel below the editor. It is resizable by its top edge, the height is remembered per view, and it otherwise behaves like the sidebars.
 * `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. With `frame = "minimal"` even those go: the body reads as page content and its buttons appear on hover. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
 
-A view's body is a list, a tree, or — for a [[API/widget#Data and refresh|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
+A view's body is a list, a tree, or — for a [[API/widget#Content functions|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 
 # The dock menu
 Any view whose `supportedDocks` lists more than one place gets a **dock menu**: a button in its header (sidebar/modal title bar, or page-widget bar) whose icon shows the current dock, opening a list of the places it can move to.

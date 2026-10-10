@@ -22,7 +22,7 @@ vi.hoisted(() => {
   });
   vi.stubGlobal("navigator", { platform: "Linux", userAgent: "", vendor: "" });
 });
-vi.mock("../components/widget_sandbox_iframe.ts", () => ({
+vi.mock("../sandbox/widget_sandbox_iframe.ts", () => ({
   prepareSandboxIFrame: () => {
     throw new Error("unexpected iframe creation");
   },
@@ -42,9 +42,9 @@ const {
   createEditorUpdateHandler,
   externalUpdate,
 } = await import("./editor_state.ts");
-const inlineContent = await import("./inline_content.ts");
+const inlineContent = await import("./syntax/inline_content.ts");
 const pageLint = await import("./lint.ts");
-const pageWidgets = await import("./top_bottom_panels.ts");
+const pageWidgets = await import("./widgets/top_bottom_panels.ts");
 
 function clientStub(): Client {
   return {

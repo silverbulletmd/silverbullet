@@ -94,6 +94,8 @@ export type LuaCloseEntry = { value: LuaValue; ctx: ASTCtx };
 type LuaThreadState = {
   closeStack?: LuaCloseEntry[];
   budget?: LuaBudget;
+  // Widget nesting depth of the render evaluating this thread
+  renderDepth?: number;
 };
 
 function isLuaNumber(v: any): boolean {
@@ -278,7 +280,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   private readonly consts = new Set<string>();
   private readonly numericTypes = new Map<string, NumericType>();
 
-  constructor(readonly parent?: LuaEnv) { }
+  constructor(readonly parent?: LuaEnv) {}
 
   setLocal(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
@@ -392,7 +394,7 @@ export class LuaStackFrame {
     readonly parent?: LuaStackFrame,
     readonly currentFunction?: LuaFunction,
     readonly threadState: LuaThreadState = { closeStack: undefined },
-  ) { }
+  ) {}
 
   static createWithGlobalEnv(
     globalEnv: LuaEnv,
@@ -640,8 +642,8 @@ export class LuaBuiltinFunction implements ILuaFunction {
     definition:
       | ((sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue)
       | LuaFunctionDefinition<
-        (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue
-      >,
+          (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue
+        >,
   ) {
     if (typeof definition === "function") {
       this.fn = definition;
@@ -1834,9 +1836,9 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
         boundaryBudget === undefined
           ? sf
           : new LuaStackFrame(sf.threadLocal, sf.astCtx, undefined, undefined, {
-            closeStack: undefined,
-            budget: boundaryBudget,
-          });
+              closeStack: undefined,
+              budget: boundaryBudget,
+            });
       // Marks this call's own budget (if any) done, so a Stop click that
       // arrives after the call has already returned is a no-op rather than
       // quarantining/disabling something that isn't running anymore.

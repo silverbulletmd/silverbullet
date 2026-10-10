@@ -1,6 +1,6 @@
 import type { Client } from "../client.ts";
-import { expressionToPortableMarkdown } from "../space_lua/render_widget.ts";
-import { escapeBakedBody, findBakedSections } from "./regions.ts";
+import { expressionToPortableMarkdown } from "../markdown_renderer/compose_client.ts";
+import { bakedBody, findBakedSections } from "./regions.ts";
 
 type BodyEdit = {
   from: number;
@@ -33,11 +33,10 @@ async function computeBakeEdits(
       skipped.push(`"${section.expr}" (${result.reason})`);
       continue;
     }
-    const body = escapeBakedBody(result.markdown).trim();
     edits.push({
       from: section.bodyFrom,
       to: section.bodyTo,
-      insert: `\n${body}\n`,
+      insert: bakedBody(result.markdown),
     });
   }
   return { edits, skipped };

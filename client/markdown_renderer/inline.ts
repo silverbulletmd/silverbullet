@@ -1,12 +1,4 @@
 import {
-  addParentPointers,
-  findNodeOfType,
-  type ParseTree,
-  renderToText,
-  replaceNodesMatchingAsync,
-} from "@silverbulletmd/silverbullet/lib/tree";
-import { htmlEscape } from "./html_render.ts";
-import {
   getPathExtension,
   isMarkdownPath,
   parseToRef,
@@ -15,31 +7,29 @@ import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import mime from "mime";
-import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
-import {
-  BUSY_LIMIT_DEFAULT_MS,
-  LuaBudgetStopped,
-  makeLuaBudget,
-} from "../space_lua/budget.ts";
-import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
-import { parse } from "../markdown_parser/parse_tree.ts";
-import { renderResultToMarkdown } from "../space_lua/render_lua_markdown.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
-import { evalExpression } from "../space_lua/eval.ts";
-import type { LuaExpression } from "../space_lua/ast.ts";
-
-import { fsEndpoint } from "../spaces/constants.ts";
 import {
   nameFromTransclusion,
   parseTransclusion,
   type Transclusion,
 } from "@silverbulletmd/silverbullet/lib/transclusion";
-import type { Space } from "../space.ts";
-import type { SpaceLuaEnvironment } from "../space_lua.ts";
-import { isViewValue } from "../navigator/view_value.ts";
+import {
+  addParentPointers,
+  findNodeOfType,
+  findParentMatching,
+  type ParseTree,
+  renderToText,
+  replaceNodesMatchingAsync,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import mime from "mime";
+import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
+import { parse } from "../markdown_parser/parse_tree.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { createMediaElement as createNativeMediaElement } from "../media.ts";
+import type { Space } from "../space.ts";
+import { LUA_TIMEOUT_MESSAGE, LuaBudgetStopped } from "../space_lua/budget.ts";
+import type { SpaceLuaEnvironment } from "../space_lua.ts";
+import { fsEndpoint } from "../spaces/constants.ts";
+import { htmlEscape } from "./html_render.ts";
 
 // Synthetic node type used to represent pre-resolved custom syntax HTML in the parse tree
 export const CustomSyntaxRenderedHtmlType = "CustomSyntaxRenderedHtml";
@@ -51,19 +41,37 @@ export type CustomSyntaxHtmlRenderer = CustomSyntaxSpec & {
   ) => string | HTMLElement | Promise<string | HTMLElement>;
 };
 
+// A node whose children were re-parsed for display; `source` keeps its text.
+export type SourcedNode = ParseTree & { source?: string };
+
+/**
+ * Where a task gets a `[[Page@pos]]` reference so it can be updated. A ref
+ * needs a real source offset, so only text that is a page's source gets one:
+ * - "page": the text is `pageName`'s source, and so is any page it transcludes
+ * - "transcluded": the text is generated (by Lua); only transcluded pages are
+ * - "none": no references at all
+ */
+export type TaskRefs = "page" | "transcluded" | "none";
+
 export type MarkdownExpandOptions = {
-  // all options default to true, set to false to explicitly disable
-  // Replace (markdown transclusions) with their content
+  // Replace markdown transclusions with their content (default true)
   expandTransclusions?: boolean;
-  // Replace Lua directives with their evaluated values
-  expandLuaDirectives?: boolean;
-  // Rewrite tasks to include references so that they can be updated
-  rewriteTasks?: boolean;
+  // Which tasks without a reference get a `[[Page@pos]]` one
+  taskRefs: TaskRefs;
+  // Offset of the expanded text in `pageName`'s source (for task references)
+  sourceOffset?: number;
   // Custom syntax extensions keyed by name, with optional renderHtml callbacks
   syntaxExtensions?: Record<string, CustomSyntaxHtmlRenderer>;
   // Resolve a wiki-link transclusion's target the way wiki links resolve
   // (see buildResolveTransclusion); fromPage is the page being expanded
   resolveTransclusion?: (t: Transclusion, fromPage: string) => void;
+  // Replaces each Lua directive with the returned node (the slot renderer
+  // evaluates and renders values itself); without it directives stay as is
+  luaDirectiveHandler?: (
+    exprText: string,
+    sourcePage: string,
+    inTableCell: boolean,
+  ) => ParseTree;
 };
 
 /**
@@ -76,12 +84,30 @@ export async function expandMarkdown(
   pageName: string,
   mdTree: ParseTree,
   sle: SpaceLuaEnvironment,
-  options: MarkdownExpandOptions = {},
+  options: MarkdownExpandOptions,
   processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
+  const taskRefs = options.taskRefs;
   const mdLang = buildExtendedMarkdownLanguage(options.syntaxExtensions);
   addParentPointers(mdTree);
   await replaceNodesMatchingAsync(mdTree, async (n) => {
+    if (
+      options.luaDirectiveHandler &&
+      (n.type === "WikiLinkAlias" || n.type === "AttributeValue")
+    ) {
+      const source = renderToText(n);
+      if (!source.includes("${")) return undefined;
+      // Display-only: re-parse the text inline so its directives become slots
+      const para = parse(mdLang, source).children?.find(
+        (c) => c.type === "Paragraph",
+      );
+      if (para?.children) {
+        (n as SourcedNode).source = source;
+        n.children = para.children;
+        addParentPointers(n);
+      }
+      return undefined;
+    }
     if (n.type === "Image" && options.expandTransclusions !== false) {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
       const text = renderToText(n);
@@ -133,66 +159,30 @@ export async function expandMarkdown(
           nameFromTransclusion(transclusion),
           tree,
           sle,
-          options,
+          {
+            ...options,
+            taskRefs: taskRefs === "none" ? "none" : "page",
+            sourceOffset: result.offset,
+          },
           processedPages,
         );
       } catch (e: any) {
         if (e instanceof LuaBudgetStopped) {
-          return parse(
-            mdLang,
-            `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`,
-          );
+          return parse(mdLang, LUA_TIMEOUT_MESSAGE);
         }
         return parse(mdLang, `**Error:** ${e.message}`);
       }
-    } else if (
-      n.type === "LuaDirective" &&
-      options.expandLuaDirectives !== false
-    ) {
-      const expr = findNodeOfType(
-        n,
-        "LuaExpressionDirective",
-      ) as LuaExpression | null;
+    } else if (n.type === "LuaDirective" && options.luaDirectiveHandler) {
+      const expr = findNodeOfType(n, "LuaExpressionDirective");
       if (!expr) {
         return;
       }
-      const exprText = renderToText(expr);
-
-      try {
-        const sf = LuaStackFrame.createWithGlobalEnv(sle.env);
-        sf.threadState.budget = makeLuaBudget({
-          busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
-          onLimit: (b) => {
-            b.stopped = true;
-          },
-        });
-
-        let result = await evalExpression(
-          parseExpressionString(exprText),
-          sle.env,
-          sf,
-        );
-
-        if (isViewValue(result)) {
-          return parse(mdLang, "*This view requires the live editor.*");
-        }
-        if (result?.markdown) {
-          result = result.markdown;
-        } else if (result instanceof LuaTable && result.has("markdown")) {
-          result = result.get("markdown");
-        }
-        return parse(mdLang, renderResultToMarkdown(result).markdown);
-      } catch (e: any) {
-        if (e instanceof LuaBudgetStopped) {
-          return parse(
-            mdLang,
-            `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`,
-          );
-        }
-        console.error("Error evaluating Lua directive", exprText, e);
-        return parse(mdLang, `**Error:** ${e.message}`);
-      }
-    } else if (n.type === "Task" && options.rewriteTasks !== false) {
+      return options.luaDirectiveHandler(
+        renderToText(expr),
+        pageName,
+        !!findParentMatching(n, (p) => p.type === "TableCell"),
+      );
+    } else if (n.type === "Task" && taskRefs === "page") {
       const existingLink = findNodeOfType(n, "WikiLink");
       if (!existingLink) {
         n.children!.splice(
@@ -210,7 +200,11 @@ export async function expandMarkdown(
               },
               {
                 type: "WikiLinkPage",
-                children: [{ text: `${pageName}@${n.parent!.from!}` }],
+                children: [
+                  {
+                    text: `${pageName}@${(options.sourceOffset ?? 0) + n.parent!.from!}`,
+                  },
+                ],
               },
               {
                 type: "WikiLinkMark",

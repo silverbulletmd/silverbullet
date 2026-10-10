@@ -8,13 +8,14 @@ import {
   toggleCollapsed,
 } from "../../page_widget_logic.ts";
 import type { ViewMeta } from "../../types.ts";
-import { CloseIcon, DefinitionIcon } from "./chrome_icons.tsx";
+import { CloseIcon } from "../../../components/chrome_icons.tsx";
 import { DockMenu } from "./dock_menu.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
+import { ViewActionsMenu } from "./view_actions_menu.tsx";
 
 /**
  * The strip above a page widget: a collapse triangle and its title on the left,
- * whatever tools it contributes plus the dock menu and × on the right. Shared
+ * its ⋯ actions menu, the dock menu and × on the right. Shared
  * by both kinds of widget so a content view and a row view are framed
  * identically.
  *
@@ -29,7 +30,7 @@ function WidgetBar({
   slot,
   error,
   loading,
-  tools,
+  copy,
   collapsed,
   onToggleCollapsed,
 }: {
@@ -39,7 +40,7 @@ function WidgetBar({
   slot: string;
   error?: string;
   loading?: boolean;
-  tools?: ComponentChildren;
+  copy?: () => Promise<void>;
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
@@ -78,18 +79,11 @@ function WidgetBar({
       </span>
       <span className="sb-page-widget-tools">
         {loading && <LoadingIndicator />}
-        {meta.definition && (
-          <button
-            type="button"
-            className="sb-nav-definition"
-            title="Go to definition"
-            aria-label="Go to definition"
-            onClick={() => void client.navigate(meta.definition!)}
-          >
-            <DefinitionIcon />
-          </button>
-        )}
-        {tools}
+        <ViewActionsMenu
+          client={client}
+          definition={meta.definition}
+          copy={copy}
+        />
         <DockMenu
           name={name}
           current={slot}
@@ -115,31 +109,24 @@ function HoverBar({
   meta,
   slot,
   loading,
-  tools,
+  copy,
 }: {
   client: Pick<Client, "navigate">;
   name: string;
   meta: ViewMeta;
   slot: string;
   loading?: boolean;
-  tools?: ComponentChildren;
+  copy?: () => Promise<void>;
 }) {
   const supported = meta.supportedDocks ?? [slot];
   return (
     <span className="sb-page-widget-hoverbar">
       {loading && <LoadingIndicator />}
-      {meta.definition && (
-        <button
-          type="button"
-          className="sb-nav-definition"
-          title="Go to definition"
-          aria-label="Go to definition"
-          onClick={() => void client.navigate(meta.definition!)}
-        >
-          <DefinitionIcon />
-        </button>
-      )}
-      {tools}
+      <ViewActionsMenu
+        client={client}
+        definition={meta.definition}
+        copy={copy}
+      />
       {supported.length > 1 && (
         <DockMenu name={name} current={slot} supported={supported} />
       )}
@@ -208,7 +195,7 @@ export function PageWidgetFrame({
   pending,
   error,
   loading,
-  tools,
+  copy,
   collapsed,
   onToggleCollapsed,
   hasBody,
@@ -223,7 +210,7 @@ export function PageWidgetFrame({
   pending?: boolean;
   error?: string;
   loading?: boolean;
-  tools?: ComponentChildren;
+  copy?: () => Promise<void>;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   hasBody: boolean;
@@ -245,7 +232,7 @@ export function PageWidgetFrame({
           meta={meta}
           slot={slot}
           loading={loading}
-          tools={tools}
+          copy={copy}
         />
         {error && <div className="sb-page-widget-error">⚠ {error}</div>}
         {hasBody && <div className="sb-page-widget-body">{children}</div>}
@@ -274,7 +261,7 @@ export function PageWidgetFrame({
         slot={slot}
         error={error}
         loading={loading}
-        tools={tools}
+        copy={copy}
         collapsed={collapsed}
         onToggleCollapsed={onToggleCollapsed}
       />

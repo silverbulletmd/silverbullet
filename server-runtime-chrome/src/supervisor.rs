@@ -7,8 +7,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chromiumoxide::browser::{Browser, BrowserConfig};
 use chromiumoxide::cdp::browser_protocol::network::{CookieParam, CookieSameSite};
 use chromiumoxide::cdp::browser_protocol::page::{
-    AddScriptToEvaluateOnNewDocumentParams, CaptureScreenshotFormat, EventFrameNavigated,
-    Viewport,
+    AddScriptToEvaluateOnNewDocumentParams, CaptureScreenshotFormat, EventFrameNavigated, Viewport,
 };
 use chromiumoxide::cdp::js_protocol::runtime::{
     ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled, ExecutionContextId,
@@ -34,7 +33,11 @@ use crate::config::{ChromeConfig, SpacePage};
 /// document replaced *while* the expression runs is an error, as it may have
 /// had effects.
 pub(crate) async fn eval_on_bridge(page: &Page, js: &str) -> Result<Option<Value>, RuntimeError> {
-    let Some(context) = page.execution_context().await.map_err(cdp_error_to_runtime)? else {
+    let Some(context) = page
+        .execution_context()
+        .await
+        .map_err(cdp_error_to_runtime)?
+    else {
         return Ok(None);
     };
     match evaluate_in(page, context, READY_JS, false).await {
@@ -375,9 +378,11 @@ async fn launch_page(
         .await
         .map_err(|e| format!("console capture: {e}"))?;
 
-    page.evaluate_on_new_document(AddScriptToEvaluateOnNewDocumentParams::new(HEADLESS_INIT_JS))
-        .await
-        .map_err(|e| format!("headless init script: {e}"))?;
+    page.evaluate_on_new_document(AddScriptToEvaluateOnNewDocumentParams::new(
+        HEADLESS_INIT_JS,
+    ))
+    .await
+    .map_err(|e| format!("headless init script: {e}"))?;
     attach_navigation_watch(page, ready, navigated)
         .await
         .map_err(|e| format!("navigation listener: {e}"))?;

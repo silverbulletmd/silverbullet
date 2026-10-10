@@ -3,7 +3,7 @@ description: A checkbox item tracked as a queryable object.
 tags: glossary
 references:
 - plugs/index/task.ts
-- client/codemirror/task.ts
+- client/codemirror/syntax/task.ts
 ---
 
 The task notation syntax is a [[Markdown]] extension to write down tasks.

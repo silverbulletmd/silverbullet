@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { escapeBakedBody, findBakedSections } from "./regions.ts";
+import {
+  bakedBody,
+  bakedRegionText,
+  escapeBakedBody,
+  findBakedSections,
+} from "./regions.ts";
 
 test("findBakedSections finds a single section, its body span, and full span", () => {
   const text = "before\n<!--#lua 3 + 4 -->\nstale\n<!--/lua-->\nafter";
@@ -46,4 +51,20 @@ test("escapeBakedBody neutralizes a nested closing marker", () => {
   // After escaping, the nested marker is no longer matched as a section close.
   const text = `<!--#lua x -->\n${escapeBakedBody("<!--/lua-->")}\n<!--/lua-->`;
   expect(findBakedSections(text)).toHaveLength(1);
+});
+
+test("bakedRegionText wraps escaped, trimmed markdown in markers", () => {
+  expect(bakedRegionText("1 + 2", "\n3\n")).toBe(
+    "<!--#lua 1 + 2 -->\n3\n<!--/lua-->",
+  );
+  expect(bakedRegionText("x", "a <!--/lua--> b")).toBe(
+    "<!--#lua x -->\na <!-- /lua --> b\n<!--/lua-->",
+  );
+});
+
+test("a baked body is the escaped, trimmed markdown between newlines", () => {
+  expect(bakedBody("  a <!--/lua--> b ")).toBe("\na <!-- /lua --> b\n");
+  expect(bakedRegionText("q()", " x ")).toBe(
+    "<!--#lua q() -->\nx\n<!--/lua-->",
+  );
 });

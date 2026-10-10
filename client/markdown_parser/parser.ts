@@ -24,11 +24,13 @@ import { HTMLBlockParsing } from "./html_block.ts";
 import { ConflictMarkers } from "./conflict_marker.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import { scanLuaDirectiveEnd } from "../space_lua/directive_scan.ts";
 import { luaLanguage } from "../space_lua/parse.ts";
 import {
   buildCustomSyntaxExtensions,
   type CustomSyntaxSpecs,
 } from "./custom_syntax.ts";
+import { SLOT_CHAR } from "../markdown_renderer/slots.ts";
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [
@@ -105,28 +107,12 @@ const LuaDirectives: MarkdownConfig = {
           return -1;
         }
 
-        let bracketNestingDepth = 0;
-        let valueLength = 0;
-        // We need to ensure balanced { and } pairs
-        loopLabel: for (; valueLength < textFromPos.length; valueLength++) {
-          switch (textFromPos[valueLength]) {
-            case "{":
-              bracketNestingDepth++;
-              break;
-            case "}":
-              bracketNestingDepth--;
-              if (bracketNestingDepth === 0) {
-                break loopLabel;
-              }
-              break;
-          }
-        }
-        if (bracketNestingDepth !== 0) {
+        const end = scanLuaDirectiveEnd(textFromPos, 0);
+        if (end < 0) {
           return -1;
         }
-
-        const bodyText = textFromPos.slice(2, valueLength);
-        const endPos = pos + valueLength + 1;
+        const bodyText = textFromPos.slice(2, end - 1);
+        const endPos = pos + end;
 
         const parsedExpression = luaLanguage.parser.parse(`_(${bodyText})`);
 
@@ -152,6 +138,24 @@ const LuaDirectives: MarkdownConfig = {
         );
       },
       after: "Emphasis",
+    },
+  ],
+};
+
+const SLOT_CODE = SLOT_CHAR.charCodeAt(0);
+const SLOT_REF_RE = new RegExp(`^${SLOT_CHAR}\\d{1,6}${SLOT_CHAR}`);
+
+const SlotRefs: MarkdownConfig = {
+  defineNodes: [{ name: "SlotRef" }],
+  parseInline: [
+    {
+      name: "SlotRef",
+      parse(cx, next, pos) {
+        if (next !== SLOT_CODE) return -1;
+        const m = SLOT_REF_RE.exec(cx.slice(pos, Math.min(cx.end, pos + 8)));
+        if (!m) return -1;
+        return cx.addElement(cx.elt("SlotRef", pos, pos + m[0].length));
+      },
     },
   ],
 };
@@ -496,6 +500,7 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
   TaskList,
   Highlight,
   LuaDirectives,
+  SlotRefs,
   FootnoteRef,
   FootnoteDefinition,
   InlineFootnote,

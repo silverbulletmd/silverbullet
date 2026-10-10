@@ -304,7 +304,7 @@ test("openOnStartViews lists only the Lua views declaring openOnStart, by name a
   );
 });
 
-test("loadContent runs a content view's own closure and hands back its markdown", async () => {
+test("loadContent runs a content view's own closure and hands back its value", async () => {
   registerLua(
     "space.content",
     '{ content = function(ctx) return "# Hi " .. ctx.phrase end }',
@@ -312,11 +312,11 @@ test("loadContent runs a content view's own closure and hands back its markdown"
   );
 
   await expect(loadContent("space.content")).resolves.toEqual({
-    markdown: "# Hi ",
+    value: "# Hi ",
   });
   await expect(
     loadContent("space.content", { phrase: "there" }),
-  ).resolves.toEqual({ markdown: "# Hi there" });
+  ).resolves.toEqual({ value: "# Hi there" });
 });
 
 test("loadContent turns a throwing content view into an error, not a rejection", async () => {
@@ -329,22 +329,20 @@ test("loadContent turns a throwing content view into an error, not a rejection",
   );
 
   const result = await loadContent("space.content-boom");
-  expect(result.markdown).toBeUndefined();
+  expect(result.value).toBeUndefined();
   expect(String(result.error)).toContain("nope");
 });
 
 // A view that no longer exists (a script reload retired it mid-flight) answers
 // `undefined`; every container reads that as "nothing to show", not a crash.
-test("loadContent on an unknown view is empty markdown", async () => {
-  await expect(loadContent("space.nope")).resolves.toEqual({ markdown: "" });
+test("loadContent on an unknown view is a null value", async () => {
+  await expect(loadContent("space.nope")).resolves.toEqual({ value: null });
 });
 
-test("normalizeContent reads markdown, errors, and nothing at all", () => {
-  expect(normalizeContent({ markdown: "# a" })).toEqual({ markdown: "# a" });
+test("normalizeContent reads values, errors, and nothing at all", () => {
+  expect(normalizeContent({ value: "# a" })).toEqual({ value: "# a" });
+  expect(normalizeContent({ value: 42 })).toEqual({ value: 42 });
   expect(normalizeContent({ error: "broke" })).toEqual({ error: "broke" });
-  expect(normalizeContent(undefined)).toEqual({ markdown: "" });
-  expect(normalizeContent({})).toEqual({ markdown: "" });
-  expect(normalizeContent({ widget: { html: "<b>x</b>" } })).toEqual({
-    widget: { html: "<b>x</b>" },
-  });
+  expect(normalizeContent(undefined)).toEqual({ value: null });
+  expect(normalizeContent({})).toEqual({ value: null });
 });

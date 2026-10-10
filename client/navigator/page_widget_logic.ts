@@ -1,6 +1,8 @@
-import type { WidgetObject } from "../codemirror/widget_body.ts";
+import type { WidgetObject } from "../codemirror/widgets/widget_body.ts";
+import { isDomNode } from "../lib/dom.ts";
 import type { ContentResult } from "./registry.ts";
 import type { Row, ViewMeta } from "./types.ts";
+import { isViewValue } from "./view_value.ts";
 
 /**
  * Everything a page-docked widget *decides*, separated from what it renders:
@@ -103,7 +105,8 @@ export function createSettleTracker(
  * the widget from painting chrome ahead of its own body.
  */
 export type ContentState = {
-  markdown: string;
+  // Copy as Markdown; absent when there is nothing to copy
+  copy?: () => Promise<void>;
   node?: HTMLElement;
   error?: string;
   cssClasses?: string[];
@@ -256,15 +259,39 @@ export function activateOnKey(
   activate();
 }
 
+// A fingerprint of plain data; undefined (always commit) once the value holds
+// something without a stable identity: a function, a DOM node, a view, a cycle
+function dataKey(v: unknown, seen: Set<object>): string | undefined {
+  if (v === null || v === undefined) return "null";
+  switch (typeof v) {
+    case "string":
+    case "number":
+    case "boolean":
+      return JSON.stringify(v);
+    case "object":
+      break;
+    default:
+      return undefined;
+  }
+  const obj = v as object;
+  if (seen.has(obj) || isViewValue(obj) || isDomNode(obj)) {
+    return undefined;
+  }
+  seen.add(obj);
+  const parts: string[] = [];
+  const entries = Array.isArray(obj)
+    ? obj.map((x, i) => [String(i), x] as const)
+    : Object.entries(obj);
+  for (const [k, x] of entries) {
+    const key = dataKey(x, seen);
+    if (key === undefined) return undefined;
+    parts.push(`${JSON.stringify(k)}:${key}`);
+  }
+  seen.delete(obj);
+  return Array.isArray(obj) ? `[${parts.join(",")}]` : `{${parts.join(",")}}`;
+}
+
 export function contentIdentity(result: ContentResult): string | undefined {
   if (result.error !== undefined) return loadIdentity(result.error, "");
-  if (result.widget !== undefined) {
-    const { html, markdown, cssClasses } = result.widget;
-    if (html !== undefined && typeof html !== "string") return undefined;
-    return loadIdentity(
-      undefined,
-      JSON.stringify({ html, markdown, cssClasses }),
-    );
-  }
-  return loadIdentity(undefined, result.markdown);
+  return loadIdentity(undefined, dataKey(result.value, new Set()));
 }

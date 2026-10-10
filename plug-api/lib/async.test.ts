@@ -1,8 +1,9 @@
 import { expect, test } from "vitest";
 import {
   batchRequests,
-  processWithConcurrency,
+  ConcurrencyLimiter,
   PromiseQueue,
+  processWithConcurrency,
   sleep,
 } from "./async.ts";
 
@@ -182,4 +183,23 @@ test("Batch test", async () => {
     10000,
   );
   expect(multiplied2).toEqual(elements.map((e) => e * 2));
+});
+
+test("never runs more than max at once and preserves results", async () => {
+  const lim = new ConcurrencyLimiter(2);
+  let running = 0;
+  let peak = 0;
+  const results = await Promise.all(
+    [1, 2, 3, 4, 5].map((n) =>
+      lim.run(async () => {
+        running++;
+        peak = Math.max(peak, running);
+        await new Promise((r) => setTimeout(r, 5));
+        running--;
+        return n * 10;
+      }),
+    ),
+  );
+  expect(results).toEqual([10, 20, 30, 40, 50]);
+  expect(peak).toBe(2);
 });

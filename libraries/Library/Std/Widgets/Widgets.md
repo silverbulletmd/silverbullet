@@ -237,12 +237,9 @@ function widgets.stat(label, value, opts)
 end
 
 -- A grid cell: widgets and DOM nodes as they are (event handlers included),
--- markdown widgets rendered, text and numbers shown literally
+-- text and numbers shown literally
 local function cell(w)
   if type(w) == "table" and w._isWidget then
-    if w.html == nil and w.markdown ~= nil then
-      return widget.html(markdown.markdownToHtml(w.markdown))
-    end
     return w
   end
   if type(w) == "string" or type(w) == "number" then
@@ -611,8 +608,10 @@ end
 function widgets.linkedMentions(pageName)
   local md = widgets.linkedMentionsMarkdown(pageName)
   if md != "" then
+    -- Snippets quote other pages verbatim: show them, don't run them
     return widget.new {
-      markdown = "# Linked Mentions\n" .. md
+      markdown = "# Linked Mentions\n" .. md,
+      evaluate = false
     }
   end
 end
@@ -628,7 +627,9 @@ view.define {
   refreshOn = { "navigate", "index" },
   refreshOnOpen = true,
   content = function()
-    return widgets.linkedMentionsMarkdown()
+    local md = widgets.linkedMentionsMarkdown()
+    if md == "" then return "" end
+    return widget.markdown(md, { evaluate = false })
   end,
 }
 ```

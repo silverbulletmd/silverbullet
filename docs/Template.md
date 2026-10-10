@@ -22,6 +22,10 @@ Call the template with a table of values:
 ${templates.greet {name = "World"}}
 ```
 
+Templates can embed widgets. A template that interpolates a widget, like `template.new[==[* ${name} ${widgets.button("Open", open)}]==]`, returns a [[API/widget#Combining widgets with text|fragment]] instead of a string. It renders anywhere, including in query results, but can't be used as text (a page name, inserted text): use `widget.toMarkdown` there.
+
+Interpolated query results and lists render the way a page-level `${...}` renders them: a table or one item per line, not a raw Lua table.
+
 # Rendering collections
 The preferred pattern is to apply a template to each row directly in your query’s `select` clause:
 

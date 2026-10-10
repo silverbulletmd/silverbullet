@@ -13,7 +13,7 @@ test("page upload listeners follow page-to-text transitions and page rebuilds", 
       contents: `
         import { EditorState } from "@codemirror/state";
         import { EditorView } from "@codemirror/view";
-        import { documentExtension } from "./editor_paste.ts";
+        import { documentExtension } from "./editing/editor_paste.ts";
 
         globalThis.runUploadLifecycle = async () => {
           const listeners = new Set();
@@ -107,7 +107,7 @@ test("page uploads respect configured maximum document size", async ({
       contents: `
         import { EditorState } from "@codemirror/state";
         import { EditorView } from "@codemirror/view";
-        import { documentExtension } from "./editor_paste.ts";
+        import { documentExtension } from "./editing/editor_paste.ts";
 
         globalThis.runUploadSizeLimit = async () => {
           let writes = 0;

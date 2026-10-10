@@ -46,3 +46,14 @@ export function headersToFileMeta(
     return undefined;
   }
 }
+
+/** Cleanup callbacks released together, last added first; reusable after `dispose`. */
+export class Disposers {
+  private fns: (() => void)[] = [];
+  add(fn: () => void): void {
+    this.fns.push(fn);
+  }
+  dispose(): void {
+    for (const fn of this.fns.splice(0).reverse()) fn();
+  }
+}

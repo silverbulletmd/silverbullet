@@ -2,7 +2,7 @@
 description: Block-level HTML comments, whose body is ordinary markdown.
 references:
 - client/markdown_parser/html_block.ts
-- client/codemirror/comment_region.ts
+- client/codemirror/syntax/comment_region.ts
 - plugs/index/indexer.ts
 ---
 An HTML comment is a region of a page that other markdown renderers ignore — GitHub, Obsidian, a plain viewer — but that SilverBullet treats as ordinary content, in the sense that it renders it like any other markdown text and [[Object Index|object indexes]] as well, albeit with an `inComment: true` attribute set so that it is easy to filter in queries.

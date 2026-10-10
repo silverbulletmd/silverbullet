@@ -3,9 +3,10 @@ tags: api/space-lua maturity/experimental
 references:
 - client/navigator/navigator.ts
 - client/navigator/lua_views.ts
+- client/navigator/view_spec.ts
 - client/navigator/view_value.ts
 ---
-Views place widgets: `view.define` registers a named, dockable view, `view.pick` asks the user to choose a row, and `view.open`/`view.focus` act on open views. What a view shows is a [[API/widget#Live widgets|live widget]]; see [[View#Widgets and views]].
+Views place widgets: `view.define` registers a named, dockable view, `view.pick` asks the user to choose a row, and `view.open`/`view.focus` act on open views. What a view shows is a [[API/widget#Lists, trees and tables|widget]] (a list, tree, table or content function); see [[View#Widgets and views]].
 
 ## view.define(spec)
 Registers a named view and optionally a [[Command]] to open it. Pass a live `widget.new` value as `widget`, or put the content options directly in the definition. A flat row definition requires `onSelect`. A flat `content` function may return Markdown, `widget.new { markdown | html | cssClasses }`, `widget.html(…)`, or a DOM node; it can't return a live or sandboxed widget.
@@ -45,8 +46,8 @@ The same function can render an inline `${projectView()}` expression. With `widg
 | `dock` | Initial location: `"modal"` (default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"`, or `"page-bottom"`. |
 | `supportedDocks` | Allowed locations; defaults to `{ dock }` and must include the initial dock. |
 | `defaultOpen` | Initial open state for a page dock; defaults to `false` (`true` with `frame = "minimal"`). |
-| `frame` | `"full"` (default) or `"minimal"`. A minimal page-docked view has no title bar, fold or close; its Go to definition, Copy and dock-menu buttons appear on hover. Applies to `page-top` and `page-bottom` only. |
-| `widget` | A live `widget.new` value to show. Can't be combined with flat content fields. |
+| `frame` | `"full"` (default) or `"minimal"`. A minimal page-docked view has no title bar, fold or close; its ⋯ menu and dock-menu buttons appear on hover. Applies to `page-top` and `page-bottom` only. |
+| `widget` | A `widget.new` value to show (usually with `source` or `content`). Can't be combined with flat content fields. |
 | `openOnStart` | Open on every boot regardless of saved state; only for `lhs`, `rhs`, or `bhs`. |
 | `refreshOnOpen` | Reload when an already-open panel is activated; does not apply to inline or page-docked views. |
 | `followEditor` | Make a registered sidebar follow the page you navigate to. |

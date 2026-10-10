@@ -294,6 +294,9 @@ If the offset is larger than the number of available rows, the result is empty â
 ## `select`
 The `select` clause allows you to transform each item in the result set. If omitted, it defaults to returning the item itself.
 
+> **note** Note
+> Results are always distinct: rows that are equal after `select` appear only once (before `limit` and `offset` apply).
+
 When used with `group by`, aggregate functions like `sum()`, `count()`, `min()`, `max()`, `avg()`, and `array_agg()` can be used in the `select` expression to compute values across each group. Aggregates also support intra-aggregate `order by` to control the order in which values are processed, and `filter(where ...)` to restrict which rows contribute. See [[Space Lua/Integrated Query/Aggregating]] for details.
 
 Some examples:

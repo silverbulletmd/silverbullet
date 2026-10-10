@@ -4,20 +4,11 @@ import {
   datastore,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { LuaTable } from "../space_lua/runtime.ts";
 import { isNarrowScreen } from "../lib/mobile.ts";
+import { LuaTable } from "../space_lua/runtime.ts";
 import { createDockState } from "./dock_state.ts";
-import {
-  buildPickSpec,
-  commandDefinition,
-  nextPickName,
-  RESERVED_PICK_PREFIX,
-  type ViewSpec,
-  validateDefineSpec,
-  wireMeta,
-} from "./lua_views.ts";
+import { commandDefinition } from "./lua_views.ts";
 import { createPanelLifecycle, type HideOpts } from "./panel_lifecycle.ts";
-import { isPageDock, isWindowDock } from "./types.ts";
 import {
   allViewNames,
   openOnStartViews,
@@ -26,8 +17,17 @@ import {
   selectInFlight,
   unregister,
 } from "./registry.ts";
-import { normalizeDefineSpec } from "./view_value.ts";
+import { isPageDock, isWindowDock } from "./types.ts";
 import type { ViewDefaultsTable } from "./view_defaults.ts";
+import {
+  buildPickSpec,
+  nextPickName,
+  RESERVED_PICK_PREFIX,
+  type ViewSpec,
+  validateDefineSpec,
+  wireMeta,
+} from "./view_spec.ts";
+import { normalizeDefineSpec } from "./view_value.ts";
 
 export type OpenOptions = {
   segment?: string;

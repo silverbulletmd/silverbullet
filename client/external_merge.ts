@@ -1,6 +1,6 @@
 import { ChangeSet, Text } from "@codemirror/state";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
-import { findConflictHunks } from "./codemirror/conflict_markers.ts";
+import { findConflictHunks } from "./codemirror/syntax/conflict_markers.ts";
 
 export type ExternalMerge = {
   /** Applies to `current`. Empty when there is nothing to do *or* when the

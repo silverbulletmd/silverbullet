@@ -19,7 +19,7 @@ ${query[[
 ]]}
 ```
 
-The query lives inside `${...}` and renders as a live widget in [[Live Preview]]. Because the prose body explains the pattern, the page retains value even outside SilverBullet.
+The query lives inside `${...}` and renders in place in [[Live Preview]]. Because the prose body explains the pattern, the page retains value even outside SilverBullet.
 
 **3. A `tagPage` mapping** in [[CONFIG]] so clicking the tag in the editor jumps straight to the aggregator overview:
 

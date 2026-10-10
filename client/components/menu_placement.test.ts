@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { MENU_MAX_WIDTH, placeMenu } from "./menu_placement.ts";
+import { MENU_MAX_WIDTH, placeMenu, placePopupMenu } from "./menu_placement.ts";
 
 const rect = (over: Partial<DOMRect>): DOMRect =>
   ({
@@ -49,4 +49,18 @@ describe("placeMenu", () => {
     });
     expect(p.right).toBeGreaterThanOrEqual(8);
   });
+});
+
+test("placePopupMenu: below and right-aligned, flipped above near the bottom, kept on screen", () => {
+  const vp = { width: 400, height: 800 };
+  const size = { width: 220, height: 200 };
+  expect(
+    placePopupMenu({ top: 100, bottom: 124, right: 380 }, size, vp),
+  ).toEqual({ top: 128, left: 160 });
+  expect(
+    placePopupMenu({ top: 700, bottom: 724, right: 380 }, size, vp),
+  ).toEqual({ top: 496, left: 160 });
+  expect(
+    placePopupMenu({ top: 100, bottom: 124, right: 100 }, size, vp),
+  ).toEqual({ top: 128, left: 8 });
 });

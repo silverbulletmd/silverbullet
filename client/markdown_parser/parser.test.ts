@@ -5,6 +5,7 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { parseMarkdown } from "./parser.ts";
+import { scanLuaDirectiveEnd } from "../space_lua/directive_scan.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { renderHashtag } from "../../plugs/index/tags.ts";
 import { mdLinkRegex, tagRegex } from "./constants.ts";
@@ -647,4 +648,23 @@ test("AtMentionSignature highlights the nested mention as a byline in the editor
   expect(classFor("@zef")).toContain("sb-at-mention-signature-mark");
   expect(classFor("zef")).toContain("sb-at-mention-signature");
   expect(classFor("zef")).not.toContain("sb-at-mention-text");
+});
+
+test("directives with braces in strings parse as one node", () => {
+  for (const src of ['A ${"}"} B', "A ${[[a}b]]} B", 'A ${"{"} B']) {
+    const tree = parseMarkdown(src);
+    const nodes = collectNodesOfType(tree, "LuaDirective");
+    expect(nodes.map(renderToText)).toEqual([
+      src.slice(2, scanLuaDirectiveEnd(src, 2)),
+    ]);
+  }
+});
+
+test("pipes inside a table-cell directive don't split the cell", () => {
+  const tree = parseMarkdown('x\n\n| a | ${"x|y"} |\n|---|---|\n| 1 | 2 |');
+  const header = collectNodesOfType(tree, "TableHeader")[0];
+  expect(collectNodesOfType(header, "TableCell")).toHaveLength(2);
+  expect(collectNodesOfType(header, "LuaDirective").map(renderToText)).toEqual([
+    '${"x|y"}',
+  ]);
 });

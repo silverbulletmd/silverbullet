@@ -1,7 +1,11 @@
 import type { JSX } from "preact";
-import { CHROME_ICON_PROPS } from "./chrome_icons.tsx";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
+import { openPopupMenu } from "../../../components/popup_menu.ts";
 import { moveDock } from "../../navigator.ts";
+import {
+  CHROME_ICON_PROPS,
+  iconElement,
+} from "../../../components/chrome_icons.tsx";
 
 const LABELS: Record<string, string> = {
   "page-top": "Top of page",
@@ -46,98 +50,40 @@ export function DockMenu({
   current: string;
   supported: string[];
 }) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | undefined>(
-    undefined,
-  );
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setPos(undefined);
-      return;
-    }
-    const button = ref.current?.querySelector("button");
-    const menu = menuRef.current;
-    if (!button || !menu) return;
-    const b = button.getBoundingClientRect();
-    const { offsetHeight: h, offsetWidth: w } = menu;
-    const GAP = 4;
-    const EDGE = 8;
-    const below = b.bottom + GAP;
-    const top =
-      below + h > globalThis.innerHeight - EDGE
-        ? Math.max(EDGE, b.top - GAP - h)
-        : below;
-    const left = Math.max(
-      EDGE,
-      Math.min(b.right - w, globalThis.innerWidth - w - EDGE),
-    );
-    setPos({ top, left });
-  }, [open]);
-
-  // A fixed menu would otherwise sit still while the page moved under it.
-  useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    globalThis.addEventListener("scroll", close, true);
-    globalThis.addEventListener("resize", close);
-    return () => {
-      globalThis.removeEventListener("scroll", close, true);
-      globalThis.removeEventListener("resize", close);
-    };
-  }, [open]);
+  const close = useRef<() => void>();
+  useEffect(() => () => close.current?.(), []);
   if (supported.length < 2) return null;
   return (
-    <div className="sb-dock-menu-anchor" ref={ref}>
+    <div className="sb-dock-menu-anchor">
       <button
         type="button"
         className="sb-dock-button"
         title={`Shown as: ${LABELS[current]}. Change placement`}
         aria-label={`Shown as: ${LABELS[current]}. Change placement`}
-        onClick={() => setOpen(!open)}
+        aria-haspopup="menu"
+        onClick={(e) => {
+          const button = e.currentTarget;
+          if (button.getAttribute("aria-expanded") === "true") {
+            close.current?.();
+            return;
+          }
+          close.current = openPopupMenu(
+            button,
+            supported.map((dock) => ({
+              kind: "item" as const,
+              id: dock,
+              label: LABELS[dock],
+              icon: iconElement(dockIcon(dock)),
+              current: dock === current,
+            })),
+            (dock) => {
+              if (dock !== current) void moveDock(name, dock);
+            },
+          );
+        }}
       >
         {dockIcon(current)}
       </button>
-      {open && (
-        <div
-          className="sb-dock-menu"
-          role="menu"
-          ref={menuRef}
-          // Hidden for the single frame between mounting (which is what makes
-          // it measurable) and being placed, so it never flashes at 0,0.
-          style={
-            pos
-              ? { top: `${pos.top}px`, left: `${pos.left}px` }
-              : { visibility: "hidden" }
-          }
-        >
-          {supported.map((dock) => (
-            <button
-              type="button"
-              role="menuitem"
-              key={dock}
-              className={`sb-dock-menu-item${dock === current ? " sb-dock-menu-current" : ""}`}
-              onClick={() => {
-                setOpen(false);
-                if (dock !== current) void moveDock(name, dock);
-              }}
-            >
-              {dockIcon(dock)}
-              <span>{LABELS[dock]}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

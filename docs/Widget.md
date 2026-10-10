@@ -3,11 +3,11 @@ description: A rendered UI component (markdown or HTML).
 tags: glossary
 references:
 - client/space_lua/render_widget.ts
-- client/codemirror/lua_widget.ts
+- client/codemirror/widgets/lua_widget.ts
 ---
 A widget is a value describing what to render; where it appears is up to the page text or a [[View]]. See [[View#Widgets and views]].
 
-The `${lua expression}` syntax can be used to implement custom widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a `widget.new`-generated result value, you can do some fancier stuff.
+The `${lua expression}` syntax renders whatever the expression returns: a string as Markdown, a table as a table, or a widget. Use `widget.new` when you need more control. The full reference, including how to make an expression re-run on changes with `widget.live`, is in [[API/widget]].
 
 # Widget types
 To render a widget, call `widget.new` with any of the following keys:
@@ -16,56 +16,15 @@ To render a widget, call `widget.new` with any of the following keys:
 * `html`: Renders an HTML string or DOM element as a widget
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`)
 * `cssClasses`: Array of CSS class names to add to the widget container
-* `source` or `content`: a live list, tree, table or Markdown that refreshes — see [[API/widget#Live widgets]]
+* `source` or `content`: a list, tree or table, or any value from a function, optionally re-run by `refreshOn` — see [[API/widget#Lists, trees and tables]]
 
-# Convenience functions
-For common cases, use these shortcuts instead of `widget.new` directly:
+For common cases there are shortcuts: `widget.markdown`, `widget.markdownBlock`, `widget.html` and `widget.htmlBlock`. Custom HTML and DOM widgets, sandboxed widgets and `evaluate = false` are covered in [[API/widget]]. A quick example:
 
-| Function | Description |
-|---|---|
-| `widget.markdown(md)` | Inline markdown widget |
-| `widget.markdownBlock(md)` | Block-level markdown widget |
-| `widget.html(html)` | Inline HTML widget |
-| `widget.htmlBlock(html)` | Block-level HTML widget |
-
-# Markdown widgets
-The simplest widget type renders markdown:
-
-```lua
 ${widget.markdown("**Bold** and *italic* text")}
-```
 
-For block-level content (like lists or tables), use `widget.markdownBlock`:
+# The widget menu
+Block widgets have a ⋯ menu in their top-right corner (on hover on desktop, always visible on touch devices) for Reload, Copy as Markdown, Bake into page and Make live. Inline results use the *Widget: …* commands instead. See [[API/widget#Widget menu and commands]].
 
-```lua
-${widget.markdownBlock("## A heading\n* Item 1\n* Item 2")
-```
-
-# HTML and DOM widgets
-For full control over the rendered output, use HTML widgets with the [[Space Lua/DOM|DOM builder API]]:
-
-```space-lua
-function marquee(text)
-  return widget.html(dom.marquee {
-    class = "my-marquee",
-    onclick = function()
-      editor.flashNotification "You clicked me"
-    end,
-    text
-  })
-end
-```
-
-We can combine this with some [[Space Style]] to style it:
-
-```space-style
-.my-marquee {
-  color: purple;
-}
-```
-
-Now, let's use it (try clicking):
-${marquee "Finally, marqeeeeeee!"}
 # Built-in widgets
 The standard library provides several pre-built widgets in the `widgets` table:
 

@@ -4,7 +4,7 @@ tags: glossary maturity/experimental
 references:
 - client/markdown_parser/parser.ts
 - plugs/index/relation.ts
-- client/codemirror/at_mention.ts
+- client/codemirror/syntax/at_mention.ts
 ---
 An **at-mention** is the `@name` span you type in text. It refers to an [[Identity]], and it has two directions: written plainly it *addresses* that identity, making it a [[Recipient]], or when used as a signature it *credits* that identity instead, see [[Authorship]].
 

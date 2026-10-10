@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { useCallback } from "preact/hooks";
+import { useMemo } from "preact/hooks";
 import type { Client } from "../../../client.ts";
 import { handle } from "../../registry.ts";
 import type { PageSlotView } from "../../page_slots.ts";
@@ -22,8 +22,8 @@ function PageDocument({
   const [collapsed, toggle] = useCollapsed(name, initialCollapsed, (name) =>
     onSettled(name),
   );
-  const dispatch: DocumentDispatch = useCallback(
-    (hook, args) => handle({ view: name, hook, args }),
+  const dispatch = useMemo<DocumentDispatch>(
+    () => (hook, args) => handle({ view: name, hook, args }),
     [name],
   );
   return (

@@ -1,7 +1,7 @@
 ---
 references:
 - plugs/index/task.ts
-- client/codemirror/task.ts
+- client/codemirror/syntax/task.ts
 ---
 Every task in your space is tagged with the `task` tag by default. You tag it with additional tags by using [[Tag]] in the task name, e.g.
 

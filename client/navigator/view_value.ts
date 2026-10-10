@@ -1,6 +1,7 @@
 import { LuaTable, luaTypeOf } from "../space_lua/runtime.ts";
-import { type ViewSpec, validateViewSpec, wireMeta } from "./lua_views.ts";
+import { hasViewMark, VIEW_VALUE_MARK } from "../space_lua/widget_marks.ts";
 import type { ViewMeta } from "./types.ts";
+import { type ViewSpec, validateViewSpec, wireMeta } from "./view_spec.ts";
 
 const REGISTRATION_FIELDS = new Set([
   "name",
@@ -41,7 +42,13 @@ function entries(spec: ViewSpec): [string, unknown][] {
   return Object.entries(spec);
 }
 
+export function isViewValue(value: unknown): value is ViewValue {
+  return hasViewMark(value);
+}
+
 export class ViewValue extends LuaTable {
+  readonly [VIEW_VALUE_MARK] = true;
+
   constructor(
     readonly spec: ViewSpec,
     readonly meta: ViewMeta,
@@ -56,10 +63,6 @@ export class ViewValue extends LuaTable {
   override toJS(): any {
     return this;
   }
-}
-
-export function isViewValue(value: unknown): value is ViewValue {
-  return value instanceof ViewValue;
 }
 
 export function newView(spec: ViewSpec): ViewValue {

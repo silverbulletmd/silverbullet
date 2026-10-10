@@ -14,7 +14,7 @@ references:
 - plugs/index/relation.ts
 - plugs/index/requalify.ts
 - plugs/index/invalidate.ts
-- client/codemirror/wiki_link_processor.ts
+- client/codemirror/syntax/wiki_link_processor.ts
 - server/src/link_resolve.rs
 ---
 # Context

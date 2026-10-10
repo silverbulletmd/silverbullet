@@ -46,7 +46,6 @@ import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { Client } from "../client.ts";
-import { codeCopyPlugin } from "../codemirror/code_copy.ts";
 import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import { languageFor, lazyLanguages, loadLanguageFor } from "../languages.ts";
 import { isValidEditor } from "../lib/command_filters.ts";
@@ -55,26 +54,30 @@ import { keyboardAwareTooltips } from "../lib/keyboard_viewport.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { editorHighlightStyle } from "../style.ts";
 import { loadVim } from "../vim_loader.ts";
-import type { TextChange } from "./change.ts";
-import { cleanModePlugins } from "./clean.ts";
-import { conflictMarkers } from "./conflict_markers.ts";
-import { documentExtension, pasteLinkExtension } from "./editor_paste.ts";
+import type { TextChange } from "./editing/change.ts";
+import { cleanModePlugins } from "./editing/clean.ts";
+import {
+  documentExtension,
+  pasteLinkExtension,
+} from "./editing/editor_paste.ts";
+import { iosCompletionTapHandling } from "./editing/ios_completion.ts";
+import { iosEnterHandling } from "./editing/ios_enter.ts";
+import { customEnterCommand } from "./editing/markdown_enter.ts";
+import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
+import { plugLinter } from "./lint.ts";
+import { codeCopyPlugin } from "./syntax/code_copy.ts";
+import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import {
   frontmatterFoldingExtension,
   frontmatterFoldPlaceholderDOM,
   prepareFrontmatterFoldPlaceholder,
-} from "./frontmatter_folding.ts";
-import { frontmatterPreviewForState } from "./frontmatter_preview.ts";
-import { inlineContentPlugin } from "./inline_content.ts";
-import { iosCompletionTapHandling } from "./ios_completion.ts";
-import { iosEnterHandling } from "./ios_enter.ts";
-import { lineWrapper } from "./line_wrapper.ts";
-import { plugLinter } from "./lint.ts";
-import { customEnterCommand } from "./markdown_enter.ts";
-import { createSmartQuoteKeyBindings } from "./smart_quotes.ts";
-import { postScriptPrefacePlugin } from "./top_bottom_panels.ts";
+} from "./syntax/frontmatter_folding.ts";
+import { frontmatterPreviewForState } from "./syntax/frontmatter_preview.ts";
+import { inlineContentPlugin } from "./syntax/inline_content.ts";
+import { lineWrapper } from "./syntax/line_wrapper.ts";
 import { readOnlyCursorActive } from "./util.ts";
+import { postScriptPrefacePlugin } from "./widgets/top_bottom_panels.ts";
 
 export type EditorMode =
   | { kind: "page"; pageName: string }

@@ -14,7 +14,7 @@ Available keys:
 * `language`: The language of the fenced code block to render (the string right after the opening ```` ``` ````).
 * `render`: A callback `function(bodyText, pageName)` that receives the body text of the code block and the name of the page it appears on. It returns the same kind of value as a `${...}` directive: either a string (rendered as markdown), or a widget table such as one created with [[^Library/Std/APIs/Widget|widget.new{}]] or `widget.sandbox{}`.
 
-Lua code widgets render through the same pipeline as `${...}` directives, so they get the same Copy/Edit/Reload bar. The Copy button copies the rendered `markdown`.
+Lua code widgets render through the same pipeline as `${...}` directives, so they get the same ⋯ menu (Edit source, Reload, Copy as Markdown) and can use `widget.live` to re-run on changes. Copy as Markdown copies the rendered `markdown`; widgets with only HTML have none.
 
 Example rendering a string as markdown:
 

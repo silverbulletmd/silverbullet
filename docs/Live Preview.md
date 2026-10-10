@@ -15,4 +15,4 @@ In SilverBullet, you can always see the underlying format by moving your cursor 
 If you prefer to see the raw markdown at all times, run the ${widgets.commandButton("Editor: Toggle Markdown Syntax Rendering")} command. This switches between live preview mode and raw markdown mode.
 
 # Widget rendering
-[[Space Lua#Expressions]] (`${...}`) are rendered inline as live widgets. The underlying code is hidden until you move your cursor into the expression. This is what makes SilverBullet pages feel dynamic — queries, templates, and widgets all render seamlessly within the document.
+[[Space Lua#Expressions]] (`${...}`) are rendered inline in place. The underlying code is hidden until you move your cursor into the expression. This is what makes SilverBullet pages feel dynamic — queries, templates, and widgets all render seamlessly within the document. A plain expression runs once when the page opens; wrap its value in [[API/widget#widget.live(value, refreshOn?)|widget.live]] to re-run it when the index changes, and use the ⋯ menu on a block widget to reload, copy or bake it.

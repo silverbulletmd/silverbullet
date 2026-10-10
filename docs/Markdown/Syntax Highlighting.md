@@ -1,7 +1,7 @@
 ---
 description: "SilverBullet highlights code in many programming languages inside fenced code blocks."
 references:
-- client/codemirror/fenced_code.ts
+- client/codemirror/syntax/fenced_code.ts
 - client/languages.ts
 ---
 SilverBullet comes with syntax highlighters for various programming languages. This page demonstrates some:

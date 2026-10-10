@@ -1,8 +1,8 @@
-import { builtinHandle, builtinMeta, builtinViewNames } from "./builtins.ts";
-import { luaHandle, RESERVED_PICK_PREFIX, type ViewSpec } from "./lua_views.ts";
 import type { LuaEnv } from "../space_lua/runtime.ts";
+import { builtinHandle, builtinMeta, builtinViewNames } from "./builtins.ts";
+import { luaHandle } from "./lua_views.ts";
 import type { NavigatorHook, ViewMeta } from "./types.ts";
-import type { WidgetObject } from "../codemirror/widget_body.ts";
+import { RESERVED_PICK_PREFIX, type ViewSpec } from "./view_spec.ts";
 
 export type LuaView = {
   meta: ViewMeta;
@@ -91,22 +91,16 @@ export async function handle(data: {
   return await dispatched;
 }
 
-/** What a content view's `content` hook resolved to: markdown, or why not. */
+/** What a content view's `content` hook resolved to: a value, or why not. */
 export type ContentResult =
-  | { markdown: string; widget?: undefined; error?: undefined }
-  | { widget: WidgetObject; markdown?: undefined; error?: undefined }
-  | { error: string; markdown?: undefined; widget?: undefined };
+  | { value: unknown; error?: undefined }
+  | { error: string; value?: undefined };
 
 export function normalizeContent(result: any): ContentResult {
   if (result && typeof result.error === "string") {
     return { error: result.error };
   }
-  if (result?.widget && typeof result.widget === "object") {
-    return { widget: result.widget };
-  }
-  return {
-    markdown: typeof result?.markdown === "string" ? result.markdown : "",
-  };
+  return { value: result && "value" in result ? result.value : null };
 }
 
 export async function loadContent(

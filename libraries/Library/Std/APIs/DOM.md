@@ -50,14 +50,17 @@ local function appendHtmlNode(parent, html)
   htmlNode.outerHTML = html
 end
 
--- Adds one child: markdown for strings, literal text for dom.text, widgets
--- and DOM nodes as they are, lists of children in order; nil/false skipped
+-- Adds one child: markdown for strings, literal text for dom.text, HTML
+-- widgets and DOM nodes as they are, other widgets rendered live, lists of
+-- children in order; nil/false skipped
 local function appendChild(node, val)
   if val == nil or val == false then
     return
   end
   if type(val) == "string" then
     appendHtmlNode(node, markdown.markdownToHtml(val, {expand=true}))
+  elseif type(val) == "table" and val._isWidget and val.html == nil then
+    node.appendChild(markdown.renderToDom(val))
   elseif type(val) == "table" and val._isWidget then
     if type(val.html) == "string" then
       appendHtmlNode(node, val.html)

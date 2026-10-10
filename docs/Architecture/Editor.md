@@ -7,6 +7,6 @@ references:
 - client/document_editor.ts
 - client/editor_commands.ts
 - client/codemirror/editor_state.ts
-- client/codemirror/frontmatter_folding.ts
+- client/codemirror/syntax/frontmatter_folding.ts
 ---
 The editing surface, built on [CodeMirror](https://codemirror.net/) with many [[Markdown/Extensions]] to its default Markdown mode. See [[Editor]].

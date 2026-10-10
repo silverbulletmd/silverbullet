@@ -1,3 +1,4 @@
+import { isWidgetValue, WIDGET_AS_TEXT_MESSAGE } from "./space_lua/fragment.ts";
 import { luaBuildStandardEnv } from "./space_lua/stdlib.ts";
 import {
   LuaBuiltinFunction,
@@ -44,15 +45,25 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
       name: cleanSyscallName,
       ...metadata,
     };
+    const stringParams = ((metadata as any).parameters ?? [])
+      .map((p: { type?: string }, idx: number) =>
+        p.type === "string" ? idx : -1,
+      )
+      .filter((idx: number) => idx >= 0);
     const luaFn = isLuaNativeSyscall
       ? new LuaBuiltinFunction({
-          callback: (_sf, ...args) => {
-            return system.localSyscall(syscallName, args);
+          callback: (sf, ...args) => {
+            return system.syscall({ sf }, syscallName, args);
           },
           ...definition,
         })
       : new LuaNativeJSFunction({
           callback: (...args) => {
+            for (const idx of stringParams) {
+              if (isWidgetValue(args[idx])) {
+                throw new Error(WIDGET_AS_TEXT_MESSAGE);
+              }
+            }
             return system.localSyscall(syscallName, args);
           },
           ...definition,

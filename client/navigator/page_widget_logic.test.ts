@@ -1,6 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import type { Row } from "./types.ts";
-
+import { LuaBuiltinFunction, LuaTable } from "../space_lua/runtime.ts";
 /**
  * The page widget's own logic, minus its rendering: this project's vitest run
  * has no jsdom (see `nav_error_boundary.test.ts`), so a hook-driven function
@@ -28,6 +27,8 @@ import {
   visibleRows,
   widgetKind,
 } from "./page_widget_logic.ts";
+import type { Row } from "./types.ts";
+import { newView } from "./view_value.ts";
 
 function fakeHook() {
   const listeners = new Map<string, ((...args: any[]) => any)[]>();
@@ -269,20 +270,15 @@ test("a content widget shows nothing until its load has settled", () => {
 });
 
 test("rendered content is ready; nothing to show is empty, however it got there", () => {
-  expect(contentOutcome({ markdown: "# Hi", node: NODE })).toBe("ready");
-  expect(contentOutcome({ markdown: "" })).toBe("empty");
-  expect(contentOutcome({ markdown: "   \n  " })).toBe("empty");
-  expect(contentOutcome({ markdown: "# Hi", node: undefined })).toBe("empty");
+  expect(contentOutcome({ node: NODE })).toBe("ready");
+  expect(contentOutcome({})).toBe("empty");
+  expect(contentOutcome({ node: undefined })).toBe("empty");
 });
 
 test("an error is an outcome in its own right, load error or render error", () => {
-  expect(contentOutcome({ markdown: "", error: "source blew up" })).toBe(
-    "error",
-  );
+  expect(contentOutcome({ error: "source blew up" })).toBe("error");
   // The fetch succeeds, but Markdown rendering fails.
-  expect(contentOutcome({ markdown: "# Hi", error: "expand failed" })).toBe(
-    "error",
-  );
+  expect(contentOutcome({ node: NODE, error: "expand failed" })).toBe("error");
 });
 
 // A render failure must settle the slot so no phantom height remains cached.
@@ -463,23 +459,48 @@ test("decorations are part of a row's identity", () => {
 });
 
 test("an html-only widget with a node is ready even without markdown", () => {
-  expect(contentOutcome({ markdown: "", node: NODE })).toBe("ready");
+  expect(contentOutcome({ node: NODE })).toBe("ready");
 });
 
-test("content identity skips identical markdown and string html, never DOM", () => {
-  expect(contentIdentity({ markdown: "# a" })).toBe(
-    contentIdentity({ markdown: "# a" }),
+async function aView() {
+  const spec = new LuaTable();
+  await spec.rawSet("source", new LuaBuiltinFunction(() => new LuaTable()));
+  return newView(spec);
+}
+
+test("content identity skips identical plain values, never functions or views", async () => {
+  expect(contentIdentity({ value: "# a" })).toBe(
+    contentIdentity({ value: "# a" }),
   );
-  expect(contentIdentity({ widget: { html: "<b>x</b>" } })).toBe(
-    contentIdentity({ widget: { html: "<b>x</b>" } }),
+  expect(contentIdentity({ value: [{ name: "Alpha task" }] })).toBe(
+    contentIdentity({ value: [{ name: "Alpha task" }] }),
   );
-  expect(contentIdentity({ widget: { html: "<b>x</b>" } })).not.toBe(
-    contentIdentity({ widget: { html: "<b>y</b>" } }),
+  expect(contentIdentity({ value: [{ name: "Alpha task" }] })).not.toBe(
+    contentIdentity({ value: [{ name: "Beta task" }] }),
+  );
+  expect(contentIdentity({ value: 42 })).not.toBe(
+    contentIdentity({ value: "42" }),
   );
   expect(
-    contentIdentity({ widget: { html: {} as unknown as HTMLElement } }),
+    contentIdentity({ value: { _isWidget: true, run: () => 1 } }),
   ).toBeUndefined();
+  expect(contentIdentity({ value: await aView() })).toBeUndefined();
   expect(contentIdentity({ error: "broke" })).not.toBe(
-    contentIdentity({ markdown: "" }),
+    contentIdentity({ value: "" }),
   );
+});
+
+test("equal results share an identity; values without a stable one never throw", () => {
+  const rows = [{ name: "Alpha task", done: false, tags: ["a"] }];
+  const id = (value: unknown) => contentIdentity({ value });
+  expect(id(rows)).toBe(id(structuredClone(rows)));
+  expect(id(rows)).not.toBe(
+    id([{ name: "Beta task", done: false, tags: ["a"] }]),
+  );
+  expect(id(null)).toBe(id(null));
+  expect(id({ _isWidget: true, events: { click: () => {} } })).toBeUndefined();
+  const cyclic: Record<string, unknown> = { a: 1 };
+  cyclic.self = cyclic;
+  expect(id(cyclic)).toBeUndefined();
+  expect(contentIdentity({ error: "boom" })).not.toBe(id("boom"));
 });

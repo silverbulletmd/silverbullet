@@ -32,10 +32,11 @@ import { handleKeyDown } from "../keyboard.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
 import { resolvePrefix } from "../prefix.ts";
 import { markSlotReady, type NavActivation } from "../slots.ts";
-import { CloseIcon } from "./chrome_icons.tsx";
-import { ContentBody, CopyMarkdownButton } from "./content_view.tsx";
+import { CloseIcon } from "../../../components/chrome_icons.tsx";
+import { ContentNode, useRenderedValue } from "./content_view.tsx";
 import { CreateRow } from "./create_row.tsx";
 import { DockMenu } from "./dock_menu.tsx";
+import { ViewActionsMenu } from "./view_actions_menu.tsx";
 import {
   collectDroppedFiles,
   uploadFiles,
@@ -134,10 +135,13 @@ export function NavRoot({
     publish,
   });
 
-  const content = view?.meta.hasContent ? (view.content ?? "") : undefined;
+  const hasContent = view?.meta.hasContent === true;
+  const contentValue = hasContent ? view?.contentValue : undefined;
 
-  const [paintedContent, setPaintedContent] = useState<string | undefined>(
-    undefined,
+  const { content, current } = useRenderedValue(
+    client,
+    contentValue,
+    client.currentName(),
   );
   useLayoutEffect(() => {
     const token = handledToken.current;
@@ -148,19 +152,11 @@ export function NavRoot({
     ) {
       return;
     }
-    // Only when there is something to render: an empty content view draws
-    // nothing and would otherwise never be revealed at all.
-    if (
-      !loading &&
-      content !== undefined &&
-      content.trim() !== "" &&
-      paintedContent !== content
-    ) {
-      return;
-    }
+    // A content view is ready once its current value is on screen
+    if (!loading && contentValue !== undefined && !current) return;
     readySignaledToken.current = token;
     markSlotReady(slot, token);
-  }, [view, bootError, paintedContent, loading]);
+  }, [view, bootError, current, loading]);
 
   const tableColumns = useMemo(
     () =>
@@ -275,7 +271,7 @@ export function NavRoot({
     <div
       className={
         `sb-nav-root sb-nav-root-${slot}` +
-        (content !== undefined ? " sb-nav-root-content" : "") +
+        (hasContent ? " sb-nav-root-content" : "") +
         (showResizer ? " sb-nav-resizable" : "")
       }
       data-slot={slot}
@@ -365,12 +361,12 @@ export function NavRoot({
             }
           />
           {loading && <LoadingIndicator />}
-          {/* The same Copy the page-docked container puts in its own strip,
-              and the same one the inline Lua widget button bar has: the
-              markdown source, on the clipboard. */}
-          {content && !fatalError && (
-            <CopyMarkdownButton client={client} markdown={content} />
-          )}
+          {/* The same ⋯ menu page-docked views and `${…}` widgets have; only
+              for Copy here, so a row view's header stays filter, dock and × */}
+          <ViewActionsMenu
+            client={client}
+            copy={hasContent && !fatalError ? content?.copy : undefined}
+          />
           {view && (
             <DockMenu
               name={view.name}
@@ -476,14 +472,20 @@ export function NavRoot({
         )}
         {fatalError ? (
           <div className="sb-nav-error">{error}</div>
-        ) : content !== undefined ? (
-          content.trim() || view?.contentWidget ? (
-            <ContentBody
+        ) : hasContent ? (
+          content?.error !== undefined ? (
+            <div className="sb-nav-error sb-nav-error-inline">
+              {content.error}
+            </div>
+          ) : content?.node ? (
+            <ContentNode
               client={client}
-              markdown={content}
-              widget={view?.contentWidget}
-              onPainted={setPaintedContent}
+              node={content.node}
+              cssClasses={content.cssClasses}
+              events={content.events}
             />
+          ) : content === undefined && contentValue != null ? (
+            <div className="sb-nav-content" />
           ) : null
         ) : view && isTreeMode && treeDisplay ? (
           <TreeView

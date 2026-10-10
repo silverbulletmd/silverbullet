@@ -57,9 +57,18 @@ import {
   updateBakedSections,
 } from "./baked_sections/bake.ts";
 import type { Client } from "./client.ts";
-import { reloadAllWidgets } from "./codemirror/code_widget.ts";
-import { broadcastReload } from "./components/widget_sandbox_iframe.ts";
+import { reloadAllWidgets } from "./codemirror/widgets/code_widget.ts";
+import {
+  bakeDirective,
+  copyValue,
+  type DirectiveTarget,
+  reloadDirective,
+  setDirectiveLive,
+} from "./codemirror/widgets/directive_actions.ts";
+import { directiveAt } from "./codemirror/widgets/directive_at.ts";
+import { broadcastReload } from "./sandbox/widget_sandbox_iframe.ts";
 import type { CommandHook } from "./plugos/hooks/command.ts";
+import { evaluateExpression } from "./markdown_renderer/compose_client.ts";
 import {
   decodeSafetyText,
   formatSafetyLabel,
@@ -599,6 +608,7 @@ export function registerEditorCommands(
       return reloadAllWidgets();
     },
   });
+  registerWidgetCommands(hook, client);
   hook.registerCommand({
     name: "Baked Sections: Update",
     key: "Ctrl-Shift-b",
@@ -687,4 +697,46 @@ export function registerEditorCommands(
       client.focus();
     },
   });
+}
+
+/** Inline `${…}` results have no ⋯ menu, so their actions live in the palette. */
+function registerWidgetCommands(hook: CommandHook, client: Client) {
+  const command = (
+    name: string,
+    run: (t: DirectiveTarget) => void | Promise<void>,
+  ) =>
+    hook.registerCommand({
+      name,
+      requireEditor: "page",
+      run: async () => {
+        const t = directiveAt(
+          client.editorView.state,
+          client.editorView.state.selection.main.head,
+        );
+        if (!t) {
+          client.ui.flashNotification(
+            "Put the cursor in a ${…} expression first",
+            "error",
+          );
+          return;
+        }
+        await run(t);
+      },
+    });
+  const evaluate = (t: DirectiveTarget) =>
+    evaluateExpression(client, t.expr, client.currentPageMeta());
+
+  command("Widget: Copy", async (t) => {
+    const { value, ctx } = await evaluate(t);
+    await copyValue(client, value, ctx);
+  });
+  command("Widget: Bake", async (t) => {
+    const { value, ctx } = await evaluate(t);
+    await bakeDirective(client, t, value, ctx);
+  });
+  command("Widget: Reload", (t) => reloadDirective(client, t.expr));
+  command("Widget: Make Live", (t) => setDirectiveLive(client, t, "makeLive"));
+  command("Widget: Make Static", (t) =>
+    setDirectiveLive(client, t, "makeStatic"),
+  );
 }

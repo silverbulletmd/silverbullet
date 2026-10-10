@@ -59,34 +59,31 @@ export function escapeRegularPipes(s: string) {
   return result;
 }
 
+/** A GFM table; "*(empty table)*" when there are no columns. */
+export function gfmTable(headers: string[], rows: string[][]): string {
+  if (headers.length === 0) return "*(empty table)*";
+  return [
+    `|${headers.join("|")}|`,
+    `|${headers.map(() => "--").join("|")}|`,
+    ...rows.map((cells) => `|${cells.join("|")}|`),
+  ].join("\n");
+}
+
 // Nicely format an array of JSON objects as a Markdown table
 export async function jsonToMDTable(
   jsonArray: any[],
   valueTransformer: (v: any, k: string) => Promise<string> = defaultTransformer,
 ): Promise<string> {
-  const headers = new Set<string>();
-  for (const entry of jsonArray) {
-    for (const k of Object.keys(entry)) {
-      headers.add(k);
-    }
-  }
-
-  // Handle empty case manually, instead of three lines of ||
-  if (headers.size === 0) {
-    return "*(empty table)*";
-  }
-
-  const headerList = [...headers];
-  const lines = [];
-  lines.push(`|${headerList.map((headerName) => headerName).join("|")}|`);
-  lines.push(`|${headerList.map(() => "--").join("|")}|`);
+  const headers = [
+    ...new Set(jsonArray.flatMap((entry) => Object.keys(entry))),
+  ];
+  const rows: string[][] = [];
   for (const val of jsonArray) {
-    const el = [];
-    for (const prop of headerList) {
-      const s = await valueTransformer(val[prop], prop);
-      el.push(s);
+    const cells: string[] = [];
+    for (const prop of headers) {
+      cells.push(await valueTransformer(val[prop], prop));
     }
-    lines.push(`|${el.join("|")}|`);
+    rows.push(cells);
   }
-  return lines.join("\n");
+  return gfmTable(headers, rows);
 }

@@ -1,4 +1,4 @@
-// Detection logic duplicated from client/codemirror/conflict_markers.ts:
+// Detection logic duplicated from client/codemirror/syntax/conflict_markers.ts:
 // plugs run in a separate WASM sandbox with no access to CodeMirror's
 // `Text`, so the two can't share a module. Keep this in sync with that
 // file's grammar/fence/nesting rules when either changes.

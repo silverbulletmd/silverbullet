@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { Client } from "./client.ts";
 
-vi.mock("./components/widget_sandbox_iframe.ts", () => ({}));
+vi.mock("./sandbox/widget_sandbox_iframe.ts", () => ({}));
 
 afterEach(() => vi.unstubAllGlobals());
 

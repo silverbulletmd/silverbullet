@@ -2,7 +2,7 @@
 tags: glossary page-tag-example
 description: "An inline #tag that annotates a page or object for categorisation and querying."
 references:
-- client/codemirror/hashtag.ts
+- client/codemirror/syntax/hashtag.ts
 - plugs/index/tags.ts
 ---
 

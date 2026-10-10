@@ -86,7 +86,7 @@ import { refreshLintEffect } from "../../codemirror/lint.ts";
 import {
   awaitRenderSettled,
   renderBusySelector,
-} from "../../codemirror/render_settle.ts";
+} from "../../codemirror/widgets/render_settle.ts";
 import { resolveDocumentCapability } from "../../document_editor_resolver.ts";
 import { isMobileDevice, isNarrowScreen } from "../../lib/mobile.ts";
 import { browserMediaCapabilities } from "../../media.ts";

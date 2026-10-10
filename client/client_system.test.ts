@@ -4,7 +4,7 @@ import { ClientSystem } from "./client_system.ts";
 import type { DataStore } from "./data/datastore.ts";
 import { WidgetCache } from "./widget_cache.ts";
 
-vi.mock("./components/widget_sandbox_iframe.ts", () => ({}));
+vi.mock("./sandbox/widget_sandbox_iframe.ts", () => ({}));
 vi.mock("./navigator/navigator.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./navigator/navigator.ts")>()),
   restoreDocks: async () => {},

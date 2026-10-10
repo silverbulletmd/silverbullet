@@ -1,5 +1,5 @@
-import { allViewNames, resolveMeta } from "./registry.ts";
 import { dockState } from "./navigator.ts";
+import { allViewNames, resolveMeta } from "./registry.ts";
 import type { ViewMeta } from "./types.ts";
 
 /** A page-docked view, with the persisted state its widget starts from. */

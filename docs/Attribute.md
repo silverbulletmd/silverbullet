@@ -2,7 +2,7 @@
 description: A key-value pair attached to a page or object, used for querying and filtering.
 tags: glossary
 references:
-- client/codemirror/attribute.ts
+- client/codemirror/syntax/attribute.ts
 - plugs/index/attribute.ts
 ---
 Attribute syntax can contribute additional [[Metadata]] to various [[Object|Objects]], including:

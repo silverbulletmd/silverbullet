@@ -193,8 +193,7 @@
   margin-left: auto;
 }
 
-.sb-nav-copy,
-.sb-nav-definition,
+.sb-nav-actions,
 .sb-dock-button,
 .sb-page-widget-tools .sb-nav-close,
 .sb-nav-header-row .sb-nav-close {
@@ -212,17 +211,11 @@
   cursor: pointer;
 }
 
-.sb-nav-copy {
+.sb-nav-actions {
   color: var(--subtle-color);
 }
 
-// Navigating to a definition is always available, so it isn't muted.
-.sb-nav-definition {
-  color: inherit;
-}
-
-.sb-nav-copy:hover,
-.sb-nav-definition:hover {
+.sb-nav-actions:hover {
   color: var(--modal-header-label-color);
 }
 

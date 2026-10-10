@@ -1,3 +1,4 @@
+import { isWidgetValue, makeFragment } from "../fragment.ts";
 import {
   getMetatable,
   type ILuaFunction,
@@ -98,21 +99,21 @@ export const tableApi = new LuaTable({
         );
       };
 
-      if (Array.isArray(tbl)) {
-        const out: string[] = [];
-        for (let k = i; k <= j; k++) {
-          const v = tbl[k - 1];
-          out.push(luaConcatElemToString(v, k));
-        }
-        return out.join(sep);
-      }
-
-      const out: string[] = [];
+      const parts: unknown[] = [];
+      let hasWidget = false;
       for (let k = i; k <= j; k++) {
-        const v = await luaGet(tbl, k, sf.astCtx ?? null, sf);
-        out.push(luaConcatElemToString(v, k));
+        const v = Array.isArray(tbl)
+          ? tbl[k - 1]
+          : await luaGet(tbl, k, sf.astCtx ?? null, sf);
+        if (isWidgetValue(v)) {
+          hasWidget = true;
+          parts.push(v);
+        } else {
+          parts.push(luaConcatElemToString(v, k));
+        }
       }
-      return out.join(sep);
+      if (!hasWidget) return parts.join(sep);
+      return makeFragment(parts.flatMap((p, idx) => (idx ? [sep, p] : [p])));
     },
     description:
       "Concatenates table elements from `i` through `j` using an optional separator.",

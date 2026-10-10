@@ -88,7 +88,7 @@ return widget.htmlBlock(dom.table {
 ```
 
 # Embedding widgets inside DOM
-Widget objects (like buttons from `widgets.button`) can be nested inside DOM elements:
+Widget objects (like buttons from `widgets.button`, or Markdown widgets from `widget.markdown`) can be nested inside DOM elements:
 
 ```lua
 dom.div {

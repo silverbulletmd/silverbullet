@@ -4,6 +4,7 @@ import {
   jsonToMDTable,
 } from "../markdown_renderer/result_render.ts";
 import { isSqlNull } from "../space_lua/sliq_null.ts";
+import { isWidgetValue } from "./fragment.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
 import { LuaTable, luaFormatNumber } from "../space_lua/runtime.ts";
 
@@ -15,11 +16,26 @@ export function isBlockMarkdown(s: string) {
   if (s.includes("\n")) {
     return true;
   }
-  return !!s.match(/[-*]\s+/);
+  // A rendered query result, e.g. interpolated by a template
+  if (/^\s*<table[\s>]/.test(s)) {
+    return true;
+  }
+  return /^\s*(?:[-*+]|\d+[.)])\s+/.test(s);
 }
 
 function isEmpty(v: any): boolean {
   return v === undefined || v === null || isSqlNull(v);
+}
+
+// A list with widgets and no plain records concatenates like a list of strings.
+function isContentList(items: any[]): boolean {
+  return (
+    items.some(isWidgetValue) &&
+    !items.some(
+      (el) =>
+        (el instanceof LuaTable || isPlainObject(el)) && !isWidgetValue(el),
+    )
+  );
 }
 
 function isPlainObject(v: any): v is Record<string, any> {
@@ -49,6 +65,7 @@ function buildHtmlTable(
   headers: string[],
   rowCount: number,
   getCell: (rowIndex: number, header: string) => any,
+  cellOverride?: (v: any) => string | undefined,
 ): string {
   if (headers.length === 0) return emptyTable;
   const parts: string[] = ["<table><thead><tr>"];
@@ -56,7 +73,7 @@ function buildHtmlTable(
   parts.push("</tr></thead><tbody>");
   for (let i = 0; i < rowCount; i++) {
     parts.push("<tr>");
-    for (const h of headers) parts.push(renderTd(getCell(i, h)));
+    for (const h of headers) parts.push(renderTd(getCell(i, h), cellOverride));
     parts.push("</tr>");
   }
   parts.push("</tbody></table>");
@@ -102,7 +119,8 @@ export type Classified =
       // Compatibility contract: LuaTable record-arrays use "list"; JS arrays use "table".
       dataType: "table" | "list";
     }
-  | { kind: "scalarArray"; items: any[]; dataType: "list" };
+  | { kind: "scalarArray"; items: any[]; dataType: "list" }
+  | { kind: "contentList"; items: any[]; dataType: "list" };
 
 export function classifyResult(result: any): Classified {
   if (isEmpty(result)) return { kind: "nil", dataType: "nil" };
@@ -140,7 +158,12 @@ export function classifyResult(result: any): Classified {
     if (arrayLen > 0 && !hasStrKeys) {
       const elements: any[] = [];
       for (let i = 1; i <= arrayLen; i++) elements.push(result.rawGet(i));
-      if (elements.every((el) => el instanceof LuaTable)) {
+      if (isContentList(elements)) {
+        return { kind: "contentList", items: elements, dataType: "list" };
+      }
+      if (
+        elements.every((el) => el instanceof LuaTable && !isWidgetValue(el))
+      ) {
         const tables = elements as LuaTable[];
         const headers = collectHeaders(tables, (t) => t.keys().map(String));
         if (headers.length === 0) {
@@ -174,7 +197,10 @@ export function classifyResult(result: any): Classified {
 
   if (Array.isArray(result)) {
     if (result.length === 0) return { kind: "emptyTable", dataType: "table" };
-    if (result.every(isPlainObject)) {
+    if (isContentList(result)) {
+      return { kind: "contentList", items: result, dataType: "list" };
+    }
+    if (result.every((el) => isPlainObject(el) && !isWidgetValue(el))) {
       const headers = collectHeaders(result, Object.keys);
       return {
         kind: "recordArray",
@@ -249,43 +275,51 @@ export function renderResultToMarkdown(
         markdown: renderArrayToMarkdown(classified.items),
         dataType: "list",
       };
+    case "contentList":
+      return {
+        markdown: renderArrayToMarkdown(classified.items),
+        dataType: "list",
+      };
   }
 }
 
 /**
- * Render any Lua/JS value as "clean" GFM-style markdown suitable for
- * the Copy button. Tables render as pipe tables, scalar arrays as
- * newline-joined lines, scalars as their plain text.
- *
- * Nested structures inside a table cell degrade to their Lua literal
- * form (via `LuaTable.toStringAsync()` in `defaultTransformer`), since
- * GFM table cells cannot contain block-level content.
- */
-/**
  * Cell transformer for the clean-markdown (copy) path. Renders:
+ *  - widgets as their Copy text, flattened to one line like any string cell,
  *  - `ref` columns as wiki links,
  *  - scalar arrays as `<br/>`-joined lines inside GFM table cells,
  *  - everything else via `defaultTransformer` (which Lua-encodes nested
  *    tables and escapes pipes for scalars).
  */
-function cleanCellTransformer(v: any, k: string): Promise<string> {
-  if (k === "ref") return Promise.resolve(`[[${v}]]`);
-  const c = classifyResult(v);
-  if (c.kind === "scalarArray") {
-    return Promise.resolve(
-      c.items
+function cleanCellTransformer(
+  widgetMarkdown: (v: unknown) => Promise<string>,
+): (v: any, k: string) => Promise<string> {
+  return async (v, k) => {
+    if (isWidgetValue(v)) return defaultTransformer(await widgetMarkdown(v), k);
+    if (k === "ref") return `[[${v}]]`;
+    const c = classifyResult(v);
+    if (c.kind === "scalarArray") {
+      return c.items
         .map(formatScalar)
         .map((s) => escapeRegularPipes(s.replaceAll("\n", " ")))
-        .join("<br/>"),
-    );
-  }
-  return defaultTransformer(v, k);
+        .join("<br/>");
+    }
+    return defaultTransformer(v, k);
+  };
 }
 
+/**
+ * Render any Lua/JS value as "clean" GFM-style markdown for Copy and Bake.
+ * Tables render as pipe tables, scalar arrays as newline-joined lines,
+ * scalars as their plain text. Widgets inside it (cells, list items) get
+ * their text from `widgetMarkdown`.
+ */
 export async function renderResultToCleanMarkdown(
   result: any,
+  widgetMarkdown: (v: unknown) => Promise<string>,
   classified: Classified = classifyResult(result),
 ): Promise<string> {
+  const cell = cleanCellTransformer(widgetMarkdown);
   switch (classified.kind) {
     case "nil":
       return "";
@@ -296,7 +330,7 @@ export async function renderResultToCleanMarkdown(
     case "record": {
       const row: Record<string, any> = {};
       for (const h of classified.headers) row[h] = classified.getCell(h);
-      return jsonToMDTable([row], cleanCellTransformer);
+      return jsonToMDTable([row], cell);
     }
     case "recordArray": {
       const rows: Record<string, any>[] = [];
@@ -305,10 +339,20 @@ export async function renderResultToCleanMarkdown(
         for (const h of classified.headers) row[h] = classified.getCell(i, h);
         rows.push(row);
       }
-      return jsonToMDTable(rows, cleanCellTransformer);
+      return jsonToMDTable(rows, cell);
     }
     case "scalarArray":
       return classified.items.map(formatScalar).join("\n");
+    case "contentList":
+      return (
+        await Promise.all(
+          classified.items.map((item) =>
+            isWidgetValue(item)
+              ? widgetMarkdown(item)
+              : Promise.resolve(formatScalar(item)),
+          ),
+        )
+      ).join("\n");
   }
 }
 
@@ -325,11 +369,24 @@ function luaTypeName(v: any): string | undefined {
   return "string";
 }
 
-function renderTd(v: any): string {
+function renderTd(
+  v: any,
+  cellOverride?: (v: any) => string | undefined,
+): string {
   if (isEmpty(v)) return "<td data-table-cell-empty></td>";
   const type = luaTypeName(v);
   const attr = type ? ` data-table-cell-type="${type}"` : "";
-  return `<td${attr}>${renderCellContent(v)}</td>`;
+  return `<td${attr}>${cellOverride?.(v) ?? renderCellContent(v)}</td>`;
+}
+
+/** The HTML table for a record or record list, with optional per-cell override. */
+export function buildResultTableMarkdown(
+  c: Extract<Classified, { kind: "record" | "recordArray" }>,
+  cellOverride?: (v: any) => string | undefined,
+): string {
+  return c.kind === "record"
+    ? buildHtmlTable(c.headers, 1, (_i, h) => c.getCell(h), cellOverride)
+    : buildHtmlTable(c.headers, c.rowCount, c.getCell, cellOverride);
 }
 
 function renderArrayToMarkdown(items: any[]): string {
@@ -359,6 +416,7 @@ function renderCellContent(v: any): string {
     case "recordArray":
       return buildHtmlTable(c.headers, c.rowCount, c.getCell);
     case "scalarArray":
+    case "contentList":
       return renderArrayToHtmlLines(c.items);
   }
 }

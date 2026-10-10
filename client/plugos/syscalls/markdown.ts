@@ -8,6 +8,7 @@ import { buildExtendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import {
   expandMarkdown,
   type MarkdownExpandOptions,
+  type TaskRefs,
 } from "../../markdown_renderer/inline.ts";
 import type { Client } from "../../client.ts";
 import { bakeSectionsInText } from "../../baked_sections/bake.ts";
@@ -20,6 +21,18 @@ import {
   refCellTransformer,
 } from "../../markdown_renderer/result_render.ts";
 import * as TagConstants from "../../../plugs/index/constants.ts";
+import {
+  applyChrome,
+  expandMarkdownStatic,
+  portableMarkdown,
+  renderMarkdownStatic,
+  renderValue,
+} from "../../markdown_renderer/compose.ts";
+import { isWidgetValue } from "../../space_lua/fragment.ts";
+import {
+  liveContextForClient,
+  staticContextForClient,
+} from "../../markdown_renderer/compose_client.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {
@@ -53,7 +66,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       callback: async (
         _ctx,
         treeOrText: ParseTree | string,
-        options?: MarkdownExpandOptions,
+        options: SyscallExpandOptions = {},
       ): Promise<ParseTree | string> => {
         const outputString = typeof treeOrText === "string";
         if (typeof treeOrText === "string") {
@@ -62,11 +75,20 @@ export function markdownSyscalls(client: Client): SysCallMapping {
             treeOrText,
           );
         }
-        const result = await expandMarkdownWithClient(
-          client,
-          treeOrText,
-          options,
-        );
+        const { rewriteTasks, expandLuaDirectives, ...switches } = options;
+        // The caller's text is the open page's source
+        const taskRefs: TaskRefs = rewriteTasks === false ? "none" : "page";
+        const result =
+          expandLuaDirectives === false
+            ? await expandMarkdownWithClient(client, treeOrText, {
+                ...switches,
+                taskRefs,
+              })
+            : await expandMarkdownStatic(
+                treeOrText,
+                staticContextForClient(client, {}, taskRefs),
+                switches,
+              );
         if (outputString) {
           return renderToText(result);
         } else {
@@ -74,7 +96,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         }
       },
       description:
-        "Expands Markdown transclusions, Lua directives, and task references.",
+        "Expands Markdown transclusions, Lua directives, and task references. Directive results are written as Markdown, or as HTML for widgets without Markdown (event handlers are dropped).",
       signatures: [
         "markdown.expandMarkdown(text, options?)",
         "markdown.expandMarkdown(tree, options?)",
@@ -98,16 +120,55 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         },
       ],
     },
+    "lua:widget.toMarkdown": {
+      callback: async (ctx, w: unknown): Promise<string> => {
+        if (typeof w !== "string" && !isWidgetValue(w)) return "";
+        const render = liveContextForClient(client);
+        // Called while rendering: nest inside that render, so a widget that
+        // converts itself stops at the depth limit and shares the Lua budget
+        const thread = ctx.sf?.threadState;
+        const result = await portableMarkdown(
+          w,
+          thread?.renderDepth === undefined
+            ? render
+            : {
+                ...render,
+                depth: thread.renderDepth + 1,
+                budget: thread.budget ?? render.budget,
+              },
+        );
+        return result.ok ? result.markdown : "";
+      },
+      description:
+        'Returns a widget\'s Markdown: the text Copy as Markdown and Bake into page use. HTML-only widgets give "".',
+      parameters: [
+        { name: "w", type: "any", description: "A widget or string." },
+      ],
+      returns: [{ type: "string" }],
+    },
+    "markdown.renderToDom": {
+      callback: async (_ctx, value: unknown): Promise<HTMLElement> => {
+        const rendered = await renderValue(value, liveContextForClient(client));
+        applyChrome(rendered.node, rendered.chrome);
+        return rendered.node;
+      },
+      description:
+        "Renders a Markdown string or a widget to a live DOM node (Space Lua only).",
+      parameters: [
+        {
+          name: "value",
+          type: "any",
+          description: "Markdown string or widget.",
+        },
+      ],
+      returns: [{ type: "any", description: "DOM node." }],
+    },
     "markdown.markdownToHtml": {
       callback: async (
         _ctx,
         text: string,
         options: MarkdownRenderOptions = {},
       ) => {
-        let mdTree = parse(markdownLanguageWithUserExtensions(client), text);
-        if (options.expand) {
-          mdTree = await expandMarkdownWithClient(client, mdTree);
-        }
         if (!options.resolveTagHref) {
           options.resolveTagHref = (tagName: string) => {
             return (
@@ -118,7 +179,14 @@ export function markdownSyscalls(client: Client): SysCallMapping {
             );
           };
         }
-        return renderMarkdownToHtml(mdTree, options);
+        if (options.expand) {
+          const ctx = staticContextForClient(client, options, "page");
+          return renderMarkdownStatic(text, ctx);
+        }
+        return renderMarkdownToHtml(
+          parse(markdownLanguageWithUserExtensions(client), text),
+          options,
+        );
       },
       description: "Renders Markdown text to HTML.",
       parameters: [
@@ -126,7 +194,8 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         {
           name: "options",
           type: "table",
-          description: "HTML rendering options.",
+          description:
+            "HTML rendering options; `expand = true` first expands transclusions and Lua directives, as `markdown.expandMarkdown` does.",
           optional: true,
         },
       ],
@@ -204,10 +273,17 @@ function markdownLanguageWithUserExtensions(client: Client) {
   );
 }
 
+// The documented syscall options; `rewriteTasks` maps to `TaskRefs`
+type SyscallExpandOptions = {
+  expandTransclusions?: boolean;
+  expandLuaDirectives?: boolean;
+  rewriteTasks?: boolean;
+};
+
 function expandMarkdownWithClient(
   client: Client,
   tree: ParseTree,
-  options?: MarkdownExpandOptions,
+  options: MarkdownExpandOptions,
 ) {
   return expandMarkdown(
     client.space,

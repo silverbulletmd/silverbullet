@@ -8,6 +8,7 @@ import {
   builtinPlugPaths,
 } from "../../plugs/builtin_plugs.ts";
 import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
+import type { LuaStackFrame } from "../space_lua/runtime.ts";
 
 export type SysCallMapping = {
   [key: string]: SyscallSignature | SyscallDefinition;
@@ -23,6 +24,8 @@ export type SyscallContext = {
   // This is the plug that is invoking the syscall,
   // which may be undefined where this cannot be determined (e.g. when running in a NoSandbox)
   plug?: string;
+  // The calling Lua frame, for `lua:` (native Lua) syscalls
+  sf?: LuaStackFrame;
 };
 
 type SyscallSignature = (...args: any[]) => Promise<any> | any;

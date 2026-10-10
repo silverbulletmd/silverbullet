@@ -1,7 +1,7 @@
-import type { SysCallMapping } from "../../plugos/system.ts";
 import type { Client } from "../../client.ts";
-import { reloadAllWidgets } from "../../codemirror/code_widget.ts";
-import { broadcastReload } from "../../components/widget_sandbox_iframe.ts";
+import { reloadAllWidgets } from "../../codemirror/widgets/code_widget.ts";
+import { broadcastReload } from "../../sandbox/widget_sandbox_iframe.ts";
+import type { SysCallMapping } from "../../plugos/system.ts";
 
 export function clientCodeWidgetSyscalls(client: Client): SysCallMapping {
   return {

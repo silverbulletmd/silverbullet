@@ -16,6 +16,12 @@ async function domEnv() {
     "markdown",
     jsToLuaValue({
       markdownToHtml: (md: string) => `<span class="md">${md}</span>`,
+      renderToDom: (w: any) => {
+        const span = document.createElement("span");
+        span.className = "rendered";
+        span.textContent = w.markdown;
+        return span;
+      },
     }),
   );
   const run = async (lua: string) => {
@@ -90,4 +96,14 @@ test("existing forms keep working: string class and style, __rawText", async () 
   expect(div.getAttribute("class")).toBe("a b");
   expect(div.getAttribute("style")).toBe("color:red");
   expect(div.textContent).toBe("1. raw");
+});
+
+test("markdown widgets render as live children instead of failing", async () => {
+  const { el } = await domEnv();
+  const div = await el(
+    'dom.div { {_isWidget = true, markdown = "**m**"}, "plain" }',
+  );
+  expect(div.outerHTML).toBe(
+    '<div><span class="rendered">**m**</span><span class="md">plain</span></div>',
+  );
 });

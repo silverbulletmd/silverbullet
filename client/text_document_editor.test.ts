@@ -12,7 +12,7 @@ vi.hoisted(() => {
   });
   vi.stubGlobal("navigator", { platform: "Linux", userAgent: "", vendor: "" });
 });
-vi.mock("./components/widget_sandbox_iframe.ts", () => ({
+vi.mock("./sandbox/widget_sandbox_iframe.ts", () => ({
   prepareSandboxIFrame: () => {
     throw new Error("unexpected iframe");
   },

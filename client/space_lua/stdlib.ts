@@ -1,3 +1,4 @@
+import { isWidgetValue, WIDGET_AS_TEXT_MESSAGE } from "./fragment.ts";
 import { LuaBudgetStopped } from "./budget.ts";
 import {
   getMetatable,
@@ -193,6 +194,9 @@ const typeFunction = new LuaBuiltinFunction({
 // falls back to the default `luaToString` representation.
 const tostringFunction = new LuaBuiltinFunction({
   callback: (sf, value: any): string | Promise<string> => {
+    if (isWidgetValue(value)) {
+      throw new LuaRuntimeError(WIDGET_AS_TEXT_MESSAGE, sf);
+    }
     const mt = getMetatable(value, sf);
     if (mt) {
       const mm = mt.rawGet("__tostring");

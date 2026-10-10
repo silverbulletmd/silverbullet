@@ -1,3 +1,4 @@
+import { concatWithWidgets } from "./fragment.ts";
 import type {
   ASTCtx,
   LuaBlock,
@@ -329,6 +330,10 @@ export function luaOp(
       }
       if (typeof left === "number" && typeof right === "string") {
         return luaFormatNumber(left) + right;
+      }
+      const fragment = concatWithWidgets(left, right);
+      if (fragment) {
+        return fragment;
       }
       try {
         const coerce = (v: any): string => {

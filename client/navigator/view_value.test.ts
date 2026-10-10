@@ -237,7 +237,7 @@ test("widget.newLive builds a live content widget", () => {
   expect(value.meta.hasContent).toBe(true);
 });
 
-test("content may not return a live widget", async () => {
+test("content may return a live widget, handed through as a view value", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set(
     "inner",
@@ -247,7 +247,7 @@ test("content may not return a live widget", async () => {
     `{ name = "v", content = function() return inner end }`,
     env,
   );
-  await expect(luaHandle(spec, "content", {}, env)).resolves.toEqual({
-    error: "navigator: content cannot return a live widget",
-  });
+  const result = await luaHandle(spec, "content", {}, env);
+  expect(result.error).toBeUndefined();
+  expect(isViewValue(result.value)).toBe(true);
 });

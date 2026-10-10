@@ -93,10 +93,14 @@ For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expressio
 
 This mechanism is often used in conjunction with [[Space Lua/Integrated Query]] and [[API/widget|Widgets]].
 
+## Where `${...}` works
+* **Anywhere inline Markdown renders:** paragraphs, headings, list items, tasks, quotes, table cells, inside bold/italic/links (the formatting is kept).
+* **Not evaluated:** inline code and code blocks, [[Template|template]] pages, and [[Linked Mention|Linked Mentions]] snippets (shown as source). To show `${...}` literally in a link alias, put it in backticks.
+* **Results:** text is rendered as Markdown, and `${...}` inside it is evaluated too (up to 8 levels deep). Lists show one item per line, records and query results show as a table, and widgets (also inside table cells) stay interactive.
+* **Context:** `_CTX.currentPage` is the page being viewed, `_CTX.sourcePage` the page the expression is written on (they differ inside a transclusion). See [[Space Lua/Thread Locals]].
+
 Because `${...}` expressions are evaluated live, their output only exists inside SilverBullet, the markdown file just holds the source. If you want a page to render correctly *outside* SilverBullet too (on GitHub, in another editor), see [[Baked Sections]]: it writes a `${...}` expression’s rendered output into the page as plain markdown, while keeping it updatable.
 
-# API
-![[API]]
 # Space Lua vs “OG” Lua
 Space Lua is a _custom Lua implementation_. It does not use the official [Lua](https://www.lua.org) nor [LuaJIT](https://luajit.org) implementations, nor a WebAssembly build of them. For the reasoning behind that choice — and its trade-offs — see [[ADR/005 Space Lua]].
 
@@ -106,10 +110,3 @@ In addition to quirks, Space introduces a (minimal) set of new features on top c
 
 1. [[Space Lua/Integrated Query]], embedding a query language into Lua itself
 2. [[Space Lua/Thread Locals]]
-
-# In this section
-${query[[
-  from e = docsNav.pages
-  where e.name:match "^Customizing/[^/]+$"
-  select templates.docsPage(e)
-]]}

@@ -13,6 +13,8 @@ import {
 } from "./runtime.ts";
 import {
   BUSY_LIMIT_DEFAULT_MS,
+  LUA_TIMEOUT_MESSAGE,
+  type LuaBudget,
   LuaBudgetStopped,
   makeLuaBudget,
 } from "./budget.ts";
@@ -23,13 +25,78 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { resolveASTReference } from "../space_lua.ts";
 import type { Client } from "../client.ts";
-import { isViewValue } from "../navigator/view_value.ts";
-import {
-  classifyResult,
-  renderResultToCleanMarkdown,
-} from "./render_lua_markdown.ts";
+import type { SpaceLuaEnvironment } from "../space_lua.ts";
 
-export { isLuaWidgetError } from "./render_lua_markdown.ts";
+import { isLuaWidgetError } from "./render_lua_markdown.ts";
+
+export { isLuaWidgetError };
+
+export type EvalForRenderOptions = {
+  currentPage?: { name: string };
+  sourcePage?: string;
+  budget?: LuaBudget;
+  // Widget nesting depth of the render this evaluation belongs to
+  renderDepth?: number;
+  stoppedMessage?: () => string;
+};
+
+/**
+ * Run a Space Lua computation for rendering, with `_CTX.currentPage` (and
+ * `_CTX.sourcePage`) set, and convert the result like the widget renderer
+ * expects. Errors and timeouts become markdown error strings.
+ */
+export async function evaluateForRender(
+  sle: SpaceLuaEnvironment,
+  compute: (env: LuaEnv, sf: LuaStackFrame) => Promise<LuaValue> | LuaValue,
+  ctx: ASTCtx,
+  opts: EvalForRenderOptions = {},
+): Promise<any> {
+  const currentPage = opts.currentPage;
+  // The rendered error only shows inside the page; also log one line so it
+  // reaches the runtime log (`sb logs`).
+  const logError = (msg: string) => {
+    console.error(
+      `Lua widget error on ${currentPage?.name ?? "(unknown page)"}: ${msg.replace(/\s*\n\s*/g, " ")}`,
+    );
+  };
+  try {
+    const tl = new LuaEnv();
+    tl.setLocal("currentPage", currentPage);
+    if (opts.sourcePage) tl.setLocal("sourcePage", { name: opts.sourcePage });
+    const sf = LuaStackFrame.createWithGlobalEnv(sle.env, ctx);
+    sf.threadState.budget =
+      opts.budget ??
+      makeLuaBudget({
+        busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
+        onLimit: (b) => {
+          b.stopped = true;
+        },
+      });
+    sf.threadState.renderDepth = opts.renderDepth;
+    const env = new LuaEnv(sle.env);
+    env.setLocal("_CTX", tl);
+    const rawResult = singleResult(await compute(env, sf));
+    if (isTaggedFloat(rawResult) || typeof rawResult === "number") {
+      return rawResult;
+    }
+    if (rawResult instanceof LuaTable) return rawResult;
+    return luaValueToJS(rawResult, sf);
+  } catch (e: any) {
+    if (e instanceof LuaBudgetStopped) {
+      logError("timed out; the widget took too long to render and was stopped");
+      if (opts.stoppedMessage) return opts.stoppedMessage();
+      return LUA_TIMEOUT_MESSAGE;
+    }
+    logError(e.message);
+    if (e instanceof LuaRuntimeError && e.sf?.astCtx) {
+      const source = resolveASTReference(e.sf.astCtx);
+      if (source) {
+        return `**Lua error:** ${e.message} (Origin: [[${encodeRef(source)}]])`;
+      }
+    }
+    return `**Lua error:** ${e.message}`;
+  }
+}
 
 /**
  * Run a Space Lua computation and convert its result into something the
@@ -48,53 +115,10 @@ export async function renderLuaWidgetResult(
     (client.ui.viewState.current
       ? { name: getNameFromPath(client.ui.viewState.current.path) }
       : undefined);
-  // The rendered error only shows inside the page; also log one line so it
-  // reaches the runtime log (`sb logs`).
-  const logError = (msg: string) => {
-    console.error(
-      `Lua widget error on ${currentPage?.name ?? "(unknown page)"}: ${msg.replace(/\s*\n\s*/g, " ")}`,
-    );
-  };
-  try {
-    const tl = new LuaEnv();
-    tl.setLocal("currentPage", currentPage);
-    const sf = LuaStackFrame.createWithGlobalEnv(
-      client.clientSystem.spaceLuaEnv.env,
-      ctx,
-    );
-    sf.threadState.budget = makeLuaBudget({
-      busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
-      onLimit: (b) => {
-        b.stopped = true;
-      },
-    });
-    const env = new LuaEnv(client.clientSystem.spaceLuaEnv.env);
-    env.setLocal("_CTX", tl);
-    const rawResult = singleResult(await compute(env, sf));
-    if (isTaggedFloat(rawResult) || typeof rawResult === "number") {
-      return rawResult;
-    }
-    if (rawResult instanceof LuaTable) {
-      if (rawResult.rawGet("_isWidget")) {
-        return luaValueToJS(rawResult, sf);
-      }
-      return rawResult;
-    }
-    return luaValueToJS(rawResult, sf);
-  } catch (e: any) {
-    if (e instanceof LuaBudgetStopped) {
-      logError("timed out; the widget took too long to render and was stopped");
-      return `**Lua timeout:** this widget took too long to render and was stopped. Reload the page to try again.`;
-    }
-    logError(e.message);
-    if (e instanceof LuaRuntimeError && e.sf?.astCtx) {
-      const source = resolveASTReference(e.sf.astCtx);
-      if (source) {
-        return `**Lua error:** ${e.message} (Origin: [[${encodeRef(source)}]])`;
-      }
-    }
-    return `**Lua error:** ${e.message}`;
-  }
+  return evaluateForRender(client.clientSystem.spaceLuaEnv, compute, ctx, {
+    currentPage,
+    sourcePage: currentPage?.name,
+  });
 }
 
 /** Evaluate a `${...}`-style expression string and render it as a widget. */
@@ -106,7 +130,20 @@ export async function renderLuaExpression(
   if (expressionText.trim().length === 0) {
     return "**Error:** Empty Lua expression";
   }
-  const expr = parseExpressionString(expressionText);
+  let expr: ReturnType<typeof parseExpressionString>;
+  try {
+    expr = parseExpressionString(expressionText);
+  } catch (e) {
+    // Report syntax errors like evaluation errors instead of rendering nothing
+    return renderLuaWidgetResult(
+      client,
+      () => {
+        throw e;
+      },
+      {} as ASTCtx,
+      currentPageMeta,
+    );
+  }
   return renderLuaWidgetResult(
     client,
     (env, sf) => evalExpression(expr, env, sf),
@@ -128,56 +165,4 @@ export async function renderLuaCallback(
     {} as ASTCtx,
     currentPageMeta,
   );
-}
-
-export type PortableMarkdownResult =
-  | { ok: true; markdown: string }
-  | { ok: false; reason: string };
-
-/**
- * Evaluate a `${...}`-style expression and produce portable GFM markdown — the
- * same clean rendering the Copy button uses — or report why it can't be baked.
- * - nil/empty → ok with empty markdown
- * - Lua error → not ok (the eval error string)
- * - widget object: portable only if it exposes a `markdown` rendering;
- *   html-only widgets are not bakeable
- * - scalars / tables / arrays / strings → clean GFM
- */
-export async function expressionToPortableMarkdown(
-  client: Client,
-  expressionText: string,
-  currentPageMeta?: { name: string } | undefined,
-): Promise<PortableMarkdownResult> {
-  const rawResult = await renderLuaExpression(
-    client,
-    expressionText,
-    currentPageMeta,
-  );
-  if (isViewValue(rawResult)) {
-    return { ok: false, reason: "A view has no portable Markdown rendering" };
-  }
-  if (rawResult === null || rawResult === undefined) {
-    return { ok: true, markdown: "" };
-  }
-  // renderLuaExpression returns eval failures as markdown error strings.
-  if (
-    typeof rawResult === "string" &&
-    (rawResult.startsWith("**Lua error:**") ||
-      rawResult.startsWith("**Error:**"))
-  ) {
-    return { ok: false, reason: rawResult };
-  }
-  // Widget objects: portable only when they expose a `markdown` rendering.
-  if (typeof rawResult === "object" && (rawResult as any)._isWidget) {
-    const md = (rawResult as any).markdown;
-    if (typeof md === "string") {
-      return { ok: true, markdown: md.trim() };
-    }
-    return { ok: false, reason: "html-only widget (no markdown rendering)" };
-  }
-  const markdown = await renderResultToCleanMarkdown(
-    rawResult,
-    classifyResult(rawResult),
-  );
-  return { ok: true, markdown };
 }

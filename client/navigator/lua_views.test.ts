@@ -4,12 +4,8 @@ import { evalExpression } from "../space_lua/eval.ts";
 import { parseBlock } from "../space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame, type LuaTable } from "../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
-import {
-  buildPickSpec,
-  luaHandle,
-  validateDefineSpec,
-  wireMeta,
-} from "./lua_views.ts";
+import { luaHandle } from "./lua_views.ts";
+import { buildPickSpec, validateDefineSpec, wireMeta } from "./view_spec.ts";
 
 /** A real Lua table, closures and all -- the same value `lua:view.define` receives. */
 function luaSpecIn(env: LuaEnv, source: string, ref?: string): LuaTable {
@@ -77,7 +73,7 @@ const rejections: [string, string, string][] = [
   [
     "content that is not a function",
     `name = "v", content = "# hi"`,
-    "view.define: content must be a function returning a markdown string",
+    "view.define: content must be a function returning the value to show (markdown, a widget, ...)",
   ],
   [
     "createIcon that is not a string",
@@ -752,7 +748,7 @@ test("a row view leaves hasContent off", () => {
   ).toBe(false);
 });
 
-test("the content hook returns the markdown the view's own closure built", async () => {
+test("the content hook returns the value the view's own closure built", async () => {
   const spec = luaSpec(`{
     name = "v",
     content = function(ctx) return "# Hi " .. ctx.phrase end,
@@ -760,16 +756,22 @@ test("the content hook returns the markdown the view's own closure built", async
 
   await expect(
     luaHandle(spec, "content", { ctx: { phrase: "there" } }),
-  ).resolves.toEqual({ markdown: "# Hi there" });
+  ).resolves.toEqual({ value: "# Hi there" });
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    markdown: "# Hi ",
+    value: "# Hi ",
   });
 });
 
-test("content returning nil is empty markdown, which renders no chrome at all", async () => {
+test("content returning nil is a null value, which renders no chrome at all", async () => {
   const spec = luaSpec(`{ name = "v", content = function() return nil end }`);
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    markdown: "",
+    value: null,
+  });
+  const falsy = luaSpec(
+    `{ name = "v", content = function() return false end }`,
+  );
+  await expect(luaHandle(falsy, "content", {})).resolves.toEqual({
+    value: null,
   });
 });
 
@@ -779,14 +781,14 @@ test("content may answer with a widget-shaped table carrying markdown", async ()
     `{ name = "v", content = function() return { markdown = "* [ ] a task" } end }`,
   );
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    markdown: "* [ ] a task",
+    value: { markdown: "* [ ] a task" },
   });
 });
 
-test("content answering with something that isn't markdown comes back as an error", async () => {
+test("content answering with a number is passed through for the shared renderer", async () => {
   const spec = luaSpec(`{ name = "v", content = function() return 42 end }`);
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    error: "navigator: content must return markdown or a widget, got number",
+    value: 42,
   });
 });
 
@@ -1138,7 +1140,7 @@ test("the content hook hands its function the same dock", async () => {
 
   await expect(
     luaHandle(spec, "content", { ctx: { phrase: "", dock: "rhs" } }),
-  ).resolves.toEqual({ markdown: "dock=rhs" });
+  ).resolves.toEqual({ value: "dock=rhs" });
 });
 
 test("row descriptions carry labels and explicit ranges through Lua", async () => {
@@ -1248,7 +1250,7 @@ test("content may answer with an html widget", async () => {
     `{ name = "v", content = function() return { _isWidget = true, html = "<b>x</b>", markdown = "x", cssClasses = { "fixture-note" } } end }`,
   );
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    widget: {
+    value: {
       _isWidget: true,
       html: "<b>x</b>",
       markdown: "x",
@@ -1257,21 +1259,21 @@ test("content may answer with an html widget", async () => {
   });
 });
 
-test("a markdown-only widget keeps the markdown path", async () => {
+test("a markdown-only widget is passed through as a widget value", async () => {
   const spec = luaSpec(
     `{ name = "v", content = function() return { _isWidget = true, markdown = "* [ ] a task" } end }`,
   );
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    markdown: "* [ ] a task",
+    value: { _isWidget: true, markdown: "* [ ] a task" },
   });
 });
 
-test("content may not return a sandboxed widget", async () => {
+test("a sandboxed widget is passed through for the shared renderer to place", async () => {
   const spec = luaSpec(
     `{ name = "v", content = function() return { _isWidget = true, sandbox = true, html = "<p></p>" } end }`,
   );
   await expect(luaHandle(spec, "content", {})).resolves.toEqual({
-    error: "navigator: content cannot return a sandboxed widget",
+    value: { _isWidget: true, sandbox: true, html: "<p></p>" },
   });
 });
 

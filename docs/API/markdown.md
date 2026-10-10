@@ -37,7 +37,7 @@ print(markdown.bakeSections(text))
 `markdown.expandMarkdown(text, options?)`
 `markdown.expandMarkdown(tree, options?)`
 
-Expands Markdown transclusions, Lua directives, and task references.
+Expands Markdown transclusions, Lua directives, and task references. Directive results are written as Markdown, or as HTML for widgets without Markdown (event handlers are dropped).
 
 **Parameters:**
 
@@ -63,7 +63,7 @@ Renders Markdown text to HTML.
 **Parameters:**
 
 - `text` (`string`) — Markdown source.
-- `options?` (`table`) — HTML rendering options.
+- `options?` (`table`) — HTML rendering options; `expand = true` first expands transclusions and Lua directives, as `markdown.expandMarkdown` does.
 
 **Returns:**
 
@@ -136,5 +136,19 @@ Renders a Markdown syntax tree back to source text.
 local tree = markdown.parseMarkdown("# Title")
 print(markdown.renderParseTree(tree))
 ```
+
+## markdown.renderToDom
+
+`markdown.renderToDom(value)`
+
+Renders a Markdown string or a widget to a live DOM node (Space Lua only).
+
+**Parameters:**
+
+- `value` (`any`) — Markdown string or widget.
+
+**Returns:**
+
+- `any` — DOM node.
 <!--/lua-->
 

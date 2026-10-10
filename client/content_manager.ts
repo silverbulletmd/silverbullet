@@ -23,10 +23,6 @@ import type {
 import type { Client } from "./client.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import {
-  type ConflictHunk,
-  findConflictHunks,
-} from "./codemirror/conflict_markers.ts";
-import {
   buildMarkdownLanguageExtension,
   createEditorState,
   createInactiveEditorState,
@@ -35,6 +31,10 @@ import {
   forceParseVisibleRegion,
 } from "./codemirror/editor_state.ts";
 import { externalSource } from "./codemirror/external_presence.ts";
+import {
+  type ConflictHunk,
+  findConflictHunks,
+} from "./codemirror/syntax/conflict_markers.ts";
 import {
   type ActiveDocumentEditor,
   IFrameDocumentEditor,

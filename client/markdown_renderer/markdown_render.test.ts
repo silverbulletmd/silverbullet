@@ -14,6 +14,7 @@ import {
   CustomSyntaxRenderedHtmlType,
   createMediaElement,
   expandMarkdown,
+  type MarkdownExpandOptions,
 } from "./inline.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 
@@ -303,10 +304,9 @@ test("CustomSyntaxRenderedHtml renders raw HTML", () => {
 
 const stubSpace = {} as Space;
 const stubSle = { env: new LuaEnv() } as SpaceLuaEnvironment;
-const defaultExpandOpts = {
+const defaultExpandOpts: MarkdownExpandOptions = {
   expandTransclusions: false,
-  expandLuaDirectives: false,
-  rewriteTasks: false,
+  taskRefs: "none",
 };
 
 const latexInlineSpec = {
@@ -691,8 +691,7 @@ test("expandMarkdown strips a transcluded page's frontmatter", async () => {
   } as unknown as Space;
 
   const expanded = await expandMarkdown(space, "test", tree, stubSle, {
-    expandLuaDirectives: false,
-    rewriteTasks: false,
+    taskRefs: "none",
   });
 
   const roundTripped = renderToText(expanded);
@@ -700,3 +699,13 @@ test("expandMarkdown strips a transcluded page's frontmatter", async () => {
   expect(roundTripped).not.toContain("references:");
   expect(roundTripped).not.toContain("---");
 });
+
+test.each(["x <a>y</a> z", "<div><a>y</a></div>", "x <img> z"])(
+  "inline HTML %s without attributes renders",
+  (md) => {
+    const html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, md), {
+      translateUrls: (u) => u,
+    });
+    expect(html).toContain(md.includes("img") ? "<img" : "<a>y</a>");
+  },
+);

@@ -23,7 +23,7 @@ test.describe("persistent docks", () => {
     });
 
     await left.locator(".sb-dock-button").click();
-    await left
+    await sbPage
       .locator(".sb-dock-menu-item", { hasText: "Right sidebar" })
       .click();
     await expect(sbPage.locator(".sb-nav-root-lhs")).toHaveCount(0);
@@ -46,7 +46,7 @@ test.describe("persistent docks", () => {
     });
 
     await left.locator(".sb-dock-button").click();
-    await left
+    await sbPage
       .locator(".sb-dock-menu-item", { hasText: "Bottom panel" })
       .click();
     const bottom = sbPage.locator(".sb-bhs");
@@ -108,7 +108,7 @@ test.describe("persistent docks", () => {
     const left = sbPage.locator(".sb-nav-root-lhs");
     await expect(left).toBeVisible({ timeout: 20_000 });
     await left.locator(".sb-dock-button").click();
-    await left
+    await sbPage
       .locator(".sb-dock-menu-item", { hasText: "Bottom panel" })
       .click();
     await expect(sbPage.locator(".sb-nav-root-bhs")).toBeVisible();
@@ -117,7 +117,7 @@ test.describe("persistent docks", () => {
     const right = sbPage.locator(".sb-nav-root-rhs");
     await expect(right).toBeVisible();
     await right.locator(".sb-dock-button").click();
-    await right
+    await sbPage
       .locator(".sb-dock-menu-item", { hasText: "Bottom panel" })
       .click();
     await expect(sbPage.locator(".sb-nav-root-bhs .sb-nav-title")).toHaveText(

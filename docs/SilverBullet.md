@@ -5,7 +5,7 @@ SilverBullet is a programmable, open source [[Knowledge Management System]] that
 * **On my server**: [[Install|SilverBullet Server]] is a self-hosted web app you use from any browser, it keeps working offline as an installable [[PWA]]. Start with [[Install/Docker]] or [[Install/Server Binary]].
 * **Hosted for me**: a provider runs SilverBullet Server for you, see [[Install#Cloud]].
 
-  Desktop can sync with any Server, see [[Desktop Sync]]. Once you’re set up, follow [[Getting Started]].
+Desktop can sync with any Server, see [[Desktop Sync]]. Once you’re set up, follow [[Getting Started]].
 
 # Sections
 ${query[[

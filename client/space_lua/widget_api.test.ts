@@ -70,3 +70,37 @@ test("re-running the Std widget script keeps the native constructor", async () =
   await run(`again = widget.new { source = function() return {} end }`);
   expect(env.get("again")).toBe("live-value");
 });
+
+test("widget.markdownBlock keeps a fragment's parts and sets display", async () => {
+  const { env, run } = await widgetEnv();
+  await run(`__d = widget.markdownBlock("a " .. widget.markdown("m")).display`);
+  expect(env.get("__d")).toBe("block");
+});
+
+test("widget.live defaults to the index trigger", async () => {
+  const { env, run } = await widgetEnv();
+  await run(`
+    __a = widget.live(5)
+    __b = widget.live(5, {"edit"})
+  `);
+  const triggers = (name: string) =>
+    ((env.get(name) as LuaTable).rawGet("live") as LuaTable).rawGet(
+      "refreshOn",
+    ) as LuaTable;
+  expect(triggers("__a").toJSArray()).toEqual(["index"]);
+  expect(triggers("__b").toJSArray()).toEqual(["edit"]);
+});
+
+test("widget.new { markdown = fragment } leaves the caller's fragment alone", async () => {
+  const { env, run } = await widgetEnv();
+  await run(`
+    __f = "a " .. widget.markdown("m")
+    __w = widget.new { markdown = __f, display = "block", cssClasses = { "hot" } }
+  `);
+  const f = env.get("__f") as LuaTable;
+  const w = env.get("__w") as LuaTable;
+  expect(f.rawGet("display")).toBeUndefined();
+  expect(f.rawGet("cssClasses")).toBeUndefined();
+  expect(w.rawGet("display")).toBe("block");
+  expect(w.rawGet("parts")).toBe(f.rawGet("parts"));
+});

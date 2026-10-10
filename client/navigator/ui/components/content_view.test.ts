@@ -1,40 +1,52 @@
+// @vitest-environment happy-dom
 import { expect, test, vi } from "vitest";
 import type { Client } from "../../../client.ts";
+import {
+  createRenderContext,
+  type RenderContext,
+} from "../../../markdown_renderer/compose.ts";
+import {
+  buildTestEnv,
+  testHost,
+} from "../../../markdown_renderer/compose_test_env.ts";
+import { evalExpression } from "../../../space_lua/eval.ts";
+import { makeFragment } from "../../../space_lua/fragment.ts";
+import { parseExpressionString } from "../../../space_lua/parse.ts";
+import { LuaStackFrame, type LuaTable } from "../../../space_lua/runtime.ts";
+import { newView } from "../../view_value.ts";
 
-const expandMarkdown = vi.hoisted(() => vi.fn());
-
-// No DOM here: keep rendered HTML as a string, and spy on the evaluating
-// expansion so a literal render can prove it never ran.
-vi.mock("../../../codemirror/lua_widget.ts", () => ({
-  parseHtmlString: (html: string) => html,
+let ctx: RenderContext;
+vi.mock("../../../markdown_renderer/compose_client.ts", () => ({
+  liveContextForClient: () => ctx,
 }));
-vi.mock("../../../markdown_renderer/inline.ts", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  expandMarkdown,
-}));
 
-const { renderContentResult } = await import("./content_view.tsx");
+const { renderContent } = await import("./content_view.tsx");
 
-const client = {
-  config: { get: (_key: string, fallback: unknown) => fallback },
-  ui: { viewState: { allPages: [] } },
-  currentName: () => "Here",
-} as unknown as Client;
-
-test("a content widget with evaluate = false renders its markdown literally", async () => {
-  const state = await renderContentResult(
-    client,
-    {
-      widget: {
-        markdown: "Total: ${1 + 1} and ![[Secret]] and **bold**",
-        evaluate: false,
-      },
-    },
-    "Here",
+test("docked Copy copies what ⋯ Copy does, nested view rows included", async () => {
+  const t = await buildTestEnv();
+  ctx = createRenderContext(testHost(t, { mountView: () => () => {} }), {
+    hostPage: { name: "Host" },
+  });
+  const spec = await evalExpression(
+    parseExpressionString(
+      "{ source = function(ctx) return {{ name = ctx.dock }} end }",
+    ),
+    t.env,
+    LuaStackFrame.createWithGlobalEnv(t.env),
   );
-  expect(expandMarkdown).not.toHaveBeenCalled();
-  const html = state.node as unknown as string;
-  expect(html).toContain("${1 + 1}");
-  expect(html).toContain("Secret");
-  expect(html).toContain("<strong>bold</strong>");
+  const localSyscall = vi.fn(async () => {});
+  const client = {
+    clientSystem: { localSyscall },
+    ui: { flashNotification: vi.fn() },
+  } as unknown as Client;
+  const content = await renderContent(
+    client,
+    makeFragment(["Rows:\n\n", newView(spec as LuaTable)]),
+    "Host",
+  );
+  expect(content.copy).toBeDefined();
+  await content.copy!();
+  expect(localSyscall).toHaveBeenCalledWith("editor.copyToClipboard", [
+    "Rows:\n\n* inline",
+  ]);
 });
