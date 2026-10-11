@@ -85,7 +85,7 @@ fn has_bearer(headers: &axum::http::HeaderMap) -> bool {
 }
 
 /// The request's own origin (`scheme://host`) as the browser would compute it.
-fn own_origin(headers: &axum::http::HeaderMap) -> String {
+pub(crate) fn own_origin(headers: &axum::http::HeaderMap) -> String {
     let scheme = if crate::auth::is_secure_request(headers) {
         "https"
     } else {
@@ -333,6 +333,8 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     // Open: liveness + the SPA shell/assets must always load.
     let open = Router::new()
         .route("/.ping", get(control::handle_ping))
+        .route("/robots.txt", get(crate::handlers::seo::handle_robots))
+        .route("/sitemap.xml", get(crate::handlers::seo::handle_sitemap))
         .route("/.logout", get(crate::handlers::auth::handle_logout))
         .merge(auth_routes);
 

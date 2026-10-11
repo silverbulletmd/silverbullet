@@ -10,3 +10,5 @@ pub mod types;
 pub mod upgrade;
 
 pub use types::{BootConfig, FileMeta, RevisionsMode, SpaceError, SpacePrimitives};
+
+pub mod page;

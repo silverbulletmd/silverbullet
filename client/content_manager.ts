@@ -5,6 +5,7 @@ import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import {
   encodePageURI,
+  encodeRef,
   getNameFromPath,
   getOffsetFromHeader,
   getOffsetFromLineColumn,
@@ -552,6 +553,9 @@ export class ContentManager {
           doc.text =
             doc.text.slice(0, idx) + doc.text.slice(idx + cursorMarker.length);
         }
+      } else if (results.length === 0 && this.client.bootConfig.readOnly) {
+        doc.text = `# Page not found\n\nThis page does not exist in this space.\n\n[[${encodeRef(this.client.getIndexRef())}|Go to home]]`;
+        doc.meta.perm = "ro";
       } else if (results.length > 1) {
         console.error(
           "Multiple responses for editor:pageCreating event, this is not supported",

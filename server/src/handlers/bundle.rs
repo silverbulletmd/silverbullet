@@ -5,7 +5,16 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
-use crate::handlers::http_date;
+use crate::handlers::{http_date, seo};
+use silverbullet_server_common::page::{parse_page, PageKind};
+
+#[derive(Default)]
+struct PageHead {
+    description: String,
+    canonical: Option<String>,
+    image: Option<String>,
+    noindex: bool,
+}
 use crate::router::run_blocking;
 use crate::ssr::{convert_wiki_links, render_markdown, SpaceLinks};
 use crate::state::ServerState;
@@ -185,16 +194,23 @@ pub async fn handle_client_bundle(
         .get::<ServerName>()
         .map(|name| name.0.as_str())
         .unwrap_or("SilverBullet");
-    let (title, content_html) = server_side_content(&state, &path, server_name).await;
+    let (title, content_html, status, head) = server_side_content(
+        &state,
+        &path,
+        server_name,
+        seo::origin(req.headers()).as_deref(),
+    )
+    .await;
     let body = template_index_html(
         &shell,
         &state.host_url_prefix,
         &title,
+        &head,
         &state.additional_head_html,
         &content_html,
     );
     Response::builder()
-        .status(StatusCode::OK)
+        .status(status)
         .header("Content-Type", "text/html")
         // The shell names the entry points and is templated per request (title,
         // SSR'd content, URL prefix), so it must never be served from a cache.
@@ -212,15 +228,41 @@ async fn server_side_content(
     state: &Arc<ServerState>,
     path: &str,
     server_name: &str,
-) -> (String, String) {
-    if !state.anonymous_readable || state.anonymous_writable {
-        return (server_name.to_owned(), String::new());
+    origin: Option<&str>,
+) -> (String, String, StatusCode, PageHead) {
+    let mut head = PageHead::default();
+    if !seo::is_public(state) {
+        return (server_name.to_owned(), String::new(), StatusCode::OK, head);
     }
 
+    let bytes = path.as_bytes();
+    if bytes.iter().enumerate().any(|(index, byte)| {
+        *byte == b'%'
+            && (bytes.get(index + 1).is_none_or(|b| !b.is_ascii_hexdigit())
+                || bytes.get(index + 2).is_none_or(|b| !b.is_ascii_hexdigit()))
+    }) {
+        return (
+            server_name.to_owned(),
+            String::new(),
+            StatusCode::BAD_REQUEST,
+            head,
+        );
+    }
+    let decoded = match percent_encoding::percent_decode_str(path).decode_utf8() {
+        Ok(path) => path,
+        Err(_) => {
+            return (
+                server_name.to_owned(),
+                String::new(),
+                StatusCode::BAD_REQUEST,
+                head,
+            )
+        }
+    };
     let page_name = if path.is_empty() {
         state.boot_config.index_page.clone()
     } else {
-        path.to_string()
+        decoded.into_owned()
     };
     let title = page_name
         .rsplit('/')
@@ -241,11 +283,34 @@ async fn server_side_content(
                     SpaceLinks::new(files.into_iter().map(|f| f.name), &state.host_url_prefix)
                 });
             let text = String::from_utf8_lossy(&data);
-            render_markdown(&convert_wiki_links(&text, &md_path, links.as_ref()))
+            let parsed = parse_page(&text);
+            head.noindex = parsed.metadata.kind() == PageKind::Meta;
+            head.description = parsed
+                .metadata
+                .description
+                .unwrap_or_else(|| state.space_description.clone());
+            if let Some(origin) = origin {
+                head.canonical = Some(seo::page_url(state, origin, &page_name));
+                head.image = Some(format!(
+                    "{origin}{}/.client/logo.png",
+                    state.host_url_prefix
+                ));
+            }
+            render_markdown(&convert_wiki_links(parsed.body, &md_path, links.as_ref()))
         }
-        Err(_) => String::new(),
+        Err(silverbullet_server_common::SpaceError::NotFound) => {
+            return (title, String::new(), StatusCode::NOT_FOUND, head);
+        }
+        Err(_) => {
+            return (
+                title,
+                String::new(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                head,
+            )
+        }
     };
-    (title, content)
+    (title, content, StatusCode::OK, head)
 }
 
 /// Render the `index.html` SPA shell with minijinja. The template exposes
@@ -267,6 +332,7 @@ fn template_index_html(
     shell: &[u8],
     host_prefix: &str,
     title: &str,
+    head: &PageHead,
     additional_head: &str,
     content_html: &str,
 ) -> Vec<u8> {
@@ -276,7 +342,10 @@ fn template_index_html(
     let ctx = minijinja::context! {
         host_prefix => host_prefix,
         title => title,
-        description => "",
+        description => head.description,
+        canonical => head.canonical,
+        image => head.image.as_deref().unwrap_or(".client/logo.png"),
+        noindex => head.noindex,
         additional_head_html => additional_head,
         content => content_html,
     };
@@ -733,6 +802,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn public_pages_decode_url_paths_once() {
+        let state = read_only_public_state();
+        seed_bundle(&state, ".client/index.html", INDEX_TPL);
+        seed_space(&state, "Field Notes.md", b"# Published notes");
+        seed_space(&state, "Literal%20Name.md", b"# Literal percent");
+        for (uri, title, content) in [
+            ("/Field%20Notes", "Field Notes", "Published notes"),
+            ("/Literal%2520Name", "Literal%20Name", "Literal percent"),
+        ] {
+            let resp = crate::build_router(state.clone())
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(resp.status(), StatusCode::OK);
+            let html = body_string(resp).await;
+            assert!(html.contains(&format!("<title>{title}</title>")), "{html}");
+            assert!(html.contains(content), "{html}");
+        }
+    }
+
+    #[tokio::test]
     async fn public_read_only_missing_page_renders_empty_content() {
         let state = read_only_public_state();
         seed_bundle(&state, ".client/index.html", INDEX_TPL);
@@ -745,7 +835,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
         let html = body_string(resp).await;
         assert!(
             html.contains(r#"<div class="cm-content"></div>"#),
@@ -783,6 +873,7 @@ mod tests {
             br#"<title>{{ title }}</title>{{ additional_head_html | safe }}<div>{{ content | safe }}</div>"#,
             "",
             "a<script>b",
+            &super::PageHead::default(),
             "<meta name=\"x\">",
             "<b>bold</b>",
         );
@@ -804,6 +895,7 @@ mod tests {
             &shell,
             "/prefix",
             "MyTitle",
+            &super::PageHead::default(),
             "<meta name=\"sb\">",
             "<p>hello</p>",
         );
@@ -820,7 +912,7 @@ mod tests {
         // An unbalanced tag is a render error → serve the shell bytes as-is so
         // the client JS still loads.
         let raw = br#"<html>{{ oops"#;
-        let out = super::template_index_html(raw, "", "T", "", "");
+        let out = super::template_index_html(raw, "", "T", &super::PageHead::default(), "", "");
         assert_eq!(out, raw);
     }
 }

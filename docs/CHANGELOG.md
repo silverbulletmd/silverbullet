@@ -12,6 +12,8 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Views docked above or below the page now put Go to definition and Copy in the same ⋯ menu `${...}` widgets use, beside the dock menu and ×; a content view in a sidebar, the bottom panel or the modal has it for Copy.
 * Fix: editing a `${...}` no longer keeps the replaced widgets in memory until you leave the page, and links in a re-shown widget no longer navigate once per time it was shown.
 
+* Public spaces now expose `robots.txt` and a sitemap of content pages, with canonical URLs and descriptions in the initial HTML. Pages tagged `meta` or `meta/*` are excluded from the sitemap and marked `noindex`. Encoded page names render correctly, YAML frontmatter is hidden, and missing pages return HTTP 404. Read-only spaces also show a “Page not found” view in the client with a link home; virtual pages continue to work.
+
 ## 2.12.0 
 * Mobile improvements:
   * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/keyboardBar]].

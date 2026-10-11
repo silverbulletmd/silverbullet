@@ -1081,6 +1081,60 @@ function pageMeta(lastModified: string): PageMeta {
   } as PageMeta;
 }
 
+describe("ContentManager read-only missing pages", () => {
+  test("shows a read-only error linking home, and can then open an existing page", async () => {
+    const writePage = vi.fn();
+    const client = makeClientStub({
+      initialDoc: "Previous page",
+      readPage: async () => {
+        throw notFoundError;
+      },
+      writePage,
+    });
+    client.bootConfig.readOnly = true;
+    client.isReadOnlyMode = () => client.bootConfig.readOnly;
+    Object.assign(client, {
+      getIndexRef: () => ({ path: "Welcome Notes.md" }),
+    });
+    const cm = new ContentManager(client as unknown as Client);
+    await cm.loadPage({ path: "Missing.md" }, false);
+    expect(client.editorView.state.sliceDoc()).toContain("# Page not found");
+    expect(client.editorView.state.sliceDoc()).toContain(
+      "[[Welcome Notes|Go to home]]",
+    );
+    expect(client.editorView.state.readOnly).toBe(true);
+    client.viewState.unsavedChanges = true;
+    await cm.save(true);
+    expect(writePage).not.toHaveBeenCalled();
+
+    client.space.readPage = async () => ({
+      text: "# Existing page",
+      meta: pageMeta(""),
+    });
+    await cm.loadPage({ path: "Existing.md" }, false);
+    expect(client.editorView.state.sliceDoc()).toBe("# Existing page");
+  });
+
+  test("preserves content supplied by a virtual-page handler", async () => {
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => {
+        throw notFoundError;
+      },
+    });
+    client.bootConfig.readOnly = true;
+    Object.assign(client, {
+      dispatchAppEvent: async () => [
+        { text: "# Virtual content", perm: "ro" as const },
+      ],
+    });
+    const cm = new ContentManager(client as unknown as Client);
+    await cm.loadPage({ path: "Virtual.md" }, false);
+    expect(client.editorView.state.sliceDoc()).toBe("# Virtual content");
+    expect(client.editorView.state.readOnly).toBe(true);
+  });
+});
+
 describe("ContentManager.loadPage base tracking (regression)", () => {
   test("same-page reload merges against the previous disk text, not the newly-fetched one", async () => {
     let diskText = "hello world\nsecond\nthird\n";

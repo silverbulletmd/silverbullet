@@ -52,6 +52,29 @@ test("a read-only member cannot write or enter another space or administration",
   expect(
     (await page.request.get(`${sbServer.url}/private/.fs/Note.md`)).status(),
   ).toBe(403);
+  await gotoSilverBulletPage(
+    page,
+    { ...sbServer, url: `${sbServer.url}/readable` },
+    "Missing Reference",
+  );
+  await expect(page.locator(".cm-content")).toContainText("Page not found");
+  await expect(page.locator(".cm-content")).toHaveAttribute(
+    "contenteditable",
+    "false",
+  );
+  expect(
+    (
+      await page.request.get(
+        `${sbServer.url}/readable/.fs/Missing%20Reference.md`,
+      )
+    ).status(),
+  ).toBe(404);
+  await page.locator(".sb-wiki-link", { hasText: "Go to home" }).click();
+  await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
+    "index",
+  );
+  await expect(page.locator(".cm-content")).not.toContainText("Page not found");
+
   await page.goto(`${sbServer.url}/.dashboard/admin`);
   await expect(
     page.getByRole("heading", { name: "Not found", exact: true }),
