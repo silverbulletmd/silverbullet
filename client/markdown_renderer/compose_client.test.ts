@@ -67,7 +67,11 @@ test("sandbox messages are forwarded with the iframe", async () => {
 
 function fakeClient(t: TestEnv): Client {
   return {
-    clientSystem: { spaceLuaEnv: t.sle, allKnownFiles: new BasenameIndex() },
+    clientSystem: {
+      spaceLuaEnv: t.sle,
+      allKnownFiles: new BasenameIndex(),
+      pageScopes: testHost(t).pageScopes,
+    },
     space: t.space,
     ui: { viewState: { current: { path: "Workshop.md" }, allPages: [] } },
     currentPageMeta: () => ({ name: "Workshop" }),

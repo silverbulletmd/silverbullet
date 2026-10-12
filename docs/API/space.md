@@ -3,6 +3,7 @@ tags: api/syscall
 references:
 - plug-api/syscalls/space.ts
 - client/plugos/syscalls/space.ts
+- client/plugos/syscalls/page_vars.ts
 - client/spaces/space_primitives.ts
 ---
 
@@ -184,6 +185,22 @@ Looks up, for each path, whether it exists exactly and which files share its bas
 `space.pageExists(name)`
 
 Checks whether a page exists in the space.
+
+## space.pageVars
+
+`space.pageVars(page)`
+
+Returns a read-only table of the variables a page defines with `page-lua` blocks and `${name = expr}` assignments.
+
+**Parameters:**
+
+- `page` — Page name.
+
+**Example:**
+
+```lua
+space.pageVars("Budget").salary
+```
 
 ## space.readAttachment
 

@@ -23,12 +23,13 @@ import type {
   SpaceLog,
 } from "@silverbulletmd/silverbullet/type/revisions";
 import type { Client } from "../../client.ts";
+import { parseAssignmentDirective } from "../../space_lua/assignment_directive.ts";
 import { fsEndpoint } from "../../spaces/constants.ts";
 import type { SysCallMapping } from "../system.ts";
 import { lintPages, type SpaceLintDiagnostic } from "../../space_lint.ts";
 import {
   renderLuaCallback,
-  renderLuaExpression,
+  renderPageDirective,
 } from "../../space_lua/render_widget.ts";
 
 function revisionsUrl(client: Client, suffix: string): string {
@@ -137,8 +138,17 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
                 listener,
                 diagnostics: value,
               })),
-            renderDirective: (expressionText, pageMeta) =>
-              renderLuaExpression(client, expressionText, pageMeta),
+            renderDirective: async (expressionText, pageMeta) =>
+              renderPageDirective(
+                client,
+                expressionText,
+                pageMeta,
+                await client.clientSystem.pageScopes.tryGet(pageMeta.name),
+                {
+                  assignmentName:
+                    parseAssignmentDirective(expressionText)?.name,
+                },
+              ),
             luaCodeWidget: (lang) => {
               const def = client.clientSystem.luaCodeWidgets.get(lang);
               if (!def) return undefined;

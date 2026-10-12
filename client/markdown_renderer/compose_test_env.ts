@@ -4,6 +4,7 @@ import { extractSpaceLuaFromPageText } from "../boot_config.ts";
 import { viewRowsMarkdown } from "../navigator/rows_markdown.ts";
 import type { Space } from "../space.ts";
 import { evalStatement } from "../space_lua/eval.ts";
+import { PageScopes } from "../space_lua/page_scope.ts";
 import { parseBlock } from "../space_lua/parse.ts";
 import { jsToLuaValue, LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
@@ -98,6 +99,10 @@ export function testHost(
   return {
     space: t.space,
     sle: t.sle,
+    pageScopes: new PageScopes({
+      readPageText: async (name) => t.pages[name] ?? null,
+      spaceEnv: () => t.env,
+    }),
     syntaxExtensions: {},
     allPages: [],
     renderOptions: { shortWikiLinks: true },

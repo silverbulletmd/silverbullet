@@ -165,7 +165,7 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
         return true;
       }
       const codeLang = codeInfo.children![0].text!;
-      if (codeLang !== "space-lua") {
+      if (codeLang !== "space-lua" && codeLang !== "page-lua") {
         return true;
       }
       const codeText = findNodeOfType(node, "CodeText");

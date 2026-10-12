@@ -1,0 +1,74 @@
+import {
+  expect,
+  gotoSilverBulletPage,
+  test,
+  waitForPersistedContent,
+} from "../fixtures/core.ts";
+
+const budget = [
+  "${salary = 500}",
+  "",
+  "Raise of ${increase = 5}% gives ${salary * (1 + increase / 100)}",
+  "",
+].join("\n");
+
+test.use({
+  spaceFiles: {
+    "Budget.md": budget,
+    "Report.md": '![[Budget]]\n\nRead: ${space.pageVars("Budget").increase}\n',
+  },
+});
+
+test("page scope values update after editing a definition", async ({
+  page,
+  sbServer,
+}) => {
+  // Move the cursor out of the transclusion so it renders instead of showing source.
+  const showReport = async () => {
+    await gotoSilverBulletPage(page, sbServer, "Report");
+    await page.evaluate(() => {
+      const view = (window as any).client.editorView;
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+    });
+  };
+  await showReport();
+  await expect(page.locator("#sb-editor")).toContainText("525");
+  await expect(page.locator("#sb-editor")).toContainText("Read: 5");
+
+  await gotoSilverBulletPage(page, sbServer, "Budget");
+  const editor = page.locator("#sb-editor .cm-content");
+  // The cursor starts inside the first cell (shown as source), so check the second.
+  await expect(
+    editor.locator(".sb-page-var-tag", { hasText: "increase" }),
+  ).toBeVisible();
+  await expect(editor).toContainText("525");
+
+  await page.evaluate(() => {
+    const view = (window as any).client.editorView;
+    const text: string = view.state.doc.toString();
+    const at = text.indexOf("increase = 5") + "increase = ".length;
+    view.dispatch({ changes: { from: at, to: at + 1, insert: "7" } });
+  });
+  await waitForPersistedContent(sbServer, "Budget.md", /increase = 7/);
+  await expect(editor).toContainText("535");
+
+  await showReport();
+  await expect(page.locator("#sb-editor")).toContainText("535");
+  await expect(page.locator("#sb-editor")).toContainText("Read: 7");
+});
+
+test("definitions on a brand-new page resolve after the first save", async ({
+  page,
+  sbServer,
+}) => {
+  await gotoSilverBulletPage(page, sbServer, "Fresh Sheet");
+  const editor = page.locator("#sb-editor .cm-content");
+  await editor.click();
+  await page.keyboard.type("${price = 20} total ${price * 3}\n");
+  await waitForPersistedContent(sbServer, "Fresh Sheet.md", /price = 20/);
+  await expect(
+    editor.locator(".sb-page-var-tag", { hasText: "price" }),
+  ).toBeVisible();
+  await expect(editor).toContainText("60");
+  await expect(editor.locator(".sb-lua-error")).toHaveCount(0);
+});

@@ -4,10 +4,10 @@ An attempt at documenting the changes/new features introduced in each release.
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
 * `sb` CLI: install it with `curl -fsSL https://silverbullet.md/install-sb.sh | sh` (Windows: `irm https://silverbullet.md/install-sb.ps1 | iex`). See [[CLI]].
-* `${...}` expressions and widgets now compose everywhere: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results; templates, `..` and `table.concat` can embed widgets; expressions keep surrounding bold/italic/link formatting and work in wiki-link aliases and attribute values. `${"a|b"}` no longer splits a table cell and braces inside strings no longer break an expression. **Breaking:** using a widget as text (`tostring`, `string.*`) now raises an error; use `widget.toMarkdown`. See [[Space Lua#Expressions]].
-* Templates (`template.new`) render interpolated query results and lists like a page does, as a table or one item per line, instead of a raw Lua table.
+* `${...}` expressions and widgets now compose everywhere: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results; templates, `..` and `table.concat` can embed widgets.
+* New: [[Space Lua/Page Lua]] turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page, and read another page's values with `space.pageVars("Page")`.
+* New context menus for widgets and views.
 * Fix: a `${...}` with a Lua syntax error shows the error instead of rendering empty.
-* Views docked above or below the page now put Go to definition and Copy in the same ⋯ menu `${...}` widgets use, beside the dock menu and ×; a content view in a sidebar, the bottom panel or the modal has it for Copy.
 * Fix: editing a `${...}` no longer keeps the replaced widgets in memory until you leave the page, and links in a re-shown widget no longer navigate once per time it was shown.
 
 ## 2.12.1

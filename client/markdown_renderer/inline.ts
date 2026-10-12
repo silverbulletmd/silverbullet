@@ -68,7 +68,7 @@ export type MarkdownExpandOptions = {
   // Replaces each Lua directive with the returned node (the slot renderer
   // evaluates and renders values itself); without it directives stay as is
   luaDirectiveHandler?: (
-    exprText: string,
+    directive: { expr: string; assignmentName?: string },
     sourcePage: string,
     inTableCell: boolean,
   ) => ParseTree;
@@ -177,8 +177,12 @@ export async function expandMarkdown(
       if (!expr) {
         return;
       }
+      const name = findNodeOfType(expr, "LuaAssignmentName");
       return options.luaDirectiveHandler(
-        renderToText(expr),
+        {
+          expr: renderToText(expr),
+          assignmentName: name ? renderToText(name) : undefined,
+        },
         pageName,
         !!findParentMatching(n, (p) => p.type === "TableCell"),
       );

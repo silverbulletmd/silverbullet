@@ -7,11 +7,24 @@ export function directiveExpr(source: string): string {
   return source.slice(2, -1);
 }
 
+/** The name a `${name = expr}` directive node assigns, if it is one. */
+export function assignmentNameOf(
+  directive: SyntaxNode,
+  state: EditorState,
+): string | undefined {
+  const name = directive
+    .getChild("LuaExpressionDirective")
+    ?.getChild("LuaAssignmentName");
+  return name ? state.sliceDoc(name.from, name.to) : undefined;
+}
+
 /** The `${…}` expression containing, or touching, `pos`. */
 export function directiveAt(
   state: EditorState,
   pos: number,
-): { from: number; to: number; expr: string } | undefined {
+):
+  | { from: number; to: number; expr: string; assignmentName?: string }
+  | undefined {
   for (const side of [-1, 1] as const) {
     for (
       let n: SyntaxNode | null = syntaxTree(state).resolveInner(pos, side);
@@ -23,6 +36,7 @@ export function directiveAt(
           from: n.from,
           to: n.to,
           expr: directiveExpr(state.sliceDoc(n.from, n.to)),
+          assignmentName: assignmentNameOf(n, state),
         };
       }
     }

@@ -96,6 +96,15 @@ type LuaThreadState = {
   budget?: LuaBudget;
   // Widget nesting depth of the render evaluating this thread
   renderDepth?: number;
+  pageScope?: PageScopeFrame;
+};
+
+/** What `space.pageVars` needs from the evaluation calling it. */
+export type PageScopeFrame = {
+  // Pages whose scopes are being built, outermost first: the cycle check
+  chain: string[];
+  // Told every page read, so the reader is refreshed when that page changes
+  onRead?: (page: string) => void;
 };
 
 function isLuaNumber(v: any): boolean {
@@ -274,13 +283,24 @@ export function luaCloseFromMark(
   return runFrom(closeStack.length - 1);
 }
 
+export type LuaEnvOptions = {
+  // Undeclared assignments stop here instead of reaching the root env
+  boundary?: boolean;
+};
+
 export class LuaEnv implements ILuaSettable, ILuaGettable {
   variables = new Map<string, LuaValue>();
+  readonly boundary: boolean;
 
   private readonly consts = new Set<string>();
   private readonly numericTypes = new Map<string, NumericType>();
 
-  constructor(readonly parent?: LuaEnv) {}
+  constructor(
+    readonly parent?: LuaEnv,
+    opts?: LuaEnvOptions,
+  ) {
+    this.boundary = !!opts?.boundary;
+  }
 
   setLocal(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
@@ -307,7 +327,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     sf?: LuaStackFrame,
     numType?: NumericType,
   ): void {
-    if (this.variables.has(key) || !this.parent) {
+    if (this.variables.has(key) || !this.parent || this.boundary) {
       if (this.consts.has(key)) {
         throw new LuaRuntimeError(
           `attempt to assign to const variable '${key}'`,
@@ -1838,6 +1858,7 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
           : new LuaStackFrame(sf.threadLocal, sf.astCtx, undefined, undefined, {
               closeStack: undefined,
               budget: boundaryBudget,
+              pageScope: sf.threadState.pageScope,
             });
       // Marks this call's own budget (if any) done, so a Stop click that
       // arrives after the call has already returned is a no-op rather than

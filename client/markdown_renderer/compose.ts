@@ -21,7 +21,13 @@ import {
   makeLuaBudget,
 } from "../space_lua/budget.ts";
 import { unescapeTableCellPipes } from "../space_lua/directive_scan.ts";
+import { parseAssignmentDirective } from "../space_lua/assignment_directive.ts";
 import { evalExpression } from "../space_lua/eval.ts";
+import {
+  assignmentRenderValue,
+  type PageScope,
+  type PageScopes,
+} from "../space_lua/page_scope.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import {
   isBlockMarkdown,
@@ -43,6 +49,8 @@ import {
 } from "./markdown_render.ts";
 import {
   LuaValueSlotType,
+  PageVarType,
+  pageVarNode,
   SLOT_PLACEHOLDER_RE,
   SlotRefType,
   type SlotTable,
@@ -73,6 +81,7 @@ export type RenderHost = {
   // A list, tree or table view's rows as Markdown: what such a view copies
   // and bakes as. The navigator owns rows, so the client binds it.
   viewMarkdown?: (view: ViewValue) => Promise<PortableMarkdownResult>;
+  pageScopes: PageScopes;
 };
 
 export type RenderContext = {
@@ -90,6 +99,8 @@ export type RenderContext = {
   taskRefs: TaskRefs;
   // Shared with child contexts
   liveTriggers: Set<string>;
+  // Told each page whose scope the render read, so its host can refresh
+  onPageVarsRead?: (page: string) => void;
 };
 
 // The task-reference rule comes from the context, not the caller
@@ -180,6 +191,7 @@ export function createRenderContext(
     hostPage: { name: string };
     sourcePage?: string;
     taskRefs?: TaskRefs;
+    onPageVarsRead?: (page: string) => void;
   },
 ): RenderContext {
   return {
@@ -198,6 +210,7 @@ export function createRenderContext(
     usedNodes: new WeakSet(),
     taskRefs: opts.taskRefs ?? "transcluded",
     liveTriggers: new Set(),
+    onPageVarsRead: opts.onPageVarsRead,
   };
 }
 
@@ -211,11 +224,18 @@ function childContext(ctx: RenderContext): RenderContext {
   };
 }
 
+async function pageScopeOf(ctx: RenderContext): Promise<PageScope | null> {
+  const scope = await ctx.host.pageScopes.tryGet(ctx.sourcePage);
+  if (scope) ctx.onPageVarsRead?.(ctx.sourcePage);
+  return scope;
+}
+
 export function evalDirective(
   exprText: string,
   ctx: RenderContext,
 ): Promise<unknown> {
-  return ctx.limiter.run(() => {
+  return ctx.limiter.run(async () => {
+    const scope = await pageScopeOf(ctx);
     // Only Lua time counts: not the I/O and rendering since the last directive
     ctx.budget.lastCheck = ctx.budget.now();
     return evaluateForRender(
@@ -227,6 +247,8 @@ export function evalDirective(
         sourcePage: ctx.sourcePage,
         budget: ctx.budget,
         renderDepth: ctx.depth,
+        parentEnv: scope?.env,
+        onPageVarsRead: ctx.onPageVarsRead,
         stoppedMessage: () => {
           if (ctx.budgetReported.value) return STOPPED_MESSAGE;
           ctx.budgetReported.value = true;
@@ -235,6 +257,22 @@ export function evalDirective(
       },
     );
   });
+}
+
+export async function evalAssignment(
+  name: string,
+  ctx: RenderContext,
+): Promise<unknown> {
+  return assignmentRenderValue(await pageScopeOf(ctx), name);
+}
+
+/** Evaluates a `${…}` body: an assignment yields its value in the page scope. */
+export function evalDirectiveText(
+  exprText: string,
+  ctx: RenderContext,
+): Promise<unknown> {
+  const name = parseAssignmentDirective(exprText)?.name;
+  return name ? evalAssignment(name, ctx) : evalDirective(exprText, ctx);
 }
 
 // Built once per host: with syntax extensions it is a fresh lezer language
@@ -270,16 +308,23 @@ export async function expandToSlots(
       taskRefs: ctx.taskRefs,
       syntaxExtensions: ctx.host.syntaxExtensions,
       resolveTransclusion: ctx.host.resolveTransclusion,
-      luaDirectiveHandler: (exprText, sourcePage, inTableCell) => {
+      luaDirectiveHandler: (directive, sourcePage, inTableCell) => {
         const id = slots.length;
         slots.push(undefined);
-        const expr = inTableCell ? unescapeTableCellPipes(exprText) : exprText;
+        const child = { ...ctx, sourcePage };
+        const { assignmentName } = directive;
+        const expr = inTableCell
+          ? unescapeTableCellPipes(directive.expr)
+          : directive.expr;
         pending.push(
-          evalDirective(expr, { ...ctx, sourcePage }).then((value) => {
+          (assignmentName
+            ? evalAssignment(assignmentName, child)
+            : evalDirective(expr, child)
+          ).then((value) => {
             slots[id] = value;
           }),
         );
-        return slotNode(id);
+        return assignmentName ? pageVarNode(assignmentName, id) : slotNode(id);
       },
     },
     ctx.visited,
@@ -288,6 +333,9 @@ export async function expandToSlots(
 }
 
 function textWithSlots(tree: ParseTree, copies: string[]): string {
+  if (tree.type === PageVarType) {
+    return textWithSlots(tree.children![1], copies);
+  }
   if (tree.type === LuaValueSlotType || tree.type === SlotRefType) {
     return copies[slotIdOf(tree)] ?? "";
   }
@@ -470,9 +518,11 @@ export async function expandMarkdownStatic(
       return { type: CustomSyntaxRenderedHtmlType, children: [{ text: html }] };
     }),
   );
-  replaceNodesMatching(tree, (c) =>
-    c.type === LuaValueSlotType ? replacements[slotIdOf(c)] : undefined,
-  );
+  replaceNodesMatching(tree, (c) => {
+    if (c.type === PageVarType) return replacements[slotIdOf(c.children![1])];
+    if (c.type === LuaValueSlotType) return replacements[slotIdOf(c)];
+    return undefined;
+  });
   return tree;
 }
 

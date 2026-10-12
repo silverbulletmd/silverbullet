@@ -8,6 +8,7 @@ export const SLOT_CHAR = "￼";
 export const SLOT_MARKER_RE = /￼(\d+)￼/g;
 export const LuaValueSlotType = "LuaValueSlot";
 export const SlotRefType = "SlotRef";
+export const PageVarType = "PageVar";
 
 // Lua values indexed by slot id
 export type SlotTable = unknown[];
@@ -18,6 +19,11 @@ export function slotMarker(id: number): string {
 
 export function slotNode(id: number): ParseTree {
   return { type: LuaValueSlotType, children: [{ text: String(id) }] };
+}
+
+/** An assignment directive: its name tag followed by its value slot. */
+export function pageVarNode(name: string, id: number): ParseTree {
+  return { type: PageVarType, children: [{ text: name }, slotNode(id)] };
 }
 
 export function slotIdOf(node: ParseTree): number {

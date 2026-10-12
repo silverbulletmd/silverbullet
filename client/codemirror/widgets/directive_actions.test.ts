@@ -152,3 +152,46 @@ test("Widget: Reload re-runs every copy of the expression on the page", async ()
     for (const w of widgets) activeWidgets.delete(w);
   }
 });
+
+test("Bake and Make live leave an assignment alone", async () => {
+  const t = await buildTestEnv();
+  const doc = "${salary = 500}";
+  const { client, doc: text } = fakeClient(doc, {
+    clientSystem: { spaceLuaEnv: t.sle },
+  });
+  const target = {
+    from: 0,
+    to: doc.length,
+    expr: "salary = 500",
+    assignmentName: "salary",
+  };
+  const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
+  await bakeDirective(client, target, 500, ctx);
+  setDirectiveLive(client, target, "makeLive");
+  expect(text()).toBe(doc);
+  expect(client.ui.flashNotification).toHaveBeenCalledTimes(2);
+});
+
+test("Widget: Reload also re-runs copies keyed to a page scope", async () => {
+  const { client } = fakeClient("${q()}");
+  const key = directiveCacheKey("q()", "Projects/Sketchbook");
+  const widget = (cacheKey: string) =>
+    ({
+      cacheKey,
+      reload: vi.fn(async () => {}),
+      invalidatePrewarm() {},
+      renderContent: async () => {},
+    }) as DomWidget;
+  const scoped = widget(`${key}:Projects/Sketchbook#3`);
+  const other = widget(`${key}x`);
+  activeWidgets.add(scoped);
+  activeWidgets.add(other);
+  try {
+    await reloadDirective(client, "q()");
+    expect(scoped.reload).toHaveBeenCalledOnce();
+    expect(other.reload).not.toHaveBeenCalled();
+  } finally {
+    activeWidgets.delete(scoped);
+    activeWidgets.delete(other);
+  }
+});

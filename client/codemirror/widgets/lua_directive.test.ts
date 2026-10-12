@@ -4,7 +4,13 @@ import { EditorState } from "@codemirror/state";
 import type { SyntaxNode } from "@lezer/common";
 import { expect, test } from "vitest";
 import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
-import { directiveWrappers } from "./lua_directive.ts";
+import type { PageScope } from "../../space_lua/page_scope.ts";
+import {
+  directiveWrappers,
+  awaitsPageScope,
+  hasPageDefinitions,
+} from "./lua_directive.ts";
+import { directiveAt } from "./directive_at.ts";
 import { wrapInline } from "./lua_widget.ts";
 
 function wrappersFor(doc: string) {
@@ -48,4 +54,36 @@ test("wrapInline nests outermost first", () => {
     { tag: "strong" },
   ]);
   expect(out.outerHTML).toBe('<a href="#"><strong><span>2</span></strong></a>');
+});
+
+function stateFor(doc: string) {
+  return EditorState.create({ doc, extensions: [extendedMarkdownLanguage] });
+}
+
+test("pages with a page-lua block or an assignment have definitions", () => {
+  expect(hasPageDefinitions(stateFor("```page-lua\nx = 1\n```\n"))).toBe(true);
+  expect(hasPageDefinitions(stateFor("Budget ${salary = 500}"))).toBe(true);
+  expect(hasPageDefinitions(stateFor("${1 + 1} and ${a == b}"))).toBe(false);
+  expect(hasPageDefinitions(stateFor("```lua\nx = 1\n```\n"))).toBe(false);
+});
+
+test("directiveAt names the assignment it is on", () => {
+  const state = stateFor("${salary = 500} ${salary == 500}");
+  expect(directiveAt(state, 3)?.assignmentName).toBe("salary");
+  expect(directiveAt(state, 20)?.assignmentName).toBeUndefined();
+});
+
+test("a directive waits for a scope that knows its assignment", () => {
+  const scope = {
+    key: "Budget#1",
+    assignments: new Map([["salary", { value: 500 }]]),
+  } as unknown as PageScope;
+  // Never built
+  expect(awaitsPageScope(undefined, undefined)).toBe(true);
+  // A new assignment typed since the last save
+  expect(awaitsPageScope(scope, "increase")).toBe(true);
+  expect(awaitsPageScope(null, "increase")).toBe(true);
+  expect(awaitsPageScope(scope, "salary")).toBe(false);
+  expect(awaitsPageScope(scope, undefined)).toBe(false);
+  expect(awaitsPageScope(null, undefined)).toBe(false);
 });

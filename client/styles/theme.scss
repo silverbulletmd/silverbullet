@@ -110,6 +110,8 @@ html {
   --editor-link-url-color: var(--link-color);
   --editor-link-meta-color: var(--meta-subtle-color);
   --editor-wiki-link-page-background-color: rgba(77, 141, 255, 0.07);
+  --editor-page-var-tag-color: #4b3fa3;
+  --editor-page-var-tag-background-color: rgba(108, 92, 231, 0.12);
   --editor-wiki-link-page-color: var(--link-color);
   --editor-wiki-link-page-missing-color: var(--link-missing-color);
   --editor-wiki-link-page-invalid-color: var(--link-invalid-color);
@@ -304,6 +306,8 @@ html[data-theme="light"] {
   --editor-link-url-color: var(--link-color);
   --editor-link-meta-color: var(--meta-subtle-color);
   --editor-wiki-link-page-background-color: #a3bce712;
+  --editor-page-var-tag-color: #c4bdf6;
+  --editor-page-var-tag-background-color: rgba(151, 138, 240, 0.2);
   --editor-wiki-link-page-color: var(--link-color);
   --editor-wiki-link-page-missing-color: var(--link-missing-color);
   --editor-wiki-link-page-invalid-color: var(--link-invalid-color);

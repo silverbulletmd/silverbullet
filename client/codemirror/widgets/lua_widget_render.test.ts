@@ -68,6 +68,7 @@ test("views render through renderValue, tagged and with one ⋯ menu button", as
     widgetCache: {
       setCachedWidgetMeta: vi.fn(),
       prewarmResult: (_k: string, f: () => Promise<unknown>) => f(),
+      triggers: () => [],
     },
     editorView: { composing: true },
     currentName: () => "Host",

@@ -38,10 +38,16 @@ type DocumentedCompletion = Completion & {
   snippet?: string;
 };
 
+const LUA_FENCES = ["FencedCode:space-lua", "FencedCode:page-lua"];
+
+function luaFencePrefix(parent: string): string | undefined {
+  return LUA_FENCES.find((prefix) => parent.startsWith(prefix));
+}
+
 function luaCodeFromParents(parentNodes?: string[]): string | null {
   for (const parent of parentNodes ?? []) {
-    const fencedPrefix = "FencedCode:space-lua";
-    if (parent.startsWith(fencedPrefix)) {
+    const fencedPrefix = luaFencePrefix(parent);
+    if (fencedPrefix) {
       return parent.slice(fencedPrefix.length).replace(/^\n/, "");
     }
     const directivePrefix = "LuaDirective:";
@@ -57,7 +63,7 @@ function inLuaContext(parentNodes?: string[]): boolean {
     (parent) =>
       parent === "LuaDirective" ||
       parent.startsWith("LuaDirective:") ||
-      parent.startsWith("FencedCode:space-lua"),
+      luaFencePrefix(parent) !== undefined,
   );
 }
 

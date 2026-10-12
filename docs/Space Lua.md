@@ -110,3 +110,4 @@ In addition to quirks, Space introduces a (minimal) set of new features on top c
 
 1. [[Space Lua/Integrated Query]], embedding a query language into Lua itself
 2. [[Space Lua/Thread Locals]]
+3. [[Space Lua/Page Lua]]: per-page variables and calculations

@@ -141,6 +141,7 @@ function fakeClient(extra: Record<string, unknown> = {}) {
     isReadOnlyMode: () => false,
     widgetCache: {
       prewarmResult: (_key: string, fn: () => Promise<unknown>) => fn(),
+      triggers: () => [],
       removeCachedWidgetMeta: () => {},
     },
     currentName: () => "Projects/Sketchbook",
@@ -451,6 +452,7 @@ test("rendering an in-page widget holds awaitRenderSettled until its result arri
       client: {
         widgetCache: {
           prewarmResult: () => result,
+          triggers: () => [],
           getCachedWidgetMeta: () => undefined,
           removeCachedWidgetMeta: () => {},
         },

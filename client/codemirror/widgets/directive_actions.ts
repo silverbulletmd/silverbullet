@@ -11,7 +11,13 @@ import { activeWidgets } from "./code_widget.ts";
 import { directiveAt } from "./directive_at.ts";
 import { makeLiveSource, makeStaticSource } from "./live_rewrite.ts";
 
-export type DirectiveTarget = { from: number; to: number; expr: string };
+export type DirectiveTarget = {
+  from: number;
+  to: number;
+  expr: string;
+  // Set for a `${name = expr}` definition
+  assignmentName?: string;
+};
 
 export type LiveToggle = "makeLive" | "makeStatic";
 
@@ -61,6 +67,17 @@ function refuseReadOnly(client: Client): boolean {
   return true;
 }
 
+// Rewriting an assignment would drop its definition
+function refuseAssignment(
+  client: Client,
+  target: DirectiveTarget,
+  action: string,
+): boolean {
+  if (!target.assignmentName) return false;
+  client.ui.flashNotification(`An assignment can't be ${action}`, "error");
+  return true;
+}
+
 export async function copyValue(
   client: Client,
   value: unknown,
@@ -83,7 +100,9 @@ export async function bakeDirective(
   value: unknown,
   ctx: RenderContext = liveContextForClient(client),
 ): Promise<void> {
-  if (refuseReadOnly(client)) return;
+  if (refuseReadOnly(client) || refuseAssignment(client, target, "baked")) {
+    return;
+  }
   const result = await bakeMarkdown(value, ctx);
   if (!result.ok) {
     client.ui.flashNotification(result.reason, "error");
@@ -98,6 +117,9 @@ export function setDirectiveLive(
   toggle: LiveToggle,
 ): void {
   if (refuseReadOnly(client)) return;
+  if (toggle === "makeLive" && refuseAssignment(client, target, "made live")) {
+    return;
+  }
   const unwrapped = makeStaticSource(target.expr);
   if (toggle === "makeStatic") {
     if (unwrapped === undefined) {
@@ -121,9 +143,12 @@ export async function reloadDirective(
 ): Promise<void> {
   const key = directiveCacheKey(expr, client.currentPageMeta()?.name);
   client.widgetCache.invalidatePrewarm(key);
+  // On a page with definitions the key carries the page scope's
+  const matches = (cacheKey: string | undefined) =>
+    cacheKey === key || !!cacheKey?.startsWith(`${key}:`);
   await Promise.all(
     [...activeWidgets].flatMap((w) =>
-      w.cacheKey === key && w.reload ? [w.reload()] : [],
+      matches(w.cacheKey) && w.reload ? [w.reload()] : [],
     ),
   );
 }

@@ -412,11 +412,15 @@ $comment-border: 1px;
 
   .sb-lua-directive-inline {
     display: inline;
-    padding: 2px;
   }
 
   .sb-lua-directive-block {
     display: block;
+  }
+
+  .sb-page-lua-error {
+    font-size: 0.9em;
+    padding: 0.2em 0;
   }
 
   .sb-loading-widget {
@@ -771,6 +775,15 @@ $comment-border: 1px;
     }
   }
 
+  // An inline value's frame is a ring inside the text's own height: a border
+  // and vertical padding made it taller than the line, so frames on adjacent
+  // lines overlapped
+  .sb-lua-directive-inline {
+    padding: 0 2px;
+    border: none;
+    box-shadow: inset 0 0 0 1px var(--editor-widget-background-color);
+  }
+
   // Inline widget tables look like plain Markdown tables. Header and even-row
   // colours already come from the thead/tbody rules in colors.scss.
   .sb-table-scroll .sb-view-table {
@@ -902,7 +915,7 @@ $comment-border: 1px;
   }
 
   .sb-lua-directive-inline:has(> button) {
-    border: none;
+    box-shadow: none;
     border-radius: 0;
   }
 
@@ -1143,4 +1156,24 @@ $comment-border: 1px;
 
 div:not(.cm-focused).cm-fat-cursor {
   outline: none !important;
+}
+
+// Unscoped: rendered views outside the editor show the tag too
+.sb-page-var-tag {
+  display: inline-block;
+  font-family: var(--ui-font);
+  font-size: 0.72em;
+  line-height: 1.5;
+  padding: 0 0.45em;
+  margin-right: 0.35em;
+  border-radius: 4px;
+  vertical-align: 0.1em;
+  white-space: nowrap;
+}
+
+// Block values (tables, lists) get the tag as a caption above them
+.sb-page-var-block > .sb-page-var-tag,
+.sb-page-var:has(> * table, > * .sb-lua-directive-block) > .sb-page-var-tag {
+  display: table;
+  margin: 0 0 0.3em;
 }

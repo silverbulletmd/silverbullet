@@ -474,6 +474,11 @@ a,
   color: var(--editor-code-atom-color);
 }
 
+.sb-page-var-tag {
+  color: var(--editor-page-var-tag-color);
+  background-color: var(--editor-page-var-tag-background-color);
+}
+
 .sb-wiki-link {
   color: var(--editor-wiki-link-page-color);
   background-color: var(--editor-wiki-link-page-background-color);

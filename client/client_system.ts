@@ -73,6 +73,8 @@ import {
   type ViewDefaultsTable,
 } from "./navigator/view_defaults.ts";
 import type { Config } from "./config.ts";
+import { PageScopes, pageScopeChangedEvent } from "./space_lua/page_scope.ts";
+import { pageVarsSyscalls } from "./plugos/syscalls/page_vars.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -101,6 +103,7 @@ export class ClientSystem {
   captureContext?: CaptureInvocationContext;
 
   spaceLuaEnv: SpaceLuaEnvironment;
+  readonly pageScopes: PageScopes;
   readonly scriptCommands = new Map<string, Command>();
   readonly luaCodeWidgets = new Map<
     string,
@@ -133,6 +136,18 @@ export class ClientSystem {
       objectIndex,
       this.client,
     );
+    this.pageScopes = new PageScopes({
+      readPageText: async (name) => {
+        try {
+          return (await this.client.space.readPage(name)).text;
+        } catch {
+          return null;
+        }
+      },
+      spaceEnv: () => this.spaceLuaEnv.env,
+      pageMeta: (name) =>
+        this.client.objectIndex.getObjectByRef(name, "page", name),
+    });
     this.serviceRegistry = new ServiceRegistry(this.eventHook, client.config);
 
     setInterval(() => {
@@ -189,8 +204,26 @@ export class ClientSystem {
     this.system.addHook(new SyscallHook());
 
     this.eventHook.addLocalListener("editor:reloadState", async () => {
+      this.pageScopes.clear();
       await this.reloadState();
     });
+
+    const onPageChanged = async (page: string) => {
+      const changed = await this.pageScopes.pageChanged(page);
+      if (changed.length === 0) return;
+      await this.eventHook.dispatchEvent("pageScopes:changed", changed);
+      for (const p of changed) {
+        await this.eventHook.dispatchEvent(pageScopeChangedEvent(p));
+      }
+    };
+    this.eventHook.addLocalListener("page:saved", (page: string) =>
+      onPageChanged(page),
+    );
+    for (const event of ["file:changed", "file:deleted"]) {
+      this.eventHook.addLocalListener(event, (path: string) => {
+        if (path.endsWith(".md")) return onPageChanged(path.slice(0, -3));
+      });
+    }
 
     this.eventHook.addLocalListener("editor:init", () => restoreDocks());
 
@@ -227,6 +260,7 @@ export class ClientSystem {
       eventSyscalls(this.eventHook, this.client),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
+      pageVarsSyscalls(this.pageScopes),
       systemSyscalls(client, this.readOnlyMode),
       markdownSyscalls(client),
       assetSyscalls(this.system),

@@ -15,6 +15,8 @@ export class WidgetCache {
     result: Promise<any>;
     // Event counts when the result was computed (see live_binding.ts)
     computedAt?: Map<string, number>;
+    // Events the computation found the result depends on: refresh on them
+    triggers: Set<string>;
   }>(1000);
 
   private debouncedWidgetMetaCacheFlush = throttle(() => {
@@ -64,13 +66,14 @@ export class WidgetCache {
   // CodeMirror decoration field re-builds widgets on every state update.
   prewarmResult<T>(
     key: string,
-    fn: () => Promise<T>,
+    fn: (triggers: Set<string>) => Promise<T>,
     stamp?: () => Map<string, number>,
   ): Promise<T> {
     let entry = this.pendingResults.get(key);
     if (!entry) {
       const computedAt = stamp?.();
-      entry = { result: fn(), computedAt };
+      const triggers = new Set<string>();
+      entry = { result: fn(triggers), computedAt, triggers };
       this.pendingResults.set(key, entry);
     }
     return entry.result as Promise<T>;
@@ -78,6 +81,11 @@ export class WidgetCache {
 
   computedAt(key: string): Map<string, number> | undefined {
     return this.pendingResults.get(key)?.computedAt;
+  }
+
+  /** The events a cached result found it depends on while computing. */
+  triggers(key: string): string[] {
+    return [...(this.pendingResults.get(key)?.triggers ?? [])];
   }
 
   invalidatePrewarm(key: string) {

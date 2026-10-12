@@ -271,3 +271,22 @@ describe("lintYAML on data blocks", () => {
     expect(await lintYamlFor(md)).toHaveLength(1);
   });
 });
+
+describe("lintLua on page-lua blocks", () => {
+  async function lintLuaFor(text: string) {
+    createMockSystem();
+    const { lintLua } = await import("./lint.ts");
+    return lintLua({
+      tree: parseMarkdown(text),
+      name: defaultPageMeta.name,
+      pageMeta: defaultPageMeta,
+      text,
+    });
+  }
+
+  test("reports a parse error in a page-lua block", async () => {
+    const diagnostics = await lintLuaFor("```page-lua\nfunction (\n```\n");
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].severity).toBe("error");
+  });
+});

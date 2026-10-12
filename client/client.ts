@@ -558,6 +558,12 @@ export class Client {
       },
     );
 
+    // Widgets that read a changed scope refresh on their own (live triggers);
+    // the open page's directives re-key against its rebuilt scope
+    this.eventHook.addLocalListener("pageScopes:changed", (pages: string[]) => {
+      if (pages.includes(this.currentName())) this.editorView.dispatch({});
+    });
+
     this.eventHook.addLocalListener("file:changed", (fileName: string) => {
       this.clientSystem.allKnownFiles.add(fileName);
     });

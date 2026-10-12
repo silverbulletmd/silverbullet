@@ -46,7 +46,11 @@ function makeClient() {
   const listeners = new Map<string, Set<() => void>>();
   const pending = new Map<
     string,
-    { result: Promise<unknown>; at?: Map<string, number> }
+    {
+      result: Promise<unknown>;
+      at?: Map<string, number>;
+      triggers: Set<string>;
+    }
   >();
   return {
     eventHook: {
@@ -64,14 +68,17 @@ function makeClient() {
     widgetCache: {
       prewarmResult(
         key: string,
-        fn: () => Promise<unknown>,
+        fn: (triggers: Set<string>) => Promise<unknown>,
         stamp?: () => Map<string, number>,
       ) {
-        if (!pending.has(key))
-          pending.set(key, { at: stamp?.(), result: fn() });
+        if (!pending.has(key)) {
+          const triggers = new Set<string>();
+          pending.set(key, { at: stamp?.(), result: fn(triggers), triggers });
+        }
         return pending.get(key)!.result;
       },
       computedAt: (key: string) => pending.get(key)?.at,
+      triggers: (key: string) => [...(pending.get(key)?.triggers ?? [])],
       invalidatePrewarm(key: string) {
         pending.delete(key);
       },
@@ -80,6 +87,7 @@ function makeClient() {
       removeCachedWidgetMeta: () => {},
       getCachedWidgetHeight: () => -1,
     },
+    listenerCount: (name: string) => listeners.get(name)?.size ?? 0,
     currentName: () => "Host",
     currentPageMeta: () => ({ name: "Host" }),
     editorView: {
@@ -396,4 +404,33 @@ test("destroying a widget leaves a cached element another copy has mounted since
   expect(secondDom.contains(shared)).toBe(true);
   first.destroy(firstDom);
   expect(secondDom.contains(shared)).toBe(true);
+});
+
+test("a widget that read a page scope re-runs when it changes, until destroyed", async () => {
+  const client = makeClient();
+  let n = 0;
+  const reads = widget(client, (async (
+    _body: string,
+    _page: string,
+    onPageVarsRead: (page: string) => void,
+  ) => {
+    onPageVarsRead("Budget");
+    return `${++n}`;
+  }) as any);
+  const other = counter();
+  const unrelated = widget(client, other, "lua:y:Host");
+  mount(reads);
+  mount(unrelated);
+  await flush();
+  expect(text(reads)).toBe("1");
+  client.eventHook.emit("pageScope:changed:Budget");
+  await debounce();
+  expect(text(reads)).toBe("2");
+  expect(other).toHaveBeenCalledOnce();
+  // The read is recorded again by the re-run, and dropped with the widget
+  expect(client.listenerCount("pageScope:changed:Budget")).toBeGreaterThan(0);
+  reads.destroy();
+  unrelated.destroy();
+  // Only the shared event counter stays (see live_binding.ts)
+  expect(client.listenerCount("pageScope:changed:Budget")).toBe(1);
 });

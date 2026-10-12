@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   jsToLuaValue,
   LuaBuiltinFunction,
+  LuaEnv,
   luaLen,
   LuaMultiRes,
   LuaNativeJSFunction,
@@ -90,4 +91,39 @@ test("luaValueToJS turns the SQL null sentinel into null, keeping the key", () =
     null,
     3,
   ]);
+});
+
+test("boundary env captures undeclared assignments", () => {
+  const space = new LuaEnv();
+  space.setLocal("greeting", "hello");
+  const page = new LuaEnv(space, { boundary: true });
+  const block = new LuaEnv(page);
+
+  block.set("salary", 500);
+  expect(page.variables.get("salary")).toBe(500);
+  expect(space.variables.has("salary")).toBe(false);
+
+  // Reads fall through to the space env
+  expect(block.get("greeting")).toBe("hello");
+
+  // Assigning a space global shadows it inside the page only
+  block.set("greeting", "hi");
+  expect(page.get("greeting")).toBe("hi");
+  expect(space.get("greeting")).toBe("hello");
+});
+
+test("boundary env still updates names declared below it", () => {
+  const page = new LuaEnv(new LuaEnv(), { boundary: true });
+  const block = new LuaEnv(page);
+  block.setLocal("count", 1);
+  block.set("count", 2);
+  expect(block.variables.get("count")).toBe(2);
+  expect(page.variables.has("count")).toBe(false);
+});
+
+test("non-boundary env keeps root-most assignment", () => {
+  const root = new LuaEnv();
+  const child = new LuaEnv(root);
+  child.set("x", 1);
+  expect(root.variables.get("x")).toBe(1);
 });

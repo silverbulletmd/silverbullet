@@ -28,6 +28,7 @@ import { justifiedTableRender } from "./justified_tables.ts";
 import { sanitizeTag } from "./sanitize_html.ts";
 import {
   LuaValueSlotType,
+  PageVarType,
   SLOT_MARKER_RE,
   SlotRefType,
   slotTag,
@@ -639,6 +640,20 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       return {
         name: RawHtml,
         body: renderToText(t),
+      };
+
+    case PageVarType:
+      return {
+        name: "span",
+        attrs: { class: "sb-page-var" },
+        body: [
+          {
+            name: "span",
+            attrs: { class: "sb-page-var-tag" },
+            body: renderToText(t.children![0]),
+          },
+          slotTag(t.children![1], options.slotRefLimit),
+        ],
       };
 
     case LuaValueSlotType:

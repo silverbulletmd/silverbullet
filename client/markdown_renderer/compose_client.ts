@@ -6,7 +6,7 @@ import {
 import {
   bakeMarkdown,
   createRenderContext,
-  evalDirective,
+  evalDirectiveText,
   type PortableMarkdownResult,
   type RenderContext,
   type RenderHost,
@@ -28,6 +28,7 @@ export function renderHostForClient(
   return {
     space: client.space,
     sle: client.clientSystem.spaceLuaEnv,
+    pageScopes: client.clientSystem.pageScopes,
     syntaxExtensions: client.config.get("syntaxExtensions", {}),
     allPages: client.ui.viewState.allPages,
     renderOptions: {
@@ -98,6 +99,7 @@ export function liveContextForClient(
     sourcePage?: string;
     // "page" when the rendered text is `sourcePage`'s source
     taskRefs?: TaskRefs;
+    onPageVarsRead?: (page: string) => void;
   } & SandboxOptions = {},
 ): RenderContext {
   return createRenderContext(renderHostForClient(client, opts), {
@@ -105,6 +107,7 @@ export function liveContextForClient(
       client.currentPageMeta() ?? { name: client.currentName() },
     sourcePage: opts.sourcePage ?? opts.page?.name ?? client.currentName(),
     taskRefs: opts.taskRefs,
+    onPageVarsRead: opts.onPageVarsRead,
   });
 }
 
@@ -115,7 +118,7 @@ export async function evaluateExpression(
   page?: { name: string },
 ): Promise<{ value: unknown; ctx: RenderContext }> {
   const ctx = liveContextForClient(client, { page });
-  return { value: await evalDirective(expr, ctx), ctx };
+  return { value: await evalDirectiveText(expr, ctx), ctx };
 }
 
 /** Bake text of a `${…}` expression (Bake into page, Baked Sections: Update). */

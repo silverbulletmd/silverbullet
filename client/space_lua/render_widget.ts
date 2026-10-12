@@ -3,22 +3,19 @@ import { evalExpression } from "./eval.ts";
 import { parseExpressionString } from "./parse.ts";
 import {
   type ILuaFunction,
-  LuaEnv,
+  type LuaEnv,
   LuaRuntimeError,
-  LuaStackFrame,
-  LuaTable,
+  type LuaStackFrame,
   type LuaValue,
-  luaValueToJS,
   singleResult,
 } from "./runtime.ts";
 import {
-  BUSY_LIMIT_DEFAULT_MS,
   LUA_TIMEOUT_MESSAGE,
   type LuaBudget,
   LuaBudgetStopped,
-  makeLuaBudget,
 } from "./budget.ts";
-import { isTaggedFloat } from "./numeric.ts";
+import { assignmentRenderValue, type PageScope } from "./page_scope.ts";
+import { renderThread, toRenderValue } from "./render_thread.ts";
 import {
   encodeRef,
   getNameFromPath,
@@ -38,7 +35,12 @@ export type EvalForRenderOptions = {
   // Widget nesting depth of the render this evaluation belongs to
   renderDepth?: number;
   stoppedMessage?: () => string;
+  // Page scope to evaluate in; defaults to the space env
+  parentEnv?: LuaEnv;
+  onPageVarsRead?: (page: string) => void;
 };
+
+type PageScopeOpts = Pick<EvalForRenderOptions, "parentEnv" | "onPageVarsRead">;
 
 /**
  * Run a Space Lua computation for rendering, with `_CTX.currentPage` (and
@@ -60,27 +62,17 @@ export async function evaluateForRender(
     );
   };
   try {
-    const tl = new LuaEnv();
-    tl.setLocal("currentPage", currentPage);
-    if (opts.sourcePage) tl.setLocal("sourcePage", { name: opts.sourcePage });
-    const sf = LuaStackFrame.createWithGlobalEnv(sle.env, ctx);
-    sf.threadState.budget =
-      opts.budget ??
-      makeLuaBudget({
-        busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
-        onLimit: (b) => {
-          b.stopped = true;
-        },
-      });
-    sf.threadState.renderDepth = opts.renderDepth;
-    const env = new LuaEnv(sle.env);
-    env.setLocal("_CTX", tl);
-    const rawResult = singleResult(await compute(env, sf));
-    if (isTaggedFloat(rawResult) || typeof rawResult === "number") {
-      return rawResult;
-    }
-    if (rawResult instanceof LuaTable) return rawResult;
-    return luaValueToJS(rawResult, sf);
+    const { env, sf } = renderThread(sle.env, ctx, {
+      currentPage,
+      sourcePage: opts.sourcePage,
+      budget: opts.budget,
+      renderDepth: opts.renderDepth,
+      parentEnv: opts.parentEnv,
+      pageScope: opts.onPageVarsRead
+        ? { chain: [], onRead: opts.onPageVarsRead }
+        : undefined,
+    });
+    return toRenderValue(singleResult(await compute(env, sf)), sf);
   } catch (e: any) {
     if (e instanceof LuaBudgetStopped) {
       logError("timed out; the widget took too long to render and was stopped");
@@ -109,6 +101,7 @@ export async function renderLuaWidgetResult(
   compute: (env: LuaEnv, sf: LuaStackFrame) => Promise<LuaValue> | LuaValue,
   ctx: ASTCtx,
   currentPageMeta?: { name: string } | undefined,
+  opts: PageScopeOpts = {},
 ): Promise<any> {
   const currentPage =
     currentPageMeta ||
@@ -118,6 +111,7 @@ export async function renderLuaWidgetResult(
   return evaluateForRender(client.clientSystem.spaceLuaEnv, compute, ctx, {
     currentPage,
     sourcePage: currentPage?.name,
+    ...opts,
   });
 }
 
@@ -126,6 +120,7 @@ export async function renderLuaExpression(
   client: Client,
   expressionText: string,
   currentPageMeta?: { name: string } | undefined,
+  opts: PageScopeOpts = {},
 ): Promise<any> {
   if (expressionText.trim().length === 0) {
     return "**Error:** Empty Lua expression";
@@ -142,6 +137,7 @@ export async function renderLuaExpression(
       },
       {} as ASTCtx,
       currentPageMeta,
+      opts,
     );
   }
   return renderLuaWidgetResult(
@@ -149,7 +145,31 @@ export async function renderLuaExpression(
     (env, sf) => evalExpression(expr, env, sf),
     expr.ctx,
     currentPageMeta,
+    opts,
   );
+}
+
+/**
+ * Render a `${…}` body of a page against that page's scope: an assignment
+ * shows its value, anything else evaluates with the page's bindings in reach.
+ */
+export async function renderPageDirective(
+  client: Client,
+  expressionText: string,
+  currentPageMeta: { name: string } | undefined,
+  scope: PageScope | null,
+  opts: {
+    assignmentName?: string;
+    onPageVarsRead?: (page: string) => void;
+  } = {},
+): Promise<any> {
+  if (opts.assignmentName) {
+    return assignmentRenderValue(scope, opts.assignmentName);
+  }
+  return renderLuaExpression(client, expressionText, currentPageMeta, {
+    parentEnv: scope?.env,
+    onPageVarsRead: opts.onPageVarsRead,
+  });
 }
 
 /** Call a stored Lua render function (e.g. a code widget) and render it. */

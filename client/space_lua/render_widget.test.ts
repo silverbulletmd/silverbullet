@@ -7,7 +7,12 @@ import { evalExpression } from "./eval.ts";
 import { parseExpressionString } from "./parse.ts";
 import { LuaEnv, LuaStackFrame, type LuaTable } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
-import { isLuaWidgetError, renderLuaExpression } from "./render_widget.ts";
+import { PageScopes } from "./page_scope.ts";
+import {
+  evaluateForRender,
+  isLuaWidgetError,
+  renderLuaExpression,
+} from "./render_widget.ts";
 import {
   createRenderContext,
   expandMarkdownStatic,
@@ -37,8 +42,12 @@ function fixture() {
   ) as LuaTable;
   const value = newView(spec);
   env.setLocal("sample", value);
+  const pageScopes = new PageScopes({
+    readPageText: async () => null,
+    spaceEnv: () => env,
+  });
   const client = {
-    clientSystem: { spaceLuaEnv: { env } },
+    clientSystem: { spaceLuaEnv: { env }, pageScopes },
     ui: { viewState: { current: { path: "Workshop.md" }, allPages: [] } },
     currentPageMeta: () => ({ name: "Workshop" }),
     currentName: () => "Workshop",
@@ -80,6 +89,10 @@ test("static Markdown expansion does not serialize view internals", async () => 
   const host = {
     space: {} as Space,
     sle: { env } as SpaceLuaEnvironment,
+    pageScopes: new PageScopes({
+      readPageText: async () => null,
+      spaceEnv: () => env,
+    }),
     syntaxExtensions: {},
     allPages: [],
     renderOptions: {},
@@ -200,4 +213,24 @@ test("a self-referencing widget.live stops instead of recursing forever", async 
   );
   expect(r.node.textContent).toContain("nesting too deep");
   expect(r.live).toEqual(["index"]);
+});
+
+test("evaluateForRender uses parentEnv and exposes the reader hook", async () => {
+  const spaceEnv = new LuaEnv(luaBuildStandardEnv());
+  const page = new LuaEnv(spaceEnv, { boundary: true });
+  page.setLocal("salary", 500);
+  const seen: string[] = [];
+  const sle = { env: spaceEnv } as unknown as SpaceLuaEnvironment;
+  const expr = parseExpressionString("salary * 2");
+  const result = await evaluateForRender(
+    sle,
+    (env, sf) => {
+      sf.threadState.pageScope?.onRead?.("Budget");
+      return evalExpression(expr, env, sf);
+    },
+    expr.ctx,
+    { parentEnv: page, onPageVarsRead: (p) => seen.push(p) },
+  );
+  expect(result).toBe(1000);
+  expect(seen).toEqual(["Budget"]);
 });

@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 import { expect, test } from "vitest";
 import type { Client } from "../../client.ts";
-import { buildTestEnv } from "../../markdown_renderer/compose_test_env.ts";
+import {
+  buildTestEnv,
+  testHost,
+} from "../../markdown_renderer/compose_test_env.ts";
 import { evalExpression } from "../../space_lua/eval.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import {
@@ -16,7 +19,7 @@ async function syscalls() {
   const t = await buildTestEnv();
   const client = {
     space: t.space,
-    clientSystem: { spaceLuaEnv: t.sle },
+    clientSystem: { spaceLuaEnv: t.sle, pageScopes: testHost(t).pageScopes },
     config: { get: (_k: unknown, d: unknown) => d },
     ui: { viewState: { allPages: [] } },
     currentName: () => "Host",
@@ -88,7 +91,7 @@ async function withEnv() {
   const t = await buildTestEnv();
   const client = {
     space: t.space,
-    clientSystem: { spaceLuaEnv: t.sle },
+    clientSystem: { spaceLuaEnv: t.sle, pageScopes: testHost(t).pageScopes },
     config: { get: (_k: unknown, d: unknown) => d },
     ui: { viewState: { allPages: [] } },
     currentName: () => "Host",

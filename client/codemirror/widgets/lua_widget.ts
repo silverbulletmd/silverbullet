@@ -14,6 +14,7 @@ import {
 } from "../../markdown_renderer/compose.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import type { ViewValue } from "../../navigator/view_value.ts";
+import { pageScopeChangedEvent } from "../../space_lua/page_scope.ts";
 import { isLuaWidgetError } from "../../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
 import {
@@ -41,6 +42,9 @@ import {
 export type LuaWidgetCallback = (
   bodyText: string,
   pageName: string,
+  // Told each page whose scope the evaluation read, so the widget refreshes
+  // when it changes
+  onPageVarsRead?: (page: string) => void,
 ) => Promise<LuaWidgetContent | null>;
 
 export type LuaWidgetContent = ViewValue | WidgetObject | string;
@@ -59,9 +63,25 @@ export function wrapInline(
   }, html);
 }
 
+/** Puts an assignment's name tag in front of its value, outside the value's own element. */
+export function labelPageVar(
+  node: HTMLElement,
+  label: string,
+  block: boolean,
+): HTMLElement {
+  const el = document.createElement(block ? "div" : "span");
+  el.className = block ? "sb-page-var sb-page-var-block" : "sb-page-var";
+  const tag = document.createElement("span");
+  tag.className = "sb-page-var-tag";
+  tag.textContent = label;
+  el.append(tag, node);
+  return el;
+}
+
 /** Where a widget sits decides what its ⋯ menu can do. */
 export type WidgetHost =
-  | { kind: "directive"; wrappers: InlineWrapper[] }
+  // `label`: an assignment directive's name, shown as a tag before the value
+  | { kind: "directive"; wrappers: InlineWrapper[]; label?: string }
   | { kind: "code"; codeText: string }
   | { kind: "transclusion"; codeText: string; openRef: Ref | null }
   | { kind: "frontmatter"; editPos: number; definitionRef: Ref | null }
@@ -93,6 +113,8 @@ export function widgetCaps(
   env: { readOnly: boolean; expr: string },
 ): WidgetCaps {
   const directive = host.kind === "directive" && !env.readOnly;
+  // Baking or making an assignment live would drop its definition
+  const assignment = host.kind === "directive" && !!host.label;
   return {
     definition:
       (host.kind === "frontmatter" || host.kind === "panel") &&
@@ -101,10 +123,11 @@ export function widgetCaps(
     edit: host.kind !== "panel" && !env.readOnly,
     live: shown.live,
     copy: host.kind !== "frontmatter" && shown.copyable,
-    bake: directive && shown.bakeable && !shown.luaError,
-    toggleLive: directive
-      ? liveToggle(env.expr, { live: !!shown.live, kind: shown.kind })
-      : undefined,
+    bake: directive && !assignment && shown.bakeable && !shown.luaError,
+    toggleLive:
+      directive && !assignment
+        ? liveToggle(env.expr, { live: !!shown.live, kind: shown.kind })
+        : undefined,
   };
 }
 
@@ -180,7 +203,10 @@ export class LuaWidget extends WidgetType {
     const page = client.currentName();
     return client.widgetCache.prewarmResult(
       cacheKey,
-      () => callback(expressionText, page),
+      (triggers) =>
+        callback(expressionText, page, (read) =>
+          triggers.add(pageScopeChangedEvent(read)),
+        ),
       () => snapshotEventCounts(client.eventHook),
     );
   }
@@ -277,12 +303,20 @@ export class LuaWidget extends WidgetType {
     remount: boolean,
   ): Promise<void> {
     const { client, cacheKey } = this.opts;
+    // Page scopes this render reads: a change to one refreshes it
+    const triggers = new Set<string>();
+    const onPageVarsRead = (page: string) =>
+      triggers.add(pageScopeChangedEvent(page));
     let value = this.inPage
       ? await this.prewarm()
       : await this.opts.callback(
           this.opts.expressionText,
           client.currentName(),
+          onPageVarsRead,
         );
+    if (this.inPage) {
+      for (const t of client.widgetCache.triggers(cacheKey)) triggers.add(t);
+    }
     if (version !== this.renderVersion) return;
     activeWidgets.add(this);
     const luaError = isLuaWidgetError(value);
@@ -290,7 +324,8 @@ export class LuaWidget extends WidgetType {
     div.classList.toggle("sb-lua-error", luaError);
     if (value === null || value === undefined) {
       if (!this.renderEmpty) {
-        this.live.bind(undefined);
+        // A page it read may still define the value it's missing
+        this.live.bind([...triggers]);
         this.clear(div);
         return;
       }
@@ -300,6 +335,7 @@ export class LuaWidget extends WidgetType {
       value,
       liveContextForClient(client, {
         sandboxKey: cacheKey,
+        onPageVarsRead,
         onSandboxMessage: (message, iframe) => {
           if (message.type !== "blur") return;
           const pos = client.editorView.posAtDOM(iframe, 0);
@@ -315,7 +351,7 @@ export class LuaWidget extends WidgetType {
     // Stale-while-revalidate: a remounted widget shows its cached result, then
     // re-runs if that result missed one of its events while unmounted
     const revalidate = this.live.bind(
-      rendered.live,
+      [...(rendered.live ?? []), ...triggers],
       remount && this.inPage
         ? client.widgetCache.computedAt(cacheKey)
         : undefined,
@@ -356,8 +392,13 @@ export class LuaWidget extends WidgetType {
       luaError,
       live: rendered.live,
     };
+    const host = this.opts.host;
+    const valueNode =
+      host.kind === "directive" && host.label
+        ? labelPageVar(rendered.node, host.label, block)
+        : rendered.node;
     disposeRendered(div);
-    div.replaceChildren(this.wrap(block, rendered.node, shown));
+    div.replaceChildren(this.wrap(block, valueNode, shown));
     div.style.minHeight = "";
     if (rendered.kind === "view" || rendered.kind === "sandbox") {
       // Views and sandboxes size themselves after mounting

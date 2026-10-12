@@ -14,12 +14,13 @@ afterEach(() => {
 function completionEvent(
   linePrefix: string,
   luaCode = linePrefix,
+  language = "space-lua",
 ): CompleteEvent {
   return {
     pageName: "Test",
     linePrefix,
     pos: luaCode.length,
-    parentNodes: [`FencedCode:space-lua\n${luaCode}`],
+    parentNodes: [`FencedCode:${language}\n${luaCode}`],
   };
 }
 
@@ -159,4 +160,15 @@ test("luaNavigate reports values without Lua definitions", async () => {
     "Cannot navigate to definition; not defined in Lua.",
     "info",
   ]);
+});
+
+test("page-lua blocks get the same Lua completion", async () => {
+  globalThis.syscall = async () => ({
+    type: "table",
+    properties: [{ key: "upper", type: "function" }],
+  });
+  const result = await luaComplete(
+    completionEvent("string.up", "string.up", "page-lua"),
+  );
+  expect(result?.options.map((o) => o.label)).toEqual(["upper()"]);
 });

@@ -25,6 +25,7 @@ import { ConflictMarkers } from "./conflict_marker.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import { scanLuaDirectiveEnd } from "../space_lua/directive_scan.ts";
+import { parseAssignmentDirective } from "../space_lua/assignment_directive.ts";
 import { luaLanguage } from "../space_lua/parse.ts";
 import {
   buildCustomSyntaxExtensions,
@@ -96,6 +97,8 @@ const LuaDirectives: MarkdownConfig = {
   defineNodes: [
     { name: "LuaDirective" },
     { name: "LuaExpressionDirective" },
+    // The `name` of a `${name = expr}` assignment
+    { name: "LuaAssignmentName" },
     { name: "LuaDirectiveMark", style: ct.DirectiveMarkTag },
   ],
   parseInline: [
@@ -114,10 +117,14 @@ const LuaDirectives: MarkdownConfig = {
         const bodyText = textFromPos.slice(2, end - 1);
         const endPos = pos + end;
 
-        const parsedExpression = luaLanguage.parser.parse(`_(${bodyText})`);
+        const assignment = parseAssignmentDirective(bodyText);
+        // Lezer only knows expressions: parse what follows `name =`
+        const exprText = assignment ? assignment.exprSource : bodyText;
+        const exprStart = pos + 2 + (assignment?.exprOffset ?? 0);
+        const parsedExpression = luaLanguage.parser.parse(`_(${exprText})`);
 
-        // If bodyText starts with whitespace, we need to offset this later
-        const whiteSpaceOffset = bodyText.match(/^\s*/)?.[0].length ?? 0;
+        // If exprText starts with whitespace, we need to offset this later
+        const whiteSpaceOffset = exprText.match(/^\s*/)?.[0].length ?? 0;
 
         const node = parsedExpression.resolveInner(2, 0).firstChild?.nextSibling
           ?.nextSibling;
@@ -125,8 +132,18 @@ const LuaDirectives: MarkdownConfig = {
         if (!node) {
           return -1;
         }
+        const nameStart = pos + 2 + (assignment?.nameOffset ?? 0);
         const bodyEl = cx.elt("LuaExpressionDirective", pos + 2, endPos - 1, [
-          cx.elt(node.toTree()!, pos + 2 + whiteSpaceOffset),
+          ...(assignment
+            ? [
+                cx.elt(
+                  "LuaAssignmentName",
+                  nameStart,
+                  nameStart + assignment.name.length,
+                ),
+              ]
+            : []),
+          cx.elt(node.toTree()!, exprStart + whiteSpaceOffset),
         ]);
 
         return cx.addElement(
