@@ -85,35 +85,72 @@ export function pageVarsSyscalls(
   scopes: PageScopes,
   deps: PageVarsDeps,
 ): SysCallMapping {
+  // `page`'s scope (the running page's by default), for the function `fn`
+  const resolve = async (
+    fn: string,
+    sf: LuaStackFrame | undefined,
+    page: string | undefined,
+  ) => {
+    page ??= defaultPage(sf, deps);
+    const state = sf?.threadState;
+    // Record before resolving, so a later fix to the page also refreshes us
+    state?.track?.(pageScopeChangedEvent(page));
+    const scope = await scopes.get(page, state?.pageScope, state?.track);
+    if (scope?.firstError) {
+      throw new Error(
+        `${fn}: ${page} has failing definitions (${scope.firstError})`,
+      );
+    }
+    return { scope, page };
+  };
+  const pageParameter = {
+    name: "page",
+    optional: true,
+    description:
+      "Page name; defaults to the page the running code is on, else the open page.",
+  };
   return {
     "lua:pageVars.get": {
-      callback: async (ctx: { sf?: LuaStackFrame }, page?: string) => {
-        page ??= defaultPage(ctx.sf, deps);
-        const state = ctx.sf?.threadState;
-        // Record before resolving, so a later fix to the page also refreshes us
-        state?.track?.(pageScopeChangedEvent(page));
-        const scope = await scopes.get(page, state?.pageScope, state?.track);
-        if (scope?.firstError) {
+      callback: async (
+        ctx: { sf?: LuaStackFrame },
+        name: string,
+        page?: string,
+      ) => {
+        const resolved = await resolve("pageVars.get", ctx.sf, page);
+        const variables = resolved.scope?.env.variables;
+        if (!variables?.has(name)) {
           throw new Error(
-            `pageVars.get: ${page} has failing definitions (${scope.firstError})`,
+            `pageVars.get: ${resolved.page} has no variable "${name}"`,
           );
         }
-        return pageVarsTable(scope, page);
+        return variables.get(name) ?? null;
       },
       description:
-        "Returns a read-only table of the variables a page defines with `page-lua` blocks and `${name = expr}` assignments. Without `page`, the page the code is on.",
-      signatures: ["pageVars.get(page?)"],
+        "Returns one variable a page defines with a `page-lua` block or a `${name = expr}` assignment. Errors when the page doesn't define it.",
+      signatures: ["pageVars.get(name, page?)"],
       parameters: [
-        {
-          name: "page",
-          optional: true,
-          description:
-            "Page name; defaults to the page the running code is on, else the open page.",
-        },
+        { name: "name", description: "Variable name." },
+        pageParameter,
       ],
       examples: [
-        { code: 'pageVars.get("Budget").salary' },
-        { code: "pageVars.get().rate" },
+        { code: 'pageVars.get("salary", "Budget")' },
+        { code: 'pageVars.get("rate")' },
+      ],
+    },
+    "lua:pageVars.all": {
+      callback: async (ctx: { sf?: LuaStackFrame }, page?: string) => {
+        const resolved = await resolve("pageVars.all", ctx.sf, page);
+        return pageVarsTable(resolved.scope, resolved.page);
+      },
+      description:
+        "Returns a read-only table of all variables a page defines with `page-lua` blocks and `${name = expr}` assignments.",
+      signatures: ["pageVars.all(page?)"],
+      parameters: [pageParameter],
+      examples: [
+        { code: 'pageVars.all("Budget")' },
+        {
+          code: "for name, value in pairs(pageVars.all()) do print(name, value) end",
+        },
       ],
     },
     "lua:pageVars.set": {

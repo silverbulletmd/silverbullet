@@ -27,21 +27,25 @@ function setup(pages: Record<string, string>) {
   return { scopes, spaceEnv, pages, reads: () => reads };
 }
 
-// The real `pageVars.get`, as a plain Lua function
+// The real `pageVars.get` and `pageVars.all`, as plain Lua functions
 function withPageVars(env: LuaEnv, scopes: PageScopes) {
-  const pageVars = pageVarsSyscalls(scopes, {
+  const mapping = pageVarsSyscalls(scopes, {
     currentPage: () => undefined,
     editPage: async () => {},
-  })["lua:pageVars.get"];
-  const callback = (
-    typeof pageVars === "function" ? pageVars : pageVars.callback
-  ) as (ctx: { sf: LuaStackFrame }, page: string) => Promise<LuaTable>;
-  const space = new LuaTable();
-  void space.rawSet(
-    "get",
-    new LuaBuiltinFunction((sf, page: string) => callback({ sf }, page)),
-  );
-  env.setLocal("pageVars", space);
+  });
+  const pageVars = new LuaTable();
+  for (const fn of ["get", "all"]) {
+    const entry = mapping[`lua:pageVars.${fn}`];
+    const callback = (typeof entry === "function" ? entry : entry.callback) as (
+      ctx: { sf: LuaStackFrame },
+      ...args: any[]
+    ) => Promise<unknown>;
+    void pageVars.rawSet(
+      fn,
+      new LuaBuiltinFunction((sf, ...args: any[]) => callback({ sf }, ...args)),
+    );
+  }
+  env.setLocal("pageVars", pageVars);
 }
 
 const budget = [
@@ -98,6 +102,27 @@ test("duplicate names are an error at every occurrence", async () => {
   expect(scope.env.has("x")).toBe(false);
 });
 
+test("a block can't reassign a name a ${name = …} cell defines", async () => {
+  const { scopes } = setup({
+    Above: "${n = 1}\n```page-lua\nn = n + 1\nother = 3\n```",
+    Below: "```page-lua\nm = 1\n```\n${m = 2}",
+  });
+  const above = (await scopes.get("Above"))!;
+  expect(above.blockErrors.get(0)).toBe(
+    "`n` is defined by a ${n = …} cell on this page",
+  );
+  // The cell's value stands, and the block's other globals are kept
+  expect(above.env.get("n")).toBe(1);
+  expect(above.env.get("other")).toBe(3);
+  expect(above.firstError).toMatch(/page-lua block 1: `n` is defined by/);
+
+  const below = (await scopes.get("Below"))!;
+  expect(below.blockErrors.get(0)).toBe(
+    "`m` is defined by a ${m = …} cell on this page",
+  );
+  expect(below.env.get("m")).toBe(2);
+});
+
 test("assigning a space global shadows it inside the page only", async () => {
   const { scopes, spaceEnv } = setup({
     P: "```page-lua\nprint = 5\n```",
@@ -142,7 +167,7 @@ test("concurrent gets share one build", async () => {
   expect(reads()).toBe(1);
 });
 
-const forecast = "${y = pageVars.get('Budget').salary}";
+const forecast = "${y = pageVars.get('salary', 'Budget')}";
 
 test("invalidation is transitive over dependencies", async () => {
   const { scopes, pages, spaceEnv } = setup({
@@ -172,7 +197,7 @@ test("reads through an uncached build count as the reader's own", async () => {
   const { scopes, pages, spaceEnv } = setup({
     Budget: budget,
     Forecast: forecast,
-    Plan: "${z = pageVars.get('Forecast').y}",
+    Plan: "${z = pageVars.get('y', 'Forecast')}",
   });
   withPageVars(spaceEnv, scopes);
   // Forecast is built nested in Plan's build, and never cached
@@ -215,7 +240,7 @@ test("deleting a page invalidates its dependents", async () => {
 test("a missing page rejects until it is created", async () => {
   const { scopes, pages, reads } = setup({});
   await expect(scopes.get("Nope")).rejects.toThrow(
-    "pageVars.get: page Nope not found",
+    "pageVars: page Nope not found",
   );
   await expect(scopes.get("Nope")).rejects.toThrow("not found");
   expect(reads()).toBe(1);
@@ -251,7 +276,7 @@ test("changes to unrelated, never-built pages are ignored without reading", asyn
 test("a cycle in the build chain is rejected without waiting", async () => {
   const { scopes } = setup({ Budget: budget });
   await expect(scopes.get("Budget", { chain: ["Budget"] })).rejects.toThrow(
-    "pageVars.get: cycle Budget → Budget",
+    "pageVars: cycle Budget → Budget",
   );
 });
 
@@ -273,8 +298,8 @@ test("clear drops everything", async () => {
 
 test("concurrent builds that read each other settle with cycle errors", async () => {
   const { scopes, spaceEnv } = setup({
-    A: "${x = pageVars.get('B').y}",
-    B: "${y = pageVars.get('A').x}",
+    A: "${x = pageVars.get('y', 'B')}",
+    B: "${y = pageVars.get('x', 'A')}",
   });
   withPageVars(spaceEnv, scopes);
   const [a, b] = await Promise.all([scopes.get("A"), scopes.get("B")]);
@@ -328,7 +353,7 @@ test("page code can't clear the build chain through _CTX", async () => {
       "```page-lua",
       "_CTX._pageScopeChain = nil",
       "```",
-      "${salary = pageVars.get('Budget').salary}",
+      "${salary = pageVars.get('salary', 'Budget')}",
     ].join("\n"),
   });
   withPageVars(spaceEnv, scopes);
@@ -414,7 +439,7 @@ test("a scope whose definitions queried a tag invalidates when that tag changes"
 test("a reader of an invalidated scope is invalidated in turn", async () => {
   const { scopes, hook, notified } = fixture({
     Budget: '${salary = probe("index:tag:task") * 100}',
-    Plan: '${total = pageVars.get("Budget").salary}',
+    Plan: '${total = pageVars.get("salary", "Budget")}',
   });
   await scopes.get("Plan");
   await scopes.get("Budget");
@@ -426,8 +451,8 @@ test("a reader of an invalidated scope is invalidated in turn", async () => {
 
 test("cycles still terminate when a dependency fires", async () => {
   const { scopes, hook } = fixture({
-    A: '${a = probe("index:tag:x") + pageVars.get("B").b}',
-    B: '${b = pageVars.get("A").a}',
+    A: '${a = probe("index:tag:x") + pageVars.get("b", "B")}',
+    B: '${b = pageVars.get("a", "A")}',
   });
   await scopes.tryGet("A");
   await hook.dispatchEvent("index:tag:x");

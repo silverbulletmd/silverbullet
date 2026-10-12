@@ -3,7 +3,7 @@ tags: api/space-lua maturity/experimental
 ---
 APIs to read and set [[Space Lua/Page Lua|page variables]]: the values a page defines with `${name = …}` and `page-lua` blocks.
 
-Both functions take an optional page name as their last argument. Without it they use the page the running code is on: the page a `${…}`, code widget or button belongs to (for a button inside a transclusion, the transcluded page), or else the open page.
+Each function takes an optional page name as its last argument. Without it they use the page the running code is on: the page a `${…}`, code widget or button belongs to (for a button inside a transclusion, the transcluded page), or else the open page.
 
 Example: ${counter = 1}
 Counter * pi: ${math.pi * counter}
@@ -13,12 +13,20 @@ ${widgets.button("Add one", function()
 end)}
 
 # API
-## pageVars.get(page?)
-Returns a read-only table of a page's variables.
+## pageVars.get(name, page?)
+Returns one of a page's variables. A name the page doesn't define is an error; a variable holding `nil` returns `nil`.
 
 ```lua
-pageVars.get("Budget").salary
-pageVars.get().rate
+pageVars.get("salary", "Budget")
+pageVars.get("rate")
+```
+
+## pageVars.all(page?)
+Returns a read-only table of all of a page's variables, which you can print or iterate.
+
+```lua
+pageVars.all("Budget")
+for name, value in pairs(pageVars.all()) do print(name, value) end
 ```
 
 An expression that reads a page’s variables updates when they change. Reading a page whose definitions fail is an error naming the first failing definition, and a chain of pages that read each other is reported as a cycle.

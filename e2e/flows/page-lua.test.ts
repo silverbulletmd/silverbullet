@@ -15,13 +15,13 @@ const budget = [
 test.use({
   spaceFiles: {
     "Budget.md": budget,
-    "Report.md": '![[Budget]]\n\nRead: ${pageVars.get("Budget").increase}\n',
+    "Report.md": '![[Budget]]\n\nRead: ${pageVars.get("increase", "Budget")}\n',
     "Totals.md":
       '${open = #query[[from index.tag "task" where not _.done]]}\n\nOpen tasks: ${open}\n',
     "Work.md": "- [ ] one\n",
     "Sheet.md":
       '${rate = 2}\n\nDouble: ${rate * 2}\n\n${widgets.button("Raise", function() pageVars.set("rate", 5) end)}\n',
-    "Reader.md": 'Read: ${pageVars.get("Sheet").rate}\n',
+    "Reader.md": 'Read: ${pageVars.get("rate", "Sheet")}\n',
     "Host.md": "![[Sheet]]\n",
   },
 });

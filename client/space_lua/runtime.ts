@@ -102,7 +102,7 @@ type LuaThreadState = {
   track?: Tracker;
 };
 
-/** What `pageVars.get` needs from the evaluation calling it. */
+/** What `pageVars.get` and `pageVars.all` need from the evaluation calling them. */
 export type PageScopeFrame = {
   // Pages whose scopes are being built, outermost first: the cycle check
   chain: string[];

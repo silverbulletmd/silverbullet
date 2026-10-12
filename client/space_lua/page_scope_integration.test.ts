@@ -15,7 +15,9 @@ function envWithPageVars(scopes: PageScopes, spaceEnv: LuaEnv) {
   const space = new LuaTable();
   void space.rawSet(
     "get",
-    new LuaBuiltinFunction({ callback: (sf, page) => cb({ sf }, page) }),
+    new LuaBuiltinFunction({
+      callback: (sf, ...args: any[]) => cb({ sf }, ...args),
+    }),
   );
   spaceEnv.setLocal("pageVars", space);
 }
@@ -24,8 +26,8 @@ test("definitions can read other pages and cycles are reported", async () => {
   const spaceEnv = new LuaEnv(luaBuildStandardEnv());
   const pages: Record<string, string> = {
     Budget: "${salary = 500}",
-    Forecast: '${next = pageVars.get("Budget").salary * 2}',
-    Loop: '${y = 1} ${x = pageVars.get("Loop").y}',
+    Forecast: '${next = pageVars.get("salary", "Budget") * 2}',
+    Loop: '${y = 1} ${x = pageVars.get("y", "Loop")}',
   };
   const scopes = new PageScopes({
     readPageText: async (n) => (n in pages ? pages[n] : null),

@@ -167,7 +167,7 @@ export class PageScopes {
     const chain = reader?.chain ?? [];
     if (chain.includes(page)) {
       return Promise.reject(
-        new Error(`pageVars.get: cycle ${[...chain, page].join(" → ")}`),
+        new Error(`pageVars: cycle ${[...chain, page].join(" → ")}`),
       );
     }
     const entry = this.entry(page);
@@ -210,7 +210,7 @@ export class PageScopes {
 
   private found(page: string, entry: Entry): Promise<PageScope | null> {
     return entry.scope === undefined
-      ? Promise.reject(new Error(`pageVars.get: page ${page} not found`))
+      ? Promise.reject(new Error(`pageVars: page ${page} not found`))
       : Promise.resolve(entry.scope);
   }
 
@@ -337,6 +337,26 @@ export class PageScopes {
       },
     });
 
+    // Names a `${name = …}` cell owns: blocks may not reassign them, so the
+    // value a cell shows is the value the page uses
+    const cellNames = new Set(
+      definitions.flatMap((d) => (d.kind === "assign" ? [d.name] : [])),
+    );
+    const vars = scope.env.variables;
+    const snapshotCells = () =>
+      new Map([...cellNames].map((n) => [n, vars.get(n)] as const));
+    // Puts back what a block changed; returns the first cell name it touched
+    const restoreCells = (before: Map<string, unknown>) => {
+      let touched: string | undefined;
+      for (const [name, value] of before) {
+        if (vars.get(name) === value) continue;
+        touched ??= name;
+        if (value === undefined) vars.delete(name);
+        else vars.set(name, value as any);
+      }
+      return touched;
+    };
+
     let stopped = false;
     for (const def of definitions) {
       if (def.kind === "assign" && duplicateNames.has(def.name)) {
@@ -354,7 +374,18 @@ export class PageScopes {
         const defEnv = new LuaEnv(env);
         if (def.kind === "block") {
           const block = parseBlock(def.source, { ref: page });
-          await evalStatement(block, defEnv, sf.withCtx(block.ctx));
+          const cells = snapshotCells();
+          let touched: string | undefined;
+          try {
+            await evalStatement(block, defEnv, sf.withCtx(block.ctx));
+          } finally {
+            touched = restoreCells(cells);
+          }
+          if (touched) {
+            throw new Error(
+              `\`${touched}\` is defined by a \${${touched} = …} cell on this page`,
+            );
+          }
           record(def, { value: null });
         } else {
           const expr = parseExpressionString(def.exprSource);

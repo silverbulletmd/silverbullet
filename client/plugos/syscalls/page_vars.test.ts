@@ -40,13 +40,14 @@ function setup(pages: Record<string, string>, currentPage?: string) {
       ...args: any[]
     ) => Promise<any>;
   };
-  const pageVars = call("lua:pageVars.get") as (
+  const pageVars = call("lua:pageVars.all") as (
     ctx: { sf: LuaStackFrame },
     page?: string,
   ) => Promise<LuaTable>;
+  const getVar = call("lua:pageVars.get");
   const setVar = call("lua:pageVars.set");
   const sf = LuaStackFrame.createWithGlobalEnv(spaceEnv, null);
-  return { pageVars, setVar, sf, pages, edits };
+  return { pageVars, getVar, setVar, sf, pages, edits };
 }
 
 // LuaTable.set may return a value or a promise; normalise to a promise
@@ -79,10 +80,10 @@ test("empty table for a page without definitions", async () => {
 test("throws for a missing page and for failing definitions", async () => {
   const { pageVars, sf } = setup({ Bad: "${x = nil + 1}" });
   await expect(pageVars({ sf }, "Nope")).rejects.toThrow(
-    "pageVars.get: page Nope not found",
+    "pageVars: page Nope not found",
   );
   await expect(pageVars({ sf }, "Bad")).rejects.toThrow(
-    /pageVars\.get: Bad has failing definitions \(x: /,
+    /pageVars\.all: Bad has failing definitions \(x: /,
   );
 });
 
@@ -99,7 +100,7 @@ test("detects cycles through the build chain", async () => {
   const { pageVars, sf } = setup({ Budget: "${salary = 500}" });
   sf.threadState.pageScope = { chain: ["Forecast", "Budget"] };
   await expect(pageVars({ sf }, "Budget")).rejects.toThrow(
-    "pageVars.get: cycle Forecast → Budget → Budget",
+    "pageVars: cycle Forecast → Budget → Budget",
   );
 });
 
@@ -112,7 +113,40 @@ test("reports a read before resolving, even when the page is missing", async () 
   expect(seen).toEqual(["pageScope:changed:Forecast"]);
 });
 
-test("get without a page reads the page the code runs on, then the open page", async () => {
+test("get returns one variable, defaulting to the running page", async () => {
+  const { getVar, sf } = setup(
+    { Budget: "${salary = 500}", Open: "${salary = 1}" },
+    "Open",
+  );
+  expect(await getVar({ sf }, "salary", "Budget")).toBe(500);
+  expect(await getVar({ sf }, "salary")).toBe(1);
+  sf.threadLocal.setLocal("sourcePage", { name: "Budget" });
+  expect(await getVar({ sf }, "salary")).toBe(500);
+});
+
+test("get errors for a name the page doesn't define, and tracks the read", async () => {
+  const { getVar, sf } = setup({
+    Budget: "${salary = 500}",
+    Bad: "${x = nil + 1}",
+  });
+  const seen: string[] = [];
+  sf.threadState.pageScope = { chain: [] };
+  sf.threadState.track = (e) => seen.push(e);
+  await expect(getVar({ sf }, "salry", "Budget")).rejects.toThrow(
+    'pageVars.get: Budget has no variable "salry"',
+  );
+  expect(seen).toEqual(["pageScope:changed:Budget"]);
+  await expect(getVar({ sf }, "x", "Bad")).rejects.toThrow(
+    /pageVars\.get: Bad has failing definitions \(x: /,
+  );
+});
+
+test("a variable holding nil is defined, not missing", async () => {
+  const { getVar, sf } = setup({ Budget: "${bonus = nil}" });
+  expect(await getVar({ sf }, "bonus", "Budget")).toBeNull();
+});
+
+test("all without a page reads the page the code runs on, then the open page", async () => {
   const { pageVars, sf } = setup(
     { Budget: "${salary = 500}", Open: "${salary = 1}" },
     "Open",

@@ -5,7 +5,7 @@ SilverBullet lets you define _page-only_ variables and functions that `${...}` e
 # Defining values
 Assign a value inline to a page variable with `${name = expression}`.
 
-Each name can be assigned with `${name = ...}` only once per page.
+Each name can be assigned with `${name = ...}` only once per page, and a `page-lua` block can't reassign it either: the value a cell shows is always the value the page uses.
 
 # `page-lua` blocks
 For functions and longer code, use a `page-lua` fenced code block. Globals it assigns (without `local`) become page variables.
@@ -19,15 +19,16 @@ end
 My raise calculated with `raise`: ${raise(salary, increase)}
 
 # How evaluation works
-* Definitions (`page-lua` blocks and `${name = ...}`) run top to bottom, so a definition can use anything defined _above_ it.
-* Every other `${...}` sees all of the page's definitions, wherever it appears on the page.
+* Definitions (`page-lua` blocks and `${name = ...}`) run once, top to bottom, and each can only use what is defined _above_ it: `${a = b + 1}` above `${b = 1}` is an error, and so is a block calling a function defined in a later block.
+* Every other `${...}` runs after all definitions, so it can use any of them, wherever it appears on the page.
+* A function looks up the variables it uses when it is called, not where it is written. A function can use a variable defined below it, as long as it is called from a plain `${...}` or from a definition below that variable.
 * Values are recalculated when the page is saved (SilverBullet saves automatically shortly after you stop typing), and when anything a definition read changes, such as the results of a query or another page's variables (see [[API/widget#When expressions update]]).
 * A transcluded page is evaluated in its own scope. Scopes are never merged with the page that embeds it.
 
 # Building on another page’s values
-`pageVars.get("page name")` returns a read-only table of the variables defined on page `page name`:
+`pageVars.get(name, "page name")` returns a variable defined on page `page name`, and `pageVars.all("page name")` all of them as a read-only table.
 
-For instance referencing a variable defined [[Examples/Budget]]: ${pageVars.get("Examples/Budget").marketingBudget - 100}
+For instance referencing a variable defined [[Examples/Budget]]: ${pageVars.get("marketingBudget", "Examples/Budget") - 100}
 
 # Setting values
 `pageVars.set(name, value)` changes a value by rewriting its `${name = …}` in the page text, so the page shows and saves the new value and everything that uses it updates. Without a page argument it sets the variable on the page the code is on; pass a page name as the third argument to set another page's.
