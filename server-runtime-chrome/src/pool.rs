@@ -13,7 +13,7 @@ use tokio::sync::{watch, Mutex, Notify};
 
 use crate::config::{ChromeConfig, SpacePage};
 use crate::supervisor::{
-    capture_on_page, eval_on_page, launch_browser, supervise_space, OwnedBrowser,
+    capture_on_page, eval_on_bridge, launch_browser, supervise_space, OwnedBrowser,
 };
 
 struct Registration {
@@ -242,7 +242,25 @@ impl SharedChromeTransport {
 
 impl ClientTransport for SharedChromeTransport {
     fn eval_js(&self, js: &str, timeout: Duration) -> Result<Value, RuntimeError> {
-        self.on_live_page(timeout, |page| async move { eval_on_page(&page, js).await })
+        // `ready` can lag a client reloading itself by a moment, so a call can
+        // reach a document whose bridge is gone or not up yet. Such a call
+        // never ran: retry it until the reloaded client's bridge answers.
+        const RETRY_INTERVAL: Duration = Duration::from_millis(100);
+        let bridge_down = std::cell::Cell::new(false);
+        let flag = &bridge_down;
+        let result = self.on_live_page(timeout, |page| async move {
+            loop {
+                if let Some(value) = eval_on_bridge(&page, js).await? {
+                    return Ok(value);
+                }
+                flag.set(true);
+                tokio::time::sleep(RETRY_INTERVAL).await;
+            }
+        });
+        match result {
+            Err(RuntimeError::Timeout) if bridge_down.get() => Err(RuntimeError::NotReady),
+            other => other,
+        }
     }
 
     fn capture(
@@ -682,7 +700,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires an installed Chrome browser"]
+    #[ignore = "requires SB_CHROME_PATH pointing at a chrome-headless-shell"]
     fn real_chrome_transports_isolate_storage_processes_and_shutdown() {
         use chromiumoxide::cdp::browser_protocol::system_info::GetProcessInfoParams;
         use chromiumoxide::cdp::browser_protocol::target::GetTargetsParams;
@@ -690,10 +708,16 @@ mod tests {
 
         let root = tempfile::tempdir().unwrap();
         let mut config = config();
-        config.chrome_path = std::env::var("SB_CHROME_PATH")
-            .ok()
-            .or_else(crate::config::find_chrome)
-            .expect("Chrome installed");
+        // Never auto-detect: on macOS that finds the user's own Chrome, which a
+        // leftover headless instance would take over.
+        config.chrome_path =
+            std::env::var("SB_CHROME_PATH").expect("set SB_CHROME_PATH to a chrome-headless-shell");
+        assert!(
+            !crate::config::is_system_browser(&config.chrome_path)
+                || std::env::var("SB_TEST_ALLOW_SYSTEM_CHROME").as_deref() == Ok("1"),
+            "refusing system browser {}; set SB_TEST_ALLOW_SYSTEM_CHROME=1 to override",
+            config.chrome_path
+        );
         config.user_data_dir = root.path().to_string_lossy().into_owned();
         let pool = ChromePool::new(config).unwrap();
         let listener = pool

@@ -83,12 +83,8 @@ import {
   parseBlock as parseLua,
 } from "./space_lua/parse.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
-import {
-  LuaEnv,
-  LuaRuntimeError,
-  LuaStackFrame,
-  luaValueToJS,
-} from "./space_lua/runtime.ts";
+import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
+import { toRuntimeJSON } from "./space_lua/runtime_json.ts";
 import { resolveASTReference } from "./space_lua.ts";
 import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
@@ -824,7 +820,7 @@ export class Client {
         Array.isArray(result.values)
           ? result.values[0]
           : result;
-      return (await Promise.resolve(luaValueToJS(returnValue, sf))) ?? null;
+      return toRuntimeJSON(returnValue, { env: scriptEnv, sf });
     };
 
     globalThis.sbRuntime.evalLua = (expr: string) =>

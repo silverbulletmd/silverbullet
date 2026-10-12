@@ -207,3 +207,66 @@ describe("lintAnchors", () => {
     expect(anchorDiags).toHaveLength(0);
   });
 });
+
+describe("lintYAML on data blocks", () => {
+  async function lintYamlFor(text: string) {
+    const { lintYAML } = await import("./lint.ts");
+    return lintYAML({
+      tree: parseMarkdown(text),
+      name: defaultPageMeta.name,
+      pageMeta: defaultPageMeta,
+      text,
+    });
+  }
+
+  test("multi-document data blocks lint clean", async () => {
+    const md = ["```#person", "name: Pete", "---  ", "name: Hank", "```"].join(
+      "\n",
+    );
+    expect(await lintYamlFor(md)).toEqual([]);
+  });
+
+  test("a quoted --- inside a value lints clean", async () => {
+    const md = ["```#thing", 'cmd: "a\\n---\\nb"', "```"].join("\n");
+    expect(await lintYamlFor(md)).toEqual([]);
+  });
+
+  test("an error in a later document points at its own line", async () => {
+    const md = [
+      "```#person",
+      "name: Pete",
+      "---",
+      "name: Hank",
+      "age: [unclosed",
+      "```",
+    ].join("\n");
+    const diags = await lintYamlFor(md);
+    expect(diags).toHaveLength(1);
+    expect(diags[0].from).toBeGreaterThan(md.indexOf("age: [unclosed"));
+    expect(diags[0].to).toBeLessThanOrEqual(md.lastIndexOf("```"));
+  });
+
+  test("an error without a position (unsplittable ---) is still flagged", async () => {
+    const md = [
+      "```#person",
+      "name: Pete",
+      "--- # not a bare separator",
+      "name: Hank",
+      "```",
+    ].join("\n");
+    const diags = await lintYamlFor(md);
+    expect(diags).toHaveLength(1);
+    expect(diags[0].message).toContain("single document");
+    expect(md.slice(diags[0].from, diags[0].to)).toContain("--- # not");
+  });
+
+  test("plain ```yaml blocks may hold several documents", async () => {
+    const md = ["```yaml", "a: 1", "--- # second", "b: 2", "```"].join("\n");
+    expect(await lintYamlFor(md)).toEqual([]);
+  });
+
+  test("```data blocks are linted like #tag blocks", async () => {
+    const md = ["```data", "a: [unclosed", "```"].join("\n");
+    expect(await lintYamlFor(md)).toHaveLength(1);
+  });
+});

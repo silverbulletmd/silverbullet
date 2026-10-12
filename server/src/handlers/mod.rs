@@ -47,3 +47,5 @@ pub(crate) fn space_error_response(e: SpaceError) -> Response {
 }
 
 pub mod central_auth;
+
+pub mod seo;

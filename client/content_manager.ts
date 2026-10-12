@@ -5,6 +5,7 @@ import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import {
   encodePageURI,
+  encodeRef,
   getNameFromPath,
   getOffsetFromHeader,
   getOffsetFromLineColumn,
@@ -315,6 +316,30 @@ export class ContentManager {
   }
 
   /**
+   * Saves the current buffer without clobbering an edit made to the page on
+   * disk since it was loaded or last saved: that edit is first pulled in
+   * through the same three-way merge as any other external change, so an
+   * unmodified buffer simply adopts it and local edits are merged (or, when
+   * they collide, saved against the shared base for the sync engine to
+   * reconcile).
+   */
+  async saveOverDiskChanges(): Promise<void> {
+    if (!this.isDocumentEditor() && isMarkdownPath(this.client.currentPath())) {
+      // A debounced save firing during the read below would write the stale
+      // buffer over the very edit being pulled in; save(true) reschedules it.
+      clearTimeout(this.saveTimeout);
+      try {
+        await this.reloadPageContent();
+      } catch (e: any) {
+        if (e.message !== notFoundError.message) {
+          console.error("Could not check the page on disk before saving", e);
+        }
+      }
+    }
+    await this.save(true);
+  }
+
+  /**
    * Records the text we just wrote as the new base, unless a newer state was
    * adopted while this write was in flight: dragging the base backwards would
    * make the next merge apply that newer change a second time.
@@ -528,6 +553,9 @@ export class ContentManager {
           doc.text =
             doc.text.slice(0, idx) + doc.text.slice(idx + cursorMarker.length);
         }
+      } else if (results.length === 0 && this.client.bootConfig.readOnly) {
+        doc.text = `# Page not found\n\nThis page does not exist in this space.\n\n[[${encodeRef(this.client.getIndexRef())}|Go to home]]`;
+        doc.meta.perm = "ro";
       } else if (results.length > 1) {
         console.error(
           "Multiple responses for editor:pageCreating event, this is not supported",
@@ -955,8 +983,16 @@ export class ContentManager {
 
     let adjustedPosition = false;
 
-    if (pageState.scrollTop && pageState.scrollTop > 0) {
-      this.restoreScrollPosition(pageState.scrollTop);
+    // A remembered scrollTop of 0 must still be applied: setState() keeps the
+    // previous page's scroll offset, and the selection restore below skips
+    // the scroll-to-top fallback.
+    if (pageState.scrollTop !== undefined) {
+      if (pageState.scrollTop > 0) {
+        this.restoreScrollPosition(pageState.scrollTop);
+      } else {
+        this.scrollRestoreCleanup?.();
+        this.client.editorView.scrollDOM.scrollTop = 0;
+      }
       adjustedPosition = true;
     }
 

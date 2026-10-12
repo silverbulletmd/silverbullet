@@ -5,6 +5,16 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 * Nothing yet!
 
+## 2.12.1
+* Security: the filesystem API refuses access to dot-prefixed files and directories, consistent with space listings.
+* Fix: HTTP file validators respect `If-None-Match` precedence, and file reads and conditional writes tolerate proxies that weaken or transform ETags.
+* Fix: YAML data blocks split only on standalone `---` lines; X-Ray includes attributes added during indexing.
+* Fix: `system.reboot()` preserves external edits and clears cached widgets. Reopening a page restores a remembered scroll position of zero.
+* Fix: the [[Runtime API]] returns JSON for query rows, null values, dates and other Lua values without serialization crashes, and remains usable after the client reloads its UI.
+* SLIQ errors offer more specific explanations for common mistakes.
+* Public spaces expose `robots.txt` and a sitemap of content pages, with canonical URLs and descriptions in the initial HTML. Metadata pages are excluded from the sitemap and marked `noindex`; encoded page names render correctly, frontmatter is hidden, and missing pages return HTTP 404. Read-only spaces show a “Page not found” view with a link home.
+* Client builds remove stale bundle chunks and omit source maps from release binaries.
+
 ## 2.12.0 
 * Mobile improvements:
   * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/keyboardBar]].

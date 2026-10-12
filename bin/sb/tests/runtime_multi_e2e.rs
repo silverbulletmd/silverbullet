@@ -11,10 +11,13 @@ const ADMIN_PASSWORD: &str = "adminpw1";
 
 #[path = "../../silverbullet/tests/common/mod.rs"]
 mod common;
-use common::{chrome_available_or_skip, free_port};
+use common::{
+    free_port, kill_browsers, kill_group, leftover_browsers, own_process_group, stop_server,
+    terminate, test_chrome_or_skip,
+};
 
-/// Kills the server and its Chrome process on drop, including after test panics.
-/// Drain logs continuously: two headless clients can fill the pipe buffer
+/// Stops the server and its Chrome processes on drop, including after test
+/// panics. Drain logs continuously: two headless clients can fill the pipe buffer
 /// and block the server before the test completes.
 struct Server {
     child: Child,
@@ -39,8 +42,7 @@ fn drain(mut reader: impl Read, log: Arc<Mutex<String>>) {
 
 impl Drop for Server {
     fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        stop_server(&mut self.child);
     }
 }
 
@@ -48,7 +50,7 @@ impl Server {
     /// Spawn `cmd` with piped stdout/stderr, immediately handing both to
     /// dedicated reader threads so the child never blocks on a full pipe.
     fn spawn(mut cmd: Command) -> Self {
-        let mut child = cmd
+        let mut child = own_process_group(&mut cmd)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -70,17 +72,24 @@ impl Server {
         }
     }
 
-    /// Kill the server and return everything captured. Joining the reader
+    /// Stop the server and return everything captured. Joining the reader
     /// threads (rather than sleeping a guessed amount) blocks exactly until
     /// each has drained its pipe to EOF, which follows promptly once `wait()`
     /// confirms the process has exited and closed its ends.
-    fn finish(mut self) -> String {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+    ///
+    /// Returns the log, plus what the server left behind when it exited on its
+    /// own after SIGTERM: browsers still running for `profile_root` (they are
+    /// killed afterwards either way). `None` means it ignored SIGTERM.
+    fn finish(mut self, profile_root: &std::path::Path) -> (Option<Vec<String>>, String) {
+        let leftovers = terminate(&mut self.child, Duration::from_secs(10))
+            .then(|| leftover_browsers(profile_root));
+        kill_group(&mut self.child);
+        kill_browsers(profile_root);
         for r in self.readers.drain(..) {
             let _ = r.join();
         }
-        self.log.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        let log = self.log.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        (leftovers, log)
     }
 }
 
@@ -129,9 +138,9 @@ fn run_sb(args: &[&str], config_home: &std::path::Path) -> (i32, String, String)
 
 #[test]
 fn runtime_api_serves_two_spaces_from_isolated_chrome() {
-    if !chrome_available_or_skip("runtime_multi_e2e") {
+    let Some(chrome) = test_chrome_or_skip("runtime_multi_e2e") else {
         return;
-    }
+    };
     let Some(server) = server_bin_or_skip() else {
         return;
     };
@@ -164,6 +173,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         .env("SB_RUNTIME_API", "0")
         .env("RUST_LOG", "info")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .env("SB_CHROME_PATH", &chrome)
         .env("SB_CHROME_DATA_DIR", &chrome_data);
     let server_proc = Server::spawn(cmd);
 
@@ -288,7 +298,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
             }
             last = format!("code={code} stdout={stdout:?} stderr={stderr:?}");
             if Instant::now() >= deadline {
-                let log = server_proc.finish();
+                let (_, log) = server_proc.finish(&chrome_data);
                 panic!(
                     "space at {url:?} never returned {expected:?}\nlast: {last}\n\
                      --- server log ---\n{log}"
@@ -298,7 +308,16 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         }
     }
 
-    let log = server_proc.finish();
+    // Stop the server before asserting on its Chrome: a server that leaves its
+    // browsers running after SIGTERM leaks them in production too.
+    let (leftovers, log) = server_proc.finish(&chrome_data);
+    let leftovers =
+        leftovers.unwrap_or_else(|| panic!("server ignored SIGTERM\n--- server log ---\n{log}"));
+    assert!(
+        leftovers.is_empty(),
+        "Chrome outlived the server:\n{}\n--- server log ---\n{log}",
+        leftovers.join("\n")
+    );
     let launches = log.matches("launching isolated headless Chrome").count();
     assert_eq!(
         launches, 2,

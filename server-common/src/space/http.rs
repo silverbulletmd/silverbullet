@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
 use crate::reconcile::{ReconcileRequest, ReconcileResponse};
-use crate::revision::{etag_for_hash, hash_from_etag};
+use crate::revision::{etag_for_hash, hash_from_etag, CONTENT_REVISION_HEADER};
 use crate::space::conditional::{ConditionalSpacePrimitives, WritePrecondition};
 use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
 
@@ -247,7 +247,8 @@ impl HttpSpacePrimitives {
 
     fn hash_from_response(headers: &reqwest::header::HeaderMap) -> Option<String> {
         headers
-            .get(reqwest::header::ETAG)
+            .get(CONTENT_REVISION_HEADER)
+            .or_else(|| headers.get(reqwest::header::ETAG))
             .and_then(|v| v.to_str().ok())
             .and_then(hash_from_etag)
     }
@@ -644,6 +645,29 @@ impl HttpSpacePrimitives {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn dedicated_revision_takes_precedence_over_proxy_etag() {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert("ETag", "W/\"sha256:proxy\"".parse().unwrap());
+        headers.insert(
+            "X-SilverBullet-Revision",
+            "\"sha256:original\"".parse().unwrap(),
+        );
+        assert_eq!(
+            super::HttpSpacePrimitives::hash_from_response(&headers).as_deref(),
+            Some("original")
+        );
+        headers.insert(
+            "X-SilverBullet-Revision",
+            "W/\"sha256:invalid\"".parse().unwrap(),
+        );
+        headers.insert("ETag", "\"sha256:valid\"".parse().unwrap());
+        assert_eq!(
+            super::HttpSpacePrimitives::hash_from_response(&headers),
+            None
+        );
+    }
+
     use super::*;
     use std::io::{Read, Write};
 

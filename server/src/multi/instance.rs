@@ -1208,6 +1208,10 @@ mod tests {
             .client_bundle
             .write_file(".client/index.html", b"<html></html>", None)
             .unwrap();
+        state
+            .space
+            .write_file("SomePage.md", b"Published page", None)
+            .unwrap();
         let response = crate::build_router(state)
             .oneshot(
                 Request::builder()

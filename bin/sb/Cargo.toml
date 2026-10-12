@@ -33,8 +33,8 @@ similar = "3"
 serde_json = { workspace = true }
 
 [dev-dependencies]
-# Only for `find_chrome()`, so the runtime e2e test skips cleanly on machines
-# without a browser instead of failing.
+# Only for `is_system_browser()`, which the runtime e2e test uses to refuse a
+# system Chrome (see `bin/silverbullet/tests/common/mod.rs`).
 silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }
 # `cookies` is declared here rather than relied on from workspace feature
 # unification: `bin/silverbullet` enables it, which is enough for a whole-

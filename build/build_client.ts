@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 import * as sass from "sass";
@@ -6,6 +6,9 @@ import * as sass from "sass";
 import { patchBundledJS } from "../client/plugos/plug_compile.ts";
 
 export async function buildClient(): Promise<void> {
+  // esbuild never prunes its outdir: without this, every build's content-hashed
+  // chunks pile up, get embedded in the binary and precached by the service worker.
+  await rm("client_bundle/client", { recursive: true, force: true });
   await mkdir("client_bundle/client", { recursive: true });
   await mkdir("client_bundle/base_fs", { recursive: true });
 

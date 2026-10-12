@@ -1879,5 +1879,8 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
   if (isTaggedFloat(value)) {
     return value.value;
   }
+  if (isSqlNull(value)) {
+    return null;
+  }
   return value;
 }

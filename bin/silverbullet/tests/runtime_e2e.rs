@@ -2,39 +2,55 @@
 //!
 //! Spawns the compiled `silverbullet` binary as a subprocess (so killing the
 //! child cleanly tears down the embedded Chrome), boots it with the runtime
-//! enabled, and drives `/.runtime/*` over HTTP. Gated on Chrome being available
-//! so machines without Chrome skip it cleanly — except under `CI`, where a
-//! missing browser fails the test instead (see
-//! `common::chrome_available_or_skip`).
+//! enabled, and drives `/.runtime/*` over HTTP. Gated on an explicit
+//! `SB_CHROME_PATH`/`CHROMIUM_PATH` so machines without one skip cleanly —
+//! except under `CI`, where a missing browser fails the test instead (see
+//! `common::test_chrome_or_skip`). Each test ends by stopping the server with
+//! SIGTERM and failing if any of its browsers outlived it.
 
 use std::io::Read;
+use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
-/// Wraps the spawned server process and kills it (plus its Chrome child) on drop,
-/// so the server never leaks even if an assertion panics.
+/// Wraps the spawned server process and stops it (plus its Chrome processes)
+/// on drop, so the server never leaks even if an assertion panics.
 struct Server(Child);
 
 impl Server {
+    /// Spawn the server in its own process group, pinned to the test browser.
+    fn spawn(cmd: &mut Command, chrome: &str) -> Self {
+        let child = own_process_group(cmd)
+            .env("SB_CHROME_PATH", chrome)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("spawn silverbullet");
+        Server(child)
+    }
+
     fn stop(&mut self) {
-        if self.0.try_wait().ok().flatten().is_some() {
-            return;
-        }
-        #[cfg(unix)]
-        {
-            let _ = Command::new("kill")
-                .args(["-TERM", &self.0.id().to_string()])
-                .status();
-            let deadline = Instant::now() + Duration::from_secs(5);
-            while Instant::now() < deadline {
-                if self.0.try_wait().ok().flatten().is_some() {
-                    return;
-                }
-                std::thread::sleep(Duration::from_millis(50));
-            }
-        }
-        let _ = self.0.kill();
-        let _ = self.0.wait();
+        stop_server(&mut self.0);
+    }
+
+    /// Shut the server down with SIGTERM and fail if it ignored the signal or
+    /// left browsers running for `profile_root`: in production that browser
+    /// would outlive the server too.
+    fn finish(mut self, profile_root: &Path) {
+        let exited = terminate(&mut self.0, Duration::from_secs(10));
+        let leftovers = if exited {
+            leftover_browsers(profile_root)
+        } else {
+            Vec::new()
+        };
+        kill_group(&mut self.0);
+        kill_browsers(profile_root);
+        assert!(exited, "server ignored SIGTERM");
+        assert!(
+            leftovers.is_empty(),
+            "Chrome outlived the server:\n{}",
+            leftovers.join("\n")
+        );
     }
 }
 
@@ -45,7 +61,10 @@ impl Drop for Server {
 }
 
 mod common;
-use common::{chrome_available_or_skip, free_port};
+use common::{
+    free_port, kill_browsers, kill_group, leftover_browsers, own_process_group, stop_server,
+    terminate, test_chrome_or_skip,
+};
 
 /// Poll `cond` until it returns true or the deadline passes. On timeout, dump the
 /// server's captured stdout/stderr and panic with `msg`.
@@ -89,9 +108,9 @@ fn png_size(bytes: &[u8]) -> (u32, u32) {
 
 #[test]
 fn runtime_api_evaluates_lua_against_headless_chrome() {
-    if !chrome_available_or_skip("runtime_e2e") {
+    let Some(chrome) = test_chrome_or_skip("runtime_e2e") else {
         return;
-    }
+    };
 
     let space = tempfile::tempdir().unwrap();
     let long_page: String = (1..=200).map(|i| format!("Line {i}\n\n")).collect();
@@ -99,20 +118,16 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
     let chrome_data = space.path().join(".chrome-data");
     let port = free_port();
 
-    let child = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
-        .arg(space.path())
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(space.path())
         .arg("-p")
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
         .arg("--single")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
-        .env("SB_CHROME_DATA_DIR", &chrome_data)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("spawn silverbullet");
-    let mut server = Server(child);
+        .env("SB_CHROME_DATA_DIR", &chrome_data);
+    let mut server = Server::spawn(&mut cmd, &chrome);
 
     let base = format!("http://127.0.0.1:{port}");
     let http = reqwest::blocking::Client::builder()
@@ -226,14 +241,216 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
         assert_eq!(v["code"], code);
     }
 
-    drop(server);
+    server.finish(&chrome_data);
+}
+
+/// The client can reload its own UI (`editor.reloadUI()`, e.g. via Toggle Dark
+/// Mode). The reloaded page lost the `?headless` query the first boot saw, and
+/// the supervisor used to keep reporting ready, so every later call failed with
+/// a bare "Uncaught" until the server restarted.
+#[test]
+fn runtime_api_survives_the_client_reloading_its_ui() {
+    let Some(chrome) = test_chrome_or_skip("runtime_reload_e2e") else {
+        return;
+    };
+
+    let space = tempfile::tempdir().unwrap();
+    std::fs::write(space.path().join("index.md"), "hello\n").unwrap();
+    let chrome_data = space.path().join(".chrome-data");
+    let port = free_port();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(space.path())
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .arg("--single")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .env("SB_CHROME_DATA_DIR", &chrome_data);
+    let mut server = Server::spawn(&mut cmd, &chrome);
+    let base = format!("http://127.0.0.1:{port}");
+    let http = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap();
+    wait_until(
+        Duration::from_secs(45),
+        || {
+            http.post(format!("{base}/.runtime/lua"))
+                .body("1")
+                .send()
+                .is_ok_and(|r| r.status().is_success())
+        },
+        &mut server,
+        "runtime never became ready",
+    );
+
+    let lua = |endpoint: &str, code: &str| -> (u16, String) {
+        let resp = http
+            .post(format!("{base}/.runtime/{endpoint}"))
+            .body(code.to_string())
+            .send()
+            .unwrap();
+        (resp.status().as_u16(), resp.text().unwrap_or_default())
+    };
+
+    for reload in [
+        r#"editor.invokeCommand("Editor: Toggle Dark Mode")"#,
+        "editor.reloadUI()",
+    ] {
+        lua("lua_script", reload);
+        // Straight after the reload, without waiting: the call must wait for
+        // the new client rather than fail against a page without a bridge.
+        let (status, body) = lua("lua", "1 + 1");
+        if status != 200 {
+            dump_and_panic(
+                &mut server,
+                &format!("after `{reload}`: /.runtime/lua returned {status}: {body}"),
+            );
+        }
+        let v: serde_json::Value = serde_json::from_str(body.trim()).unwrap();
+        assert_eq!(v, serde_json::json!({ "result": 2 }), "after `{reload}`");
+    }
+
+    // Client errors carry their message, not V8's bare "Uncaught" framing.
+    let (status, body) = lua("lua_script", r#"error("boom")"#);
+    assert_ne!(status, 200);
+    assert!(body.contains("boom"), "{status}: {body}");
+
+    server.finish(&chrome_data);
+}
+
+/// Query results cross CDP by value, which rejects the SLIQ null sentinel and
+/// silently turns functions and Dates into `{}`. Playwright's own serializer
+/// tolerates both, so only a test through the HTTP runtime endpoint catches it.
+#[test]
+fn runtime_api_returns_plain_json_for_query_rows_and_lua_values() {
+    let Some(chrome) = test_chrome_or_skip("runtime_json_e2e") else {
+        return;
+    };
+
+    let space = tempfile::tempdir().unwrap();
+    let books = space.path().join("Books");
+    std::fs::create_dir(&books).unwrap();
+    std::fs::write(
+        books.join("Alpha.md"),
+        "---\ntags: book\nauthor: A. Writer\nrating: 4\n---\n# Alpha\n",
+    )
+    .unwrap();
+    std::fs::write(
+        books.join("Beta.md"),
+        "---\ntags: book\nauthor: B. Writer\n---\n# Beta\n",
+    )
+    .unwrap();
+    let chrome_data = space.path().join(".chrome-data");
+    let port = free_port();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(space.path())
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .arg("--single")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .env("SB_CHROME_DATA_DIR", &chrome_data);
+    let mut server = Server::spawn(&mut cmd, &chrome);
+    let base = format!("http://127.0.0.1:{port}");
+    let http = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .unwrap();
+    wait_until(
+        Duration::from_secs(45),
+        || {
+            http.post(format!("{base}/.runtime/lua"))
+                .body("1")
+                .send()
+                .is_ok_and(|r| r.status().is_success())
+        },
+        &mut server,
+        "runtime never became ready",
+    );
+
+    let script = |code: &str| -> (u16, serde_json::Value) {
+        let resp = http
+            .post(format!("{base}/.runtime/lua_script"))
+            .body(code.to_string())
+            .send()
+            .unwrap();
+        let status = resp.status().as_u16();
+        let body = resp.text().unwrap();
+        let v = serde_json::from_str(body.trim())
+            .unwrap_or_else(|_| serde_json::Value::String(body.clone()));
+        (status, v)
+    };
+
+    let (status, v) = script(
+        r#"return query[[from p = index.pages("book") order by p.name select {name=p.name, rating=p.rating}]]"#,
+    );
+    assert_eq!(
+        (status, v),
+        (
+            200,
+            serde_json::json!({ "result": [
+                { "name": "Books/Alpha", "rating": 4 },
+                { "name": "Books/Beta", "rating": null },
+            ]})
+        )
+    );
+
+    // A query collection is materialized into its rows, also when nested.
+    let names = |rows: &serde_json::Value| -> Vec<String> {
+        let mut names: Vec<String> = rows
+            .as_array()
+            .unwrap_or_else(|| panic!("expected rows, got {rows}"))
+            .iter()
+            .map(|r| r["name"].as_str().unwrap().to_string())
+            .collect();
+        names.sort();
+        names
+    };
+    let (status, v) = script(r#"return index.pages("book")"#);
+    assert_eq!(status, 200, "{v}");
+    assert_eq!(names(&v["result"]), ["Books/Alpha", "Books/Beta"], "{v}");
+    let alpha = v["result"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["name"] == "Books/Alpha")
+        .unwrap();
+    assert_eq!(alpha["author"], "A. Writer", "{v}");
+    let (status, v) = script(r#"return {pages = index.pages("book")}"#);
+    assert_eq!(status, 200, "{v}");
+    assert_eq!(
+        names(&v["result"]["pages"]),
+        ["Books/Alpha", "Books/Beta"],
+        "{v}"
+    );
+
+    let (status, v) = script(
+        r#"return {f = print, d = js.new(js.window.Date, 0), n = 0/0, big = js.window.BigInt(10)}"#,
+    );
+    assert_eq!(
+        (status, v),
+        (
+            200,
+            serde_json::json!({ "result": {
+                "f": "<function>",
+                "d": "1970-01-01T00:00:00.000Z",
+                "n": "NaN",
+                "big": 10,
+            }})
+        )
+    );
+
+    server.finish(&chrome_data);
 }
 
 #[test]
 fn host_bound_runtime_boots_core_and_reads_its_space() {
-    if !chrome_available_or_skip("host_bound_runtime_e2e") {
+    let Some(chrome) = test_chrome_or_skip("host_bound_runtime_e2e") else {
         return;
-    }
+    };
     let root = tempfile::tempdir().unwrap();
     let users = silverbullet_server::multi::users::UserStore::create_empty(root.path()).unwrap();
     users
@@ -246,20 +463,17 @@ fn host_bound_runtime_boots_core_and_reads_its_space() {
     std::fs::write(root.path().join("spaces.json"), serde_json::json!({
         "host-smoke": {"name": "Notes", "folder": "notes", "binding": {"host": "notes.example.test", "prefix": "/work"}, "indexPage": "Welcome"}
     }).to_string()).unwrap();
+    let chrome_data = root.path().join("chrome-data");
     let port = free_port();
-    let child = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
-        .arg(root.path())
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(root.path())
         .arg("-p")
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
-        .env("SB_CHROME_DATA_DIR", root.path().join("chrome-data"))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let mut server = Server(child);
+        .env("SB_CHROME_DATA_DIR", &chrome_data);
+    let mut server = Server::spawn(&mut cmd, &chrome);
     let base = format!("http://127.0.0.1:{port}");
     let http = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(15))
@@ -309,5 +523,30 @@ fn host_bound_runtime_boots_core_and_reads_its_space() {
         response.status().is_success(),
         "runtime shutdown: {}",
         response.status()
+    );
+    server.finish(&chrome_data);
+}
+
+#[test]
+fn test_browser_must_be_explicit_and_not_the_system_chrome() {
+    use common::resolve_test_chrome;
+    let shell = "/opt/browsers/chrome-headless-shell-mac-arm64/chrome-headless-shell";
+    let system = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+
+    assert!(resolve_test_chrome(None, None, false).is_err());
+    assert!(resolve_test_chrome(None, None, true).is_err());
+    assert_eq!(
+        resolve_test_chrome(Some(shell.into()), Some(system.into()), false).as_deref(),
+        Ok(shell)
+    );
+    assert_eq!(
+        resolve_test_chrome(None, Some(shell.into()), false).as_deref(),
+        Ok(shell)
+    );
+    let refused = resolve_test_chrome(Some(system.into()), None, false).unwrap_err();
+    assert!(refused.contains("SB_TEST_ALLOW_SYSTEM_CHROME"), "{refused}");
+    assert_eq!(
+        resolve_test_chrome(Some(system.into()), None, true).as_deref(),
+        Ok(system)
     );
 }

@@ -41,39 +41,173 @@ pub fn free_port() -> u16 {
     panic!("no unused port found after 100 attempts");
 }
 
-/// Guard for the headless-Chrome runtime e2e tests: `true` when the server
-/// they spawn will be able to find a browser, `false` when the test should skip.
-///
-/// The precedence deliberately mirrors `ChromeConfig::from_env` —
-/// `SB_CHROME_PATH`, then `CHROMIUM_PATH`, then auto-detection — because that is
-/// what the *spawned server* uses. A guard that consults only `find_chrome()`
-/// answers a different question: it would skip on a machine where
-/// `CHROMIUM_PATH` points at a perfectly good browser (Playwright installs into
-/// `~/.cache/ms-playwright/…`, which `find_chrome` does not probe), so pointing
-/// CI at Playwright's chromium would not actually stop these tests skipping.
-///
-/// And in CI a skip is fatal, not a courtesy: `release` and `docker` gate on
-/// this job, so a run that skips its way to green would ship code that nothing
-/// exercised. Locally, skipping is still the right behaviour — not every
-/// developer has Chrome.
-///
-/// Not used by every test binary that includes this module, hence the `allow`.
+/// Opt-in for running the runtime e2e tests against a browser installed for
+/// everyday use (see [`test_chrome_or_skip`]).
 #[allow(dead_code)]
-pub fn chrome_available_or_skip(test_name: &str) -> bool {
+pub const ALLOW_SYSTEM_CHROME: &str = "SB_TEST_ALLOW_SYSTEM_CHROME";
+
+/// Browser for the headless-Chrome runtime e2e tests, or `None` when the test
+/// should skip. Pass the result to the spawned server as `SB_CHROME_PATH`.
+///
+/// Only an explicit `SB_CHROME_PATH` (then `CHROMIUM_PATH`) counts: the tests
+/// never fall back to auto-detection, which on a developer's Mac finds
+/// `/Applications/Google Chrome.app`. A headless instance of that bundle that
+/// outlives its test takes over the developer's real Chrome, so such paths are
+/// refused too unless `SB_TEST_ALLOW_SYSTEM_CHROME=1`. Point the variable at a
+/// `chrome-headless-shell` instead.
+///
+/// In CI a skip is fatal, not a courtesy: `release` and `docker` gate on this
+/// job, so a run that skips its way to green would ship code that nothing
+/// exercised. Locally, skipping is the right behaviour.
+#[allow(dead_code)]
+pub fn test_chrome_or_skip(test_name: &str) -> Option<String> {
     let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
-    if env("SB_CHROME_PATH").is_some()
-        || env("CHROMIUM_PATH").is_some()
-        || silverbullet_server_runtime_chrome::find_chrome().is_some()
+    let allow_system = env(ALLOW_SYSTEM_CHROME).as_deref() == Some("1");
+    match resolve_test_chrome(env("SB_CHROME_PATH"), env("CHROMIUM_PATH"), allow_system) {
+        Ok(path) => Some(path),
+        Err(reason) => {
+            if std::env::var("CI").is_ok() {
+                panic!(
+                    "{test_name}: {reason}. Refusing to skip in CI: this job gates the release \
+                     and docker publishes, so a skipped run would ship untested code."
+                );
+            }
+            eprintln!("skipping {test_name}: {reason}");
+            None
+        }
+    }
+}
+
+/// Pure policy behind [`test_chrome_or_skip`].
+#[allow(dead_code)]
+pub fn resolve_test_chrome(
+    sb_chrome_path: Option<String>,
+    chromium_path: Option<String>,
+    allow_system: bool,
+) -> Result<String, String> {
+    let Some(path) = sb_chrome_path.or(chromium_path) else {
+        return Err(
+            "SB_CHROME_PATH/CHROMIUM_PATH not set (tests never auto-detect a \
+                    browser; point SB_CHROME_PATH at a chrome-headless-shell)"
+                .into(),
+        );
+    };
+    if !allow_system && silverbullet_server_runtime_chrome::is_system_browser(&path) {
+        return Err(format!(
+            "refusing system browser {path:?}: a leftover headless instance of it would take \
+             over your own Chrome. Use a chrome-headless-shell, or set \
+             {ALLOW_SYSTEM_CHROME}=1 to override"
+        ));
+    }
+    Ok(path)
+}
+
+/// Put the server in its own process group, so [`stop_server`] can reach the
+/// browser processes it spawned even if it dies without cleaning up.
+#[allow(dead_code)]
+pub fn own_process_group(cmd: &mut std::process::Command) -> &mut std::process::Command {
+    #[cfg(unix)]
     {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
+    cmd
+}
+
+/// Ask a server to shut down the way an operator would (SIGTERM) and wait up
+/// to `grace` for it to exit. Returns whether it exited.
+#[allow(dead_code)]
+pub fn terminate(child: &mut std::process::Child, grace: std::time::Duration) -> bool {
+    if child.try_wait().ok().flatten().is_some() {
         return true;
     }
-    if std::env::var("CI").is_ok() {
-        panic!(
-            "{test_name}: no Chrome/Chromium found — SB_CHROME_PATH, CHROMIUM_PATH and \
-             auto-detection all came up empty. Refusing to skip in CI: this job gates the \
-             release and docker publishes, so a skipped run would ship untested code."
-        );
+    #[cfg(unix)]
+    {
+        let _ = std::process::Command::new("kill")
+            .args(["-TERM", &child.id().to_string()])
+            .status();
+        let deadline = std::time::Instant::now() + grace;
+        while std::time::Instant::now() < deadline {
+            if child.try_wait().ok().flatten().is_some() {
+                return true;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
     }
-    eprintln!("skipping {test_name}: no Chrome/Chromium found on this machine");
     false
+}
+
+/// SIGKILL a server spawned with [`own_process_group`] together with
+/// everything left in its process group, then reap it.
+#[allow(dead_code)]
+pub fn kill_group(child: &mut std::process::Child) {
+    #[cfg(unix)]
+    {
+        let _ = std::process::Command::new("kill")
+            .args(["-KILL", "--", &format!("-{}", child.id())])
+            .stderr(std::process::Stdio::null())
+            .status();
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+/// [`terminate`], then [`kill_group`]: what a test's `Drop` should do so a
+/// panicking test still leaves no server or browser behind.
+#[allow(dead_code)]
+pub fn stop_server(child: &mut std::process::Child) {
+    terminate(child, std::time::Duration::from_secs(10));
+    kill_group(child);
+}
+
+/// PIDs and command lines of browser processes started with a profile under
+/// `profile_root` (the server's `SB_CHROME_DATA_DIR`). Unique per test, so
+/// browsers of concurrently running tests are never counted.
+#[allow(dead_code)]
+pub fn browsers_using(profile_root: &std::path::Path) -> Vec<(u32, String)> {
+    if !cfg!(unix) {
+        return Vec::new();
+    }
+    let Ok(out) = std::process::Command::new("ps")
+        .args(["-axww", "-o", "pid=,command="])
+        .output()
+    else {
+        return Vec::new();
+    };
+    let needle = format!("--user-data-dir={}", profile_root.display());
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|line| line.contains(&needle))
+        .filter_map(|line| {
+            let line = line.trim_start();
+            let (pid, command) = line.split_once(' ')?;
+            Some((pid.parse().ok()?, command.to_string()))
+        })
+        .collect()
+}
+
+/// Browser processes launched for `profile_root` that are still running once
+/// their server has exited, after giving them a few seconds to wind down.
+/// Formatted for a failure message; empty means nothing leaked.
+#[allow(dead_code)]
+pub fn leftover_browsers(profile_root: &std::path::Path) -> Vec<String> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let mut left = browsers_using(profile_root);
+    while !left.is_empty() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        left = browsers_using(profile_root);
+    }
+    left.iter()
+        .map(|(pid, command)| format!("{pid} {}", command.chars().take(160).collect::<String>()))
+        .collect()
+}
+
+/// Kill every browser process launched for `profile_root`.
+#[allow(dead_code)]
+pub fn kill_browsers(profile_root: &std::path::Path) {
+    for (pid, _) in browsers_using(profile_root) {
+        let _ = std::process::Command::new("kill")
+            .args(["-KILL", &pid.to_string()])
+            .status();
+    }
 }

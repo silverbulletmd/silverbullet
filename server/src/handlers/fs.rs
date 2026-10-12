@@ -7,7 +7,9 @@ use axum::response::{IntoResponse, Response};
 use silverbullet_server_common::reconcile::{
     ReconcileRequest, ReconcileResponse, ReconcileRevision,
 };
-use silverbullet_server_common::revision::{etag_for_hash, hash_from_etag, sha256_hex};
+use silverbullet_server_common::revision::{
+    etag_for_hash, hash_from_etag, sha256_hex, CONTENT_REVISION_HEADER,
+};
 use silverbullet_server_common::space::disk::{is_merge_eligible, MERGE_SIZE_LIMIT};
 use silverbullet_server_common::{FileMeta, SpaceError};
 use silverbullet_server_merge::{contains_conflict_markers, merge, MergeOutcome};
@@ -131,7 +133,9 @@ pub async fn handle_fs_get(
                     set_file_meta_headers(Response::builder().status(StatusCode::OK), &meta)
                         .header("Cache-Control", "no-store");
                 if let Some(hash) = hash {
-                    builder = builder.header(axum::http::header::ETAG, etag_for_hash(&hash));
+                    builder = builder
+                        .header(CONTENT_REVISION_HEADER, etag_for_hash(&hash))
+                        .header(axum::http::header::ETAG, etag_for_hash(&hash));
                 }
                 builder.body(Body::empty()).unwrap()
             }
@@ -139,12 +143,35 @@ pub async fn handle_fs_get(
         };
     }
 
+    // RFC 9110 §13.1.3: If-None-Match takes precedence and If-Modified-Since
+    // is then ignored. That matters here: Last-Modified has one-second
+    // resolution, so a write later in the same second still matches it.
+    let if_none_match = headers
+        .get(axum::http::header::IF_NONE_MATCH)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+    if let Some(inm) = &if_none_match {
+        let state_inner = state.clone();
+        let path_inner = path.clone();
+        if let Ok(Some(hash)) = run_blocking(move || {
+            let meta = state_inner.space.get_file_meta(&path_inner)?;
+            Ok::<_, SpaceError>(state_inner.fs_guard.cached_hash(&path_inner, &meta))
+        })
+        .await
+        {
+            if etag_list_matches(inm, &hash) {
+                return not_modified_by_etag(&hash);
+            }
+        }
+    }
+
     // Browsers echo Last-Modified in If-Modified-Since. A matching validator
     // allows a 304 after a metadata probe, avoiding a potentially large disk read.
     let if_modified_since = headers
         .get(axum::http::header::IF_MODIFIED_SINCE)
         .and_then(|v| v.to_str().ok())
-        .map(str::to_string);
+        .map(str::to_string)
+        .filter(|_| if_none_match.is_none());
     if let Some(ims) = if_modified_since {
         let state_inner = state.clone();
         let path_inner = path.clone();
@@ -193,6 +220,13 @@ pub async fn handle_fs_get(
     })
     .await
     {
+        Ok((_, _, hash))
+            if if_none_match
+                .as_deref()
+                .is_some_and(|inm| etag_list_matches(inm, &hash)) =>
+        {
+            not_modified_by_etag(&hash)
+        }
         Ok((data, mut meta, hash)) => {
             let real_content_type = meta.content_type.clone();
             if force_octet_stream {
@@ -211,6 +245,25 @@ pub async fn handle_fs_get(
         }
         Err(e) => space_error_response(e),
     }
+}
+
+/// Whether an `If-None-Match` list names the representation with `hash`.
+fn etag_list_matches(if_none_match: &str, hash: &str) -> bool {
+    let current = etag_for_hash(hash);
+    if_none_match
+        .split(',')
+        .map(str::trim)
+        .any(|tag| tag == "*" || tag.strip_prefix("W/").unwrap_or(tag) == current)
+}
+
+fn not_modified_by_etag(hash: &str) -> Response {
+    Response::builder()
+        .status(StatusCode::NOT_MODIFIED)
+        .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
+        .header(axum::http::header::ETAG, etag_for_hash(hash))
+        .header(axum::http::header::VARY, "Accept")
+        .body(Body::empty())
+        .unwrap()
 }
 
 pub async fn handle_fs_head(
@@ -421,7 +474,9 @@ fn file_response_builder(
         );
     }
     if let Some(hash) = hash {
-        builder = builder.header(axum::http::header::ETAG, etag_for_hash(hash));
+        builder = builder
+            .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
+            .header(axum::http::header::ETAG, etag_for_hash(hash));
     }
     let last_modified = http_date(meta.last_modified);
     if !last_modified.is_empty() {
@@ -509,7 +564,9 @@ fn precondition_failed_response(current: CurrentRevision) -> Response {
     if let Some((meta, hash)) = current {
         builder = set_file_meta_headers(builder, &meta);
         if let Some(hash) = hash {
-            builder = builder.header(axum::http::header::ETAG, etag_for_hash(&hash));
+            builder = builder
+                .header(CONTENT_REVISION_HEADER, etag_for_hash(&hash))
+                .header(axum::http::header::ETAG, etag_for_hash(&hash));
         }
     }
     builder
@@ -586,6 +643,7 @@ pub async fn handle_fs_put(
         Ok(Ok((result_meta, body_hash))) => {
             set_file_meta_headers(Response::builder().status(StatusCode::OK), &result_meta)
                 .header("Cache-Control", "no-store")
+                .header(CONTENT_REVISION_HEADER, etag_for_hash(&body_hash))
                 .header(axum::http::header::ETAG, etag_for_hash(&body_hash))
                 .body(Body::from("OK"))
                 .unwrap()
@@ -941,6 +999,7 @@ fn reconcile_response(resp: ReconcileResponse) -> Response {
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "application/json")
+        .header(CONTENT_REVISION_HEADER, etag_for_hash(&revision.hash))
         .header(axum::http::header::ETAG, etag_for_hash(&revision.hash))
         .header("Cache-Control", "no-store")
         .body(Body::from(json))
@@ -2047,6 +2106,84 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn if_none_match_takes_precedence_over_same_second_if_modified_since() {
+        // Last-Modified has one-second resolution, so a second write within the
+        // same second leaves If-Modified-Since matching. A browser revalidating
+        // its cached copy sends both validators; answering 304 from the date
+        // alone would hand it the superseded body.
+        let state = Arc::new(test_state());
+        let meta_at = |ms: i64| FileMeta {
+            name: "x.md".to_string(),
+            created: ms,
+            last_modified: ms,
+            content_type: "text/markdown".to_string(),
+            size: 0,
+            perm: "rw".to_string(),
+        };
+        state
+            .space
+            .write_file("x.md", b"first", Some(&meta_at(1_700_000_000_100)))
+            .unwrap();
+        let get = |headers: Vec<(&'static str, String)>| {
+            let mut req = Request::builder().uri("/.fs/x.md");
+            for (name, value) in headers {
+                req = req.header(name, value);
+            }
+            crate::build_router(state.clone()).oneshot(req.body(Body::empty()).unwrap())
+        };
+        let r1 = get(vec![]).await.unwrap();
+        let header = |name: &str| {
+            r1.headers()
+                .get(name)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string()
+        };
+        let (first_etag, last_modified) = (header("etag"), header("last-modified"));
+
+        state
+            .space
+            .write_file("x.md", b"second", Some(&meta_at(1_700_000_000_900)))
+            .unwrap();
+        let r2 = get(vec![
+            ("if-none-match", first_etag),
+            ("if-modified-since", last_modified.clone()),
+        ])
+        .await
+        .unwrap();
+        assert_eq!(r2.status(), StatusCode::OK);
+        let current_etag = r2
+            .headers()
+            .get("etag")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let body = axum::body::to_bytes(r2.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"second");
+
+        // A matching entity tag still revalidates without a body.
+        let r3 = get(vec![
+            ("if-none-match", current_etag.clone()),
+            ("if-modified-since", last_modified),
+        ])
+        .await
+        .unwrap();
+        assert_eq!(r3.status(), StatusCode::NOT_MODIFIED);
+        assert_eq!(
+            r3.headers().get("etag").unwrap().to_str().unwrap(),
+            current_etag
+        );
+        let body = axum::body::to_bytes(r3.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(body.is_empty());
+    }
+
+    #[tokio::test]
     async fn meta_probe_is_no_store_content_is_revalidatable() {
         // Regression guard: the empty-body X-Get-Meta probe and the full-body
         // content GET share the same URL. If the probe were cacheable, a browser
@@ -2305,6 +2442,10 @@ mod tests {
             get.headers().get("etag").unwrap().to_str().unwrap(),
             expected
         );
+        assert_eq!(
+            get.headers().get("X-SilverBullet-Revision").unwrap(),
+            expected.as_str()
+        );
 
         let probe = crate::build_router(state.clone())
             .oneshot(
@@ -2319,6 +2460,10 @@ mod tests {
         assert_eq!(
             probe.headers().get("etag").unwrap().to_str().unwrap(),
             expected
+        );
+        assert_eq!(
+            probe.headers().get("X-SilverBullet-Revision").unwrap(),
+            expected.as_str()
         );
     }
 
@@ -2342,6 +2487,10 @@ mod tests {
         assert_eq!(
             put.headers().get("etag").unwrap().to_str().unwrap(),
             expected
+        );
+        assert_eq!(
+            put.headers().get("X-SilverBullet-Revision").unwrap(),
+            expected.as_str()
         );
     }
 
@@ -2556,6 +2705,10 @@ mod tests {
         assert_eq!(
             stale.headers().get("etag").unwrap().to_str().unwrap(),
             etag_v2
+        );
+        assert_eq!(
+            stale.headers().get("X-SilverBullet-Revision").unwrap(),
+            etag_v2.as_str()
         );
         assert!(stale.headers().get("X-Last-Modified").is_some());
         let (data, _) = state.space.read_file("c.md").unwrap();

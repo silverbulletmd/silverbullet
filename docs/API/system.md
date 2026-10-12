@@ -145,7 +145,7 @@ Runs a command as if it had been picked from the command palette: records it as 
 
 `system.reboot()`
 
-Saves the current editor buffer, detects on-disk changes, waits for indexing, and reloads configuration, scripts, styles, and client state. Because the buffer is saved first, an external edit to the currently open page can be overwritten; edit that page through the editor or navigate away first.
+Saves the current editor buffer, detects on-disk changes, waits for indexing, and reloads configuration, scripts, styles, and client state. An external edit to the currently open page is never overwritten: an unmodified buffer reloads it, and unsaved edits are merged with it first.
 
 ## system.reloadConfig
 

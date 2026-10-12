@@ -134,9 +134,16 @@ fmt:
 	npx biome format --write .
 	cargo fmt --all
 
+# The runtime e2e tests only use an explicit SB_CHROME_PATH/CHROMIUM_PATH and
+# refuse a system Chrome (a leftover headless instance of the app bundle takes
+# over the developer's browser). Default to Playwright's chrome-headless-shell
+# (installed by `make setup`); without one those tests skip.
+PLAYWRIGHT_CACHE := $(or $(PLAYWRIGHT_BROWSERS_PATH),$(if $(filter Darwin,$(shell uname -s)),$(HOME)/Library/Caches/ms-playwright,$(HOME)/.cache/ms-playwright))
+SB_CHROME_PATH ?= $(lastword $(sort $(wildcard $(PLAYWRIGHT_CACHE)/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell)))
+
 test:
 	npx vitest run
-	cargo test --workspace --all-features
+	SB_CHROME_PATH="$(SB_CHROME_PATH)" cargo test --workspace --all-features
 
 test-e2e-oidc: build-e2e
 	npx playwright test --config=playwright.oidc.config.ts

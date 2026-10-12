@@ -21,7 +21,16 @@
         <meta content="no-referrer" name="referrer" />
 
         <title>{{ title }}</title>
-        <meta content=".client/logo.png" property="og:image" />
+        <meta content="{{ description }}" name="description" />
+        <meta content="{{ title }}" property="og:title" />
+        <meta content="{{ image }}" property="og:image" />
+        {% if canonical %}
+        <link href="{{ canonical }}" rel="canonical" />
+        <meta content="{{ canonical }}" property="og:url" />
+        {% endif %}
+        {% if noindex %}
+        <meta content="noindex, follow" name="robots" />
+        {% endif %}
         <meta content="{{ description }}" property="og:description" />
 
         <link href=".client/main.css" rel="stylesheet" />

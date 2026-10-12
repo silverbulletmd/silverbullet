@@ -422,6 +422,9 @@ export class ClientSystem {
     await this.loadLuaScripts();
     await restoreDocks();
     await this.client.loadCustomStyles();
+    // Prewarmed widget results hold values (and closures) from the previous
+    // Lua environment; drop them so rebuilt widgets bind to the new one.
+    this.client.widgetCache.clearPrewarm();
     this.client.rebuildEditorState();
   }
 }

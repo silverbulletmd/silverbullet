@@ -21,12 +21,24 @@ type DataObject = ObjectValue<
   } & Record<string, any>
 >;
 
+export function splitYamlDocuments(
+  text: string,
+): { text: string; offset: number }[] {
+  const docs: { text: string; offset: number }[] = [];
+  let start = 0;
+  for (const m of text.matchAll(/^---[ \t]*$/gm)) {
+    docs.push({ text: text.slice(start, m.index), offset: start });
+    start = m.index + m[0].length;
+  }
+  docs.push({ text: text.slice(start), offset: start });
+  return docs;
+}
+
 export function indexData(
   pageMeta: PageMeta,
   frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
-  const separator = "---";
   const dataObjects: ObjectValue<DataObject>[] = [];
   const tagObjects: Map<string, ObjectValue<TagObject>> = new Map();
 
@@ -48,15 +60,12 @@ export function indexData(
     const dataType = fenceType === "data" ? "data" : fenceType.substring(1);
     try {
       const codeFrom = codeTextNode.from!;
-      const docs = codeText.split(separator);
-      let cursor = 0;
       // We support multiple YAML documents in one block
-      for (let i = 0; i < docs.length; i++) {
-        const docStart = codeFrom + cursor;
-        const docEnd = docStart + docs[i].length;
-        const doc = YAML.load(docs[i]);
+      for (const part of splitYamlDocuments(codeText)) {
+        const docStart = codeFrom + part.offset;
+        const docEnd = docStart + part.text.length;
+        const doc = YAML.load(part.text);
         if (!doc) {
-          cursor += docs[i].length;
           continue;
         }
         // Extract $ref anchor from the YAML doc. Lint surfaces duplicate
@@ -83,7 +92,6 @@ export function indexData(
         };
         updateITags(dataObj, frontmatter);
         dataObjects.push(dataObj);
-        cursor += docs[i].length + separator.length;
       }
       const range = commentedRange(t);
       const existing = tagObjects.get(dataType);
@@ -97,8 +105,10 @@ export function indexData(
           ...(range ? { range } : {}),
         });
       }
-    } catch (e) {
-      console.error("Could not parse data", codeText, "error:", e);
+    } catch (e: any) {
+      console.error(
+        `Could not parse data block (${fenceType}) on ${pageMeta.name}: ${e?.message ?? String(e)}`,
+      );
       return;
     }
   });

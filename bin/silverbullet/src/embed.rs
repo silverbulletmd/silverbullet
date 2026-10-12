@@ -6,15 +6,21 @@ use std::marker::PhantomData;
 use rust_embed::RustEmbed;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 
+// Source maps outweigh the code they describe, so release binaries leave them
+// out. Debug builds read these folders from disk, maps included, so DevTools
+// keeps them in development.
+
 /// The built client web UI (`client_bundle/client`), served at the SPA fallback.
 #[derive(RustEmbed)]
 #[folder = "$CARGO_MANIFEST_DIR/../../client_bundle/client"]
+#[cfg_attr(not(debug_assertions), exclude = "*.map")]
 pub struct ClientAssets;
 
 /// The bundled default space content (`client_bundle/base_fs`) — a read-only
 /// underlay beneath the user's disk files.
 #[derive(RustEmbed)]
 #[folder = "$CARGO_MANIFEST_DIR/../../client_bundle/base_fs"]
+#[cfg_attr(not(debug_assertions), exclude = "*.map")]
 pub struct BaseFsAssets;
 
 /// A read-only `SpacePrimitives` over a `rust-embed` asset set.
@@ -121,5 +127,13 @@ mod tests {
     fn file_list_is_nonempty() {
         let space = EmbeddedSpace::<ClientAssets>::new();
         assert!(!space.fetch_file_list().unwrap().is_empty());
+    }
+
+    #[test]
+    #[cfg_attr(debug_assertions, ignore = "debug builds read the bundle from disk")]
+    fn release_bundles_leave_out_source_maps() {
+        assert!(ClientAssets::iter().all(|p| !p.ends_with(".map")));
+        assert!(BaseFsAssets::iter().all(|p| !p.ends_with(".map")));
+        assert!(ClientAssets::get(".client/client.js").is_some());
     }
 }

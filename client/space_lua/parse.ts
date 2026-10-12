@@ -28,6 +28,7 @@ import type {
 } from "./ast.ts";
 import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
 import { LuaAttribute } from "./ast.ts";
+import { syntaxHint } from "./error_hints.ts";
 import { getBlockGotoMeta } from "./labels.ts";
 import { LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 
@@ -1810,7 +1811,7 @@ export function parseToAST(t: string): ParseTree {
 
   const errNode = findFirstParseError(tree.topNode);
   if (errNode) {
-    const err = new Error(luaUnexpectedSymbolMessage(t, errNode.from));
+    const err = new Error(luaUnexpectedSymbolMessage(t, errNode));
     (err as any).astCtx = { from: errNode.from, to: errNode.to };
     throw err;
   }
@@ -1850,11 +1851,13 @@ function findFirstParseError(node: SyntaxNode): SyntaxNode | null {
   return null;
 }
 
-function luaUnexpectedSymbolMessage(src: string, from: number): string {
-  let i = from;
+function luaUnexpectedSymbolMessage(src: string, errNode: SyntaxNode): string {
+  let i = errNode.from;
   while (i < src.length && /\s/.test(src[i])) i++;
   const sym = i < src.length ? src[i] : "?";
-  return `unexpected symbol near '${sym}'`;
+  const msg = `unexpected symbol near '${sym}'`;
+  const hint = syntaxHint(src, errNode, i);
+  return hint ? `${msg}; hint: ${hint}` : msg;
 }
 
 /**

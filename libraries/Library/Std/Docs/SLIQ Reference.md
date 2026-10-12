@@ -22,7 +22,7 @@ Type-specific helpers: `index.pages(tag?)`, `index.contentPages()`, `index.metaP
 `index.paragraphs(tag?)`, `index.tables(tag?)`; otherwise `index.objects("tag")`.
 
 Operators: ==, ~= (not equal), <, >, <=, >=, and, or, not
-String: s:startsWith("x"), s:endsWith("x"), s:contains("x")
+String: s:startsWith("x"), s:endsWith("x"), s:find("x", 1, true) (plain substring search; returns nil when absent)
 Tables: table.includes(t, val), table.select(t, "k1", "k2", ...)
 
 Grouping:

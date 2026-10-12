@@ -7,5 +7,5 @@ mod metrics;
 mod pool;
 mod supervisor;
 
-pub use config::{find_chrome, ChromeConfig, RuntimeUnavailable, SpacePage};
+pub use config::{find_chrome, is_system_browser, ChromeConfig, RuntimeUnavailable, SpacePage};
 pub use pool::{ChromePool, SharedChromeTransport};
