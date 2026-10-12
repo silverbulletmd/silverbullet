@@ -24,6 +24,7 @@ import {
   type LuaStackFrame,
   LuaTable,
   luaToString,
+  luaTypeName,
   luaValueToJS,
   singleResult,
 } from "../runtime.ts";
@@ -511,6 +512,16 @@ export const spaceluaApi = new LuaTable({
     callback: (sf, template: string, envAugmentation?: LuaTable | any) => {
       if (envAugmentation && !(envAugmentation instanceof LuaTable)) {
         envAugmentation = jsToLuaValue(envAugmentation);
+      }
+      if (envAugmentation != null && !(envAugmentation instanceof LuaTable)) {
+        const shown =
+          typeof envAugmentation === "string"
+            ? ` ${JSON.stringify(envAugmentation.trim().slice(0, 40))}`
+            : "";
+        throw new LuaRuntimeError(
+          `expected a table of template values, got ${luaTypeName(envAugmentation)}${shown}`,
+          sf,
+        );
       }
       return interpolateLuaString(sf, template, envAugmentation);
     },

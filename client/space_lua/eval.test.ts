@@ -633,6 +633,18 @@ test("Thread local _CTX - advanced cases", async () => {
       sf,
     ),
   ).toEqual(`Some JSON {"name":"Pete"}!`);
+
+  // A rendered string passed where template values are expected
+  await expect(
+    (async () =>
+      await evalExpr(
+        `spacelua.interpolate('* [[\${name}]]', '* [[ADR]]')`,
+        env,
+        sf,
+      ))(),
+  ).rejects.toThrow(
+    'expected a table of template values, got string "* [[ADR]]"',
+  );
 });
 
 test("Length: rawlen ignores __len", async () => {
