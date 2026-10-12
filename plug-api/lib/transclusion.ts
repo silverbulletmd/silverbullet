@@ -28,43 +28,44 @@ export type Transclusion = {
  * Can be parsed from the alias using {@link parseDimensionFromAlias}
  */
 export type ContentDimensions = {
-  width?: number;
+  width?: number | `${number}%`;
   height?: number;
 };
 
 /**
  * Parse an alias, possibly containing dimensions into an object
- * @example "alias", "alias|100", "alias|100x200", "100", "100x200"
+ * @example "alias", "alias|100", "alias|100x200", "100", "100x200", "30%", "alias|12.5%x200"
  */
 export function parseDimensionFromAlias(text: string): {
   alias: string;
   dimension?: ContentDimensions;
 } {
-  let alias: string;
+  let alias = text;
+  let dimPart: string | undefined;
   let dim: ContentDimensions | undefined;
   if (text.includes("|")) {
-    const [aliasPart, dimPart] = text.split("|");
-    alias = aliasPart;
+    [alias, dimPart] = text.split("|");
+  } else if (/^[x\d]|^\.\d+%/.test(text)) {
+    dimPart = text;
+    alias = "";
+  }
+
+  if (dimPart !== undefined) {
     const [width, height] = dimPart.split("x");
     dim = {};
     if (width) {
-      dim.width = parseInt(width, 10);
+      if (width.includes("%")) {
+        if (/^(?:\d+(?:\.\d+)?|\.\d+)%$/.test(width)) {
+          dim.width = width as `${number}%`;
+        }
+      } else {
+        dim.width = parseInt(width, 10);
+      }
     }
-    if (height) {
-      dim.height = parseInt(height, 10);
+    if (height && !height.includes("%")) {
+      const pixels = parseInt(height, 10);
+      if (!Number.isNaN(pixels)) dim.height = pixels;
     }
-  } else if (/^[x\d]/.test(text)) {
-    const [width, height] = text.split("x");
-    dim = {};
-    if (width) {
-      dim.width = parseInt(width, 10);
-    }
-    if (height) {
-      dim.height = parseInt(height, 10);
-    }
-    alias = "";
-  } else {
-    alias = text;
   }
 
   return { alias, dimension: dim };

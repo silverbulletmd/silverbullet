@@ -19,6 +19,22 @@ import {
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 
 test.each([
+  ["![[image.png|30%]]", "30%", undefined],
+  ["![Sample|12.5%](image.png)", "12.5%", undefined],
+  ["![[image.png|30%x200]]", "30%", "200px"],
+])("media transclusion %s applies CSS dimensions", (text, width, height) => {
+  vi.stubGlobal("document", mediaTestDocument());
+  try {
+    const element = createMediaElement(parseTransclusion(text)!)!;
+    expect(element.style.width).toBe(width);
+    expect(element.style.height).toBe(height);
+    expect(element.style.maxWidth).toBe("100%");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test.each([
   ["clip.mp3", "AUDIO"],
   ["movie.mp4", "VIDEO"],
   ["drawing.svg", "IMG"],

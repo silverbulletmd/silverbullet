@@ -41,3 +41,7 @@ In addition, media can be _sized_ using the following syntax:
 * Specifying only a width: `![Alt text|300](image.png)` or `![[image.png|300]]`
 * Specifying only a height: `![Alt text|x300](image.png)` or `![[image.png|x300]]`
 * Specifying both width and height: `![Hello|300x300](image.png)` or `![[image.png|300x300]]`
+* Specifying a percentage width: `![Alt text|30%](image.png)` or `![[image.png|30%]]`
+* Combining a percentage width with a pixel height: `![Alt text|30%x200](image.png)` or `![[image.png|30%x200]]`
+
+Numeric dimensions are in pixels. Percentage widths are relative to the containing content area and resize with it, rather than being a percentage of the image's original size. Decimal percentages such as `12.5%` are supported. Specifying only a width preserves the image's proportions; specifying both dimensions can stretch it. Height must be in pixels; percentage heights are not supported.

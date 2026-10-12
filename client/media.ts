@@ -72,7 +72,11 @@ export function createMediaElement({
   }
   element.title = title;
   element.style.maxWidth = "100%";
-  if (dimensions?.width) element.style.width = `${dimensions.width}px`;
+  if (dimensions?.width)
+    element.style.width =
+      typeof dimensions.width === "number"
+        ? `${dimensions.width}px`
+        : dimensions.width;
   if (dimensions?.height) element.style.height = `${dimensions.height}px`;
   return element;
 }

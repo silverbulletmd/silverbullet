@@ -1,11 +1,41 @@
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import {
+  parseDimensionFromAlias,
   parseTransclusion,
   resolveTransclusionUrl,
   type Transclusion,
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { expect, test } from "vitest";
+
+test.each([
+  ["30%", "", { width: "30%" }],
+  ["Sample|12.5%", "Sample", { width: "12.5%" }],
+  [".5%", "", { width: ".5%" }],
+  ["30%x200", "", { width: "30%", height: 200 }],
+  ["Sample|30%x200", "Sample", { width: "30%", height: 200 }],
+  ["300", "", { width: 300 }],
+  ["x200", "", { height: 200 }],
+  ["Sample|300x200", "Sample", { width: 300, height: 200 }],
+])("parses media dimensions in %s", (text, alias, dimension) => {
+  expect(parseDimensionFromAlias(text)).toEqual({ alias, dimension });
+});
+
+test.each(["30%extra", "30%%", "-30%", "x30%", "Sample|x30%"])(
+  "does not interpret unsupported percentages in %s as pixels",
+  (text) => {
+    const { dimension } = parseDimensionFromAlias(text);
+    expect(dimension?.width).toBeUndefined();
+    expect(dimension?.height).toBeUndefined();
+  },
+);
+
+test.each(["![[image.png|30%]]", "![Sample|30%](image.png)"])(
+  "preserves percentage widths in %s",
+  (text) => {
+    expect(parseTransclusion(text)?.dimension).toEqual({ width: "30%" });
+  },
+);
 
 function index(...paths: string[]): BasenameIndex {
   const idx = new BasenameIndex();

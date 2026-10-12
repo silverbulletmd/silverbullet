@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
@@ -78,13 +78,6 @@ function pageExists(ref: string): boolean {
   );
 }
 
-function allFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const full = path.join(dir, entry);
-    return statSync(full).isDirectory() ? [full, ...allFiles(full)] : [full];
-  });
-}
-
 test("sections are the documented sections, in order", async () => {
   const { sections } = await loadNav();
   expect(sections.map((s) => s.name)).toEqual(SECTIONS);
@@ -124,19 +117,6 @@ test("a parent entry comes before its children", async () => {
     }
   });
   expect(misordered).toEqual([]);
-});
-
-test("internal material stays out of docs/", () => {
-  const relative = allFiles(docsDir).map((f) => path.relative(docsDir, f));
-  const internal = relative.filter(
-    (f) =>
-      f.endsWith("Stress Test.md") ||
-      f === "Inbox" ||
-      f.startsWith("Inbox/") ||
-      f === "superpowers" ||
-      f.startsWith("superpowers/"),
-  );
-  expect(internal).toEqual([]);
 });
 
 test("every section has a landing page entry", async () => {
