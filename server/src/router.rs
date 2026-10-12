@@ -225,9 +225,22 @@ async fn count_requests(
     next.run(req).await
 }
 
+async fn refuse_hidden_fs_paths(
+    axum::extract::Path(path): axum::extract::Path<String>,
+    req: Request,
+    next: Next,
+) -> Response {
+    // Use the handler's decoded path; encoded separators must not hide components.
+    if path.split(['/', '\\']).any(|part| part.starts_with('.')) {
+        return axum::http::StatusCode::NOT_FOUND.into_response();
+    }
+    next.run(req).await
+}
+
 /// Build the HTTP router for the file/config/bundle endpoints. Protected routes
 /// require authorization when an authorizer is configured.
 pub fn build_router(state: Arc<ServerState>) -> Router {
+    // x-content-length must retain the uncompressed file size.
     let fs_compression = CompressionLayer::new().compress_when(DefaultPredicate::new().and(
         |status: axum::http::StatusCode,
          _version: axum::http::Version,
@@ -236,19 +249,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             status != axum::http::StatusCode::PARTIAL_CONTENT
         },
     ));
-    let protected = Router::new()
-        .route("/.config", get(control::handle_config))
-        .route("/.client/manifest.json", get(control::handle_manifest))
-        .route("/.accounts", get(accounts::handle_accounts))
-        // x-content-length must retain the uncompressed file size.
-        .route(
-            "/.fs",
-            get(fs::handle_fs_list).layer(CompressionLayer::new()),
-        )
-        .route(
-            "/.fs/",
-            get(fs::handle_fs_list).layer(CompressionLayer::new()),
-        )
+    let fs_files = Router::new()
         .route(
             "/.fs/{*path}",
             get(fs::handle_fs_get)
@@ -261,6 +262,20 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             "/.fs/{*path}",
             post(fs::handle_fs_reconcile).layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
         )
+        .route_layer(middleware::from_fn(refuse_hidden_fs_paths));
+    let protected = Router::new()
+        .route("/.config", get(control::handle_config))
+        .route("/.client/manifest.json", get(control::handle_manifest))
+        .route("/.accounts", get(accounts::handle_accounts))
+        .route(
+            "/.fs",
+            get(fs::handle_fs_list).layer(CompressionLayer::new()),
+        )
+        .route(
+            "/.fs/",
+            get(fs::handle_fs_list).layer(CompressionLayer::new()),
+        )
+        .merge(fs_files)
         .route("/.events", get(crate::handlers::events::handle_events))
         .route(
             "/.revisions/_sync",
@@ -415,6 +430,139 @@ mod auth_tests {
     async fn no_authorizer_leaves_protected_routes_open() {
         let st = state_with(None);
         assert_eq!(status(st, "/.config").await, StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn fs_hidden_paths_are_inaccessible_and_cannot_be_mutated() {
+        use silverbullet_server_common::space::DiskSpacePrimitives;
+
+        let dir = tempfile::tempdir().unwrap();
+        let mut state = test_state();
+        state.space = Box::new(DiskSpacePrimitives::new(dir.path(), "").unwrap());
+        for path in [
+            ".git/config",
+            ".gitattributes",
+            "folder/.hidden/note.md",
+            "folder/.hidden.md",
+        ] {
+            state.space.write_file(path, b"private", None).unwrap();
+        }
+        let router = crate::build_router(Arc::new(state));
+        for path in [
+            ".git/config",
+            ".gitattributes",
+            "folder/.hidden/note.md",
+            "folder/.hidden.md",
+            "%2egit/config",
+            ".git%2fconfig",
+            "folder%2f%2ehidden%2fnote.md",
+            "folder%5c.hidden%5cnote.md",
+            ".new.md",
+            "folder/.new/note.md",
+            "./.git/config",
+            "folder/../.git/config",
+        ] {
+            for method in [
+                Method::GET,
+                Method::HEAD,
+                Method::PUT,
+                Method::DELETE,
+                Method::POST,
+            ] {
+                let response = router
+                    .clone()
+                    .oneshot(
+                        Request::builder()
+                            .method(method.clone())
+                            .uri(format!("/.fs/{path}"))
+                            .body(Body::from("replacement"))
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), StatusCode::NOT_FOUND, "{method} {path}");
+            }
+            for header in ["X-Get-Meta", "Range"] {
+                let response = router
+                    .clone()
+                    .oneshot(
+                        Request::builder()
+                            .uri(format!("/.fs/{path}"))
+                            .header(
+                                header,
+                                if header == "Range" {
+                                    "bytes=0-2"
+                                } else {
+                                    "cheap"
+                                },
+                            )
+                            .body(Body::empty())
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), StatusCode::NOT_FOUND, "{header} {path}");
+            }
+        }
+        for path in [
+            ".git/config",
+            ".gitattributes",
+            "folder/.hidden/note.md",
+            "folder/.hidden.md",
+        ] {
+            assert_eq!(std::fs::read(dir.path().join(path)).unwrap(), b"private");
+        }
+        assert!(!dir.path().join(".new.md").exists());
+        assert!(!dir.path().join("folder/.new").exists());
+    }
+
+    #[tokio::test]
+    async fn fs_visible_paths_allow_dots_and_decode_only_once() {
+        let state = test_state();
+        for path in ["folder/note.md", "version.2/note.md", "%2ehidden.md"] {
+            state.space.write_file(path, b"visible", None).unwrap();
+        }
+        let router = crate::build_router(Arc::new(state));
+        for path in ["folder/note.md", "version.2/note.md", "%252ehidden.md"] {
+            let response = router
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri(format!("/.fs/{path}"))
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{path}");
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            assert_eq!(&body[..], b"visible");
+        }
+    }
+
+    #[tokio::test]
+    async fn hidden_fs_guard_does_not_block_client_bundle_assets() {
+        let state = test_state();
+        state
+            .client_bundle
+            .write_file(".client/sample.js", b"bundle", None)
+            .unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.client/sample.js")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"bundle");
     }
 
     #[tokio::test]
