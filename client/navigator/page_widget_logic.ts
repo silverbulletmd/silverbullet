@@ -1,5 +1,8 @@
 import type { WidgetObject } from "../codemirror/widgets/widget_body.ts";
 import { isDomNode } from "../lib/dom.ts";
+import type { EventInterest } from "../event_interest.ts";
+import type { Tracker } from "../space_lua/dependencies.ts";
+import { expandRefreshTriggers } from "./refresh_triggers.ts";
 import type { ContentResult } from "./registry.ts";
 import type { Row, ViewMeta } from "./types.ts";
 import { isViewValue } from "./view_value.ts";
@@ -13,7 +16,7 @@ import { isViewValue } from "./view_value.ts";
  * function component cannot be mounted there.
  */
 
-const REFRESH_DEBOUNCE_MS = 300;
+export const REFRESH_DEBOUNCE_MS = 300;
 
 type EventHook = {
   addLocalListener(name: string, callback: (...args: any[]) => any): void;
@@ -42,6 +45,71 @@ export function subscribeRefresh(
     clearTimeout(timer);
     for (const name of names) eventHook.removeLocalListener(name, onEvent);
   };
+}
+
+/**
+ * A view's refresh subscription: its `refreshOn` plus whatever its latest
+ * load read. Each load re-subscribes, so dropped reads stop refreshing it.
+ */
+export class TrackedRefresh {
+  private release = () => {};
+  private timer?: ReturnType<typeof setTimeout>;
+  private current = 0;
+
+  constructor(
+    private readonly interest: EventInterest,
+    private readonly base: string[],
+    private readonly run: () => void,
+  ) {
+    this.subscribe([]);
+  }
+
+  /** Starts a load; the latest started load's reads win. */
+  begin(): { track: Tracker; done: () => void } {
+    const id = ++this.current;
+    const reads = new Set<string>();
+    // Held as read, so a change before the load finishes isn't lost
+    const holds: Array<() => void> = [];
+    let missed = false;
+    return {
+      track: (event) => {
+        if (reads.has(event) || id !== this.current) return;
+        reads.add(event);
+        holds.push(
+          this.interest.listen(expandRefreshTriggers([event]), () => {
+            missed = true;
+          }),
+        );
+      },
+      done: () => {
+        if (id === this.current) {
+          this.subscribe([...reads]);
+          if (missed) this.schedule();
+        }
+        for (const release of holds.splice(0)) release();
+      },
+    };
+  }
+
+  dispose(): void {
+    this.current++;
+    clearTimeout(this.timer);
+    this.release();
+    this.release = () => {};
+  }
+
+  private subscribe(reads: string[]): void {
+    this.release();
+    this.release = this.interest.listen(
+      expandRefreshTriggers([...this.base, ...reads]),
+      () => this.schedule(),
+    );
+  }
+
+  private schedule(): void {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(this.run, REFRESH_DEBOUNCE_MS);
+  }
 }
 
 /** The view's own render cap, and what it left out. */

@@ -25,6 +25,7 @@ import type {
 import type { Client } from "../../client.ts";
 import { parseAssignmentDirective } from "../../space_lua/assignment_directive.ts";
 import { fsEndpoint } from "../../spaces/constants.ts";
+import { fileChangedEvent } from "../../space_lua/dependencies.ts";
 import type { SysCallMapping } from "../system.ts";
 import { lintPages, type SpaceLintDiagnostic } from "../../space_lint.ts";
 import {
@@ -189,16 +190,19 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       ],
     },
     "space.listPages": {
+      dependsOn: () => ["index"],
       callback: (): Promise<PageMeta[]> => client.space.fetchPageList(),
       description: "Lists all pages in the space.",
     },
     "space.readPage": {
+      dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: async (_ctx, name: string): Promise<string> =>
         (await client.space.readPage(name)).text,
       description: "Reads a page and returns its Markdown text.",
       signatures: ["space.readPage(name)"],
     },
     "space.readPageWithMeta": {
+      dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: (
         _ctx,
         name: string,
@@ -209,6 +213,10 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.readPageWithMeta(name)"],
     },
     "space.readRef": {
+      dependsOn: (ref: string | Ref) => {
+        const path = typeof ref === "string" ? parseToRef(ref)?.path : ref.path;
+        return path ? [fileChangedEvent(path)] : ["index"];
+      },
       callback: async (_ctx, ref: string | Ref): Promise<string> => {
         if (typeof ref === "string") {
           ref = parseToRef(ref)!;
@@ -223,12 +231,14 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.readRef(ref)"],
     },
     "space.pageExists": {
+      dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: (_ctx, name: string): boolean =>
         resolvePath(`${name}.md`, "", client.clientSystem.allKnownFiles).exists,
       description: "Checks whether a page exists in the space.",
       signatures: ["space.pageExists(name)"],
     },
     "space.getPageMeta": {
+      dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: (_ctx, name: string): Promise<PageMeta> =>
         client.space.getPageMeta(name),
       description: "Returns metadata for a page.",
@@ -239,17 +249,20 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       description: "Lists all plug files in the space.",
     },
     "space.listDocuments": {
+      dependsOn: () => ["index"],
       callback: async (): Promise<DocumentMeta[]> =>
         await client.space.fetchDocumentList(),
       description: "Lists all non-page documents in the space.",
     },
     "space.readDocument": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (_ctx, name: string): Promise<Uint8Array> =>
         (await client.space.readDocument(name)).data,
       description: "Reads a document as binary data.",
       signatures: ["space.readDocument(name)"],
     },
     "space.getDocumentMeta": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (_ctx, name: string): Promise<DocumentMeta> =>
         await client.space.getDocumentMeta(name),
       description: "Returns metadata for a document.",
@@ -257,12 +270,14 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
     },
     // DEPRECATED, please use document versions instead, left here for backwards compatibility
     "space.listAttachments": {
+      dependsOn: () => ["index"],
       callback: async (): Promise<DocumentMeta[]> =>
         await client.space.fetchDocumentList(),
       description: "Deprecated alias for space.listDocuments.",
       deprecated: "Use space.listDocuments instead.",
     },
     "space.readAttachment": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (_ctx, name: string): Promise<Uint8Array> =>
         (await client.space.readDocument(name)).data,
       description: "Deprecated alias for space.readDocument.",
@@ -270,6 +285,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.readAttachment(name)"],
     },
     "space.getAttachmentMeta": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (_ctx, name: string): Promise<DocumentMeta> =>
         await client.space.getDocumentMeta(name),
       description: "Deprecated alias for space.getDocumentMeta.",
@@ -277,23 +293,27 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.getAttachmentMeta(name)"],
     },
     "space.listFiles": {
+      dependsOn: () => ["index"],
       callback: (): Promise<FileMeta[]> =>
         client.space.spacePrimitives.fetchFileList(),
       description: "Lists every file in the space.",
     },
     "space.getFileMeta": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: (_ctx, name: string): Promise<FileMeta> =>
         client.space.spacePrimitives.getFileMeta(name),
       description: "Returns metadata for an arbitrary space file.",
       signatures: ["space.getFileMeta(name)"],
     },
     "space.readFile": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (_ctx, name: string): Promise<Uint8Array> =>
         (await client.space.spacePrimitives.readFile(name)).data,
       description: "Reads an arbitrary space file as binary data.",
       signatures: ["space.readFile(name)"],
     },
     "space.readFileWithMeta": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (
         _ctx,
         name: string,
@@ -330,6 +350,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.lookupPaths(paths)"],
     },
     "space.fileExists": {
+      dependsOn: (name: string) => [fileChangedEvent(name)],
       callback: async (_ctx, name: string): Promise<boolean> => {
         // If a full sync has successfully completed (so we know what files exist)
         // and we have a snapshot, let's use the snapshot

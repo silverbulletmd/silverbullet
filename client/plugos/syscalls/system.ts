@@ -129,7 +129,13 @@ export function systemSyscalls(
         const syscalls: SyscallMeta[] = [];
         for (const [name, info] of client.clientSystem.system
           .registeredSyscalls) {
-          const { callback, requiredPermissions, ...metadata } = info;
+          // Functions can't cross to plug workers
+          const {
+            callback,
+            requiredPermissions,
+            dependsOn: _dependsOn,
+            ...metadata
+          } = info;
           syscalls.push({
             name,
             requiredPermissions,

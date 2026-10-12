@@ -186,22 +186,6 @@ Looks up, for each path, whether it exists exactly and which files share its bas
 
 Checks whether a page exists in the space.
 
-## space.pageVars
-
-`space.pageVars(page)`
-
-Returns a read-only table of the variables a page defines with `page-lua` blocks and `${name = expr}` assignments.
-
-**Parameters:**
-
-- `page` — Page name.
-
-**Example:**
-
-```lua
-space.pageVars("Budget").salary
-```
-
 ## space.readAttachment
 
 `space.readAttachment(name)`

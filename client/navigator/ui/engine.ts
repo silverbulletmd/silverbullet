@@ -59,6 +59,8 @@ export type ViewState = {
   ctx?: SourceCtx;
   loadToken?: number;
   builtin?: boolean;
+  // What the latest load's rows or content read: refresh on them too
+  tracked?: string[];
 };
 
 export type RankedRow = { row: Row; score: number };
@@ -234,16 +236,19 @@ export class NavigatorEngine {
       ctx = { ...ctx, dock: this.slot };
       entry.ctx = ctx;
       entry.loadToken = token;
+      const reads = new Set<string>();
+      const track = (event: string) => reads.add(event);
       if (entry.meta.hasContent) {
         let result: ContentResult;
         try {
           result = normalizeContent(
-            await this.handle(entry.meta.name, "content", { ctx }),
+            await this.handle(entry.meta.name, "content", { ctx, track }),
           );
         } catch (e: any) {
           result = { error: e?.message ?? String(e) };
         }
         if (entry.loadToken !== token) return false;
+        entry.tracked = [...reads];
         entry.error = result.error;
         entry.rows = [];
         if (result.error === undefined) entry.contentValue = result.value;
@@ -252,13 +257,17 @@ export class NavigatorEngine {
       let rows: Row[] = [];
       let error: string | undefined;
       try {
-        const result = await this.handle(entry.meta.name, "rows", { ctx });
+        const result = await this.handle(entry.meta.name, "rows", {
+          ctx,
+          track,
+        });
         rows = Array.isArray(result) ? result : [];
         error = result?.error;
       } catch (e: any) {
         error = e?.message ?? String(e);
       }
       if (entry.loadToken !== token) return false;
+      entry.tracked = [...reads];
       entry.error = error;
       // A failed load keeps its previous rows rather than clearing them — a phrase that breaks the source must not replace what's already on screen.
       if (error !== undefined) return true;

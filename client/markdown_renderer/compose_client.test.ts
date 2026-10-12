@@ -167,3 +167,14 @@ test("Bake refuses a Lua error or timeout", async () => {
     false,
   );
 });
+
+test("the sandbox host is keyed by its content", () => {
+  const host = renderHostForClient(sandboxClient(0), { sandboxKey: "k" });
+  const a = host.createSandbox!({ html: "<p>x</p>", script: "s" } as any);
+  const b = host.createSandbox!({ html: "<p>x</p>", script: "s" } as any);
+  const c = host.createSandbox!({ html: "<p>y</p>", script: "s" } as any);
+  const d = host.createSandbox!({ html: "<p>x</p>", script: "t" } as any);
+  expect(a.dataset.sandboxContent).toBe(b.dataset.sandboxContent);
+  expect(a.dataset.sandboxContent).not.toBe(c.dataset.sandboxContent);
+  expect(a.dataset.sandboxContent).not.toBe(d.dataset.sandboxContent);
+});

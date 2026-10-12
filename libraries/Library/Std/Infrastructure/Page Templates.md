@@ -201,7 +201,6 @@ navigator.define {
   name = "std.pageTemplates",
   title = "Page templates",
   dock = "modal",
-  refreshOn = { "index" },
   presentation = {
     mode = "list",
     row = {

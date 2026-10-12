@@ -7,22 +7,25 @@ import type { SyscallDefinition } from "../plugos/system.ts";
 
 function envWithPageVars(scopes: PageScopes, spaceEnv: LuaEnv) {
   const cb = (
-    pageVarsSyscalls(scopes)["lua:space.pageVars"] as SyscallDefinition
+    pageVarsSyscalls(scopes, {
+      currentPage: () => undefined,
+      editPage: async () => {},
+    })["lua:pageVars.get"] as SyscallDefinition
   ).callback;
   const space = new LuaTable();
   void space.rawSet(
-    "pageVars",
+    "get",
     new LuaBuiltinFunction({ callback: (sf, page) => cb({ sf }, page) }),
   );
-  spaceEnv.setLocal("space", space);
+  spaceEnv.setLocal("pageVars", space);
 }
 
 test("definitions can read other pages and cycles are reported", async () => {
   const spaceEnv = new LuaEnv(luaBuildStandardEnv());
   const pages: Record<string, string> = {
     Budget: "${salary = 500}",
-    Forecast: '${next = space.pageVars("Budget").salary * 2}',
-    Loop: '${y = 1} ${x = space.pageVars("Loop").y}',
+    Forecast: '${next = pageVars.get("Budget").salary * 2}',
+    Loop: '${y = 1} ${x = pageVars.get("Loop").y}',
   };
   const scopes = new PageScopes({
     readPageText: async (n) => (n in pages ? pages[n] : null),

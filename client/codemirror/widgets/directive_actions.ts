@@ -6,10 +6,8 @@ import {
   type RenderContext,
 } from "../../markdown_renderer/compose.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
-import type { ValuePlan } from "../../markdown_renderer/value_plan.ts";
 import { activeWidgets } from "./code_widget.ts";
 import { directiveAt } from "./directive_at.ts";
-import { makeLiveSource, makeStaticSource } from "./live_rewrite.ts";
 
 export type DirectiveTarget = {
   from: number;
@@ -18,8 +16,6 @@ export type DirectiveTarget = {
   // Set for a `${name = expr}` definition
   assignmentName?: string;
 };
-
-export type LiveToggle = "makeLive" | "makeStatic";
 
 export function directiveCacheKey(
   expr: string,
@@ -39,26 +35,6 @@ export function directiveAtWidget(
   // end of one right before it
   const found = directiveAt(view.state, view.posAtDOM(dom, 0) + 1);
   return found?.expr === expr ? found : undefined;
-}
-
-/**
- * Which live toggle a `${…}` offers. A top-level `widget.live(…)` call can be
- * made static. Without render information (the palette) anything else can be
- * made live; with it, values already live through a nested `widget.live`,
- * views and sandboxes can't.
- */
-export function liveToggle(
-  expr: string,
-  render?: { live: boolean; kind: ValuePlan["kind"] },
-): LiveToggle | undefined {
-  if (makeStaticSource(expr) !== undefined) return "makeStatic";
-  if (
-    render &&
-    (render.live || render.kind === "view" || render.kind === "sandbox")
-  ) {
-    return undefined;
-  }
-  return "makeLive";
 }
 
 function refuseReadOnly(client: Client): boolean {
@@ -109,31 +85,6 @@ export async function bakeDirective(
     return;
   }
   replace(client, target, bakedRegionText(target.expr, result.markdown));
-}
-
-export function setDirectiveLive(
-  client: Client,
-  target: DirectiveTarget,
-  toggle: LiveToggle,
-): void {
-  if (refuseReadOnly(client)) return;
-  if (toggle === "makeLive" && refuseAssignment(client, target, "made live")) {
-    return;
-  }
-  const unwrapped = makeStaticSource(target.expr);
-  if (toggle === "makeStatic") {
-    if (unwrapped === undefined) {
-      client.ui.flashNotification("This widget isn't live", "error");
-      return;
-    }
-    replace(client, target, `\${${unwrapped}}`);
-    return;
-  }
-  if (unwrapped !== undefined) {
-    client.ui.flashNotification("This widget is already live", "error");
-    return;
-  }
-  replace(client, target, `\${${makeLiveSource(target.expr)}}`);
 }
 
 /** Re-runs every rendered copy of `expr` on the open page. */

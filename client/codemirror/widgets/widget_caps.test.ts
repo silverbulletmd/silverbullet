@@ -8,7 +8,7 @@ const shown: ShownValue = {
   copyable: true,
   luaError: false,
 };
-const env = { readOnly: false, expr: "q()" };
+const env = { readOnly: false };
 const ref = { path: "Library/Sketch.md" } as Ref;
 
 test("a ${…} directive offers everything", () => {
@@ -16,10 +16,8 @@ test("a ${…} directive offers everything", () => {
     definition: false,
     open: false,
     edit: true,
-    live: undefined,
     copy: true,
     bake: true,
-    toggleLive: "makeLive",
   });
 });
 
@@ -29,14 +27,12 @@ test("read-only keeps Copy and drops editing", () => {
     readOnly: true,
   });
   expect(caps).toMatchObject({ edit: false, copy: true, bake: false });
-  expect(caps.toggleLive).toBeUndefined();
 });
 
 test("each host's own rules", () => {
   expect(widgetCaps({ kind: "code", codeText: "x" }, shown, env)).toMatchObject(
     {
       bake: false,
-      toggleLive: undefined,
       edit: true,
     },
   );
@@ -59,22 +55,8 @@ test("each host's own rules", () => {
   ).toMatchObject({ definition: true, edit: false });
 });
 
-test("a live value, a nested-live value, an error, a view", () => {
+test("an error, a view", () => {
   const d = { kind: "directive" as const, wrappers: [] };
-  expect(
-    widgetCaps(
-      d,
-      { ...shown, live: ["edit"] },
-      { ...env, expr: 'widget.live(q(), { "edit" })' },
-    ),
-  ).toMatchObject({ live: ["edit"], toggleLive: "makeStatic" });
-  expect(
-    widgetCaps(
-      d,
-      { ...shown, live: ["index"] },
-      { ...env, expr: "{ widget.live(q()), 1 }" },
-    ).toggleLive,
-  ).toBeUndefined();
   expect(widgetCaps(d, { ...shown, luaError: true }, env)).toMatchObject({
     copy: true,
     bake: false,
@@ -89,7 +71,6 @@ test("a live value, a nested-live value, an error, a view", () => {
   expect(widgetCaps(d, view(true), env)).toMatchObject({
     copy: true,
     bake: false,
-    toggleLive: undefined,
   });
   expect(widgetCaps(d, view(false), env)).toMatchObject({
     copy: false,

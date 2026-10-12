@@ -7,7 +7,7 @@ import { slotMarker } from "./slots.ts";
 import { planValue as planWith } from "./value_plan.ts";
 
 const env = new LuaEnv();
-const planValue = (v: unknown) => planWith(v, () => {}, env);
+const planValue = (v: unknown) => planWith(v, env);
 
 const btn = { _isWidget: true, html: "<button>b</button>" };
 
@@ -87,15 +87,6 @@ test("a string holding a rendered table is block content, like a query", () => {
   expect((planValue("<table><tr><td>x</td></tr></table>") as any).block).toBe(
     true,
   );
-});
-
-test("a live wrapper renders as its value", () => {
-  expect(
-    planValue({
-      _isWidget: true,
-      live: { value: "**x**", refreshOn: ["index"] },
-    }),
-  ).toEqual(planValue("**x**"));
 });
 
 test("a bare DOM node plans as html", () => {

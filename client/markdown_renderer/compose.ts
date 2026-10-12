@@ -22,10 +22,15 @@ import {
 } from "../space_lua/budget.ts";
 import { unescapeTableCellPipes } from "../space_lua/directive_scan.ts";
 import { parseAssignmentDirective } from "../space_lua/assignment_directive.ts";
+import {
+  type Tracker,
+  transclusionEvent,
+} from "../space_lua/dependencies.ts";
 import { evalExpression } from "../space_lua/eval.ts";
 import {
   assignmentRenderValue,
   type PageScope,
+  pageScopeChangedEvent,
   type PageScopes,
 } from "../space_lua/page_scope.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
@@ -97,10 +102,8 @@ export type RenderContext = {
   // "page" when the rendered text is `sourcePage`'s own source; nested
   // (Lua-generated) values are "transcluded"
   taskRefs: TaskRefs;
-  // Shared with child contexts
-  liveTriggers: Set<string>;
-  // Told each page whose scope the render read, so its host can refresh
-  onPageVarsRead?: (page: string) => void;
+  // Told what the render's evaluations read, so its host can refresh
+  track?: Tracker;
 };
 
 // The task-reference rule comes from the context, not the caller
@@ -147,8 +150,6 @@ export type RenderedValue = {
   chrome: WidgetChrome;
   // A widget rather than raw data: hosts drop an empty widget but show empty data
   fromWidget: boolean;
-  // Triggers of every widget.live rendered so far in this context
-  live?: string[];
 };
 
 export type WidgetChrome = {
@@ -191,7 +192,7 @@ export function createRenderContext(
     hostPage: { name: string };
     sourcePage?: string;
     taskRefs?: TaskRefs;
-    onPageVarsRead?: (page: string) => void;
+    track?: Tracker;
   },
 ): RenderContext {
   return {
@@ -209,8 +210,7 @@ export function createRenderContext(
     limiter: new ConcurrencyLimiter(DIRECTIVE_CONCURRENCY),
     usedNodes: new WeakSet(),
     taskRefs: opts.taskRefs ?? "transcluded",
-    liveTriggers: new Set(),
-    onPageVarsRead: opts.onPageVarsRead,
+    track: opts.track,
   };
 }
 
@@ -226,7 +226,7 @@ function childContext(ctx: RenderContext): RenderContext {
 
 async function pageScopeOf(ctx: RenderContext): Promise<PageScope | null> {
   const scope = await ctx.host.pageScopes.tryGet(ctx.sourcePage);
-  if (scope) ctx.onPageVarsRead?.(ctx.sourcePage);
+  if (scope) ctx.track?.(pageScopeChangedEvent(ctx.sourcePage));
   return scope;
 }
 
@@ -248,7 +248,7 @@ export function evalDirective(
         budget: ctx.budget,
         renderDepth: ctx.depth,
         parentEnv: scope?.env,
-        onPageVarsRead: ctx.onPageVarsRead,
+        track: ctx.track,
         stoppedMessage: () => {
           if (ctx.budgetReported.value) return STOPPED_MESSAGE;
           ctx.budgetReported.value = true;
@@ -308,6 +308,10 @@ export async function expandToSlots(
       taskRefs: ctx.taskRefs,
       syntaxExtensions: ctx.host.syntaxExtensions,
       resolveTransclusion: ctx.host.resolveTransclusion,
+      onTransclusionRead: (t) => {
+        const event = transclusionEvent(t.url);
+        if (event) ctx.track?.(event);
+      },
       luaDirectiveHandler: (directive, sourcePage, inTableCell) => {
         const id = slots.length;
         slots.push(undefined);
@@ -533,9 +537,6 @@ function nestingError(): string {
 function planAt(value: unknown, ctx: RenderContext): ValuePlan {
   return planValue(
     ctx.depth > MAX_RENDER_DEPTH ? nestingError() : value,
-    (refreshOn) => {
-      for (const t of refreshOn) ctx.liveTriggers.add(t);
-    },
     ctx.host.sle.env,
   );
 }
@@ -676,7 +677,7 @@ export async function renderValue(
   const plan = planAt(value, ctx);
   let out: Omit<
     RenderedValue,
-    "copyMarkdown" | "bakeable" | "copyable" | "chrome" | "fromWidget" | "live"
+    "copyMarkdown" | "bakeable" | "copyable" | "chrome" | "fromWidget"
   >;
   let rendered: RenderedText | undefined;
   switch (plan.kind) {
@@ -779,7 +780,6 @@ export async function renderValue(
     ...(await renderedCopy(plan, ctx, rendered)),
     chrome: chromeOf(plan),
     fromWidget: fromWidget(plan),
-    live: ctx.liveTriggers.size ? [...ctx.liveTriggers] : undefined,
   };
 }
 

@@ -3,7 +3,6 @@ import { evalExpression } from "./eval.ts";
 import {
   fragmentParts,
   isFragmentValue,
-  liveOf,
   makeFragment,
 } from "./fragment.ts";
 import { parseExpressionString } from "./parse.ts";
@@ -102,19 +101,4 @@ test("distinct queries keep separate widgets that serialise alike", async () => 
     LuaStackFrame.createWithGlobalEnv(env),
   );
   expect((result as LuaTable).length).toBe(2);
-});
-
-const live = (value: unknown, refreshOn = ["index"]) =>
-  new LuaTable({
-    _isWidget: true,
-    live: new LuaTable({ value, refreshOn: new LuaTable(refreshOn) }),
-  } as any);
-
-test("liveOf reads Lua and JS wrappers", () => {
-  expect(liveOf(live(3))).toEqual({ value: 3, refreshOn: ["index"] });
-  expect(
-    liveOf({ _isWidget: true, live: { value: 3, refreshOn: ["edit"] } }),
-  ).toEqual({ value: 3, refreshOn: ["edit"] });
-  expect(liveOf({ _isWidget: true, markdown: "x" })).toBeUndefined();
-  expect(liveOf(3)).toBeUndefined();
 });

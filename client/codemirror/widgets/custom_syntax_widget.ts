@@ -9,7 +9,12 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "../util.ts";
-import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
+import {
+  LuaWidget,
+  type LuaWidgetContent,
+  OccurrenceKeys,
+} from "./lua_widget.ts";
+import { callWithTracking } from "../../space_lua/runtime.ts";
 
 export type CustomSyntaxExtension = CustomSyntaxSpec & {
   // CSS class applied to the start delimiter in the editor
@@ -40,6 +45,7 @@ export type CustomSyntaxExtension = CustomSyntaxSpec & {
 export function customSyntaxPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
+    const keys = new OccurrenceKeys();
 
     if (!client.clientSystem.scriptsLoaded) {
       return Decoration.none;
@@ -103,11 +109,18 @@ export function customSyntaxPlugin(client: Client) {
             Decoration.widget({
               widget: new LuaWidget({
                 client,
-                cacheKey: `custom-syntax:${spec.name}:${bodyText}:${client.currentName()}`,
+                cacheKey: keys.key(
+                  `custom-syntax:${spec.name}:${bodyText}:${client.currentName()}`,
+                ),
                 expressionText: bodyText,
-                callback: async (body, pageName) => {
+                callback: async (body, pageName, track) => {
                   try {
-                    const result = await widgetRenderFn(body, pageName);
+                    const result = await callWithTracking(
+                      widgetRenderFn,
+                      track,
+                      body,
+                      pageName,
+                    );
                     if (
                       spec.renderClass &&
                       result &&

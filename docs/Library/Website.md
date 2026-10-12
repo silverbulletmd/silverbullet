@@ -332,7 +332,6 @@ view.define {
   supportedDocks = { "lhs", "rhs", "modal" },
   followEditor = true,
   placeholder = "Filter pages...",
-  refreshOn = { "index" },
   source = function()
     local pages = {}
     for _, page in ipairs(query[[from index.pages()]]) do

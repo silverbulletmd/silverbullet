@@ -7,9 +7,10 @@ references:
 ---
 Space Lua is a custom dialect and implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, but adds a few non-standard features while remaining syntactically compatible with “real” Lua.
 
-In its essence, Space Lua adds two features to SilverBullet’s [[Markdown]] language:
+In essence, Space Lua adds a few features to SilverBullet’s [[Markdown]] language:
 
 * [[#Definitions]]: Code written in `space-lua` code blocks are enabled across your entire space.
+* [[Space Lua/Page Lua]]: Code written in `page-lua` code blocks are enabled on the page they’re defined on.
 * [[#Expressions]]: The `${expression}` syntax will [[Live Preview]] to its evaluated value. It is common to use this mechanism to render custom [[API/widget|Widgets]].
 
 Have a look at [[Space Lua/Conventions]] for best practices around code style.

@@ -14,6 +14,7 @@ import {
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Client } from "../../../client.ts";
+import type { Tracker } from "../../../space_lua/dependencies.ts";
 import {
   activateOnKey,
   type ContentState,
@@ -22,7 +23,7 @@ import {
   createLoadGate,
   isRowActivation,
   settlesSlot,
-  subscribeRefresh,
+  TrackedRefresh,
   treeKeyAction,
   visibleRows,
   widgetKind,
@@ -45,6 +46,8 @@ export type DocumentDispatch = (
     obj?: Record<string, any>;
     objs?: Record<string, any>[];
     index?: number;
+    // Told what a rows or content load reads
+    track?: Tracker;
   },
 ) => Promise<any>;
 
@@ -136,9 +139,19 @@ function DocumentContent({
 
   useEffect(() => {
     let live = true;
+    const subscription = new TrackedRefresh(
+      client.eventInterest,
+      meta.refreshOn ?? [],
+      () => load(),
+    );
     const load = () => {
       const ticket = loading.begin();
-      void dispatch("content", { ctx: { phrase: "", dock } })
+      const reading = subscription.begin();
+      void dispatch("content", {
+        ctx: { phrase: "", dock },
+        track: reading.track,
+      })
+        .finally(reading.done)
         .then((raw) => {
           if (!live || !ticket.isCurrent()) return;
           const result = normalizeContent(raw);
@@ -156,15 +169,10 @@ function DocumentContent({
         .finally(ticket.finish);
     };
     load();
-    const unsubscribe = subscribeRefresh(
-      client.eventHook,
-      meta.refreshOn ?? [],
-      load,
-    );
     return () => {
       live = false;
       loading.cancel();
-      unsubscribe();
+      subscription.dispose();
     };
   }, [dispatch, dock, pageName]);
 
@@ -507,9 +515,19 @@ function DocumentRows({
     lifecycle.current++;
     actionPending.current = false;
     setActionsDisabled(false);
+    const subscription = new TrackedRefresh(
+      client.eventInterest,
+      meta.refreshOn ?? [],
+      () => void load(),
+    );
     const load = () => {
       const ticket = loading.begin();
-      return dispatch("rows", { ctx: { phrase: sourcePhrase, dock } })
+      const reading = subscription.begin();
+      return dispatch("rows", {
+        ctx: { phrase: sourcePhrase, dock },
+        track: reading.track,
+      })
+        .finally(reading.done)
         .then(async (result) => {
           if (!live || !ticket.isCurrent()) return;
           const loadError =
@@ -549,18 +567,13 @@ function DocumentRows({
     refresh.current = load;
     const timer = sourcePhrase ? setTimeout(() => void load(), 150) : undefined;
     if (!timer) void load();
-    const unsubscribe = subscribeRefresh(
-      client.eventHook,
-      meta.refreshOn ?? [],
-      () => void load(),
-    );
     return () => {
       live = false;
       lifecycle.current++;
       refresh.current = undefined;
       loading.cancel();
       if (timer) clearTimeout(timer);
-      unsubscribe();
+      subscription.dispose();
     };
   }, [dispatch, dock, pageName, loadRowState, sourcePhrase]);
 

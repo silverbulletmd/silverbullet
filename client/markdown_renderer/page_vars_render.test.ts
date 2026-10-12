@@ -78,7 +78,7 @@ test("evaluating an assignment's text yields its scope value", async () => {
   expect(await evalDirectiveText("increase + 1", ctx)).toBe(6);
 });
 
-test("rendering records the page scopes it read", async () => {
+test("rendering records the page scopes and transcluded files it read", async () => {
   const pages: Record<string, string> = {
     Budget: budget,
     Report: "![[Budget]] ${1 + 1}",
@@ -91,8 +91,10 @@ test("rendering records the page scopes it read", async () => {
   const read: string[] = [];
   const ctx = createRenderContext(testHost(t, { pageScopes: scopes }), {
     hostPage: { name: "Report" },
-    onPageVarsRead: (page) => read.push(page),
+    track: (event) => read.push(event),
   });
   await renderMarkdown(pages.Report, ctx);
-  expect(new Set(read)).toEqual(new Set(["Budget"]));
+  expect(new Set(read)).toEqual(
+    new Set(["file:changed:Budget.md", "pageScope:changed:Budget"]),
+  );
 });

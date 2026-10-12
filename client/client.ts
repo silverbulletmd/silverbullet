@@ -74,6 +74,7 @@ import {
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
+import { EventInterest } from "./event_interest.ts";
 import {
   fileListPollDue,
   REALTIME_HEALTH_TTL_MS,
@@ -165,6 +166,8 @@ const SYNC_PROGRESS_MESSAGES = new Set([
 
 export class Client {
   eventHook: EventHook;
+  // The event names rendered results depend on (see event_interest.ts)
+  eventInterest: EventInterest;
 
   space!: Space;
 
@@ -239,6 +242,7 @@ export class Client {
     readonly config: Config,
   ) {
     this.eventHook = new EventHook(this.config);
+    this.eventInterest = new EventInterest(this.eventHook);
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
     this.widgetsReady = new Promise<void>((resolve) => {
@@ -275,7 +279,7 @@ export class Client {
 
     this.mq = new DataStoreMQ(this.ds, this.eventHook);
 
-    this.widgetCache = new WidgetCache(this.ds);
+    this.widgetCache = new WidgetCache(this.ds, this.eventInterest);
     this.contentManager = new ContentManager(this);
     if (!(await waitForLogout())) {
       this.ds.kv.close();
@@ -303,6 +307,14 @@ export class Client {
     // so it reflects the now-indexed, transform-applied values. The
     // editor itself will be rebuilt by client_system's listener for
     // the same event; we don't need to dispatch a fresh one here.
+    // Results of expressions an edit removed must not linger until the next
+    // page switch
+    let sweepTimer: ReturnType<typeof setTimeout> | undefined;
+    this.eventHook.addLocalListener("editor:pageModified", () => {
+      clearTimeout(sweepTimer);
+      sweepTimer = setTimeout(() => this.widgetCache.sweepPrewarm(), 1000);
+    });
+
     this.eventHook.addLocalListener("editor:reloadState", () => {
       this.fullIndexCompleted = true;
       if (!this.pageListLoaded) {

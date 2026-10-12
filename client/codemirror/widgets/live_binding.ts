@@ -1,45 +1,6 @@
-import { subscribeRefresh } from "../../navigator/page_widget_logic.ts";
+import type { EventInterest } from "../../event_interest.ts";
+import { REFRESH_DEBOUNCE_MS } from "../../navigator/page_widget_logic.ts";
 import { expandRefreshTriggers } from "../../navigator/refresh_triggers.ts";
-import type { EventHook } from "../../plugos/hooks/event.ts";
-
-type EventCounts = Map<string, number>;
-
-// One shared counting listener per event name, so a remounted live widget can
-// tell whether its cached result missed an event while it was unmounted.
-const counts = new WeakMap<EventHook, EventCounts>();
-
-function countsFor(hook: EventHook): EventCounts {
-  let c = counts.get(hook);
-  if (!c) {
-    c = new Map();
-    counts.set(hook, c);
-  }
-  return c;
-}
-
-/** Starts counting `names` (once per name). */
-function countEvents(hook: EventHook, names: string[]): void {
-  const c = countsFor(hook);
-  for (const name of names) {
-    if (c.has(name)) continue;
-    c.set(name, 0);
-    hook.addLocalListener(name, () => c.set(name, (c.get(name) ?? 0) + 1));
-  }
-}
-
-export function snapshotEventCounts(hook: EventHook): EventCounts {
-  return new Map(countsFor(hook));
-}
-
-/** Whether any of `names` fired since `at` was taken. */
-function eventsSince(
-  hook: EventHook,
-  at: EventCounts,
-  names: string[],
-): boolean {
-  const c = countsFor(hook);
-  return names.some((n) => (c.get(n) ?? 0) > (at.get(n) ?? 0));
-}
 
 const deferred = new Map<object, () => void>();
 let listening = false;
@@ -66,10 +27,11 @@ function cancelWhenVisible(owner: object): void {
  * run while the tab is hidden.
  */
 export class LiveBinding {
-  private unsubscribe?: () => void;
+  private release?: () => void;
+  private timer?: ReturnType<typeof setTimeout>;
 
   constructor(
-    private readonly hook: EventHook,
+    private readonly interest: EventInterest,
     private readonly run: () => void,
   ) {}
 
@@ -77,19 +39,19 @@ export class LiveBinding {
    * Subscribes to `triggers`, replacing the previous subscription. True when
    * a result computed at `computedAt` already missed one of them.
    */
-  bind(
-    triggers: string[] | undefined,
-    computedAt?: Map<string, number>,
-  ): boolean {
-    this.unsubscribe?.();
-    this.unsubscribe = undefined;
+  bind(triggers: string[] | undefined, computedAt?: number): boolean {
+    this.release?.();
+    this.release = undefined;
+    clearTimeout(this.timer);
     if (!triggers?.length) return false;
     const events = expandRefreshTriggers(triggers);
-    this.unsubscribe = subscribeRefresh(this.hook, events, () =>
-      this.trigger(),
+    this.release = this.interest.listen(events, () => {
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => this.trigger(), REFRESH_DEBOUNCE_MS);
+    });
+    return (
+      computedAt !== undefined && this.interest.firedSince(computedAt, events)
     );
-    countEvents(this.hook, events);
-    return !!computedAt && eventsSince(this.hook, computedAt, events);
   }
 
   trigger(): void {

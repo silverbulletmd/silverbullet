@@ -6,6 +6,7 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "../space_lua/runtime.ts";
+import { openTracker, type Tracker } from "../space_lua/dependencies.ts";
 import type { DropdownOption, NavigatorHook } from "./types.ts";
 
 import {
@@ -31,10 +32,11 @@ async function callLua(
   return await luaValueToJS(fn, sf)(...args);
 }
 
-function handlerFrame(luaEnv?: LuaEnv): LuaStackFrame {
-  return luaEnv
-    ? LuaStackFrame.createWithGlobalEnv(luaEnv)
-    : LuaStackFrame.lostFrame;
+function handlerFrame(luaEnv?: LuaEnv, track?: Tracker): LuaStackFrame {
+  if (!luaEnv) return LuaStackFrame.lostFrame;
+  const sf = LuaStackFrame.createWithGlobalEnv(luaEnv);
+  sf.threadState.track = track;
+  return sf;
 }
 
 // The panel dispatches these fire-and-forget, so an escaping error would be invisible -- no panel feedback, nothing in the UI.
@@ -287,7 +289,31 @@ export async function luaHandle(
   luaEnv?: LuaEnv,
   onPick?: (obj: any) => void,
 ): Promise<any> {
-  const sf = handlerFrame(luaEnv);
+  // Only loading hooks track: a view refreshes on what its rows or content
+  // read, never on what an event handler touched
+  const tracker = openTracker(
+    hook === "rows" || hook === "content" ? args?.track : undefined,
+  );
+  try {
+    return await runHook(
+      handlerFrame(luaEnv, tracker.track),
+      spec,
+      hook,
+      args,
+      onPick,
+    );
+  } finally {
+    tracker.close();
+  }
+}
+
+async function runHook(
+  sf: LuaStackFrame,
+  spec: ViewSpec,
+  hook: NavigatorHook,
+  args: any,
+  onPick?: (obj: any) => void,
+): Promise<any> {
   switch (hook) {
     case "rows": {
       const incoming = args.ctx ?? {};

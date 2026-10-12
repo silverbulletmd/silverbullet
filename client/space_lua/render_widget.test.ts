@@ -160,21 +160,6 @@ test("a directive with a Lua syntax error renders a visible error", async () => 
   }
 });
 
-test("a top-level widget.live keeps its value's Lua shape through evaluation", async () => {
-  const t = await buildTestEnv();
-  const client = {
-    clientSystem: { spaceLuaEnv: { env: t.env } },
-    ui: { viewState: { current: { path: "Workshop.md" } } },
-  } as unknown as Client;
-  const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
-  const r = await renderValue(
-    await renderLuaExpression(client, "widget.live(2.0)"),
-    ctx,
-  );
-  expect(r.node.textContent).toBe("2.0");
-  expect(r.live).toEqual(["index"]);
-});
-
 async function renderExpr(src: string) {
   const t = await buildTestEnv();
   const client = {
@@ -202,35 +187,25 @@ test("widget event handlers run with the global environment, top-level and neste
   }
 });
 
-test("a widget.live in a top-level list makes the expression live", async () => {
-  const { r } = await renderExpr("{ widget.live(1), 2 }");
-  expect(r.live).toEqual(["index"]);
-});
-
-test("a self-referencing widget.live stops instead of recursing forever", async () => {
-  const { r } = await renderExpr(
-    "(function() local w = widget.live(1); w.live.value = w; return w end)()",
-  );
-  expect(r.node.textContent).toContain("nesting too deep");
-  expect(r.live).toEqual(["index"]);
-});
-
-test("evaluateForRender uses parentEnv and exposes the reader hook", async () => {
+test("evaluateForRender uses parentEnv, reports tracked reads, and closes the tracker", async () => {
   const spaceEnv = new LuaEnv(luaBuildStandardEnv());
   const page = new LuaEnv(spaceEnv, { boundary: true });
   page.setLocal("salary", 500);
   const seen: string[] = [];
   const sle = { env: spaceEnv } as unknown as SpaceLuaEnvironment;
   const expr = parseExpressionString("salary * 2");
+  let late: ((e: string) => void) | undefined;
   const result = await evaluateForRender(
     sle,
     (env, sf) => {
-      sf.threadState.pageScope?.onRead?.("Budget");
+      sf.threadState.track?.("pageScope:changed:Budget");
+      late = sf.threadState.track;
       return evalExpression(expr, env, sf);
     },
     expr.ctx,
-    { parentEnv: page, onPageVarsRead: (p) => seen.push(p) },
+    { parentEnv: page, track: (e) => seen.push(e) },
   );
+  late?.("too-late");
   expect(result).toBe(1000);
-  expect(seen).toEqual(["Budget"]);
+  expect(seen).toEqual(["pageScope:changed:Budget"]);
 });

@@ -8,21 +8,18 @@ const shown = {
   luaError: false,
 };
 
-test("assignment directives can't be baked or toggled live", () => {
+test("assignment directives can't be baked", () => {
   const caps = widgetCaps(
     { kind: "directive", wrappers: [], label: "salary" },
     shown,
-    { readOnly: false, expr: "salary = 500" },
+    { readOnly: false },
   );
   expect(caps.bake).toBe(false);
-  expect(caps.toggleLive).toBeUndefined();
 });
 
-test("plain directives keep bake and live toggle", () => {
+test("plain directives keep bake", () => {
   const caps = widgetCaps({ kind: "directive", wrappers: [] }, shown, {
     readOnly: false,
-    expr: "1 + 1",
   });
   expect(caps.bake).toBe(true);
-  expect(caps.toggleLive).toBe("makeLive");
 });

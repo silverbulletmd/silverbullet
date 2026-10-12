@@ -11,8 +11,19 @@ export type Definition =
   | { kind: "block"; index: number; source: string }
   | { kind: "assign"; name: string; exprSource: string };
 
+/** Where a `${name = expr}` cell's expression sits in the page text. */
+export type AssignmentCell = {
+  name: string;
+  exprSource: string;
+  exprFrom: number;
+  exprTo: number;
+};
+
 export type ExtractedDefinitions = {
   definitions: Definition[];
+  // Positions, kept out of the fingerprint: editing around a cell doesn't
+  // change what the page defines
+  cells: AssignmentCell[];
   duplicateNames: Set<string>;
   fingerprint: string;
   frontmatter: Record<string, unknown>;
@@ -40,6 +51,7 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 export function extractDefinitions(text: string): ExtractedDefinitions {
   const tree = parse(extendedMarkdownLanguage, text);
   const definitions: Definition[] = [];
+  const cells: AssignmentCell[] = [];
   const seen = new Set<string>();
   const duplicateNames = new Set<string>();
   let frontmatter: Record<string, unknown> = {};
@@ -75,10 +87,14 @@ export function extractDefinitions(text: string): ExtractedDefinitions {
         const bodyText = renderToText(body);
         if (seen.has(name)) duplicateNames.add(name);
         seen.add(name);
-        definitions.push({
-          kind: "assign",
+        const exprStart = bodyText.indexOf("=") + 1;
+        const exprSource = bodyText.slice(exprStart);
+        definitions.push({ kind: "assign", name, exprSource });
+        cells.push({
           name,
-          exprSource: bodyText.slice(bodyText.indexOf("=") + 1),
+          exprSource,
+          exprFrom: body.from! + exprStart,
+          exprTo: body.to!,
         });
       }
       return true;
@@ -90,6 +106,7 @@ export function extractDefinitions(text: string): ExtractedDefinitions {
   if (isTemplate || definitions.length === 0) {
     return {
       definitions: [],
+      cells: [],
       duplicateNames: new Set(),
       fingerprint: "",
       frontmatter,
@@ -97,6 +114,7 @@ export function extractDefinitions(text: string): ExtractedDefinitions {
   }
   return {
     definitions,
+    cells,
     duplicateNames,
     fingerprint: JSON.stringify(definitions),
     frontmatter,

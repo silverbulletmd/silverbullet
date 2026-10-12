@@ -4,6 +4,7 @@ import {
   type LuaBudget,
   makeLuaBudget,
 } from "./budget.ts";
+import type { Tracker } from "./dependencies.ts";
 import { isTaggedFloat } from "./numeric.ts";
 import {
   LuaEnv,
@@ -23,6 +24,7 @@ export type RenderThreadOptions = {
   // Where undeclared names resolve and assignments land; defaults to `globalEnv`
   parentEnv?: LuaEnv;
   pageScope?: PageScopeFrame;
+  track?: Tracker;
 };
 
 /**
@@ -48,6 +50,7 @@ export function renderThread(
     });
   sf.threadState.renderDepth = opts.renderDepth;
   sf.threadState.pageScope = opts.pageScope;
+  sf.threadState.track = opts.track;
   // `_CTX` lives in a child env so it never becomes a page binding
   const env = new LuaEnv(opts.parentEnv ?? globalEnv);
   env.setLocal("_CTX", tl);

@@ -19,9 +19,7 @@ import {
   copyValue,
   directiveAtWidget,
   directiveCacheKey,
-  liveToggle,
   reloadDirective,
-  setDirectiveLive,
 } from "./directive_actions.ts";
 
 function fakeClient(doc: string, extra: Record<string, unknown> = {}) {
@@ -73,21 +71,17 @@ test("a widget finds its own ${…} inside formatting, links and next to another
   ).toBeUndefined();
 });
 
-test("Bake and Make live rewrite exactly the widget's ${…}", async () => {
+test("Bake rewrites exactly the widget's ${…}", async () => {
   const t = await buildTestEnv();
   const doc = "**${q()}**${r()}";
   const { client, doc: text } = fakeClient(doc, {
     clientSystem: { spaceLuaEnv: t.sle },
   });
-  // Make live first: the baked region's closing line swallows what follows it
-  const r = directiveAtWidget(client, at(doc.indexOf("${r()}")), "r()")!;
-  setDirectiveLive(client, r, "makeLive");
-  expect(text()).toBe("**${q()}**${widget.live(r())}");
   const target = directiveAtWidget(client, at(2), "q()")!;
   const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
   await bakeDirective(client, target, "**done**", ctx);
   expect(text()).toBe(
-    "**<!--#lua q() -->\n**done**\n<!--/lua-->**${widget.live(r())}",
+    "**<!--#lua q() -->\n**done**\n<!--/lua-->**${r()}",
   );
 });
 
@@ -115,21 +109,6 @@ test("the menu and the palette copy the same text: rows for a list view, the tex
   ]);
 });
 
-test("Make live / Make static: one rule for the menu and the palette", () => {
-  expect(liveToggle("q()")).toBe("makeLive");
-  expect(liveToggle("widget.live(q())")).toBe("makeStatic");
-  expect(
-    liveToggle("widget.live(q(), {})", { live: false, kind: "markdown" }),
-  ).toBe("makeStatic");
-  expect(
-    liveToggle("{ widget.live(q()), 1 }", { live: true, kind: "markdown" }),
-  ).toBeUndefined();
-  expect(
-    liveToggle("widget.sandbox(s)", { live: false, kind: "sandbox" }),
-  ).toBeUndefined();
-  expect(liveToggle("v", { live: false, kind: "view" })).toBeUndefined();
-});
-
 test("Widget: Reload re-runs every copy of the expression on the page", async () => {
   const { client } = fakeClient("${q()} ${q()}");
   const key = directiveCacheKey("q()", "Projects/Sketchbook");
@@ -153,7 +132,7 @@ test("Widget: Reload re-runs every copy of the expression on the page", async ()
   }
 });
 
-test("Bake and Make live leave an assignment alone", async () => {
+test("Bake leaves an assignment alone", async () => {
   const t = await buildTestEnv();
   const doc = "${salary = 500}";
   const { client, doc: text } = fakeClient(doc, {
@@ -167,9 +146,8 @@ test("Bake and Make live leave an assignment alone", async () => {
   };
   const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
   await bakeDirective(client, target, 500, ctx);
-  setDirectiveLive(client, target, "makeLive");
   expect(text()).toBe(doc);
-  expect(client.ui.flashNotification).toHaveBeenCalledTimes(2);
+  expect(client.ui.flashNotification).toHaveBeenCalledTimes(1);
 });
 
 test("Widget: Reload also re-runs copies keyed to a page scope", async () => {

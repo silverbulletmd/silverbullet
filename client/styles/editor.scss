@@ -782,6 +782,18 @@ $comment-border: 1px;
     padding: 0 2px;
     border: none;
     box-shadow: inset 0 0 0 1px var(--editor-widget-background-color);
+
+    // A child as wide as the line (a marquee, a full-width inline-block)
+    // plus this padding would wrap the closing padding onto a line of its own
+    > * {
+      max-width: calc(100% - 4px);
+    }
+
+    // These sit on the baseline by their bottom edge, so they'd rise out of
+    // the outline, which only spans the text's height
+    > :is(marquee, img, svg, canvas, video, iframe) {
+      vertical-align: text-bottom;
+    }
   }
 
   // Inline widget tables look like plain Markdown tables. Header and even-row
@@ -857,17 +869,6 @@ $comment-border: 1px;
     &[aria-expanded="true"] {
       color: var(--action-button-hover-color);
     }
-  }
-
-  // Above the ⋯ dots, in the tab's corner
-  .sb-widget-live-dot {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--tone-success);
   }
 
   // Page-docked content views share document typography; panel views use
@@ -1131,6 +1132,71 @@ $comment-border: 1px;
     user-select: none;
   }
 
+  // Stands in for the hidden `<!--#lua … -->` marker
+  .sb-baked-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    vertical-align: top;
+    font-size: 80%;
+    line-height: 1.6;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  // Stands in for the hidden `<!--/lua-->`, one line tall like the marker, so
+  // revealing it moves nothing: a label and a hairline to the right edge
+  .sb-baked-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    vertical-align: top;
+    font-size: 80%;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    -webkit-user-select: none;
+    user-select: none;
+
+    &::after {
+      content: "";
+      flex: 1;
+      border-top: 1px solid currentColor;
+      opacity: 0.35;
+    }
+  }
+
+  .sb-baked-label {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 85%;
+  }
+
+  .sb-baked-expr {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--editor-font);
+    cursor: text;
+  }
+
+  .sb-baked-menu-button {
+    flex: none;
+    height: 1.6em;
+    border-radius: 4px;
+    opacity: 0.6;
+
+    &:hover,
+    &[aria-expanded="true"] {
+      opacity: 1;
+    }
+  }
+
   .sb-frontmatter-marker {
     cursor: pointer;
     float: right;
@@ -1167,7 +1233,8 @@ div:not(.cm-focused).cm-fat-cursor {
   padding: 0 0.45em;
   margin-right: 0.35em;
   border-radius: 4px;
-  vertical-align: 0.1em;
+  // Centres the tag in the inline value's outline (equal gap above and below)
+  vertical-align: 0.15em;
   white-space: nowrap;
 }
 

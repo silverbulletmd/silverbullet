@@ -1,13 +1,18 @@
 import { expect, test } from "vitest";
 import { pageVarsSyscalls } from "../plugos/syscalls/page_vars.ts";
+import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
+import { EventInterest } from "../event_interest.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { System } from "../plugos/system.ts";
 import {
   LuaBuiltinFunction,
   LuaEnv,
+  LuaNativeJSFunction,
   type LuaStackFrame,
   LuaTable,
 } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
-import { PageScopes } from "./page_scope.ts";
+import { PageScopes, pageScopeChangedEvent } from "./page_scope.ts";
 
 function setup(pages: Record<string, string>) {
   const spaceEnv = new LuaEnv(luaBuildStandardEnv());
@@ -22,18 +27,21 @@ function setup(pages: Record<string, string>) {
   return { scopes, spaceEnv, pages, reads: () => reads };
 }
 
-// The real `space.pageVars`, as a plain Lua function
+// The real `pageVars.get`, as a plain Lua function
 function withPageVars(env: LuaEnv, scopes: PageScopes) {
-  const pageVars = pageVarsSyscalls(scopes)["lua:space.pageVars"];
+  const pageVars = pageVarsSyscalls(scopes, {
+    currentPage: () => undefined,
+    editPage: async () => {},
+  })["lua:pageVars.get"];
   const callback = (
     typeof pageVars === "function" ? pageVars : pageVars.callback
   ) as (ctx: { sf: LuaStackFrame }, page: string) => Promise<LuaTable>;
   const space = new LuaTable();
   void space.rawSet(
-    "pageVars",
+    "get",
     new LuaBuiltinFunction((sf, page: string) => callback({ sf }, page)),
   );
-  env.setLocal("space", space);
+  env.setLocal("pageVars", space);
 }
 
 const budget = [
@@ -134,7 +142,7 @@ test("concurrent gets share one build", async () => {
   expect(reads()).toBe(1);
 });
 
-const forecast = "${y = space.pageVars('Budget').salary}";
+const forecast = "${y = pageVars.get('Budget').salary}";
 
 test("invalidation is transitive over dependencies", async () => {
   const { scopes, pages, spaceEnv } = setup({
@@ -164,12 +172,12 @@ test("reads through an uncached build count as the reader's own", async () => {
   const { scopes, pages, spaceEnv } = setup({
     Budget: budget,
     Forecast: forecast,
-    Plan: "${z = space.pageVars('Forecast').y}",
+    Plan: "${z = pageVars.get('Forecast').y}",
   });
   withPageVars(spaceEnv, scopes);
   // Forecast is built nested in Plan's build, and never cached
-  expect((await scopes.get("Plan"))!.reads).toEqual(
-    new Set(["Forecast", "Budget"]),
+  expect((await scopes.get("Plan"))!.deps).toEqual(
+    new Set(["pageScope:changed:Forecast", "pageScope:changed:Budget"]),
   );
   pages.Budget = budget.replace("500", "700");
   expect(await scopes.pageChanged("Budget")).toEqual(["Budget", "Plan"]);
@@ -207,7 +215,7 @@ test("deleting a page invalidates its dependents", async () => {
 test("a missing page rejects until it is created", async () => {
   const { scopes, pages, reads } = setup({});
   await expect(scopes.get("Nope")).rejects.toThrow(
-    "space.pageVars: page Nope not found",
+    "pageVars.get: page Nope not found",
   );
   await expect(scopes.get("Nope")).rejects.toThrow("not found");
   expect(reads()).toBe(1);
@@ -243,7 +251,7 @@ test("changes to unrelated, never-built pages are ignored without reading", asyn
 test("a cycle in the build chain is rejected without waiting", async () => {
   const { scopes } = setup({ Budget: budget });
   await expect(scopes.get("Budget", { chain: ["Budget"] })).rejects.toThrow(
-    "space.pageVars: cycle Budget → Budget",
+    "pageVars.get: cycle Budget → Budget",
   );
 });
 
@@ -265,8 +273,8 @@ test("clear drops everything", async () => {
 
 test("concurrent builds that read each other settle with cycle errors", async () => {
   const { scopes, spaceEnv } = setup({
-    A: "${x = space.pageVars('B').y}",
-    B: "${y = space.pageVars('A').x}",
+    A: "${x = pageVars.get('B').y}",
+    B: "${y = pageVars.get('A').x}",
   });
   withPageVars(spaceEnv, scopes);
   const [a, b] = await Promise.all([scopes.get("A"), scopes.get("B")]);
@@ -320,7 +328,7 @@ test("page code can't clear the build chain through _CTX", async () => {
       "```page-lua",
       "_CTX._pageScopeChain = nil",
       "```",
-      "${salary = space.pageVars('Budget').salary}",
+      "${salary = pageVars.get('Budget').salary}",
     ].join("\n"),
   });
   withPageVars(spaceEnv, scopes);
@@ -362,4 +370,109 @@ test("functions called from definitions see the page through _CTX", async () => 
   });
   const scope = (await scopes.get("Budget"))!;
   expect(scope.assignments.get("x")).toEqual({ value: "Budget:5" });
+});
+
+// Wired like ClientSystem: invalidations dispatch per-page scope events, so
+// cascades run through events. `probe(ev)` reports ev and returns 1.
+function fixture(pages: Record<string, string>) {
+  const hook = new EventHook();
+  new System<EventHookT>(undefined).addHook(hook);
+  const spaceEnv = new LuaEnv(luaBuildStandardEnv());
+  const notified: string[] = [];
+  const scopes = new PageScopes({
+    readPageText: async (name) => (name in pages ? pages[name] : null),
+    spaceEnv: () => spaceEnv,
+    interest: new EventInterest(hook),
+    onInvalidated: (invalidated) => {
+      notified.push(...invalidated);
+      for (const p of invalidated) {
+        void hook.dispatchEvent(pageScopeChangedEvent(p));
+      }
+    },
+  });
+  withPageVars(spaceEnv, scopes);
+  spaceEnv.setLocal(
+    "probe",
+    new LuaNativeJSFunction({
+      callback: () => 1,
+      observe: (sf, args) => sf.threadState.track?.(String(args[0])),
+    }),
+  );
+  return { scopes, hook, notified, spaceEnv };
+}
+
+test("a scope whose definitions queried a tag invalidates when that tag changes", async () => {
+  const { scopes, hook, notified } = fixture({
+    Totals: '${n = probe("index:tag:task")}',
+  });
+  await scopes.get("Totals");
+  await hook.dispatchEvent("index:tag:task");
+  expect(notified).toEqual(["Totals"]);
+  expect(scopes.latest("Totals").needsBuild).toBe(true);
+});
+
+test("a reader of an invalidated scope is invalidated in turn", async () => {
+  const { scopes, hook, notified } = fixture({
+    Budget: '${salary = probe("index:tag:task") * 100}',
+    Plan: '${total = pageVars.get("Budget").salary}',
+  });
+  await scopes.get("Plan");
+  await scopes.get("Budget");
+  await hook.dispatchEvent("index:tag:task");
+  await new Promise((r) => setTimeout(r, 0));
+  expect(notified).toEqual(expect.arrayContaining(["Budget", "Plan"]));
+  expect(scopes.latest("Plan").needsBuild).toBe(true);
+});
+
+test("cycles still terminate when a dependency fires", async () => {
+  const { scopes, hook } = fixture({
+    A: '${a = probe("index:tag:x") + pageVars.get("B").b}',
+    B: '${b = pageVars.get("A").a}',
+  });
+  await scopes.tryGet("A");
+  await hook.dispatchEvent("index:tag:x");
+  await new Promise((r) => setTimeout(r, 0));
+  const rebuilt = await scopes.tryGet("A");
+  expect(rebuilt?.firstError).toMatch(/cycle/);
+});
+
+test("evicted, replaced and cleared scopes release their listeners", async () => {
+  const { scopes, hook } = fixture({
+    Totals: '${n = probe("index:tag:task")}',
+  });
+  const base = hook.listenerCount();
+  await scopes.get("Totals");
+  expect(hook.listenerCount().names).toBeGreaterThan(base.names);
+  scopes.clear();
+  expect(hook.listenerCount()).toEqual(base);
+  expect(scopes.size).toBe(0);
+});
+
+test("a scope that read a trigger name invalidates on the events it stands for", async () => {
+  const { scopes, hook, notified } = fixture({
+    Count: '${n = probe("index")}',
+  });
+  await scopes.get("Count");
+  await hook.dispatchEvent("file:changed", "Other.md");
+  expect(notified).toEqual(["Count"]);
+});
+
+test("an event between a build's read and its store still invalidates", async () => {
+  const { scopes, hook, notified, spaceEnv } = fixture({
+    Totals: '${n = fires("index:tag:task")}',
+  });
+  // Reads, then the index flushes that tag while the build is still running
+  spaceEnv.setLocal(
+    "fires",
+    new LuaNativeJSFunction({
+      callback: async (ev: string) => {
+        await hook.dispatchEvent(ev);
+        return 1;
+      },
+      observe: (sf, args) => sf.threadState.track?.(String(args[0])),
+    }),
+  );
+  await scopes.get("Totals");
+  expect(scopes.latest("Totals").needsBuild).toBe(true);
+  expect(notified).toEqual(["Totals"]);
 });

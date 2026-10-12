@@ -30,6 +30,7 @@ import {
   LuaStackFrame,
   LuaTable,
 } from "../space_lua/runtime.ts";
+import { tagChangedEvent } from "../space_lua/dependencies.ts";
 import type { DataStore } from "./datastore.ts";
 import type { DataStoreMQ } from "./mq.datastore.ts";
 
@@ -85,6 +86,9 @@ export class ObjectIndex {
     this.eventHook.addLocalListener("file:deleted", (path: string) => {
       return this.clearFileIndex(path);
     });
+    this.eventHook.addLocalListener("mq:emptyQueue:indexQueue", () =>
+      this.flushChangedTags(),
+    );
 
     // file:listed follows the change events that enqueue index work; both
     // listing and queue drain are needed to establish completion.
@@ -618,6 +622,11 @@ export class ObjectIndex {
    */
   scanMemoTTLMs = 5000;
   private scanMemo = new Map<string, { rows: KV[]; at: number }>();
+  // Tags written since the last flush: announced once the batch settles, so a
+  // listener never sees a page between clearing and rewriting its objects
+  private changedTags = new Set<string>();
+  private flushTimer?: ReturnType<typeof setTimeout>;
+  private static readonly TAG_FLUSH_IDLE_MS = 500;
   private scanInFlight = new Map<string, Promise<KV[]>>();
   // Bumped on every invalidation, so a scan that was already running when a
   // write landed doesn't memoize what it read before the write.
@@ -652,8 +661,23 @@ export class ObjectIndex {
     this.invalidateScanMemo(tags);
     try {
       await write();
+      for (const tag of tags) this.changedTags.add(tag);
+      clearTimeout(this.flushTimer);
+      this.flushTimer = setTimeout(
+        () => void this.flushChangedTags(),
+        ObjectIndex.TAG_FLUSH_IDLE_MS,
+      );
     } finally {
       this.invalidateScanMemo(tags);
+    }
+  }
+
+  private async flushChangedTags(): Promise<void> {
+    clearTimeout(this.flushTimer);
+    const tags = [...this.changedTags];
+    this.changedTags.clear();
+    for (const tag of tags) {
+      await this.eventHook.dispatchEvent(tagChangedEvent(tag));
     }
   }
 

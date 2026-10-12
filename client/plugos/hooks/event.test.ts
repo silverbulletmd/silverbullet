@@ -110,3 +110,43 @@ test("plug listener results name the plug function that produced them", async ()
     },
   ]);
 });
+
+test("removing the last listener of a name forgets the name", () => {
+  const hook = new EventHook();
+  const cb = () => {};
+  hook.addLocalListener("n", cb);
+  hook.removeLocalListener("n", cb);
+  expect(hook.listenerCount()).toEqual({ names: 0, listeners: 0 });
+});
+
+test("a listener name with regex characters matches only itself", async () => {
+  const hook = new EventHook();
+  hook.apply({
+    loadedPlugs: new Map(),
+    on: () => {},
+  } as unknown as System<EventHookT>);
+  const calls: string[] = [];
+  hook.addLocalListener("file:changed:C++ (draft).md", () => calls.push("c"));
+  hook.addLocalListener("page:*", () => calls.push("wild"));
+  await hook.dispatchEvent("file:changed:C++ (draft).md");
+  await hook.dispatchEvent("file:changed:CCC (draft)xmd");
+  await hook.dispatchEvent("page:x");
+  expect(calls).toEqual(["c", "wild"]);
+});
+
+test("a listener removing itself during dispatch doesn't skip the next one", async () => {
+  const hook = new EventHook();
+  hook.apply({
+    loadedPlugs: new Map(),
+    on: () => {},
+  } as unknown as System<EventHookT>);
+  const calls: string[] = [];
+  const first = () => {
+    calls.push("first");
+    hook.removeLocalListener("n", first);
+  };
+  hook.addLocalListener("n", first);
+  hook.addLocalListener("n", () => calls.push("second"));
+  await hook.dispatchEvent("n");
+  expect(calls).toEqual(["first", "second"]);
+});

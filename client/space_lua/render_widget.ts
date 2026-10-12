@@ -14,6 +14,7 @@ import {
   type LuaBudget,
   LuaBudgetStopped,
 } from "./budget.ts";
+import { openTracker, type Tracker } from "./dependencies.ts";
 import { assignmentRenderValue, type PageScope } from "./page_scope.ts";
 import { renderThread, toRenderValue } from "./render_thread.ts";
 import {
@@ -37,10 +38,11 @@ export type EvalForRenderOptions = {
   stoppedMessage?: () => string;
   // Page scope to evaluate in; defaults to the space env
   parentEnv?: LuaEnv;
-  onPageVarsRead?: (page: string) => void;
+  // Told what the evaluation reads; closed once it settles
+  track?: Tracker;
 };
 
-type PageScopeOpts = Pick<EvalForRenderOptions, "parentEnv" | "onPageVarsRead">;
+type PageScopeOpts = Pick<EvalForRenderOptions, "parentEnv" | "track">;
 
 /**
  * Run a Space Lua computation for rendering, with `_CTX.currentPage` (and
@@ -61,6 +63,7 @@ export async function evaluateForRender(
       `Lua widget error on ${currentPage?.name ?? "(unknown page)"}: ${msg.replace(/\s*\n\s*/g, " ")}`,
     );
   };
+  const tracker = openTracker(opts.track);
   try {
     const { env, sf } = renderThread(sle.env, ctx, {
       currentPage,
@@ -68,9 +71,8 @@ export async function evaluateForRender(
       budget: opts.budget,
       renderDepth: opts.renderDepth,
       parentEnv: opts.parentEnv,
-      pageScope: opts.onPageVarsRead
-        ? { chain: [], onRead: opts.onPageVarsRead }
-        : undefined,
+      pageScope: { chain: [] },
+      track: tracker.track,
     });
     return toRenderValue(singleResult(await compute(env, sf)), sf);
   } catch (e: any) {
@@ -87,6 +89,8 @@ export async function evaluateForRender(
       }
     }
     return `**Lua error:** ${e.message}`;
+  } finally {
+    tracker.close();
   }
 }
 
@@ -160,7 +164,7 @@ export async function renderPageDirective(
   scope: PageScope | null,
   opts: {
     assignmentName?: string;
-    onPageVarsRead?: (page: string) => void;
+    track?: Tracker;
   } = {},
 ): Promise<any> {
   if (opts.assignmentName) {
@@ -168,7 +172,7 @@ export async function renderPageDirective(
   }
   return renderLuaExpression(client, expressionText, currentPageMeta, {
     parentEnv: scope?.env,
-    onPageVarsRead: opts.onPageVarsRead,
+    track: opts.track,
   });
 }
 
@@ -178,11 +182,13 @@ export async function renderLuaCallback(
   fn: ILuaFunction,
   args: LuaValue[],
   currentPageMeta?: { name: string } | undefined,
+  opts: PageScopeOpts = {},
 ): Promise<any> {
   return renderLuaWidgetResult(
     client,
     (_env, sf) => fn.call(sf, ...args),
     {} as ASTCtx,
     currentPageMeta,
+    opts,
   );
 }

@@ -1,6 +1,17 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
+import { EventInterest } from "../../event_interest.ts";
 import { createRenderContext } from "../../markdown_renderer/compose.ts";
+import { EventHook } from "../../plugos/hooks/event.ts";
+import { System } from "../../plugos/system.ts";
+import { WidgetCache } from "../../widget_cache.ts";
+import type { Tracker } from "../../space_lua/dependencies.ts";
+import { evalExpression } from "../../space_lua/eval.ts";
+import { makeFragment } from "../../space_lua/fragment.ts";
+import { parseExpressionString } from "../../space_lua/parse.ts";
+import { LuaStackFrame, type LuaTable } from "../../space_lua/runtime.ts";
+import { newView } from "../../navigator/view_value.ts";
 import {
   buildTestEnv,
   type TestEnv,
@@ -9,15 +20,27 @@ import {
 
 let env: TestEnv;
 
+let sandboxes = 0;
 vi.mock("../../markdown_renderer/compose_client.ts", () => ({
   liveContextForClient: () =>
-    createRenderContext(testHost(env), { hostPage: { name: "Host" } }),
+    createRenderContext(
+      testHost(env, {
+        // Like the real host: keyed by content, sized by a changing cache
+        createSandbox: (w) => {
+          const el = document.createElement("div");
+          el.dataset.sandboxContent = String(w.html);
+          el.style.height = `${++sandboxes * 10}px`;
+          return el;
+        },
+      }),
+      { hostPage: { name: "Host" } },
+    ),
 }));
 vi.mock("../../sandbox/widget_sandbox_iframe.ts", () => ({
   createWidgetSandboxIFrame: vi.fn(),
 }));
 
-const { LuaWidget } = await import("./lua_widget.ts");
+const { LuaWidget, OccurrenceKeys } = await import("./lua_widget.ts");
 const { reloadAllWidgets } = await import("./code_widget.ts");
 type Widget = InstanceType<typeof LuaWidget>;
 
@@ -43,51 +66,19 @@ const flush = () => new Promise((r) => setTimeout(r, 15));
 const debounce = () => new Promise((r) => setTimeout(r, 350));
 
 function makeClient() {
-  const listeners = new Map<string, Set<() => void>>();
-  const pending = new Map<
-    string,
-    {
-      result: Promise<unknown>;
-      at?: Map<string, number>;
-      triggers: Set<string>;
-    }
-  >();
+  const hook = new EventHook();
+  new System<EventHookT>(undefined).addHook(hook);
+  const interest = new EventInterest(hook);
   return {
-    eventHook: {
-      addLocalListener(name: string, fn: () => void) {
-        if (!listeners.has(name)) listeners.set(name, new Set());
-        listeners.get(name)!.add(fn);
-      },
-      removeLocalListener(name: string, fn: () => void) {
-        listeners.get(name)?.delete(fn);
-      },
+    eventHook: Object.assign(hook, {
       emit(name: string) {
-        for (const fn of [...(listeners.get(name) ?? [])]) fn();
+        void hook.dispatchEvent(name);
       },
-    },
-    widgetCache: {
-      prewarmResult(
-        key: string,
-        fn: (triggers: Set<string>) => Promise<unknown>,
-        stamp?: () => Map<string, number>,
-      ) {
-        if (!pending.has(key)) {
-          const triggers = new Set<string>();
-          pending.set(key, { at: stamp?.(), result: fn(triggers), triggers });
-        }
-        return pending.get(key)!.result;
-      },
-      computedAt: (key: string) => pending.get(key)?.at,
-      triggers: (key: string) => [...(pending.get(key)?.triggers ?? [])],
-      invalidatePrewarm(key: string) {
-        pending.delete(key);
-      },
-      getCachedWidgetMeta: () => undefined,
-      setCachedWidgetMeta: () => {},
-      removeCachedWidgetMeta: () => {},
-      getCachedWidgetHeight: () => -1,
-    },
-    listenerCount: (name: string) => listeners.get(name)?.size ?? 0,
+    }),
+    eventInterest: interest,
+    widgetCache: new WidgetCache({ set: async () => {} } as any, interest),
+    listenerCount: (name: string) =>
+      (hook as any).localListeners.get(name)?.length ?? 0,
     currentName: () => "Host",
     currentPageMeta: () => ({ name: "Host" }),
     editorView: {
@@ -97,14 +88,16 @@ function makeClient() {
     },
     isReadOnlyMode: () => false,
     ui: { flashNotification: vi.fn() },
-    clientSystem: { localSyscall: vi.fn(async () => {}) },
+    clientSystem: {
+      localSyscall: vi.fn(async () => {}),
+    },
   };
 }
 type FakeClient = ReturnType<typeof makeClient>;
 
 function widget(
   client: FakeClient,
-  callback: () => Promise<unknown>,
+  callback: (...args: any[]) => Promise<unknown>,
   cacheKey = "lua:x:Host",
 ): Widget {
   return new LuaWidget({
@@ -126,10 +119,13 @@ const text = (w: Widget) =>
   w.contentDiv?.querySelector(".content")?.textContent ??
   w.contentDiv?.textContent;
 
-const live = (value: unknown, refreshOn = ["index"]) => ({
-  _isWidget: true,
-  live: { value, refreshOn },
-});
+// A callback that reads the index, so index events re-run it
+const tracked =
+  <T>(value: () => T) =>
+  async (_body: string, _page: string, track: Tracker) => {
+    track("index");
+    return value();
+  };
 
 const counter = () => {
   let n = 0;
@@ -148,25 +144,6 @@ test("after Refresh All, a widget's own reload still re-runs it", async () => {
   expect(text(w)).toBe("2");
   await w.reload();
   expect(text(w)).toBe("3");
-  w.destroy();
-});
-
-test("widget.live keeps the inner widget's classes and events", async () => {
-  const client = makeClient();
-  const click = vi.fn();
-  const w = widget(client, async () =>
-    live({
-      _isWidget: true,
-      markdown: "hi",
-      cssClasses: ["hot"],
-      events: { click },
-    }),
-  );
-  mount(w);
-  await flush();
-  expect(w.contentDiv!.classList.contains("hot")).toBe(true);
-  w.contentDiv!.click();
-  expect(click).toHaveBeenCalledOnce();
   w.destroy();
 });
 
@@ -193,14 +170,15 @@ test("rendering evaluates nested ${…} once; Copy computes its text when picked
   w.destroy();
 });
 
-test("a remounted live widget shows its cached result, then re-runs once if it missed an event", async () => {
+test("a remounted widget shows its cached result, then re-runs once if it missed an event", async () => {
   const client = makeClient();
   let n = 0;
   let gate: Promise<void> = Promise.resolve();
-  const calls = vi.fn(async () => {
+  const calls = vi.fn(async (_b: string, _p: string, track: Tracker) => {
     const mine = ++n;
+    track("index");
     await gate;
-    return live(`${mine}`);
+    return `${mine}`;
   });
   const first = widget(client, calls);
   const dom1 = mount(first);
@@ -235,10 +213,10 @@ test("a remounted live widget shows its cached result, then re-runs once if it m
   third.destroy();
 });
 
-test("in a hidden tab, live events wait for the tab to show and re-run once", async () => {
+test("in a hidden tab, tracked events wait for the tab to show and re-run once", async () => {
   const client = makeClient();
   let n = 0;
-  const calls = vi.fn(async () => live(`${++n}`));
+  const calls = vi.fn(tracked(() => `${++n}`));
   const w = widget(client, calls, "lua:hidden:Host");
   mount(w);
   await flush();
@@ -259,8 +237,12 @@ test("in a hidden tab, live events wait for the tab to show and re-run once", as
 test("destroying through a newer equal instance tears down the mounted one", async () => {
   const client = makeClient();
   let n = 0;
-  const calls = vi.fn(async () =>
-    live({ _isWidget: true, markdown: `# Row ${++n}`, display: "block" }),
+  const calls = vi.fn(
+    tracked(() => ({
+      _isWidget: true,
+      markdown: `# Row ${++n}`,
+      display: "block",
+    })),
   );
   const mounted = widget(client, calls, "lua:owner:Host");
   const dom = mount(mounted);
@@ -281,10 +263,10 @@ test("a failing live reload is logged, not left unhandled", async () => {
   let n = 0;
   const w = widget(
     client,
-    async () => {
+    tracked(() => {
       if (++n > 1) throw new Error("boom");
-      return live("ok");
-    },
+      return "ok";
+    }),
     "lua:fail:Host",
   );
   mount(w);
@@ -322,10 +304,11 @@ test("a re-render closes the open ⋯ menu when it commits; destroying through a
   const client = makeClient();
   let n = 0;
   let gate: Promise<void> = Promise.resolve();
-  const calls = async () => {
+  const calls = async (_b: string, _p: string, track: Tracker) => {
     const mine = ++n;
+    track("index");
     await gate;
-    return live({ _isWidget: true, markdown: `run ${mine}`, display: "block" });
+    return { _isWidget: true, markdown: `run ${mine}`, display: "block" };
   };
   const w = widget(client, calls, "lua:menu:Host");
   const dom = mount(w);
@@ -354,12 +337,13 @@ test("a re-render closes the open ⋯ menu when it commits; destroying through a
   expect(document.querySelector(".sb-dock-menu")).toBeNull();
 });
 
-test("a remounted live widget that rendered empty re-runs once if it missed an event", async () => {
+test("a remounted widget that rendered empty re-runs once if it missed an event", async () => {
   const client = makeClient();
   let n = 0;
-  const calls = vi.fn(async () => {
+  const calls = vi.fn(async (_b: string, _p: string, track: Tracker) => {
     const mine = ++n;
-    return live({ _isWidget: true, markdown: mine === 1 ? "" : `run ${mine}` });
+    track("index");
+    return { _isWidget: true, markdown: mine === 1 ? "" : `run ${mine}` };
   });
   const first = widget(client, calls, "lua:empty:Host");
   const dom1 = mount(first);
@@ -412,9 +396,9 @@ test("a widget that read a page scope re-runs when it changes, until destroyed",
   const reads = widget(client, (async (
     _body: string,
     _page: string,
-    onPageVarsRead: (page: string) => void,
+    track: (event: string) => void,
   ) => {
-    onPageVarsRead("Budget");
+    track("pageScope:changed:Budget");
     return `${++n}`;
   }) as any);
   const other = counter();
@@ -433,4 +417,148 @@ test("a widget that read a page scope re-runs when it changes, until destroyed",
   unrelated.destroy();
   // Only the shared event counter stays (see live_binding.ts)
   expect(client.listenerCount("pageScope:changed:Budget")).toBe(1);
+});
+
+test("destroying every widget leaves no listeners behind", async () => {
+  const client = makeClient();
+  const base = client.eventHook.listenerCount();
+  const widgets = Array.from({ length: 20 }, (_, i) =>
+    widget(
+      client,
+      (async (_b: string, _p: string, track: Tracker) => {
+        track(`index:tag:t${i}`);
+        return "v";
+      }) as any,
+      `lua:k${i}:Host`,
+    ),
+  );
+  const doms = widgets.map((w) => mount(w));
+  await flush();
+  expect(client.eventHook.listenerCount().names).toBeGreaterThan(base.names);
+  for (const [i, w] of widgets.entries()) w.destroy(doms[i]);
+  client.widgetCache.clearPrewarm();
+  expect(client.eventHook.listenerCount()).toEqual(base);
+});
+
+test("a triggered re-run with identical output keeps the shown node", async () => {
+  const client = makeClient();
+  const w = widget(client, async () => "**same**", "lua:same:Host");
+  mount(w);
+  await flush();
+  const before = w.contentDiv!.querySelector("strong")!;
+  await w.reload({ keepIfUnchanged: true });
+  expect(w.contentDiv!.contains(before)).toBe(true);
+  w.destroy();
+});
+
+test("a changed result, a menu Reload, or a view always commits", async () => {
+  const client = makeClient();
+  let n = 0;
+  let same = false;
+  const w = widget(
+    client,
+    async () => (same ? "**fixed**" : `**v${n++}**`),
+    "lua:changing:Host",
+  );
+  mount(w);
+  await flush();
+  await w.reload({ keepIfUnchanged: true });
+  expect(text(w)).toContain("v1");
+  same = true;
+  await w.reload({ keepIfUnchanged: true });
+  const shown = w.contentDiv!.querySelector("strong");
+  await w.reload();
+  expect(w.contentDiv!.querySelector("strong")).not.toBe(shown);
+  w.destroy();
+});
+
+test("an unchanged sandbox is kept; changed sandbox content commits", async () => {
+  const client = makeClient();
+  let html = "<p>a</p>";
+  const w = widget(
+    client,
+    async () => ({ _isWidget: true, html, sandbox: true }),
+    "lua:sandbox:Host",
+  );
+  mount(w);
+  await flush();
+  const host = w.contentDiv!.querySelector("[data-sandbox-content]")!;
+  await w.reload({ keepIfUnchanged: true });
+  expect(w.contentDiv!.contains(host)).toBe(true);
+  html = "<p>b</p>";
+  await w.reload({ keepIfUnchanged: true });
+  expect(w.contentDiv!.contains(host)).toBe(false);
+  w.destroy();
+});
+
+test("a fragment containing a view always commits", async () => {
+  const client = makeClient();
+  const spec = await evalExpression(
+    parseExpressionString("{ source = function() return {} end }"),
+    env.env,
+    LuaStackFrame.createWithGlobalEnv(env.env),
+  );
+  const w = widget(
+    client,
+    async () => makeFragment(["x ", newView(spec as LuaTable)]),
+    "lua:view:Host",
+  );
+  mount(w);
+  await flush();
+  const before = w.contentDiv!.querySelector(".sb-inline-view");
+  expect(before).not.toBeNull();
+  await w.reload({ keepIfUnchanged: true });
+  expect(w.contentDiv!.querySelector(".sb-inline-view")).not.toBe(before);
+  w.destroy();
+});
+
+test("an event that fires while a re-run is evaluating triggers another re-run", async () => {
+  const client = makeClient();
+  let n = 0;
+  const calls = vi.fn(async (_b: string, _p: string, track: Tracker) => {
+    const mine = ++n;
+    track("index:tag:t");
+    // The index changes again after this run read it
+    if (mine === 2) client.eventHook.emit("index:tag:t");
+    return `${mine}`;
+  });
+  const w = widget(client, calls, "lua:race:Host");
+  mount(w);
+  await flush();
+  client.eventHook.emit("index:tag:t");
+  await debounce();
+  await flush();
+  await debounce();
+  await flush();
+  expect(calls).toHaveBeenCalledTimes(3);
+  expect(text(w)).toBe("3");
+  w.destroy();
+});
+
+test("identical expressions keyed per occurrence each show their own element", async () => {
+  const client = makeClient();
+  const keys = new OccurrenceKeys();
+  const render = async () => ({
+    _isWidget: true,
+    html: Object.assign(document.createElement("marquee"), {
+      textContent: "Sup",
+    }),
+  });
+  const first = widget(client, render, keys.key("lua:m:Host"));
+  const second = widget(client, render, keys.key("lua:m:Host"));
+  mount(first);
+  mount(second);
+  await flush();
+  expect(first.contentDiv!.querySelector("marquee")).not.toBeNull();
+  expect(second.contentDiv!.querySelector("marquee")).not.toBeNull();
+  first.destroy();
+  second.destroy();
+});
+
+test("occurrence keys: the first copy keeps the plain key", () => {
+  const keys = new OccurrenceKeys();
+  expect(keys.key("a")).toBe("a");
+  expect(keys.key("b")).toBe("b");
+  expect(keys.key("a")).toBe("a:dup1");
+  expect(keys.key("a")).toBe("a:dup2");
 });

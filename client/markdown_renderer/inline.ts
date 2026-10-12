@@ -65,6 +65,8 @@ export type MarkdownExpandOptions = {
   // Resolve a wiki-link transclusion's target the way wiki links resolve
   // (see buildResolveTransclusion); fromPage is the page being expanded
   resolveTransclusion?: (t: Transclusion, fromPage: string) => void;
+  // Told each transclusion whose content is read, once its URL is resolved
+  onTransclusionRead?: (t: Transclusion) => void;
   // Replaces each Lua directive with the returned node (the slot renderer
   // evaluates and renders values itself); without it directives stay as is
   luaDirectiveHandler?: (
@@ -141,6 +143,7 @@ export async function expandMarkdown(
         return n;
       }
 
+      options.onTransclusionRead?.(transclusion);
       try {
         const result = await readTransclusionContent(space, transclusion);
 

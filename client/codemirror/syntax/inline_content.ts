@@ -27,11 +27,13 @@ import {
   widgetRenderMode,
 } from "../util.ts";
 import { LoadingWidget } from "../widgets/loading_widget.ts";
-import { LuaWidget } from "../widgets/lua_widget.ts";
+import { LuaWidget, OccurrenceKeys } from "../widgets/lua_widget.ts";
+import { transclusionEvent } from "../../space_lua/dependencies.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
+    const keys = new OccurrenceKeys();
     const renderMode = widgetRenderMode(client);
     if (renderMode === "disabled") {
       return Decoration.set([]);
@@ -79,14 +81,14 @@ export function inlineContentPlugin(client: Client) {
           Decoration.widget({
             widget: new LuaWidget({
               client,
-              cacheKey: `widget:${client.currentPath()}:${text}`,
+              cacheKey: keys.key(`widget:${client.currentPath()}:${text}`),
               expressionText: text,
               host: {
                 kind: "transclusion",
                 codeText: text,
                 openRef: parseToRef(transclusion.url),
               },
-              callback: async () => {
+              callback: async (_body, _page, track) => {
                 // Resolve local URLs (only for markdown links, wikilinks are absolute)
                 if (
                   isLocalURL(transclusion.url) &&
@@ -98,6 +100,8 @@ export function inlineContentPlugin(client: Client) {
                   );
                 }
 
+                const event = transclusionEvent(transclusion.url);
+                if (event) track?.(event);
                 try {
                   let content;
                   try {
@@ -122,6 +126,7 @@ export function inlineContentPlugin(client: Client) {
                       liveContextForClient(client, {
                         sourcePage: nameFromTransclusion(transclusion),
                         taskRefs: "page",
+                        track,
                       }),
                     );
                     content = { html: node, markdown: copyMarkdown };

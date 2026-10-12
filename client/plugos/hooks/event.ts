@@ -43,6 +43,13 @@ export class EventHook implements EventHookI {
     }
   }
 
+  /** For leak profiling: names with listeners, and listeners in total. */
+  listenerCount(): { names: number; listeners: number } {
+    let listeners = 0;
+    for (const l of this.localListeners.values()) listeners += l.length;
+    return { names: this.localListeners.size, listeners };
+  }
+
   // Pull all events listened to
   listEvents(): string[] {
     if (!this.system) {
@@ -111,10 +118,7 @@ export class EventHook implements EventHookI {
       for (const [name, functionDef] of Object.entries(manifest!.functions)) {
         if (functionDef.events) {
           for (const event of functionDef.events) {
-            if (
-              event === eventName ||
-              eventNameToRegex(event).test(eventName)
-            ) {
+            if (eventNameMatches(event, eventName)) {
               if (plug.canInvoke(name)) {
                 promises.push({
                   definition: null,
@@ -138,8 +142,9 @@ export class EventHook implements EventHookI {
     }
 
     for (const [name, localListeners] of this.localListeners) {
-      if (eventNameToRegex(name).test(eventName)) {
-        for (const localListener of localListeners) {
+      if (eventNameMatches(name, eventName)) {
+        // A copy: listeners may remove themselves (or others) while called
+        for (const localListener of [...localListeners]) {
           promises.push({
             definition: null,
             promise: (async () => {
@@ -154,7 +159,7 @@ export class EventHook implements EventHookI {
       const configListeners: Record<string, DefinedListener[]> =
         this.config.get("eventListeners", {});
       for (const [name, listeners] of Object.entries(configListeners)) {
-        if (eventNameToRegex(name).test(eventName)) {
+        if (eventNameMatches(name, eventName)) {
           for (const listener of listeners) {
             promises.push({
               definition: listener[listenerDefinition] ?? null,
@@ -225,8 +230,12 @@ export class EventHook implements EventHookI {
   }
 }
 
-function eventNameToRegex(eventName: string): RegExp {
-  return new RegExp(
-    `^${eventName.replace(/\*/g, ".*").replace(/\//g, "\\/")}$`,
-  );
+// Only `*` is a wildcard: names carry page and file names verbatim. Exact
+// names (most of them, one per page, tag or file) skip building a regex.
+function eventNameMatches(pattern: string, eventName: string): boolean {
+  if (!pattern.includes("*")) return pattern === eventName;
+  const literal = pattern
+    .split("*")
+    .map((part) => part.replace(/[.+?^${}()|[\]\\/]/g, "\\$&"));
+  return new RegExp(`^${literal.join(".*")}$`).test(eventName);
 }

@@ -130,7 +130,10 @@ export function createActivate(deps: ActivationDeps) {
         const state = await engine.activate(name);
         // A newer activation started while we were awaiting: it owns the view
         if (displayed.current !== name) return;
-        listenForRefresh(state.meta.refreshOn ?? []);
+        listenForRefresh([
+          ...(state.meta.refreshOn ?? []),
+          ...(state.tracked ?? []),
+        ]);
         setBootError(undefined);
         setView({ name, ...state });
         setExpanded(new Set());

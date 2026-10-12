@@ -30,7 +30,7 @@ A plain expression runs once when the page opens and again on Reload. It does no
 | Run JavaScript in isolation | `widget.sandbox { ... }` |
 | Show rows as a list, tree or table with filter, selection and actions | `widget.new { source = ..., presentation = ... }` |
 | Show a panel or a docked view | `view.define { widget = ... }` |
-| Re-run an expression when something changes | `widget.live(value, refreshOn?)` |
+| Re-run on something SilverBullet doesn't track | `widget.new { content = ..., refreshOn = {...} }` |
 
 # Widget types
 ## Markdown widgets
@@ -119,23 +119,21 @@ end
 
 ${clock()}
 
-# Re-running on change
-## widget.live(value, refreshOn?)
-Wraps a value so the expression it sits in re-runs when something changes. Without it, an expression runs once per page open. `refreshOn` defaults to `{ "index" }`; it takes the same trigger names as the `refreshOn` option below (`"index"`, `"navigate"`, `"edit"`, or an event name).
+# When expressions update
+An expression re-runs when something it read changes, and only then. SilverBullet records what each evaluation reads.
 
-This list of open tasks updates when you add or complete a task:
+`${1 + 1}` and other expressions that read nothing changeable run once. When a re-run produces the same output, the widget is left as it was. This applies to `${...}` expressions, Lua code fences, custom syntax, frontmatter previews, views and [[Space Lua/Page Lua|page variables]].
 
-${widget.live(query[[from index.tag("task") where not _.done select _.name limit 3]])}
+Not tracked: `datastore`, `config`, network calls, plug functions (`system.invokeFunction`), time and randomness, Lua globals and JavaScript APIs. To re-run on those, render through a content function with an explicit `refreshOn`:
 
-To follow the open page while you type, ask for edits instead:
+${widget.new {
+  content = function()
+    return os.date("%H:%M:%S")
+  end,
+  refreshOn = { "cron:secondPassed" }
+}}
 
-```lua
-${widget.live("This page has " .. #editor.getText() .. " characters", { "edit" })}
-```
-
-The whole expression re-runs on each event, so put `widget.live` around what changes, and one event re-runs the expression once however many `widget.live` calls it contains. It works in `${...}` expressions, Lua code fences and custom syntax. Inside a view's `content` or `source` function it only renders its value; set `refreshOn` on the view instead. Static renders such as *Bake into page* ignore it.
-
-The widget's ⋯ menu shows a green dot and a "Live · re-runs when ..." line for live widgets, and offers *Make static* to remove the wrapper. See [[#Widget menu and commands]].
+Top and bottom widgets from `hooks:renderTopWidgets` / `hooks:renderBottomWidgets` are not tracked because they’re legacy — use a page-docked view instead.
 
 # Lists, trees and tables
 ## widget.new { source }
@@ -160,7 +158,7 @@ ${widget.new {
 | --- | --- |
 | `source(ctx)` | Returns the objects to display. Each object is passed unchanged to callbacks. |
 | `content(ctx)` | Returns any value `${...}` accepts, or `nil` to display nothing. See [[#Content functions]]. Content widgets have no rows or filter input. |
-| `refreshOn` | What reloads the source or content; defaults to nothing, so it runs once per page open. Use the trigger names `"index"` (the space index changed), `"navigate"` (another page or document opened) and `"edit"` (the open page was edited); any other entry is an event name. |
+| `refreshOn` | Events that reload the source or content, on top of anything the source or content read (see [[#When expressions update]]). Use the trigger names `"index"` (the space index changed), `"navigate"` (another page or document opened) and `"edit"` (the open page was edited); any other entry is an event name. |
 | `stateKey` | Saves an inline tree's expansion state locally, scoped to the containing page and this key. Without it, expansion is transient. |
 | `title` | Adds a panel-style heading to an inline view. A registration can override it for its panel. |
 | `label`, `placeholder`, `helpText` | Configure panel text: a short picker verb, filter placeholder, and help below the input. A segment can override the last two. |
@@ -299,11 +297,10 @@ In client search mode, `segments[i].where(obj)` filters before fuzzy ranking. In
 `onMove` receives the target folder plus the dragged row's last path segment as `newName`. Hovering a collapsed tree folder opens it; duplicate destinations abort with an error. `presentation.uploadFiles` and `onMove` apply to panel trees, not inline views.
 
 ## Content functions
-For content instead of rows, pass `content(ctx)` to `widget.new`. It returns any value a `${...}` expression accepts: Markdown, a table or query result, a number, a fragment, a sandbox, a DOM node, or a nested list, tree or table widget. Add `refreshOn` to re-run it on changes.
+For content instead of rows, pass `content(ctx)` to `widget.new`. It returns any value a `${...}` expression accepts: Markdown, a table or query result, a number, a fragment, a sandbox, a DOM node, or a nested list, tree or table widget. It re-runs when what it read changes; add `refreshOn` for anything else.
 
 ```lua
 widget.new {
-  refreshOn = { "navigate" },
   content = function()
     return "## Current page\n\n" .. editor.getCurrentPage()
   end,
@@ -314,31 +311,28 @@ A query becomes a table that follows the index:
 
 ```lua
 widget.new {
-  refreshOn = { "index" },
   content = function()
     return query [[from index.tag("task") where not _.done limit 5]]
   end,
 }
 ```
 
-`widget.live` has no effect inside `content`; `refreshOn` is the switch there. A page-docked content view runs its `content` once per page load. Content views don't support row options. `stateKey` saves expansion only; focus and selection are not persisted.
+A page-docked content view runs its `content` once per page load. Content views don't support row options. `stateKey` saves expansion only; focus and selection are not persisted.
 
 # Widget menu and commands
-A block widget has one ⋯ menu inside its top-right corner: it appears on hover on desktop and is always visible on touch devices. A green dot on ⋯ marks a live widget. Entries appear only when they apply:
+A block widget has one ⋯ menu inside its top-right corner: it appears on hover on desktop and is always visible on touch devices. Entries appear only when they apply:
 
-* A "Live · re-runs when ..." line, for live widgets.
 * **Go to definition** and **Open**: jump to the Space Lua that defines the widget, or open what it shows.
 * **Edit source**: moves the cursor into the `${...}`.
-* **Reload** (**Reload now** for a live widget): re-runs this widget only, not the page.
+* **Reload**: re-runs this widget only, not the page.
 * **Copy as Markdown**: list, tree and table widgets copy their rows; a view with `content` has nothing to copy.
 * **Bake into page**: replaces the expression with its current Markdown (the same text as Copy). Views stay live and can't be baked.
-* **Make live** / **Make static**: adds or removes `widget.live(...)` around the expression.
 
 Views docked above or below the page have the same ⋯ menu in their title bar (on hover, for a minimal frame), with **Go to definition** and **Copy as Markdown** where they apply; in a sidebar, the bottom panel or the modal, a content view's header has it for **Copy as Markdown**. The dock menu and × stay beside it.
 
-HTML-only widgets have no Markdown, so they have neither Copy nor Bake. Bake and Make live/static are hidden in read-only mode. *Baked Sections: Update* re-bakes fragments the same way.
+HTML-only widgets have no Markdown, so they have neither Copy nor Bake. Bake is hidden in read-only mode. *Baked Sections: Update* re-bakes fragments the same way.
 
-Inline results have no button. Put the cursor in the `${...}` and run a command instead: *Widget: Copy*, *Widget: Bake*, *Widget: Reload*, *Widget: Make Live* or *Widget: Make Static*. *Widgets: Refresh All* still re-runs every widget on the page.
+Inline results have no button. Put the cursor in the `${...}` and run a command instead: *Widget: Copy*, *Widget: Bake*, or *Widget: Reload*. *Widgets: Refresh All* still re-runs every widget on the page.
 
 # API
 ## widget.new(spec)
@@ -350,7 +344,7 @@ To render a widget, call `widget.new` with a `spec` table setting any of the fol
 * `script`: JavaScript to run inside the sandbox iframe. Only runs when `sandbox = true`.
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`).
 * `cssClasses`: A list of CSS class names to set on the widget's wrapper element.
-* `source` or `content`: Builds a [[#Lists, trees and tables|list, tree or table]] or a [[#Content functions|content function]] instead. Add `refreshOn` to make it re-run on changes. Can’t be combined with `markdown` or `html`.
+* `source` or `content`: Builds a [[#Lists, trees and tables|list, tree or table]] or a [[#Content functions|content function]] instead. It re-runs when what it read changes; add `refreshOn` for other events. Can’t be combined with `markdown` or `html`.
 
 ## widget.markdown(text)
 Shortcut for `widget.new { markdown = text }`
@@ -371,7 +365,7 @@ Shortcut for `widget.new { markdown = text, display = "block" }`
 Block-level version of `widget.markdown`. Useful for content that needs to render as a block element (lists, tables, headings, etc.).
 
 ## widget.toMarkdown(w)
-Returns a widget's Markdown, the same text Copy as Markdown and Bake into page use: a fragment's text with each embedded widget's Markdown (tables as GFM), the wrapped value for `widget.live(value)`, a list, tree or table widget's rows, and `""` for HTML-only widgets and content views.
+Returns a widget's Markdown, the same text Copy as Markdown and Bake into page use: a fragment's text with each embedded widget's Markdown (tables as GFM), a list, tree or table widget's rows, and `""` for HTML-only widgets and content views.
 
 ## widget.sandbox(spec)
 Convenience wrapper for a [[#Sandboxed widgets|sandboxed]] widget — equivalent to `widget.new` with `sandbox = true` (and `display = "block"` by default).
@@ -384,7 +378,7 @@ Keys:
 * `display` (defaults to `block`)
 
 # Legacy
-These still work but can't be moved, closed or configured; use a [[View|view]] instead.
+These still work but can’t be moved, closed or configured; use a [[View|view]] instead.
 
 * `hooks:renderTopWidgets` and `hooks:renderBottomWidgets` events return widgets shown above or below every page. Use `view.define` with `dock = "page-top"` or `"page-bottom"` and `frame = "minimal"`.
 * Plug code widgets render in an iframe.

@@ -95,12 +95,6 @@ function widget.markdownBlock(markdown, opts)
   }
 end
 
---- A value that re-renders its whole expression on `refreshOn` events
---- (default: index changes). Use it only around what you render.
-function widget.live(value, refreshOn)
-  return { _isWidget = true, live = { value = value, refreshOn = refreshOn or { "index" } } }
-end
-
 -- A sandboxed, scripted widget: html + script run inside an isolated iframe
 -- (the same machinery code widgets use). `script` has access to syscall(),
 -- loadJsByUrl, and auto height. The Copy button copies `markdown`. Equivalent to

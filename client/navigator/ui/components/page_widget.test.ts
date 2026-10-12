@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { beforeEach, expect, test, vi } from "vitest";
 import type { Client } from "../../../client.ts";
+import { EventInterest } from "../../../event_interest.ts";
+import type { EventHook } from "../../../plugos/hooks/event.ts";
 import type { PageSlotView } from "../../page_slots.ts";
 import { renderPageSlot, unmountPageSlot } from "./page_widget.tsx";
 
@@ -51,6 +53,14 @@ const { NavPageSlotWidget } = await import(
 const listeners = new Map<string, Set<() => void>>();
 
 function fakeClient(path: string): Client {
+  const eventHook = {
+    addLocalListener: (name: string, fn: () => void) => {
+      if (!listeners.has(name)) listeners.set(name, new Set());
+      listeners.get(name)!.add(fn);
+    },
+    removeLocalListener: (name: string, fn: () => void) =>
+      listeners.get(name)?.delete(fn),
+  };
   return {
     currentName: () => path.replace(/\.md$/, ""),
     currentPath: () => path,
@@ -58,14 +68,8 @@ function fakeClient(path: string): Client {
       getCachedWidgetHeight: () => 0,
       setCachedWidgetMeta: () => {},
     },
-    eventHook: {
-      addLocalListener: (name: string, fn: () => void) => {
-        if (!listeners.has(name)) listeners.set(name, new Set());
-        listeners.get(name)!.add(fn);
-      },
-      removeLocalListener: (name: string, fn: () => void) =>
-        listeners.get(name)?.delete(fn),
-    },
+    eventHook,
+    eventInterest: new EventInterest(eventHook as unknown as EventHook),
     isReadOnlyMode: () => false,
   } as unknown as Client;
 }

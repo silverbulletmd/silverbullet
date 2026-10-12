@@ -23,11 +23,16 @@ import {
   showsBody,
   subscribeRefresh,
   toggleCollapsed,
+  TrackedRefresh,
   treeKeyAction,
   visibleRows,
   widgetKind,
 } from "./page_widget_logic.ts";
 import type { Row } from "./types.ts";
+import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
+import { EventInterest } from "../event_interest.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { System } from "../plugos/system.ts";
 import { newView } from "./view_value.ts";
 
 function fakeHook() {
@@ -503,4 +508,54 @@ test("equal results share an identity; values without a stable one never throw",
   cyclic.self = cyclic;
   expect(id(cyclic)).toBeUndefined();
   expect(contentIdentity({ error: "boom" })).not.toBe(id("boom"));
+});
+
+test("TrackedRefresh subscribes base plus the latest load's reads", async () => {
+  vi.useFakeTimers();
+  try {
+    const hook = new EventHook();
+    new System<EventHookT>(undefined).addHook(hook);
+    const interest = new EventInterest(hook);
+    const run = vi.fn();
+    const r = new TrackedRefresh(interest, ["custom:base"], run);
+    const first = r.begin();
+    first.track("index:tag:task");
+    const second = r.begin();
+    second.track("file:changed:A.md");
+    // Superseded: ignored
+    first.done();
+    second.done();
+    await hook.dispatchEvent("index:tag:task");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(run).not.toHaveBeenCalled();
+    await hook.dispatchEvent("file:changed:A.md");
+    await hook.dispatchEvent("custom:base");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(run).toHaveBeenCalledTimes(1);
+    r.dispose();
+    expect(hook.listenerCount()).toEqual({ names: 0, listeners: 0 });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("TrackedRefresh re-runs when a new read changes before its load finishes", async () => {
+  vi.useFakeTimers();
+  try {
+    const hook = new EventHook();
+    new System<EventHookT>(undefined).addHook(hook);
+    const interest = new EventInterest(hook);
+    const run = vi.fn();
+    const r = new TrackedRefresh(interest, [], run);
+    const load = r.begin();
+    load.track("index:tag:task");
+    await hook.dispatchEvent("index:tag:task");
+    load.done();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(run).toHaveBeenCalledTimes(1);
+    r.dispose();
+    expect(hook.listenerCount()).toEqual({ names: 0, listeners: 0 });
+  } finally {
+    vi.useRealTimers();
+  }
 });

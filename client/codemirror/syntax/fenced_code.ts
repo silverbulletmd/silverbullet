@@ -11,11 +11,12 @@ import {
 } from "../util.ts";
 import { IFrameWidget } from "../widgets/iframe_widget.ts";
 import { LoadingWidget } from "../widgets/loading_widget.ts";
-import { LuaWidget } from "../widgets/lua_widget.ts";
+import { LuaWidget, OccurrenceKeys } from "../widgets/lua_widget.ts";
 
 export function fencedCodePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
+    const keys = new OccurrenceKeys();
     syntaxTree(state).iterate({
       enter({ from, to, name, node }) {
         if (name === "FencedCode") {
@@ -84,14 +85,15 @@ export function fencedCodePlugin(client: Client) {
                 ? new LoadingWidget(true)
                 : new LuaWidget({
                     client,
-                    cacheKey: `codewidget:${lang}:${pageName}:${bodyText}`,
+                    cacheKey: keys.key(`codewidget:${lang}:${pageName}:${bodyText}`),
                     expressionText: bodyText,
-                    callback: () =>
+                    callback: (_body, _page, track) =>
                       renderLuaCallback(
                         client,
                         luaWidgetDef.render,
                         [bodyText, pageName],
                         currentPageMeta,
+                        { track },
                       ),
                     host: { kind: "code", codeText: text },
                   });

@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 import { expect, test, vi } from "vitest";
+import { EventInterest } from "../../event_interest.ts";
+import { EventHook } from "../../plugos/hooks/event.ts";
 
 const disposeRendered = vi.fn();
 let nextKind = "markdown";
@@ -38,6 +40,7 @@ test("re-rendering disposes views mounted by the previous content", async () => 
     currentName: () => "Host",
     isReadOnlyMode: () => false,
     eventHook: { addLocalListener() {}, removeLocalListener() {} },
+    eventInterest: new EventInterest(new EventHook()),
   } as any;
   const w = new LuaWidget({
     client,
@@ -69,11 +72,13 @@ test("views render through renderValue, tagged and with one ⋯ menu button", as
       setCachedWidgetMeta: vi.fn(),
       prewarmResult: (_k: string, f: () => Promise<unknown>) => f(),
       triggers: () => [],
+      computedAt: () => undefined,
     },
     editorView: { composing: true },
     currentName: () => "Host",
     isReadOnlyMode: () => false,
     eventHook: { addLocalListener() {}, removeLocalListener() {} },
+    eventInterest: new EventInterest(new EventHook()),
   } as any;
   const w = new LuaWidget({
     client,

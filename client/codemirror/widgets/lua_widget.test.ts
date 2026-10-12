@@ -3,6 +3,8 @@ import { ensureSyntaxTree } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import { afterEach, expect, test, vi } from "vitest";
+import { EventInterest } from "../../event_interest.ts";
+import { EventHook } from "../../plugos/hooks/event.ts";
 import type { Client } from "../../client.ts";
 import {
   createRenderContext,
@@ -142,10 +144,12 @@ function fakeClient(extra: Record<string, unknown> = {}) {
     widgetCache: {
       prewarmResult: (_key: string, fn: () => Promise<unknown>) => fn(),
       triggers: () => [],
+      computedAt: () => undefined,
       removeCachedWidgetMeta: () => {},
     },
     currentName: () => "Projects/Sketchbook",
     eventHook: { addLocalListener() {}, removeLocalListener() {} },
+    eventInterest: new EventInterest(new EventHook()),
     ...extra,
   } as unknown as Client;
 }
@@ -288,60 +292,12 @@ function directiveWidget(
   return { widget, doc, dispatch, flashNotification };
 }
 
-test("a plain ${…} widget offers the full menu and Make live wraps its source", async () => {
-  const { widget, doc, dispatch } = directiveWidget("q()");
+test("a plain ${…} widget offers the full menu, with no live entries", async () => {
+  const { widget } = directiveWidget("q()");
   const root = await show(widget, BOTH);
   expect(root.querySelector(".sb-widget-live-dot")).toBeNull();
-  expect(openMenu(root)).toEqual([
-    "edit",
-    "reload",
-    "copy",
-    "bake",
-    "makeLive",
-  ]);
-  pick("makeLive");
-  const from = doc.indexOf("$");
-  expect(dispatch).toHaveBeenCalledWith({
-    changes: {
-      from,
-      to: from + "${q()}".length,
-      insert: "${widget.live(q())}",
-    },
-  });
-});
-
-test("a live widget shows its dot and info line, and Make static unwraps it", async () => {
-  const { widget, dispatch } = directiveWidget('widget.live(q(), { "edit" })');
-  const root = await show(widget, { ...BOTH, live: ["edit"] });
-  expect(root.querySelector(".sb-widget-live-dot")).not.toBeNull();
-  expect(openMenu(root)).toEqual([
-    "edit",
-    "reload",
-    "copy",
-    "bake",
-    "makeStatic",
-  ]);
-  expect(document.body.querySelector(".sb-widget-menu-info")?.textContent).toBe(
-    "Live · re-runs when this page is edited",
-  );
-  expect(
-    document.body.querySelector('[data-action="reload"]')?.textContent,
-  ).toBe("Reload now");
-  pick("makeStatic");
-  expect(dispatch.mock.calls[0][0].changes.insert).toBe("${q()}");
-});
-
-test("Make static on a widget that isn't a widget.live call leaves the text alone", async () => {
-  const { widget, dispatch, flashNotification } = directiveWidget("q()");
-  expect(
-    openMenu(await show(widget, { ...BOTH, live: ["index"] })),
-  ).not.toContain("makeStatic");
-  await widget.runAction("makeStatic");
-  expect(dispatch).not.toHaveBeenCalled();
-  expect(flashNotification).toHaveBeenCalledWith(
-    "This widget isn't live",
-    "error",
-  );
+  expect(openMenu(root)).toEqual(["edit", "reload", "copy", "bake"]);
+  expect(document.body.querySelector(".sb-widget-menu-info")).toBeNull();
 });
 
 test("Reload re-runs only this widget", async () => {
@@ -353,7 +309,7 @@ test("Reload re-runs only this widget", async () => {
   expect(reload).toHaveBeenCalledOnce();
 });
 
-test("a list/tree/table view copies its rows; a content view has no Copy; neither offers Bake or Make live", async () => {
+test("a list/tree/table view copies its rows; a content view has no Copy; neither offers Bake", async () => {
   const t = await buildTestEnv();
   const localSyscall = vi.fn(async () => {});
   const spec = await evalExpression(
@@ -385,16 +341,6 @@ test("a list/tree/table view copies its rows; a content view has no Copy; neithe
   document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
   liveCtx = {} as RenderContext;
   expect(openMenu(await show(widget, VIEW(false)))).toEqual(["edit", "reload"]);
-});
-
-test("a widget live only through a nested widget.live offers neither Make live nor Make static", async () => {
-  const { widget } = directiveWidget("{ widget.live(q()), 1 }");
-  expect(openMenu(await show(widget, { ...BOTH, live: ["index"] }))).toEqual([
-    "edit",
-    "reload",
-    "copy",
-    "bake",
-  ]);
 });
 
 test("Reload on a panel widget re-runs the widget hooks, since its result is a snapshot", async () => {
@@ -450,9 +396,11 @@ test("rendering an in-page widget holds awaitRenderSettled until its result arri
   try {
     const widget = new LuaWidget({
       client: {
+        eventInterest: new EventInterest(new EventHook()),
         widgetCache: {
           prewarmResult: () => result,
           triggers: () => [],
+          computedAt: () => undefined,
           getCachedWidgetMeta: () => undefined,
           removeCachedWidgetMeta: () => {},
         },
@@ -506,6 +454,7 @@ test("a widget that renders a Lua error is marked with sb-lua-error, and unmarke
   try {
     const widget = new LuaWidget({
       client: {
+        eventInterest: new EventInterest(new EventHook()),
         widgetCache: {
           getCachedWidgetMeta: () => undefined,
           removeCachedWidgetMeta: () => {},
@@ -528,13 +477,8 @@ test("a widget that renders a Lua error is marked with sb-lua-error, and unmarke
   }
 });
 
-test("a sandbox offers no Make live, but a top-level live one keeps Make static", async () => {
+test("a sandbox offers only Edit and Reload", async () => {
   const sandbox = { kind: "sandbox", bakeable: false } as const;
   const plain = directiveWidget("widget.sandbox(s)").widget;
   expect(openMenu(await show(plain, sandbox))).toEqual(["edit", "reload"]);
-  document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-  const liveOne = directiveWidget("widget.live(widget.sandbox(s))").widget;
-  expect(
-    openMenu(await show(liveOne, { ...sandbox, live: ["index"] })),
-  ).toEqual(["edit", "reload", "makeStatic"]);
 });

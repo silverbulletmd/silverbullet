@@ -7,7 +7,7 @@ references:
 ---
 A widget is a value describing what to render; where it appears is up to the page text or a [[View]]. See [[View#Widgets and views]].
 
-The `${lua expression}` syntax renders whatever the expression returns: a string as Markdown, a table as a table, or a widget. Use `widget.new` when you need more control. The full reference, including how to make an expression re-run on changes with `widget.live`, is in [[API/widget]].
+The `${lua expression}` syntax renders whatever the expression returns: a string as Markdown, a table as a table, or a widget. Use `widget.new` when you need more control. The full reference, including when expressions update, is in [[API/widget]].
 
 # Widget types
 To render a widget, call `widget.new` with any of the following keys:
@@ -23,7 +23,7 @@ For common cases there are shortcuts: `widget.markdown`, `widget.markdownBlock`,
 ${widget.markdown("**Bold** and *italic* text")}
 
 # The widget menu
-Block widgets have a ⋯ menu in their top-right corner (on hover on desktop, always visible on touch devices) for Reload, Copy as Markdown, Bake into page and Make live. Inline results use the *Widget: …* commands instead. See [[API/widget#Widget menu and commands]].
+Block widgets have a ⋯ menu in their top-right corner (on hover on desktop, always visible on touch devices) for Reload, Copy as Markdown and Bake into page. Inline results use the *Widget: …* commands instead. See [[API/widget#Widget menu and commands]].
 
 # Built-in widgets
 The standard library provides several pre-built widgets in the `widgets` table:

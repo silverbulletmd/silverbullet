@@ -1,5 +1,5 @@
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { Config } from "../config.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { System } from "../plugos/system.ts";
@@ -431,4 +431,47 @@ test("a manual reindex flags rebuildInProgress for its duration", async () => {
   await objectIndex.reindexSpace(spaceStub as any);
   expect(seenDuringRebuild).toBe(true);
   expect(objectIndex.rebuildInProgress).toBe(false);
+});
+
+async function makeIndex() {
+  const ds = new DataStore(new MemoryKvPrimitives());
+  const eventHook = new EventHook();
+  new System<EventHookT>(undefined).addHook(eventHook);
+  const mq = new DataStoreMQ(ds, eventHook);
+  const index = new ObjectIndex(ds, new Config(), eventHook, mq);
+  return { index, eventHook };
+}
+
+test("touched tags fire once each, after the index queue drains", async () => {
+  const { index, eventHook } = await makeIndex();
+  const fired: string[] = [];
+  for (const t of ["task", "page"]) {
+    eventHook.addLocalListener(`index:tag:${t}`, () => fired.push(t));
+  }
+  await index.indexObjects("P", [
+    { ref: "P@1", tag: "task", name: "a" } as any,
+    { ref: "P@2", tag: "task", name: "b" } as any,
+  ]);
+  await index.clearFileIndex("P.md");
+  expect(fired).toEqual([]);
+  await eventHook.dispatchEvent("mq:emptyQueue:indexQueue");
+  expect(fired).toEqual(["task"]);
+});
+
+test("writes outside the queue flush after an idle pause", async () => {
+  vi.useFakeTimers();
+  try {
+    const { index, eventHook } = await makeIndex();
+    const fired: string[] = [];
+    eventHook.addLocalListener("index:tag:item", () => fired.push("item"));
+    await index.indexObjects("P", [
+      { ref: "P@1", tag: "item", name: "x" } as any,
+    ]);
+    await vi.advanceTimersByTimeAsync(499);
+    expect(fired).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fired).toEqual(["item"]);
+  } finally {
+    vi.useRealTimers();
+  }
 });

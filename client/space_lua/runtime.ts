@@ -1,5 +1,6 @@
 import type { ASTCtx, LuaFunctionBody, NumericType } from "./ast.ts";
 import type { LuaBudget } from "./budget.ts";
+import { openTracker, type Tracker } from "./dependencies.ts";
 import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import { isPromise, rpAll } from "./rp.ts";
@@ -97,14 +98,14 @@ type LuaThreadState = {
   // Widget nesting depth of the render evaluating this thread
   renderDepth?: number;
   pageScope?: PageScopeFrame;
+  // Told what the evaluation's reads depend on (render evaluations only)
+  track?: Tracker;
 };
 
-/** What `space.pageVars` needs from the evaluation calling it. */
+/** What `pageVars.get` needs from the evaluation calling it. */
 export type PageScopeFrame = {
   // Pages whose scopes are being built, outermost first: the cycle check
   chain: string[];
-  // Told every page read, so the reader is refreshed when that page changes
-  onRead?: (page: string) => void;
 };
 
 function isLuaNumber(v: any): boolean {
@@ -605,21 +606,28 @@ function mapFunctionReturnValue(values: any[]): any {
   return new LuaMultiRes(values);
 }
 
+/** Called with a native function's converted arguments before it runs. */
+export type NativeCallObserver = (sf: LuaStackFrame, args: JSValue[]) => void;
+
 export class LuaNativeJSFunction implements ILuaFunction {
   readonly fn: (...args: JSValue[]) => JSValue;
   public info: LuaFunctionInfo;
+  private readonly observe?: NativeCallObserver;
 
   constructor(
     definition:
       | ((...args: JSValue[]) => JSValue)
-      | LuaFunctionDefinition<(...args: JSValue[]) => JSValue>,
+      | (LuaFunctionDefinition<(...args: JSValue[]) => JSValue> & {
+          observe?: NativeCallObserver;
+        }),
   ) {
     if (typeof definition === "function") {
       this.fn = definition;
       this.info = { kind: "builtin" };
     } else {
-      const { callback, ...info } = definition;
+      const { callback, observe, ...info } = definition;
       this.fn = callback;
+      this.observe = observe;
       this.info = {
         kind: "builtin",
         ...info,
@@ -640,8 +648,12 @@ export class LuaNativeJSFunction implements ILuaFunction {
       }
     }
     if (hasAsync) {
-      return Promise.all(args).then((jsArgs) => this.fn(...jsArgs));
+      return Promise.all(args).then((jsArgs) => {
+        this.observe?.(sf, jsArgs);
+        return this.fn(...jsArgs);
+      });
     }
+    this.observe?.(sf, args);
     return this.fn(...args);
   }
 
@@ -1836,6 +1848,36 @@ export function jsToLuaValue(value: any): any {
   return value;
 }
 
+const trackedCalls = new WeakMap<
+  (...args: any[]) => any,
+  (track: Tracker | undefined, args: any[]) => any
+>();
+
+/**
+ * Calls `fn` with `track` as its thread's tracker when it is a converted Lua
+ * function (a stored renderer such as a custom syntax's), plainly otherwise.
+ */
+export function callWithTracking(
+  fn: (...args: any[]) => any,
+  track: Tracker | undefined,
+  ...args: any[]
+): any {
+  const tracked = trackedCalls.get(fn);
+  if (!tracked) return fn(...args);
+  // Closed once the call settles: closures it returns (event handlers) run
+  // later on the same frame and must not report
+  const tracker = openTracker(track);
+  try {
+    const result = tracked(tracker.track, args);
+    if (isPromise(result)) return result.finally(tracker.close);
+    tracker.close();
+    return result;
+  } catch (e) {
+    tracker.close();
+    throw e;
+  }
+}
+
 export function luaValueToJS(value: any, sf: LuaStackFrame): any {
   if (isPromise(value)) {
     return (value as Promise<any>).then((v) => luaValueToJS(v, sf));
@@ -1848,17 +1890,22 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     value instanceof LuaFunction ||
     value instanceof LuaBuiltinFunction
   ) {
-    const fn = (...args: any[]) => {
+    const invoke = (
+      track: Tracker | undefined,
+      overridden: boolean,
+      args: any[],
+    ) => {
       // A converted closure captures one frame forever; without a fresh
       // thread state per call, every invocation would share one budget.
       const boundaryBudget = boundaryBudgetFactory?.();
       const callSf =
-        boundaryBudget === undefined
+        boundaryBudget === undefined && !overridden
           ? sf
           : new LuaStackFrame(sf.threadLocal, sf.astCtx, undefined, undefined, {
               closeStack: undefined,
-              budget: boundaryBudget,
+              budget: boundaryBudget ?? sf.threadState.budget,
               pageScope: sf.threadState.pageScope,
+              track: overridden ? track : sf.threadState.track,
             });
       // Marks this call's own budget (if any) done, so a Stop click that
       // arrives after the call has already returned is a no-op rather than
@@ -1892,6 +1939,8 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
         throw e;
       }
     };
+    const fn = (...args: any[]) => invoke(undefined, false, args);
+    trackedCalls.set(fn, (track, args) => invoke(track, true, args));
     if (value instanceof LuaFunction) {
       (fn as typeof fn & { [luaFunctionInfo]: LuaFunctionInfo })[
         luaFunctionInfo

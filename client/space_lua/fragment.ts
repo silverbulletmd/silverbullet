@@ -21,26 +21,6 @@ function partsField(v: unknown): unknown {
   return luaField(v, "parts");
 }
 
-export type LiveSpec = { value: unknown; refreshOn: string[] };
-
-/** The wrapper `widget.live` returns, from either its Lua or JS shape. */
-export function liveOf(v: unknown): LiveSpec | undefined {
-  if (!isWidgetValue(v)) return undefined;
-  const live = luaField(v, "live");
-  if (live === undefined || live === null) return undefined;
-  const refreshOn = luaField(live, "refreshOn");
-  const list =
-    refreshOn instanceof LuaTable
-      ? refreshOn.toJSArray()
-      : Array.isArray(refreshOn)
-        ? refreshOn
-        : [];
-  return {
-    value: luaField(live, "value") ?? null,
-    refreshOn: list.filter((e): e is string => typeof e === "string"),
-  };
-}
-
 /** A widget, or a list holding one (a query result cell can be either). */
 export function containsWidget(v: unknown): boolean {
   if (isWidgetValue(v)) return true;

@@ -77,20 +77,6 @@ test("widget.markdownBlock keeps a fragment's parts and sets display", async () 
   expect(env.get("__d")).toBe("block");
 });
 
-test("widget.live defaults to the index trigger", async () => {
-  const { env, run } = await widgetEnv();
-  await run(`
-    __a = widget.live(5)
-    __b = widget.live(5, {"edit"})
-  `);
-  const triggers = (name: string) =>
-    ((env.get(name) as LuaTable).rawGet("live") as LuaTable).rawGet(
-      "refreshOn",
-    ) as LuaTable;
-  expect(triggers("__a").toJSArray()).toEqual(["index"]);
-  expect(triggers("__b").toJSArray()).toEqual(["edit"]);
-});
-
 test("widget.new { markdown = fragment } leaves the caller's fragment alone", async () => {
   const { env, run } = await widgetEnv();
   await run(`

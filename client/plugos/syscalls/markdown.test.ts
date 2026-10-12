@@ -124,9 +124,6 @@ test("widget.toMarkdown is the value's Copy text", async () => {
   expect(await toMarkdown('"pre " .. widget.markdown("m") .. " post"')).toBe(
     "pre m post",
   );
-  expect(await toMarkdown('widget.live(widget.live("plain", {"edit"}))')).toBe(
-    "plain",
-  );
   expect(await toMarkdown("{ 1, 2 }")).toBe("");
   expect(
     await toMarkdown(

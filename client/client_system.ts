@@ -45,6 +45,8 @@ import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import type { ILuaFunction } from "./space_lua/runtime.ts";
+import { fileChangedEvent } from "./space_lua/dependencies.ts";
+import type { EventInterest } from "./event_interest.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
 import { registerEditorCommands } from "./editor_commands.ts";
 import { ServiceRegistry } from "./service_registry.ts";
@@ -74,7 +76,10 @@ import {
 } from "./navigator/view_defaults.ts";
 import type { Config } from "./config.ts";
 import { PageScopes, pageScopeChangedEvent } from "./space_lua/page_scope.ts";
-import { pageVarsSyscalls } from "./plugos/syscalls/page_vars.ts";
+import {
+  clientPageVarsDeps,
+  pageVarsSyscalls,
+} from "./plugos/syscalls/page_vars.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -90,6 +95,15 @@ function resolveViewDefaults(config: Config): ViewDefaultsTable {
 /**
  * Handles the extension-related mechanisms of the client by wrapping a PlugOS System object as well as Space Lua environments
  */
+/** Per-file change events, so a render that read a file re-runs on that file only. */
+export function wirePerFileEvents(hook: EventHook): void {
+  for (const event of ["file:changed", "file:deleted"]) {
+    hook.addLocalListener(event, (path: string) =>
+      hook.dispatchEvent(fileChangedEvent(path)),
+    );
+  }
+}
+
 export class ClientSystem {
   system!: System<SilverBulletHooks>;
   commandHook!: CommandHook;
@@ -114,6 +128,10 @@ export class ClientSystem {
   private lastNotifiedQuarantineRefs: string | null = null;
 
   readonly allKnownFiles = new BasenameIndex();
+
+  get eventInterest(): EventInterest {
+    return this.client.eventInterest;
+  }
   public knownFilesLoaded: boolean = false;
 
   constructor(
@@ -147,6 +165,14 @@ export class ClientSystem {
       spaceEnv: () => this.spaceLuaEnv.env,
       pageMeta: (name) =>
         this.client.objectIndex.getObjectByRef(name, "page", name),
+      interest: this.eventInterest,
+      // Scopes and widgets that read an invalidated page refresh on these
+      onInvalidated: async (pages) => {
+        await this.eventHook.dispatchEvent("pageScopes:changed", pages);
+        for (const p of pages) {
+          await this.eventHook.dispatchEvent(pageScopeChangedEvent(p));
+        }
+      },
     });
     this.serviceRegistry = new ServiceRegistry(this.eventHook, client.config);
 
@@ -208,14 +234,7 @@ export class ClientSystem {
       await this.reloadState();
     });
 
-    const onPageChanged = async (page: string) => {
-      const changed = await this.pageScopes.pageChanged(page);
-      if (changed.length === 0) return;
-      await this.eventHook.dispatchEvent("pageScopes:changed", changed);
-      for (const p of changed) {
-        await this.eventHook.dispatchEvent(pageScopeChangedEvent(p));
-      }
-    };
+    const onPageChanged = (page: string) => this.pageScopes.pageChanged(page);
     this.eventHook.addLocalListener("page:saved", (page: string) =>
       onPageChanged(page),
     );
@@ -224,6 +243,8 @@ export class ClientSystem {
         if (path.endsWith(".md")) return onPageChanged(path.slice(0, -3));
       });
     }
+
+    wirePerFileEvents(this.eventHook);
 
     this.eventHook.addLocalListener("editor:init", () => restoreDocks());
 
@@ -260,7 +281,7 @@ export class ClientSystem {
       eventSyscalls(this.eventHook, this.client),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      pageVarsSyscalls(this.pageScopes),
+      pageVarsSyscalls(this.pageScopes, clientPageVarsDeps(this.client)),
       systemSyscalls(client, this.readOnlyMode),
       markdownSyscalls(client),
       assetSyscalls(this.system),
@@ -269,7 +290,11 @@ export class ClientSystem {
       languageSyscalls(),
       jsonschemaSyscalls(),
       indexSyscalls(this.objectIndex, this.client),
-      luaSyscalls(this.system, () => this.spaceLuaEnv.env),
+      luaSyscalls(
+        this.system,
+        () => this.spaceLuaEnv.env,
+        async (page) => (await this.pageScopes.tryGet(page))?.env ?? null,
+      ),
       mqSyscalls(this.mq),
       serviceRegistrySyscalls(this.serviceRegistry),
       captureSyscalls(() => this.captureContext, this.client),

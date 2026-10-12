@@ -14,7 +14,7 @@ import {
 } from "../../markdown_renderer/compose.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import type { ViewValue } from "../../navigator/view_value.ts";
-import { pageScopeChangedEvent } from "../../space_lua/page_scope.ts";
+import type { Tracker } from "../../space_lua/dependencies.ts";
 import { isLuaWidgetError } from "../../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
 import {
@@ -22,10 +22,8 @@ import {
   copyValue,
   type DirectiveTarget,
   directiveAtWidget,
-  liveToggle,
-  setDirectiveLive,
 } from "./directive_actions.ts";
-import { LiveBinding, snapshotEventCounts } from "./live_binding.ts";
+import { LiveBinding } from "./live_binding.ts";
 import { trackRender } from "./render_settle.ts";
 import {
   moreIcon,
@@ -42,10 +40,24 @@ import {
 export type LuaWidgetCallback = (
   bodyText: string,
   pageName: string,
-  // Told each page whose scope the evaluation read, so the widget refreshes
-  // when it changes
-  onPageVarsRead?: (page: string) => void,
+  // Told what the evaluation read, so the widget refreshes when it changes
+  track?: Tracker,
 ) => Promise<LuaWidgetContent | null>;
+
+/**
+ * Cache keys per occurrence: identical expressions on one page would share a
+ * cached result, and a DOM element in it can only be shown once. The first
+ * copy keeps the plain key; a decoration build numbers the rest in order.
+ */
+export class OccurrenceKeys {
+  private seen = new Map<string, number>();
+
+  key(base: string): string {
+    const n = this.seen.get(base) ?? 0;
+    this.seen.set(base, n + 1);
+    return n === 0 ? base : `${base}:dup${n}`;
+  }
+}
 
 export type LuaWidgetContent = ViewValue | WidgetObject | string;
 
@@ -104,16 +116,15 @@ export type ShownValue = {
   bakeable: boolean;
   copyable: boolean;
   luaError: boolean;
-  live?: string[];
 };
 
 export function widgetCaps(
   host: WidgetHost,
   shown: ShownValue,
-  env: { readOnly: boolean; expr: string },
+  env: { readOnly: boolean },
 ): WidgetCaps {
   const directive = host.kind === "directive" && !env.readOnly;
-  // Baking or making an assignment live would drop its definition
+  // Baking an assignment would drop its definition
   const assignment = host.kind === "directive" && !!host.label;
   return {
     definition:
@@ -121,19 +132,42 @@ export function widgetCaps(
       !!host.definitionRef,
     open: host.kind === "transclusion" && !!host.openRef,
     edit: host.kind !== "panel" && !env.readOnly,
-    live: shown.live,
     copy: host.kind !== "frontmatter" && shown.copyable,
     bake: directive && !assignment && shown.bakeable && !shown.luaError,
-    toggleLive:
-      directive && !assignment
-        ? liveToggle(env.expr, { live: !!shown.live, kind: shown.kind })
-        : undefined,
   };
 }
 
 // CodeMirror reuses an `eq` widget's DOM but destroys through its newest
 // instance, which never mounted: teardown has to find the one that did.
 const owners = new WeakMap<HTMLElement, LuaWidget>();
+
+/**
+ * What an unchanged re-run must reproduce to keep the shown DOM; undefined
+ * when equality can't be judged from markup (views mount after the commit).
+ * Sandbox hosts compare by their content key: their size and iframe are
+ * filled in after rendering.
+ */
+function renderSignature(
+  rendered: RenderedValue,
+  luaError: boolean,
+): string | undefined {
+  const node = rendered.node;
+  if (rendered.kind === "view" || node.querySelector(".sb-inline-view")) {
+    return undefined;
+  }
+  const sandbox = "[data-sandbox-content]";
+  let markup = node.outerHTML;
+  if (node.matches(sandbox) || node.querySelector(sandbox)) {
+    const copy = node.cloneNode(true) as HTMLElement;
+    for (const host of [copy, ...copy.querySelectorAll<HTMLElement>(sandbox)]) {
+      if (!host.matches(sandbox)) continue;
+      host.removeAttribute("style");
+      host.replaceChildren();
+    }
+    markup = copy.outerHTML;
+  }
+  return `${luaError}\n${rendered.chrome.cssClasses?.join(" ") ?? ""}\n${markup}`;
+}
 
 export class LuaWidget extends WidgetType {
   public dom?: HTMLElement;
@@ -145,6 +179,8 @@ export class LuaWidget extends WidgetType {
   private shownValue: unknown = null;
   // What commit mounted, which may be a cached result's own element
   private shownNode?: HTMLElement;
+  // What the shown DOM was rendered from (see renderSignature)
+  private shownSignature?: string;
   // Compared on every decoration rebuild; serialized once
   private readonly wrapperKey: string;
 
@@ -154,8 +190,10 @@ export class LuaWidget extends WidgetType {
     this.wrapperKey = JSON.stringify(
       host.kind === "directive" ? host.wrappers : [],
     );
-    this.live = new LiveBinding(opts.client.eventHook, () => {
-      this.reload().catch((e) => console.error("Live widget reload failed", e));
+    this.live = new LiveBinding(opts.client.eventInterest, () => {
+      this.reload({ keepIfUnchanged: true }).catch((e) =>
+        console.error("Live widget reload failed", e),
+      );
     });
     if (this.inPage) {
       this.prewarm().catch(() => {
@@ -201,13 +239,8 @@ export class LuaWidget extends WidgetType {
   private prewarm(): Promise<LuaWidgetContent | null> {
     const { client, cacheKey, expressionText, callback } = this.opts;
     const page = client.currentName();
-    return client.widgetCache.prewarmResult(
-      cacheKey,
-      (triggers) =>
-        callback(expressionText, page, (read) =>
-          triggers.add(pageScopeChangedEvent(read)),
-        ),
-      () => snapshotEventCounts(client.eventHook),
+    return client.widgetCache.prewarmResult(cacheKey, (track) =>
+      callback(expressionText, page, track),
     );
   }
 
@@ -230,6 +263,7 @@ export class LuaWidget extends WidgetType {
       this.shownNode.remove();
     }
     this.shownNode = undefined;
+    this.shownSignature = undefined;
     activeWidgets.delete(this);
   }
 
@@ -255,7 +289,7 @@ export class LuaWidget extends WidgetType {
     }
 
     const renderStart = performance.now();
-    trackRender(this.render(innerDiv, true).done)
+    trackRender(this.render(innerDiv).done)
       .then(() => {
         performance.measure(`sb:widget:${this.opts.cacheKey.slice(0, 80)}`, {
           start: renderStart,
@@ -268,17 +302,20 @@ export class LuaWidget extends WidgetType {
   }
 
   async renderContent(div: HTMLElement): Promise<void> {
-    await this.render(div, false).done;
+    await this.render(div).done;
   }
 
-  /** Re-runs only this widget; safe at any time (no-op when disconnected). */
-  async reload(): Promise<void> {
+  /**
+   * Re-runs only this widget; safe at any time (no-op when disconnected).
+   * `keepIfUnchanged` keeps the shown DOM when the result renders the same.
+   */
+  async reload(opts: { keepIfUnchanged?: boolean } = {}): Promise<void> {
     const div = this.contentDiv;
     if (!div?.isConnected) return;
     // Hold the current height so a re-render doesn't collapse and re-grow the page
     div.style.minHeight = `${div.offsetHeight}px`;
     this.invalidatePrewarm();
-    const { version, done } = this.render(div, false);
+    const { version, done } = this.render(div, opts.keepIfUnchanged);
     try {
       await done;
     } finally {
@@ -289,35 +326,43 @@ export class LuaWidget extends WidgetType {
 
   private render(
     div: HTMLElement,
-    remount: boolean,
+    keepIfUnchanged = false,
   ): { version: number; done: Promise<void> } {
     const version = ++this.renderVersion;
     // Whoever renders (toDOM, refresh-all) sets the div later reloads use
     this.contentDiv = div;
-    return { version, done: this.renderInto(div, version, remount) };
+    return {
+      version,
+      done: this.renderInto(div, version, keepIfUnchanged),
+    };
   }
 
   private async renderInto(
     div: HTMLElement,
     version: number,
-    remount: boolean,
+    keepIfUnchanged: boolean,
   ): Promise<void> {
     const { client, cacheKey } = this.opts;
-    // Page scopes this render reads: a change to one refreshes it
+    // Events after this point aren't reflected in what this render reads
+    const startedAt = client.eventInterest.seq();
+    // What this render reads: a change to any of it refreshes it
     const triggers = new Set<string>();
-    const onPageVarsRead = (page: string) =>
-      triggers.add(pageScopeChangedEvent(page));
+    const track = (event: string) => triggers.add(event);
     let value = this.inPage
       ? await this.prewarm()
       : await this.opts.callback(
           this.opts.expressionText,
           client.currentName(),
-          onPageVarsRead,
+          track,
         );
     if (this.inPage) {
       for (const t of client.widgetCache.triggers(cacheKey)) triggers.add(t);
     }
     if (version !== this.renderVersion) return;
+    // A cached result was computed when its entry was created, maybe earlier
+    const computedAt = this.inPage
+      ? (client.widgetCache.computedAt(cacheKey) ?? startedAt)
+      : startedAt;
     activeWidgets.add(this);
     const luaError = isLuaWidgetError(value);
     // Stable marker for failed renders (the visible text stays as is).
@@ -325,8 +370,9 @@ export class LuaWidget extends WidgetType {
     if (value === null || value === undefined) {
       if (!this.renderEmpty) {
         // A page it read may still define the value it's missing
-        this.live.bind([...triggers]);
+        const missed = this.live.bind([...triggers], computedAt);
         this.clear(div);
+        if (missed) this.live.trigger();
         return;
       }
       value = { markdown: "nil", _isWidget: true };
@@ -335,7 +381,7 @@ export class LuaWidget extends WidgetType {
       value,
       liveContextForClient(client, {
         sandboxKey: cacheKey,
-        onPageVarsRead,
+        track,
         onSandboxMessage: (message, iframe) => {
           if (message.type !== "blur") return;
           const pos = client.editorView.posAtDOM(iframe, 0);
@@ -348,21 +394,28 @@ export class LuaWidget extends WidgetType {
       disposeRendered(rendered.node);
       return;
     }
-    // Stale-while-revalidate: a remounted widget shows its cached result, then
-    // re-runs if that result missed one of its events while unmounted
-    const revalidate = this.live.bind(
-      [...(rendered.live ?? []), ...triggers],
-      remount && this.inPage
-        ? client.widgetCache.computedAt(cacheKey)
-        : undefined,
-    );
-    if (rendered.chrome.cssClasses) {
-      div.className = rendered.chrome.cssClasses.join(" ");
-    }
-    if (rendered.empty && rendered.fromWidget) {
-      this.clear(div);
+    // Stale-while-revalidate: shows the result, then re-runs once if what it
+    // read changed since it was computed (while unmounted, for a cached
+    // result, or while this render evaluated: binding drops a pending run)
+    const revalidate = this.live.bind([...triggers], computedAt);
+    const signature = renderSignature(rendered, luaError);
+    if (
+      keepIfUnchanged &&
+      signature !== undefined &&
+      signature === this.shownSignature
+    ) {
+      // Same output: keep the shown DOM, its handlers and state
+      disposeRendered(rendered.node);
     } else {
-      this.commit(div, version, value, luaError, rendered);
+      if (rendered.chrome.cssClasses) {
+        div.className = rendered.chrome.cssClasses.join(" ");
+      }
+      if (rendered.empty && rendered.fromWidget) {
+        this.clear(div);
+      } else {
+        this.commit(div, version, value, luaError, rendered);
+        this.shownSignature = signature;
+      }
     }
     if (revalidate) this.live.trigger();
   }
@@ -390,7 +443,6 @@ export class LuaWidget extends WidgetType {
       bakeable: rendered.bakeable,
       copyable: rendered.copyable,
       luaError,
-      live: rendered.live,
     };
     const host = this.opts.host;
     const valueNode =
@@ -438,6 +490,7 @@ export class LuaWidget extends WidgetType {
 
   private clear(div: HTMLElement): void {
     this.shownNode = undefined;
+    this.shownSignature = undefined;
     this.scope.dispose();
     disposeRendered(div);
     div.replaceChildren();
@@ -468,11 +521,6 @@ export class LuaWidget extends WidgetType {
     button.setAttribute("aria-haspopup", "menu");
     button.setAttribute("aria-expanded", "false");
     button.innerHTML = moreIcon;
-    if (shown.live) {
-      const dot = document.createElement("span");
-      dot.className = "sb-widget-live-dot";
-      button.appendChild(dot);
-    }
     let closeMenu: (() => void) | undefined;
     this.scope.add(() => closeMenu?.());
     button.addEventListener("click", (e) => {
@@ -483,7 +531,6 @@ export class LuaWidget extends WidgetType {
       }
       const caps = widgetCaps(this.opts.host, shown, {
         readOnly: this.opts.client.isReadOnlyMode(),
-        expr: this.opts.expressionText,
       });
       closeMenu = openPopupMenu(
         button,
@@ -545,12 +592,6 @@ export class LuaWidget extends WidgetType {
       case "bake": {
         const target = this.directiveTarget();
         if (target) await bakeDirective(client, target, this.shownValue);
-        return;
-      }
-      case "makeLive":
-      case "makeStatic": {
-        const target = this.directiveTarget();
-        if (target) setDirectiveLive(client, target, id);
         return;
       }
     }

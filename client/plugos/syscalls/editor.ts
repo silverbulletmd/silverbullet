@@ -93,11 +93,13 @@ import { browserMediaCapabilities } from "../../media.ts";
 import { hide as hideNavigatorSlot } from "../../navigator/navigator.ts";
 import type { PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
+import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type { SysCallMapping } from "../system.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": {
+      dependsOn: () => ["navigate"],
       callback: (): string => {
         return client.currentName();
       },
@@ -106,6 +108,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
       returns: [{ type: "string", description: "The current page name." }],
     },
     "editor.getCurrentPageMeta": {
+      // The meta comes from the index: a save that changes it re-runs readers
+      dependsOn: () => ["navigate", tagChangedEvent("page")],
       callback: (): Promise<PageMeta | undefined> => {
         const name = client.currentName();
         return client.objectIndex.getObjectByRef(name, "page", name);
@@ -120,6 +124,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
     },
     "editor.getCurrentPath": {
+      dependsOn: () => ["navigate"],
       callback: (_ctx): string => {
         return client.currentPath();
       },
@@ -215,6 +220,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
     },
     "editor.getText": {
+      dependsOn: () => ["edit"],
       callback: () => {
         return client.editorView.state.sliceDoc();
       },
@@ -223,6 +229,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       returns: [{ type: "string", description: "The editor contents." }],
     },
     "editor.getCurrentLine": {
+      dependsOn: () => ["edit"],
       callback: (): {
         from: number;
         to: number;
@@ -269,6 +276,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
     },
     "editor.getCursor": {
+      dependsOn: () => ["edit"],
       callback: (): number => {
         return client.editorView.state.selection.main.from;
       },
@@ -277,6 +285,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       returns: [{ type: "number", description: "The cursor offset." }],
     },
     "editor.getSelection": {
+      dependsOn: () => ["edit"],
       callback: (): { from: number; to: number; text: string } => {
         const selection = client.editorView.state.selection.main;
         const text = client.editorView.state.sliceDoc(

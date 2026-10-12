@@ -588,3 +588,17 @@ test("a content view answering with a widget keeps the value for the panel", asy
 
   expect(state.contentValue).toEqual(widget);
 });
+
+test("a rows load remembers what its source read", async () => {
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") return Promise.resolve(meta());
+    if (payload.hook === "rows") {
+      payload.args.track("index:tag:page");
+      return Promise.resolve([]);
+    }
+    return Promise.resolve(undefined);
+  });
+  const engine = new NavigatorEngine();
+  await engine.activate("v");
+  expect(engine.activeState()!.tracked).toEqual(["index:tag:page"]);
+});

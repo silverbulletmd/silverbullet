@@ -23,7 +23,7 @@ import {
 } from "../space_lua/runtime.ts";
 import { newView } from "../navigator/view_value.ts";
 import { makeFragment } from "../space_lua/fragment.ts";
-import { buildTestEnv, normaliseLive, testHost } from "./compose_test_env.ts";
+import { buildTestEnv, testHost } from "./compose_test_env.ts";
 
 async function evalLua(
   t: Awaited<ReturnType<typeof buildTestEnv>>,
@@ -232,7 +232,7 @@ test("portableMarkdown: one text for Copy and Bake", async () => {
   expect(table.ok && table.markdown).toContain("|name|n|");
 });
 
-test("widget.live(x) copies and bakes exactly like x", async () => {
+test("a value converted to JS copies exactly like its Lua form", async () => {
   const t = await buildTestEnv();
   const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
   for (const src of [
@@ -241,29 +241,15 @@ test("widget.live(x) copies and bakes exactly like x", async () => {
     'T.md("**m**")',
     '{ { name = "Alpha task", status = T.md("*open*") } }',
   ]) {
-    const plain = await portableMarkdown(await evalLua(t, src), ctx);
-    const lua = await evalLua(t, `widget.live(${src})`);
-    expect(await portableMarkdown(lua, ctx)).toEqual(plain);
+    const lua = await evalLua(t, src);
+    const plain = await portableMarkdown(lua, ctx);
     // The top-level shape LuaWidget gets: widgets are converted to JS
     const js = luaValueToJS(lua, LuaStackFrame.lostFrame);
     expect(await portableMarkdown(js, ctx)).toEqual(plain);
     expect((await renderValue(js, ctx)).copyMarkdown).toBe(
-      (await renderValue(await evalLua(t, src), ctx)).copyMarkdown,
+      (await renderValue(lua, ctx)).copyMarkdown,
     );
   }
-});
-
-test("a widget.live in a table cell copies its content", async () => {
-  const t = await buildTestEnv();
-  const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
-  const r = await portableMarkdown(
-    await evalLua(
-      t,
-      '{ { name = "Alpha task", status = widget.live(T.md("*open*")) } }',
-    ),
-    ctx,
-  );
-  expect(r.ok && r.markdown).toContain("*open*");
 });
 
 test("a bare DOM node renders like widget.html, listeners kept", async () => {
@@ -398,17 +384,6 @@ test("renderValue reports the top-level chrome instead of applying it", async ()
   expect(r.chrome).toEqual({ cssClasses: ["hot"], events: { click } });
   expect(r.node.classList.contains("hot")).toBe(false);
   expect(r.fromWidget).toBe(true);
-  const live = await renderValue(
-    {
-      _isWidget: true,
-      live: {
-        value: { _isWidget: true, markdown: "x", cssClasses: ["warm"] },
-        refreshOn: ["index"],
-      },
-    },
-    ctx,
-  );
-  expect(live.chrome.cssClasses).toEqual(["warm"]);
   expect((await renderValue("plain", ctx)).fromWidget).toBe(false);
   expect((await renderValue([{ a: 1 }], ctx)).fromWidget).toBe(false);
   expect((await renderValue({ _isWidget: true }, ctx)).fromWidget).toBe(true);
@@ -419,36 +394,6 @@ test("nested widgets still get their chrome", async () => {
     'a ${widget.new { markdown = "b", cssClasses = { "hot" } }}',
   );
   expect(r.node.querySelector(".hot")?.textContent).toBe("b");
-});
-
-test("widget.live(x) renders exactly like x, floats and mixed tables included", async () => {
-  for (const x of ["2.0", "{ 1, 2, x = 3 }", '"a " .. widget.live(2.0)']) {
-    const { r: plain } = await live(`\${${x}}`);
-    const { r: wrapped } = await live(`\${widget.live(${x})}`);
-    expect(normaliseLive(wrapped.node)).toBe(normaliseLive(plain.node));
-    expect(wrapped.copyMarkdown).toBe(plain.copyMarkdown);
-  }
-  const { r } = await live("${widget.live(2.0)}");
-  expect(r.node.textContent).toBe("2.0");
-});
-
-test("renderValue reports the triggers of every widget.live it rendered", async () => {
-  const t = await buildTestEnv();
-  const triggers = async (src: string) =>
-    (
-      await renderValue(
-        await evalLua(t, src),
-        createRenderContext(testHost(t), { hostPage: { name: "Host" } }),
-      )
-    ).live?.sort();
-  expect(
-    await triggers(
-      '"Open: " .. widget.live(3) .. " / " .. widget.live(4, { "index", "edit" })',
-    ),
-  ).toEqual(["edit", "index"]);
-  expect(await triggers("{ { cell = widget.live(1) } }")).toEqual(["index"]);
-  expect(await triggers('"plain"')).toBeUndefined();
-  expect(await triggers("widget.live(1, {})")).toBeUndefined();
 });
 
 test("disposeRendered disposes a top-level view node too", async () => {
@@ -566,4 +511,16 @@ test("a fragment whose only content is a list view offers Copy", async () => {
   expect(await renderValue([{ v: list }], ctx)).toMatchObject({
     copyable: true,
   });
+});
+
+test("a transclusion in rendered markdown tracks its file", async () => {
+  const t = await buildTestEnv({ Other: "hello ![[Deeper]]", Deeper: "deep" });
+  const seen: string[] = [];
+  const ctx = createRenderContext(testHost(t), {
+    hostPage: { name: "Host" },
+    track: (e) => seen.push(e),
+  });
+  await renderValue({ _isWidget: true, markdown: "![[Other]]" }, ctx);
+  expect(seen).toContain("file:changed:Other.md");
+  expect(seen).toContain("file:changed:Deeper.md");
 });

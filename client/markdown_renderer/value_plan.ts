@@ -7,7 +7,6 @@ import {
   fragmentParts,
   isFragmentValue,
   isWidgetValue,
-  liveOf,
   textPart,
 } from "../space_lua/fragment.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
@@ -117,28 +116,7 @@ function flattenItems(
     .join(separator);
 }
 
-// A live wrapper can (contrivedly) contain itself
-const MAX_LIVE_UNWRAPS = 16;
-
-export function planValue(
-  raw: unknown,
-  onLive: (refreshOn: string[]) => void,
-  globalEnv: LuaEnv,
-): ValuePlan {
-  let value = raw;
-  const liveAt = (v: unknown) => (isViewValue(v) ? undefined : liveOf(v));
-  for (let live = liveAt(value), n = 0; live; live = liveAt(value), n++) {
-    if (n >= MAX_LIVE_UNWRAPS) {
-      value = "**Error:** Widget nesting too deep (widget.live)";
-      break;
-    }
-    onLive(live.refreshOn);
-    value = live.value;
-  }
-  return planUnwrapped(value, globalEnv);
-}
-
-function planUnwrapped(raw: unknown, globalEnv: LuaEnv): ValuePlan {
+export function planValue(raw: unknown, globalEnv: LuaEnv): ValuePlan {
   if (raw === null || raw === undefined || isSqlNull(raw)) {
     return { kind: "empty" };
   }

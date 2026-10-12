@@ -509,7 +509,6 @@ view.define {
   dock = "rhs",
   supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = false,
-  refreshOn = { "navigate", "edit" },
   refreshOnOpen = true,
   source = function(ctx)
     -- A document (not a page) has no markdown text for `tocHeaders` to read,
@@ -624,7 +623,6 @@ view.define {
   dock = "page-bottom",
   supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = true,
-  refreshOn = { "navigate", "index" },
   refreshOnOpen = true,
   content = function()
     local md = widgets.linkedMentionsMarkdown()
@@ -679,7 +677,6 @@ view.define {
   dock = "page-top",
   supportedDocks = { "page-top", "page-bottom", "lhs", "rhs", "bhs", "modal" },
   defaultOpen = true,
-  refreshOn = { "navigate", "index" },
   refreshOnOpen = true,
   content = function()
     return widgets.linkedTasksMarkdown()

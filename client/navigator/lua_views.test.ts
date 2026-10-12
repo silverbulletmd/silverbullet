@@ -2,7 +2,12 @@ import { expect, test } from "vitest";
 import type { LuaFunctionCallStatement } from "../space_lua/ast.ts";
 import { evalExpression } from "../space_lua/eval.ts";
 import { parseBlock } from "../space_lua/parse.ts";
-import { LuaEnv, LuaStackFrame, type LuaTable } from "../space_lua/runtime.ts";
+import {
+  LuaEnv,
+  LuaNativeJSFunction,
+  LuaStackFrame,
+  type LuaTable,
+} from "../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
 import { luaHandle } from "./lua_views.ts";
 import { buildPickSpec, validateDefineSpec, wireMeta } from "./view_spec.ts";
@@ -1302,4 +1307,29 @@ test("refreshOn expands trigger names at definition time", () => {
       ),
     ).refreshOn,
   ).toEqual(["editor:pageLoaded", "editor:documentLoaded", "fixture:ping"]);
+});
+
+test("rows and content report their reads; select does not", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  env.setLocal(
+    "probe",
+    new LuaNativeJSFunction({
+      callback: (name: string) => name,
+      observe: (sf, args) => sf.threadState.track?.(`probe:${args[0]}`),
+    }),
+  );
+  const spec = luaSpecIn(
+    env,
+    `{
+      source = function() probe("rows"); return {} end,
+      content = function() probe("content"); return "x" end,
+      onSelect = function() probe("select") end,
+    }`,
+  );
+  const seen: string[] = [];
+  const track = (e: string) => seen.push(e);
+  await luaHandle(spec, "rows", { ctx: {}, track }, env);
+  await luaHandle(spec, "content", { ctx: {}, track }, env);
+  await luaHandle(spec, "select", { obj: {}, track }, env);
+  expect(seen).toEqual(["probe:rows", "probe:content"]);
 });

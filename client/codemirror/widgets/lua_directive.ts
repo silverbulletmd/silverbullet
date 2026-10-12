@@ -20,7 +20,7 @@ import {
 import { directiveCacheKey } from "./directive_actions.ts";
 import { assignmentNameOf, directiveExpr } from "./directive_at.ts";
 import { LoadingWidget } from "./loading_widget.ts";
-import { type InlineWrapper, LuaWidget } from "./lua_widget.ts";
+import { type InlineWrapper, LuaWidget, OccurrenceKeys } from "./lua_widget.ts";
 import { PageLuaErrorWidget } from "./page_lua_error_widget.ts";
 
 function isPageLuaBlock(node: SyntaxNode, state: EditorState): boolean {
@@ -110,6 +110,7 @@ export function directiveWrappers(
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
+    const keys = new OccurrenceKeys();
 
     let shouldRender = true;
 
@@ -202,20 +203,22 @@ export function luaDirectivePlugin(client: Client) {
           expressionText,
           currentPageMeta?.name,
         );
-        const cacheKey = scope ? `${baseKey}:${scope.key}` : baseKey;
+        const cacheKey = keys.key(
+          scope ? `${baseKey}:${scope.key}` : baseKey,
+        );
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget({
               client,
               cacheKey,
               expressionText,
-              callback: async (bodyText, _page, onPageVarsRead) =>
+              callback: async (bodyText, _page, track) =>
                 renderPageDirective(
                   client,
                   bodyText,
                   currentPageMeta,
                   scope ? await scopes.tryGet(pageName) : null,
-                  { assignmentName, onPageVarsRead },
+                  { assignmentName, track },
                 ),
               host: {
                 kind: "directive",

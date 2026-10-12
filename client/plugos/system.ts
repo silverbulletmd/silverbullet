@@ -32,11 +32,14 @@ type SyscallSignature = (...args: any[]) => Promise<any> | any;
 
 export type SyscallDefinition = {
   callback: SyscallSignature;
+  // Events a Lua render's read depends on, from the call's arguments
+  dependsOn?: (...args: any[]) => string[];
 } & LuaFunctionDocumentation;
 
 type RegisteredSyscall = {
   requiredPermissions: string[];
   callback: SyscallSignature;
+  dependsOn?: (...args: any[]) => string[];
 } & LuaFunctionDocumentation;
 
 export type SystemOptions = {

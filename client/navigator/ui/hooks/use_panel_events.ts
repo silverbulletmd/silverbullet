@@ -12,6 +12,7 @@ import {
   MOBILE_MEDIA_QUERY,
   shouldFocusModalFilter,
 } from "../../../lib/mobile.ts";
+import { expandRefreshTriggers } from "../../refresh_triggers.ts";
 import { createActivate } from "../activation.ts";
 import type { NavigatorEngine } from "../engine.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
@@ -145,11 +146,28 @@ export function usePanelEvents({
       markSlotReady(slot, token);
     }
 
+    // The active view's refreshOn plus what its latest load read; each
+    // activation and refresh replaces it rather than adding to it
+    let releaseRefresh = () => {};
+    const listenForRefresh = (names: string[]) => {
+      releaseRefresh();
+      releaseRefresh = client.eventInterest.listen(
+        expandRefreshTriggers(names),
+        triggerRefresh,
+      );
+    };
     const triggerRefresh = () => {
       if (!engine.activeName) return;
       clearTimeout(refreshTimer.current);
       refreshTimer.current = setTimeout(async () => {
         await engine.refresh();
+        const state = engine.activeState();
+        if (state) {
+          listenForRefresh([
+            ...(state.meta.refreshOn ?? []),
+            ...(state.tracked ?? []),
+          ]);
+        }
         publish();
       }, 300) as unknown as number;
     };
@@ -198,9 +216,7 @@ export function usePanelEvents({
         revealedFor,
         revealedPage,
       },
-      listenForRefresh: (names) => {
-        for (const name of names) listen(name, triggerRefresh);
-      },
+      listenForRefresh,
       set,
       publish,
       syncReadOnly,
@@ -212,6 +228,7 @@ export function usePanelEvents({
     const timer = refreshTimer;
     return () => {
       clearTimeout(timer.current);
+      releaseRefresh();
       for (const [name, handler] of subscribed) {
         client.eventHook.removeLocalListener(name, handler);
       }

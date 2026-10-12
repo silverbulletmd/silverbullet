@@ -38,6 +38,7 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
     const {
       callback: _callback,
       requiredPermissions: _requiredPermissions,
+      dependsOn,
       ...metadata
     } = syscall;
     const definition = {
@@ -66,6 +67,17 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
             }
             return system.localSyscall(syscallName, args);
           },
+          observe: dependsOn
+            ? (sf, args) => {
+                const track = sf.threadState.track;
+                if (!track) return;
+                try {
+                  for (const event of dependsOn(...args)) track(event);
+                } catch (e) {
+                  console.error(`dependsOn of ${cleanSyscallName} failed`, e);
+                }
+              }
+            : undefined,
           ...definition,
         });
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);

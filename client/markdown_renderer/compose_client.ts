@@ -11,6 +11,7 @@ import {
   type RenderContext,
   type RenderHost,
 } from "./compose.ts";
+import type { Tracker } from "../space_lua/dependencies.ts";
 import type { TaskRefs } from "./inline.ts";
 import type { MarkdownRenderOptions } from "./markdown_render.ts";
 
@@ -40,6 +41,9 @@ export function renderHostForClient(
     createSandbox: (widget) => {
       const host = document.createElement("div");
       const html = typeof widget.html === "string" ? widget.html : "";
+      const script = typeof widget.script === "string" ? widget.script : "";
+      // Lets a widget re-run tell an unchanged sandbox from a changed one
+      host.dataset.sandboxContent = contentHash(`${html}\0${script}`);
       const key = opts.sandboxKey ?? `nested:${html.slice(0, 80)}`;
       const cachedHeight = client.widgetCache.getCachedWidgetHeight(key);
       const reserved = `${cachedHeight > 0 ? cachedHeight : 150}px`;
@@ -55,7 +59,7 @@ export function renderHostForClient(
             key,
             {
               html,
-              script: typeof widget.script === "string" ? widget.script : "",
+              script,
             },
             (message) => opts.onSandboxMessage?.(message, iframe),
           );
@@ -99,7 +103,7 @@ export function liveContextForClient(
     sourcePage?: string;
     // "page" when the rendered text is `sourcePage`'s source
     taskRefs?: TaskRefs;
-    onPageVarsRead?: (page: string) => void;
+    track?: Tracker;
   } & SandboxOptions = {},
 ): RenderContext {
   return createRenderContext(renderHostForClient(client, opts), {
@@ -107,7 +111,7 @@ export function liveContextForClient(
       client.currentPageMeta() ?? { name: client.currentName() },
     sourcePage: opts.sourcePage ?? opts.page?.name ?? client.currentName(),
     taskRefs: opts.taskRefs,
-    onPageVarsRead: opts.onPageVarsRead,
+    track: opts.track,
   });
 }
 
@@ -147,4 +151,14 @@ export function staticContextForClient(
     hostPage: { name: client.currentName() },
     taskRefs,
   });
+}
+
+// FNV-1a: cheap and stable, only compared for equality
+function contentHash(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
 }

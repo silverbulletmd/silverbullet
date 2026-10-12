@@ -11,6 +11,7 @@ import type { Client } from "../../client.ts";
 import { luaDefinitionRef } from "../../space_lua.ts";
 import { widgetRenderMode } from "../util.ts";
 import { LuaWidget, type LuaWidgetContent } from "../widgets/lua_widget.ts";
+import { callWithTracking } from "../../space_lua/runtime.ts";
 import {
   findFrontmatterBlock,
   selectionIntersectsRange,
@@ -147,9 +148,13 @@ class FrontmatterPreviewWidget extends WidgetType {
       client: this.client,
       cacheKey: `frontmatter:${this.client.currentName()}:${this.source.source}`,
       expressionText: "",
-      callback: async () => {
+      callback: async (_body, _page, track) => {
         try {
-          const result = await this.render(this.source.pageMeta);
+          const result = await callWithTracking(
+            this.render,
+            track,
+            this.source.pageMeta,
+          );
           return result == null ||
             (typeof result === "string" && !result.trim())
             ? {

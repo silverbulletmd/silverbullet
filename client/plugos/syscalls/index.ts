@@ -10,6 +10,7 @@ import type {
   LuaQueryCollection,
 } from "../../space_lua/query_collection.ts";
 import type { LuaTable } from "../../space_lua/runtime.ts";
+import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type { SysCallMapping } from "../system.ts";
 import { describeSchemas, tagSchema } from "./schema_introspection.ts";
 
@@ -19,6 +20,7 @@ export function indexSyscalls(
 ): SysCallMapping {
   return {
     "index.tag": {
+      dependsOn: (tag: string) => [tagChangedEvent(tag)],
       callback: (_ctx, tagName: string): LuaQueryCollection => {
         return objectIndex.objectsWithTag(tagName);
       },
@@ -27,6 +29,7 @@ export function indexSyscalls(
     },
     // Alias for tag
     "index.objects": {
+      dependsOn: (tag: string) => [tagChangedEvent(tag)],
       callback: (_ctx, tagName: string): LuaQueryCollection => {
         return objectIndex.objectsWithTag(tagName);
       },
@@ -34,6 +37,7 @@ export function indexSyscalls(
       signatures: ["index.objects(tagName)"],
     },
     "index.pages": {
+      dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("page", tagName);
       },
@@ -42,6 +46,7 @@ export function indexSyscalls(
       signatures: ["index.pages(tagName?)"],
     },
     "index.subPages": {
+      dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, pageName: string): LuaQueryCollection => {
         return objectIndex.subPages(pageName);
       },
@@ -50,18 +55,21 @@ export function indexSyscalls(
       signatures: ["index.subPages(pageName)"],
     },
     "index.documents": {
+      dependsOn: () => [tagChangedEvent("document")],
       callback: (): LuaQueryCollection => {
         return objectIndex.objectsWithTag("document");
       },
       description: "Returns all indexed documents as a query collection.",
     },
     "index.links": {
+      dependsOn: () => [tagChangedEvent("link")],
       callback: (): LuaQueryCollection => {
         return objectIndex.objectsWithTag("link");
       },
       description: "Returns all indexed links as a query collection.",
     },
     "index.relations": {
+      dependsOn: () => [tagChangedEvent("relation")],
       callback: (_ctx, kind?: string): LuaQueryCollection => {
         return objectIndex.relations(kind);
       },
@@ -70,6 +78,7 @@ export function indexSyscalls(
       signatures: ["index.relations(kind?)"],
     },
     "index.contentPages": {
+      dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.contentPages(tagName);
       },
@@ -78,12 +87,14 @@ export function indexSyscalls(
       signatures: ["index.contentPages(tagName?)"],
     },
     "index.metaPages": {
+      dependsOn: () => [tagChangedEvent("page")],
       callback: (): LuaQueryCollection => {
         return objectIndex.metaPages();
       },
       description: "Returns all meta pages as a query collection.",
     },
     "index.tasks": {
+      dependsOn: () => [tagChangedEvent("task")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("task", tagName);
       },
@@ -92,6 +103,7 @@ export function indexSyscalls(
       signatures: ["index.tasks(tagName?)"],
     },
     "index.headers": {
+      dependsOn: () => [tagChangedEvent("header")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("header", tagName);
       },
@@ -100,6 +112,7 @@ export function indexSyscalls(
       signatures: ["index.headers(tagName?)"],
     },
     "index.items": {
+      dependsOn: () => [tagChangedEvent("item")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("item", tagName);
       },
@@ -108,6 +121,7 @@ export function indexSyscalls(
       signatures: ["index.items(tagName?)"],
     },
     "index.paragraphs": {
+      dependsOn: () => [tagChangedEvent("paragraph")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("paragraph", tagName);
       },
@@ -116,6 +130,7 @@ export function indexSyscalls(
       signatures: ["index.paragraphs(tagName?)"],
     },
     "index.tables": {
+      dependsOn: () => [tagChangedEvent("table")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("table", tagName);
       },
@@ -124,12 +139,14 @@ export function indexSyscalls(
       signatures: ["index.tables(tagName?)"],
     },
     "index.tags": {
+      dependsOn: () => ["index"],
       callback: (): LuaQueryCollection => {
         return objectIndex.objectsWithTag("tag");
       },
       description: "Returns all indexed tag objects as a query collection.",
     },
     "index.describeSchema": {
+      dependsOn: () => ["index"],
       callback: (): Record<string, unknown> => {
         return describeSchemas(client.config.get(["tags"], {}));
       },
@@ -137,6 +154,7 @@ export function indexSyscalls(
         "Returns raw JSON Schemas for every configured tag that declares one.",
     },
     "index.tagSchema": {
+      dependsOn: () => ["index"],
       callback: (_ctx, tagName: string): unknown | null => {
         return tagSchema(client.config.get(["tags"], {}), tagName);
       },
@@ -152,6 +170,7 @@ export function indexSyscalls(
       ],
     },
     "index.aspiringPages": {
+      dependsOn: () => ["index"],
       callback: (): LuaQueryCollection => {
         return objectIndex.aspiringPages();
       },
@@ -159,6 +178,7 @@ export function indexSyscalls(
         "Returns linked but not yet created pages as a query collection.",
     },
     "index.ambiguousLinks": {
+      dependsOn: () => ["index"],
       callback: (): LuaQueryCollection => {
         return objectIndex.ambiguousLinks();
       },
@@ -166,6 +186,7 @@ export function indexSyscalls(
         "Returns links whose page name matches more than one page as a query collection.",
     },
     "index.aggregates": {
+      dependsOn: () => ["index"],
       callback: (): LuaQueryCollection => {
         return objectIndex.aggregates();
       },
@@ -228,6 +249,7 @@ export function indexSyscalls(
       signatures: ["index.previewProcessedObjects(page, objects)"],
     },
     "index.getObjectByRef": {
+      dependsOn: (_page: string, tag: string) => [tagChangedEvent(tag)],
       callback: (
         _ctx,
         page: string,
@@ -241,6 +263,7 @@ export function indexSyscalls(
       signatures: ["index.getObjectByRef(page, tag, ref)"],
     },
     "index.queryLuaObjects": {
+      dependsOn: (tag: string) => [tagChangedEvent(tag)],
       callback: (
         _ctx,
         tag: string,

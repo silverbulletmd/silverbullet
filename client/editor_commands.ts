@@ -63,7 +63,6 @@ import {
   copyValue,
   type DirectiveTarget,
   reloadDirective,
-  setDirectiveLive,
 } from "./codemirror/widgets/directive_actions.ts";
 import { directiveAt } from "./codemirror/widgets/directive_at.ts";
 import { broadcastReload } from "./sandbox/widget_sandbox_iframe.ts";
@@ -735,8 +734,4 @@ function registerWidgetCommands(hook: CommandHook, client: Client) {
     await bakeDirective(client, t, value, ctx);
   });
   command("Widget: Reload", (t) => reloadDirective(client, t.expr));
-  command("Widget: Make Live", (t) => setDirectiveLive(client, t, "makeLive"));
-  command("Widget: Make Static", (t) =>
-    setDirectiveLive(client, t, "makeStatic"),
-  );
 }
