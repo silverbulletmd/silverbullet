@@ -36,6 +36,7 @@ import {
   attachWidgetEventHandlers,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
+import { recordMeasure } from "../../lib/perf.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -291,10 +292,11 @@ export class LuaWidget extends WidgetType {
     const renderStart = performance.now();
     trackRender(this.render(innerDiv).done)
       .then(() => {
-        performance.measure(`sb:widget:${this.opts.cacheKey.slice(0, 80)}`, {
-          start: renderStart,
-          end: performance.now(),
-        });
+        recordMeasure(
+          `sb:widget:${this.opts.cacheKey.slice(0, 80)}`,
+          renderStart,
+          performance.now(),
+        );
       })
       .catch(console.error);
     this.dom = wrapperSpan;

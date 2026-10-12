@@ -33,6 +33,7 @@ import {
   type BudgetNotifier,
   offerStopNotification,
 } from "./space_lua/budget_ui.ts";
+import { recordMeasure } from "./lib/perf.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv;
@@ -131,10 +132,11 @@ export class SpaceLuaEnvironment {
         } finally {
           const duration = performance.now() - scriptStart;
           scriptTimings.push([script.ref, duration]);
-          performance.measure(`sb:lua-script:${script.ref}`, {
-            start: scriptStart,
-            end: scriptStart + duration,
-          });
+          recordMeasure(
+            `sb:lua-script:${script.ref}`,
+            scriptStart,
+            scriptStart + duration,
+          );
         }
       }
 

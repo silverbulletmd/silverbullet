@@ -56,7 +56,7 @@ import { MainUI } from "./editor_ui.tsx";
 import { setGitSyncStreamConnected } from "./git_sync_status.ts";
 import { isValidEditor } from "./lib/command_filters.ts";
 import { isMobileDevice } from "./lib/mobile.ts";
-import { timedSpan } from "./lib/perf.ts";
+import { recordMark, timedSpan } from "./lib/perf.ts";
 import {
   logoutInProgress,
   registerLogoutParticipant,
@@ -254,7 +254,7 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init(encryptionKey?: CryptoKey) {
-    performance.mark("sb:client-init");
+    recordMark("sb:client-init");
     const dbName = await deriveDbName(
       "data",
       this.bootConfig.spaceFolderPath,
@@ -391,7 +391,7 @@ export class Client {
     }
 
     await timedSpan("load-plugs", () => this.loadPlugs());
-    performance.mark("sb:plugs-loaded");
+    recordMark("sb:plugs-loaded");
 
     if (
       this.fullIndexCompleted &&
@@ -411,7 +411,7 @@ export class Client {
     await timedSpan("init-navigator", () => this.initNavigator());
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
-    performance.mark("sb:system-ready");
+    recordMark("sb:system-ready");
     this.maybeDispatchWidgetsReady();
 
     // When the service worker is disabled (desktop app / headless) there's no
@@ -933,7 +933,7 @@ export class Client {
     // page-list reducer + UI re-render.
     if (indexAvailable) {
       this.pageListLoaded = true;
-      performance.mark("sb:page-list-loaded");
+      recordMark("sb:page-list-loaded");
       this.maybeDispatchWidgetsReady();
     }
 
@@ -975,7 +975,7 @@ export class Client {
       this.widgetReadyDispatched = true;
       this.rebuildEditorState();
       this.resolveWidgetsReady();
-      performance.mark("sb:widgets-ready");
+      recordMark("sb:widgets-ready");
       const marks = performance
         .getEntriesByType("mark")
         .filter((m) => m.name.startsWith("sb:"));

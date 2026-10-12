@@ -18,6 +18,7 @@ import type { BootConfig } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
 import { exportKey, importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import "./debug.ts";
+import { recordMark } from "./lib/perf.ts";
 
 // Initialize the runtime-bridge namespace. `??=` preserves any value an
 // earlier init script may have already installed (desktop wrapper does this)
@@ -76,7 +77,7 @@ safeRun(async () => {
       client.handleServiceWorkerMessage(event.data),
     );
   });
-  performance.mark("sb:boot-start");
+  recordMark("sb:boot-start");
   let bootConfig: BootConfig | undefined;
   let config: Config | undefined;
   // Placeholder proxy for Client object to be swapped in later
@@ -180,7 +181,7 @@ safeRun(async () => {
     newURL.search = "";
     history.pushState({}, "", newURL.toString());
   }
-  performance.mark("sb:config-loaded");
+  recordMark("sb:config-loaded");
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig, config.values);
 

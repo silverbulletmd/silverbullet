@@ -56,6 +56,7 @@ import {
   TextDocumentEditor,
   TextDocumentOpenError,
 } from "./text_document_editor.ts";
+import { recordMark } from "./lib/perf.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -597,7 +598,7 @@ export class ContentManager {
         doc.meta.perm === "ro",
       );
       this.client.editorView.setState(editorState);
-      performance.mark("sb:page-content");
+      recordMark("sb:page-content");
     } else {
       // Same-page reload: applyExternalPatches diffs against the base from
       // the *previous* load (this.lastKnownDiskText, untouched above) and

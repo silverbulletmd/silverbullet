@@ -80,6 +80,7 @@ import {
   clientPageVarsDeps,
   pageVarsSyscalls,
 } from "./plugos/syscalls/page_vars.ts";
+import { recordMark } from "./lib/perf.ts";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -403,7 +404,7 @@ export class ClientSystem {
     setViewDefaults(resolveViewDefaults(this.client.config));
 
     this.scriptsLoaded = true;
-    performance.mark("sb:scripts-loaded");
+    recordMark("sb:scripts-loaded");
     this.client.maybeDispatchWidgetsReady();
   }
 
