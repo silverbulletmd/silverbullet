@@ -3,7 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
-* [[Space Lua/Page Lua]] turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page, read another page's values with `pageVars.get("Page")`, and change a value from code with `pageVars.set(name, value)` (for example from a button). Code completion in `${...}` and `page-lua` blocks offers the page's variables.
+* [[Space Lua/Page Lua]] turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page, read another page's values with `pageVars.get(name, "Page")` or `pageVars.all("Page")`, and change a value from code with `pageVars.set(name, value)` (for example from a button). Code completion in `${...}` and `page-lua` blocks offers the page's variables.
 * `${...}` expressions and widgets now compose everywhere: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results; templates, `..` and `table.concat` can embed widgets.
 * `sb` CLI: install it with `curl -fsSL https://silverbullet.md/install-sb.sh | sh` (Windows: `irm https://silverbullet.md/install-sb.ps1 | iex`). See [[CLI]].
 * New context menus for widgets and views.
@@ -11,6 +11,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Expressions, code widgets, custom syntax, frontmatter previews, views and page variables now update automatically when what they read changes (index tags, files, page variables, the open page); unchanged results leave the widget untouched. See [[API/widget#When expressions update]].
 * Fix: a `${...}` with a Lua syntax error shows the error instead of rendering empty.
 * Fix: editing a `${...}` no longer keeps the replaced widgets in memory until you leave the page, and links in a re-shown widget no longer navigate once per time it was shown.
+* Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
 
 ## 2.12.1
 * Security: the filesystem API refuses access to dot-prefixed files and directories, consistent with space listings.

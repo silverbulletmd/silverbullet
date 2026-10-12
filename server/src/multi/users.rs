@@ -233,8 +233,8 @@ impl UserEntry {
         hex(&h.finalize())
     }
 
-    fn is_usable_local_admin(&self) -> bool {
-        self.admin && !self.disabled && self.password_hash.is_some()
+    fn is_usable_admin(&self) -> bool {
+        self.admin && !self.disabled && (self.password_hash.is_some() || self.sso.is_some())
     }
 }
 
@@ -615,12 +615,8 @@ impl UserStore {
             let Some(entry) = c.users.get(name) else {
                 return Err(format!("no such user {name:?}"));
             };
-            if entry.is_usable_local_admin()
-                && c.users
-                    .values()
-                    .filter(|u| u.is_usable_local_admin())
-                    .count()
-                    == 1
+            if entry.is_usable_admin()
+                && c.users.values().filter(|u| u.is_usable_admin()).count() == 1
             {
                 return Err("cannot remove the last admin".into());
             }
@@ -674,12 +670,8 @@ impl UserStore {
     pub fn set_admin(&self, name: &str, admin: bool) -> Result<(), String> {
         self.mutate(|c| {
             if !admin {
-                let is_last_admin = c.users.get(name).is_some_and(|u| u.is_usable_local_admin())
-                    && c.users
-                        .values()
-                        .filter(|u| u.is_usable_local_admin())
-                        .count()
-                        == 1;
+                let is_last_admin = c.users.get(name).is_some_and(|u| u.is_usable_admin())
+                    && c.users.values().filter(|u| u.is_usable_admin()).count() == 1;
                 if is_last_admin {
                     return Err("cannot demote the last admin".into());
                 }
@@ -700,12 +692,8 @@ impl UserStore {
                 .get(name)
                 .ok_or_else(|| format!("no such user {name:?}"))?;
             if disabled
-                && entry.is_usable_local_admin()
-                && c.users
-                    .values()
-                    .filter(|u| u.is_usable_local_admin())
-                    .count()
-                    == 1
+                && entry.is_usable_admin()
+                && c.users.values().filter(|u| u.is_usable_admin()).count() == 1
             {
                 return Err("cannot disable the last admin".into());
             }
@@ -1455,28 +1443,63 @@ mod tests {
     }
 
     #[test]
-    fn cannot_remove_demote_or_disable_the_last_usable_local_admin() {
-        let dir = tempfile::tempdir().unwrap();
-        let s = store(dir.path());
-        s.create_sso_user(
-            "sso-admin",
-            "work",
-            "admin@example.test",
-            true,
-            Profile::default(),
-        )
-        .unwrap();
-
-        assert!(s.delete_user("ada").is_err());
-        assert!(s.set_admin("ada", false).is_err());
-        assert!(s.set_disabled("ada", true).is_err());
-
-        s.create_user("backup", "secret", true, Profile::default())
+    fn sso_admin_can_replace_the_last_local_admin() {
+        for operation in ["delete", "demote", "disable"] {
+            let dir = tempfile::tempdir().unwrap();
+            let s = store(dir.path());
+            s.create_sso_user(
+                "sso-admin",
+                "work",
+                "admin@example.test",
+                true,
+                Profile::default(),
+            )
             .unwrap();
-        s.set_disabled("ada", true).unwrap();
-        assert!(s.is_admin("backup"));
-        assert!(!s.is_admin("ada"));
+
+            let result = match operation {
+                "delete" => s.delete_user("ada"),
+                "demote" => s.set_admin("ada", false),
+                "disable" => s.set_disabled("ada", true),
+                _ => unreachable!(),
+            };
+            assert!(result.is_ok(), "{operation}: {result:?}");
+            let reopened = UserStore::open(dir.path()).unwrap().unwrap();
+            assert!(!reopened.is_admin("ada"));
+            assert!(reopened.is_admin("sso-admin"));
+            assert!(reopened.delete_user("sso-admin").is_err());
+            assert!(reopened.set_admin("sso-admin", false).is_err());
+            assert!(reopened.set_disabled("sso-admin", true).is_err());
+            assert!(reopened.is_admin("sso-admin"));
+        }
     }
+
+    #[test]
+    fn disabled_admins_cannot_replace_the_last_enabled_admin() {
+        for sso in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let s = store(dir.path());
+            if sso {
+                s.create_sso_user(
+                    "backup",
+                    "work",
+                    "backup@example.test",
+                    true,
+                    Profile::default(),
+                )
+                .unwrap();
+            } else {
+                s.create_user("backup", "secret", true, Profile::default())
+                    .unwrap();
+            }
+            s.set_disabled("backup", true).unwrap();
+
+            assert!(s.delete_user("ada").is_err());
+            assert!(s.set_admin("ada", false).is_err());
+            assert!(s.set_disabled("ada", true).is_err());
+            assert!(s.is_admin("ada"));
+        }
+    }
+
     #[test]
     fn recreated_sso_account_does_not_accept_the_previous_accounts_session() {
         let dir = tempfile::tempdir().unwrap();
