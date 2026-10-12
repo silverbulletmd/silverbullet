@@ -58,6 +58,15 @@ function luaCodeFromParents(parentNodes?: string[]): string | null {
   return null;
 }
 
+// `${…}` and page-lua run in their page's scope; space-lua in the global one
+function inPageScope(parentNodes?: string[]): boolean {
+  return (parentNodes ?? []).some(
+    (parent) =>
+      parent.startsWith("LuaDirective") ||
+      parent.startsWith("FencedCode:page-lua"),
+  );
+}
+
 function inLuaContext(parentNodes?: string[]): boolean {
   return (parentNodes ?? []).some(
     (parent) =>
@@ -240,7 +249,10 @@ export async function luaComplete(
   if (localCandidates !== null && parts.length > 0) {
     candidates = localCandidates;
   } else {
-    const inspection = await lua.inspect(parts);
+    const inspection = await lua.inspect(
+      parts,
+      inPageScope(event.parentNodes) ? event.pageName : undefined,
+    );
     candidates = inspection?.properties ?? [];
     if (parts.length === 0) {
       const merged = new Map(

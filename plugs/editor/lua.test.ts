@@ -172,3 +172,28 @@ test("page-lua blocks get the same Lua completion", async () => {
   );
   expect(result?.options.map((o) => o.label)).toEqual(["upper()"]);
 });
+
+test("luaComplete offers the page's variables in ${…} and page-lua", async () => {
+  const inspected: any[][] = [];
+  globalThis.syscall = async (name: string, ...args: any[]) => {
+    expect(name).toBe("lua.inspect");
+    inspected.push(args);
+    return { type: "table", properties: [{ key: "salary", type: "number" }] };
+  };
+
+  const directive = await luaComplete({
+    pageName: "Budget",
+    linePrefix: "${sal",
+    pos: 5,
+    parentNodes: ["LuaDirective:sal"],
+  });
+  expect(directive?.options.map((o) => o.label)).toEqual(["salary"]);
+  await luaComplete({
+    ...completionEvent("sal", "sal", "page-lua"),
+    pageName: "Budget",
+  });
+  // space-lua runs outside any page: globals only
+  await luaComplete(completionEvent("sal"));
+
+  expect(inspected).toEqual([[[], "Budget"], [[], "Budget"], [[]]]);
+});

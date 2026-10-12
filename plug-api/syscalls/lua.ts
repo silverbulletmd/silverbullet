@@ -36,6 +36,9 @@ export function prettyPrintExpression(
 
 export function inspect(
   path: string[] = [],
+  page?: string,
 ): Promise<LuaValueInspection | null> {
-  return syscall("lua.inspect", path);
+  return page === undefined
+    ? syscall("lua.inspect", path)
+    : syscall("lua.inspect", path, page);
 }

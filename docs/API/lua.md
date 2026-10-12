@@ -32,13 +32,14 @@ print(result)
 
 ## lua.inspect
 
-`lua.inspect(path?)`
+`lua.inspect(path?, page?)`
 
 Inspects a value in the live Space Lua environment and returns serializable type, function, definition, and property metadata.
 
 **Parameters:**
 
 - `path?` (`table`) — Sequence of property names from the global environment; omit to inspect globals.
+- `page?` (`string`) — Inspect from this page's scope, so its page variables are included.
 
 **Returns:**
 

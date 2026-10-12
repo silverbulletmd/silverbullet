@@ -3,7 +3,7 @@ import { encodeRef } from "../../plug-api/lib/ref.ts";
 import type { LuaFunctionInfo } from "../../plug-api/types/index.ts";
 import { System } from "../plugos/system.ts";
 import { resolveASTReference } from "../space_lua.ts";
-import { LuaTable } from "./runtime.ts";
+import { LuaEnv, LuaTable } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 import { luaSyscalls } from "./syscalls.ts";
 
@@ -62,4 +62,27 @@ test("lua.inspect reflects live values and Lua definitions", async () => {
   );
 
   expect(await inspect({}, ["demo", "missing"])).toBeNull();
+});
+
+test("lua.inspect with a page sees that page's variables over globals", async () => {
+  const env = luaBuildStandardEnv();
+  const pageEnv = new LuaEnv(env);
+  pageEnv.setLocal("salary", 500);
+  const syscalls = luaSyscalls(
+    new System(),
+    () => env,
+    async (page) => (page === "Budget" ? pageEnv : null),
+  );
+  const inspect = (syscalls["lua.inspect"] as any).callback;
+
+  const budget = await inspect({}, [], "Budget");
+  expect(budget.properties).toEqual(
+    expect.arrayContaining([
+      { key: "salary", type: "number" },
+      expect.objectContaining({ key: "string", type: "table" }),
+    ]),
+  );
+
+  const other = await inspect({}, [], "Other");
+  expect(other.properties.map((p: any) => p.key)).not.toContain("salary");
 });

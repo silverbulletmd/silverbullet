@@ -93,6 +93,8 @@ async function inspectLuaPath(
 export function luaSyscalls(
   system: System<any>,
   getEnvironment: () => LuaEnv,
+  // A page's scope: its variables over the globals
+  pageEnvironment?: (page: string) => Promise<LuaEnv | null>,
 ): SysCallMapping {
   return {
     "lua.parseBlock": {
@@ -239,8 +241,11 @@ export function luaSyscalls(
       see: "API/lua",
     },
     "lua.inspect": {
-      callback: (_ctx, path: string[] = []) =>
-        inspectLuaPath(getEnvironment(), path),
+      callback: async (_ctx, path: string[] = [], page?: string) =>
+        inspectLuaPath(
+          (page && (await pageEnvironment?.(page))) || getEnvironment(),
+          path,
+        ),
       description:
         "Inspects a value in the live Space Lua environment and returns serializable type, function, definition, and property metadata.",
       parameters: [
@@ -249,6 +254,13 @@ export function luaSyscalls(
           type: "table",
           description:
             "Sequence of property names from the global environment; omit to inspect globals.",
+          optional: true,
+        },
+        {
+          name: "page",
+          type: "string",
+          description:
+            "Inspect from this page's scope, so its page variables are included.",
           optional: true,
         },
       ],
