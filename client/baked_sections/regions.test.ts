@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   bakedBody,
   bakedRegionText,
+  bakedSectionAt,
   escapeBakedBody,
   findBakedSections,
 } from "./regions.ts";
@@ -67,4 +68,14 @@ test("a baked body is the escaped, trimmed markdown between newlines", () => {
   expect(bakedRegionText("q()", " x ")).toBe(
     "<!--#lua q() -->\nx\n<!--/lua-->",
   );
+});
+
+test("bakedSectionAt finds the section spanning a position, markers included", () => {
+  const text =
+    "a\n<!--#lua 1 -->\none\n<!--/lua-->\nb\n<!--#lua 2 -->\ntwo\n<!--/lua-->";
+  const second = text.lastIndexOf("<!--#lua");
+  expect(bakedSectionAt(text, text.indexOf("one"))?.expr).toBe("1");
+  expect(bakedSectionAt(text, second)?.expr).toBe("2");
+  expect(bakedSectionAt(text, text.length)?.expr).toBe("2");
+  expect(bakedSectionAt(text, 0)).toBeUndefined();
 });

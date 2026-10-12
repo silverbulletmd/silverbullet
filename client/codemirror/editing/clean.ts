@@ -6,6 +6,7 @@ import { atMentionPlugin } from "../syntax/at_mention.ts";
 import { attributePlugin } from "../syntax/attribute.ts";
 import { cleanBlockPlugin } from "../syntax/block.ts";
 import { blockquotePlugin } from "../syntax/block_quote.ts";
+import { bakedSectionPlugin } from "../syntax/baked_section.ts";
 import { commentRegionPlugin } from "../syntax/comment_region.ts";
 import { cleanEscapePlugin } from "../syntax/escapes.ts";
 import { fencedCodePlugin } from "../syntax/fenced_code.ts";
@@ -46,6 +47,7 @@ export function cleanModePlugins(client: Client) {
     blockquotePlugin(),
     admonitionPlugin(),
     commentRegionPlugin(client),
+    bakedSectionPlugin(client),
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),

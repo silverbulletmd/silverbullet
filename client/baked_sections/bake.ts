@@ -1,6 +1,12 @@
 import type { Client } from "../client.ts";
 import { expressionToPortableMarkdown } from "../markdown_renderer/compose_client.ts";
-import { bakedBody, findBakedSections } from "./regions.ts";
+import {
+  type BakedSection,
+  bakedBody,
+  bakedSectionAt,
+  findBakedSections,
+  unbakeChange,
+} from "./regions.ts";
 
 type BodyEdit = {
   from: number;
@@ -24,22 +30,30 @@ async function computeBakeEdits(
   const edits: BodyEdit[] = [];
   const skipped: string[] = [];
   for (const section of findBakedSections(text)) {
-    const result = await expressionToPortableMarkdown(
-      client,
-      section.expr,
-      currentPageMeta,
-    );
-    if (!result.ok) {
-      skipped.push(`"${section.expr}" (${result.reason})`);
-      continue;
-    }
-    edits.push({
-      from: section.bodyFrom,
-      to: section.bodyTo,
-      insert: bakedBody(result.markdown),
-    });
+    const edit = await bakeEdit(client, section, currentPageMeta);
+    if (typeof edit === "string") skipped.push(edit);
+    else edits.push(edit);
   }
   return { edits, skipped };
+}
+
+/** The body edit re-baking `section`, or why it can't be baked. */
+async function bakeEdit(
+  client: Client,
+  section: BakedSection,
+  currentPageMeta?: { name: string },
+): Promise<BodyEdit | string> {
+  const result = await expressionToPortableMarkdown(
+    client,
+    section.expr,
+    currentPageMeta,
+  );
+  if (!result.ok) return `"${section.expr}" (${result.reason})`;
+  return {
+    from: section.bodyFrom,
+    to: section.bodyTo,
+    insert: bakedBody(result.markdown),
+  };
 }
 
 /**
@@ -108,24 +122,71 @@ export async function updateBakedSections(client: Client): Promise<void> {
  * the cursor (not the whole page).
  */
 export function unbakeSectionAtCursor(client: Client): void {
-  const view = client.editorView;
-  const text = view.state.doc.toString();
-  const cursor = view.state.selection.main.head;
-  // Sections are non-overlapping; the cursor is "in" a section when it sits
-  // anywhere within the full marker-to-marker span (inclusive).
-  const section = findBakedSections(text).find(
-    (s) => cursor >= s.start && cursor <= s.end,
-  );
-  if (!section) {
+  if (!unbakeSection(client, client.editorView.state.selection.main.head)) {
     client.ui.flashNotification(
       "Place the cursor inside a baked section (<!--#lua … -->) to unbake",
     );
+  }
+}
+
+/** The section at `pos` in the open page, as it is now. */
+function sectionAt(client: Client, pos: number) {
+  return bakedSectionAt(client.editorView.state.doc.toString(), pos);
+}
+
+/** Unbakes the section at `pos`; false when there is none. */
+export function unbakeSection(client: Client, pos: number): boolean {
+  const section = sectionAt(client, pos);
+  if (!section) return false;
+  client.editorView.dispatch(unbakeChange(section));
+  client.focus();
+  return true;
+}
+
+/** Re-bakes only the section at `pos`. */
+export async function updateBakedSection(
+  client: Client,
+  pos: number,
+): Promise<void> {
+  const section = sectionAt(client, pos);
+  if (!section) return;
+  const edit = await bakeEdit(client, section, client.currentPageMeta());
+  if (typeof edit === "string") {
+    client.ui.flashNotification(`Couldn't update ${edit}`, "error");
     return;
   }
-  const insert = `\${${section.expr}}`;
-  view.dispatch({
-    changes: { from: section.start, to: section.end, insert },
-    selection: { anchor: section.start + insert.length },
+  // The page may have changed while evaluating: only apply to the same body
+  const now = sectionAt(client, pos);
+  if (now?.bodyFrom !== section.bodyFrom || now.bodyTo !== section.bodyTo) {
+    return;
+  }
+  client.editorView.dispatch({ changes: edit });
+}
+
+/** Puts the cursor in the section's opening marker, revealing it. */
+export function editBakedExpression(client: Client, pos: number): void {
+  const section = sectionAt(client, pos);
+  if (!section) return;
+  client.editorView.dispatch({
+    selection: { anchor: section.start + "<!--#lua ".length },
+    scrollIntoView: true,
   });
   client.focus();
+}
+
+/** Copies the section's baked Markdown body. */
+export async function copyBakedSection(
+  client: Client,
+  pos: number,
+): Promise<void> {
+  const section = sectionAt(client, pos);
+  if (!section) return;
+  const text = client.editorView.state.doc.sliceString(
+    section.bodyFrom,
+    section.bodyTo,
+  );
+  await client.clientSystem.localSyscall("editor.copyToClipboard", [
+    text.trim(),
+  ]);
+  client.ui.flashNotification("Copied as Markdown");
 }

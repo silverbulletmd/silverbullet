@@ -393,6 +393,12 @@ tbody tr:nth-of-type(even) {
   color: var(--editor-code-comment-color);
 }
 
+.sb-baked-label,
+.sb-baked-expr,
+.sb-baked-end {
+  color: var(--editor-code-comment-color);
+}
+
 .sb-comment-marker {
   color: var(--editor-code-comment-color);
 }

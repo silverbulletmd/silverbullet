@@ -5,6 +5,17 @@
 /** Exact closing marker of a baked section. */
 const CLOSE_MARKER = "<!--/lua-->";
 
+/** The EXPR of an opening marker `<!--#lua EXPR -->`, else null. */
+export function bakedOpenerExpr(marker: string): string | null {
+  const m = /^\s*<!--#lua\s+([\s\S]*?)-->$/.exec(marker);
+  return m ? m[1].trim() : null;
+}
+
+/** True for the closing marker of a baked section. */
+export function isBakedCloser(marker: string): boolean {
+  return marker.trim() === CLOSE_MARKER;
+}
+
 /** Matches an opening marker `<!--#lua EXPR -->`, capturing EXPR (non-greedy
  *  so it stops at the first `-->`). Global: callers reset lastIndex. */
 const OPEN_RE = /<!--#lua\s+([\s\S]*?)-->/g;
@@ -67,4 +78,21 @@ export function bakedBody(markdown: string): string {
 /** The `<!--#lua EXPR -->` region that bakes `markdown` for `expr`. */
 export function bakedRegionText(expr: string, markdown: string): string {
   return `<!--#lua ${expr} -->${bakedBody(markdown)}${CLOSE_MARKER}`;
+}
+
+/** The baked section whose markers-included span contains `pos`. */
+export function bakedSectionAt(
+  text: string,
+  pos: number,
+): BakedSection | undefined {
+  return findBakedSections(text).find((s) => pos >= s.start && pos <= s.end);
+}
+
+/** Replaces a baked section with its live `${EXPR}`, cursor after it. */
+export function unbakeChange(section: BakedSection) {
+  const insert = `\${${section.expr}}`;
+  return {
+    changes: { from: section.start, to: section.end, insert },
+    selection: { anchor: section.start + insert.length },
+  };
 }

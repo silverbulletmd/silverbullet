@@ -18,18 +18,33 @@ A baked section keeps the expression *and* its rendered output side by side, usi
     | Publishing |
     <!--/lua-->
 
-The two `<!-- ... -->` markers are ordinary HTML comments, so **every markdown renderer ignores them** — GitHub, Obsidian, a plain viewer. What they render is the body in between: a real markdown table. Inside SilverBullet the markers are shown as subtle, grayed-out comments, and the expression in the opening marker is the source of truth used to refresh the body.
+The two `<!-- ... -->` markers are ordinary HTML comments, so **every markdown renderer ignores them** — GitHub, Obsidian, a plain viewer. What they render is the body in between: a real markdown table. Inside SilverBullet the opening marker shows as a slim _Baked_ header with the expression and the closing marker as an _End baked_ line; move the cursor into the section to see and edit the raw markers. The expression in the opening marker is the source of truth used to refresh the body.
 
 In short: the page renders correctly *everywhere*, and stays editable and re-runnable inside SilverBullet.
 
 # Using baked sections
-There are three actions:
-
-- **Bake button** — block `${...}` widgets (tables, lists, diagrams) show a _Bake_ button in their hover toolbar, next to Copy. Click it to turn that live directive into a baked section in place.
+- **Bake into page** — the ⋯ menu of block `${...}` widgets (tables, lists, diagrams) turns that live directive into a baked section in place.
+- **The baked section's ⋯ menu** (on its header): _Update_ re-evaluates just this section, _Edit expression_ puts the cursor in the opening marker, _Copy as Markdown_ copies the body, and _Unbake_ turns it back into a live `${...}` directive. On a read-only page only _Copy as Markdown_ is offered.
 - `Baked Sections: Update` (`Ctrl-Shift-b` / `Cmd-Shift-b`): re-evaluates *every* baked section on the current page and rewrites each body with its latest output. Run this whenever the underlying data changed and you want the baked output refreshed.
 - `Baked Sections: Unbake Section At Cursor` — put your cursor inside a baked section and run this to turn it back into a live `${...}` directive. Handy when you want to edit the expression with [[Live Preview]] again, bake it back when you’re done.
 
 Baking is **static and manual**: a baked section shows the output from the last time it was baked. It does not refresh by itself, re-run `Baked Sections: Update` to bring it current.
+
+# Examples
+
+<!--#lua 1 + 1 -->
+2
+<!--/lua-->
+
+<!--#lua query[[
+  from p = index.contentPages()
+  select templates.pageItem(p)
+  limit 3
+]] -->
+* [[ADR]]
+* [[ADR/001 Offline-First PWA]]
+* [[ADR/002 Sync Engine]]
+<!--/lua-->
 
 # Who is this for?
 * **Sharing or publishing outside SilverBullet** ([[Share]], [[Export]]) — bake your dynamic pages so a published site, a GitHub repo, or a static export shows real tables and content instead of directive source.
