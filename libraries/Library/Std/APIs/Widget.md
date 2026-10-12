@@ -1,6 +1,6 @@
 #meta/api
 
-This implements the widget API. Widgets are values describing what to render: static (markdown, html) or live (source, content). See [[View#Widgets and views]]. Consider using [[^Library/Std/APIs/DOM]] to construct HTML widgets.
+This implements the widget API. Widgets are values describing what to render: static (markdown, html) or live (source, content). Consider using [[^Library/Std/APIs/DOM]] to construct HTML widgets.
 
 ```space-lua
 -- priority: 50
