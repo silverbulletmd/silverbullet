@@ -85,7 +85,9 @@ export function fencedCodePlugin(client: Client) {
                 ? new LoadingWidget(true)
                 : new LuaWidget({
                     client,
-                    cacheKey: keys.key(`codewidget:${lang}:${pageName}:${bodyText}`),
+                    cacheKey: keys.key(
+                      `codewidget:${lang}:${pageName}:${bodyText}`,
+                    ),
                     expressionText: bodyText,
                     callback: (_body, _page, track) =>
                       renderLuaCallback(

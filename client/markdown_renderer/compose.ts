@@ -22,10 +22,7 @@ import {
 } from "../space_lua/budget.ts";
 import { unescapeTableCellPipes } from "../space_lua/directive_scan.ts";
 import { parseAssignmentDirective } from "../space_lua/assignment_directive.ts";
-import {
-  type Tracker,
-  transclusionEvent,
-} from "../space_lua/dependencies.ts";
+import { type Tracker, transclusionEvent } from "../space_lua/dependencies.ts";
 import { evalExpression } from "../space_lua/eval.ts";
 import {
   assignmentRenderValue,

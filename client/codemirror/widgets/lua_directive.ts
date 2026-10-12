@@ -203,9 +203,7 @@ export function luaDirectivePlugin(client: Client) {
           expressionText,
           currentPageMeta?.name,
         );
-        const cacheKey = keys.key(
-          scope ? `${baseKey}:${scope.key}` : baseKey,
-        );
+        const cacheKey = keys.key(scope ? `${baseKey}:${scope.key}` : baseKey);
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget({

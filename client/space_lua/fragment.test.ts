@@ -1,10 +1,6 @@
 import { expect, test } from "vitest";
 import { evalExpression } from "./eval.ts";
-import {
-  fragmentParts,
-  isFragmentValue,
-  makeFragment,
-} from "./fragment.ts";
+import { fragmentParts, isFragmentValue, makeFragment } from "./fragment.ts";
 import { parseExpressionString } from "./parse.ts";
 import {
   LuaEnv,

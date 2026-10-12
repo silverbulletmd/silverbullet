@@ -80,9 +80,7 @@ test("Bake rewrites exactly the widget's ${…}", async () => {
   const target = directiveAtWidget(client, at(2), "q()")!;
   const ctx = createRenderContext(testHost(t), { hostPage: { name: "Host" } });
   await bakeDirective(client, target, "**done**", ctx);
-  expect(text()).toBe(
-    "**<!--#lua q() -->\n**done**\n<!--/lua-->**${r()}",
-  );
+  expect(text()).toBe("**<!--#lua q() -->\n**done**\n<!--/lua-->**${r()}");
 });
 
 test("the menu and the palette copy the same text: rows for a list view, the text of a Lua error", async () => {
