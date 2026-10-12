@@ -9,8 +9,16 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: a `${...}` with a Lua syntax error shows the error instead of rendering empty.
 * Views docked above or below the page now put Go to definition and Copy in the same ⋯ menu `${...}` widgets use, beside the dock menu and ×; a content view in a sidebar, the bottom panel or the modal has it for Copy.
 * Fix: editing a `${...}` no longer keeps the replaced widgets in memory until you leave the page, and links in a re-shown widget no longer navigate once per time it was shown.
-* Public spaces now expose `robots.txt` and a sitemap of content pages, with canonical URLs and descriptions in the initial HTML. Pages tagged `meta` or `meta/*` are excluded from the sitemap and marked `noindex`. Missing pages return HTTP 404. Read-only spaces also show a “Page not found” view in the client with a link hom.
-* Fix: the filesystem API now refuses access to dot-prefixed files and directories, consistent with space listings.
+
+## 2.12.1
+* Security: the filesystem API refuses access to dot-prefixed files and directories, consistent with space listings.
+* Fix: HTTP file validators respect `If-None-Match` precedence, and file reads and conditional writes tolerate proxies that weaken or transform ETags.
+* Fix: YAML data blocks split only on standalone `---` lines; X-Ray includes attributes added during indexing.
+* Fix: `system.reboot()` preserves external edits and clears cached widgets. Reopening a page restores a remembered scroll position of zero.
+* Fix: the [[Runtime API]] returns JSON for query rows, null values, dates and other Lua values without serialization crashes, and remains usable after the client reloads its UI.
+* SLIQ errors offer more specific explanations for common mistakes.
+* Public spaces expose `robots.txt` and a sitemap of content pages, with canonical URLs and descriptions in the initial HTML. Metadata pages are excluded from the sitemap and marked `noindex`; encoded page names render correctly, frontmatter is hidden, and missing pages return HTTP 404. Read-only spaces show a “Page not found” view with a link home.
+* Client builds remove stale bundle chunks and omit source maps from release binaries.
 
 ## 2.12.0 
 * Mobile improvements:

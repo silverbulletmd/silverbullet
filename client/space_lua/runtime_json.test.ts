@@ -34,6 +34,20 @@ function expectPlainJSON(out: unknown) {
   expect(JSON.parse(JSON.stringify(out))).toEqual(out);
 }
 
+test("runtime JSON preserves prototype-named keys in maps, objects and Lua tables", async () => {
+  const inputs = [
+    new Map([["__proto__", { title: "sample" }]]),
+    JSON.parse('{"__proto__":{"title":"sample"}}'),
+    new LuaTable(JSON.parse('{"__proto__":{"title":"sample"}}')),
+  ];
+  for (const input of inputs) {
+    const out = await toRuntimeJSON(input);
+    expect(Object.hasOwn(out as object, "__proto__")).toBe(true);
+    expect(JSON.stringify(out)).toBe('{"__proto__":{"title":"sample"}}');
+    expectPlainJSON(out);
+  }
+});
+
 test("select rows that lack a field get null for it, keeping the key", async () => {
   const rows = await runLua(
     `return query[[from p = books select {name=p.name, rating=p.rating}]]`,

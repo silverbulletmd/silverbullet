@@ -127,7 +127,7 @@ async function convert(
       return out;
     }
     if (obj instanceof Map) {
-      const out: Record<string, RuntimeJSON> = {};
+      const out: Record<string, RuntimeJSON> = Object.create(null);
       for (const [k, v] of obj) {
         out[keyToString(k)] = await child(v);
       }
@@ -140,7 +140,7 @@ async function convert(
     if (proto !== Object.prototype && proto !== null) {
       return `<${proto?.constructor?.name || "object"}>`;
     }
-    const out: Record<string, RuntimeJSON> = {};
+    const out: Record<string, RuntimeJSON> = Object.create(null);
     for (const k of Object.keys(obj)) {
       out[k] = await child((obj as any)[k]);
     }
@@ -187,7 +187,7 @@ async function luaTableToJSON(
     }
     return out;
   }
-  const out: Record<string, RuntimeJSON> = {};
+  const out: Record<string, RuntimeJSON> = Object.create(null);
   for (const k of keys) {
     out[keyToString(k)] = await child(table.rawGet(k));
   }
