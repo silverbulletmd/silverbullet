@@ -149,6 +149,37 @@
   display: none;
 }
 
+// Installed PWA with the title bar hidden: keep the centered top bar clear of
+// the window controls, and keep its controls clickable inside the drag region.
+// Electron draws its own title bar above #sb-top, so it is excluded.
+@media (display-mode: window-controls-overlay) {
+  :root:not(.sb-electron) #sb-top {
+    -webkit-app-region: drag;
+
+    .main .inner {
+      max-width: none;
+      margin-left: max(0px,
+          (100% - var(--#{"editor-width"})) / 2,
+          env(titlebar-area-x, 0px) - var(--sb-editor-pane-left, 0px));
+      margin-right: max(0px,
+          (100% - var(--#{"editor-width"})) / 2,
+          var(--sb-editor-pane-left, 0px) + var(--sb-editor-pane-width, 100vw) - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+
+      .wrapper {
+        width: 100%;
+      }
+    }
+
+    button,
+    a,
+    input,
+    [role="button"],
+    [contenteditable="true"] {
+      -webkit-app-region: no-drag;
+    }
+  }
+}
+
 @media only screen and (max-width: 600px) {
 
   #sb-top .sb-mobile-dock-button {
