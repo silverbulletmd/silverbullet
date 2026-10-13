@@ -28,12 +28,14 @@ export const tagPicker: BuiltinView<TagRow> = {
   source: async () => {
     if (!(await index.isAvailable())) return [];
     // The index holds one record per tagged object, which is what makes the
-    // count free.
+    // count free. The collection also holds anything tagged #tag (e.g. a
+    // paragraph), so keep to genuine tag records.
     const counts = new Map<string, number>();
     for (const tag of await index.queryLuaObjects<{ name: string }>(
       "tag",
       {} as any,
     )) {
+      if (tag.tag !== "tag") continue;
       counts.set(tag.name, (counts.get(tag.name) ?? 0) + 1);
     }
     return [...counts.entries()]

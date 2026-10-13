@@ -87,12 +87,14 @@ export function indexTags(
   );
 }
 
-/** Every tag name that occurs outside a comment somewhere in the space. */
+/** Every tag name that occurs outside a comment somewhere in the space. The
+ * "tag" collection also holds anything tagged #tag (e.g. a paragraph), so
+ * keep to genuine tag records. */
 async function liveTagsQuery() {
   return {
     distinct: true,
     select: { type: "Variable", name: "name", ctx: {} as any } as const,
-    where: await lua.parseExpression("not _.inComment"),
+    where: await lua.parseExpression('_.tag == "tag" and not _.inComment'),
   };
 }
 
