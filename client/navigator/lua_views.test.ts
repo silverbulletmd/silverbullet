@@ -1333,3 +1333,43 @@ test("rows and content report their reads; select does not", async () => {
   await luaHandle(spec, "select", { obj: {}, track }, env);
   expect(seen).toEqual(["probe:rows", "probe:content"]);
 });
+
+test("source views may declare a dropdown without where or key", () => {
+  expect(() =>
+    validateDefineSpec(
+      luaSpec(`{
+        name = "v", search = "source",
+        dropdown = { allLabel = "All words", options = { { label = "Regex", value = "regex" } } },
+        ${SOURCE}, ${ON_SELECT},
+      }`),
+    ),
+  ).not.toThrow();
+});
+
+test("client views still require where or key on a dropdown", () => {
+  expect(() =>
+    validateDefineSpec(
+      luaSpec(`{
+        name = "v",
+        dropdown = { options = { { label = "Regex", value = "regex" } } },
+        ${SOURCE}, ${ON_SELECT},
+      }`),
+    ),
+  ).toThrow("view.define: dropdown.where must be a function");
+});
+
+test("source views get dropdown options without per-row masks, and see ctx.dropdown", async () => {
+  const spec = luaSpec(`{
+    name = "v", search = "source",
+    dropdown = { options = function() return { { label = "Regex", value = "regex" } } end },
+    source = function(ctx) return { { name = ctx.dropdown or "default" } } end,
+    ${ON_SELECT},
+  }`);
+  const dropdown = await luaHandle(spec, "dropdown", { objs: [{ name: "x" }] });
+  expect(dropdown.options).toEqual([{ label: "Regex", value: "regex" }]);
+  expect(dropdown.masks).toEqual([]);
+  const rows = await luaHandle(spec, "rows", {
+    ctx: { phrase: "f", dropdown: "regex" },
+  });
+  expect(rows[0].primary).toBe("regex");
+});

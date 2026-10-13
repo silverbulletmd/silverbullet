@@ -67,6 +67,9 @@ pub struct InstanceDeps {
     /// Process-wide shutdown signal, cloned into every instance's
     /// `ServerState::shutdown`. See that field's doc comment.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
+    /// Admits every space's search requests; one per server, so the rg
+    /// process limit is server-wide.
+    pub search_gate: Arc<silverbullet_server_search::Gate>,
 }
 
 /// Single-space servers retain their classic environment credentials. An
@@ -423,7 +426,7 @@ fn try_build_state(
     } else {
         disk
     };
-    let space: Box<dyn SpacePrimitives> = Box::new(FallthroughSpacePrimitives::new(
+    let space: Arc<dyn SpacePrimitives> = Arc::new(FallthroughSpacePrimitives::new(
         disk,
         (deps.assets.base_fs)(),
     ));
@@ -628,6 +631,7 @@ fn try_build_state(
         "space revisions started"
     );
 
+    let search = crate::search::backend_for(&folder, space.clone());
     Ok(ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
@@ -674,6 +678,8 @@ fn try_build_state(
             InstanceAuth::Accounts { users, .. } => account_identity(users.clone(), members),
             InstanceAuth::Single(_) => crate::auth::username_only(),
         },
+        search,
+        search_gate: deps.search_gate.clone(),
     })
 }
 
@@ -707,6 +713,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
+            search_gate: Arc::new(crate::search::Gate::new()),
         }
     }
 
@@ -1653,5 +1660,162 @@ mod tests {
     #[test]
     fn a_deployment_without_accounts_has_no_directory() {
         assert!(crate::auth::username_only().accounts().is_none());
+    }
+    /// `/.search/*` through a single-user space's real authorizer chain, with
+    /// `Fern.md` in it. `bearer` is sent as `Authorization: Bearer`.
+    async fn single_user_search(
+        auth: Option<crate::auth::AuthConfig>,
+        read_only: bool,
+        bearer: Option<&str>,
+    ) -> Vec<(&'static str, StatusCode, serde_json::Value)> {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut deps = test_deps(dir.path());
+        deps.auth = InstanceAuth::Single(auth);
+        let folder = dir.path().join("space");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("Fern.md"), "fern fronds\n").unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/o".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.read_only = read_only;
+        let state = Arc::new(try_build_state("o", &cfg, "/o", &deps).unwrap());
+        let mut out = vec![];
+        for (path, body) in [
+            ("/.search/status", ""),
+            ("/.search/query", r#"{"query":"fern"}"#),
+            ("/.search/related", r#"{"page":"Fern"}"#),
+            ("/.search/rg", r#"{"args":["fern","."]}"#),
+        ] {
+            let mut req = Request::builder()
+                .method(if body.is_empty() { "GET" } else { "POST" })
+                .uri(path)
+                .header("content-type", "application/json");
+            if let Some(token) = bearer {
+                req = req.header("authorization", format!("Bearer {token}"));
+            }
+            let res = crate::build_router(state.clone())
+                .oneshot(req.body(Body::from(body)).unwrap())
+                .await
+                .unwrap();
+            let status = res.status();
+            let bytes = axum::body::to_bytes(res.into_body(), 1 << 20)
+                .await
+                .unwrap();
+            let json = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
+            out.push((path, status, json));
+        }
+        out
+    }
+
+    const PUBLIC: &str = "Search isn't available to public visitors";
+
+    fn has_rg() -> bool {
+        let found = silverbullet_server_search::ripgrep::discover::binary().is_some();
+        assert!(
+            found || !silverbullet_server_search::ripgrep::discover::ripgrep_required(),
+            "SB_REQUIRE_RIPGREP=1 but rg is not installed"
+        );
+        found
+    }
+
+    /// Searches that reach ripgrep: query finds Fern, related is unsupported
+    /// (400, not a refusal) and raw rg runs.
+    fn assert_searches(results: &[(&str, StatusCode, serde_json::Value)]) {
+        for (path, status, body) in results {
+            assert_ne!(body["message"], PUBLIC, "{path}: {body}");
+            if !has_rg() {
+                continue;
+            }
+            match *path {
+                "/.search/status" => assert_eq!(body["backend"], "ripgrep", "{body}"),
+                "/.search/query" => assert_eq!(body["items"][0]["page"], "Fern", "{body}"),
+                "/.search/related" => assert_eq!(body["error"], "unsupported", "{body}"),
+                _ => assert_eq!(*status, StatusCode::OK, "{path}: {body}"),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn an_open_read_only_single_space_runs_no_rg_for_visitors() {
+        let results = single_user_search(None, true, None).await;
+        for (path, status, body) in results {
+            if path == "/.search/status" {
+                assert_eq!(status, StatusCode::OK);
+                assert_eq!(body["backend"], serde_json::Value::Null, "{body}");
+                assert_eq!(body["reason"], PUBLIC, "{body}");
+            } else {
+                assert_eq!(status, StatusCode::NOT_FOUND, "{path}: {body}");
+                assert_eq!(
+                    body,
+                    serde_json::json!({"error": "unavailable", "message": PUBLIC}),
+                    "{path}"
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn an_open_writable_single_space_searches_including_raw() {
+        assert_searches(&single_user_search(None, false, None).await);
+    }
+
+    #[tokio::test]
+    async fn a_token_caller_searches_a_read_only_single_space_with_auth() {
+        let auth = || {
+            crate::auth::AuthConfig::try_parse(
+                Some("admin:pw"),
+                Some("search-token"),
+                None,
+                None,
+                None,
+            )
+            .unwrap()
+        };
+        assert_searches(&single_user_search(auth(), true, Some("search-token")).await);
+        // Without the token the caller never gets past authentication.
+        for (path, status, _) in single_user_search(auth(), true, None).await {
+            assert!(
+                status == StatusCode::UNAUTHORIZED || status.is_redirection(),
+                "{path}: {status}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn multi_user_anonymous_search_follows_space_access() {
+        use tower::ServiceExt;
+        for (access, searches) in [(SpaceAccess::Write, true), (SpaceAccess::Read, false)] {
+            let (dir, state) = state_with_access(access);
+            std::fs::write(dir.path().join("space/Fern.md"), "fern fronds\n").unwrap();
+            let res = crate::build_router(Arc::new(state))
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri("/.search/query")
+                        .header("content-type", "application/json")
+                        .body(Body::from(r#"{"query":"fern"}"#))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            let status = res.status();
+            let bytes = axum::body::to_bytes(res.into_body(), 1 << 20)
+                .await
+                .unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            if searches {
+                assert_ne!(body["message"], PUBLIC, "{access:?}: {body}");
+                if has_rg() {
+                    assert_eq!(status, StatusCode::OK, "{access:?}: {body}");
+                }
+            } else {
+                assert_eq!(status, StatusCode::NOT_FOUND, "{access:?}: {body}");
+                assert_eq!(body["message"], PUBLIC);
+            }
+        }
     }
 }

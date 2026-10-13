@@ -54,7 +54,8 @@ import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 import { captureSyscalls } from "./plugos/syscalls/capture.ts";
 import type { CaptureInvocationContext } from "./capture/invocation.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
-import { searchSyscalls } from "./plugos/syscalls/search.ts";
+import { searchRgSyscalls, searchSyscalls } from "./plugos/syscalls/search.ts";
+import { createServerSearch } from "./search/server_search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
 import { setRevisionsAvailable } from "./navigator/builtins.ts";
@@ -277,6 +278,7 @@ export class ClientSystem {
 
     setLuaEnvSource(() => this.spaceLuaEnv.env);
 
+    const search = createServerSearch(this.client, this.objectIndex);
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook, this.client),
@@ -304,7 +306,7 @@ export class ClientSystem {
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
       configSyscalls(this.client.config),
-      searchSyscalls(),
+      searchSyscalls(search),
       iconSyscalls(),
       navigatorSyscalls(),
     );
@@ -317,6 +319,7 @@ export class ClientSystem {
       );
 
       this.system.registerSyscalls(["shell"], shellSyscalls(this.client));
+      this.system.registerSyscalls([], searchRgSyscalls(search));
     }
   }
 

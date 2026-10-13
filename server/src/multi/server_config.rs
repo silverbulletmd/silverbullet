@@ -14,8 +14,26 @@ pub struct ServerConfig {
     pub server_name: String,
     #[serde(default = "default_runtime_api")]
     pub runtime_api: bool,
+    /// Omitted on save when unset, so saving never writes the defaults into `server.json`.
+    #[serde(default, skip_serializing_if = "SearchConfig::is_default")]
+    pub search: SearchConfig,
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
+}
+
+/// `search` block of `server.json`. Search limits are fixed, so an older
+/// `limits` key just lands in `extra`: ignored, and kept on save.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SearchConfig {
+    /// Kept so settings this version does not know survive a save.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, serde_json::Value>,
+}
+
+impl SearchConfig {
+    fn is_default(&self) -> bool {
+        self.extra.is_empty()
+    }
 }
 
 fn default_runtime_api() -> bool {
@@ -32,6 +50,7 @@ impl Default for ServerConfig {
             primary_url: None,
             server_name: default_server_name(),
             runtime_api: true,
+            search: SearchConfig::default(),
             extra: BTreeMap::new(),
         }
     }
@@ -213,6 +232,60 @@ mod tests {
             config.primary_host(),
             Some("manager.example.test:3000".into())
         );
+    }
+
+    #[test]
+    fn saving_without_search_settings_adds_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("server.json");
+        ServerConfig::default().save(&path).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert!(saved.get("search").is_none(), "{saved}");
+
+        std::fs::write(&path, r#"{"serverName":"Notes"}"#).unwrap();
+        ServerConfig::load(&path).unwrap().save(&path).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert!(saved.get("search").is_none(), "{saved}");
+    }
+
+    /// Search limits are no longer configurable; an older `server.json` that
+    /// still sets them loads as before and keeps them, ignored, on save.
+    #[test]
+    fn old_search_limits_load_and_save_back_unchanged() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("server.json");
+        for limits in [
+            serde_json::json!({"deadlineMs": 4500}),
+            serde_json::json!("fast"),
+        ] {
+            let search = serde_json::json!({ "limits": limits });
+            std::fs::write(&path, serde_json::json!({ "search": search }).to_string()).unwrap();
+            let mut config = ServerConfig::load(&path).unwrap();
+            config.server_name = "Renamed".into();
+            config.save(&path).unwrap();
+            let saved: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            assert_eq!(saved["search"], search, "{saved}");
+            assert_eq!(saved["serverName"], "Renamed");
+        }
+    }
+
+    #[test]
+    fn preserves_unknown_search_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("server.json");
+        std::fs::write(
+            &path,
+            r#"{"search":{"model":{"name":"example"},"limits":{"deadlineMs":4500}}}"#,
+        )
+        .unwrap();
+        ServerConfig::load(&path).unwrap().save(&path).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(saved["search"]["model"]["name"], "example", "{saved}");
+        assert_eq!(saved["search"]["limits"]["deadlineMs"], 4500, "{saved}");
     }
 
     #[test]

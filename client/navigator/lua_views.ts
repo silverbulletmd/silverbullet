@@ -1,12 +1,12 @@
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { normalizeDescription } from "../../plug-api/ui/description.ts";
+import { openTracker, type Tracker } from "../space_lua/dependencies.ts";
 import {
   type ILuaFunction,
   type LuaEnv,
   LuaStackFrame,
   luaValueToJS,
 } from "../space_lua/runtime.ts";
-import { openTracker, type Tracker } from "../space_lua/dependencies.ts";
 import type { DropdownOption, NavigatorHook } from "./types.ts";
 
 import {
@@ -244,10 +244,29 @@ async function dropdownState(
   } catch {
     resolved = undefined;
   }
+  // A source view applies the dropdown itself, so there is nothing to mask.
+  const masks =
+    searchMode(spec) === "source"
+      ? []
+      : await dropdownMasks(sf, dropdown, options, args.objs ?? []);
+  return {
+    options,
+    masks,
+    default: options.some((o) => o.value === resolved) ? resolved : undefined,
+  };
+}
+
+/** Per-row results of the dropdown's `key` (or `where`) against each option. */
+async function dropdownMasks(
+  sf: LuaStackFrame,
+  dropdown: unknown,
+  options: DropdownOption[],
+  objs: unknown[],
+): Promise<boolean[][]> {
   const key = field(dropdown, "key");
   const where = field(dropdown, "where") as ILuaFunction;
   const masks: boolean[][] = [];
-  for (const obj of args.objs ?? []) {
+  for (const obj of objs) {
     if (present(key)) {
       // Compute keys once per row, then compare options without further Lua calls.
       let value: unknown;
@@ -270,11 +289,7 @@ async function dropdownState(
     }
     masks.push(mask);
   }
-  return {
-    options,
-    masks,
-    default: options.some((o) => o.value === resolved) ? resolved : undefined,
-  };
+  return masks;
 }
 
 /**
@@ -321,6 +336,7 @@ async function runHook(
         phrase: incoming.phrase ?? "",
         segment: incoming.segment,
         dock: incoming.dock,
+        dropdown: incoming.dropdown,
       };
       // Exceptions come back as data here (not flashed): unlike the other hooks, a throwing source leaves nothing else on screen to fall back to.
       try {

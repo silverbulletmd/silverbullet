@@ -28,11 +28,13 @@ open = "5"
 tempfile = { workspace = true }
 globset = "0.4"
 similar = "3"
+base64 = { workspace = true }
 
 [build-dependencies]
 serde_json = { workspace = true }
 
 [dev-dependencies]
+silverbullet-server-search = { path = "../../server-search" }
 # Only for `is_system_browser()`, which the runtime e2e test uses to refuse a
 # system Chrome (see `bin/silverbullet/tests/common/mod.rs`).
 silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }

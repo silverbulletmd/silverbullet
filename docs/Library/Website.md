@@ -138,7 +138,7 @@ docsNav.sections = {
     { ref = "Transclusions", icon = "copy" },
     { ref = "Folder", icon = "folder" },
     { ref = "File Tree", icon = "folder" },
-    { ref = "Full Text Search", icon = "search" },
+    { ref = "Search", icon = "search" },
     { ref = "Object Graph", icon = "share-2" },
     { ref = "X-Ray", icon = "aperture" },
   },

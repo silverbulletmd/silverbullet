@@ -7,7 +7,7 @@ export type ActiveView = ViewState & { name: string };
 
 /** Identity of a source invocation, so the same one is never repeated. */
 export function ctxKey(ctx?: SourceCtx): string {
-  return `${ctx?.segment ?? ""}\u0000${ctx?.phrase ?? ""}`;
+  return `${ctx?.segment ?? ""}\u0000${ctx?.phrase ?? ""}\u0000${JSON.stringify(ctx?.dropdown ?? null)}`;
 }
 
 /**

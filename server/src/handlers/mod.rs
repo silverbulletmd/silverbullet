@@ -10,6 +10,7 @@ pub mod oauth;
 pub mod proxy;
 pub mod revisions;
 pub mod runtime;
+pub mod search;
 pub mod shell;
 
 use axum::body::Body;

@@ -12,7 +12,7 @@ use tower_http::compression::predicate::{DefaultPredicate, NotForContentType, Pr
 use tower_http::compression::CompressionLayer;
 
 use crate::auth::{AccessLevel, AuthOutcome};
-use crate::handlers::{accounts, bundle, control, fs, revisions};
+use crate::handlers::{accounts, bundle, control, fs, revisions, search};
 use crate::state::ServerState;
 
 /// Run a synchronous `SpacePrimitives` operation on the blocking thread pool so
@@ -45,6 +45,10 @@ pub(crate) fn required_level(method: &Method, path: &str) -> AccessLevel {
                 && path.split('/').count() == 5
                 && matches!(path.rsplit('/').next(), Some("local" | "remote"))))
     {
+        return AccessLevel::Read;
+    }
+
+    if search::is_read_post(path) {
         return AccessLevel::Read;
     }
 
@@ -99,7 +103,7 @@ pub(crate) fn cross_origin_refused(
     method: &Method,
     path: &str,
 ) -> bool {
-    if required_level(method, path) != AccessLevel::Write {
+    if required_level(method, path) != AccessLevel::Write && !search::needs_same_origin(path) {
         return false;
     }
     if has_bearer(headers) || !has_session_cookie(headers) {
@@ -276,6 +280,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             get(fs::handle_fs_list).layer(CompressionLayer::new()),
         )
         .merge(fs_files)
+        .merge(search::routes(&state))
         .route("/.events", get(crate::handlers::events::handle_events))
         .route(
             "/.revisions/_sync",
@@ -438,7 +443,7 @@ mod auth_tests {
 
         let dir = tempfile::tempdir().unwrap();
         let mut state = test_state();
-        state.space = Box::new(DiskSpacePrimitives::new(dir.path(), "").unwrap());
+        state.space = Arc::new(DiskSpacePrimitives::new(dir.path(), "").unwrap());
         for path in [
             ".git/config",
             ".gitattributes",

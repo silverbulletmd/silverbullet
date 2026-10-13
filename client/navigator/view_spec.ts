@@ -312,7 +312,11 @@ function dropdownMeta(spec: ViewSpec): DropdownMeta | undefined {
     throw new Error("view.define: dropdown.key must be a function");
   }
   // `key` avoids a Lua call per option; `where` is the more general alternative.
-  if (!present(key) && luaType(field(dropdown, "where")) !== "function") {
+  if (
+    searchMode(spec) !== "source" &&
+    !present(key) &&
+    luaType(field(dropdown, "where")) !== "function"
+  ) {
     throw new Error("view.define: dropdown.where must be a function");
   }
   const placeholder = field(dropdown, "placeholder");

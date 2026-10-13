@@ -13,6 +13,15 @@ export function dropdownIndexFor(
   return options.findIndex((o) => o.value === value);
 }
 
+/** The value a source view should see: the selected one only if a loaded
+ * option carries it, else undefined (what the select shows as "All"). */
+export function resolveDropdown(
+  options: DropdownOption[] | undefined,
+  value: unknown,
+): unknown {
+  return dropdownIndexFor(options, value) < 0 ? undefined : value;
+}
+
 /**
  * The rows the selected option admits. "All" (index -1) is a pass-through; a
  * selected option whose masks never arrived (a failed batch, an object added

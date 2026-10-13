@@ -123,6 +123,7 @@ pub async fn build_multi_stack(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: shutdown_rx,
+        search_gate: Arc::new(silverbullet_server::search::Gate::new()),
     };
 
     let known_users = store.usernames();

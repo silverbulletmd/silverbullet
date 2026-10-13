@@ -100,6 +100,12 @@
   flex: 1 1 auto;
 }
 
+.sb-nav-segment-row .sb-nav-dropdown {
+  flex: 0 1 auto;
+  align-self: center;
+  min-width: 0;
+}
+
 .sb-nav-tree-actions {
   display: flex;
   flex: 0 0 auto;

@@ -4,6 +4,7 @@ import {
   applyDropdown,
   type DropdownMasks,
   dropdownIndexFor,
+  resolveDropdown,
 } from "./dropdown.ts";
 import { applySegment, type SegmentMasks } from "./segments.ts";
 
@@ -84,4 +85,12 @@ test("dropdown and segment subsets compose by AND", () => {
   ).toEqual(["a"]);
   // All leaves the segment's own subset untouched.
   expect(applyDropdown(bySegment, -1, dropdownMasks)).toEqual(bySegment);
+});
+
+test("resolveDropdown passes only values a loaded option carries", () => {
+  const options = [{ label: "Regex", value: "regex" }];
+  expect(resolveDropdown(options, "regex")).toBe("regex");
+  expect(resolveDropdown(options, "natural")).toBeUndefined();
+  expect(resolveDropdown(undefined, "regex")).toBeUndefined();
+  expect(resolveDropdown(options, undefined)).toBeUndefined();
 });

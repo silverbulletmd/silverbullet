@@ -67,7 +67,7 @@ impl SpacePrefixes {
 pub struct ServerState {
     /// The space's file storage (user files, with the bundle/base_fs layers
     /// composed in by the caller).
-    pub space: Box<dyn SpacePrimitives>,
+    pub space: Arc<dyn SpacePrimitives>,
     /// Read-only client bundle (HTML/CSS/JS) served at the SPA fallback. The
     /// server cannot serve a usable UI without it, so it is required — callers
     /// must fail at startup rather than construct an `ServerState` without one.
@@ -141,4 +141,8 @@ pub struct ServerState {
     /// `auth::IdentityResolver`). `username_only()` for a server with no
     /// profile store behind it.
     pub identity: Arc<dyn crate::auth::IdentityResolver>,
+    /// The engine behind `/.search/*`, chosen by `crate::search::backend_for`.
+    pub search: Arc<dyn silverbullet_server_search::SearchBackend>,
+    /// Admits search requests; shared by every space a server hosts.
+    pub search_gate: Arc<silverbullet_server_search::Gate>,
 }

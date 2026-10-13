@@ -1,4 +1,6 @@
 import { useCallback, useEffect } from "preact/hooks";
+import type { SegmentMeta, SourceCtx } from "../../types.ts";
+import { resolveDropdown } from "../dropdown.ts";
 import type { NavigatorEngine } from "../engine.ts";
 import {
   type ActiveView,
@@ -6,7 +8,6 @@ import {
   type PanelSetters,
   type SharedRefs,
 } from "../panel.ts";
-import type { SegmentMeta, SourceCtx } from "../../types.ts";
 
 const SOURCE_DEBOUNCE_MS = 200;
 
@@ -17,6 +18,7 @@ export function useSourceQuery({
   phrase,
   segments,
   segmentIndex,
+  dropdownValue,
   refs,
   set,
   publish,
@@ -27,6 +29,7 @@ export function useSourceQuery({
   phrase: string;
   segments?: SegmentMeta[];
   segmentIndex: number;
+  dropdownValue: unknown;
   refs: SharedRefs;
   set: PanelSetters;
   publish: () => void;
@@ -50,9 +53,21 @@ export function useSourceQuery({
     const ctx: SourceCtx = {
       phrase,
       segment: segments?.[segmentIndex]?.label,
+      // A restored saved value is undefined until the options load, so it
+      // triggers a second query once they do (accepted).
+      dropdown: resolveDropdown(view.dropdownOptions, dropdownValue),
     };
     if (ctxKey(ctx) === lastQueried.current) return;
     const timer = setTimeout(() => void runQuery(ctx), SOURCE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [view, sourceMode, phrase, segments, segmentIndex, runQuery]);
+  }, [
+    view,
+    view?.dropdownOptions,
+    sourceMode,
+    phrase,
+    segments,
+    segmentIndex,
+    dropdownValue,
+    runQuery,
+  ]);
 }

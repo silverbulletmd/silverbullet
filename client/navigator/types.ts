@@ -49,6 +49,8 @@ export type SourceCtx = {
   phrase: string;
   segment?: string;
   dock?: string;
+  /** The selected dropdown option's value; undefined for the built-in first option. */
+  dropdown?: unknown;
 };
 
 export const WINDOW_DOCKS = ["lhs", "rhs", "bhs"] as const;

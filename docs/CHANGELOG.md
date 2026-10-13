@@ -5,6 +5,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 * [[Space Lua/Page Lua]] turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page, read another page's values with `pageVars.get(name, "Page")` or `pageVars.all("Page")`, and change a value from code with `pageVars.set(name, value)` (for example from a button). Code completion in `${...}` and `page-lua` blocks offers the page's variables.
 * `${...}` expressions and widgets now compose everywhere: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results; templates, `..` and `table.concat` can embed widgets.
+* Full text search is back: **Space: Search** (`Cmd-Shift-f`) searches every page on the server with ripgrep, with Pages/Meta/All segments, phrase and regex modes, and limits that keep public spaces safe. See [[Search]].
 * `sb` CLI: install it with `curl -fsSL https://silverbullet.md/install-sb.sh | sh` (Windows: `irm https://silverbullet.md/install-sb.ps1 | iex`). See [[CLI]].
 * New context menus for widgets and views.
 * [[Baked Sections]] show a slim header and an end line in place of their markers; the header's ⋯ menu updates, edits, copies or unbakes that one section.

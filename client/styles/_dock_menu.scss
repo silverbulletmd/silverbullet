@@ -19,7 +19,8 @@
 
 .sb-dock-menu {
   position: fixed;
-  z-index: 20;
+  // Appended to <body>, so it must clear the modal panel layer (.sb-modal-backdrop, 100).
+  z-index: 110;
   min-width: 180px;
   background: var(--modal-background-color);
   border: 1px solid var(--modal-border-color);

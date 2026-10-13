@@ -21,7 +21,7 @@ fn invalid(message: impl Into<String>) -> FsError {
     FsError::new("invalid_arguments", message, 2)
 }
 
-fn operational(error: impl std::fmt::Display) -> FsError {
+pub(super) fn operational(error: impl std::fmt::Display) -> FsError {
     FsError::new("operation_failed", error.to_string(), 8)
 }
 
@@ -70,6 +70,8 @@ pub fn validate(g: &GlobalFlags, cmd: &FsCommand) -> Result<(), FsError> {
         io::stdout().is_terminal(),
     )?;
     let (path, directory) = match cmd {
+        // Ripgrep validates its native arguments on the server and controls output.
+        FsCommand::Rg { .. } => return Ok(()),
         FsCommand::Ls { path, glob, .. } => {
             fs_listing::patterns(glob)?;
             (path, true)
@@ -173,9 +175,12 @@ pub fn report_error(g: &GlobalFlags, error: FsError) -> ExitCode {
 }
 
 pub fn run(g: &GlobalFlags, cmd: FsCommand) -> ExitCode {
-    let result = validate(g, &cmd).and_then(|()| execute(g, cmd));
+    let result = match cmd {
+        FsCommand::Rg { args } => connection(g).and_then(|conn| super::rg::run(&conn, &args)),
+        cmd => validate(g, &cmd).and_then(|()| execute(g, cmd).map(ExitCode::from)),
+    };
     match result {
-        Ok(code) => ExitCode::from(code),
+        Ok(code) => code,
         Err(error) => report_error(g, error),
     }
 }
@@ -304,6 +309,7 @@ fn execute(g: &GlobalFlags, cmd: FsCommand) -> Result<u8, FsError> {
     let output = mode(g, matches!(&cmd, FsCommand::Read { .. }), terminal)?;
     let mut out = io::stdout().lock();
     match cmd {
+        FsCommand::Rg { .. } => unreachable!("dispatched by run"),
         FsCommand::Ls {
             path,
             recursive,

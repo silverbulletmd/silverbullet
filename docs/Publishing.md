@@ -11,7 +11,7 @@ Under **Space settings → General**, set **Index page** to choose the page visi
 To make a published space read-only for everyone, including members and admins, check **Freeze this space** under **Space settings → Access**. Member permissions are kept for when you unfreeze it.
 
 # Example: this site
-This documentation is a SilverBullet space published for public reading, built from `Dockerfile.website` in the [SilverBullet repository](https://github.com/silverbulletmd/silverbullet). It adds the Silversearch plug for [[Full Text Search]], and its navigation and section pages are plain [[Space Lua]] in [[^Library/Website]].
+This documentation is a SilverBullet space published for public reading, built from `Dockerfile.website` in the [SilverBullet repository](https://github.com/silverbulletmd/silverbullet). It uses the built-in [[Search]] (the base image includes ripgrep), and its navigation and section pages are plain [[Space Lua]] in [[^Library/Website]].
 
 # Styling
 A published space is styled like any other: use [[Space Style]] for CSS and [[Page Decorations]] for icons and prefixes.

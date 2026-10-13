@@ -1572,7 +1572,7 @@ mod tests {
     async fn head_reads_only_metadata_and_returns_full_length() {
         let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut state = test_state();
-        state.space = Box::new(observed.clone());
+        state.space = Arc::new(observed.clone());
         state
             .fs_guard
             .record("clip.bin", &observed.meta, "cached-hash".to_string());
@@ -1659,7 +1659,7 @@ mod tests {
     async fn uncached_if_range_etag_falls_back_without_a_validator_body_read() {
         let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut state = test_state();
-        state.space = Box::new(observed.clone());
+        state.space = Arc::new(observed.clone());
         let state = Arc::new(state);
         let response = crate::build_router(state.clone())
             .oneshot(
@@ -1687,7 +1687,7 @@ mod tests {
     async fn if_range_accepts_only_a_cached_matching_strong_etag() {
         let matching_space = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut matching_state = test_state();
-        matching_state.space = Box::new(matching_space.clone());
+        matching_state.space = Arc::new(matching_space.clone());
         matching_state
             .fs_guard
             .record("clip.bin", &matching_space.meta, "cached-hash".to_string());
@@ -1711,7 +1711,7 @@ mod tests {
 
         let mismatching_space = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut mismatching_state = test_state();
-        mismatching_state.space = Box::new(mismatching_space.clone());
+        mismatching_state.space = Arc::new(mismatching_space.clone());
         mismatching_state.fs_guard.record(
             "clip.bin",
             &mismatching_space.meta,
@@ -1740,7 +1740,7 @@ mod tests {
     async fn weak_if_range_etag_falls_back_to_the_full_representation() {
         let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut state = test_state();
-        state.space = Box::new(observed.clone());
+        state.space = Arc::new(observed.clone());
         state
             .fs_guard
             .record("clip.bin", &observed.meta, "cached-hash".to_string());
@@ -1766,7 +1766,7 @@ mod tests {
     #[tokio::test]
     async fn if_range_date_falls_back_to_full_after_same_size_replacement() {
         let mut state = test_state();
-        state.space = Box::new(SameSizeReplacementSpace);
+        state.space = Arc::new(SameSizeReplacementSpace);
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -1789,7 +1789,7 @@ mod tests {
     async fn if_range_etag_falls_back_to_full_after_same_size_replacement() {
         let mut state = test_state();
         let old_meta = SameSizeReplacementSpace::meta(0);
-        state.space = Box::new(SameSizeReplacementSpace);
+        state.space = Arc::new(SameSizeReplacementSpace);
         state
             .fs_guard
             .record("clip.bin", &old_meta, "old-hash".to_string());
@@ -1878,7 +1878,7 @@ mod tests {
     async fn partial_get_uses_range_primitive_instead_of_full_read() {
         let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut state = test_state();
-        state.space = Box::new(observed.clone());
+        state.space = Arc::new(observed.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -1902,7 +1902,7 @@ mod tests {
             short_first: false,
         });
         let mut state = test_state();
-        state.space = Box::new(racing.clone());
+        state.space = Arc::new(racing.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -1929,7 +1929,7 @@ mod tests {
             short_first: true,
         });
         let mut state = test_state();
-        state.space = Box::new(racing.clone());
+        state.space = Arc::new(racing.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -1952,7 +1952,7 @@ mod tests {
             short_first: false,
         });
         let mut state = test_state();
-        state.space = Box::new(racing.clone());
+        state.space = Arc::new(racing.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -1975,7 +1975,7 @@ mod tests {
             fail_every_read: false,
         });
         let mut state = test_state();
-        state.space = Box::new(racing.clone());
+        state.space = Arc::new(racing.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -2006,7 +2006,7 @@ mod tests {
             fail_every_read: true,
         });
         let mut state = test_state();
-        state.space = Box::new(racing.clone());
+        state.space = Arc::new(racing.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -2029,7 +2029,7 @@ mod tests {
             fail_every_read: true,
         });
         let mut state = test_state();
-        state.space = Box::new(failing.clone());
+        state.space = Arc::new(failing.clone());
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
@@ -2256,7 +2256,7 @@ mod tests {
     async fn cheap_meta_probe_does_not_read_or_hash_cold_content() {
         let observed = Arc::new(ObservedSpace::new(b"large media payload", "video/mp4"));
         let mut state = test_state();
-        state.space = Box::new(observed.clone());
+        state.space = Arc::new(observed.clone());
         let state = Arc::new(state);
 
         let response = crate::build_router(state.clone())

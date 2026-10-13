@@ -45,6 +45,23 @@ export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
 }
 
+/** What `pageScopes` reads of a page; the picker's index rows carry no
+ * typed `name`, so it is not required here. */
+type PageClassFields = {
+  tag?: string;
+  tags?: string[];
+  pageDecoration?: { hide?: boolean };
+};
+
+export type PageInfo = PageClassFields & { name: string };
+
+/** The picker's Pages and Meta segments; server search scopes pages the same way. */
+export const pageScopes = {
+  pages: (p: PageClassFields) =>
+    p.tag === "page" && !isMetaPage(p) && !isHiddenPage(p),
+  meta: (p: PageClassFields) => isMetaPage(p) && !isHiddenPage(p),
+} satisfies Record<string, (p: PageInfo) => boolean>;
+
 let documentCapabilities = new Map<string, DocumentCapability>();
 
 function canViewDocument(name: string): boolean {
@@ -224,8 +241,7 @@ export const pagePicker: BuiltinView<PageObj> = {
       icon: "file-text",
       placeholder: "Page",
       default: true,
-      where: (obj) =>
-        obj.tag === "page" && !isMetaPage(obj) && !isHiddenPage(obj),
+      where: pageScopes.pages,
     },
     {
       label: "Meta",
@@ -234,7 +250,7 @@ export const pagePicker: BuiltinView<PageObj> = {
       helpText:
         "Press Shift-Enter to create a new meta page with this exact name.",
       prefix: "^",
-      where: (obj) => isMetaPage(obj) && !isHiddenPage(obj),
+      where: pageScopes.meta,
     },
     {
       label: "Documents",

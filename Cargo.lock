@@ -2837,6 +2837,7 @@ dependencies = [
 name = "sb"
 version = "0.0.0"
 dependencies = [
+ "base64 0.23.1",
  "chrono",
  "clap",
  "globset",
@@ -2847,6 +2848,7 @@ dependencies = [
  "serde_yaml",
  "silverbullet-server-common",
  "silverbullet-server-runtime-chrome",
+ "silverbullet-server-search",
  "similar",
  "tempfile",
  "uuid",
@@ -3157,6 +3159,7 @@ dependencies = [
  "sha2 0.10.9",
  "silverbullet-server-common",
  "silverbullet-server-merge",
+ "silverbullet-server-search",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -3212,6 +3215,21 @@ dependencies = [
  "sysinfo",
  "tempfile",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "silverbullet-server-search"
+version = "0.0.0"
+dependencies = [
+ "base64 0.23.1",
+ "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
  "tracing",
 ]
 

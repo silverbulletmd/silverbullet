@@ -126,6 +126,7 @@ pub(crate) async fn run_single(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: Some(shutdown.rx.clone()),
+        search_gate: Arc::new(silverbullet_server::search::Gate::new()),
     };
 
     let mut spaces = HashMap::new();

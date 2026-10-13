@@ -192,6 +192,7 @@ export function NavRoot({
     phrase,
     segments: derived.segments,
     segmentIndex,
+    dropdownValue,
     refs,
     set,
     publish,
@@ -246,6 +247,35 @@ export function NavRoot({
     segments?.[segmentIndex]?.placeholder ?? view?.meta.placeholder ?? "Filter";
   const noFilter = !!view?.meta.noFilter;
   const helpText = segments?.[segmentIndex]?.helpText ?? view?.meta.helpText;
+
+  // With segments, the dropdown shares their row; without, it gets its own.
+  const dropdown = view?.meta.dropdown && (
+    <select
+      className="sb-select sb-nav-dropdown"
+      aria-label={view.meta.dropdown.placeholder ?? "Filter"}
+      // Options are addressed by index: an option's value need not be a
+      // string, and the DOM attribute would flatten it into one.
+      value={dropdownIndex >= 0 ? String(dropdownIndex) : ""}
+      onChange={(e) => {
+        const picked = e.currentTarget.value;
+        cmd.pickDropdown(picked === "" ? -1 : Number(picked));
+      }}
+      // A dismissed select (Escape, click-away, re-picking the same
+      // option) never fires onChange, so `pickDropdown`'s focus handback
+      // never runs -- and Tab interception lives on the input, so focus
+      // stranded here would let Tab walk out of the panel.
+      onBlur={() => inputRef.current?.focus()}
+    >
+      {/* The built-in "All": no filtering. allLabel names it explicitly;
+            absent that, it's always "All". */}
+      <option value="">{view.meta.dropdown.allLabel ?? "All"}</option>
+      {(view.dropdownOptions ?? []).map((o, i) => (
+        <option key={i} value={String(i)}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
   const spaceTree = view?.name === "std.spaceTree";
   const desktopFileDrag = (
     globalThis as typeof globalThis & {
@@ -387,7 +417,7 @@ export function NavRoot({
         {segments && (
           <div
             className={
-              spaceTree
+              spaceTree || dropdown
                 ? "sb-nav-segment-row sb-nav-segment-row-actions"
                 : "sb-nav-segment-row"
             }
@@ -403,6 +433,7 @@ export function NavRoot({
               onPick={cmd.pickSegment}
               ariaLabel="Segments"
             />
+            {dropdown}
             {spaceTree && (
               <div className="sb-nav-tree-actions">
                 <button
@@ -427,33 +458,7 @@ export function NavRoot({
             )}
           </div>
         )}
-        {view?.meta.dropdown && (
-          <select
-            className="sb-select sb-nav-dropdown"
-            aria-label={view.meta.dropdown.placeholder ?? "Filter"}
-            // Options are addressed by index: an option's value need not be a
-            // string, and the DOM attribute would flatten it into one.
-            value={dropdownIndex >= 0 ? String(dropdownIndex) : ""}
-            onChange={(e) => {
-              const picked = e.currentTarget.value;
-              cmd.pickDropdown(picked === "" ? -1 : Number(picked));
-            }}
-            // A dismissed select (Escape, click-away, re-picking the same
-            // option) never fires onChange, so `pickDropdown`'s focus handback
-            // never runs -- and Tab interception lives on the input, so focus
-            // stranded here would let Tab walk out of the panel.
-            onBlur={() => inputRef.current?.focus()}
-          >
-            {/* The built-in "All": no filtering. allLabel names it explicitly;
-                absent that, it's always "All". */}
-            <option value="">{view.meta.dropdown.allLabel ?? "All"}</option>
-            {(view.dropdownOptions ?? []).map((o, i) => (
-              <option key={i} value={String(i)}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        )}
+        {!segments && dropdown}
       </div>
       {helpText && <div className="sb-nav-help">{helpText}</div>}
       <div className="sb-nav-body" ref={bodyRef}>

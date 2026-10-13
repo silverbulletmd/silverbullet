@@ -1,6 +1,6 @@
 //! Prometheus request counters and text exposition. Exposes the counters
 //! `silverbullet_http_requests`, `silverbullet_shell_executions`, and
-//! `silverbullet_proxy_requests`. Each `Metrics` owns its own `Registry`, so
+//! `silverbullet_proxy_requests`, and the `silverbullet_search_*_total` counters. Each `Metrics` owns its own `Registry`, so
 //! constructing more than one (e.g. across tests) never double-registers a
 //! global. The standalone binary serves `gather()` on a dedicated metrics port;
 //! `ServerState` holds an `Option<Arc<Metrics>>` so metrics are off unless
@@ -19,6 +19,14 @@ pub struct Metrics {
     pub proxy_requests: IntCounter,
     /// Total `/.runtime/{lua,lua_script}` eval requests received.
     pub runtime_api_requests: IntCounter,
+    /// Structured `/.search/query` requests admitted.
+    pub search_queries: IntCounter,
+    /// Raw `/.search/rg` runs killed at the deadline.
+    pub search_timeouts: IntCounter,
+    /// Searches refused as busy (every rg process slot taken).
+    pub search_rejections: IntCounter,
+    /// Structured searches returning partial results (deadline or output cap).
+    pub search_partial: IntCounter,
 }
 
 impl Metrics {
@@ -57,12 +65,39 @@ impl Metrics {
         registry
             .register(Box::new(runtime_api_requests.clone()))
             .expect("register runtime");
+        let counter = |name: &str, help: &str| {
+            let c = IntCounter::new(name, help).expect("counter opts");
+            registry
+                .register(Box::new(c.clone()))
+                .expect("register search");
+            c
+        };
+        let search_queries = counter(
+            "silverbullet_search_queries_total",
+            "Structured search queries admitted",
+        );
+        let search_timeouts = counter(
+            "silverbullet_search_timeouts_total",
+            "Raw searches killed at the deadline",
+        );
+        let search_rejections = counter(
+            "silverbullet_search_rejections_total",
+            "Searches refused as busy",
+        );
+        let search_partial = counter(
+            "silverbullet_search_partial_total",
+            "Structured searches returning partial results (deadline or output cap)",
+        );
         Self {
             registry,
             http_requests,
             shell_executions,
             proxy_requests,
             runtime_api_requests,
+            search_queries,
+            search_timeouts,
+            search_rejections,
+            search_partial,
         }
     }
 

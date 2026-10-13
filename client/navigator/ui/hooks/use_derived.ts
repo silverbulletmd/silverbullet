@@ -111,24 +111,24 @@ export function useDerived({
   // NUL separates tags because a tag can contain spaces.
   const tagKey = tags.join("\u0000");
 
-  // Use batched masks to switch filters without syscalls. Source-mode views
-  // already apply segments, but dropdown filtering is always the panel’s job.
+  // Use batched masks to switch filters without syscalls. Source-mode views apply
+  // segments and the dropdown themselves; client views filter here with batched masks.
   const dropdownIndex = dropdownIndexFor(view?.dropdownOptions, dropdownValue);
 
   const filteredRows = useMemo(() => {
     if (!view) return [];
-    const rows = applyDropdown(
-      sourceMode
-        ? view.rows
-        : applySegment(
+    const rows = sourceMode
+      ? view.rows
+      : applyDropdown(
+          applySegment(
             view.rows,
             segmentIndex,
             view.meta.segments,
             view.segmentMasks,
           ),
-      dropdownIndex,
-      view.dropdownMasks,
-    );
+          dropdownIndex,
+          view.dropdownMasks,
+        );
     if (sourceMode || !tagKey) return rows;
     const wanted = tagKey.split("\u0000");
     return rows.filter((row) => matchesTags(row, wanted));
@@ -200,7 +200,8 @@ export function useDerived({
   // Same failure shape for the dropdown: a selected option whose masks never
   // arrived fails closed, indistinguishable from "nothing matched" without
   // saying so.
-  const dropdownUnavailable = dropdownIndex >= 0 && !view?.dropdownMasks;
+  const dropdownUnavailable =
+    !sourceMode && dropdownIndex >= 0 && !view?.dropdownMasks;
 
   const isTreeMode = view?.meta.mode === "tree";
   const treeFiltering = isTreeMode && phrase.trim().length > 0;

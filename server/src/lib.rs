@@ -14,6 +14,7 @@ pub mod multi;
 pub mod revisions;
 pub mod router;
 pub mod runtime;
+pub mod search;
 pub mod shell;
 mod ssr;
 pub mod state;
@@ -35,8 +36,12 @@ mod test_support {
     /// "bundle" (also a MemorySpacePrimitives). Tests seed files as needed.
     pub fn test_state() -> ServerState {
         let bundle = MemorySpacePrimitives::new();
+        let space: std::sync::Arc<dyn silverbullet_server_common::SpacePrimitives> =
+            std::sync::Arc::new(MemorySpacePrimitives::new());
         ServerState {
-            space: Box::new(MemorySpacePrimitives::new()),
+            search: crate::search::backend_for(std::path::Path::new("/tmp"), space.clone()),
+            search_gate: std::sync::Arc::new(silverbullet_server_search::Gate::new()),
+            space,
             client_bundle: Box::new(bundle),
             boot_config: BootConfig {
                 space_folder_path: "/tmp".into(),
