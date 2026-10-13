@@ -50,7 +50,7 @@ import {
 } from "@codemirror/commands";
 import { openSearchPanel } from "@codemirror/search";
 import { EditorSelection } from "@codemirror/state";
-import type { EditorView } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import {
   unbakeSectionAtCursor,
@@ -86,7 +86,9 @@ import {
  * line in the intended direction, re-snap to the adjacent line. That
  * lands cursor on the first hidden source line when going down, and the
  * last one when going up. Either entry expands the block (via
- * `isCursorInRange`) so the source becomes editable.
+ * `isCursorInRange`) so the source becomes editable. Resolve the saved
+ * horizontal position against that revealed source: the initial motion
+ * could only address a boundary of the hidden text.
  */
 function withCollapsedBlockSnap(
   motion: (v: EditorView) => boolean,
@@ -95,20 +97,62 @@ function withCollapsedBlockSnap(
   return (v: EditorView) => {
     const prev = v.state.selection.main;
     const prevLine = v.state.doc.lineAt(prev.head).number;
+    const decorations = v.state
+      .facet(EditorView.decorations)
+      .map((provider) =>
+        typeof provider === "function" ? provider(v) : provider,
+      );
+    const prevCoords =
+      prev.goalColumn === undefined && v.coordsAtPos(prev.head);
+    const prevGoal =
+      prev.goalColumn ??
+      (prevCoords
+        ? prevCoords.left - v.contentDOM.getBoundingClientRect().left
+        : undefined);
     const result = motion(v);
     const next = v.state.selection.main;
     if (next.head === prev.head) return result;
     const newLine = v.state.doc.lineAt(next.head).number;
     const diff = forward ? newLine - prevLine : prevLine - newLine;
-    if (diff <= 1) return result;
-    const targetLineNo = forward ? prevLine + 1 : prevLine - 1;
-    const targetPos = v.state.doc.line(targetLineNo).from;
-    v.dispatch({
-      selection: prev.empty
-        ? EditorSelection.cursor(targetPos)
-        : EditorSelection.range(prev.anchor, targetPos),
-      scrollIntoView: true,
+    const enteredHiddenSource = decorations.some((set) => {
+      let found = false;
+      set.between(next.head, next.head, (_from, _to, decoration) => {
+        if (decoration.spec.hiddenBlockSource) found = true;
+      });
+      return found;
     });
+    if (diff <= 1 && !enteredHiddenSource) return result;
+    const goal = next.goalColumn ?? prevGoal;
+    const selectionAt = (pos: number) =>
+      v.state.selection.replaceRange(
+        next.empty
+          ? EditorSelection.cursor(pos, next.assoc, undefined, goal)
+          : EditorSelection.range(
+              next.anchor,
+              pos,
+              goal,
+              undefined,
+              next.assoc,
+            ),
+      );
+    const targetLineNo =
+      diff > 1 ? (forward ? prevLine + 1 : prevLine - 1) : newLine;
+    if (diff > 1) {
+      const targetPos = v.state.doc.line(targetLineNo).from;
+      v.dispatch({ selection: selectionAt(targetPos), scrollIntoView: true });
+    }
+    // Replay from the original cursor after revealing source, so wrapped
+    // source is entered on its first visual row going down and its last going up.
+    const revealed = v.moveVertically(
+      EditorSelection.cursor(prev.head, prev.assoc, undefined, goal),
+      forward,
+    );
+    if (v.state.doc.lineAt(revealed.head).number === targetLineNo) {
+      v.dispatch({
+        selection: selectionAt(revealed.head),
+        scrollIntoView: true,
+      });
+    }
     return result;
   };
 }

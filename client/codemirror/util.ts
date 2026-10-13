@@ -227,6 +227,10 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
  */
 export const invisibleDecoration = Decoration.replace({});
 
+const hiddenBlockSourceDecoration = Decoration.replace({
+  hiddenBlockSource: true,
+});
+
 const hiddenLineDecoration = Decoration.line({
   class: "sb-line-table-outside",
 });
@@ -254,25 +258,25 @@ export function hideBlockSource(
   const fromLine = state.doc.lineAt(from);
   const toLine = state.doc.lineAt(to);
   if (fromLine.number === toLine.number) {
-    widgets.push(invisibleDecoration.range(from, to));
+    widgets.push(hiddenBlockSourceDecoration.range(from, to));
     return;
   }
   if (widgetAt === "start") {
-    widgets.push(invisibleDecoration.range(from, fromLine.to));
+    widgets.push(hiddenBlockSourceDecoration.range(from, fromLine.to));
   } else if (from === fromLine.from) {
     widgets.push(hiddenLineDecoration.range(fromLine.from));
   } else {
-    widgets.push(invisibleDecoration.range(from, fromLine.to));
+    widgets.push(hiddenBlockSourceDecoration.range(from, fromLine.to));
   }
   for (let n = fromLine.number + 1; n < toLine.number; n++) {
     widgets.push(hiddenLineDecoration.range(state.doc.line(n).from));
   }
   if (widgetAt === "end") {
-    widgets.push(invisibleDecoration.range(toLine.from, to));
+    widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   } else if (to === toLine.to) {
     widgets.push(hiddenLineDecoration.range(toLine.from));
   } else {
-    widgets.push(invisibleDecoration.range(toLine.from, to));
+    widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   }
 }
 
