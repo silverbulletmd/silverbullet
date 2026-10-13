@@ -501,3 +501,73 @@ fn auth_logout_redirects_to_auth() {
         Some("/.auth")
     );
 }
+
+/// Polls `/.search/query` for `query` until `done(body)` or `within` passes.
+fn search_until(
+    http: &reqwest::blocking::Client,
+    base: &str,
+    query: &str,
+    within: Duration,
+    done: impl Fn(&serde_json::Value) -> bool,
+) -> serde_json::Value {
+    let deadline = Instant::now() + within;
+    loop {
+        let resp = http
+            .post(format!("{base}/.search/query"))
+            .json(&serde_json::json!({ "query": query }))
+            .send()
+            .unwrap();
+        assert!(
+            resp.status().is_success(),
+            "search status {}",
+            resp.status()
+        );
+        let body: serde_json::Value = resp.json().unwrap();
+        if done(&body) || Instant::now() >= deadline {
+            return body;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// With the file watcher off, the server's own writes and deletes still
+/// reach the full-text index at once.
+#[test]
+fn search_follows_api_writes_with_the_watcher_off() {
+    let (_srv, _space, base) = start(&[("SB_FS_WATCH", "off")]);
+    let http = client();
+    let ready = Instant::now() + Duration::from_secs(10);
+    while !http
+        .get(format!("{base}/.search/status"))
+        .send()
+        .unwrap()
+        .json::<serde_json::Value>()
+        .unwrap()["ready"]
+        .as_bool()
+        .unwrap_or(false)
+    {
+        assert!(Instant::now() < ready, "the index never became ready");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let put = http
+        .put(format!("{base}/.fs/Bracken.md"))
+        .header("Content-Type", "text/markdown")
+        .body("bracken uncurls\n")
+        .send()
+        .unwrap();
+    assert!(put.status().is_success(), "PUT status {}", put.status());
+    let body = search_until(&http, &base, "bracken", Duration::from_secs(2), |b| {
+        b["items"][0]["page"] == "Bracken"
+    });
+    assert_eq!(body["items"][0]["page"], "Bracken", "{body}");
+
+    let del = http
+        .delete(format!("{base}/.fs/Bracken.md"))
+        .send()
+        .unwrap();
+    assert!(del.status().is_success(), "DELETE status {}", del.status());
+    let body = search_until(&http, &base, "bracken", Duration::from_secs(2), |b| {
+        b["total"] == 0
+    });
+    assert_eq!(body["total"], 0, "{body}");
+}

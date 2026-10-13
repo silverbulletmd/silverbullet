@@ -5,8 +5,7 @@ use reqwest::{
     header::{HeaderMap, ETAG, IF_MATCH, IF_NONE_MATCH},
     StatusCode, Url,
 };
-use serde::Deserialize;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 use silverbullet_server_common::revision::CONTENT_REVISION_HEADER;
 
 use crate::conn::SpaceConnection;
@@ -61,17 +60,6 @@ pub enum WritePolicy<'a> {
 }
 
 const MAX_ERROR_BYTES: u64 = 64 * 1024;
-const RG_RESPONSE_CAP: u64 = 24 * 1024 * 1024;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RgResponse {
-    pub exit_code: i32,
-    pub stdout_base64: String,
-    pub stderr_base64: String,
-    pub truncated: bool,
-    pub timed_out: bool,
-}
 
 pub fn normalize_path(path: &str, directory: bool) -> Result<String, FsError> {
     let original = path;
@@ -128,29 +116,6 @@ pub fn validate_revision(revision: &str) -> Result<(), FsError> {
 }
 
 impl SpaceConnection {
-    pub fn search_rg(
-        &self,
-        args: &[String],
-        stdin_base64: Option<String>,
-    ) -> Result<RgResponse, FsError> {
-        let response = self
-            .apply_auth(self.client.post(format!("{}/.search/rg", self.base_url)))
-            .json(&json!({ "args": args, "stdinBase64": stdin_base64 }))
-            .send()
-            .map_err(transport_error)?;
-        if !response.status().is_success() {
-            return Err(response_error(response, None, None, false));
-        }
-        let bytes = read_limited(response, RG_RESPONSE_CAP, "search response")?;
-        serde_json::from_slice(&bytes).map_err(|error| {
-            FsError::new(
-                "invalid_response",
-                format!("Server returned an invalid search response: {error}"),
-                8,
-            )
-        })
-    }
-
     pub fn fs_list(&self) -> Result<Vec<silverbullet_server_common::FileMeta>, FsError> {
         let url = self.fs_url(None)?;
         let response = self
@@ -983,40 +948,6 @@ mod tests {
         request.join().unwrap();
     }
 
-    fn search_args() -> Vec<String> {
-        vec!["x".to_string()]
-    }
-
-    #[test]
-    fn search_not_found_keeps_the_server_message() {
-        let (base_url, request) = mock_server(response(
-            "404 Not Found",
-            &[],
-            br#"{"error":"unavailable","message":"Search is unavailable for this space"}"#,
-        ));
-        let error = connection(&base_url)
-            .search_rg(&search_args(), None)
-            .unwrap_err();
-        assert_eq!((error.code, error.exit_code), ("not_found", 3));
-        assert_eq!(error.message, "Search is unavailable for this space");
-        assert_eq!(request.join().unwrap().path, "/space/team/.search/rg");
-    }
-
-    #[test]
-    fn search_forbidden_is_access_denied_with_the_server_message() {
-        let (base_url, request) = mock_server(response(
-            "403 Forbidden",
-            &[],
-            br#"{"error":"forbidden","message":"Write access required"}"#,
-        ));
-        let error = connection(&base_url)
-            .search_rg(&search_args(), None)
-            .unwrap_err();
-        assert_eq!((error.code, error.exit_code), ("access_denied", 4));
-        assert_eq!(error.message, "Write access required");
-        request.join().unwrap();
-    }
-
     #[test]
     fn error_messages_prefer_message_over_error_code() {
         assert_eq!(
@@ -1027,28 +958,5 @@ mod tests {
             error_body_message(br#"{"error":"only code"}"#).as_deref(),
             Some("only code")
         );
-    }
-
-    #[test]
-    fn search_success_with_an_invalid_body_is_an_invalid_response() {
-        for body in [&b"not json"[..], br#"{"exitCode":"x"}"#] {
-            let (base_url, request) = mock_server(response("200 OK", &[], body));
-            let error = connection(&base_url)
-                .search_rg(&search_args(), None)
-                .unwrap_err();
-            assert_eq!(error.code, "invalid_response");
-            request.join().unwrap();
-        }
-    }
-
-    #[test]
-    fn search_response_over_the_cap_is_too_large() {
-        let body = vec![b' '; 24 * 1024 * 1024 + 1];
-        let (base_url, request) = mock_server(response("200 OK", &[], &body));
-        let error = connection(&base_url)
-            .search_rg(&search_args(), None)
-            .unwrap_err();
-        assert_eq!(error.code, "response_too_large");
-        let _ = request.join();
     }
 }

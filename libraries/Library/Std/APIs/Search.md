@@ -2,7 +2,7 @@
 description: Search the space with its active search backend
 tags: meta/api
 ---
-Defines the **Space: Search** command (`Ctrl-Shift-f`, `Cmd-Shift-f` on macOS), which searches every page with the space's search backend. Text selected in the editor (on a single line) becomes the initial search phrase. The modes in the dropdown come from the backend: with full text search that is "All words", "Exact phrase" and "Regex". See [Search](https://docs.silverbullet.md/Search) for setup, and [search API](https://docs.silverbullet.md/API/search) for the underlying API.
+Defines the **Space: Search** command (`Ctrl-Shift-f`, `Cmd-Shift-f` on macOS), which searches every page with the space's search backend. Reopening it brings back the last search in this browser tab (selected, so typing replaces it); text selected in the editor (on a single line) becomes the search phrase instead. The modes in the dropdown come from the backend: with full text search that is "All words" and "Exact phrase". See [Search](https://docs.silverbullet.md/Search) for setup, and [search API](https://docs.silverbullet.md/API/search) for the underlying API.
 
 # Implementation
 ```space-lua
@@ -11,7 +11,6 @@ local modeLabels = {
   words = "All words",
   natural = "Meaning",
   phrase = "Exact phrase",
-  regex = "Regex",
 }
 
 local ok, status = pcall(search.status)
@@ -36,12 +35,13 @@ if ok and status and status.backend then
     search = "source",
     dock = "modal",
     supportedDocks = { "modal", "lhs", "rhs", "bhs" },
-    placeholder = "Search pages",
+    placeholder = "Pages",
     refreshOnOpen = true,
+    rememberPhrase = true,
     segments = {
-      { label = "Pages", default = true, placeholder = "Search pages" },
-      { label = "Meta", placeholder = "Search meta pages" },
-      { label = "All", placeholder = "Search everything" },
+      { label = "Pages", default = true, placeholder = "Pages" },
+      { label = "Meta", placeholder = "Meta Pages" },
+      { label = "All", placeholder = "All Pages" },
     },
     dropdown = {
       placeholder = "Search mode",
@@ -83,7 +83,8 @@ if ok and status and status.backend then
     end,
   }
 
-  -- A single-line selection in the editor becomes the initial search phrase.
+  -- A single-line selection in the editor becomes the search phrase; without
+  -- one, the view reopens with the last search (rememberPhrase).
   command.define {
     name = "Space: Search",
     key = "Ctrl-Shift-f",

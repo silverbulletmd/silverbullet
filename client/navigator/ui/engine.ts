@@ -184,6 +184,15 @@ export class NavigatorEngine {
     };
   }
 
+  /**
+   * The phrase a `rememberPhrase` view last queried in this slot (the engine
+   * outlives the panel, so this survives closing it), or undefined.
+   */
+  rememberedPhrase(viewName: string): string | undefined {
+    const entry = this.cache.get(viewName);
+    return entry?.meta.rememberPhrase ? entry.ctx?.phrase : undefined;
+  }
+
   activeState(): ViewState | undefined {
     return this.activeName ? this.cache.get(this.activeName) : undefined;
   }

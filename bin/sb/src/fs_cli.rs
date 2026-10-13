@@ -9,15 +9,13 @@ Examples:
   sb fs read 'Projects/Launch.md' --lines 10:30 --number
   sb fs write Draft.md --create --file draft.md
   sb fs edit Draft.md --old draft --new ready --dry-run
-  sb fs rg -- -n -i 'invoice' .
 
 Output: read defaults to exact bytes, including when piped. Other commands use
 text on a terminal and JSON when piped. Supported formats: auto, text, json,
 jsonl. Use --json explicitly for metadata/revisions alongside UTF-8 content.
 Errors go to stderr. File commands work even when the server cannot run Lua.
 
-rg preserves native output and exit codes (0 matches, 1 no matches, 2 error);
-pass its arguments after --. Other file commands use these exit codes:
+File commands use these exit codes:
 0 success; 2 invalid input; 3 missing target; 4 access denied;
 5 revision conflict; 6 edit mismatch/ambiguity/overlap; 7 truncated listing;
 8 operational failure. Inspect the file before retrying an uncertain mutation.
@@ -28,14 +26,6 @@ pub const EDIT_LIMIT: u64 = 8 * 1024 * 1024;
 
 #[derive(Subcommand, Debug)]
 pub enum FsCommand {
-    /// Run ripgrep remotely against the space's files (requires write access).
-    #[command(
-        after_long_help = "Example: sb fs rg -- -n -i 'invoice' .\nNative search and output flags are supported. Program execution, PCRE2, case-insensitive globs (--iglob), symlink following, hidden files and paths outside the space are refused. The server enforces a time and output limit. Requires write access."
-    )]
-    Rg {
-        #[arg(last = true, allow_hyphen_values = true)]
-        args: Vec<String>,
-    },
     /// List files and directories in a space.
     #[command(
         visible_alias = "list",

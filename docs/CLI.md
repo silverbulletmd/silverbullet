@@ -97,7 +97,7 @@ Runtime commands may take a few seconds on first use while the [[Runtime API]] s
 
 ## `fs`: remote files
 
-List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`; quote paths containing spaces and use `/` between directories. Content search, patch input, recursive deletion, copy, and move are not supported.
+List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`; quote paths containing spaces and use `/` between directories. Patch input, recursive deletion, copy, and move are not supported. To search page content, use `sb eval 'search.find("…")'` (see [[Search]]).
 
 | Command | Behavior |
 |---|---|

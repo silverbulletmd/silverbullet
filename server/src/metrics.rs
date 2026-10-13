@@ -19,13 +19,11 @@ pub struct Metrics {
     pub proxy_requests: IntCounter,
     /// Total `/.runtime/{lua,lua_script}` eval requests received.
     pub runtime_api_requests: IntCounter,
-    /// Structured `/.search/query` requests admitted.
+    /// `/.search/query` requests admitted.
     pub search_queries: IntCounter,
-    /// Raw `/.search/rg` runs killed at the deadline.
-    pub search_timeouts: IntCounter,
-    /// Searches refused as busy (every rg process slot taken).
+    /// Searches refused as busy (every query slot taken).
     pub search_rejections: IntCounter,
-    /// Structured searches returning partial results (deadline or output cap).
+    /// Searches returning partial results (deadline).
     pub search_partial: IntCounter,
 }
 
@@ -74,11 +72,7 @@ impl Metrics {
         };
         let search_queries = counter(
             "silverbullet_search_queries_total",
-            "Structured search queries admitted",
-        );
-        let search_timeouts = counter(
-            "silverbullet_search_timeouts_total",
-            "Raw searches killed at the deadline",
+            "Search queries admitted",
         );
         let search_rejections = counter(
             "silverbullet_search_rejections_total",
@@ -86,7 +80,7 @@ impl Metrics {
         );
         let search_partial = counter(
             "silverbullet_search_partial_total",
-            "Structured searches returning partial results (deadline or output cap)",
+            "Searches returning partial results (deadline)",
         );
         Self {
             registry,
@@ -95,7 +89,6 @@ impl Metrics {
             proxy_requests,
             runtime_api_requests,
             search_queries,
-            search_timeouts,
             search_rejections,
             search_partial,
         }

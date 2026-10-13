@@ -54,7 +54,7 @@ import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 import { captureSyscalls } from "./plugos/syscalls/capture.ts";
 import type { CaptureInvocationContext } from "./capture/invocation.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
-import { searchRgSyscalls, searchSyscalls } from "./plugos/syscalls/search.ts";
+import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { createServerSearch } from "./search/server_search.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
@@ -319,7 +319,6 @@ export class ClientSystem {
       );
 
       this.system.registerSyscalls(["shell"], shellSyscalls(this.client));
-      this.system.registerSyscalls([], searchRgSyscalls(search));
     }
   }
 

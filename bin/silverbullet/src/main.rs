@@ -64,9 +64,10 @@ fn main() -> std::process::ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(
             // Chromiumoxide warns on unrecognized CDP events even when commands
-            // succeed. Suppress that noise unless RUST_LOG overrides the filter.
+            // succeed, and tantivy logs every index commit and merge at info.
+            // Suppress that noise unless RUST_LOG overrides the filter.
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,chromiumoxide=error".into()),
+                .unwrap_or_else(|_| "info,chromiumoxide=error,tantivy=warn".into()),
         )
         .init();
 

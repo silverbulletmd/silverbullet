@@ -69,10 +69,10 @@ describe("module import", () => {
 describe("status", () => {
   it("uses a short fetch timeout", async () => {
     const fetch = vi.fn<FetchFn>(
-      async () => new Response(JSON.stringify({ backend: "ripgrep" })),
+      async () => new Response(JSON.stringify({ backend: "fulltext" })),
     );
     const search = await serverSearch(fetch);
-    expect((await search.status()).backend).toBe("ripgrep");
+    expect((await search.status()).backend).toBe("fulltext");
     expect(fetch.mock.calls[0][0]).toBe("http://example.test/.search/status");
     expect(fetch.mock.calls[0][2]).toBe(3000);
   });
@@ -88,8 +88,8 @@ describe("status", () => {
 });
 
 describe("syscall registration", () => {
-  it("keeps search.rg out of the read syscalls", async () => {
-    const { searchRgSyscalls, searchSyscalls } = await import("./search.ts");
+  it("registers the search syscalls and no search.rg", async () => {
+    const { searchSyscalls } = await import("./search.ts");
     const search = await serverSearch(async () => new Response("{}"));
     expect(Object.keys(searchSyscalls(search)).sort()).toEqual([
       "search.find",
@@ -97,6 +97,5 @@ describe("syscall registration", () => {
       "search.related",
       "search.status",
     ]);
-    expect(Object.keys(searchRgSyscalls(search))).toEqual(["search.rg"]);
   });
 });

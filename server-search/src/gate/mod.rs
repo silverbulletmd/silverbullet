@@ -1,5 +1,5 @@
-//! Admission for search requests: superseding and process slots, decided in
-//! one `Gate::admit` call.
+//! Admission for search requests: superseding and query slots,
+//! decided in one `Gate::admit` call.
 
 pub(crate) mod pool;
 pub(crate) mod supersede;
@@ -8,17 +8,18 @@ use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 
-use crate::{Admission, RequestCx, SearchError};
-use pool::ProcessPool;
+use crate::admission::Pools;
+use crate::{limits, Admission, RequestCx, SearchError};
+use pool::Pool;
 use supersede::Supersede;
 
 /// Past this many tracked keys, idle ones are dropped.
 const MAX_TRACKED: usize = 4096;
 
-/// One per server, shared by every space, so the process limit is server-wide.
+/// One per server, shared by every space, so the query limit is server-wide.
 pub struct Gate {
     supersede: Supersede,
-    pool: Arc<ProcessPool>,
+    queries: Arc<Pool>,
 }
 
 impl Default for Gate {
@@ -31,12 +32,13 @@ impl Gate {
     pub fn new() -> Gate {
         Gate {
             supersede: Supersede::new(),
-            pool: Arc::new(ProcessPool::new()),
+            queries: Arc::new(Pool::new(limits::MAX_QUERIES, limits::QUERY_QUEUE_WAIT)),
         }
     }
 
     /// Supersedes the tab's previous query when asked to, and hands out the
-    /// right to wait for a process slot.
+    /// right to wait for a query slot. Infallible today; stays a `Result` so
+    /// M2's bounded semantic query queue can reject with `Busy` here.
     pub fn admit(&self, a: Admission) -> Result<RequestCx, SearchError> {
         let (cancel, registration) = if a.supersede {
             let (cancel, registration) = self.supersede.register(a.space, a.user, a.writer, a.tab);
@@ -47,7 +49,9 @@ impl Gate {
         Ok(RequestCx::admitted(
             a.deadline,
             cancel,
-            self.pool.clone(),
+            Pools {
+                queries: self.queries.clone(),
+            },
             registration,
         ))
     }
@@ -56,8 +60,7 @@ impl Gate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ripgrep::limits;
-    use crate::{Admission, SearchError};
+    use crate::{limits, Admission, SearchError};
     use std::time::Duration;
 
     const SPACE: &str = "/spaces/a";
@@ -141,36 +144,48 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn process_slots_queue_briefly_then_report_busy() {
+    async fn query_slots_queue_briefly_then_report_busy() {
         let gate = Gate::new();
-        let holders: Vec<_> = (0..limits::MAX_PROCESSES)
-            .map(|i| gate.admit(reader(&format!("holder-{i}"))).unwrap())
-            .collect();
         let mut held = Vec::new();
-        for holder in &holders {
-            held.push(holder.process_slot().await.unwrap());
+        for i in 0..limits::MAX_QUERIES {
+            let cx = gate.admit(reader(&format!("query-{i}"))).unwrap();
+            held.push(cx.query_slot().await.unwrap());
         }
         let waiter = gate.admit(reader("b")).unwrap();
-        let waiting = waiter.process_slot();
+        let started = tokio::time::Instant::now();
+        let waiting = waiter.query_slot();
         tokio::pin!(waiting);
-        tokio::time::advance(limits::QUEUE_WAIT + Duration::from_millis(1)).await;
+        assert!(still_pending(&mut waiting).await);
+        tokio::time::advance(limits::QUERY_QUEUE_WAIT - Duration::from_millis(1)).await;
+        assert!(
+            still_pending(&mut waiting).await,
+            "waits the full queue wait"
+        );
+        tokio::time::advance(Duration::from_millis(2)).await;
         assert!(matches!(waiting.await, Err(SearchError::Busy)));
+        assert!(started.elapsed() >= limits::QUERY_QUEUE_WAIT);
         held.pop();
-        assert!(waiter.process_slot().await.is_ok());
+        assert!(waiter.query_slot().await.is_ok());
+    }
+
+    /// Polls `fut` once without letting paused time advance; true when it is still pending.
+    async fn still_pending<F: std::future::Future + Unpin>(fut: &mut F) -> bool {
+        std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::pin::Pin::new(&mut *fut).poll(cx).is_pending())
+        })
+        .await
     }
 
     #[tokio::test]
-    async fn a_superseded_request_stops_waiting_for_a_slot() {
+    async fn a_superseded_request_stops_waiting_for_a_query_slot() {
         let gate = Gate::new();
-        let holders: Vec<_> = (0..limits::MAX_PROCESSES)
-            .map(|i| gate.admit(reader(&format!("holder-{i}"))).unwrap())
-            .collect();
         let mut held = Vec::new();
-        for holder in &holders {
-            held.push(holder.process_slot().await.unwrap());
+        for i in 0..limits::MAX_QUERIES {
+            let cx = gate.admit(reader(&format!("query-{i}"))).unwrap();
+            held.push(cx.query_slot().await.unwrap());
         }
         let older = gate.admit(query("alice", "tab-1")).unwrap();
-        let wait = older.process_slot();
+        let wait = older.query_slot();
         tokio::pin!(wait);
         gate.admit(query("alice", "tab-1")).unwrap();
         assert!(matches!(wait.await, Err(SearchError::Cancelled)));

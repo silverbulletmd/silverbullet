@@ -6,7 +6,17 @@ pub enum QueryMode {
     Words,
     Natural,
     Phrase,
-    Regex,
+}
+
+/// Which pages a query searches, by the page's own tags: Meta pages are
+/// tagged `meta`, `meta/…` or `template`, Pages are all others.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SearchScope {
+    Pages,
+    Meta,
+    #[default]
+    All,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -15,6 +25,10 @@ pub struct QueryRequest {
     pub query: String,
     #[serde(default)]
     pub mode: Option<QueryMode>,
+    /// Pages, Meta or (the default) all pages; combines with `include` and
+    /// `exclude`.
+    #[serde(default)]
+    pub scope: Option<SearchScope>,
     /// Exact page names (no `.md`) the result must be limited to.
     #[serde(default)]
     pub include: Option<Vec<String>>,
@@ -77,24 +91,6 @@ pub struct StatusResponse {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RawRequest {
-    pub args: Vec<String>,
-    #[serde(default)]
-    pub stdin_base64: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RawResult {
-    pub exit_code: i32,
-    pub stdout_base64: String,
-    pub stderr_base64: String,
-    pub truncated: bool,
-    pub timed_out: bool,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,16 +103,27 @@ mod tests {
         .unwrap();
         assert_eq!(req.mode, Some(QueryMode::Phrase));
         assert_eq!(req.exclude.as_deref(), Some(&["Index".to_string()][..]));
-        assert!(serde_json::from_str::<QueryRequest>(r#"{"query":"x","scope":"all"}"#).is_err());
+        assert_eq!(req.scope, None);
+        for (json, scope) in [
+            ("pages", SearchScope::Pages),
+            ("meta", SearchScope::Meta),
+            ("all", SearchScope::All),
+        ] {
+            let req: QueryRequest =
+                serde_json::from_str(&format!(r#"{{"query":"x","scope":"{json}"}}"#)).unwrap();
+            assert_eq!(req.scope, Some(scope));
+        }
+        assert!(serde_json::from_str::<QueryRequest>(r#"{"query":"x","scope":"docs"}"#).is_err());
+        assert!(serde_json::from_str::<QueryRequest>(r#"{"query":"x","scopes":"all"}"#).is_err());
     }
 
     #[test]
     fn status_serializes_flat_for_lua() {
         let status = StatusResponse {
-            backend: Some("ripgrep".into()),
+            backend: Some("fulltext".into()),
             model: None,
             capabilities: Capabilities {
-                modes: vec![QueryMode::Words, QueryMode::Phrase, QueryMode::Regex],
+                modes: vec![QueryMode::Words, QueryMode::Phrase],
                 related: false,
             },
             ready: true,
@@ -126,9 +133,9 @@ mod tests {
         assert_eq!(
             serde_json::to_value(&status).unwrap(),
             serde_json::json!({
-                "backend": "ripgrep",
+                "backend": "fulltext",
                 "model": null,
-                "capabilities": {"modes": ["words", "phrase", "regex"], "related": false},
+                "capabilities": {"modes": ["words", "phrase"], "related": false},
                 "ready": true,
                 "progress": null,
                 "reason": null

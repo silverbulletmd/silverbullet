@@ -23,7 +23,6 @@ pub async fn run(
             .unwrap_or_else(|_| root.clone())
             .display()
     );
-    silverbullet_server::search::log_availability();
     match crate::boot::detect(&root, single, &|k| std::env::var(k).ok())? {
         crate::boot::BootMode::Single => crate::single::run_single(config, shutdown).await,
         crate::boot::BootMode::Setup => crate::boot::run_setup_server(config, shutdown).await,

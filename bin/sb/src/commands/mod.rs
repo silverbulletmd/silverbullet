@@ -2,7 +2,6 @@ pub mod eval;
 pub mod fs;
 pub mod logs;
 pub mod query;
-pub mod rg;
 pub mod screenshot;
 pub mod script;
 pub mod space;

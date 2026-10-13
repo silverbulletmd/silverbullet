@@ -628,14 +628,61 @@ impl MultiManager {
     }
 
     pub fn delete(&self, id: &str) -> Result<(), ApiError> {
-        let mut retired = Retired::default();
-        let mut inner = self.state.lock().unwrap();
-        if !inner.config.spaces.contains_key(id) {
-            return Err(ApiError::NotFound);
+        {
+            let mut retired = Retired::default();
+            let mut inner = self.state.lock().unwrap();
+            if !inner.config.spaces.contains_key(id) {
+                return Err(ApiError::NotFound);
+            }
+            let mut new_config = inner.config.clone();
+            new_config.spaces.remove(id);
+            self.apply_locked(&mut inner, new_config, &mut retired, None, true)?;
+            // The lock, then the retired instance (and its index worker), drop here.
         }
-        let mut new_config = inner.config.clone();
-        new_config.spaces.remove(id);
-        self.apply_locked(&mut inner, new_config, &mut retired, None, true)
+        self.remove_search_index(id);
+        Ok(())
+    }
+
+    /// Best effort, in the background: removes a deleted space's full-text
+    /// index directory, unless a space with that id exists again. A request
+    /// still holding the old instance can at worst fail to commit into it.
+    ///
+    /// The retries don't re-check the config: space ids come from
+    /// `Uuid::new_v4` in `create` and are never reused, so no new instance can
+    /// claim this directory while they run. Only a hand edit of `spaces.json`
+    /// re-adding the same id within those 5 s could, and it would rebuild its
+    /// index from the space's files.
+    fn remove_search_index(&self, id: &str) {
+        let Some(indexes) = self.deps.search_index_root.clone() else {
+            return;
+        };
+        let crate::search::Location::Disk(dir) =
+            super::instance::search_location(Some(&indexes), id)
+        else {
+            return;
+        };
+        if self.state.lock().unwrap().config.spaces.contains_key(id) || !dir.exists() {
+            return;
+        }
+        std::thread::spawn(move || {
+            // A commit the old worker had started can still be writing files;
+            // try again shortly.
+            let mut last = None;
+            for _ in 0..20 {
+                match crate::search::remove_index_dir(&indexes, &dir) {
+                    Ok(_) => return,
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
+                    Err(error) => last = Some(error),
+                }
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+            if let Some(error) = last {
+                tracing::warn!(
+                    "Couldn't remove the search index of a deleted space ({}): {error}",
+                    dir.display()
+                );
+            }
+        });
     }
 
     /// JSON view for GET /spaces: id -> { config,
@@ -822,6 +869,7 @@ mod tests {
             index_template: "# Test space\n".into(),
             shutdown: None,
             search_gate: Arc::new(crate::search::Gate::new()),
+            search_index_root: None,
         }
     }
 
@@ -846,6 +894,178 @@ mod tests {
             revisions_commit: None,
             extra: Default::default(),
         }
+    }
+
+    /// Rebuilding an instance (a `spaces.json` theme edit) while its search
+    /// runs: the old and new instance share the index directory for a while.
+    /// Nothing panics or fails, the new instance answers, and an edit made
+    /// right after the rebuild is found within 5 s (Review Focus 2).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn a_rebuilt_space_takes_over_its_index_while_searches_run() {
+        use axum::body::Body;
+        use axum::http::{Request, StatusCode};
+        use std::time::{Duration, Instant};
+        use tower::ServiceExt;
+        async fn query(router: axum::Router, q: &str) -> (StatusCode, serde_json::Value) {
+            let req = Request::builder()
+                .method("POST")
+                .uri("/.search/query")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::json!({ "query": q }).to_string()))
+                .unwrap();
+            let res = router.oneshot(req).await.unwrap();
+            let status = res.status();
+            let bytes = axum::body::to_bytes(res.into_body(), 1 << 20)
+                .await
+                .unwrap();
+            (status, serde_json::from_slice(&bytes).unwrap())
+        }
+        async fn found(router: &axum::Router, q: &str, page: &str, within: Duration) {
+            let deadline = Instant::now() + within;
+            loop {
+                let (status, body) = query(router.clone(), q).await;
+                assert_eq!(status, StatusCode::OK, "{body}");
+                if body["items"][0]["page"] == page {
+                    return;
+                }
+                assert!(Instant::now() < deadline, "{q}: {body}");
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("notes")).unwrap();
+        std::fs::write(root.join("notes/Fern.md"), "fern fronds\n").unwrap();
+        let mut space = payload("Notes", Binding::Prefix { prefix: "".into() });
+        space.folder = "notes".into();
+        MultiConfig {
+            spaces: [("notes".to_string(), space)].into_iter().collect(),
+        }
+        .save(&root.join("spaces.json"))
+        .unwrap();
+        let mut deps = deps(root);
+        deps.auth = InstanceAuth::Single(None);
+        deps.search_index_root = Some(root.join("search/indexes"));
+        let m = MultiManager::boot(root.to_path_buf(), deps, BTreeSet::new()).unwrap();
+
+        let old = m.instance("notes").unwrap();
+        let old_router = old.router.clone().unwrap();
+        found(&old_router, "fern", "Fern", Duration::from_secs(10)).await;
+
+        let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let searching = {
+            let (router, stop) = (old_router.clone(), stop.clone());
+            tokio::spawn(async move {
+                let mut answered = 0;
+                while !stop.load(std::sync::atomic::Ordering::SeqCst) {
+                    let (status, body) = query(router.clone(), "fern").await;
+                    assert!(!status.is_server_error(), "{status}: {body}");
+                    answered += 1;
+                }
+                answered
+            })
+        };
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        let patch = serde_json::json!({ "themeColor": "#336699" });
+        m.patch("notes", patch.as_object().unwrap().clone())
+            .unwrap();
+        let new = m.instance("notes").unwrap();
+        assert!(!Arc::ptr_eq(&old, &new), "the edit rebuilt the instance");
+        assert_eq!(new.config.theme_color, "#336699");
+        let new_router = new.router.clone().unwrap();
+        std::fs::write(root.join("notes/Moss.md"), "moss carpets\n").unwrap();
+        found(&new_router, "moss", "Moss", Duration::from_secs(5)).await;
+        found(&new_router, "fern", "Fern", Duration::from_secs(5)).await;
+        // Both instances index into the same directory, and neither gave up
+        // on it for a RAM index.
+        let backends = crate::search::test_support::backends_at(&root.join("search/indexes/notes"));
+        assert_eq!(backends.len(), 2, "the old and the new instance");
+        for backend in &backends {
+            assert_eq!(backend.is_memory(), Some(false), "on disk");
+        }
+        drop(backends);
+
+        stop.store(true, std::sync::atomic::Ordering::SeqCst);
+        let answered = searching
+            .await
+            .expect("searches on the old instance never panic");
+        assert!(answered > 0);
+        drop((old, old_router));
+        // With the old instance gone, the new one keeps indexing on its own.
+        std::fs::write(root.join("notes/Lichen.md"), "lichen crusts\n").unwrap();
+        found(&new_router, "lichen", "Lichen", Duration::from_secs(5)).await;
+        let backends = crate::search::test_support::backends_at(&root.join("search/indexes/notes"));
+        assert_eq!(backends.len(), 1, "only the new instance is left");
+        assert_eq!(backends[0].is_memory(), Some(false));
+    }
+
+    fn walkdir_list(d: &std::path::Path) -> Vec<String> {
+        let mut out = vec![];
+        let mut stack = vec![d.to_path_buf()];
+        while let Some(d) = stack.pop() {
+            for e in std::fs::read_dir(&d).unwrap() {
+                let p = e.unwrap().path();
+                if p.is_dir() {
+                    stack.push(p.clone());
+                }
+                out.push(p.display().to_string());
+            }
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn deleting_a_space_removes_its_search_index() {
+        use std::time::{Duration, Instant};
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut deps = deps(root);
+        deps.search_index_root = Some(root.join("search/indexes"));
+        let m = MultiManager::boot(root.to_path_buf(), deps, BTreeSet::new()).unwrap();
+        let keep = m
+            .create(
+                payload(
+                    "Keep",
+                    Binding::Prefix {
+                        prefix: "/keep".into(),
+                    },
+                ),
+                true,
+            )
+            .unwrap();
+        let gone = m
+            .create(
+                payload(
+                    "Gone",
+                    Binding::Prefix {
+                        prefix: "/gone".into(),
+                    },
+                ),
+                true,
+            )
+            .unwrap();
+        let index = |id: &str| root.join("search/indexes").join(id).join("fulltext-v1");
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while !(index(&keep).join("meta.json").is_file()
+            && index(&gone).join("meta.json").is_file())
+        {
+            assert!(Instant::now() < deadline, "indexes never created");
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        m.delete(&gone).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while root.join("search/indexes").join(&gone).exists() {
+            if Instant::now() >= deadline {
+                let left: Vec<_> = walkdir_list(&root.join("search/indexes").join(&gone));
+                panic!("the deleted space's index is still there: {left:?}");
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(
+            index(&keep).join("meta.json").is_file(),
+            "other spaces keep theirs"
+        );
     }
 
     fn boot(root: &std::path::Path) -> std::sync::Arc<MultiManager> {

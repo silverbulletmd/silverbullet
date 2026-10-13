@@ -20,6 +20,7 @@ const REGISTRATION_FIELDS = new Set([
   "frame",
   "openOnStart",
   "refreshOnOpen",
+  "rememberPhrase",
   "followEditor",
   "ephemeral",
 ]);

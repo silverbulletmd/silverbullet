@@ -39,7 +39,13 @@ mod test_support {
         let space: std::sync::Arc<dyn silverbullet_server_common::SpacePrimitives> =
             std::sync::Arc::new(MemorySpacePrimitives::new());
         ServerState {
-            search: crate::search::backend_for(std::path::Path::new("/tmp"), space.clone()),
+            search: crate::search::backend_for(
+                "test",
+                space.clone(),
+                Default::default(),
+                crate::search::Location::Memory,
+                None,
+            ),
             search_gate: std::sync::Arc::new(silverbullet_server_search::Gate::new()),
             space,
             client_bundle: Box::new(bundle),

@@ -100,31 +100,3 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
     },
   };
 }
-
-/** Raw ripgrep needs write access, so it is registered only outside read-only mode. */
-export function searchRgSyscalls(search: ServerSearch): SysCallMapping {
-  return {
-    "search.rg": {
-      callback: (_ctx, args: string[], stdinBase64?: string) =>
-        search.rg(args, stdinBase64),
-      description:
-        "Runs ripgrep on the server with native arguments. Requires write access; the server refuses program execution, PCRE2 and paths outside the space, and enforces a time and output limit.",
-      parameters: [
-        { name: "args", type: "table", description: "ripgrep arguments." },
-        {
-          name: "stdinBase64",
-          type: "string",
-          description: "Base64 input for `-` or `--file=-`.",
-          optional: true,
-        },
-      ],
-      returns: [
-        {
-          type: "table",
-          description:
-            "`{exitCode, stdoutBase64, stderrBase64, truncated, timedOut}`.",
-        },
-      ],
-    },
-  };
-}

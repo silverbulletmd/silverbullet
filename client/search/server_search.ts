@@ -2,7 +2,6 @@ import { randomUUID } from "../../plug-api/lib/crypto.ts";
 import type {
   QueryOptions,
   RelatedResult,
-  RgResult,
   SearchResult,
   SearchStatus,
 } from "../../plug-api/types/search.ts";
@@ -15,7 +14,6 @@ export type ServerSearch = {
   status(): Promise<SearchStatus>;
   find(query: string, options?: QueryOptions): Promise<SearchResult>;
   related(page: string, limit?: number): Promise<RelatedResult>;
-  rg(args: string[], stdinBase64?: string): Promise<RgResult>;
 };
 
 // One id per tab: the server cancels this tab's previous search when a new one starts.
@@ -103,10 +101,6 @@ export function createServerSearch(
 
     related(page: string, limit?: number): Promise<RelatedResult> {
       return post<RelatedResult>("related", { page, limit });
-    },
-
-    rg(args: string[], stdinBase64?: string): Promise<RgResult> {
-      return post<RgResult>("rg", { args, stdinBase64 });
     },
   };
 }

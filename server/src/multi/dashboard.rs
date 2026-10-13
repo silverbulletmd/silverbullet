@@ -383,6 +383,7 @@ mod tests {
             index_template: "# Test\n".into(),
             shutdown: None,
             search_gate: Arc::new(crate::search::Gate::new()),
+            search_index_root: None,
         };
         let manager =
             MultiManager::boot(dir.path().to_path_buf(), deps, users.usernames()).unwrap();

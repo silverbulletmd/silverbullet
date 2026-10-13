@@ -13,11 +13,13 @@ pub struct PageMetadata {
 }
 
 impl PageMetadata {
+    /// Meta when tagged `meta`, `meta/…` or `template`, as the client's
+    /// `isMetaPage` classifies pages.
     pub fn kind(&self) -> PageKind {
         if self
             .tags
             .iter()
-            .any(|tag| tag == "meta" || tag.starts_with("meta/"))
+            .any(|tag| tag == "meta" || tag.starts_with("meta/") || tag == "template")
         {
             PageKind::Meta
         } else {
@@ -202,6 +204,9 @@ mod tests {
             "#<meta/api> #glossary",
             "Heading\n\n#meta/config\n\nBody",
             "---\ntags: [broken\n---\n#meta",
+            "#template",
+            "---\ntags: template\n---\nBody",
+            "---\ntags: [glossary, template]\n---\n",
         ] {
             assert_eq!(parse_page(text).metadata.kind(), PageKind::Meta, "{text}");
         }
@@ -222,6 +227,9 @@ mod tests {
             "#meta-",
             "#meta/api prose",
             "# meta",
+            "#templates",
+            "#template/page",
+            "Text #template",
         ] {
             assert_eq!(
                 parse_page(text).metadata.kind(),

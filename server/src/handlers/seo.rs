@@ -128,6 +128,7 @@ mod tests {
             ("Field Notes.md", "---\ntags: glossary\n---\n# Notes"),
             ("Library/Guide.md", "# Guide"),
             ("Settings.md", "#meta/config"),
+            ("Weekly Review.md", "---\ntags: template\n---\n# Review"),
             ("Photo.png", "image"),
         ] {
             state.space.write_file(name, text.as_bytes(), None).unwrap();
@@ -189,6 +190,7 @@ mod tests {
         assert!(body.contains("/wiki/Field%20Notes</loc>"), "{body}");
         assert!(body.contains("/wiki/Library/Guide</loc>"), "{body}");
         assert!(!body.contains("Settings"));
+        assert!(!body.contains("Weekly%20Review"), "{body}");
         assert!(!body.contains("Photo"));
         assert!(!body.contains("/index</loc>"));
     }
@@ -250,6 +252,13 @@ mod tests {
         assert!(body.contains("noindex, follow"));
         assert!(!body.contains("description:"));
         assert!(body.contains("Published"));
+        // Templates are meta pages too, as the client classifies them.
+        let (status, _, body) =
+            request(public_state_with_shell(), "/Weekly%20Review?view=1").await;
+        assert_eq!(status, 200);
+        assert!(body.contains("noindex, follow"), "{body}");
+        let (_, _, body) = request(public_state_with_shell(), "/Field%20Notes?view=1").await;
+        assert!(!body.contains("noindex"), "{body}");
     }
     #[tokio::test]
     async fn canonical_index_and_description_fallback() {

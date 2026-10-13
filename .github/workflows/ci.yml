@@ -142,12 +142,7 @@ jobs:
         run: |
           echo "CHROMIUM_PATH=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")" >> "$GITHUB_ENV"
 
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-
       - name: Run Rust tests
-        env:
-          SB_REQUIRE_RIPGREP: "1"
         run: cargo test --workspace --all-features
 
   test-e2e:
@@ -175,9 +170,6 @@ jobs:
 
       - name: Install Playwright browser (chromium)
         run: npx playwright install --with-deps chromium
-
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Run e2e tests
         run: npx playwright test --project=chromium

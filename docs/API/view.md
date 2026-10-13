@@ -50,6 +50,7 @@ The same function can render an inline `${projectView()}` expression. With `widg
 | `widget` | A `widget.new` value to show (usually with `source` or `content`). Can't be combined with flat content fields. |
 | `openOnStart` | Open on every boot regardless of saved state; only for `lhs`, `rhs`, or `bhs`. |
 | `refreshOnOpen` | Reload when an already-open panel is activated; does not apply to inline or page-docked views. |
+| `rememberPhrase` | In the modal, an open without a `phrase` starts from the phrase this view last searched in this browser tab (kept in memory, gone on reload), selected so typing replaces it, and shows that search's results again. Meant for `search = "source"` views. |
 | `followEditor` | Make a registered sidebar follow the page you navigate to. |
 
 `lhs` and `rhs` are resizable sidebars; `bhs` is a resizable bottom panel. They remember open state and size; sidebars also remember the filter phrase across re-focus. A page dock displays a widget above or below the document, has no filter input, and hides itself when empty. A modal is a transient picker: it clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. Page-docked lists honor `presentation.limit`; page-docked trees are uncapped.

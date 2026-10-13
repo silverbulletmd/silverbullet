@@ -57,3 +57,10 @@ zip = { version = "8", default-features = false, features = ["deflate"] }
 notify = "8"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 tokio-util = "0.7"
+tantivy = { version = "0.26", default-features = false, features = ["mmap", "stopwords", "lz4-compression", "stemmer"] }
+# Semantic search (server-search `semantic` feature): pure Rust, no C/C++ build deps.
+candle-core = { git = "https://github.com/huggingface/candle", rev = "c68b24997319b8d76e5a4e775dab197c7f26322a", default-features = false }
+candle-nn = { git = "https://github.com/huggingface/candle", rev = "c68b24997319b8d76e5a4e775dab197c7f26322a", default-features = false }
+# `unstable_wasm` is the feature that enables fancy-regex (pure Rust) instead of onig (C).
+tokenizers = { version = "0.23", default-features = false, features = ["unstable_wasm"] }
+rayon = "1"

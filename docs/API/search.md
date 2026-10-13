@@ -66,21 +66,6 @@ Finds pages related to a page. Only available when `search.status().capabilities
 
 - `table` — `{items, waitingForIndex}`.
 
-## search.rg
-
-`search.rg(args, stdinBase64?)`
-
-Runs ripgrep on the server with native arguments. Requires write access; the server refuses program execution, PCRE2 and paths outside the space, and enforces a time and output limit.
-
-**Parameters:**
-
-- `args` (`table`) — ripgrep arguments.
-- `stdinBase64?` (`string`) — Base64 input for `-` or `--file=-`.
-
-**Returns:**
-
-- `table` — `{exitCode, stdoutBase64, stderrBase64, truncated, timedOut}`.
-
 ## search.status
 
 `search.status()`

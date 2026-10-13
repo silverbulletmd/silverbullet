@@ -1,4 +1,4 @@
-export type SearchMode = "words" | "natural" | "phrase" | "regex";
+export type SearchMode = "words" | "natural" | "phrase";
 
 /** Which pages a search covers, like the page picker's Pages/Meta/All segments. */
 export type SearchScope = "pages" | "meta" | "all";
@@ -37,11 +37,3 @@ export type QueryOptions = {
 };
 
 export type RelatedResult = SearchResult & { waitingForIndex?: boolean };
-
-export type RgResult = {
-  exitCode: number;
-  stdoutBase64: string;
-  stderrBase64: string;
-  truncated: boolean;
-  timedOut: boolean;
-};

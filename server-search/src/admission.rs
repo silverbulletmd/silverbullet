@@ -1,6 +1,6 @@
 //! What the HTTP layer tells the gate about a request, and the context a
 //! backend gets back: its deadline, cancellation, and the right to wait for a
-//! process slot.
+//! query slot.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -8,7 +8,7 @@ use std::time::Duration;
 use tokio::sync::OwnedSemaphorePermit;
 use tokio_util::sync::CancellationToken;
 
-use crate::gate::pool::ProcessPool;
+use crate::gate::pool::Pool;
 use crate::gate::supersede::Registration;
 use crate::SearchError;
 
@@ -27,12 +27,18 @@ pub struct Admission<'a> {
     pub deadline: Duration,
 }
 
+/// The server-wide pools an admitted request draws from.
+#[derive(Clone)]
+pub(crate) struct Pools {
+    pub(crate) queries: Arc<Pool>,
+}
+
 /// Per-request context: when to give up, and whether a newer request from the
 /// same tab has superseded this one.
 pub struct RequestCx {
     pub deadline: tokio::time::Instant,
     pub cancel: CancellationToken,
-    pool: Option<Arc<ProcessPool>>,
+    pools: Option<Pools>,
     _registration: Option<Registration>,
 }
 
@@ -40,13 +46,13 @@ impl RequestCx {
     pub(crate) fn admitted(
         deadline: Duration,
         cancel: CancellationToken,
-        pool: Arc<ProcessPool>,
+        pools: Pools,
         registration: Option<Registration>,
     ) -> Self {
         Self {
             deadline: tokio::time::Instant::now() + deadline,
             cancel,
-            pool: Some(pool),
+            pools: Some(pools),
             _registration: registration,
         }
     }
@@ -56,23 +62,25 @@ impl RequestCx {
         Self {
             deadline: tokio::time::Instant::now() + deadline,
             cancel: CancellationToken::new(),
-            pool: None,
+            pools: None,
             _registration: None,
         }
     }
 
-    /// Waits up to `limits::QUEUE_WAIT` for one of the server's rg process slots.
-    pub async fn process_slot(&self) -> Result<ProcessSlot, SearchError> {
-        match &self.pool {
-            Some(pool) => pool.acquire(&self.cancel).await,
-            None => Ok(ProcessSlot { _permit: None }),
-        }
+    /// Waits up to `limits::QUERY_QUEUE_WAIT` for one of the server's index
+    /// query slots.
+    pub async fn query_slot(&self) -> Result<QuerySlot, SearchError> {
+        let permit = match &self.pools {
+            Some(pools) => Some(pools.queries.acquire(&self.cancel).await?),
+            None => None,
+        };
+        Ok(QuerySlot { _permit: permit })
     }
 }
 
-/// Held while an rg process runs; dropping it frees the slot.
-pub struct ProcessSlot {
-    pub(crate) _permit: Option<OwnedSemaphorePermit>,
+/// Held while an index backend runs a query; dropping it frees the slot.
+pub struct QuerySlot {
+    _permit: Option<OwnedSemaphorePermit>,
 }
 
 #[cfg(test)]
@@ -83,10 +91,10 @@ mod tests {
     #[tokio::test]
     async fn unlimited_requests_get_a_slot_at_once_and_are_never_cancelled() {
         let cx = RequestCx::unlimited(Duration::from_secs(3));
-        let _slots: Vec<ProcessSlot> = vec![
-            cx.process_slot().await.unwrap(),
-            cx.process_slot().await.unwrap(),
-        ];
+        let mut queries: Vec<QuerySlot> = Vec::new();
+        for _ in 0..=crate::limits::MAX_QUERIES {
+            queries.push(cx.query_slot().await.unwrap());
+        }
         assert!(!cx.cancel.is_cancelled());
         assert!(cx.deadline > tokio::time::Instant::now());
     }

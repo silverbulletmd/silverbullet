@@ -339,6 +339,7 @@ mod tests {
             index_template: "# Test space\n".into(),
             shutdown: None,
             search_gate: Arc::new(crate::search::Gate::new()),
+            search_index_root: None,
         }
     }
 

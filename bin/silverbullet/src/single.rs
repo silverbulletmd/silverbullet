@@ -127,6 +127,8 @@ pub(crate) async fn run_single(
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: Some(shutdown.rx.clone()),
         search_gate: Arc::new(silverbullet_server::search::Gate::new()),
+        // Single-space mode keeps its index in RAM: nothing is written to the space folder.
+        search_index_root: None,
     };
 
     let mut spaces = HashMap::new();

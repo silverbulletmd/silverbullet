@@ -55,6 +55,9 @@ function makeHarness(
     activate: vi.fn(async () => state),
     activeState: vi.fn(() => state),
     refresh: vi.fn(async () => {}),
+    rememberedPhrase: vi.fn<(name: string) => string | undefined>(
+      () => undefined,
+    ),
   };
   const ref = <T>(value: T) => ({ current: value });
   const refs = {
@@ -284,4 +287,52 @@ test("typing during a slow modal activation survives its completion", async () =
   finish();
   await pending;
   expect(set.setPhrase).not.toHaveBeenCalled();
+});
+
+test("a modal open without a phrase restores the remembered one, selected", async () => {
+  const { activate, engine, set, focusInput } = makeHarness(
+    undefined,
+    undefined,
+    false,
+    "modal",
+  );
+  engine.rememberedPhrase.mockReturnValue("fern fronds");
+
+  await activate({ view: "inbox", token: 1 });
+  await settled();
+  expect(engine.rememberedPhrase).toHaveBeenCalledWith("inbox");
+  expect(set.setPhrase).toHaveBeenCalledWith("fern fronds");
+  expect(set.setPhrase).not.toHaveBeenCalledWith("");
+  expect(focusInput).toHaveBeenCalledWith(true);
+});
+
+test("a modal open without anything remembered starts empty", async () => {
+  const { activate, set, focusInput } = makeHarness(
+    undefined,
+    undefined,
+    false,
+    "modal",
+  );
+
+  await activate({ view: "inbox", token: 1 });
+  await settled();
+  expect(set.setPhrase).toHaveBeenCalledWith("");
+  expect(focusInput).toHaveBeenCalledWith(true);
+});
+
+test("a carried phrase replaces the remembered one and keeps the remembered mode", async () => {
+  const { activate, engine, set, focusInput, setDropdownValue } = makeHarness(
+    "People/Pete",
+    undefined,
+    false,
+    "modal",
+  );
+  engine.rememberedPhrase.mockReturnValue("fern fronds");
+
+  await activate({ view: "inbox", token: 1, phrase: "basil" });
+  await settled();
+  expect(set.setPhrase).toHaveBeenCalledWith("basil");
+  expect(set.setPhrase).not.toHaveBeenCalledWith("fern fronds");
+  expect(focusInput).toHaveBeenCalledWith(false);
+  expect(setDropdownValue).toHaveBeenLastCalledWith("People/Pete");
 });

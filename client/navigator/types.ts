@@ -111,6 +111,9 @@ export type ViewMeta = {
   uploadFiles?: boolean;
   hasCreate: boolean;
   refreshOnOpen: boolean;
+  /** A modal open without a phrase starts from the phrase this view last
+   * queried in this tab (in memory only), selected so typing replaces it. */
+  rememberPhrase?: boolean;
   keys?: string[];
   actions?: ActionMeta[];
   segments?: SegmentMeta[];

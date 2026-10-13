@@ -1,34 +1,37 @@
-//! Process slots: a server-wide limit on concurrent rg processes.
+//! Server-wide slot pool bounding concurrent index queries: a semaphore plus
+//! how long a request may wait for a permit before it is `Busy`.
 
 use std::sync::Arc;
+use std::time::Duration;
 
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use tokio_util::sync::CancellationToken;
 
-use crate::ripgrep::limits;
-use crate::{ProcessSlot, SearchError};
+use crate::SearchError;
 
-pub(crate) struct ProcessPool {
-    processes: Arc<Semaphore>,
+pub(crate) struct Pool {
+    sem: Arc<Semaphore>,
+    wait: Duration,
 }
 
-impl ProcessPool {
-    pub(crate) fn new() -> Self {
+impl Pool {
+    pub(crate) fn new(slots: usize, wait: Duration) -> Self {
         Self {
-            processes: Arc::new(Semaphore::new(limits::MAX_PROCESSES)),
+            sem: Arc::new(Semaphore::new(slots)),
+            wait,
         }
     }
 
-    /// Waits up to `limits::QUEUE_WAIT` for a slot.
+    /// Waits up to the pool's `wait` for a permit; stops early when `cancel` fires.
     pub(crate) async fn acquire(
         &self,
         cancel: &CancellationToken,
-    ) -> Result<ProcessSlot, SearchError> {
+    ) -> Result<OwnedSemaphorePermit, SearchError> {
         tokio::select! {
             biased;
             _ = cancel.cancelled() => Err(SearchError::Cancelled),
-            permit = tokio::time::timeout(limits::QUEUE_WAIT, self.processes.clone().acquire_owned()) => match permit {
-                Ok(Ok(permit)) => Ok(ProcessSlot { _permit: Some(permit) }),
+            permit = tokio::time::timeout(self.wait, self.sem.clone().acquire_owned()) => match permit {
+                Ok(Ok(permit)) => Ok(permit),
                 _ => Err(SearchError::Busy),
             },
         }

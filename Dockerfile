@@ -9,7 +9,7 @@ FROM alpine:latest
 
 ARG TARGETARCH
 
-RUN apk add --no-cache git curl bash tini openssh-client ripgrep
+RUN apk add --no-cache git curl bash tini openssh-client
 
 # SB_FOLDER is deliberately unset: the entrypoint resolves it to /data, or the legacy /space.
 # /data is not created here, so Docker does not copy root ownership onto an empty volume mounted there.

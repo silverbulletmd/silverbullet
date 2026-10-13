@@ -2,7 +2,6 @@ import { syscall } from "../syscall.ts";
 import type {
   QueryOptions,
   RelatedResult,
-  RgResult,
   SearchResult,
   SearchStatus,
 } from "../types/search.ts";
@@ -10,7 +9,6 @@ import type {
 export type {
   QueryOptions,
   RelatedResult,
-  RgResult,
   SearchMatch,
   SearchMode,
   SearchResult,
@@ -41,8 +39,4 @@ export function related(
   options?: { limit?: number },
 ): Promise<RelatedResult> {
   return syscall("search.related", page, options);
-}
-
-export function rg(args: string[], stdinBase64?: string): Promise<RgResult> {
-  return syscall("search.rg", args, stdinBase64);
 }

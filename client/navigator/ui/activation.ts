@@ -115,7 +115,7 @@ export function createActivate(deps: ActivationDeps) {
     }
     if (!passive) {
       if (carried !== undefined) setPhrase(carried);
-      else if (isModal) setPhrase("");
+      else if (isModal) setPhrase(engine.rememberedPhrase(name) ?? "");
     }
     if (displayed.current !== name) {
       // A pick that loses the slot to a new activation is never unmounted (the panel stays up, showing the newcomer) — this is the only place that supersede is caught.

@@ -574,6 +574,29 @@ test("a query from the previous view cannot change the newly active view", async
   expect(engine.activeState()?.ctx?.phrase).toBe("");
 });
 
+test("a rememberPhrase view gives back the phrase it last queried, across other views", async () => {
+  const engine = new NavigatorEngine("modal");
+  engine.runHook = vi.fn(async ({ view, hook }) =>
+    hook === "meta"
+      ? meta({
+          name: view,
+          search: "source",
+          rememberPhrase: view === "search",
+        })
+      : [],
+  );
+  await engine.activate("search");
+  expect(engine.rememberedPhrase("search")).toBe("");
+  await engine.query({ phrase: "fern fronds", segment: "All" });
+  await engine.activate("other");
+  await engine.query({ phrase: "elsewhere" });
+  expect(engine.rememberedPhrase("search")).toBe("fern fronds");
+  expect(engine.rememberedPhrase("other")).toBeUndefined();
+  expect(engine.rememberedPhrase("missing")).toBeUndefined();
+  await engine.activate("search");
+  expect(engine.rememberedPhrase("search")).toBe("fern fronds");
+});
+
 test("a content view answering with a widget keeps the value for the panel", async () => {
   const widget = { markdown: "# hi", cssClasses: ["fixture-note"] };
   handle.mockImplementation((payload: any) => {

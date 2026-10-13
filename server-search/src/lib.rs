@@ -4,12 +4,16 @@
 pub mod admission;
 pub mod backend;
 pub mod error;
+pub mod fulltext;
 pub mod gate;
-pub mod ripgrep;
+pub mod limits;
+#[cfg(feature = "semantic")]
+pub mod semantic;
 pub mod types;
 
-pub use admission::{Admission, ProcessSlot, RequestCx};
-pub use backend::{BoxFut, SearchBackend, SpaceView};
+pub use admission::{Admission, QuerySlot, RequestCx};
+pub use backend::{BoxFut, FileStamp, SearchBackend, SpaceView};
 pub use error::SearchError;
+pub use fulltext::FullTextBackend;
 pub use gate::Gate;
 pub use types::*;
