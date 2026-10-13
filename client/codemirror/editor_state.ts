@@ -61,6 +61,7 @@ import {
   pasteLinkExtension,
 } from "./editing/editor_paste.ts";
 import { iosCompletionTapHandling } from "./editing/ios_completion.ts";
+import { androidInputSelection } from "./editing/android_input.ts";
 import { iosEnterHandling } from "./editing/ios_enter.ts";
 import { customEnterCommand } from "./editing/markdown_enter.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
@@ -196,6 +197,7 @@ export function buildSharedEditorExtensions(
     closeBrackets(),
     keyboardAwareTooltips,
     iosCompletionTapHandling(),
+    androidInputSelection(),
     buildEditorUpdateListener(client, mode),
   ];
 }

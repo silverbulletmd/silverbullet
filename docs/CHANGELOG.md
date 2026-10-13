@@ -11,6 +11,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Expressions, code widgets, custom syntax, frontmatter previews, views and page variables now update automatically when what they read changes (index tags, files, page variables, the open page); unchanged results leave the widget untouched. See [[API/widget#When expressions update]].
 * Fix: a `${...}` with a Lua syntax error shows the error instead of rendering empty.
 * Fix: editing a `${...}` no longer keeps the replaced widgets in memory until you leave the page, and links in a re-shown widget no longer navigate once per time it was shown.
+* Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
 
 ## 2.12.1
