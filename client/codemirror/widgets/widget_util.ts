@@ -77,11 +77,32 @@ export function attachWidgetEventHandlers(
       return el && div.contains(el) ? el : null;
     };
 
+    // Nested views and widgets stop bubbling mouse events. Claim source
+    // editing before their handlers can swallow Alt-click or activate a link.
+    if (widgetText) {
+      div.addEventListener(
+        "mousedown",
+        (e) => {
+          if (!e.altKey) return;
+          e.preventDefault();
+          e.stopPropagation();
+          moveCursorToWidgetStart(client, div, widgetText);
+        },
+        true,
+      );
+      div.addEventListener(
+        "click",
+        (e) => {
+          if (!e.altKey) return;
+          e.preventDefault();
+          e.stopPropagation();
+        },
+        true,
+      );
+    }
+
     div.addEventListener("mousedown", (e) => {
-      if (e.altKey && widgetText) {
-        moveCursorToWidgetStart(client, div, widgetText);
-        e.preventDefault();
-      } else if (
+      if (
         !e.altKey &&
         within(
           e,

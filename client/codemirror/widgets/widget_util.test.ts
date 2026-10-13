@@ -96,6 +96,24 @@ test("a command button runs its command", () => {
   expect(client.runCommandByName).toHaveBeenCalledWith("Fixture: Run", [1]);
 });
 
+test("Alt-click does not activate links or commands inside a source widget", () => {
+  const client = fakeClient();
+  const div = widget(
+    '<span><a data-ref="Other" href="/Other">Other</a>' +
+      `<button data-onclick='${JSON.stringify(["command", "Fixture: Run", []])}'>Run</button></span>`,
+  );
+  attachWidgetEventHandlers(
+    div.firstElementChild as HTMLElement,
+    client as unknown as Client,
+  );
+  attachWidgetEventHandlers(div, client as unknown as Client, "${fixture()}");
+
+  expect(click(div.querySelector("a")!, { altKey: true })).toBe(false);
+  expect(click(div.querySelector("button")!, { altKey: true })).toBe(false);
+  expect(client.navigate).not.toHaveBeenCalled();
+  expect(client.runCommandByName).not.toHaveBeenCalled();
+});
+
 test("an external task's checkbox and state toggle through the index", async () => {
   const client = fakeClient();
   const div = widget(
