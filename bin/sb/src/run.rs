@@ -29,6 +29,15 @@ pub fn run(cli: Cli) -> ExitCode {
     }
 }
 
+/// Space management output follows the other commands: JSON when asked or
+/// when stdout is piped, text on a terminal or with `--text`.
+pub fn wants_json(g: &GlobalFlags) -> bool {
+    matches!(
+        output::resolve_mode(g.json, g.text, &g.output, std::io::stdout().is_terminal()),
+        OutputMode::Json
+    )
+}
+
 fn dispatch(cli: Cli) -> Result<ExitCode, String> {
     let mut g = cli.global.clone();
     if cli.open_path.is_some() && cli.command.is_some() {
@@ -72,6 +81,12 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
         }
         Some(Command::Space(sub)) => {
             match sub {
+                SpaceCmd::Create { folder, name } => commands::space::space_add_folder(
+                    &folder,
+                    name.as_deref(),
+                    commands::space::FolderMode::New,
+                    wants_json(&g),
+                )?,
                 SpaceCmd::Add {
                     path_or_url,
                     name,
@@ -82,7 +97,12 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
                     Some(folder)
                         if !folder.starts_with("http://") && !folder.starts_with("https://") =>
                     {
-                        commands::space::space_add_folder(&folder)?
+                        commands::space::space_add_folder(
+                            &folder,
+                            name.as_deref(),
+                            commands::space::FolderMode::Existing,
+                            wants_json(&g),
+                        )?
                     }
                     url => commands::space::space_add_remote(commands::space::AddOptions {
                         url,
@@ -95,8 +115,34 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
                 SpaceCmd::Login { name, no_browser } => {
                     commands::space::space_login(&name, no_browser)?
                 }
-                SpaceCmd::Ls { all } => commands::space::space_ls(all)?,
-                SpaceCmd::Rm { name } => commands::space::space_rm(&name)?,
+                SpaceCmd::Ls { all } => commands::space::space_ls(all, wants_json(&g))?,
+                SpaceCmd::Rename { name, new_name } => {
+                    commands::space::space_rename(&name, &new_name, wants_json(&g))?
+                }
+                SpaceCmd::Mv {
+                    name,
+                    target,
+                    dry_run,
+                } => commands::space_move::space_move(
+                    &name,
+                    &target,
+                    commands::space_move::MoveMode::Move,
+                    dry_run,
+                    wants_json(&g),
+                )?,
+                SpaceCmd::Relocate {
+                    name,
+                    path,
+                    force,
+                    dry_run,
+                } => commands::space_move::space_move(
+                    &name,
+                    &path,
+                    commands::space_move::MoveMode::Relocate { force },
+                    dry_run,
+                    wants_json(&g),
+                )?,
+                SpaceCmd::Rm { name } => commands::space::space_rm(&name, wants_json(&g))?,
             }
             Ok(ExitCode::SUCCESS)
         }

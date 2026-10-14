@@ -5,4 +5,5 @@ pub mod query;
 pub mod screenshot;
 pub mod script;
 pub mod space;
+pub mod space_move;
 pub mod upgrade;

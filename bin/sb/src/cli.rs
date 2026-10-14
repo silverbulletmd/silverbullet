@@ -211,9 +211,26 @@ impl CoreCommand {
 
 #[derive(Subcommand)]
 pub enum SpaceCmd {
+    /// Create a new folder space for SilverBullet Desktop.
+    #[command(
+        after_long_help = "Creates the folder if it does not exist and registers it as a space. The folder must be missing or empty; use 'sb space add' for a folder that already holds a space. New spaces start with the shell off and managed revisions, like spaces created in SilverBullet Desktop.
+
+The name defaults to the folder name.
+
+Examples:
+  sb space create ~/Notes/harbor
+  sb space create ./atlas --name atlas-notes --json"
+    )]
+    Create {
+        /// Folder for the new space.
+        folder: String,
+        /// Name for the space (default: derived from the folder name).
+        #[arg(long)]
+        name: Option<String>,
+    },
     /// Add a space connection.
     #[command(
-        after_long_help = "With a folder path, registers a local folder space served by SilverBullet Desktop. With a URL or no argument, sets up a remote connection; interactive setup prompts for connection details and authentication. Browser sign-in may require completing login outside the terminal.\n\nThe name defaults to the URL's last path segment (sb.example.com/notes becomes notes), or else the first part of its host (notes.example.com becomes notes). When stdin is not a terminal, nothing is prompted: give the URL, plus --name or --auth to override the defaults. Tokens and passwords are then read as one line each from stdin.\n\nExamples:\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space add https://notes.example.com --name work --auth browser --no-browser\n  echo \"$TOKEN\" | sb space add https://notes.example.com --auth token"
+        after_long_help = "With a folder path, registers an existing folder as a space served by SilverBullet Desktop; the folder must exist (use 'sb space create' for a new one). With a URL or no argument, sets up a remote connection; interactive setup prompts for connection details and authentication. Browser sign-in may require completing login outside the terminal.\n\nThe name defaults to the URL's last path segment (sb.example.com/notes becomes notes), or else the first part of its host (notes.example.com becomes notes). When stdin is not a terminal, nothing is prompted: give the URL, plus --name or --auth to override the defaults. Tokens and passwords are then read as one line each from stdin.\n\nExamples:\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space add https://notes.example.com --name work --auth browser --no-browser\n  echo \"$TOKEN\" | sb space add https://notes.example.com --auth token"
     )]
     Add {
         /// Local folder or remote server URL; omit for interactive setup.
@@ -245,12 +262,53 @@ pub enum SpaceCmd {
     /// List saved spaces.
     #[command(
         visible_alias = "list",
-        after_long_help = "Lists saved connections. Single-file spaces opened in SilverBullet Desktop are hidden unless --all is given.\n\nExample: sb space ls"
+        after_long_help = "Lists saved connections. Single-file spaces opened in SilverBullet Desktop are hidden unless --all is given. With --json, prints one object per space: id, name, url or folderPath, auth, runningPort, syncEnabled, hidden.\n\nExamples:\n  sb space ls\n  sb space ls --json"
     )]
     Ls {
         /// Include single-file spaces opened in SilverBullet Desktop.
         #[arg(long)]
         all: bool,
+    },
+    /// Rename a saved space.
+    #[command(
+        after_long_help = "Changes the name used with --space; the space's files, id and settings are unchanged.\n\nExample: sb space rename notes notes-archive"
+    )]
+    Rename {
+        /// Current name.
+        name: String,
+        /// New name.
+        new_name: String,
+    },
+    /// Move a folder space and its files to a new path.
+    #[command(
+        visible_alias = "move",
+        after_long_help = "Renames the space's folder and updates the saved path; the space keeps its name, id and settings. The target must not exist and must be on the same disk. Refused while SilverBullet Desktop has the space open, and for spaces that overlap another registered folder.\n\nExamples:\n  sb space mv notes ~/Documents/notes --dry-run\n  sb space mv notes ~/Documents/notes --json"
+    )]
+    Mv {
+        /// Saved space name (or its current folder path).
+        name: String,
+        /// New folder path; must not exist yet.
+        target: String,
+        /// Report what would change without changing anything.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Point a folder space at a folder that was already moved.
+    #[command(
+        visible_alias = "set-path",
+        after_long_help = "Updates the saved folder path only; no files are touched. Use it after moving the same folder intact by other means. For a space that syncs, after restoring from a backup or older copy, turn sync off and on again in SilverBullet Desktop so the first sync compares both sides. The new folder must exist. If the old folder still exists, pass --force.\n\nExample: sb space relocate notes ~/Documents/notes"
+    )]
+    Relocate {
+        /// Saved space name (or its current folder path).
+        name: String,
+        /// Existing folder that now holds the space.
+        path: String,
+        /// Allow it even though the old folder still exists.
+        #[arg(long)]
+        force: bool,
+        /// Report what would change without changing anything.
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Remove a saved space.
     #[command(
@@ -271,6 +329,19 @@ mod tests {
     fn documented_examples_parse() {
         for args in [
             vec!["sb", "space", "add"],
+            vec![
+                "sb",
+                "space",
+                "create",
+                "./atlas",
+                "--name",
+                "atlas-notes",
+                "--json",
+            ],
+            vec!["sb", "space", "rename", "notes", "notes-archive"],
+            vec!["sb", "space", "mv", "notes", "/tmp/n", "--dry-run"],
+            vec!["sb", "space", "set-path", "notes", "/tmp/n", "--force"],
+            vec!["sb", "space", "ls", "--json"],
             vec!["sb", "--space", "notes", "fs", "ls"],
             vec![
                 "sb",

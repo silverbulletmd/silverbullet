@@ -2,8 +2,10 @@ use std::io::{BufRead, BufReader, IsTerminal, Write};
 use std::path::Path;
 use std::time::Duration;
 
+use serde_json::Value;
+
 use crate::{
-    config::{self, AuthConfig, Config, SpaceConfig},
+    config::{self, AuthConfig, Config, SpaceConfig, SpaceEnv},
     conn::{self, Auth, SpaceConnection},
     crypto, device_auth, local,
 };
@@ -25,22 +27,36 @@ pub fn render_space_table(
         return "No spaces configured. Use 'space add' to add one.\n".to_string();
     }
 
-    let mut lines: Vec<String> = Vec::new();
-    lines.push(String::new());
-    lines.push(format!("{:<20}{:<40}{}", "NAME", "URL", "AUTH"));
-    lines.push("-".repeat(70));
-    for s in cfg.spaces.iter().filter(|s| all || !is_single_file(s)) {
-        let loc = if s.url.is_empty() && !s.folder_path.is_empty() {
+    let location = |s: &SpaceConfig| {
+        if s.url.is_empty() && !s.folder_path.is_empty() {
             s.folder_path.clone()
         } else {
             s.url.clone()
-        };
+        }
+    };
+    let shown: Vec<&SpaceConfig> = cfg
+        .spaces
+        .iter()
+        .filter(|s| all || !is_single_file(s))
+        .collect();
+    // Columns grow past their default width so long names and folder paths
+    // never run into the next column.
+    let width = |default: usize, longest: Option<usize>| default.max(longest.unwrap_or(0) + 2);
+    let name_w = width(20, shown.iter().map(|s| s.name.chars().count()).max());
+    let loc_w = width(40, shown.iter().map(|s| location(s).chars().count()).max());
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(String::new());
+    lines.push(format!("{:<name_w$}{:<loc_w$}{}", "NAME", "URL", "AUTH"));
+    lines.push("-".repeat(70.max(name_w + loc_w + 10)));
+    for s in shown {
         let status = running_port(s)
             .map(|port| format!("  [running on port {port}]"))
             .unwrap_or_default();
         lines.push(format!(
-            "{:<20}{:<40}{}{status}",
-            s.name, loc, s.auth.method
+            "{:<name_w$}{:<loc_w$}{}{status}",
+            s.name,
+            location(s),
+            s.auth.method
         ));
     }
     lines.push(String::new());
@@ -48,9 +64,32 @@ pub fn render_space_table(
     lines.join("\n")
 }
 
+/// Folder spaces are served by SilverBullet Desktop. Without it, creating,
+/// renaming or moving one only tends entries nothing can open, and `sb` cannot
+/// tell whether the space is in use, so these operations refuse. Listing and
+/// removing still work, so entries left by an uninstalled Desktop can be
+/// cleaned up.
+pub(crate) fn require_desktop() -> Result<(), String> {
+    local::desktop_host(&config::config_dir())
+        .map(|_| ())
+        .map_err(|e| e.message)
+}
+
+fn is_folder_space(space: &SpaceConfig) -> bool {
+    space.url.is_empty() && !space.folder_path.is_empty()
+}
+
 /// Single-file spaces that SilverBullet Desktop registers when a file is opened.
 fn is_single_file(space: &SpaceConfig) -> bool {
     space.extra.get("ephemeral").is_some_and(|v| !v.is_null())
+}
+
+/// Index of the space named `name` (or registered at folder path `name`).
+pub fn find_space_index(cfg: &Config, name: &str) -> Result<usize, String> {
+    cfg.spaces
+        .iter()
+        .position(|s| s.name == name || (!s.folder_path.is_empty() && s.folder_path == name))
+        .ok_or_else(|| format!("space {name:?} not found"))
 }
 
 /// Remove a space by name (or registered folder path). Returns `Err` if not
@@ -60,11 +99,7 @@ pub fn remove_space(
     name: &str,
     is_running: &dyn Fn(&SpaceConfig) -> bool,
 ) -> Result<(), String> {
-    let idx = cfg
-        .spaces
-        .iter()
-        .position(|s| s.name == name || (!s.folder_path.is_empty() && s.folder_path == name))
-        .ok_or_else(|| format!("space {name:?} not found"))?;
+    let idx = find_space_index(cfg, name)?;
     if is_running(&cfg.spaces[idx]) {
         return Err("Space is running. Close it in SilverBullet Desktop first.".into());
     }
@@ -72,8 +107,16 @@ pub fn remove_space(
     Ok(())
 }
 
+/// Change a space's name. Its id, folder path, URL and settings are kept.
+pub fn rename_space(cfg: &mut Config, old: &str, new: &str) -> Result<(), String> {
+    let idx = find_space_index(cfg, old)?;
+    let new = check_new_name(cfg, new)?;
+    cfg.spaces[idx].name = new;
+    Ok(())
+}
+
 /// Port of a folder space that SilverBullet Desktop is currently serving.
-fn running_port(space: &SpaceConfig) -> Option<u16> {
+pub(crate) fn running_port(space: &SpaceConfig) -> Option<u16> {
     if space.folder_path.is_empty() {
         return None;
     }
@@ -84,37 +127,179 @@ fn running_port(space: &SpaceConfig) -> Option<u16> {
 }
 
 /// `sb space ls` — print a table of configured spaces.
-pub fn space_ls(all: bool) -> Result<(), String> {
+pub fn space_ls(all: bool, json: bool) -> Result<(), String> {
     let cfg = config::load()?;
+    if json {
+        let spaces: Vec<SpaceSummary> = cfg
+            .spaces
+            .iter()
+            .filter(|s| all || !is_single_file(s))
+            .map(|s| summarize(s, running_port(s)))
+            .collect();
+        return print_json(&spaces);
+    }
     print!("{}", render_space_table(&cfg, all, &running_port));
     Ok(())
 }
 
-pub fn space_rm(name: &str) -> Result<(), String> {
+/// `sb space rename <old> <new>`.
+pub fn space_rename(old: &str, new: &str, json: bool) -> Result<(), String> {
+    let _lock = config::lock(&config::config_dir())?;
+    let mut cfg = config::load()?;
+    let idx = find_space_index(&cfg, old)?;
+    if is_folder_space(&cfg.spaces[idx]) {
+        require_desktop()?;
+    }
+    rename_space(&mut cfg, old, new)?;
+    config::save(&cfg)?;
+    let space = &cfg.spaces[idx];
+    if json {
+        print_json(&summarize(space, None))
+    } else {
+        println!("Space {old:?} renamed to {:?}.", space.name);
+        Ok(())
+    }
+}
+
+pub fn space_rm(name: &str, json: bool) -> Result<(), String> {
     let _lock = config::lock(&config::config_dir())?;
     let mut cfg = config::load()?;
     remove_space(&mut cfg, name, &|s| running_port(s).is_some())?;
     config::save(&cfg)?;
+    if json {
+        return print_json(&serde_json::json!({ "removed": name }));
+    }
     println!("Space {name:?} removed.");
     Ok(())
 }
 
-/// Register `folder` (created if missing) as a folder space named after it.
-pub fn register_folder(cfg: &mut Config, folder: &Path) -> Result<SpaceConfig, String> {
-    std::fs::create_dir_all(folder).map_err(|e| format!("creating directory: {e}"))?;
+/// Whether `register_folder` registers an existing folder (`space add`) or
+/// sets up a new space in a missing or empty one (`space create`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FolderMode {
+    Existing,
+    New,
+}
+
+/// Env SilverBullet Desktop gives the spaces it creates; keep in sync with
+/// `SpaceEnvConfig::for_new_space` in desktop-services. Without it Desktop
+/// would read its defaults, which enable the local shell.
+pub fn new_folder_space_env() -> SpaceEnv {
+    let mut env = SpaceEnv {
+        shell_backend: "off".into(),
+        ..Default::default()
+    };
+    env.extra.insert("revisions".into(), Value::from("managed"));
+    env
+}
+
+/// Validate a folder-space name the way SilverBullet Desktop's dashboard does
+/// (trimmed, non-empty), plus no control characters and no duplicates so
+/// `--space <name>` stays unambiguous. Returns the trimmed name.
+pub fn check_new_name(cfg: &Config, name: &str) -> Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("a space name is required".into());
+    }
+    if name.chars().any(char::is_control) {
+        return Err("space names cannot contain control characters".into());
+    }
+    if cfg.spaces.iter().any(|s| s.name == name) {
+        return Err(format!("space {name:?} already exists; pass --name"));
+    }
+    Ok(name.to_string())
+}
+
+/// Best-effort absolute form of `folder`, so `.`, `..` and trailing-slash
+/// paths still have a final component: the canonical path when it exists, else
+/// the canonical parent joined with the final component, else `folder` as given.
+fn resolved_for_name(folder: &Path) -> std::path::PathBuf {
+    if let Ok(canonical) = std::fs::canonicalize(folder) {
+        return canonical;
+    }
+    if let (Some(parent), Some(base)) = (folder.parent(), folder.file_name()) {
+        let parent = if parent.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            parent
+        };
+        if let Ok(parent) = std::fs::canonicalize(parent) {
+            return parent.join(base);
+        }
+    }
+    folder.to_path_buf()
+}
+
+/// Default name for a folder space: its folder name, when free.
+pub fn default_folder_name(folder: &Path, cfg: &Config) -> Option<String> {
+    let resolved = resolved_for_name(folder);
+    let base = resolved.file_name()?.to_string_lossy();
+    check_new_name(cfg, &base).ok()
+}
+
+/// Register a folder space. `Existing` requires a directory; `New` requires a
+/// missing or empty one and creates it. Nothing is created on disk unless every
+/// check passes.
+pub fn register_folder(
+    cfg: &mut Config,
+    folder: &Path,
+    name: Option<&str>,
+    mode: FolderMode,
+) -> Result<SpaceConfig, String> {
+    let name = match name {
+        Some(name) => check_new_name(cfg, name)?,
+        None => default_folder_name(folder, cfg).ok_or_else(|| {
+            format!(
+                "cannot derive a free space name from {}; pass --name",
+                folder.display()
+            )
+        })?,
+    };
+    match (mode, std::fs::metadata(folder)) {
+        (_, Ok(meta)) if !meta.is_dir() => {
+            return Err(format!("{} is not a directory", folder.display()))
+        }
+        (FolderMode::New, Ok(_)) => {
+            let mut entries = std::fs::read_dir(folder)
+                .map_err(|e| format!("reading {}: {e}", folder.display()))?;
+            if entries.next().is_some() {
+                return Err(format!(
+                    "{} is not empty; use 'sb space add' to register an existing space",
+                    folder.display()
+                ));
+            }
+        }
+        (FolderMode::New, Err(_)) => {
+            // Check registration against the would-be canonical path before creating.
+            if let Some(parent) = folder.parent().filter(|p| !p.as_os_str().is_empty()) {
+                if let Ok(parent) = std::fs::canonicalize(parent) {
+                    let would_be = parent.join(folder.file_name().unwrap_or_default());
+                    let would_be = config::strip_verbatim(&would_be.to_string_lossy()).to_string();
+                    if cfg.spaces.iter().any(|s| s.folder_path == would_be) {
+                        return Err(format!("already registered: {would_be}"));
+                    }
+                }
+            }
+            std::fs::create_dir_all(folder).map_err(|e| format!("creating directory: {e}"))?;
+        }
+        (FolderMode::Existing, Ok(_)) => {}
+        (FolderMode::Existing, Err(_)) => {
+            return Err(format!(
+                "{} does not exist; use 'sb space create' to start a new space",
+                folder.display()
+            ))
+        }
+    }
     let canonical = std::fs::canonicalize(folder).map_err(|e| format!("resolving path: {e}"))?;
     let path = config::strip_verbatim(&canonical.to_string_lossy()).to_string();
     if cfg.spaces.iter().any(|s| s.folder_path == path) {
         return Err(format!("already registered: {path}"));
     }
-    let name = Path::new(&path)
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
     let mut space = SpaceConfig {
         id: config::new_uuid(),
         name,
         folder_path: path,
+        env: Some(new_folder_space_env()),
         ..Default::default()
     };
     space.auth.method = "none".into();
@@ -122,14 +307,67 @@ pub fn register_folder(cfg: &mut Config, folder: &Path) -> Result<SpaceConfig, S
     Ok(space)
 }
 
-/// `sb space add <folder>` — register a folder space for SilverBullet Desktop.
-pub fn space_add_folder(folder: &str) -> Result<(), String> {
+/// Stable, agent-facing view of a registry entry (`--json`).
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceSummary {
+    pub id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub url: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub folder_path: String,
+    pub auth: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub running_port: Option<u16>,
+    pub sync_enabled: bool,
+    pub hidden: bool,
+}
+
+pub fn summarize(space: &SpaceConfig, running_port: Option<u16>) -> SpaceSummary {
+    SpaceSummary {
+        id: space.id.clone(),
+        name: space.name.clone(),
+        url: space.url.clone(),
+        folder_path: space.folder_path.clone(),
+        auth: space.auth.method.clone(),
+        running_port,
+        sync_enabled: space.sync_enabled(),
+        hidden: config::is_hidden(space),
+    }
+}
+
+pub(crate) fn print_json(value: &impl serde::Serialize) -> Result<(), String> {
+    println!(
+        "{}",
+        serde_json::to_string(value).map_err(|e| e.to_string())?
+    );
+    Ok(())
+}
+
+/// `sb space add <folder>` / `sb space create <folder>`.
+pub fn space_add_folder(
+    folder: &str,
+    name: Option<&str>,
+    mode: FolderMode,
+    json: bool,
+) -> Result<(), String> {
+    require_desktop()?;
     let _lock = config::lock(&config::config_dir())?;
     let mut cfg = config::load()?;
-    let space = register_folder(&mut cfg, Path::new(folder))?;
+    let space = register_folder(&mut cfg, Path::new(folder), name, mode)?;
     config::save(&cfg)?;
-    println!("Added space {:?} at {}", space.name, space.folder_path);
-    Ok(())
+    if json {
+        print_json(&summarize(&space, None))
+    } else {
+        let verb = if mode == FolderMode::New {
+            "Created"
+        } else {
+            "Added"
+        };
+        println!("{verb} space {:?} at {}", space.name, space.folder_path);
+        Ok(())
+    }
 }
 
 /// Options for `sb space add <url>`; unset fields are prompted for on a
@@ -600,6 +838,22 @@ mod tests {
     }
 
     #[test]
+    fn render_widens_columns_for_long_values() {
+        let long = format!("/synthetic/{}", "deep/".repeat(10));
+        let mut space = SpaceConfig {
+            name: "harbor".into(),
+            folder_path: long.clone(),
+            ..Default::default()
+        };
+        space.auth.method = "none".into();
+        let cfg = Config {
+            spaces: vec![space],
+        };
+        let out = render_space_table(&cfg, false, &|_| None);
+        assert!(out.contains(&format!("{long}  none")), "{out}");
+    }
+
+    #[test]
     fn render_two_spaces() {
         let cfg = Config {
             spaces: vec![
@@ -744,16 +998,188 @@ mod tests {
     fn folder_spaces_register_by_canonical_path_and_basename() {
         let tmp = tempfile::tempdir().unwrap();
         let folder = tmp.path().join("notes");
+        std::fs::create_dir(&folder).unwrap();
         let mut cfg = Config::default();
-        let added = register_folder(&mut cfg, &folder).unwrap();
+        let added = register_folder(&mut cfg, &folder, None, FolderMode::Existing).unwrap();
         let canonical = std::fs::canonicalize(&folder).unwrap();
         assert_eq!(added.name, "notes");
         assert_eq!(added.folder_path, canonical.to_string_lossy());
         assert_eq!(added.auth.method, "none");
         assert_eq!(added.id.len(), 36);
         assert_eq!(cfg.spaces.len(), 1);
-        let err = register_folder(&mut cfg, &folder).unwrap_err();
+        let err =
+            register_folder(&mut cfg, &folder, Some("other"), FolderMode::Existing).unwrap_err();
         assert!(err.contains("already registered"), "{err}");
+    }
+
+    #[test]
+    fn add_requires_an_existing_directory() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut cfg = Config::default();
+        let err = register_folder(
+            &mut cfg,
+            &tmp.path().join("missing"),
+            None,
+            FolderMode::Existing,
+        )
+        .unwrap_err();
+        assert!(err.contains("sb space create"), "{err}");
+        assert!(!tmp.path().join("missing").exists());
+        let file = tmp.path().join("file.md");
+        std::fs::write(&file, "x").unwrap();
+        assert!(
+            register_folder(&mut cfg, &file, Some("f"), FolderMode::Existing)
+                .unwrap_err()
+                .contains("not a directory")
+        );
+        assert!(cfg.spaces.is_empty());
+    }
+
+    #[test]
+    fn create_accepts_missing_or_empty_and_refuses_non_empty() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut cfg = Config::default();
+        let missing = tmp.path().join("harbor/deep");
+        register_folder(&mut cfg, &missing, None, FolderMode::New).unwrap();
+        assert!(missing.is_dir());
+        let empty = tmp.path().join("atlas");
+        std::fs::create_dir(&empty).unwrap();
+        register_folder(&mut cfg, &empty, None, FolderMode::New).unwrap();
+        let full = tmp.path().join("ledger");
+        std::fs::create_dir(&full).unwrap();
+        std::fs::write(full.join("index.md"), "x").unwrap();
+        let err = register_folder(&mut cfg, &full, None, FolderMode::New).unwrap_err();
+        assert!(
+            err.contains("not empty") && err.contains("sb space add"),
+            "{err}"
+        );
+        assert_eq!(cfg.spaces.len(), 2);
+    }
+
+    #[test]
+    fn folder_spaces_get_desktop_new_space_env() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut cfg = Config::default();
+        let added =
+            register_folder(&mut cfg, &tmp.path().join("harbor"), None, FolderMode::New).unwrap();
+        let json = serde_json::to_value(&added).unwrap();
+        assert_eq!(json["env"]["shellBackend"], "off");
+        assert_eq!(json["env"]["revisions"], "managed");
+        assert!(json["env"].get("readOnly").is_none());
+    }
+
+    #[test]
+    fn names_must_be_valid_and_unique() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut cfg = Config::default();
+        register_folder(
+            &mut cfg,
+            &tmp.path().join("a"),
+            Some("Harbor Notes"),
+            FolderMode::New,
+        )
+        .unwrap();
+        assert_eq!(cfg.spaces[0].name, "Harbor Notes");
+        let dup = register_folder(
+            &mut cfg,
+            &tmp.path().join("b"),
+            Some("Harbor Notes"),
+            FolderMode::New,
+        )
+        .unwrap_err();
+        assert!(dup.contains("already exists"), "{dup}");
+        let blank = register_folder(
+            &mut cfg,
+            &tmp.path().join("c"),
+            Some("   "),
+            FolderMode::New,
+        )
+        .unwrap_err();
+        assert!(blank.contains("required"), "{blank}");
+        let ctrl = register_folder(
+            &mut cfg,
+            &tmp.path().join("d"),
+            Some("a\nb"),
+            FolderMode::New,
+        )
+        .unwrap_err();
+        assert!(ctrl.contains("control"), "{ctrl}");
+        for rejected in ["b", "c", "d"] {
+            assert!(
+                !tmp.path().join(rejected).exists(),
+                "nothing created on a rejected name"
+            );
+        }
+        let trimmed = register_folder(
+            &mut cfg,
+            &tmp.path().join("e"),
+            Some("  atlas "),
+            FolderMode::New,
+        )
+        .unwrap();
+        assert_eq!(trimmed.name, "atlas");
+    }
+
+    #[test]
+    fn default_folder_name_is_the_basename() {
+        let cfg = Config::default();
+        let n = |p: &str| default_folder_name(Path::new(p), &cfg);
+        assert_eq!(n("/x/My Notes").as_deref(), Some("My Notes"));
+        assert_eq!(n("/x/notes.v2").as_deref(), Some("notes.v2"));
+        assert_eq!(n("/x/Ünïcode").as_deref(), Some("Ünïcode"));
+        let taken = Config {
+            spaces: vec![SpaceConfig {
+                name: "harbor".into(),
+                ..Default::default()
+            }],
+        };
+        assert_eq!(default_folder_name(Path::new("/x/harbor"), &taken), None);
+    }
+
+    #[test]
+    fn dot_and_dotdot_paths_default_to_the_folder_basename() {
+        let tmp = tempfile::tempdir().unwrap();
+        let folder = tmp.path().join("notes");
+        std::fs::create_dir(&folder).unwrap();
+        let mut cfg = Config::default();
+        let added =
+            register_folder(&mut cfg, &folder.join("."), None, FolderMode::Existing).unwrap();
+        assert_eq!(added.name, "notes");
+        let sub = folder.join("inner");
+        std::fs::create_dir(&sub).unwrap();
+        let up = register_folder(&mut cfg, &sub.join(".."), None, FolderMode::Existing);
+        assert!(
+            up.unwrap_err().contains("pass --name"),
+            "name taken, so no default"
+        );
+        let other = tmp.path().join("other");
+        std::fs::create_dir_all(other.join("deep")).unwrap();
+        let added =
+            register_folder(&mut cfg, &other.join("deep/.."), None, FolderMode::Existing).unwrap();
+        assert_eq!(added.name, "other");
+    }
+
+    #[test]
+    fn summary_reports_sync_and_location() {
+        let mut space = SpaceConfig {
+            id: "id-1".into(),
+            name: "harbor".into(),
+            folder_path: "/synthetic/harbor".into(),
+            ..Default::default()
+        };
+        space.auth.method = "none".into();
+        space.extra.insert(
+            "sync".into(),
+            serde_json::json!({"enabled": true, "remoteUrl": "https://x.example.com"}),
+        );
+        let json = serde_json::to_value(summarize(&space, Some(4100))).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "id": "id-1", "name": "harbor", "folderPath": "/synthetic/harbor",
+                "auth": "none", "runningPort": 4100, "syncEnabled": true, "hidden": false
+            })
+        );
     }
 
     #[test]
@@ -767,5 +1193,33 @@ mod tests {
             "Space is running. Close it in SilverBullet Desktop first."
         );
         assert_eq!(cfg.spaces.len(), 1);
+    }
+
+    #[test]
+    fn rename_validates_and_keeps_identity() {
+        let mut cfg = Config {
+            spaces: vec![
+                SpaceConfig {
+                    id: "1".into(),
+                    name: "harbor".into(),
+                    ..Default::default()
+                },
+                SpaceConfig {
+                    id: "2".into(),
+                    name: "atlas".into(),
+                    ..Default::default()
+                },
+            ],
+        };
+        assert!(rename_space(&mut cfg, "harbor", "atlas")
+            .unwrap_err()
+            .contains("already exists"));
+        assert!(rename_space(&mut cfg, "harbor", "  ").is_err());
+        assert!(rename_space(&mut cfg, "nope", "x")
+            .unwrap_err()
+            .contains("not found"));
+        rename_space(&mut cfg, "harbor", "harbor-old").unwrap();
+        assert_eq!(cfg.spaces[0].id, "1");
+        assert_eq!(cfg.spaces[0].name, "harbor-old");
     }
 }

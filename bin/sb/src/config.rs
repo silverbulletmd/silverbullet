@@ -111,6 +111,18 @@ pub struct SpaceConfig {
     pub extra: BTreeMap<String, Value>,
 }
 
+impl SpaceConfig {
+    /// Whether SilverBullet Desktop syncs this folder space with a remote
+    /// (`sync.enabled`, a Desktop field kept in `extra`).
+    pub fn sync_enabled(&self) -> bool {
+        self.extra
+            .get("sync")
+            .and_then(|sync| sync.get("enabled"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    }
+}
+
 /// Top-level config structure: a list of spaces.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Config {
@@ -317,6 +329,22 @@ pub fn load() -> Result<Config, String> {
     load_from(&config_dir())
 }
 
+/// Top-level registry field SilverBullet Desktop sets once it stores sync
+/// state by space id rather than folder path; only then can a synced folder
+/// space move without losing its sync baseline and credentials.
+pub const SYNC_STATE_KEY_FIELD: &str = "syncStateKey";
+
+pub fn sync_state_keyed_by_id_in(dir: &Path) -> bool {
+    std::fs::read(dir.join("config.json"))
+        .ok()
+        .and_then(|data| serde_json::from_slice::<Value>(&data).ok())
+        .is_some_and(|v| v.get(SYNC_STATE_KEY_FIELD) == Some(&Value::from("spaceId")))
+}
+
+pub fn sync_state_keyed_by_id() -> bool {
+    sync_state_keyed_by_id_in(&config_dir())
+}
+
 /// Serialize and write `cfg` to `dir/config.json` (pretty JSON, 2-space
 /// indent, trailing newline, mode 0600 on unix, dir mode 0700).
 pub fn save_to(dir: &Path, cfg: &Config) -> Result<(), String> {
@@ -494,6 +522,22 @@ fn write_private(path: &Path, data: &[u8]) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sync_marker_is_read_from_top_level() {
+        let tmp = tempfile::tempdir().unwrap();
+        assert!(!sync_state_keyed_by_id_in(tmp.path()));
+        std::fs::write(tmp.path().join("config.json"), r#"{"spaces":[]}"#).unwrap();
+        assert!(!sync_state_keyed_by_id_in(tmp.path()));
+        std::fs::write(
+            tmp.path().join("config.json"),
+            r#"{"spaces":[],"syncStateKey":"spaceId"}"#,
+        )
+        .unwrap();
+        assert!(sync_state_keyed_by_id_in(tmp.path()));
+        std::fs::write(tmp.path().join("config.json"), "not json").unwrap();
+        assert!(!sync_state_keyed_by_id_in(tmp.path()));
+    }
 
     #[test]
     fn unknown_space_fields_survive_round_trip() {

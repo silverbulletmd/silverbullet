@@ -61,18 +61,26 @@ When stdin is not a terminal (scripts, agents), `sb space add` never prompts. It
 ## Folder spaces (SilverBullet Desktop)
 With [[Install/Desktop|SilverBullet Desktop]] installed, `sb` also works with local folders:
 ```bash
-sb space add ./notes   # register a folder as a space
-sb .                   # open the current folder in SilverBullet Desktop
-sb open ./notes        # the same, for a given file or folder
+sb space create ~/Notes/harbor   # new space in a missing or empty folder
+sb space add ./notes             # register a folder that already holds a space
+sb .                             # open the current folder in SilverBullet Desktop
+sb open ./notes                  # the same, for a given file or folder
 ```
-Inside a registered folder, commands pick that space automatically (the most specific folder wins), so `--space` is optional. Commands that need the space's runtime (`eval`, `script`, `query`, `logs`, `screenshot`) start SilverBullet Desktop and wait for the space when it is not open yet. Without SilverBullet Desktop, these commands report that it is required.
+New spaces start with the shell off and managed revisions, like spaces created in SilverBullet Desktop. The name defaults to the folder name; pass `--name` to choose one. Names are trimmed, cannot be empty or contain control characters, and must be unique. `sb space add` needs an existing folder; use `sb space create` for a new one. Space commands print JSON when their output is piped or with `--json`, and text on a terminal or with `--text`.
 
-## Listing and removing spaces
+Inside a registered folder, commands pick that space automatically (the most specific folder wins), so `--space` is optional. Commands that need the space's runtime (`eval`, `script`, `query`, `logs`, `screenshot`) start SilverBullet Desktop and wait for the space when it is not open yet.
+
+Folder spaces are served by SilverBullet Desktop. Without it installed, file commands (`fs`), runtime commands, and creating, adding, renaming, moving or relocating a folder space all fail with an error saying Desktop is required. `sb space list` and `sb space remove` still work, so entries left by an uninstalled Desktop can be cleaned up. Remote spaces don't need Desktop.
+
+## Managing spaces
 ```bash
-sb space list          # single-file spaces opened in Desktop are hidden; add --all to show them
-sb space remove <name>
+sb space list [--all] [--json]    # alias ls; JSON: id, name, folderPath or url, auth, runningPort, syncEnabled, hidden
+sb space rename <name> <new-name>
+sb space mv <name> <new-folder> [--dry-run]     # alias move: move a folder space and its files (same disk only)
+sb space relocate <name> <folder> [--force] [--dry-run]   # alias set-path: the folder was already moved
+sb space remove <name>            # alias rm
 ```
-A folder space cannot be removed while SilverBullet Desktop has it open. Removing a space never deletes its files.
+Single-file spaces opened in Desktop are hidden from the list; add `--all` to show them. A folder space cannot be moved or removed while SilverBullet Desktop has it open. `mv` renames the folder, so the new folder must not exist and must be on the same disk; for another disk, copy the folder yourself and run `relocate`. `relocate` only updates the saved path and needs `--force` while the old folder still exists; use it for the same folder moved intact. For a space that syncs, after restoring from a backup or older copy, turn sync off and on again in SilverBullet Desktop so the first sync compares both sides. Both refuse targets that overlap another space, and `--dry-run` reports what would change without changing anything. A space that syncs with a remote can be moved once SilverBullet Desktop has been updated to a version that stores sync state by space id. Removing a space never deletes its files.
 
 # Global flags
 These flags are available on all commands that connect to a space:
