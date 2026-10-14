@@ -59,6 +59,43 @@ export function moveCursorToWidgetStart(
   client.focus();
 }
 
+// Task changes from widgets are saved one at a time, in click order. Each one
+// reads its row's ref and state when its turn comes, so it starts from what
+// the saves before it left behind.
+let taskSaves: Promise<void> = Promise.resolve();
+
+function queueTaskSave(save: () => Promise<void>): void {
+  taskSaves = taskSaves.then(save).catch(console.error);
+}
+
+function flashStaleTask(client: Client): void {
+  client.ui.flashNotification(
+    "This task changed since the list was rendered, so it was left as it is",
+    "error",
+  );
+}
+
+const positionRef = /^(.+)@(\d+)$/;
+
+/**
+ * A task ref records where the task's list item starts, so a state whose text
+ * changes length moves every later task on the same page. Moves the rendered
+ * refs of those tasks to match.
+ */
+function shiftTaskRefsAfter(ref: string, delta: number): void {
+  const changed = positionRef.exec(ref);
+  if (!changed || delta === 0) return;
+  const [, page, pos] = changed;
+  document
+    .querySelectorAll<HTMLElement>("span[data-external-task-ref]")
+    .forEach((el) => {
+      const other = positionRef.exec(el.dataset.externalTaskRef!);
+      if (other && other[1] === page && Number(other[2]) > Number(pos)) {
+        el.dataset.externalTaskRef = `${page}@${Number(other[2]) + delta}`;
+      }
+    });
+}
+
 export function attachWidgetEventHandlers(
   div: HTMLElement,
   client: Client,
@@ -176,40 +213,47 @@ export function attachWidgetEventHandlers(
       // Alt+Click is for cursor positioning
       if (!taskStateSpan || e.altKey) return;
       e.stopPropagation();
-      const taskRef = task.dataset.externalTaskRef;
-      const oldState = taskStateSpan.dataset.taskState;
-      console.log("Cycling extended task", taskRef, oldState);
-      client.clientSystem
-        .localSyscall("system.invokeFunction", [
-          "index.cycleTaskStateByRef",
-          taskRef,
-          oldState,
-        ])
-        .then((newState: string) => {
-          taskStateSpan.dataset.taskState = newState;
-          taskStateSpan.textContent = newState;
-        })
-        .catch(console.error);
+      queueTaskSave(async () => {
+        const taskRef = task.dataset.externalTaskRef!;
+        const oldState = taskStateSpan.dataset.taskState!;
+        console.log("Cycling extended task", taskRef, oldState);
+        const newState: string | undefined =
+          await client.clientSystem.localSyscall("system.invokeFunction", [
+            "index.cycleTaskStateByRef",
+            taskRef,
+            oldState,
+          ]);
+        if (typeof newState !== "string") {
+          flashStaleTask(client);
+          return;
+        }
+        taskStateSpan.dataset.taskState = newState;
+        taskStateSpan.textContent = newState;
+        shiftTaskRefsAfter(taskRef, newState.length - oldState.length);
+      });
     });
 
     div.addEventListener("change", (e) => {
       const task = within(e, "span[data-external-task-ref]");
       const input = within(e, "input[type=checkbox]");
-      if (!task || !input) return;
+      if (!task || !(input instanceof HTMLInputElement)) return;
       e.stopPropagation();
-      const taskRef = task.dataset.externalTaskRef;
-      const oldState = input.dataset.state;
-      const newState = oldState === " " ? "x" : " ";
-      input.dataset.state = newState;
-      console.log("Toggling task", taskRef);
-      client.clientSystem
-        .localSyscall("system.invokeFunction", [
-          "index.updateTaskState",
-          taskRef,
-          oldState,
-          newState,
-        ])
-        .catch(console.error);
+      queueTaskSave(async () => {
+        const taskRef = task.dataset.externalTaskRef!;
+        const oldState = input.dataset.state!;
+        const newState = oldState === " " ? "x" : " ";
+        console.log("Toggling task", taskRef);
+        const saved = await client.clientSystem.localSyscall(
+          "system.invokeFunction",
+          ["index.updateTaskState", taskRef, oldState, newState],
+        );
+        if (!saved) {
+          input.checked = oldState !== " ";
+          flashStaleTask(client);
+          return;
+        }
+        input.dataset.state = newState;
+      });
     });
   }
 
