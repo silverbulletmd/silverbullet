@@ -471,10 +471,14 @@
 :is(#sb-main, .sb-nav-root) .sb-table-scroll {
   max-width: 100%;
   overflow-x: auto;
+  border-radius: 4px 4px 0 0;
 
   .sb-view-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 4px 4px 0 0;
+    overflow: hidden;
     font: inherit;
 
     th, td {

@@ -546,6 +546,7 @@ $comment-border: 1px;
     width: 100%;
     font-weight: normal;
     overflow: auto;
+    border-radius: 4px 4px 0 0;
   }
 
   .sb-html-widget {
@@ -563,6 +564,8 @@ $comment-border: 1px;
   table {
     width: 100%;
     border-spacing: 0;
+    border-radius: 4px 4px 0 0;
+    overflow: hidden;
   }
 
   thead tr {
@@ -817,15 +820,14 @@ $comment-border: 1px;
     }
   }
 
-  // The ⋯ widget menu button, inside the block's top-right corner
-  // A tab in the widget's top-right corner: its outer corner follows the
-  // widget's 5px radius inside the 1px border, the rest stays square.
+  // Cover the widget's 1px border so the table header's antialiased edge
+  // cannot show through the menu tab's rounded corner.
   .sb-widget-menu-bar {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: -1px;
+    right: -1px;
     z-index: 2;
-    border-radius: 0 4px 0 0;
+    border-radius: 0 5px 0 0;
     background: var(--editor-widget-background-color);
     opacity: 0;
     pointer-events: none;
