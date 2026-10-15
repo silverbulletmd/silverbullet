@@ -369,3 +369,21 @@ test("a batch retry after a page changed doesn't replan pages already written", 
   expect(await read("P1")).toBe("* [ ] A #x [owner: Ada]\n");
   expect(await read("P2")).toBe("* [ ] B #x [owner: Ada]\n\nMore\n");
 });
+
+test("a page object from a query can be updated and deleted", async () => {
+  await write("Tagged", "#the-tag\n\nHello\n");
+  // As the page indexer stores it: no page field, the name is the ref
+  const page = {
+    ref: "Tagged",
+    tag: "page",
+    name: "Tagged",
+    tags: ["the-tag"],
+    perm: "rw",
+    lastModified: "",
+    created: "",
+  };
+  await updateObject(page as any, { bla: "zef" });
+  expect(await read("Tagged")).toBe("---\nbla: zef\n---\n#the-tag\n\nHello\n");
+  await deleteObject(page as any);
+  await expect(read("Tagged")).rejects.toThrow();
+});

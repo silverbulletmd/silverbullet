@@ -208,6 +208,10 @@ async function validatePageText(page: string, text: string) {
 
 function checkTarget(target: unknown): ObjectTarget {
   const t = target as ObjectTarget;
+  // Indexed pages have no page field; their ref is the page name
+  if (t?.tag === "page" && t.page === undefined && typeof t.ref === "string") {
+    return { ...t, page: t.ref };
+  }
   if (!t || typeof t.page !== "string" || typeof t.ref !== "string") {
     throw new ObjectEditError(
       `expected an object from a query, or { page = …, ref = … }`,
