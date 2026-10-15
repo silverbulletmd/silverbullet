@@ -198,3 +198,24 @@ export async function frontmatterComplete(completeEvent: CompleteEvent) {
     options: await attributeCompletion(tags),
   };
 }
+
+/**
+ * Rewrites the frontmatter YAML of `text` (parsed as `tree`) with `patch`,
+ * which gets the current YAML, or "" when there is none. An empty result
+ * removes the frontmatter.
+ */
+export function patchFrontmatterText(
+  text: string,
+  tree: ParseTree,
+  patch: (yaml: string) => string,
+): string {
+  const frontmatter = findNodeOfType(tree, "FrontMatter");
+  if (!frontmatter) {
+    const yaml = patch("").trim();
+    return yaml ? `---\n${yaml}\n---\n${text}` : text;
+  }
+  const yaml = patch(renderToText(frontmatter.children![1])).trim();
+  return yaml
+    ? `---\n${yaml}\n---${text.slice(frontmatter.to!)}`
+    : text.slice(frontmatter.to! + 1); // +1 to skip the initial \n
+}

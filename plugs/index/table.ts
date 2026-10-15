@@ -29,7 +29,7 @@ type TableRowObject = ObjectValue<{
  * @param str the input string
  * @returns All lowercase string with special chars replaced with underscore
  */
-function cleanHeaderFieldName(str: string): string {
+export function cleanHeaderFieldName(str: string): string {
   return str.replace(/[\W_]+/g, "_").toLowerCase();
 }
 

@@ -51,7 +51,7 @@ Defines or updates a tag and its Lua metatable.
 
 `index.deleteObject(page, tag, ref)`
 
-Deletes an indexed object identified by page, tag, and reference.
+Removes an object from the index without changing its page; it comes back the next time the page is indexed. To delete an object from its page, use [[API/object|object.delete]].
 
 ## index.describeSchema
 

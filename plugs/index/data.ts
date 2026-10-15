@@ -21,6 +21,32 @@ type DataObject = ObjectValue<
   } & Record<string, any>
 >;
 
+export type DataBlock = {
+  fence: ParseTree;
+  info: ParseTree;
+  code?: ParseTree;
+  /** "data" for a ```data block, otherwise the tag after the # */
+  tag: string;
+};
+
+/** The ```data and ```#tag fenced blocks in a page. */
+export function dataBlocks(tree: ParseTree): DataBlock[] {
+  return collectNodesOfType(tree, "FencedCode").flatMap((fence) => {
+    const info = findNodeOfType(fence, "CodeInfo");
+    if (!info) return [];
+    const type = info.children![0].text!;
+    if (type !== "data" && !type.startsWith("#")) return [];
+    return [
+      {
+        fence,
+        info,
+        code: findNodeOfType(fence, "CodeText") ?? undefined,
+        tag: type === "data" ? "data" : type.slice(1),
+      },
+    ];
+  });
+}
+
 export function splitYamlDocuments(
   text: string,
 ): { text: string; offset: number }[] {
@@ -42,76 +68,72 @@ export function indexData(
   const dataObjects: ObjectValue<DataObject>[] = [];
   const tagObjects: Map<string, ObjectValue<TagObject>> = new Map();
 
-  collectNodesOfType(tree, "FencedCode").map((t) => {
-    const codeInfoNode = findNodeOfType(t, "CodeInfo");
-    if (!codeInfoNode) {
-      return;
-    }
-    const fenceType = codeInfoNode.children![0].text!;
-    if (fenceType !== "data" && !fenceType.startsWith("#")) {
-      return;
-    }
-    const codeTextNode = findNodeOfType(t, "CodeText");
-    if (!codeTextNode) {
-      // Honestly, this shouldn't happen
-      return;
-    }
-    const codeText = codeTextNode.children![0].text!;
-    const dataType = fenceType === "data" ? "data" : fenceType.substring(1);
-    try {
-      const codeFrom = codeTextNode.from!;
-      // We support multiple YAML documents in one block
-      for (const part of splitYamlDocuments(codeText)) {
-        const docStart = codeFrom + part.offset;
-        const docEnd = docStart + part.text.length;
-        const doc = YAML.load(part.text);
-        if (!doc) {
-          continue;
-        }
-        // Extract $ref anchor from the YAML doc. Lint surfaces duplicate
-        // names; the indexer accepts the first valid value here.
-        let anchorName: string | undefined;
-        if (typeof doc === "object") {
-          const d = doc as Record<string, unknown>;
-          if ("$ref" in d) {
-            const candidate = d.$ref;
-            if (typeof candidate === "string" && isValidAnchorName(candidate)) {
-              anchorName = candidate;
-            }
-            delete d.$ref;
+  dataBlocks(tree).map(
+    ({ fence: t, info, code: codeTextNode, tag: dataType }) => {
+      const fenceType = info.children![0].text!;
+      if (!codeTextNode) {
+        // Honestly, this shouldn't happen
+        return;
+      }
+      const codeText = codeTextNode.children![0].text!;
+      try {
+        const codeFrom = codeTextNode.from!;
+        // We support multiple YAML documents in one block
+        for (const part of splitYamlDocuments(codeText)) {
+          const docStart = codeFrom + part.offset;
+          const docEnd = docStart + part.text.length;
+          const doc = YAML.load(part.text);
+          if (!doc) {
+            continue;
           }
+          // Extract $ref anchor from the YAML doc. Lint surfaces duplicate
+          // names; the indexer accepts the first valid value here.
+          let anchorName: string | undefined;
+          if (typeof doc === "object") {
+            const d = doc as Record<string, unknown>;
+            if ("$ref" in d) {
+              const candidate = d.$ref;
+              if (
+                typeof candidate === "string" &&
+                isValidAnchorName(candidate)
+              ) {
+                anchorName = candidate;
+              }
+              delete d.$ref;
+            }
+          }
+          const dataObj = {
+            ref: anchorName ?? `${pageMeta.name}@${docStart}`,
+            tag: dataType,
+            itags: ["data"],
+            pos: docStart,
+            range: [docStart, docEnd] as [number, number],
+            ...stripPositionAttributes(doc),
+            page: pageMeta.name,
+          };
+          updateITags(dataObj, frontmatter);
+          dataObjects.push(dataObj);
         }
-        const dataObj = {
-          ref: anchorName ?? `${pageMeta.name}@${docStart}`,
-          tag: dataType,
-          itags: ["data"],
-          pos: docStart,
-          range: [docStart, docEnd] as [number, number],
-          ...stripPositionAttributes(doc),
-          page: pageMeta.name,
-        };
-        updateITags(dataObj, frontmatter);
-        dataObjects.push(dataObj);
+        const range = commentedRange(t);
+        const existing = tagObjects.get(dataType);
+        if (!existing || (existing.range && !range)) {
+          tagObjects.set(dataType, {
+            ref: dataType,
+            tag: "tag",
+            name: dataType,
+            page: pageMeta.name,
+            parent: "data",
+            ...(range ? { range } : {}),
+          });
+        }
+      } catch (e: any) {
+        console.error(
+          `Could not parse data block (${fenceType}) on ${pageMeta.name}: ${e?.message ?? String(e)}`,
+        );
+        return;
       }
-      const range = commentedRange(t);
-      const existing = tagObjects.get(dataType);
-      if (!existing || (existing.range && !range)) {
-        tagObjects.set(dataType, {
-          ref: dataType,
-          tag: "tag",
-          name: dataType,
-          page: pageMeta.name,
-          parent: "data",
-          ...(range ? { range } : {}),
-        });
-      }
-    } catch (e: any) {
-      console.error(
-        `Could not parse data block (${fenceType}) on ${pageMeta.name}: ${e?.message ?? String(e)}`,
-      );
-      return;
-    }
-  });
+    },
+  );
 
   return Promise.resolve([...dataObjects, ...tagObjects.values()]);
 }

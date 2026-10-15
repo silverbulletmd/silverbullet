@@ -299,7 +299,7 @@ export function indexSyscalls(
         return objectIndex.deleteObject(page, tag, ref);
       },
       description:
-        "Deletes an indexed object identified by page, tag, and reference.",
+        "Removes an object from the index without changing its page; it comes back the next time the page is indexed. To delete an object from its page, use object.delete.",
       signatures: ["index.deleteObject(page, tag, ref)"],
     },
     "lua:index.defineTag": {

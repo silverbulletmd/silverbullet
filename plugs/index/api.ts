@@ -3,11 +3,9 @@ import {
   extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
   type FrontMatterExtractOptions,
+  patchFrontmatterText,
 } from "./frontmatter.ts";
-import {
-  collectNodesOfType,
-  renderToText,
-} from "@silverbulletmd/silverbullet/lib/tree";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { applyPatches, type YamlPatch } from "../../plug-api/lib/yaml.ts";
 import type { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
@@ -35,24 +33,9 @@ export async function patchFrontmatter(
   patches: YamlPatch[],
 ): Promise<string> {
   const tree = await markdown.parseMarkdown(text);
-  const frontmatter = collectNodesOfType(tree, "FrontMatter");
-  if (frontmatter.length === 0) {
-    const patchedFrontmatter = applyPatches("", patches).trim();
-    if (patchedFrontmatter) {
-      return `---\n${patchedFrontmatter}\n---\n${text}`;
-    } else {
-      return text;
-    }
-  } else {
-    const frontmatterText = renderToText(frontmatter[0].children![1]);
-    const patchedFrontmatter = applyPatches(frontmatterText, patches).trim();
-
-    if (patchedFrontmatter) {
-      return `---\n${patchedFrontmatter}\n---${text.slice(frontmatter[0].to)}`;
-    } else {
-      return text.slice(frontmatter[0].to! + 1); // +1 to skip the initial \n
-    }
-  }
+  return patchFrontmatterText(text, tree, (yaml) =>
+    applyPatches(yaml, patches),
+  );
 }
 
 export async function resolveAnchor(

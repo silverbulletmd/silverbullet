@@ -45,6 +45,48 @@ functions:
       returns:
         - { type: table, description: Resolution result including success or missing/duplicate reason. }
       see: API/index
+  objectUpdate:
+    path: object_api.ts:updateObject
+    syscall:
+      name: object.update
+      description: "Changes attributes of an object (or a list of objects) where it is written in its page: frontmatter for pages, inline [key: value] attributes, hashtags, state and text for tasks and items, YAML keys for data blocks, cells for table rows. Fails if the object moved since it was queried."
+      parameters:
+        - { name: object, type: table, description: "An object from a query or object.append, a list of them, or { page = …, ref = … } for an anchored object." }
+        - { name: patch, type: table, description: "Attributes to set. For tasks: done, state, name, tags. For paragraphs: text." }
+        - { name: options, type: table, optional: true, description: "remove: list of attribute names to delete." }
+      see: API/object
+  objectDelete:
+    path: object_api.ts:deleteObject
+    syscall:
+      name: object.delete
+      description: Removes an object from its page (a list item with its sub-items, a paragraph, a data block document, a table row), or deletes the page for a page object.
+      parameters:
+        - { name: object, type: table, description: "An object from a query or object.append, or { page = …, ref = … } for an anchored object." }
+      see: API/object
+  objectAppend:
+    path: object_api.ts:appendObject
+    syscall:
+      name: object.append
+      description: "Adds a task, list item, table row or data block document to a page and returns the new object."
+      parameters:
+        - { name: page, type: string, description: Page to add to. }
+        - { name: record, type: table, description: "tag = \"task\", \"item\", \"table\" or a data tag, plus its attributes." }
+        - { name: options, type: table, optional: true, description: "anchor: true or a name to add a $anchor; under: header to add a task or item under; table: tableref of the table to add a row to." }
+      returns:
+        - { type: table, description: "The new object; { page, ref } when it has an anchor." }
+      see: API/object
+  objectCreatePage:
+    path: object_api.ts:createPage
+    syscall:
+      name: object.createPage
+      description: Creates a page with the given frontmatter attributes and body. Fails if the page exists.
+      parameters:
+        - { name: name, type: string, description: Page name. }
+        - { name: attributes, type: table, optional: true, description: Frontmatter attributes. }
+        - { name: body, type: string, optional: true, description: Page text after the frontmatter. }
+      returns:
+        - { type: table, description: "{ page, ref } of the new page." }
+      see: API/object
   queryLuaObjects:
     # DEPRECATED: use index.queryLuaObjects syscall instead
     path: api.ts:queryLuaObjects
