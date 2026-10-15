@@ -10,6 +10,7 @@ import {
   extractDefinitions,
 } from "./page_definitions.ts";
 import { renderThread, toRenderValue } from "./render_thread.ts";
+import type { ASTCtx, LuaBlock, NumericType } from "./ast.ts";
 import {
   LuaEnv,
   LuaStackFrame,
@@ -73,6 +74,91 @@ export function assignmentRenderValue(
   if (!result) return "**Lua error:** page scope not available";
   if ("error" in result) return `**Lua error:** ${result.error}`;
   return toRenderValue(result.value, LuaStackFrame.lostFrame);
+}
+
+type DefState = {
+  def: Definition;
+  status: "pending" | "running" | "done";
+  done?: Promise<void>;
+  block?: LuaBlock;
+  // The definitions it is waiting on, counted: the cycle check walks these
+  waitingOn: Map<DefState, number>;
+  // What reading this cell raises once it has failed
+  failure?: string;
+  // Set when the definition is part of a circular reference
+  cycle?: string;
+  // The first failure raised by something it read
+  readFailure?: string;
+  // The first cell name it tried to assign
+  touched?: string;
+};
+
+type PageEnvHooks = {
+  // Evaluates the definitions of `name` that `frame`'s reader needs first
+  resolve: (name: string, frame?: LuaStackFrame) => Promise<void> | undefined;
+  // false: the write is refused
+  write: (name: string, frame?: LuaStackFrame) => boolean;
+};
+
+/** The page scope's env: while it builds, reads evaluate what they need. */
+class PageEnv extends LuaEnv {
+  hooks?: PageEnvHooks;
+
+  override get(
+    name: string,
+    sf?: LuaStackFrame,
+  ): Promise<LuaValue> | LuaValue | null {
+    const pending = this.hooks?.resolve(name, sf);
+    if (pending) return pending.then(() => super.get(name, sf));
+    return super.get(name, sf);
+  }
+
+  override set(
+    key: string,
+    value: LuaValue,
+    sf?: LuaStackFrame,
+    numType?: NumericType,
+  ): void {
+    if (this.hooks && !this.hooks.write(key, sf)) return;
+    super.set(key, value, sf, numType);
+  }
+}
+
+/** Globals a block assigns at its top level: what reading them evaluates. */
+function blockDefines(block: LuaBlock): string[] {
+  const names: string[] = [];
+  for (const statement of block.statements) {
+    if (statement.type === "Function") {
+      const { propNames, colonName } = statement.name;
+      if (propNames.length === 1 && !colonName) names.push(propNames[0]);
+    } else if (statement.type === "Assignment") {
+      for (const v of statement.variables) {
+        if (v.type === "Variable") names.push(v.name);
+      }
+    }
+  }
+  return names;
+}
+
+/** A chain of waits from `from` to `to`, starting with `from`, if any. */
+function waitPath(from: DefState, to: DefState): DefState[] | undefined {
+  const seen = new Set<DefState>();
+  const visit = (state: DefState): DefState[] | undefined => {
+    if (state === to) return [state];
+    if (seen.has(state)) return;
+    seen.add(state);
+    for (const next of state.waitingOn.keys()) {
+      const rest = visit(next);
+      if (rest) return [state, ...rest];
+    }
+  };
+  return visit(from);
+}
+
+function cycleLabel(def: Definition): string {
+  return def.kind === "block"
+    ? `page-lua block ${def.index + 1}`
+    : `\`${def.name}\``;
 }
 
 type Entry = {
@@ -306,29 +392,24 @@ export class PageScopes {
     track?: Tracker,
   ): Promise<PageScope> {
     const indexed = await this.deps.pageMeta?.(page).catch(() => null);
+    const pageEnv = new PageEnv(this.deps.spaceEnv(), { boundary: true });
     const scope: PageScope = {
       key: `${page}#${++this.generation}`,
-      env: new LuaEnv(this.deps.spaceEnv(), { boundary: true }),
+      env: pageEnv,
       assignments: new Map(),
       blockErrors: new Map(),
       firstError: null,
       deps: new Set(),
     };
-    const record = (def: Definition, result: AssignmentResult) => {
-      if (def.kind === "assign") scope.assignments.set(def.name, result);
-      if (!("error" in result)) return;
-      if (def.kind === "block") scope.blockErrors.set(def.index, result.error);
-      const label =
-        def.kind === "block" ? `page-lua block ${def.index + 1}` : def.name;
-      scope.firstError ??= `${label}: ${result.error}`;
+    const pageScope: PageScopeFrame = {
+      chain: [...(reader?.chain ?? []), page],
     };
-
     const { env, sf } = renderThread(this.deps.spaceEnv(), null, {
       // The text was just read; the index can lag right after a save
       currentPage: { ...indexed, ...frontmatter, name: page },
       sourcePage: page,
-      parentEnv: scope.env,
-      pageScope: { chain: [...(reader?.chain ?? []), page] },
+      parentEnv: pageEnv,
+      pageScope,
       track: (event) => {
         if (scope.deps.has(event)) return;
         scope.deps.add(event);
@@ -337,70 +418,205 @@ export class PageScopes {
       },
     });
 
+    const states: DefState[] = definitions.map((def) => ({
+      def,
+      status: "pending",
+      waitingOn: new Map(),
+    }));
+    const own = new Set(states);
+    // Which definitions assign each name: reading the name evaluates them
+    const owners = new Map<string, DefState[]>();
+    const addOwner = (name: string, state: DefState) => {
+      const list = owners.get(name);
+      if (!list) owners.set(name, [state]);
+      else if (!list.includes(state)) list.push(state);
+    };
     // Names a `${name = …}` cell owns: blocks may not reassign them, so the
     // value a cell shows is the value the page uses
-    const cellNames = new Set(
-      definitions.flatMap((d) => (d.kind === "assign" ? [d.name] : [])),
-    );
-    const vars = scope.env.variables;
-    const snapshotCells = () =>
-      new Map([...cellNames].map((n) => [n, vars.get(n)] as const));
-    // Puts back what a block changed; returns the first cell name it touched
-    const restoreCells = (before: Map<string, unknown>) => {
-      let touched: string | undefined;
-      for (const [name, value] of before) {
-        if (vars.get(name) === value) continue;
-        touched ??= name;
-        if (value === undefined) vars.delete(name);
-        else vars.set(name, value as any);
+    const cellNames = new Set<string>();
+    for (const state of states) {
+      if (state.def.kind === "assign") {
+        cellNames.add(state.def.name);
+        addOwner(state.def.name, state);
       }
-      return touched;
+    }
+    for (const state of states) {
+      if (state.def.kind !== "block") continue;
+      try {
+        state.block = parseBlock(state.def.source, { ref: page });
+      } catch {
+        // Reported when the block runs
+        continue;
+      }
+      for (const name of blockDefines(state.block)) {
+        if (!cellNames.has(name)) addOwner(name, state);
+      }
+    }
+
+    const record = (state: DefState, result: AssignmentResult) => {
+      const { def } = state;
+      if (def.kind === "assign") scope.assignments.set(def.name, result);
+      if (!("error" in result)) return;
+      if (def.kind === "block") scope.blockErrors.set(def.index, result.error);
+      else state.failure ??= `\`${def.name}\` failed: ${result.error}`;
+    };
+    for (const state of states) {
+      const { def } = state;
+      if (def.kind === "assign" && duplicateNames.has(def.name)) {
+        const error = `\`${def.name}\` is defined more than once on this page`;
+        state.status = "done";
+        state.failure = error;
+        record(state, { error });
+      }
+    }
+
+    const readerOf = (frame?: LuaStackFrame): DefState | undefined => {
+      const d = frame?.threadState.pageScope?.definition as DefState;
+      return own.has(d) ? d : undefined;
+    };
+    // A read failing in `reader` becomes its own error, whatever wraps it
+    const fail = (reader: DefState | undefined, message: string): never => {
+      if (reader) reader.readFailure ??= message;
+      throw new Error(message);
+    };
+    const circular = (reader: DefState, path: DefState[]): never => {
+      // Named from the member highest on the page, so every member agrees
+      const first = Math.min(...path.map((p) => states.indexOf(p)));
+      const at = path.indexOf(states[first]);
+      const cycle = [...path.slice(at), ...path.slice(0, at)];
+      const message = `circular reference: ${[...cycle, cycle[0]]
+        .map((p) => cycleLabel(p.def))
+        .join(" → ")}`;
+      for (const member of path) member.cycle ??= message;
+      return fail(reader, message);
     };
 
     let stopped = false;
-    for (const def of definitions) {
-      if (def.kind === "assign" && duplicateNames.has(def.name)) {
-        record(def, {
-          error: `\`${def.name}\` is defined more than once on this page`,
-        });
-        continue;
-      }
-      if (stopped) {
-        record(def, { error: STOPPED });
-        continue;
-      }
+    const evaluate = async (state: DefState): Promise<void> => {
+      const { def } = state;
+      if (stopped) return record(state, { error: STOPPED });
       try {
         // A fresh env per definition keeps one block's locals from the next
         const defEnv = new LuaEnv(env);
+        const defSf = (ctx: ASTCtx) =>
+          new LuaStackFrame(sf.threadLocal, ctx, undefined, undefined, {
+            ...sf.threadState,
+            closeStack: undefined,
+            pageScope: { ...pageScope, definition: state },
+          });
         if (def.kind === "block") {
-          const block = parseBlock(def.source, { ref: page });
-          const cells = snapshotCells();
-          let touched: string | undefined;
-          try {
-            await evalStatement(block, defEnv, sf.withCtx(block.ctx));
-          } finally {
-            touched = restoreCells(cells);
-          }
-          if (touched) {
+          const block = state.block ?? parseBlock(def.source, { ref: page });
+          await evalStatement(block, defEnv, defSf(block.ctx));
+          if (state.touched) {
+            const name = state.touched;
             throw new Error(
-              `\`${touched}\` is defined by a \${${touched} = …} cell on this page`,
+              `\`${name}\` is defined by a \${${name} = …} cell on this page`,
             );
           }
-          record(def, { value: null });
+          record(state, { value: null });
         } else {
           const expr = parseExpressionString(def.exprSource);
           const value = singleResult(
-            await evalExpression(expr, defEnv, sf.withCtx(expr.ctx)),
+            await evalExpression(expr, defEnv, defSf(expr.ctx)),
           );
-          scope.env.setLocal(def.name, value);
-          record(def, { value });
+          if (state.touched) {
+            const name = state.touched;
+            throw new Error(
+              `\`${name}\` is defined by a \${${name} = …} cell on this page`,
+            );
+          }
+          pageEnv.setLocal(def.name, value);
+          record(state, { value });
         }
       } catch (e) {
-        stopped = e instanceof LuaBudgetStopped;
-        record(def, {
-          error: stopped ? STOPPED : e instanceof Error ? e.message : String(e),
-        });
+        if (e instanceof LuaBudgetStopped) stopped = true;
+        const message = e instanceof Error ? e.message : String(e);
+        const error = stopped
+          ? STOPPED
+          : (state.cycle ?? state.readFailure ?? message);
+        // A cell failing because of what it read fails the same way for its
+        // readers, instead of nesting the message
+        if (
+          def.kind === "assign" &&
+          !stopped &&
+          (state.cycle || state.readFailure)
+        ) {
+          state.failure = error;
+        }
+        record(state, { error });
+      } finally {
+        state.status = "done";
       }
+    };
+    const start = (state: DefState): Promise<void> => {
+      state.status = "running";
+      state.done = evaluate(state);
+      return state.done;
+    };
+    const wait = (reader: DefState, target: DefState): Promise<void> => {
+      const count = reader.waitingOn.get(target) ?? 0;
+      reader.waitingOn.set(target, count + 1);
+      const done = target.status === "pending" ? start(target) : target.done!;
+      return done.finally(() => {
+        const left = reader.waitingOn.get(target)! - 1;
+        if (left) reader.waitingOn.set(target, left);
+        else reader.waitingOn.delete(target);
+      });
+    };
+
+    pageEnv.hooks = {
+      resolve: (name, frame) => {
+        const owned = owners.get(name);
+        if (!owned) return;
+        const reader = readerOf(frame);
+        const waits: Promise<void>[] = [];
+        for (const target of owned) {
+          if (target === reader) {
+            // A block may read its own globals before assigning them
+            if (target.def.kind === "assign") circular(reader, [reader]);
+            continue;
+          }
+          // Waiting without knowing who waits could wait on itself
+          if (target.status === "done" || !reader) continue;
+          if (target.status === "running") {
+            const path = waitPath(target, reader);
+            if (path) circular(reader, path);
+          }
+          waits.push(wait(reader, target));
+        }
+        const check = () => {
+          for (const target of owned) {
+            if (target !== reader && target.failure) {
+              fail(reader, target.failure);
+            }
+          }
+        };
+        if (!waits.length) return void check();
+        return Promise.all(waits).then(check);
+      },
+      write: (name, frame) => {
+        if (!cellNames.has(name)) return true;
+        const writer = readerOf(frame);
+        if (writer) writer.touched ??= name;
+        return false;
+      },
+    };
+
+    for (const state of states) {
+      if (state.status === "pending") await start(state);
+    }
+    pageEnv.hooks = undefined;
+
+    for (const { def } of states) {
+      const error =
+        def.kind === "block"
+          ? scope.blockErrors.get(def.index)
+          : (scope.assignments.get(def.name) as { error?: string }).error;
+      if (error === undefined) continue;
+      const label =
+        def.kind === "block" ? `page-lua block ${def.index + 1}` : def.name;
+      scope.firstError = `${label}: ${error}`;
+      break;
     }
     return scope;
   }

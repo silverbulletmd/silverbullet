@@ -106,6 +106,8 @@ type LuaThreadState = {
 export type PageScopeFrame = {
   // Pages whose scopes are being built, outermost first: the cycle check
   chain: string[];
+  // The page definition being evaluated, so the page scope knows who reads
+  definition?: unknown;
 };
 
 function isLuaNumber(v: any): boolean {

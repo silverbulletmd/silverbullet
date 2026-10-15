@@ -19,9 +19,12 @@ end
 My raise calculated with `raise`: ${raise(salary, increase)}
 
 # How evaluation works
-* Definitions (`page-lua` blocks and `${name = ...}`) run once, top to bottom, and each can only use what is defined _above_ it: `${a = b + 1}` above `${b = 1}` is an error, and so is a block calling a function defined in a later block.
+* Like in a spreadsheet, order doesn't matter: a definition (`page-lua` block or `${name = ...}`) can use any other definition on the page, above or below it. `${a = b + 1}` above `${b = 1}` works, and so does a cell calling a function from a block further down. Each definition runs once, when something first needs it.
+* A `page-lua` block's variables are known by the globals it assigns at its top level (`name = ...` and `function name() ... end`). A global a block assigns only inside an `if`, a loop or a function is set when the block runs, which happens in page order once nothing needs it earlier.
+* Definitions that depend on each other in a loop, such as `${a = b + 1}` and `${b = a + 1}`, are a _circular reference_: each definition in the loop shows an error naming it.
+* A cell that uses a failing cell fails too, with an error naming the cell that failed.
 * Every other `${...}` runs after all definitions, so it can use any of them, wherever it appears on the page.
-* A function looks up the variables it uses when it is called, not where it is written. A function can use a variable defined below it, as long as it is called from a plain `${...}` or from a definition below that variable.
+* If several blocks assign the same global, reading it runs all of them in page order, so the value is the one the last block assigns.
 * Values are recalculated when the page is saved (SilverBullet saves automatically shortly after you stop typing), and when anything a definition read changes, such as the results of a query or another page's variables (see [[API/widget#When expressions update]]).
 * A transcluded page is evaluated in its own scope. Scopes are never merged with the page that embeds it.
 

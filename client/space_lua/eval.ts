@@ -1316,7 +1316,7 @@ function evalPrefixExpression(
   switch (e.type) {
     case "Variable": {
       const v = asVariable(e);
-      const value = env.get(v.name);
+      const value = env.get(v.name, sf);
       if (value === undefined) {
         return null;
       }
@@ -2433,6 +2433,7 @@ export function evalStatement(
       (settable as any).set(
         propNames[propNames.length - 1],
         new LuaFunction(body, env, { name: propNames.join(".") }),
+        sf,
       );
       return;
     }

@@ -56,7 +56,7 @@ const budget = [
   "${rate = 0.1}",
 ].join("\n");
 
-test("builds definitions top to bottom into a boundary env", async () => {
+test("builds definitions into a boundary env", async () => {
   const { scopes, spaceEnv } = setup({ Budget: budget });
   const scope = (await scopes.get("Budget"))!;
   expect(scope.assignments.get("salary")).toEqual({ value: 500 });
@@ -74,11 +74,108 @@ test("pages without definitions have no scope", async () => {
   expect(scopes.latest("Unknown").scope).toBeUndefined();
 });
 
-test("definitions see earlier definitions, not later ones", async () => {
-  const { scopes } = setup({ P: "${b = a} ${a = 1} ${c = a + 1}" });
+test("definitions can use definitions further down the page", async () => {
+  const { scopes } = setup({ P: "${b = a + 1} ${a = 1} ${c = b * 10}" });
   const scope = (await scopes.get("P"))!;
-  expect(scope.assignments.get("b")).toEqual({ value: null });
-  expect(scope.assignments.get("c")).toEqual({ value: 2 });
+  expect(scope.assignments.get("a")).toEqual({ value: 1 });
+  expect(scope.assignments.get("b")).toEqual({ value: 2 });
+  expect(scope.assignments.get("c")).toEqual({ value: 20 });
+  expect(scope.firstError).toBeNull();
+});
+
+test("a cell can call a function from a block below it", async () => {
+  const { scopes } = setup({
+    P: "${raised = raise(100)}\n```page-lua\nfunction raise(a) return a * (1 + rate) end\n```\n${rate = 0.5}",
+  });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.assignments.get("raised")).toEqual({ value: 150 });
+});
+
+test("a block can use a cell below it", async () => {
+  const { scopes } = setup({
+    P: "```page-lua\ndoubled = base * 2\n```\n${base = 21}",
+  });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.blockErrors.size).toBe(0);
+  expect(scope.env.get("doubled")).toBe(42);
+});
+
+test("forward references read concurrently settle", async () => {
+  const { scopes } = setup({
+    P: "${m = math.max(a, b) + a} ${a = 1} ${b = 2}",
+  });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.assignments.get("m")).toEqual({ value: 3 });
+});
+
+test("a name several blocks assign reads as its final value", async () => {
+  const { scopes } = setup({
+    P: "${v = n}\n```page-lua\nn = 1\n```\n```page-lua\nn = 2\n```",
+  });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.assignments.get("v")).toEqual({ value: 2 });
+});
+
+test("circular references are an error at every definition in the cycle", async () => {
+  const { scopes } = setup({ P: "${a = b + 1} ${b = a + 1} ${c = 1}" });
+  const scope = (await scopes.get("P"))!;
+  const message = "circular reference: `a` → `b` → `a`";
+  expect(scope.assignments.get("a")).toEqual({ error: message });
+  expect(scope.assignments.get("b")).toEqual({ error: message });
+  expect(scope.assignments.get("c")).toEqual({ value: 1 });
+  expect(scope.firstError).toBe(`a: ${message}`);
+});
+
+test("a cell that reads itself is a circular reference", async () => {
+  const { scopes } = setup({ P: "${a = a + 1}" });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.assignments.get("a")).toEqual({
+    error: "circular reference: `a` → `a`",
+  });
+});
+
+test("cycles through functions and blocks are detected", async () => {
+  const { scopes } = setup({
+    Fn: "```page-lua\nfunction f() return x end\n```\n${x = f()}",
+    Block: "```page-lua\ny = x + 1\n```\n${x = y}",
+  });
+  const fn = (await scopes.get("Fn"))!;
+  expect(fn.assignments.get("x")).toEqual({
+    error: "circular reference: `x` → `x`",
+  });
+  expect(fn.blockErrors.size).toBe(0);
+
+  const block = (await scopes.get("Block"))!;
+  const message =
+    "circular reference: page-lua block 1 → `x` → page-lua block 1";
+  expect(block.blockErrors.get(0)).toBe(message);
+  expect(block.assignments.get("x")).toEqual({ error: message });
+});
+
+test("a block may read a global it assigns later in itself", async () => {
+  const { scopes } = setup({
+    P: "```page-lua\nbefore = later\nlater = 1\n```",
+  });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.blockErrors.size).toBe(0);
+  expect(scope.env.get("before")).toBeNull();
+  expect(scope.env.get("later")).toBe(1);
+});
+
+test("reading a failing cell fails with that cell's error", async () => {
+  const { scopes } = setup({
+    P: "${c = b + 1} ${b = a * 2} ${a = nil + 1} ${d = x} ${x = 1} ${x = 2}",
+  });
+  const scope = (await scopes.get("P"))!;
+  const a = scope.assignments.get("a")!;
+  expect("error" in a).toBe(true);
+  const failed = `\`a\` failed: ${(a as { error: string }).error}`;
+  expect(scope.assignments.get("b")).toEqual({ error: failed });
+  expect(scope.assignments.get("c")).toEqual({ error: failed });
+  expect(scope.assignments.get("d")).toEqual({
+    error: "`x` is defined more than once on this page",
+  });
+  expect(scope.firstError).toBe(`c: ${failed}`);
 });
 
 test("errors are recorded per definition and the build continues", async () => {
