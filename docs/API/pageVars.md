@@ -39,8 +39,9 @@ pageVars.set("rate", 0.2)
 pageVars.set("salary", 600, "Budget")
 ```
 
-* `value` must be a number, string, boolean or `nil`.
-* The page must define `name` with exactly one `${name = …}` holding a plain value. A formula such as `${total = a + b}`, a variable assigned only in a `page-lua` block, or a name the page doesn't define is an error.
+* `value` must be a number, string, boolean, `nil`, or a table of these (tables may nest). A function, a table with a metatable, or a table that contains itself is an error.
+* The page must define `name` with exactly one `${name = …}` holding a plain value or a table literal of plain values. A formula such as `${total = a + b}`, a variable assigned only in a `page-lua` block, or a name the page doesn't define is an error.
+* A table is written back pretty printed: list items first, one per line, then named fields. Continuation lines follow the cell's indentation.
 * On the open page, the change is a single undoable edit and the page is saved right away.
 * Setting a variable to the value it already has changes nothing.
 * A read-only space, or a read-only target page, is an error.

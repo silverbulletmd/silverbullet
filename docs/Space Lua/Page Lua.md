@@ -35,12 +35,32 @@ For instance referencing a variable defined [[Examples/Budget]]: ${pageVars.get(
 
 ${widgets.button("Give me a raise", function() pageVars.set("increase", 10) end)}
 
-Only a `${name = …}` holding a plain value (a number, string, `true`, `false` or `nil`) can be set; a formula such as `${total = a + b}`, or a name the page doesn't define that way, is an error. See [[API/pageVars]].
+Only a `${name = …}` holding a plain value (a number, string, `true`, `false` or `nil`) or a table literal of plain values (such as `${tags = {"a", "b"}}` or a list of records) can be set; a formula such as `${total = a + b}`, or a name the page doesn't define that way, is an error. See [[API/pageVars]].
 
 # Examples
 ## Numeric values
 My salary right now: ${salary = 1000} USD.
 I'm getting a raise of ${increase = 5}%, so my new salary shall be ${salary * (1 + increase / 100)} USD.
+
+## Tables
+A cell can hold a table literal, for example a small to-do list that a button adds to:
+
+${todos = {
+  {
+    title = "Book venue",
+    done = true,
+  },
+}}
+
+Open: ${#query[[from t = todos where not t.done]]} of ${#todos}
+
+${widgets.button("Add task", function()
+  local title = editor.prompt("Task?")
+  if title then
+    table.insert(todos, { title = title, done = false })
+    pageVars.set("todos", todos)
+  end
+end)}
 
 ## Queries
 Base collection:

@@ -167,13 +167,13 @@ export function pageVarsSyscalls(
         );
       },
       description:
-        "Sets a page variable by rewriting its `${name = value}` cell in the page text. Only cells holding a plain value (number, string, boolean or nil) can be set.",
+        "Sets a page variable by rewriting its `${name = value}` cell in the page text. Only cells holding a plain value (number, string, boolean, nil, or a table of these) can be set.",
       signatures: ["pageVars.set(name, value, page?)"],
       parameters: [
         { name: "name", description: "Variable name." },
         {
           name: "value",
-          description: "A number, string, boolean or nil.",
+          description: "A number, string, boolean, nil, or a table of these.",
         },
         {
           name: "page",
@@ -185,6 +185,9 @@ export function pageVarsSyscalls(
       examples: [
         { code: 'pageVars.set("rate", 0.2)' },
         { code: 'pageVars.set("salary", 600, "Budget")' },
+        {
+          code: 'pageVars.set("todos", { { title = "Book venue", done = false } })',
+        },
       ],
     },
   };
