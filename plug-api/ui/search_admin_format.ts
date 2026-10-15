@@ -229,7 +229,12 @@ export function searchSummaryText(
   if (failed.length > 1) {
     parts.push(`Search failed in ${plural(failed.length, "space")}`);
   }
-  return parts.length ? parts.join(", ") : "All indexes up to date";
+  // One sentence: later parts start in lower case ("…, catching up Journal").
+  return parts.length
+    ? parts
+        .map((part, i) => (i ? part[0].toLowerCase() + part.slice(1) : part))
+        .join(", ")
+    : "All indexes up to date";
 }
 
 /** The space list's badge for a space's search indexes. */

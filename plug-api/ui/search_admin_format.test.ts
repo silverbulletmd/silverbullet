@@ -210,7 +210,7 @@ test("the summary names what each space is doing, building first", () => {
       e: space("Recipes", state("failed", { reason: "disk full" })),
     }),
   ).toBe(
-    "Downloading the search model (120 MB of 488 MB), 1 space starting, Catching up Orchard (300 of 2,000 pages), Search failed in Recipes",
+    "Downloading the search model (120 MB of 488 MB), 1 space starting, catching up Orchard (300 of 2,000 pages), search failed in Recipes",
   );
   expect(
     searchSummaryText({
@@ -221,7 +221,7 @@ test("the summary names what each space is doing, building first", () => {
       ),
       b: space("Bikes", state("failed", { reason: "y" })),
     }),
-  ).toBe("Indexing Notes (1 of 1 page), Search failed in 2 spaces");
+  ).toBe("Indexing Notes (1 of 1 page), search failed in 2 spaces");
 });
 
 test("the on-by-default help names the model and where it is chosen", () => {

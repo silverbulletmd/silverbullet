@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(serde_json::from_str::<Value>(&out).unwrap(), sample());
         assert_eq!(err, "");
         let (out, _) = render(&sample(), OutputMode::Jsonl);
-        assert_eq!(out.lines().count(), 2);
+        assert_eq!(out.lines().count(), 3, "every match, not one per page");
     }
 
     #[test]
