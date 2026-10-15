@@ -223,8 +223,8 @@ mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
 
-    #[test]
-    fn renders_the_real_shipped_auth_html_without_leftover_placeholders() {
+    #[tokio::test]
+    async fn renders_the_real_shipped_auth_html_without_leftover_placeholders() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../client_bundle/client/.client/auth.html"

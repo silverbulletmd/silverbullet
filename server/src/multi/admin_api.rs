@@ -232,25 +232,24 @@ async fn handle_list(State(state): State<Arc<AdminState>>) -> Response {
     Json(state.manager.list()).into_response()
 }
 
-fn api_error(e: ApiError) -> Response {
+pub(super) fn api_error(e: ApiError) -> Response {
     match e {
         ApiError::Validation(errors) => {
             (StatusCode::BAD_REQUEST, Json(json!({ "errors": errors }))).into_response()
         }
-        ApiError::NotFound => (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "errors": [{ "field": "id", "message": "no such space" }] })),
-        )
-            .into_response(),
+        ApiError::NotFound => error_response(StatusCode::NOT_FOUND, "id", "no such space"),
+        ApiError::Conflict(msg) => error_response(StatusCode::CONFLICT, "", &msg),
         ApiError::Internal(msg) => {
             tracing::error!("admin API internal error: {msg}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "errors": [{ "field": "", "message": msg }] })),
-            )
-                .into_response()
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, "", &msg)
         }
     }
+}
+
+/// `status` with one error on `field`.
+pub(super) fn error_response(status: StatusCode, field: &str, message: &str) -> Response {
+    let errors = json!({ "errors": [{ "field": field, "message": message }] });
+    (status, Json(errors)).into_response()
 }
 
 /// Maps `UserStore`'s plain `Err(String)` to a response: a message starting
@@ -928,7 +927,18 @@ async fn handle_fs_dirs(
 }
 
 async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
-    Json(json!({ "runtimeApi": state.runtime_availability, "runtimeApiEnabled": state.manager.runtime_enabled(), "primaryUrl": state.manager.primary_url() })).into_response()
+    let search_model = state
+        .manager
+        .search()
+        .model()
+        .map(|spec| json!({ "id": spec.id, "displayName": spec.display_name }));
+    Json(json!({
+        "runtimeApi": state.runtime_availability,
+        "runtimeApiEnabled": state.manager.runtime_enabled(),
+        "primaryUrl": state.manager.primary_url(),
+        "searchModel": search_model,
+    }))
+    .into_response()
 }
 
 /// Path status + subdirectory suggestions for a folder-picker field. Relative
@@ -1012,6 +1022,7 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
                 .delete(handle_delete),
         )
         .merge(super::git_connection::routes())
+        .merge(super::search_admin::routes())
         .route("/spaces/{id}/git", get(handle_git_status))
         .route(
             "/spaces/{id}/git/remote",
@@ -1068,15 +1079,19 @@ pub fn build_admin_api_router(state: Arc<AdminState>) -> Router {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use crate::multi::manager::MultiManager;
+    use crate::search::SpaceSearch;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use silverbullet_server_common::space::MemorySpacePrimitives;
     use std::sync::Arc;
     use tower::ServiceExt;
+
+    mod semantic_size;
+    mod server_config;
 
     fn test_authenticator() -> Arc<Authenticator> {
         Arc::new(Authenticator::from_secret_bytes(vec![9; 32], "v1".into()))
@@ -1107,8 +1122,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            search_gate: Arc::new(crate::search::Gate::new()),
-            search_index_root: None,
+            search: SpaceSearch::in_memory(),
         }
     }
 
@@ -1122,14 +1136,26 @@ mod tests {
         dir: &tempfile::TempDir,
         runtime_availability: crate::runtime::RuntimeAvailability,
     ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
+        admin_router_on(dir, runtime_availability, SpaceSearch::in_memory())
+    }
+
+    pub(crate) fn admin_router_on(
+        dir: &tempfile::TempDir,
+        runtime_availability: crate::runtime::RuntimeAvailability,
+        search: SpaceSearch,
+    ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
         let users = UserStore::create_empty(dir.path()).unwrap();
         users
             .create_user("admin", "adminpw1", true, Profile::default())
             .unwrap();
         let authenticator = test_authenticator();
+        let deps = InstanceDeps {
+            search,
+            ..deps(dir.path(), users.clone(), authenticator.clone())
+        };
         let manager = MultiManager::boot(
             dir.path().to_path_buf(),
-            deps(dir.path(), users.clone(), authenticator.clone()),
+            deps,
             std::collections::BTreeSet::new(),
         )
         .unwrap();
@@ -1182,7 +1208,7 @@ mod tests {
     /// very cookie that surface would have set. Reading `credential_version`
     /// live keeps the forged session subject to revocation exactly as a real
     /// one is.
-    fn session_cookie(users: &UserStore, username: &str) -> String {
+    pub(crate) fn session_cookie(users: &UserStore, username: &str) -> String {
         let jwt = test_authenticator()
             .issue_jwt_with_version(
                 username,
@@ -1196,7 +1222,10 @@ mod tests {
         )
     }
 
-    async fn send(router: &axum::Router, req: Request<Body>) -> axum::response::Response {
+    pub(crate) async fn send(
+        router: &axum::Router,
+        req: Request<Body>,
+    ) -> axum::response::Response {
         router.clone().oneshot(req).await.unwrap()
     }
 
@@ -1218,162 +1247,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn runtime_server_toggle_persists_and_preserves_other_settings() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, _manager, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"runtimeApi":false}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(body_json(response).await["runtimeApi"], false);
-        let stored =
-            super::super::server_config::ServerConfig::load(&dir.path().join("server.json"))
-                .unwrap();
-        assert!(!stored.runtime_api);
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"serverName":"Notebook"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(body_json(response).await["runtimeApi"], false);
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"runtimeApi":"yes"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn server_config_is_admin_gated_and_reports_validation_errors() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, manager, users) = admin_router(&dir);
-        assert_eq!(
-            send(&router, get("/api/server-config")).await.status(),
-            StatusCode::UNAUTHORIZED
-        );
-        let cookie = session_cookie(&users, "admin");
-        let response = authed(&router, "GET", "/api/server-config", "", &cookie).await;
-        assert_eq!(
-            body_json(response).await,
-            json!({ "primaryUrl": null, "serverName": "SilverBullet", "runtimeApi": true })
-        );
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"primaryUrl":"ftp://notes.example.test"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-        assert_eq!(
-            body_json(response).await["errors"][0]["field"],
-            "primaryUrl"
-        );
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"primaryUrl":"https://Manager.Example.test/"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            body_json(response).await["primaryUrl"],
-            "https://manager.example.test"
-        );
-        assert_eq!(
-            manager.primary_url().as_deref(),
-            Some("https://manager.example.test")
-        );
-    }
-
-    #[tokio::test]
-    async fn server_name_updates_preserve_primary_url_and_omitted_name() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, manager, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        manager
-            .set_primary_url("https://manager.example.test")
-            .unwrap();
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"serverName":"  Notebook Server  "}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            body_json(response).await,
-            json!({"primaryUrl":"https://manager.example.test", "serverName":"Notebook Server", "runtimeApi":true})
-        );
-        let response = authed(
-            &router,
-            "PUT",
-            "/api/server-config",
-            r#"{"primaryUrl":"https://other.example.test"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(body_json(response).await["serverName"], "Notebook Server");
-        for value in [
-            json!({"serverName":"  "}),
-            json!({"serverName":null}),
-            json!({"serverName":"x".repeat(101)}),
-        ] {
-            let response = authed(
-                &router,
-                "PUT",
-                "/api/server-config",
-                &value.to_string(),
-                &cookie,
-            )
-            .await;
-            assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-            assert_eq!(
-                body_json(response).await["errors"][0]["field"],
-                "serverName"
-            );
-        }
-        assert_eq!(manager.server_name(), "Notebook Server");
-    }
-
-    #[tokio::test]
-    async fn server_info_reports_runtime_availability_and_is_admin_gated() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, _manager, users) =
-            admin_router_with_runtime(&dir, crate::runtime::RuntimeAvailability::NoChrome);
-
-        let resp = send(&router, get("/api/server-info")).await;
-        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
-
-        let cookie = session_cookie(&users, "admin");
-        let resp = authed(&router, "GET", "/api/server-info", "", &cookie).await;
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            body_json(resp).await,
-            serde_json::json!({ "runtimeApi": { "status": "no_chrome" }, "runtimeApiEnabled": true, "primaryUrl": null }),
-        );
-    }
-
-    #[test]
-    fn admin_and_spaces_share_one_authenticator() {
+    async fn admin_and_spaces_share_one_authenticator() {
         use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
         use crate::multi::instance::{build_instance, InstanceStatus};
 
@@ -1402,24 +1276,9 @@ mod tests {
         // A private (users-backed) space whose folder resolves to the data
         // root persists its own secret to the *space* file in that same dir.
         let cfg = SpaceConfig {
-            name: "Root".into(),
             folder: dir.path().to_str().unwrap().to_string(),
-            binding: Binding::Prefix { prefix: "/".into() },
             access: Some(SpaceAccess::None),
-            legacy_public: None,
-            members: Default::default(),
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
-            theme_color: "#e1e1e1".into(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
+            ..SpaceConfig::test("Root", Binding::Prefix { prefix: "/".into() })
         };
         let inst = build_instance(
             "root",
@@ -1535,7 +1394,7 @@ mod tests {
         assert_eq!(allowed.status(), StatusCode::OK);
     }
 
-    async fn authed(
+    pub(crate) async fn authed(
         router: &axum::Router,
         method: &str,
         uri: &str,
@@ -1560,7 +1419,7 @@ mod tests {
         .await
     }
 
-    async fn body_json(resp: axum::response::Response) -> serde_json::Value {
+    pub(crate) async fn body_json(resp: axum::response::Response) -> serde_json::Value {
         let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .unwrap();
@@ -1568,7 +1427,7 @@ mod tests {
     }
 
     /// Create a space through the API and return its id.
-    async fn create_space(router: &axum::Router, cookie: &str, body: &str) -> String {
+    pub(crate) async fn create_space(router: &axum::Router, cookie: &str, body: &str) -> String {
         let resp = authed(router, "POST", "/api/spaces", body, cookie).await;
         assert_eq!(resp.status(), StatusCode::OK);
         body_json(resp).await["id"].as_str().unwrap().to_string()

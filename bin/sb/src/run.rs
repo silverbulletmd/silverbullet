@@ -225,6 +225,29 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                 CoreCommand::Query { expression } => {
                     commands::query::run(&conn, &expression, mode, &mut out)?
                 }
+                CoreCommand::Search {
+                    query,
+                    mode: search_mode,
+                    limit,
+                    status,
+                } => match query {
+                    Some(query) if !status => commands::search::search(
+                        &conn,
+                        &query,
+                        search_mode.as_deref(),
+                        limit.map(|l| l as usize),
+                        mode,
+                        &mut out,
+                    )?,
+                    _ => commands::search::status(&conn, mode, &mut out)?,
+                },
+                CoreCommand::Related { page, limit } => commands::search::related(
+                    &conn,
+                    &page,
+                    limit.map(|l| l as usize),
+                    mode,
+                    &mut out,
+                )?,
                 CoreCommand::Logs { lines, follow } => {
                     commands::logs::run(&conn, lines, follow, &mut out)?
                 }

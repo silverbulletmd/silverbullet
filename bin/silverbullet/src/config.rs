@@ -24,6 +24,12 @@ pub struct Config {
     pub host_url_prefix: String,
     pub http_logging: bool,
     pub revisions: RevisionsMode,
+    /// `SB_SEARCH_DIR`: single-space mode keeps its search indexes (and
+    /// model) there instead of in RAM.
+    pub search_dir: Option<String>,
+    /// `SB_SEARCH_MODEL`: the catalog id of the model for semantic search;
+    /// needs `search_dir`.
+    pub search_model: Option<String>,
 }
 
 /// An env var read as a non-empty string.
@@ -110,6 +116,8 @@ impl Config {
                     RevisionsMode::Unmanaged
                 }
             },
+            search_dir: env_nonempty("SB_SEARCH_DIR"),
+            search_model: env_nonempty("SB_SEARCH_MODEL"),
         })
     }
 }

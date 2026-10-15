@@ -10,6 +10,7 @@ import {
   type PortableMarkdownResult,
   type RenderContext,
   type RenderHost,
+  registerDispose,
 } from "./compose.ts";
 import type { Tracker } from "../space_lua/dependencies.ts";
 import type { TaskRefs } from "./inline.ts";
@@ -50,11 +51,18 @@ export function renderHostForClient(
       // Hold the height until the lazily imported iframe is attached, so
       // measurements don't see an empty host and shrink the page
       host.style.height = reserved;
+      let disposed = false;
+      let disposeIFrame: (() => void) | undefined;
+      registerDispose(host, () => {
+        disposed = true;
+        disposeIFrame?.();
+      });
       // Imported on first use: the sandbox module preloads iframes on load
       void import("../sandbox/widget_sandbox_iframe.ts").then(
         ({ createWidgetSandboxIFrame }) => {
-          // Annotated because the message callback below refers to it
-          const iframe: HTMLIFrameElement = createWidgetSandboxIFrame(
+          // Re-renders often discard a host before the import resolves
+          if (disposed) return;
+          const sandbox = createWidgetSandboxIFrame(
             client,
             key,
             {
@@ -63,6 +71,8 @@ export function renderHostForClient(
             },
             (message) => opts.onSandboxMessage?.(message, iframe),
           );
+          const iframe = sandbox.iframe;
+          disposeIFrame = sandbox.dispose;
           iframe.style.height = reserved;
           iframe.style.display = "block";
           host.append(iframe);

@@ -1,17 +1,27 @@
 //! Passages for full-text results: the best lines of a page with UTF-16
 //! highlights, computed from the page text with the index's own analyzers so
-//! a highlight marks what made the page match.
+//! a highlight marks what made the page match. The [`Matcher`] borrows the
+//! plan's analysed words and highlights the alternatives
+//! ([`WordList::alternatives`]) the plan's clauses are built from, so it
+//! applies the query's rules, not a copy.
 //!
-//! - Words: a page token whose stem, in the page's language (`detect_lang` of
-//!   the text, as the index stores it), equals a query word's stem. A
-//!   multi-token word (`F-31`, `attic-net`) matches as the adjacent sequence
-//!   of its raw tokens. A stopword of the page's language matches its literal
-//!   occurrences only when no other query word is a non-stopword there ("the"
-//!   alone, "worden" in a Dutch page), as the query then matched it literally.
+//! - Words: a page token whose stem, in the page's language (as the index
+//!   stores it), equals a query word's stem. A multi-token word (`F-31`,
+//!   `attic-net`) matches as the adjacent sequence of its raw tokens. A
+//!   stopword of the page's language matches its literal occurrences only
+//!   when no other query word is a non-stopword there ("the" alone,
+//!   "worden" in a Dutch page), as the query then matched it literally.
 //! - Phrase: the adjacent sequence of the phrase's raw tokens, as one span.
-//! - Similar tier (`fuzzy`): additionally edit distance 1 (transposition
-//!   cost 1) on tokens of `FUZZY_MIN_CHARS`+ characters without digits, and
-//!   in the page name a fuzzy prefix of the last word, as the query does.
+//! - Accents: in the exact tier, also page tokens equal to a query word (or
+//!   phrase) with accents folded, under the same stopword rule. Folded
+//!   spellings only, no word forms, as the query's folded pass.
+//! - A lone CJK character first or last in a multi-token word or phrase
+//!   (`iPhone用`) matches inside the page's bigram there, highlighted to
+//!   that character, as the query matches it.
+//! - Similar tier: additionally edit distance 1 (transposition cost 1) on
+//!   tokens of `FUZZY_MIN_CHARS`+ characters without digits, on the parts of
+//!   joined words the query fuzzes, and in the page name a fuzzy prefix of
+//!   the last word (or of its prefix part), as the query does.
 //!
 //! The `Match` conventions: `pos` is the UTF-16
 //! offset of the line's first highlight in the page text, `line` is 1-based,
@@ -22,12 +32,15 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 
+use silverbullet_server_common::page::outline;
 use tantivy::tokenizer::TokenStream;
 use tantivy::Index;
 
-use super::analysis::stem_tokenizer_name;
-use super::query::{FUZZY_MIN_CHARS, MAX_FUZZY_PARTS};
-use super::{detect_lang, tokens, Lang, RAW_TOKENIZER};
+use super::analysis::{stem_tokenizer_name, tokens, Lang};
+use super::query::Tier;
+use super::schema::{FOLD_TOKENIZER, RAW_TOKENIZER};
+use super::script::{is_cjk, may_fold};
+use super::words::{lone_cjk, Alt, QueryWords, Tok, Word, WordKind, WordList};
 use crate::types::Match;
 
 /// At most this many passages per result page.
@@ -37,45 +50,21 @@ pub const EXCERPT_CHARS: usize = 240;
 /// Context kept before the first highlight of a long line, in characters.
 const LEAD_CHARS: usize = 80;
 
-/// One query word, analysed.
-enum Word {
-    /// Several raw tokens, matched adjacent and in order.
-    Seq(Vec<String>),
-    /// Its raw token, and its stem per language (`Lang::ALL` order); `None`
-    /// where a stopword.
-    Stems {
-        raw: Option<String>,
-        stems: Vec<Option<String>>,
+/// What a page is matched against for highlighting: the plan's words.
+pub enum Matcher<'a> {
+    /// Phrase mode: the phrase's raw tokens, and the same folded,
+    /// highlighted as one span.
+    Phrase {
+        index: &'a Index,
+        toks: &'a [Tok],
+        folded: &'a [Tok],
     },
-}
-
-/// The query's words analysed for highlighting.
-pub struct Matcher {
-    index: Index,
-    phrase: bool,
-    fuzzy: bool,
-    /// Phrase mode: the phrase's raw tokens.
-    phrase_toks: Vec<String>,
-    /// Words mode: one entry per query word.
-    words: Vec<Word>,
-    /// Components of multi-token words fuzzed in the Similar tier, with the
-    /// word they belong to; distinct and capped like the query's.
-    fuzzy_parts: Vec<(usize, String)>,
-}
-
-fn texts(index: &Index, tokenizer: &str, text: &str) -> Vec<String> {
-    tokens(index, tokenizer, text)
-        .into_iter()
-        .map(|(_, t)| t)
-        .collect()
-}
-
-fn lang_index(lang: Lang) -> usize {
-    Lang::ALL.iter().position(|l| *l == lang).unwrap_or(0)
-}
-
-fn fuzzy_ok(t: &str) -> bool {
-    t.chars().count() >= FUZZY_MIN_CHARS && !t.chars().any(char::is_numeric)
+    /// Words mode, in the tier that answered.
+    Words {
+        index: &'a Index,
+        list: &'a WordList,
+        tier: Tier,
+    },
 }
 
 /// Whether `a` and `b` are at most one edit apart (insertion, deletion,
@@ -129,11 +118,33 @@ fn prefix_within_one(token: &str, q: &str) -> bool {
     ends.any(|end| within_one(&token[..end], q))
 }
 
-/// Tokens grouped by text: each distinct token once, with its ranges.
+/// Tokens other than CJK grouped by text: each distinct token once, with
+/// its ranges. Its readers (stopwords matched literally, fuzzy parts and
+/// prefixes of 4+ characters) never match a CJK token, of which a page can
+/// have hundreds of thousands of distinct bigrams.
 fn vocabulary(toks: &[(Range<usize>, String)]) -> HashMap<&str, Vec<Range<usize>>> {
     let mut out: HashMap<&str, Vec<Range<usize>>> = HashMap::new();
     for (range, t) in toks {
-        out.entry(t.as_str()).or_default().push(range.clone());
+        if !starts_cjk(t) {
+            out.entry(t.as_str()).or_default().push(range.clone());
+        }
+    }
+    out
+}
+
+/// Ranges of `c` inside the page's raw tokens (CJK text is indexed as
+/// two-character tokens), each once. Scanned rather than grouped by text,
+/// as for other exact CJK words.
+fn lone_cjk_hits(raw: &[(Range<usize>, String)], c: char) -> Vec<Range<usize>> {
+    let mut starts = HashSet::new();
+    let mut out = Vec::new();
+    for (range, t) in raw {
+        for (off, _) in t.match_indices(c) {
+            let start = range.start + off;
+            if starts.insert(start) {
+                out.push(start..start + c.len_utf8());
+            }
+        }
     }
     out
 }
@@ -145,168 +156,363 @@ struct Hit {
     term: usize,
 }
 
-/// Ranges of `toks` where `seq` occurs as adjacent tokens.
-fn seq_hits(toks: &[(Range<usize>, String)], seq: &[String]) -> Vec<Range<usize>> {
+/// Ranges of `toks` where `seq` occurs as adjacent tokens. A lone CJK
+/// character first or last in a longer `seq` matches a page token ending or
+/// starting with it, as the query does (`iPhone用` in `iPhone用のケース`), and
+/// the range ends at that character.
+fn seq_hits<S: AsRef<str>>(toks: &[(Range<usize>, S)], seq: &[Tok]) -> Vec<Range<usize>> {
     if seq.is_empty() || toks.len() < seq.len() {
         return Vec::new();
     }
+    let last = seq.len() - 1;
+    let edge = |i: usize| if last > 0 { lone_cjk(&seq[i].1) } else { None };
+    let (head, tail) = (edge(0), edge(last));
+    let inner = usize::from(head.is_some())..last + usize::from(tail.is_none());
     toks.windows(seq.len())
-        .filter(|w| w.iter().zip(seq).all(|((_, t), s)| t == s))
-        .map(|w| w[0].0.start..w[w.len() - 1].0.end)
+        .filter_map(|w| {
+            let start = match head {
+                Some(c) => {
+                    let (range, t) = &w[0];
+                    t.as_ref().ends_with(c).then(|| range.end - c.len_utf8())?
+                }
+                None => w[0].0.start,
+            };
+            let end = match tail {
+                Some(c) => {
+                    let (range, t) = &w[last];
+                    t.as_ref()
+                        .starts_with(c)
+                        .then(|| range.start + c.len_utf8())?
+                }
+                None => w[last].0.end,
+            };
+            w[inner.clone()]
+                .iter()
+                .zip(&seq[inner.clone()])
+                .all(|((_, t), (_, s))| t.as_ref() == s)
+                .then_some(start..end)
+        })
         .collect()
 }
 
-impl Matcher {
-    /// `words` as `Plan::words` gives them; `phrase` for Phrase mode, `fuzzy`
-    /// when the Similar tier answered.
-    pub fn new(index: &Index, words: &[String], phrase: bool, fuzzy: bool) -> Self {
-        let mut m = Matcher {
-            index: index.clone(),
-            phrase,
-            fuzzy,
-            phrase_toks: Vec::new(),
-            words: Vec::new(),
-            fuzzy_parts: Vec::new(),
-        };
-        if phrase {
-            m.phrase_toks = texts(index, RAW_TOKENIZER, &words.join(" "));
-            return m;
+/// The raw tokens of `text` stemmed in `lang`, grouped by stem. Each token
+/// is stemmed from its own slice of `text`, as the index stems it: the raw
+/// analyzer turns ة into ه, which the stem analyzer leaves to the stemmer.
+/// Stopwords drop out.
+fn stem_vocabulary(
+    index: &Index,
+    lang: Lang,
+    text: &str,
+    raw: &[(Range<usize>, String)],
+) -> HashMap<String, Vec<Range<usize>>> {
+    let mut out: HashMap<String, Vec<Range<usize>>> = HashMap::new();
+    let Some(mut analyzer) = index.tokenizers().get(&stem_tokenizer_name(lang)) else {
+        return out;
+    };
+    let mut slices: HashMap<&str, Vec<Range<usize>>> = HashMap::new();
+    for (range, t) in raw {
+        // CJK words are matched by scanning the raw tokens (stemmers and
+        // stopword lists leave them alone), and a page of them has hundreds
+        // of thousands of distinct bigrams.
+        if starts_cjk(t) {
+            continue;
         }
-        let mut seen = HashSet::new();
-        for (i, w) in words.iter().enumerate() {
-            let raw = texts(index, RAW_TOKENIZER, w);
-            if raw.len() > 1 {
-                for t in raw.iter().filter(|t| fuzzy_ok(t)) {
-                    if seen.len() >= MAX_FUZZY_PARTS {
-                        break;
-                    }
-                    if seen.insert(t.clone()) {
-                        m.fuzzy_parts.push((i, t.clone()));
-                    }
-                }
-                m.words.push(Word::Seq(raw));
-            } else {
-                let stems = Lang::ALL
-                    .iter()
-                    .map(|l| texts(index, &stem_tokenizer_name(*l), w).into_iter().next())
-                    .collect();
-                m.words.push(Word::Stems {
-                    raw: raw.into_iter().next(),
-                    stems,
-                });
-            }
-        }
-        m
+        slices
+            .entry(&text[range.clone()])
+            .or_default()
+            .push(range.clone());
     }
+    for (slice, ranges) in slices {
+        let mut stream = analyzer.token_stream(slice);
+        if let Some(tok) = stream.next() {
+            out.entry(tok.text.clone()).or_default().extend(ranges);
+        }
+    }
+    out
+}
 
-    /// `vocab` (raw tokens) stemmed in `lang`, each distinct token once: the
-    /// stem analyzer works token by token, so this equals stemming the text.
-    /// Stopwords drop out.
-    fn stem_vocabulary(
-        &self,
-        lang: Lang,
-        vocab: &HashMap<&str, Vec<Range<usize>>>,
-    ) -> HashMap<String, Vec<Range<usize>>> {
-        let mut out: HashMap<String, Vec<Range<usize>>> = HashMap::new();
-        let Some(mut analyzer) = self.index.tokenizers().get(&stem_tokenizer_name(lang)) else {
-            return out;
-        };
-        for (t, ranges) in vocab {
-            let mut stream = analyzer.token_stream(t);
-            if let Some(tok) = stream.next() {
-                out.entry(tok.text.clone())
-                    .or_default()
-                    .extend(ranges.iter().cloned());
+fn starts_cjk(t: &str) -> bool {
+    t.chars().next().is_some_and(is_cjk)
+}
+
+/// Each distinct raw token that folding accents changes, folded
+/// (`żółw` → `zolw`). Only tokens with a character folding may change are
+/// analysed ([`may_fold`]): ASCII, CJK (a page of it has hundreds of
+/// thousands of distinct bigrams), Arabic, Cyrillic and Greek tokens fold to
+/// themselves.
+fn fold_vocabulary<'t>(
+    index: &Index,
+    raw: &'t [(Range<usize>, String)],
+) -> HashMap<&'t str, String> {
+    let mut out = HashMap::new();
+    let Some(mut analyzer) = index.tokenizers().get(FOLD_TOKENIZER) else {
+        return out;
+    };
+    let mut unchanged = HashSet::new();
+    for (_, t) in raw {
+        let t = t.as_str();
+        if !t.chars().any(may_fold) || out.contains_key(t) || unchanged.contains(t) {
+            continue;
+        }
+        let mut stream = analyzer.token_stream(t);
+        match stream.next() {
+            Some(tok) if tok.text != t => {
+                out.insert(t, tok.text.clone());
+            }
+            _ => {
+                unchanged.insert(t);
             }
         }
-        out
+    }
+    out
+}
+
+/// The page's raw tokens, folded, in order (for sequences).
+fn folded_tokens<'t>(
+    raw: &'t [(Range<usize>, String)],
+    fold: &'t HashMap<&str, String>,
+) -> Vec<(Range<usize>, &'t str)> {
+    raw.iter()
+        .map(|(r, t)| {
+            (
+                r.clone(),
+                fold.get(t.as_str()).map_or(t.as_str(), String::as_str),
+            )
+        })
+        .collect()
+}
+
+/// Ranges of the folded phrase `folded` in `raw` that `seen` lacks.
+fn folded_phrase_hits(
+    index: &Index,
+    raw: &[(Range<usize>, String)],
+    toks: &[Tok],
+    folded: &[Tok],
+    seen: &[Range<usize>],
+) -> Vec<Range<usize>> {
+    if folded.iter().all(|(_, t)| starts_cjk(t)) {
+        return Vec::new();
+    }
+    let fold = fold_vocabulary(index, raw);
+    // Unchanged page tokens against an unchanged phrase: the exact hits.
+    if fold.is_empty() && folded == toks {
+        return Vec::new();
+    }
+    let seen: HashSet<(usize, usize)> = seen.iter().map(|r| (r.start, r.end)).collect();
+    seq_hits(&folded_tokens(raw, &fold), folded)
+        .into_iter()
+        .filter(|r| !seen.contains(&(r.start, r.end)))
+        .collect()
+}
+
+/// Words-mode hits with accents folded of the `wanted` words (their
+/// [`Alt::Folded`] marked for the page's language), appended to `out` where
+/// an exact rule hasn't already marked that range for that word.
+fn folded_hits(
+    index: &Index,
+    wanted: &[(usize, &Word)],
+    raw: &[(Range<usize>, String)],
+    out: &mut Vec<Hit>,
+) {
+    let fold = fold_vocabulary(index, raw);
+    let mut changed: HashMap<&str, Vec<Range<usize>>> = HashMap::new();
+    for (range, t) in raw.iter().filter(|_| !fold.is_empty()) {
+        if t.is_ascii() {
+            continue;
+        }
+        if let Some(f) = fold.get(t.as_str()) {
+            changed.entry(f.as_str()).or_default().push(range.clone());
+        }
+    }
+    let seen: HashSet<(usize, usize, usize)> = out
+        .iter()
+        .map(|h| (h.range.start, h.range.end, h.term))
+        .collect();
+    let mut page: Option<Vec<(Range<usize>, &str)>> = None;
+    for &(i, word) in wanted {
+        let ranges = match (&word.kind, word.folded.as_slice()) {
+            (WordKind::Single { raw: (_, r), .. }, [(_, t)]) => {
+                let mut ranges = changed.get(t.as_str()).cloned().unwrap_or_default();
+                // An accented query word: its folded form as the page has it
+                // unaccented.
+                if t != r {
+                    ranges.extend(raw.iter().filter(|(_, p)| p == t).map(|(rg, _)| rg.clone()));
+                }
+                ranges
+            }
+            (WordKind::Seq(seq), folded) => {
+                if fold.is_empty() && seq.as_slice() == folded {
+                    continue;
+                }
+                let page = page.get_or_insert_with(|| folded_tokens(raw, &fold));
+                seq_hits(page, folded)
+            }
+            _ => continue,
+        };
+        for range in ranges {
+            if !seen.contains(&(range.start, range.end, i)) {
+                out.push(Hit { range, term: i });
+            }
+        }
+    }
+}
+
+impl<'a> Matcher<'a> {
+    /// The matcher for a plan's `words`; `tier` is the tier that answered
+    /// (Phrase mode has only one).
+    pub fn new(index: &'a Index, words: &'a QueryWords, tier: Tier) -> Matcher<'a> {
+        match words {
+            QueryWords::Phrase { raw, folded } => Matcher::Phrase {
+                index,
+                toks: raw,
+                folded,
+            },
+            QueryWords::Words(list) => Matcher::Words { index, list, tier },
+        }
     }
 
     /// Every match in `text`, in a page of language `lang`; `name` when
     /// `text` is the page name (fuzzy prefixes apply there).
     fn hits(&self, text: &str, lang: Lang, name: bool) -> Vec<Hit> {
-        let mut out = Vec::new();
-        let push = |out: &mut Vec<Hit>, ranges: &[Range<usize>], term: usize| {
-            out.extend(ranges.iter().map(|r| Hit {
-                range: r.clone(),
-                term,
-            }));
-        };
-        if self.phrase {
-            let raw = tokens(&self.index, RAW_TOKENIZER, text);
-            for range in seq_hits(&raw, &self.phrase_toks) {
-                out.push(Hit { range, term: 0 });
+        match *self {
+            Matcher::Phrase {
+                index,
+                toks,
+                folded,
+            } => {
+                let raw = tokens(index, RAW_TOKENIZER, text);
+                let lone = match toks {
+                    [(_, t)] => lone_cjk(t),
+                    _ => None,
+                };
+                let mut ranges = match lone {
+                    Some(c) => lone_cjk_hits(&raw, c),
+                    None => seq_hits(&raw, toks),
+                };
+                if lone.is_none() {
+                    let more = folded_phrase_hits(index, &raw, toks, folded, &ranges);
+                    ranges.extend(more);
+                }
+                ranges
+                    .into_iter()
+                    .map(|range| Hit { range, term: 0 })
+                    .collect()
             }
-            return out;
+            Matcher::Words { index, list, tier } => word_hits(index, list, tier, text, lang, name),
         }
-        let li = lang_index(lang);
-        let last = self.words.len().saturating_sub(1);
-        let wants_raw = self.words.iter().any(|w| matches!(w, Word::Seq(_)));
-        let wants_stems = self.words.iter().any(|w| matches!(w, Word::Stems { .. }));
-        // Some word is not a stopword in this language: stopwords then only
-        // count as present, unhighlighted.
-        let content = self.words.iter().any(|w| match w {
-            Word::Seq(_) => true,
-            Word::Stems { stems, .. } => stems[li].is_some(),
-        });
-        let raw = tokens(&self.index, RAW_TOKENIZER, text);
-        let vocab = vocabulary(&raw);
-        let stems = if wants_stems {
-            self.stem_vocabulary(lang, &vocab)
-        } else {
-            HashMap::new()
-        };
-        for (i, word) in self.words.iter().enumerate() {
-            match word {
-                Word::Stems { raw: r, stems: qs } => {
-                    let Some(q) = &qs[li] else {
-                        if let Some(ranges) = r.as_deref().filter(|_| !content).and_then(|r| vocab.get(r)) {
-                            push(&mut out, ranges, i);
-                        }
-                        continue;
-                    };
-                    if !(self.fuzzy && fuzzy_ok(q)) {
-                        if let Some(ranges) = stems.get(q) {
-                            push(&mut out, ranges, i);
-                        }
-                        continue;
-                    }
-                    let prefix = name && i == last;
-                    for (s, ranges) in &stems {
-                        if within_one(s, q) || (prefix && prefix_within_one(s, q)) {
-                            push(&mut out, ranges, i);
-                        }
-                    }
-                }
-                Word::Seq(seq) => {
-                    for range in seq_hits(&raw, seq) {
-                        out.push(Hit { range, term: i });
-                    }
-                }
-            }
-        }
-        if self.fuzzy && wants_raw {
-            for (i, part) in &self.fuzzy_parts {
-                for (s, ranges) in &vocab {
-                    if within_one(s, part) {
-                        push(&mut out, ranges, *i);
-                    }
-                }
-            }
-            // The name prefix goes to the last word's last part.
-            if let Some(Word::Seq(seq)) = self.words.last().filter(|_| name) {
-                if let Some(t) = seq.last().filter(|t| fuzzy_ok(t)) {
-                    for (s, ranges) in &vocab {
-                        if prefix_within_one(s, t) {
-                            push(&mut out, ranges, last);
-                        }
-                    }
-                }
-            }
-        }
-        out.sort_by_key(|h| (h.range.start, h.range.end));
-        out
     }
+}
+
+/// [`Matcher::hits`] in Words mode: the alternatives of each word in
+/// `tier` that are marked for `lang`.
+fn word_hits(
+    index: &Index,
+    list: &WordList,
+    tier: Tier,
+    text: &str,
+    lang: Lang,
+    name: bool,
+) -> Vec<Hit> {
+    let li = lang.idx();
+    let raw = tokens(index, RAW_TOKENIZER, text);
+    // Built when first read: the distinct tokens (for stopwords matched
+    // literally, fuzzy parts and name prefixes) and the stems. Neither holds
+    // CJK tokens: a CJK word is compared with the raw tokens as they stand
+    // (stemmers leave it alone, it is too short to fuzz), and grouping a
+    // page of bigrams by text (hundreds of thousands of them) would
+    // dominate the time.
+    let mut vocab: Option<HashMap<&str, Vec<Range<usize>>>> = None;
+    let mut stems: Option<HashMap<String, Vec<Range<usize>>>> = None;
+    let mut out = Vec::new();
+    let push = |out: &mut Vec<Hit>, ranges: &[Range<usize>], term: usize| {
+        out.extend(ranges.iter().map(|r| Hit {
+            range: r.clone(),
+            term,
+        }));
+    };
+    let mut folded = Vec::new();
+    for (i, word) in list.words.iter().enumerate() {
+        for alt in list.alternatives(i, tier) {
+            match alt {
+                Alt::Raw { toks, marked, .. } if marked[li] => match toks {
+                    [(_, t)] => match lone_cjk(t) {
+                        Some(c) => push(&mut out, &lone_cjk_hits(&raw, c), i),
+                        None => {
+                            let vocab = vocab.get_or_insert_with(|| vocabulary(&raw));
+                            if let Some(ranges) = vocab.get(t.as_str()) {
+                                push(&mut out, ranges, i);
+                            }
+                        }
+                    },
+                    seq => {
+                        for range in seq_hits(&raw, seq) {
+                            out.push(Hit { range, term: i });
+                        }
+                    }
+                },
+                Alt::Stem {
+                    lang: l,
+                    term,
+                    fuzzy,
+                    name_prefix,
+                    marked: true,
+                    scanned,
+                } if l == lang => {
+                    if scanned {
+                        for (range, t) in &raw {
+                            if t == term {
+                                out.push(Hit {
+                                    range: range.clone(),
+                                    term: i,
+                                });
+                            }
+                        }
+                        continue;
+                    }
+                    let stems =
+                        stems.get_or_insert_with(|| stem_vocabulary(index, lang, text, &raw));
+                    if !fuzzy {
+                        if let Some(ranges) = stems.get(term) {
+                            push(&mut out, ranges, i);
+                        }
+                        continue;
+                    }
+                    let prefix = name && name_prefix;
+                    for (s, ranges) in stems.iter() {
+                        if within_one(s, term) || (prefix && prefix_within_one(s, term)) {
+                            push(&mut out, ranges, i);
+                        }
+                    }
+                }
+                Alt::Folded { marked, .. } if marked[li] => folded.push((i, word)),
+                Alt::Parts => {
+                    let vocab = vocab.get_or_insert_with(|| vocabulary(&raw));
+                    for part in list.parts_of(i) {
+                        if part.fuzzy {
+                            for (s, ranges) in vocab.iter() {
+                                if within_one(s, &part.text) {
+                                    push(&mut out, ranges, part.word);
+                                }
+                            }
+                        }
+                        if part.prefix && name {
+                            for (s, ranges) in vocab.iter() {
+                                if prefix_within_one(s, &part.text) {
+                                    push(&mut out, ranges, part.word);
+                                }
+                            }
+                        }
+                    }
+                }
+                Alt::Raw { .. } | Alt::Stem { .. } | Alt::Present(_) | Alt::Folded { .. } => {}
+            }
+        }
+    }
+    if !folded.is_empty() {
+        folded_hits(index, &folded, &raw, &mut out);
+    }
+    out.sort_by_key(|h| (h.range.start, h.range.end));
+    out
 }
 
 fn utf16_len(s: &str) -> u32 {
@@ -325,91 +531,6 @@ fn line_ranges(text: &str) -> Vec<Range<usize>> {
     }
     out.push(start..text.len());
     out
-}
-
-/// The text of an ATX heading line (`# Title`, up to three leading spaces,
-/// optional closing `#`s), `Some("")` for an empty heading.
-fn atx_heading(line: &str) -> Option<&str> {
-    let indent = line.len() - line.trim_start_matches(' ').len();
-    if indent > 3 {
-        return None;
-    }
-    let rest = &line[indent..];
-    let level = rest.len() - rest.trim_start_matches('#').len();
-    if !(1..=6).contains(&level) {
-        return None;
-    }
-    let rest = &rest[level..];
-    if !(rest.is_empty() || rest.starts_with([' ', '\t'])) {
-        return None;
-    }
-    let rest = rest.trim();
-    let closed = rest.trim_end_matches('#');
-    Some(if closed.is_empty() || closed.ends_with([' ', '\t']) {
-        closed.trim_end()
-    } else {
-        rest
-    })
-}
-
-/// A code fence opener or closer: its character and length.
-fn fence(line: &str) -> Option<(char, usize)> {
-    let indent = line.len() - line.trim_start_matches(' ').len();
-    if indent > 3 {
-        return None;
-    }
-    let rest = &line[indent..];
-    let c = rest.chars().next().filter(|c| *c == '`' || *c == '~')?;
-    let after = rest.trim_start_matches(c);
-    let n = rest.len() - after.len();
-    // A backtick fence's info string can't hold a backtick: "```x```" is
-    // an inline code span.
-    (n >= 3 && !(c == '`' && after.contains('`'))).then_some((c, n))
-}
-
-/// The nearest ATX heading above each of `wanted` (line indexes), by
-/// scanning lines only up to the last of them. Frontmatter (a `---` block
-/// opening the page) and fenced code hold no headings.
-fn headings_above(text: &str, lines: &[Range<usize>], wanted: &[usize]) -> Vec<Option<String>> {
-    let line = |i: usize| text[lines[i].clone()].trim_end_matches('\r');
-    let upto = wanted.iter().copied().max().map_or(0, |m| m + 1);
-    let mut first_body = 0;
-    if !lines.is_empty() && line(0).trim_end() == "---" {
-        if let Some(end) = (1..lines.len()).find(|&i| line(i).trim_end() == "---") {
-            first_body = end + 1;
-        }
-    }
-    let mut above: Vec<Option<usize>> = vec![None; wanted.len()];
-    let mut current: Option<usize> = None;
-    let mut open: Option<(char, usize)> = None;
-    for i in first_body.min(upto)..upto {
-        for (k, w) in wanted.iter().enumerate() {
-            if *w == i {
-                above[k] = current;
-            }
-        }
-        let l = line(i);
-        if let Some((c, n)) = fence(l) {
-            match open {
-                None => open = Some((c, n)),
-                Some((oc, on)) if oc == c && n >= on && l.trim().trim_matches(c).is_empty() => {
-                    open = None
-                }
-                _ => {}
-            }
-            continue;
-        }
-        if open.is_some() {
-            continue;
-        }
-        if let Some(h) = atx_heading(l) {
-            current = (!h.is_empty()).then_some(i);
-        }
-    }
-    above
-        .into_iter()
-        .map(|h| h.and_then(|i| atx_heading(line(i))).map(String::from))
-        .collect()
 }
 
 /// Excerpt of `line` (a line's text, trimmed) around `hits` (byte ranges
@@ -449,10 +570,8 @@ fn excerpt(line: &str, hits: &[Range<usize>], lead: bool) -> (String, Vec<[u32; 
 /// only by name (or has no matching text) yields one Match at pos 0, line 1,
 /// with the name as excerpt.
 ///
-/// `lang` is the page's language as indexed (the document's `lang`); `None`
-/// detects it from `text`, which must then be the text that was indexed.
-pub fn passages(page: &str, text: &str, lang: Option<Lang>, m: &Matcher) -> Vec<Match> {
-    let lang = lang.unwrap_or_else(|| detect_lang(text));
+/// `lang` is the page's language as indexed (the document's `lang`).
+pub fn passages(page: &str, text: &str, lang: Lang, m: &Matcher) -> Vec<Match> {
     let hits = m.hits(text, lang, false);
     if hits.is_empty() {
         let name: String = page.chars().take(EXCERPT_CHARS).collect();
@@ -493,12 +612,12 @@ pub fn passages(page: &str, text: &str, lang: Option<Lang>, m: &Matcher) -> Vec<
     }
     ranked.sort_by(|a, b| b.1.cmp(&a.1).then(b.2.cmp(&a.2)).then(a.0.cmp(&b.0)));
     ranked.truncate(PASSAGES_PER_PAGE);
-    let chosen: Vec<usize> = ranked.iter().map(|(i, _, _)| *i).collect();
-    let headings = headings_above(text, &lines, &chosen);
+    // Frontmatter and fenced code hold no headings (see `page::outline`).
+    let outline = outline(text);
     ranked
         .into_iter()
-        .zip(headings)
-        .map(|((i, _, _), heading)| {
+        .map(|(i, _, _)| {
+            let heading = outline.heading_above(lines[i].start).map(String::from);
             let base = lines[i].start;
             let hs = &by_line[&i];
             let line = line_text(i);
@@ -520,307 +639,4 @@ pub fn passages(page: &str, text: &str, lang: Option<Lang>, m: &Matcher) -> Vec<
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::fulltext::{register_tokenizers, schema};
-
-    fn index() -> Index {
-        let (schema, _) = schema();
-        let index = Index::create_in_ram(schema);
-        register_tokenizers(&index);
-        index
-    }
-
-    fn words(list: &[&str]) -> Vec<String> {
-        list.iter().map(|w| w.to_string()).collect()
-    }
-
-    fn run(text: &str, query: &[&str], phrase: bool, fuzzy: bool) -> Vec<Match> {
-        let index = index();
-        let m = Matcher::new(&index, &words(query), phrase, fuzzy);
-        passages("Notes/Trips", text, None, &m)
-    }
-
-    /// The highlighted substrings of a match's excerpt.
-    fn marked(m: &Match) -> Vec<String> {
-        let utf16: Vec<u16> = m.excerpt.encode_utf16().collect();
-        m.highlights
-            .iter()
-            .map(|[a, b]| String::from_utf16(&utf16[*a as usize..*b as usize]).unwrap())
-            .collect()
-    }
-
-    #[test]
-    fn stemmed_words_highlight_their_forms() {
-        let out = run("I rode my Bike to the market", &["bikes"], false, false);
-        assert_eq!(out.len(), 1);
-        assert_eq!(marked(&out[0]), ["Bike"]);
-        assert_eq!(out[0].pos, 10);
-        assert_eq!(out[0].line, 1);
-    }
-
-    #[test]
-    fn stopwords_are_not_highlighted_alone() {
-        let out = run("the bike is in the shed", &["the", "bike"], false, false);
-        assert_eq!(marked(&out[0]), ["bike"]);
-    }
-
-    #[test]
-    fn stopwords_searched_alone_highlight_literally() {
-        let dutch = "De kettingen moeten elke maand gesmeerd worden.";
-        let out = run(dutch, &["worden"], false, false);
-        assert_eq!(out.len(), 1);
-        assert_eq!(marked(&out[0]), ["worden"]);
-        let out = run("the bike is in the shed", &["the"], false, false);
-        assert_eq!(marked(&out[0]), ["the", "the"]);
-        // With a content word they stay unhighlighted.
-        let out = run(dutch, &["worden", "gesmeerd"], false, false);
-        assert_eq!(marked(&out[0]), ["gesmeerd"]);
-    }
-
-    #[test]
-    fn phrase_highlights_only_adjacent_occurrences() {
-        let text = "pesto then basil\nbasil and pesto\nfresh Basil pesto today";
-        let out = run(text, &["basil", "pesto"], true, false);
-        assert_eq!(out.len(), 1);
-        assert_eq!(out[0].line, 3);
-        assert_eq!(marked(&out[0]), ["Basil pesto"]);
-    }
-
-    #[test]
-    fn multi_token_words_match_as_sequences() {
-        let text = "F 7 then 31\nthe F-31 valve";
-        let out = run(text, &["F-31"], false, false);
-        assert_eq!(out.len(), 1);
-        assert_eq!(out[0].line, 2);
-        assert_eq!(marked(&out[0]), ["F-31"]);
-    }
-
-    #[test]
-    fn fuzzy_highlights_near_misses_only_in_the_similar_tier() {
-        let text = "We did a rollback yesterday";
-        let out = run(text, &["rollbakc"], false, true);
-        assert_eq!(marked(&out[0]), ["rollback"]);
-        let exact = run(text, &["rollbakc"], false, false);
-        assert_eq!(exact.len(), 1);
-        assert_eq!(exact[0].excerpt, "Notes/Trips");
-        assert!(exact[0].highlights.is_empty());
-    }
-
-    #[test]
-    fn fuzzy_parts_of_multi_token_words() {
-        let out = run("the attic-net router", &["atic-net"], false, true);
-        assert_eq!(marked(&out[0]), ["attic"]);
-    }
-
-    #[test]
-    fn emoji_before_the_match_counts_utf16_units() {
-        let text = "🌱🌱 basil";
-        let out = run(text, &["basil"], false, false);
-        assert_eq!(out[0].pos, 5);
-        assert_eq!(marked(&out[0]), ["basil"]);
-    }
-
-    #[test]
-    fn crlf_lines() {
-        let text = "first\r\nsecond\r\nbasil here\r\n";
-        let out = run(text, &["basil"], false, false);
-        assert_eq!(out[0].line, 3);
-        assert_eq!(out[0].pos, 15);
-        assert_eq!(out[0].excerpt, "basil here");
-        assert_eq!(marked(&out[0]), ["basil"]);
-    }
-
-    #[test]
-    fn frontmatter_is_searchable_without_a_heading() {
-        let text =
-            "---\nstatus: rollback\n---\n# Plan\n```sh\n# not a heading\n```\nrollback steps";
-        let out = run(text, &["rollback"], false, false);
-        assert_eq!(out.len(), 2);
-        let fm = out.iter().find(|m| m.line == 2).unwrap();
-        assert_eq!(fm.heading, None);
-        let body = out.iter().find(|m| m.line == 8).unwrap();
-        assert_eq!(body.heading.as_deref(), Some("Plan"));
-    }
-
-    #[test]
-    fn headings_are_atx_and_nearest_above() {
-        let text = "# Top\n#tag basil\n## Sub ##\nbasil";
-        let out = run(text, &["basil"], false, false);
-        let lines: Vec<_> = out.iter().map(|m| (m.line, m.heading.clone())).collect();
-        assert_eq!(
-            lines,
-            [(2, Some("Top".to_string())), (4, Some("Sub".to_string()))]
-        );
-    }
-
-    #[test]
-    fn three_best_lines_in_order() {
-        let text = "basil\nmint\nbasil mint sage\nbasil basil\nsage mint\nbasil";
-        let out = run(text, &["basil", "mint", "sage"], false, false);
-        let lines: Vec<u32> = out.iter().map(|m| m.line).collect();
-        assert_eq!(lines, [3, 5, 4]);
-    }
-
-    #[test]
-    fn tag_lines_only_as_a_fallback() {
-        let out = run("tags: basil\nsome basil", &["basil"], false, false);
-        assert_eq!(out.len(), 1);
-        assert_eq!(out[0].line, 2);
-        let only = run("tags: basil", &["basil"], false, false);
-        assert_eq!(only[0].line, 1);
-    }
-
-    #[test]
-    fn long_lines_are_windowed_around_the_hit() {
-        let text = format!("{}needle {}", "lorem ".repeat(200), "ipsum ".repeat(200));
-        let out = run(&text, &["needle"], false, false);
-        let m = &out[0];
-        assert!(m.excerpt.chars().count() <= EXCERPT_CHARS);
-        assert_eq!(marked(m), ["needle"]);
-        assert_eq!(m.highlights[0][0], LEAD_CHARS as u32);
-        assert_eq!(m.pos, 1200);
-    }
-
-    #[test]
-    fn windows_never_split_characters() {
-        let text = format!("{}needle", "🌱 ".repeat(150));
-        let out = run(&text, &["needle"], false, false);
-        let m = &out[0];
-        assert!(m.excerpt.chars().count() <= EXCERPT_CHARS);
-        assert_eq!(marked(m), ["needle"]);
-    }
-
-    #[test]
-    fn name_only_match() {
-        let index = index();
-        let m = Matcher::new(&index, &words(&["gardens"]), false, false);
-        let out = passages("Garden Plans", "nothing to see", None, &m);
-        assert_eq!(out.len(), 1);
-        assert_eq!((out[0].pos, out[0].line), (0, 1));
-        assert_eq!(out[0].excerpt, "Garden Plans");
-        assert_eq!(marked(&out[0]), ["Garden"]);
-        let fuzzy = Matcher::new(&index, &words(&["plan", "gard"]), false, true);
-        let out = passages("Garden Plans", "", None, &fuzzy);
-        assert_eq!(marked(&out[0]), ["Garden", "Plans"]);
-    }
-
-    #[test]
-    fn empty_text() {
-        let out = run("", &["basil"], false, false);
-        assert_eq!(out.len(), 1);
-        assert_eq!(out[0].excerpt, "Notes/Trips");
-        assert!(out[0].highlights.is_empty());
-    }
-
-    #[test]
-    fn edit_distance_one() {
-        assert!(within_one("rollback", "rollbakc"));
-        assert!(within_one("rollback", "rolback"));
-        assert!(within_one("rollback", "rollbacks"));
-        assert!(within_one("rollback", "rollbock"));
-        assert!(!within_one("rollback", "rolbakc"));
-        assert!(!within_one("abcd", "badc"));
-        assert!(prefix_within_one("gardening", "gard"));
-        assert!(prefix_within_one("gardening", "gadr"));
-        assert!(!prefix_within_one("gardening", "grdn"));
-    }
-
-    #[test]
-    fn inline_triple_backticks_do_not_open_a_fence() {
-        let text = "```npm i```\n# Setup\nbasil\n~~~x~~~\n# Later\nbasil";
-        let out = run(text, &["basil"], false, false);
-        let headings: Vec<_> = out.iter().map(|m| m.heading.clone()).collect();
-        // "~~~x~~~" does open a fence (a tilde info string may hold tildes),
-        // so "# Later" is code.
-        assert_eq!(
-            headings,
-            [Some("Setup".to_string()), Some("Setup".to_string())]
-        );
-    }
-
-    #[test]
-    fn name_only_excerpt_shows_the_whole_name() {
-        let index = index();
-        let name = format!("{}/Greenhouse", "Projects/Long Folder Name".repeat(5));
-        let m = Matcher::new(&index, &words(&["greenhouse"]), false, false);
-        let out = passages(&name, "nothing to see", None, &m);
-        assert_eq!(out[0].excerpt, name);
-        assert_eq!(marked(&out[0]), ["Greenhouse"]);
-    }
-
-    #[test]
-    fn the_callers_language_is_used() {
-        let index = index();
-        // "tomaten" stems like "tomaat" only under the Dutch stemmer.
-        let m = Matcher::new(&index, &words(&["tomaat"]), false, false);
-        let text = "tomaten";
-        let nl = passages("P", text, Some(Lang::Nl), &m);
-        assert_eq!(marked(&nl[0]), ["tomaten"]);
-        let en = passages("P", text, Some(Lang::En), &m);
-        assert_eq!(en[0].excerpt, "P");
-    }
-
-    #[test]
-    fn edit_distance_handles_multibyte_chars() {
-        assert!(within_one("café", "cafe"));
-        assert!(within_one("caféx", "cafxé"));
-        assert!(within_one("naïve", "naïv"));
-        assert!(!within_one("🌱🌱🌱", "a"));
-        assert!(prefix_within_one("über", "üb"));
-    }
-
-    /// 50 pages of ~1 MiB in the Similar tier with 16 words. Debug builds
-    /// are too slow to be meaningful; run with
-    /// `cargo test --release -p silverbullet-server-search fulltext::passage -- --ignored --nocapture`.
-    #[test]
-    #[ignore]
-    fn large_pages_in_the_similar_tier_are_fast() {
-        let index = index();
-        let mut seed = 0x2545_f491_u64;
-        let mut next = move || {
-            seed ^= seed << 13;
-            seed ^= seed >> 7;
-            seed ^= seed << 17;
-            seed
-        };
-        let letters: Vec<char> = "abcdefghijklmnoprstuvwy".chars().collect();
-        let vocab: Vec<String> = (0..20_000)
-            .map(|_| {
-                let len = 3 + (next() % 8) as usize;
-                (0..len)
-                    .map(|_| letters[(next() % letters.len() as u64) as usize])
-                    .collect()
-            })
-            .collect();
-        let query: Vec<String> = (0..16)
-            .map(|i| {
-                if i % 4 == 3 {
-                    format!("{}-{}", vocab[i * 7], vocab[i * 11])
-                } else {
-                    vocab[i * 13].clone()
-                }
-            })
-            .collect();
-        let m = Matcher::new(&index, &query, false, true);
-        let pages: Vec<String> = (0..50)
-            .map(|_| {
-                let mut page = String::with_capacity(1 << 20);
-                while page.len() < (1 << 20) - 64 {
-                    page.push_str(&vocab[(next() % vocab.len() as u64) as usize]);
-                    page.push(if next() % 12 == 0 { '\n' } else { ' ' });
-                }
-                page
-            })
-            .collect();
-        let started = std::time::Instant::now();
-        let mut found = 0;
-        for (i, page) in pages.iter().enumerate() {
-            found += passages(&format!("Page {i}"), page, Some(Lang::En), &m).len();
-        }
-        let elapsed = started.elapsed();
-        eprintln!("50 x 1 MiB pages: {elapsed:?}, {found} passages");
-        assert_eq!(found, 150);
-        assert!(elapsed < std::time::Duration::from_secs(3), "{elapsed:?}");
-    }
-}
+mod tests;

@@ -152,8 +152,7 @@ impl Fixture {
             shell_disabled: true,
             index_template: "# Fixture\n".into(),
             shutdown: None,
-            search_gate: Arc::new(silverbullet_server::search::Gate::new()),
-            search_index_root: None,
+            search: silverbullet_server::search::SpaceSearch::in_memory(),
         };
         let manager = MultiManager::boot(
             dir.path().into(),

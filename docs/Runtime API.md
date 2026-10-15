@@ -11,6 +11,9 @@ Requests are evaluated via Chrome DevTools Protocol (CDP) in a headless Chrome i
 > **note** Note
 > The [[CLI]] provides a convenient command-line interface for the Runtime API — evaluate Lua, run scripts, and more, without writing raw HTTP requests.
 
+> **note** Note
+> Searching the space does not need the Runtime API: see [[HTTP API#Search]].
+
 # Setup
 The Runtime API is enabled automatically when Chrome, Chromium, or Chromium headless shell is detected on your system — no configuration needed. Auto-detection prefers headless shell when it is available on `PATH`.
 

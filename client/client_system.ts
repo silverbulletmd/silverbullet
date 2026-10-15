@@ -56,6 +56,7 @@ import type { CaptureInvocationContext } from "./capture/invocation.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
 import { searchSyscalls } from "./plugos/syscalls/search.ts";
 import { createServerSearch } from "./search/server_search.ts";
+import { hiddenPageNames } from "./navigator/views/pages.ts";
 import { iconSyscalls } from "./plugos/syscalls/icon.ts";
 import { navigatorSyscalls } from "./plugos/syscalls/navigator.ts";
 import { setRevisionsAvailable } from "./navigator/builtins.ts";
@@ -278,7 +279,13 @@ export class ClientSystem {
 
     setLuaEnvSource(() => this.spaceLuaEnv.env);
 
-    const search = createServerSearch(this.client, this.objectIndex);
+    const search = createServerSearch(this.client, {
+      hiddenPages: () =>
+        hiddenPageNames(
+          this.client.pageListLoaded,
+          this.client.ui?.viewState.allPages ?? [],
+        ),
+    });
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook, this.client),

@@ -1,4 +1,4 @@
-//! Candle based text embedder: prefixes, windowing, batching and pooling.
+//! Candle based text embedder: prefixes, one window per input, batching and pooling.
 
 use std::path::Path;
 
@@ -7,7 +7,7 @@ use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
 
 use super::catalog::{Architecture, ModelSpec, Pooling};
-use super::models::{bert, xlm_roberta};
+use super::models::{bert, modernbert, xlm_roberta};
 
 /// Whether a text is a search query or an indexed passage (selects the prefix).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,21 +26,22 @@ pub enum EmbedError {
 
 pub trait Embedder: Send + Sync {
     fn spec(&self) -> &ModelSpec;
-    /// One L2-normalised vector of `spec().dim` per input text.
+    /// Byte length of the longest prefix of `text` that embeds as one
+    /// passage window (passage prefix and special tokens included);
+    /// `text.len()` when all of it fits. Always a char boundary.
+    fn fit(&self, text: &str) -> usize;
+    /// One L2-normalised vector of `spec().dim` per input, each input cut to one window.
     fn embed(&self, texts: &[&str], kind: EmbedKind) -> Result<Vec<Vec<f32>>, EmbedError>;
 }
 
 enum Network {
     Bert(bert::BertModel),
     XlmRoberta(xlm_roberta::XLMRobertaModel),
+    ModernBert(modernbert::ModernBert),
 }
 
 /// Windows embedded per forward pass.
 const BATCH_WINDOWS: usize = 16;
-
-/// Most windows embedded per input text. Anything past `MAX_WINDOWS * (max_tokens - 2)` tokens is
-/// ignored, so one huge input cannot allocate unbounded memory or stall the worker.
-const MAX_WINDOWS: usize = 8;
 
 pub struct CandleEmbedder {
     network: Network,
@@ -114,6 +115,14 @@ impl CandleEmbedder {
                         .map(Network::XlmRoberta)
                         .map_err(|e| load_err("model", e))
                 }
+                Architecture::ModernBert => {
+                    let cfg: modernbert::Config = serde_json::from_str(&config_text)
+                        .map_err(|e| load_err("config.json", e))?;
+                    check_hidden(&spec, cfg.hidden_size)?;
+                    modernbert::ModernBert::load(vb, &cfg)
+                        .map(Network::ModernBert)
+                        .map_err(|e| load_err("model", e))
+                }
             }
         })?;
         Ok(Self {
@@ -125,9 +134,9 @@ impl CandleEmbedder {
         })
     }
 
-    /// Token id windows for one (already prefixed) text; each keeps the special tokens.
-    /// At most `MAX_WINDOWS` windows are returned.
-    pub(crate) fn windows(&self, text: &str) -> Result<Vec<Vec<u32>>, EmbedError> {
+    /// Token ids of one (already prefixed) text, cut to one window of
+    /// `max_tokens`: the start token, as much of the body as fits, the end token.
+    pub(crate) fn window(&self, text: &str) -> Result<Vec<u32>, EmbedError> {
         let encoding = self.tokenizer.encode(text, true).map_err(run_err)?;
         let ids = encoding.get_ids();
         let (first, last) = self.specials;
@@ -137,34 +146,25 @@ impl CandleEmbedder {
             ));
         }
         let body = &ids[1..ids.len() - 1];
-        let size = self.spec.max_tokens.saturating_sub(2).max(1);
-        if body.is_empty() {
-            return Ok(vec![vec![first, last]]);
-        }
-        Ok(body
-            .chunks(size)
-            .take(MAX_WINDOWS)
-            .map(|chunk| {
-                let mut window = Vec::with_capacity(chunk.len() + 2);
-                window.push(first);
-                window.extend_from_slice(chunk);
-                window.push(last);
-                window
-            })
-            .collect())
+        let keep = body.len().min(self.spec.max_tokens.saturating_sub(2));
+        let mut window = Vec::with_capacity(keep + 2);
+        window.push(first);
+        window.extend_from_slice(&body[..keep]);
+        window.push(last);
+        Ok(window)
     }
 
-    /// Windows of `text` with the spec's prefix for `kind` prepended.
-    pub(crate) fn prefixed_windows(
+    /// [`CandleEmbedder::window`] of `text` with the spec's prefix for `kind`.
+    pub(crate) fn prefixed_window(
         &self,
         text: &str,
         kind: EmbedKind,
-    ) -> Result<Vec<Vec<u32>>, EmbedError> {
+    ) -> Result<Vec<u32>, EmbedError> {
         let prefix = match kind {
             EmbedKind::Query => self.spec.query_prefix,
             EmbedKind::Passage => self.spec.passage_prefix,
         };
-        self.windows(&format!("{prefix}{text}"))
+        self.window(&format!("{prefix}{text}"))
     }
 
     /// Raw pooled (not normalised) vector per window; runs on the caller's thread.
@@ -196,6 +196,7 @@ impl CandleEmbedder {
         let hidden = match &self.network {
             Network::Bert(m) => m.forward(&ids, &types, Some(&mask))?,
             Network::XlmRoberta(m) => m.forward(&ids, &mask, &types, None, None, None)?,
+            Network::ModernBert(m) => m.forward(&ids, &mask)?,
         };
         Ok((hidden, mask))
     }
@@ -215,21 +216,17 @@ impl CandleEmbedder {
     }
 
     fn embed_inner(&self, texts: &[&str], kind: EmbedKind) -> Result<Vec<Vec<f32>>, EmbedError> {
-        let mut windows: Vec<Vec<u32>> = Vec::new();
-        let mut owner: Vec<usize> = Vec::new();
-        for (i, text) in texts.iter().enumerate() {
-            for window in self.prefixed_windows(text, kind)? {
-                windows.push(window);
-                owner.push(i);
-            }
-        }
+        let windows = texts
+            .iter()
+            .map(|text| self.prefixed_window(text, kind))
+            .collect::<Result<Vec<_>, _>>()?;
         // Similar lengths batch together, which keeps padding small.
         let mut order: Vec<usize> = (0..windows.len()).collect();
         order.sort_by_key(|&i| windows[i].len());
         let refs: Vec<&[u32]> = order.iter().map(|&i| windows[i].as_slice()).collect();
         let pooled = self.pool_windows(&refs)?;
-        let mut sums = vec![vec![0f32; self.spec.dim]; texts.len()];
-        for (vector, &w) in pooled.iter().zip(&order) {
+        let mut out = vec![Vec::new(); texts.len()];
+        for (mut vector, &i) in pooled.into_iter().zip(&order) {
             if vector.len() != self.spec.dim {
                 return Err(EmbedError::Run(format!(
                     "model produced {} dimensions, expected {}",
@@ -237,14 +234,10 @@ impl CandleEmbedder {
                     self.spec.dim
                 )));
             }
-            for (acc, v) in sums[owner[w]].iter_mut().zip(vector) {
-                *acc += v;
-            }
+            l2_normalise(&mut vector)?;
+            out[i] = vector;
         }
-        for sum in &mut sums {
-            l2_normalise(sum)?;
-        }
-        Ok(sums)
+        Ok(out)
     }
 }
 
@@ -275,6 +268,23 @@ pub(crate) fn l2_normalise(vector: &mut [f32]) -> Result<(), EmbedError> {
 impl Embedder for CandleEmbedder {
     fn spec(&self) -> &ModelSpec {
         &self.spec
+    }
+
+    fn fit(&self, text: &str) -> usize {
+        let prefix = self.spec.passage_prefix;
+        let prefixed = format!("{prefix}{text}");
+        let Ok(encoding) = self.tokenizer.encode(prefixed.as_str(), true) else {
+            return text.len();
+        };
+        let max = self.spec.max_tokens;
+        if encoding.get_ids().len() <= max {
+            return text.len();
+        }
+        // Token 0 is the start token, so a window keeps tokens 1..max-1; the
+        // token at max-1 is the first that doesn't fit, and the cut is where
+        // it starts (a byte offset into `prefixed`).
+        let cut = encoding.get_offsets()[max - 1].0;
+        super::chunk::floor_char_boundary(text, cut.saturating_sub(prefix.len()))
     }
 
     fn embed(&self, texts: &[&str], kind: EmbedKind) -> Result<Vec<Vec<f32>>, EmbedError> {
@@ -359,50 +369,42 @@ mod tests {
     }
 
     #[test]
-    fn long_text_windows_cover_the_body_and_sum_to_the_embedding() {
+    fn a_long_text_is_cut_to_one_window_that_keeps_its_prefix() {
         let (_dir, e) = tiny();
         let text = ["garden basil soil water plant"; 20].join(" ");
-        assert!(text.split(' ').count() >= 100);
-        let prefixed = format!("{}{text}", e.spec.passage_prefix);
-        // Ground truth straight from the tokenizer.
-        let full = e.tokenizer.encode(prefixed.as_str(), true).unwrap();
-        let ids = full.get_ids();
-        let (cls, sep) = (ids[0], ids[ids.len() - 1]);
-        assert_eq!((cls, sep), (2, 3));
-        let body = &ids[1..ids.len() - 1];
-        assert!(body.len() > 30 * 3);
-
-        let windows = e.windows(&prefixed).unwrap();
-        assert_eq!(windows.len(), body.len().div_ceil(30));
-        let mut covered: Vec<u32> = Vec::new();
-        for w in &windows {
-            assert_eq!(w[0], cls);
-            assert_eq!(w[w.len() - 1], sep);
-            assert!(w.len() <= 32);
-            covered.extend_from_slice(&w[1..w.len() - 1]);
-        }
-        assert_eq!(covered, body);
-
-        let refs: Vec<&[u32]> = windows.iter().map(Vec::as_slice).collect();
-        let pooled = e.pool_windows(&refs).unwrap();
-        let mut sum = vec![0f32; 8];
-        for v in &pooled {
-            for (a, b) in sum.iter_mut().zip(v) {
-                *a += b;
-            }
-        }
-        l2_normalise(&mut sum).unwrap();
+        let id = |t: &str| e.tokenizer.token_to_id(t).unwrap();
+        let w = e.prefixed_window(&text, EmbedKind::Passage).unwrap();
+        assert_eq!(w.len(), 32, "exactly max_tokens");
+        assert_eq!(&w[..4], &[2, id("passage"), id(":"), id("garden")]);
+        assert_eq!(w[31], 3, "the end token is kept");
         let got = e.embed(&[&text], EmbedKind::Passage).unwrap();
-        assert!((norm(&got[0]) - 1.0).abs() < 1e-5);
-        assert!(max_diff(&got[0], &sum) < 1e-5);
+        let mut expected = e.pool_windows(&[&w[..]]).unwrap().remove(0);
+        l2_normalise(&mut expected).unwrap();
+        assert!(max_diff(&got[0], &expected) < 1e-5);
     }
 
     #[test]
-    fn windows_per_input_are_capped() {
+    fn fit_is_the_longest_prefix_that_embeds_as_one_window() {
         let (_dir, e) = tiny();
-        let text = ["garden basil soil water plant"; 200].join(" ");
-        assert_eq!(e.windows(&text).unwrap().len(), MAX_WINDOWS);
-        assert_eq!(e.embed(&[&text], EmbedKind::Passage).unwrap()[0].len(), 8);
+        let short = "garden basil soil";
+        assert_eq!(e.fit(short), short.len());
+        let long = ["garden basil soil water plant"; 20].join(" ");
+        let cut = e.fit(&long);
+        assert!(cut < long.len() && long.is_char_boundary(cut));
+        let tokens = |s: &str| {
+            e.tokenizer
+                .encode(format!("passage: {s}"), true)
+                .unwrap()
+                .get_ids()
+                .len()
+        };
+        let head = long[..cut].trim_end();
+        assert!(tokens(head) <= 32, "the head fits");
+        let next = long[cut..].split_whitespace().next().unwrap();
+        assert!(
+            tokens(&format!("{head} {next}")) > 32,
+            "one more word doesn't"
+        );
     }
 
     #[test]
@@ -412,11 +414,11 @@ mod tests {
         let (cls, query, passage, colon, garden) =
             (2, id("query"), id("passage"), id(":"), id("garden"));
         assert_eq!(
-            e.prefixed_windows("garden", EmbedKind::Query).unwrap()[0][..4],
+            e.prefixed_window("garden", EmbedKind::Query).unwrap()[..4],
             [cls, query, colon, garden]
         );
         assert_eq!(
-            e.prefixed_windows("garden", EmbedKind::Passage).unwrap()[0][..4],
+            e.prefixed_window("garden", EmbedKind::Passage).unwrap()[..4],
             [cls, passage, colon, garden]
         );
         // Swapping the prefixes by hand swaps the vectors.
@@ -425,9 +427,8 @@ mod tests {
             .embed(&["query: garden basil"], EmbedKind::Passage)
             .unwrap();
         // Passage adds "passage: " first, so compare against windows built without any prefix.
-        let raw = e.windows("query: garden basil").unwrap();
-        let raw_refs: Vec<&[u32]> = raw.iter().map(Vec::as_slice).collect();
-        let mut expected = e.pool_windows(&raw_refs).unwrap().remove(0);
+        let raw = e.window("query: garden basil").unwrap();
+        let mut expected = e.pool_windows(&[&raw[..]]).unwrap().remove(0);
         l2_normalise(&mut expected).unwrap();
         assert!(max_diff(&q[0], &expected) < 1e-5);
         assert!(max_diff(&q[0], &p_manual[0]) > 1e-4);
@@ -438,8 +439,8 @@ mod tests {
         let (_dir, e) = tiny_with(Architecture::Bert, Pooling::Mean, "query: ", "");
         let id = |t: &str| e.tokenizer.token_to_id(t).unwrap();
         assert_eq!(
-            e.prefixed_windows("garden basil", EmbedKind::Passage)
-                .unwrap()[0],
+            e.prefixed_window("garden basil", EmbedKind::Passage)
+                .unwrap(),
             [2, id("garden"), id("basil"), 3]
         );
         let got = e.embed(&["garden basil"], EmbedKind::Passage).unwrap();
@@ -454,10 +455,7 @@ mod tests {
         let (_dir, cls) = tiny_with(Architecture::Bert, Pooling::Cls, "query: ", "passage: ");
         let (_dir2, mean) = tiny();
         let text = "garden basil soil";
-        let w = cls
-            .prefixed_windows(text, EmbedKind::Passage)
-            .unwrap()
-            .remove(0);
+        let w = cls.prefixed_window(text, EmbedKind::Passage).unwrap();
         let (hidden, _) = cls.hidden_batch(&[&w[..]]).unwrap();
         let mut first = hidden
             .get(0)
@@ -482,10 +480,7 @@ mod tests {
     fn mean_pooling_is_the_masked_average_of_token_states() {
         let (_dir, e) = tiny();
         let text = "garden basil soil";
-        let w = e
-            .prefixed_windows(text, EmbedKind::Passage)
-            .unwrap()
-            .remove(0);
+        let w = e.prefixed_window(text, EmbedKind::Passage).unwrap();
         let (hidden, _) = e.hidden_batch(&[&w[..]]).unwrap();
         let rows = hidden.get(0).unwrap().to_vec2::<f32>().unwrap();
         let mut avg = vec![0f32; 8];
@@ -520,9 +515,8 @@ mod tests {
         assert!(max_diff(&q[0], &alone[0]) > 1e-4);
         // Mean over the unpadded tokens matches the manual average.
         let w = e
-            .prefixed_windows("garden basil", EmbedKind::Passage)
-            .unwrap()
-            .remove(0);
+            .prefixed_window("garden basil", EmbedKind::Passage)
+            .unwrap();
         let (hidden, _) = e.hidden_batch(&[&w[..]]).unwrap();
         let rows = hidden.get(0).unwrap().to_vec2::<f32>().unwrap();
         let mut avg = vec![0f32; 8];
@@ -533,6 +527,34 @@ mod tests {
         }
         l2_normalise(&mut avg).unwrap();
         assert!(max_diff(&alone[0], &avg) < 1e-5);
+    }
+
+    #[test]
+    fn modernbert_path_embeds_with_cls_pooling_and_masks_padding() {
+        let (_dir, e) = tiny_with(Architecture::ModernBert, Pooling::Cls, "", "");
+        assert_eq!(e.specials, (0, 2));
+        // Longer than the tiny model's 4-token local window.
+        let long = "garden basil soil water plant grow sun light tea coffee bicycle tire";
+        let alone = e.embed(&["garden basil"], EmbedKind::Passage).unwrap();
+        let mixed = e
+            .embed(&[long, "garden basil"], EmbedKind::Passage)
+            .unwrap();
+        let long_alone = e.embed(&[long], EmbedKind::Passage).unwrap();
+        assert_eq!(alone[0].len(), 8);
+        assert!((norm(&alone[0]) - 1.0).abs() < 1e-5);
+        assert!(max_diff(&alone[0], &mixed[1]) < 1e-5);
+        assert!(max_diff(&long_alone[0], &mixed[0]) < 1e-5);
+        // No prefixes: a query embeds like a passage.
+        let q = e.embed(&["garden basil"], EmbedKind::Query).unwrap();
+        assert!(max_diff(&q[0], &alone[0]) < 1e-6);
+        // CLS: the normalised first token state.
+        let w = e
+            .prefixed_window("garden basil", EmbedKind::Passage)
+            .unwrap();
+        let (hidden, _) = e.hidden_batch(&[&w[..]]).unwrap();
+        let mut first = hidden.get(0).unwrap().to_vec2::<f32>().unwrap()[0].clone();
+        l2_normalise(&mut first).unwrap();
+        assert!(max_diff(&alone[0], &first) < 1e-5);
     }
 
     #[test]
@@ -590,6 +612,55 @@ mod tests {
             let cos = |a: &[f32], b: &[f32]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>();
             let (bike, coffee) = (cos(q, &ps[0]), cos(q, &ps[1]));
             assert!(bike > coffee, "{}: bike {bike} coffee {coffee}", spec.id);
+        }
+    }
+
+    /// The cosine matrix of Granite's model card (queries by passages,
+    /// to 4 decimals), passages embedded as one padded batch. The card's
+    /// German passage reads "ist with rund"; its numbers come from "ist mit
+    /// rund".
+    #[test]
+    #[ignore = "needs granite-embedding-97m-multilingual-r2 in SB_SEARCH_MODEL_DIR"]
+    fn granite_reproduces_the_model_cards_cosine_matrix() {
+        let root = std::env::var("SB_SEARCH_MODEL_DIR").expect("SB_SEARCH_MODEL_DIR");
+        let spec = crate::semantic::catalog::find("granite-embedding-97m-multilingual-r2").unwrap();
+        let e =
+            CandleEmbedder::load(spec.clone(), &Path::new(&root).join(spec.dir_name()), 2).unwrap();
+        let queries = e
+            .embed(
+                &[
+                    "What is the tallest mountain in Japan?",
+                    "Wer hat das Lied Achy Breaky Heart geschrieben?",
+                    "ドイツの首都はどこですか？",
+                ],
+                EmbedKind::Query,
+            )
+            .unwrap();
+        let passages = e
+            .embed(
+                &[
+                    "富士山は、静岡県と山梨県にまたがる活火山で、標高3776.12 mで日本最高峰の独立峰である。",
+                    "Achy Breaky Heart is a country song written by Don Von Tress. Originally titled Don't Tell My Heart and performed by The Marcy Brothers in 1991.",
+                    "Berlin ist die Hauptstadt und ein Land der Bundesrepublik Deutschland. Die Stadt ist mit rund 3,7 Millionen Einwohnern die bevölkerungsreichste Kommune Deutschlands.",
+                ],
+                EmbedKind::Passage,
+            )
+            .unwrap();
+        let card = [
+            [0.8869, 0.6658, 0.7213],
+            [0.6792, 0.9577, 0.6420],
+            [0.7534, 0.6771, 0.9112],
+        ];
+        let cos = |a: &[f32], b: &[f32]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>();
+        for (i, q) in queries.iter().enumerate() {
+            for (j, p) in passages.iter().enumerate() {
+                let got = cos(q, p);
+                assert!(
+                    (got - card[i][j]).abs() < 1e-4,
+                    "query {i} passage {j}: {got} vs {}",
+                    card[i][j]
+                );
+            }
         }
     }
 }

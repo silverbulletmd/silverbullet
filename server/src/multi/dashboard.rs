@@ -315,29 +315,18 @@ mod tests {
 
     fn config(name: &str, prefix: &str, access: SpaceAccess, members: &[&str]) -> SpaceConfig {
         SpaceConfig {
-            name: name.into(),
-            folder: String::new(),
-            binding: Binding::Prefix {
-                prefix: prefix.into(),
-            },
             access: Some(access),
-            legacy_public: None,
             members: members
                 .iter()
                 .map(|name| (name.to_string(), Default::default()))
                 .collect(),
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
             theme_color: String::new(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
+            ..SpaceConfig::test(
+                name,
+                Binding::Prefix {
+                    prefix: prefix.into(),
+                },
+            )
         }
     }
 
@@ -382,8 +371,7 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test\n".into(),
             shutdown: None,
-            search_gate: Arc::new(crate::search::Gate::new()),
-            search_index_root: None,
+            search: crate::search::SpaceSearch::in_memory(),
         };
         let manager =
             MultiManager::boot(dir.path().to_path_buf(), deps, users.usernames()).unwrap();

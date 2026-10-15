@@ -109,7 +109,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
+    use crate::multi::config::{Binding, SpaceConfig};
     use crate::multi::instance::{InstanceStatus, SpaceInstance};
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -119,24 +119,8 @@ mod tests {
         Arc::new(SpaceInstance {
             id: id.into(),
             config: SpaceConfig {
-                name: id.into(),
-                folder: String::new(),
-                binding,
-                access: Some(SpaceAccess::Write),
-                legacy_public: None,
-                members: Default::default(),
-                read_only: false,
-                shell: Default::default(),
-                index_page: "index".into(),
-                description: String::new(),
                 theme_color: String::new(),
-                head_html: String::new(),
-                space_ignore: String::new(),
-                log_push: false,
-                revisions: Default::default(),
-                git_sync: None,
-                revisions_commit: None,
-                extra: Default::default(),
+                ..SpaceConfig::test(id, binding)
             },
             prefix,
             space_prefixes: Default::default(),
@@ -145,6 +129,8 @@ mod tests {
             revisions: None,
             runtime: None,
             runtime_authorizer: None,
+            search: None,
+            last_pages: None,
         })
     }
 

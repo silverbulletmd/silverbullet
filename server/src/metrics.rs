@@ -23,7 +23,7 @@ pub struct Metrics {
     pub search_queries: IntCounter,
     /// Searches refused as busy (every query slot taken).
     pub search_rejections: IntCounter,
-    /// Searches returning partial results (deadline).
+    /// Searches returning partial results (deadline or index building).
     pub search_partial: IntCounter,
 }
 
@@ -80,7 +80,7 @@ impl Metrics {
         );
         let search_partial = counter(
             "silverbullet_search_partial_total",
-            "Searches returning partial results (deadline)",
+            "Searches returning partial results (deadline or index building)",
         );
         Self {
             registry,

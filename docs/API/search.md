@@ -4,7 +4,6 @@ references:
 - plug-api/syscalls/search.ts
 - client/plugos/syscalls/search.ts
 - plug-api/lib/fuzzy.ts
-- client/search/segments.ts
 - client/search/server_search.ts
 - plug-api/types/search.ts
 - server-search/src/types.rs
@@ -22,7 +21,7 @@ Searches the space with its active search backend. A newer search from the same 
 **Parameters:**
 
 - `query` (`string`) — What to search for.
-- `options?` (`table`) — `mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments; defaults to `all`), `include`/`exclude` (exact page names; when given they override `scope`), `limit` (maximum pages).
+- `options?` (`table`) — `mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments: meta pages are tagged `meta`, `meta/…` or `template`; defaults to `all`), `include`/`exclude` (exact page names; they narrow `scope` further; without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).
 
 **Returns:**
 
@@ -55,16 +54,16 @@ Fuzzy-ranks objects against a phrase, best match first. The same ranker view pan
 
 `search.related(page, options?)`
 
-Finds pages related to a page. Only available when `search.status().capabilities.related` is true.
+Finds pages related to a page, leaving out pages hidden by a page decoration. Raises an error while `search.status().capabilities.related` is false (no semantic search, or its index is still building) or when the page isn't in the semantic index yet.
 
 **Parameters:**
 
 - `page` (`string`) — Page name.
-- `options?` (`table`) — `limit`: maximum number of pages.
+- `options?` (`table`) — `limit` (maximum number of pages), `scope` (`pages`, `meta` or `all`, as in `search.find`; defaults to `all`). A page outside the scope has no related pages: with `scope = "pages"`, a Meta page gets none.
 
 **Returns:**
 
-- `table` — `{items, waitingForIndex}`.
+- `table` — `{items, total, partial, notice}`, as `search.find` returns: the related pages best first, one item per page with its closest passage.
 
 ## search.status
 
@@ -74,7 +73,7 @@ Reports the space's search backend: its name, the query modes it supports (the f
 
 **Returns:**
 
-- `table` — `{backend, model, capabilities = {modes, related}, ready, progress, reason}`. `backend` is nil when search is unavailable; `reason` says why.
+- `table` — `{backend, model, capabilities = {modes, related}, ready, progress, reason}`. `backend` is nil when search is unavailable; `reason` says why. `reason` can also carry a warning while `ready` is true (for example a space with more pages than semantic search is tuned for).
 <!--/lua-->
 
 ## Field weights

@@ -24,7 +24,7 @@ const MAX_EVAL_RESPONSE_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_LOG_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_SCREENSHOT_RESPONSE_BYTES: u64 = 64 * 1024 * 1024;
 
-fn read_response(
+pub(crate) fn read_response(
     response: reqwest::blocking::Response,
     max_bytes: u64,
     description: &str,
@@ -40,7 +40,7 @@ fn read_response(
     Ok(bytes)
 }
 
-fn runtime_error(status: StatusCode, body: &[u8]) -> String {
+pub(crate) fn runtime_error(status: StatusCode, body: &[u8]) -> String {
     if status == StatusCode::UNAUTHORIZED || status.is_redirection() {
         return "authentication required; run `sb space login <name>` for a saved browser connection, or provide --token.".into();
     }

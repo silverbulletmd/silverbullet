@@ -4,8 +4,11 @@ import {
   Input,
   SlidersIcon,
   ButtonLink,
+  overviewPollMs,
+  SearchBadge,
+  usePolledLoad,
 } from "@silverbulletmd/silverbullet/ui";
-import { api, formatApiError } from "../api.ts";
+import { api, formatApiError, getSearchOverview } from "../api.ts";
 import { bindingLabel, spaceEntryUrl } from "../bindings.ts";
 import { dashboardUrl } from "../routes.ts";
 import type { VisibleSpace } from "../types.ts";
@@ -23,6 +26,13 @@ export function SpaceList({
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [target, setTarget] = useState(-1);
+  // Admins see which spaces' search indexes build or failed.
+  const search = usePolledLoad(getSearchOverview, {
+    enabled: admin,
+    pollMs: overviewPollMs,
+    // The list works without badges.
+    onError: () => {},
+  });
   const filtered = spaces.filter((space) =>
     `${space.name} ${bindingLabel(space.binding)}`
       .toLocaleLowerCase()
@@ -140,7 +150,14 @@ export function SpaceList({
               class="sb-space-link sb-management-row-target"
               href={spaceEntryUrl(space.binding, encryptedLogin)}
             >
-              <span class="sb-management-row-main">{space.name}</span>
+              <span class="sb-management-row-main">
+                {space.name}
+                {admin && (
+                  <SearchBadge
+                    indexes={search.data?.spaces[space.id]?.indexes ?? []}
+                  />
+                )}
+              </span>
               <span class="sb-management-row-detail">
                 {bindingLabel(space.binding)}
               </span>

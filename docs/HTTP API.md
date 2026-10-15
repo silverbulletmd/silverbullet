@@ -3,6 +3,7 @@ references:
 - bin/silverbullet/src/server.rs
 - server-common/src/space/http.rs
 - server/src/handlers/revisions.rs
+- server/src/handlers/search.rs
 - server/src/multi/dashboard.rs
 - server/src/multi/admin_api.rs
 ---
@@ -61,6 +62,13 @@ Present when [[Revisions]] are enabled for the space: every endpoint below answe
 * `GET /.revisions/<path>?rev=<hash>`: The content of that file as it was at that revision, served with the file's own content type.
 * `GET /.revisions/<path>?rev=<hash>&format=diff`: A unified diff of what that revision changed in that file, as `text/plain`. `404` when the revision has nothing to diff against a parent (a merge commit).
 * `GET /.revisions/<path>?format=diff`: With no `rev`, the *uncommitted* change instead — HEAD versus what is on disk, as `text/plain`. A file that has never been committed reads as wholly added. `404` when it matches HEAD after all.
+
+# Search
+The server answers [[Search]] itself, so these work without the [[Runtime API]]; the [[CLI]]'s `sb search` and `sb related` use them. They need Read access; public visitors only get the modes the server allows them, and no related pages. Bodies are JSON; errors are 4xx JSON with an `error` code and a `message`.
+
+* `GET /.search/status`: What search can do right now: `backend` (`null` when unavailable), `model`, `capabilities` (`modes`, the first being the default, and whether `related` is available), `ready`, `progress` (`{"done", "total"}` while building) and `reason`.
+* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`; only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `meta` or `all`, `limit` is at most 50. Returns `items` (matches, best page first; each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching).
+* `POST /.search/related`: Body `{"page", "limit", "exclude", "scope"}`: pages related in meaning to `page`, in the same shape as a query's result. Needs semantic search.
 
 # RPC
 Some functionality is exposed as RPC-style calls

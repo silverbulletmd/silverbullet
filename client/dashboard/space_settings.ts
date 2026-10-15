@@ -4,6 +4,7 @@ export const SPACE_SECTIONS = {
   general: "General",
   access: "Access",
   revisions: "Revisions",
+  search: "Search",
   advanced: "Advanced",
 } as const;
 
@@ -13,6 +14,7 @@ const SECTION_FIELDS = {
   general: ["name", "binding", "folder", "indexPage"],
   access: ["access", "members", "readOnly"],
   revisions: ["revisions", "revisionsCommit"],
+  search: ["semanticSearch"],
   advanced: ["shell"],
 } as const;
 

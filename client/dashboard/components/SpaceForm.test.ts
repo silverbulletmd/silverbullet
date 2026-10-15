@@ -201,3 +201,37 @@ test("General renders the derived warning without including it in its saved fiel
     settingsPayload({ ...initial, bindingWarning: undefined }, "general"),
   );
 });
+
+test("the semantic search box waits, disabled, for the space's search info", () => {
+  (globalThis as any).location = location;
+  const space: SpaceInfo = {
+    name: "Wiki",
+    folder: "spaces/wiki",
+    binding: { prefix: "/wiki" },
+    access: "none",
+    members: {},
+    readOnly: false,
+    shell: { enabled: false, whitelist: [] },
+    indexPage: "index",
+    status: { state: "running" },
+  };
+  const html = render(
+    h(SpaceForm, {
+      id: "wiki",
+      initial: space,
+      section: "search",
+      onSaved: () => {},
+      cancelHref: "/.dashboard/",
+      onDeleted: () => {},
+      onUnauthorized: () => {},
+    }),
+  );
+  // Server info arrives after the first render: no model yet.
+  expect(html).toContain("Semantic search");
+  expect(html).toContain(
+    "Choose a search model in Admin → Search to turn on semantic search.",
+  );
+  expect(html).toMatch(
+    /<input(?=[^>]*\bdisabled)[^>]*type="checkbox"[^>]*>\s*<label[^>]*>Semantic search/,
+  );
+});

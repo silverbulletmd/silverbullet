@@ -633,3 +633,86 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
   overflow: hidden;
   overflow-wrap: anywhere;
 }
+
+/* Search admin: model picker, index status, spaces table (plug-api/ui/search_*.tsx). */
+.sb-search-model-card {
+  display: grid;
+  gap: 0.3rem;
+  margin-block: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: 2px;
+}
+.sb-search-model-name { font-weight: 600; }
+.sb-search-model-languages,
+.sb-search-model-size,
+.sb-search-model-license,
+.sb-search-model-notice { color: var(--subtle-color); font-size: 13px; }
+.sb-search-model-license a { color: var(--link-color); }
+.sb-search-model-download { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
+.sb-search-model-download > .sb-progress { flex: 1 1 100%; }
+.sb-search-model-failed { color: var(--alert-error-color); }
+.sb-search-model-stored-title,
+.sb-search-spaces-title { font-weight: 600; margin-block: 0.75rem 0.4rem; }
+.sb-search-model-stored ul { list-style: none; margin: 0; padding: 0; }
+.sb-search-model-stored-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding-block: 0.3rem; }
+.sb-search-model-stored-size { color: var(--subtle-color); }
+.sb-search-model-stored-row > .sb-button { margin-left: auto; }
+.sb-search-index { display: grid; gap: 0.6rem; }
+.sb-search-index-row { display: grid; grid-template-columns: minmax(8rem, auto) 1fr; gap: 0.25rem 0.75rem; align-items: center; }
+.sb-search-index-title { font-weight: 600; }
+.sb-search-index-row > .sb-progress { grid-column: 1 / -1; }
+.sb-search-index-empty { margin: 0; color: var(--subtle-color); }
+/* One line per row; at phone width the table scrolls inside its box. */
+.sb-search-spaces-scroll { max-width: 100%; overflow-x: auto; }
+.sb-search-spaces { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sb-search-spaces th { text-align: left; font-weight: 600; color: var(--subtle-color); }
+.sb-search-spaces th,
+.sb-search-spaces td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--ui-surface-border-color); vertical-align: middle; white-space: nowrap; }
+.sb-search-spaces .sb-search-spaces-number { text-align: right; font-variant-numeric: tabular-nums; }
+.sb-search-spaces-name { max-width: 16rem; overflow: hidden; text-overflow: ellipsis; }
+.sb-search-spaces .sb-search-spaces-actions { width: 1%; padding-block: 0; text-align: right; }
+.sb-search-spaces-status { display: inline-flex; align-items: center; gap: 0.4rem; }
+.sb-search-spaces-status > .sb-progress { width: 3rem; }
+.sb-search-spaces-status[data-phase="failed"] { color: var(--alert-error-color); }
+.sb-search-spaces-count { color: var(--subtle-color); font-variant-numeric: tabular-nums; }
+.sb-search-spaces-muted { color: var(--subtle-color); }
+.sb-search-spaces-footnote { margin-block: 0.4rem 0; color: var(--subtle-color); font-size: 13px; }
+/* A row's ⋯ menu (plug-api/ui/row_menu.tsx), fixed so a scrolling box doesn't clip it. */
+.sb-row-menu-trigger { font-size: 16px; line-height: 1; padding: 0.2em 0.45em; }
+.sb-row-menu {
+  position: fixed;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  min-width: 9rem;
+  padding: 4px;
+  text-align: left;
+  white-space: nowrap;
+  font-family: var(--ui-font);
+  font-size: 13px;
+  background: var(--modal-background-color);
+  color: var(--modal-color);
+  border: 1px solid var(--modal-border-color);
+  border-radius: 2px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  &:focus { outline: none; }
+  > button {
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    &:hover:not(:disabled),
+    &:focus-visible {
+      outline: none;
+      background: var(--modal-selected-option-background-color);
+      color: var(--modal-selected-option-color);
+    }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+}
+.sb-search-summary { margin-block: 0.5rem; font-size: 13px; }

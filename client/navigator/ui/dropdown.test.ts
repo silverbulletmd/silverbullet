@@ -88,9 +88,9 @@ test("dropdown and segment subsets compose by AND", () => {
 });
 
 test("resolveDropdown passes only values a loaded option carries", () => {
-  const options = [{ label: "Regex", value: "regex" }];
-  expect(resolveDropdown(options, "regex")).toBe("regex");
+  const options = [{ label: "Exact phrase", value: "phrase" }];
+  expect(resolveDropdown(options, "phrase")).toBe("phrase");
   expect(resolveDropdown(options, "natural")).toBeUndefined();
-  expect(resolveDropdown(undefined, "regex")).toBeUndefined();
+  expect(resolveDropdown(undefined, "phrase")).toBeUndefined();
   expect(resolveDropdown(options, undefined)).toBeUndefined();
 });

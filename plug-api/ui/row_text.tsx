@@ -16,7 +16,9 @@ export function RowText({
         {primary}
         {renderedDescription ??
           (description && (
-            <span className="sb-nav-description">{description}</span>
+            <span className="sb-nav-description" dir="auto">
+              {description}
+            </span>
           ))}
       </>
     );
@@ -36,9 +38,13 @@ export function RowText({
       {primary}
       <span className="sb-nav-description sb-nav-description-structured">
         {normalized.label && (
-          <span className="sb-nav-description-label">{normalized.label}</span>
+          <span className="sb-nav-description-label" dir="auto">
+            {normalized.label}
+          </span>
         )}
-        <span className="sb-nav-description-text">{parts}</span>
+        <span className="sb-nav-description-text" dir="auto">
+          {parts}
+        </span>
       </span>
     </span>
   );

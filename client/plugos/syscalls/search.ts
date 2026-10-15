@@ -1,5 +1,8 @@
 import { rank, type RankOptions } from "../../../plug-api/lib/fuzzy.ts";
-import type { QueryOptions } from "../../../plug-api/types/search.ts";
+import type {
+  QueryOptions,
+  RelatedOptions,
+} from "../../../plug-api/types/search.ts";
 import type { ServerSearch } from "../../search/server_search.ts";
 import type { SysCallMapping } from "../system.ts";
 
@@ -50,7 +53,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
         {
           type: "table",
           description:
-            "`{backend, model, capabilities = {modes, related}, ready, progress, reason}`. `backend` is nil when search is unavailable; `reason` says why.",
+            "`{backend, model, capabilities = {modes, related}, ready, progress, reason}`. `backend` is nil when search is unavailable; `reason` says why. `reason` can also carry a warning while `ready` is true (for example a space with more pages than semantic search is tuned for).",
         },
       ],
     },
@@ -65,7 +68,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "`mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments; defaults to `all`), `include`/`exclude` (exact page names; when given they override `scope`), `limit` (maximum pages).",
+            "`mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments: meta pages are tagged `meta`, `meta/…` or `template`; defaults to `all`), `include`/`exclude` (exact page names; they narrow `scope` further; without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).",
           optional: true,
         },
       ],
@@ -83,20 +86,27 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
       ],
     },
     "search.related": {
-      callback: (_ctx, page: string, options: { limit?: number } = {}) =>
-        search.related(page, options.limit),
+      callback: (_ctx, page: string, options: RelatedOptions = {}) =>
+        search.related(page, options),
       description:
-        "Finds pages related to a page. Only available when `search.status().capabilities.related` is true.",
+        "Finds pages related to a page, leaving out pages hidden by a page decoration. Raises an error while `search.status().capabilities.related` is false (no semantic search, or its index is still building) or when the page isn't in the semantic index yet.",
       parameters: [
         { name: "page", type: "string", description: "Page name." },
         {
           name: "options",
           type: "table",
-          description: "`limit`: maximum number of pages.",
+          description:
+            "`limit` (maximum number of pages), `scope` (`pages`, `meta` or `all`, as in `search.find`; defaults to `all`).",
           optional: true,
         },
       ],
-      returns: [{ type: "table", description: "`{items, waitingForIndex}`." }],
+      returns: [
+        {
+          type: "table",
+          description:
+            "`{items, total, partial, notice}`, as `search.find` returns: the related pages best first, one item per page with its closest passage.",
+        },
+      ],
     },
   };
 }

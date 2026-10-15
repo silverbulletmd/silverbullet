@@ -253,8 +253,7 @@ mod tests {
         assert!(!body.contains("description:"));
         assert!(body.contains("Published"));
         // Templates are meta pages too, as the client classifies them.
-        let (status, _, body) =
-            request(public_state_with_shell(), "/Weekly%20Review?view=1").await;
+        let (status, _, body) = request(public_state_with_shell(), "/Weekly%20Review?view=1").await;
         assert_eq!(status, 200);
         assert!(body.contains("noindex, follow"), "{body}");
         let (_, _, body) = request(public_state_with_shell(), "/Field%20Notes?view=1").await;

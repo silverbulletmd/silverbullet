@@ -28,7 +28,6 @@ open = "5"
 tempfile = { workspace = true }
 globset = "0.4"
 similar = "3"
-base64 = { workspace = true }
 
 [build-dependencies]
 serde_json = { workspace = true }

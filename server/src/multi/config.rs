@@ -7,6 +7,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::search::SemanticChoice;
+
 /// One space's binding to the outside world. Exactly one variant; the
 /// `untagged` representation matches the spec's `{"prefix": "/x"}` /
 /// `{"host": "..."}` / `{"host": "...", "prefix": "/x"}` shapes.
@@ -317,6 +319,12 @@ pub struct SpaceConfig {
     pub space_ignore: String,
     #[serde(default)]
     pub log_push: bool,
+    /// Semantic search for this space, when the server has a model
+    /// (`server.json` `search.model`): absent follows the server's default,
+    /// on (see `SpaceSearch::semantic_state`); `false` opts out, `true` opts
+    /// in explicitly. Absent is never written.
+    #[serde(default, skip_serializing_if = "SemanticChoice::is_default")]
+    pub semantic_search: SemanticChoice,
     #[serde(default)]
     pub revisions: silverbullet_server_common::RevisionsMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -351,6 +359,36 @@ impl SpaceConfig {
         }
         self.legacy_public = None;
         self.extra.remove("runtimeApi");
+    }
+}
+
+#[cfg(test)]
+impl SpaceConfig {
+    /// A test space: `name` at `binding`, in its default folder, writable by
+    /// everyone, with no members and every other setting off or empty. Tests
+    /// change what they need with struct update syntax.
+    pub(crate) fn test(name: &str, binding: Binding) -> SpaceConfig {
+        SpaceConfig {
+            name: name.into(),
+            folder: String::new(),
+            binding,
+            access: Some(SpaceAccess::Write),
+            legacy_public: None,
+            members: Default::default(),
+            read_only: false,
+            shell: Default::default(),
+            index_page: default_index_page(),
+            description: String::new(),
+            theme_color: default_theme_color(),
+            head_html: String::new(),
+            space_ignore: String::new(),
+            log_push: false,
+            semantic_search: SemanticChoice::Default,
+            revisions: Default::default(),
+            git_sync: None,
+            revisions_commit: None,
+            extra: Default::default(),
+        }
     }
 }
 
@@ -897,5 +935,35 @@ mod tests {
         .effective();
         assert_eq!(quiet, std::time::Duration::from_secs(120));
         assert_eq!(max, std::time::Duration::from_secs(900));
+    }
+
+    #[test]
+    fn semantic_search_is_tri_state_and_omitted_when_absent() {
+        let parse = |extra: serde_json::Value| -> SpaceConfig {
+            let mut v = serde_json::json!({ "name": "Notes", "binding": {"prefix": "/notes"} });
+            if let serde_json::Value::Object(extra) = extra {
+                v.as_object_mut().unwrap().extend(extra);
+            }
+            serde_json::from_value(v).unwrap()
+        };
+        for stored in [true, false] {
+            let space = parse(serde_json::json!({ "semanticSearch": stored }));
+            assert_eq!(space.semantic_search, Some(stored).into());
+            assert_eq!(
+                serde_json::to_value(&space).unwrap()["semanticSearch"],
+                stored
+            );
+        }
+        for absent in [
+            serde_json::json!({}),
+            serde_json::json!({ "semanticSearch": null }),
+        ] {
+            let space = parse(absent);
+            assert_eq!(space.semantic_search, SemanticChoice::Default);
+            assert!(serde_json::to_value(&space)
+                .unwrap()
+                .get("semanticSearch")
+                .is_none());
+        }
     }
 }

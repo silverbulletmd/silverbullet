@@ -3,18 +3,15 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
-* [[Space Lua/Page Lua]] turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page, read another page's values with `pageVars.get(name, "Page")` or `pageVars.all("Page")`, and change a value from code with `pageVars.set(name, value)` (for example from a button). Code completion in `${...}` and `page-lua` blocks offers the page's variables.
-* `${...}` expressions and widgets now compose everywhere: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results; templates, `..` and `table.concat` can embed widgets.
-* Full text search is back: **Space: Search** (`Cmd-Shift-f`) searches every page through a full-text index on the server, with Pages/Meta/All segments, all-words and exact-phrase modes, word forms in five languages, and similar pages (including typos) when nothing matches exactly. It needs no setup and also works for visitors of published and read-only spaces. Reopening it brings back your last search in that tab. From the command line, use `sb eval 'search.find("…")'`. See [[Search]].
-* `sb` CLI: install it with `curl -fsSL https://silverbullet.md/install-sb.sh | sh` (Windows: `irm https://silverbullet.md/install-sb.ps1 | iex`). See [[CLI]].
-  * Manage spaces from the command line: `sb space create`, `rename`, `mv` and `relocate`, and `sb space list --json`. `sb space add` now registers only existing folders, folder spaces added from the CLI get the same safe defaults as spaces created in Desktop (shell off), and `sb space` commands print JSON when piped, like the other commands. Creating, adding, renaming or moving a folder space requires SilverBullet Desktop; listing and removing spaces work without it.
+* Experimental [[Space Lua/Page Lua]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page, read another page's values with `pageVars.get(name, "Page")` or `pageVars.all("Page")`, and change a value from code with `pageVars.set(name, value)` (for example from a button).
+* Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
+  * `sb search` and `sb related` search the space from the command line, through the server's [[HTTP API#Search|search API]] and without a headless browser; `sb search --status` shows the index state and whether semantic search is available. See [[CLI]].
+* `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results and templates.
 * New context menus for widgets and views.
-* [[Baked Sections]] show a slim header and an end line in place of their markers; the header's ⋯ menu updates, edits, copies or unbakes that one section.
-* Expressions, code widgets, custom syntax, frontmatter previews, views and page variables now update automatically when what they read changes (index tags, files, page variables, the open page); unchanged results leave the widget untouched. See [[API/widget#When expressions update]].
-* Fix: a `${...}` with a Lua syntax error shows the error instead of rendering empty.
-* Fix: editing a `${...}` no longer keeps the replaced widgets in memory until you leave the page, and links in a re-shown widget no longer navigate once per time it was shown.
+* [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
 * Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
+* Fix: sandboxed widgets and document editors (such as the image viewer) no longer leak memory each time they render or open, which made long sessions gradually slower.
 
 ## 2.12.1
 * Security: the filesystem API refuses access to dot-prefixed files and directories, consistent with space listings.

@@ -1,8 +1,12 @@
-//! Vendored BERT and XLM-RoBERTa model code (see the header of each file).
+//! Vendored BERT, ModernBERT and XLM-RoBERTa model code (see the header of each file), and
+//! our own faster kernels for them (`fast_ops`).
 //! candle-transformers is deliberately not a dependency.
 
 #[allow(clippy::all)]
 pub mod bert;
+pub mod fast_ops;
+#[allow(clippy::all)]
+pub mod modernbert;
 #[allow(clippy::all)]
 pub mod xlm_roberta;
 

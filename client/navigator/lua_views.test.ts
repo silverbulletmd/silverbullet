@@ -1341,7 +1341,7 @@ test("source views may declare a dropdown without where or key", () => {
     validateDefineSpec(
       luaSpec(`{
         name = "v", search = "source",
-        dropdown = { allLabel = "All words", options = { { label = "Regex", value = "regex" } } },
+        dropdown = { allLabel = "All words", options = { { label = "Exact phrase", value = "phrase" } } },
         ${SOURCE}, ${ON_SELECT},
       }`),
     ),
@@ -1353,7 +1353,7 @@ test("client views still require where or key on a dropdown", () => {
     validateDefineSpec(
       luaSpec(`{
         name = "v",
-        dropdown = { options = { { label = "Regex", value = "regex" } } },
+        dropdown = { options = { { label = "Exact phrase", value = "phrase" } } },
         ${SOURCE}, ${ON_SELECT},
       }`),
     ),
@@ -1363,15 +1363,17 @@ test("client views still require where or key on a dropdown", () => {
 test("source views get dropdown options without per-row masks, and see ctx.dropdown", async () => {
   const spec = luaSpec(`{
     name = "v", search = "source",
-    dropdown = { options = function() return { { label = "Regex", value = "regex" } } end },
+    dropdown = { options = function() return { { label = "Exact phrase", value = "phrase" } } end },
     source = function(ctx) return { { name = ctx.dropdown or "default" } } end,
     ${ON_SELECT},
   }`);
   const dropdown = await luaHandle(spec, "dropdown", { objs: [{ name: "x" }] });
-  expect(dropdown.options).toEqual([{ label: "Regex", value: "regex" }]);
+  expect(dropdown.options).toEqual([
+    { label: "Exact phrase", value: "phrase" },
+  ]);
   expect(dropdown.masks).toEqual([]);
   const rows = await luaHandle(spec, "rows", {
-    ctx: { phrase: "f", dropdown: "regex" },
+    ctx: { phrase: "f", dropdown: "phrase" },
   });
-  expect(rows[0].primary).toBe("regex");
+  expect(rows[0].primary).toBe("phrase");
 });

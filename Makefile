@@ -11,6 +11,7 @@ build:
 build-e2e:
 	npm run build
 	cargo build -p silverbullet -p sb
+	cargo build -p silverbullet-server-search --example write_tiny_model --features test-model
 
 setup:
 	npm install

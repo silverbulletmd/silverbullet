@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { applySpacePatch } from "./space_settings.ts";
+import {
+  applySpacePatch,
+  SPACE_SECTIONS,
+  settingsPayload,
+} from "./space_settings.ts";
 import type { SpaceInfo } from "./types.ts";
 
 const space: SpaceInfo = {
@@ -33,4 +37,27 @@ test("saving a section without a binding retains the known derived warning", () 
     "Root and prefixed bindings share team.test.",
   );
   expect(updated.access).toBe("read");
+});
+
+test("the search section saves the semantic search choice, the advanced section the shell", () => {
+  const values = {
+    shell: { enabled: false, whitelist: [] },
+    semanticSearch: false,
+    name: "Work",
+  };
+  expect(settingsPayload(values, "search")).toEqual({ semanticSearch: false });
+  // Checking the box again follows the server's default.
+  expect(
+    settingsPayload({ ...values, semanticSearch: null }, "search"),
+  ).toEqual({ semanticSearch: null });
+  expect(settingsPayload(values, "advanced")).toEqual({
+    shell: { enabled: false, whitelist: [] },
+  });
+  expect(Object.keys(SPACE_SECTIONS)).toEqual([
+    "general",
+    "access",
+    "revisions",
+    "search",
+    "advanced",
+  ]);
 });

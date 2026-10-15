@@ -123,10 +123,8 @@ pub async fn build_multi_stack(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: shutdown_rx,
-        search_gate: Arc::new(silverbullet_server::search::Gate::new()),
-        search_index_root: Some(
-            root.join(silverbullet_server::multi::instance::SEARCH_DIR)
-                .join("indexes"),
+        search: silverbullet_server::search::SpaceSearch::in_root(
+            silverbullet_server::search::search_root(&root),
         ),
     };
 
@@ -280,6 +278,14 @@ pub(crate) async fn run_multi(
     config: Config,
     shutdown: crate::server::Shutdown,
 ) -> Result<(), String> {
+    for (var, value) in [
+        ("SB_SEARCH_DIR", &config.search_dir),
+        ("SB_SEARCH_MODEL", &config.search_model),
+    ] {
+        if value.is_some() {
+            tracing::warn!("{var} applies to single-space mode only and is ignored; a multi-space server keeps search under search/ in its data folder and names its model in server.json");
+        }
+    }
     let (router, log) = build_multi_stack(&config, Some(shutdown.rx.clone())).await?;
     let addr = format!("{}:{}", config.bind_host, config.port);
     let listener = tokio::net::TcpListener::bind(&addr)

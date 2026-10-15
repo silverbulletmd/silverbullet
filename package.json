@@ -35,7 +35,8 @@
     "./type/datastore": "./plug-api/types/datastore.ts",
     "./type/event": "./plug-api/types/event.ts",
     "./type/revisions": "./plug-api/types/revisions.ts",
-    "./type/index": "./plug-api/types/index.ts"
+    "./type/index": "./plug-api/types/index.ts",
+    "./type/search_admin": "./plug-api/types/search_admin.ts"
   },
   "bin": {
     "plug-compile": "dist/plug-compile.js"

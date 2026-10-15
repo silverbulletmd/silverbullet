@@ -1,3 +1,8 @@
+import type {
+  CatalogModel,
+  SearchOverview,
+  SpaceSearchInfo,
+} from "@silverbulletmd/silverbullet/type/search_admin";
 import type { RuntimeAvailability } from "./runtime_availability.ts";
 import type {
   AuthenticationStatus,
@@ -68,13 +73,48 @@ export function formatApiError(e: unknown): string {
   return "Request failed";
 }
 
+/** The message for a failed request; null after sending the user to sign in. */
+export function apiErrorText(
+  cause: unknown,
+  onUnauthorized: () => void,
+): string | null {
+  if ((cause as { unauthorized?: boolean } | null)?.unauthorized) {
+    onUnauthorized();
+    return null;
+  }
+  return formatApiError(cause);
+}
+
 /** Server-level facts for admin screens. See `RuntimeAvailability`. */
 export function getServerInfo(): Promise<{
   runtimeApi: RuntimeAvailability;
   runtimeApiEnabled: boolean;
   primaryUrl?: string | null;
+  searchModel: Pick<CatalogModel, "id" | "displayName"> | null;
 }> {
   return adminApi("GET", "server-info");
+}
+
+export function getSearchOverview(): Promise<SearchOverview> {
+  return adminApi("GET", "search");
+}
+
+/** Chooses the search model (null: none); the download starts at once. */
+export function setSearchModel(model: string | null): Promise<SearchOverview> {
+  return adminApi("PUT", "search", { model });
+}
+
+/** Removes a stored model's files from the server. */
+export async function removeSearchModel(id: string): Promise<void> {
+  await adminApi("DELETE", `search/models/${encodeURIComponent(id)}`);
+}
+
+export function getSpaceSearch(id: string): Promise<SpaceSearchInfo> {
+  return adminApi("GET", `spaces/${encodeURIComponent(id)}/search`);
+}
+
+export function rebuildSpaceSearch(id: string): Promise<SpaceSearchInfo> {
+  return adminApi("POST", `spaces/${encodeURIComponent(id)}/search/rebuild`);
 }
 
 export async function listSpaceBindings(): Promise<VisibleSpace[]> {

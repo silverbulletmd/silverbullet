@@ -1,32 +1,20 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::{QueryMode, QueryRequest, QueryResult, RequestCx, SearchError, StatusResponse};
+use crate::{
+    FileStamp, IndexReport, QueryMode, QueryRequest, QueryResult, RelatedRequest, RequestCx,
+    SearchError, StatusResponse,
+};
 
 pub type BoxFut<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
-/// What an index backend compares to decide whether a file changed since it
-/// was indexed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FileStamp {
-    /// Last-modified time in milliseconds since the epoch, as storage reports it.
-    pub modified: i64,
-    pub size: u64,
-}
-
-/// Read access to the files a space actually exposes. Backends that search
-/// the folder on disk use it to drop anything storage hides (dot paths,
-/// ignore rules, control files) and to compute positions; index backends use
-/// it to read what they index.
+/// Read access to the files a space actually exposes (no dot paths, ignored
+/// files or control files), which index backends read what they index from.
 pub trait SpaceView: Send + Sync {
-    /// Every file path storage exposes. Implementations fail closed (empty set) when listing fails.
-    fn list(&self) -> HashSet<String>;
     /// Every file path storage exposes, with its stamp; `None` when listing
     /// failed, so an index never mistakes a failed listing for an empty space.
     fn list_meta(&self) -> Option<HashMap<String, FileStamp>>;
-    /// The first `len` bytes of `path`, or `None` when storage does not expose it.
-    fn read_prefix(&self, path: &str, len: usize) -> Option<Vec<u8>>;
     /// The whole of `path`, or `None` when it is missing or storage hides it.
     fn read(&self, path: &str) -> Option<Vec<u8>>;
 }
@@ -40,17 +28,34 @@ pub trait SearchBackend: Send + Sync {
     /// `status().capabilities.modes`. Cheap: called before every mode-less query.
     fn default_mode(&self) -> QueryMode;
     fn status(&self) -> StatusResponse;
+    /// The pages the space's full-text index counts (regular and meta
+    /// pages), for the space-size policy of semantic search; while it
+    /// builds, at least the total the build reports. `None` when there is no
+    /// count (not opened yet, or failing).
+    fn pages(&self) -> Option<u64> {
+        None
+    }
     fn query<'a>(
         &'a self,
         req: QueryRequest,
         cx: RequestCx,
     ) -> BoxFut<'a, Result<QueryResult, SearchError>>;
+    /// Pages related to `req.page`, leaving out the pages named in
+    /// `req.exclude` (exact names, no `.md`).
     fn related<'a>(
         &'a self,
-        _page: String,
-        _limit: usize,
+        _req: RelatedRequest,
         _cx: RequestCx,
     ) -> BoxFut<'a, Result<QueryResult, SearchError>> {
         Box::pin(async { Err(SearchError::Unsupported("related pages")) })
+    }
+    /// Each index this backend keeps, for the dashboard. Default: none.
+    fn indexes(&self) -> Vec<IndexReport> {
+        Vec::new()
+    }
+    /// Rebuilds every index while queries keep being answered (see each
+    /// backend). Idempotent while one runs.
+    fn rebuild(&self) -> Result<(), SearchError> {
+        Err(SearchError::Unsupported("rebuilding the search index"))
     }
 }

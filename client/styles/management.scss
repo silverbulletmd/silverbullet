@@ -116,6 +116,7 @@
   .sb-management-list .sb-management-row { display: flex; align-items: center; gap: 0.75rem; border: 0; border-bottom: 1px solid var(--ui-surface-border-color); border-radius: 0; padding: 0 0.75rem 0 0; margin: 0; }
   .sb-management-row-target { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: start; gap: 0.3rem; padding: 1.2rem 0.75rem; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
   .sb-management-row-main { font-weight: 400; overflow-wrap: anywhere; }
+  .sb-management-row-main .sb-space-search-badge { margin-left: 0.5rem; vertical-align: middle; }
   .sb-management-row-detail { color: var(--subtle-color); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
   .sb-management-badges { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
   .sb-management-icon-action { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 36px; min-height: 36px; padding: 6px; border-color: transparent; background: transparent; color: var(--subtle-color); }

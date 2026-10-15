@@ -10,7 +10,7 @@ use std::sync::Arc;
 use silverbullet_server_common::space::{
     DiskSpacePrimitives, FallthroughSpacePrimitives, ReadOnlySpacePrimitives,
 };
-use silverbullet_server_common::{BootConfig, FileMeta, SpaceError, SpacePrimitives};
+use silverbullet_server_common::{BootConfig, SpacePrimitives};
 
 use crate::auth::{
     headless_cookie_name, AuthConfig, Authenticator, JwtAuthorizer, LockoutTimer, LoginManager,
@@ -18,6 +18,7 @@ use crate::auth::{
 };
 use crate::multi::access::{SessionPolicy, SpaceUsersAuth, UserTokenAuthorizer};
 use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
+use crate::multi::data_root::{folder_conflict, watcher_ignore, ServerControlFileFilter};
 use crate::multi::policy::SpaceAccessPolicy;
 use crate::multi::users::UserStore;
 use crate::multi::validate::normalize_prefix;
@@ -67,13 +68,9 @@ pub struct InstanceDeps {
     /// Process-wide shutdown signal, cloned into every instance's
     /// `ServerState::shutdown`. See that field's doc comment.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
-    /// Admits every space's search requests; one per server, so the rg
-    /// process limit is server-wide.
-    pub search_gate: Arc<silverbullet_server_search::Gate>,
-    /// Where full-text indexes live, one directory per space id
-    /// (`<data root>/search/indexes` on a multi-user server); `None` keeps
-    /// every index in RAM (single-space mode).
-    pub search_index_root: Option<PathBuf>,
+    /// The server's search: which engine serves each space and where its
+    /// indexes live. `MultiManager::boot` boots it (`search_policy::boot`).
+    pub search: crate::search::SpaceSearch,
 }
 
 /// Single-space servers retain their classic environment credentials. An
@@ -142,127 +139,6 @@ fn account_identity(
     })
 }
 
-/// The data root's directory for search indexes (`search/indexes/<space id>`).
-pub const SEARCH_DIR: &str = "search";
-
-/// The data root's own top-level directories, which `ServerControlFileFilter`
-/// hides from a space rooted there.
-const DATA_ROOT_DIRS: [&str; 4] = ["git-keys", "git-drafts", "git-connections", SEARCH_DIR];
-
-/// `space_ignore` plus the data root's own directories, anchored at the top
-/// (the watcher reports names in their on-disk casing, which the server
-/// creates lowercase).
-fn watcher_ignore_for_data_root(space_ignore: &str) -> String {
-    let mut ignore = space_ignore.to_string();
-    for dir in DATA_ROOT_DIRS {
-        ignore.push_str(&format!("\n/{dir}/"));
-    }
-    ignore
-}
-
-/// Prevent a space deliberately rooted at the multi-space data directory from
-/// reading or mutating the server's account, routing, and session state.
-pub(crate) struct ServerControlFileFilter {
-    inner: Box<dyn SpacePrimitives>,
-}
-
-impl ServerControlFileFilter {
-    pub(crate) fn new(inner: Box<dyn SpacePrimitives>) -> Self {
-        Self { inner }
-    }
-
-    fn reserved(path: &str) -> bool {
-        let mut components = Path::new(path)
-            .components()
-            .filter_map(|component| match component {
-                std::path::Component::Normal(name) => name.to_str(),
-                std::path::Component::CurDir => None,
-                _ => Some(""),
-            });
-        let Some(name) = components.next() else {
-            return false;
-        };
-        let name = name.to_ascii_lowercase();
-        let name = name.as_str();
-        let provider_temp = name
-            .strip_prefix("authentication.")
-            .and_then(|name| name.strip_suffix(".tmp"))
-            .is_some_and(|name| !name.is_empty());
-        let browser_sessions_temp = name
-            .strip_prefix(".silverbullet.browser-sessions.")
-            .and_then(|name| name.strip_suffix(".tmp"))
-            .is_some_and(|name| !name.is_empty());
-        DATA_ROOT_DIRS.contains(&name)
-            || components.next().is_none()
-                && (matches!(
-                    name,
-                    "users.json"
-                        | "users.json.tmp"
-                        | "spaces.json"
-                        | "spaces.json.tmp"
-                        | "server.json"
-                        | "server.json.tmp"
-                        | "authentication.json"
-                        | ".silverbullet.browser-sessions.json"
-                        | crate::auth::MULTI_AUTH_FILE_NAME
-                ) || provider_temp
-                    || browser_sessions_temp)
-    }
-}
-
-impl SpacePrimitives for ServerControlFileFilter {
-    fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
-        let mut files = self.inner.fetch_file_list()?;
-        files.retain(|file| !Self::reserved(&file.name));
-        Ok(files)
-    }
-
-    fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
-        if Self::reserved(path) {
-            return Err(SpaceError::NotFound);
-        }
-        self.inner.get_file_meta(path)
-    }
-
-    fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
-        if Self::reserved(path) {
-            return Err(SpaceError::NotFound);
-        }
-        self.inner.read_file(path)
-    }
-
-    fn read_file_range(
-        &self,
-        path: &str,
-        start: u64,
-        length: usize,
-    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
-        if Self::reserved(path) {
-            return Err(SpaceError::NotFound);
-        }
-        self.inner.read_file_range(path, start, length)
-    }
-
-    fn write_file(
-        &self,
-        path: &str,
-        data: &[u8],
-        meta: Option<&FileMeta>,
-    ) -> Result<FileMeta, SpaceError> {
-        if Self::reserved(path) {
-            return Err(SpaceError::NotFound);
-        }
-        self.inner.write_file(path, data, meta)
-    }
-
-    fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
-        if Self::reserved(path) {
-            return Err(SpaceError::NotFound);
-        }
-        self.inner.delete_file(path)
-    }
-}
-
 /// Whether a space built successfully.
 #[derive(Debug)]
 pub enum InstanceStatus {
@@ -286,6 +162,9 @@ pub struct SpaceInstance {
     pub revisions: Option<Arc<crate::revisions::RevisionEngine>>,
     pub runtime: Option<Arc<dyn crate::runtime::RuntimeBackend>>,
     pub(crate) runtime_authorizer: Option<Arc<dyn RequestAuthorizer>>,
+    /// `None` when errored. The size policy reads `SpaceInstance::pages`.
+    pub(super) search: Option<Arc<dyn crate::search::SearchBackend>>,
+    pub(super) last_pages: Option<u64>,
 }
 
 /// Resolve a space's folder: empty -> `<root>/spaces/<id>`, `"."` -> `<root>`
@@ -390,21 +269,19 @@ pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> Sp
         "space state built"
     );
     match result {
-        Ok(state) => {
-            let revisions = state.revisions.clone();
-            let runtime = state.runtime.clone();
-            SpaceInstance {
-                id: id.to_string(),
-                config: config.clone(),
-                prefix,
-                space_prefixes: state.space_prefixes.clone(),
-                status: InstanceStatus::Running,
-                runtime_authorizer: state.authorizer.clone(),
-                router: Some(crate::build_router(Arc::new(state))),
-                revisions,
-                runtime,
-            }
-        }
+        Ok(state) => SpaceInstance {
+            id: id.to_string(),
+            config: config.clone(),
+            prefix,
+            space_prefixes: state.space_prefixes.clone(),
+            status: InstanceStatus::Running,
+            runtime_authorizer: state.authorizer.clone(),
+            revisions: state.revisions.clone(),
+            runtime: state.runtime.clone(),
+            search: Some(state.search.clone()),
+            last_pages: None,
+            router: Some(crate::build_router(Arc::new(state))),
+        },
         Err(reason) => {
             tracing::warn!("space {id} is errored: {reason}");
             SpaceInstance {
@@ -417,26 +294,10 @@ pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> Sp
                 revisions: None,
                 runtime: None,
                 runtime_authorizer: None,
+                search: None,
+                last_pages: None,
             }
         }
-    }
-}
-
-/// `Disk(<root>/<id>)`, or RAM without a root or for an id that isn't one
-/// safe path component (see [`crate::search::index_dir`]).
-pub(crate) fn search_location(root: Option<&Path>, id: &str) -> crate::search::Location {
-    match root.and_then(|root| crate::search::index_dir(root, id)) {
-        Some(dir) => crate::search::Location::Disk(dir),
-        None => crate::search::Location::Memory,
-    }
-}
-
-/// The space in search log lines: its id with a data root (multi-user), its
-/// folder's name without one (single-space mode, where the id is synthetic).
-fn search_name(has_index_root: bool, id: &str, folder: &Path) -> String {
-    match folder.file_name() {
-        Some(name) if !has_index_root => name.to_string_lossy().into_owned(),
-        _ => id.to_string(),
     }
 }
 
@@ -446,6 +307,9 @@ fn try_build_state(
     prefix: &str,
     deps: &InstanceDeps,
 ) -> Result<ServerState, String> {
+    if let Some(reason) = folder_conflict(&deps.root, id, &config.folder) {
+        return Err(reason);
+    }
     let folder = resolve_folder(&deps.root, id, &config.folder);
     if !folder.is_dir() {
         return Err(format!("space folder does not exist: {}", folder.display()));
@@ -459,7 +323,10 @@ fn try_build_state(
     let mut disk: Box<dyn SpacePrimitives> = Box::new(listing.clone());
     let account_managed = matches!(&deps.auth, InstanceAuth::Accounts { .. });
     let folder_is_server_root = folder.canonicalize().ok() == deps.root.canonicalize().ok();
-    if account_managed && folder_is_server_root {
+    // A space rooted at the data root itself: the server's own files and
+    // directories stay out of its sight, its watcher's and its index's.
+    let data_root_space = account_managed && folder_is_server_root;
+    if data_root_space {
         disk = Box::new(ServerControlFileFilter::new(disk));
     }
     let disk: Arc<dyn SpacePrimitives> = if config.read_only {
@@ -609,8 +476,8 @@ fn try_build_state(
     // On the data root, the server's own directories (search indexes, git
     // keys) change behind the space's back: the watcher must not report them
     // to clients, the listing cache or the index.
-    let watch_ignore = if account_managed && folder_is_server_root {
-        watcher_ignore_for_data_root(&config.space_ignore)
+    let watch_ignore = if data_root_space {
+        watcher_ignore(&config.space_ignore)
     } else {
         config.space_ignore.clone()
     };
@@ -682,21 +549,15 @@ fn try_build_state(
         "space revisions started"
     );
 
-    // Without a watcher, the instance's own writes keep the index current.
-    let (space, search_events) = match &fs_events {
-        Some(tx) => (space, tx.subscribe()),
-        None => {
-            let (space, tx) = crate::search::WriteEvents::wrap(space);
-            let space: Arc<dyn SpacePrimitives> = Arc::new(space);
-            (space, tx.subscribe())
-        }
-    };
-    let search = crate::search::backend_for(
-        &search_name(deps.search_index_root.is_some(), id, &folder),
+    let (space, search_events) = crate::search::change_events(space, fs_events.as_ref());
+    let search = super::search_policy::open(
+        deps,
+        id,
+        config,
+        &folder,
         search_space,
         search_ignore,
-        search_location(deps.search_index_root.as_deref(), id),
-        Some(search_events),
+        search_events,
     );
     Ok(ServerState {
         space,
@@ -745,7 +606,7 @@ fn try_build_state(
             InstanceAuth::Single(_) => crate::auth::username_only(),
         },
         search,
-        search_gate: deps.search_gate.clone(),
+        search_gate: deps.search.gate.clone(),
     })
 }
 
@@ -757,6 +618,8 @@ mod tests {
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use silverbullet_server_common::space::MemorySpacePrimitives;
+
+    mod search;
 
     fn test_deps(root: &std::path::Path) -> InstanceDeps {
         InstanceDeps {
@@ -779,63 +642,16 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            search_gate: Arc::new(crate::search::Gate::new()),
-            search_index_root: None,
+            search: crate::search::SpaceSearch::in_memory(),
         }
     }
 
     fn space(binding: Binding, folder: &str) -> SpaceConfig {
         SpaceConfig {
-            name: "S".into(),
             folder: folder.into(),
-            binding,
             access: Some(SpaceAccess::None),
-            legacy_public: None,
-            members: Default::default(),
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
-            theme_color: "#e1e1e1".into(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
+            ..SpaceConfig::test("S", binding)
         }
-    }
-
-    #[test]
-    fn control_files_are_reserved_case_insensitively() {
-        for path in [
-            "SERVER.JSON",
-            "UsErS.JsOn",
-            "AUTHENTICATION.JSON",
-            "Git-Keys/private",
-        ] {
-            assert!(ServerControlFileFilter::reserved(path), "{path}");
-        }
-        assert!(!ServerControlFileFilter::reserved("notes/server.json"));
-    }
-
-    #[test]
-    fn control_file_filter_delegates_range_reads_for_visible_files() {
-        let inner = MemorySpacePrimitives::new();
-        inner.write_file("range.bin", b"0123456789", None).unwrap();
-        inner
-            .write_file("server.json", b"0123456789", None)
-            .unwrap();
-        let filtered = ServerControlFileFilter::new(Box::new(inner));
-
-        let (data, meta) = filtered.read_file_range("range.bin", 2, 5).unwrap();
-        assert_eq!(data, b"23456");
-        assert_eq!(meta.size, 10);
-        assert!(matches!(
-            filtered.read_file_range("server.json", 2, 5),
-            Err(SpaceError::NotFound)
-        ));
     }
 
     #[test]
@@ -851,8 +667,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn builds_running_single_instance_with_auth_and_prefix() {
+    #[tokio::test]
+    async fn builds_running_single_instance_with_auth_and_prefix() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
         let folder = dir.path().join("spaces/x");
@@ -873,8 +689,8 @@ mod tests {
         assert!(inst.router.is_some());
     }
 
-    #[test]
-    fn wires_fs_watcher_into_state() {
+    #[tokio::test]
+    async fn wires_fs_watcher_into_state() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
         let folder = dir.path().join("spaces/x");
@@ -889,8 +705,8 @@ mod tests {
         assert!(state.fs_events.is_some());
     }
 
-    #[test]
-    fn managed_revisions_inits_git_and_starts_the_engine() {
+    #[tokio::test]
+    async fn managed_revisions_inits_git_and_starts_the_engine() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
         let folder = dir.path().join("spaces/x");
@@ -907,8 +723,8 @@ mod tests {
         assert!(state.revisions.is_some());
     }
 
-    #[test]
-    fn disabled_revisions_yields_no_engine() {
+    #[tokio::test]
+    async fn disabled_revisions_yields_no_engine() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
         let folder = dir.path().join("spaces/x");
@@ -923,8 +739,8 @@ mod tests {
         assert!(state.revisions.is_none());
     }
 
-    #[test]
-    fn shell_kill_switch_overrides_per_space_settings() {
+    #[tokio::test]
+    async fn shell_kill_switch_overrides_per_space_settings() {
         let dir = tempfile::tempdir().unwrap();
         let folder = dir.path().join("spaces/x");
         std::fs::create_dir_all(&folder).unwrap();
@@ -951,8 +767,8 @@ mod tests {
         assert_eq!(state.boot_config.shell_backend, "noop");
     }
 
-    #[test]
-    fn missing_folder_yields_errored_instance() {
+    #[tokio::test]
+    async fn missing_folder_yields_errored_instance() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
         let cfg = space(
@@ -1033,24 +849,10 @@ mod tests {
         folder: &str,
     ) -> SpaceConfig {
         SpaceConfig {
-            name: "S".into(),
             folder: folder.into(),
-            binding,
             access: Some(access),
-            legacy_public: None,
             members,
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
-            theme_color: "#e1e1e1".into(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
+            ..SpaceConfig::test("S", binding)
         }
     }
 
@@ -1122,8 +924,8 @@ mod tests {
         assert!(response.headers().get("location").is_some());
     }
 
-    #[test]
-    fn every_account_managed_space_has_a_login_manager() {
+    #[tokio::test]
+    async fn every_account_managed_space_has_a_login_manager() {
         for access in [SpaceAccess::None, SpaceAccess::Read, SpaceAccess::Write] {
             let (_dir, state) = state_with_access(access);
             assert!(state.login.is_some(), "{access:?}");
@@ -1131,8 +933,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn anonymous_readable_tracks_the_account_managed_access_level() {
+    #[tokio::test]
+    async fn anonymous_readable_tracks_the_account_managed_access_level() {
         // Account-managed public spaces permit SSR despite having an authorizer.
         let (_dir_none, none) = state_with_access(SpaceAccess::None);
         assert!(!none.anonymous_readable);
@@ -1142,8 +944,8 @@ mod tests {
         assert!(write.anonymous_readable);
     }
 
-    #[test]
-    fn anonymous_writable_tracks_who_may_author_the_content() {
+    #[tokio::test]
+    async fn anonymous_writable_tracks_who_may_author_the_content() {
         // Gates SSR alongside `anonymous_readable`: only `access: "write"`
         // (legacy `public: true`) lets a stranger author a page, and rendering
         // stranger-authored markdown into the shell would serve stored HTML.
@@ -1155,8 +957,8 @@ mod tests {
         assert!(write.anonymous_writable);
     }
 
-    #[test]
-    fn an_open_single_space_is_anonymous_writable_unless_frozen() {
+    #[tokio::test]
+    async fn an_open_single_space_is_anonymous_writable_unless_frozen() {
         // No authorizer at all means anyone may write, so its content is no
         // more trustworthy than a `access: "write"` space's -- unless the
         // freeze stops every writer, which is what keeps SSR working for the
@@ -1182,8 +984,8 @@ mod tests {
         assert!(frozen.anonymous_readable);
     }
 
-    #[test]
-    fn open_single_space_is_anonymous_readable() {
+    #[tokio::test]
+    async fn open_single_space_is_anonymous_readable() {
         // Single-space mode determines public access from its authorizer,
         // since its synthesized config always has access: none.
         let dir = tempfile::tempdir().unwrap();
@@ -1201,8 +1003,8 @@ mod tests {
         assert!(state.anonymous_readable);
     }
 
-    #[test]
-    fn auth_protected_single_space_is_not_anonymous_readable() {
+    #[tokio::test]
+    async fn auth_protected_single_space_is_not_anonymous_readable() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path()); // default: Single(Some(admin:pw))
         let folder = dir.path().join("locked");
@@ -1217,8 +1019,8 @@ mod tests {
         assert!(!state.anonymous_readable);
     }
 
-    #[test]
-    fn client_encryption_is_off_wherever_anonymous_access_is_on() {
+    #[tokio::test]
+    async fn client_encryption_is_off_wherever_anonymous_access_is_on() {
         let (_dir_none, none) = state_with_access(SpaceAccess::None);
         assert!(none.boot_config.enable_client_encryption);
         let (_dir_read, read) = state_with_access(SpaceAccess::Read);
@@ -1727,501 +1529,5 @@ mod tests {
     #[test]
     fn a_deployment_without_accounts_has_no_directory() {
         assert!(crate::auth::username_only().accounts().is_none());
-    }
-    /// One request through `router`; the body is parsed as JSON (`Null` if it isn't).
-    async fn request(
-        router: axum::Router,
-        method: &str,
-        path: &str,
-        body: &str,
-        headers: &[(&str, String)],
-    ) -> (StatusCode, serde_json::Value) {
-        use tower::ServiceExt;
-        let mut req = Request::builder()
-            .method(method)
-            .uri(path)
-            .header("content-type", "application/json");
-        for (name, value) in headers {
-            req = req.header(*name, value.as_str());
-        }
-        let res = router
-            .oneshot(req.body(Body::from(body.to_string())).unwrap())
-            .await
-            .unwrap();
-        let status = res.status();
-        let bytes = axum::body::to_bytes(res.into_body(), 1 << 22)
-            .await
-            .unwrap();
-        let json = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
-        (status, json)
-    }
-
-    /// Waits up to 10 s for the space's first index build.
-    async fn wait_ready(state: &ServerState) {
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-        while !state.search.status().ready {
-            assert!(
-                std::time::Instant::now() < deadline,
-                "the index never became ready: {:?}",
-                state.search.status()
-            );
-            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-        }
-    }
-
-    /// `/.search/*` through a single-user space's real authorizer chain and
-    /// full-text index, with `Fern.md` in it. `bearer` is sent as
-    /// `Authorization: Bearer`.
-    async fn single_user_search(
-        auth: Option<crate::auth::AuthConfig>,
-        read_only: bool,
-        bearer: Option<&str>,
-    ) -> Vec<(&'static str, StatusCode, serde_json::Value)> {
-        let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        deps.auth = InstanceAuth::Single(auth);
-        let folder = dir.path().join("space");
-        std::fs::create_dir_all(&folder).unwrap();
-        std::fs::write(folder.join("Fern.md"), "fern fronds\n").unwrap();
-        let mut cfg = space(
-            Binding::Prefix {
-                prefix: "/o".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-        cfg.read_only = read_only;
-        let state = Arc::new(try_build_state("o", &cfg, "/o", &deps).unwrap());
-        wait_ready(&state).await;
-        let headers: Vec<_> = bearer
-            .map(|token| ("authorization", format!("Bearer {token}")))
-            .into_iter()
-            .collect();
-        let mut out = vec![];
-        for (path, body) in [
-            ("/.search/status", ""),
-            ("/.search/query", r#"{"query":"fern"}"#),
-            (
-                "/.search/query",
-                r#"{"query":"fern fronds","mode":"phrase"}"#,
-            ),
-            ("/.search/query", r#"{"query":"fern","mode":"regex"}"#),
-            ("/.search/related", r#"{"page":"Fern"}"#),
-        ] {
-            let method = if body.is_empty() { "GET" } else { "POST" };
-            let router = crate::build_router(state.clone());
-            let (status, json) = request(router, method, path, body, &headers).await;
-            out.push((path, status, json));
-        }
-        out
-    }
-
-    const PUBLIC: &str = "Search isn't available to public visitors";
-
-    /// A signed-in or trusted caller: every mode the index has, Fern found,
-    /// Regex refused as invalid, related unsupported (400, not a refusal).
-    fn assert_searches(results: &[(&str, StatusCode, serde_json::Value)]) {
-        for (i, (path, status, body)) in results.iter().enumerate() {
-            assert_ne!(body["message"], PUBLIC, "{path}: {body}");
-            match (i, *path) {
-                (_, "/.search/status") => {
-                    assert_eq!(body["backend"], "fulltext", "{body}");
-                    assert_eq!(
-                        body["capabilities"]["modes"],
-                        serde_json::json!(["words", "phrase"])
-                    );
-                }
-                (3, _) => assert_eq!(body["error"], "invalid", "regex: {body}"),
-                (_, "/.search/query") => {
-                    assert_eq!(*status, StatusCode::OK, "{body}");
-                    assert_eq!(body["items"][0]["page"], "Fern", "{body}");
-                }
-                _ => assert_eq!(body["error"], "unsupported", "{path}: {body}"),
-            }
-        }
-    }
-
-    /// A public visitor: Words and Phrase find Fern, status lists only them,
-    /// and related is refused before admission (Regex is not a mode: invalid).
-    fn assert_public_searches(results: &[(&str, StatusCode, serde_json::Value)]) {
-        for (i, (path, status, body)) in results.iter().enumerate() {
-            match (i, *path) {
-                (_, "/.search/status") => {
-                    assert_eq!(*status, StatusCode::OK);
-                    assert_eq!(body["backend"], "fulltext", "{body}");
-                    assert_eq!(body["reason"], serde_json::Value::Null, "{body}");
-                    assert_eq!(
-                        body["capabilities"],
-                        serde_json::json!({"modes": ["words", "phrase"], "related": false})
-                    );
-                }
-                (1 | 2, _) => {
-                    assert_eq!(*status, StatusCode::OK, "{i}: {body}");
-                    assert_eq!(body["items"][0]["page"], "Fern", "{i}: {body}");
-                }
-                (3, _) => {
-                    assert_eq!(*status, StatusCode::BAD_REQUEST, "{body}");
-                    assert_eq!(body["error"], "invalid", "regex: {body}");
-                }
-                _ => {
-                    assert_eq!(*status, StatusCode::NOT_FOUND, "{i} {path}: {body}");
-                    assert_eq!(
-                        *body,
-                        serde_json::json!({"error": "unavailable", "message": PUBLIC}),
-                        "{i} {path}"
-                    );
-                }
-            }
-        }
-    }
-
-    /// `SB_READ_ONLY` without auth: the docs-site shape (Review Focus 5).
-    #[tokio::test]
-    async fn an_open_read_only_single_space_searches_publicly_in_words_and_phrases() {
-        assert_public_searches(&single_user_search(None, true, None).await);
-    }
-
-    #[tokio::test]
-    async fn an_open_writable_single_space_searches() {
-        assert_searches(&single_user_search(None, false, None).await);
-    }
-
-    #[tokio::test]
-    async fn a_token_caller_searches_a_read_only_single_space_with_auth() {
-        let auth = || {
-            crate::auth::AuthConfig::try_parse(
-                Some("admin:pw"),
-                Some("search-token"),
-                None,
-                None,
-                None,
-            )
-            .unwrap()
-        };
-        assert_searches(&single_user_search(auth(), true, Some("search-token")).await);
-        // Without the token the caller never gets past authentication.
-        for (path, status, _) in single_user_search(auth(), true, None).await {
-            assert!(
-                status == StatusCode::UNAUTHORIZED || status.is_redirection(),
-                "{path}: {status}"
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn published_multi_user_spaces_search_for_anonymous_visitors() {
-        for access in [SpaceAccess::Write, SpaceAccess::Read] {
-            let (dir, state) = state_with_access(access);
-            std::fs::write(dir.path().join("space/Fern.md"), "fern fronds\n").unwrap();
-            let state = Arc::new(state);
-            // Found through the watcher: the file came after the instance.
-            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-            let mut results = vec![];
-            for (path, body) in [
-                ("/.search/status", ""),
-                ("/.search/query", r#"{"query":"fern"}"#),
-                (
-                    "/.search/query",
-                    r#"{"query":"fern fronds","mode":"phrase"}"#,
-                ),
-                ("/.search/query", r#"{"query":"fern","mode":"regex"}"#),
-                ("/.search/related", r#"{"page":"Fern"}"#),
-            ] {
-                let method = if body.is_empty() { "GET" } else { "POST" };
-                let result = loop {
-                    let router = crate::build_router(state.clone());
-                    let (status, json) = request(router, method, path, body, &[]).await;
-                    let found = path != "/.search/query"
-                        || json["items"][0]["page"] == "Fern"
-                        || status != StatusCode::OK;
-                    if found || std::time::Instant::now() >= deadline {
-                        break (path, status, json);
-                    }
-                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-                };
-                results.push(result);
-            }
-            if access == SpaceAccess::Write {
-                // An anonymous writer isn't a public visitor.
-                assert_searches(&results);
-            } else {
-                assert_public_searches(&results);
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn a_page_written_after_boot_is_found_within_two_seconds() {
-        let (dir, state) = state_with_access(SpaceAccess::Write);
-        let state = Arc::new(state);
-        assert!(state.fs_events.is_some(), "the test needs the real watcher");
-        wait_ready(&state).await;
-        std::fs::write(dir.path().join("space/Bracken.md"), "bracken uncurls\n").unwrap();
-        let started = std::time::Instant::now();
-        loop {
-            let router = crate::build_router(state.clone());
-            let (status, body) = request(
-                router,
-                "POST",
-                "/.search/query",
-                r#"{"query":"bracken"}"#,
-                &[],
-            )
-            .await;
-            assert_eq!(status, StatusCode::OK, "{body}");
-            if body["items"][0]["page"] == "Bracken" {
-                break;
-            }
-            assert!(
-                started.elapsed() < std::time::Duration::from_secs(2),
-                "not found after 2 s: {body}"
-            );
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        }
-    }
-
-    /// The data root as a multi-user space's folder: the index lives under
-    /// `search/indexes/<id>/fulltext-v2/` and the space never shows it
-    /// (Review Focus 3).
-    #[tokio::test]
-    async fn multi_user_indexes_live_under_the_data_root_hidden_from_a_root_folder_space() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        deps.search_index_root = Some(dir.path().join(SEARCH_DIR).join("indexes"));
-        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
-        store
-            .create_user("admin", "adminpw1", true, Profile::default())
-            .unwrap();
-        let authenticator = Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into()));
-        deps.auth = InstanceAuth::Accounts {
-            users: store.clone(),
-            authenticator: authenticator.clone(),
-            session: SessionPolicy::default(),
-        };
-        std::fs::write(dir.path().join("Fern.md"), "fern fronds\n").unwrap();
-        let cfg = space_users_model(
-            Binding::Prefix { prefix: "/".into() },
-            SpaceAccess::None,
-            Default::default(),
-            dir.path().to_str().unwrap(),
-        );
-        let state = Arc::new(try_build_state("root", &cfg, "", &deps).unwrap());
-        // What `/.events` clients, the listing cache and the index's forwarder see.
-        let mut events = state.fs_events.as_ref().unwrap().subscribe();
-        std::fs::create_dir_all(dir.path().join("git-keys")).unwrap();
-        std::fs::write(dir.path().join("git-keys/sample"), "private state").unwrap();
-        wait_ready(&state).await;
-
-        let index = dir.path().join("search/indexes/root/fulltext-v2");
-        assert!(index.join("meta.json").is_file(), "{}", index.display());
-        #[cfg(unix)]
-        for d in ["search", "search/indexes", "search/indexes/root"] {
-            use std::os::unix::fs::PermissionsExt;
-            let mode = std::fs::metadata(dir.path().join(d))
-                .unwrap()
-                .permissions()
-                .mode();
-            assert_eq!(mode & 0o777, 0o700, "{d}");
-        }
-
-        let version = store.credential_version("admin").unwrap();
-        let jwt = authenticator
-            .issue_jwt_with_version("admin", version, 3600)
-            .unwrap();
-        let headers = [
-            ("host", "localhost".to_string()),
-            ("cookie", format!("auth_localhost={jwt}")),
-            ("sec-fetch-site", "same-origin".to_string()),
-        ];
-        let router = || crate::build_router(state.clone());
-        let (status, listing) = request(router(), "GET", "/.fs", "", &headers).await;
-        assert_eq!(status, StatusCode::OK, "{listing}");
-        let names: Vec<&str> = listing
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter_map(|file| file["name"].as_str())
-            .collect();
-        assert!(names.contains(&"Fern.md"), "{names:?}");
-        assert!(
-            names
-                .iter()
-                .all(|name| !name.to_ascii_lowercase().starts_with("search/")),
-            "{names:?}"
-        );
-        for path in [
-            "/.fs/search/indexes/root/fulltext-v2/meta.json",
-            "/.fs/Search/indexes/root/fulltext-v2/meta.json",
-        ] {
-            let (status, _) = request(router(), "GET", path, "", &headers).await;
-            assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
-        }
-        let (status, body) = request(
-            router(),
-            "POST",
-            "/.search/query",
-            r#"{"query":"fern"}"#,
-            &headers,
-        )
-        .await;
-        assert_eq!(status, StatusCode::OK, "{body}");
-        assert_eq!(body["total"], 1, "{body}");
-        assert_eq!(body["items"][0]["page"], "Fern");
-
-        // An edit commits to the index again; only the edit is reported.
-        std::fs::write(dir.path().join("Bracken.md"), "bracken uncurls\n").unwrap();
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-        loop {
-            let (_, body) = request(
-                router(),
-                "POST",
-                "/.search/query",
-                r#"{"query":"bracken"}"#,
-                &headers,
-            )
-            .await;
-            if body["items"][0]["page"] == "Bracken" {
-                break;
-            }
-            assert!(std::time::Instant::now() < deadline, "{body}");
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        }
-        // Let the commit's file events (if any leaked) reach the channel.
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        let mut seen = vec![];
-        loop {
-            match events.try_recv() {
-                Ok(event) => seen.push((event.name, event.action)),
-                Err(tokio::sync::broadcast::error::TryRecvError::Empty) => break,
-                Err(error) => panic!("{error:?}"),
-            }
-        }
-        assert!(
-            seen.iter().any(|(name, _)| name == "Bracken.md"),
-            "the watcher reports the edit: {seen:?}"
-        );
-        for (name, action) in &seen {
-            assert!(
-                name.ends_with(".md") && *action != crate::FsAction::Resync,
-                "only page events, no rescans: {seen:?}"
-            );
-        }
-    }
-
-    /// Single-space mode (`search_index_root: None`): the index is in RAM.
-    #[tokio::test]
-    async fn a_single_space_writes_no_index_files() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        deps.auth = InstanceAuth::Single(None);
-        std::fs::write(dir.path().join("Fern.md"), "fern fronds\n").unwrap();
-        let cfg = space(Binding::Prefix { prefix: "/".into() }, ".");
-        let state = Arc::new(try_build_state("single", &cfg, "", &deps).unwrap());
-        wait_ready(&state).await;
-        let (status, body) = request(
-            crate::build_router(state.clone()),
-            "POST",
-            "/.search/query",
-            r#"{"query":"fern"}"#,
-            &[],
-        )
-        .await;
-        assert_eq!(status, StatusCode::OK, "{body}");
-        assert_eq!(body["items"][0]["page"], "Fern");
-        let mut entries = vec![];
-        let mut stack = vec![dir.path().to_path_buf()];
-        while let Some(d) = stack.pop() {
-            for entry in std::fs::read_dir(&d).unwrap() {
-                let path = entry.unwrap().path();
-                if path.is_dir() {
-                    stack.push(path.clone());
-                }
-                entries.push(path.strip_prefix(dir.path()).unwrap().to_path_buf());
-            }
-        }
-        assert_eq!(entries, [std::path::PathBuf::from("Fern.md")]);
-    }
-
-    /// Search covers the space's own files, not the bundled fallback layer
-    /// (`Library/Std` and the like), which the space API still serves.
-    #[tokio::test]
-    async fn bundled_fallback_files_are_not_searched() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        deps.auth = InstanceAuth::Single(None);
-        deps.assets.base_fs = Box::new(|| {
-            let bundled = MemorySpacePrimitives::new();
-            bundled
-                .write_file("Library/Std/Fern Guide.md", b"fern lore\n", None)
-                .unwrap();
-            Box::new(bundled)
-        });
-        let folder = dir.path().join("space");
-        std::fs::create_dir_all(&folder).unwrap();
-        std::fs::write(folder.join("Fern.md"), "fern fronds\n").unwrap();
-        let cfg = space(
-            Binding::Prefix { prefix: "/".into() },
-            folder.to_str().unwrap(),
-        );
-        let state = Arc::new(try_build_state("own", &cfg, "", &deps).unwrap());
-        wait_ready(&state).await;
-        let router = || crate::build_router(state.clone());
-        let (status, _) =
-            request(router(), "GET", "/.fs/Library/Std/Fern%20Guide.md", "", &[]).await;
-        assert_eq!(status, StatusCode::OK, "the fallback layer is served");
-        let (status, body) = request(
-            router(),
-            "POST",
-            "/.search/query",
-            r#"{"query":"fern"}"#,
-            &[],
-        )
-        .await;
-        assert_eq!(status, StatusCode::OK, "{body}");
-        assert_eq!(body["total"], 1, "{body}");
-        assert_eq!(body["items"][0]["page"], "Fern");
-    }
-
-    #[test]
-    fn search_names_are_ids_or_folder_names() {
-        assert_eq!(
-            search_name(true, "0f6c", Path::new("/data/spaces/0f6c")),
-            "0f6c"
-        );
-        assert_eq!(
-            search_name(false, "solo", Path::new("/home/me/Notes")),
-            "Notes"
-        );
-        assert_eq!(search_name(false, "solo", Path::new("/")), "solo");
-    }
-
-    #[test]
-    fn search_locations_are_per_space_or_in_ram() {
-        use crate::search::Location;
-        let root = Path::new("/data/search/indexes");
-        assert!(matches!(
-            search_location(Some(root), "0f6c"),
-            Location::Disk(p) if p == root.join("0f6c")
-        ));
-        for id in ["", ".", "..", "a/b", "../x", "/abs", "a\\b", "C:", "C:x"] {
-            assert!(
-                matches!(search_location(Some(root), id), Location::Memory),
-                "{id}"
-            );
-        }
-        assert!(matches!(search_location(None, "0f6c"), Location::Memory));
-    }
-
-    #[test]
-    fn the_search_directory_is_reserved_at_the_data_root() {
-        for path in [
-            "search",
-            "search/indexes/x/fulltext-v2/meta.json",
-            "SEARCH/x",
-        ] {
-            assert!(ServerControlFileFilter::reserved(path), "{path}");
-        }
-        for path in ["notes/search/x.md", "search.md", "searches/x.md"] {
-            assert!(!ServerControlFileFilter::reserved(path), "{path}");
-        }
     }
 }

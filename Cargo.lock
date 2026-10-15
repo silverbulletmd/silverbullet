@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "accelerate-src"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "415ed64958754dbe991900f3940677e6a7eefb4d7367afd70d642677b0c7d19d"
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -476,6 +482,7 @@ name = "candle-core"
 version = "0.11.0"
 source = "git+https://github.com/huggingface/candle?rev=c68b24997319b8d76e5a4e775dab197c7f26322a#c68b24997319b8d76e5a4e775dab197c7f26322a"
 dependencies = [
+ "accelerate-src",
  "byteorder",
  "float8",
  "gemm",
@@ -502,6 +509,7 @@ name = "candle-nn"
 version = "0.11.0"
 source = "git+https://github.com/huggingface/candle?rev=c68b24997319b8d76e5a4e775dab197c7f26322a#c68b24997319b8d76e5a4e775dab197c7f26322a"
 dependencies = [
+ "accelerate-src",
  "candle-core",
  "half",
  "libc",
@@ -3672,7 +3680,6 @@ dependencies = [
 name = "sb"
 version = "0.0.0"
 dependencies = [
- "base64 0.23.1",
  "chrono",
  "clap",
  "globset",
@@ -3968,6 +3975,7 @@ dependencies = [
  "silverbullet-server",
  "silverbullet-server-common",
  "silverbullet-server-runtime-chrome",
+ "silverbullet-server-search",
  "tempfile",
  "tokio",
  "tower",
@@ -4063,7 +4071,6 @@ dependencies = [
 name = "silverbullet-server-search"
 version = "0.0.0"
 dependencies = [
- "base64 0.23.1",
  "candle-core",
  "candle-nn",
  "libc",
@@ -4073,6 +4080,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "silverbullet-server-common",
+ "sysinfo",
  "tantivy",
  "tempfile",
  "thiserror 2.0.21",

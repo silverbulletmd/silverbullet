@@ -195,12 +195,20 @@ pub fn validate(
     validate_for_primary(config, root, known_users, None)
 }
 
+/// [`validate`] for a server whose primary URL has host `primary_host`.
+///
+/// A space whose folder can't be served (see `data_root::folder_conflict`)
+/// is left out of the folder nesting check only: boot skips it, and a skipped
+/// `..` would otherwise contain every space. This function does not report
+/// the conflict itself; callers run `data_root::folder_conflicts` and report it.
+/// Every other check, binding overlap included, still counts it.
 pub fn validate_for_primary(
     config: &MultiConfig,
     root: &Path,
     known_users: &BTreeSet<String>,
     primary_host: Option<&str>,
 ) -> Vec<FieldError> {
+    let skipped = crate::multi::data_root::folder_conflicts(root, config);
     let mut errors = Vec::new();
     let mut seen_bindings: Vec<(&String, Option<String>, String)> = Vec::new();
     let mut spaces: Vec<_> = config.spaces.iter().collect();
@@ -304,6 +312,7 @@ pub fn validate_for_primary(
     let resolved: Vec<(String, PathBuf)> = config
         .spaces
         .iter()
+        .filter(|(id, _)| !skipped.contains_key(*id))
         .map(|(id, s)| {
             (
                 id.clone(),
@@ -395,29 +404,10 @@ pub fn normalize_host_authority(host: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multi::config::{Binding, MultiConfig, SpaceAccess, SpaceConfig};
+    use crate::multi::config::{Binding, MultiConfig, SpaceConfig};
 
     fn space(name: &str, binding: Binding) -> SpaceConfig {
-        SpaceConfig {
-            name: name.into(),
-            folder: String::new(),
-            binding,
-            access: Some(SpaceAccess::Write),
-            legacy_public: None,
-            members: Default::default(),
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
-            theme_color: "#e1e1e1".into(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
-        }
+        SpaceConfig::test(name, binding)
     }
 
     fn cfg(entries: Vec<(&str, SpaceConfig)>) -> MultiConfig {
@@ -840,6 +830,42 @@ mod tests {
         );
         b.folder = "spaces/b".into();
         assert!(validate(&cfg(vec![("a", a), ("b", b)]), dir.path(), &users(&[])).is_empty());
+    }
+
+    #[test]
+    fn spaces_whose_folder_conflicts_are_left_out_of_nesting_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("data");
+        std::fs::create_dir_all(&root).unwrap();
+        let mut outer = space(
+            "Outer",
+            Binding::Prefix {
+                prefix: "/notes".into(),
+            },
+        );
+        // The data folder's parent, as an absolute path: it contains the data
+        // folder (skipped at boot) and, lexically, every other space's folder.
+        outer.folder = dir.path().to_string_lossy().into_owned();
+        let mut notes = space(
+            "Notes",
+            Binding::Prefix {
+                prefix: "/notes".into(),
+            },
+        );
+        notes.folder = "spaces/notes".into();
+        let errs = validate(
+            &cfg(vec![("outer", outer), ("notes", notes)]),
+            &root,
+            &users(&[]),
+        );
+        assert!(
+            !errs.iter().any(|e| e.field.ends_with(".folder")),
+            "a conflicting folder doesn't nest with every other space: {errs:?}"
+        );
+        assert!(
+            errs.iter().any(|e| e.field == "outer.binding"),
+            "it still holds its binding: {errs:?}"
+        );
     }
 
     #[test]

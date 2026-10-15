@@ -1,4 +1,5 @@
 import type { GitSyncSnapshot } from "@silverbulletmd/silverbullet/type/revisions";
+import type { SemanticChoice } from "@silverbulletmd/silverbullet/type/search_admin";
 export type RevisionsMode = "managed" | "unmanaged" | "disabled";
 
 export type SpaceAccess = "none" | "read" | "write";
@@ -93,6 +94,9 @@ export type SpaceInfo = {
   gitSync?: GitSyncConfig;
   revisionsCommit?: CommitTiming;
   indexPage: string;
+  // Semantic search: the stored choice; null (or absent) follows the
+  // server's default, which is on once a search model is chosen.
+  semanticSearch?: SemanticChoice;
   status: { state: "running" | "errored"; reason?: string };
 };
 

@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 
-use crate::admission::Pools;
 use crate::{limits, Admission, RequestCx, SearchError};
 use pool::Pool;
 use supersede::Supersede;
@@ -49,9 +48,7 @@ impl Gate {
         Ok(RequestCx::admitted(
             a.deadline,
             cancel,
-            Pools {
-                queries: self.queries.clone(),
-            },
+            self.queries.clone(),
             registration,
         ))
     }

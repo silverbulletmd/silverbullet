@@ -36,6 +36,8 @@ The environment variables below configure a **single-space** server. A fresh ins
 * `SB_FOLDER`: The data folder to serve, e.g. `SB_FOLDER=/home/user/silverbullet`. In single-space mode this folder is your space, in multi-space mode it holds the server configuration and (by default) the spaces, see [[Dashboard]].
 * `SB_INDEX_PAGE` *(legacy)*: Sets the default page to load, defaults to `index`. Prefer the per-space **Index page** setting in the [[Dashboard]] (**Space settings → General**).
 * `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder's actual `.gitignore` file is not read.
+* `SB_SEARCH_DIR`: A writable folder outside the space where search keeps its full-text index (so it is not rebuilt at every start) and, with `SB_SEARCH_MODEL`, the model and the semantic index. The space folder may stay read-only. Unset (the default), the index is kept in memory. Use one folder per server. See [[Search]].
+* `SB_SEARCH_MODEL`: Adds semantic search with this model: `granite-embedding-97m-multilingual-r2` (recommended, about 220 MB) or `multilingual-e5-small` (about 488 MB); needs `SB_SEARCH_DIR`. The model is downloaded on first start. See [[Search]].
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
 * `SB_LOG_PUSH`: Set to any value to ask clients to push their logs to the server (for debugging purposes)
 * `SB_DISABLE_SERVICE_WORKER`: Set to any value to disable the client-side service worker for all clients. In this mode, [[Sync]] is disabled (so your space is not copied into the browser) and the app will not function when offline. All loads and saves will go directly to the server.

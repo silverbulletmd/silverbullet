@@ -141,7 +141,7 @@ pub struct ServerState {
     /// `auth::IdentityResolver`). `username_only()` for a server with no
     /// profile store behind it.
     pub identity: Arc<dyn crate::auth::IdentityResolver>,
-    /// The engine behind `/.search/*`, chosen by `crate::search::backend_for`.
+    /// The engine behind `/.search/*`, built by `crate::search::SpaceSearch::open`.
     pub search: Arc<dyn silverbullet_server_search::SearchBackend>,
     /// Admits search requests; shared by every space a server hosts.
     pub search_gate: Arc<silverbullet_server_search::Gate>,

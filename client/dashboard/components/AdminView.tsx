@@ -3,6 +3,7 @@ import { ADMIN_SECTIONS, type AdminSection, dashboardUrl } from "../routes.ts";
 import { useNavigate } from "../navigation.ts";
 import { ServerSettingsView } from "./ServerSettingsView.tsx";
 import { AuthenticationView } from "./AuthenticationView.tsx";
+import { SearchSettings } from "./SearchSettings.tsx";
 
 import { RuntimesView } from "./RuntimesView.tsx";
 
@@ -37,6 +38,8 @@ export function AdminView({
         <div class="sb-settings-content">
           {section === "server" ? (
             <ServerSettingsView onUnauthorized={onUnauthorized} />
+          ) : section === "search" ? (
+            <SearchSettings onUnauthorized={onUnauthorized} />
           ) : section === "runtimes" ? (
             <RuntimesView onUnauthorized={onUnauthorized} />
           ) : (

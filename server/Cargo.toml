@@ -39,6 +39,11 @@ openidconnect = { version = "4", default-features = false, features = ["reqwest"
 tempfile = "3"
 png = "0.18"
 
+[features]
+# `SpaceSearch::with_semantic`, for embedders' tests.
+test-model = ["silverbullet-server-search/test-model"]
+
 [dev-dependencies]
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }
+silverbullet-server-search = { path = "../server-search", features = ["test-model"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }

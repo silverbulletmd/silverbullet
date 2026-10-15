@@ -6,6 +6,7 @@ import { attachWidgetEventHandlers } from "../codemirror/widgets/widget_util.ts"
 import { renderLuaExpression } from "../space_lua/render_widget.ts";
 import {
   createRenderContext,
+  disposeRendered,
   portableMarkdown,
   renderValue,
 } from "./compose.ts";
@@ -18,11 +19,19 @@ import { buildTestEnv, type TestEnv, testHost } from "./compose_test_env.ts";
 
 const sandbox = vi.hoisted(() => ({
   onMessage: undefined as ((m: any) => void) | undefined,
+  created: 0,
+  disposed: 0,
 }));
 vi.mock("../sandbox/widget_sandbox_iframe.ts", () => ({
   createWidgetSandboxIFrame: (_c: any, _k: string, _s: any, cb: any) => {
     sandbox.onMessage = cb;
-    return document.createElement("iframe");
+    sandbox.created++;
+    return {
+      iframe: document.createElement("iframe"),
+      dispose: () => {
+        sandbox.disposed++;
+      },
+    };
   },
 }));
 
@@ -63,6 +72,25 @@ test("sandbox messages are forwarded with the iframe", async () => {
     { type: "blur" },
     node.querySelector("iframe"),
   );
+});
+
+test("disposing a sandbox host disposes its iframe", async () => {
+  const host = renderHostForClient(sandboxClient(0), {});
+  const node = host.createSandbox!({ html: "" } as any);
+  await vi.waitFor(() => expect(node.querySelector("iframe")).toBeTruthy());
+  const before = sandbox.disposed;
+  disposeRendered(node);
+  expect(sandbox.disposed).toBe(before + 1);
+});
+
+test("a sandbox host disposed before its iframe attaches never claims one", async () => {
+  const host = renderHostForClient(sandboxClient(0), {});
+  const before = sandbox.created;
+  const node = host.createSandbox!({ html: "" } as any);
+  disposeRendered(node);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(sandbox.created).toBe(before);
+  expect(node.querySelector("iframe")).toBeNull();
 });
 
 function fakeClient(t: TestEnv): Client {

@@ -338,31 +338,14 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            search_gate: Arc::new(crate::search::Gate::new()),
-            search_index_root: None,
+            search: crate::search::SpaceSearch::in_memory(),
         }
     }
 
     fn payload(name: &str, binding: Binding) -> SpaceConfig {
         SpaceConfig {
-            name: name.into(),
-            folder: String::new(),
-            binding,
             access: Some(SpaceAccess::None),
-            legacy_public: None,
-            members: Default::default(),
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
-            theme_color: "#e1e1e1".into(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
+            ..SpaceConfig::test(name, binding)
         }
     }
 

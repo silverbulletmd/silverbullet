@@ -1,4 +1,5 @@
 // Vendored from huggingface/candle candle-transformers/src/models/bert.rs at c68b249 (Apache-2.0 OR MIT).
+// Local changes: `HiddenAct::Gelu` runs `fast_ops::gelu_erf`, attention uses `softmax_last_dim`.
 //! BERT (Bidirectional Encoder Representations from Transformers)
 //!
 //! Bert is a general large language model that can be used for various language tasks:
@@ -39,7 +40,8 @@ impl HiddenActLayer {
         let _enter = self.span.enter();
         match self.act {
             // https://github.com/huggingface/transformers/blob/cd4584e3c809bb9e1392ccd3fe38b40daba5519a/src/transformers/activations.py#L213
-            HiddenAct::Gelu => xs.gelu_erf(),
+            // Local change: a vectorisable erf (see `fast_ops`).
+            HiddenAct::Gelu => super::fast_ops::gelu_erf(xs),
             HiddenAct::GeluApproximate => xs.gelu(),
             HiddenAct::Relu => xs.relu(),
         }
@@ -259,7 +261,8 @@ impl BertSelfAttention {
         let attention_scores = attention_scores.broadcast_add(attention_mask)?;
         let attention_probs = {
             let _enter_sm = self.span_softmax.enter();
-            candle_nn::ops::softmax(&attention_scores, candle_core::D::Minus1)?
+            // Local change: the fused last-dimension softmax.
+            candle_nn::ops::softmax_last_dim(&attention_scores)?
         };
         let attention_probs = self.dropout.forward(&attention_probs)?;
 

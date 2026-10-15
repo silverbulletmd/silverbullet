@@ -101,11 +101,11 @@ Use `sb -h` for a compact command list and `sb --help` for a command guide and s
 Output selectors are mutually exclusive: choose `--json`, `--text`, or `-o <format>`. Unknown format names are rejected before connecting. `eval`, `script`, and `query` accept `auto`, `text`, `table`, `json`, `jsonl`, and `yaml`; file commands accept `auto`, `text`, `json`, and `jsonl`. Auto selects text on a terminal and JSON when piped, except `fs read`, which emits exact bytes by default. Logs, connection management, version, and upgrade commands print their own text output.
 
 # Commands
-Runtime commands may take a few seconds on first use while the [[Runtime API]] starts its headless client. `sb fs` commands work without the Runtime API or Chromium.
+Runtime commands may take a few seconds on first use while the [[Runtime API]] starts its headless client. `sb fs`, `sb search` and `sb related` work without the Runtime API or Chromium.
 
 ## `fs`: remote files
 
-List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`; quote paths containing spaces and use `/` between directories. Patch input, recursive deletion, copy, and move are not supported. To search page content, use `sb eval 'search.find("…")'` (see [[Search]]).
+List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`; quote paths containing spaces and use `/` between directories. Patch input, recursive deletion, copy, and move are not supported. To search page content, use [[#`search <text>`|`sb search`]].
 
 | Command | Behavior |
 |---|---|
@@ -201,6 +201,31 @@ Query errors carry hints where the cause is a common mistake. Using `=` where `=
 
 ## Results
 `eval`, `script`, and `query` return plain JSON (or the other `-o` formats rendered from it). A missing value, such as a query column absent on some rows, is `null` and the key stays: `{"name":"Books/Beta","rating":null}`. A query collection such as `index.pages("book")` returns its rows as an array, capped at 1000 rows; a longer one ends with a `"<truncated: N more rows; use sb query with where/limit>"` entry, so filter it with `sb query` instead. Values with no JSON form appear as string markers such as `"<function>"`. See [[Runtime API#Results]] for the full mapping.
+
+## `search <text>`
+Search the pages of the space (see [[Search]]) through the server's [[HTTP API#Search|search API]], so no Lua runtime or headless browser is needed. Prints one line per page, `Page:line  excerpt`, best match first; with `--json`, the server's response (`items`, `total`, `partial`, `notice`). Notices, such as a semantic search falling back to word matching, and a truncated result go to stderr.
+
+```bash
+sb search 'garden irrigation'
+sb search 'garden irrigation' --mode phrase --limit 5 --json
+sb search --status
+```
+
+| Flag | Description |
+|---|---|
+| `--mode <words\|phrase\|semantic>` | How to match, like the modes of the search box: all words, exact phrase, or by meaning. Without it, the space's default: semantic where the space has semantic search, words otherwise |
+| `-n, --limit <int>` | Maximum number of pages (the server caps it at 50) |
+| `--status` | Show the state of the search index and which modes the space offers, instead of searching. A flag, so `sb search status` searches for the word "status" |
+
+A public visitor's connection only gets the modes the server allows visitors: no semantic search until its index is ready.
+
+## `related <page>`
+List the pages most similar in meaning to a page, in the same format as `search`. Pass the page name without `.md`. It needs semantic search, so it fails on a space without it (`sb search --status` shows whether the space has it), and it is not available to public visitors.
+
+```bash
+sb related 'Projects/Launch'
+sb related Launch --limit 5 --json
+```
 
 ## `logs`
 Show console logs from the headless browser client.

@@ -1116,7 +1116,7 @@ async fn test(
 }
 fn manager_error(error: super::manager::ApiError) -> String {
     match error {
-        super::manager::ApiError::Internal(message) => message,
+        super::manager::ApiError::Internal(m) | super::manager::ApiError::Conflict(m) => m,
         super::manager::ApiError::NotFound => "no such space".into(),
         super::manager::ApiError::Validation(errors) => errors
             .into_iter()

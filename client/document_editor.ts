@@ -29,6 +29,8 @@ export class IFrameDocumentEditor implements ActiveDocumentEditor {
   extension!: string;
   currentPath: string | null = null;
   savePromise: PromiseWithResolvers<void> | null = null;
+  private destroyed = false;
+  private messageListener?: (event: MessageEvent) => void;
 
   constructor(
     readonly parent: HTMLElement,
@@ -41,8 +43,10 @@ export class IFrameDocumentEditor implements ActiveDocumentEditor {
     this.name = resolution.name;
 
     const content = await resolution.callback();
+    if (this.destroyed) return;
 
-    globalThis.addEventListener("message", this.handleMessage.bind(this));
+    this.messageListener = (event) => void this.handleMessage(event);
+    globalThis.addEventListener("message", this.messageListener);
 
     const { iframe, ready } = IFrameDocumentEditor.createIframe(content);
     this.iframe = iframe;
@@ -55,10 +59,14 @@ export class IFrameDocumentEditor implements ActiveDocumentEditor {
   async destroy() {
     // If name isn't initalized the editor is probably dead
     if (!this.name) return;
+    this.destroyed = true;
 
     await this.waitForSave();
 
-    this.iframe.remove();
+    if (this.messageListener) {
+      globalThis.removeEventListener("message", this.messageListener);
+    }
+    this.iframe?.remove();
   }
 
   sendPublicMessage(message: { type: string; data?: any }) {

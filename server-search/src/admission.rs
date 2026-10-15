@@ -27,18 +27,13 @@ pub struct Admission<'a> {
     pub deadline: Duration,
 }
 
-/// The server-wide pools an admitted request draws from.
-#[derive(Clone)]
-pub(crate) struct Pools {
-    pub(crate) queries: Arc<Pool>,
-}
-
 /// Per-request context: when to give up, and whether a newer request from the
 /// same tab has superseded this one.
 pub struct RequestCx {
     pub deadline: tokio::time::Instant,
     pub cancel: CancellationToken,
-    pools: Option<Pools>,
+    /// The server-wide query slots; `None` for an unlimited context.
+    queries: Option<Arc<Pool>>,
     _registration: Option<Registration>,
 }
 
@@ -46,13 +41,13 @@ impl RequestCx {
     pub(crate) fn admitted(
         deadline: Duration,
         cancel: CancellationToken,
-        pools: Pools,
+        queries: Arc<Pool>,
         registration: Option<Registration>,
     ) -> Self {
         Self {
             deadline: tokio::time::Instant::now() + deadline,
             cancel,
-            pools: Some(pools),
+            queries: Some(queries),
             _registration: registration,
         }
     }
@@ -62,7 +57,7 @@ impl RequestCx {
         Self {
             deadline: tokio::time::Instant::now() + deadline,
             cancel: CancellationToken::new(),
-            pools: None,
+            queries: None,
             _registration: None,
         }
     }
@@ -70,8 +65,8 @@ impl RequestCx {
     /// Waits up to `limits::QUERY_QUEUE_WAIT` for one of the server's index
     /// query slots.
     pub async fn query_slot(&self) -> Result<QuerySlot, SearchError> {
-        let permit = match &self.pools {
-            Some(pools) => Some(pools.queries.acquire(&self.cancel).await?),
+        let permit = match &self.queries {
+            Some(pool) => Some(pool.acquire(&self.cancel).await?),
             None => None,
         };
         Ok(QuerySlot { _permit: permit })

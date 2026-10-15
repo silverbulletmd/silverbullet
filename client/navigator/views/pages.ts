@@ -45,6 +45,17 @@ export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
 }
 
+/** Names of the pages a Space Lua page decoration hides
+ * (`pageDecoration.hide`), which only the client knows. Empty until the page
+ * list is `loaded` from the index, so results then pass unfiltered. */
+export function hiddenPageNames(
+  loaded: boolean,
+  pages: Record<string, any>[],
+): Set<string> {
+  if (!loaded) return new Set();
+  return new Set(pages.filter(isHiddenPage).map((p) => p.name));
+}
+
 /** What `pageScopes` reads of a page; the picker's index rows carry no
  * typed `name`, so it is not required here. */
 type PageClassFields = {
@@ -55,7 +66,7 @@ type PageClassFields = {
 
 export type PageInfo = PageClassFields & { name: string };
 
-/** The picker's Pages and Meta segments; server search scopes pages the same way. */
+/** The picker's Pages and Meta segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
 export const pageScopes = {
   pages: (p: PageClassFields) =>
     p.tag === "page" && !isMetaPage(p) && !isHiddenPage(p),

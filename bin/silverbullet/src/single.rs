@@ -29,7 +29,7 @@ use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
 
 /// The single space's synthetic id. It is never persisted or user-visible; the
 /// space is always root-bound, so the id only labels the instance internally.
-const SINGLE_SPACE_ID: &str = "single";
+pub(crate) const SINGLE_SPACE_ID: &str = "single";
 
 /// Fold the parsed `Config` (and a couple of env-derived inputs) into the one
 /// `SpaceConfig` that single-space mode serves. Kept pure and split from the
@@ -59,6 +59,7 @@ fn synthesize(config: &Config, shell_env: ShellConfig) -> SpaceConfig {
         head_html: config.additional_head_html.clone(),
         space_ignore: config.gitignore.clone(),
         log_push: config.log_push,
+        semantic_search: Default::default(),
         revisions: config.revisions,
         git_sync: None,
         revisions_commit: None,
@@ -95,6 +96,11 @@ pub(crate) async fn run_single(
         .map_err(|e| format!("could not create data folder {}: {e}", root.display()))?;
 
     let space = synthesize_config(&config);
+    let search = crate::single_search::configure(
+        &root,
+        config.search_dir.as_deref(),
+        config.search_model.as_deref(),
+    )?;
 
     seed_index(
         &root,
@@ -126,9 +132,9 @@ pub(crate) async fn run_single(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: Some(shutdown.rx.clone()),
-        search_gate: Arc::new(silverbullet_server::search::Gate::new()),
-        // Single-space mode keeps its index in RAM: nothing is written to the space folder.
-        search_index_root: None,
+        // In RAM unless SB_SEARCH_DIR names a folder outside the space: search
+        // never writes to the space folder.
+        search,
     };
 
     let mut spaces = HashMap::new();
@@ -215,6 +221,8 @@ mod tests {
             host_url_prefix: String::new(),
             http_logging: false,
             revisions: silverbullet_server_common::RevisionsMode::Unmanaged,
+            search_dir: None,
+            search_model: None,
         }
     }
 
@@ -276,5 +284,9 @@ mod tests {
         assert_eq!(s.theme_color, "#123456");
         assert!(s.log_push);
         assert_eq!(s.folder, ".");
+        assert!(
+            s.semantic_search.is_default(),
+            "semantic search follows the default"
+        );
     }
 }

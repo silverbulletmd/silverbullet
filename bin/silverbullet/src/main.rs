@@ -61,6 +61,8 @@ enum Command {
 }
 
 fn main() -> std::process::ExitCode {
+    // Before any runtime or thread starts (single-space mode too).
+    silverbullet_server_search::semantic::inference::limit_candle_threads();
     tracing_subscriber::fmt()
         .with_env_filter(
             // Chromiumoxide warns on unrecognized CDP events even when commands
@@ -70,6 +72,9 @@ fn main() -> std::process::ExitCode {
                 .unwrap_or_else(|_| "info,chromiumoxide=error,tantivy=warn".into()),
         )
         .init();
+    // Debug builds: offer the e2e harness's tiny model when it wrote one.
+    #[cfg(debug_assertions)]
+    silverbullet_server_search::semantic::e2e::install();
 
     let cli = Cli::parse();
 

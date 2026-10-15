@@ -9,8 +9,14 @@ workspace = true
 
 [features]
 default = ["semantic"]
-semantic = ["dep:candle-core", "dep:candle-nn", "dep:tokenizers", "dep:rayon", "dep:reqwest", "dep:sha2", "tokio/fs"]
-test-model = ["semantic"]
+semantic = ["dep:candle-core", "dep:candle-nn", "dep:tokenizers", "dep:rayon", "dep:reqwest", "dep:sha2", "dep:sysinfo", "tokio/fs"]
+test-model = ["semantic", "tokio/net"]
+# What the search eval measures beyond production (`semantic::eval`).
+eval = ["semantic"]
+
+[[example]]
+name = "write_tiny_model"
+required-features = ["test-model"]
 
 [dependencies]
 silverbullet-server-common = { path = "../server-common" }
@@ -18,7 +24,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-base64 = { workspace = true }
 tokio = { workspace = true, features = ["io-util", "time", "sync", "rt", "macros"] }
 tokio-util = { workspace = true }
 tantivy = { workspace = true }
@@ -28,6 +33,15 @@ tokenizers = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
+sysinfo = { version = "0.39", default-features = false, features = ["system"], optional = true }
+
+# macOS: candle's matmuls (and some unary ops such as SiLU and exp) run
+# through Apple's Accelerate framework instead of the portable gemm crate.
+# The framework is part of macOS, so nothing more ships. About 3x faster
+# semantic indexing on Apple Silicon.
+[target.'cfg(target_os = "macos")'.dependencies]
+candle-core = { workspace = true, optional = true, features = ["accelerate"] }
+candle-nn = { workspace = true, optional = true, features = ["accelerate"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["io-util", "time", "sync", "rt", "rt-multi-thread", "macros", "test-util", "net"] }

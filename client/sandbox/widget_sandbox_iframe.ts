@@ -99,12 +99,17 @@ export function mountIFrame(
   widgetHeightCacheKey: string | null,
   content: CodeWidgetContent | null | Promise<CodeWidgetContent | null>,
   onMessage?: (message: any) => void,
-) {
+): () => void {
   const iframe = preloadedIFrame.iframe;
+  let disposed = false;
+  // A discarded iframe never loads, so disposal must settle the tracked render
+  const disposal = Promise.withResolvers<void>();
+  let messageListener: ((evt: any) => void) | undefined;
 
   trackRender(
-    preloadedIFrame.ready.then(async () => {
-      const messageListener = (evt: any) => {
+    Promise.race([preloadedIFrame.ready, disposal.promise]).then(async () => {
+      if (disposed) return;
+      messageListener = (evt: any) => {
         (async () => {
           if (evt.source !== iframe.contentWindow) {
             return;
@@ -165,6 +170,7 @@ export function mountIFrame(
       globalThis.addEventListener("message", messageListener);
       iframe.onload = null;
       const resolvedContent = await Promise.resolve(content);
+      if (disposed) return;
       if (!iframe.contentWindow) {
         console.warn("Iframe went away or content was not loaded");
         return;
@@ -195,6 +201,16 @@ export function mountIFrame(
       }
     }),
   ).catch(console.error);
+
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    disposal.resolve();
+    if (messageListener) {
+      globalThis.removeEventListener("message", messageListener);
+    }
+    iframePool.delete(preloadedIFrame);
+  };
 }
 
 export function createWidgetSandboxIFrame(
@@ -202,14 +218,14 @@ export function createWidgetSandboxIFrame(
   widgetHeightCacheKey: string | null,
   content: CodeWidgetContent | null | Promise<CodeWidgetContent | null>,
   onMessage?: (message: any) => void,
-) {
+): { iframe: HTMLIFrameElement; dispose: () => void } {
   const preloadedIFrame = claimIFrame();
-  mountIFrame(
+  const dispose = mountIFrame(
     preloadedIFrame,
     client,
     widgetHeightCacheKey,
     content,
     onMessage,
   );
-  return preloadedIFrame.iframe;
+  return { iframe: preloadedIFrame.iframe, dispose };
 }

@@ -76,3 +76,81 @@ export { PasswordInput } from "./password_input.tsx";
 export type { PasswordInputProps } from "./password_input.tsx";
 export { ButtonLink } from "./button.tsx";
 export type { ButtonLinkProps } from "./button.tsx";
+export { SearchModelPicker } from "./search_model_picker.tsx";
+export type { SearchModelPickerProps } from "./search_model_picker.tsx";
+export { IndexStateLine, SearchIndexStatus } from "./search_index_status.tsx";
+export type { SearchIndexStatusProps } from "./search_index_status.tsx";
+export { SearchBadge } from "./search_badge.tsx";
+export { SearchSpacesTable, SearchSummary } from "./search_spaces_table.tsx";
+export { RowMenu } from "./row_menu.tsx";
+export type { RowMenuItem, RowMenuProps } from "./row_menu.tsx";
+export type {
+  SearchSpacesTableProps,
+  SearchSummaryProps,
+} from "./search_spaces_table.tsx";
+export {
+  CLOSED_SPACE_WORD,
+  closedSpacesText,
+  downloadProgress,
+  formatAboutBytes,
+  formatBytes,
+  formatCount,
+  INDEX_OFF_WORD,
+  indexBuildCount,
+  indexesBytes,
+  indexProgress,
+  indexStateText,
+  indexStatusWord,
+  indexTitle,
+  modelChangeConfirmText,
+  onByDefaultText,
+  rebuildConfirmText,
+  removeModelConfirmText,
+  searchSummaryText,
+  semanticStateText,
+  spaceBadgeLabel,
+} from "./search_admin_format.ts";
+export {
+  BUSY_POLL_MS,
+  canRebuild,
+  indexesBusy,
+  indexPhase,
+  modelActive,
+  overviewActive,
+  overviewPollMs,
+  semanticToggle,
+  spaceBadge,
+  spaceRowRank,
+} from "./search_admin_model.ts";
+export type {
+  IndexPhase,
+  SemanticHelp,
+  SemanticToggle,
+  SpaceSearchBadge,
+} from "./search_admin_model.ts";
+export { usePolledLoad, usePolling } from "./polling.ts";
+export type { PolledLoad, PolledLoadOptions } from "./polling.ts";
+export {
+  useConfirmedAction,
+  useSearchModel,
+  useSpaceSearch,
+} from "./search_admin_state.ts";
+export type {
+  ConfirmedAction,
+  ConfirmedActionOptions,
+  SearchModelHost,
+  SearchModelSection,
+  SpaceSearchHost,
+  SpaceSearchOptions,
+  SpaceSearchStatus,
+} from "./search_admin_state.ts";
+export {
+  SpaceSearchSettings,
+  SpaceSearchSettingsView,
+} from "./search_space_settings.tsx";
+export type {
+  SpaceSearchCopy,
+  SpaceSearchSettingsProps,
+  SpaceSearchSettingsViewProps,
+} from "./search_space_settings.tsx";
+export type * from "../types/search_admin.ts";

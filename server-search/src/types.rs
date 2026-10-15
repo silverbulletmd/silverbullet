@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::limits;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum QueryMode {
@@ -19,7 +21,7 @@ pub enum SearchScope {
     All,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryRequest {
     pub query: String,
@@ -38,6 +40,57 @@ pub struct QueryRequest {
     /// Maximum number of pages; clamped by the backend.
     #[serde(default)]
     pub limit: Option<usize>,
+}
+
+impl QueryRequest {
+    /// The pages the request limits the query to.
+    pub fn filter(&self) -> PageFilter {
+        PageFilter {
+            scope: self.scope.unwrap_or_default(),
+            include: self.include.clone(),
+            exclude: self.exclude.clone(),
+        }
+    }
+
+    /// The one clamp: at most `limits::MAX_RESULTS` pages, all of those
+    /// without a `limit`. Query plans take it as given.
+    pub fn limit(&self) -> usize {
+        self.limit
+            .unwrap_or(limits::MAX_RESULTS)
+            .min(limits::MAX_RESULTS)
+    }
+}
+
+/// Limits a query to some pages: those of `scope`, and of those, the ones
+/// `include` names and `exclude` doesn't. Names are page names without `.md`.
+#[derive(Debug, Clone, Default)]
+pub struct PageFilter {
+    pub scope: SearchScope,
+    pub include: Option<Vec<String>>,
+    pub exclude: Option<Vec<String>>,
+}
+
+impl PageFilter {
+    /// Whether the filter admits every page: all of them, none named.
+    pub fn is_unrestricted(&self) -> bool {
+        self.scope == SearchScope::All && self.include.is_none() && self.exclude.is_none()
+    }
+}
+
+/// Pages related to `page` (an exact name, no `.md`).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RelatedRequest {
+    pub page: String,
+    /// Maximum number of pages; the backend applies its default and clamps it.
+    #[serde(default)]
+    pub limit: Option<usize>,
+    /// Exact page names (no `.md`) to leave out, as in queries.
+    #[serde(default)]
+    pub exclude: Vec<String>,
+    /// Which pages may be related: Pages or Meta only; absent means all.
+    #[serde(default)]
+    pub scope: Option<SearchScope>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -73,7 +126,7 @@ pub struct Capabilities {
     pub related: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Progress {
     pub done: u64,
     pub total: u64,
@@ -96,6 +149,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn query_request_has_a_default_for_callers_that_name_only_what_they_need() {
+        let req = QueryRequest {
+            query: "fern".into(),
+            ..QueryRequest::default()
+        };
+        assert_eq!((req.mode, req.scope, req.limit), (None, None, None));
+    }
+
+    #[test]
     fn query_request_is_camel_case_and_rejects_unknown_fields() {
         let req: QueryRequest = serde_json::from_str(
             r#"{"query":"garden","mode":"phrase","exclude":["Index"],"limit":5}"#,
@@ -115,6 +177,50 @@ mod tests {
         }
         assert!(serde_json::from_str::<QueryRequest>(r#"{"query":"x","scope":"docs"}"#).is_err());
         assert!(serde_json::from_str::<QueryRequest>(r#"{"query":"x","scopes":"all"}"#).is_err());
+    }
+
+    #[test]
+    fn query_request_clamps_its_limit_and_names_its_filter() {
+        let limit = |limit| {
+            QueryRequest {
+                limit,
+                ..QueryRequest::default()
+            }
+            .limit()
+        };
+        assert_eq!(limit(None), crate::limits::MAX_RESULTS);
+        assert_eq!(limit(Some(5)), 5);
+        assert_eq!(limit(Some(500)), crate::limits::MAX_RESULTS);
+        assert!(QueryRequest::default().filter().is_unrestricted());
+        let req: QueryRequest =
+            serde_json::from_str(r#"{"query":"x","scope":"meta","include":["Fern"]}"#).unwrap();
+        let filter = req.filter();
+        assert_eq!(filter.scope, SearchScope::Meta);
+        assert_eq!(filter.include.as_deref(), Some(&["Fern".to_string()][..]));
+        assert!(!filter.is_unrestricted());
+    }
+
+    fn req_scope(json: &str) -> Option<SearchScope> {
+        serde_json::from_str::<RelatedRequest>(json).unwrap().scope
+    }
+
+    #[test]
+    fn related_request_defaults_to_no_limit_and_no_exclusions() {
+        let req: RelatedRequest = serde_json::from_str(r#"{"page":"Fern"}"#).unwrap();
+        assert_eq!((req.page.as_str(), req.limit), ("Fern", None));
+        assert!(req.exclude.is_empty());
+        let req: RelatedRequest =
+            serde_json::from_str(r#"{"page":"Fern","limit":3,"exclude":["Index"]}"#).unwrap();
+        assert_eq!(
+            (req.limit, req.exclude),
+            (Some(3), vec!["Index".to_string()])
+        );
+        assert_eq!(req_scope(r#"{"page":"x"}"#), None);
+        assert_eq!(
+            req_scope(r#"{"page":"x","scope":"pages"}"#),
+            Some(SearchScope::Pages)
+        );
+        assert!(serde_json::from_str::<RelatedRequest>(r#"{"page":"x","pages":1}"#).is_err());
     }
 
     #[test]

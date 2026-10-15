@@ -36,4 +36,5 @@ export type QueryOptions = {
   limit?: number;
 };
 
-export type RelatedResult = SearchResult & { waitingForIndex?: boolean };
+/** `search.related`'s options. */
+export type RelatedOptions = Pick<QueryOptions, "limit" | "scope">;

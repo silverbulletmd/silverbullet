@@ -5,6 +5,15 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 # Site configuration
 ```space-lua
 actionButton.define {
+  icon = "search",
+  description = "Search",
+  priority = 2.8,
+  run = function()
+    system.invokeCommand("Space: Search")
+  end
+}
+
+actionButton.define {
   icon = "message-circle",
   description = "Community",
   priority = 2.7,

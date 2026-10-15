@@ -6,9 +6,9 @@ import type {
 import type { Client } from "../../client.ts";
 import { createWidgetSandboxIFrame } from "../../sandbox/widget_sandbox_iframe.ts";
 
-export class IFrameWidget extends WidgetType {
-  iframe?: HTMLIFrameElement;
+const iframeDisposers = new WeakMap<HTMLElement, () => void>();
 
+export class IFrameWidget extends WidgetType {
   constructor(
     readonly client: Client,
     readonly bodyText: string,
@@ -34,7 +34,7 @@ export class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const iframe = createWidgetSandboxIFrame(
+    const { iframe, dispose } = createWidgetSandboxIFrame(
       this.client,
       this.bodyText,
       this.client.widgetCache.prewarmResult(this.bodyText, () =>
@@ -77,10 +77,17 @@ export class IFrameWidget extends WidgetType {
       },
     );
 
+    iframeDisposers.set(iframe, dispose);
+
     const estimatedHeight = this.estimatedHeight;
     iframe.style.height = `${estimatedHeight}px`;
 
     return iframe;
+  }
+
+  override destroy(dom: HTMLElement): void {
+    iframeDisposers.get(dom)?.();
+    iframeDisposers.delete(dom);
   }
 
   override eq(other: WidgetType): boolean {

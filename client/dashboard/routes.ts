@@ -7,6 +7,7 @@ export const DASHBOARD_BASE = new URL(document.baseURI).pathname.replace(
 export const ADMIN_SECTIONS = {
   server: "Server",
   authentication: "Authentication",
+  search: "Search",
   runtimes: "Runtimes",
 } as const;
 export type AdminSection = keyof typeof ADMIN_SECTIONS;

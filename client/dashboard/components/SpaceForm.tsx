@@ -28,6 +28,10 @@ import {
   settingsPayload,
 } from "../space_settings.ts";
 import type {
+  CatalogModel,
+  SemanticChoice,
+} from "@silverbulletmd/silverbullet/type/search_admin";
+import type {
   CommitTiming,
   Binding,
   FieldError,
@@ -40,6 +44,7 @@ import type {
 } from "../types.ts";
 import { AccessGrid } from "./AccessGrid.tsx";
 import { BindingFields } from "./BindingFields.tsx";
+import { SpaceSearchSection } from "./SpaceSearchSection.tsx";
 
 const COMMIT_PRESETS = [
   {
@@ -121,6 +126,15 @@ export function SpaceForm({
   const [shellWhitelist, setShellWhitelist] = useState(
     (initial?.shell.whitelist ?? []).join(" "),
   );
+  // The edited `semanticSearch`; submitted with the Search section.
+  const [semanticSearch, setSemanticSearch] = useState<SemanticChoice>(
+    initial?.semanticSearch ?? null,
+  );
+  // For the "Semantic search" box's wording.
+  const [searchModel, setSearchModel] = useState<Pick<
+    CatalogModel,
+    "id" | "displayName"
+  > | null>(null);
   const [revisions, setRevisions] = useState<RevisionsMode>(
     initial?.revisions ?? "managed",
   );
@@ -151,6 +165,7 @@ export function SpaceForm({
         setRuntimeAvailability(info.runtimeApi);
         setRuntimeServerEnabled(info.runtimeApiEnabled);
         setPrimaryUrl(info.primaryUrl ?? null);
+        setSearchModel(info.searchModel);
       })
       .catch((e: any) => {
         if (e.unauthorized) onUnauthorized();
@@ -178,6 +193,7 @@ export function SpaceForm({
     },
     revisions,
     revisionsCommit,
+    semanticSearch,
     indexPage,
   };
   const [savedValues, setSavedValues] = useState<Partial<SpaceInfo>>(() => ({
@@ -489,6 +505,17 @@ export function SpaceForm({
               />
             </Fragment>
           )}
+        </div>
+        <div hidden={!visible("search")}>
+          <SpaceSearchSection
+            spaceId={id}
+            shown={section === "search"}
+            model={searchModel}
+            saved={savedValues.semanticSearch ?? null}
+            value={semanticSearch}
+            onChange={setSemanticSearch}
+            onUnauthorized={onUnauthorized}
+          />
         </div>
       </fieldset>
       <div class="row">

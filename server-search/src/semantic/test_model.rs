@@ -2,6 +2,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::time::Duration;
 
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{VarBuilder, VarMap};
@@ -12,8 +14,9 @@ use tokenizers::pre_tokenizers::whitespace::Whitespace;
 use tokenizers::processors::template::TemplateProcessing;
 use tokenizers::Tokenizer;
 
-use super::catalog::{Architecture, ModelFile, ModelSpec, Pooling, Thresholds};
-use super::models::{bert, xlm_roberta};
+use super::catalog::{Architecture, ModelSpec, Pooling};
+use super::embed::{EmbedError, EmbedKind, Embedder};
+use super::models::{bert, modernbert, xlm_roberta};
 
 const WORDS: &[&str] = &[
     "query", "passage", ":", "garden", "basil", "soil", "water", "plant", "grow", "sun", "light",
@@ -55,13 +58,32 @@ const XLMR_CONFIG: &str = r#"{
 }
 "#;
 
+// Two layers: layer 0 attends globally, layer 1 through a 4-token window.
+const MODERNBERT_CONFIG: &str = r#"{
+  "vocab_size": 34,
+  "hidden_size": 8,
+  "num_hidden_layers": 2,
+  "num_attention_heads": 2,
+  "intermediate_size": 16,
+  "hidden_activation": "silu",
+  "max_position_embeddings": 64,
+  "layer_norm_eps": 1e-5,
+  "pad_token_id": 1,
+  "global_attn_every_n_layers": 2,
+  "global_rope_theta": 160000.0,
+  "local_attention": 4,
+  "local_rope_theta": 10000.0
+}
+"#;
+
 /// Spec of the tiny model; sizes and hashes are placeholders until `write_tiny_model` fills them.
 pub fn tiny_spec() -> ModelSpec {
     tiny_spec_with(Architecture::Bert, Pooling::Mean, "query: ", "passage: ")
 }
 
 /// Tiny spec with a chosen architecture, pooling and prefixes. XLM-R uses the real special-token
-/// layout (`<s>`=0, `<pad>`=1, `</s>`=2, `<unk>`=3) and pad id 1; BERT uses `[PAD]`=0.
+/// layout (`<s>`=0, `<pad>`=1, `</s>`=2, `<unk>`=3) and pad id 1, and so does ModernBERT; BERT
+/// uses `[PAD]`=0.
 pub fn tiny_spec_with(
     architecture: Architecture,
     pooling: Pooling,
@@ -72,40 +94,17 @@ pub fn tiny_spec_with(
         id: match architecture {
             Architecture::Bert => "test-tiny",
             Architecture::XlmRoberta => "test-tiny-xlmr",
+            Architecture::ModernBert => "test-tiny-modernbert",
         },
-        display_name: "Tiny test model",
-        repo: "test/tiny",
-        revision: "0",
-        files: ["model.safetensors", "tokenizer.json", "config.json"]
-            .into_iter()
-            .map(|name| ModelFile {
-                name,
-                size: 0,
-                sha256: "",
-            })
-            .collect(),
         architecture,
-        dim: 8,
         pooling,
-        normalize: true,
         query_prefix,
         passage_prefix,
-        max_tokens: 32,
         pad_token_id: match architecture {
             Architecture::Bert => 0,
-            Architecture::XlmRoberta => 1,
+            Architecture::XlmRoberta | Architecture::ModernBert => 1,
         },
-        languages: "test",
-        license: "MIT",
-        notice: "Random test weights.",
-        resident_bytes: 1 << 20,
-        thresholds: Thresholds {
-            search_min: 0.0,
-            related_min: 0.0,
-            max_gap: 1.0,
-            calibrated: false,
-        },
-        default: false,
+        ..super::catalog::test_tiny()
     }
 }
 
@@ -135,7 +134,9 @@ fn tokenizer(architecture: Architecture) -> Tokenizer {
             "[SEP]",
             "[UNK]",
         ),
-        Architecture::XlmRoberta => (["<s>", "<pad>", "</s>", "<unk>"], "<s>", "</s>", "<unk>"),
+        Architecture::XlmRoberta | Architecture::ModernBert => {
+            (["<s>", "<pad>", "</s>", "<unk>"], "<s>", "</s>", "<unk>")
+        }
     };
     let id_of = |name: &str| specials.iter().position(|s| *s == name).unwrap() as u32;
     let mut vocab: HashMap<String, u32> = HashMap::new();
@@ -181,15 +182,12 @@ pub fn write_tiny_model(dir: &Path, seed: u64) -> ModelSpec {
 
 /// Like `write_tiny_model` for any spec built by `tiny_spec_with`. Weights depend only on the seed
 /// and the architecture, so the same seed gives the same weights for Mean and Cls pooling.
-///
-/// The returned spec's sha256 strings are `Box::leak`ed because `ModelFile.sha256` is
-/// `&'static str`; this also runs in other crates' tests that enable the `test-model` feature,
-/// and leaks a few dozen bytes per call.
 pub fn write_tiny_model_with(dir: &Path, seed: u64, template: ModelSpec) -> ModelSpec {
     let architecture = template.architecture;
     let config = match architecture {
         Architecture::Bert => CONFIG,
         Architecture::XlmRoberta => XLMR_CONFIG,
+        Architecture::ModernBert => MODERNBERT_CONFIG,
     };
     std::fs::create_dir_all(dir).expect("create model dir");
     std::fs::write(dir.join("config.json"), config).expect("write config");
@@ -208,6 +206,10 @@ pub fn write_tiny_model_with(dir: &Path, seed: u64, template: ModelSpec) -> Mode
             let cfg: xlm_roberta::Config = serde_json::from_str(config).expect("tiny config");
             xlm_roberta::XLMRobertaModel::new(&cfg, vb).expect("tiny xlm-roberta");
         }
+        Architecture::ModernBert => {
+            let cfg: modernbert::Config = serde_json::from_str(config).expect("tiny config");
+            modernbert::ModernBert::load(vb, &cfg).expect("tiny modernbert");
+        }
     }
     let mut rng = Rng(seed);
     let mut tensors: BTreeMap<String, Tensor> = BTreeMap::new();
@@ -217,7 +219,10 @@ pub fn write_tiny_model_with(dir: &Path, seed: u64, template: ModelSpec) -> Mode
         names.sort();
         for name in names {
             let shape = data[name].shape().clone();
-            let norm_weight = (name.contains("LayerNorm") || name.contains("layer_norm"))
+            // ModernBERT's norms are `embeddings.norm`, `mlp_norm`, `final_norm`.
+            let norm_weight = (name.contains("LayerNorm")
+                || name.contains("layer_norm")
+                || name.ends_with("norm.weight"))
                 && name.ends_with(".weight");
             let values: Vec<f32> = (0..shape.elem_count())
                 .map(|_| {
@@ -240,7 +245,117 @@ pub fn write_tiny_model_with(dir: &Path, seed: u64, template: ModelSpec) -> Mode
     for file in &mut spec.files {
         let bytes = std::fs::read(dir.join(file.name)).expect("read back");
         file.size = bytes.len() as u64;
-        file.sha256 = Box::leak(sha256_hex(&bytes).into_boxed_str());
+        file.sha256 = sha256_hex(&bytes);
     }
     spec
+}
+
+/// A spec for [`FakeEmbedder`]: 64 dimensions, thresholds that let every
+/// match through.
+pub fn fake_spec() -> ModelSpec {
+    ModelSpec {
+        id: "test-fake",
+        display_name: "Fake test model",
+        dim: 64,
+        ..tiny_spec()
+    }
+}
+
+/// A deterministic embedder for tests: a bag of words hashed into
+/// `spec.dim` dimensions and normalised, so texts sharing words are close.
+/// `fit` allows `budget` whitespace-separated pieces per window. Counts
+/// calls and embedded texts, can sleep per call, can be held (each call
+/// then waits, after it is counted, until `hold` is cleared), and can be
+/// made to fail.
+pub struct FakeEmbedder {
+    pub spec: ModelSpec,
+    pub budget: usize,
+    pub delay: Duration,
+    pub calls: AtomicUsize,
+    pub texts: AtomicUsize,
+    pub fail: AtomicBool,
+    pub hold: AtomicBool,
+}
+
+impl Default for FakeEmbedder {
+    fn default() -> Self {
+        FakeEmbedder::new()
+    }
+}
+
+impl FakeEmbedder {
+    pub fn new() -> FakeEmbedder {
+        FakeEmbedder {
+            spec: fake_spec(),
+            budget: 24,
+            delay: Duration::ZERO,
+            calls: AtomicUsize::new(0),
+            texts: AtomicUsize::new(0),
+            fail: AtomicBool::new(false),
+            hold: AtomicBool::new(false),
+        }
+    }
+
+    /// What `embed` returns for `text` (the kind doesn't matter).
+    pub fn vector(&self, text: &str) -> Vec<f32> {
+        let dim = self.spec.dim;
+        let mut v = vec![0f32; dim];
+        for word in text
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+        {
+            let hash = word
+                .to_lowercase()
+                .bytes()
+                .fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+                    (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+                });
+            v[(hash % dim as u64) as usize] += 1.0;
+        }
+        if v.iter().all(|x| *x == 0.0) {
+            v[0] = 1.0;
+        }
+        let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+        v.iter_mut().for_each(|x| *x /= norm);
+        v
+    }
+}
+
+impl Embedder for FakeEmbedder {
+    fn spec(&self) -> &ModelSpec {
+        &self.spec
+    }
+
+    fn fit(&self, text: &str) -> usize {
+        text.split_inclusive(char::is_whitespace)
+            .take(self.budget)
+            .map(str::len)
+            .sum::<usize>()
+            .min(text.len())
+    }
+
+    fn embed(&self, texts: &[&str], _kind: EmbedKind) -> Result<Vec<Vec<f32>>, EmbedError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        self.texts.fetch_add(texts.len(), Ordering::SeqCst);
+        while self.hold.load(Ordering::SeqCst) {
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        if !self.delay.is_zero() {
+            std::thread::sleep(self.delay);
+        }
+        if self.fail.load(Ordering::SeqCst) {
+            return Err(EmbedError::Run("fake failure".into()));
+        }
+        Ok(texts.iter().map(|t| self.vector(t)).collect())
+    }
+}
+
+/// Offers `test-tiny` ([`crate::semantic::catalog::offer`]) as the e2e
+/// harness does, its files written once per process.
+pub fn offer_test_tiny() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let dir = std::env::temp_dir().join(format!("sb-offered-tiny-{}", std::process::id()));
+        crate::semantic::catalog::offer(write_tiny_model(&dir, 7));
+    });
 }

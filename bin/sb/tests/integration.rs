@@ -799,3 +799,97 @@ fn space_relocate_points_at_already_moved_folder() {
         std::fs::canonicalize(&to).unwrap().to_string_lossy()
     );
 }
+
+/// `sb search` retries while the server's first index build runs.
+fn search_until_found(base: &str, cfg: &std::path::Path, args: &[&str]) -> Output {
+    let mut out = run_sb(args, cfg);
+    for _ in 0..100 {
+        if out.code != 0 || !out.json()["items"].as_array().unwrap().is_empty() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        out = run_sb(args, cfg);
+    }
+    let _ = base;
+    out
+}
+
+#[test]
+fn search_status_search_and_related_use_the_native_endpoints() {
+    let space = tempfile::tempdir().unwrap();
+    std::fs::write(
+        space.path().join("Garden.md"),
+        "# Herbs\nPlant the basil next to the fern.\n",
+    )
+    .unwrap();
+    std::fs::write(
+        space.path().join("Index.md"),
+        "Nothing about plants here.\n",
+    )
+    .unwrap();
+    let Some((_server, base)) = start_server(space.path()) else {
+        eprintln!("skip: silverbullet server binary not built (run `make build-rs` or `cargo build --workspace`)");
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+
+    let status = run_sb(
+        &["--url", &base, "search", "--status", "--json"],
+        cfg.path(),
+    );
+    assert_eq!(status.code, 0, "stderr: {}", status.stderr);
+    let status = status.json();
+    assert!(status["capabilities"]["modes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|m| m == "words"));
+    let text = run_sb(
+        &["--url", &base, "search", "--status", "--text"],
+        cfg.path(),
+    );
+    assert_eq!(text.code, 0, "stderr: {}", text.stderr);
+    assert!(text
+        .stdout_text()
+        .contains("Semantic search: not available"));
+
+    let found = search_until_found(
+        &base,
+        cfg.path(),
+        &[
+            "--url", &base, "search", "basil", "--mode", "words", "--limit", "5", "--json",
+        ],
+    );
+    assert_eq!(found.code, 0, "stderr: {}", found.stderr);
+    let items = found.json()["items"].clone();
+    assert_eq!(items.as_array().unwrap().len(), 1, "{items}");
+    assert_eq!(items[0]["page"], "Garden");
+
+    let line = run_sb(&["--url", &base, "search", "basil", "--text"], cfg.path());
+    assert_eq!(line.code, 0, "stderr: {}", line.stderr);
+    assert!(
+        line.stdout_text().starts_with("Garden:2  Plant the basil"),
+        "{:?}",
+        line.stdout_text()
+    );
+
+    // The word "status" is searched for, not mistaken for the subcommand.
+    let word = run_sb(&["--url", &base, "search", "status", "--json"], cfg.path());
+    assert_eq!(word.code, 0, "stderr: {}", word.stderr);
+    assert!(word.json()["items"].is_array());
+
+    // Semantic search is not part of a full-text-only server.
+    let semantic = run_sb(
+        &["--url", &base, "search", "basil", "--mode", "semantic"],
+        cfg.path(),
+    );
+    assert_ne!(semantic.code, 0);
+    assert!(!semantic.stderr.is_empty());
+
+    let related = run_sb(&["--url", &base, "related", "Garden", "--json"], cfg.path());
+    assert_ne!(
+        related.code, 0,
+        "full-text-only servers have no related pages"
+    );
+    assert!(!related.stderr.is_empty());
+}

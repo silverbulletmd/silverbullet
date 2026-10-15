@@ -246,7 +246,10 @@ pub fn run_setup(
     if !errors.is_empty() {
         return Err(errors);
     }
-    server_config.validate_paths(root, &spaces)?;
+    let conflicts = super::data_root::folder_conflicts(root, &spaces);
+    if !conflicts.is_empty() {
+        return Err(super::data_root::folder_errors(conflicts));
+    }
     server_config
         .save(&root.join("server.json"))
         .map_err(|e| err("", e))?;

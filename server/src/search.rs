@@ -1,573 +1,397 @@
-//! Which search engine serves a space, and the storage view it searches through.
-//! The HTTP layer (`handlers::search`) only ever sees `Arc<dyn SearchBackend>`.
+//! Which search engine serves a space and where its files live
+//! ([`SpaceSearch`]), whether a space runs semantic search ([`policy`]),
+//! what the dashboards show about it ([`report`]), how its index directory
+//! is laid out and removed (`index_root`), and the change events that keep
+//! its indexes current (`events`). The HTTP layer (`handlers::search`) only
+//! ever sees `Arc<dyn SearchBackend>`. Every mode (multi-user, single-space,
+//! Desktop) starts it the same way: [`SpaceSearch::in_root`] (or
+//! [`SpaceSearch::in_memory`]), then [`SpaceSearch::boot`].
 
-use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::{Arc, Mutex, RwLock};
 
 use silverbullet_server_common::space::GitignoreMatcher;
-use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
-use silverbullet_server_search::fulltext::ChangeFeed;
-use silverbullet_server_search::{FileStamp, FullTextBackend, SearchBackend, SpaceView};
-use tokio::sync::broadcast::{self, error::RecvError};
-use tokio::sync::mpsc;
+use silverbullet_server_common::SpacePrimitives;
+use silverbullet_server_search::semantic::catalog::ModelSpec;
+use silverbullet_server_search::semantic::download::{ModelStore, StoredModel};
+use silverbullet_server_search::semantic::{inference, SemanticBackend, SemanticService};
+use silverbullet_server_search::FullTextBackend;
+use silverbullet_server_search::SpaceView;
 
-use crate::watcher::{FsAction, FsEvent};
+/// The engine every space's search runs on, for embedders (Desktop).
+pub use silverbullet_server_search::SearchBackend;
+use tokio::sync::broadcast;
+
+use crate::watcher::FsEvent;
 
 /// Where a space's full-text index lives: `Disk(<index root>/<space id>)` or RAM.
-pub use silverbullet_server_search::fulltext::Location;
+pub use silverbullet_server_search::Location;
 
 /// Re-exported so embedders can build a gate without depending on the search crate.
 pub use silverbullet_server_search::Gate;
 
-/// Exposes what storage exposes: listing and reads go through `SpacePrimitives`.
-/// Storage lists no dot paths, control files or `SB_SPACE_IGNORE` matches but
-/// would read the first and last, so reads check them here.
-pub struct SpaceSearchView {
-    space: Arc<dyn SpacePrimitives>,
-    /// The space's `SB_SPACE_IGNORE` rules, fixed for the instance's lifetime.
-    ignore: GitignoreMatcher,
+/// What the index reads a space through (see `silverbullet_server_search::view`).
+pub use silverbullet_server_search::SpaceSearchView;
+
+/// The directory search keeps its files in (`indexes/`, `models/`).
+pub use silverbullet_server_search::SearchRoot;
+
+mod events;
+mod index_root;
+pub mod policy;
+pub mod report;
+
+pub use events::{change_events, WriteEvents};
+pub use index_root::RemovalGuard;
+pub use policy::{folder_pages, RemoveModelError, SemanticChoice, SemanticSpaceState, SpaceToOpen};
+pub use report::{
+    model_card, SearchModelCard, SemanticSearchOffer, SpaceSearchInfo, SpaceSearchStatus,
+};
+
+use events::change_feed;
+use index_root::{remove_index_dir, sweep_models, IndexRoot, Removals};
+
+/// The directory under a multi-user data root (or Desktop's app data
+/// directory) that search keeps its files in.
+pub const SEARCH_DIR: &str = "search";
+
+/// `<data root>/search`: a multi-user server's data root, or Desktop's
+/// app data directory.
+pub fn search_root(data_root: &Path) -> SearchRoot {
+    SearchRoot::new(data_root.join(SEARCH_DIR))
 }
 
-impl SpaceSearchView {
-    pub fn new(space: Arc<dyn SpacePrimitives>, ignore: GitignoreMatcher) -> Self {
-        Self { space, ignore }
-    }
-
-    /// Dot paths and ignore matches; control files are refused by the
-    /// storage stack's own filter. Anything that isn't a plain relative path
-    /// (empty, rooted, backslashes, empty components) counts as hidden too,
-    /// and is refused before the ignore matcher, which panics on paths
-    /// outside its root.
-    fn hidden(&self, path: &str) -> bool {
-        let malformed = path.is_empty() || path.starts_with('/') || path.contains('\\');
-        malformed
-            || path
-                .split('/')
-                .any(|part| part.is_empty() || part.starts_with('.'))
-            || self.ignore.is_ignored(path, false)
-    }
-
-    /// Fails closed: when the listing fails, nothing counts as visible.
-    fn files(&self) -> Vec<silverbullet_server_common::FileMeta> {
-        self.space.fetch_file_list().unwrap_or_else(|error| {
-            tracing::warn!("search: listing the space failed, hiding all files: {error}");
-            Vec::new()
-        })
-    }
-}
-
-impl SpaceView for SpaceSearchView {
-    fn list(&self) -> HashSet<String> {
-        self.files().into_iter().map(|f| f.name).collect()
-    }
-
-    /// A size storage reports as negative becomes 0; compare `modified` as well.
-    /// `None` when listing fails.
-    fn list_meta(&self) -> Option<HashMap<String, FileStamp>> {
-        let files = match self.space.fetch_file_list() {
-            Ok(files) => files,
-            Err(error) => {
-                tracing::warn!("search: listing the space failed: {error}");
-                return None;
-            }
-        };
-        let meta = files
-            .into_iter()
-            .map(|f| {
-                let stamp = FileStamp {
-                    modified: f.last_modified,
-                    size: u64::try_from(f.size).unwrap_or(0),
-                };
-                (f.name, stamp)
-            })
-            .collect();
-        Some(meta)
-    }
-
-    /// `None` for a hidden path, so a change event for one reads as a delete.
-    fn read(&self, path: &str) -> Option<Vec<u8>> {
-        if self.hidden(path) {
-            return None;
-        }
-        self.space.read_file(path).ok().map(|(data, _)| data)
-    }
-
-    fn read_prefix(&self, path: &str, len: usize) -> Option<Vec<u8>> {
-        if self.hidden(path) {
-            return None;
-        }
-        self.space
-            .read_file_range(path, 0, len)
-            .or_else(|_| {
-                self.space
-                    .read_file(path)
-                    .map(|(d, m)| (d[..len.min(d.len())].to_vec(), m))
-            })
-            .ok()
-            .map(|(data, _)| data)
-    }
-}
-
-/// The one place that decides which engine serves a space (M2 adds semantic
-/// here): every space gets the full-text index at `location`. `name` names
-/// the space in log lines (its id, or its folder's name). `space` is what
-/// the index reads: only the space's own files (the primary layer, not the
-/// bundled fallback such as `Library/Std`). `ignore` is the space's
-/// `SB_SPACE_IGNORE` matcher (`DiskSpacePrimitives::gitignore_matcher`); reads
-/// refuse what it matches. `events` keeps the index current: the space
-/// watcher's, or a [`WriteEvents`] sender when there is no watcher; without
-/// any, the index catches up on its periodic reconcile only.
+/// A space's engine: the full-text index at `location`, or, with
+/// `semantic` (the server's service and the space's id, under which its
+/// semantic index outlives instance rebuilds), a `SemanticBackend` holding
+/// that full-text index and the space's semantic index (both under
+/// `location`). `name` names the space in log lines. `space` is what the
+/// indexes read and `ignore` its `SB_SPACE_IGNORE` matcher (see
+/// [`SpaceToOpen`]); `events` keeps the indexes current (see
+/// [`change_events`]); with a receiver whose sender is gone, they catch up
+/// on their periodic reconcile only. Spaces open through
+/// [`SpaceSearch::open`], which decides `semantic`.
 ///
-/// Production callers must be inside a tokio runtime: the index's tasks are
-/// spawned on it and stop with it. Called outside one (sync tests), they run
-/// on a small process-wide runtime that is never shut down.
-pub fn backend_for(
+/// Must be called inside a tokio runtime: the indexes' tasks are spawned on
+/// it and stop with it.
+pub(crate) fn engine(
     name: &str,
     space: Arc<dyn SpacePrimitives>,
     ignore: GitignoreMatcher,
     location: Location,
-    events: Option<broadcast::Receiver<FsEvent>>,
+    events: broadcast::Receiver<FsEvent>,
+    semantic: Option<(Arc<SemanticService>, &str)>,
 ) -> Arc<dyn SearchBackend> {
-    let _runtime = tokio::runtime::Handle::try_current()
-        .is_err()
-        .then(|| fallback_runtime().enter());
-    #[cfg(test)]
-    let dir = match &location {
-        Location::Disk(dir) => Some(dir.clone()),
-        Location::Memory => None,
+    let view: Arc<dyn SpaceView> = Arc::new(SpaceSearchView::new(space, ignore));
+    let Some((service, id)) = semantic else {
+        return Arc::new(FullTextBackend::new(
+            name,
+            location,
+            view,
+            change_feed(events),
+        ));
     };
-    let view = Arc::new(SpaceSearchView::new(space, ignore));
-    let backend = Arc::new(FullTextBackend::new(
+    // Each index gets its own feed from the same watcher.
+    let semantic_feed = change_feed(events.resubscribe());
+    let fulltext = Arc::new(FullTextBackend::new(
         name,
-        location,
-        view,
+        location.clone(),
+        view.clone(),
         change_feed(events),
     ));
+    let space = service.attach(id, name, location, view.clone(), semantic_feed);
+    Arc::new(SemanticBackend::new(fulltext, space, view))
+}
+
+/// Full-text search over a space that isn't one of a [`SpaceSearch`]'s
+/// spaces (Desktop's ephemeral and unregistered spaces), at `location`.
+/// See [`engine`] for the parameters. Must be called inside a tokio runtime.
+pub fn full_text_backend(
+    name: &str,
+    space: Arc<dyn SpacePrimitives>,
+    ignore: GitignoreMatcher,
+    location: Location,
+    events: broadcast::Receiver<FsEvent>,
+) -> Arc<dyn SearchBackend> {
+    engine(name, space, ignore, location, events, None)
+}
+
+/// In-memory full-text search over every file of `space`, kept current by
+/// its periodic reconcile only, and the gate its requests pass: a test
+/// server's search. Must be called inside a tokio runtime.
+pub fn in_memory_full_text(space: Arc<dyn SpacePrimitives>) -> (Arc<dyn SearchBackend>, Arc<Gate>) {
+    let events = broadcast::channel(1).1;
+    let search = full_text_backend(
+        "space",
+        space,
+        GitignoreMatcher::default(),
+        Location::Memory,
+        events,
+    );
+    (search, Arc::new(Gate::new()))
+}
+
+/// The pages the full-text index would index in `space` (visible `.md`
+/// files up to `limits::MAX_FILE_BYTES`, `ignore` applied), for the size
+/// policy of semantic search when no index has counted them yet. `None`
+/// when the listing fails.
+pub fn page_count(space: Arc<dyn SpacePrimitives>, ignore: GitignoreMatcher) -> Option<u64> {
+    use silverbullet_server_search::limits::MAX_FILE_BYTES;
+    let listed = SpaceSearchView::new(space, ignore).list_meta()?;
+    let pages = listed
+        .iter()
+        .filter(|(path, stamp)| path.ends_with(".md") && stamp.size <= MAX_FILE_BYTES)
+        .count();
+    Some(pages as u64)
+}
+
+/// Starts the semantic service for a model, its files under a search root.
+pub type ServiceFactory =
+    Arc<dyn Fn(&ModelSpec, &SearchRoot) -> Arc<SemanticService> + Send + Sync>;
+
+/// A server's search service: the gate every space's requests pass, where
+/// indexes and models live, and the semantic service spaces attach to. It
+/// sweeps what no space uses and starts semantic search at boot
+/// ([`SpaceSearch::boot`]), decides which engine serves each space
+/// ([`SpaceSearch::open`]), switches the model ([`SpaceSearch::set_model`])
+/// and removes a deleted space's indexes ([`SpaceSearch::remove_space`]).
+/// One per server; clones share everything.
+#[derive(Clone)]
+pub struct SpaceSearch {
+    /// Admits every space's search requests; one per server, so the query
+    /// pool is server-wide.
+    pub gate: Arc<Gate>,
+    /// Where indexes and models live; `None` keeps every index in RAM.
+    root: Option<SearchRoot>,
+    /// The server's semantic search, when [`SpaceSearch::boot`] or
+    /// [`SpaceSearch::set_model`] was given a model; spaces that run
+    /// semantic search attach to it.
+    semantic: Arc<RwLock<Option<Arc<SemanticService>>>>,
+    /// How [`SpaceSearch::boot`] and [`SpaceSearch::set_model`] start one.
+    factory: ServiceFactory,
+    /// What [`SpaceSearch::open`] last decided for each space id: what its
+    /// running engine does.
+    opened: Arc<Mutex<HashMap<String, SemanticSpaceState>>>,
+    /// Spaces whose index directory is being removed: opening one waits.
+    removals: Removals,
+}
+
+impl SpaceSearch {
+    /// Every index in RAM and no semantic search: single-space mode without
+    /// `SB_SEARCH_DIR`, tests. [`SpaceSearch::boot`] changes nothing.
+    pub fn in_memory() -> SpaceSearch {
+        SpaceSearch {
+            gate: Arc::new(Gate::new()),
+            root: None,
+            semantic: Arc::default(),
+            factory: Arc::new(|spec, root| {
+                let models = ModelStore::new(root.models());
+                // Debug builds: the e2e harness serves its tiny model itself.
+                #[cfg(debug_assertions)]
+                let models = silverbullet_server_search::semantic::e2e::store(spec, models);
+                SemanticService::start_on(spec.clone(), models, inference::THREADS)
+            }),
+            opened: Arc::default(),
+            removals: Removals::default(),
+        }
+    }
+
+    /// Indexes and models under `root`: `<data root>/search` on a
+    /// multi-user server ([`search_root`]), `SB_SEARCH_DIR` on a
+    /// single-space one, `<app data>/search` on Desktop. Nothing is swept or
+    /// started until [`SpaceSearch::boot`].
+    pub fn in_root(root: SearchRoot) -> SpaceSearch {
+        SpaceSearch {
+            root: Some(root),
+            ..SpaceSearch::in_memory()
+        }
+    }
+
+    /// At start-up, before any space opens: with `live`, deletes the index
+    /// directories of space ids it rejects and old index formats
+    /// ([`IndexRoot::sweep`]; a caller that can't list its spaces passes
+    /// `None`), deletes superseded model revisions, and with `model` starts
+    /// semantic search (through the factory) and its download, whether or
+    /// not any space attaches. In RAM nothing happens: there is no model
+    /// store. The download starts only inside a tokio runtime.
+    pub fn boot(
+        self,
+        model: Option<&'static ModelSpec>,
+        live: Option<&dyn Fn(&str) -> bool>,
+    ) -> SpaceSearch {
+        let Some(root) = &self.root else {
+            return self;
+        };
+        if let Some(live) = live {
+            IndexRoot::of(root).sweep(live);
+        }
+        sweep_models(&root.models());
+        let service = model.map(|spec| {
+            tracing::info!("Search: semantic search with {}", spec.display_name);
+            (self.factory)(spec, root)
+        });
+        if let (Some(service), Ok(_)) = (&service, tokio::runtime::Handle::try_current()) {
+            service.prefetch();
+        }
+        *self.semantic.write().unwrap() = service;
+        self
+    }
+
+    /// Where indexes and models live; `None` in RAM.
+    pub fn root(&self) -> Option<&SearchRoot> {
+        self.root.as_ref()
+    }
+
+    /// Tests: semantic search through `service`, and through it again for
+    /// any model [`SpaceSearch::boot`] or [`SpaceSearch::set_model`] starts
+    /// later (a fake embedder).
+    #[cfg(any(test, feature = "test-model"))]
+    pub fn with_semantic(self, service: Arc<SemanticService>) -> SpaceSearch {
+        let factory = {
+            let service = service.clone();
+            Arc::new(move |_: &ModelSpec, _: &SearchRoot| service.clone())
+        };
+        SpaceSearch {
+            semantic: Arc::new(RwLock::new(Some(service))),
+            factory,
+            ..self
+        }
+    }
+
+    /// Tests: semantic services come from `factory`, at boot and on
+    /// [`SpaceSearch::set_model`].
     #[cfg(test)]
-    if let Some(dir) = dir {
-        test_support::register(dir, &backend);
-    }
-    backend
-}
-
-/// `<indexes>/<id>` for a space id that is one safe path component: 1 to 128
-/// ASCII letters, digits, `-`, `_` or `.`, not starting with `.` (so no `..`,
-/// no separators, no drive prefix like `C:`). Any other id gets no directory
-/// (the caller keeps that space's index in RAM), with a warning.
-pub fn index_dir(indexes: &Path, id: &str) -> Option<PathBuf> {
-    let safe = (1..=128).contains(&id.len())
-        && !id.starts_with('.')
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'));
-    if !safe {
-        tracing::warn!(
-            "search: space id {id:?} can't name an index directory; keeping it in memory"
-        );
-        return None;
-    }
-    Some(indexes.join(id))
-}
-
-/// Deletes the index directory `dir` (from [`index_dir`]), only when its
-/// canonical path is strictly inside the canonical `indexes`. `Ok(false)` when
-/// there was nothing to delete or it refused.
-pub fn remove_index_dir(indexes: &Path, dir: &Path) -> std::io::Result<bool> {
-    let (Ok(base), Ok(target)) = (indexes.canonicalize(), dir.canonicalize()) else {
-        return Ok(false);
-    };
-    if target == base || !target.starts_with(&base) {
-        tracing::warn!(
-            "search: refusing to delete {}, which isn't inside {}",
-            target.display(),
-            base.display()
-        );
-        return Ok(false);
-    }
-    std::fs::remove_dir_all(&target).map(|()| true)
-}
-
-fn fallback_runtime() -> &'static tokio::runtime::Runtime {
-    static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-    RUNTIME.get_or_init(|| {
-        tracing::debug!(
-            "search: backend_for called outside a tokio runtime; \
-             running search indexes on a process-wide runtime"
-        );
-        tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(1)
-            .thread_name("sb-search")
-            .enable_all()
-            .build()
-            .expect("search runtime")
-    })
-}
-
-/// Test-only access to the disk-located backends `backend_for` built, so a
-/// test can check which store an instance ended up with.
-#[cfg(test)]
-pub(crate) mod test_support {
-    use std::path::{Path, PathBuf};
-    use std::sync::{Arc, Mutex, Weak};
-
-    use silverbullet_server_search::FullTextBackend;
-
-    type Built = Vec<(PathBuf, Weak<FullTextBackend>)>;
-    static BUILT: Mutex<Built> = Mutex::new(Vec::new());
-
-    pub(super) fn register(dir: PathBuf, backend: &Arc<FullTextBackend>) {
-        let mut built = BUILT.lock().unwrap();
-        built.retain(|(_, weak)| weak.strong_count() > 0);
-        built.push((dir, Arc::downgrade(backend)));
+    pub(crate) fn with_factory(self, factory: ServiceFactory) -> SpaceSearch {
+        SpaceSearch { factory, ..self }
     }
 
-    /// The live backends indexing into `dir`, oldest first.
-    pub(crate) fn backends_at(dir: &Path) -> Vec<Arc<FullTextBackend>> {
-        BUILT
-            .lock()
-            .unwrap()
-            .iter()
-            .filter(|(d, _)| d == dir)
-            .filter_map(|(_, weak)| weak.upgrade())
-            .collect()
-    }
-}
-
-/// Storage that reports its own successful writes and deletes as change
-/// events, for an instance without a file watcher (`SB_FS_WATCH=off`): edits
-/// made through the server (editor, API, runtime) reach the index at once.
-/// Changes made on disk behind the server's back still wait for the index's
-/// periodic reconcile.
-pub struct WriteEvents {
-    inner: Arc<dyn SpacePrimitives>,
-    events: broadcast::Sender<FsEvent>,
-}
-
-impl WriteEvents {
-    /// The wrapped storage and the sender to subscribe the index to.
-    pub fn wrap(inner: Arc<dyn SpacePrimitives>) -> (Self, broadcast::Sender<FsEvent>) {
-        let (events, _) = broadcast::channel(1024);
-        (
-            Self {
-                inner,
-                events: events.clone(),
-            },
-            events,
-        )
+    /// The current semantic service, if any.
+    pub fn semantic(&self) -> Option<Arc<SemanticService>> {
+        self.semantic.read().unwrap().clone()
     }
 
-    fn report(&self, name: &str, action: FsAction, last_modified: i64) {
-        let _ = self.events.send(FsEvent {
-            name: name.to_string(),
-            action,
-            last_modified,
-            revision: None,
-            origin: None,
+    /// The model semantic search runs with, if any.
+    pub fn model(&self) -> Option<ModelSpec> {
+        self.semantic().map(|service| service.model().clone())
+    }
+
+    /// Switches semantic search to `spec` (`None`: off). The old service
+    /// shuts down (its download is cancelled and its spaces fail their next
+    /// job, so the caller rebuilds them); the new one starts downloading its
+    /// model at once. `false` when nothing changed (the same model), and in
+    /// RAM, which has no model store (single-space mode never gets here).
+    /// Must be called inside a tokio runtime.
+    pub fn set_model(&self, spec: Option<&'static ModelSpec>) -> bool {
+        let Some(root) = &self.root else {
+            tracing::warn!("search: can't choose a model when indexes are kept in memory");
+            return false;
+        };
+        let mut semantic = self.semantic.write().unwrap();
+        if semantic.as_ref().map(|s| s.model().id) == spec.map(|s| s.id) {
+            return false;
+        }
+        if let Some(old) = semantic.take() {
+            old.shutdown();
+        }
+        *semantic = spec.map(|spec| {
+            tracing::info!("Search: semantic search now uses {}", spec.display_name);
+            let service = (self.factory)(spec, root);
+            service.prefetch();
+            service
+        });
+        true
+    }
+
+    /// The offered models with files in the model store (none in RAM).
+    pub fn stored_models(&self) -> Vec<StoredModel> {
+        self.root
+            .as_ref()
+            .map(|root| ModelStore::new(root.models()).stored())
+            .unwrap_or_default()
+    }
+
+    /// Deletes `spec`'s directory from the model store (partial downloads
+    /// included); nothing there, or in RAM, is not an error. The caller
+    /// refuses the model in use.
+    pub fn remove_model(&self, spec: &'static ModelSpec) -> std::io::Result<()> {
+        let Some(root) = &self.root else {
+            return Ok(());
+        };
+        let models = root.models();
+        remove_index_dir(&models, &models.join(spec.dir_name())).map(|_| ())
+    }
+
+    fn indexes(&self) -> Option<IndexRoot> {
+        self.root.as_ref().map(IndexRoot::of)
+    }
+
+    /// Where space `id`'s indexes live: `Disk(<indexes>/<id>)`, or RAM.
+    pub fn location(&self, id: &str) -> Location {
+        match self.indexes() {
+            Some(indexes) => indexes.location(id),
+            None => Location::Memory,
+        }
+    }
+
+    /// Fences space `id`'s index directory until the guard drops:
+    /// [`SpaceSearch::open`] waits for it, and [`SpaceSearch::is_removing`]
+    /// reports it. [`SpaceSearch::remove_space`] and
+    /// [`SpaceSearch::remove_space_now`] hold one while they run; a caller
+    /// that hands the removal to another task takes one first, so that an
+    /// open asked for in between is fenced too.
+    pub fn fence_removal(&self, id: &str) -> RemovalGuard {
+        self.removals.start(id)
+    }
+
+    /// Whether space `id`'s index directory is fenced for removal
+    /// ([`SpaceSearch::fence_removal`]).
+    pub fn is_removing(&self, id: &str) -> bool {
+        self.removals.contains(id)
+    }
+
+    /// Best effort, on its own thread: [`SpaceSearch::remove_space_now`],
+    /// fenced from now on. A request still holding the old instance can at
+    /// worst fail to commit into it. Call it once the space is gone from the
+    /// config.
+    ///
+    /// The retries don't re-check the config: space ids come from
+    /// `Uuid::new_v4` in `create` and are never reused, so no new instance can
+    /// claim this directory while they run. Only a hand edit of `spaces.json`
+    /// re-adding the same id within those 5 s could, and its open waits for
+    /// the removal, then rebuilds its index from the space's files.
+    pub fn remove_space(&self, id: &str) {
+        if self.semantic().is_none() && self.root.is_none() {
+            return;
+        }
+        let fence = self.fence_removal(id);
+        let (search, id) = (self.clone(), id.to_string());
+        std::thread::spawn(move || {
+            search.remove_space_now(&id);
+            drop(fence);
         });
     }
-}
 
-impl SpacePrimitives for WriteEvents {
-    fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
-        self.inner.fetch_file_list()
-    }
-
-    fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
-        self.inner.get_file_meta(path)
-    }
-
-    fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
-        self.inner.read_file(path)
-    }
-
-    fn read_file_range(
-        &self,
-        path: &str,
-        start: u64,
-        length: usize,
-    ) -> Result<(Vec<u8>, FileMeta), SpaceError> {
-        self.inner.read_file_range(path, start, length)
-    }
-
-    fn write_file(
-        &self,
-        path: &str,
-        data: &[u8],
-        meta: Option<&FileMeta>,
-    ) -> Result<FileMeta, SpaceError> {
-        let written = self.inner.write_file(path, data, meta)?;
-        self.report(path, FsAction::Change, written.last_modified);
-        Ok(written)
-    }
-
-    fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
-        self.inner.delete_file(path)?;
-        self.report(path, FsAction::Delete, 0);
-        Ok(())
-    }
-}
-
-/// Forwards the watcher's events to the index: each event's path, and `None`
-/// (rescan) for the watcher's `Resync` and when the receiver lagged and
-/// events were lost. Ends when the
-/// watcher's sender closes or the index stops listening.
-fn change_feed(events: Option<broadcast::Receiver<FsEvent>>) -> ChangeFeed {
-    let (tx, feed) = mpsc::unbounded_channel();
-    let Some(mut events) = events else {
-        return feed;
-    };
-    tokio::spawn(async move {
-        loop {
-            let msg = tokio::select! {
-                _ = tx.closed() => return,
-                event = events.recv() => match event {
-                    Ok(event) if event.action == FsAction::Resync => None,
-                    Ok(event) => Some(event.name),
-                    Err(RecvError::Lagged(_)) => None,
-                    Err(RecvError::Closed) => return,
-                },
-            };
-            if tx.send(msg).is_err() {
-                return;
-            }
+    /// Forgets space `id`'s semantic index and waits until no sink holds its
+    /// file (a save in flight finishes first, so no late checkpoint
+    /// recreates its directory), then removes its index directory
+    /// ([`IndexRoot::remove_space_now`], with its retries), fenced while it
+    /// runs. Returns once it is done (Desktop drops a closed space's indexes
+    /// so its next open rebuilds them).
+    pub fn remove_space_now(&self, id: &str) {
+        let _fence = self.fence_removal(id);
+        self.opened.lock().unwrap().remove(id);
+        if let Some(semantic) = self.semantic() {
+            semantic.forget(id);
         }
-    });
-    feed
+        if let Some(indexes) = self.indexes() {
+            // A sink a toggle-off or a model switch (to another model or to
+            // none) left closing still holds its file.
+            silverbullet_server_search::semantic::lease::wait_closed_at(&indexes.location(id));
+            indexes.remove_space_now(id);
+        }
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use silverbullet_server_common::space::DiskSpacePrimitives;
-
-    fn disk_view(files: &[(&str, &str)], ignore: &str) -> (tempfile::TempDir, SpaceSearchView) {
-        let dir = tempfile::tempdir().unwrap();
-        for (name, body) in files {
-            let path = dir.path().join(name);
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(path, body).unwrap();
-        }
-        let disk = DiskSpacePrimitives::new(dir.path(), ignore).unwrap();
-        let matcher = disk.gitignore_matcher();
-        (dir, SpaceSearchView::new(Arc::new(disk), matcher))
-    }
-
-    fn event(name: &str, action: FsAction) -> FsEvent {
-        FsEvent {
-            name: name.into(),
-            action,
-            last_modified: 1,
-            revision: None,
-            origin: None,
-        }
-    }
-
-    #[tokio::test]
-    async fn the_feed_forwards_paths_and_turns_lag_and_resync_into_rescans() {
-        let (tx, rx) = broadcast::channel(2);
-        let mut feed = change_feed(Some(rx));
-        // The forwarder hasn't run yet: the third event overflows the channel.
-        for name in ["Fern.md", "Moss.md", "Lichen.md"] {
-            tx.send(event(name, FsAction::Change)).unwrap();
-        }
-        assert_eq!(feed.recv().await, Some(None), "lagged");
-        assert_eq!(feed.recv().await, Some(Some("Moss.md".into())));
-        assert_eq!(feed.recv().await, Some(Some("Lichen.md".into())));
-        tx.send(event("Moss.md", FsAction::Delete)).unwrap();
-        assert_eq!(feed.recv().await, Some(Some("Moss.md".into())));
-        tx.send(event("", FsAction::Resync)).unwrap();
-        assert_eq!(feed.recv().await, Some(None), "resync");
-        drop(tx);
-        assert_eq!(feed.recv().await, None, "ends with the watcher");
-    }
-
-    #[test]
-    fn index_dirs_take_only_one_safe_component() {
-        let indexes = Path::new("/data/search/indexes");
-        for id in [
-            "0f6c2b9e-1d4a-4c1b-9a8e-2b6f1e9d0c3a",
-            "notes",
-            "work_2",
-            "a.b",
-        ] {
-            assert_eq!(index_dir(indexes, id), Some(indexes.join(id)), "{id}");
-        }
-        let long = "x".repeat(129);
-        for id in [
-            "",
-            ".",
-            "..",
-            ".hidden",
-            "a/b",
-            "a\\b",
-            "C:",
-            "C:x",
-            "/abs",
-            "../x",
-            "a b",
-            "é",
-            long.as_str(),
-        ] {
-            assert_eq!(index_dir(indexes, id), None, "{id:?}");
-        }
-    }
-
-    #[test]
-    fn index_dirs_are_removed_only_inside_the_indexes_directory() {
-        let root = tempfile::tempdir().unwrap();
-        let indexes = root.path().join("search/indexes");
-        std::fs::create_dir_all(indexes.join("gone/fulltext-v1")).unwrap();
-        std::fs::create_dir_all(root.path().join("outside")).unwrap();
-        assert!(remove_index_dir(&indexes, &indexes.join("gone")).unwrap());
-        assert!(!indexes.join("gone").exists());
-        assert!(!remove_index_dir(&indexes, &indexes.join("missing")).unwrap());
-        for dir in [
-            indexes.clone(),
-            indexes.join(".."),
-            indexes.join("../../outside"),
-            root.path().join("outside"),
-        ] {
-            assert!(
-                !remove_index_dir(&indexes, &dir).unwrap(),
-                "{}",
-                dir.display()
-            );
-        }
-        assert!(indexes.is_dir() && root.path().join("outside").is_dir());
-        #[cfg(unix)]
-        {
-            std::os::unix::fs::symlink(root.path().join("outside"), indexes.join("link")).unwrap();
-            assert!(!remove_index_dir(&indexes, &indexes.join("link")).unwrap());
-            assert!(root.path().join("outside").is_dir());
-        }
-    }
-
-    #[tokio::test]
-    async fn write_events_report_only_successful_writes_and_deletes() {
-        use silverbullet_server_common::space::{MemorySpacePrimitives, ReadOnlySpacePrimitives};
-        let (space, tx) = WriteEvents::wrap(Arc::new(MemorySpacePrimitives::new()));
-        let mut events = tx.subscribe();
-        space.write_file("Fern.md", b"fern", None).unwrap();
-        space.delete_file("Fern.md").unwrap();
-        assert!(space.delete_file("Fern.md").is_err());
-        let seen: Vec<_> = std::iter::from_fn(|| events.try_recv().ok())
-            .map(|e| (e.name, e.action))
-            .collect();
-        assert_eq!(
-            seen,
-            [
-                ("Fern.md".to_string(), FsAction::Change),
-                ("Fern.md".to_string(), FsAction::Delete)
-            ]
-        );
-        let read_only = Arc::new(ReadOnlySpacePrimitives::new(Box::new(
-            MemorySpacePrimitives::new(),
-        )));
-        let (space, tx) = WriteEvents::wrap(read_only);
-        let mut events = tx.subscribe();
-        assert!(space.write_file("Fern.md", b"fern", None).is_err());
-        assert!(
-            events.try_recv().is_err(),
-            "a refused write reports nothing"
-        );
-    }
-
-    #[tokio::test]
-    async fn the_forwarder_stops_when_the_index_does() {
-        let (tx, rx) = broadcast::channel::<FsEvent>(4);
-        drop(change_feed(Some(rx)));
-        tokio::time::timeout(std::time::Duration::from_secs(2), async {
-            while tx.receiver_count() > 0 {
-                tokio::task::yield_now().await;
-            }
-        })
-        .await
-        .expect("the forwarder let go of the watcher");
-        let mut closed = change_feed(None);
-        assert_eq!(closed.recv().await, None, "no watcher, no events");
-    }
-
-    #[test]
-    fn list_meta_stamps_only_visible_files_with_storage_metadata() {
-        let (_dir, view) = disk_view(
-            &[
-                ("Fern.md", "fern fronds\n"),
-                ("notes/Moss.md", "moss"),
-                (".hidden.md", "dot"),
-                (".trash/Old.md", "old"),
-                ("private/Payroll.md", "salary"),
-            ],
-            "private/",
-        );
-        let meta = view.list_meta().unwrap();
-        let mut names: Vec<_> = meta.keys().cloned().collect();
-        names.sort();
-        assert_eq!(names, ["Fern.md", "notes/Moss.md"]);
-        let storage = view.space.get_file_meta("Fern.md").unwrap();
-        assert_eq!(
-            meta["Fern.md"],
-            FileStamp {
-                modified: storage.last_modified,
-                size: 12,
-            }
-        );
-        assert!(meta["Fern.md"].modified > 0);
-        assert_eq!(meta["notes/Moss.md"].size, 4);
-    }
-
-    #[test]
-    fn reads_return_whole_files_and_refuse_dot_paths_and_ignored_files() {
-        let (_dir, view) = disk_view(
-            &[
-                ("Fern.md", "fern fronds\n"),
-                (".hidden.md", "dot"),
-                (".trash/Old.md", "old"),
-                ("notes/.draft.md", "draft"),
-                ("private/Payroll.md", "salary"),
-                ("private/deep/Bonus.md", "bonus"),
-                ("Secret.md", "secret"),
-            ],
-            "private/\nSecret.md",
-        );
-        assert_eq!(view.read("Fern.md").as_deref(), Some(&b"fern fronds\n"[..]));
-        assert_eq!(
-            view.read_prefix("Fern.md", 4).as_deref(),
-            Some(&b"fern"[..])
-        );
-        for hidden in [
-            ".hidden.md",
-            ".trash/Old.md",
-            "notes/.draft.md",
-            "private/Payroll.md",
-            "private/deep/Bonus.md",
-            "Secret.md",
-            "",
-            "/Fern.md",
-            "../Fern.md",
-            "notes/../Fern.md",
-            "./Fern.md",
-            "notes//Fern.md",
-            "notes\\..\\Fern.md",
-            ".trash\\Old.md",
-        ] {
-            assert_eq!(view.read(hidden), None, "{hidden}");
-            assert_eq!(view.read_prefix(hidden, 3), None, "{hidden}");
-        }
-        assert_eq!(view.read("Missing.md"), None);
-    }
-
-    #[test]
-    fn read_and_list_meta_refuse_server_control_files() {
-        let (dir, _) = disk_view(&[("Fern.md", "fern"), ("server.json", "{}")], "");
-        let disk = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        let filtered = crate::multi::instance::ServerControlFileFilter::new(Box::new(disk));
-        let view = SpaceSearchView::new(Arc::new(filtered), GitignoreMatcher::default());
-        assert_eq!(view.read("server.json"), None);
-        assert_eq!(view.read_prefix("server.json", 1), None);
-        assert_eq!(view.read("Fern.md").as_deref(), Some(&b"fern"[..]));
-        let meta = view.list_meta().unwrap();
-        assert!(!meta.contains_key("server.json"), "{meta:?}");
-        assert!(meta.contains_key("Fern.md"));
-    }
-}
+mod tests;

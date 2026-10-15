@@ -25,6 +25,11 @@ pub struct ServerConfig {
 /// `limits` key just lands in `extra`: ignored, and kept on save.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SearchConfig {
+    /// Catalog id of the embedding model for semantic search
+    /// (`semantic::catalog`); unset means full-text search only. Set from
+    /// the dashboard or by hand; read at boot.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
     /// Kept so settings this version does not know survive a save.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
@@ -32,7 +37,7 @@ pub struct SearchConfig {
 
 impl SearchConfig {
     fn is_default(&self) -> bool {
-        self.extra.is_empty()
+        self.model.is_none() && self.extra.is_empty()
     }
 }
 
@@ -95,29 +100,6 @@ impl ServerConfig {
             }]
         })?;
         self.primary_url = Some(origin);
-        Ok(())
-    }
-
-    pub fn validate_paths(&self, root: &Path, spaces: &MultiConfig) -> Result<(), Vec<FieldError>> {
-        if self.primary_url.is_none() {
-            return Ok(());
-        }
-        let root = super::setup::canonicalize_best_effort(root);
-        for (id, space) in &spaces.spaces {
-            let folder = super::setup::canonicalize_best_effort(&super::instance::resolve_folder(
-                &root,
-                id,
-                &space.folder,
-            ));
-            if folder != root && root.starts_with(&folder) {
-                return Err(vec![FieldError {
-                    field: format!("{id}.folder"),
-                    message:
-                        "a space cannot contain the data folder; choose a separate space folder"
-                            .into(),
-                }]);
-            }
-        }
         Ok(())
     }
 
@@ -273,19 +255,36 @@ mod tests {
     }
 
     #[test]
-    fn preserves_unknown_search_fields() {
+    fn search_model_round_trips_and_unknown_search_keys_survive() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("server.json");
         std::fs::write(
             &path,
-            r#"{"search":{"model":{"name":"example"},"limits":{"deadlineMs":4500}}}"#,
+            r#"{"search":{"model":"multilingual-e5-small","future":{"name":"example"},"limits":{"deadlineMs":4500}}}"#,
         )
         .unwrap();
-        ServerConfig::load(&path).unwrap().save(&path).unwrap();
+        let config = ServerConfig::load(&path).unwrap();
+        assert_eq!(
+            config.search.model.as_deref(),
+            Some("multilingual-e5-small")
+        );
+        config.save(&path).unwrap();
         let saved: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-        assert_eq!(saved["search"]["model"]["name"], "example", "{saved}");
-        assert_eq!(saved["search"]["limits"]["deadlineMs"], 4500, "{saved}");
+        assert_eq!(
+            saved["search"],
+            serde_json::json!({
+                "model": "multilingual-e5-small",
+                "future": {"name": "example"},
+                "limits": {"deadlineMs": 4500}
+            })
+        );
+        std::fs::write(&path, r#"{"search":{"model":"no-such-model"}}"#).unwrap();
+        assert_eq!(
+            ServerConfig::load(&path).unwrap().search.model.as_deref(),
+            Some("no-such-model"),
+            "an unknown id loads; boot warns and stays full-text"
+        );
     }
 
     #[test]
@@ -304,24 +303,5 @@ mod tests {
             ServerConfig::load(&path).unwrap().extra["future"]["setting"],
             true
         );
-    }
-    #[test]
-    fn primary_rejects_spaces_above_server_data_root() {
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path().join("server");
-        std::fs::create_dir(&root).unwrap();
-        let mut spaces = MultiConfig::default();
-        spaces.spaces.insert(
-            "space".into(),
-            serde_json::from_value(serde_json::json!({
-                "name":"Notes", "binding":{"host":"notes.example.test"}, "folder":".."
-            }))
-            .unwrap(),
-        );
-        let config = ServerConfig {
-            primary_url: Some("https://manager.example.test".into()),
-            ..Default::default()
-        };
-        assert!(config.validate_paths(&root, &spaces).is_err());
     }
 }

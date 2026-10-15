@@ -12,6 +12,7 @@ use crate::multi::instance::{
     build_instance, resolve_folder, seed_index, InstanceDeps, InstanceStatus, SpaceInstance,
 };
 use crate::multi::registry::{Registry, RoutingTable};
+use crate::multi::search_policy;
 use crate::multi::server_config::ServerConfig;
 #[cfg(test)]
 use crate::multi::validate::root_prefix_conflict_warnings;
@@ -20,10 +21,15 @@ use crate::multi::validate::{
     root_prefix_conflict_warnings_for_primary, validate_for_primary, FieldError,
 };
 
+mod install;
+mod search_model;
+
 #[derive(Debug)]
 pub enum ApiError {
     Validation(Vec<FieldError>),
     NotFound,
+    /// The request clashes with the current state (409).
+    Conflict(String),
     Internal(String),
 }
 
@@ -98,15 +104,22 @@ impl MultiManager {
         known_users: BTreeSet<String>,
     ) -> Result<Arc<Self>, String> {
         let config_path = root.join("spaces.json");
+        // `load` reads a missing file as no spaces; the sweep must not.
+        let config_exists = config_path.exists();
         let mut config = MultiConfig::load(&config_path)?;
         super::git_connection::recover(&root, &mut config)?;
         let mut server_config = ServerConfig::load(&root.join("server.json"))?;
         server_config
             .validate(&config)
             .map_err(|errors| format!("invalid server.json: {errors:?}"))?;
-        server_config
-            .validate_paths(&root, &config)
-            .map_err(|errors| format!("invalid space folders: {errors:?}"))?;
+        // A space whose folder can't be served safely (it overlaps the data
+        // folder's reserved directories, which hold every space's search index
+        // and the git keys) is skipped, not fatal: it comes up errored, with
+        // the reason in `/api/spaces` and on the space's own 503 page, while
+        // the other spaces start. Admin changes still refuse such a folder.
+        for (id, reason) in super::data_root::folder_conflicts(&root, &config) {
+            tracing::error!(space_id = id.as_str(), "space {id} is skipped: {reason}");
+        }
         let primary_host = server_config.primary_host();
         let errors = validate_for_primary(&config, &root, &known_users, primary_host.as_deref());
         if !errors.is_empty() {
@@ -126,6 +139,11 @@ impl MultiManager {
             server_config.runtime_api,
             std::sync::atomic::Ordering::SeqCst,
         );
+        // Before any instance opens its index (see `search_policy::boot`).
+        let deps = InstanceDeps {
+            search: search_policy::boot(deps.search, &server_config, &config, config_exists),
+            ..deps
+        };
         let instances: HashMap<String, Arc<SpaceInstance>> = config
             .spaces
             .iter()
@@ -206,6 +224,11 @@ impl MultiManager {
         self.state.lock().unwrap().server_config.server_name.clone()
     }
 
+    /// The server's search (its semantic model, for the admin API).
+    pub fn search(&self) -> &crate::search::SpaceSearch {
+        &self.deps.search
+    }
+
     pub fn set_primary_url(&self, value: &str) -> Result<(), ApiError> {
         self.set_server_config(Some(value), None, None)
     }
@@ -229,9 +252,6 @@ impl MultiManager {
         }
         config
             .validate(&inner.config)
-            .map_err(ApiError::Validation)?;
-        config
-            .validate_paths(&self.root, &inner.config)
             .map_err(ApiError::Validation)?;
         let current_primary = inner.server_config.primary_host();
         let proposed_primary = config.primary_host();
@@ -426,10 +446,10 @@ impl MultiManager {
             .clone()
             .validate(&new_config)
             .map_err(ApiError::Validation)?;
-        inner
-            .server_config
-            .validate_paths(&self.root, &new_config)
-            .map_err(ApiError::Validation)?;
+        let errors = introduced_folder_conflicts(&self.root, &inner.config, &new_config);
+        if !errors.is_empty() {
+            return Err(ApiError::Validation(errors));
+        }
         for (id, config) in &mut new_config.spaces {
             if let Some(previous) = inner.config.spaces.get(id) {
                 for (name, entry) in &mut config.members {
@@ -477,56 +497,17 @@ impl MultiManager {
             .map_err(ApiError::Internal)?;
         for (id, instance) in &inner.instances {
             if new_config.spaces.get(id) != Some(&instance.config) {
-                if let Some(runtime) = &instance.runtime {
-                    runtime.shutdown();
-                }
-                if let Some(engine) = &instance.revisions {
-                    engine.quiesce_sync();
-                }
+                install::retire_services(instance);
             }
         }
         if let Some(id) = journal_id {
             super::git_connection::finish_change(&self.root, id).map_err(ApiError::Internal)?;
         }
-        let mut instances = HashMap::new();
-        for (id, cfg) in &new_config.spaces {
-            match inner.instances.get(id) {
-                Some(existing)
-                    if &existing.config == cfg
-                        && (journal_id != Some(id.as_str()) || preserve_sync_history) =>
-                {
-                    instances.insert(id.clone(), existing.clone());
-                }
-                _ => {
-                    let instance = Arc::new(build_instance(id, cfg, &self.deps));
-                    if let Some(previous) = inner.instances.get(id) {
-                        let mut old_policy = previous.config.git_sync();
-                        old_policy.paused = false;
-                        let mut new_policy = cfg.git_sync();
-                        new_policy.paused = false;
-                        if preserve_sync_history
-                            && old_policy == new_policy
-                            && previous.config.folder == cfg.folder
-                        {
-                            if let (Some(current), Some(old)) =
-                                (&instance.revisions, &previous.revisions)
-                            {
-                                current.inherit_sync_history(old);
-                            }
-                        }
-                    }
-                    instances.insert(id.clone(), instance);
-                }
-            }
-        }
-        publish_prefix_roots(&instances, primary_host.as_deref());
-        retired.table = Some(self.registry.swap(RoutingTable::build_for_primary(
-            instances.clone(),
-            primary_host.as_deref(),
-        )));
+        let rebuild = |id: &str, cfg: &SpaceConfig, existing: &SpaceInstance| {
+            &existing.config != cfg || (journal_id == Some(id) && !preserve_sync_history)
+        };
+        self.install_instances(inner, &new_config, &rebuild, preserve_sync_history, retired);
         inner.config = new_config;
-        let previous = std::mem::replace(&mut inner.instances, instances);
-        retired.instances.extend(previous.into_values());
         Ok(())
     }
 
@@ -643,46 +624,12 @@ impl MultiManager {
         Ok(())
     }
 
-    /// Best effort, in the background: removes a deleted space's full-text
-    /// index directory, unless a space with that id exists again. A request
-    /// still holding the old instance can at worst fail to commit into it.
-    ///
-    /// The retries don't re-check the config: space ids come from
-    /// `Uuid::new_v4` in `create` and are never reused, so no new instance can
-    /// claim this directory while they run. Only a hand edit of `spaces.json`
-    /// re-adding the same id within those 5 s could, and it would rebuild its
-    /// index from the space's files.
+    /// Removes a deleted space's indexes in the background
+    /// (`SpaceSearch::remove_space`), unless a space with that id exists again.
     fn remove_search_index(&self, id: &str) {
-        let Some(indexes) = self.deps.search_index_root.clone() else {
-            return;
-        };
-        let crate::search::Location::Disk(dir) =
-            super::instance::search_location(Some(&indexes), id)
-        else {
-            return;
-        };
-        if self.state.lock().unwrap().config.spaces.contains_key(id) || !dir.exists() {
-            return;
+        if !self.state.lock().unwrap().config.spaces.contains_key(id) {
+            self.deps.search.remove_space(id);
         }
-        std::thread::spawn(move || {
-            // A commit the old worker had started can still be writing files;
-            // try again shortly.
-            let mut last = None;
-            for _ in 0..20 {
-                match crate::search::remove_index_dir(&indexes, &dir) {
-                    Ok(_) => return,
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
-                    Err(error) => last = Some(error),
-                }
-                std::thread::sleep(std::time::Duration::from_millis(250));
-            }
-            if let Some(error) = last {
-                tracing::warn!(
-                    "Couldn't remove the search index of a deleted space ({}): {error}",
-                    dir.display()
-                );
-            }
-        });
     }
 
     /// JSON view for GET /spaces: id -> { config,
@@ -694,10 +641,7 @@ impl MultiManager {
         let warnings =
             root_prefix_conflict_warnings_for_primary(&inner.config, primary_host.as_deref());
         for (id, inst) in &inner.instances {
-            out.insert(
-                id.clone(),
-                space_json(&inst.config, &inst.status, warnings.get(id)),
-            );
+            out.insert(id.clone(), space_json(inst, warnings.get(id)));
         }
         serde_json::Value::Object(out)
     }
@@ -734,8 +678,7 @@ impl MultiManager {
         let inner = self.state.lock().unwrap();
         inner.instances.get(id).map(|inst| {
             space_json(
-                &inst.config,
-                &inst.status,
+                inst,
                 root_prefix_conflict_warnings_for_primary(
                     &inner.config,
                     inner.server_config.primary_host().as_deref(),
@@ -778,7 +721,7 @@ impl MultiManager {
             // Derived keys the API emits itself: ignore rather than reject, so
             // a GET -> edit -> PATCH round-trip works without the caller
             // having to strip what the server just handed it.
-            if k == "status" || k == "bindingWarning" {
+            if DERIVED_KEYS.contains(&k.as_str()) {
                 continue;
             }
             obj.insert(k, v);
@@ -822,13 +765,36 @@ fn publish_prefix_roots(
     }
 }
 
-fn space_json(
-    config: &SpaceConfig,
-    status: &InstanceStatus,
-    warning: Option<&String>,
-) -> serde_json::Value {
-    let mut v = serde_json::to_value(config).unwrap_or_default();
-    v["status"] = match status {
+/// The folder errors `new` introduces (see `data_root::folder_conflict`): a
+/// new space's, or a changed folder's. A space that keeps its folder keeps
+/// its conflict without an error: it was skipped at boot and stays errored
+/// until its folder is fixed or it is deleted, and other changes to it (a
+/// member removed with their account, a rename) or to other spaces must
+/// still apply.
+fn introduced_folder_conflicts(
+    root: &Path,
+    current: &MultiConfig,
+    new: &MultiConfig,
+) -> Vec<FieldError> {
+    let mut introduced = super::data_root::folder_conflicts(root, new);
+    introduced.retain(|id, _| !kept_folder(current.spaces.get(id), new.spaces.get(id)));
+    super::data_root::folder_errors(introduced)
+}
+
+/// Whether a space present before (`old`) and after (`new`) a change keeps
+/// its folder.
+pub(super) fn kept_folder(old: Option<&SpaceConfig>, new: Option<&SpaceConfig>) -> bool {
+    old.zip(new)
+        .is_some_and(|(old, new)| old.folder == new.folder)
+}
+
+/// The keys [`space_json`] adds to a space's config: [`MultiManager::patch`]
+/// ignores them.
+const DERIVED_KEYS: [&str; 2] = ["status", "bindingWarning"];
+
+fn space_json(inst: &SpaceInstance, warning: Option<&String>) -> serde_json::Value {
+    let mut v = serde_json::to_value(&inst.config).unwrap_or_default();
+    v["status"] = match &inst.status {
         InstanceStatus::Errored(reason) => {
             serde_json::json!({ "state": "errored", "reason": reason })
         }
@@ -837,6 +803,8 @@ fn space_json(
     if let Some(warning) = warning {
         v["bindingWarning"] = serde_json::json!(warning);
     }
+    // Present, `null` when it follows the default (its config omits it).
+    v["semanticSearch"] = serde_json::json!(inst.config.semantic_search);
     v
 }
 
@@ -846,6 +814,8 @@ mod tests {
     use crate::multi::config::{Binding, MemberEntry, MemberRole, SpaceConfig};
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use silverbullet_server_common::space::MemorySpacePrimitives;
+
+    mod search;
 
     fn deps(root: &std::path::Path) -> InstanceDeps {
         InstanceDeps {
@@ -868,204 +838,12 @@ mod tests {
             shell_disabled: false,
             index_template: "# Test space\n".into(),
             shutdown: None,
-            search_gate: Arc::new(crate::search::Gate::new()),
-            search_index_root: None,
+            search: crate::search::SpaceSearch::in_memory(),
         }
     }
 
     fn payload(name: &str, binding: Binding) -> SpaceConfig {
-        SpaceConfig {
-            name: name.into(),
-            folder: String::new(),
-            binding,
-            access: Some(SpaceAccess::Write),
-            legacy_public: None,
-            members: Default::default(),
-            read_only: false,
-            shell: Default::default(),
-            index_page: "index".into(),
-            description: String::new(),
-            theme_color: "#e1e1e1".into(),
-            head_html: String::new(),
-            space_ignore: String::new(),
-            log_push: false,
-            revisions: Default::default(),
-            git_sync: None,
-            revisions_commit: None,
-            extra: Default::default(),
-        }
-    }
-
-    /// Rebuilding an instance (a `spaces.json` theme edit) while its search
-    /// runs: the old and new instance share the index directory for a while.
-    /// Nothing panics or fails, the new instance answers, and an edit made
-    /// right after the rebuild is found within 5 s (Review Focus 2).
-    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-    async fn a_rebuilt_space_takes_over_its_index_while_searches_run() {
-        use axum::body::Body;
-        use axum::http::{Request, StatusCode};
-        use std::time::{Duration, Instant};
-        use tower::ServiceExt;
-        async fn query(router: axum::Router, q: &str) -> (StatusCode, serde_json::Value) {
-            let req = Request::builder()
-                .method("POST")
-                .uri("/.search/query")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::json!({ "query": q }).to_string()))
-                .unwrap();
-            let res = router.oneshot(req).await.unwrap();
-            let status = res.status();
-            let bytes = axum::body::to_bytes(res.into_body(), 1 << 20)
-                .await
-                .unwrap();
-            (status, serde_json::from_slice(&bytes).unwrap())
-        }
-        async fn found(router: &axum::Router, q: &str, page: &str, within: Duration) {
-            let deadline = Instant::now() + within;
-            loop {
-                let (status, body) = query(router.clone(), q).await;
-                assert_eq!(status, StatusCode::OK, "{body}");
-                if body["items"][0]["page"] == page {
-                    return;
-                }
-                assert!(Instant::now() < deadline, "{q}: {body}");
-                tokio::time::sleep(Duration::from_millis(50)).await;
-            }
-        }
-
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path();
-        std::fs::create_dir_all(root.join("notes")).unwrap();
-        std::fs::write(root.join("notes/Fern.md"), "fern fronds\n").unwrap();
-        let mut space = payload("Notes", Binding::Prefix { prefix: "".into() });
-        space.folder = "notes".into();
-        MultiConfig {
-            spaces: [("notes".to_string(), space)].into_iter().collect(),
-        }
-        .save(&root.join("spaces.json"))
-        .unwrap();
-        let mut deps = deps(root);
-        deps.auth = InstanceAuth::Single(None);
-        deps.search_index_root = Some(root.join("search/indexes"));
-        let m = MultiManager::boot(root.to_path_buf(), deps, BTreeSet::new()).unwrap();
-
-        let old = m.instance("notes").unwrap();
-        let old_router = old.router.clone().unwrap();
-        found(&old_router, "fern", "Fern", Duration::from_secs(10)).await;
-
-        let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let searching = {
-            let (router, stop) = (old_router.clone(), stop.clone());
-            tokio::spawn(async move {
-                let mut answered = 0;
-                while !stop.load(std::sync::atomic::Ordering::SeqCst) {
-                    let (status, body) = query(router.clone(), "fern").await;
-                    assert!(!status.is_server_error(), "{status}: {body}");
-                    answered += 1;
-                }
-                answered
-            })
-        };
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        let patch = serde_json::json!({ "themeColor": "#336699" });
-        m.patch("notes", patch.as_object().unwrap().clone())
-            .unwrap();
-        let new = m.instance("notes").unwrap();
-        assert!(!Arc::ptr_eq(&old, &new), "the edit rebuilt the instance");
-        assert_eq!(new.config.theme_color, "#336699");
-        let new_router = new.router.clone().unwrap();
-        std::fs::write(root.join("notes/Moss.md"), "moss carpets\n").unwrap();
-        found(&new_router, "moss", "Moss", Duration::from_secs(5)).await;
-        found(&new_router, "fern", "Fern", Duration::from_secs(5)).await;
-        // Both instances index into the same directory, and neither gave up
-        // on it for a RAM index.
-        let backends = crate::search::test_support::backends_at(&root.join("search/indexes/notes"));
-        assert_eq!(backends.len(), 2, "the old and the new instance");
-        for backend in &backends {
-            assert_eq!(backend.is_memory(), Some(false), "on disk");
-        }
-        drop(backends);
-
-        stop.store(true, std::sync::atomic::Ordering::SeqCst);
-        let answered = searching
-            .await
-            .expect("searches on the old instance never panic");
-        assert!(answered > 0);
-        drop((old, old_router));
-        // With the old instance gone, the new one keeps indexing on its own.
-        std::fs::write(root.join("notes/Lichen.md"), "lichen crusts\n").unwrap();
-        found(&new_router, "lichen", "Lichen", Duration::from_secs(5)).await;
-        let backends = crate::search::test_support::backends_at(&root.join("search/indexes/notes"));
-        assert_eq!(backends.len(), 1, "only the new instance is left");
-        assert_eq!(backends[0].is_memory(), Some(false));
-    }
-
-    fn walkdir_list(d: &std::path::Path) -> Vec<String> {
-        let mut out = vec![];
-        let mut stack = vec![d.to_path_buf()];
-        while let Some(d) = stack.pop() {
-            for e in std::fs::read_dir(&d).unwrap() {
-                let p = e.unwrap().path();
-                if p.is_dir() {
-                    stack.push(p.clone());
-                }
-                out.push(p.display().to_string());
-            }
-        }
-        out
-    }
-
-    #[tokio::test]
-    async fn deleting_a_space_removes_its_search_index() {
-        use std::time::{Duration, Instant};
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path();
-        let mut deps = deps(root);
-        deps.search_index_root = Some(root.join("search/indexes"));
-        let m = MultiManager::boot(root.to_path_buf(), deps, BTreeSet::new()).unwrap();
-        let keep = m
-            .create(
-                payload(
-                    "Keep",
-                    Binding::Prefix {
-                        prefix: "/keep".into(),
-                    },
-                ),
-                true,
-            )
-            .unwrap();
-        let gone = m
-            .create(
-                payload(
-                    "Gone",
-                    Binding::Prefix {
-                        prefix: "/gone".into(),
-                    },
-                ),
-                true,
-            )
-            .unwrap();
-        let index = |id: &str| root.join("search/indexes").join(id).join("fulltext-v1");
-        let deadline = Instant::now() + Duration::from_secs(10);
-        while !(index(&keep).join("meta.json").is_file()
-            && index(&gone).join("meta.json").is_file())
-        {
-            assert!(Instant::now() < deadline, "indexes never created");
-            tokio::time::sleep(Duration::from_millis(20)).await;
-        }
-        m.delete(&gone).unwrap();
-        let deadline = Instant::now() + Duration::from_secs(5);
-        while root.join("search/indexes").join(&gone).exists() {
-            if Instant::now() >= deadline {
-                let left: Vec<_> = walkdir_list(&root.join("search/indexes").join(&gone));
-                panic!("the deleted space's index is still there: {left:?}");
-            }
-            tokio::time::sleep(Duration::from_millis(20)).await;
-        }
-        assert!(
-            index(&keep).join("meta.json").is_file(),
-            "other spaces keep theirs"
-        );
+        SpaceConfig::test(name, binding)
     }
 
     fn boot(root: &std::path::Path) -> std::sync::Arc<MultiManager> {
@@ -1105,8 +883,8 @@ mod tests {
         boot(root)
     }
 
-    #[test]
-    fn legacy_root_mix_rejects_expansion_without_changing_disk_or_registry() {
+    #[tokio::test]
+    async fn legacy_root_mix_rejects_expansion_without_changing_disk_or_registry() {
         let dir = tempfile::tempdir().unwrap();
         let m = legacy_root_mix(dir.path());
         let warning = "Root and prefixed bindings share the default hostname: \"Root\" (/), \"Work\" (/work). Move these spaces to separate hostnames or remove the root binding.";
@@ -1146,8 +924,8 @@ mod tests {
         assert_eq!(m.list().as_object().unwrap().len(), 2);
     }
 
-    #[test]
-    fn explicit_primary_hostname_and_implicit_bindings_share_warnings_routes_and_prefixes() {
+    #[tokio::test]
+    async fn explicit_primary_hostname_and_implicit_bindings_share_warnings_routes_and_prefixes() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(
             dir.path().join("server.json"),
@@ -1215,8 +993,8 @@ mod tests {
         assert!(matches!(error, ApiError::Validation(_)));
     }
 
-    #[test]
-    fn changing_primary_hostname_cannot_introduce_a_cross_representation_root_mix() {
+    #[tokio::test]
+    async fn changing_primary_hostname_cannot_introduce_a_cross_representation_root_mix() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         m.create(
@@ -1247,8 +1025,8 @@ mod tests {
         assert_eq!(m.primary_url(), None);
     }
 
-    #[test]
-    fn legacy_root_mix_accepts_unrelated_patches_and_conflict_removal() {
+    #[tokio::test]
+    async fn legacy_root_mix_accepts_unrelated_patches_and_conflict_removal() {
         for remove_root in [false, true] {
             let dir = tempfile::tempdir().unwrap();
             let m = legacy_root_mix(dir.path());
@@ -1303,8 +1081,8 @@ mod tests {
         assert!(root_prefix_conflict_warnings(&m.state.lock().unwrap().config).is_empty());
     }
 
-    #[test]
-    fn server_name_defaults_and_persists_without_losing_settings() {
+    #[tokio::test]
+    async fn server_name_defaults_and_persists_without_losing_settings() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert_eq!(m.server_name(), "SilverBullet");
@@ -1335,8 +1113,8 @@ mod tests {
         assert_eq!(persisted.extra["future"], true);
     }
 
-    #[test]
-    fn primary_origin_persists_and_accepts_same_host_prefixed_bindings() {
+    #[tokio::test]
+    async fn primary_origin_persists_and_accepts_same_host_prefixed_bindings() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert_eq!(m.primary_url(), None);
@@ -1385,8 +1163,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn primary_origin_accepts_existing_prefix_spaces() {
+    #[tokio::test]
+    async fn primary_origin_accepts_existing_prefix_spaces() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         m.create(
@@ -1403,15 +1181,15 @@ mod tests {
         assert!(dir.path().join("server.json").exists());
     }
 
-    #[test]
-    fn boots_empty_without_config_file() {
+    #[tokio::test]
+    async fn boots_empty_without_config_file() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert!(m.registry().current().instances.is_empty());
     }
 
-    #[test]
-    fn a_legacy_payload_is_normalized_on_create() {
+    #[tokio::test]
+    async fn a_legacy_payload_is_normalized_on_create() {
         let dir = tempfile::tempdir().unwrap();
         let manager = boot(dir.path());
         let cfg: SpaceConfig = serde_json::from_str(
@@ -1424,8 +1202,8 @@ mod tests {
         assert!(stored.get("public").is_none());
     }
 
-    #[test]
-    fn a_legacy_payload_is_normalized_on_update() {
+    #[tokio::test]
+    async fn a_legacy_payload_is_normalized_on_update() {
         let dir = tempfile::tempdir().unwrap();
         let manager = boot(dir.path());
         let id = manager
@@ -1449,8 +1227,8 @@ mod tests {
         assert!(stored.get("public").is_none());
     }
 
-    #[test]
-    fn malformed_config_fails_boot() {
+    #[tokio::test]
+    async fn malformed_config_fails_boot() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{ nope").unwrap();
         assert!(
@@ -1459,8 +1237,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn create_defaults_folder_seeds_index_persists_and_routes() {
+    #[tokio::test]
+    async fn create_defaults_folder_seeds_index_persists_and_routes() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1489,8 +1267,8 @@ mod tests {
         assert_eq!(cfg.spaces[&id].name, "Work");
     }
 
-    #[test]
-    fn duplicate_prefix_is_rejected_and_not_persisted() {
+    #[tokio::test]
+    async fn duplicate_prefix_is_rejected_and_not_persisted() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         m.create(
@@ -1519,8 +1297,8 @@ mod tests {
         assert_eq!(cfg.spaces.len(), 1);
     }
 
-    #[test]
-    fn update_rebinds_and_delete_removes_but_keeps_files() {
+    #[tokio::test]
+    async fn update_rebinds_and_delete_removes_but_keeps_files() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1566,8 +1344,8 @@ mod tests {
         assert!(matches!(m.delete(&id), Err(ApiError::NotFound)));
     }
 
-    #[test]
-    fn boot_in_memory_routes_without_persisting_spaces_json() {
+    #[tokio::test]
+    async fn boot_in_memory_routes_without_persisting_spaces_json() {
         let dir = tempfile::tempdir().unwrap();
         let mut cfg = payload("Solo", Binding::Prefix { prefix: "/".into() });
         cfg.folder = ".".into();
@@ -1593,8 +1371,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn remove_member_everywhere_sweeps_all_spaces_and_is_a_noop_when_absent() {
+    #[tokio::test]
+    async fn remove_member_everywhere_sweeps_all_spaces_and_is_a_noop_when_absent() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         m.set_known_users(["bob".to_string(), "eve".to_string()].into_iter().collect());
@@ -1638,8 +1416,8 @@ mod tests {
     /// be rejected by validation — it should never be possible to persist a
     /// `members` entry for a user `remove_member_everywhere` already erased
     /// from `known_users`.
-    #[test]
-    fn remove_member_everywhere_shrinks_known_users_atomically_with_sweep() {
+    #[tokio::test]
+    async fn remove_member_everywhere_shrinks_known_users_atomically_with_sweep() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         m.set_known_users(["bob".to_string()].into_iter().collect());
@@ -1671,8 +1449,8 @@ mod tests {
         assert!(matches!(e, ApiError::Validation(_)), "{e:?}");
     }
 
-    #[test]
-    fn create_with_seed_index_false_skips_index() {
+    #[tokio::test]
+    async fn create_with_seed_index_false_skips_index() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1696,8 +1474,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn patch_updates_one_field_and_preserves_the_rest() {
+    #[tokio::test]
+    async fn patch_updates_one_field_and_preserves_the_rest() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot_with_users(dir.path(), &["bob"]);
         let mut cfg = payload(
@@ -1726,8 +1504,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn patch_replaces_members_wholesale() {
+    #[tokio::test]
+    async fn patch_replaces_members_wholesale() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot_with_users(dir.path(), &["bob", "carol"]);
         let mut cfg = payload(
@@ -1752,8 +1530,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn admin_space_json_warns_only_for_legacy_root_mix_participants() {
+    #[tokio::test]
+    async fn admin_space_json_warns_only_for_legacy_root_mix_participants() {
         let dir = tempfile::tempdir().unwrap();
         let m = legacy_root_mix(dir.path());
         let separate = m
@@ -1783,8 +1561,8 @@ mod tests {
         assert!(m.get("work").unwrap().get("bindingWarning").is_none());
     }
 
-    #[test]
-    fn patch_ignores_derived_keys_and_does_not_persist_them() {
+    #[tokio::test]
+    async fn patch_ignores_derived_keys_and_does_not_persist_them() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1818,8 +1596,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn patch_with_an_empty_body_is_a_no_op() {
+    #[tokio::test]
+    async fn patch_with_an_empty_body_is_a_no_op() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1838,8 +1616,8 @@ mod tests {
         assert_eq!(m.get(&id).unwrap()["name"], "Work");
     }
 
-    #[test]
-    fn patch_and_get_reject_an_unknown_id() {
+    #[tokio::test]
+    async fn patch_and_get_reject_an_unknown_id() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         assert!(m.get("nope").is_none());
@@ -1849,8 +1627,8 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn patch_legacy_public_key_locks_down_a_write_space() {
+    #[tokio::test]
+    async fn patch_legacy_public_key_locks_down_a_write_space() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1879,8 +1657,8 @@ mod tests {
         assert!(v.get("public").is_none());
     }
 
-    #[test]
-    fn patch_with_explicit_access_still_works() {
+    #[tokio::test]
+    async fn patch_with_explicit_access_still_works() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
         let id = m
@@ -1902,8 +1680,8 @@ mod tests {
         assert_eq!(m.get(&id).unwrap()["access"], serde_json::json!("read"));
     }
 
-    #[test]
-    fn visible_space_omits_sensitive_config() {
+    #[tokio::test]
+    async fn visible_space_omits_sensitive_config() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot_with_users(dir.path(), &["bob"]);
         let mut cfg = payload(
@@ -1929,8 +1707,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn list_accessible_visibility_is_unchanged() {
+    #[tokio::test]
+    async fn list_accessible_visibility_is_unchanged() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot_with_users(dir.path(), &["bob", "carol"]);
 
@@ -1979,8 +1757,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn list_accessible_is_sorted_by_name() {
+    #[tokio::test]
+    async fn list_accessible_is_sorted_by_name() {
         // Six unsorted inputs reduce the chance that random HashMap order
         // accidentally satisfies the sorting assertion.
         let dir = tempfile::tempdir().unwrap();
@@ -2066,8 +1844,8 @@ mod tests {
         (dir, m)
     }
 
-    #[test]
-    fn a_read_public_space_is_listed_for_every_account() {
+    #[tokio::test]
+    async fn a_read_public_space_is_listed_for_every_account() {
         let (_dir, manager) = manager_with_private_and_public();
         let names: Vec<_> = manager
             .list_accessible("sam", false)
@@ -2077,8 +1855,8 @@ mod tests {
         assert_eq!(names, vec!["Public Wiki".to_string()]);
     }
 
-    #[test]
-    fn the_listing_reports_the_access_level() {
+    #[tokio::test]
+    async fn the_listing_reports_the_access_level() {
         let (_dir, manager) = manager_with_private_and_public();
         let listed = manager.list_accessible("zef", false);
         let wiki = listed.iter().find(|s| s.name == "Public Wiki").unwrap();
@@ -2087,8 +1865,8 @@ mod tests {
         assert_eq!(private.access, SpaceAccess::None);
     }
 
-    #[test]
-    fn a_read_role_member_can_see_the_space() {
+    #[tokio::test]
+    async fn a_read_role_member_can_see_the_space() {
         let (_dir, manager) = manager_with_read_role_member();
         assert_eq!(manager.list_accessible("sam", false).len(), 1);
     }

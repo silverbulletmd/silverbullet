@@ -3,6 +3,7 @@ use clap::{Args, Parser, Subcommand};
 pub const OVERVIEW: &str = r#"Command guide:
   Files: fs ls, read, stat, write, edit, rm — work on the space's files directly.
   Lua and queries: eval, script, query, logs, screenshot — run inside the connected space.
+  Search: search, related — full-text and semantic search over the space's pages.
   Connections: space add, login, ls, rm.
   SilverBullet Desktop: open, or sb <path> — open a local folder or file.
   CLI maintenance: version, upgrade, upgrade-edge.
@@ -13,6 +14,7 @@ Getting started:
   sb --space notes fs ls
   sb fs read 'Projects/Launch.md'
   sb query 'from tags.page select name' --json
+  sb search 'garden irrigation' --limit 5
 
 Select a saved connection with --space (optional when only one exists), or use
 --url and optionally --token to connect directly. Flags may appear before or
@@ -159,6 +161,35 @@ pub enum CoreCommand {
     Query {
         /// SLIQ query expression, quoted for your shell.
         expression: String,
+    },
+    /// Search the space's pages.
+    #[command(
+        after_long_help = "Calls the server's search API directly: no Lua runtime or headless browser is needed. Prints one line per page, `Page:line  excerpt`, best match first. --json prints the server's response.\n\nModes: words (all words, any order), phrase (exact phrase) and semantic (by meaning, in spaces with semantic search). Without --mode, search starts in semantic when the space offers it and in words otherwise, like the search box. Public visitors get only the modes the server allows them.\n\n--status shows the search index state and which modes are available instead of searching. It is a flag, so `sb search status` searches for the word status.\n\nExamples:\n  sb search 'garden irrigation'\n  sb search 'garden irrigation' --mode phrase --limit 5 --json\n  sb search --status"
+    )]
+    Search {
+        /// Text to search for (quote it for your shell).
+        #[arg(required_unless_present = "status")]
+        query: Option<String>,
+        /// How to match: words, phrase or semantic (default: what the space offers best).
+        #[arg(long, value_parser = ["words", "phrase", "semantic"], conflicts_with = "status")]
+        mode: Option<String>,
+        /// Maximum number of pages.
+        #[arg(short = 'n', long, value_parser = clap::value_parser!(u32).range(1..), conflicts_with = "status")]
+        limit: Option<u32>,
+        /// Show the search index state and available modes instead of searching.
+        #[arg(long)]
+        status: bool,
+    },
+    /// List pages related to a page.
+    #[command(
+        after_long_help = "Finds the pages most similar in meaning to a page, using semantic search. Prints one line per page, `Page:line  excerpt`; --json prints the server's response. Needs a space with semantic search, and is not available to public visitors; `sb search --status` shows whether it is.\n\nExamples:\n  sb related 'Projects/Launch'\n  sb related Launch --limit 5 --json"
+    )]
+    Related {
+        /// Page name, without .md.
+        page: String,
+        /// Maximum number of pages.
+        #[arg(short = 'n', long, value_parser = clap::value_parser!(u32).range(1..))]
+        limit: Option<u32>,
     },
     /// Show server console logs.
     #[command(
@@ -384,8 +415,44 @@ mod tests {
             vec!["sb", "script", "--file", "sample.lua"],
             vec!["sb", "query", "from tags.page select name", "--json"],
             vec!["sb", "logs", "--follow"],
+            vec!["sb", "search", "garden irrigation", "--mode", "phrase"],
+            vec!["sb", "search", "garden", "--limit", "5", "--json"],
+            vec!["sb", "search", "--status", "--json"],
+            vec!["sb", "related", "Projects/Launch", "--limit", "5"],
         ] {
             assert!(Cli::try_parse_from(&args).is_ok(), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn search_status_is_a_flag_and_the_word_status_is_searched() {
+        let parsed = |args: &[&str]| match Cli::try_parse_from(args).unwrap().command {
+            Some(Command::Core(CoreCommand::Search { query, status, .. })) => (query, status),
+            _ => panic!("not a search: {args:?}"),
+        };
+        assert_eq!(
+            parsed(&["sb", "search", "status"]),
+            (Some("status".into()), false)
+        );
+        assert_eq!(parsed(&["sb", "search", "--status"]), (None, true));
+        assert_eq!(
+            parsed(&["sb", "--json", "search", "--status"]),
+            (None, true)
+        );
+    }
+
+    #[test]
+    fn search_arguments_are_validated_before_connecting() {
+        for args in [
+            vec!["sb", "search"],
+            vec!["sb", "search", "x", "--mode", "natural"],
+            vec!["sb", "search", "x", "--limit", "0"],
+            vec!["sb", "search", "--status", "--mode", "words"],
+            vec!["sb", "search", "--status", "--limit", "3"],
+            vec!["sb", "related"],
+            vec!["sb", "related", "Page", "--limit", "0"],
+        ] {
+            assert!(Cli::try_parse_from(&args).is_err(), "{args:?}");
         }
     }
 

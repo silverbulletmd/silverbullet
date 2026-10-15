@@ -1,6 +1,7 @@
 //! Heading-aware chunking of page text for embedding (ported from Desktop).
 
 use sha2::{Digest, Sha256};
+use silverbullet_server_common::page::{outline, Heading};
 
 /// Maximum characters per chunk.
 const MAX_CHUNK_CHARS: usize = 1200;
@@ -9,6 +10,8 @@ const MAX_HEADING_CHARS: usize = 200;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkText {
+    /// Byte offset of `text` in the page.
+    pub start: u32,
     /// UTF-16 offset of the chunk start in the page.
     pub pos: u32,
     /// 1-based line of the chunk start.
@@ -18,51 +21,44 @@ pub struct ChunkText {
     pub hash: [u8; 32],
 }
 
-/// Splits on ATX headings (outside fenced code blocks), at most 1200 chars per
-/// chunk; hash = sha256(heading + "\n" + text). A leading `---` frontmatter
-/// block stays in the first chunk's text but is ignored for heading and fence
-/// detection.
+/// [`chunk_fitting`] with no budget but the character cap.
 pub fn chunk(page_text: &str) -> Vec<ChunkText> {
+    chunk_fitting(page_text, &|s| s.len())
+}
+
+/// The largest char boundary of `s` at or below `i`.
+pub(crate) fn floor_char_boundary(s: &str, i: usize) -> usize {
+    let mut i = i.min(s.len());
+    while !s.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
+/// Splits at the page's ATX headings (`page::outline`: not in frontmatter or
+/// fenced code), at most 1200 chars and `fit` per chunk (`fit` gives the byte
+/// length of the longest prefix of a text that fits one model window). The hash covers the heading, a
+/// newline and the text. The frontmatter stays in the first chunk's text. A
+/// heading is kept to its first [`MAX_HEADING_CHARS`] characters.
+pub fn chunk_fitting(page_text: &str, fit: &dyn Fn(&str) -> usize) -> Vec<ChunkText> {
     let mut out = Vec::new();
     let mut cursor = Cursor::default();
     let mut heading: Option<String> = None;
     let mut section_start = 0;
-    let mut offset = 0;
-    let mut fence: Option<(char, usize)> = None;
-    let mut front_end = frontmatter_end(page_text);
-    for line in page_text.split_inclusive('\n') {
-        let line_end = offset + line.len();
-        if line_end <= front_end {
-            offset = line_end;
-            continue;
+    for Heading { start, text } in outline(page_text).headings {
+        if start > section_start {
+            append(
+                page_text,
+                section_start,
+                start,
+                &heading,
+                &mut cursor,
+                &mut out,
+                fit,
+            );
+            section_start = start;
         }
-        front_end = 0;
-        let indent = line.bytes().take_while(|b| *b == b' ').count();
-        if indent <= 3 {
-            let trimmed = &line[indent..];
-            if let Some((marker, len)) = fence {
-                let run = trimmed.chars().take_while(|c| *c == marker).count();
-                if run >= len && trimmed[run..].trim().is_empty() {
-                    fence = None;
-                }
-            } else if let Some(opener) = fence_opener(trimmed) {
-                fence = Some(opener);
-            } else if let Some(title) = atx_heading(trimmed) {
-                if offset > section_start {
-                    append(
-                        page_text,
-                        section_start,
-                        offset,
-                        &heading,
-                        &mut cursor,
-                        &mut out,
-                    );
-                    section_start = offset;
-                }
-                heading = (!title.is_empty()).then_some(title);
-            }
-        }
-        offset = line_end;
+        heading = (!text.is_empty()).then(|| text.chars().take(MAX_HEADING_CHARS).collect());
     }
     append(
         page_text,
@@ -71,53 +67,9 @@ pub fn chunk(page_text: &str) -> Vec<ChunkText> {
         &heading,
         &mut cursor,
         &mut out,
+        fit,
     );
     out
-}
-
-/// Byte offset just past a leading `---` frontmatter block (closed by `---` or
-/// `...`), or 0 when there is none or it is unclosed.
-fn frontmatter_end(text: &str) -> usize {
-    let mut lines = text.split_inclusive('\n');
-    if lines.next().map(str::trim_end) != Some("---") {
-        return 0;
-    }
-    let mut offset = text.split_inclusive('\n').next().map_or(0, str::len);
-    for line in lines {
-        offset += line.len();
-        if matches!(line.trim_end(), "---" | "...") {
-            return offset;
-        }
-    }
-    0
-}
-
-/// A code fence opener (``` or ~~~, at least 3); a backtick fence's info
-/// string may not contain backticks.
-fn fence_opener(trimmed: &str) -> Option<(char, usize)> {
-    ['`', '~'].into_iter().find_map(|m| {
-        let run = trimmed.chars().take_while(|c| *c == m).count();
-        (run >= 3 && (m == '~' || !trimmed[run..].contains('`'))).then_some((m, run))
-    })
-}
-
-/// Heading text of an ATX heading line (indentation already removed).
-fn atx_heading(trimmed: &str) -> Option<String> {
-    let hashes = trimmed.chars().take_while(|c| *c == '#').count();
-    if !(1..=6).contains(&hashes)
-        || !trimmed
-            .as_bytes()
-            .get(hashes)
-            .is_none_or(|b| b.is_ascii_whitespace())
-    {
-        return None;
-    }
-    let mut title = trimmed[hashes..].trim();
-    let stripped = title.trim_end_matches('#');
-    if stripped.is_empty() || stripped.ends_with(char::is_whitespace) {
-        title = stripped.trim_end();
-    }
-    Some(title.chars().take(MAX_HEADING_CHARS).collect())
 }
 
 /// Monotonic (byte, UTF-16, line) position so chunk offsets cost O(page) overall.
@@ -145,6 +97,7 @@ fn append(
     heading: &Option<String>,
     cursor: &mut Cursor,
     out: &mut Vec<ChunkText>,
+    fit: &dyn Fn(&str) -> usize,
 ) {
     let mut first = true;
     while start < end {
@@ -157,28 +110,36 @@ fn append(
             }
         }
         first = false;
-        let finish = split_point(&text[start..end]) + start;
+        let finish = split_point(&text[start..end], fit) + start;
         let body = text[start..finish].trim_end();
         if !body.trim().is_empty() {
             let (pos, line) = cursor.advance_to(text, start);
-            out.push(make(pos, line, heading, body));
+            out.push(make(start as u32, pos, line, heading, body));
         }
         start = finish;
     }
 }
 
-/// Byte length of the next chunk of `s`: all of it when it fits, otherwise cut
-/// at the last paragraph, line or whitespace boundary in the window (falling
-/// back to a hard cut at a char boundary).
-fn split_point(s: &str) -> usize {
-    let Some((limit, _)) = s.char_indices().nth(MAX_CHUNK_CHARS) else {
+/// Byte length of the next chunk of `s`: all of it when it fits (at most
+/// [`MAX_CHUNK_CHARS`] characters and what `fit` allows), otherwise cut at
+/// the last paragraph, line or whitespace boundary of the part that fits
+/// (falling back to a hard cut at a char boundary). Always at least one char.
+fn split_point(s: &str, fit: &dyn Fn(&str) -> usize) -> usize {
+    let chars = s
+        .char_indices()
+        .nth(MAX_CHUNK_CHARS)
+        .map_or(s.len(), |(i, _)| i);
+    let fits = floor_char_boundary(s, fit(&s[..chars]).min(chars));
+    if fits == s.len() {
         return s.len();
-    };
+    }
+    let first = s.chars().next().map_or(0, char::len_utf8);
+    let limit = fits.max(first);
     let window = &s[..limit];
     // Only accept boundaries past the first quarter so chunks don't become tiny.
     let min = window
         .char_indices()
-        .nth(MAX_CHUNK_CHARS / 4)
+        .nth(window.chars().count() / 4)
         .map_or(0, |(i, _)| i);
     let paragraph = [window.rfind("\n\n"), window.rfind("\n\r\n")]
         .into_iter()
@@ -205,17 +166,23 @@ fn split_point(s: &str) -> usize {
         .unwrap_or(limit)
 }
 
-fn make(pos: u32, line: u32, heading: &Option<String>, body: &str) -> ChunkText {
+/// What a chunk's hash covers: its heading, a newline, and its text.
+pub(crate) fn hash(heading: Option<&str>, body: &str) -> [u8; 32] {
     let mut hasher = Sha256::new();
-    hasher.update(heading.as_deref().unwrap_or("").as_bytes());
+    hasher.update(heading.unwrap_or("").as_bytes());
     hasher.update(b"\n");
     hasher.update(body.as_bytes());
+    hasher.finalize().into()
+}
+
+fn make(start: u32, pos: u32, line: u32, heading: &Option<String>, body: &str) -> ChunkText {
     ChunkText {
+        start,
         pos,
         line,
         heading: heading.clone(),
         text: body.to_owned(),
-        hash: hasher.finalize().into(),
+        hash: hash(heading.as_deref(), body),
     }
 }
 
@@ -289,6 +256,23 @@ mod tests {
         let c = chunk("---\ntags: x\n...\nHello\n\n# H\n\nbody");
         assert_eq!(c.len(), 2);
         assert_eq!(c[0].heading, None);
+    }
+
+    #[test]
+    fn frontmatter_and_headings_follow_the_shared_outline() {
+        // `...` doesn't close frontmatter, so "# inside" is a heading here,
+        // as it is for full-text passages and the page classifier.
+        let c = chunk("---\n# inside\n...\nHello\n\n# H\n\nbody");
+        let headings: Vec<_> = c.iter().map(|c| c.heading.as_deref()).collect();
+        assert_eq!(headings, [None, Some("inside"), Some("H")]);
+        // A `---` with trailing spaces doesn't close frontmatter either.
+        let c = chunk("---\n# inside\n---  \nHello");
+        assert_eq!(c[0].heading, None);
+        assert_eq!(c[1].heading.as_deref(), Some("inside"));
+        // The stored heading stays capped.
+        let long = "h".repeat(300);
+        let c = chunk(&format!("# {long}\n\nx"));
+        assert_eq!(c[0].heading.as_ref().map(|h| h.chars().count()), Some(200));
     }
 
     #[test]
@@ -393,5 +377,47 @@ mod tests {
             .iter()
             .all(|ch| ch.text.chars().count() <= MAX_CHUNK_CHARS));
         assert_eq!(c[1].line, 2);
+    }
+
+    /// A budget of `n` whitespace-separated pieces.
+    fn words(n: usize) -> impl Fn(&str) -> usize {
+        move |s: &str| {
+            s.split_inclusive(char::is_whitespace)
+                .take(n)
+                .map(str::len)
+                .sum::<usize>()
+                .min(s.len())
+        }
+    }
+
+    #[test]
+    fn chunks_are_cut_where_the_budget_ends() {
+        let fit = words(10);
+        let text = format!("# Notes\n\n{}", "alpha beta gamma delta ".repeat(10));
+        let c = chunk_fitting(&text, &fit);
+        assert!(c.len() >= 4, "{c:?}");
+        for ch in &c {
+            assert_eq!(fit(&ch.text), ch.text.len(), "{:?} fits", ch.text);
+            assert_eq!(ch.heading.as_deref(), Some("Notes"));
+        }
+        let total: usize = c.iter().map(|ch| ch.text.split_whitespace().count()).sum();
+        assert_eq!(total, 2 + 40, "nothing lost or doubled");
+    }
+
+    #[test]
+    fn a_budget_below_one_char_still_makes_progress() {
+        let c = chunk_fitting("水水水", &|_| 0);
+        let joined: String = c.iter().map(|ch| ch.text.as_str()).collect();
+        assert_eq!(joined, "水水水");
+    }
+
+    #[test]
+    fn start_is_the_byte_offset_of_the_text() {
+        let text = format!("😀 intro\r\n\r\n# Ü\n\n{}", "wörd ".repeat(400));
+        for ch in chunk_fitting(&text, &words(50)) {
+            let start = ch.start as usize;
+            assert_eq!(&text[start..start + ch.text.len()], ch.text);
+            assert_eq!(text[..start].encode_utf16().count() as u32, ch.pos);
+        }
     }
 }
