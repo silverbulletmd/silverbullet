@@ -1799,7 +1799,10 @@ export function parseBlock(s: string, ctx: ASTCtx = {}): LuaBlock {
     if (e && typeof e === "object" && "astCtx" in e) {
       throw new LuaRuntimeError(
         e.message,
-        LuaStackFrame.lostFrame.withCtx((e as any).astCtx as ASTCtx),
+        LuaStackFrame.lostFrame.withCtx({
+          ...ctx,
+          ...((e as any).astCtx as ASTCtx),
+        }),
       );
     }
     throw e;
