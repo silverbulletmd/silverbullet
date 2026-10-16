@@ -5,6 +5,7 @@ import { AssetBundle, type AssetJson } from "../../asset_bundle/bundle.ts";
 import type { Sandbox, SandboxFactory } from "./sandbox.ts";
 import { race, timeout } from "@silverbulletmd/silverbullet/lib/async";
 import { fsEndpoint } from "../../spaces/constants.ts";
+import { emitRuntimeLog } from "../../lib/runtime_log.ts";
 
 /**
  * Effectively this wraps a web worker, the reason to have this split from Plugs is to allow plugs to manage multiple sandboxes, e.g. for performance in the future
@@ -113,6 +114,14 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
         }
         break;
       }
+      case "log":
+        emitRuntimeLog({
+          source: "plug",
+          scope: this.plug.manifest?.name,
+          level: data.entry.level,
+          text: data.entry.message,
+        });
+        break;
       default:
         console.error("Unknown message type", data);
     }

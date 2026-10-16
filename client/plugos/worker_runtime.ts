@@ -116,7 +116,9 @@ export function setupMessageListener(
     type: "manifest",
     manifest,
   });
-  initLogger(`[${manifest.name} plug]`);
+  initLogger(`[${manifest.name} plug]`).forwardTo((entry) =>
+    workerPostMessage({ type: "log", entry }),
+  );
 }
 
 export async function sandboxFetch(

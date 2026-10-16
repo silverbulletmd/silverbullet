@@ -15,6 +15,9 @@ export class Logger {
     debug: typeof console.debug;
   };
   public logBuffer: LogEntry[] = [];
+  private forward?: (entry: LogEntry) => void;
+  // Forwarding can itself log (a failed postMessage); that must not forward again
+  private forwarding = false;
 
   constructor(
     private prefix: string = "",
@@ -71,10 +74,25 @@ export class Logger {
     };
 
     this.logBuffer.push(entry);
+    if (this.forward && !this.forwarding) {
+      this.forwarding = true;
+      try {
+        this.forward(entry);
+      } catch {
+        // Forwarding is best effort; the entry is still buffered
+      } finally {
+        this.forwarding = false;
+      }
+    }
 
     if (this.logBuffer.length > this.maxCaptureSize) {
       this.logBuffer.shift();
     }
+  }
+
+  /** Also hands every captured entry to `fn`, e.g. to show it in the main window. */
+  forwardTo(fn: (entry: LogEntry) => void): void {
+    this.forward = fn;
   }
 
   /**

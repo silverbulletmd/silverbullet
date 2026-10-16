@@ -29,6 +29,25 @@ import type {
 } from "./types/ui.ts";
 
 const logger = initLogger("[Service Worker]");
+// Each window shows these in its Workbench console. Posted directly, not via
+// broadcastMessage, which itself logs when no window is listening
+logger.forwardTo((entry) => {
+  // @ts-expect-error: service worker API
+  const clients: any = self.clients;
+  clients
+    .matchAll({ type: "window" })
+    .then((windows: any[]) => {
+      for (const w of windows) {
+        w.postMessage({
+          type: "log",
+          entry,
+        } satisfies ServiceWorkerSourceMessage);
+      }
+    })
+    .catch(() => {
+      // Best effort: the line is still in the server log buffer
+    });
+});
 
 // Note: the only thing cached here is SilverBullet client assets, files are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";

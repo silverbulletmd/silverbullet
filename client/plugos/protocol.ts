@@ -1,4 +1,5 @@
 import type { Manifest } from "@silverbulletmd/silverbullet/type/manifest";
+import type { LogEntry } from "../lib/logger.ts";
 
 // Messages received from the worker
 export type ControllerMessage =
@@ -13,6 +14,11 @@ export type ControllerMessage =
       id: number;
       error?: string;
       result?: any;
+    }
+  | {
+      // A line the plug logged, for the Workbench console
+      type: "log";
+      entry: LogEntry;
     }
   | {
       // Syscall
