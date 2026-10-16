@@ -184,3 +184,16 @@ test("service worker log lines arrive as sw messages; other messages are ignored
   ]);
   setRuntimeLogSink(null);
 });
+
+test("the browser's benign ResizeObserver loop report is not logged", () => {
+  const { listeners, target } = fakeTarget();
+  const log = new ConsoleLog();
+  log.install(target);
+  listeners.error({
+    error: null,
+    message: "ResizeObserver loop completed with undelivered notifications.",
+  });
+  listeners.error({ error: null, message: "Script error." });
+  expect(log.entries.map((e) => args(e)[0])).toEqual(["Script error."]);
+  setRuntimeLogSink(null);
+});

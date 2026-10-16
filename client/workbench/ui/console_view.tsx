@@ -59,7 +59,9 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
   }, [entries]);
 
-  // Rendered results arrive asynchronously and grow a row after it was scrolled into view
+  // The log stays at its end when it grows (rendered results arrive
+  // asynchronously, after their row was scrolled into view) and when the
+  // panel shrinks (an on-screen keyboard opening)
   useEffect(() => {
     const el = body.current;
     const log = el?.firstElementChild;
@@ -74,6 +76,7 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
       });
     });
     observer.observe(log);
+    observer.observe(el);
     return () => {
       observer.disconnect();
       cancelAnimationFrame(frame);

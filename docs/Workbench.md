@@ -1,5 +1,5 @@
 ---
-description: "A development panel to write, test and debug your space: a Lua console with a unified log, and an overview of your space-lua scripts."
+description: "A development panel to write, test and debug your space: a Lua console with a unified log, and overviews of your space-lua scripts and space-style styles."
 references:
 - client/workbench/*
 - client/navigator/views/workbench.ts
@@ -12,12 +12,13 @@ Ultimately it will contain many things, but for now it covers the following:
 
 * [[#Console]]: everything your space logs, plus a [[Space Lua]] REPL.
 * [[#Scripts]]: every `space-lua` block in your space, and how loading it went.
+* [[#Styles]]: every `space-style` block in your space, and whether the browser could make sense of it.
 
 # Opening the workbench
-The workbench is a panel that opens at the bottom of the window. Like other panels, you can drag its top edge to resize it, and move it to the left or right sidebar with its dock menu. These commands open it:
+The workbench is a panel that opens at the bottom of the window. Like other panels, you can drag its top edge to resize it, and move it to the left or right sidebar with its dock menu. On a phone it takes the full height of the screen instead, apart from a strip of your page. These commands open it:
 
 * ${widgets.commandButton("Workbench: Toggle")} (Cmd-Alt-j on Mac, Ctrl-Alt-j elsewhere): opens the workbench, focuses it when it’s open but you’re working elsewhere, and closes it when it already has focus.
-* ${widgets.commandButton("Workbench: Console")} and ${widgets.commandButton("Workbench: Scripts")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
+* ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")} and ${widgets.commandButton("Workbench: Styles")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
 
 The workbench remembers the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
 
@@ -79,3 +80,16 @@ Click a row to jump to the script. Its ⋯ menu offers:
 A script is **quarantined** when you stop it for running too long while it loads. It’s then skipped on later loads until you re-enable it, or until you edit it. A script you stopped during the current load also shows as quarantined. See [[Space Lua#Runaway scripts]].
 
 **Reload** runs all your `space-lua` blocks again, and the list updates when they’re done.
+
+# Styles
+The Styles tab lists every `space-style` block in your space (see [[Space Style]]), in the order they’re applied: by priority, highest first, after the blocks that set no priority. Each row shows:
+
+* **Status:** a green dot when the browser parsed the block’s CSS, and amber when the block holds CSS the browser parsed no rules from.
+* **Style:** the page it’s on, with the block’s position in the page when the page holds several.
+* **Priority** and **Rules:** its priority (“–” when it sets none) and how many rules the browser parsed from it.
+
+Browsers drop CSS they can’t parse without reporting it, so an amber row almost always means a syntax error, like a missing `{`. A block that only holds comments isn’t flagged. A typo that breaks just one rule in a block shows up only as that block’s rule count being one lower than you’d expect.
+
+The filter field and the **All**, **Custom** and **Built-in** buttons narrow the list, the same as on the [[#Scripts]] tab. The footer shows how many styles there are, how many rules they add up to, and when they last loaded.
+
+Click a row to jump to the style. Its ⋯ menu offers *Open source* and *Copy CSS*. **Reload** applies all styles again and updates the list.

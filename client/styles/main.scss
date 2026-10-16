@@ -167,6 +167,21 @@ body {
   #sb-top .sb-nav-spacer {
     display: none;
   }
+
+  // The bottom panel takes the height the way drawers take the width: all
+  // but a strip of the editor. A phone has no room to share, and the panel
+  // has no handle to resize it. Overrides the dock's inline size.
+  .sb-bhs {
+    flex: 1 1 0 !important;
+    max-height: none !important;
+    height: auto;
+    // Shrink with the visible area (an open keyboard) instead of growing to its content
+    min-height: 0;
+  }
+
+  #sb-main:has(~ .sb-bhs) {
+    flex: 0 0 44px;
+  }
 }
 
 // Full-screen dim behind a "modal" panel, matching the <dialog> backdrop used

@@ -51,6 +51,26 @@
       flex: 0 1 auto;
       max-width: 100%;
     }
+
+    // A phone's panel is short and can't be resized: one row that scrolls
+    // sideways leaves the room to the list. Keep 600px in step with
+    // `MOBILE_MEDIA_QUERY` in `client/lib/mobile.ts`.
+    @media only screen and (max-width: 600px) {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+
+      .sb-segments-wrap,
+      .sb-button {
+        flex: none;
+        max-width: none;
+      }
+
+      .sb-wb-filter {
+        flex: 0 0 7rem;
+        min-width: 7rem;
+      }
+    }
   }
 
   .sb-wb-filter {
@@ -177,6 +197,14 @@
     font-weight: bold;
   }
 
+  // Log text may break anywhere; a rendered table keeps its columns and
+  // scrolls sideways when it's wider than the row
+  .sb-wb-rendered {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-wrap: normal;
+  }
+
   .sb-wb-rendered .sb-nav-content {
     padding: 2px 0;
     font-size: 14px;
@@ -224,8 +252,15 @@
   }
 
   .sb-wb-row:hover .sb-wb-menu,
-  .sb-wb-script:hover .sb-wb-menu {
+  .sb-wb-block:hover .sb-wb-menu {
     opacity: 1;
+  }
+
+  // Without hover (touch screens) the menu could never be found
+  @media (hover: none) {
+    .sb-wb-menu {
+      opacity: 1;
+    }
   }
 
   .sb-wb-view-toggle {
@@ -233,6 +268,23 @@
     align-self: flex-start;
     margin-left: auto;
     font-family: var(--ui-font);
+  }
+
+  // On a phone the toggle would squeeze the result it switches; it goes on
+  // its own line underneath, lined up with the content (past the 1em icon
+  // and the row's 8px gap). Keep 600px in step with `MOBILE_MEDIA_QUERY`.
+  @media only screen and (max-width: 600px) {
+    .sb-wb-row {
+      flex-wrap: wrap;
+    }
+
+    .sb-wb-view-toggle {
+      order: 1;
+      box-sizing: border-box;
+      flex-basis: 100%;
+      margin-left: 0;
+      padding-left: calc(1em + 8px);
+    }
   }
 
   .sb-wb-str {
@@ -318,8 +370,8 @@
     }
   }
 
-  // Scripts tab: one row per space-lua block, in load order
-  .sb-wb-script {
+  // Scripts and Styles tabs: one row per space-lua or space-style block
+  .sb-wb-block {
     display: grid;
     grid-template-columns: 10px minmax(0, 1fr) 64px 64px 20px;
     align-items: center;
@@ -334,7 +386,7 @@
     }
   }
 
-  .sb-wb-script-head {
+  .sb-wb-block-head {
     color: var(--subtle-color);
     font-family: var(--ui-font);
     font-size: 11px;
@@ -345,7 +397,7 @@
     }
   }
 
-  .sb-wb-script-name {
+  .sb-wb-block-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -363,7 +415,7 @@
     background-color: var(--success-color);
   }
 
-  .sb-wb-script-failed {
+  .sb-wb-block-failed {
     background-color: var(--alert-error-background-color);
     color: var(--alert-error-color);
 
@@ -372,8 +424,9 @@
     }
   }
 
-  .sb-wb-script-stopped,
-  .sb-wb-script-quarantined {
+  .sb-wb-block-stopped,
+  .sb-wb-block-quarantined,
+  .sb-wb-block-empty {
     color: var(--alert-warning-color);
 
     .sb-wb-status {
@@ -381,7 +434,7 @@
     }
   }
 
-  .sb-wb-script-error {
+  .sb-wb-block-error {
     padding: 4px 10px 8px 30px;
     border-bottom: 1px solid var(--ui-surface-border-color);
     background-color: var(--alert-error-background-color);

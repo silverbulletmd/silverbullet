@@ -3,11 +3,8 @@ import type { ScriptRecord } from "../space_lua.ts";
 import {
   filterScripts,
   formatLoadTime,
-  originCounts,
   scriptActions,
   scriptCounts,
-  scriptLabels,
-  scriptsFrom,
 } from "./scripts.ts";
 
 // Loose on purpose: each case sets only the fields its status has
@@ -54,17 +51,6 @@ test("counts per filter", () => {
   });
 });
 
-test("labels show the offset only for pages with several scripts", () => {
-  const labels = scriptLabels(scripts);
-  expect(labels.get("Library/Std/Config@0")).toEqual({
-    page: "Library/Std/Config",
-  });
-  expect(labels.get("Scratch/Helpers@212")).toEqual({
-    page: "Scratch/Helpers",
-    pos: 212,
-  });
-});
-
 test("load times round, and a skipped script has none", () => {
   expect(formatLoadTime(record({ ms: 0.4 }))).toBe("<1 ms");
   expect(formatLoadTime(record({ ms: 11.6 }))).toBe("12 ms");
@@ -88,18 +74,4 @@ test("only quarantined or stopped scripts offer re-enabling", async () => {
   expect(deps.openSource).toHaveBeenCalledWith("Scratch/Loop@0");
   expect(deps.copyText).toHaveBeenCalledWith("x = 1");
   expect(deps.reEnable).toHaveBeenCalledWith("Scratch/Loop@0");
-});
-
-test("built-in scripts are the ones on Library/Std pages", () => {
-  expect(refs(scriptsFrom(scripts, "builtin"))).toEqual([
-    "Library/Std/Config@0",
-  ]);
-  expect(refs(scriptsFrom(scripts, "custom"))).toEqual([
-    "Scratch/Helpers@0",
-    "Scratch/Helpers@212",
-    "Scratch/Slow@0",
-    "Scratch/Loop@0",
-  ]);
-  expect(scriptsFrom(scripts, "all")).toBe(scripts);
-  expect(originCounts(scripts)).toEqual({ all: 5, custom: 4, builtin: 1 });
 });

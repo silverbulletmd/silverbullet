@@ -1,36 +1,30 @@
-import { Button } from "@silverbulletmd/silverbullet/ui";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
-import {
-  resolveASTReference,
-  type ScriptLoad,
-  type ScriptRecord,
-} from "../../space_lua.ts";
+import type { ScriptRecord } from "../../space_lua.ts";
 import { copyText, openRef } from "../action.ts";
+import { blockSourceRef } from "../blocks.ts";
 import {
   filterScripts,
   formatLoadTime,
-  originCounts,
   type ScriptActionDeps,
   type ScriptFilter,
-  type ScriptOrigin,
   scriptActions,
   scriptCounts,
-  scriptLabels,
-  scriptsFrom,
 } from "../scripts.ts";
 import type { SourceLookup } from "../source_frames.ts";
 import { errorMessage } from "../value_preview.ts";
 import { ActionMenu } from "./action_menu.tsx";
+import {
+  BlockNote,
+  BlockRow,
+  BlockTable,
+  BlockToolbar,
+  useBlockFilter,
+  useLoad,
+} from "./block_ui.tsx";
 import { errorFrames, LuaErrorDetails, type OpenTarget } from "./lua_error.tsx";
 import type { TabProps } from "./tab.ts";
-
-const ORIGINS: { value: ScriptOrigin; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "custom", label: "Custom" },
-  { value: "builtin", label: "Built-in" },
-];
 
 const FILTERS: { value: ScriptFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -54,43 +48,27 @@ type RowContext = {
 };
 
 export function ScriptsView({ client, focusTarget }: TabProps) {
-  const luaEnv = client.clientSystem.spaceLuaEnv;
-  const [load, setLoad] = useState<ScriptLoad | undefined>(luaEnv.lastLoad);
-  const [phrase, setPhrase] = useState("");
-  const [origin, setOrigin] = useState(0);
-  const [filter, setFilter] = useState(0);
-  const filterInput = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setLoad(luaEnv.lastLoad);
-    return luaEnv.onLoad(setLoad);
-  }, [luaEnv]);
-
-  useEffect(() => {
-    const el = filterInput.current;
-    return el ? focusTarget(el) : undefined;
-  }, [focusTarget]);
-
+  const { clientSystem } = client;
+  const load = useLoad(clientSystem.spaceLuaEnv);
   const scripts = load?.scripts ?? [];
-  const labels = useMemo(() => scriptLabels(scripts), [scripts]);
-  const origins = useMemo(() => originCounts(scripts), [scripts]);
+  const blocks = useBlockFilter(scripts, focusTarget);
+  const [filter, setFilter] = useState(0);
   // Status counts follow the picked origin
-  const fromOrigin = useMemo(
-    () => scriptsFrom(scripts, ORIGINS[origin].value),
-    [scripts, origin],
+  const counts = useMemo(
+    () => scriptCounts(blocks.fromOrigin),
+    [blocks.fromOrigin],
   );
-  const counts = useMemo(() => scriptCounts(fromOrigin), [fromOrigin]);
   const visible = useMemo(
-    () => filterScripts(fromOrigin, phrase, FILTERS[filter].value),
-    [fromOrigin, phrase, filter],
+    () =>
+      filterScripts(blocks.fromOrigin, blocks.phrase, FILTERS[filter].value),
+    [blocks.fromOrigin, blocks.phrase, filter],
   );
 
-  const ctx = useMemo((): RowContext => {
-    const { clientSystem } = client;
-    return {
+  const ctx = useMemo(
+    (): RowContext => ({
       deps: {
         openSource: async (ref) => {
-          const target = resolveASTReference({ ref, from: 0 });
+          const target = blockSourceRef(ref, "space-lua");
           if (target) await openRef(client, target);
         },
         copyText: (text) => copyText(client, text),
@@ -101,33 +79,17 @@ export function ScriptsView({ client, focusTarget }: TabProps) {
         if (target.kind === "page") void openRef(client, target.ref);
       },
       sourceFor: (ref) => clientSystem.spaceLuaEnv.sourceFor(ref),
-    };
-  }, [client]);
+    }),
+    [client],
+  );
 
   return (
     <div className="sb-workbench">
-      <div className="sb-wb-toolbar">
-        <input
-          ref={filterInput}
-          type="search"
-          className="sb-wb-filter"
-          placeholder="Filter scripts"
-          aria-label="Filter scripts"
-          autocapitalize="off"
-          autocorrect="off"
-          spellcheck={false}
-          value={phrase}
-          onInput={(e) => setPhrase(e.currentTarget.value)}
-        />
-        <SegmentedControl
-          items={ORIGINS.map((o) => ({
-            label: `${o.label} ${origins[o.value]}`,
-          }))}
-          activeIndex={origin}
-          onPick={setOrigin}
-          takeFocus
-          ariaLabel="Show scripts from"
-        />
+      <BlockToolbar
+        noun="scripts"
+        filter={blocks}
+        onReload={() => void clientSystem.loadLuaScripts()}
+      >
         <SegmentedControl
           items={FILTERS.map((f) => ({
             label: `${f.label} ${counts[f.value]}`,
@@ -137,43 +99,27 @@ export function ScriptsView({ client, focusTarget }: TabProps) {
           takeFocus
           ariaLabel="Show scripts"
         />
-        <Button onClick={() => void client.clientSystem.loadLuaScripts()}>
-          Reload
-        </Button>
-      </div>
+      </BlockToolbar>
       <div className="sb-workbench-body">
         {client.bootConfig.disableSpaceLua ? (
-          <div className="sb-wb-empty">
-            Space Lua is disabled for this space.
-          </div>
+          <BlockNote>Space Lua is disabled for this space.</BlockNote>
         ) : !load ? (
-          <div className="sb-wb-empty">Scripts haven't loaded yet.</div>
+          <BlockNote>Scripts haven't loaded yet.</BlockNote>
         ) : scripts.length === 0 ? (
-          <div className="sb-wb-empty">
+          <BlockNote>
             This space has no <code>space-lua</code> blocks.
-          </div>
+          </BlockNote>
         ) : (
-          <div className="sb-wb-scripts" role="table" aria-label="Scripts">
-            <div className="sb-wb-script sb-wb-script-head" role="row">
-              <span role="columnheader" aria-label="Status" />
-              <span role="columnheader">Script</span>
-              <span role="columnheader" className="sb-wb-num">
-                Priority
-              </span>
-              <span role="columnheader" className="sb-wb-num">
-                Load
-              </span>
-              <span role="columnheader" aria-label="Actions" />
-            </div>
+          <BlockTable label="Scripts" columns={["Script", "Priority", "Load"]}>
             {visible.map((r) => (
               <ScriptRow
                 key={r.ref}
                 record={r}
-                label={labels.get(r.ref) ?? { page: r.ref }}
+                label={blocks.labels.get(r.ref) ?? { page: r.ref }}
                 ctx={ctx}
               />
             ))}
-          </div>
+          </BlockTable>
         )}
       </div>
       {load && scripts.length > 0 ? (
@@ -200,36 +146,17 @@ function ScriptRow({
 }) {
   return (
     <>
-      <div
-        className={`sb-wb-script sb-wb-script-${record.status}`}
-        role="row"
-        title={record.ref}
-        onClick={() => void ctx.deps.openSource(record.ref)}
-      >
-        <span
-          className="sb-wb-status"
-          role="cell"
-          title={STATUS_TITLES[record.status]}
-          aria-label={STATUS_TITLES[record.status]}
-        />
-        <span className="sb-wb-script-name" role="cell">
-          {label.page}
-          {label.pos !== undefined ? (
-            <span className="sb-wb-muted">@{label.pos}</span>
-          ) : null}
-        </span>
-        <span className="sb-wb-num" role="cell">
-          {record.priority}
-        </span>
-        <span className="sb-wb-num" role="cell">
-          {formatLoadTime(record)}
-        </span>
-        <span role="cell">
-          <ActionMenu actions={scriptActions(record)} deps={ctx.deps} />
-        </span>
-      </div>
+      <BlockRow
+        block={record}
+        label={label}
+        status={record.status}
+        statusTitle={STATUS_TITLES[record.status]}
+        numbers={[record.priority, formatLoadTime(record)]}
+        menu={<ActionMenu actions={scriptActions(record)} deps={ctx.deps} />}
+        onOpen={() => void ctx.deps.openSource(record.ref)}
+      />
       {record.status === "failed" ? (
-        <div className="sb-wb-script-error" role="row">
+        <div className="sb-wb-block-error" role="row">
           <div role="cell">
             {record.error instanceof LuaRuntimeError ? (
               <LuaErrorDetails

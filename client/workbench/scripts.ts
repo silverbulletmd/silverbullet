@@ -1,37 +1,8 @@
 import { hasRun, type ScriptRecord, type ScriptStatus } from "../space_lua.ts";
-import { stdLibPrefix } from "../spaces/constants.ts";
 import type { Action } from "./action.ts";
-import { scriptRefParts } from "./source_frames.ts";
+import { refMatches } from "./blocks.ts";
 
 export type ScriptFilter = "all" | "loaded" | "failed" | "quarantined";
-export type ScriptOrigin = "all" | "custom" | "builtin";
-
-/** Shipped with SilverBullet: a script on a `Library/Std/` page. Everything else, installed libraries included, is custom. */
-export function isBuiltinScript(r: ScriptRecord): boolean {
-  return r.ref.startsWith(stdLibPrefix);
-}
-
-/** The scripts of one origin, still in load order. */
-export function scriptsFrom(
-  scripts: ScriptRecord[],
-  origin: ScriptOrigin,
-): ScriptRecord[] {
-  if (origin === "all") return scripts;
-  const builtin = origin === "builtin";
-  return scripts.filter((r) => isBuiltinScript(r) === builtin);
-}
-
-export function originCounts(
-  scripts: ScriptRecord[],
-): Record<ScriptOrigin, number> {
-  const builtin = scripts.filter(isBuiltinScript).length;
-  return {
-    all: scripts.length,
-    custom: scripts.length - builtin,
-    builtin,
-  };
-}
-
 // A script stopped during this load is quarantined from the next one
 const FILTER_STATUSES: Record<Exclude<ScriptFilter, "all">, ScriptStatus[]> = {
   loaded: ["loaded"],
@@ -49,12 +20,7 @@ export function filterScripts(
   text: string,
   filter: ScriptFilter,
 ): ScriptRecord[] {
-  const needle = text.trim().toLowerCase();
-  return scripts.filter(
-    (r) =>
-      matchesFilter(r, filter) &&
-      (!needle || r.ref.toLowerCase().includes(needle)),
-  );
+  return scripts.filter((r) => matchesFilter(r, filter) && refMatches(r, text));
 }
 
 export function scriptCounts(
@@ -66,26 +32,6 @@ export function scriptCounts(
     failed: scripts.filter((r) => matchesFilter(r, "failed")).length,
     quarantined: scripts.filter((r) => matchesFilter(r, "quarantined")).length,
   };
-}
-
-/**
- * Each script's page name, plus its offset in the page when the page holds
- * more than one script, so its rows can be told apart.
- */
-export function scriptLabels(
-  scripts: ScriptRecord[],
-): Map<string, { page: string; pos?: number }> {
-  const parts = new Map(scripts.map((r) => [r.ref, scriptRefParts(r.ref)]));
-  const perPage = new Map<string, number>();
-  for (const { page } of parts.values()) {
-    perPage.set(page, (perPage.get(page) ?? 0) + 1);
-  }
-  return new Map(
-    [...parts].map(([ref, { page, pos }]) => [
-      ref,
-      (perPage.get(page) ?? 0) > 1 ? { page, pos } : { page },
-    ]),
-  );
 }
 
 /** A quarantined script didn't run, so it has no time to show. */

@@ -367,6 +367,9 @@ export function NavRoot({
             autocorrect="off"
             spellcheck={false}
             placeholder={noFilter ? undefined : placeholder}
+            // A filterless view's input only holds focus for the panel's
+            // keys; it takes no typing, so it needs no on-screen keyboard
+            inputMode={noFilter ? "none" : undefined}
             aria-label={
               noFilter ? (view?.meta.label ?? view?.meta.title) : undefined
             }

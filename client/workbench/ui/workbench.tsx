@@ -8,14 +8,17 @@ import {
   WORKBENCH_TABS,
   type WorkbenchTab,
 } from "../../navigator/views/workbench.ts";
+import { shouldFocusModalFilter } from "../../lib/mobile.ts";
 import type { ConsoleSession } from "../console_session.ts";
 import { ConsoleView } from "./console_view.tsx";
 import { ScriptsView } from "./scripts_view.tsx";
+import { StylesView } from "./styles_view.tsx";
 import type { TabProps } from "./tab.ts";
 
 const BODIES: Record<WorkbenchTab, FunctionComponent<TabProps>> = {
   Console: ConsoleView,
   Scripts: ScriptsView,
+  Styles: StylesView,
 };
 
 /**
@@ -37,12 +40,17 @@ export function WorkbenchView({
   // The navigator restores a view's remembered tab only after its first
   // render (`activation.ts`), so the default tab can take focus and then be
   // hidden. When the hidden tab held focus, hand it to the one now showing;
-  // a tab picked in the header keeps focus there.
+  // a tab picked in the header keeps focus there. On a touch device that
+  // only happens with a keyboard in use, as when the panel itself opens, so a
+  // tap never pops up the on-screen keyboard.
   useEffect(() => {
     if (shown.current === segmentIndex) return;
     shown.current = segmentIndex;
     const focused = document.activeElement;
-    if (focused === document.body || root.current?.contains(focused)) {
+    if (
+      shouldFocusModalFilter() &&
+      (focused === document.body || root.current?.contains(focused))
+    ) {
       requestNativeFocus(slot);
     }
   }, [segmentIndex, slot]);

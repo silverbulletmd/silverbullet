@@ -32,6 +32,17 @@ export function isErrorEntry(e: LogEntry): boolean {
 }
 
 const LEVELS: LogLevel[] = ["log", "info", "warn", "error", "debug"];
+
+/**
+ * Browsers report a "ResizeObserver loop" error when a resize observer's
+ * callback changes layout again within one frame; the notifications are only
+ * deferred to the next frame, so nothing went wrong. Panels that measure
+ * themselves (segmented controls, the log's scroll-to-end) set it off as tabs
+ * show and hide, and it would read as a real error in the log.
+ */
+function isBenignResizeObserverLoop(ev: ErrorEvent): boolean {
+  return ev.error == null && /^ResizeObserver loop/.test(ev.message ?? "");
+}
 const DEDUPE_WINDOW = 20;
 
 export class ConsoleLog {
@@ -95,6 +106,7 @@ export class ConsoleLog {
     }
     this.original = original;
     target.addEventListener("error", (ev: ErrorEvent) => {
+      if (isBenignResizeObserverLoop(ev)) return;
       this.message("error", "js", [ev.error ?? ev.message]);
     });
     target.addEventListener(

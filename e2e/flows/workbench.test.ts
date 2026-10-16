@@ -38,6 +38,11 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
   await expect(
     page.getByRole("searchbox", { name: "Filter scripts" }),
   ).toBeFocused();
+  // The Styles tab lists the space's styles with the rules each one parsed to
+  await runCommandViaPalette(page, "Workbench: Styles");
+  await expect(page.getByRole("table", { name: "Styles" })).toContainText(
+    "Library/Std",
+  );
   await page.getByRole("radio", { name: "Console" }).click();
   await expect(log).toContainText("console#3");
   await workbench.locator(".cm-content").click();

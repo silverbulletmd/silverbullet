@@ -32,7 +32,6 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import type { SyncState } from "@silverbulletmd/silverbullet/type/revisions";
 import { keyboardHint } from "../plug-api/lib/shortcut.ts";
-import type { StyleObject } from "../plugs/index/space_style.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { version as publicVersion } from "../version.json";
 import { ClientSystem } from "./client_system.ts";
@@ -108,6 +107,7 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
 import { syncMessageNotification } from "./types/ui.ts";
+import { SpaceStyles } from "./space_style.ts";
 import { WidgetCache } from "./widget_cache.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
@@ -186,6 +186,7 @@ export class Client {
   private recentSyncFlashes = new Map<string, number>();
 
   ui!: MainUI;
+  readonly spaceStyles = new SpaceStyles(this);
   ds!: DataStore;
   mq!: DataStoreMQ;
   // Used to store additional pageMeta outside the page index itself persistent between client runs (specifically: lastOpened)
@@ -1271,40 +1272,8 @@ export class Client {
     }
   }
 
-  async loadCustomStyles() {
-    if (this.bootConfig.disableSpaceStyle) {
-      console.warn("Not loading custom styles, since space style is disabled");
-      return;
-    }
-    if (!(await this.objectIndex.isIndexAvailable())) {
-      console.warn(
-        "Not loading custom styles, since no index is available yet",
-      );
-      return;
-    }
-
-    const spaceStyles = await this.queryLuaObjects<StyleObject>("space-style", {
-      objectVariable: "_",
-      orderBy: [
-        {
-          expr: parseExpressionString("_.priority"),
-          desc: true,
-        },
-      ],
-    });
-    if (!spaceStyles) {
-      return;
-    }
-
-    const customStylesContent = spaceStyles
-      .map((s) => `<style>${s.style}</style>`)
-      .join("\n\n");
-    this.ui.viewDispatch({
-      type: "set-ui-option",
-      key: "customStyles",
-      value: customStylesContent,
-    });
-    document.getElementById("custom-styles")!.innerHTML = customStylesContent;
+  loadCustomStyles(): Promise<void> {
+    return this.spaceStyles.load();
   }
 
   async runCommandByName(name: string, args?: any[]) {

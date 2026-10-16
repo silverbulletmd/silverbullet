@@ -55,7 +55,7 @@ The same function can render an inline `${projectView()}` expression. With `widg
 
 `lhs` and `rhs` are resizable sidebars; `bhs` is a resizable bottom panel. They remember open state and size; sidebars also remember the filter phrase across re-focus. A page dock displays a widget above or below the document, has no filter input, and hides itself when empty. A modal is a transient picker: it clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. Page-docked lists honor `presentation.limit`; page-docked trees are uncapped.
 
-Each sidebar or bottom slot holds one view. Opening another temporarily displaces the previous one, which returns when the newcomer leaves (one level deep). Below 600px, sidebars become full-width drawers and dismiss on selection; they have no resize handle and skip boot restoration and `openOnStart`.
+Each sidebar or bottom slot holds one view. Opening another temporarily displaces the previous one, which returns when the newcomer leaves (one level deep). Below 600px, sidebars become full-width drawers and dismiss on selection; they have no resize handle and skip boot restoration and `openOnStart`. The bottom panel likewise takes the full height, leaving a strip of the editor, and has no resize handle.
 
 ### Saved dock state
 Registered views save their dock, open, collapsed, width, and height settings locally under `["navigator", name, field]`. Valid saved values override `view.defaults`, which override the definition. A space can supply defaults:
