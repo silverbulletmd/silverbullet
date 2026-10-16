@@ -38,13 +38,18 @@ import { netApi } from "./stdlib/net.ts";
 import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 import { isPromise } from "./rp.ts";
 import { isSqlNull } from "./sliq_null.ts";
+import { emitRuntimeLog } from "../lib/runtime_log.ts";
 
 const printFunction = new LuaBuiltinFunction({
-  callback: async (_sf, ...args) => {
-    console.log(
-      "[Lua]",
-      ...(await Promise.all(args.map((v) => luaToString(v)))),
-    );
+  callback: async (sf, ...args) => {
+    const text = (await Promise.all(args.map((v) => luaToString(v)))).join(" ");
+    const ref = sf.astCtx?.ref;
+    emitRuntimeLog({
+      source: "lua",
+      level: "log",
+      text,
+      origin: ref ? { ref, from: sf.astCtx?.from } : undefined,
+    });
   },
   description:
     "Prints string representations of its arguments to the runtime log.",
