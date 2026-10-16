@@ -16,8 +16,6 @@ function toggleReadOnlyMode()
   end
 end
 
-print("System mode", system.getMode())
-
 if system.getMode() == "rw" then
   command.define {
     name = "Editor: Toggle Read Only Mode",
