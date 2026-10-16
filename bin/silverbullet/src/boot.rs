@@ -198,7 +198,7 @@ pub fn detect(
     let non_empty = std::fs::read_dir(folder)
         .map(|rd| {
             rd.flatten()
-                .any(|e| !e.file_name().to_string_lossy().starts_with('.'))
+                .any(|e| !ignore_for_empty_folder(&e.file_name().to_string_lossy()))
         })
         .unwrap_or(false);
     if non_empty {
@@ -207,6 +207,23 @@ pub fn detect(
     }
     tracing::info!("boot mode: unconfigured (empty folder, no flags, no legacy env)");
     Ok(BootMode::Setup)
+}
+
+/// OS bookkeeping that is not SilverBullet content. Used only for boot-mode
+/// emptiness (whether to enter setup vs. legacy single-space). Dot-prefixed
+/// names (`.DS_Store`, etc.) are handled separately.
+const EMPTY_FOLDER_IGNORE: &[&str] = &[
+    "lost+found",
+    "Thumbs.db",
+    "desktop.ini",
+    "System Volume Information",
+];
+
+fn ignore_for_empty_folder(name: &str) -> bool {
+    name.starts_with('.')
+        || EMPTY_FOLDER_IGNORE
+            .iter()
+            .any(|ignored| name.eq_ignore_ascii_case(ignored))
 }
 
 #[cfg(test)]
@@ -280,6 +297,16 @@ mod tests {
     fn dotfiles_do_not_make_a_folder_non_empty() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(".DS_Store"), "x").unwrap();
+        assert!(matches!(
+            detect(dir.path(), false, &env(&[])).unwrap(),
+            BootMode::Setup
+        ));
+    }
+
+    #[test]
+    fn lost_found_does_not_make_a_folder_non_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("lost+found")).unwrap();
         assert!(matches!(
             detect(dir.path(), false, &env(&[])).unwrap(),
             BootMode::Setup
