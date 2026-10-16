@@ -1,0 +1,304 @@
+// The navigator's body scrolls rows; a native view scrolls its own log instead
+.sb-nav-root-native .sb-nav-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-nav-native {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sb-workbench {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  font-size: 13px;
+
+  .sb-wb-toolbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+  }
+
+  .sb-wb-filter {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font-family: var(--ui-font);
+    font-size: 14px;
+  }
+
+  .sb-workbench-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    background-color: var(--root-background-color);
+    color: var(--root-color);
+    font-family: var(--editor-font), monospace;
+  }
+
+  .sb-wb-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 3px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    line-height: 1.5;
+    transition: background-color 0.3s;
+
+    pre {
+      margin: 0;
+      font: inherit;
+      white-space: pre-wrap;
+    }
+  }
+
+  .sb-wb-icon {
+    flex: none;
+    width: 1em;
+    color: var(--subtle-color);
+  }
+
+  .sb-wb-content {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .sb-wb-code {
+    flex: 1;
+  }
+
+  .sb-wb-value + .sb-wb-value {
+    margin-left: 1ch;
+  }
+
+  .sb-wb-context,
+  .sb-wb-hint,
+  .sb-wb-muted,
+  .sb-wb-nil,
+  .sb-wb-preview {
+    opacity: 0.7;
+  }
+
+  .sb-wb-context {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
+
+  .sb-wb-excerpt {
+    margin-top: 2px;
+  }
+
+  .sb-wb-stack {
+    summary {
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.5em;
+    }
+  }
+
+  .sb-wb-origin {
+    display: flex;
+    flex: none;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .sb-wb-chip {
+    padding: 0 6px;
+    border-radius: 4px;
+    background-color: var(--ui-surface-section-background-color);
+    color: var(--subtle-color);
+    font-family: var(--ui-font);
+    font-size: 11px;
+  }
+
+  .sb-wb-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--editor-link-color);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // The main editor scopes this to itself
+  .sb-keyword {
+    font-weight: bold;
+  }
+
+  .sb-wb-rendered .sb-nav-content {
+    padding: 2px 0;
+    font-size: 14px;
+
+    > :last-child,
+    > .wrapper > :last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .sb-wb-render-error {
+    text-decoration: underline wavy var(--alert-error-color);
+  }
+
+  // Shown on hover, like a widget's menu
+  .sb-wb-menu {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--subtle-color);
+    cursor: pointer;
+    opacity: 0;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    &:hover {
+      background: var(--ui-surface-hover-background-color);
+      color: var(--root-color);
+    }
+
+    &:focus-visible,
+    &[aria-expanded="true"] {
+      opacity: 1;
+    }
+  }
+
+  .sb-wb-row:hover .sb-wb-menu {
+    opacity: 1;
+  }
+
+  .sb-wb-view-toggle {
+    flex: none;
+    align-self: flex-start;
+    margin-left: auto;
+    font-family: var(--ui-font);
+  }
+
+  .sb-wb-str {
+    color: var(--editor-code-string-color);
+  }
+
+  .sb-wb-link.sb-wb-str {
+    color: var(--editor-link-color);
+  }
+
+  .sb-wb-num {
+    color: var(--editor-code-number-color);
+  }
+
+  .sb-wb-caret,
+  .sb-wb-more {
+    padding: 0 2px;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .sb-wb-more {
+    opacity: 0.7;
+  }
+
+  // A click leaves focus on the caret; only keyboard focus should show it
+  .sb-wb-caret:focus:not(:focus-visible),
+  .sb-wb-more:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .sb-wb-children {
+    padding-left: 1.5em;
+  }
+
+  .sb-wb-key {
+    opacity: 0.8;
+  }
+
+  .sb-wb-flash {
+    background-color: color-mix(in srgb, var(--editor-link-color) 25%, transparent);
+  }
+
+  .sb-workbench-input {
+    display: flex;
+    flex: none;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 10px;
+    border-top: 1px solid var(--ui-surface-border-color);
+    background-color: var(--root-background-color);
+    color: var(--root-color);
+
+    // Sits on the editor's first line: same font, size, line height and top padding as .cm-content
+    .sb-wb-prompt {
+      flex: none;
+      padding-top: 4px;
+      color: var(--subtle-color);
+      font-family: var(--editor-font), monospace;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .sb-wb-repl {
+      flex: 1;
+      min-width: 0;
+      max-height: 40%;
+    }
+
+    .cm-editor {
+      font-size: 13px;
+
+      &.cm-focused {
+        outline: none;
+      }
+    }
+
+    .cm-content {
+      font-family: var(--editor-font), monospace;
+    }
+  }
+
+  .sb-workbench-warning {
+    background-color: var(--alert-warning-background-color);
+    color: var(--alert-warning-color);
+  }
+
+  .sb-workbench-error {
+    background-color: var(--alert-error-background-color);
+    color: var(--alert-error-color);
+  }
+}

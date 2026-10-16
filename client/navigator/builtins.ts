@@ -19,6 +19,7 @@ import {
 } from "./views/revisions.ts";
 import { spaceTreeView } from "./views/space_tree.ts";
 import { tagPicker } from "./views/tags.ts";
+import { WORKBENCH_VIEW, workbenchView } from "./views/workbench.ts";
 import type { BuiltinView } from "./views/types.ts";
 
 async function isReadOnly(): Promise<boolean> {
@@ -38,6 +39,7 @@ const views: Record<string, BuiltinView<any>> = {
   "std.spaceLog": spaceLogView,
   "std.gitConflicts": gitConflictsView,
   "std.gitStatus": gitStatusView,
+  [WORKBENCH_VIEW]: workbenchView,
 };
 
 // Validate built-ins at module load: unlike navigator.define, they have no

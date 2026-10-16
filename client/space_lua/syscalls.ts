@@ -51,7 +51,7 @@ async function inspectValue(
   };
 }
 
-async function inspectLuaPath(
+export async function inspectLuaPath(
   env: LuaEnv,
   path: string[],
 ): Promise<LuaValueInspection | null> {

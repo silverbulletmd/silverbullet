@@ -19,6 +19,7 @@ import { BoxProxy } from "./lib/box_proxy.ts";
 import { exportKey, importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import "./debug.ts";
 import { recordMark } from "./lib/perf.ts";
+import { consoleLog } from "./workbench/console_log.ts";
 
 // Initialize the runtime-bridge namespace. `??=` preserves any value an
 // earlier init script may have already installed (desktop wrapper does this)
@@ -69,6 +70,11 @@ async function findEncryptionKey(
 }
 
 safeRun(async () => {
+  consoleLog.install({
+    console,
+    addEventListener: globalThis.addEventListener.bind(globalThis),
+    serviceWorker: navigator.serviceWorker,
+  });
   if (!(await waitForLogout())) return;
   const clientReady = Promise.withResolvers<Client>();
   navigator.serviceWorker?.addEventListener("message", (event) => {

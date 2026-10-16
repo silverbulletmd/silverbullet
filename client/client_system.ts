@@ -83,6 +83,7 @@ import {
   pageVarsSyscalls,
 } from "./plugos/syscalls/page_vars.ts";
 import { recordMark } from "./lib/perf.ts";
+import { registerWorkbenchCommands } from "./workbench/commands.tsx";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -200,6 +201,7 @@ export class ClientSystem {
       !!this.client.bootConfig.disableServiceWorker,
     );
     registerEditorCommands(client, this.commandHook);
+    registerWorkbenchCommands(client, this.commandHook);
     const gitAvailable =
       !!this.client.bootConfig.revisions &&
       this.client.bootConfig.revisions !== "disabled";

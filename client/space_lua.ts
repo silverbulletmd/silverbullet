@@ -37,6 +37,7 @@ import { recordMeasure } from "./lib/perf.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv;
+  scriptSources = new Map<string, string>();
 
   constructor(
     private system: System<any>,
@@ -82,6 +83,7 @@ export class SpaceLuaEnvironment {
       } as LuaCollectionQuery,
     );
     reconcileQuarantine(allScripts.map((script) => script.ref));
+    this.scriptSources.clear();
     try {
       this.env = buildLuaEnv(this.system);
       const tl = new LuaEnv();
@@ -93,6 +95,7 @@ export class SpaceLuaEnvironment {
           continue;
         }
         const scriptStart = performance.now();
+        this.scriptSources.set(script.ref, script.script);
         try {
           const ast = parseBlock(script.script, { ref: script.ref });
           const scriptEnv = new LuaEnv(this.env);
@@ -121,6 +124,7 @@ export class SpaceLuaEnvironment {
                 `Error evaluating script: ${e.message} at [[${encodeRef(
                   origin,
                 )}]]`,
+                e,
               );
               continue;
             }

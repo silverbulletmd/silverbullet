@@ -9,6 +9,7 @@ import type {
   DocumentMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import type { LogEntry as WorkerLogEntry } from "../lib/logger.ts";
 import type { SyncStatus } from "../spaces/sync.ts";
 import type { Command } from "./command.ts";
 
@@ -222,6 +223,11 @@ export type ServiceWorkerTargetMessage =
  * Events received from the service worker -> client
  */
 export type ServiceWorkerSourceMessage =
+  | {
+      // A line the service worker logged, for the Workbench console
+      type: "log";
+      entry: WorkerLogEntry;
+    }
   | {
       type: "sync-status";
       status: Omit<SyncStatus, "snapshot">;

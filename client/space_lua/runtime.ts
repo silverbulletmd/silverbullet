@@ -299,7 +299,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   private readonly numericTypes = new Map<string, NumericType>();
 
   constructor(
-    readonly parent?: LuaEnv,
+    public parent?: LuaEnv,
     opts?: LuaEnvOptions,
   ) {
     this.boundary = !!opts?.boundary;
