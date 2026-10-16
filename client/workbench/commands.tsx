@@ -1,7 +1,10 @@
 import type { Client } from "../client.ts";
-import { toggleView } from "../navigator/navigator.ts";
+import { showView, toggleView } from "../navigator/navigator.ts";
 import { registerNativeView } from "../navigator/ui/native_views.ts";
-import { WORKBENCH_VIEW } from "../navigator/views/workbench.ts";
+import {
+  WORKBENCH_TABS,
+  WORKBENCH_VIEW,
+} from "../navigator/views/workbench.ts";
 import type { CommandHook } from "../plugos/hooks/command.ts";
 import { consoleLog } from "./console_log.ts";
 import { ConsoleSession } from "./console_session.ts";
@@ -33,4 +36,15 @@ export function registerWorkbenchCommands(
       return false;
     },
   });
+  // One per tab: opens the Workbench on it, or switches an open one to it,
+  // never closing it (that is what Toggle is for)
+  for (const tab of WORKBENCH_TABS) {
+    hook.registerCommand({
+      name: `Workbench: ${tab}`,
+      run: async () => {
+        await showView(WORKBENCH_VIEW, { segment: tab });
+        return false;
+      },
+    });
+  }
 }

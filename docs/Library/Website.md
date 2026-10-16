@@ -165,6 +165,7 @@ docsNav.sections = {
     { ref = "Space Lua/Quirks", icon = "alert-triangle" },
     { ref = "Space Lua/Thread Locals", icon = "box" },
     { ref = "Space Lua/JavaScript Interop", icon = "repeat" },
+    { ref = "Workbench", icon = "activity" },
     { ref = "Widget", icon = "square" },
     { ref = "Space Lua/DOM", icon = "code" },
     { ref = "View", icon = "sidebar" },

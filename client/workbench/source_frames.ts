@@ -1,4 +1,8 @@
-import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  getNameFromPath,
+  parseToRef,
+  type Ref,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import type { LuaRuntimeError, LuaStackFrame } from "../space_lua/runtime.ts";
 import { resolveASTReference } from "../space_lua.ts";
 import { CONSOLE_REF_PREFIX } from "./console_session.ts";
@@ -30,6 +34,16 @@ export function splitHint(message: string): { message: string; hint?: string } {
       };
 }
 
+/** A space script's ref (`Page@offset`) as its page name and offset. */
+export function scriptRefParts(ref: string): { page: string; pos?: number } {
+  const parsed = parseToRef(ref);
+  if (!parsed) return { page: ref };
+  const page = getNameFromPath(parsed.path);
+  return parsed.details?.type === "position"
+    ? { page, pos: parsed.details.pos }
+    : { page };
+}
+
 /** Where `ctx` points: a label with its line, the line's excerpt, and what clicking it opens. */
 export function frameAt(
   ctx: { ref: string; from: number; to?: number },
@@ -39,7 +53,7 @@ export function frameAt(
   const code = sourceFor(ref);
   const pos = code === undefined ? undefined : lineColumn(code, from);
   const isConsole = ref.startsWith(CONSOLE_REF_PREFIX);
-  const name = isConsole ? ref : ref.split("@")[0];
+  const name = isConsole ? ref : scriptRefParts(ref).page;
   const pageRef = isConsole ? null : resolveASTReference(ctx);
   return {
     label: pos ? `${name}:${pos.line}` : name,

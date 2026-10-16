@@ -4,29 +4,29 @@ import {
   widgetActionIcon,
 } from "../../codemirror/widgets/widget_menu.ts";
 import { openPopupMenu } from "../../components/popup_menu.ts";
-import type { LogEntry } from "../console_log.ts";
-import { type ActionDeps, entryActions } from "../entry_actions.ts";
+import type { Action } from "../action.ts";
 
-/** A log entry's ⋯ menu: the same button and popup as a `${…}` widget's. */
-export function EntryMenu({
-  entry,
+/** A row's ⋯ menu: the same button and popup as a `${…}` widget's. */
+export function ActionMenu<Deps>({
+  actions,
   deps,
 }: {
-  entry: LogEntry;
-  deps: ActionDeps;
+  actions: Action<Deps>[];
+  deps: Deps;
 }) {
   const close = useRef<() => void>();
   useEffect(() => () => close.current?.(), []);
-  const actions = entryActions(entry);
   if (!actions.length) return null;
   return (
     <button
       type="button"
       className="sb-wb-menu"
-      title="Entry actions"
-      aria-label="Entry actions"
+      title="Actions"
+      aria-label="Actions"
       aria-haspopup="menu"
       onClick={(e) => {
+        // A row's own click (e.g. opening its source) must not fire too
+        e.stopPropagation();
         const button = e.currentTarget;
         if (button.getAttribute("aria-expanded") === "true") {
           close.current?.();
@@ -43,9 +43,7 @@ export function EntryMenu({
           (id) => {
             actions[Number(id)]
               ?.run(deps)
-              .catch((err) =>
-                console.error("workbench: entry action failed", err),
-              );
+              .catch((err) => console.error("workbench: action failed", err));
           },
           "sb-widget-menu",
         );

@@ -341,6 +341,12 @@ export class ClientSystem {
     return this.loadLuaScriptsInFlight;
   }
 
+  /** Lifts quarantine from these scripts and loads them again. */
+  async reEnableScripts(refs: string[]): Promise<void> {
+    for (const ref of refs) unquarantine(ref);
+    await this.loadLuaScripts();
+  }
+
   private async loadLuaScriptsImpl() {
     if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
@@ -375,12 +381,7 @@ export class ClientSystem {
             actions: [
               {
                 name: "Re-enable",
-                run: () => {
-                  for (const ref of disabled) {
-                    unquarantine(ref);
-                  }
-                  void this.loadLuaScripts();
-                },
+                run: () => void this.reEnableScripts(disabled),
               },
             ],
           },

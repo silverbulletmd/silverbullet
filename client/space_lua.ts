@@ -35,9 +35,44 @@ import {
 } from "./space_lua/budget_ui.ts";
 import { recordMeasure } from "./lib/perf.ts";
 
+/** How running a space script went. */
+type ScriptOutcome =
+  | { status: "loaded" }
+  | { status: "failed"; error: unknown }
+  /** Stopped by the budget during this load, and so quarantined from the next. */
+  | { status: "stopped" };
+
+/**
+ * A space script in the last load. A quarantined script was skipped, so it
+ * has no run time; the others record how long their run took.
+ */
+export type ScriptRecord = { ref: string; source: string; priority: number } & (
+  | (ScriptOutcome & { ms: number })
+  | { status: "quarantined" }
+);
+
+export type ScriptStatus = ScriptRecord["status"];
+
+/** A script that ran in the last load, so it has a run time. */
+export function hasRun(
+  r: ScriptRecord,
+): r is Extract<ScriptRecord, { ms: number }> {
+  return r.status !== "quarantined";
+}
+
+/** One load of the space's scripts, in load order. */
+export type ScriptLoad = {
+  scripts: ScriptRecord[];
+  loadedAt: number;
+  ms: number;
+};
+
 export class SpaceLuaEnvironment {
   env: LuaEnv;
-  scriptSources = new Map<string, string>();
+  /** The last completed load, replaced whole once a reload finishes. */
+  lastLoad: ScriptLoad | undefined;
+  private sources = new Map<string, string>();
+  private loadListeners = new Set<(load: ScriptLoad) => void>();
 
   constructor(
     private system: System<any>,
@@ -57,6 +92,65 @@ export class SpaceLuaEnvironment {
       budget,
       () => quarantine(script.ref, script.script),
     );
+  }
+
+  sourceFor(ref: string): string | undefined {
+    return this.sources.get(ref);
+  }
+
+  onLoad(fn: (load: ScriptLoad) => void): () => void {
+    this.loadListeners.add(fn);
+    return () => this.loadListeners.delete(fn);
+  }
+
+  private publish(load: ScriptLoad) {
+    this.lastLoad = load;
+    this.sources = new Map(load.scripts.map((s) => [s.ref, s.source]));
+    for (const fn of this.loadListeners) fn(load);
+  }
+
+  /** Runs one script in the space env, logging a failure the way script loading always has. */
+  private async runScript(
+    script: SpaceLuaObject,
+    tl: LuaEnv,
+  ): Promise<ScriptOutcome> {
+    try {
+      const ast = parseBlock(script.script, { ref: script.ref });
+      const scriptEnv = new LuaEnv(this.env);
+      const budget = makeLuaBudget({
+        busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
+        onLimit: (b) => this.offerStop(script, b),
+      });
+      const sf = new LuaStackFrame(tl, ast.ctx, undefined, undefined, {
+        closeStack: undefined,
+        budget,
+      });
+      try {
+        await evalStatement(ast, scriptEnv, sf);
+      } finally {
+        budget.finished = true;
+      }
+      return { status: "loaded" };
+    } catch (e: any) {
+      if (e instanceof LuaBudgetStopped) {
+        console.info(`Script ${script.ref} stopped by the user`);
+        return { status: "stopped" };
+      }
+      const origin =
+        e instanceof LuaRuntimeError ? resolveASTReference(e.sf.astCtx!) : null;
+      if (origin) {
+        console.error(
+          `Error evaluating script: ${e.message} at [[${encodeRef(origin)}]]`,
+          e,
+        );
+      } else {
+        console.error(
+          `Error evaluating script: ${e.message} for script: ${script.script}`,
+          e,
+        );
+      }
+      return { status: "failed", error: e };
+    }
   }
 
   /**
@@ -83,72 +177,39 @@ export class SpaceLuaEnvironment {
       } as LuaCollectionQuery,
     );
     reconcileQuarantine(allScripts.map((script) => script.ref));
-    this.scriptSources.clear();
+    const records: ScriptRecord[] = [];
+    const totalStart = performance.now();
     try {
       this.env = buildLuaEnv(this.system);
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", this.env);
-      const totalStart = performance.now();
-      const scriptTimings: [string, number][] = [];
       for (const script of allScripts) {
+        const base = {
+          ref: script.ref,
+          source: script.script,
+          priority: script.priority ?? 0,
+        };
         if (isQuarantined(script.ref, script.script)) {
+          records.push({ ...base, status: "quarantined" });
           continue;
         }
         const scriptStart = performance.now();
-        this.scriptSources.set(script.ref, script.script);
-        try {
-          const ast = parseBlock(script.script, { ref: script.ref });
-          const scriptEnv = new LuaEnv(this.env);
-          const budget = makeLuaBudget({
-            busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
-            onLimit: (b) => this.offerStop(script, b),
-          });
-          const sf = new LuaStackFrame(tl, ast.ctx, undefined, undefined, {
-            closeStack: undefined,
-            budget,
-          });
-          try {
-            await evalStatement(ast, scriptEnv, sf);
-          } finally {
-            budget.finished = true;
-          }
-        } catch (e: any) {
-          if (e instanceof LuaBudgetStopped) {
-            console.info(`Script ${script.ref} stopped by the user`);
-            continue;
-          }
-          if (e instanceof LuaRuntimeError) {
-            const origin = resolveASTReference(e.sf.astCtx!);
-            if (origin) {
-              console.error(
-                `Error evaluating script: ${e.message} at [[${encodeRef(
-                  origin,
-                )}]]`,
-                e,
-              );
-              continue;
-            }
-          }
-          console.error(
-            `Error evaluating script: ${e.message} for script: ${script.script}`,
-            e,
-          );
-        } finally {
-          const duration = performance.now() - scriptStart;
-          scriptTimings.push([script.ref, duration]);
-          recordMeasure(
-            `sb:lua-script:${script.ref}`,
-            scriptStart,
-            scriptStart + duration,
-          );
-        }
+        const outcome = await this.runScript(script, tl);
+        const ms = performance.now() - scriptStart;
+        recordMeasure(
+          `sb:lua-script:${script.ref}`,
+          scriptStart,
+          scriptStart + ms,
+        );
+        records.push({ ...base, ...outcome, ms });
       }
 
-      const slowest = scriptTimings
-        .sort((a, b) => b[1] - a[1])
+      const slowest = records
+        .filter(hasRun)
+        .filter((r) => r.ms >= 2)
+        .sort((a, b) => b.ms - a.ms)
         .slice(0, 3)
-        .filter(([, ms]) => ms >= 2)
-        .map(([ref, ms]) => `${ref} ${ms.toFixed(1)}ms`)
+        .map((r) => `${r.ref} ${r.ms.toFixed(1)}ms`)
         .join(", ");
       console.log(
         `[Lua] Loaded ${allScripts.length} scripts in ${Math.round(
@@ -158,6 +219,11 @@ export class SpaceLuaEnvironment {
     } catch (e: any) {
       console.error("Error reloading Lua scripts:", e.message);
     }
+    this.publish({
+      scripts: records,
+      loadedAt: Date.now(),
+      ms: performance.now() - totalStart,
+    });
   }
 }
 

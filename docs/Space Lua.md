@@ -74,7 +74,7 @@ When iterating on a `space-lua` block, follow this loop:
 
 1. **Edit** the script in the editor.
 2. **Reload**: run `System: Reload` (Ctrl-Alt-r) to re-execute all `space-lua` definitions without a full page reload (you can reload the browser also if you prefer). Run `Space: Reindex` (via the command palette) if you also need the [[Object Index]] rebuilt with fresh data (e.g. if you use [[API/tag#tag.define(spec)]]).
-3. **Check the brower’s logs**: a reload completing without a visible error **does not mean your script is healthy**. Lua syntax errors, load-time failures, and runtime exceptions during indexing or widget rendering all surface in the browser console logs, not always as a user-visible reload failure.
+3. **Check the logs**: a reload completing without a visible error **does not mean your script is healthy**. Lua syntax errors, load-time failures, and runtime exceptions during indexing or widget rendering all surface in the logs, not always as a user-visible reload failure. The [[Workbench]] shows them in its Console tab, and its Scripts tab shows which scripts failed to load and why.
 4. **Verify** the behaviour in the editor.
 
 > **note** Note

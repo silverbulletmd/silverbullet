@@ -16,6 +16,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { useEffect, useRef } from "preact/hooks";
 import { isMacLike } from "../../../plug-api/lib/shortcut.ts";
 import type { Client } from "../../client.ts";
+import type { FocusTarget } from "../../navigator/ui/native_views.ts";
 import { luaLanguage } from "../../space_lua/parse.ts";
 import { editorHighlightStyle } from "../../style.ts";
 import { type ConsoleSession, isIncompleteInput } from "../console_session.ts";
@@ -31,7 +32,7 @@ export function ReplInput({
   client: Client;
   session: ConsoleSession;
   /** Receives the editor's content element, which takes focus when the panel does. */
-  focusTarget: (el: HTMLElement | null) => void;
+  focusTarget: FocusTarget;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -123,13 +124,17 @@ export function ReplInput({
       ],
     });
     viewRef.current = view;
-    focusTarget(view.contentDOM);
     return () => {
-      focusTarget(null);
       viewRef.current = null;
       view.destroy();
     };
-  }, [client, session, focusTarget]);
+  }, [client, session]);
+
+  // Its own effect: switching tabs swaps `focusTarget` without recreating the editor
+  useEffect(() => {
+    const el = viewRef.current?.contentDOM;
+    return el ? focusTarget(el) : undefined;
+  }, [focusTarget]);
 
   useEffect(() => {
     viewRef.current?.dispatch({

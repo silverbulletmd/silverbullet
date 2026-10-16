@@ -9,7 +9,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * `sb search` and `sb related` search the space from the command line, through the server's [[HTTP API#Search|search API]] and without a headless browser; `sb search --status` shows the index state and whether semantic search is available. See [[CLI]].
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results and templates.
 * New context menus for widgets and views.
-* New **Workbench** panel (`Workbench: Toggle`, Cmd/Ctrl-Alt-j) with a Space Lua console: a REPL with completion and persistent locals, a unified log of Lua `print`, JS console output, plug and service worker logs and errors since boot, and clickable stack frames that jump to the source.
+* New [[Workbench]] panel (`Workbench: Toggle`, Cmd/Ctrl-Alt-j, or `Workbench: Console` and `Workbench: Scripts` to open it on that tab) with a Space Lua console: a REPL, console output, and clickable stack frames that jump to the source; a Scripts tab lists every `space-lua` block in load order with its priority, load time and status. More coming.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
 * Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.

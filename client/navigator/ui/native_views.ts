@@ -1,13 +1,18 @@
 import type { FunctionComponent } from "preact";
 import type { Client } from "../../client.ts";
 
+/**
+ * Registers the element a native body wants focused when its panel takes
+ * focus. Returns the unregister, which leaves a target registered since in place.
+ */
+export type FocusTarget = (el: HTMLElement) => () => void;
+
 export type NativeViewProps = {
   client: Client;
   slot: string;
   /** The active segment, for views that use segments as tabs. */
   segmentIndex: number;
-  /** The body hands the element it wants focused when its panel takes focus. */
-  focusTarget: (el: HTMLElement | null) => void;
+  focusTarget: FocusTarget;
 };
 
 /**
@@ -34,17 +39,16 @@ export function nativeBody(
 const targets = new Map<string, HTMLElement>();
 const pending = new Map<string, Element | null>();
 
-export function setFocusTarget(slot: string, el: HTMLElement | null): void {
-  if (!el) {
-    targets.delete(slot);
-    return;
-  }
+export function setFocusTarget(slot: string, el: HTMLElement): () => void {
   targets.set(slot, el);
   // Take a pending request only if nothing else claimed focus since it was made
   if (pending.has(slot) && document.activeElement === pending.get(slot)) {
     el.focus();
   }
   pending.delete(slot);
+  return () => {
+    if (targets.get(slot) === el) targets.delete(slot);
+  };
 }
 
 /** Focuses the slot's native body, or does so once it mounts. */

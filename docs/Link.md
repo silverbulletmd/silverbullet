@@ -7,7 +7,6 @@ references:
 - plug-api/lib/ref.ts
 - plug-api/lib/resolve_path.ts
 ---
-
 In SilverBullet, you can create links to pages or documents inside your space as well as to external resources, using different link formats.
 
 # Internal links

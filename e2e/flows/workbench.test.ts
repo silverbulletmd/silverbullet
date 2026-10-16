@@ -9,7 +9,8 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
 }) => {
   await gotoSilverBulletPage(page, sbServer, "index");
   await runCommandViaPalette(page, "Workbench: Toggle");
-  const workbench = page.locator(".sb-workbench");
+  // Every tab is an `.sb-workbench`; the console is the first
+  const workbench = page.locator(".sb-workbench").first();
   await expect(workbench).toBeVisible();
   const log = workbench.locator(".sb-workbench-body");
 
@@ -28,6 +29,18 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
 
   await run("nil_thing.x");
   await expect(log).toContainText("console#3");
+
+  // "Workbench: Scripts" switches the open panel to its Scripts tab and
+  // focuses it; switching back keeps the console
+  await runCommandViaPalette(page, "Workbench: Scripts");
+  const scripts = page.getByRole("table", { name: "Scripts" });
+  await expect(scripts).toContainText("Library/Std/Config");
+  await expect(
+    page.getByRole("searchbox", { name: "Filter scripts" }),
+  ).toBeFocused();
+  await page.getByRole("radio", { name: "Console" }).click();
+  await expect(log).toContainText("console#3");
+  await workbench.locator(".cm-content").click();
 
   // App shortcuts still work with focus in the REPL, and closing returns focus to the page
   await page.keyboard.press("ControlOrMeta+Alt+j");

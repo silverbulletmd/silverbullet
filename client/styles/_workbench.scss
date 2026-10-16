@@ -12,6 +12,23 @@
   min-height: 0;
 }
 
+// Holds the tabs without affecting their layout
+.sb-wb-tabs {
+  display: contents;
+}
+
+// One per tab; every tab stays mounted, only the active one shows
+.sb-wb-tab {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .sb-workbench {
   display: flex;
   flex: 1 1 auto;
@@ -19,18 +36,26 @@
   min-height: 0;
   font-size: 13px;
 
+  // A narrow panel wraps the toolbar's controls onto more lines; each
+  // control only wraps its own items when it's wider than a whole line
   .sb-wb-toolbar {
     display: flex;
     flex: none;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px 8px;
     padding: 6px 10px;
     border-bottom: 1px solid var(--ui-surface-border-color);
+
+    .sb-segments-wrap {
+      flex: 0 1 auto;
+      max-width: 100%;
+    }
   }
 
   .sb-wb-filter {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 1 1 8rem;
+    min-width: 8rem;
     padding: 0;
     border: 0;
     outline: none;
@@ -198,7 +223,8 @@
     }
   }
 
-  .sb-wb-row:hover .sb-wb-menu {
+  .sb-wb-row:hover .sb-wb-menu,
+  .sb-wb-script:hover .sb-wb-menu {
     opacity: 1;
   }
 
@@ -290,6 +316,92 @@
     .cm-content {
       font-family: var(--editor-font), monospace;
     }
+  }
+
+  // Scripts tab: one row per space-lua block, in load order
+  .sb-wb-script {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) 64px 64px 20px;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    line-height: 1.5;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--ui-surface-hover-background-color);
+    }
+  }
+
+  .sb-wb-script-head {
+    color: var(--subtle-color);
+    font-family: var(--ui-font);
+    font-size: 11px;
+    cursor: default;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
+
+  .sb-wb-script-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sb-wb-num {
+    color: var(--subtle-color);
+    text-align: right;
+  }
+
+  .sb-wb-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--success-color);
+  }
+
+  .sb-wb-script-failed {
+    background-color: var(--alert-error-background-color);
+    color: var(--alert-error-color);
+
+    .sb-wb-status {
+      background-color: var(--alert-error-color);
+    }
+  }
+
+  .sb-wb-script-stopped,
+  .sb-wb-script-quarantined {
+    color: var(--alert-warning-color);
+
+    .sb-wb-status {
+      background-color: var(--alert-warning-color);
+    }
+  }
+
+  .sb-wb-script-error {
+    padding: 4px 10px 8px 30px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    background-color: var(--alert-error-background-color);
+    color: var(--alert-error-color);
+  }
+
+  .sb-wb-empty {
+    padding: 12px 10px;
+    color: var(--subtle-color);
+    font-family: var(--ui-font);
+  }
+
+  .sb-wb-footer {
+    display: flex;
+    flex: none;
+    gap: 12px;
+    padding: 4px 10px;
+    border-top: 1px solid var(--ui-surface-border-color);
+    color: var(--subtle-color);
+    font-size: 12px;
   }
 
   .sb-workbench-warning {

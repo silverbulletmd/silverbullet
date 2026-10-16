@@ -4,7 +4,7 @@ import {
   LuaRuntimeError,
   LuaStackFrame,
 } from "../space_lua/runtime.ts";
-import { luaErrorFrames, splitHint } from "./source_frames.ts";
+import { luaErrorFrames, scriptRefParts, splitHint } from "./source_frames.ts";
 
 function errAt(
   ref: string | undefined,
@@ -69,4 +69,12 @@ test("splitHint separates the parser hint", () => {
     },
   );
   expect(splitHint("plain")).toEqual({ message: "plain" });
+});
+
+test("script refs split into page name and offset", () => {
+  expect(scriptRefParts("Library/Std/Config@741")).toEqual({
+    page: "Library/Std/Config",
+    pos: 741,
+  });
+  expect(scriptRefParts("Journal")).toEqual({ page: "Journal" });
 });

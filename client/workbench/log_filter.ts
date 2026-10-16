@@ -63,8 +63,6 @@ export function filterEntries(
   const needle = text.trim().toLowerCase();
   if (!needle && source === "all") return entries;
   return entries.filter(
-    (e) =>
-      matchesSource(e, source) &&
-      (!needle || matchesText(e, needle)),
+    (e) => matchesSource(e, source) && (!needle || matchesText(e, needle)),
   );
 }

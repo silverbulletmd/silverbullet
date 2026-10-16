@@ -139,7 +139,7 @@ export function NavRoot({
   const hasContent = view?.meta.hasContent === true;
   const NativeBody = view ? nativeBody(view.name) : undefined;
   const focusTarget = useCallback(
-    (el: HTMLElement | null) => setFocusTarget(slot, el),
+    (el: HTMLElement) => setFocusTarget(slot, el),
     [slot],
   );
   const contentValue = hasContent ? view?.contentValue : undefined;

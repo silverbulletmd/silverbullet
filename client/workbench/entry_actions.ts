@@ -1,8 +1,9 @@
+import type { Action } from "./action.ts";
 import type { LogEntry } from "./console_log.ts";
 import { isExpressionInput } from "./console_session.ts";
 import { entryText } from "./log_filter.ts";
 
-/** What entry actions act through, so they stay testable without a client. */
+/** What a log entry's actions act through. */
 export type ActionDeps = {
   copyText: (text: string) => Promise<void>;
   /** Copies a value the way a `${…}` widget's Copy as Markdown does. */
@@ -10,11 +11,7 @@ export type ActionDeps = {
   rerun: (code: string) => Promise<void>;
 };
 
-export type EntryAction = {
-  label: string;
-  icon: "copy" | "reload";
-  run: (deps: ActionDeps) => Promise<void>;
-};
+export type EntryAction = Action<ActionDeps>;
 
 const copy = (label: string, text: () => string): EntryAction => ({
   label,

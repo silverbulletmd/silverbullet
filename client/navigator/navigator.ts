@@ -268,6 +268,20 @@ export async function toggleView(
   return "opened";
 }
 
+/**
+ * Opens `name` like `open`, but never closes it: `open` hides a view that
+ * already has focus, while this only applies `opts` (e.g. a segment) to it.
+ */
+export async function showView(
+  name: string,
+  opts?: OpenOptions,
+): Promise<void> {
+  const dock = await resolvedDock(name);
+  const focused =
+    !!dock && lifecycle.current(dock)?.view === name && focusedSlot() === dock;
+  await open(name, focused ? { ...opts, focus: false } : opts);
+}
+
 export async function closeView(name: string, slot: string): Promise<void> {
   if (isPageDock(slot)) {
     await dockState.setOpen(name, false);

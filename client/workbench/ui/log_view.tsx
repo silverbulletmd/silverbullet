@@ -5,18 +5,21 @@ import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import type { Client } from "../../client.ts";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
 import type { LogEntry, LogSource } from "../console_log.ts";
-import type { ActionDeps } from "../entry_actions.ts";
 import { highlightLua } from "../highlight_lua.ts";
 import {
-  type FrameTarget,
   frameAt,
-  luaErrorFrames,
   type SourceFrame,
   type SourceLookup,
-  splitHint,
 } from "../source_frames.ts";
 import { container, errorMessage } from "../value_preview.ts";
-import { EntryMenu } from "./entry_menu.tsx";
+import { type ActionDeps, entryActions } from "../entry_actions.ts";
+import { ActionMenu } from "./action_menu.tsx";
+import {
+  errorFrames,
+  FrameLabel,
+  LuaErrorDetails,
+  type OpenTarget,
+} from "./lua_error.tsx";
 import { RenderedValue } from "./rendered_value.tsx";
 import { ValueTree } from "./value_tree.tsx";
 
@@ -25,7 +28,7 @@ export type RowContext = {
   client: Client;
   sourceFor: SourceLookup;
   actions: ActionDeps;
-  onConsoleTarget: (ref: string) => void;
+  onOpen: OpenTarget;
 };
 
 type Message = Extract<LogEntry, { kind: "message" }>;
@@ -62,7 +65,7 @@ const LogRow = memo(function LogRow({
       <RowBoundary>
         <Row entry={entry} ctx={ctx} />
       </RowBoundary>
-      <EntryMenu entry={entry} deps={ctx.actions} />
+      <ActionMenu actions={entryActions(entry)} deps={ctx.actions} />
     </div>
   );
 });
@@ -222,9 +225,6 @@ function JsError({ err }: { err: Error }) {
   );
 }
 
-// Frames are resolved against the sources as they were when the row first rendered
-const framesCache = new WeakMap<LogEntry, SourceFrame[]>();
-
 function LuaErrorRow({
   entry,
   err,
@@ -236,39 +236,15 @@ function LuaErrorRow({
   context: string;
   ctx: RowContext;
 }) {
-  let frames = framesCache.get(entry);
-  if (!frames) {
-    frames = luaErrorFrames(err, ctx.sourceFor);
-    framesCache.set(entry, frames);
-  }
-  const { message, hint } = splitHint(err.message);
-  const first = frames[0];
+  const frames = errorFrames(err, ctx.sourceFor);
   return (
     <>
       <span className="sb-wb-icon">✕</span>
       <div className="sb-wb-content">
         {context ? <div className="sb-wb-context">{context}</div> : null}
-        <div className="sb-wb-message">{message}</div>
-        {hint ? <div className="sb-wb-hint">Hint: {hint}</div> : null}
-        {first?.excerpt ? (
-          <pre className="sb-wb-excerpt">
-            {`${first.excerpt.lineText}\n${" ".repeat(first.excerpt.column)}${"^".repeat(first.excerpt.length)}`}
-          </pre>
-        ) : null}
-        {frames.length > 0 ? (
-          <details className="sb-wb-stack">
-            <summary>Stack ({frames.length} frames)</summary>
-            <ul>
-              {frames.map((f, i) => (
-                <li key={i}>
-                  <FrameLabel frame={f} ctx={ctx} />
-                </li>
-              ))}
-            </ul>
-          </details>
-        ) : null}
+        <LuaErrorDetails err={err} frames={frames} onOpen={ctx.onOpen} />
       </div>
-      <Origin frame={first} entry={entry} ctx={ctx} />
+      <Origin frame={frames[0]} entry={entry} ctx={ctx} />
     </>
   );
 }
@@ -284,7 +260,7 @@ function Origin({
 }) {
   return (
     <span className="sb-wb-origin">
-      {frame ? <FrameLabel frame={frame} ctx={ctx} /> : null}
+      {frame ? <FrameLabel frame={frame} onOpen={ctx.onOpen} /> : null}
       <span className="sb-wb-chip" title={SOURCE_TITLES[entry.source]}>
         {entry.scope ?? entry.source}
       </span>
@@ -298,25 +274,3 @@ const SOURCE_TITLES: Record<LogSource, string> = {
   plug: "Plug worker",
   sw: "Service worker",
 };
-
-function FrameLabel({ frame, ctx }: { frame: SourceFrame; ctx: RowContext }) {
-  if (!frame.target) return <span>{frame.label}</span>;
-  const target = frame.target;
-  return (
-    <button
-      type="button"
-      className="sb-wb-link"
-      onClick={() => openTarget(target, ctx)}
-    >
-      {frame.label}
-    </button>
-  );
-}
-
-function openTarget(target: FrameTarget, ctx: RowContext) {
-  if (target.kind === "console") {
-    ctx.onConsoleTarget(target.ref);
-    return;
-  }
-  void ctx.client.navigate(target.ref).then(() => ctx.client.focus());
-}
