@@ -1,27 +1,14 @@
-import type { Completion, CompletionResult } from "@codemirror/autocomplete";
+import type { CompletionResult } from "@codemirror/autocomplete";
 import { config, editor, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   CompleteEvent,
   EnrichedClickEvent,
 } from "@silverbulletmd/silverbullet/type/client";
-import type {
-  LuaFunctionInfo,
-  LuaPropertyInspection,
-} from "@silverbulletmd/silverbullet/type/index";
-import { renderApiDocumentationMarkdown } from "../../client/space_lua/api_documentation.ts";
-
-const LUA_KEYWORDS = new Set([
-  "do",
-  "if",
-  "then",
-  "for",
-  "else",
-  "end",
-  "function",
-  "local",
-  "return",
-  "in",
-]);
+import type { LuaPropertyInspection } from "@silverbulletmd/silverbullet/type/index";
+import {
+  luaAccessAt,
+  luaCompletionOptions,
+} from "../../client/space_lua/completion_options.ts";
 
 const LINK_NODES = new Set([
   "WikiLink",
@@ -32,11 +19,6 @@ const LINK_NODES = new Set([
   "Hashtag",
   "FootnoteRef",
 ]);
-
-type DocumentedCompletion = Completion & {
-  documentation?: string;
-  snippet?: string;
-};
 
 const LUA_FENCES = ["FencedCode:space-lua", "FencedCode:page-lua"];
 
@@ -185,44 +167,6 @@ function inspectLocalPath(
   return localProperties(value);
 }
 
-function completionLabel(name: string, info?: LuaFunctionInfo): string {
-  if (info?.parameters) {
-    const parameters = info.parameters.map(
-      (parameter) => `${parameter.name ?? "?"}${parameter.optional ? "?" : ""}`,
-    );
-    return `${name}(${parameters.join(", ")})`;
-  }
-  const signature = info?.signatures?.[0];
-  const parameters = signature?.match(/\(([^)]*)\)/)?.[1];
-  return `${name}(${parameters ?? ""})`;
-}
-
-function completionDetail(
-  info: LuaFunctionInfo | undefined,
-  fallback: string,
-): string {
-  return (
-    info?.description
-      ?.split("\n")
-      .map((line) => line.trim())
-      .find(Boolean) ?? fallback
-  );
-}
-
-function functionDocumentation(
-  info: LuaFunctionInfo,
-  fallbackName: string,
-): string {
-  const documentedInfo = {
-    ...info,
-    name: info.name ?? fallbackName,
-  };
-  const separator = documentedInfo.name.lastIndexOf(".");
-  const namespace =
-    separator > 0 ? documentedInfo.name.slice(0, separator) : undefined;
-  return renderApiDocumentationMarkdown([documentedInfo], namespace);
-}
-
 export async function luaComplete(
   event: CompleteEvent,
 ): Promise<CompletionResult | null> {
@@ -235,13 +179,9 @@ export async function luaComplete(
     return null;
   }
 
-  const access = /((?:[a-zA-Z_0-9]+\.)*[a-zA-Z_0-9]*)$/.exec(
-    event.linePrefix,
-  )?.[1];
+  const access = luaAccessAt(event.linePrefix);
   if (!access) return null;
-  const parts = access.split(".");
-  const prefix = parts.pop() ?? "";
-  if (LUA_KEYWORDS.has(prefix)) return null;
+  const { parts, prefix } = access;
 
   const locals = await schemaLocals(luaCode);
   const localCandidates = inspectLocalPath(locals, parts);
@@ -265,28 +205,7 @@ export async function luaComplete(
     }
   }
 
-  const options: DocumentedCompletion[] = [];
-  for (const candidate of candidates) {
-    if (!candidate.key.startsWith(prefix)) continue;
-    if (candidate.type === "function") {
-      const fullName = [...parts, candidate.key].join(".");
-      const fallback =
-        candidate.functionInfo?.kind === "lua" ? "function" : "built-in";
-      options.push({
-        label: completionLabel(candidate.key, candidate.functionInfo),
-        snippet: `${candidate.key}(\${})`,
-        detail: completionDetail(candidate.functionInfo, fallback),
-        documentation: candidate.functionInfo
-          ? functionDocumentation(candidate.functionInfo, fullName)
-          : undefined,
-      });
-    } else {
-      options.push({
-        label: candidate.key,
-        detail: candidate.type,
-      });
-    }
-  }
+  const options = luaCompletionOptions(candidates, parts, prefix);
 
   return options.length > 0
     ? {
