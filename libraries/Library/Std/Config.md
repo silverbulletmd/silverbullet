@@ -513,7 +513,7 @@ config.define("view.defaults", {
       open = { type = "boolean" },
       collapsed = { type = "boolean" },
       width = { type = "number", minimum = 160, maximum = 600 },
-      height = { type = "number", minimum = 160, maximum = 600 },
+      height = { type = "number", minimum = 160 },
     },
     additionalProperties = false,
   },

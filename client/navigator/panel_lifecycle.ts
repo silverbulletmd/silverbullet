@@ -6,6 +6,7 @@
  */
 
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
+import { clampDockSize } from "../../plug-api/ui/dock_size.ts";
 import { isNarrowScreen } from "../lib/mobile.ts";
 import {
   focusedSlot,
@@ -60,8 +61,6 @@ const NAMESPACE = "navigator";
 const MODAL_SLOT = "modal";
 /** The modal's inset, in pixels. */
 const MODAL_MODE = 100;
-const MIN_DOCK_SIZE = 160;
-const MAX_DOCK_SIZE = 600;
 const DEFAULT_WIDTH = 260;
 const DEFAULT_HEIGHT = 300;
 
@@ -93,12 +92,8 @@ export type PanelLifecycleConfig = {
 export function createPanelLifecycle(config: PanelLifecycleConfig) {
   const sidebarSlots = config.sidebarSlots ?? ["lhs", "rhs", "bhs"];
 
-  function clampSize(size: number): number {
-    return Math.min(MAX_DOCK_SIZE, Math.max(MIN_DOCK_SIZE, size));
-  }
-
-  function sizeMode(size: number): string {
-    return `0 0 ${clampSize(size)}px`;
+  function sizeMode(slot: string, size: number): string {
+    return `0 0 ${clampDockSize(slot, size)}px`;
   }
 
   function sizeKey(slot: string): "width" | "height" {
@@ -193,6 +188,7 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         const saved = await datastore.get([NAMESPACE, name, sizeKey(slot)]);
         if (pendingActivation.get(slot)?.token !== token) return false;
         mode = sizeMode(
+          slot,
           typeof saved === "number" ? saved : startingSize(name, slot),
         );
       }
@@ -243,7 +239,7 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
         slotMode.get(slot) ??
           (slot === MODAL_SLOT
             ? MODAL_MODE
-            : sizeMode(startingSize(name, slot))),
+            : sizeMode(slot, startingSize(name, slot))),
         activation,
         // A hop swaps the rows under a panel that is already on screen:
         // gating it would blank what the user is looking at.
@@ -317,13 +313,13 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     const key = sizeKey(data.slot);
     const requested = key === "height" ? data.height : data.width;
     if (requested === undefined) return;
-    const size = clampSize(requested);
+    const size = clampDockSize(data.slot, requested);
     if (data.commit) {
       await datastore.set([NAMESPACE, name, key], size);
     }
     const activation = pendingActivation.get(data.slot);
     if (!activation) return;
-    const mode = sizeMode(size);
+    const mode = sizeMode(data.slot, size);
     slotMode.set(data.slot, mode);
     showSlot(data.slot, mode, activation);
   }

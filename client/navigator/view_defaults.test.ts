@@ -51,7 +51,7 @@ test("clamps width to the panel bounds", () => {
   ).toEqual({ a: { width: 160 }, b: { width: 600 } });
 });
 
-test("keeps bhs and clamps its configured height", () => {
+test("keeps bhs and raises a too-small height; the window caps it when the dock opens", () => {
   expect(
     normalizeViewDefaults({
       short: { dock: "bhs", height: 40 },
@@ -59,7 +59,7 @@ test("keeps bhs and clamps its configured height", () => {
     }),
   ).toEqual({
     short: { dock: "bhs", height: 160 },
-    tall: { dock: "bhs", height: 600 },
+    tall: { dock: "bhs", height: 5000 },
   });
 });
 

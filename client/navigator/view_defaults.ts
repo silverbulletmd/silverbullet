@@ -6,10 +6,8 @@
  * knows what a given view supports.
  */
 
+import { MAX_DOCK_WIDTH, MIN_DOCK_SIZE } from "../../plug-api/ui/dock_size.ts";
 import { ALL_DOCKS } from "./types.ts";
-
-const MIN_DOCK_SIZE = 160;
-const MAX_DOCK_SIZE = 600;
 
 export type ViewDefaults = {
   dock?: string;
@@ -55,14 +53,15 @@ export function normalizeViewDefaults(raw: unknown): ViewDefaultsTable {
     }
     if (width !== undefined) {
       if (typeof width === "number" && Number.isFinite(width)) {
-        entry.width = Math.min(MAX_DOCK_SIZE, Math.max(MIN_DOCK_SIZE, width));
+        entry.width = Math.min(MAX_DOCK_WIDTH, Math.max(MIN_DOCK_SIZE, width));
       } else {
         console.warn(`view.defaults: ignoring width for "${name}"`);
       }
     }
     if (height !== undefined) {
       if (typeof height === "number" && Number.isFinite(height)) {
-        entry.height = Math.min(MAX_DOCK_SIZE, Math.max(MIN_DOCK_SIZE, height));
+        // The upper bound depends on the window, so it applies when the dock opens
+        entry.height = Math.max(MIN_DOCK_SIZE, height);
       } else {
         console.warn(`view.defaults: ignoring height for "${name}"`);
       }

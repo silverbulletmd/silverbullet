@@ -17,6 +17,7 @@ import {
 } from "./action_buttons.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
+import { BOTTOM_DOCK_MAX_HEIGHT } from "../plug-api/ui/dock_size.ts";
 import { resolveButtonIcon } from "./lib/feather_icons.ts";
 import { FilterList } from "./components/filter.tsx";
 import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
@@ -691,7 +692,13 @@ export class MainUI {
           </div>
         )}
         {navSlots.bhs ? (
-          <div className="sb-bhs" style={{ flex: navSlots.bhs.mode }}>
+          <div
+            className="sb-bhs"
+            style={{
+              flex: navSlots.bhs.mode,
+              maxHeight: BOTTOM_DOCK_MAX_HEIGHT,
+            }}
+          >
             <NavigatorDock slot="bhs" state={navSlots.bhs} client={client} />
           </div>
         ) : bhsVisible ? (

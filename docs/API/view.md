@@ -66,7 +66,7 @@ config.set("view.defaults", {
 })
 ```
 
-`dock` must be in `supportedDocks`. `open` applies except for modals; `collapsed` applies to page docks; `width` applies to sidebars and `height` to the bottom panel, both from 160 to 600 pixels. `Navigate: Reset All Views` clears saved choices. When two or more docks are supported, a dock menu moves the view immediately; closing it preserves that preference. Page widgets also remember their folded state.
+`dock` must be in `supportedDocks`. `open` applies except for modals; `collapsed` applies to page docks; `width` applies to sidebars, from 160 to 600 pixels; `height` applies to the bottom panel, from 160 pixels up to the window height minus 200 pixels, which stay free for the editor. `Navigate: Reset All Views` clears saved choices. When two or more docks are supported, a dock menu moves the view immediately; closing it preserves that preference. Page widgets also remember their folded state.
 
 Opening a closed panel reloads its source. Reactivating an open panel or revisiting a cached sibling reuses its rows unless `refreshOnOpen = true`. `refreshOn` events refresh loaded views. Views also refresh when anything their `source` or `content` read changes.
 

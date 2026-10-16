@@ -1,10 +1,9 @@
 import { useRef } from "preact/hooks";
 
-const MIN_DOCK_SIZE = 160;
-const MAX_DOCK_SIZE = 600;
+import { clampDockSize, type DockSlot, MIN_DOCK_SIZE } from "./dock_size.ts";
 
 export type ResizeHandleProps = {
-  slot: "lhs" | "rhs" | "bhs";
+  slot: DockSlot;
   onResize: (sizePx: number, commit: boolean) => void;
 };
 
@@ -13,11 +12,13 @@ export function resizedDockSize(
   startSize: number,
   startPointer: number,
   pointer: number,
+  viewportHeight?: number,
 ): number {
   const sign = slot === "lhs" ? 1 : -1;
-  return Math.min(
-    MAX_DOCK_SIZE,
-    Math.max(MIN_DOCK_SIZE, startSize + sign * (pointer - startPointer)),
+  return clampDockSize(
+    slot,
+    startSize + sign * (pointer - startPointer),
+    viewportHeight,
   );
 }
 
