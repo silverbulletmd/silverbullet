@@ -132,7 +132,6 @@ export function dataStoreWriteSyscalls(ds: DataStore): SysCallMapping {
   return {
     "datastore.delete": {
       callback: (_ctx, key: KvKey) => {
-        console.log("Deleting key", key);
         return ds.delete(key);
       },
       description: "Deletes a value from the key-value store.",
