@@ -55,6 +55,11 @@ function formatScalar(v: any): string {
   return `${v}`.trim();
 }
 
+// Only trim line ends: leading whitespace is list nesting (issue #2081).
+function formatListItem(v: any): string {
+  return typeof v === "string" ? v.trimEnd() : formatScalar(v);
+}
+
 const emptyTable = "<table data-table-empty></table>";
 
 /**
@@ -342,14 +347,14 @@ export async function renderResultToCleanMarkdown(
       return jsonToMDTable(rows, cell);
     }
     case "scalarArray":
-      return classified.items.map(formatScalar).join("\n");
+      return classified.items.map(formatListItem).join("\n");
     case "contentList":
       return (
         await Promise.all(
           classified.items.map((item) =>
             isWidgetValue(item)
               ? widgetMarkdown(item)
-              : Promise.resolve(formatScalar(item)),
+              : Promise.resolve(formatListItem(item)),
           ),
         )
       ).join("\n");
