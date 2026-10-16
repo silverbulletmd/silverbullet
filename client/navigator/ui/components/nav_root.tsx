@@ -44,6 +44,7 @@ import {
 } from "../file_drop_upload.ts";
 import { ListView } from "./list_view.tsx";
 import { fileDragData } from "../file_drag_export.ts";
+import { nativeBody, setFocusTarget } from "../native_views.ts";
 
 /**
  * The panel itself: the input state a view is browsed with, wired to the
@@ -136,6 +137,11 @@ export function NavRoot({
   });
 
   const hasContent = view?.meta.hasContent === true;
+  const NativeBody = view ? nativeBody(view.name) : undefined;
+  const focusTarget = useCallback(
+    (el: HTMLElement | null) => setFocusTarget(slot, el),
+    [slot],
+  );
   const contentValue = hasContent ? view?.contentValue : undefined;
 
   const { content, current } = useRenderedValue(
@@ -302,6 +308,7 @@ export function NavRoot({
       className={
         `sb-nav-root sb-nav-root-${slot}` +
         (hasContent ? " sb-nav-root-content" : "") +
+        (NativeBody ? " sb-nav-root-native" : "") +
         (showResizer ? " sb-nav-resizable" : "")
       }
       data-slot={slot}
@@ -320,7 +327,9 @@ export function NavRoot({
       onMouseDownCapture={(e) => {
         const target = e.target as HTMLElement;
         if (
-          target.closest("input, select, [draggable='true'], .sb-table-scroll")
+          target.closest(
+            "input, select, [draggable='true'], .sb-table-scroll, .sb-nav-native",
+          )
         )
           return;
         if (
@@ -338,6 +347,16 @@ export function NavRoot({
             <label className="sb-nav-title">
               {view.meta.label ?? view.meta.title}
             </label>
+          )}
+          {/* A native view's segments are tabs that swap its whole body, so
+              they sit with the title rather than under a filter */}
+          {NativeBody && segments && (
+            <SegmentedControl
+              items={segments.map((s) => ({ label: s.label }))}
+              activeIndex={segmentIndex}
+              onPick={cmd.pickSegment}
+              ariaLabel="Tabs"
+            />
           )}
           <input
             ref={inputRef}
@@ -414,7 +433,7 @@ export function NavRoot({
             <CloseIcon />
           </button>
         </div>
-        {segments && (
+        {segments && !NativeBody && (
           <div
             className={
               spaceTree || dropdown
@@ -477,6 +496,15 @@ export function NavRoot({
         )}
         {fatalError ? (
           <div className="sb-nav-error">{error}</div>
+        ) : NativeBody ? (
+          <div className="sb-nav-native">
+            <NativeBody
+              client={client}
+              slot={slot}
+              segmentIndex={segmentIndex}
+              focusTarget={focusTarget}
+            />
+          </div>
         ) : hasContent ? (
           content?.error !== undefined ? (
             <div className="sb-nav-error sb-nav-error-inline">

@@ -18,6 +18,8 @@ import {
   unregister,
 } from "./registry.ts";
 import { isPageDock, isWindowDock } from "./types.ts";
+import { requestNativeFocus } from "./ui/native_views.ts";
+import { focusedSlot } from "./ui/slots.ts";
 import type { ViewDefaultsTable } from "./view_defaults.ts";
 import {
   buildPickSpec,
@@ -249,6 +251,23 @@ export async function moveDock(name: string, dock: string): Promise<void> {
   if (!isPageDock(dock)) await open(name);
 }
 
+/**
+ * Closes `name` if it is showing in its dock and holds focus; focuses it if it
+ * is showing without focus; opens it otherwise.
+ */
+export async function toggleView(
+  name: string,
+): Promise<"opened" | "focused" | "closed"> {
+  const dock = await resolvedDock(name);
+  if (dock && lifecycle.current(dock)?.view === name) {
+    if (focusedSlot() !== dock && focusPanel(dock)) return "focused";
+    await closeView(name, dock);
+    return "closed";
+  }
+  await open(name);
+  return "opened";
+}
+
 export async function closeView(name: string, slot: string): Promise<void> {
   if (isPageDock(slot)) {
     await dockState.setOpen(name, false);
@@ -269,9 +288,9 @@ export function focusPanel(slot?: string): boolean {
   const selector = slot
     ? `.sb-nav-root[data-slot="${CSS.escape(slot)}"]`
     : ".sb-nav-root";
-  const input = document
-    .querySelector(selector)
-    ?.querySelector("input.sb-nav-input");
+  const root = document.querySelector<HTMLElement>(selector);
+  if (root?.dataset.slot && requestNativeFocus(root.dataset.slot)) return true;
+  const input = root?.querySelector("input.sb-nav-input");
   if (!(input instanceof HTMLElement)) return false;
   input.focus();
   return true;

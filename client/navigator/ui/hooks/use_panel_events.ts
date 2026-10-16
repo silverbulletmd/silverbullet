@@ -15,6 +15,7 @@ import {
 import { expandRefreshTriggers } from "../../refresh_triggers.ts";
 import { createActivate } from "../activation.ts";
 import type { NavigatorEngine } from "../engine.ts";
+import { requestNativeFocus } from "../native_views.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
 import { markSlotReady, type NavActivation } from "../slots.ts";
 
@@ -89,8 +90,11 @@ export function usePanelEvents({
       // focused without an on-screen keyboard. Keyboard shortcuts and
       // attached keyboards still focus (see `shouldFocusModalFilter`).
       if (!shouldFocusModalFilter()) return;
-      refs.input.current?.focus();
-      if (select) refs.input.current?.select();
+      const input = refs.input.current;
+      input?.focus();
+      if (select) input?.select();
+      // A native view's body takes focus over from the input, now or once it mounts
+      requestNativeFocus(slot);
     }
 
     // `system.getMode` covers a server/space started read-only; the UI option
