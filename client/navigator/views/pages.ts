@@ -160,7 +160,12 @@ async function pagePickerSource(): Promise<PageObj[]> {
       active.push(obj);
     }
   }
-  active.sort((a, b) => lastActivityOf(b, opened) - lastActivityOf(a, opened));
+  const activityByRow = new Map(
+    active.map((obj) => [obj, lastActivityOf(obj, opened)]),
+  );
+  active.sort(
+    (a, b) => (activityByRow.get(b) ?? 0) - (activityByRow.get(a) ?? 0),
+  );
   return [...active, ...current, ...aspiring, ...unopenable];
 }
 

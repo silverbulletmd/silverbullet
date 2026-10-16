@@ -279,13 +279,19 @@ test("the page picker interleaves pages by their latest opened or modified time"
     "Opened less recently": Date.parse("2026-09-10T10:00:00"),
   });
 
-  const rows = (await builtinRows("std.pages")) as any[];
+  const dateParse = vi.spyOn(Date, "parse");
+  try {
+    const rows = (await builtinRows("std.pages")) as any[];
 
-  expect(rows.map((row) => row.primary)).toEqual([
-    "Modified most recently",
-    "Opened recently",
-    "Opened less recently",
-  ]);
+    expect(rows.map((row) => row.primary)).toEqual([
+      "Modified most recently",
+      "Opened recently",
+      "Opened less recently",
+    ]);
+    expect(dateParse).toHaveBeenCalledTimes(3);
+  } finally {
+    dateParse.mockRestore();
+  }
 });
 
 test("the page picker keeps the current page below activity-ordered pages", async () => {
