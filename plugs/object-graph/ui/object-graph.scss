@@ -165,9 +165,18 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
 }
 .gv-body {
   display: grid;
-  grid-template-columns: var(--gv-sidebar-width, 230px) 5px minmax(0, 1fr);
+  grid-template-columns: min(var(--gv-sidebar-width, 230px), 45%) 5px minmax(0, 1fr);
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
+}
+.gv-body[data-sidebar-collapsed="true"] {
+  grid-template-columns: 0 0 minmax(0, 1fr);
+}
+.gv-body[data-sidebar-collapsed="true"] .gv-sidebar,
+.gv-body[data-sidebar-collapsed="true"] .gv-resizer {
+  visibility: hidden;
+  pointer-events: none;
   overflow: hidden;
 }
 .gv-resizer {
@@ -182,6 +191,7 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   background: var(--ui-accent-color, rgba(70, 76, 252, 0.25));
 }
 .gv-canvas-wrap {
+  grid-column: 3;
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -239,11 +249,26 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
 /* Header — sized roughly like configuration-manager's #cfg-header. */
 .gv-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--ui-surface-border-color);
+  flex-shrink: 0;
+}
+.gv-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.gv-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 .gv-header-title {
@@ -257,9 +282,10 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
 }
 .gv-header-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .gv-header-toggle {
@@ -270,6 +296,25 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   color: var(--ui-surface-color);
   user-select: none;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (min-width: 700px) {
+  .gv-header {
+    column-gap: 8px;
+  }
+  .gv-header-main {
+    display: contents;
+  }
+  .gv-header-actions {
+    order: 1;
+    margin-left: auto;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  .gv-header-controls {
+    order: 2;
+  }
 }
 
 // Close button uses the `.sb-button-icon` component; keep only positioning and
@@ -343,6 +388,7 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
 .gv-section + .gv-section { padding-top: 14px; }
 .gv-section-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -367,6 +413,7 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
 .gv-section-actions {
   font-size: 11px;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 .gv-section-actions a {
   cursor: pointer;
