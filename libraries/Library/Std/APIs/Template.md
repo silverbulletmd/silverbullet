@@ -45,6 +45,17 @@ ${query[[from p = index.contentPages() limit 3 select template.new[==[
 ]==](p)]]}
 ```
 
+## Documenting a template
+A `---` comment right above a template describes it, and an `@param` names the kind of object it takes, the way [[Space Lua]] functions are documented. Completion shows the description, and the Workbench’s query editor lists every template in the `templates` table with it, offering the ones that take a tag’s objects first and a link to each one’s definition:
+
+```lua
+--- Renders a book with its author.
+--- @param b book
+templates.bookLine = template.new [==[* [[${name}]] by ${author}]==]
+```
+
+An object type can be a union, like `page|aspiring-page`.
+
 # Pre-built templates
 The `templates` table contains ready-made templates for common query rendering patterns. These are defined in [[^Library/Std/Infrastructure/Query Templates]].
 

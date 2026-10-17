@@ -1,26 +1,28 @@
 ---
-description: "A development panel to write, test and debug your space: a Lua console with a unified log, and overviews of your space-lua scripts and space-style styles."
+description: "The panel where you shape and understand your space: browse your objects and build queries over them, a Lua console with a unified log, and overviews of your space-lua scripts and space-style styles."
 references:
 - client/workbench/*
 - client/navigator/views/workbench.ts
 ---
-The workbench is a development panel to help you write, test and debug your space. Think of it as your “DevTools” for SilverBullet.
+The workbench is where you shape and understand your space: look through your data, build queries over it, try out [[Space Lua]], and see how your scripts and styles loaded.
 
 You can open the panel via ${widgets.commandButton("Workbench: Toggle")}.
 
 Ultimately it will contain many things, but for now it covers the following:
 
+* [[#Query]]: browse the objects in your space, and shape them into a [[Space Lua/Integrated Query|query]] without writing it, then put it on a page.
 * [[#Console]]: everything your space logs, plus a [[Space Lua]] REPL.
 * [[#Scripts]]: every `space-lua` block in your space, and how loading it went.
 * [[#Styles]]: every `space-style` block in your space, and whether the browser could make sense of it.
 
 # Opening the workbench
-The workbench is a panel that opens at the bottom of the window. Like other panels, you can drag its top edge to resize it, and move it to the left or right sidebar with its dock menu. On a phone it takes the full height of the screen instead, apart from a strip of your page. These commands open it:
+The workbench is a panel that opens at the bottom of the window. Like other panels, you can drag its top edge to resize it, and move it to the left or right sidebar, or open it as a large modal window, with its dock menu. On a phone it takes the full height of the screen instead, apart from a strip of your page. These commands open it:
 
 * ${widgets.commandButton("Workbench: Toggle")} (Cmd-Alt-j on Mac, Ctrl-Alt-j elsewhere): opens the workbench, focuses it when it’s open but you’re working elsewhere, and closes it when it already has focus.
-* ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")} and ${widgets.commandButton("Workbench: Styles")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
+* ${widgets.commandButton("Workbench: Query")}, ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")} and ${widgets.commandButton("Workbench: Styles")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
+* The `/Query…` slash command, typed in a page: opens the [[#Query]] tab with its query editor showing, to build a query that goes where you typed it.
 
-The workbench remembers the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
+It opens on Query the first time, and after that on the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
 
 # Console
 A mix of logs (Lua, JavaScript, Plugs, Service Worker) and a Lua REPL. Enter Lua expressions, and they will be evaluated and render their results inline. Each line has a context menu with relevant actions.
@@ -66,7 +68,7 @@ The Scripts tab lists every `space-lua` block in your space, in the order Silver
 
 Scripts that failed to load show their error right below the row, with the same message, marked line and clickable stack as in the console. To narrow the list, use the filter field and two sets of buttons, each showing counts:
 
-* **All**, **Custom** and **Built-in**: where scripts come from. Built-in scripts ship with SilverBullet, on `Library/Std` pages. Everything else is custom, including libraries you installed.
+* **All**, **Custom** and **Built-in**: where scripts come from. Built-in scripts ship with SilverBullet, on `Library/Std` pages. Everything else is custom, including libraries you installed. The list starts on **Custom**.
 * **All**, **Loaded**, **Failed** and **Quarantined**: how loading went. These counts follow the first choice, so with **Custom** picked, **Failed** counts only your own failed scripts.
 
 The footer shows how many scripts there are, how long loading them took in total, and when they last loaded.
@@ -90,6 +92,45 @@ The Styles tab lists every `space-style` block in your space (see [[Space Style]
 
 Browsers drop CSS they can’t parse without reporting it, so an amber row almost always means a syntax error, like a missing `{`. A block that only holds comments isn’t flagged. A typo that breaks just one rule in a block shows up only as that block’s rule count being one lower than you’d expect.
 
-The filter field and the **All**, **Custom** and **Built-in** buttons narrow the list, the same as on the [[#Scripts]] tab. The footer shows how many styles there are, how many rules they add up to, and when they last loaded.
+The filter field and the **All**, **Custom** and **Built-in** buttons narrow the list, the same as on the [[#Scripts]] tab, and it starts on **Custom** too. The footer shows how many styles there are, how many rules they add up to, and when they last loaded.
 
 Click a row to jump to the style. Its ⋯ menu offers *Open source* and *Copy CSS*. **Reload** applies all styles again and updates the list.
+
+# Query
+The Query tab shows the objects in your space: your pages, tasks, and everything you tagged. Pick a tag to look through its objects, and use the query editor beside them to narrow them down, sort or group them, or pick what to show: it builds a query without you knowing the query syntax. Close the editor with its ✕ to give the objects the whole tab, and bring it back with **Edit query**. The result updates as you go; when you like what you see, put the query on a page. Either way, the bar at the bottom shows the query it takes, so you can learn the syntax as you click.
+
+The tab has three parts:
+
+* **Tags**, on the left: the kinds of objects SilverBullet indexes itself (**Built-in**, such as `task` and `page`), then the tags used in your space (**Custom**). Type in the box at the top to narrow the list; Enter picks the first match and Escape clears it. Picking one starts a query on it. The tab first opens on pages.
+* **The query editor**: one row per part of the query, named after the keyword it writes.
+* **The results**, the largest part, kept up to date as your space’s scripts reload and its index finishes building, with the query as you left it: the objects, rendered the way the query renders on a page (or as Lua values). It shows the first 200 rows of a large result.
+
+## Building a query
+* **From:** the tag you picked. **Schema** lists every field of its objects (see [[#Fields]]).
+* **Where:** filters, all of which must match. *+ Filter* picks a field, then an operator that suits its type: text can be matched exactly, by a part or by its start; numbers and dates can be compared, with *before today* and *after today* for dates; lists can contain a value; and any field can be required to exist or not. *+ Expression* takes any Lua condition instead, with completion. Click a filter to change it.
+* **Group By:** one result per distinct value of a field (or combination of fields). The **Select** row then shows group columns: each is a group key or an aggregate of a field, like `count` or `avg`, including your own [[Space Lua/Integrated Query/Aggregating|aggregates]].
+* **Order By:** the order, with directions named for the field’s type (*earliest first*, *A–Z*, *high to low*). Click an order to flip it. While grouping, you order by a group key or an aggregate column.
+* **Select:** what each result shows.
+  * **Table** (the default): a column per field the objects have. Remove, rename and reorder columns; a *Page link* column makes a field a link, and an *Expression* column computes its value.
+  * **List:** one line per result, from a template your space defines in `templates` (such as tasks with their checkbox), or a *Custom template…* you write with the fields as `${name}`. Each template shows the description from the `---` comment above it, and the ones whose `@param` takes this tag’s objects come first.
+* **Limit:** how many results, or all when empty.
+
+## Fields
+Fields come from the tag’s [[Schema]] when it has one, and from looking at up to 500 of its objects, which also finds fields a schema leaves out. For each field, **Schema** shows its type, where it came from (*built-in*, *declared* or *inferred*), how many objects have it, and some of its values.
+
+For a tag without a schema, the type is worked out from the values: dates, page links and numbers are recognized, and a field with a few repeating values becomes *one of* those values, with a dropdown in filters. A field with values of different kinds is marked *mixed*. You can change a field’s type for this session; that only changes which filters are offered. *Copy as tag.define* copies the fields as a `tag.define` you can paste into a `space-lua` block to give the tag a declared schema.
+
+Changing the tag, or a change that leaves a filter or column without its field, offers to undo it.
+
+## Using the query
+The bar at the bottom shows the query; *Show* expands it.
+
+* **Insert at cursor** puts the `${query[[…]]}` in the page you’re editing, or where you typed `/Query…`. For a query you opened from a page, it’s **Update page**, which replaces that query, and keeps doing so as you change it further.
+* **Copy** copies it.
+* **Run in Console** runs it in the [[#Console]], where you can look at its result as Lua values.
+
+## Editing a query on a page
+To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s ⋯ menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. The query editor opens with the query taken apart into its rows: a filter the builder could have written becomes that filter again, and any other condition, order or column stays as Lua, in an *Expression*. The query keeps its own variable name, or none.
+
+Some queries don’t fit the builder, and say why instead of opening: a query over something other than one `index.tag`, an `offset`, a `having`, grouping by anything but fields, an `order by` with `using`, or a select other than a table with named columns or a template.
+
