@@ -257,8 +257,17 @@ function isLocalName(env: LuaEnv, name: string): boolean {
   return false;
 }
 
+/** Looks through query memoization wrappers, which are invisible to users. */
+function unwrapMemo(e: LuaExpression): LuaExpression {
+  return e.type === "Memo" ? unwrapMemo(e.expression) : e;
+}
+
 /** Stock Lua's description of where a nil came from, e.g. `global 'x'`. */
-function describeNilSource(e: LuaExpression, env: LuaEnv): string | undefined {
+function describeNilSource(
+  expr: LuaExpression,
+  env: LuaEnv,
+): string | undefined {
+  const e = unwrapMemo(expr);
   switch (e.type) {
     case "Variable":
       return `${isLocalName(env, e.name) ? "local" : "global"} '${e.name}'`;
@@ -272,7 +281,8 @@ function describeNilSource(e: LuaExpression, env: LuaEnv): string | undefined {
 }
 
 /** Source text of a plain `a.b.c` chain, if `e` is one. */
-function dottedName(e: LuaExpression): string | undefined {
+function dottedName(expr: LuaExpression): string | undefined {
+  const e = unwrapMemo(expr);
   if (e.type === "Variable") {
     return e.name;
   }
@@ -329,7 +339,7 @@ export function nilPrefixError(
       sf.withCtx(fc.prefix.ctx),
     );
   }
-  const p = fc.prefix;
+  const p = unwrapMemo(fc.prefix);
   const hint =
     p.type === "PropertyAccess" && p.property === "s"
       ? sNotationHint(dottedName(p.object), fc.name)

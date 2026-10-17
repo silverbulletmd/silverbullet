@@ -171,6 +171,8 @@ class Printer {
         );
         return `query[[\n${lines.join("\n")}\n${this.indent(depth)}]]`;
       }
+      case "Memo":
+        return this.expression(e.expression, depth);
       case "FilteredCall":
         return `${this.expression(e.call, depth)} filter ${this.expression(
           e.filter,

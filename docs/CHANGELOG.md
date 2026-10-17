@@ -11,6 +11,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * New context menus for widgets and views.
 * New [[Workbench]] panel (`Workbench: Toggle`, Cmd/Ctrl-Alt-j, or `Workbench: Console`, `Workbench: Scripts` and `Workbench: Styles` to open it on that tab) with a Space Lua console: a REPL, console output, and clickable stack frames that jump to the source; a Scripts tab lists every `space-lua` block in load order with its priority, load time and status; a Styles tab lists every `space-style` block with how many rules it parsed to, flagging CSS the browser dropped. More coming.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
+* Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don't depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
 * Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
 * Fix: sandboxed widgets and document editors (such as the image viewer) no longer leak memory each time they render or open, which made long sessions gradually slower.

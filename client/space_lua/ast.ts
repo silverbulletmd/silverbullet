@@ -187,6 +187,7 @@ export type LuaExpression =
   | LuaTableConstructor
   | LuaFunctionDefinition
   | LuaQueryExpression
+  | LuaMemoExpression
   | LuaFilteredCallExpression
   | LuaAggregateCallExpression;
 
@@ -302,6 +303,19 @@ export type LuaAggregateCallExpression = {
   type: "AggregateCall";
   call: LuaFunctionCallExpression;
   orderBy: LuaOrderBy[];
+} & ASTContext;
+
+export type MemoCell =
+  | { state: "empty" }
+  | { state: "pending"; promise: Promise<any> }
+  | { state: "value"; value: any }
+  | { state: "error"; error: unknown };
+
+// Internal node: never produced by the parser.
+export type LuaMemoExpression = {
+  type: "Memo";
+  expression: LuaExpression;
+  cell: MemoCell;
 } & ASTContext;
 
 export type LuaQueryExpression = {

@@ -4,6 +4,7 @@ import type {
   LuaBlock,
   LuaExpression,
   LuaLValue,
+  LuaMemoExpression,
   LuaStatement,
   LuaTableField,
   NumericType,
@@ -98,6 +99,7 @@ import {
   asWhile,
 } from "./ast_narrow.ts";
 import { getBlockGotoMeta } from "./labels.ts";
+import { memoizeRowInvariants } from "./query_memo.ts";
 
 const astNumberKindCache = new WeakMap<LuaExpression, NumericType>();
 
@@ -1104,6 +1106,8 @@ export function evalExpression(
         const fd = asFunctionDef(e);
         return new LuaFunction(fd.body, env);
       }
+      case "Memo":
+        return evalMemo(e, env, sf);
       case "Query": {
         const q = asQueryExpr(e);
         const findFromClause = q.clauses.find((c) => c.type === "From");
@@ -1232,7 +1236,9 @@ export function evalExpression(
             for (const clause of q.clauses) {
               switch (clause.type) {
                 case "Where": {
-                  query.where = clause.expression;
+                  query.where = objectVariable
+                    ? memoizeRowInvariants(clause.expression, objectVariable)
+                    : clause.expression;
                   break;
                 }
                 case "OrderBy": {
@@ -1308,6 +1314,45 @@ export function evalExpression(
   }
 }
 
+function evalMemo(
+  e: LuaMemoExpression,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): Promise<LuaValue> | LuaValue {
+  const cell = e.cell;
+  switch (cell.state) {
+    case "value":
+      return cell.value;
+    case "error":
+      throw cell.error;
+    case "pending":
+      return cell.promise;
+  }
+  let result: any;
+  try {
+    result = evalExpression(e.expression, env, sf);
+  } catch (err) {
+    e.cell = { state: "error", error: err };
+    throw err;
+  }
+  if (isPromise(result)) {
+    const promise = result.then(
+      (value) => {
+        e.cell = { state: "value", value };
+        return value;
+      },
+      (error) => {
+        e.cell = { state: "error", error };
+        throw error;
+      },
+    );
+    e.cell = { state: "pending", promise };
+    return promise;
+  }
+  e.cell = { state: "value", value: result };
+  return result;
+}
+
 function evalPrefixExpression(
   e: LuaExpression,
   env: LuaEnv,
@@ -1327,6 +1372,9 @@ function evalPrefixExpression(
       const p = asParenthesized(e);
       return rpThen(evalExpression(p.expression, env, sf), singleResult);
     }
+
+    case "Memo":
+      return evalMemo(e, env, sf);
 
     case "TableAccess": {
       const ta = asTableAccess(e);
