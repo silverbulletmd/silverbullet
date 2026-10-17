@@ -398,7 +398,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ env.ARCHITECTURES }}
+          # Alpine disables Chromium on armv7 (linker OOM); armv7 remains available in slim.
+          platforms: linux/arm64,linux/amd64
           push: true
           file: Dockerfile.runtime-api
           provenance: false
