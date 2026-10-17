@@ -93,6 +93,36 @@ test("Evaluator test", async () => {
   expect(fn.body.parameters).toEqual(["a", "b"]);
 });
 
+test("doc comments above an assigned function value describe it", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  const sf = LuaStackFrame.createWithGlobalEnv(env);
+  // Like template.new: each call makes a fresh, undocumented closure
+  const block = parseBlock(`local function make(prefix)
+  return function(obj) return prefix .. obj.name end
+end
+templates = {}
+--- Renders a page with a bullet.
+--- @param p page The page.
+templates.bullet = make("* ")
+templates.plain = make("")
+--- Not a function, nothing to describe.
+answer = 42`);
+  await evalStatement(block, env, sf);
+
+  const templates = env.get("templates") as LuaTable;
+  const bullet = templates.get("bullet") as ILuaFunction;
+  expect(bullet.info).toMatchObject({
+    name: "bullet",
+    description: "Renders a page with a bullet.",
+    parameters: [{ name: "p", type: "page", description: "The page." }],
+  });
+  // Made by the same function, but not documented: stays undescribed
+  const plain = templates.get("plain") as ILuaFunction;
+  expect(plain.info?.description).toBeUndefined();
+  expect(plain.info?.parameters).toEqual([{ name: "obj" }]);
+  expect(env.get("answer")).toBe(42);
+});
+
 test("Lua doc comments are available through runtime introspection", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   const sf = LuaStackFrame.createWithGlobalEnv(env);

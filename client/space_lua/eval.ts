@@ -2145,6 +2145,15 @@ export function evalStatement(
           ) {
             values[i].info.name ??= lvalues[i].key;
           }
+          // `--- …` above `x = make()`: describes the function it makes,
+          // unless that one documents itself
+          if (
+            a.documentation &&
+            values[i] instanceof LuaFunction &&
+            !values[i].info.description
+          ) {
+            values[i].info = { ...values[i].info, ...a.documentation };
+          }
           const r = luaSet(
             lvalues[i].env,
             lvalues[i].key,

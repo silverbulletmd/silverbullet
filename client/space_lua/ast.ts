@@ -146,6 +146,8 @@ export type LuaAssignmentStatement = {
   type: "Assignment";
   variables: LuaLValue[];
   expressions: LuaExpression[];
+  /** `---` doc comments above a single value that isn't a function (a function keeps them on its body) */
+  documentation?: LuaFunctionDocumentation;
 } & ASTContext;
 
 export type LuaLValue =
@@ -157,6 +159,8 @@ export type LuaLocalStatement = {
   type: "Local";
   names: LuaAttName[];
   expressions?: LuaExpression[];
+  /** As on an assignment */
+  documentation?: LuaFunctionDocumentation;
 } & ASTContext;
 
 export enum LuaAttribute {

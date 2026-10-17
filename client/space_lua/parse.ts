@@ -216,14 +216,17 @@ function attachFunctionDocumentation(
   comments: LuaComment[],
   source: string,
 ): void {
-  const candidates: { from: number; body: LuaFunctionBody }[] = [];
+  // What the comments document: a function's body, or the statement that
+  // assigns some other single value
+  type Documented = { documentation?: LuaFunctionDocumentation };
+  const candidates: { from: number; target: Documented }[] = [];
   const seen = new WeakSet<object>();
-  const claimedBodies = new WeakSet<LuaFunctionBody>();
+  const claimed = new WeakSet<Documented>();
 
-  const addCandidate = (from: number | undefined, body: LuaFunctionBody) => {
-    if (from === undefined || claimedBodies.has(body)) return;
-    claimedBodies.add(body);
-    candidates.push({ from, body });
+  const addCandidate = (from: number | undefined, target: Documented) => {
+    if (from === undefined || claimed.has(target)) return;
+    claimed.add(target);
+    candidates.push({ from, target });
   };
 
   const visit = (value: unknown, key?: string) => {
@@ -239,6 +242,11 @@ function attachFunctionDocumentation(
       node.expressions[0]?.type === "FunctionDefinition"
     ) {
       addCandidate(node.ctx?.from, node.expressions[0].body);
+    } else if (
+      (node.type === "Local" || node.type === "Assignment") &&
+      node.expressions?.length === 1
+    ) {
+      addCandidate(node.ctx?.from, node);
     } else if (node.type === "FunctionDefinition") {
       addCandidate(node.ctx?.from, node.body);
     }
@@ -278,7 +286,7 @@ function attachFunctionDocumentation(
       boundary = from;
     }
     const documentation = parseFunctionDocumentation(group);
-    if (documentation) candidate.body.documentation = documentation;
+    if (documentation) candidate.target.documentation = documentation;
   }
 }
 

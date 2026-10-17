@@ -6,35 +6,42 @@ A work-in-progress library of generally useful templates for rendering queries.
 
 ```space-lua
 -- priority: 10
--- Renders a page object as a linked list item
+--- Renders a page as a linked list item.
+--- @param p page
 templates.pageItem = template.new([==[
 * [[${name}]]
 ]==])
 
--- Renders a page object as a linked list item with full path
+--- Renders a page as a linked list item, with its full path.
+--- @param p page
 templates.fullPageItem = template.new([==[
 * [[${name}|${name}]]
 ]==])
 
--- Renders a task object as a togglable task. Anchor refs are bare names
--- (no @ or #) — prefix them with $ so the resulting wikilink resolves
--- through the anchor index. Position/header refs already contain @ or #
--- and pass through unchanged.
+-- Anchor refs are bare names (no @ or #) — prefix them with $ so the
+-- resulting wikilink resolves through the anchor index. Position/header refs
+-- already contain @ or # and pass through unchanged.
+
+--- Renders a task as a togglable task, linked to where it is.
+--- @param t task
 templates.taskItem = template.new([==[
 * [${state}] [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
 ]==])
 
--- Renders an item object
+--- Renders an item, linked to where it is.
+--- @param i item
 templates.itemItem = template.new([==[
 * [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
 ]==])
 
--- Renders a paragraph object
+--- Renders a paragraph, linked to where it is.
+--- @param p paragraph
 templates.paragraphItem = template.new([==[
 * [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${text}
 ]==])
 
--- Renders a tag object
+--- Renders a tag as a link to its page.
+--- @param t tag
 templates.tagItem = template.new([==[
 * [[tag:${name}|#${name}]]
 ]==])

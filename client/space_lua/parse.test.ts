@@ -1,6 +1,12 @@
 import { expect, test } from "vitest";
 import { parseBlock, parseExpressionString, parseToAST } from "./parse.ts";
-import type { LuaFunctionStatement, LuaNumberLiteral } from "./ast.ts";
+import type {
+  LuaAssignmentStatement,
+  LuaFunctionDefinition,
+  LuaFunctionStatement,
+  LuaLocalStatement,
+  LuaNumberLiteral,
+} from "./ast.ts";
 
 test("Test Lua parser", () => {
   parseBlock(`
@@ -157,6 +163,38 @@ end`);
     returns: [{ type: "number", description: "sum" }],
     see: "API/math",
   });
+});
+
+test("doc comments annotate an assigned value that isn't a function", () => {
+  const block = parseBlock(`--- Renders a page as a link.
+--- @param p page|aspiring-page The page.
+templates.pageItem = template.new("* [[\${name}]]")
+--- A local one.
+local greeting = "hi"`);
+  const [assign, local] = block.statements as [
+    LuaAssignmentStatement,
+    LuaLocalStatement,
+  ];
+  expect(assign.documentation).toEqual({
+    description: "Renders a page as a link.",
+    parameters: [
+      {
+        name: "p",
+        type: "page|aspiring-page",
+        description: "The page.",
+        optional: false,
+      },
+    ],
+  });
+  expect(local.documentation).toEqual({ description: "A local one." });
+});
+
+test("a function assigned keeps its docs on the function", () => {
+  const block = parseBlock("--- Adds one.\nf = function(x) return x + 1 end");
+  const assign = block.statements[0] as LuaAssignmentStatement;
+  expect(assign.documentation).toBeUndefined();
+  const fn = assign.expressions[0] as LuaFunctionDefinition;
+  expect(fn.body.documentation).toEqual({ description: "Adds one." });
 });
 
 test("a blank line separates doc comments from declarations", () => {
