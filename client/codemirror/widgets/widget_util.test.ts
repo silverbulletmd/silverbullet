@@ -12,7 +12,8 @@ function fakeClient() {
     navigate: vi.fn(async () => {}),
     openNavigatorView: vi.fn(),
     runCommandByName: vi.fn(async () => {}),
-    clientSystem: { localSyscall: vi.fn(async () => "x") },
+    clientSystem: { localSyscall: vi.fn(async (): Promise<any> => "x") },
+    ui: { flashNotification: vi.fn() },
   };
 }
 
@@ -127,24 +128,95 @@ test("an external task's checkbox and state toggle through the index", async () 
     "[data-external-task-ref] input",
   )!;
   box.dispatchEvent(new Event("change", { bubbles: true }));
+  await vi.waitFor(() => expect(box.dataset.state).toBe("x"));
   expect(client.clientSystem.localSyscall).toHaveBeenCalledWith(
     "system.invokeFunction",
     ["index.updateTaskState", "Tasks@4", " ", "x"],
   );
-  expect(box.dataset.state).toBe("x");
 
   const state = div.querySelector<HTMLElement>(".sb-task-state")!;
   expect(state.style.cursor).toBe("pointer");
   click(state);
+  await vi.waitFor(() => expect(state.textContent).toBe("x"));
   expect(client.clientSystem.localSyscall).toHaveBeenCalledWith(
     "system.invokeFunction",
     ["index.cycleTaskStateByRef", "Tasks@9", "TODO"],
   );
-  await Promise.resolve();
-  await Promise.resolve();
-  expect(state.textContent).toBe("x");
 
   expect(div.querySelector(".plain")!.hasAttribute("disabled")).toBe(true);
+});
+
+const stateRow = (ref: string, state: string) =>
+  `<span data-external-task-ref="${ref}"><span class="sb-task-state" data-task-state="${state}">${state}</span></span>`;
+
+test("a click on a task state waits for the save before it and starts from its result", async () => {
+  const client = fakeClient();
+  const saves: ((newState: string) => void)[] = [];
+  client.clientSystem.localSyscall.mockImplementation(
+    () => new Promise((resolve) => saves.push(resolve)),
+  );
+  const div = widget(stateRow("Tasks@0", "TODO"));
+  attachWidgetEventHandlers(div, client as unknown as Client);
+  const state = div.querySelector<HTMLElement>(".sb-task-state")!;
+
+  click(state);
+  click(state);
+  await vi.waitFor(() => expect(saves).toHaveLength(1));
+  saves[0]("READY");
+  await vi.waitFor(() => expect(saves).toHaveLength(2));
+
+  expect(client.clientSystem.localSyscall).toHaveBeenLastCalledWith(
+    "system.invokeFunction",
+    ["index.cycleTaskStateByRef", "Tasks@0", "READY"],
+  );
+  saves[1]("IN PROGRESS");
+  await vi.waitFor(() => expect(state.textContent).toBe("IN PROGRESS"));
+});
+
+test("a saved state of a new length moves the refs of later tasks on the same page", async () => {
+  const client = fakeClient();
+  client.clientSystem.localSyscall.mockImplementation(
+    async () => "IN PROGRESS",
+  );
+  const first = widget(
+    stateRow("Tasks@0", "TODO") +
+      stateRow("Tasks@20", "TODO") +
+      stateRow("Other@30", "TODO"),
+  );
+  const second = widget(stateRow("Tasks@40", "TODO"));
+  attachWidgetEventHandlers(first, client as unknown as Client);
+  attachWidgetEventHandlers(second, client as unknown as Client);
+  const refs = () =>
+    [...document.querySelectorAll<HTMLElement>("[data-external-task-ref]")].map(
+      (el) => el.dataset.externalTaskRef,
+    );
+
+  click(first.querySelector(".sb-task-state")!);
+  await vi.waitFor(() =>
+    expect(refs()).toEqual(["Tasks@0", "Tasks@27", "Other@30", "Tasks@47"]),
+  );
+});
+
+test("a task whose ref has gone stale keeps its state, and the user is told", async () => {
+  const client = fakeClient();
+  client.clientSystem.localSyscall.mockImplementation(async () => undefined);
+  const div = widget(
+    stateRow("Tasks@0", "TODO") +
+      '<span data-external-task-ref="Tasks@20"><input type="checkbox" data-state=" "></span>',
+  );
+  attachWidgetEventHandlers(div, client as unknown as Client);
+  const state = div.querySelector<HTMLElement>(".sb-task-state")!;
+  const box = div.querySelector<HTMLInputElement>("input")!;
+
+  click(state);
+  box.click();
+  await vi.waitFor(() =>
+    expect(client.ui.flashNotification).toHaveBeenCalledTimes(2),
+  );
+  expect(state.textContent).toBe("TODO");
+  expect(state.dataset.taskState).toBe("TODO");
+  expect(box.checked).toBe(false);
+  expect(box.dataset.state).toBe(" ");
 });
 
 test("Alt-click on a task state is left to cursor positioning", () => {
