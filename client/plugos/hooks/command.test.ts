@@ -1,8 +1,8 @@
-import { expect, test, vi } from "vitest";
-import { CommandHook } from "./command.ts";
-import type { Command } from "../../types/command.ts";
 import type { CommandHookT } from "@silverbulletmd/silverbullet/type/manifest";
+import { expect, test, vi } from "vitest";
+import type { Command } from "../../types/command.ts";
 import type { System } from "../system.ts";
+import { CommandHook } from "./command.ts";
 
 function hook(
   opts: {
@@ -43,6 +43,38 @@ test("requireServiceWorker commands stay registered when the service worker is o
   });
 
   expect(names(commands.buildAllCommands())).toEqual(["Sync: Space"]);
+});
+
+test("an explicit key override with an empty mac replaces a built-in mac binding", () => {
+  const commands = hook({
+    extra: new Map([
+      [
+        "Open Command Palette",
+        { name: "Open Command Palette", key: "Mod-p", mac: "" },
+      ],
+      ["Share: Page", { name: "Share: Page", key: "", mac: "" }],
+    ]),
+  });
+  commands.registerCommand({
+    name: "Open Command Palette",
+    key: "Ctrl-/",
+    mac: "Cmd-/",
+    run: async () => {},
+  });
+  commands.registerCommand({
+    name: "Share: Page",
+    key: "Ctrl-p",
+    mac: "Cmd-p",
+    run: async () => {},
+  });
+  commands.system = {
+    loadedPlugs: new Map(),
+  } as unknown as System<CommandHookT>;
+
+  const palette = commands.buildAllCommands().get("Open Command Palette");
+  const share = commands.buildAllCommands().get("Share: Page");
+  expect(palette).toMatchObject({ key: "Mod-p", mac: "" });
+  expect(share).toMatchObject({ key: "", mac: "" });
 });
 
 test("plug commands with requireServiceWorker are omitted when the service worker is off", () => {

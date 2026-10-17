@@ -1,16 +1,17 @@
 import { useCallback, useMemo, useReducer } from "preact/hooks";
 import { useCfg } from "./cfg_context.tsx";
+import type { Conflicts } from "./keys.ts";
 import {
   allActiveBindings,
   findConflicts,
   hasAnyConflict,
   manifestBindings,
+  normalizeLoadedOverride,
   overrideBindings,
   resolvedBindings,
   seedOverrideFromManifest,
   writeBindings,
 } from "./keys.ts";
-import type { Conflicts } from "./keys.ts";
 import type { PendingShortcuts } from "./types.ts";
 
 export type ShortcutEditor = {
@@ -75,7 +76,10 @@ function initialPendingShortcuts(
   commandOverrides: Record<string, any>,
 ): PendingShortcuts {
   return Object.fromEntries(
-    Object.entries(commandOverrides || {}).map(([k, v]) => [k, { ...v }]),
+    Object.entries(commandOverrides || {}).map(([k, v]) => [
+      k,
+      normalizeLoadedOverride({ ...v }),
+    ]),
   );
 }
 
