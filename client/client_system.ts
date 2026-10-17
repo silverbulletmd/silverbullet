@@ -83,7 +83,10 @@ import {
   pageVarsSyscalls,
 } from "./plugos/syscalls/page_vars.ts";
 import { recordMark } from "./lib/perf.ts";
-import { registerWorkbenchCommands } from "./workbench/commands.tsx";
+import {
+  querySlashCommand,
+  registerWorkbenchCommands,
+} from "./workbench/commands.tsx";
 
 const mqTimeout = 10000;
 const mqTimeoutRetry = 3;
@@ -201,7 +204,7 @@ export class ClientSystem {
       !!this.client.bootConfig.disableServiceWorker,
     );
     registerEditorCommands(client, this.commandHook);
-    registerWorkbenchCommands(client, this.commandHook);
+    const { builder } = registerWorkbenchCommands(client, this.commandHook);
     const gitAvailable =
       !!this.client.bootConfig.revisions &&
       this.client.bootConfig.revisions !== "disabled";
@@ -228,6 +231,7 @@ export class ClientSystem {
     });
 
     this.slashCommandHook = new SlashCommandHook(this.client);
+    this.slashCommandHook.addBuiltin(querySlashCommand(client, builder));
 
     this.mqHook = new MQHook(this.system, this.mq, this.client.config);
     this.system.addHook(this.mqHook);

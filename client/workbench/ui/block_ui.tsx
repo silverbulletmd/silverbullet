@@ -44,7 +44,10 @@ export function useBlockFilter<B extends SpaceBlock>(
   focusTarget: FocusTarget,
 ) {
   const [phrase, setPhrase] = useState("");
-  const [origin, setOrigin] = useState(0);
+  // Your own blocks first: the built-in ones are rarely what you're after
+  const [origin, setOrigin] = useState(
+    ORIGINS.findIndex((o) => o.value === "custom"),
+  );
   const filterInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

@@ -1,0 +1,644 @@
+// The Query tab: tag list | clause editor | preview, with the query bar along
+// the bottom. Laid out by the tab's own width, so a sidebar dock stacks too;
+// the outer element is the container, since a query can't style its container.
+.sb-workbench.sb-wbq-root {
+  container-type: inline-size;
+}
+
+.sb-wb-query {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 168px minmax(0, 1fr);
+  min-height: 0;
+  font-family: var(--ui-font);
+
+  .sb-wbq-tags {
+    overflow-y: auto;
+    padding-bottom: 8px;
+    border-right: 1px solid var(--ui-surface-border-color);
+    outline: none;
+  }
+
+  .sb-wbq-tagfilter {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    padding: 7px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    outline: none;
+    background-color: var(--root-background-color);
+    color: var(--root-color);
+    font-family: var(--ui-font);
+    font-size: 13px;
+  }
+
+  .sb-wbq-nomatch {
+    padding: 8px 12px;
+  }
+
+  .sb-wbq-group {
+    padding: 9px 12px 3px;
+    color: var(--subtle-color);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .sb-wbq-tag {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 3px 12px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-family: var(--editor-font), monospace;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--ui-surface-hover-background-color);
+    }
+
+    &.sb-wbq-tag-on {
+      background-color: var(--ui-surface-section-background-color);
+      color: var(--editor-link-color);
+    }
+  }
+
+  .sb-wbq-count {
+    color: var(--subtle-color);
+  }
+
+  .sb-wbq-main {
+    display: grid;
+    grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  // Only the objects, until *Edit query* shows the clauses
+  .sb-wbq-main.sb-wbq-browse {
+    grid-template-columns: minmax(0, 1fr);
+
+    .sb-wbq-clauses {
+      display: none;
+    }
+  }
+
+  .sb-wbq-tagpick {
+    display: none;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    color: var(--subtle-color);
+
+    select {
+      flex: 1;
+    }
+  }
+
+  .sb-wbq-clauses {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-content: start;
+    gap: 8px 10px;
+    padding: 10px 12px;
+    overflow-y: auto;
+    border-right: 1px solid var(--ui-surface-border-color);
+  }
+
+  .sb-wbq-label {
+    padding-top: 4px;
+    color: var(--subtle-color);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .sb-wbq-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .sb-wbq-chip {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: var(--ui-surface-section-background-color);
+    color: var(--editor-link-color);
+    font-family: var(--editor-font), monospace;
+    font-size: 12.5px;
+  }
+
+  .sb-wbq-note {
+    color: var(--subtle-color);
+    font-size: 12px;
+  }
+
+  .sb-wbq-fields {
+    grid-column: 1 / -1;
+    min-width: 0;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 8px;
+
+    table {
+      width: 100%;
+      min-width: 520px;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+
+    // The theme paints table heads dark; this one is a plain list header
+    thead tr {
+      background: var(--root-background-color);
+      color: inherit;
+    }
+
+    th {
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--ui-surface-border-color);
+      background: var(--ui-surface-section-background-color);
+      color: var(--subtle-color);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    td {
+      padding: 3px 8px;
+      border-bottom: 1px solid var(--ui-surface-border-color);
+      vertical-align: top;
+    }
+    td.sb-wbq-field {
+      overflow-wrap: normal;
+      white-space: nowrap;
+    }
+  }
+
+  .sb-wbq-fields-scroll {
+    overflow-x: auto;
+  }
+
+  .sb-wbq-fields-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 8px;
+    background-color: var(--ui-surface-section-background-color);
+    font-size: 12px;
+  }
+
+  .sb-wbq-seen {
+    max-width: 18rem;
+    overflow: hidden;
+    color: var(--subtle-color);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--editor-font), monospace;
+    font-size: 11.5px;
+  }
+
+  .sb-wbq-num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sb-wbq-warn {
+    color: var(--alert-warning-color);
+    font-size: 11.5px;
+  }
+
+  .sb-wbq-badge {
+    padding: 1px 6px;
+    border-radius: 5px;
+    background-color: var(--ui-surface-section-background-color);
+    color: var(--subtle-color);
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+
+  .sb-wbq-badge-inferred {
+    background-color: var(--alert-warning-background-color);
+    color: var(--alert-warning-color);
+  }
+
+  .sb-wbq-pill {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 7px;
+    background-color: var(--ui-surface-section-background-color);
+    font-size: 12.5px;
+
+    &.sb-wbq-pill-editing {
+      border-color: var(--editor-link-color);
+    }
+  }
+
+  .sb-wbq-pill-body {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 2px 4px 2px 8px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  span.sb-wbq-pill-body {
+    cursor: default;
+  }
+
+  .sb-wbq-field,
+  .sb-wbq-expr,
+  .sb-wbq-value {
+    font-family: var(--editor-font), monospace;
+    overflow-wrap: anywhere;
+  }
+
+  .sb-wbq-op {
+    color: var(--editor-link-color);
+  }
+
+  .sb-wbq-value {
+    padding: 0 5px;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 5px;
+    background-color: var(--root-background-color);
+    color: var(--editor-code-string-color);
+  }
+
+  .sb-wbq-x {
+    padding: 0 6px;
+    border: 0;
+    background: none;
+    color: var(--subtle-color);
+    cursor: pointer;
+    font: inherit;
+
+    &:hover:not(:disabled) {
+      color: var(--root-color);
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+  }
+
+  .sb-wbq-add {
+    padding: 2px 9px;
+    border: 1px dashed var(--ui-surface-border-color);
+    border-radius: 7px;
+    background: none;
+    color: var(--editor-link-color);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12.5px;
+  }
+
+  .sb-wbq-editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 8px;
+    background-color: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wbq-input {
+    min-width: 0;
+    max-width: 100%;
+    padding: 2px 6px;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 6px;
+    background-color: var(--root-background-color);
+    color: var(--root-color);
+    font: inherit;
+    font-size: 12.5px;
+  }
+
+  .sb-wbq-header {
+    width: 7rem;
+  }
+
+  .sb-wbq-number {
+    width: 5rem;
+  }
+
+  .sb-wbq-wide {
+    width: 100%;
+    font-family: var(--editor-font), monospace;
+  }
+
+  .sb-wbq-lua {
+    flex: 1 1 12rem;
+    min-width: 8rem;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 6px;
+    background-color: var(--root-background-color);
+
+    .cm-editor {
+      font-size: 12.5px;
+    }
+
+    .cm-content {
+      padding: 2px 4px;
+    }
+  }
+
+  .sb-wbq-multi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--editor-font), monospace;
+    }
+  }
+
+  .sb-wbq-columns {
+    display: grid;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .sb-wbq-column {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+  }
+
+  // An aggregate column: header, aggregate, field and ✕ on one line;
+  // "sorted" and "only where" below
+  .sb-wbq-aggcol {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 7rem) minmax(0, 1.3fr) auto;
+
+    .sb-wbq-header,
+    select {
+      width: 100%;
+      min-width: 0;
+    }
+
+    > .sb-wbq-x {
+      grid-column: 4;
+      grid-row: 1;
+    }
+
+    > label {
+      grid-column: 1;
+    }
+
+    > .sb-wbq-lua {
+      grid-column: 2 / 4;
+    }
+  }
+
+  // A table column on one line: header, kind, value, then its buttons
+  .sb-wbq-tablecol {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 6.5rem) minmax(0, 1.3fr) auto auto auto;
+
+    .sb-wbq-header,
+    select,
+    .sb-wbq-lua {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+
+  .sb-wbq-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 8px;
+    background-color: var(--ui-surface-section-background-color);
+
+    button {
+      padding: 2px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: none;
+      color: var(--subtle-color);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12.5px;
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+    }
+
+    .sb-wbq-seg-on {
+      background-color: var(--root-background-color);
+      color: var(--root-color);
+    }
+  }
+
+  button.sb-wbq-chip {
+    border: 0;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .sb-wbq-chip-off {
+    color: var(--subtle-color);
+  }
+
+  .sb-wbq-preview {
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .sb-wbq-preview-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 14px;
+  }
+
+  .sb-wbq-heading {
+    font-weight: 600;
+  }
+
+  .sb-wbq-preview-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 14px 12px;
+    overflow: auto;
+    font-family: var(--editor-font), monospace;
+    // A result table keeps whole words; it scrolls sideways instead
+    th,
+    td {
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    th {
+      white-space: nowrap;
+    }
+  }
+
+  .sb-wbq-bar {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: grid;
+    gap: 6px;
+    padding: 6px 12px;
+    border-top: 1px solid var(--ui-surface-border-color);
+    background-color: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wbq-bar-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .sb-wbq-bar-label {
+    color: var(--subtle-color);
+    font-size: 12px;
+  }
+
+  .sb-wbq-oneline {
+    flex: 1 1 200px;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--subtle-color);
+    font-family: var(--editor-font), monospace;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sb-wbq-spacer {
+    flex: 1;
+  }
+
+  .sb-wbq-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--editor-link-color);
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .sb-wbq-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sb-wbq-banner {
+    color: var(--editor-link-color);
+    font-size: 12px;
+  }
+
+  .sb-wbq-code {
+    // About ten lines: the clauses and the preview keep their room
+    max-height: 13em;
+    margin: 0;
+    padding: 8px 10px;
+    overflow: auto;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 6px;
+    background-color: var(--root-background-color);
+    font-family: var(--editor-font), monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+  }
+
+  // Narrow: the clause editor above the preview, everything scrolling together
+  @container (max-width: 900px) {
+    .sb-wbq-main {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto auto auto;
+      overflow-y: auto;
+    }
+
+    // The result comes first; the clauses follow it
+    .sb-wbq-clauses {
+      grid-row: auto;
+      order: 2;
+      overflow: visible;
+      border-top: 1px solid var(--ui-surface-border-color);
+      border-right: 0;
+    }
+
+    .sb-wbq-preview {
+      grid-row: auto;
+      order: 1;
+      max-height: 45vh;
+      min-height: 200px;
+    }
+
+    // Stays in view while the rest scrolls: its buttons are the way out
+    .sb-wbq-bar {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      grid-row: auto;
+      order: 3;
+    }
+  }
+
+  // Phone-sized: the tag list becomes a picker
+  @container (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+
+    .sb-wbq-tags {
+      display: none;
+    }
+
+    .sb-wbq-tagpick {
+      display: flex;
+    }
+
+    .sb-wbq-clauses {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+
+    .sb-wbq-label {
+      text-align: left;
+    }
+  }
+}

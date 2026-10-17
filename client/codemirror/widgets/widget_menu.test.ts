@@ -6,6 +6,7 @@ const base = {
   definition: false,
   open: false,
   edit: true,
+  query: false,
   copy: true,
   bake: true,
 };
@@ -21,6 +22,13 @@ test("a plain ${…} widget", () => {
     "Copy as Markdown",
     "—",
     "Bake into page",
+  ]);
+});
+
+test("a query widget offers the query builder after Edit source", () => {
+  expect(labels({ ...base, query: true }).slice(0, 2)).toEqual([
+    "Edit source",
+    "Edit in query builder",
   ]);
 });
 

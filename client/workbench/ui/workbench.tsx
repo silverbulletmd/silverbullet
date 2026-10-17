@@ -10,7 +10,9 @@ import {
 } from "../../navigator/views/workbench.ts";
 import { shouldFocusModalFilter } from "../../lib/mobile.ts";
 import type { ConsoleSession } from "../console_session.ts";
+import type { QueryBuilder } from "../query_builder.ts";
 import { ConsoleView } from "./console_view.tsx";
+import { QueryView } from "./query_view.tsx";
 import { ScriptsView } from "./scripts_view.tsx";
 import { StylesView } from "./styles_view.tsx";
 import type { TabProps } from "./tab.ts";
@@ -19,6 +21,7 @@ const BODIES: Record<WorkbenchTab, FunctionComponent<TabProps>> = {
   Console: ConsoleView,
   Scripts: ScriptsView,
   Styles: StylesView,
+  Query: QueryView,
 };
 
 /**
@@ -32,7 +35,8 @@ export function WorkbenchView({
   segmentIndex,
   focusTarget,
   session,
-}: NativeViewProps & { session: ConsoleSession }) {
+  builder,
+}: NativeViewProps & { session: ConsoleSession; builder: QueryBuilder }) {
   const root = useRef<HTMLDivElement>(null);
   const shown = useRef(segmentIndex);
   const noFocus = useCallback(() => () => {}, []);
@@ -65,6 +69,7 @@ export function WorkbenchView({
             <Body
               client={client}
               session={session}
+              builder={builder}
               focusTarget={showing ? focusTarget : noFocus}
             />
           </div>

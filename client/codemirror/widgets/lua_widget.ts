@@ -14,6 +14,7 @@ import {
 } from "../../markdown_renderer/compose.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import type { ViewValue } from "../../navigator/view_value.ts";
+import { EDIT_QUERY_COMMAND } from "../../navigator/views/workbench.ts";
 import type { Tracker } from "../../space_lua/dependencies.ts";
 import { isLuaWidgetError } from "../../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
@@ -122,10 +123,10 @@ export type ShownValue = {
 export function widgetCaps(
   host: WidgetHost,
   shown: ShownValue,
-  env: { readOnly: boolean },
+  env: { readOnly: boolean; expression?: string },
 ): WidgetCaps {
   const directive = host.kind === "directive" && !env.readOnly;
-  // Baking an assignment would drop its definition
+  // Baking or rewriting an assignment would drop its definition
   const assignment = host.kind === "directive" && !!host.label;
   return {
     definition:
@@ -133,6 +134,8 @@ export function widgetCaps(
       !!host.definitionRef,
     open: host.kind === "transclusion" && !!host.openRef,
     edit: host.kind !== "panel" && !env.readOnly,
+    query:
+      directive && !assignment && /^\s*query\s*\[/.test(env.expression ?? ""),
     copy: host.kind !== "frontmatter" && shown.copyable,
     bake: directive && !assignment && shown.bakeable && !shown.luaError,
   };
@@ -533,6 +536,7 @@ export class LuaWidget extends WidgetType {
       }
       const caps = widgetCaps(this.opts.host, shown, {
         readOnly: this.opts.client.isReadOnlyMode(),
+        expression: this.opts.expressionText,
       });
       closeMenu = openPopupMenu(
         button,
@@ -578,6 +582,13 @@ export class LuaWidget extends WidgetType {
           moveCursorToWidgetStart(client, this.dom, this.sourceText);
         }
         return;
+      case "query": {
+        const target = this.directiveTarget();
+        if (target) {
+          await client.runCommandByName(EDIT_QUERY_COMMAND, [target]);
+        }
+        return;
+      }
       case "reload":
         if (host.kind === "panel") {
           // Panel widgets render a captured result; only re-running the hooks refreshes them

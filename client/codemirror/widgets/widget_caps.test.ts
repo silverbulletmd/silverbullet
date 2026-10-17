@@ -16,9 +16,29 @@ test("a ${…} directive offers everything", () => {
     definition: false,
     open: false,
     edit: true,
+    query: false,
     copy: true,
     bake: true,
   });
+});
+
+test("a query[[…]] directive can be opened in the query builder", () => {
+  const d = { kind: "directive" as const, wrappers: [] };
+  const q = 'query[[from t = index.tag "task"]]';
+  expect(widgetCaps(d, shown, { ...env, expression: q }).query).toBe(true);
+  expect(widgetCaps(d, shown, { ...env, expression: ` ${q}` }).query).toBe(
+    true,
+  );
+  expect(widgetCaps(d, shown, { ...env, expression: "1 + 1" }).query).toBe(
+    false,
+  );
+  // Not when read-only, nor for an assignment, whose name would be lost
+  expect(widgetCaps(d, shown, { readOnly: true, expression: q }).query).toBe(
+    false,
+  );
+  expect(
+    widgetCaps({ ...d, label: "open" }, shown, { ...env, expression: q }).query,
+  ).toBe(false);
 });
 
 test("read-only keeps Copy and drops editing", () => {

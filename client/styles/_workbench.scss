@@ -5,6 +5,25 @@
   overflow: hidden;
 }
 
+// In the modal a native view is a workspace, not a picker: a large box of
+// its own height rather than one that follows a capped list
+// (phones keep the modal's own edge-to-edge layout)
+@media (min-width: 601px) {
+  .sb-modal.sb-modal-centered:has(.sb-nav-root-native) {
+    width: min(1100px, 94vw);
+    max-width: none;
+  }
+}
+
+.sb-nav-root-modal.sb-nav-root-native {
+  height: min(80vh, 760px);
+
+  .sb-nav-body {
+    flex: 1 1 auto;
+    max-height: none;
+  }
+}
+
 .sb-nav-native {
   display: flex;
   flex: 1 1 auto;

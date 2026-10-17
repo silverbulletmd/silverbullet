@@ -2,26 +2,31 @@ import type { Client } from "../client.ts";
 import { showView, toggleView } from "../navigator/navigator.ts";
 import { registerNativeView } from "../navigator/ui/native_views.ts";
 import {
+  EDIT_QUERY_COMMAND,
   WORKBENCH_TABS,
   WORKBENCH_VIEW,
 } from "../navigator/views/workbench.ts";
 import type { CommandHook } from "../plugos/hooks/command.ts";
+import type { SlashCommand } from "../types/command.ts";
 import { consoleLog } from "./console_log.ts";
 import { ConsoleSession } from "./console_session.ts";
+import { QueryBuilder } from "./query_builder.ts";
+import { openQuery, type QuerySpan, showQueryEditor } from "./query_open.ts";
 import { WorkbenchView } from "./ui/workbench.tsx";
 
 export function registerWorkbenchCommands(
   client: Client,
   hook: CommandHook,
-): void {
+): { builder: QueryBuilder } {
   // Called while the client is still being set up, so its parts are read when used
   const session = new ConsoleSession({
     spaceEnv: () => client.clientSystem.spaceLuaEnv.env,
     log: consoleLog,
     ui: () => client.ui,
   });
+  const builder = new QueryBuilder();
   registerNativeView(WORKBENCH_VIEW, (props) => (
-    <WorkbenchView {...props} session={session} />
+    <WorkbenchView {...props} session={session} builder={builder} />
   ));
   hook.registerCommand({
     name: "Workbench: Toggle",
@@ -47,4 +52,37 @@ export function registerWorkbenchCommands(
       },
     });
   }
+  // The ⋯ menu of a query widget passes the query; the palette leaves it to the cursor
+  hook.registerCommand({
+    name: EDIT_QUERY_COMMAND,
+    run: async (args?: unknown[]) => {
+      await openQuery(client, builder, args?.[0] as QuerySpan | undefined);
+      return false;
+    },
+  });
+  return { builder };
+}
+
+/**
+ * `/Query…`: opens the Workbench on the Query tab with the query editor
+ * showing, bound to where it was typed. The hook has already removed the
+ * typed text when this runs.
+ */
+export function querySlashCommand(
+  client: Client,
+  builder: QueryBuilder,
+): SlashCommand {
+  return {
+    name: "Query…",
+    description: "Build a query in the Workbench and insert it here",
+    run: async () => {
+      const head = client.editorView.state.selection.main.head;
+      await showQueryEditor(client, builder, {
+        page: client.currentName(),
+        from: head,
+        to: head,
+      });
+      return { options: [] };
+    },
+  };
 }

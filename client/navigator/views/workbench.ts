@@ -3,8 +3,16 @@ import { type BuiltinView, baseMeta } from "./types.ts";
 export const WORKBENCH_VIEW = "std.workbench";
 
 /** The Workbench's tabs, in order; each swaps the whole body (`client/workbench/ui/workbench.tsx`). */
-export const WORKBENCH_TABS = ["Console", "Scripts", "Styles"] as const;
+export const WORKBENCH_TABS = [
+  "Query",
+  "Console",
+  "Scripts",
+  "Styles",
+] as const;
 export type WorkbenchTab = (typeof WORKBENCH_TABS)[number];
+
+/** Opens a page's `query[[…]]` in the Query tab's query editor (`client/workbench/query_open.ts`) */
+export const EDIT_QUERY_COMMAND = "Workbench: Edit Query";
 
 /**
  * A shell for the Workbench: its body is registered with `registerNativeView`
@@ -15,7 +23,7 @@ export const workbenchView: BuiltinView = {
     title: "Workbench",
     noFilter: true,
     dock: "bhs",
-    supportedDocks: ["bhs", "rhs", "lhs"],
+    supportedDocks: ["bhs", "rhs", "lhs", "modal"],
     hasRowIcon: false,
   }),
   segments: WORKBENCH_TABS.map((label, i) => ({ label, default: i === 0 })),

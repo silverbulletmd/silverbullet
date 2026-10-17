@@ -10,6 +10,7 @@ export type WidgetActionId =
   | "definition"
   | "open"
   | "edit"
+  | "query"
   | "reload"
   | "copy"
   | "bake";
@@ -18,6 +19,8 @@ export type WidgetCaps = {
   definition: boolean;
   open: boolean;
   edit: boolean;
+  /** A `query[[…]]` the Workbench's query builder can open */
+  query: boolean;
   copy: boolean;
   bake: boolean;
 };
@@ -41,6 +44,10 @@ const ICONS: Record<Exclude<WidgetActionId, "copy" | "definition">, string> = {
     '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>',
   ),
   edit: editIcon,
+  query: feather(
+    "sliders",
+    '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>',
+  ),
   reload: feather(
     "refresh-cw",
     '<polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>',
@@ -74,6 +81,7 @@ export function widgetMenuEntries(
   if (caps.definition) action("definition", "Go to definition");
   if (caps.open) action("open", "Open");
   if (caps.edit) action("edit", "Edit source");
+  if (caps.query) action("query", "Edit in query builder");
   action("reload", "Reload");
   if (caps.copy) action("copy", "Copy as Markdown");
   if (caps.bake) {
