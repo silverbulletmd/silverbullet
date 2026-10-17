@@ -20,17 +20,24 @@ const slashCommandRegexp = /([^\w:]|^)\/[\w#-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands: SlashCommand[] = [];
+  /** Commands the client itself provides, listed before plugs' and config's */
+  private builtins: SlashCommand[] = [];
   throttledBuildAllCommands = throttle(() => {
     this.buildAllCommands();
   }, 200);
 
   constructor(private client: Client) {}
 
+  /** Registers `cmd`; it's listed from the next build (the hook builds when applied) */
+  addBuiltin(cmd: SlashCommand): void {
+    this.builtins.push(cmd);
+  }
+
   buildAllCommands() {
     const clientSystem = this.client.clientSystem;
     const system = clientSystem.system;
 
-    this.slashCommands = [];
+    this.slashCommands = [...this.builtins];
     for (const plug of system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
         plug.manifest!.functions,
