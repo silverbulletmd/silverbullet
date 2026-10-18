@@ -1,12 +1,12 @@
-import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import { useEffect } from "preact/hooks";
+import { dismiss } from "./host.ts";
 
 export function useEscape() {
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        await editor.hidePanel("modal");
+        await dismiss();
       }
     };
     window.addEventListener("keydown", handler);

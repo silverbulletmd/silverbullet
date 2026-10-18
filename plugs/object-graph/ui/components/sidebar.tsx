@@ -1,7 +1,7 @@
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
-import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { Checkbox, Input } from "@silverbulletmd/silverbullet/ui";
+import { Button, Input } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useMemo, useState } from "preact/hooks";
+import { ChevronRight } from "preact-feather";
 import {
   defaultForceSettings,
   type Edge,
@@ -11,6 +11,7 @@ import {
   type ObjectNode,
 } from "../../src/model.ts";
 import { colorForTag } from "../colors.ts";
+import { openInEditor } from "../host.ts";
 
 type Props = {
   // Currently-visible nodes (used to compute counts for present-only filter UX).
@@ -36,14 +37,16 @@ type Counted = { key: string; count: number };
 
 export function Sidebar(props: Props) {
   return (
-    <aside class="gv-sidebar">
-      <TagsSection {...props} />
-      <LabelsSection {...props} />
-      <ForcesSection
-        forces={props.forces}
-        onForcesChange={props.onForcesChange}
-      />
-      <ObjectSection selected={props.selected} />
+    <aside class="gv-sidebar" aria-label="Filters">
+      <div class="gv-sidebar-scroll">
+        <TagsSection {...props} />
+        <LabelsSection {...props} />
+        <ForcesSection
+          forces={props.forces}
+          onForcesChange={props.onForcesChange}
+        />
+      </div>
+      <Inspector selected={props.selected} />
     </aside>
   );
 }
@@ -90,15 +93,15 @@ function ForcesSection({
   ];
   return (
     <div class="gv-section">
-      <header class="gv-section-header" onClick={() => setOpen(!open)}>
-        <span class="gv-section-title">
-          <span class={`gv-twisty ${open ? "open" : "closed"}`}>▸</span>
-          Forces
-        </span>
-        <span class="gv-section-actions" onClick={(e) => e.stopPropagation()}>
-          <a onClick={() => onForcesChange(defaultForceSettings)}>reset</a>
-        </span>
-      </header>
+      <SectionHeader title="Layout" open={open} onToggle={() => setOpen(!open)}>
+        <button
+          type="button"
+          class="gv-link-button"
+          onClick={() => onForcesChange(defaultForceSettings)}
+        >
+          Reset
+        </button>
+      </SectionHeader>
       {open && (
         <div class="gv-section-body gv-forces-body">
           {sliders.map((s) => (
@@ -129,51 +132,135 @@ function ForcesSection({
   );
 }
 
-function ObjectSection({ selected }: { selected: ObjectNode | null }) {
-  const [yamlText, setYamlText] = useState<string>("");
-  useEffect(() => {
-    if (!selected) return;
-    let cancelled = false;
-    // Always lead with the object's `tag`. Real page/item/block objects
-    // carry it in their indexed attributes; stub nodes (dangling refs,
-    // URL/file targets) don't, so fall back to the node's structural tag
-    // (or kind). Spreading `attributes` last keeps the real value when set.
-    const display = {
-      tag: selected.rootTag ?? selected.kind,
-      ...selected.attributes,
-    };
-    void syscall("yaml.stringify", display).then((text: string) => {
-      if (!cancelled) setYamlText(text);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [selected]);
-  if (!selected) return null;
-  const swatch = colorForTag(selected.primaryTag);
-  const navigate = async () => {
+// Index bookkeeping every object has; shown after the object's own fields
+const SYSTEM_KEYS = new Set([
+  "tag",
+  "tags",
+  "itags",
+  "ref",
+  "range",
+  "page",
+  "pos",
+  "perm",
+  "size",
+  "contentType",
+  "created",
+  "lastModified",
+  "name",
+]);
+
+function Inspector({ selected }: { selected: ObjectNode | null }) {
+  if (!selected) {
+    return (
+      <section class="gv-inspector gv-inspector-empty" aria-label="Selected">
+        Click an object to see its fields.
+      </section>
+    );
+  }
+  // Lead with the object's `tag`: stub nodes (dangling refs, URL/file
+  // targets) carry none in their attributes, so fall back to its kind.
+  const attrs: Record<string, unknown> = {
+    tag: selected.rootTag ?? selected.kind,
+    ...selected.attributes,
+  };
+  const own = Object.keys(attrs).filter((k) => !SYSTEM_KEYS.has(k));
+  const system = Object.keys(attrs).filter((k) => SYSTEM_KEYS.has(k));
+  const open = async () => {
     try {
-      await editor.navigate(selected.ref);
-      await editor.hidePanel("modal");
+      await openInEditor(selected.ref);
     } catch (err) {
       console.error("object-graph: object navigation failed", err);
     }
   };
-
   return (
-    <div class="gv-object-section">
-      <header class="gv-object-header">
-        <a
-          class="gv-object-title gv-object-title-link"
-          title={`Open ${selected.title}`}
-          onClick={navigate}
-        >
-          <span class="gv-swatch" style={{ background: swatch }} />
+    <section class="gv-inspector" aria-label="Selected">
+      <header class="gv-inspector-header">
+        <span
+          class="gv-swatch"
+          style={{ background: colorForTag(selected.primaryTag) }}
+        />
+        <span class="gv-inspector-title" title={selected.title}>
           {selected.title}
-        </a>
+        </span>
+        <Button onClick={open} title={`Open ${selected.title}`}>
+          Open
+        </Button>
       </header>
-      <pre class="gv-object-body">{yamlText}</pre>
-    </div>
+      <dl class="gv-attrs">
+        {own.map((k) => (
+          <Attr key={k} name={k} value={attrs[k]} />
+        ))}
+        {system.map((k) => (
+          <Attr key={k} name={k} value={attrs[k]} system />
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function Attr({
+  name,
+  value,
+  system,
+}: {
+  name: string;
+  value: unknown;
+  system?: boolean;
+}) {
+  return (
+    <>
+      <dt class={system ? "gv-attr-system" : undefined}>{name}</dt>
+      <dd class={system ? "gv-attr-system" : undefined}>
+        <AttrValue value={value} />
+      </dd>
+    </>
+  );
+}
+
+function AttrValue({ value }: { value: unknown }) {
+  const [text, setText] = useState<string | null>(null);
+  const nested = value !== null && typeof value === "object";
+  const flatList =
+    Array.isArray(value) && value.every((v) => typeof v !== "object");
+  useEffect(() => {
+    if (!nested || flatList) return;
+    let cancelled = false;
+    void syscall("yaml.stringify", value).then((t: string) => {
+      if (!cancelled) setText(t.trimEnd());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
+  if (flatList) return <>{(value as unknown[]).join(", ")}</>;
+  if (nested) return <pre>{text ?? ""}</pre>;
+  return <>{String(value)}</>;
+}
+
+function SectionHeader({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children?: preact.ComponentChildren;
+}) {
+  return (
+    <header class="gv-section-header">
+      <button
+        type="button"
+        class="gv-section-title"
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <ChevronRight size={12} class={`gv-twisty${open ? " open" : ""}`} />
+        {title}
+      </button>
+      <span class="gv-section-actions">{children}</span>
+    </header>
   );
 }
 
@@ -205,44 +292,51 @@ function Section({
 
   return (
     <div class="gv-section">
-      <header class="gv-section-header" onClick={() => setOpen(!open)}>
-        <span class="gv-section-title">
-          <span class={`gv-twisty ${open ? "open" : "closed"}`}>▸</span>
-          {title}
-        </span>
-        <span class="gv-section-actions" onClick={(e) => e.stopPropagation()}>
-          <a onClick={onAll}>all</a>
-          {" · "}
-          <a onClick={onNone}>none</a>
-        </span>
-      </header>
+      <SectionHeader title={title} open={open} onToggle={() => setOpen(!open)}>
+        <button type="button" class="gv-link-button" onClick={onAll}>
+          All
+        </button>
+        <button type="button" class="gv-link-button" onClick={onNone}>
+          None
+        </button>
+      </SectionHeader>
       {open && (
         <div class="gv-section-body">
           {rows.length > LONG_LIST_THRESHOLD && (
             <Input
               type="text"
               class="gv-section-search"
-              placeholder="Filter…"
+              placeholder={`Filter ${title.toLowerCase()}…`}
               value={query}
               onInput={(e) =>
                 setQuery((e.currentTarget as HTMLInputElement).value)
               }
             />
           )}
-          {display.map((r) => (
-            <label class="gv-row" key={r.key}>
-              <Checkbox
-                checked={!hidden.includes(r.key)}
-                onChange={() => onToggle(r.key)}
-              />
-              {renderRow(r)}
-              <span class="gv-count">{r.count}</span>
-            </label>
-          ))}
+          {display.map((r) => {
+            const shown = !hidden.includes(r.key);
+            return (
+              <button
+                type="button"
+                class="gv-row"
+                key={r.key}
+                aria-pressed={shown}
+                title={shown ? `Hide ${r.key}` : `Show ${r.key}`}
+                onClick={() => onToggle(r.key)}
+              >
+                {renderRow(r)}
+                <span class="gv-count">{r.count}</span>
+              </button>
+            );
+          })}
           {overflow > 0 && (
-            <a class="gv-more" onClick={() => setShowAll(true)}>
-              show {overflow} more
-            </a>
+            <button
+              type="button"
+              class="gv-link-button gv-more"
+              onClick={() => setShowAll(true)}
+            >
+              Show {overflow} more
+            </button>
           )}
         </div>
       )}
@@ -304,14 +398,14 @@ function TagsSection({ allNodes, universe, filters, onFiltersChange }: Props) {
         })
       }
       renderRow={(r) => (
-        <span class="gv-tag-row">
+        <span class="gv-row-label">
           <span
             class="gv-swatch"
             style={{
-              background: colorForTag(r.key === "(untagged)" ? null : r.key),
+              "--gv-swatch": colorForTag(r.key === "(untagged)" ? null : r.key),
             }}
           />
-          {r.key}
+          <span class="gv-row-name">{r.key}</span>
         </span>
       )}
     />
@@ -339,7 +433,7 @@ function LabelsSection({
     });
   return (
     <Section
-      title="Kind"
+      title="Relations"
       rows={rows}
       hidden={filters.hiddenLabels}
       onToggle={toggle}
@@ -350,7 +444,12 @@ function LabelsSection({
           hiddenLabels: rows.map((r) => r.key),
         })
       }
-      renderRow={(r) => <span>{r.key}</span>}
+      renderRow={(r) => (
+        <span class="gv-row-label">
+          <span class="gv-edge-glyph" />
+          <span class="gv-row-name">{r.key}</span>
+        </span>
+      )}
     />
   );
 }

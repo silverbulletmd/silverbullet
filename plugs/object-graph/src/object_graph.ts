@@ -1,4 +1,9 @@
-import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
+import { syscall } from "@silverbulletmd/silverbullet/syscall";
+import { datastore } from "@silverbulletmd/silverbullet/syscalls";
+import type {
+  PanelViewContext,
+  PanelViewResult,
+} from "@silverbulletmd/silverbullet/type/manifest";
 import {
   buildGlobalGraph,
   buildUniverse,
@@ -34,24 +39,43 @@ async function loadForces(): Promise<ForceSettings> {
   return { ...defaultForceSettings, ...raw } as ForceSettings;
 }
 
+const GRAPH_VIEW = "std.graph";
+
 export async function showGraph() {
-  const currentPage = await editor.getCurrentPage();
-  if (!currentPage) {
-    await editor.flashNotification("Graph: no current page", "error");
-    return;
-  }
-  // Each top-level open of the modal gets fresh data. Subsequent
-  // `expandObject` round-trips from the panel reuse the populated cache.
+  await syscall("view.open", GRAPH_VIEW, { segment: "Local" });
+}
+
+export async function showGlobalGraph() {
+  await syscall("view.open", GRAPH_VIEW, { segment: "Global" });
+}
+
+/**
+ * Builds the graph view's panel (declared on this function in the manifest):
+ * around the open page, or every page in the space.
+ */
+export async function graphPanel(
+  ctx: PanelViewContext,
+): Promise<PanelViewResult> {
+  // Each build gets fresh data. Subsequent `expandObject` round-trips from
+  // the panel reuse the populated cache.
   invalidateGraphCache();
+  const view =
+    ctx.tab === "Global" ? await globalView(ctx) : await localView(ctx);
+  return "error" in view ? view : buildGraphHtml(view);
+}
+
+async function localView({
+  page,
+  dock,
+}: PanelViewContext): Promise<RootViewModel | { error: string }> {
+  if (!page) return { error: "Open a page to see its graph." };
   const [root, universe, filters, forces] = await Promise.all([
-    expandObjectImpl(currentPage),
+    expandObjectImpl(page),
     buildUniverse(),
     loadFilters(),
     loadForces(),
   ]);
-  const view: RootViewModel = { root, universe, filters, forces };
-  const { html, script } = await buildGraphHtml(view);
-  await editor.showPanel("modal", 100, html, script);
+  return { root, universe, filters, forces, dock };
 }
 
 /**
@@ -63,25 +87,24 @@ export async function expandObject(ref: string): Promise<ExpansionResult> {
 }
 
 /**
- * "Graph: Global Page Map" — all pages + every relation in the space,
- * pre-expanded. Filter state defaults to "mention only" and is not
- * persisted (so the local view's saved filters aren't disturbed).
+ * The global view: all pages + every relation in the space, pre-expanded.
+ * Filter state defaults to "mention only" and is not persisted (so the local
+ * view's saved filters aren't disturbed).
  */
-export async function showGlobalGraph() {
-  invalidateGraphCache();
+async function globalView({
+  page,
+  dock,
+}: PanelViewContext): Promise<RootViewModel | { error: string }> {
   const [root, universe] = await Promise.all([
-    buildGlobalGraph((await editor.getCurrentPage()) ?? null),
+    buildGlobalGraph(page || null),
     buildUniverse(),
   ]);
-  if (!root) {
-    await editor.flashNotification("Graph: no pages in space", "error");
-    return;
-  }
+  if (!root) return { error: "There are no pages in this space yet." };
   // Default the global view to "mention only" — every other relation
   // label in the universe is hidden but can be toggled on without a
   // refetch (the full relation set is already loaded).
   const hiddenLabels = universe.labels.filter((l) => l !== "mention");
-  const view: RootViewModel = {
+  return {
     root,
     universe,
     filters: {
@@ -93,7 +116,6 @@ export async function showGlobalGraph() {
     forces: await loadForces(),
     initialAllExpanded: true,
     persistFilters: false,
+    dock,
   };
-  const { html, script } = await buildGraphHtml(view);
-  await editor.showPanel("modal", 100, html, script);
 }

@@ -8,6 +8,18 @@ build:
 assets:
   - "assets/**"
 functions:
+  graphPanel:
+    path: ./src/object_graph.ts:graphPanel
+    view:
+      name: std.graph
+      title: Graph
+      dock: modal
+      supportedDocks: [modal, rhs, lhs, bhs]
+      modalSize: large
+      tabs:
+        - label: Local
+          followEditor: true
+        - label: Global
   showGraph:
     path: ./src/object_graph.ts:showGraph
     command:

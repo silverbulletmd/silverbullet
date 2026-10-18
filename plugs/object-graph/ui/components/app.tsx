@@ -47,7 +47,13 @@ export function App({ vm }: { vm: RootViewModel }) {
     vm.root.object.ref,
   );
   const [filters, setFilters] = useState<Filters>(vm.filters);
-  const [sidebarWidth, setSidebarWidth] = useState<number>(230);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(250);
+  // Narrow (a sidebar dock), the filters cover the canvas, so they start
+  // closed; wide, they sit beside it and start open
+  const appRef = useRef<HTMLDivElement>(null);
+  const narrow = useNarrow(appRef);
+  const [filtersOpen, setFiltersOpen] = useState<boolean | null>(null);
+  const showFilters = filtersOpen ?? !narrow;
   const [forces, setForces] = useState<ForceSettings>(vm.forces);
   const [cache] = useState<Map<string, ExpansionResult>>(() => {
     const m = new Map<string, ExpansionResult>();
@@ -280,8 +286,13 @@ export function App({ vm }: { vm: RootViewModel }) {
   );
 
   return (
-    <div class="gv-app">
+    <div class={`gv-app${narrow ? " gv-narrow" : ""}`} ref={appRef}>
       <Header
+        compact={narrow}
+        filtersOpen={showFilters}
+        onToggleFilters={() => setFiltersOpen(!showFilters)}
+        objectCount={visibleNodes.length}
+        relationCount={visibleEdges.length}
         ghostCount={ghostCount}
         onExpandAll={expandAllVisibleGhosts}
         onCollapseAll={collapseAll}
@@ -293,22 +304,26 @@ export function App({ vm }: { vm: RootViewModel }) {
         onToggleHideOrphans={(v) => setFilters({ ...filters, hideOrphans: v })}
       />
       <div
-        class="gv-body"
+        class={`gv-body${showFilters ? "" : " gv-filters-closed"}`}
         style={{ "--gv-sidebar-width": `${sidebarWidth}px` }}
       >
-        <Sidebar
-          nodes={visibleObjectNodes}
-          edges={visibleEdges}
-          allNodes={allObjectNodes}
-          allEdges={edges}
-          universe={vm.universe}
-          filters={filters}
-          onFiltersChange={setFilters}
-          forces={forces}
-          onForcesChange={setForces}
-          selected={selected}
-        />
-        <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
+        {showFilters && (
+          <Sidebar
+            nodes={visibleObjectNodes}
+            edges={visibleEdges}
+            allNodes={allObjectNodes}
+            allEdges={edges}
+            universe={vm.universe}
+            filters={filters}
+            onFiltersChange={setFilters}
+            forces={forces}
+            onForcesChange={setForces}
+            selected={selected}
+          />
+        )}
+        {showFilters && !narrow && (
+          <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
+        )}
         <GraphCanvas
           nodes={visibleNodes}
           edges={visibleEdges}
@@ -365,4 +380,23 @@ function SidebarResizer({
       }}
     />
   );
+}
+
+const NARROW_WIDTH = 640;
+
+/** Whether the graph is narrower than a sidebar beside its canvas needs */
+function useNarrow(ref: { current: HTMLElement | null }): boolean {
+  const [narrow, setNarrow] = useState(
+    () => globalThis.innerWidth < NARROW_WIDTH,
+  );
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() =>
+      setNarrow(el.clientWidth < NARROW_WIDTH),
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return narrow;
 }

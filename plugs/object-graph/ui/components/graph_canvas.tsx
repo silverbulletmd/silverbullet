@@ -2,9 +2,12 @@ import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import * as d3 from "d3-force";
 import ForceGraphImpl from "force-graph";
 import { Component } from "preact";
+import { Maximize, ZoomIn, ZoomOut } from "preact-feather";
 import type { Edge, ForceSettings, ObjectNode } from "../../src/model.ts";
 import { STRUCTURAL_KINDS } from "../../src/model.ts";
+import { CanvasTheme } from "../canvas_theme.ts";
 import { colorForTag } from "../colors.ts";
+import { openInEditor } from "../host.ts";
 
 const CLICK_DELAY_MS = 220;
 // Upper bound for the auto-fit camera scale. Prevents zoomToFit from
@@ -66,19 +69,6 @@ const ForceGraph = ForceGraphImpl as unknown as () => (
   element: HTMLElement,
 ) => ForceGraphInstance;
 
-type Theme = {
-  font: string;
-  bg: string;
-  nodeDim: string;
-  label: string;
-  labelDim: string;
-  labelHalo: string;
-  link: string;
-  linkDim: string;
-  linkHot: string;
-  accent: string;
-};
-
 type State = {
   edgeHover: { edge: MergedEdge; x: number; y: number } | null;
   ghostHover: { title: string; x: number; y: number } | null;
@@ -90,24 +80,6 @@ type ComputedGraph = {
   adjacency: Map<string, Set<string>>;
   radii: Map<string, number>;
 };
-
-function readTheme(): Theme {
-  const cs = getComputedStyle(document.documentElement);
-  const v = (n: string, fallback: string) =>
-    cs.getPropertyValue(n).trim() || fallback;
-  return {
-    bg: v("--gv-bg", "#ffffff"),
-    font: cs.fontFamily,
-    nodeDim: v("--gv-node-dim", "#9e4705"),
-    label: v("--gv-label", "#333"),
-    labelDim: v("--gv-label-dim", "#676767"),
-    labelHalo: v("--gv-label-halo", "rgba(255,255,255,0.78)"),
-    link: v("--gv-link", "#c8c8c8"),
-    linkDim: v("--gv-link-dim", "#e6e6e6"),
-    linkHot: v("--gv-link-hot", "#464cfc"),
-    accent: v("--gv-accent", "#650007"),
-  };
-}
 
 function getId(end: string | FGNode): string {
   return typeof end === "string" ? end : end.id;
@@ -209,7 +181,8 @@ export class GraphCanvas extends Component<Props, State> {
   private hoveredId: string | null = null;
   private neighbors: Set<string> = new Set();
   private adjacency: Map<string, Set<string>> = new Map();
-  private theme: Theme = readTheme();
+  private theme = new CanvasTheme(() => this.rerender());
+  private unwatchTheme: (() => void) | null = null;
   private radiusMap: Map<string, number> = new Map();
 
   // Mouse position relative to the canvas container; drives the edge tooltip.
@@ -228,6 +201,9 @@ export class GraphCanvas extends Component<Props, State> {
   // simulation next settles. Gated so node drags (which also re-heat and
   // fire onEngineStop) don't trigger camera jumps.
   private pendingFit = false;
+  // Whether the user zoomed or panned since the last data-driven fit
+  private cameraMoved = false;
+  private refitTimer: number | null = null;
 
   // Cached computation of nodes/links/adjacency/radii; recomputed in
   // componentDidUpdate when props.nodes or props.edges identity changes.
@@ -235,7 +211,6 @@ export class GraphCanvas extends Component<Props, State> {
 
   // Listeners/observers we own and must tear down.
   private resizeObserver: ResizeObserver | null = null;
-  private mql: MediaQueryList | null = null;
 
   constructor(props: Props) {
     super(props);
@@ -244,7 +219,6 @@ export class GraphCanvas extends Component<Props, State> {
     // `this` resolves correctly and identities stay stable across
     // add/removeEventListener pairs.
     this.onMouseMove = this.onMouseMove.bind(this);
-    this.onThemeChange = this.onThemeChange.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
     this.zoomIn = this.zoomIn.bind(this);
     this.zoomOut = this.zoomOut.bind(this);
@@ -259,11 +233,6 @@ export class GraphCanvas extends Component<Props, State> {
       x: ev.clientX - rect.left,
       y: ev.clientY - rect.top,
     };
-  }
-
-  private onThemeChange() {
-    this.theme = readTheme();
-    this.rerender();
   }
 
   private onKeyDown(e: KeyboardEvent) {
@@ -448,15 +417,29 @@ export class GraphCanvas extends Component<Props, State> {
       if (!this.containerRef) return;
       fg.width(this.containerRef.clientWidth);
       fg.height(this.containerRef.clientHeight);
+      // The panel can still be settling into its dock (or the toolbar
+      // wrapping) after the first fit: keep the graph framed until the user
+      // moves the camera themselves
+      if (this.fedOnce && !this.cameraMoved && !this.pendingFit) {
+        if (this.refitTimer !== null) clearTimeout(this.refitTimer);
+        this.refitTimer = window.setTimeout(() => {
+          this.refitTimer = null;
+          this.recenter();
+        }, 150);
+      }
     };
     resize();
     this.resizeObserver = new ResizeObserver(resize);
     this.resizeObserver.observe(this.containerRef);
+    const moved = () => {
+      this.cameraMoved = true;
+    };
+    this.containerRef.addEventListener("wheel", moved, { passive: true });
+    this.containerRef.addEventListener("pointerdown", moved);
 
     this.containerRef.addEventListener("mousemove", this.onMouseMove);
 
-    this.mql = window.matchMedia("(prefers-color-scheme: dark)");
-    this.mql.addEventListener?.("change", this.onThemeChange);
+    this.unwatchTheme = this.theme.watch();
 
     window.addEventListener("keydown", this.onKeyDown);
 
@@ -492,6 +475,7 @@ export class GraphCanvas extends Component<Props, State> {
   }
 
   componentWillUnmount() {
+    if (this.refitTimer !== null) clearTimeout(this.refitTimer);
     this.cancelClickTimer();
     this.cancelEdgeClickTimer();
     if (this.containerRef) {
@@ -499,8 +483,8 @@ export class GraphCanvas extends Component<Props, State> {
     }
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
-    this.mql?.removeEventListener?.("change", this.onThemeChange);
-    this.mql = null;
+    this.unwatchTheme?.();
+    this.unwatchTheme = null;
     window.removeEventListener("keydown", this.onKeyDown);
     if (this.fg) {
       this.fg.pauseAnimation();
@@ -574,6 +558,7 @@ export class GraphCanvas extends Component<Props, State> {
     // engine's multi-second default. recenter() handles the single-node and
     // MAX_AUTO_ZOOM cases.
     this.pendingFit = true;
+    this.cameraMoved = false;
     fg.cooldownTicks(
       this.fedOnce ? REFIT_COOLDOWN_TICKS : FIRST_FIT_COOLDOWN_TICKS,
     );
@@ -625,8 +610,7 @@ export class GraphCanvas extends Component<Props, State> {
     try {
       const ref =
         prov.pos !== undefined ? `${prov.page}@${prov.pos}` : prov.page;
-      await editor.navigate(ref);
-      await editor.hidePanel("modal");
+      await openInEditor(ref);
     } catch (err) {
       console.error("object-graph: edge navigation failed", err);
     }
@@ -648,8 +632,7 @@ export class GraphCanvas extends Component<Props, State> {
         (node.kind === "item" || node.kind === "block") &&
         !node.id.includes("@");
       const ref = isAnchorRef ? `$${node.id}` : node.id;
-      await editor.navigate(ref);
-      await editor.hidePanel("modal");
+      await openInEditor(ref);
     } catch (err) {
       console.error("object-graph: navigation failed", err);
     }
@@ -668,7 +651,7 @@ export class GraphCanvas extends Component<Props, State> {
   }
 
   private drawNode(node: FGNode, ctx: CanvasRenderingContext2D, scale: number) {
-    const t = this.theme;
+    const t = this.theme.tokens;
     const radius = this.radiusMap.get(node.id) ?? nodeRadius(node.degree);
     const x = node.x ?? 0;
     const y = node.y ?? 0;
@@ -676,30 +659,53 @@ export class GraphCanvas extends Component<Props, State> {
     const isSelected = node.id === this.props.selectedRef;
 
     ctx.save();
-    let alpha = node.status === "ghost" ? 0.45 : 1;
-    if (!highlighted) alpha *= 0.35;
-    ctx.globalAlpha = alpha;
+    const ghost = node.status === "ghost";
+    ctx.globalAlpha = highlighted ? 1 : 0.3;
 
-    if (node.dangling) {
+    if (isSelected) {
+      // A soft halo, then a ring a little way out from the node
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = t.bg || "#fff";
+      ctx.arc(x, y, radius + 7 / scale, 0, Math.PI * 2);
+      ctx.fillStyle = t.accentSoft;
       ctx.fill();
-      ctx.setLineDash([3 / scale, 2 / scale]);
-      ctx.lineWidth = 1.5 / scale;
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    if (node.dangling) {
+      // A link to a page that doesn't exist yet: an outline only
+      ctx.fillStyle = t.bg;
+      ctx.fill();
+      ctx.setLineDash([2.5 / scale, 2 / scale]);
+      ctx.lineWidth = 1.4 / scale;
       ctx.strokeStyle = t.nodeDim;
       ctx.stroke();
       ctx.setLineDash([]);
-    } else {
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = node.color;
+    } else if (ghost) {
+      // Not explored yet: a tint of its color inside a ring, so it reads as
+      // "click to add" next to the solid explored nodes
+      const color = this.theme.color(node.color);
+      ctx.fillStyle = t.bg;
       ctx.fill();
+      ctx.globalAlpha *= 0.3;
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.globalAlpha /= 0.3;
+      ctx.lineWidth = 1.5 / scale;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = this.theme.color(node.color);
+      ctx.fill();
+      // Keeps touching nodes apart
+      ctx.lineWidth = 1.5 / scale;
+      ctx.strokeStyle = t.bg;
+      ctx.stroke();
     }
 
     if (isSelected) {
       ctx.beginPath();
-      ctx.arc(x, y, radius + 2 / scale, 0, Math.PI * 2);
+      ctx.arc(x, y, radius + 3.5 / scale, 0, Math.PI * 2);
       ctx.lineWidth = 2 / scale;
       ctx.strokeStyle = t.accent;
       ctx.stroke();
@@ -710,26 +716,27 @@ export class GraphCanvas extends Component<Props, State> {
     const showLabel =
       scale >= NODE_LABEL_MIN_SCALE && (highlighted || this.hoveredId === null);
     if (showLabel) {
-      const fontPx = isSelected ? 13 : 11;
+      const fontPx = isSelected ? 12 : 11;
       const fontSize = fontPx / scale;
-      ctx.font = `${isSelected ? "600 " : ""}${fontSize}px ${t.font}`;
+      ctx.font = `${isSelected ? "600" : "400"} ${fontSize}px ${t.font}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const name = displayName(node.title);
       const label = node.prefix ? `${node.prefix}${name}` : name;
-      const gap = 4 / scale;
+      const gap = (isSelected ? 8 : 4) / scale;
       // Halo behind the label for legibility over edges.
-      ctx.lineWidth = 3 / scale;
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 4 / scale;
       ctx.strokeStyle = t.labelHalo;
       ctx.strokeText(label, x, y + radius + gap);
-      ctx.fillStyle = node.dangling ? t.nodeDim : t.label;
+      ctx.fillStyle = node.dangling || ghost ? t.labelDim : t.label;
       ctx.fillText(label, x, y + radius + gap);
     }
     ctx.restore();
   }
 
   private drawLink(link: FGLink, ctx: CanvasRenderingContext2D, scale: number) {
-    const t = this.theme;
+    const t = this.theme.tokens;
     const source = link.source as FGNode;
     const target = link.target as FGNode;
     if (
@@ -869,7 +876,8 @@ export class GraphCanvas extends Component<Props, State> {
       fg.zoom(2, 400);
       return;
     }
-    fg.zoomToFit(400, 40);
+    // Room for the labels drawn below the outermost nodes
+    fg.zoomToFit(400, 56);
     if (fg.zoom() > MAX_AUTO_ZOOM) fg.zoom(MAX_AUTO_ZOOM, 400);
   }
 
@@ -887,57 +895,31 @@ export class GraphCanvas extends Component<Props, State> {
         {isEmpty && <div class="gv-empty">Graph is empty</div>}
         {edgeHover && <EdgeTooltip {...edgeHover} />}
         {ghostHover && !edgeHover && <GhostTooltip {...ghostHover} />}
-        <div class="graph-controls">
-          <div class="graph-pan">
-            <button
-              type="button"
-              class="graph-pan-up"
-              title="Pan up"
-              onClick={() => this.pan(0, -1)}
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              class="graph-pan-left"
-              title="Pan left"
-              onClick={() => this.pan(-1, 0)}
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              class="graph-pan-center"
-              title="Fit to view"
-              onClick={this.recenter}
-            >
-              ⊙
-            </button>
-            <button
-              type="button"
-              class="graph-pan-right"
-              title="Pan right"
-              onClick={() => this.pan(1, 0)}
-            >
-              →
-            </button>
-            <button
-              type="button"
-              class="graph-pan-down"
-              title="Pan down"
-              onClick={() => this.pan(0, 1)}
-            >
-              ↓
-            </button>
-          </div>
-          <div class="graph-zoom">
-            <button type="button" title="Zoom in" onClick={this.zoomIn}>
-              +
-            </button>
-            <button type="button" title="Zoom out" onClick={this.zoomOut}>
-              −
-            </button>
-          </div>
+        <div class="graph-controls" role="group" aria-label="View">
+          <button
+            type="button"
+            title="Zoom in (+)"
+            aria-label="Zoom in"
+            onClick={this.zoomIn}
+          >
+            <ZoomIn size={15} />
+          </button>
+          <button
+            type="button"
+            title="Zoom out (−)"
+            aria-label="Zoom out"
+            onClick={this.zoomOut}
+          >
+            <ZoomOut size={15} />
+          </button>
+          <button
+            type="button"
+            title="Fit to view"
+            aria-label="Fit to view"
+            onClick={this.recenter}
+          >
+            <Maximize size={14} />
+          </button>
         </div>
       </div>
     );

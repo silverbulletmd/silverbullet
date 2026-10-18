@@ -1,9 +1,6 @@
-// Visual language aligned with SilverBullet's configuration-manager plug
-// — color tokens, section header style, button style, and border radii
-// match `silverbullet/plugs/configuration-manager/ui/configuration.scss`.
-// Dark mode is driven by both `prefers-color-scheme` (for iframes that
-// don't see the parent's data-theme) AND `html[data-theme="dark"]` (for
-// when SilverBullet propagates its explicit theme into the iframe).
+// The graph's look comes from SilverBullet's own theme tokens (the shared
+// components stylesheet the panel loads, plus space styles), so it follows
+// light and dark mode and user theming without a palette of its own.
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -11,55 +8,18 @@ html {
   font-family: var(--ui-font);
   font-size: 14px;
 
-  // Chrome colors (background, text, borders, sections, hover, accent) come
-  // from the shared panel-surface palette in components.css. Only the
-  // graph-specific node/edge palette below is defined locally.
-
-  // Graph palette — node-color tokens are object-graph specific.
-  --gv-node: #111;
-  --gv-node-current: #1e63d8;
-  --gv-node-dim: #9e4705;       // missing-link rust
-  --gv-label: #333;
-  --gv-label-dim: #777;
-  --gv-link: #c8c8c8;
-  --gv-link-dim: #e6e6e6;
-  --gv-link-hot: #464cfc;
-  --gv-accent: #650007;         // SB meta-color — current-page ring
-  --gv-label-halo: rgba(255, 255, 255, 0.78);
-
-  --gv-tag-bg: #4070d0;
-  --gv-tag-fg: #ffffff;
-  --gv-tag-border: #2a5099;
-
-  --gv-untagged: #9e9e9e;
-}
-
-// Dark tokens — same values configuration-manager uses, applied for either
-// the explicit theme attribute or the user's system preference.
-@mixin gv-dark-tokens {
-  color-scheme: dark;
-
-  --gv-node: #fff;
-  --gv-node-current: #6e9bff;
-  --gv-node-dim: #c97c4a;
-  --gv-label: #d8d8d8;
-  --gv-label-dim: #888;
-  --gv-link: #555;
-  --gv-link-dim: #333;
-  --gv-link-hot: #6e74ff;
-  --gv-accent: #d6222e;
-  --gv-label-halo: rgba(30, 30, 30, 0.78);
-
-  --gv-tag-bg: #5b85e8;
-  --gv-tag-fg: #ffffff;
-  --gv-tag-border: #3868c8;
-
-  --gv-untagged: #6e6e6e;
-}
-
-html[data-theme="dark"] { @include gv-dark-tokens; }
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) { @include gv-dark-tokens; }
+  // Canvas palette, read by graph_canvas.tsx (resolved to plain colors there)
+  --gv-bg: var(--ui-surface-background-color);
+  --gv-accent: var(--ui-accent-color);
+  --gv-accent-soft: color-mix(in srgb, var(--ui-accent-color) 16%, transparent);
+  --gv-label: var(--ui-surface-color);
+  --gv-label-dim: var(--ui-surface-subtle-color);
+  --gv-label-halo: color-mix(in srgb, var(--ui-surface-background-color) 88%, transparent);
+  --gv-link: color-mix(in srgb, var(--ui-surface-color) 22%, var(--ui-surface-background-color));
+  --gv-link-dim: color-mix(in srgb, var(--ui-surface-color) 10%, var(--ui-surface-background-color));
+  --gv-link-hot: var(--ui-accent-color);
+  --gv-node-dim: var(--ui-surface-subtle-color);
+  --gv-untagged: color-mix(in srgb, var(--ui-surface-color) 35%, var(--ui-surface-background-color));
 }
 
 html, body { height: 100%; background: var(--ui-surface-background-color); color: var(--ui-surface-color); }
@@ -96,188 +56,351 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   inset: 0;
 }
 
-// Floating controls overlay (bottom-right of the canvas stage).
-// Pan pad on the left, zoom in/out stacked on the right.
+// Zoom and fit, stacked at the canvas's bottom right like a map's controls
 .graph-controls {
   position: absolute;
-  bottom: 12px;
   right: 12px;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 8px;
+  bottom: 12px;
   z-index: 2;
-  pointer-events: none; // children opt in
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: 8px;
+  background: var(--ui-surface-background-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   button {
-    pointer-events: auto;
-    background: var(--ui-surface-background-color);
-    color: var(--ui-surface-color);
-    border: 1px solid var(--ui-surface-border-color);
-    border-radius: 6px;
-    cursor: pointer;
-    width: 28px;
-    height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    line-height: 1;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: none;
+    color: var(--ui-surface-subtle-color);
+    cursor: pointer;
 
-    &:hover { background: var(--ui-surface-hover-background-color); }
-    &:active { background: var(--ui-surface-section-background-color); }
+    & + button { border-top: 1px solid var(--ui-surface-border-color); }
+    &:hover {
+      background: var(--ui-surface-hover-background-color);
+      color: var(--ui-surface-color);
+    }
   }
-}
-
-.graph-zoom {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  button {
-    flex: 1 1 0;
-    height: auto;  // let flex stretch determine the height
-  }
-}
-
-// 3x3 directional pad — middle row has ←, center, →; top/bottom rows
-// have just the up/down arrow in the middle column.
-.graph-pan {
-  display: grid;
-  grid-template-columns: repeat(3, 28px);
-  grid-template-rows: repeat(3, 28px);
-  gap: 4px;
-
-  .graph-pan-up    { grid-column: 2; grid-row: 1; }
-  .graph-pan-left  { grid-column: 1; grid-row: 2; }
-  .graph-pan-center{ grid-column: 2; grid-row: 2; }
-  .graph-pan-right { grid-column: 3; grid-row: 2; }
-  .graph-pan-down  { grid-column: 2; grid-row: 3; }
 }
 
 .gv-app {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--ui-surface-background-color);
   color: var(--ui-surface-color);
+  font-size: 13px;
 }
+
 .gv-body {
+  position: relative;
   display: grid;
-  grid-template-columns: var(--gv-sidebar-width, 230px) 5px minmax(0, 1fr);
+  grid-template-columns: var(--gv-sidebar-width, 250px) 5px minmax(0, 1fr);
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+
+  &.gv-filters-closed { grid-template-columns: minmax(0, 1fr); }
 }
+
 .gv-resizer {
   cursor: col-resize;
   background: transparent;
-  border-left: 1px solid var(--ui-surface-border-color);
   user-select: none;
   transition: background 120ms ease;
+
+  &:hover, &.dragging { background: var(--gv-accent-soft); }
 }
-.gv-resizer:hover,
-.gv-resizer.dragging {
-  background: var(--ui-accent-color, rgba(70, 76, 252, 0.25));
-}
+
 .gv-canvas-wrap {
   position: relative;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-}
-.gv-canvas-wrap .graph-canvas {
-  position: absolute;
-  inset: 0;
+  // A faint dot grid: reads as a canvas you can pan, not a blank page
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--ui-surface-color) 9%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+
+  .graph-canvas {
+    position: absolute;
+    inset: 0;
+  }
 }
 
-/* Object section inside the sidebar (selected node attributes). */
-.gv-object-section {
-  margin-top: auto;
-  padding: 6px 14px 10px;
-  border-top: 1px solid var(--ui-surface-border-color);
-  background: var(--ui-surface-background-color);
-}
-.gv-object-section .gv-object-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--ui-surface-border-color);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ui-surface-color);
-}
-.gv-object-section .gv-object-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.gv-object-section .gv-object-title-link {
-  cursor: pointer;
-  color: var(--ui-accent-color);
-  text-decoration: none;
-}
-.gv-object-section .gv-object-title-link:hover { text-decoration: underline; }
-.gv-object-section .gv-object-body {
-  margin: 0;
-  font-family: var(--ui-font);
-  font-size: 11px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: var(--ui-surface-color);
-}
+// ---- Toolbar
 
-/* Header — sized roughly like configuration-manager's #cfg-header. */
-.gv-header {
+.gv-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--ui-surface-border-color);
   flex-shrink: 0;
-}
-.gv-header-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.gv-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.gv-header-toggle {
-  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: var(--ui-surface-color);
-  user-select: none;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ui-surface-border-color);
+}
+
+.gv-toolbar-group {
+  display: inline-flex;
+  gap: 4px;
+  padding-left: 6px;
+  margin-left: 2px;
+  border-left: 1px solid var(--ui-surface-border-color);
+}
+
+.gv-toolbar-spacer { flex: 1; }
+
+.gv-stats {
+  color: var(--ui-surface-subtle-color);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// A toggle that shows its state by its fill, like a segmented control's item
+.gv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: 999px;
+  background: none;
+  color: var(--ui-surface-subtle-color);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover { background: var(--ui-surface-hover-background-color); }
+
+  &[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--ui-accent-color) 45%, var(--ui-surface-border-color));
+    background: var(--gv-accent-soft);
+    color: var(--ui-accent-text-color);
+  }
+}
+
+.gv-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ui-surface-subtle-color);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover { color: var(--ui-accent-text-color); }
+}
+
+// ---- Filters
+
+.gv-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--ui-surface-border-color);
+  background: var(--ui-surface-background-color);
+}
+
+.gv-sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.gv-section { padding: 10px 10px 4px; }
+
+.gv-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.gv-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ui-surface-subtle-color);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
-// Close button uses the `.sb-button-icon` component; keep only positioning and
-// the larger glyph size for the `×`.
-.gv-close-button {
+.gv-twisty {
+  transition: transform 0.12s;
+  &.open { transform: rotate(90deg); }
+}
+
+.gv-section-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.gv-section-search {
+  width: 100%;
+  margin: 2px 0 6px;
+  font-size: 12px;
+}
+
+.gv-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--ui-surface-color);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { background: var(--ui-surface-hover-background-color); }
+
+  // Hidden: a hollow swatch and a quieter name
+  &[aria-pressed="false"] {
+    color: var(--ui-surface-subtle-color);
+
+    .gv-swatch {
+      background: transparent;
+      box-shadow: inset 0 0 0 1.5px var(--gv-swatch, var(--gv-untagged));
+    }
+
+    .gv-edge-glyph { opacity: 0.35; }
+    .gv-row-name { text-decoration: line-through; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); }
+  }
+}
+
+.gv-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gv-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gv-count {
   margin-left: auto;
-  font-size: 18px;
-  line-height: 1;
+  color: var(--ui-surface-subtle-color);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gv-swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gv-swatch, var(--gv-untagged));
+}
+
+.gv-edge-glyph {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 0;
+  border-top: 1.5px solid var(--gv-link);
+}
+
+.gv-more {
+  display: block;
+  margin: 4px 6px;
+}
+
+.gv-forces-body { display: flex; flex-direction: column; gap: 10px; padding: 4px 6px; }
+.gv-force-row { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.gv-force-row input[type="range"] { width: 100%; accent-color: var(--ui-accent-color); }
+.gv-force-label { display: flex; justify-content: space-between; color: var(--ui-surface-subtle-color); }
+.gv-force-value { font-variant-numeric: tabular-nums; }
+
+// ---- The selected object
+
+.gv-inspector {
+  flex: 0 1 auto;
+  max-height: 45%;
+  overflow-y: auto;
+  padding: 10px;
+  border-top: 1px solid var(--ui-surface-border-color);
+  background: var(--ui-surface-section-background-color);
+}
+
+.gv-inspector-empty {
+  color: var(--ui-surface-subtle-color);
+  font-size: 12px;
+}
+
+.gv-inspector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  .sb-button { flex-shrink: 0; padding: 2px 10px; font-size: 12px; }
+}
+
+.gv-inspector-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gv-attrs {
+  display: grid;
+  grid-template-columns: minmax(64px, max-content) minmax(0, 1fr);
+  gap: 3px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+
+  dt { color: var(--ui-surface-subtle-color); }
+  dd { min-width: 0; overflow-wrap: anywhere; }
+  pre { font: inherit; white-space: pre-wrap; }
+  .gv-attr-system { opacity: 0.6; }
+}
+
+// Narrow (a sidebar dock): the filters slide over the canvas instead
+.gv-narrow {
+  .gv-body { grid-template-columns: minmax(0, 1fr); }
+
+  .gv-sidebar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 5;
+    width: min(300px, 88%);
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .gv-stats { display: none; }
+  .gv-chip { padding: 3px 8px; }
+  .gv-toolbar .sb-button { padding-inline: 8px; }
 }
 
 /* Ghost-node hover tooltip */
@@ -331,122 +454,6 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   font-style: italic;
 }
 
-/* Sidebar */
-.gv-sidebar {
-  border-right: 1px solid var(--ui-surface-border-color);
-  overflow: auto;
-  font-size: 13px;
-}
-// Filter sections — title underline matches configuration-manager's
-// .lib-section-header / .cfg-category-title pattern.
-.gv-section { padding: 12px 14px 6px; }
-.gv-section + .gv-section { padding-top: 14px; }
-.gv-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--ui-surface-border-color);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ui-surface-subtle-color);
-  cursor: pointer;
-  user-select: none;
-}
-.gv-section-title { display: inline-flex; align-items: center; }
-.gv-twisty {
-  display: inline-block;
-  transition: transform 0.12s;
-  margin-right: 6px;
-  font-size: 10px;
-  color: var(--ui-surface-subtle-color);
-}
-.gv-twisty.open { transform: rotate(90deg); }
-.gv-section-actions {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-}
-.gv-section-actions a {
-  cursor: pointer;
-  color: var(--ui-surface-subtle-color);
-  text-decoration: none;
-}
-.gv-section-actions a:hover { color: var(--ui-surface-color); text-decoration: underline; }
-.gv-section-body { padding: 0; }
-.gv-forces-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
-.gv-force-row { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
-.gv-force-row input[type="range"] { width: 100%; }
-.gv-force-label { display: flex; justify-content: space-between; color: var(--ui-surface-subtle-color); }
-.gv-force-value { font-variant-numeric: tabular-nums; }
-// Search field uses the shared `.sb-input`; keep only layout here.
-.gv-section-search {
-  width: 100%;
-  margin: 4px 0 8px;
-}
-.gv-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 0;
-  font-size: 13px;
-}
-.gv-count { margin-left: auto; color: var(--ui-surface-subtle-color); font-size: 12px; }
-.gv-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.gv-tag-row { display: inline-flex; align-items: center; gap: 6px; }
-.gv-more {
-  display: block;
-  margin-top: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--ui-accent-color);
-}
-.gv-more:hover { text-decoration: underline; }
-
-/* Object view */
-.gv-object-view {
-  border-left: 1px solid var(--ui-surface-border-color);
-  background: var(--ui-surface-background-color);
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
-.gv-object-view-empty {
-  align-items: center;
-  justify-content: center;
-  color: var(--ui-surface-subtle-color);
-  font-size: 12px;
-  padding: 18px;
-}
-.gv-object-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--ui-surface-border-color);
-}
-.gv-object-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-.gv-object-body {
-  margin: 0;
-  padding: 10px 12px;
-  font-family: var(--ui-font);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  color: var(--ui-surface-color);
-}
 
 /* Empty graph overlay */
 .gv-empty {

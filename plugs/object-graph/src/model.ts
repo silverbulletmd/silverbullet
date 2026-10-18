@@ -1,3 +1,4 @@
+import type { PanelViewDock } from "@silverbulletmd/silverbullet/type/manifest";
 // The relation `kind` is either a reserved structural value (`mention`,
 // `co-mention`) or a user predicate (e.g. `spouse`). Mirrors `plugs/index/relation.ts`.
 export const STRUCTURAL_KINDS = new Set(["mention", "co-mention"]);
@@ -111,4 +112,10 @@ export type RootViewModel = {
    * don't pollute the local-view filter preferences.
    */
   persistFilters?: boolean;
+  /**
+   * Where the graph view shows: the modal, or a dock beside the editor.
+   * Docked, opening an object leaves the graph open and Escape returns to the
+   * editor instead of closing it.
+   */
+  dock: PanelViewDock;
 };
