@@ -105,7 +105,9 @@ async fn a_second_rebuild_while_one_runs_starts_nothing() {
 #[tokio::test(start_paused = true)]
 async fn a_rebuild_reports_building_then_ready() {
     let view = view_with(3);
-    let sink = Arc::new(RecordingSink::default());
+    // Slow enough that `Building` is still published when the test looks:
+    // the status channel keeps only the latest value
+    let sink = Arc::new(RecordingSink::default().with_apply_delay(Duration::from_millis(50)));
     let worker = SyncWorker::spawn_with(
         "garden",
         sink.clone(),
