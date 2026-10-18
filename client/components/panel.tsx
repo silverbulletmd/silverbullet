@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
 import type { PanelConfig, PanelSlot } from "../types/ui.ts";
 import { panelHtml } from "../sandbox/panel_html.ts";
+import { forwardShortcuts } from "./forward_shortcuts.ts";
 
 export function Panel({
   config,
@@ -113,6 +114,25 @@ function IFramePanel({
       iframe.removeEventListener("load", updateContent);
     };
   }, [config.html, config.script]);
+
+  // Each load (a srcdoc iframe boots a new window) gets the app's shortcuts
+  useEffect(() => {
+    const iframe = iFrameRef.current;
+    if (!iframe) return;
+    let detach = () => {};
+    const attach = () => {
+      detach();
+      detach = iframe.contentWindow
+        ? forwardShortcuts(iframe.contentWindow)
+        : () => {};
+    };
+    attach();
+    iframe.addEventListener("load", attach);
+    return () => {
+      iframe.removeEventListener("load", attach);
+      detach();
+    };
+  }, []);
 
   // The theme only rides along with the `html` message, which a long-lived
   // panel receives once. Without this, toggling dark mode leaves every

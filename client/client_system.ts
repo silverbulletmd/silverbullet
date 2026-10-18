@@ -42,6 +42,7 @@ import { indexSyscalls } from "./plugos/syscalls/index.ts";
 import { configSyscalls } from "./plugos/syscalls/config.ts";
 import { eventSyscalls } from "./plugos/syscalls/event.ts";
 import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
+import { PanelViewHook } from "./plugos/hooks/panel_view.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import type { ILuaFunction } from "./space_lua/runtime.ts";
@@ -197,6 +198,8 @@ export class ClientSystem {
 
     this.documentEditorHook = new DocumentEditorHook();
     this.system.addHook(this.documentEditorHook);
+
+    this.system.addHook(new PanelViewHook());
 
     this.commandHook = new CommandHook(
       this.readOnlyMode,

@@ -162,6 +162,53 @@ export type DocumentEditorT = {
   editor?: string | string[];
 };
 
+/** A dock a panel view can show in: the modal window, or beside the editor */
+export type PanelViewDock = "modal" | "lhs" | "rhs" | "bhs";
+
+/**
+ * A navigator view whose body is a sandboxed HTML panel, like the ones
+ * `editor.showPanel` shows, but dockable and movable like any other view.
+ * The function it's declared on builds the panel: it gets a
+ * {@link PanelViewContext} and returns a {@link PanelViewResult}.
+ */
+export type PanelViewDef = {
+  /** The view's name, as `view.open` and `view.defaults` refer to it */
+  name: string;
+  title: string;
+  /** Where it opens until the user moves it (default `"modal"`) */
+  dock?: PanelViewDock;
+  /** Where it may be moved to (default: just `dock`) */
+  supportedDocks?: PanelViewDock[];
+  /** Tabs in the view's header; the panel is built for the one showing */
+  tabs?: { label: string; followEditor?: boolean }[];
+  /**
+   * Whether a docked view is built again when another page opens in the
+   * editor (per tab, when it has tabs). The modal keeps the page it opened on.
+   */
+  followEditor?: boolean;
+  /** `"large"`: the modal takes most of the window, for a canvas and the like */
+  modalSize?: "default" | "large";
+};
+
+export type PanelViewT = {
+  view?: PanelViewDef;
+};
+
+/** What a panel view's function is built for */
+export type PanelViewContext = {
+  /** The tab showing, when the view has tabs */
+  tab?: string;
+  /** The page open in the editor */
+  page: string;
+  /** Where the view shows */
+  dock: PanelViewDock;
+};
+
+/** A panel view's content, or why there is none (shown in its place) */
+export type PanelViewResult =
+  | { html: string; script?: string }
+  | { error: string };
+
 /** Silverbullet hooks give plugs access to silverbullet core systems.
  *
  * Hooks are associated with typescript functions through a manifest file.
@@ -176,6 +223,7 @@ export type SilverBulletHooks = CommandHookT &
   CodeWidgetT &
   PlugNamespaceHookT &
   DocumentEditorT &
+  PanelViewT &
   SyscallHookT;
 
 /** A plug manifest configures hooks, declares syntax extensions, and describes plug metadata.

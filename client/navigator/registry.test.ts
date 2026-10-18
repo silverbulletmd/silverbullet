@@ -57,6 +57,8 @@ const {
   selectInFlight,
   loadContent,
   normalizeContent,
+  setPanelViews,
+  panelView,
 } = await import("./registry.ts");
 const { builtinMeta } = await import("./builtins.ts");
 
@@ -345,4 +347,41 @@ test("normalizeContent reads values, errors, and nothing at all", () => {
   expect(normalizeContent({ error: "broke" })).toEqual({ error: "broke" });
   expect(normalizeContent(undefined)).toEqual({ value: null });
   expect(normalizeContent({})).toEqual({ value: null });
+});
+
+test("a plug's panel view answers meta, and nothing past its empty rows", async () => {
+  setPanelViews([
+    {
+      def: { name: "example.map", title: "Map", dock: "rhs" },
+      plug: "example",
+      fn: "mapPanel",
+    },
+  ]);
+  try {
+    expect(resolveMeta("example.map")).toMatchObject({
+      name: "example.map",
+      dock: "rhs",
+    });
+    expect(panelView("example.map")?.fn).toBe("mapPanel");
+    expect(await handle({ view: "example.map", hook: "rows" })).toEqual([]);
+    expect(
+      await handle({ view: "example.map", hook: "select", args: {} }),
+    ).toBeUndefined();
+    // Space Lua can't take over a plug's view
+    expect(() =>
+      register({ meta: luaMeta({ name: "example.map" }), spec: {} as any }),
+    ).toThrow(/defined by plug example/);
+  } finally {
+    setPanelViews([]);
+  }
+  expect(resolveMeta("example.map")).toBeUndefined();
+});
+
+test("a plug's panel view can't take a built-in's name", () => {
+  setPanelViews([
+    { def: { name: "std.pages", title: "Pages" }, plug: "example", fn: "f" },
+  ]);
+  expect(panelView("std.pages")).toBeUndefined();
+  expect(resolveMeta("std.pages")).toEqual(builtinMeta("std.pages"));
+  setPanelViews([]);
 });

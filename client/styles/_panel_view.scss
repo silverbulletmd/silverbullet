@@ -1,0 +1,43 @@
+// A plug's panel view (`navigator/ui/components/panel_view_body.tsx`): its
+// sandboxed panel filling a navigator dock or the modal.
+.sb-panel-view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+
+  .sb-panel {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+
+    iframe {
+      flex: 1 1 auto;
+      height: auto;
+    }
+  }
+}
+
+.sb-panel-view-message {
+  padding: 24px 16px;
+  color: var(--subtle-color);
+  font-family: var(--ui-font);
+  text-align: center;
+}
+
+// `modalSize: large`, for a canvas and the like: a box nearer the window's
+// edges than other workspaces (the inline inset is the pickers')
+@media (min-width: 601px) {
+  .sb-modal.sb-modal-centered:has(.sb-panel-view[data-modal-size="large"]) {
+    top: 4vh !important;
+    width: min(1440px, 96vw);
+    max-width: none;
+    max-height: 92vh !important;
+  }
+
+  .sb-nav-root-modal.sb-nav-root-native:has(
+      .sb-panel-view[data-modal-size="large"]
+    ) {
+    height: calc(92vh - 2px);
+  }
+}

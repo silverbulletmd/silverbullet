@@ -1,5 +1,7 @@
 import type { FunctionComponent } from "preact";
 import type { Client } from "../../client.ts";
+import { panelView } from "../registry.ts";
+import { PanelViewBody } from "./components/panel_view_body.tsx";
 
 /**
  * Registers the element a native body wants focused when its panel takes
@@ -9,15 +11,20 @@ export type FocusTarget = (el: HTMLElement) => () => void;
 
 export type NativeViewProps = {
   client: Client;
+  /** The view's name */
+  view: string;
   slot: string;
+  /** The page or document open in the editor */
+  page: string;
   /** The active segment, for views that use segments as tabs. */
   segmentIndex: number;
   focusTarget: FocusTarget;
 };
 
 /**
- * Views whose body is a client component rather than rows or content. The
- * registry is the source of truth: a view with a registered body is native.
+ * Views whose body is a client component rather than rows or content: the
+ * ones registered here, and every panel view a plug declares (the registry
+ * keeps those). A view with a body is native.
  */
 const bodies = new Map<string, FunctionComponent<NativeViewProps>>();
 
@@ -31,7 +38,7 @@ export function registerNativeView(
 export function nativeBody(
   name: string,
 ): FunctionComponent<NativeViewProps> | undefined {
-  return bodies.get(name);
+  return bodies.get(name) ?? (panelView(name) ? PanelViewBody : undefined);
 }
 
 // Per slot: the element a mounted native body wants focused, and a focus

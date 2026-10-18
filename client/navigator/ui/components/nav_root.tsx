@@ -499,11 +499,13 @@ export function NavRoot({
         )}
         {fatalError ? (
           <div className="sb-nav-error">{error}</div>
-        ) : NativeBody ? (
+        ) : NativeBody && view ? (
           <div className="sb-nav-native">
             <NativeBody
               client={client}
+              view={view.name}
               slot={slot}
+              page={currentName}
               segmentIndex={segmentIndex}
               focusTarget={focusTarget}
             />

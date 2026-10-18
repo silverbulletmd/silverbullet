@@ -1,6 +1,7 @@
 import type { LuaEnv } from "../space_lua/runtime.ts";
 import { builtinHandle, builtinMeta, builtinViewNames } from "./builtins.ts";
 import { luaHandle } from "./lua_views.ts";
+import { type PanelView, panelViewMeta } from "./plug_views.ts";
 import type { NavigatorHook, ViewMeta } from "./types.ts";
 import { RESERVED_PICK_PREFIX, type ViewSpec } from "./view_spec.ts";
 
@@ -12,6 +13,28 @@ export type LuaView = {
 };
 
 const luaViews = new Map<string, LuaView>();
+
+// Panel views plugs declare in their manifests (`plug_views.ts`). Their body
+// is native (a hosted panel), so the registry only answers for their meta.
+const panelViews = new Map<string, { view: PanelView; meta: ViewMeta }>();
+
+/** Replaces every plug-declared panel view; called as plugs (un)load */
+export function setPanelViews(views: PanelView[]): void {
+  panelViews.clear();
+  for (const view of views) {
+    if (builtinMeta(view.def.name)) {
+      console.warn(
+        `Plug ${view.plug}: view "${view.def.name}" is a built-in navigator view and cannot be redefined`,
+      );
+      continue;
+    }
+    panelViews.set(view.def.name, { view, meta: panelViewMeta(view.def) });
+  }
+}
+
+export function panelView(name: string): PanelView | undefined {
+  return panelViews.get(name)?.view;
+}
 
 // The Space Lua environment a view's own hooks run in. Supplied by
 // `client_system.ts`, which owns it and rebuilds it on every script reload.
@@ -38,6 +61,11 @@ export function register(data: LuaView): void {
       `view.define: "${meta.name}" is a built-in navigator view and cannot be redefined`,
     );
   }
+  if (panelViews.has(meta.name)) {
+    throw new Error(
+      `view.define: "${meta.name}" is defined by plug ${panelViews.get(meta.name)!.view.plug} and cannot be redefined`,
+    );
+  }
   luaViews.set(meta.name, data);
 }
 
@@ -54,11 +82,13 @@ export function clearScriptViews(): void {
 }
 
 export function allViewNames(): string[] {
-  return [...builtinViewNames(), ...luaViews.keys()];
+  return [...builtinViewNames(), ...panelViews.keys(), ...luaViews.keys()];
 }
 
 export function resolveMeta(name: string): ViewMeta | undefined {
-  return builtinMeta(name) ?? luaViews.get(name)?.meta;
+  return (
+    builtinMeta(name) ?? panelViews.get(name)?.meta ?? luaViews.get(name)?.meta
+  );
 }
 
 export async function handle(data: {
@@ -73,6 +103,12 @@ export async function handle(data: {
     return hook === "meta"
       ? builtin
       : await builtinHandle(view, hook, args ?? {});
+  }
+  const panel = panelViews.get(view);
+  if (panel) {
+    if (hook === "meta") return panel.meta;
+    // No rows and nothing to select: the hosted panel is the whole body
+    return hook === "rows" ? [] : undefined;
   }
   const lua = luaViews.get(view);
   if (!lua) return undefined;
