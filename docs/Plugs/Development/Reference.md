@@ -187,6 +187,49 @@ svgEditor:
   editor: ".svg"
 ```
 
+## `view` (panel view)
+Declares a navigator [[View|view]] whose body is a sandboxed HTML panel that the function builds. Unlike a panel from `editor.showPanel`, it behaves like any other view: the user can move it between the modal window and the sidebars or bottom panel with its dock menu, it stays where they put it, and `view.open` and `view.defaults` refer to it by name.
+
+```yaml
+mapPanel:
+  path: ./map.ts:mapPanel
+  view:
+    name: example.map
+    title: Map
+    dock: modal # where it opens until moved: modal, lhs, rhs or bhs
+    supportedDocks: [modal, rhs, lhs, bhs]
+    modalSize: large # the modal takes most of the window
+    tabs:
+      - label: Near
+        followEditor: true # docked, built again for each page opened
+      - label: All
+openMap:
+  path: ./map.ts:openMap
+  command:
+    name: "Map: Open"
+```
+
+The function gets the tab showing, the open page and the dock, and returns the panel's `html` and `script` (the same pair `editor.showPanel` takes), or an `error` to show in its place:
+
+```typescript
+import { syscall } from "@silverbulletmd/silverbullet/syscall";
+import type {
+  PanelViewContext,
+  PanelViewResult,
+} from "@silverbulletmd/silverbullet/type/manifest";
+
+export async function mapPanel(ctx: PanelViewContext): Promise<PanelViewResult> {
+  if (!ctx.page) return { error: "Open a page to see its map." };
+  return { html: `<div id="map"></div>`, script: `/* draws the map for ${ctx.page} */` };
+}
+
+export async function openMap() {
+  await syscall("view.open", "example.map", { segment: "Near" });
+}
+```
+
+The panel is built again whenever its tab or dock changes, and, when it follows the editor, when another page opens while it's docked. From inside the panel, `editor.hidePanel(ctx.dock)` closes it. The [[Object Graph]] is a panel view.
+
 ## `syscall`
 Exposes the function as a syscall, callable from other plugs and from Space Lua. Combines with `path:` to provide an implementation. There is no separate TS sketch here — your function is a normal TypeScript function; whatever it returns is the syscall return value.
 
