@@ -49,3 +49,45 @@ export function previewSlice(value: unknown): {
     total,
   };
 }
+
+/**
+ * How many rows the preview reads first when they don't need every object (no
+ * sort or grouping): one more than it shows, to tell whether there are more
+ */
+export const LEADING_ROWS = PREVIEW_ROWS + 1;
+
+export type PreviewCounts = {
+  /** Rows the query returns, after its limit; null until counted */
+  count: number | null;
+  /** Objects the query matches, before its limit; null until counted */
+  matched: number | null;
+};
+
+/** The counts of a whole result, `all` taken before the query's limit */
+export function fullCounts(all: unknown, limit: number | null): PreviewCounts {
+  const matched = rowCount(all);
+  return {
+    matched,
+    count: limit === null ? matched : Math.min(limit, matched),
+  };
+}
+
+/** The counts the leading rows tell: exact when there were no more */
+export function leadingCounts(
+  rows: unknown,
+  limit: number | null,
+): PreviewCounts {
+  const n = rowCount(rows);
+  if (n < LEADING_ROWS) return fullCounts(rows, limit);
+  // A limit the leading rows reach is known to cut the rows off
+  return { matched: null, count: limit !== null && limit < n ? limit : null };
+}
+
+export function resultsHeading(c: PreviewCounts, grouped: boolean): string {
+  if (c.count === null) return `${PREVIEW_ROWS}+ results`;
+  if (grouped) return `${c.count} group${c.count === 1 ? "" : "s"}`;
+  if (c.matched === null) return `${c.count} of ${PREVIEW_ROWS}+ results`;
+  return c.count === c.matched
+    ? `${c.count} result${c.count === 1 ? "" : "s"}`
+    : `${c.count} of ${c.matched} results`;
+}

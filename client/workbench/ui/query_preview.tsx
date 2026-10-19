@@ -8,9 +8,13 @@ import { isGrouped } from "../query_edits.ts";
 import { sourceLabel } from "../query_from.ts";
 import {
   firstRows,
+  fullCounts,
+  LEADING_ROWS,
+  leadingCounts,
+  type PreviewCounts,
   previewDelay,
   previewSlice,
-  rowCount,
+  resultsHeading,
 } from "../query_preview.ts";
 import { evalQueryText } from "../query_source.ts";
 import { generateQuery } from "../query_text.ts";
@@ -21,7 +25,7 @@ import { ValueTree } from "./value_tree.tsx";
 
 type Result =
   | { kind: "pending" }
-  | { kind: "value"; value: unknown; matched: number }
+  | ({ kind: "value"; value: unknown } & PreviewCounts)
   | { kind: "error"; error: unknown };
 
 /** The objects the builder's query finds, the way a page would render them. */
@@ -36,16 +40,36 @@ export function QueryPreview({
   const [result, setResult] = useState<Result>({ kind: "pending" });
   const m = builder.model;
   const limit = m?.limit ?? null;
+  const grouped = !!m && isGrouped(m);
   // Run without the limit, for "N of M": the limit only cuts the rows off
   const text = m
     ? generateQuery({ ...m, limit: null }, builder.fields, { wrap: false })
     : null;
+  // Unsorted and ungrouped, the first rows don't need every object read
+  // (`leadingRowsNeeded`): show them first, then count the rest
+  const leadingText =
+    m && !grouped && !m.sorts.length
+      ? generateQuery({ ...m, limit: LEADING_ROWS }, builder.fields, {
+          wrap: false,
+        })
+      : null;
+  // The columns don't change how many there are
+  const countText =
+    m && leadingText
+      ? generateQuery(
+          { ...m, limit: null, select: { mode: "table", columns: [] } },
+          builder.fields,
+          { wrap: false },
+        )
+      : null;
 
   const lastRun = useRef(0);
-  // A fresh slice would render the table again on every re-render of the tab
+  const shownValue = result.kind === "value" ? result.value : undefined;
+  // A fresh slice would render the table again on every re-render of the tab,
+  // the count arriving included
   const slice = useMemo(
-    () => (result.kind === "value" ? previewSlice(result.value) : null),
-    [result],
+    () => (shownValue === undefined ? null : previewSlice(shownValue)),
+    [shownValue],
   );
 
   useEffect(() => {
@@ -55,10 +79,23 @@ export function QueryPreview({
       async () => {
         lastRun.current = Date.now();
         try {
+          if (leadingText && countText) {
+            const rows = await evalQueryText(client, leadingText);
+            if (cancelled) return;
+            const value = limit === null ? rows : firstRows(rows, limit);
+            const counts = leadingCounts(rows, limit);
+            setResult({ kind: "value", value, ...counts });
+            if (counts.matched !== null) return;
+            const all = await evalQueryText(client, countText);
+            if (!cancelled) {
+              setResult({ kind: "value", value, ...fullCounts(all, limit) });
+            }
+            return;
+          }
           const all = await evalQueryText(client, text);
           const value = limit === null ? all : firstRows(all, limit);
           if (!cancelled) {
-            setResult({ kind: "value", value, matched: rowCount(all) });
+            setResult({ kind: "value", value, ...fullCounts(all, limit) });
           }
         } catch (error) {
           if (!cancelled) setResult({ kind: "error", error });
@@ -71,10 +108,9 @@ export function QueryPreview({
       clearTimeout(timer);
     };
     // A new version of the space's data runs the same query again
-  }, [client, text, limit, builder.dataVersion]);
+  }, [client, text, leadingText, countText, limit, builder.dataVersion]);
 
   if (!m) return <div className="sb-wbq-preview" />;
-  const grouped = isGrouped(m);
   let header = "";
   let body = null;
   if (result.kind === "error") {
@@ -89,12 +125,8 @@ export function QueryPreview({
         <div className="sb-wb-message">{errorMessage(result.error)}</div>
       );
   } else if (result.kind === "value" && slice) {
-    const count = rowCount(result.value);
-    header = grouped
-      ? `${count} group${count === 1 ? "" : "s"}`
-      : count === result.matched
-        ? `${count} result${count === 1 ? "" : "s"}`
-        : `${count} of ${result.matched} results`;
+    const { count } = result;
+    header = resultsHeading(result, grouped);
     if (count === 0) {
       body = (
         <div className="sb-wbq-note">
@@ -106,9 +138,13 @@ export function QueryPreview({
     } else {
       body = (
         <>
-          {slice.shown < slice.total ? (
+          {count === null ? (
             <div className="sb-wbq-note">
-              Showing the first {slice.shown} of {slice.total}
+              Showing the first {slice.shown}, counting the rest…
+            </div>
+          ) : slice.shown < count ? (
+            <div className="sb-wbq-note">
+              Showing the first {slice.shown} of {count}
             </div>
           ) : null}
           {view === 0 ? (

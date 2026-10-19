@@ -193,6 +193,28 @@ export function toCollection(obj: any): LuaQueryCollection {
   return new ArrayQueryCollection([obj]);
 }
 
+/**
+ * How many rows from the start of a collection decide the query's result, or
+ * undefined when every row can matter (a filter, sort, grouping or aggregate
+ * looks at all of them). With `distinct`, rows that collapse take more.
+ */
+export function leadingRowsNeeded(
+  query: LuaCollectionQuery,
+  config?: Config,
+): number | undefined {
+  if (
+    query.limit === undefined ||
+    query.where ||
+    query.orderBy?.length ||
+    query.groupBy ||
+    query.having ||
+    (query.select && containsAggregate(query.select, config))
+  ) {
+    return undefined;
+  }
+  return (query.offset ?? 0) + query.limit;
+}
+
 function containsAggregate(expr: LuaExpression, config?: Config): boolean {
   switch (expr.type) {
     case "FilteredCall": {

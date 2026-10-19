@@ -233,6 +233,124 @@ describe("ObjectIndex scan memoization", () => {
   });
 });
 
+describe("ObjectIndex leading-rows queries", () => {
+  function makeRowCountingIndex() {
+    const kv = new MemoryKvPrimitives();
+    let rowsRead = 0;
+    const origQuery = kv.query.bind(kv);
+    kv.query = async function* (opts: any) {
+      for await (const row of origQuery(opts)) {
+        rowsRead++;
+        yield row;
+      }
+    };
+    const ds = new DataStore(kv);
+    const eventHook = new EventHook();
+    const objectIndex = new ObjectIndex(
+      ds,
+      new Config(),
+      eventHook,
+      new DataStoreMQ(ds, eventHook),
+    );
+    return { objectIndex, rowsRead: () => rowsRead };
+  }
+
+  const pages = () =>
+    Array.from({ length: 50 }, (_, i) =>
+      pageObject(`p${String(i).padStart(2, "0")}`),
+    );
+
+  function query(objectIndex: ObjectIndex, q: Record<string, unknown>) {
+    return objectIndex.queryLuaObjects<any>(new LuaEnv(), "page", {
+      objectVariable: "p",
+      ...q,
+    });
+  }
+
+  test("a plain limit reads only the rows it returns", async () => {
+    const { objectIndex, rowsRead } = makeRowCountingIndex();
+    await objectIndex.indexObjects("TestPage", pages());
+    const before = rowsRead();
+    const results = await query(objectIndex, { limit: 5, offset: 2 });
+    expect(results.map((p) => p.name)).toEqual([
+      "p02",
+      "p03",
+      "p04",
+      "p05",
+      "p06",
+    ]);
+    expect(rowsRead() - before).toBe(7);
+  });
+
+  test("a plain limit returns what the full scan would", async () => {
+    const { objectIndex } = makeRowCountingIndex();
+    await objectIndex.indexObjects("TestPage", pages());
+    const select = parseExpressionString("p.name");
+    const limited = await query(objectIndex, { limit: 3, select });
+    const all = await query(objectIndex, { select });
+    expect(limited).toEqual(all.slice(0, 3));
+  });
+
+  test("a filter, sort or aggregate still reads every row", async () => {
+    const { objectIndex, rowsRead } = makeRowCountingIndex();
+    await objectIndex.indexObjects("TestPage", pages());
+    for (const q of [
+      { where: parseExpressionString('p.name ~= "p00"') },
+      { orderBy: [{ expr: parseExpressionString("p.name"), desc: true }] },
+      { select: parseExpressionString("count(p.name)") },
+    ]) {
+      objectIndex.scanMemoTTLMs = 0;
+      const before = rowsRead();
+      await query(objectIndex, { ...q, limit: 1 });
+      expect(rowsRead() - before).toBe(50);
+    }
+  });
+
+  test("distinct rows read on until enough are left", async () => {
+    const { objectIndex, rowsRead } = makeRowCountingIndex();
+    await objectIndex.indexObjects("TestPage", pages());
+    // Every page has the same `extra`: one distinct row, found only by reading all
+    const select = parseExpressionString("p.extra");
+    let before = rowsRead();
+    expect(
+      await query(objectIndex, { select, distinct: true, limit: 2 }),
+    ).toEqual(["x"]);
+    expect(rowsRead() - before).toBeGreaterThanOrEqual(50);
+    // Distinct names don't collapse, so the first rows are enough
+    objectIndex.scanMemoTTLMs = 0;
+    before = rowsRead();
+    const names = await query(objectIndex, {
+      select: parseExpressionString("p.name"),
+      distinct: true,
+      limit: 3,
+    });
+    expect(names).toEqual(["p00", "p01", "p02"]);
+    expect(rowsRead() - before).toBe(3);
+  });
+
+  test("callers can't change the store through limited results", async () => {
+    const { objectIndex } = makeRowCountingIndex();
+    await objectIndex.indexObjects("TestPage", pages());
+    const [first] = await query(objectIndex, { limit: 1 });
+    first.name = "MUTATED";
+    const [again] = await query(objectIndex, { limit: 1 });
+    expect(again.name).toBe("p00");
+  });
+
+  test("rows an enricher drops don't count toward the limit", async () => {
+    const objectIndex = makeObjectIndex();
+    await objectIndex.indexObjects("TestPage", [
+      relationObject("r1", "mention"),
+      relationObject("r2", "spouse"),
+      relationObject("r3", "spouse"),
+    ]);
+    const results = await objectIndex
+      .relations("spouse")
+      .query({ limit: 2 }, new LuaEnv(), LuaStackFrame.lostFrame);
+    expect(results.map((r: any) => r.ref)).toEqual(["r2", "r3"]);
+  });
+});
+
 function makeSharedStoreIndexes() {
   const ds = new DataStore(new MemoryKvPrimitives());
   const eventHook = new EventHook();

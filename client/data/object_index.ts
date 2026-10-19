@@ -22,6 +22,7 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
   type LuaQueryCollection,
+  leadingRowsNeeded,
   matchesWhere,
 } from "../space_lua/query_collection.ts";
 import {
@@ -750,6 +751,41 @@ export class ObjectIndex {
     });
   }
 
+  private static readonly LEADING_ROWS_MAX = 10_000;
+
+  /**
+   * Whether a full scan of `tag` is at hand. One still under way doesn't
+   * count: the first rows come faster than waiting for it.
+   */
+  private scanMemoized(tag: string): boolean {
+    const memo = this.scanMemo.get(tag);
+    return !!memo && performance.now() - memo.at < this.scanMemoTTLMs;
+  }
+
+  /**
+   * A tag's first `n` objects in key order, reading only as many rows as it
+   * takes: the first 200 of 150k relations cost milliseconds, not a full scan.
+   */
+  private async leadingRows(
+    tag: string,
+    n: number,
+    enricher?: (key: KvKey, item: any) => any,
+  ): Promise<any[]> {
+    const results: any[] = [];
+    if (n <= 0) return results;
+    // Nothing in this loop may await: IndexedDB ends the transaction on it
+    for await (const { key, value } of this.ds.query({
+      prefix: [indexKey, tag],
+    })) {
+      if (enricher && enricher(key, value) === undefined) continue;
+      // Some stores hand out their own objects
+      const item = structuredClone(value);
+      results.push(enricher ? enricher(key, item) : item);
+      if (results.length >= n) break;
+    }
+    return results;
+  }
+
   /**
    * Drop-in equivalent of `ds.luaQuery(["idx", tag], ...)` backed by the
    * memoized scan. Values are cloned per caller so consumers can mutate
@@ -765,6 +801,16 @@ export class ObjectIndex {
     enricher?: (key: KvKey, item: any) => any,
     config?: Config,
   ): Promise<T[]> {
+    const leading = leadingRowsNeeded(query, config);
+    if (leading !== undefined && !this.scanMemoized(tag)) {
+      // Distinct rows can collapse: read a longer start until enough are
+      // left, or settle for the full scan
+      for (let n = leading; n <= ObjectIndex.LEADING_ROWS_MAX; n *= 4) {
+        const rows = await this.leadingRows(tag, n, enricher);
+        const results = await applyQuery(rows, query, env, sf, config);
+        if (rows.length < n || results.length >= query.limit!) return results;
+      }
+    }
     const rawRows = await this.scanTagRawRows(tag);
     const materialize = (key: KvKey, value: any) => {
       const item = structuredClone(value);
@@ -779,6 +825,7 @@ export class ObjectIndex {
       }
       const item = materialize(key, value);
       if (item !== undefined) results.push(item);
+      if (leading !== undefined && results.length >= leading) break;
     }
     return applyQuery(
       results,
