@@ -6,6 +6,7 @@ import type {
 } from "../../plug-api/types/index.ts";
 import type {
   FileRevisions,
+  SpaceActivity,
   SpaceLog,
 } from "../../plug-api/types/revisions.ts";
 import type { PathLookup } from "../lib/resolve_path.ts";
@@ -289,6 +290,20 @@ export function getRevisionDiff(path: string, rev?: string): Promise<string> {
  */
 export function getSpaceLog(before?: string, q?: string): Promise<SpaceLog> {
   return syscall("space.getSpaceLog", before, q);
+}
+
+/**
+ * Summarizes revision activity: commit timestamps and the most changed files.
+ * @param since only count commits at or after this unix time (seconds)
+ * @param filesSince only count file changes at or after this unix time (seconds)
+ * @param top how many of the most changed files to return
+ */
+export function getActivity(
+  since?: number,
+  filesSince?: number,
+  top?: number,
+): Promise<SpaceActivity> {
+  return syscall("space.getActivity", since, filesSince, top);
 }
 
 /**

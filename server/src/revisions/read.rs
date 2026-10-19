@@ -902,6 +902,109 @@ fn space_log_records(
     Ok(Some((commits, more)))
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Activity {
+    pub commits: Vec<i64>,
+    pub top_files: Vec<FileCount>,
+    pub authors: Vec<AuthorCount>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AuthorCount {
+    pub name: String,
+    pub count: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FileCount {
+    pub path: String,
+    pub count: u32,
+}
+
+/// Commit times (unix seconds) since `since`, plus the most-changed markdown
+/// files among commits at or after `files_since`. Merges are skipped so a
+/// merge doesn't double-count the work it brings in.
+pub fn activity(
+    store: &RevisionStore,
+    since: i64,
+    files_since: i64,
+    top: usize,
+) -> Result<Activity, String> {
+    let repo = store.repo_root().ok_or("no repository")?;
+    let prefix = space_prefix(store);
+    // `--max-age` takes a raw timestamp; `--since` runs it through approxidate,
+    // which misreads small numbers such as 0 as dates relative to now.
+    let since_arg = format!("--max-age={since}");
+    let pathspec = prefix.as_deref().map(|p| format!(":(literal){p}"));
+    let mut args: Vec<&str> = vec![
+        "log",
+        "--no-merges",
+        &since_arg,
+        "--format=%x1e%ct%x1f%an",
+        "--name-only",
+        "-z",
+        "HEAD",
+        "--",
+    ];
+    if let Some(p) = &pathspec {
+        args.push(p);
+    }
+    let out = match git::run(&repo, &args, &[]) {
+        Ok(out) => out,
+        Err(e) if is_missing_start(&e) => String::new(),
+        Err(e) => return Err(e),
+    };
+
+    let mut commits = Vec::new();
+    let mut counts: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    let mut author_counts: std::collections::HashMap<String, u32> =
+        std::collections::HashMap::new();
+    for record in out.split('\x1e').skip(1) {
+        let mut chunks = record.split('\0');
+        let Some(header) = chunks.next() else {
+            continue;
+        };
+        let (time, author) = header.split_once('\x1f').unwrap_or((header, ""));
+        let Ok(time) = time.trim().parse::<i64>() else {
+            continue;
+        };
+        commits.push(time);
+        if time < files_since {
+            continue;
+        }
+        let author = author.trim();
+        let author = if author.is_empty() { "Unknown" } else { author };
+        *author_counts.entry(author.to_string()).or_default() += 1;
+        for name in chunks {
+            let name = name.trim_start_matches('\n');
+            let relative = match prefix.as_deref() {
+                Some(p) => name.strip_prefix(p).unwrap_or(name),
+                None => name,
+            };
+            if relative.ends_with(".md") {
+                *counts.entry(relative.to_string()).or_default() += 1;
+            }
+        }
+    }
+    let mut top_files: Vec<FileCount> = counts
+        .into_iter()
+        .map(|(path, count)| FileCount { path, count })
+        .collect();
+    top_files.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.path.cmp(&b.path)));
+    top_files.truncate(top);
+    let mut authors: Vec<AuthorCount> = author_counts
+        .into_iter()
+        .map(|(name, count)| AuthorCount { name, count })
+        .collect();
+    authors.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.name.cmp(&b.name)));
+    Ok(Activity {
+        commits,
+        top_files,
+        authors,
+    })
+}
+
 pub fn space_log(
     store: &RevisionStore,
     before: Option<&str>,
@@ -993,6 +1096,131 @@ mod tests {
             .commit_batch("Bob", "bob@x", "edit a", &["a.md".into()])
             .unwrap();
         (dir, store)
+    }
+
+    #[test]
+    fn activity_lists_commit_times_and_top_files() {
+        let (_dir, store) = fixture();
+        let a = activity(&store, 0, 0, 5).unwrap();
+        assert_eq!(a.commits.len(), 2);
+        assert!(a.commits.iter().all(|t| *t > 1_600_000_000));
+        assert_eq!(a.top_files[0].path, "a.md");
+        assert_eq!(a.top_files[0].count, 2);
+        assert_eq!(a.top_files[1].path, "b.md");
+    }
+
+    #[test]
+    fn activity_counts_commits_per_author() {
+        let (dir, store) = fixture();
+        std::fs::write(dir.path().join("a.md"), b"v3").unwrap();
+        store
+            .commit_batch("Alice", "alice@x", "edit a again", &["a.md".into()])
+            .unwrap();
+        let a = activity(&store, 0, 0, 5).unwrap();
+        let authors: Vec<(&str, u32)> = a
+            .authors
+            .iter()
+            .map(|x| (x.name.as_str(), x.count))
+            .collect();
+        assert_eq!(authors, vec![("Alice", 2), ("Bob", 1)]);
+    }
+
+    #[test]
+    fn activity_counts_authors_since_files_since() {
+        let (_dir, store) = fixture();
+        let a = activity(&store, 0, 4_000_000_000, 5).unwrap();
+        assert_eq!(a.commits.len(), 2);
+        assert!(a.authors.is_empty());
+    }
+
+    #[test]
+    fn activity_honours_since_and_top() {
+        let (_dir, store) = fixture();
+        let future = 4_000_000_000;
+        let a = activity(&store, future, future, 5).unwrap();
+        assert!(a.commits.is_empty() && a.top_files.is_empty() && a.authors.is_empty());
+        let a = activity(&store, 0, 0, 1).unwrap();
+        assert_eq!(a.top_files.len(), 1);
+    }
+
+    #[test]
+    fn activity_excludes_non_markdown_from_top_files() {
+        let (dir, store) = fixture();
+        for msg in ["pic 1", "pic 2"] {
+            std::fs::write(dir.path().join("pic.png"), msg).unwrap();
+            store
+                .commit_batch("Alice", "alice@x", msg, &["pic.png".into()])
+                .unwrap();
+        }
+        let a = activity(&store, 0, 0, 50).unwrap();
+        assert_eq!(a.commits.len(), 4);
+        assert!(a.top_files.iter().all(|f| !f.path.ends_with(".png")));
+    }
+
+    #[test]
+    fn activity_skips_merge_commits() {
+        let (dir, store) = fixture();
+        let repo = store.repo_root().unwrap();
+        let main = git::run(&repo, &["rev-parse", "--abbrev-ref", "HEAD"], &[])
+            .unwrap()
+            .trim()
+            .to_string();
+        git::run(&repo, &["branch", "side"], &[]).unwrap();
+        std::fs::write(dir.path().join("d.md"), b"d1").unwrap();
+        store
+            .commit_batch("Alice", "alice@x", "add d", &["d.md".into()])
+            .unwrap();
+        git::run(&repo, &["checkout", "side"], &[]).unwrap();
+        std::fs::write(dir.path().join("c.md"), b"c1").unwrap();
+        store
+            .commit_batch("Alice", "alice@x", "add c", &["c.md".into()])
+            .unwrap();
+        git::run(
+            &repo,
+            &[
+                "-c",
+                "user.name=Alice",
+                "-c",
+                "user.email=alice@x",
+                "merge",
+                "--no-ff",
+                "-m",
+                "merge",
+                &main,
+            ],
+            &[],
+        )
+        .unwrap();
+        let total = git::run(&repo, &["rev-list", "--count", "HEAD"], &[]).unwrap();
+        assert_eq!(total.trim(), "5");
+        assert_eq!(activity(&store, 0, 0, 5).unwrap().commits.len(), 4);
+    }
+
+    #[test]
+    fn activity_is_scoped_to_space_prefix() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::create_dir_all(dir.path().join("space")).unwrap();
+        std::fs::write(dir.path().join("outside.md"), b"o").unwrap();
+        std::fs::write(dir.path().join("space/inside.md"), b"i").unwrap();
+        root.commit_batch("A", "a@x", "outside", &["outside.md".into()])
+            .unwrap();
+        root.commit_batch("A", "a@x", "inside", &["space/inside.md".into()])
+            .unwrap();
+        let space = RevisionStore::open(&dir.path().join("space"), RevisionsMode::Unmanaged)
+            .expect("nested space store");
+        let a = activity(&space, 0, 0, 5).unwrap();
+        assert_eq!(a.commits.len(), 1);
+        assert_eq!(a.top_files.len(), 1);
+        assert_eq!(a.top_files[0].path, "inside.md");
+    }
+
+    #[test]
+    fn activity_on_empty_repo_is_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        let a = activity(&store, 0, 0, 5).unwrap();
+        assert!(a.commits.is_empty() && a.top_files.is_empty());
     }
 
     #[test]

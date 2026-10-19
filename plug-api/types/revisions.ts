@@ -20,6 +20,14 @@ export type LogFile = { path: string; status: FileStatus };
 
 export type LogCommit = RevisionEntry & { files: LogFile[] };
 
+export type SpaceActivity = {
+  /** Commit timestamps (unix seconds) since the requested start. */
+  commits: number[];
+  topFiles: { path: string; count: number }[];
+  /** Commit counts per author name since `filesSince`, the same window as `topFiles`. */
+  authors: { name: string; count: number }[];
+};
+
 export type SpaceLog = {
   mode: "managed" | "unmanaged" | "disabled";
   commits: LogCommit[];

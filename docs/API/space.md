@@ -108,17 +108,32 @@ Reads a unified diff of a revision's own change (vs its parent), or of the uncom
 
 Lists the space-wide commit log. Each commit's `files` — and the `uncommitted` list — are tables of `{path, status}`, where `status` is `added`, `modified`, `deleted` or `renamed`.
 
+## space.getActivity
+
+`space.getActivity(since?, filesSince?, top?)`
+
+Summarizes revision activity. Returns `{commits, topFiles, authors}`: `commits` is a list of commit timestamps (unix seconds) since `since`, `topFiles` lists the most frequently changed files since `filesSince` as `{path, count}`, and `authors` lists the commit count per author name since `filesSince` as `{name, count}`, most active first. All arguments are optional unix times in seconds (and `top` a count); omitted ones use the server defaults. Fails if revisions are not enabled for the space.
+
+Example:
+
+```lua
+local activity = space.getActivity(os.time() - 7 * 86400, nil, 5)
+for _, f in ipairs(activity.topFiles) do
+  print(f.path .. ": " .. f.count)
+end
+```
+
 ## space.lint
 
 `space.lint()`
 `space.lint(page)`
 `space.lint(pages)`
 
-Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page outside `Library/`.
+Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page outside `Library/` and `Repositories/`.
 
 **Parameters:**
 
-- `pages?` — A page name or a list of page names; omit to lint all pages outside `Library/`.
+- `pages?` — A page name or a list of page names; omit to lint all pages outside `Library/` and `Repositories/`.
 
 **Returns:**
 

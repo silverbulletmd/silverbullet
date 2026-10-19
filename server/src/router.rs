@@ -287,6 +287,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             get(revisions::handle_sync_status).post(revisions::handle_sync_now),
         )
         .route("/.revisions/_conflicts", get(revisions::handle_conflicts))
+        .route("/.revisions/_activity", get(revisions::handle_activity))
         .route(
             "/.revisions/_conflicts/{id}",
             post(revisions::handle_resolve_conflict).layer(DefaultBodyLimit::max(16 * 1024)),
@@ -878,6 +879,14 @@ mod auth_tests {
                 .status();
             assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {uri} must 401");
         }
+    }
+
+    #[test]
+    fn revisions_activity_requires_write() {
+        assert_eq!(
+            super::required_level(&Method::GET, "/.revisions/_activity"),
+            AccessLevel::Write
+        );
     }
 
     #[test]

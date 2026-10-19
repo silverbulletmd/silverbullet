@@ -212,6 +212,31 @@ pub async fn handle_space_log(
     }
 }
 
+#[derive(Deserialize)]
+pub struct ActivityQuery {
+    since: Option<i64>,
+    #[serde(rename = "filesSince")]
+    files_since: Option<i64>,
+    top: Option<usize>,
+}
+
+pub async fn handle_activity(
+    State(state): State<Arc<ServerState>>,
+    Query(q): Query<ActivityQuery>,
+) -> Response {
+    let Some(history) = state.revisions.clone() else {
+        return disabled();
+    };
+    let now = chrono::Utc::now().timestamp();
+    let since = q.since.unwrap_or(now - 140 * 86_400);
+    let files_since = q.files_since.unwrap_or(now - 30 * 86_400);
+    let top = q.top.unwrap_or(5).clamp(1, 50);
+    match run_blocking(move || read::activity(history.store(), since, files_since, top)).await {
+        Ok(activity) => axum::Json(activity).into_response(),
+        Err(e) => revisions_error(e),
+    }
+}
+
 pub async fn handle_snapshot(State(state): State<Arc<ServerState>>) -> Response {
     let Some(history) = state.revisions.clone() else {
         return disabled();
@@ -700,6 +725,29 @@ mod tests {
     async fn disabled_space_reports_404() {
         let state = Arc::new(test_state()); // revisions: None
         let (status, json) = get_json(crate::build_router(state), "/.revisions/note.md").await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(json["error"], "revisions disabled");
+    }
+
+    #[tokio::test]
+    async fn activity_returns_commits_and_top_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = Arc::new(history_state(&dir));
+        let (status, json) = get_json(
+            crate::build_router(state),
+            "/.revisions/_activity?since=0&filesSince=0",
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(!json["commits"].as_array().unwrap().is_empty());
+        assert!(json["topFiles"].is_array());
+        assert!(json["authors"].is_array());
+    }
+
+    #[tokio::test]
+    async fn activity_on_disabled_space_reports_404() {
+        let state = Arc::new(test_state());
+        let (status, json) = get_json(crate::build_router(state), "/.revisions/_activity").await;
         assert_eq!(status, StatusCode::NOT_FOUND);
         assert_eq!(json["error"], "revisions disabled");
     }
