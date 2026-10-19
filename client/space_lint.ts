@@ -9,7 +9,10 @@ import type {
   LintEvent,
 } from "@silverbulletmd/silverbullet/type/client";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { Text } from "@codemirror/state";
+import { findConflictHunks } from "./codemirror/syntax/conflict_markers.ts";
 import { parse } from "./markdown_parser/parse_tree.ts";
+import { isUserPage } from "./user_pages.ts";
 import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
 import { isLuaWidgetError } from "./space_lua/render_lua_markdown.ts";
 
@@ -35,6 +38,20 @@ export type LintPagesDeps = {
   luaCodeWidget: (
     lang: string,
   ) => ((body: string, pageMeta: PageMeta) => Promise<any>) | undefined;
+};
+
+export type LintProgress = {
+  done: number;
+  total: number;
+  page: string;
+  /** This page's diagnostics. */
+  found: SpaceLintDiagnostic[];
+};
+
+export type LintOptions = {
+  onProgress?: (p: LintProgress) => void;
+  /** Checked before each page; once aborted, lintPages resolves with what it has. */
+  signal?: AbortSignal;
 };
 
 /**
@@ -152,6 +169,14 @@ async function lintPage(
       });
     }
   }
+  for (const hunk of findConflictHunks(Text.of(text.split("\n")))) {
+    raw.push({
+      from: hunk.from,
+      severity: "error",
+      message: "Unresolved merge conflict",
+      source: "conflict",
+    });
+  }
   // Not an editor:lint listener: in the editor, widgets render and show
   // their own errors, so only space.lint renders them to find failures.
   for (const w of await widgetDiagnostics(deps, tree, meta)) {
@@ -172,17 +197,26 @@ async function lintPage(
 export async function lintPages(
   deps: LintPagesDeps,
   pages?: string[],
+  options: LintOptions = {},
 ): Promise<SpaceLintDiagnostic[]> {
   const names =
     pages ??
     (await deps.listPageNames())
-      .filter((name) => !name.startsWith("Library/"))
+      .filter(isUserPage)
       .sort((a, b) => a.localeCompare(b));
   const result: SpaceLintDiagnostic[] = [];
-  for (const name of names) {
+  for (const [i, name] of names.entries()) {
+    if (options.signal?.aborted) break;
     const found = await lintPage(deps, name);
     found.sort((a, b) => a.from - b.from);
-    result.push(...found.map((f) => f.diagnostic));
+    const diagnostics = found.map((f) => f.diagnostic);
+    result.push(...diagnostics);
+    options.onProgress?.({
+      done: i + 1,
+      total: names.length,
+      page: name,
+      found: diagnostics,
+    });
   }
   return result;
 }

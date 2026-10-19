@@ -1,7 +1,8 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import {
   type LintPagesDeps,
+  type LintProgress,
   lintPages,
   offsetToLineColumn,
 } from "./space_lint.ts";
@@ -16,6 +17,24 @@ function meta(name: string): PageMeta {
     perm: "rw",
   } as PageMeta;
 }
+
+const yamlError: LintPagesDeps["dispatchLint"] = async (event) =>
+  event.text.startsWith("---")
+    ? [
+        {
+          listener: "index.lintYAML",
+          diagnostics: [
+            {
+              from: 8,
+              to: 10,
+              severity: "error",
+              message: "bad yaml",
+              source: "yaml",
+            },
+          ],
+        },
+      ]
+    : [];
 
 function fakeDeps(
   pages: Record<string, string>,
@@ -51,6 +70,25 @@ describe("offsetToLineColumn", () => {
 });
 
 describe("lintPages", () => {
+  test("reports unresolved merge conflict markers", async () => {
+    const text =
+      "Intro\n<<<<<<< HEAD\nmine\n=======\ntheirs\n>>>>>>> other\nEnd\n";
+    const found = await lintPages(fakeDeps({ Notes: text, Clean: "fine\n" }), [
+      "Notes",
+      "Clean",
+    ]);
+    expect(found).toEqual([
+      {
+        page: "Notes",
+        line: 2,
+        column: 1,
+        severity: "error",
+        message: "Unresolved merge conflict",
+        source: "conflict",
+      },
+    ]);
+  });
+
   test("collects listener diagnostics with page, position and source, leaving out hints", async () => {
     const text = "---\nfoo: [\n---\nHello\n";
     const events: any[] = [];
@@ -204,10 +242,11 @@ describe("lintPages", () => {
     ]);
   });
 
-  test("without pages, lints every page except Library/ pages, sorted by page then position", async () => {
+  test("without pages, lints every page except Library/ and Repositories/ pages, sorted by page then position", async () => {
     const deps = fakeDeps(
       {
         "Library/Std/Thing": "${boom()}",
+        "Repositories/Example/Readme": "${boom()}",
         b: "x\n${boom()}",
         a: "${boom()} ${boom()}",
       },
@@ -233,5 +272,37 @@ describe("lintPages", () => {
         source: "page",
       },
     ]);
+  });
+
+  test("reports progress after each page with that page's findings", async () => {
+    const deps = fakeDeps(
+      { A: "Hello\n", B: "---\nfoo: [\n---\nHi\n" },
+      { dispatchLint: yamlError },
+    );
+    const progress: LintProgress[] = [];
+    await lintPages(deps, ["A", "B"], {
+      onProgress: (p) => progress.push(p),
+    });
+    expect(progress).toHaveLength(2);
+    expect(progress[0]).toEqual({ done: 1, total: 2, page: "A", found: [] });
+    expect(progress[1]).toMatchObject({ done: 2, total: 2, page: "B" });
+    expect(progress[1].found).toHaveLength(1);
+    expect(progress[1].found[0].page).toBe("B");
+  });
+
+  test("stops before the next page once aborted and returns findings so far", async () => {
+    const readPage = vi.fn(async (name: string) => ({
+      text: "---\nfoo: [\n---\n",
+      meta: meta(name),
+    }));
+    const deps = fakeDeps({}, { readPage, dispatchLint: yamlError });
+    const controller = new AbortController();
+    const result = await lintPages(deps, ["A", "B"], {
+      signal: controller.signal,
+      onProgress: () => controller.abort(),
+    });
+    expect(readPage).toHaveBeenCalledTimes(1);
+    expect(result.every((d) => d.page === "A")).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
   });
 });
