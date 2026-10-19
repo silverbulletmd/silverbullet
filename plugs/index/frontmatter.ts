@@ -13,6 +13,7 @@ import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { determineTags } from "./cheap_yaml.ts";
 import { stripPositionAttributes } from "./position_attributes.ts";
 import { attributeCompletion } from "./complete.ts";
+import { normalizeTagList } from "./tags.ts";
 
 export type FrontMatter = {
   tags?: string[];
@@ -100,17 +101,7 @@ export function extractFrontMatter(
           ...frontmatter,
           ...stripPositionAttributes(parsedData),
         };
-        if (!frontmatter.tags) {
-          frontmatter.tags = [];
-        }
-        // Normalize tags to an array
-        // support "tag1, tag2" as well as "tag1 tag2" as well as "#tag1 #tag2" notations
-        if (typeof frontmatter.tags === "string") {
-          tags.push(...(frontmatter.tags as string).split(/,\s*|\s+/));
-        }
-        if (Array.isArray(frontmatter.tags)) {
-          tags.push(...frontmatter.tags);
-        }
+        tags.push(...normalizeTagList(frontmatter.tags));
 
         if (options.removeKeys && options.removeKeys.length > 0) {
           let removedOne = false;

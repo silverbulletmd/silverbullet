@@ -253,3 +253,48 @@ describe("documents split only on standalone --- lines", () => {
     expect(errors[0]).not.toContain("[object Object]");
   });
 });
+
+describe("reserved keys in data blocks", () => {
+  test("YAML can't overwrite the object's identity", async () => {
+    createMockSystem();
+    const objs = await indexDataForTest(
+      "```#contact\nname: Pete\ntag: other\nref: Elsewhere\nitags: [x]\npage: Nope\n```",
+    );
+    const pete = objs.find((o) => o.name === "Pete")!;
+    expect(pete.tag).toBe("contact");
+    expect(pete.ref).toMatch(/^Page@/);
+    expect(pete.itags).toEqual(["contact", "data"]);
+    expect(pete.page).toBe("Page");
+  });
+
+  test("a tags string becomes a list of user tags", async () => {
+    createMockSystem();
+    const objs = await indexDataForTest(
+      "```#contact\nname: Pete\ntags: friend, neighbor\n```",
+    );
+    const pete = objs.find((o) => o.name === "Pete")!;
+    expect(pete.tags).toEqual(["friend", "neighbor"]);
+    expect(pete.itags).toEqual(["contact", "friend", "neighbor", "data"]);
+  });
+
+  test("a ```data block uses the built-in root tag and declares no tag", async () => {
+    createMockSystem();
+    const objs = await indexDataForTest("```data\nname: Pete\n```");
+    expect(objs.map((o) => o.tag)).toEqual(["data"]);
+  });
+
+  test("a ```#name block declares its root tag", async () => {
+    createMockSystem();
+    const objs = await indexDataForTest("```#contact\nname: Pete\n```");
+    expect(objs.find((o) => o.tag === "tag")).toMatchObject({
+      name: "contact",
+      parent: "data",
+    });
+  });
+
+  test("a block named after a built-in tag is not indexed", async () => {
+    createMockSystem();
+    expect(await indexDataForTest("```#task\nname: Pete\n```")).toEqual([]);
+    expect(await indexDataForTest("```#link\nname: Pete\n```")).toEqual([]);
+  });
+});

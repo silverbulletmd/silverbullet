@@ -35,7 +35,31 @@ export function commentedRange(node: ParseTree): [number, number] | undefined {
 }
 
 /**
- * Handles indexing of page, item and task level tags, data tags are handled in data.ts
+ * The root tag of the object a hashtag attaches to. A paragraph holding nothing
+ * but hashtags tags the page; any other paragraph is tagged itself.
+ */
+function hashtagParent(h: ParseTree): string | undefined {
+  // Outermost structure first: an item's text is itself a Paragraph node
+  const within = (match: (type: string) => boolean) =>
+    findParentMatching(h, (n) => match(n.type!));
+  if (within((t) => t === "Task")) return "task";
+  if (within((t) => t === "ListItem")) return "item";
+  if (within((t) => t === "Table")) return "table";
+  if (within((t) => t.startsWith("ATXHeading"))) return "header";
+  const paragraph = within((t) => t === "Paragraph");
+  if (!paragraph) return undefined;
+  return isTagOnlyParagraph(paragraph) ? "page" : "paragraph";
+}
+
+function isTagOnlyParagraph(p: ParseTree): boolean {
+  return p.children!.every(
+    (c) => c.type === "Hashtag" || (c.text !== undefined && !c.text.trim()),
+  );
+}
+
+/**
+ * Indexes a tag record per root tag the tag is used with; tags declared by
+ * fenced data blocks are handled in data.ts
  */
 export function indexTags(
   pageMeta: PageMeta,
@@ -51,20 +75,11 @@ export function indexTags(
   }
   collectNodesOfType(tree, "Hashtag").forEach((h) => {
     const tagName = extractHashtag(h.children![0].text!);
-    let key: string | undefined;
-    // Check if this occurs in the context of a task
-    if (findParentMatching(h, (n) => n.type === "Task")) {
-      key = `${tagName}:task`;
-    } else if (findParentMatching(h, (n) => n.type === "ListItem")) {
-      // Or an item
-      key = `${tagName}:item`;
-    } else if (findParentMatching(h, (n) => n.type === "Paragraph")) {
-      // Still indexing this as a page tag
-      key = `${tagName}:page`;
-    }
-    if (!key) {
+    const parent = hashtagParent(h);
+    if (!parent) {
       return;
     }
+    const key = `${tagName}:${parent}`;
     const range = commentedRange(h);
     if (!range) {
       tags.set(key, undefined);
@@ -153,6 +168,24 @@ export async function frontmatterTagComplete(completeEvent: CompleteEvent) {
       type: "tag",
     })),
   };
+}
+
+/**
+ * A YAML `tags` value as a list of tag names: accepts a list, or a string of
+ * "tag1, tag2", "tag1 tag2" or "#tag1 #tag2"
+ */
+export function normalizeTagList(value: unknown): string[] {
+  const raw =
+    typeof value === "string"
+      ? value.split(/,\s*|\s+/)
+      : Array.isArray(value)
+        ? value
+        : [];
+  return [
+    ...new Set(
+      raw.map((t) => String(t).replace(/^#/, "")).filter((t) => t !== ""),
+    ),
+  ];
 }
 
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {

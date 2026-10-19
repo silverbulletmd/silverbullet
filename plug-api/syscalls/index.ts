@@ -49,7 +49,7 @@ export function objects(tagName: string): Promise<LuaQueryCollection> {
 }
 
 /**
- * Returns all pages (optionally filtered by an additional tag) as a query collection.
+ * Returns all pages (optionally filtered by a user tag) as a query collection.
  */
 export function pages(tagName?: string): Promise<LuaQueryCollection> {
   return syscall("index.pages", tagName);
@@ -72,6 +72,7 @@ export function documents(): Promise<LuaQueryCollection> {
 
 /**
  * Returns all links as a query collection.
+ * @deprecated `link` is a view over `relation` objects; use {@link relations} instead.
  */
 export function links(): Promise<LuaQueryCollection> {
   return syscall("index.links");
@@ -85,38 +86,46 @@ export function relations(kind?: string): Promise<LuaQueryCollection> {
 }
 
 /**
- * Returns all tasks (optionally filtered by an additional tag) as a query collection.
+ * Returns all tasks (optionally filtered by a user tag) as a query collection.
  */
 export function tasks(tagName?: string): Promise<LuaQueryCollection> {
   return syscall("index.tasks", tagName);
 }
 
 /**
- * Returns all headers (optionally filtered by an additional tag) as a query collection.
+ * Returns all headers (optionally filtered by a user tag) as a query collection.
  */
 export function headers(tagName?: string): Promise<LuaQueryCollection> {
   return syscall("index.headers", tagName);
 }
 
 /**
- * Returns all list items (optionally filtered by an additional tag) as a query collection.
+ * Returns all list items (optionally filtered by a user tag) as a query collection.
  */
 export function items(tagName?: string): Promise<LuaQueryCollection> {
   return syscall("index.items", tagName);
 }
 
 /**
- * Returns all paragraphs (optionally filtered by an additional tag) as a query collection.
+ * Returns all paragraphs (optionally filtered by a user tag) as a query collection.
  */
 export function paragraphs(tagName?: string): Promise<LuaQueryCollection> {
   return syscall("index.paragraphs", tagName);
 }
 
 /**
- * Returns all tables (optionally filtered by an additional tag) as a query collection.
+ * Returns all tables (optionally filtered by a user tag) as a query collection.
  */
 export function tables(tagName?: string): Promise<LuaQueryCollection> {
   return syscall("index.tables", tagName);
+}
+
+/**
+ * Returns all objects from fenced data blocks (```data and ```#name), optionally
+ * filtered by a tag, as a query collection.
+ */
+export function data(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.data", tagName);
 }
 
 /**
@@ -219,8 +228,8 @@ export function resolveAnchor(
 }
 
 /**
- * Returns a map of tag name → raw JSON Schema for every defined object-type /
- * [[Tag]] that declares a schema. Tags without a schema are omitted.
+ * Returns a map of tag name → raw JSON Schema for every [[Tag]] that declares
+ * a schema. Tags without a schema are omitted.
  * Use it to discover what attributes a tag's objects carry before querying them.
  */
 export function describeSchema(): Promise<Record<string, unknown>> {

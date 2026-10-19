@@ -128,3 +128,22 @@ test.each([
     );
   },
 );
+
+test("headers carry itags, including the page's tags", async () => {
+  createMockSystem();
+  const tree = parseMarkdown("---\ntags: notes\n---\n# Intro #draft");
+  const frontmatter = extractFrontMatter(tree);
+  const [header] = await indexHeaders(
+    {
+      ref: "P",
+      name: "P",
+      tag: "page",
+      created: "",
+      lastModified: "",
+      perm: "rw",
+    },
+    frontmatter,
+    tree,
+  );
+  expect(header.itags).toEqual(["header", "notes", "draft"]);
+});

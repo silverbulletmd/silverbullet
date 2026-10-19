@@ -1,24 +1,24 @@
 import {
+  getNameFromPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
+import {
   cloneTree,
   collectNodesMatching,
   type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  getNameFromPath,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
 import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
-import type { FrontMatter } from "./frontmatter.ts";
-import { cleanAttributes, collectAttributes } from "./attribute.ts";
-import { cleanTags, collectTags } from "./tags.ts";
 import { cleanAnchor, collectAnchor } from "./anchor.ts";
+import { cleanAttributes, collectAttributes } from "./attribute.ts";
+import type { FrontMatter } from "./frontmatter.ts";
 import { stripPositionAttributes } from "./position_attributes.ts";
+import { cleanTags, collectTags, updateITags } from "./tags.ts";
 
 type HeaderObject = ObjectValue<
   {
@@ -32,7 +32,7 @@ type HeaderObject = ObjectValue<
 
 export function indexHeaders(
   pageMeta: PageMeta,
-  _frontmatter: FrontMatter,
+  frontmatter: FrontMatter,
   tree: ParseTree,
 ): Promise<HeaderObject[]> {
   const headers: ObjectValue<HeaderObject>[] = [];
@@ -53,7 +53,7 @@ export function indexHeaders(
     const name = renderToText(nClone).slice(level + 1);
     const text = name;
 
-    headers.push({
+    const header: ObjectValue<HeaderObject> = {
       // First anchor wins; T12 lint flags duplicates.
       ref: anchor ? anchor.name : `${pageMeta.name}@${n.from}`,
       tag: "header",
@@ -65,7 +65,9 @@ export function indexHeaders(
       pos: n.from!,
       range: [n.from!, n.to!],
       ...stripPositionAttributes(attributes),
-    });
+    };
+    updateITags(header, frontmatter);
+    headers.push(header);
   }
 
   return Promise.resolve(headers);

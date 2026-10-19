@@ -270,6 +270,14 @@ describe("lintYAML on data blocks", () => {
     const md = ["```data", "a: [unclosed", "```"].join("\n");
     expect(await lintYamlFor(md)).toHaveLength(1);
   });
+
+  test("a data block named after a built-in tag is flagged", async () => {
+    const md = ["```#task", "name: Pete", "```"].join("\n");
+    const diags = await lintYamlFor(md);
+    expect(diags).toHaveLength(1);
+    expect(diags[0].message).toContain("built-in tag");
+    expect(md.slice(diags[0].from, diags[0].to)).toBe("#task");
+  });
 });
 
 describe("lintLua on page-lua blocks", () => {

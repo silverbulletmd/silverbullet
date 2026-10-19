@@ -1,5 +1,5 @@
 ---
-description: Defines built-in tags.
+description: Defines the schemas of root tags.
 tags: meta
 ---
 Defined via [[^Library/Std/APIs/Tag]].
@@ -197,6 +197,7 @@ tag.define {
   },
 }
 
+-- Deprecated: a view over relation records, kept for compatibility
 tag.define {
   name = "link",
   schema = {
@@ -310,13 +311,107 @@ tag.define {
   name = "table",
   schema = {
     type = "object",
+    -- One property per column
+    additionalProperties = true,
     properties = {
       ref = readOnlyType("string"),
       tag = readOnlyType("string"),
+      tags = schema.array("string"),
+      itags = {
+        type = "array",
+        items = schema.string(),
+        readOnly = true,
+        nullable = true,
+      },
       page = schema.string(),
       range = rangeType,
       -- deprecated in favor of range
       pos = schema.number(),
+    },
+  },
+}
+
+tag.define {
+  name = "data",
+  schema = {
+    type = "object",
+    -- One property per YAML key
+    additionalProperties = true,
+    properties = {
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      tags = schema.array("string"),
+      itags = {
+        type = "array",
+        items = schema.string(),
+        readOnly = true,
+        nullable = true,
+      },
+      page = readOnlyType("string"),
+      range = rangeType,
+      -- deprecated in favor of range
+      pos = readOnlyType("number"),
+    },
+  },
+}
+
+tag.define {
+  name = "space-lua",
+  schema = {
+    type = "object",
+    properties = {
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      range = rangeType,
+      script = readOnlyType("string"),
+      priority = schema.nullable("number"),
+    },
+  },
+}
+
+tag.define {
+  name = "space-style",
+  schema = {
+    type = "object",
+    properties = {
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      range = rangeType,
+      style = readOnlyType("string"),
+      priority = schema.nullable("number"),
+    },
+  },
+}
+
+tag.define {
+  name = "ambiguous-link",
+  schema = {
+    type = "object",
+    properties = {
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      page = readOnlyType("string"),
+      range = rangeType,
+      -- deprecated in favor of range
+      pos = readOnlyType("number"),
+      -- The link target as written
+      name = readOnlyType("string"),
+      resolvesTo = readOnlyType("string"),
+      candidates = schema.array("string"),
+    },
+  },
+}
+
+tag.define {
+  name = "identity",
+  schema = {
+    type = "object",
+    properties = {
+      -- The namespaced @name identifier
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      name = readOnlyType("string"),
+      page = readOnlyType("string"),
     },
   },
 }
@@ -331,7 +426,7 @@ tag.define {
       tag = readOnlyType("string"),
       -- The page on which the anchor was defined.
       page = readOnlyType("string"),
-      -- The tag of object the anchor attaches to
+      -- The root tag of the object the anchor attaches to
       hostTag = readOnlyType("string"),
     },
   },

@@ -97,3 +97,24 @@ test("identity columns do not hijack the row object", async () => {
   expect(Array.isArray(row.tags)).toBe(true);
   expect(row.page).toEqual("test");
 });
+
+test("table rows carry itags, including the page's tags", async () => {
+  createMockSystem();
+  const tree = parseMarkdown(
+    "---\ntags: people\n---\n| name |\n|---|\n| Frank #friend |",
+  );
+  const frontmatter = extractFrontMatter(tree);
+  const [row] = await indexTables(
+    {
+      ref: "P",
+      name: "P",
+      tag: "page",
+      created: "",
+      lastModified: "",
+      perm: "rw",
+    },
+    frontmatter,
+    tree,
+  );
+  expect(row.itags).toEqual(["table", "people", "friend"]);
+});

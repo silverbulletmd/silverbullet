@@ -42,7 +42,7 @@ export function indexSyscalls(
         return objectIndex.rootTaggedObjects("page", tagName);
       },
       description:
-        "Returns all pages, optionally filtered by an additional tag, as a query collection.",
+        "Returns all pages, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.pages(tagName?)"],
     },
     "index.subPages": {
@@ -66,7 +66,8 @@ export function indexSyscalls(
       callback: (): LuaQueryCollection => {
         return objectIndex.objectsWithTag("link");
       },
-      description: "Returns all indexed links as a query collection.",
+      description:
+        "Deprecated: returns all indexed links, a view over relations, as a query collection. Use index.relations instead.",
     },
     "index.relations": {
       dependsOn: () => [tagChangedEvent("relation")],
@@ -83,7 +84,7 @@ export function indexSyscalls(
         return objectIndex.contentPages(tagName);
       },
       description:
-        "Returns non-meta pages, optionally filtered by an additional tag, as a query collection.",
+        "Returns non-meta pages, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.contentPages(tagName?)"],
     },
     "index.metaPages": {
@@ -99,7 +100,7 @@ export function indexSyscalls(
         return objectIndex.rootTaggedObjects("task", tagName);
       },
       description:
-        "Returns all tasks, optionally filtered by an additional tag, as a query collection.",
+        "Returns all tasks, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.tasks(tagName?)"],
     },
     "index.headers": {
@@ -108,7 +109,7 @@ export function indexSyscalls(
         return objectIndex.rootTaggedObjects("header", tagName);
       },
       description:
-        "Returns all headers, optionally filtered by an additional tag, as a query collection.",
+        "Returns all headers, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.headers(tagName?)"],
     },
     "index.items": {
@@ -117,7 +118,7 @@ export function indexSyscalls(
         return objectIndex.rootTaggedObjects("item", tagName);
       },
       description:
-        "Returns all list items, optionally filtered by an additional tag, as a query collection.",
+        "Returns all list items, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.items(tagName?)"],
     },
     "index.paragraphs": {
@@ -126,7 +127,7 @@ export function indexSyscalls(
         return objectIndex.rootTaggedObjects("paragraph", tagName);
       },
       description:
-        "Returns indexed paragraphs, optionally filtered by an additional tag, as a query collection.",
+        "Returns indexed paragraphs, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.paragraphs(tagName?)"],
     },
     "index.tables": {
@@ -135,8 +136,18 @@ export function indexSyscalls(
         return objectIndex.rootTaggedObjects("table", tagName);
       },
       description:
-        "Returns indexed table rows, optionally filtered by an additional tag, as a query collection.",
+        "Returns indexed table rows, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.tables(tagName?)"],
+    },
+    "index.data": {
+      dependsOn: (tagName?: string) =>
+        tagName ? [tagChangedEvent(tagName)] : ["index"],
+      callback: (_ctx, tagName?: string): LuaQueryCollection => {
+        return objectIndex.dataObjects(tagName);
+      },
+      description:
+        "Returns objects from fenced data blocks (```data and ```#name), optionally filtered by a tag, as a query collection.",
+      signatures: ["index.data(tagName?)"],
     },
     "index.tags": {
       dependsOn: () => ["index"],

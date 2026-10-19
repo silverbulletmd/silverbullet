@@ -300,6 +300,42 @@ export class ObjectIndex {
     }
   }
 
+  /**
+   * Objects from fenced data blocks: ```data uses the built-in `data` root tag,
+   * each ```#name block a user-defined one. With `tag`, only data objects
+   * carrying it.
+   */
+  dataObjects(tag?: string): LuaQueryCollection {
+    if (tag) {
+      return this.filteredTag(
+        tag,
+        (varName) =>
+          `table.find(${varName}.itags, function(t) return t == "data" end)`,
+      );
+    }
+    return {
+      query: async (query, env, sf, config?): Promise<any[]> => {
+        // Every user-defined root tag is declared by a tag object with parent "data"
+        const rootTags = new Set(["data"]);
+        for (const { value } of await this.scanTagRawRows("tag")) {
+          if (value?.parent === "data") rootTags.add(value.name);
+        }
+        const objects: any[] = [];
+        for (const rootTag of rootTags) {
+          for (const { key, value } of await this.scanTagRawRows(rootTag)) {
+            // Also stored under each user tag; only count it under its root tag
+            if (value?.tag !== rootTag || !value.itags?.includes("data")) {
+              continue;
+            }
+            const item = this.enricher(key, structuredClone(value));
+            if (item !== undefined) objects.push(item);
+          }
+        }
+        return applyQuery(objects, query, env, sf, config);
+      },
+    };
+  }
+
   subPages(pageName: string): LuaQueryCollection {
     const prefix = JSON.stringify(`${pageName}/`);
     return this.filteredTag(
@@ -318,12 +354,12 @@ export class ObjectIndex {
         const filter = parseExpressionString(buildFilterExpr(varName));
         const where = query.where
           ? {
-              type: "Binary" as const,
-              operator: "and",
-              left: filter,
-              right: query.where,
-              ctx: {},
-            }
+            type: "Binary" as const,
+            operator: "and",
+            left: filter,
+            right: query.where,
+            ctx: {},
+          }
           : filter;
         return this.memoLuaQuery(
           tagName,
@@ -828,9 +864,9 @@ export class ObjectIndex {
   }
 
   /**
-   * Returns distinct user-defined tag names — i.e. hashtags declared on pages,
-   * tasks or items, plus frontmatter tags. Built-in object types
-   * (`page`, `task`, `item`, …) are implicit and not listed here.
+   * Returns distinct tag names recorded in the space: user tags (hashtags,
+   * frontmatter tags) and root tags declared by ```#name data blocks.
+   * Built-in tags (`page`, `task`, `item`, …) are implicit and not listed here.
    */
   public async tagNames(): Promise<string[]> {
     const names = new Set<string>();

@@ -38,6 +38,44 @@ test("Test tag indexing", async () => {
   expect(objects[2].parent).toEqual("task");
 });
 
+test("each hashtag records the root tag it attaches to", async () => {
+  createMockSystem();
+  const text = [
+    "#on-page",
+    "",
+    "Some text with #on-paragraph in it.",
+    "",
+    "## A heading #on-header",
+    "",
+    "| Name | Note |",
+    "| ---- | ---- |",
+    "| Pete | #on-table |",
+    "",
+    "* An item #on-item",
+  ].join("\n");
+  const tree = parseMarkdown(text);
+  const objects = await indexTags(
+    {
+      ref: "P",
+      name: "P",
+      tag: "page",
+      created: "",
+      lastModified: "",
+      perm: "rw",
+    },
+    extractFrontMatter(tree),
+    tree,
+  );
+  const parents = Object.fromEntries(objects.map((o) => [o.name, o.parent]));
+  expect(parents).toEqual({
+    "on-page": "page",
+    "on-paragraph": "paragraph",
+    "on-header": "header",
+    "on-table": "table",
+    "on-item": "item",
+  });
+});
+
 const commentedPage = `
 A #live tag.
 

@@ -17,7 +17,7 @@ import YAML from "js-yaml";
 import { isValidAnchorName } from "./anchor.ts";
 import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { splitYamlDocuments } from "./data.ts";
+import { shadowsBuiltinTag, splitYamlDocuments } from "./data.ts";
 import { allIndexers } from "./indexer.ts";
 
 /**
@@ -51,6 +51,15 @@ export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
         return true;
       }
       const codeLang = codeInfo.children![0].text!;
+      if (shadowsBuiltinTag(codeLang)) {
+        diagnostics.push({
+          from: codeInfo.from!,
+          to: codeInfo.to!,
+          severity: "error",
+          message: `"${codeLang.slice(1)}" is a built-in tag, so this data block is not indexed. Pick another name.`,
+        });
+        return true;
+      }
       const isDataBlock = codeLang === "data" || codeLang.startsWith("#");
       // All known YAML formats
       if (codeLang === "yaml" || isDataBlock) {

@@ -475,3 +475,57 @@ test("writes outside the queue flush after an idle pause", async () => {
     vi.useRealTimers();
   }
 });
+
+describe("ObjectIndex dataObjects", () => {
+  const dataObject = (ref: string, tag: string, tags?: string[]) =>
+    ({
+      ref,
+      tag,
+      ...(tags ? { tags } : {}),
+      itags: [tag, ...(tags ?? []), "data"],
+      page: "P",
+    }) as ObjectValue<any>;
+  const run = (c: { query: Function }) =>
+    c.query({}, luaBuildStandardEnv(), LuaStackFrame.lostFrame);
+
+  test("covers ```data blocks and every user-defined root tag, once each", async () => {
+    const objectIndex = makeObjectIndex();
+    await objectIndex.indexObjects("P", [
+      dataObject("P@1", "data"),
+      dataObject("P@2", "contact", ["friend"]),
+      {
+        ref: "contact",
+        tag: "tag",
+        name: "contact",
+        page: "P",
+        parent: "data",
+      },
+      // A hashtag of the same name on an item is not a data object
+      {
+        ref: "P@3",
+        tag: "item",
+        tags: ["contact"],
+        itags: ["item", "contact"],
+        page: "P",
+      },
+    ] as ObjectValue<any>[]);
+    const refs = (await run(objectIndex.dataObjects())).map((o: any) => o.ref);
+    expect(refs.sort()).toEqual(["P@1", "P@2"]);
+  });
+
+  test("filters by a root or user tag", async () => {
+    const objectIndex = makeObjectIndex();
+    await objectIndex.indexObjects("P", [
+      dataObject("P@2", "contact", ["friend"]),
+      {
+        ref: "P@3",
+        tag: "item",
+        tags: ["friend"],
+        itags: ["item", "friend"],
+        page: "P",
+      },
+    ] as ObjectValue<any>[]);
+    const friends = await run(objectIndex.dataObjects("friend"));
+    expect(friends.map((o: any) => o.ref)).toEqual(["P@2"]);
+  });
+});

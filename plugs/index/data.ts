@@ -1,3 +1,4 @@
+import { isBuiltinTag } from "@silverbulletmd/silverbullet/lib/tags";
 import YAML from "js-yaml";
 import {
   collectNodesOfType,
@@ -6,8 +7,8 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { TagObject } from "./tags.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { commentedRange, updateITags } from "./tags.ts";
-import { stripPositionAttributes } from "./position_attributes.ts";
+import { commentedRange, normalizeTagList, updateITags } from "./tags.ts";
+import { isReservedObjectAttribute } from "./position_attributes.ts";
 import type {
   ObjectValue,
   PageMeta,
@@ -29,21 +30,72 @@ export type DataBlock = {
   tag: string;
 };
 
+/**
+ * Whether a ```#name fence names a built-in tag other than `data`: its objects
+ * would pass for real tasks, pages, … so such a block is not indexed (lint flags it)
+ */
+export function shadowsBuiltinTag(fenceType: string): boolean {
+  return (
+    fenceType.startsWith("#") &&
+    fenceType !== "#data" &&
+    isBuiltinTag(fenceType.slice(1))
+  );
+}
+
+/** The fence as a data block, if it is a ```data or ```#tag one */
+export function asDataBlock(fence: ParseTree): DataBlock | undefined {
+  const info = findNodeOfType(fence, "CodeInfo");
+  if (!info) return undefined;
+  const type = info.children![0].text!;
+  if (type !== "data" && !type.startsWith("#")) return undefined;
+  if (shadowsBuiltinTag(type)) return undefined;
+  return {
+    fence,
+    info,
+    code: findNodeOfType(fence, "CodeText") ?? undefined,
+    tag: type === "data" ? "data" : type.slice(1),
+  };
+}
+
 /** The ```data and ```#tag fenced blocks in a page. */
 export function dataBlocks(tree: ParseTree): DataBlock[] {
   return collectNodesOfType(tree, "FencedCode").flatMap((fence) => {
-    const info = findNodeOfType(fence, "CodeInfo");
-    if (!info) return [];
-    const type = info.children![0].text!;
-    if (type !== "data" && !type.startsWith("#")) return [];
-    return [
-      {
-        fence,
-        info,
-        code: findNodeOfType(fence, "CodeText") ?? undefined,
-        tag: type === "data" ? "data" : type.slice(1),
-      },
-    ];
+    const block = asDataBlock(fence);
+    return block ? [block] : [];
+  });
+}
+
+/** A data object's ref: its `$ref` anchor when valid, else its position */
+function dataObjectRef(pageName: string, docStart: number, doc: unknown) {
+  const anchor =
+    doc && typeof doc === "object"
+      ? (doc as Record<string, unknown>).$ref
+      : undefined;
+  return typeof anchor === "string" && isValidAnchorName(anchor)
+    ? anchor
+    : `${pageName}@${docStart}`;
+}
+
+/** The range and ref of each YAML document in a data block, as indexData assigns them */
+export function dataDocuments(
+  pageName: string,
+  block: DataBlock,
+): { from: number; to: number; ref: string }[] {
+  if (!block.code) return [];
+  const codeFrom = block.code.from!;
+  return splitYamlDocuments(block.code.children![0].text!).map((part) => {
+    const from = codeFrom + part.offset;
+    let doc: unknown;
+    try {
+      doc = YAML.load(part.text);
+    } catch {
+      doc = undefined;
+    }
+    return {
+      from,
+      to: from + part.text.length,
+      ref: dataObjectRef(pageName, from, doc),
+    };
   });
 }
 
@@ -86,34 +138,34 @@ export function indexData(
           if (!doc) {
             continue;
           }
-          // Extract $ref anchor from the YAML doc. Lint surfaces duplicate
-          // names; the indexer accepts the first valid value here.
-          let anchorName: string | undefined;
-          if (typeof doc === "object") {
-            const d = doc as Record<string, unknown>;
-            if ("$ref" in d) {
-              const candidate = d.$ref;
-              if (
-                typeof candidate === "string" &&
-                isValidAnchorName(candidate)
-              ) {
-                anchorName = candidate;
-              }
-              delete d.$ref;
-            }
+          // Lint surfaces duplicate $ref names; the indexer accepts the first valid value here.
+          const ref = dataObjectRef(pageMeta.name, docStart, doc);
+          if (typeof doc === "object")
+            delete (doc as Record<string, unknown>).$ref;
+          const fields =
+            typeof doc === "object" && !Array.isArray(doc)
+              ? (doc as Record<string, unknown>)
+              : {};
+          const attributes: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(fields)) {
+            if (!isReservedObjectAttribute(key)) attributes[key] = value;
           }
-          const dataObj = {
-            ref: anchorName ?? `${pageMeta.name}@${docStart}`,
+          const tags = normalizeTagList(fields.tags);
+          const dataObj: DataObject = {
+            ref,
             tag: dataType,
+            ...(tags.length ? { tags } : {}),
             itags: ["data"],
             pos: docStart,
             range: [docStart, docEnd] as [number, number],
-            ...stripPositionAttributes(doc),
+            ...attributes,
             page: pageMeta.name,
           };
           updateITags(dataObj, frontmatter);
           dataObjects.push(dataObj);
         }
+        // A ```data block uses the built-in root tag; only ```#name defines one
+        if (dataType === "data") return;
         const range = commentedRange(t);
         const existing = tagObjects.get(dataType);
         if (!existing || (existing.range && !range)) {

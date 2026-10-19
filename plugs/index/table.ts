@@ -1,21 +1,20 @@
-import {
-  renderToText,
-  replaceNodesMatching,
-} from "@silverbulletmd/silverbullet/lib/tree";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesMatching,
   collectNodesOfType,
   normalizeTableRow,
   type ParseTree,
+  renderToText,
+  replaceNodesMatching,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
 import { isReservedObjectAttribute } from "./position_attributes.ts";
-import { collectAnchor } from "./anchor.ts";
+import { updateITags } from "./tags.ts";
 
 type TableRowObject = ObjectValue<{
   tableref: string;
@@ -59,7 +58,7 @@ function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
 
 export function indexTables(
   pageMeta: PageMeta,
-  _frontmatter: FrontMatter,
+  frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
   const result: ObjectValue<TableRowObject>[] = [];
@@ -110,6 +109,7 @@ export function indexTables(
         if (!label || isReservedObjectAttribute(label)) return;
         tableRow[label] = content;
       });
+      updateITags(tableRow, frontmatter);
       result.push(tableRow);
     }
   });

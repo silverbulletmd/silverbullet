@@ -32,8 +32,9 @@ import {
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
 import { collectAnchor } from "./anchor.ts";
+import { asDataBlock, dataDocuments } from "./data.ts";
 import type { FrontMatter } from "./frontmatter.ts";
-import { parseDeclaredNames, identityId } from "./identity.ts";
+import { identityId, parseDeclaredNames } from "./identity.ts";
 import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 // ---- Types ----
@@ -142,13 +143,13 @@ function innermostContainer(
       };
     }
     if (cursor.type === "FencedCode") {
-      const codeInfoNode = cursor.children?.find((c) => c.type === "CodeInfo");
-      const fenceType = codeInfoNode?.children?.[0]?.text;
-      if (fenceType?.startsWith("#")) {
-        return {
-          from: `${pageName}@${cursor.from}`,
-          fromTag: fenceType.substring(1),
-        };
+      const block = asDataBlock(cursor);
+      if (block) {
+        const pos = node.from!;
+        const doc = dataDocuments(pageName, block).find(
+          (d) => pos >= d.from && pos <= d.to,
+        );
+        if (doc) return { from: doc.ref, fromTag: block.tag };
       }
     }
     cursor = cursor.parent;
@@ -447,32 +448,27 @@ export async function indexRelations(
       }
 
       if (n.type === "FencedCode") {
-        const codeInfoNode = findNodeOfType(n, "CodeInfo");
-        if (!codeInfoNode) return true;
-        const fenceType = codeInfoNode.children![0].text!;
-        if (!fenceType.startsWith("#")) return true;
-        const dataType = fenceType.substring(1);
-        const codeTextNode = findNodeOfType(n, "CodeText");
-        if (!codeTextNode) return true;
+        const block = asDataBlock(n);
+        if (!block?.code) return true;
+        const codeTextNode = block.code;
         const codeText = codeTextNode.children![0].text!;
-        const blockRef = `${pageMeta.name}@${n.from!}`;
+        const docs = dataDocuments(pageMeta.name, block);
 
         const lineKeyRegex = /^(\s*)([\w$][\w$\- ]*)\s*:\s*(.*)$/;
         let cursor = 0;
         for (const line of codeText.split("\n")) {
           const m = lineKeyRegex.exec(line);
-          if (m) {
+          const lineStart = codeTextNode.from! + cursor;
+          const doc = docs.find(
+            (d) => lineStart >= d.from && lineStart <= d.to,
+          );
+          if (m && doc) {
             const valueOffset = m[0].length - m[3].length;
-            emitWikiLinksInRange(
-              ctx,
-              m[3],
-              codeTextNode.from! + cursor + valueOffset,
-              {
-                kind: m[2].trim(),
-                from: blockRef,
-                fromTag: dataType,
-              },
-            );
+            emitWikiLinksInRange(ctx, m[3], lineStart + valueOffset, {
+              kind: m[2].trim(),
+              from: doc.ref,
+              fromTag: block.tag,
+            });
           }
           cursor += line.length + 1;
         }

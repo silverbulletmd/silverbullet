@@ -2,6 +2,7 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
+import { indexData } from "./data.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { indexMarkdown } from "./indexer.ts";
 import { indexRelations } from "./relation.ts";
@@ -540,6 +541,33 @@ test("fenced #tag data block with wikilink value emits attribute relation", asyn
   expect(r!.fromTag).toEqual("person");
   expect(r!.range).toBeDefined();
   expect(text.substring(r!.range![0], r!.range![0] + 2)).toEqual("[[");
+});
+
+test("data block relations come from the data object they're written in", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("Jack", "");
+  await space.writePage("Jill", "");
+
+  const text =
+    'Header\n\n```#person\nname: Linda\nspouse: "[[Jack]]"\n---\n$ref: pete\nname: Pete\nspouse: "[[Jill]]"\n```\n\n```data\nowner: "[[Jack]]"\n```\n';
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const relations = await indexRelations(pageMeta("People"), fm, tree, text);
+  const dataTree = parseMarkdown(text);
+  const dataObjects = await indexData(
+    pageMeta("People"),
+    extractFrontMatter(dataTree),
+    dataTree,
+  );
+  const refOf = (name: string) => dataObjects.find((o) => o.name === name)!.ref;
+
+  const toJack = relations.find((o) => o.kind === "spouse" && o.to === "Jack")!;
+  expect(toJack.from).toEqual(refOf("Linda"));
+  const toJill = relations.find((o) => o.kind === "spouse" && o.to === "Jill")!;
+  expect(toJill.from).toEqual("pete");
+  const owner = relations.find((o) => o.kind === "owner")!;
+  expect(owner.fromTag).toEqual("data");
+  expect(owner.from).toEqual(dataObjects.find((o) => o.tag === "data")!.ref);
 });
 
 test("document markdown link emits document relation", async () => {
