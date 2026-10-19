@@ -37,6 +37,8 @@ test("Test space lua indexing", async () => {
   const objects = await indexSpaceLua(pageMeta, frontmatter, tree);
   expect(objects.length).toEqual(2);
   expect(objects[0].priority).toEqual(undefined);
+  // An undefined value fails JSON-schema validation of the object
+  expect("priority" in objects[0]).toBe(false);
   expect(objects[1].priority).toEqual(10);
 
   // range covers the inner code text, not the ``` fences

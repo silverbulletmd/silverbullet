@@ -43,7 +43,7 @@ export function indexSpaceLua(
       tag: "space-lua",
       range: [codeTextNode.from!, codeTextNode.to!],
       script: codeText,
-      priority: priority !== undefined ? +priority : undefined,
+      ...(priority !== undefined ? { priority: +priority } : {}),
     });
   });
   return Promise.resolve(allSpaceLuas);

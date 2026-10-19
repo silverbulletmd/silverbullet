@@ -48,7 +48,7 @@ export function indexSpaceStyle(
       tag: "space-style",
       range: [codeTextNode.from!, codeTextNode.to!],
       style: codeText,
-      priority: priority !== undefined ? +priority : undefined,
+      ...(priority !== undefined ? { priority: +priority } : {}),
     });
   });
 
