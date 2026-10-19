@@ -14,31 +14,11 @@ import {
   type ResolveResult,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve_path";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { Client } from "../../client.ts";
+import { pageByPath } from "../../lib/page_meta.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import { renderMarkdownInto } from "../../markdown_renderer/render_into.ts";
 import { isCursorInRange, LinkWidget } from "../util.ts";
-
-// Cache by page-list identity to avoid parsing every page path for every
-// rendered link on each editor update (O(links * pages)).
-let pageByPathCache: { pages: PageMeta[]; map: Map<string, PageMeta> } | null =
-  null;
-
-function pageByPath(allPages: PageMeta[]): Map<string, PageMeta> {
-  if (pageByPathCache?.pages === allPages) {
-    return pageByPathCache.map;
-  }
-  const map = new Map<string, PageMeta>();
-  for (const p of allPages) {
-    const path = parseToRef(p.ref)?.path;
-    if (path !== undefined && !map.has(path)) {
-      map.set(path, p);
-    }
-  }
-  pageByPathCache = { pages: allPages, map };
-  return map;
-}
 
 export type WikiLinkMatch = {
   leadingTrivia: string;

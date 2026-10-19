@@ -21,6 +21,7 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { parseHtmlTag } from "../codemirror/syntax/html_element.ts";
 import { resolveIconMarkup } from "../lib/icon.ts";
+import { pageByPath } from "../lib/page_meta.ts";
 import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
 import { CustomSyntaxRenderedHtmlType, createMediaElement } from "./inline.ts";
 import { attributeTag, wikiLinkTag } from "./inline_tags.ts";
@@ -933,9 +934,7 @@ export function renderMarkdownToHtml(
             return;
           }
 
-          const pageMeta = allPages.find(
-            (p) => ref.path === parseToRef(p.ref)?.path,
-          );
+          const pageMeta = pageByPath(allPages).get(ref.path);
           if (
             pageMeta &&
             !(

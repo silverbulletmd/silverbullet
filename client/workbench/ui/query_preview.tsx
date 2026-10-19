@@ -1,5 +1,5 @@
 import { Button } from "@silverbulletmd/silverbullet/ui";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import type { Client } from "../../client.ts";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
@@ -42,6 +42,11 @@ export function QueryPreview({
     : null;
 
   const lastRun = useRef(0);
+  // A fresh slice would render the table again on every re-render of the tab
+  const slice = useMemo(
+    () => (result.kind === "value" ? previewSlice(result.value) : null),
+    [result],
+  );
 
   useEffect(() => {
     if (!text) return;
@@ -83,8 +88,7 @@ export function QueryPreview({
       ) : (
         <div className="sb-wb-message">{errorMessage(result.error)}</div>
       );
-  } else if (result.kind === "value") {
-    const slice = previewSlice(result.value);
+  } else if (result.kind === "value" && slice) {
     const count = rowCount(result.value);
     header = grouped
       ? `${count} group${count === 1 ? "" : "s"}`
