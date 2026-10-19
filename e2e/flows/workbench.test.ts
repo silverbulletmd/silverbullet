@@ -195,10 +195,12 @@ test.describe("query builder tag filter", () => {
     await filter.press("Escape");
     await expect(filter).toHaveValue("");
     await expect(tags.getByRole("button", { name: /^#person/ })).toBeVisible();
-    // Built-in types come first, then your own tags
+    // Built-in tags come first, grouped by kind, then your own tags
     await expect(tags.locator(".sb-wbq-group")).toHaveText([
-      "Built-in",
-      "Custom",
+      "Root",
+      "Edges",
+      "Index",
+      "User tags",
     ]);
     await expect(tags.getByRole("button").first()).toHaveText(/^page/);
   });
@@ -450,7 +452,7 @@ test.describe("query builder fields", () => {
     await tags.getByRole("button", { name: /^#book/ }).click();
     await expect(where).toContainText('b.status == "reading"');
     await tags.getByRole("button", { name: /^page/ }).click();
-    await expect(page.getByText("Cleared the query for book")).toBeVisible();
+    await expect(page.getByText("Cleared the query for #book")).toBeVisible();
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(where).toContainText('b.status == "reading"');
   });
