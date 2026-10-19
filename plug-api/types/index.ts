@@ -104,14 +104,17 @@ export type LuaValueInspection = {
 };
 /**
  * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of
- * of two fields:
+ * two fields:
  * - ref: a unique reference (id) for the object, ideally a page reference
- * - tags: a list of tags that the object belongs to
+ * - tag: its root tag, saying what the object is (page, task, …)
  */
 export type ObjectValue<T = any> = {
   ref: string;
-  tag: string; // main tag
+  /** Root tag: built-in (page, item, task, …) or declared by a ```#name data block */
+  tag: string;
   range?: [number, number];
+  /** User tags, attached with hashtags or a `tags` attribute */
   tags?: string[];
-  itags?: string[]; // implicit or inherited tags (inherited from the page for instance)
+  /** Root tag, user tags and tags inherited (from the page, parent items) */
+  itags?: string[];
 } & T;

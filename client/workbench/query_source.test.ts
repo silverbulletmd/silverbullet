@@ -37,17 +37,34 @@ function stubClient(opts: {
 }
 
 describe("splitTags", () => {
-  test("hashtags are custom, object types built-in", () => {
-    expect(splitTags(["book", "task", "person", "book", "page"])).toEqual({
-      custom: ["book", "person"],
-      builtIn: ["page", "task"],
+  test("user tags apart from built-in tags, built-in ones in kind order", () => {
+    expect(
+      splitTags([
+        "book",
+        "anchor",
+        "task",
+        "person",
+        "book",
+        "relation",
+        "page",
+      ]),
+    ).toEqual({
+      user: ["book", "person"],
+      builtIn: ["page", "task", "relation", "anchor"],
+    });
+  });
+
+  test("the deprecated link view is neither built-in nor a user tag", () => {
+    expect(splitTags(["link", "book"])).toEqual({
+      user: ["book"],
+      builtIn: [],
     });
   });
 });
 
 describe("filterTags", () => {
   const tags = {
-    custom: ["book", "meta/api", "person", "project"],
+    user: ["book", "meta/api", "person", "project"],
     builtIn: ["page", "task"],
   };
 
@@ -57,22 +74,22 @@ describe("filterTags", () => {
 
   test("matches any part of the name, ignoring case", () => {
     expect(filterTags(tags, "PRO")).toEqual({
-      custom: ["project"],
+      user: ["project"],
       builtIn: [],
     });
     expect(filterTags(tags, "a")).toEqual({
-      custom: ["meta/api"],
+      user: ["meta/api"],
       builtIn: ["page", "task"],
     });
   });
 
   test("a leading # is ignored", () => {
-    expect(filterTags(tags, "#bo")).toEqual({ custom: ["book"], builtIn: [] });
+    expect(filterTags(tags, "#bo")).toEqual({ user: ["book"], builtIn: [] });
   });
 
   test("names starting with the phrase come first", () => {
     expect(
-      filterTags({ custom: ["mybook", "book"], builtIn: [] }, "book").custom,
+      filterTags({ user: ["mybook", "book"], builtIn: [] }, "book").user,
     ).toEqual(["book", "mybook"]);
   });
 });
@@ -87,8 +104,8 @@ describe("listTags", () => {
         { name: "meta/api", page: "Library/Std/APIs/Tag" },
       ],
     });
-    const { custom } = await listTags(client);
-    expect(custom).toEqual(["book", "meta"]);
+    const { user } = await listTags(client);
+    expect(user).toEqual(["book", "meta"]);
   });
 });
 
@@ -135,7 +152,7 @@ describe("loadFields", () => {
     expect(fields.find((f) => f.name === "budget")!.source).toBe("inferred");
   });
 
-  test("built-in object tags mark declared fields built-in", async () => {
+  test("built-in tags mark declared fields built-in", async () => {
     const { client } = stubClient({
       objects: [{ name: "x" }],
       config: {

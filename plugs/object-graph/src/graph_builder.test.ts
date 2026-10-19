@@ -4,7 +4,7 @@ import {
   collapseEdges,
   deriveTagFields,
   endpointMatchesRef,
-  isCoreTag,
+  isHiddenTag,
   type RelationRow,
   stripPagePos,
 } from "./graph_builder.ts";
@@ -71,49 +71,50 @@ describe("classifyKind", () => {
   });
 });
 
-describe("isCoreTag", () => {
-  it("recognises structural tags", () => {
-    expect(isCoreTag("page")).toBe(true);
-    expect(isCoreTag("item")).toBe(true);
-    expect(isCoreTag("task")).toBe(true);
-    expect(isCoreTag("block")).toBe(true);
+describe("isHiddenTag", () => {
+  it("hides built-in tags and the graph's own block kind", () => {
+    expect(isHiddenTag("page")).toBe(true);
+    expect(isHiddenTag("item")).toBe(true);
+    expect(isHiddenTag("task")).toBe(true);
+    expect(isHiddenTag("aspiring-page")).toBe(true);
+    expect(isHiddenTag("block")).toBe(true);
   });
 
-  it("recognises meta and meta/* tags", () => {
-    expect(isCoreTag("meta")).toBe(true);
-    expect(isCoreTag("meta/library")).toBe(true);
+  it("hides meta and meta/* page tags", () => {
+    expect(isHiddenTag("meta")).toBe(true);
+    expect(isHiddenTag("meta/library")).toBe(true);
   });
 
-  it("rejects user tags", () => {
-    expect(isCoreTag("driver")).toBe(false);
-    expect(isCoreTag("project")).toBe(false);
+  it("shows user tags", () => {
+    expect(isHiddenTag("driver")).toBe(false);
+    expect(isHiddenTag("project")).toBe(false);
   });
 });
 
 describe("deriveTagFields", () => {
-  it("uses hostTag as rootTag for ordinary structural objects", () => {
+  it("uses hostTag as rootTag for built-in root tags", () => {
     const r = deriveTagFields(["page", "driver"], "page");
     expect(r.rootTag).toBe("page");
-    expect(r.primaryTag).toBe("driver");
+    expect(r.colorTag).toBe("driver");
     expect(r.tags).toEqual(["driver"]);
   });
 
   it("promotes item to task when the task tag is present", () => {
     const r = deriveTagFields(["item", "task", "todo"], "item");
     expect(r.rootTag).toBe("task");
-    expect(r.primaryTag).toBe("todo");
+    expect(r.colorTag).toBe("todo");
   });
 
-  it("filters core + meta tags out of the user-tag list", () => {
+  it("filters built-in and meta tags out of the user-tag list", () => {
     const r = deriveTagFields(
       ["page", "meta", "meta/template", "research"],
       "page",
     );
     expect(r.tags).toEqual(["research"]);
-    expect(r.primaryTag).toBe("research");
+    expect(r.colorTag).toBe("research");
   });
 
-  it("returns null rootTag for non-core host tags", () => {
+  it("returns null rootTag for host tags that aren't root tags", () => {
     expect(deriveTagFields(["foo"], "foo").rootTag).toBeNull();
   });
 });

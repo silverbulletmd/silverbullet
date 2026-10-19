@@ -13,11 +13,11 @@ export type ObjectNode = {
   ref: string;
   kind: ObjectKind;
   title: string;
-  // Single core tag (page/item/task/block); drives the Root-tags filter.
+  // Root tag (page/item/task/…, or the graph's own "block"); drives the Root-tags filter.
   rootTag: string | null;
-  // First non-core tag; drives node color. null when none.
-  primaryTag: string | null;
-  // All non-core tags; drives the Tags filter.
+  // First user tag; drives node color. null when none.
+  colorTag: string | null;
+  // All user tags; drives the Tags filter.
   tags: string[];
   dangling: boolean;
   // pageDecoration.prefix passthrough (e.g. emoji prefix).

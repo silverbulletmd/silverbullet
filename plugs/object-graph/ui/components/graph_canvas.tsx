@@ -125,7 +125,7 @@ function computeGraph(
     title: node.title,
     prefix: node.prefix,
     degree: degree.get(node.ref) ?? 0,
-    color: colorForTag(node.primaryTag),
+    color: colorForTag(node.colorTag),
   }));
   // Merge all edges between the same pair of nodes (unordered) into a
   // single visual edge with a comma-joined label, combined provenance,

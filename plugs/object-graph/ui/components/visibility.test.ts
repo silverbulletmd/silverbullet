@@ -11,7 +11,7 @@ const node = (
   ref,
   title: ref,
   rootTag,
-  primaryTag: tags[0] ?? null,
+  colorTag: tags[0] ?? null,
   tags,
   dangling: false,
   attributes: {},

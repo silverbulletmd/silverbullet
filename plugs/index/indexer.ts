@@ -3,6 +3,7 @@ import {
   collectNodesOfType,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import { builtinTagsOfKind } from "@silverbulletmd/silverbullet/lib/tags";
 import { index, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import type {
@@ -48,7 +49,7 @@ const NON_ANCHORABLE_TAGS = new Set([
 
 // Scripts and stylesheets are the one thing a comment must genuinely disable:
 // commenting a block out is how people turn it off.
-const INERT_IN_COMMENT_TAGS = new Set(["space-lua", "space-style"]);
+const INERT_IN_COMMENT_TAGS = new Set(builtinTagsOfKind("system"));
 
 /** `inComment` is reserved in position_attributes.ts, but no indexer consults that reservation, so a user-written one is dropped here. */
 function markCommentedObjects(

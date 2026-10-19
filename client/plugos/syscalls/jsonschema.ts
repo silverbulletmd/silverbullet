@@ -79,7 +79,7 @@ export function validateSchema(schema: any): undefined | string {
  * sample value. Types are guessed from one example, so the result is a hint,
  * not a contract — the top-level schema is marked `"x-inferred": true`.
  *
- * Useful when a tag/object type has no declared schema but an example object
+ * Useful when a tag has no declared schema but an example object
  * exists and you want a plausible schema for it.
  */
 export function inferFromObject(value: any): any {

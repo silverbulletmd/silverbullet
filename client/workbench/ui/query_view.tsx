@@ -1,10 +1,14 @@
+import { Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { builtinTagKind } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   filterTags,
   listTags,
   loadFields,
   SAMPLE_LIMIT,
   START_TAG,
+  TAG_KIND_GROUPS,
+  type TagLists,
 } from "../query_source.ts";
 import { QueryBar } from "./query_bar.tsx";
 import {
@@ -19,8 +23,6 @@ import { SelectRow } from "./query_select.tsx";
 import type { TabProps } from "./tab.ts";
 import { useBuilder } from "./use_builder.ts";
 
-type Tags = { custom: string[]; builtIn: string[] };
-
 /**
  * The Query tab: pick a tag and look through its objects, shaped by the
  * query editor beside them (one row per clause; it can be closed). The generated text stays in the bar at
@@ -28,7 +30,7 @@ type Tags = { custom: string[]; builtIn: string[] };
  */
 export function QueryView({ client, session, builder, focusTarget }: TabProps) {
   useBuilder(builder);
-  const [tags, setTags] = useState<Tags>({ custom: [], builtIn: [] });
+  const [tags, setTags] = useState<TagLists>({ user: [], builtIn: [] });
   const [sampled, setSampled] = useState<Record<string, number>>({});
   const [showFields, setShowFields] = useState(false);
   const [phrase, setPhrase] = useState("");
@@ -81,7 +83,7 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
     if (n === undefined) return null;
     return n >= SAMPLE_LIMIT ? `${SAMPLE_LIMIT}+` : String(n);
   };
-  const tagButton = (tag: string, custom: boolean) => (
+  const tagButton = (tag: string, user: boolean) => (
     <button
       key={tag}
       type="button"
@@ -90,7 +92,7 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
       onClick={() => void pick(tag)}
     >
       <span>
-        {custom ? "#" : ""}
+        {user ? "#" : ""}
         {tag}
       </span>
       {m?.tag === tag ? (
@@ -115,7 +117,7 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
             onInput={(e) => setPhrase(e.currentTarget.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                const first = shown.builtIn[0] ?? shown.custom[0];
+                const first = shown.builtIn[0] ?? shown.user[0];
                 if (first) void pick(first);
               } else if (e.key === "Escape" && phrase) {
                 // Clears the filter; a second Escape is the panel's
@@ -125,15 +127,22 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
               }
             }}
           />
-          {shown.builtIn.length ? (
-            <div className="sb-wbq-group">Built-in</div>
+          {TAG_KIND_GROUPS.map(({ kind, label }) => {
+            const group = shown.builtIn.filter(
+              (t) => builtinTagKind(t) === kind,
+            );
+            return group.length ? (
+              <Fragment key={kind}>
+                <div className="sb-wbq-group">{label}</div>
+                {group.map((t) => tagButton(t, false))}
+              </Fragment>
+            ) : null;
+          })}
+          {shown.user.length ? (
+            <div className="sb-wbq-group">User tags</div>
           ) : null}
-          {shown.builtIn.map((t) => tagButton(t, false))}
-          {shown.custom.length ? (
-            <div className="sb-wbq-group">Custom</div>
-          ) : null}
-          {shown.custom.map((t) => tagButton(t, true))}
-          {!shown.custom.length && !shown.builtIn.length ? (
+          {shown.user.map((t) => tagButton(t, true))}
+          {!shown.user.length && !shown.builtIn.length ? (
             <div className="sb-wbq-note sb-wbq-nomatch">No tags match</div>
           ) : null}
         </nav>
@@ -147,9 +156,9 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
               value={m?.tag}
               onChange={(e) => void pick(e.currentTarget.value)}
             >
-              {[...tags.builtIn, ...tags.custom].map((t) => (
+              {[...tags.builtIn, ...tags.user].map((t) => (
                 <option key={t} value={t}>
-                  {tags.custom.includes(t) ? "#" : ""}
+                  {tags.user.includes(t) ? "#" : ""}
                   {t}
                 </option>
               ))}
@@ -162,7 +171,7 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
                 <span className="sb-wbq-label">From</span>
                 <div className="sb-wbq-row">
                   <span className="sb-wbq-chip">
-                    {tags.custom.includes(m.tag) ? "#" : ""}
+                    {tags.user.includes(m.tag) ? "#" : ""}
                     {m.tag}
                   </span>
                   <button

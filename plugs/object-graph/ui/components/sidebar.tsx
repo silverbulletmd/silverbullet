@@ -177,7 +177,7 @@ function Inspector({ selected }: { selected: ObjectNode | null }) {
       <header class="gv-inspector-header">
         <span
           class="gv-swatch"
-          style={{ background: colorForTag(selected.primaryTag) }}
+          style={{ background: colorForTag(selected.colorTag) }}
         />
         <span class="gv-inspector-title" title={selected.title}>
           {selected.title}

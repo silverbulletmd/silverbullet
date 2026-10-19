@@ -2,6 +2,11 @@
  * What the query builder reads from the running client: tags, sampled
  * objects, declared schemas, aggregates, and the result of a query.
  */
+import {
+  builtinTagsOfKind,
+  isBuiltinTag,
+  type TagKind,
+} from "@silverbulletmd/silverbullet/lib/tags";
 import type { Client } from "../client.ts";
 import { tagSchema } from "../plugos/syscalls/schema_introspection.ts";
 import { getBuiltinAggregateEntries } from "../space_lua/aggregates.ts";
@@ -16,45 +21,35 @@ import {
   inferFields,
 } from "./query_fields.ts";
 
-/** The object types the indexer produces itself (see `docs/Object/`) */
-export const BUILTIN_OBJECT_TAGS: readonly string[] = [
-  "page",
-  "task",
-  "item",
-  "paragraph",
-  "header",
-  "link",
-  "tag",
-  "anchor",
-  "table",
-  "data",
-  "document",
-  "relation",
-  "aspiring-page",
-  "ambiguous-link",
-  "space-lua",
+/** The order the Query tab lists built-in tags in, one group per kind */
+export const TAG_KIND_GROUPS: readonly { kind: TagKind; label: string }[] = [
+  { kind: "root", label: "Root" },
+  { kind: "edge", label: "Edges" },
+  { kind: "index", label: "Index" },
+  { kind: "system", label: "System" },
 ];
+
+/** Every built-in tag the Query tab offers, in group order (the deprecated `link` view is left out) */
+export const BUILTIN_QUERY_TAGS: readonly string[] = TAG_KIND_GROUPS.flatMap(
+  (g) => builtinTagsOfKind(g.kind),
+);
 
 export const SAMPLE_LIMIT = 500;
 
-export function splitTags(names: string[]): {
-  custom: string[];
-  builtIn: string[];
-} {
+export type TagLists = { user: string[]; builtIn: string[] };
+
+export function splitTags(names: string[]): TagLists {
   const seen = new Set(names);
   return {
-    custom: [...seen]
-      .filter((n) => !BUILTIN_OBJECT_TAGS.includes(n))
+    user: [...seen]
+      .filter((n) => !isBuiltinTag(n))
       .sort((a, b) => a.localeCompare(b)),
-    builtIn: BUILTIN_OBJECT_TAGS.filter((n) => seen.has(n)),
+    builtIn: BUILTIN_QUERY_TAGS.filter((n) => seen.has(n)),
   };
 }
 
 /** The tags whose name contains `phrase` (ignoring case and a leading `#`), best matches first */
-export function filterTags(
-  tags: { custom: string[]; builtIn: string[] },
-  phrase: string,
-): { custom: string[]; builtIn: string[] } {
+export function filterTags(tags: TagLists, phrase: string): TagLists {
   const p = phrase.trim().replace(/^#/, "").toLowerCase();
   if (!p) return tags;
   const pick = (names: string[]) =>
@@ -67,19 +62,17 @@ export function filterTags(
             Number(!b.toLowerCase().startsWith(p)) || i - j,
       )
       .map(([n]) => n);
-  return { custom: pick(tags.custom), builtIn: pick(tags.builtIn) };
+  return { user: pick(tags.user), builtIn: pick(tags.builtIn) };
 }
 
 /** The tag the Query tab opens on */
 export const START_TAG = "page";
 
 /**
- * Hashtags in use outside the standard library (as on the Scripts tab), plus
- * every built-in object type
+ * User tags in use outside the standard library (as on the Scripts tab), plus
+ * every built-in tag
  */
-export async function listTags(
-  client: Client,
-): Promise<{ custom: string[]; builtIn: string[] }> {
+export async function listTags(client: Client): Promise<TagLists> {
   const tags = await client.queryLuaObjects<{ name: string; page?: string }>(
     "tag",
     {},
@@ -87,7 +80,7 @@ export async function listTags(
   const used = tags
     .filter((t) => !t.page?.startsWith(stdLibPrefix))
     .map((t) => t.name);
-  return splitTags([...used, ...BUILTIN_OBJECT_TAGS]);
+  return splitTags([...used, ...BUILTIN_QUERY_TAGS]);
 }
 
 export async function loadFields(
@@ -101,12 +94,12 @@ export async function loadFields(
   const tags = client.config.get(["tags"], {});
   const declared = declaredFieldsFromSchema(tagSchema(tags, tag));
   if (!samples.length && !declared) return { fields: [], sampled: 0 };
-  // A custom tag on pages (or tasks, items…): the objects also carry that
-  // type's own fields, which say little about the tag
+  // A user tag on pages (or tasks, items…): the objects also carry their
+  // root tag's own fields, which say little about the user tag
   const base = samples[0]?.tag;
   if (typeof base !== "string" || base === tag) {
     return {
-      fields: inferFields(samples, declared, BUILTIN_OBJECT_TAGS.includes(tag)),
+      fields: inferFields(samples, declared, isBuiltinTag(tag)),
       sampled: samples.length,
     };
   }

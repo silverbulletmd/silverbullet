@@ -20,7 +20,7 @@ export type QueryTemplate = {
   id: string;
   name: string;
   description?: string;
-  /** The object types it takes, from its `@param` type (`page|task`) */
+  /** The tags of the objects it takes, from its `@param` type (`page|task`) */
   types: string[];
   /** Where a script assigns it */
   definition?: Ref;

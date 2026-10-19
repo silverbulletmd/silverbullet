@@ -1,3 +1,8 @@
+import {
+  isBuiltinRootTag,
+  isBuiltinTag,
+  isMetaTag,
+} from "@silverbulletmd/silverbullet/lib/tags";
 import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   Edge,
@@ -9,26 +14,12 @@ import type {
 } from "./model.ts";
 
 /**
- * Core tags published by SilverBullet's indexer. These are NEVER shown in
- * the "Tags" sidebar (which is reserved for user tags); they appear in the
- * "Root tags" sidebar instead, and a single one is stored as each node's
- * `rootTag`.
+ * Tags never shown in the "Tags" sidebar, which is reserved for user tags:
+ * every built-in tag, `meta` page tags, and `block`, which is this graph's
+ * own node kind for non-item objects rather than an indexer tag.
  */
-const CORE_TAGS = new Set([
-  "page",
-  "item",
-  "task",
-  "header",
-  "paragraph",
-  "block",
-  "meta",
-  "aspiring-page",
-  "document",
-  "url",
-]);
-
-export function isCoreTag(t: string): boolean {
-  return CORE_TAGS.has(t) || t.startsWith("meta/");
+export function isHiddenTag(t: string): boolean {
+  return isBuiltinTag(t) || isMetaTag(t) || t === "block";
 }
 
 export type RelationRow = {
@@ -212,21 +203,20 @@ export function deriveTagFields(
   hostTag: string,
 ): {
   rootTag: string | null;
-  primaryTag: string | null;
+  colorTag: string | null;
   tags: string[];
 } {
-  // `hostTag` is the structural tag the indexer keyed on (page/item/block).
-  // SilverBullet's indexer also exposes additional user tags via `tags`.
+  // `hostTag` is the tag the object was looked up by (page/item/block)
   const hasTask = allTags.includes("task");
   let rootTag: string | null;
   if (hostTag === "item" && hasTask) rootTag = "task";
-  else if (CORE_TAGS.has(hostTag)) rootTag = hostTag;
+  else if (isBuiltinRootTag(hostTag) || hostTag === "block") rootTag = hostTag;
   else rootTag = null;
 
-  const userTags = allTags.filter((t) => !isCoreTag(t));
+  const userTags = allTags.filter((t) => !isHiddenTag(t));
   return {
     rootTag,
-    primaryTag: userTags[0] ?? null,
+    colorTag: userTags[0] ?? null,
     tags: userTags,
   };
 }
@@ -234,18 +224,18 @@ export function deriveTagFields(
 // Project an already-fetched indexed object into the panel's ObjectNode shape.
 function projectIndexed(
   ref: string,
-  structuralTag: string,
+  hostTag: string,
   obj: IndexedObject,
 ): ObjectNode {
   const tagsField = Array.isArray(obj.tags) ? obj.tags.map(String) : [];
-  const allTags = tagsField.includes(structuralTag)
+  const allTags = tagsField.includes(hostTag)
     ? tagsField
-    : [structuralTag, ...tagsField];
-  const { rootTag, primaryTag, tags } = deriveTagFields(allTags, structuralTag);
+    : [hostTag, ...tagsField];
+  const { rootTag, colorTag, tags } = deriveTagFields(allTags, hostTag);
   const kind: ObjectKind =
-    structuralTag === "page"
+    hostTag === "page"
       ? "page"
-      : structuralTag === "item" || structuralTag === "task"
+      : hostTag === "item" || hostTag === "task"
         ? "item"
         : "block";
   return {
@@ -253,7 +243,7 @@ function projectIndexed(
     kind,
     title: deriveTitle(ref, kind, obj),
     rootTag,
-    primaryTag,
+    colorTag,
     tags,
     dangling: false,
     prefix: obj.pageDecoration?.prefix,
@@ -271,7 +261,7 @@ function stubNode(
     kind,
     title: deriveTitle(ref, kind, null),
     rootTag: null,
-    primaryTag: null,
+    colorTag: null,
     tags: [],
     dangling,
     attributes: { ref, ...(dangling ? { dangling: true } : {}) },
@@ -381,12 +371,12 @@ export async function buildGlobalGraph(
 export async function buildUniverse(): Promise<GraphUniverse> {
   const { relations, pagesByName } = await ensureCache();
 
-  // User tags: every non-core tag attached to any page in the space.
+  // User tags attached to any page in the space
   const tagSet = new Set<string>();
   for (const p of pagesByName.values()) {
     const tags = Array.isArray(p.tags) ? (p.tags as string[]) : [];
     for (const t of tags) {
-      if (isCoreTag(t)) continue;
+      if (isHiddenTag(t)) continue;
       tagSet.add(t);
     }
   }
