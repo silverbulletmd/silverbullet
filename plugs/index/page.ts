@@ -1,27 +1,13 @@
-import {
-  editor,
-  index,
-  lua,
-  markdown,
-} from "@silverbulletmd/silverbullet/syscalls";
-
-import type { FrontMatter } from "./frontmatter.ts";
-import {
-  findNodeOfType,
-  type ParseTree,
-  renderToText,
-  traverseTreeAsync,
-} from "@silverbulletmd/silverbullet/lib/tree";
-import { updateITags } from "./tags.ts";
-import { isValidAnchorName } from "./anchor.ts";
-import type { AspiringPageObject } from "./relation.ts";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
-
-import YAML from "js-yaml";
+import { isValidAnchorName } from "./anchor.ts";
+import type { FrontMatter } from "./frontmatter.ts";
+import type { AspiringPageObject } from "./relation.ts";
+import { updateITags } from "./tags.ts";
 
 export async function indexPage(
   pageMeta: PageMeta,
@@ -94,79 +80,6 @@ export async function indexPage(
   }
 
   return results;
-}
-
-export async function lintFrontmatter(): Promise<LintDiagnostic[]> {
-  const text = await editor.getText();
-  const tree = await markdown.parseMarkdown(text);
-  const diagnostics: LintDiagnostic[] = [];
-  await traverseTreeAsync(tree, async (node) => {
-    if (node.type === "FrontMatterCode") {
-      const lintResult = await lintYaml(
-        renderToText(node),
-        node.from!,
-        node.to!,
-      );
-      if (lintResult) {
-        diagnostics.push(lintResult);
-      }
-      return true;
-    }
-    if (node.type === "FencedCode") {
-      const codeInfo = findNodeOfType(node, "CodeInfo")!;
-      if (!codeInfo) {
-        return true;
-      }
-      const codeLang = codeInfo.children![0].text!;
-      // All known YAML formats
-      if (
-        codeLang === "template" ||
-        codeLang === "yaml" ||
-        codeLang.startsWith("#")
-      ) {
-        const codeText = findNodeOfType(node, "CodeText");
-        if (!codeText) {
-          return true;
-        }
-        const yamlCode = renderToText(codeText);
-        const lintResult = await lintYaml(
-          yamlCode,
-          codeText.from!,
-          codeText.to!,
-        );
-        if (lintResult) {
-          diagnostics.push(lintResult);
-        }
-        return true;
-      }
-    }
-    return false;
-  });
-  return diagnostics;
-}
-
-const errorRegex = /at line (\d+),? column (\d+)/;
-
-async function lintYaml(
-  yamlText: string,
-  from: number,
-  to: number,
-): Promise<LintDiagnostic | undefined> {
-  try {
-    await YAML.load(yamlText);
-  } catch (e: any) {
-    const errorMatch = errorRegex.exec(e.message);
-    if (errorMatch) {
-      console.log("YAML error", e.message);
-
-      return {
-        from,
-        to,
-        severity: "error",
-        message: e.message,
-      };
-    }
-  }
 }
 
 export async function loadPageObject(pageName?: string): Promise<PageMeta> {
