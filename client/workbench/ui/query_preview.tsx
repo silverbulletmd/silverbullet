@@ -5,6 +5,7 @@ import type { Client } from "../../client.ts";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
 import type { QueryBuilder } from "../query_builder.ts";
 import { isGrouped } from "../query_edits.ts";
+import { sourceLabel } from "../query_from.ts";
 import {
   firstRows,
   previewDelay,
@@ -94,7 +95,7 @@ export function QueryPreview({
       body = (
         <div className="sb-wbq-note">
           {client.fullIndexCompleted
-            ? `No ${m.tag} objects match.`
+            ? `No ${sourceLabel(m.source)} objects match.`
             : "The index is still being built."}
         </div>
       );

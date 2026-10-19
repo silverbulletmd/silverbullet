@@ -1,3 +1,4 @@
+import { openRef } from "../action.ts";
 import {
   changeColumnKind,
   changeGroupColumn,
@@ -6,6 +7,7 @@ import {
   isGrouped,
   removeGroupColumn,
 } from "../query_edits.ts";
+import { sourceType } from "../query_from.ts";
 import {
   fieldColumn,
   type GroupColumn,
@@ -15,7 +17,6 @@ import {
   tableColumns,
 } from "../query_model.ts";
 import { aggregateChoices } from "../query_source.ts";
-import { openRef } from "../action.ts";
 import { loadTemplates, templatesFor } from "../query_templates.ts";
 import { LuaLineInput } from "./lua_line_input.tsx";
 import { AddButton, Clause, type RowProps } from "./query_clauses.tsx";
@@ -148,6 +149,26 @@ function TableColumns({ client, builder, model }: RowProps) {
         >
           + All schema fields
         </AddButton>
+        {columns.length ? (
+          <>
+            <span className="sb-wbq-spacer" />
+            <button
+              type="button"
+              className="sb-wbq-link"
+              onClick={() => {
+                builder.update(
+                  (m) => ({ ...m, select: { mode: "table", columns: [] } }),
+                  { undoable: true },
+                );
+                client.ui.flashNotification("Cleared the columns", "info", {
+                  actions: [{ name: "Undo", run: () => void builder.undo() }],
+                });
+              }}
+            >
+              Clear all
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );
@@ -157,7 +178,10 @@ function ListTemplate({ client, builder, model }: RowProps) {
   if (model.select.mode !== "list") return null;
   const list = model.select.list;
   const custom = "custom" in list;
-  const templates = templatesFor(loadTemplates(client), model.tag);
+  const templates = templatesFor(
+    loadTemplates(client),
+    sourceType(model.source),
+  );
   // A template the query names that the space doesn't define (any more)
   const chosen = custom
     ? undefined

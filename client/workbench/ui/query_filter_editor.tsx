@@ -59,6 +59,27 @@ export function FieldSelect({
   );
 }
 
+/** Closes an editor without applying it, from its top-right corner */
+export function EditorClose({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="sb-wbq-x sb-wbq-editor-close"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
+      ✕
+    </button>
+  );
+}
+
 export function FilterEditor({
   client,
   builder,
@@ -85,8 +106,11 @@ export function FilterEditor({
   };
   const buttons = (
     <>
+      <EditorClose
+        label={isNew ? "Discard filter" : "Discard changes"}
+        onClick={onCancel}
+      />
       <span className="sb-wbq-spacer" />
-      <Button onClick={onCancel}>Cancel</Button>
       <Button variant="primary" disabled={!valid} onClick={apply}>
         {isNew ? "Add filter" : "Update"}
       </Button>

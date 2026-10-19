@@ -1,5 +1,6 @@
 import type { FunctionComponent } from "preact";
 import { useCallback, useEffect, useRef } from "preact/hooks";
+import { shouldFocusModalFilter } from "../../lib/mobile.ts";
 import {
   type NativeViewProps,
   requestNativeFocus,
@@ -8,7 +9,6 @@ import {
   WORKBENCH_TABS,
   type WorkbenchTab,
 } from "../../navigator/views/workbench.ts";
-import { shouldFocusModalFilter } from "../../lib/mobile.ts";
 import type { ConsoleSession } from "../console_session.ts";
 import type { QueryBuilder } from "../query_builder.ts";
 import { ConsoleView } from "./console_view.tsx";

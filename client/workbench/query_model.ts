@@ -8,6 +8,7 @@ import {
   type FieldType,
   isLuaName,
 } from "./query_fields.ts";
+import { type QuerySource, sourceType } from "./query_from.ts";
 import type { Filter, OperatorType } from "./query_ops.ts";
 
 /** What a sort orders by */
@@ -52,8 +53,8 @@ export type QuerySelect =
   | { mode: "list"; list: ListSelect };
 
 export type QueryModel = {
-  tag: string;
-  /** The objects' variable (`from t = …`); null for `from index.tag …`, where `_` is the object */
+  source: QuerySource;
+  /** The objects' variable (`from t = …`); null for `from index.tasks()`, where `_` is the object */
   binding: string | null;
   filters: Filter[];
   /** The group keys; a group key needn't have a column */
@@ -130,12 +131,15 @@ export function tableColumns(fields: FieldInfo[]): TableColumn[] {
   return fields.filter((f) => !f.system).map((f) => fieldColumn(f.name));
 }
 
-export function emptyModel(tag: string, fields: FieldInfo[]): QueryModel {
+export function emptyModel(
+  source: QuerySource,
+  fields: FieldInfo[],
+): QueryModel {
   // Declared fields no sampled object has would only add empty columns
   const sampled = fields.some((f) => f.present > 0);
   return {
-    tag,
-    binding: bindingVar(tag),
+    source,
+    binding: bindingVar(sourceType(source)),
     filters: [],
     group: [],
     sorts: [],

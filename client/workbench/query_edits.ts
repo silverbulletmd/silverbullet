@@ -3,6 +3,7 @@
  * model, or that the UI would otherwise work out itself. All pure.
  */
 import type { FieldInfo, FieldType } from "./query_fields.ts";
+import { sourceType } from "./query_from.ts";
 import {
   fieldChoices,
   fieldType,
@@ -142,7 +143,7 @@ export function changeSelectMode(
   if (mode === "table") {
     return { ...m, select: { mode, columns: tableColumns(fields) } };
   }
-  const best = templatesFor(templates, m.tag)[0];
+  const best = templatesFor(templates, sourceType(m.source))[0];
   return {
     ...m,
     select: {

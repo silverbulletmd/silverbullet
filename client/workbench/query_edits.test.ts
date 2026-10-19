@@ -16,6 +16,7 @@ import {
   setFieldType,
 } from "./query_edits.ts";
 import { inferFields } from "./query_fields.ts";
+import { sourceFor } from "./query_from.ts";
 import { emptyModel, type QueryModel } from "./query_model.ts";
 import type { FieldFilter } from "./query_ops.ts";
 
@@ -42,7 +43,7 @@ const filter = (field: string, op: string): FieldFilter => ({
 
 function example1(): QueryModel {
   return {
-    ...emptyModel("task", fields),
+    ...emptyModel(sourceFor("task"), fields),
     filters: [filter("done", "false"), filter("due", "before")],
     sorts: [{ by: { kind: "field", field: "due" }, desc: false }],
     select: {
@@ -57,7 +58,7 @@ function example1(): QueryModel {
 
 describe("group keys", () => {
   test("key columns are added in order, before groupColumns", () => {
-    let m = addGroupKey(emptyModel("book", fields), "status");
+    let m = addGroupKey(emptyModel(sourceFor("book"), fields), "status");
     m = {
       ...m,
       groupColumns: [
@@ -86,7 +87,7 @@ describe("group keys", () => {
 
   test("adding a key twice does nothing", () => {
     const m = addGroupKey(
-      addGroupKey(emptyModel("book", fields), "status"),
+      addGroupKey(emptyModel(sourceFor("book"), fields), "status"),
       "status",
     );
     expect(m.group).toEqual(["status"]);
@@ -95,7 +96,7 @@ describe("group keys", () => {
 
   test("removing the last key clears the group columns", () => {
     const m = removeGroupKey(
-      addGroupKey(emptyModel("book", fields), "status"),
+      addGroupKey(emptyModel(sourceFor("book"), fields), "status"),
       "status",
     );
     expect(m.group).toEqual([]);
@@ -105,7 +106,7 @@ describe("group keys", () => {
 
   test("removing one of two keys removes only its column", () => {
     let m = addGroupKey(
-      addGroupKey(emptyModel("book", fields), "status"),
+      addGroupKey(emptyModel(sourceFor("book"), fields), "status"),
       "genre",
     );
     m = removeGroupKey(m, "status");
@@ -129,7 +130,7 @@ describe("dropFieldUses", () => {
   });
 
   test("drops group keys and groupColumns of the field", () => {
-    let m = addGroupKey(emptyModel("book", fields), "status");
+    let m = addGroupKey(emptyModel(sourceFor("book"), fields), "status");
     m = {
       ...m,
       groupColumns: [
@@ -165,7 +166,7 @@ describe("dropFieldUses", () => {
 
 describe("group columns", () => {
   const grouped = () => {
-    const m = addGroupKey(emptyModel("book", fields), "status");
+    const m = addGroupKey(emptyModel(sourceFor("book"), fields), "status");
     return {
       ...m,
       groupColumns: [
@@ -219,7 +220,7 @@ describe("select", () => {
 
   test("list mode picks the template that fits the tag; table mode every field", () => {
     const m = changeSelectMode(
-      emptyModel("task", fields),
+      emptyModel(sourceFor("task"), fields),
       "list",
       fields,
       templates,
@@ -230,12 +231,21 @@ describe("select", () => {
     });
     // Another tag's objects get the first template there is
     expect(
-      changeSelectMode(emptyModel("book", fields), "list", fields, templates)
-        .select,
+      changeSelectMode(
+        emptyModel(sourceFor("book"), fields),
+        "list",
+        fields,
+        templates,
+      ).select,
     ).toEqual({ mode: "list", list: { template: "templates.pageItem" } });
     // Without templates, a custom one to start from
     expect(
-      changeSelectMode(emptyModel("book", fields), "list", fields, []).select,
+      changeSelectMode(
+        emptyModel(sourceFor("book"), fields),
+        "list",
+        fields,
+        [],
+      ).select,
     ).toEqual({ mode: "list", list: { custom: "* [[${name}]]" } });
     const back = changeSelectMode(m, "table", fields, templates);
     expect(back.select.mode === "table" && back.select.columns.length).toBe(
@@ -258,7 +268,7 @@ describe("filters", () => {
       null,
       false,
     );
-    const m = emptyModel("x", enumFields);
+    const m = emptyModel(sourceFor("x"), enumFields);
     expect(newFieldFilter(m, enumFields, "s")).toEqual({
       kind: "field",
       field: "s",
@@ -289,7 +299,7 @@ describe("field types", () => {
   test("hiding system fields drops every use of them", () => {
     const withRef = inferFields([{ name: "x", ref: "p@1" }], null, false);
     const m = {
-      ...emptyModel("task", withRef),
+      ...emptyModel(sourceFor("task"), withRef),
       filters: [filter("ref", "exists")],
       sorts: [{ by: { kind: "field" as const, field: "ref" }, desc: false }],
     };

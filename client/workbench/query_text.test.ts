@@ -11,6 +11,7 @@ import {
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
 import { addGroupKey, removeGroupKey } from "./query_edits.ts";
 import { type FieldInfo, inferFields, tableKey } from "./query_fields.ts";
+import { sourceFor } from "./query_from.ts";
 import {
   bindingVar,
   emptyModel,
@@ -149,7 +150,7 @@ const ff = (field: string, op: string, extra: Partial<FieldFilter> = {}) =>
 
 function example1(): QueryModel {
   return {
-    ...emptyModel("task", taskFields),
+    ...emptyModel(sourceFor("task"), taskFields),
     filters: [
       ff("done", "false"),
       ff("due", "before", { values: ["2026-11-01"] }),
@@ -169,7 +170,7 @@ function example1(): QueryModel {
 
 function grouped(): QueryModel {
   return {
-    ...emptyModel("book", bookFields),
+    ...emptyModel(sourceFor("book"), bookFields),
     group: ["status"],
     sorts: [{ by: { kind: "groupKey", field: "status" }, desc: false }],
     groupColumns: [
@@ -207,7 +208,9 @@ const unwrap = (text: string) => text.replace(/^\$\{/, "").replace(/\}$/, "");
 async function run(text: string): Promise<any> {
   const env = new LuaEnv(luaBuildStandardEnv());
   const index = new LuaTable();
-  await index.set("tag", (name: string) => jsToLuaValue(FIXTURES[name] ?? []));
+  const objects = (name: string) => jsToLuaValue(FIXTURES[name] ?? []);
+  await index.set("objects", objects);
+  await index.set("tasks", () => objects("task"));
   env.set("index", index);
   const expr = parseExpressionString(unwrap(text));
   const sf = LuaStackFrame.createWithGlobalEnv(env, expr.ctx);
@@ -246,7 +249,7 @@ describe("model helpers", () => {
       { name: { type: "text" }, aliases: { type: "list" } },
       true,
     );
-    const m = emptyModel("page", fields);
+    const m = emptyModel(sourceFor("page"), fields);
     expect(m.select).toEqual({
       mode: "table",
       columns: [
@@ -261,7 +264,7 @@ describe("model helpers", () => {
   });
 
   test("an empty model selects a column per non-system field, no limit", () => {
-    const m = emptyModel("task", [
+    const m = emptyModel(sourceFor("task"), [
       ...taskFields,
       { name: "ref", system: true } as FieldInfo,
     ]);
@@ -285,7 +288,7 @@ describe("generateQuery", () => {
     expect(generateQuery(example1(), taskFields)).toBe(
       [
         "${query[[",
-        '  from t = index.tag "task"',
+        "  from t = index.tasks()",
         "  where not t.done",
         '    and type(t.due) == "string" and t.due < "2026-11-01"',
         "  order by t.due",
@@ -372,7 +375,7 @@ describe("generateQuery", () => {
   });
 
   test("a custom template with links still parses", () => {
-    const m = emptyModel("book", bookFields);
+    const m = emptyModel(sourceFor("book"), bookFields);
     m.select = {
       mode: "list",
       list: { custom: "* [[${title}]] by ${author}" },
@@ -385,7 +388,7 @@ describe("generateQuery", () => {
   });
 
   test("a custom template the double bracket can't hold gets another literal", () => {
-    const m = emptyModel("book", bookFields);
+    const m = emptyModel(sourceFor("book"), bookFields);
     m.select = { mode: "list", list: { custom: "* ${title} ]==]" } };
     const text = generateQuery(m, bookFields);
     expect(text).not.toContain("template.new[==[");
@@ -393,7 +396,7 @@ describe("generateQuery", () => {
   });
 
   test("a custom template no long bracket fits becomes a quoted string", () => {
-    const m = emptyModel("book", bookFields);
+    const m = emptyModel(sourceFor("book"), bookFields);
     m.select = { mode: "list", list: { custom: "]] ]=] ]==] ${title}" } };
     const text = generateQuery(m, bookFields);
     expect(text).toContain('template.new("]] ]=] ]==] ${title}")(b)');
@@ -414,7 +417,7 @@ describe("generateQuery", () => {
       false,
     );
     const m: QueryModel = {
-      ...emptyModel("task", fields),
+      ...emptyModel(sourceFor("task"), fields),
       filters: [ff("due date", "exists")],
       sorts: [{ by: { kind: "field", field: "meta.author" }, desc: false }],
     };
@@ -427,7 +430,7 @@ describe("generateQuery", () => {
 
   test("generated queries parse; an invalid expression filter is kept as is", () => {
     for (const m of [example1(), grouped()]) {
-      const fields = m.tag === "task" ? taskFields : bookFields;
+      const fields = m.source.root === "task" ? taskFields : bookFields;
       expect(() =>
         parseExpressionString(unwrap(generateQuery(m, fields))),
       ).not.toThrow();
@@ -483,7 +486,7 @@ describe("review fixes", () => {
   test("text operators on a mixed field don't throw", async () => {
     const env = new LuaEnv(luaBuildStandardEnv());
     const index = new LuaTable();
-    await index.set("tag", () =>
+    await index.set("objects", () =>
       jsToLuaValue([{ rating: 5 }, { rating: "loved it" }, { rating: 3 }]),
     );
     env.set("index", index);
@@ -493,7 +496,7 @@ describe("review fixes", () => {
       false,
     );
     const m: QueryModel = {
-      ...emptyModel("book", fields),
+      ...emptyModel(sourceFor("book"), fields),
       filters: [ff("rating", "contains", { values: ["lo"] })],
     };
     const expr = parseExpressionString(
@@ -524,7 +527,7 @@ describe("review fixes", () => {
       null,
       false,
     );
-    const text = generateQuery(emptyModel("event", fields), fields);
+    const text = generateQuery(emptyModel(sourceFor("event"), fields), fields);
     expect(text).toContain('["end"] = e["end"]');
     expect(() => parseExpressionString(unwrap(text))).not.toThrow();
   });
@@ -606,14 +609,14 @@ describe("generated queries run", () => {
   test("a nested field reads as nil where its record is missing", async () => {
     const fields = inferFields(NOTES, null, false);
     let m: QueryModel = {
-      ...emptyModel("note", fields),
+      ...emptyModel(sourceFor("note"), fields),
       filters: [ff("meta.prefix", "exists")],
       sorts: [{ by: { kind: "field", field: "meta.prefix" }, desc: false }],
     };
     const rows = await run(generateQuery(m, fields));
     expect(rows.map((r: any) => r.name)).toEqual(["Decorated"]);
     // The default table shows every note, with or without the record
-    m = emptyModel("note", fields);
+    m = emptyModel(sourceFor("note"), fields);
     expect((await run(generateQuery(m, fields))).length).toBe(2);
     m = addGroupKey(m, "meta.prefix");
     expect(await run(generateQuery(m, fields))).toHaveLength(2);

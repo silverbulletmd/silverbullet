@@ -1,9 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { addGroupKey } from "./query_edits.ts";
 import { inferFields } from "./query_fields.ts";
+import { sourceFor } from "./query_from.ts";
 import { emptyModel, type QueryModel } from "./query_model.ts";
 import type { FieldFilter } from "./query_ops.ts";
-import { parseQuery, queryTag } from "./query_parse.ts";
+import { parseQuery, querySource } from "./query_parse.ts";
 import { generateQuery } from "./query_text.ts";
 
 // Made-up objects, enough to type each field
@@ -52,11 +53,11 @@ const ff = (field: string, op: string, values: string[] = []): FieldFilter => ({
 });
 
 function task(patch: Partial<QueryModel> = {}): QueryModel {
-  return { ...emptyModel("task", taskFields), ...patch };
+  return { ...emptyModel(sourceFor("task"), taskFields), ...patch };
 }
 
 function grouped(): QueryModel {
-  let m = addGroupKey(emptyModel("book", bookFields), "status");
+  let m = addGroupKey(emptyModel(sourceFor("book"), bookFields), "status");
   m = {
     ...m,
     groupColumns: [
@@ -145,7 +146,7 @@ describe("round trip of generated queries", () => {
       false,
     );
     const m: QueryModel = {
-      ...emptyModel("note", fields),
+      ...emptyModel(sourceFor("note"), fields),
       filters: [ff("meta.prefix", "is", ["x"])],
       sorts: [{ by: { kind: "field", field: "meta.prefix" }, desc: false }],
     };
@@ -258,8 +259,9 @@ describe("hand-written queries", () => {
     expect(parsed.model.sorts).toEqual([
       { by: { kind: "field", field: "due" }, desc: false },
     ]);
+    // The older index.tag form comes back as the root tag's helper
     expect(generateQuery(parsed.model, taskFields)).toContain(
-      'from x = index.tag "task"',
+      "from x = index.tasks()",
     );
   });
 
@@ -274,7 +276,7 @@ describe("hand-written queries", () => {
     expect(generateQuery(parsed.model, taskFields, { wrap: false })).toBe(
       [
         "query[[",
-        '  from index.tag "task"',
+        "  from index.tasks()",
         "  where done",
         "  select {",
         "    n = name",
@@ -327,7 +329,7 @@ describe("hand-written queries", () => {
     const cases: [string, RegExp][] = [
       ["1 + 1", /isn't a query/],
       ["query[[from t = index.tag 'task' where]]", /doesn't parse/],
-      ["query[[from t = myObjects where t.x]]", /index\.tag/],
+      ["query[[from t = myObjects where t.x]]", /index\.\*/],
       ['query[[from t = index.tag "task" limit 5 offset 10]]', /offset/],
       ['query[[from t = index.tag "task" group by t.name:sub(1, 1)]]', /group/],
       ['query[[from t = index.tag "task" select t.name]]', /select/],
@@ -344,10 +346,43 @@ describe("hand-written queries", () => {
   });
 });
 
-describe("queryTag", () => {
-  test("the tag a query reads, or null", () => {
-    expect(queryTag('query[[from b = index.tag "book" limit 1]]')).toBe("book");
-    expect(queryTag('${query[[from index.tag "page"]]}')).toBe("page");
-    expect(queryTag("1 + 1")).toBe(null);
+describe("querySource", () => {
+  test("the source a query reads, or null", () => {
+    expect(querySource("query[[from p = index.pages()]]")).toEqual(
+      sourceFor("page"),
+    );
+    expect(querySource('query[[from t = index.tasks("work")]]')).toEqual({
+      root: "task",
+      tag: "work",
+      by: "root",
+    });
+    expect(querySource('query[[from index.data("contact")]]')).toEqual({
+      root: "data",
+      tag: "contact",
+      by: "root",
+    });
+    expect(querySource('query[[from r = index.relations("spouse")]]')).toEqual({
+      root: "relation",
+      tag: "spouse",
+      by: "root",
+    });
+    expect(querySource("query[[from d = index.documents()]]")).toEqual(
+      sourceFor("document"),
+    );
+    expect(querySource('query[[from o = index.objects("book")]]')).toEqual(
+      sourceFor("book"),
+    );
+    expect(querySource("1 + 1")).toBe(null);
+    expect(querySource('query[[from d = index.documents("x")]]')).toBe(null);
+    expect(querySource("query[[from p = index.contentPages()]]")).toBe(null);
+  });
+
+  test("the older index.tag form still opens", () => {
+    expect(querySource('query[[from b = index.tag "book" limit 1]]')).toEqual(
+      sourceFor("book"),
+    );
+    expect(querySource('${query[[from index.tag "page"]]}')).toEqual(
+      sourceFor("page"),
+    );
   });
 });

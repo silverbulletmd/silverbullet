@@ -12,6 +12,7 @@ import {
   type FieldType,
   tagDefineSnippet,
 } from "../query_fields.ts";
+import { schemaTag } from "../query_from.ts";
 import type { QueryModel } from "../query_model.ts";
 import { TYPE_LABEL } from "./query_filter_editor.tsx";
 
@@ -181,7 +182,11 @@ export function FieldsPanel({
             onClick={() =>
               void copyText(
                 client,
-                tagDefineSnippet(m.tag, builder.fields, m.overrides),
+                tagDefineSnippet(
+                  schemaTag(m.source),
+                  builder.fields,
+                  m.overrides,
+                ),
               )
             }
           >

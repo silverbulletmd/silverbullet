@@ -3,6 +3,7 @@
  * closing the Workbench doesn't lose work.
  */
 import type { FieldInfo } from "./query_fields.ts";
+import type { QuerySource } from "./query_from.ts";
 import { emptyModel, fieldType, type QueryModel } from "./query_model.ts";
 import type { OperatorType } from "./query_ops.ts";
 
@@ -83,16 +84,33 @@ export class QueryBuilder {
     this.changed();
   }
 
-  /** Starts over on `tag`; returns whether the replaced work can be undone */
-  pickTag(tag: string, fields: FieldInfo[]): boolean {
+  /** Starts over on `source`; returns whether the replaced work can be undone */
+  pickSource(source: QuerySource, fields: FieldInfo[]): boolean {
     const old = this.model;
     const edited = !!old && old !== this.pristine;
     this.snapshot = edited ? { model: old, fields: this.fields } : null;
-    this.model = this.pristine = this.blank = emptyModel(tag, fields);
+    this.model = this.pristine = this.blank = emptyModel(source, fields);
     this.fields = fields;
     this.resets++;
     this.changed();
     return edited;
+  }
+
+  /**
+   * Narrows (or widens) the objects read, keeping the query: they're the same
+   * kind of objects, so its filters and columns still apply
+   */
+  narrow(source: QuerySource, fields: FieldInfo[]): void {
+    const m = this.model;
+    if (!m) return;
+    this.snapshot = { model: m, fields: this.fields };
+    this.model =
+      m === this.blank
+        ? (this.pristine = this.blank = emptyModel(source, fields))
+        : { ...m, source };
+    this.fields = fields;
+    this.resets++;
+    this.changed();
   }
 
   /** Shows `model` (a query opened from a page), replacing the current one undoably */
@@ -113,7 +131,7 @@ export class QueryBuilder {
     const m = this.model;
     if (!m) return;
     if (m === this.blank) {
-      this.model = this.pristine = this.blank = emptyModel(m.tag, fields);
+      this.model = this.pristine = this.blank = emptyModel(m.source, fields);
       this.resets++;
     }
     this.fields = fields;

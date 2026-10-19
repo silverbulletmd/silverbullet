@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import { LuaTable } from "../space_lua/runtime.ts";
 import {
   firstRows,
-  previewDelay,
   PREVIEW_ROWS,
+  previewDelay,
   previewSlice,
   rowCount,
 } from "./query_preview.ts";

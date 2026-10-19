@@ -17,7 +17,7 @@ import {
 } from "../query_model.ts";
 import { type Filter, operatorOf } from "../query_ops.ts";
 import { LuaLineInput } from "./lua_line_input.tsx";
-import { FilterEditor } from "./query_filter_editor.tsx";
+import { EditorClose, FilterEditor } from "./query_filter_editor.tsx";
 
 export type RowProps = {
   client: Client;
@@ -227,7 +227,10 @@ export function GroupByRow({ builder, model }: RowProps) {
               </option>
             ))}
           </select>
-          <Button onClick={() => setAdding(false)}>Cancel</Button>
+          <EditorClose
+            label="Discard group key"
+            onClick={() => setAdding(false)}
+          />
         </div>
       ) : (
         <>
@@ -413,8 +416,8 @@ export function OrderByRow({ client, builder, model }: RowProps) {
             <option value="first">nulls first</option>
             <option value="last">nulls last</option>
           </select>
+          <EditorClose label="Discard sort" onClick={() => setDraft(null)} />
           <span className="sb-wbq-spacer" />
-          <Button onClick={() => setDraft(null)}>Cancel</Button>
           <Button variant="primary" onClick={add}>
             Add
           </Button>

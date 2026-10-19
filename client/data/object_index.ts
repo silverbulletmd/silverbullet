@@ -354,12 +354,12 @@ export class ObjectIndex {
         const filter = parseExpressionString(buildFilterExpr(varName));
         const where = query.where
           ? {
-            type: "Binary" as const,
-            operator: "and",
-            left: filter,
-            right: query.where,
-            ctx: {},
-          }
+              type: "Binary" as const,
+              operator: "and",
+              left: filter,
+              right: query.where,
+              ctx: {},
+            }
           : filter;
         return this.memoLuaQuery(
           tagName,

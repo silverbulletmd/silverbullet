@@ -20,13 +20,22 @@ import {
   type FieldInfo,
   inferFields,
 } from "./query_fields.ts";
+import {
+  type QuerySource,
+  rootSource,
+  sampleQuery,
+  schemaTag,
+} from "./query_from.ts";
 
-/** The order the Query tab lists built-in tags in, one group per kind */
+/**
+ * The order the Query tab lists built-in tags in, one group per kind. System
+ * tags (space-lua, space-style) are left out: they're configuration, not data
+ * worth querying.
+ */
 export const TAG_KIND_GROUPS: readonly { kind: TagKind; label: string }[] = [
   { kind: "root", label: "Root" },
   { kind: "edge", label: "Edges" },
   { kind: "index", label: "Index" },
-  { kind: "system", label: "System" },
 ];
 
 /** Every built-in tag the Query tab offers, in group order (the deprecated `link` view is left out) */
@@ -36,15 +45,52 @@ export const BUILTIN_QUERY_TAGS: readonly string[] = TAG_KIND_GROUPS.flatMap(
 
 export const SAMPLE_LIMIT = 500;
 
-export type TagLists = { user: string[]; builtIn: string[] };
+export type TagLists = {
+  builtIn: string[];
+  /** Root tags data blocks define (```#contact) */
+  dataRoots: string[];
+  user: string[];
+  /** For each user tag, the root tags it's used on */
+  usedOn: Record<string, string[]>;
+};
 
-export function splitTags(names: string[]): TagLists {
-  const seen = new Set(names);
+export const NO_TAGS: TagLists = {
+  builtIn: [],
+  dataRoots: [],
+  user: [],
+  usedOn: {},
+};
+
+const byName = (a: string, b: string) => a.localeCompare(b);
+
+/** Sorts tag records (name, and the root tag it's used on) into the Query tab's lists */
+export function splitTags(
+  records: { name: string; parent?: string }[],
+): TagLists {
+  const seen = new Set<string>();
+  const dataRoots = new Set<string>();
+  const usedOn = new Map<string, Set<string>>();
+  for (const { name, parent } of records) {
+    seen.add(name);
+    if (isBuiltinTag(name)) continue;
+    if (parent === "data") {
+      dataRoots.add(name);
+      continue;
+    }
+    const roots = usedOn.get(name) ?? new Set<string>();
+    if (parent) roots.add(parent);
+    usedOn.set(name, roots);
+  }
   return {
-    user: [...seen]
-      .filter((n) => !isBuiltinTag(n))
-      .sort((a, b) => a.localeCompare(b)),
     builtIn: BUILTIN_QUERY_TAGS.filter((n) => seen.has(n)),
+    dataRoots: [...dataRoots].sort(byName),
+    user: [...usedOn.keys()].sort(byName),
+    usedOn: Object.fromEntries(
+      [...usedOn].map(([name, roots]) => [
+        name,
+        BUILTIN_QUERY_TAGS.filter((r) => roots.has(r)),
+      ]),
+    ),
   };
 }
 
@@ -62,35 +108,60 @@ export function filterTags(tags: TagLists, phrase: string): TagLists {
             Number(!b.toLowerCase().startsWith(p)) || i - j,
       )
       .map(([n]) => n);
-  return { user: pick(tags.user), builtIn: pick(tags.builtIn) };
+  return {
+    ...tags,
+    builtIn: pick(tags.builtIn),
+    dataRoots: pick(tags.dataRoots),
+    user: pick(tags.user),
+  };
+}
+
+/** The user tags used on a root tag's objects; for `data`, the root tags data blocks define */
+export function tagsUsedOn(tags: TagLists, root: string): string[] {
+  if (root === "data") return tags.dataRoots;
+  return tags.user.filter((t) => tags.usedOn[t]?.includes(root));
 }
 
 /** The tag the Query tab opens on */
-export const START_TAG = "page";
+export const START_SOURCE: QuerySource = rootSource("page");
 
 /**
- * User tags in use outside the standard library (as on the Scripts tab), plus
+ * Tags in use outside the standard library (as on the Scripts tab), plus
  * every built-in tag
  */
 export async function listTags(client: Client): Promise<TagLists> {
-  const tags = await client.queryLuaObjects<{ name: string; page?: string }>(
-    "tag",
-    {},
-  );
-  const used = tags
-    .filter((t) => !t.page?.startsWith(stdLibPrefix))
-    .map((t) => t.name);
-  return splitTags([...used, ...BUILTIN_QUERY_TAGS]);
+  const tags = await client.queryLuaObjects<{
+    name: string;
+    page?: string;
+    parent?: string;
+  }>("tag", {});
+  return splitTags([
+    ...tags.filter((t) => !t.page?.startsWith(stdLibPrefix)),
+    ...BUILTIN_QUERY_TAGS.map((name) => ({ name })),
+  ]);
+}
+
+/** The relation kinds in use (mention, spouse, …) */
+export async function listRelationKinds(client: Client): Promise<string[]> {
+  const kinds = await client.queryLuaObjects<string>("relation", {
+    objectVariable: "r",
+    select: parseExpressionString("r.kind"),
+    distinct: true,
+  });
+  return kinds.filter((k) => typeof k === "string").sort(byName);
 }
 
 export async function loadFields(
   client: Client,
-  tag: string,
+  source: QuerySource,
 ): Promise<{ fields: FieldInfo[]; sampled: number }> {
-  const samples = await client.queryLuaObjects<Record<string, unknown>>(tag, {
+  const { key, where } = sampleQuery(source);
+  const samples = await client.queryLuaObjects<Record<string, unknown>>(key, {
     objectVariable: "o",
+    ...(where ? { where: parseExpressionString(where) } : {}),
     limit: SAMPLE_LIMIT,
   });
+  const tag = schemaTag(source);
   const tags = client.config.get(["tags"], {});
   const declared = declaredFieldsFromSchema(tagSchema(tags, tag));
   if (!samples.length && !declared) return { fields: [], sampled: 0 };

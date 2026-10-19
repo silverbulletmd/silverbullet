@@ -101,17 +101,17 @@ The Query tab shows the objects in your space: your pages, tasks, and everything
 
 The tab has three parts:
 
-* **Tags**, on the left: the kinds of objects SilverBullet indexes itself (**Built-in**, such as `task` and `page`), then the tags used in your space (**Custom**). Type in the box at the top to narrow the list; Enter picks the first match and Escape clears it. Picking one starts a query on it. The tab first opens on pages.
+* **Tags**, on the left: the [[Tag|tags]] SilverBullet indexes itself, grouped by kind: **Root** tags such as `page` and `task` (with the root tags your [[Tag/data|data blocks]] define), then edge and index tags, then the **User tags** used in your space. Type in the box at the top to narrow the list; Enter picks the first match and Escape clears it. Picking one starts a query on it. The tab first opens on pages.
 * **The query editor**: one row per part of the query, named after the keyword it writes.
 * **The results**, the largest part, kept up to date as your space’s scripts reload and its index finishes building, with the query as you left it: the objects, rendered the way the query renders on a page (or as Lua values). It shows the first 200 rows of a large result.
 
 ## Building a query
-* **From:** the tag you picked. **Schema** lists every field of its objects (see [[#Fields]]).
+* **From:** the tag you picked, read through its `index.*()` helper, such as `index.pages()` or `index.data("contact")`. Next to it, narrow it down: a root tag to the objects that carry one of the user tags used on it (`index.pages("project")`; a relation to one kind), or a user tag to one root tag it's used on (`index.tasks("project")`, where on its own it reads `index.objects("project")`). Narrowing keeps the query you built. **Schema** lists every field of its objects (see [[#Fields]]).
 * **Where:** filters, all of which must match. *+ Filter* picks a field, then an operator that suits its type: text can be matched exactly, by a part or by its start; numbers and dates can be compared, with *before today* and *after today* for dates; lists can contain a value; and any field can be required to exist or not. *+ Expression* takes any Lua condition instead, with completion. Click a filter to change it.
 * **Group By:** one result per distinct value of a field (or combination of fields). The **Select** row then shows group columns: each is a group key or an aggregate of a field, like `count` or `avg`, including your own [[Space Lua/Integrated Query/Aggregating|aggregates]].
 * **Order By:** the order, with directions named for the field’s type (*earliest first*, *A–Z*, *high to low*). Click an order to flip it. While grouping, you order by a group key or an aggregate column.
 * **Select:** what each result shows.
-  * **Table** (the default): a column per field the objects have. Remove, rename and reorder columns; a *Page link* column makes a field a link, and an *Expression* column computes its value.
+  * **Table** (the default): a column per field the objects have. Remove, rename and reorder columns, or *Clear all* to start from none; a *Page link* column makes a field a link, and an *Expression* column computes its value.
   * **List:** one line per result, from a template your space defines in `templates` (such as tasks with their checkbox), or a *Custom template…* you write with the fields as `${name}`. Each template shows the description from the `---` comment above it, and the ones whose `@param` takes this tag’s objects come first.
 * **Limit:** how many results, or all when empty.
 
@@ -132,5 +132,5 @@ The bar at the bottom shows the query; *Show* expands it.
 ## Editing a query on a page
 To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s ⋯ menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. The query editor opens with the query taken apart into its rows: a filter the builder could have written becomes that filter again, and any other condition, order or column stays as Lua, in an *Expression*. The query keeps its own variable name, or none.
 
-Some queries don’t fit the builder, and say why instead of opening: a query over something other than one `index.tag`, an `offset`, a `having`, grouping by anything but fields, an `order by` with `using`, or a select other than a table with named columns or a template.
+Some queries don’t fit the builder, and say why instead of opening: a query over something other than one `index.*()` collection (such as `index.pages()`, or the older `index.tag "page"`, which is rewritten as `index.pages()`), an `offset`, a `having`, grouping by anything but fields, an `order by` with `using`, or a select other than a table with named columns or a template.
 

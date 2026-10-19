@@ -7,8 +7,9 @@
  *     --- @param t task
  *     templates.taskItem = template.new[==[…]==]
  */
-import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
+
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
 import type { Client } from "../client.ts";
 import type { LuaExpression } from "../space_lua/ast.ts";
 import { parseBlock } from "../space_lua/parse.ts";

@@ -7,14 +7,17 @@ import {
   luaValueToJS,
 } from "../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
+import { sourceFor } from "./query_from.ts";
 import {
   aggregateChoices,
   evalQueryText,
   filterTags,
   listTags,
   loadFields,
+  NO_TAGS,
   SAMPLE_LIMIT,
   splitTags,
+  tagsUsedOn,
 } from "./query_source.ts";
 
 function stubClient(opts: {
@@ -38,58 +41,85 @@ function stubClient(opts: {
 
 describe("splitTags", () => {
   test("user tags apart from built-in tags, built-in ones in kind order", () => {
-    expect(
-      splitTags([
-        "book",
-        "anchor",
-        "task",
-        "person",
-        "book",
-        "relation",
-        "page",
-      ]),
-    ).toEqual({
-      user: ["book", "person"],
-      builtIn: ["page", "task", "relation", "anchor"],
-    });
+    const tags = splitTags([
+      { name: "book", parent: "page" },
+      { name: "anchor" },
+      { name: "task" },
+      { name: "person", parent: "item" },
+      { name: "book", parent: "item" },
+      { name: "relation" },
+      { name: "page" },
+    ]);
+    expect(tags.user).toEqual(["book", "person"]);
+    expect(tags.builtIn).toEqual(["page", "task", "relation", "anchor"]);
+  });
+
+  test("each user tag knows the root tags it's used on", () => {
+    const tags = splitTags([
+      { name: "work", parent: "task" },
+      { name: "work", parent: "page" },
+      { name: "home", parent: "item" },
+    ]);
+    expect(tags.usedOn).toEqual({ work: ["page", "task"], home: ["item"] });
+    expect(tagsUsedOn(tags, "task")).toEqual(["work"]);
+  });
+
+  test("root tags data blocks define are listed apart", () => {
+    const tags = splitTags([
+      { name: "contact", parent: "data" },
+      { name: "contact", parent: "item" },
+      { name: "expense", parent: "data" },
+    ]);
+    expect(tags.dataRoots).toEqual(["contact", "expense"]);
+    // Also used as a hashtag, it's a user tag too
+    expect(tags.user).toEqual(["contact"]);
+    expect(tagsUsedOn(tags, "data")).toEqual(["contact", "expense"]);
   });
 
   test("the deprecated link view is neither built-in nor a user tag", () => {
-    expect(splitTags(["link", "book"])).toEqual({
-      user: ["book"],
-      builtIn: [],
-    });
+    const tags = splitTags([{ name: "link" }, { name: "book" }]);
+    expect(tags.user).toEqual(["book"]);
+    expect(tags.builtIn).toEqual([]);
   });
 });
 
 describe("filterTags", () => {
   const tags = {
+    ...NO_TAGS,
     user: ["book", "meta/api", "person", "project"],
     builtIn: ["page", "task"],
+    dataRoots: ["contact"],
   };
+  const lists = (t: typeof tags) => ({
+    user: t.user,
+    builtIn: t.builtIn,
+    dataRoots: t.dataRoots,
+  });
 
   test("an empty phrase keeps everything", () => {
     expect(filterTags(tags, "  ")).toEqual(tags);
   });
 
   test("matches any part of the name, ignoring case", () => {
-    expect(filterTags(tags, "PRO")).toEqual({
+    expect(lists(filterTags(tags, "PRO"))).toEqual({
       user: ["project"],
       builtIn: [],
+      dataRoots: [],
     });
-    expect(filterTags(tags, "a")).toEqual({
+    expect(lists(filterTags(tags, "a"))).toEqual({
       user: ["meta/api"],
       builtIn: ["page", "task"],
+      dataRoots: ["contact"],
     });
   });
 
   test("a leading # is ignored", () => {
-    expect(filterTags(tags, "#bo")).toEqual({ user: ["book"], builtIn: [] });
+    expect(filterTags(tags, "#bo").user).toEqual(["book"]);
   });
 
   test("names starting with the phrase come first", () => {
     expect(
-      filterTags({ user: ["mybook", "book"], builtIn: [] }, "book").user,
+      filterTags({ ...NO_TAGS, user: ["mybook", "book"] }, "book").user,
     ).toEqual(["book", "mybook"]);
   });
 });
@@ -112,7 +142,7 @@ describe("listTags", () => {
 describe("loadFields", () => {
   test("an empty tag gives no fields", async () => {
     const { client } = stubClient({});
-    expect(await loadFields(client, "book")).toEqual({
+    expect(await loadFields(client, sourceFor("book"))).toEqual({
       fields: [],
       sampled: 0,
     });
@@ -122,7 +152,7 @@ describe("loadFields", () => {
     const { client, queryLuaObjects } = stubClient({
       objects: [{ title: "Piranesi" }],
     });
-    const { fields, sampled } = await loadFields(client, "book");
+    const { fields, sampled } = await loadFields(client, sourceFor("book"));
     expect(SAMPLE_LIMIT).toBe(500);
     expect(queryLuaObjects).toHaveBeenCalledWith(
       "book",
@@ -146,7 +176,7 @@ describe("loadFields", () => {
         },
       },
     });
-    const { fields } = await loadFields(client, "project");
+    const { fields } = await loadFields(client, sourceFor("project"));
     const status = fields.find((f) => f.name === "status")!;
     expect(status.source).toBe("declared");
     expect(fields.find((f) => f.name === "budget")!.source).toBe("inferred");
@@ -166,7 +196,7 @@ describe("loadFields", () => {
         },
       },
     });
-    const { fields } = await loadFields(client, "task");
+    const { fields } = await loadFields(client, sourceFor("task"));
     expect(fields[0].source).toBe("built-in");
   });
 });
@@ -201,7 +231,7 @@ describe("fields of a tag on pages", () => {
         },
       },
     });
-    const { fields } = await loadFields(client, "book");
+    const { fields } = await loadFields(client, sourceFor("book"));
     const own = fields.filter((f) => !f.system).map((f) => [f.name, f.source]);
     expect(own).toEqual([
       ["name", "built-in"],
@@ -253,4 +283,10 @@ describe("evalQueryText", () => {
       ),
     ).rejects.toThrow();
   });
+});
+
+test("system tags aren't offered", () => {
+  const tags = splitTags([{ name: "space-lua" }, { name: "page" }]);
+  expect(tags.builtIn).toEqual(["page"]);
+  expect(tags.user).toEqual([]);
 });

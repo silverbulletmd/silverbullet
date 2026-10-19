@@ -8,7 +8,7 @@ import { directiveAt } from "../codemirror/widgets/directive_at.ts";
 import { showView } from "../navigator/navigator.ts";
 import { WORKBENCH_VIEW } from "../navigator/views/workbench.ts";
 import type { InsertTarget, QueryBuilder } from "./query_builder.ts";
-import { parseQuery, queryTag } from "./query_parse.ts";
+import { parseQuery, querySource } from "./query_parse.ts";
 import { loadFields } from "./query_source.ts";
 import { followTarget } from "./query_target.ts";
 
@@ -43,12 +43,12 @@ export async function openQuery(
   };
   if (!found) return fail("Put the cursor in a ${query[[…]]} to edit it");
   if (client.isReadOnlyMode()) return fail("This page is read-only");
-  const tag = queryTag(found.expr);
-  if (!tag) {
+  const source = querySource(found.expr);
+  if (!source) {
     const parsed = parseQuery(found.expr, []);
     return fail(parsed.ok ? "This isn't a query over a tag" : parsed.reason);
   }
-  const { fields } = await loadFields(client, tag);
+  const { fields } = await loadFields(client, source);
   const parsed = parseQuery(found.expr, fields);
   if (!parsed.ok) return fail(`Can't edit this query: ${parsed.reason}`);
   builder.openModel(parsed.model, fields);

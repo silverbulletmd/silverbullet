@@ -18,6 +18,7 @@ import type {
 } from "../space_lua/ast.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import type { FieldInfo } from "./query_fields.ts";
+import { type QuerySource, sourceFromCall } from "./query_from.ts";
 import {
   emptyModel,
   fieldAccess,
@@ -69,38 +70,42 @@ function sameTree(a: unknown, b: unknown): boolean {
   return shape(a) === shape(b);
 }
 
-/** The source: `index.tag "x"`, with or without a variable */
+/** The source: an `index.*()` call, with or without a variable */
 function fromClause(q: LuaQueryExpression): {
-  tag: string;
+  source: QuerySource;
   binding: string | null;
 } {
   const from = q.clauses.filter((c) => c.type === "From");
   if (from.length !== 1 || from[0].fields.length !== 1) {
-    refuse("Only a query over one index.tag can be edited");
+    refuse("Only a query over one index.* collection can be edited");
   }
   const field = from[0].fields[0];
   const value = field.value;
-  const isIndexTag =
+  const call =
     value.type === "FunctionCall" &&
     value.prefix.type === "PropertyAccess" &&
     value.prefix.object.type === "Variable" &&
     value.prefix.object.name === "index" &&
-    value.prefix.property === "tag" &&
-    value.args.length === 1 &&
-    value.args[0].type === "String";
-  if (!isIndexTag) refuse("Only a query over index.tag can be edited");
-  const tag = (
-    (value as LuaFunctionCallExpression).args[0] as { value: string }
-  ).value;
-  if (field.type === "PropField") return { tag, binding: field.key };
-  if (field.type === "ExpressionField") return { tag, binding: null };
-  refuse("Only a query over index.tag can be edited");
+    value.args.length <= 1 &&
+    value.args.every((a) => a.type === "String")
+      ? (value as LuaFunctionCallExpression)
+      : null;
+  const source = call
+    ? sourceFromCall(
+        (call.prefix as { property: string }).property,
+        call.args.length ? (call.args[0] as { value: string }).value : null,
+      )
+    : null;
+  if (!source) refuse("Only a query over an index.* collection can be edited");
+  if (field.type === "PropField") return { source, binding: field.key };
+  if (field.type === "ExpressionField") return { source, binding: null };
+  refuse("Only a query over an index.* collection can be edited");
 }
 
-/** The tag a query reads, or null when it isn't a query over index.tag */
-export function queryTag(text: string): string | null {
+/** The source a query reads, or null when the builder can't show it */
+export function querySource(text: string): QuerySource | null {
   try {
-    return fromClause(parseQueryAst(unwrap(text))).tag;
+    return fromClause(parseQueryAst(unwrap(text))).source;
   } catch {
     return null;
   }
@@ -130,9 +135,9 @@ class Reader {
   read(): { model: QueryModel; notes: string[] } {
     const q = parseQueryAst(this.text);
     this.base = q.ctx.from ?? 0;
-    const { tag, binding } = fromClause(q);
+    const { source, binding } = fromClause(q);
     this.v = binding ?? "_";
-    this.model = { ...emptyModel(tag, this.fields), binding };
+    this.model = { ...emptyModel(source, this.fields), binding };
     const m = this.model;
     // Each column's syntax tree, to know an `order by` on it
     const columnTrees = new Map<string, LuaExpression>();

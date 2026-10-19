@@ -141,6 +141,14 @@
     font-size: 12.5px;
   }
 
+  .sb-wbq-narrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--subtle-color);
+    font-size: 12px;
+  }
+
   .sb-wbq-note {
     color: var(--subtle-color);
     font-size: 12px;
@@ -315,15 +323,22 @@
   }
 
   .sb-wbq-editor {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     width: 100%;
-    padding: 8px;
+    padding: 8px 28px 8px 8px;
     border: 1px solid var(--ui-surface-border-color);
     border-radius: 8px;
     background-color: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wbq-editor-close {
+    position: absolute;
+    top: 4px;
+    right: 2px;
   }
 
   .sb-wbq-input {

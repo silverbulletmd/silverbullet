@@ -5,6 +5,7 @@ import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import type { Client } from "../../client.ts";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
 import type { LogEntry, LogSource } from "../console_log.ts";
+import { type ActionDeps, entryActions } from "../entry_actions.ts";
 import { highlightLua } from "../highlight_lua.ts";
 import {
   frameAt,
@@ -12,7 +13,6 @@ import {
   type SourceLookup,
 } from "../source_frames.ts";
 import { container, errorMessage } from "../value_preview.ts";
-import { type ActionDeps, entryActions } from "../entry_actions.ts";
 import { ActionMenu } from "./action_menu.tsx";
 import {
   errorFrames,

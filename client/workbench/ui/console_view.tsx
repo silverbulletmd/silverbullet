@@ -13,8 +13,8 @@ import { consoleLog, type LogEntry } from "../console_log.ts";
 import { frameThrottle } from "../frame_throttle.ts";
 import { filterEntries, type SourceFilter } from "../log_filter.ts";
 import { LogView, type RowContext } from "./log_view.tsx";
-import type { TabProps } from "./tab.ts";
 import { ReplInput } from "./repl_input.tsx";
+import type { TabProps } from "./tab.ts";
 
 const SOURCES: { value: SourceFilter; label: string }[] = [
   { value: "all", label: "All" },

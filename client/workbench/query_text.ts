@@ -5,6 +5,7 @@
 
 import { parseExpressionString } from "../space_lua/parse.ts";
 import { type FieldInfo, tableKey } from "./query_fields.ts";
+import { sourceLua } from "./query_from.ts";
 import {
   fieldAccess,
   fieldType,
@@ -136,7 +137,7 @@ export function generateQuery(
   opts: { wrap?: boolean } = {},
 ): string {
   const v = objectVar(m);
-  const source = `index.tag ${JSON.stringify(m.tag)}`;
+  const source = sourceLua(m.source);
   const lines = [
     m.binding ? `from ${m.binding} = ${source}` : `from ${source}`,
   ];
