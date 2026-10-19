@@ -44,7 +44,11 @@ import {
 } from "../file_drop_upload.ts";
 import { ListView } from "./list_view.tsx";
 import { fileDragData } from "../file_drag_export.ts";
-import { nativeBody, setFocusTarget } from "../native_views.ts";
+import {
+  nativeBody,
+  setFocusTarget,
+  useNativeBadges,
+} from "../native_views.ts";
 
 /**
  * The panel itself: the input state a view is browsed with, wired to the
@@ -138,6 +142,7 @@ export function NavRoot({
 
   const hasContent = view?.meta.hasContent === true;
   const NativeBody = view ? nativeBody(view.name) : undefined;
+  const badges = useNativeBadges(view?.name ?? "");
   const focusTarget = useCallback(
     (el: HTMLElement) => setFocusTarget(slot, el),
     [slot],
@@ -352,7 +357,10 @@ export function NavRoot({
               they sit with the title rather than under a filter */}
           {NativeBody && segments && (
             <SegmentedControl
-              items={segments.map((s) => ({ label: s.label }))}
+              items={segments.map((s) => ({
+                label: s.label,
+                badge: badges[s.label],
+              }))}
               activeIndex={segmentIndex}
               onPick={cmd.pickSegment}
               ariaLabel="Tabs"

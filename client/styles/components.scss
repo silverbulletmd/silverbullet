@@ -320,6 +320,14 @@ textarea,
   display: block;
 }
 
+.sb-segment-badge {
+  padding: 0 5px;
+  border-radius: 8px;
+  background-color: var(--ui-surface-hover-background-color);
+  font-size: 11px;
+  line-height: 14px;
+}
+
 .sb-segments-narrow .sb-segment-iconed .sb-segment-label {
   display: none;
 }

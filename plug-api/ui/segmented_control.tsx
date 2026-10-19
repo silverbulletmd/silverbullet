@@ -6,6 +6,8 @@ export type SegmentItem = {
   label: string;
   icon?: Element;
   tooltip?: string;
+  /** A short count or status shown after the label, e.g. "2". */
+  badge?: string;
 };
 
 export type SegmentedControlProps = {
@@ -78,12 +80,15 @@ export function SegmentedControl({
             title={
               item.tooltip ?? (narrow && item.icon ? item.label : undefined)
             }
-            aria-label={item.label}
+            aria-label={
+              item.badge ? `${item.label}, ${item.badge}` : item.label
+            }
             onMouseDown={takeFocus ? undefined : (e) => e.preventDefault()}
             onClick={() => onPick(index)}
           >
             {item.icon && <Icon node={item.icon} class="sb-segment-icon" />}
             <span class="sb-segment-label">{item.label}</span>
+            {item.badge && <span class="sb-segment-badge">{item.badge}</span>}
           </button>
         ))}
       </div>

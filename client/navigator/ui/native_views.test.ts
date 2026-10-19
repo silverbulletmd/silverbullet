@@ -1,7 +1,15 @@
+// @vitest-environment happy-dom
+import { h, render } from "preact";
+import { act } from "preact/test-utils";
 import { expect, test } from "vitest";
 import { setPanelViews } from "../registry.ts";
 import { PanelViewBody } from "./components/panel_view_body.tsx";
-import { nativeBody, registerNativeView } from "./native_views.ts";
+import {
+  nativeBody,
+  registerNativeView,
+  setNativeBadge,
+  useNativeBadges,
+} from "./native_views.ts";
 
 test("a plug's panel view gets the panel body, but never a built-in's", () => {
   const ownBody = () => null;
@@ -27,4 +35,18 @@ test("a plug's panel view gets the panel body, but never a built-in's", () => {
     setPanelViews([]);
   }
   expect(nativeBody("example.map")).toBeUndefined();
+});
+
+test("a badge set for a view's segment reaches its subscribers and clears", async () => {
+  let seen: Record<string, string> = {};
+  const Probe = () => {
+    seen = useNativeBadges("std.workbench");
+    return null;
+  };
+  await act(() => render(h(Probe, {}), document.createElement("div")));
+  expect(seen).toEqual({});
+  await act(() => setNativeBadge("std.workbench", "Health", "2"));
+  expect(seen).toEqual({ Health: "2" });
+  await act(() => setNativeBadge("std.workbench", "Health", undefined));
+  expect(seen).toEqual({});
 });

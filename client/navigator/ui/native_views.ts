@@ -1,5 +1,6 @@
 import type { FunctionComponent } from "preact";
 import type { Client } from "../../client.ts";
+import { useEffect, useState } from "preact/hooks";
 import { panelView } from "../registry.ts";
 import { PanelViewBody } from "./components/panel_view_body.tsx";
 
@@ -68,3 +69,34 @@ export function requestNativeFocus(slot: string): boolean {
   pending.set(slot, document.activeElement);
   return false;
 }
+
+// Per view: badges a native body shows on its tabs, keyed by segment label
+const badges = new Map<string, Record<string, string>>();
+const badgeListeners = new Set<() => void>();
+
+export function setNativeBadge(
+  view: string,
+  segment: string,
+  badge: string | undefined,
+): void {
+  const current = badges.get(view) ?? {};
+  if (current[segment] === badge) return;
+  const { [segment]: _, ...rest } = current;
+  badges.set(view, badge === undefined ? rest : { ...rest, [segment]: badge });
+  for (const listener of badgeListeners) listener();
+}
+
+export function useNativeBadges(view: string): Record<string, string> {
+  const [value, setValue] = useState(() => badges.get(view) ?? NO_BADGES);
+  useEffect(() => {
+    const listener = () => setValue(badges.get(view) ?? NO_BADGES);
+    badgeListeners.add(listener);
+    listener();
+    return () => {
+      badgeListeners.delete(listener);
+    };
+  }, [view]);
+  return value;
+}
+
+const NO_BADGES: Record<string, string> = {};
