@@ -51,6 +51,7 @@ The Object Index is generally queried using [[Space Lua/Integrated Query]].
 Entry points are:
 * [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers for each [[Tag#Root tags|root tag]], like `index.pages()`, `index.tasks()` or `index.data()`)
 * `index.contentPages(tag?)` — returns only content pages, **excluding [[Meta Page|Meta Pages]]** (pages tagged `meta` or `meta/*`).
+* `index.metaPages(tag?)` — returns only [[Meta Page|Meta Pages]], the other half of the split.
 * `index.aspiringPages()` — returns all [[Aspiring Pages]] (pages linked to but not yet created). Useful for finding broken or forward-references.
 * `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
 

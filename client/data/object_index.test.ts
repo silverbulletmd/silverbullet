@@ -647,3 +647,57 @@ describe("ObjectIndex dataObjects", () => {
     expect(friends.map((o: any) => o.ref)).toEqual(["P@2"]);
   });
 });
+
+describe("ObjectIndex.countTag", () => {
+  test("countTag counts rows under a tag without reading values", async () => {
+    const objectIndex = makeObjectIndex();
+    await objectIndex.indexObjects("A", [
+      taskObject("t1", "A"),
+      taskObject("t2", "A"),
+      pageObject("A"),
+    ]);
+    await objectIndex.indexObjects("B", [taskObject("t3", "B")]);
+    expect(await objectIndex.countTag("task")).toBe(3);
+    expect(await objectIndex.countTag("page")).toBe(1);
+    expect(await objectIndex.countTag("nope")).toBe(0);
+  });
+});
+
+describe("ObjectIndex content and meta pages", () => {
+  const page = (name: string, tags: string[]) =>
+    ({
+      ref: name,
+      tag: "page",
+      name,
+      tags,
+      itags: ["page", ...tags],
+    }) as ObjectValue<any>;
+  const names = async (c: { query: Function }) =>
+    (await c.query({}, luaBuildStandardEnv(), LuaStackFrame.lostFrame))
+      .map((p: any) => p.name)
+      .sort();
+
+  test("split pages on the meta tag, each optionally narrowed by a user tag", async () => {
+    const objectIndex = makeObjectIndex();
+    for (const p of [
+      page("Notes", []),
+      page("Recipes", ["food"]),
+      page("Style", ["meta"]),
+      page("Food Template", ["meta/template", "food"]),
+    ]) {
+      await objectIndex.indexObjects(p.name, [p]);
+    }
+    expect(await names(objectIndex.contentPages())).toEqual([
+      "Notes",
+      "Recipes",
+    ]);
+    expect(await names(objectIndex.metaPages())).toEqual([
+      "Food Template",
+      "Style",
+    ]);
+    expect(await names(objectIndex.contentPages("food"))).toEqual(["Recipes"]);
+    expect(await names(objectIndex.metaPages("food"))).toEqual([
+      "Food Template",
+    ]);
+  });
+});

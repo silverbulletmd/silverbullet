@@ -89,10 +89,12 @@ export function indexSyscalls(
     },
     "index.metaPages": {
       dependsOn: () => [tagChangedEvent("page")],
-      callback: (): LuaQueryCollection => {
-        return objectIndex.metaPages();
+      callback: (_ctx, tagName?: string): LuaQueryCollection => {
+        return objectIndex.metaPages(tagName);
       },
-      description: "Returns all meta pages as a query collection.",
+      description:
+        "Returns meta pages, optionally filtered by a user tag, as a query collection.",
+      signatures: ["index.metaPages(tagName?)"],
     },
     "index.tasks": {
       dependsOn: () => [tagChangedEvent("task")],

@@ -3,6 +3,11 @@ export function isMetaTag(tag: string): boolean {
   return tag === "meta" || tag.startsWith("meta/");
 }
 
+/** Lua that holds when the page in `varName` is a meta page: `isMetaTag` over its tags */
+export function metaPageLua(varName: string): string {
+  return `table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`;
+}
+
 /** Extract the name from hashtag text, removing # prefix and <angle brackets> if necessary */
 export function extractHashtag(text: string): string {
   if (text[0] !== "#") {

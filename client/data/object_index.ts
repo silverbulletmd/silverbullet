@@ -7,6 +7,7 @@ import type {
   FileMeta,
   ObjectValue,
 } from "@silverbulletmd/silverbullet/type/index";
+import { metaPageLua } from "@silverbulletmd/silverbullet/lib/tags";
 import { relationToLink } from "../../plugs/index/link.ts";
 import type { Config } from "../config.ts";
 import type { EventHook } from "../plugos/hooks/event.ts";
@@ -241,23 +242,25 @@ export class ObjectIndex {
   }
 
   contentPages(tagName?: string): LuaQueryCollection {
-    const notMeta = (varName: string) =>
-      `not table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`;
+    return this.pagesWhere((v) => `not ${metaPageLua(v)}`, tagName);
+  }
+
+  metaPages(tagName?: string): LuaQueryCollection {
+    return this.pagesWhere(metaPageLua, tagName);
+  }
+
+  /** Pages matching `condition`, optionally only those carrying a user tag */
+  private pagesWhere(
+    condition: (varName: string) => string,
+    tagName?: string,
+  ): LuaQueryCollection {
     if (tagName) {
       return this.filteredTag(
         tagName,
-        (varName) => `${varName}.tag == "page" and ${notMeta(varName)}`,
+        (v) => `${v}.tag == "page" and ${condition(v)}`,
       );
     }
-    return this.filteredTag("page", notMeta);
-  }
-
-  metaPages(): LuaQueryCollection {
-    return this.filteredTag(
-      "page",
-      (varName) =>
-        `table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`,
-    );
+    return this.filteredTag("page", condition);
   }
 
   aspiringPages(): LuaQueryCollection {
@@ -908,6 +911,11 @@ export class ObjectIndex {
     await this.writeInvalidating(tagsOf(indexKeys), () =>
       this.ds.batchDelete(allKeys),
     );
+  }
+
+  /** Number of index rows under a tag, counted from keys without reading values. */
+  public countTag(tag: string): Promise<number> {
+    return this.ds.kv.countQuery({ prefix: [indexKey, tag] });
   }
 
   /**

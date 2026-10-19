@@ -149,9 +149,9 @@ Indexes Markdown text in memory and returns the objects extracted from it.
 
 ## index.metaPages
 
-`index.metaPages()`
+`index.metaPages(tagName?)`
 
-Returns all meta pages as a query collection.
+Returns meta pages, optionally filtered by a user tag, as a query collection.
 
 ## index.objects
 
