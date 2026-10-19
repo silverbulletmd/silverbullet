@@ -39,7 +39,13 @@ Drops every indexed object belonging to a file, so a re-index replaces them rath
 
 `index.contentPages(tagName?)`
 
-Returns non-meta pages, optionally filtered by an additional tag, as a query collection.
+Returns non-meta pages, optionally filtered by a user tag, as a query collection.
+
+## index.data
+
+`index.data(tagName?)`
+
+Returns objects from fenced data blocks (` ```data ` and ` ```#name `), optionally filtered by a tag, as a query collection. See [[Tag/data]].
 
 ## index.defineTag
 
@@ -96,7 +102,7 @@ Returns an indexed object identified by page, tag, and reference.
 
 `index.headers(tagName?)`
 
-Returns all headers, optionally filtered by an additional tag, as a query collection.
+Returns all headers, optionally filtered by a user tag, as a query collection.
 
 ## index.indexObjects
 
@@ -118,13 +124,13 @@ Whether a full indexing pass has ever completed for this space. False on a fresh
 
 `index.items(tagName?)`
 
-Returns all list items, optionally filtered by an additional tag, as a query collection.
+Returns all list items, optionally filtered by a user tag, as a query collection.
 
 ## index.links
 
 `index.links()`
 
-Returns all indexed links as a query collection.
+**Deprecated:** returns all indexed links, a view over relations, as a query collection. Use [[#index.relations]] instead (see [[Tag/relation#Deprecated: the `link` view]]).
 
 ## index.markdown
 
@@ -157,13 +163,13 @@ Returns objects carrying a tag as a query collection.
 
 `index.pages(tagName?)`
 
-Returns all pages, optionally filtered by an additional tag, as a query collection.
+Returns all pages, optionally filtered by a user tag, as a query collection.
 
 ## index.paragraphs
 
 `index.paragraphs(tagName?)`
 
-Returns indexed paragraphs, optionally filtered by an additional tag, as a query collection.
+Returns indexed paragraphs, optionally filtered by a user tag, as a query collection.
 
 ## index.patchFrontmatter
 
@@ -229,7 +235,7 @@ Returns pages nested below a page name as a query collection.
 
 `index.tables(tagName?)`
 
-Returns indexed table rows, optionally filtered by an additional tag, as a query collection.
+Returns indexed table rows, optionally filtered by a user tag, as a query collection.
 
 ## index.tag
 
@@ -253,7 +259,7 @@ Returns all indexed tag objects as a query collection.
 
 `index.tasks(tagName?)`
 
-Returns all tasks, optionally filtered by an additional tag, as a query collection.
+Returns all tasks, optionally filtered by a user tag, as a query collection.
 
 ## index.validateObjects
 

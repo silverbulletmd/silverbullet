@@ -1,4 +1,6 @@
 ---
+description: Named anchors, each pointing at the object it is attached to.
+tagKind: index
 references:
 - plugs/index/anchor.ts
 - plugs/index/indexer.ts
@@ -11,9 +13,9 @@ The host object itself (paragraph, task, header, item, or any user-defined `#tag
 * `ref`: the anchor name (e.g. `tsk1` for `$tsk1`). This is the primary key, and is unique across the whole space (enforced by lint).
 * `tag`: always `anchor`.
 * `page`: the page on which the anchor was defined.
-* `hostTag`: the `tag` of the host object the anchor attaches to — `paragraph`, `task`, `item`, `header`, or any custom data-block tag (e.g. `person`).
-* `snippet` (optional): a content excerpt for the host object — its first line and a bit more — produced by the same `extractSnippet` helper [[Object/relation|relation]] records use. Used by the [[Page Picker]] to show what an anchor points at without navigating there. Page-level anchors (frontmatter `$ref:`) have no host block to excerpt, so this is absent for them.
-* `pageLastModified` (optional): last-modified timestamp of the host page, mirroring the field [[Object/relation|relation]], [[Object/item|item]], and [[Object/link|link]] records already carry.
+* `hostTag`: the root tag of the host object the anchor attaches to — `paragraph`, `task`, `item`, `header`, `data`, or a root tag declared by a [[Tag/data|data block]] (e.g. `person`).
+* `snippet` (optional): a content excerpt for the host object — its first line and a bit more — produced by the same `extractSnippet` helper [[Tag/relation|relation]] records use. Used by the [[Page Picker]] to show what an anchor points at without navigating there. Page-level anchors (frontmatter `$ref:`) have no host block to excerpt, so this is absent for them.
+* `pageLastModified` (optional): last-modified timestamp of the host page, mirroring the field [[Tag/relation|relation]] and [[Tag/item|item]] records already carry.
 
 `snippet` and `pageLastModified` were added after anchors first shipped, without bumping the index's `desiredIndexVersion` — deliberately, to avoid forcing every space through a full reindex just for two display fields. That's why both are optional: anchor records written before this change have neither, and will keep lacking them until their page is re-indexed (which happens automatically on the next edit to that page, or all at once via ${widgets.commandButton("Space: Reindex")}). Until then, pickers fall back to showing `hostTag on page` for that anchor instead of a snippet.
 

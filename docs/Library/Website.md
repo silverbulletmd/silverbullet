@@ -128,23 +128,23 @@ docsNav.sections = {
     { ref = "Guide/Task Management", icon = "check-square" },
   },
   { name = "Linking & Exploring", ref = "Linking and Exploring", icon = "link",
-    description = "Links, backlinks, tags, transclusions and the Object Graph.",
+    description = "Links, backlinks, transclusions and the Object Graph.",
     { ref = "Link", icon = "link" },
-    { ref = "Aspiring Pages", icon = "file-plus" },
-    { ref = "Linked Mention", icon = "corner-down-left" },
-    { ref = "Linked Tasks", icon = "check-square" },
-    { ref = "Tag", icon = "hash" },
-    { ref = "Tag Picker", icon = "hash" },
-    { ref = "Transclusions", icon = "copy" },
-    { ref = "Folder", icon = "folder" },
     { ref = "File Tree", icon = "folder" },
     { ref = "Search", icon = "search" },
+    { ref = "Linked Mention", icon = "corner-down-left" },
     { ref = "Object Graph", icon = "share-2" },
+    { ref = "Tag Picker", icon = "hash" },
+    { ref = "Transclusions", icon = "copy" },
+    { ref = "Linked Tasks", icon = "check-square" },
+    { ref = "Folder", icon = "folder" },
+    { ref = "Aspiring Pages", icon = "file-plus" },
     { ref = "X-Ray", icon = "aperture" },
   },
   { name = "Queries & Data", ref = "Queries and Data", icon = "database",
-    description = "Objects, attributes and frontmatter, and how to query them.",
+    description = "Objects, tags, attributes and frontmatter, and how to query them.",
     { ref = "Object", icon = "box" },
+    { ref = "Tag", icon = "hash", childrenFrom = "Tag/" },
     { ref = "Object Index", icon = "database" },
     { ref = "Metadata", icon = "info" },
     { ref = "Frontmatter", icon = "sidebar" },
@@ -413,4 +413,58 @@ view.define {
     end
   end,
 }
+```
+
+# Moved pages
+Pages that moved keep their old links (from outside the site) working: the old name opens a stub pointing at the new page, and the client jumps there right away. On a fresh client, the jump waits until the first indexing pass has loaded this script.
+
+```space-lua
+docsRedirects = {
+  ["Object/"] = "Tag/",
+}
+
+local function movedTo(pageName)
+  for from, to in pairs(docsRedirects) do
+    if pageName:startsWith(from) then
+      return to .. pageName:sub(#from + 1)
+    end
+  end
+end
+
+-- The #heading of an old link followed within the site, kept in the history
+-- state. On a cold load the client has dropped it before any Space Lua runs.
+local movedHash = ""
+
+for from, to in pairs(docsRedirects) do
+  virtualPage.define {
+    pattern = "^" .. from:gsub("%p", "%%%0") .. "(.+)$",
+    run = function(rest)
+      local state = js.window.history.state
+      local details = state and state.details
+      movedHash = details and details.type == "header"
+        and "#" .. details.header or ""
+      return "This page moved to [[" .. to .. rest .. "]]."
+    end,
+  }
+end
+
+event.listen {
+  name = "editor:pageLoaded",
+  run = function()
+    local target = movedTo(editor.getCurrentPage())
+    if not target then
+      return
+    end
+    -- Replace the history entry, so Back skips the stub
+    editor.navigate(target .. movedHash, true)
+    movedHash = ""
+  end,
+}
+
+-- On a fresh client the page opens before indexing has loaded this script,
+-- so neither the stub nor the listener existed yet: catch up now
+local target = movedTo(editor.getCurrentPage() or "")
+if target then
+  editor.navigate(target, true)
+end
 ```

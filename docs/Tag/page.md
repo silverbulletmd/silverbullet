@@ -1,4 +1,6 @@
 ---
+description: Every page in your space.
+tagKind: root
 references:
 - plugs/index/page.ts
 - client/data/object_index.ts

@@ -38,7 +38,7 @@ Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous docum
 Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Space|space]]. This means that the `adder` function defined, can be called from anywhere in your space.
 
 ## Definition loading
-Your `space-lua` definitions are constantly being indexed as part of the [[Object Index]] with the [[Object/space-lua]] tag. There is nothing you have to do for this, other than be a bit patient for things to start working when you initialize a fresh client.
+Your `space-lua` definitions are constantly being indexed as part of the [[Object Index]] with the [[Tag/space-lua]] tag. There is nothing you have to do for this, other than be a bit patient for things to start working when you initialize a fresh client.
 
 When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence.
 

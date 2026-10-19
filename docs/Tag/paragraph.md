@@ -1,4 +1,6 @@
 ---
+description: Top-level paragraphs that carry a hashtag or anchor.
+tagKind: root
 references:
 - plugs/index/paragraph.ts
 ---

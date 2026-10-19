@@ -6,12 +6,11 @@ references:
 - client/plugos/syscalls/jsonschema.ts
 - libraries/Library/Std/APIs/Schema.md
 ---
-
-SilverBullet uses [JSON Schema](https://json-schema.org) for validation of structured data. Schemas ensure that [[Frontmatter]] attributes, [[Tag#Custom tags|custom tag]] fields, and configuration options conform to expected types and shapes.
+SilverBullet uses [JSON Schema](https://json-schema.org) for validation of structured data. Schemas ensure that [[Frontmatter]] attributes, [[Tag|tag]] fields, and configuration options conform to expected types and shapes.
 
 # Where schemas are used
-## Custom tag definitions
-When you define a custom tag with `tag.define`, you can provide a schema that describes the expected attributes. SilverBullet validates objects against this schema and surfaces errors in the editor:
+## Tag definitions
+When you define a tag with `tag.define`, you can provide a schema that describes the expected attributes. The schemas of the built-in tags are defined the same way, in [[^Library/Std/Infrastructure/Root Tags]]. SilverBullet validates objects against this schema and surfaces errors in the editor:
 
 ```lua
 tag.define {
@@ -50,4 +49,4 @@ The [[^Library/Std/APIs/Schema]] library provides convenience functions like `sc
 # How validation surfaces
 When schema validation fails for page and attributes, SilverBullet shows the error as a lint warning in the editor.
 
-See also: [[Tag#Custom tags]], [[API/jsonschema]], [[API/config]]
+See also: [[Tag#User tags]], [[API/jsonschema]], [[API/config]]

@@ -32,7 +32,7 @@ name: Pete
 $ref: pete
 ```
 
-In addition, all anchors are queryable via [[Object/anchor]]:
+In addition, all anchors are queryable via [[Tag/anchor]]:
 
 ${query[[from o = index.objects("anchor")]]}
 
@@ -48,7 +48,7 @@ Anchors are also directly reachable from the [[Page Picker]]: open it and type `
 # Effect on objects
 The anchor name replaces the default `ref` for the object that contains it. For instance, `* [ ] $tsk1 Pay rent` produces a task object with `ref: "tsk1"` (instead of the usual `Page@<pos>`).
 
-For page-level anchors (frontmatter `$ref:`), the page object's `ref` is left untouched (so existing page lookups by name keep working) — instead, a parallel `anchor` record points back to the page. See [[Object]] and [[Object/anchor]] for details.
+For page-level anchors (frontmatter `$ref:`), the page object's `ref` is left untouched (so existing page lookups by name keep working) — instead, a parallel `anchor` record points back to the page. See [[Object]] and [[Tag/anchor]] for details.
 
 # Naming rules
 Anchor names can contain letters, digits, dashes, underscores, slashes, and colons, but:

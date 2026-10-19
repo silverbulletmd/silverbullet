@@ -4,7 +4,7 @@ references:
 - plugs/index/object_api.ts
 - plugs/index/object_edit.ts
 ---
-Change, delete and create [[Object|objects]] where they are written: page frontmatter, [[Task|tasks]] and list items, paragraphs, [[Object/data|data blocks]] and [[Object/table|table rows]]. Use these from buttons and other widgets to build small apps on top of your pages. They edit the page's Markdown, so the change shows up in the page, its history and every query.
+Change, delete and create [[Object|objects]] where they are written: page frontmatter, [[Task|tasks]] and list items, paragraphs, [[Tag/data|data blocks]] and [[Tag/table|table rows]]. Use these from buttons and other widgets to build small apps on top of your pages. They edit the page's Markdown, so the change shows up in the page, its history and every query.
 
 Each function takes an object as a query (or `object.append`) returns it. An object without an anchor is found by its position and checked against what you queried, so if its page changed since, the call fails with "object moved" instead of changing the wrong object; query again. Objects with a `$anchor` are found wherever they moved, and can also be passed as `{ page = "…", ref = "anchor-name" }`.
 

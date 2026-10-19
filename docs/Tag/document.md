@@ -1,4 +1,6 @@
 ---
+description: "Every non-Markdown file in your space: images, PDFs, attachments."
+tagKind: root
 references:
 - plugs/index/document.ts
 - server-common/src/types.rs

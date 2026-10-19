@@ -34,7 +34,7 @@ This process follows the following steps:
 3. Various indexers do their magic, resulting in a list of found objects.
 4. These objects are stored via the [[API/index#index.indexObjects(page, objects)]] API.
 
-The indexObject API looks at the `tags` of the found objects, and for each tag:
+The indexObject API looks at the root `tag` and user `tags` of each found object, and for each of these tags:
 
 * Looks up the tag spec (see [[API/tag#tag.define(spec)]])
 * If the tag spec defines a `schema` and `mustValidate` is set to true, it will validate the object against the schema and only index the object if it passes. If `mustValidate` is not set (the default for performance reasons), no validation will happen at the indexing stage.
@@ -49,7 +49,7 @@ Pages are indexed **concurrently**, so an indexer must never resolve one page's 
 The Object Index is generally queried using [[Space Lua/Integrated Query]].
 
 Entry points are:
-* [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers like `index.pages()`, `index.tasks()`, etc.)
+* [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers for each [[Tag#Root tags|root tag]], like `index.pages()`, `index.tasks()` or `index.data()`)
 * `index.contentPages(tag?)` — returns only content pages, **excluding [[Meta Page|Meta Pages]]** (pages tagged `meta` or `meta/*`).
 * `index.aspiringPages()` — returns all [[Aspiring Pages]] (pages linked to but not yet created). Useful for finding broken or forward-references.
 * `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
@@ -72,9 +72,9 @@ ${query[[
 **Inbound links to a page** (everything that links to `"My Page"`):
 ```lua
 ${query[[
-  from l = index.links()
-  where l.toPage == "My Page"
-  select { from = l.page, text = l.description }
+  from r = index.relations("mention")
+  where r.to == "My Page"
+  select { from = r.page, text = r.snippet }
 ]]}
 ```
 

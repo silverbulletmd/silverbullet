@@ -9,7 +9,11 @@ import type {
 } from "./ast.ts";
 
 type Node =
-  LuaExpression | LuaTableField | LuaQueryClause | LuaOrderBy | LuaFunctionBody;
+  | LuaExpression
+  | LuaTableField
+  | LuaQueryClause
+  | LuaOrderBy
+  | LuaFunctionBody;
 
 // `null` marks nested query clauses the rewriter must not split: those of an
 // unbound `from expr` or a cross-join (row names can't be told apart from

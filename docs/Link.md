@@ -47,14 +47,14 @@ Name lookup also applies to [[Document|documents]] and [[Transclusions|transclus
 ## Ambiguous links
 When the name lookup matches several files and **none of them is an exact match**, the link is **ambiguous**. In this case, SilverBullet highlights it in the editor and when clicking it, you get to choose which matching page to navigate to.
 
-A link that matches a file exactly is never ambiguous, however many other files share its name: `[[Tag]]` means `Tag`, even in a space that also has `Object/tag` and `API/tag`. Ambiguity is only reported when picking a different candidate would actually change the link text.
+A link that matches a file exactly is never ambiguous, however many other files share its name: `[[Tag]]` means `Tag`, even in a space that also has `Tag/tag` and `API/tag`. Ambiguity is only reported when picking a different candidate would actually change the link text.
 
 Candidates are ranked relative to the page the link is written on:
 1. **Proximity**: the deepest folder prefix shared with the linking page wins — your own folder first, then the nearest common ancestor.
 2. **Shallowest path**, which lets a root-level page win once proximity ties.
 3. **Alphabetical order**, as the final tie-break.
 
-Every ambiguous link to a page is indexed as an [[Object/ambiguous-link|ambiguous-link]] object, so you can find them all (this is used in [[^Library/Std/Pages/Maintenance]]):
+Every ambiguous link to a page is indexed as an [[Tag/ambiguous-link|ambiguous-link]] object, so you can find them all (this is used in [[^Library/Std/Pages/Maintenance]]):
 
 ${query[[
   from a = index.objects("ambiguous-link")

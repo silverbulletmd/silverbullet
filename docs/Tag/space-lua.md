@@ -1,4 +1,6 @@
 ---
+description: Space Lua code blocks, run when the client boots.
+tagKind: system
 references:
 - plugs/index/space_lua.ts
 - client/space_lua.ts

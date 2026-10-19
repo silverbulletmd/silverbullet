@@ -3,7 +3,7 @@ tags: maturity/experimental
 references:
 - plugs/object-graph/*
 ---
-An interactive object-graph explorer visualizes [[Object|objects]] (pages, items, blocks) and the typed [[Object/relation|relations]] between them — letting you navigate your space by structure rather than by name.
+An interactive object-graph explorer visualizes [[Object|objects]] (pages, items, blocks) and the typed [[Tag/relation|relations]] between them — letting you navigate your space by structure rather than by name.
 
 # Opening the graph
 The graph is a view (`std.graph`) with two tabs:
@@ -43,7 +43,7 @@ config.set("view.defaults", {
 
 # Filters
 * **Tags**: show or hide objects by user [[Tag]]. Untagged objects share an `(untagged)` bucket.
-* **Relations**: show or hide [[Object/relation|relation]] kinds (`mention`, `co-mention`, custom relation types such as `spouse` or `team`). In the Global tab only `mention` is shown at first.
+* **Relations**: show or hide [[Tag/relation|relation]] kinds (`mention`, `co-mention`, custom relation types such as `spouse` or `team`). In the Global tab only `mention` is shown at first.
 * **Layout**: the forces that lay out the graph, with a reset.
 
 Click a row to hide it (its swatch turns hollow) and again to show it. Each section has *All* / *None* shortcuts, a search box when the list is long, and counts from the current graph. The selected object's section lists its fields, its own first and the index's bookkeeping after; *Open* opens it in the editor.
@@ -56,4 +56,4 @@ Click a row to hide it (its swatch turns hollow) and again to show it. Each sect
 * **Color** comes from the node's primary user tag, derived from the tag name. Untagged nodes are neutral. Everything else follows your theme, including dark mode.
 * **Edge labels** are the relation `kind` (a reserved value like `mention`, or a user predicate like `spouse`), drawn along the edge. Directed edges carry an arrowhead at the target; relations that connect the same pair in both directions get arrows at both ends; collapsed `co-mention` pairs are rendered undirected.
 
-The graph is powered entirely by the [[Object/relation]] index.
+The graph is powered entirely by the [[Tag/relation]] index.

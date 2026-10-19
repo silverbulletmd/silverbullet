@@ -18,7 +18,7 @@ references:
 SilverBullet's power features — [[Space Lua/Integrated Query]], [[Linked Mention]], the [[Linked Tasks]], [[Object Graph]] — all need *structured, queryable* data. But the source of truth is plain markdown files. Something needs to turn that prose into queryable data without making the markdown any less plain.
 
 # Decision
-Continuously maintain an **[[Object Index]]**: a structured, queryable graph automatically extracted from the markdown. Every meaningful element — [[Object/page|pages]], headers, [[Object/task|tasks]], list items, [[Tag|tags]], links — becomes an **[[Object|object]]** (a "row") with attributes, typed by one or more tags ("tables"), queried via [[Space Lua/Integrated Query]] and the [[API/index]] API.
+Continuously maintain an **[[Object Index]]**: a structured, queryable graph automatically extracted from the markdown. Every meaningful element — [[Tag/page|pages]], headers, [[Tag/task|tasks]], list items, [[Tag|tags]], links — becomes an **[[Object|object]]** (a "row") with attributes, typed by one or more tags ("tables"), queried via [[Space Lua/Integrated Query]] and the [[API/index]] API.
 
 Two principles hold it together:
 
@@ -40,5 +40,5 @@ Two principles hold it together:
 * **Query raw markdown text (grep-style) at query time.** Rejected: too slow and too weak, no typed attributes, no joins/graph, no incremental maintenance.
 
 # References
-* [[Object]] · [[Object Index]] · [[Object/relation]] · [[Object Graph]].
+* [[Object]] · [[Object Index]] · [[Tag/relation]] · [[Object Graph]].
 * Generalized relation: [commit 91349448](https://github.com/silverbulletmd/silverbullet/commit/91349448) (2026-05-21) — "Introduce 'relation' indexer, demote 'link' to virtual view"

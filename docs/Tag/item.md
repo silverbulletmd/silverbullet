@@ -1,4 +1,6 @@
 ---
+description: Bullet and numbered list items.
+tagKind: root
 references:
 - plugs/index/item.ts
 ---

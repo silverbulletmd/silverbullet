@@ -1,4 +1,6 @@
 ---
+description: Markdown headings.
+tagKind: root
 references:
 - plugs/index/header.ts
 ---

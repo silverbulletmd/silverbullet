@@ -1,4 +1,6 @@
 ---
+description: List items with a checkbox; builds on item.
+tagKind: root
 references:
 - plugs/index/task.ts
 - client/codemirror/syntax/task.ts
@@ -19,4 +21,4 @@ Specific attributes:
 * `done`: set to true of the state of the task is “checked”
 * `state`: the text of the state (useful for custom states), see [[^Library/Std/APIs/Task State]]
 
-Additionally, tasks inherit all attributes of [[Object/item]].
+Additionally, tasks inherit all attributes of [[Tag/item]].

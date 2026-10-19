@@ -54,7 +54,7 @@ A `---` comment right above a template describes it, and an `@param` names the k
 templates.bookLine = template.new [==[* [[${name}]] by ${author}]==]
 ```
 
-An object type can be a union, like `page|aspiring-page`.
+The type is a tag, or a union of tags, like `page|aspiring-page`.
 
 # Pre-built templates
 The `templates` table contains ready-made templates for common query rendering patterns. These are defined in [[^Library/Std/Infrastructure/Query Templates]].

@@ -5,7 +5,7 @@ Space Lua Integrated Query (SLIQ) — query syntax for SilverBullet data.
 
 Syntax:
 
-  from <var> = index.objects("<type>")
+  from <var> = index.objects("<tag>")
   [where <condition>]
   [order by <expr> [asc|desc] [nulls first|last] [, ...]]
   [group by <expr> [, ...]]
@@ -19,7 +19,8 @@ Always use variable binding: `from p = index.pages()` (not `from index.pages()`)
 Type-specific helpers: `index.pages(tag?)`, `index.contentPages()`, `index.metaPages()`,
 `index.aspiringPages()`, `index.ambiguousLinks()`, `index.tasks(tag?)`, `index.headers(tag?)`,
 `index.items(tag?)`,
-`index.paragraphs(tag?)`, `index.tables(tag?)`; otherwise `index.objects("tag")`.
+`index.paragraphs(tag?)`, `index.tables(tag?)`, `index.data(tag?)`, `index.documents()`,
+`index.relations(kind?)`; otherwise `index.objects("tag")`.
 
 Operators: ==, ~= (not equal), <, >, <=, >=, and, or, not
 String: s:startsWith("x"), s:endsWith("x"), s:find("x", 1, true) (plain substring search; returns nil when absent)
@@ -45,5 +46,5 @@ Examples:
   query 'from p = index.pages() order by p.lastModified desc limit 10'
   query 'from t = index.tasks() group by t.page select {page=key, count=#group}'
   query 'from p = index.pages() select table.select(p, "name", "lastModified") limit 5'
-  query 'from l = index.objects("link") where l.toPage == "MyPage"'
+  query 'from r = index.relations("mention") where r.to == "MyPage" select r.page'
   query 'from p = index.pages() order by p.lastModified desc limit 5 select templates.pageItem(p)'

@@ -1,4 +1,6 @@
 ---
+description: Rows of Markdown tables.
+tagKind: root
 references:
 - plugs/index/table.ts
 - client/markdown_parser/table_parser.ts

@@ -1,16 +1,19 @@
 ---
+description: "Connections between objects: links, mentions and typed attributes."
+tagKind: edge
 references:
 - plugs/index/relation.ts
+- plugs/index/link.ts
 - plugs/object-graph/src/graph_builder.ts
 ---
-Relation objects represent typed and untyped relationships between indexed [[Object|objects]] in the space. They are the source of truth for relationship queries (graph views, backlinks of non-page objects, typed-attribute edges). The legacy [[Object/link]] collection is now a virtual projection over `relation`.
+Relation objects represent typed and untyped relationships between indexed [[Object|objects]] in the space. They are the source of truth for relationship queries (graph views, backlinks of non-page objects, typed-attribute edges).
 
 ## Attributes
-* `from`: ref to the source object: the innermost indexed object that contains the markup producing the edge (page, item, nested item, or fenced `#tag` block object). When the source item carries a `$anchor` the anchor name is used (matching the item's own ref), otherwise the source's byte-offset form (`page@pos`) is used.
-* `fromTag`: tag of the source object, denormalized for graph queries.
+* `from`: ref to the source object: the innermost indexed object that contains the markup producing the edge (page, item, nested item, or [[Tag/data|data object]]). When the source item carries a `$anchor` the anchor name is used (matching the item's own ref), otherwise the source's byte-offset form (`page@pos`) is used.
+* `fromTag`: root tag of the source object, denormalized for graph queries.
 * `to`: ref to the target object.
-* `toTag`: the target type — one of `page`, `anchor`, `document`, `url`, `identity`. Set for every resolved edge (absent for unresolved refs). `url` is a built-in target tag, like `document` (a real object type), `anchor` (a meta-tag) and `identity` (an [[Identity]] name's namespaced `@name` identifier).
-* `kind`: the edge label. Either a reserved structural value — `mention` or `co-mention` — or a user predicate (e.g. `spouse`, `team`) taken from a frontmatter key, inline `[key: ...]` attribute, or `#tag` data block key. See [[#Kinds]] below.
+* `toTag`: what the target is — one of `page`, `anchor`, `document`, `identity` (an [[Identity]] name's namespaced `@name` identifier) or `url`. Set for every resolved edge (absent for unresolved refs). All but `url` are tags you can query; `url` only marks the target as an external URL.
+* `kind`: the edge label. Either a reserved structural value — `mention` or `co-mention` — or a user predicate (e.g. `spouse`, `team`) taken from a frontmatter key, inline `[key: ...]` attribute, or [[Tag/data|data block]] key. See [[#Kinds]] below.
 * `via`: for `co-mention` entries only: ref to the containing item or paragraph that scopes the co-occurrence.
 * `page`: page where the edge was discovered (used for invalidation).
 * `range`: `[start, end]` byte offsets of the wikilink / markdown-link / attribute-value syntax within `page`. Always present. For `co-mention` records (which are derived) this points at the source-side wikilink. Used by the rename refactor to splice text.
@@ -41,6 +44,14 @@ ${query[[
 All relations defined on this page:
 ${query[[
   from r = index.relations()
-  where r.page == "Object/relation"
+  where r.page == "Tag/relation"
   select table.select(r, "from", "fromTag", "kind", "to", "toTag", "snippet")
 ]]}
+
+## Deprecated: the `link` view
+Older spaces query links via `index.links()` or `index.objects("link")`. Both still work: they return a view over relations of kind `mention`, reshaped into the old link format (`toPage`, `toFile` or `toURL`, depending on the target). New queries should use `index.relations()` instead:
+
+```lua
+-- Which pages link to MyPage?
+query[[from r = index.relations("mention") where r.to == "MyPage" select r.page]]
+```

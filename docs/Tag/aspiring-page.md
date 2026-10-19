@@ -1,4 +1,6 @@
 ---
+description: Pages that are linked to but don't exist yet.
+tagKind: index
 references:
 - plugs/index/relation.ts
 - client/data/object_index.ts
