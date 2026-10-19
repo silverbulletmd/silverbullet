@@ -562,3 +562,31 @@ test("occurrence keys: the first copy keeps the plain key", () => {
   expect(keys.key("a")).toBe("a:dup1");
   expect(keys.key("a")).toBe("a:dup2");
 });
+
+test("a reload holds the widget's height border-box, then lets go", async () => {
+  const client = makeClient();
+  let release!: () => void;
+  let first = true;
+  const w = widget(client, async () => {
+    if (first) {
+      first = false;
+      return "**v**";
+    }
+    await new Promise<void>((r) => {
+      release = r;
+    });
+    return "**v2**";
+  });
+  mount(w);
+  await flush();
+  const div = w.contentDiv!;
+  const reloading = w.reload();
+  // offsetHeight includes the frame's border, so a content-box hold would grow it
+  expect(div.style.boxSizing).toBe("border-box");
+  expect(div.style.minHeight).toBe(`${div.offsetHeight}px`);
+  release();
+  await reloading;
+  expect(div.style.boxSizing).toBe("");
+  expect(div.style.minHeight).toBe("");
+  w.destroy();
+});

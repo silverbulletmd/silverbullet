@@ -51,6 +51,21 @@ export type LuaWidgetCallback = (
  * cached result, and a DOM element in it can only be shown once. The first
  * copy keeps the plain key; a decoration build numbers the rest in order.
  */
+/**
+ * Keep a widget at least `height` tall, as measured by offsetHeight. That
+ * includes the frame's border, so it is held as a border-box size: a
+ * content-box min-height would add the border again and grow the widget.
+ */
+function holdHeight(div: HTMLElement, height: number): void {
+  div.style.boxSizing = "border-box";
+  div.style.minHeight = `${height}px`;
+}
+
+function releaseHeight(div: HTMLElement): void {
+  div.style.minHeight = "";
+  div.style.boxSizing = "";
+}
+
 export class OccurrenceKeys {
   private seen = new Map<string, number>();
 
@@ -288,7 +303,7 @@ export class LuaWidget extends WidgetType {
         ? " sb-lua-directive-block"
         : " sb-lua-directive-inline";
       if (cachedMeta.height > 0) {
-        innerDiv.style.minHeight = `${cachedMeta.height}px`;
+        holdHeight(innerDiv, cachedMeta.height);
       }
     }
 
@@ -318,14 +333,14 @@ export class LuaWidget extends WidgetType {
     const div = this.contentDiv;
     if (!div?.isConnected) return;
     // Hold the current height so a re-render doesn't collapse and re-grow the page
-    div.style.minHeight = `${div.offsetHeight}px`;
+    holdHeight(div, div.offsetHeight);
     this.invalidatePrewarm();
     const { version, done } = this.render(div, opts.keepIfUnchanged);
     try {
       await done;
     } finally {
       // A newer render owns the height once it supersedes this one
-      if (this.renderVersion === version) div.style.minHeight = "";
+      if (this.renderVersion === version) releaseHeight(div);
     }
   }
 
@@ -456,7 +471,7 @@ export class LuaWidget extends WidgetType {
         : rendered.node;
     disposeRendered(div);
     div.replaceChildren(this.wrap(block, valueNode, shown));
-    div.style.minHeight = "";
+    releaseHeight(div);
     if (rendered.kind === "view" || rendered.kind === "sandbox") {
       // Views and sandboxes size themselves after mounting
       const observer = new ResizeObserver(() => {
@@ -499,7 +514,7 @@ export class LuaWidget extends WidgetType {
     this.scope.dispose();
     disposeRendered(div);
     div.replaceChildren();
-    div.style.minHeight = "";
+    releaseHeight(div);
     this.opts.client.widgetCache.removeCachedWidgetMeta(this.opts.cacheKey);
   }
 
