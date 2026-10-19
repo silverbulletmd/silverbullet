@@ -4,10 +4,12 @@ export const WORKBENCH_VIEW = "std.workbench";
 
 /** The Workbench's tabs, in order; each swaps the whole body (`client/workbench/ui/workbench.tsx`). */
 export const WORKBENCH_TABS = [
+  "Overview",
   "Query",
   "Console",
   "Scripts",
   "Styles",
+  "Health",
 ] as const;
 export type WorkbenchTab = (typeof WORKBENCH_TABS)[number];
 

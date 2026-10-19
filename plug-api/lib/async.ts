@@ -188,3 +188,24 @@ export function safeRun(fn: () => Promise<void>): void {
 export function jitter(maxLength = 1000): number {
   return Math.floor(Math.random() * maxLength);
 }
+
+/**
+ * Runs `load` and hands its result to `set`, unless a newer run or `cancel`
+ * has overtaken it. Errors reach the caller of `run`.
+ */
+export function latestOnly<T>(
+  load: () => Promise<T>,
+  set: (value: T) => void,
+): { run: () => Promise<void>; cancel: () => void } {
+  let sequence = 0;
+  return {
+    run: async () => {
+      const call = ++sequence;
+      const value = await load();
+      if (call === sequence) set(value);
+    },
+    cancel: () => {
+      sequence++;
+    },
+  };
+}

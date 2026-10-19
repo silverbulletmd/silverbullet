@@ -10,14 +10,19 @@ import {
   type WorkbenchTab,
 } from "../../navigator/views/workbench.ts";
 import type { ConsoleSession } from "../console_session.ts";
+import type { HealthMonitor } from "../health_sources.ts";
 import type { QueryBuilder } from "../query_builder.ts";
 import { ConsoleView } from "./console_view.tsx";
+import { HealthView } from "./health_view.tsx";
+import { OverviewView } from "./overview_view.tsx";
 import { QueryView } from "./query_view.tsx";
 import { ScriptsView } from "./scripts_view.tsx";
 import { StylesView } from "./styles_view.tsx";
 import type { TabProps } from "./tab.ts";
 
 const BODIES: Record<WorkbenchTab, FunctionComponent<TabProps>> = {
+  Overview: OverviewView,
+  Health: HealthView,
   Console: ConsoleView,
   Scripts: ScriptsView,
   Styles: StylesView,
@@ -36,10 +41,19 @@ export function WorkbenchView({
   focusTarget,
   session,
   builder,
-}: NativeViewProps & { session: ConsoleSession; builder: QueryBuilder }) {
+  health,
+}: NativeViewProps & {
+  session: ConsoleSession;
+  builder: QueryBuilder;
+  health: HealthMonitor;
+}) {
   const root = useRef<HTMLDivElement>(null);
   const shown = useRef(segmentIndex);
   const noFocus = useCallback(() => () => {}, []);
+
+  // Health's problems and badge load only while the Workbench is open: this
+  // body unmounts when the panel closes
+  useEffect(() => health.start(), [health]);
 
   // The navigator restores a view's remembered tab only after its first
   // render (`activation.ts`), so the default tab can take focus and then be
@@ -70,7 +84,9 @@ export function WorkbenchView({
               client={client}
               session={session}
               builder={builder}
+              health={health}
               focusTarget={showing ? focusTarget : noFocus}
+              showing={showing}
             />
           </div>
         );

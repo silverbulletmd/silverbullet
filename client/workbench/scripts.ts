@@ -2,6 +2,13 @@ import { hasRun, type ScriptRecord, type ScriptStatus } from "../space_lua.ts";
 import type { Action } from "./action.ts";
 import { refMatches } from "./blocks.ts";
 
+export const SCRIPT_STATUS_TITLES: Record<ScriptRecord["status"], string> = {
+  loaded: "Loaded",
+  failed: "Failed to load",
+  stopped: "Stopped while loading; quarantined from the next load",
+  quarantined: "Quarantined: skipped until re-enabled or edited",
+};
+
 export type ScriptFilter = "all" | "loaded" | "failed" | "quarantined";
 // A script stopped during this load is quarantined from the next one
 const FILTER_STATUSES: Record<Exclude<ScriptFilter, "all">, ScriptStatus[]> = {

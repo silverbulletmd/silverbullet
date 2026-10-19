@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   batchRequests,
   ConcurrencyLimiter,
+  latestOnly,
   PromiseQueue,
   processWithConcurrency,
   sleep,
@@ -202,4 +203,41 @@ test("never runs more than max at once and preserves results", async () => {
   );
   expect(results).toEqual([10, 20, 30, 40, 50]);
   expect(peak).toBe(2);
+});
+
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+test("an overtaken run's result is dropped", async () => {
+  const seen: number[] = [];
+  const first = deferred<number>();
+  const second = deferred<number>();
+  const loads = [first, second];
+  const l = latestOnly(
+    () => loads.shift()!.promise,
+    (v) => seen.push(v),
+  );
+  const a = l.run();
+  const b = l.run();
+  second.resolve(2);
+  first.resolve(1);
+  await Promise.all([a, b]);
+  expect(seen).toEqual([2]);
+});
+
+test("cancel drops a run in flight", async () => {
+  const seen: number[] = [];
+  const d = deferred<number>();
+  const l = latestOnly(
+    () => d.promise,
+    (v) => seen.push(v),
+  );
+  const run = l.run();
+  l.cancel();
+  d.resolve(1);
+  await run;
+  expect(seen).toEqual([]);
 });

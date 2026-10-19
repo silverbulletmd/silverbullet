@@ -7,9 +7,13 @@ import {
   WORKBENCH_VIEW,
 } from "../navigator/views/workbench.ts";
 import type { CommandHook } from "../plugos/hooks/command.ts";
+import { lintPages } from "../space_lint.ts";
+import { spaceLintDeps } from "../space_lint_deps.ts";
 import type { SlashCommand } from "../types/command.ts";
 import { consoleLog } from "./console_log.ts";
 import { ConsoleSession } from "./console_session.ts";
+import { DeepCheck } from "./deep_check.ts";
+import { HealthMonitor, healthWatch } from "./health_sources.ts";
 import { QueryBuilder } from "./query_builder.ts";
 import { openQuery, type QuerySpan, showQueryEditor } from "./query_open.ts";
 import { WorkbenchView } from "./ui/workbench.tsx";
@@ -25,8 +29,17 @@ export function registerWorkbenchCommands(
     ui: () => client.ui,
   });
   const builder = new QueryBuilder();
+  const health = new HealthMonitor(
+    healthWatch(client),
+    new DeepCheck((opts) => lintPages(spaceLintDeps(client), undefined, opts)),
+  );
   registerNativeView(WORKBENCH_VIEW, (props) => (
-    <WorkbenchView {...props} session={session} builder={builder} />
+    <WorkbenchView
+      {...props}
+      session={session}
+      builder={builder}
+      health={health}
+    />
   ));
   hook.registerCommand({
     name: "Workbench: Toggle",

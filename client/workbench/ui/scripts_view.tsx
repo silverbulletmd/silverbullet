@@ -10,6 +10,7 @@ import {
   type ScriptActionDeps,
   type ScriptFilter,
   scriptActions,
+  SCRIPT_STATUS_TITLES,
   scriptCounts,
 } from "../scripts.ts";
 import type { SourceLookup } from "../source_frames.ts";
@@ -32,13 +33,6 @@ const FILTERS: { value: ScriptFilter; label: string }[] = [
   { value: "failed", label: "Failed" },
   { value: "quarantined", label: "Quarantined" },
 ];
-
-const STATUS_TITLES: Record<ScriptRecord["status"], string> = {
-  loaded: "Loaded",
-  failed: "Failed to load",
-  stopped: "Stopped while loading; quarantined from the next load",
-  quarantined: "Quarantined: skipped until re-enabled or edited",
-};
 
 /** What rows need besides their record; stable across renders. */
 type RowContext = {
@@ -150,7 +144,7 @@ function ScriptRow({
         block={record}
         label={label}
         status={record.status}
-        statusTitle={STATUS_TITLES[record.status]}
+        statusTitle={SCRIPT_STATUS_TITLES[record.status]}
         numbers={[record.priority, formatLoadTime(record)]}
         menu={<ActionMenu actions={scriptActions(record)} deps={ctx.deps} />}
         onOpen={() => void ctx.deps.openSource(record.ref)}

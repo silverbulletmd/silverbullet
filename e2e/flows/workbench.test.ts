@@ -130,7 +130,7 @@ test.describe("query builder", () => {
     sbServer,
   }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
-    await runCommandViaPalette(page, "Workbench: Toggle");
+    await runCommandViaPalette(page, "Workbench: Query");
     const tags = page.getByRole("navigation", { name: "Tags" });
     await expect(tags.getByRole("button", { name: /^page/ })).toHaveAttribute(
       "aria-pressed",
@@ -163,6 +163,46 @@ test.describe("query builder", () => {
       .getByRole("button", { name: "Copy" })
       .click();
     await expect(page.getByText("Copied")).toBeVisible();
+  });
+});
+
+test.describe("query builder page scope", () => {
+  // A made-up content page and a meta page
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "Garden Notes.md": "Tomatoes by the fence.",
+      "House Style.md": "---\ntags: meta\n---\nWidgets stay small.",
+    },
+  });
+
+  test("pages read content pages by default; Meta and All switch the scope", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await editQuery(page);
+    const scope = page.getByRole("radiogroup", { name: "Which pages" });
+    const results = page.getByRole("region", { name: "Results" });
+    const bar = page.getByRole("region", { name: "Query" });
+    await bar.getByRole("button", { name: "Show" }).click();
+    const code = bar.locator(".sb-wbq-code");
+
+    await expect(scope.getByRole("radio", { name: "Content" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(code).toContainText("index.contentPages()");
+    await expect(results).toContainText("Garden Notes");
+    await expect(results).not.toContainText("House Style");
+
+    await scope.getByRole("radio", { name: "Meta" }).click();
+    await expect(code).toContainText("index.metaPages()");
+    await expect(results).toContainText("House Style");
+    await expect(results).not.toContainText("Garden Notes");
+
+    await scope.getByRole("radio", { name: "All" }).click();
+    await expect(code).toContainText("index.pages()");
   });
 });
 
@@ -670,5 +710,77 @@ test.describe("query builder refresh", () => {
     await expect(results).toContainText("1 result");
     await expect(results).toContainText("Notes");
     await expect(where).toContainText("isNotes(p)");
+  });
+});
+
+test.describe("overview and health", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "See [[Missing Placeholder]] #idea\n\n- [ ] Open task #idea",
+      "Broken.md": "---\ntags: [unclosed\n---\nBody",
+      // A space-lua block without a priority comment must pass the space-wide lint
+      "Script.md": '```space-lua\nlocal greeting = "hi"\n```',
+    },
+  });
+
+  test("workbench opens on Overview; Health lists a broken link and the space-wide lint finds bad YAML", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Toggle");
+    const visibleTab = page.locator(".sb-wb-tab:not([hidden])");
+    const tabs = page.getByRole("radiogroup", { name: "Tabs" });
+    await expect(
+      tabs.getByRole("radio", { name: /^Overview/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(
+      visibleTab
+        .locator(".sb-wbo-card", { hasText: "Pages" })
+        .locator(".sb-wbo-value"),
+    ).toHaveText("3");
+
+    await visibleTab
+      .getByRole("button", { name: "Show open tasks in Query" })
+      .click();
+    await expect(tabs.getByRole("radio", { name: /^Query/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(
+      page
+        .getByRole("navigation", { name: "Tags" })
+        .getByRole("button", { name: /^task\b/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("group", { name: "Where" })).toContainText(
+      "done",
+    );
+    await tabs.getByRole("radio", { name: /^Overview/ }).click();
+
+    // #idea is both a page tag and a task tag here: two tag objects, one row
+    await page.getByRole("button", { name: "Show all tags in Query" }).click();
+    await expect(
+      page.getByRole("region", { name: "Results" }).getByText("idea", {
+        exact: true,
+      }),
+    ).toHaveCount(1);
+    await tabs.getByRole("radio", { name: /^Overview/ }).click();
+
+    await tabs.getByRole("radio", { name: /^Health/ }).click();
+    await expect(visibleTab).toContainText("Missing Placeholder");
+
+    await visibleTab
+      .getByRole("button", { name: "Run space-wide lint" })
+      .click();
+    const deep = visibleTab.getByRole("region", { name: "Space-wide lint" });
+    const row = deep.locator(".sb-wbh-row", { hasText: "Broken" });
+    await expect(row).toBeVisible();
+    await expect(
+      deep.locator(".sb-wbh-row", { hasText: "Script" }),
+    ).toHaveCount(0);
+    await expect(row).toBeVisible();
+    await row.click();
+    // Only the page, not the cursor line: line/column navigation is imprecise
+    await expect(page).toHaveURL(/\/Broken(?:[:@#]|$)/);
   });
 });

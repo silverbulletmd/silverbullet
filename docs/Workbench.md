@@ -1,5 +1,5 @@
 ---
-description: "The panel where you shape and understand your space: browse your objects and build queries over them, a Lua console with a unified log, and overviews of your space-lua scripts and space-style styles."
+description: "The panel where you shape and understand your space: an overview of your space and its health, browse your objects and build queries over them, a Lua console with a unified log, and overviews of your space-lua scripts and space-style styles."
 references:
 - client/workbench/*
 - client/navigator/views/workbench.ts
@@ -10,19 +10,41 @@ You can open the panel via ${widgets.commandButton("Workbench: Toggle")}.
 
 Ultimately it will contain many things, but for now it covers the following:
 
+* [[#Overview]]: your space at a glance: page, task and link counts, top tags, activity and runtime state.
 * [[#Query]]: browse the objects in your space, and shape them into a [[Space Lua/Integrated Query|query]] without writing it, then put it on a page.
 * [[#Console]]: everything your space logs, plus a [[Space Lua]] REPL.
 * [[#Scripts]]: every `space-lua` block in your space, and how loading it went.
 * [[#Styles]]: every `space-style` block in your space, and whether the browser could make sense of it.
+* [[#Health]]: problems in your space, such as broken links, failed scripts, merge conflicts and (on demand) lint errors.
 
 # Opening the workbench
 The workbench is a panel that opens at the bottom of the window. Like other panels, you can drag its top edge to resize it, and move it to the left or right sidebar, or open it as a large modal window, with its dock menu. On a phone it takes the full height of the screen instead, apart from a strip of your page. These commands open it:
 
 * ${widgets.commandButton("Workbench: Toggle")} (Cmd-Alt-j on Mac, Ctrl-Alt-j elsewhere): opens the workbench, focuses it when it’s open but you’re working elsewhere, and closes it when it already has focus.
-* ${widgets.commandButton("Workbench: Query")}, ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")} and ${widgets.commandButton("Workbench: Styles")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
+* ${widgets.commandButton("Workbench: Overview")}, ${widgets.commandButton("Workbench: Query")}, ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")}, ${widgets.commandButton("Workbench: Styles")} and ${widgets.commandButton("Workbench: Health")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
 * The `/Query…` slash command, typed in a page: opens the [[#Query]] tab with its query editor showing, to build a query that goes where you typed it.
 
-It opens on Query the first time, and after that on the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
+The tabs are, in order: Overview, Query, Console, Scripts, Styles and Health. It opens on Overview the first time, and after that on the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
+
+# Overview
+The Overview tab is the default, and shows your space at a glance. It is quick to open: the counts show first, and the revision-based cards fill in as they arrive. Counts update as your space changes; activity and Git sync update when the tab becomes visible and every minute while it is. Cards:
+
+* **Pages:** how many pages you have, with how many were created this month ("+N this month"). Pages under `Library/` and `Repositories/` are not counted.
+* **Tasks:** open and done tasks, again excluding `Library/` and `Repositories/`.
+* **Top tags:** the six [[Tag|tags]] used on the most pages, each with the number of pages using it, the total number of tags in use and an "all tags" link. `Library/` and `Repositories/` pages are excluded here too. System `meta/` tags are not counted.
+* **Links:** the number of links and mentions, in other words all [[Tag/relation|relations]] in your space.
+* **Documents:** how many non-page [[Document|documents]] you have, and their total size.
+* **Activity:** a heatmap of your edits over the last 20 weeks, and the number of edits in the last 7 days.
+* **Most edited in the last month:** the pages you edited most over the last 30 days that still exist. Click one to open it.
+* **Edits by person:** who made the edits of the last month, with a count for each. It only shows when more than one person edits the space.
+* **Git sync:** the state of Git sync, when it is enabled: "Sync failed", "Paused", "Syncing…" or the number of conflicted files when sync isn't idle, otherwise the number of pending changes or "Up to date".
+* **Runtime:** the SilverBullet version, and how many scripts and styles are loaded. Scripts and styles link to their tabs.
+
+Everything on the Overview leads to where you would act on it. Pages, Links and Documents open the Query tab on that tag, and the open and done task counts open it on tasks, filtered. A top tag pill opens that tag's page in the editor (its configured tag page, or the built-in `tag:` page), while "all tags" opens the Query tab on tags. Activity, the heatmap and the Most edited and Edits by person titles open the space-wide revision log, while a Most edited row opens that page. The Git sync title opens the Git status, and its conflicts count goes to Health. The Scripts and Styles rows switch to their tabs; the version is plain text.
+
+Activity, Most edited and Edits by person come from your space's revision history, so they only show when [[Revisions]] are enabled and you have write access. They don't count Git sync merges as edits.
+
+`Stats: Show` is unchanged: it still shows its toast about the current page.
 
 # Console
 A mix of logs (Lua, JavaScript, Plugs, Service Worker) and a Lua REPL. Enter Lua expressions, and they will be evaluated and render their results inline. Each line has a context menu with relevant actions.
@@ -106,7 +128,7 @@ The tab has three parts:
 * **The results**, the largest part, kept up to date as your space’s scripts reload and its index finishes building, with the query as you left it: the objects, rendered the way the query renders on a page (or as Lua values). It shows the first 200 rows of a large result.
 
 ## Building a query
-* **From:** the tag you picked, read through its `index.*()` helper, such as `index.pages()` or `index.data("contact")`. Next to it, narrow it down: a root tag to the objects that carry one of the user tags used on it (`index.pages("project")`; a relation to one kind), or a user tag to one root tag it's used on (`index.tasks("project")`, where on its own it reads `index.objects("project")`). Narrowing keeps the query you built. **Schema** lists every field of its objects (see [[#Fields]]).
+* **From:** the tag you picked, read through its `index.*()` helper, such as `index.pages()` or `index.data("contact")`. Next to it, narrow it down: a root tag to the objects that carry one of the user tags used on it (`index.pages("project")`; a relation to one kind), or a user tag to one root tag it's used on (`index.tasks("project")`, where on its own it reads `index.objects("project")`). For pages, pick **All**, **Content** or **Meta** to read every page, only content pages (`index.contentPages()`, the default) or only [[Meta Page|meta pages]] (`index.metaPages()`). Narrowing keeps the query you built. **Schema** lists every field of its objects (see [[#Fields]]).
 * **Where:** filters, all of which must match. *+ Filter* picks a field, then an operator that suits its type: text can be matched exactly, by a part or by its start; numbers and dates can be compared, with *before today* and *after today* for dates; lists can contain a value; and any field can be required to exist or not. *+ Expression* takes any Lua condition instead, with completion. Click a filter to change it.
 * **Group By:** one result per distinct value of a field (or combination of fields). The **Select** row then shows group columns: each is a group key or an aggregate of a field, like `count` or `avg`, including your own [[Space Lua/Integrated Query/Aggregating|aggregates]].
 * **Order By:** the order, with directions named for the field’s type (*earliest first*, *A–Z*, *high to low*). Click an order to flip it. While grouping, you order by a group key or an aggregate column.
@@ -134,3 +156,20 @@ To change a `${query[[…]]}` already on a page, choose *Edit in query builder* 
 
 Some queries don’t fit the builder, and say why instead of opening: a query over something other than one `index.*()` collection (such as `index.pages()`, or the older `index.tag "page"`, which is rewritten as `index.pages()`), an `offset`, a `having`, grouping by anything but fields, an `order by` with `using`, or a select other than a table with named columns or a template.
 
+# Health
+The Health tab lists problems in your space in one place. The tab's label shows a count of errors, so you notice a real problem from any tab. It counts failed scripts, Git conflicts and Git sync errors, plus each error from a finished space-wide lint once per page and line. Space-wide lint errors on a page whose script already failed aren't counted again, and neither are conflict markers on a page that already has a Git conflict. Click a problem to open its page.
+
+The checks below are instant, and refresh as your space changes:
+
+* **Broken links:** links to pages that don't exist yet ([[Tag/aspiring-page|aspiring pages]]).
+* **Ambiguous links:** links that could mean more than one page (see [[Link#Ambiguous links]]).
+* **Scripts and styles:** scripts that failed to load or are quarantined, and styles that hold CSS the browser parsed no rules from.
+* **Merge conflicts:** unresolved merges that need your decision. It is always shown, and holds the Git sync state when Git sync is enabled (a failed sync is an error, a paused one a warning, and conflicted paths are errors), unresolved Git conflicts, and leftover merge-conflict markers in pages, including those from SilverBullet's own sync conflicts. Leftover markers are only found by the space-wide lint.
+
+A group with no problems shows up as a single line with a check mark.
+
+## Space-wide lint
+The space-wide lint runs [[API/space#space.lint]] over every page outside `Library/`. This reads each page, runs every lint rule and renders its `${…}` expressions and Lua widgets, so on a large space it can take a while. That's why it never runs by itself: press **Run space-wide lint** when you want it. It shows progress and the problems found so far as it goes, and **Cancel** stops it. When it's done, **Run again** repeats it. Results are kept until you reload.
+
+## Filtering
+Narrow the list with the severity filter (**All**, **Errors**, **Warnings**, **Info**, each with a count) and the text filter, which matches page names and messages. The ⋯ menu in the toolbar has **Reindex space**, which rebuilds the index.
