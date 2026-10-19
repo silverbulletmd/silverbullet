@@ -46,7 +46,7 @@ ${query[[from p = index.contentPages() limit 3 select template.new[==[
 ```
 
 ## Documenting a template
-A `---` comment right above a template describes it, and an `@param` names the kind of object it takes, the way [[Space Lua]] functions are documented. Completion shows the description, and the Workbench’s query editor lists every template in the `templates` table with it, offering the ones that take a tag’s objects first and a link to each one’s definition:
+A `---` comment right above a template describes it, and an `@param` names the kind of object it takes, the way Space Lua functions are documented. Completion shows the description, and the Workbench’s query editor lists every template in the `templates` table with it, offering the ones that take a tag’s objects first and a link to each one’s definition:
 
 ```lua
 --- Renders a book with its author.
