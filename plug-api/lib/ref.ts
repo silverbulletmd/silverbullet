@@ -363,7 +363,7 @@ export function getOffsetFromHeader(
  * @param text The text which is used to determine the offset. Only `\n` are
  * considered line breaks.
  * @param line The line number of the described position. Starts at 1
- * @param column The column number of the described position. Starts at 0
+ * @param column The column number of the described position. Starts at 1
  */
 export function getOffsetFromLineColumn(
   text: string,
@@ -372,10 +372,10 @@ export function getOffsetFromLineColumn(
 ): number {
   const lines = text.split("\n");
 
+  // Each preceding line also ends in a "\n"
   const linePos = lines
     .slice(0, Math.max(line - 1, 0))
-    .map((l) => l.length)
-    .reduce((totalLen, len) => totalLen + len, 0);
+    .reduce((totalLen, l) => totalLen + l.length + 1, 0);
 
   const columnPos = Math.max(
     0,

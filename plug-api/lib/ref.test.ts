@@ -4,6 +4,7 @@ import {
   decodePageURI,
   encodePageURI,
   encodeRef,
+  getOffsetFromLineColumn,
   isValidName,
   isValidPath,
   parseToRef,
@@ -195,4 +196,14 @@ test("encodeLinkText() round-trips caret links with details and no meta", () => 
   ]) {
     expect(encodeLinkText(parseToRef(name)!)).toEqual(name);
   }
+});
+
+test("getOffsetFromLineColumn() counts the newlines before the line", () => {
+  const text = "ab\ncd\nef";
+  expect(getOffsetFromLineColumn(text, 1, 1)).toBe(0);
+  expect(getOffsetFromLineColumn(text, 2, 1)).toBe(3);
+  expect(getOffsetFromLineColumn(text, 3, 2)).toBe(7);
+  expect(text[getOffsetFromLineColumn(text, 3, 1)]).toBe("e");
+  // A column past the end of the line clamps to its end
+  expect(getOffsetFromLineColumn(text, 2, 99)).toBe(5);
 });
