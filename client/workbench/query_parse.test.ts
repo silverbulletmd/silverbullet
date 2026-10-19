@@ -374,7 +374,18 @@ describe("querySource", () => {
     );
     expect(querySource("1 + 1")).toBe(null);
     expect(querySource('query[[from d = index.documents("x")]]')).toBe(null);
-    expect(querySource("query[[from p = index.contentPages()]]")).toBe(null);
+    expect(querySource('query[[from p = index.contentPages("adr")]]')).toEqual({
+      root: "page",
+      tag: "adr",
+      by: "root",
+      scope: "content",
+    });
+    expect(querySource("query[[from p = index.metaPages()]]")).toEqual({
+      root: "page",
+      tag: null,
+      by: "root",
+      scope: "meta",
+    });
   });
 
   test("the older index.tag form still opens", () => {

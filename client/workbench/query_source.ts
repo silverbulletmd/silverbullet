@@ -22,7 +22,7 @@ import {
 } from "./query_fields.ts";
 import {
   type QuerySource,
-  rootSource,
+  listedSource,
   sampleQuery,
   schemaTag,
 } from "./query_from.ts";
@@ -123,7 +123,7 @@ export function tagsUsedOn(tags: TagLists, root: string): string[] {
 }
 
 /** The tag the Query tab opens on */
-export const START_SOURCE: QuerySource = rootSource("page");
+export const START_SOURCE: QuerySource = listedSource("page");
 
 /**
  * Tags in use outside the standard library (as on the Scripts tab), plus

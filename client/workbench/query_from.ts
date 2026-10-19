@@ -3,7 +3,10 @@
  * of a root tag that carry a user tag. A query always reads them through an
  * `index.*()` helper.
  */
-import { builtinTagKind } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  builtinTagKind,
+  metaPageLua,
+} from "@silverbulletmd/silverbullet/lib/tags";
 
 export type QuerySource = {
   /** Root tag; `data` also stands for the root tags data blocks define */
@@ -15,6 +18,16 @@ export type QuerySource = {
   tag: string | null;
   /** Which of the two was picked from the tag list; the other narrows it */
   by: "root" | "tag";
+  /** With root `page`: only content pages, or only meta pages; all when absent */
+  scope?: PageScope;
+};
+
+export type PageScope = "content" | "meta";
+
+/** The helper reading each page scope's pages, narrowed by a user tag like `index.pages` */
+const SCOPE_HELPERS: Record<PageScope, string> = {
+  content: "contentPages",
+  meta: "metaPages",
 };
 
 /** Root tags whose helper takes a user tag (or, for relations, a kind) to narrow by */
@@ -56,6 +69,13 @@ export function dataRootSource(name: string): QuerySource {
   return { root: "data", tag: name, by: "root" };
 }
 
+/** The source picking a root tag from the tag list reads: for pages, content pages */
+export function listedSource(root: string): QuerySource {
+  return root === "page"
+    ? { ...rootSource(root), scope: "content" }
+    : rootSource(root);
+}
+
 /** The source a tag stands for on its own: a built-in tag is a root, anything else a user tag */
 export function sourceFor(name: string): QuerySource {
   return builtinTagKind(name) ? rootSource(name) : tagSource(name);
@@ -69,7 +89,10 @@ export function canNarrow(root: string): boolean {
 /** The `index.*()` call a query reads its objects from */
 export function sourceLua(s: QuerySource): string {
   if (s.root !== null) {
-    const narrowing = own(NARROWING_HELPERS, s.root);
+    const narrowing =
+      s.root === "page" && s.scope
+        ? SCOPE_HELPERS[s.scope]
+        : own(NARROWING_HELPERS, s.root);
     if (narrowing) {
       return `index.${narrowing}(${s.tag !== null ? JSON.stringify(s.tag) : ""})`;
     }
@@ -88,6 +111,8 @@ export function sourceFromCall(
   if (helper === "objects" || helper === "tag") {
     return arg === null ? null : sourceFor(arg);
   }
+  const scope = keyOf(SCOPE_HELPERS, helper) as PageScope | undefined;
+  if (scope) return { root: "page", tag: arg, by: "root", scope };
   const narrowing = keyOf(NARROWING_HELPERS, helper);
   if (narrowing) return { root: narrowing, tag: arg, by: "root" };
   const plain = keyOf(PLAIN_HELPERS, helper);
@@ -110,14 +135,15 @@ export function schemaTag(s: QuerySource): string {
 /** How the source reads in a sentence: `task`, `#work`, `task tagged #work` */
 export function sourceLabel(s: QuerySource): string {
   if (s.root === null) return `#${s.tag}`;
-  if (s.tag === null) return s.root;
+  const root = s.scope ? `${s.scope} ${s.root}` : s.root;
+  if (s.tag === null) return root;
   if (s.root === "relation") return `${s.tag} relation`;
   if (s.root === "data") return `data tagged ${s.tag}`;
-  return `${s.root} tagged #${s.tag}`;
+  return `${root} tagged #${s.tag}`;
 }
 
 export function sameSource(a: QuerySource, b: QuerySource): boolean {
-  return a.root === b.root && a.tag === b.tag;
+  return a.root === b.root && a.tag === b.tag && a.scope === b.scope;
 }
 
 /**
@@ -126,6 +152,12 @@ export function sameSource(a: QuerySource, b: QuerySource): boolean {
  */
 export function sampleQuery(s: QuerySource): { key: string; where?: string } {
   if (s.root === null) return { key: s.tag ?? "" };
+  if (s.scope) {
+    const scoped =
+      s.scope === "meta" ? metaPageLua("o") : `not ${metaPageLua("o")}`;
+    if (s.tag === null) return { key: s.root, where: scoped };
+    return { key: s.tag, where: `o.tag == "page" and ${scoped}` };
+  }
   if (s.tag === null) return { key: s.root };
   const tag = JSON.stringify(s.tag);
   if (s.root === "relation")

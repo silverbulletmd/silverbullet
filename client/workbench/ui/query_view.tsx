@@ -1,11 +1,13 @@
 import { builtinTagKind } from "@silverbulletmd/silverbullet/lib/tags";
 import { Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import {
   canNarrow,
   dataRootSource,
+  listedSource,
+  type PageScope,
   type QuerySource,
-  rootSource,
   sameSource,
   tagSource,
 } from "../query_from.ts";
@@ -40,7 +42,7 @@ type Entry = { key: string; label: string; source: QuerySource };
 const rootEntry = (root: string): Entry => ({
   key: `root:${root}`,
   label: root,
-  source: rootSource(root),
+  source: listedSource(root),
 });
 const dataRootEntry = (name: string): Entry => ({
   key: `data:${name}`,
@@ -62,7 +64,8 @@ function pickedEntry(s: QuerySource, tags: TagLists): Entry {
   return rootEntry(s.root ?? "");
 }
 
-const sourceKey = (s: QuerySource) => `${s.root ?? ""}|${s.tag ?? ""}`;
+const sourceKey = (s: QuerySource) =>
+  `${s.root ?? ""}|${s.tag ?? ""}|${s.scope ?? ""}`;
 
 /**
  * The Query tab: pick a tag and look through its objects, shaped by the
@@ -243,6 +246,10 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
                 <span className="sb-wbq-label">From</span>
                 <div className="sb-wbq-row">
                   <span className="sb-wbq-chip">{picked?.label}</span>
+                  <PageScopeControl
+                    source={m.source}
+                    onNarrow={(s) => void narrow(s)}
+                  />
                   <NarrowSelect
                     source={m.source}
                     picked={picked}
@@ -289,6 +296,39 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+const PAGE_SCOPES: {
+  scope: PageScope | undefined;
+  label: string;
+  tooltip: string;
+}[] = [
+  { scope: undefined, label: "All", tooltip: "Every page" },
+  { scope: "content", label: "Content", tooltip: "Pages not tagged #meta" },
+  { scope: "meta", label: "Meta", tooltip: "Pages tagged #meta or #meta/…" },
+];
+
+/** Narrows pages to content pages or meta pages; absent for other objects */
+function PageScopeControl({
+  source,
+  onNarrow,
+}: {
+  source: QuerySource;
+  onNarrow: (s: QuerySource) => void;
+}) {
+  if (source.root !== "page") return null;
+  return (
+    <SegmentedControl
+      items={PAGE_SCOPES}
+      activeIndex={PAGE_SCOPES.findIndex((p) => p.scope === source.scope)}
+      onPick={(i) => {
+        const { scope: _, ...rest } = source;
+        const scope = PAGE_SCOPES[i].scope;
+        onNarrow(scope ? { ...rest, scope } : rest);
+      }}
+      ariaLabel="Which pages"
+    />
   );
 }
 
@@ -351,7 +391,7 @@ function NarrowSelect({
         value={source.tag ?? ""}
         onChange={(e) => {
           const tag = e.currentTarget.value || null;
-          onNarrow({ root, tag, by: "root" });
+          onNarrow({ ...source, tag });
         }}
       >
         <option value="">any</option>
