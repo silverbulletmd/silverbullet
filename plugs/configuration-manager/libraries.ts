@@ -1,4 +1,5 @@
 import {
+  clientStore,
   editor,
   index,
   lua,
@@ -18,7 +19,6 @@ const STD_REPO_NAME = "Repositories/Std";
 export type InstalledLibrary = {
   name: string;
   uri?: string;
-  hash?: string;
   mode?: "pull" | "push" | "sync";
   files?: string[];
 };
@@ -36,7 +36,6 @@ export type RepositoryInfo = {
   name: string;
   uri?: string;
   mode?: "pull" | "push" | "sync";
-  hash?: string;
 };
 
 export type RoguePlug = {
@@ -51,7 +50,7 @@ export type LibrariesViewModel = {
 };
 
 type ShareMode = "pull" | "push" | "sync";
-type ShareMeta = { uri?: string; hash?: string; mode?: ShareMode };
+type ShareMeta = { uri?: string; mode?: ShareMode };
 
 // ---------- Listing ----------
 
@@ -67,7 +66,6 @@ export async function listLibraries(): Promise<LibrariesViewModel> {
   const installed: InstalledLibrary[] = installedRaw.map((lib: any) => ({
     name: lib.name,
     uri: lib.share?.uri,
-    hash: lib.share?.hash,
     mode: lib.share?.mode,
     files: lib.files,
   }));
@@ -90,7 +88,6 @@ export async function listLibraries(): Promise<LibrariesViewModel> {
   const repositories: RepositoryInfo[] = repositoriesRaw.map((r: any) => ({
     name: r.name,
     uri: r.share?.uri,
-    hash: r.share?.hash,
     mode: r.share?.mode,
   }));
 
@@ -136,22 +133,16 @@ function luaString(s: string): string {
   return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-// ---------- Hashing (parity with share.contentHash) ----------
+// ---------- Share frontmatter ----------
 
-// share.contentHash strips share.{uri,hash,mode} from frontmatter, then takes
-// the first 8 hex chars of sha256. We mirror that exactly so existing page
-// hashes compare equal to our recomputed ones.
-async function contentHash(text: string): Promise<string> {
-  const cleaned = await cleanFrontmatter(text);
-  const hex = await hashSHA256(cleaned);
-  return hex.slice(0, 8);
-}
-
+// Removes the same share.* keys as the Lua share core, so remote and installed
+// text compare equal and the stored base matches what share.lua writes.
 async function cleanFrontmatter(text: string): Promise<string> {
   const patches: YamlPatch[] = [
     { op: "delete-key", path: "share.uri" },
     { op: "delete-key", path: "share.hash" },
     { op: "delete-key", path: "share.mode" },
+    { op: "delete-key", path: "share.transform" },
   ];
   return await system.invokeFunction("index.patchFrontmatter", text, patches);
 }
@@ -162,10 +153,49 @@ async function setShareFrontmatter(
 ): Promise<string> {
   const patches: YamlPatch[] = [
     { op: "set-key", path: "share.uri", value: meta.uri },
-    { op: "set-key", path: "share.hash", value: meta.hash },
     { op: "set-key", path: "share.mode", value: meta.mode },
   ];
   return await system.invokeFunction("index.patchFrontmatter", text, patches);
+}
+
+// Only for installs from before share.base existed: the old share.hash was the
+// first 8 hex chars of sha256 over the text with share.* removed.
+async function legacyHash(cleaned: string): Promise<string> {
+  return (await hashSHA256(cleaned)).slice(0, 8);
+}
+
+// True when the remote is the same as what was installed, so a locally edited
+// page is not overwritten. Prefers the stored base, then a legacy share.hash,
+// then falls back to comparing with the installed text.
+async function unchangedSinceInstall(
+  uri: string,
+  cleanedRemote: string,
+  installedText: string,
+): Promise<boolean> {
+  const base = await clientStore.get(`share.base:${uri}`);
+  if (typeof base === "string") {
+    return base === cleanedRemote;
+  }
+  const { frontmatter: fm } = await extractFrontmatter(installedText);
+  const oldHash = fm?.share?.hash ?? fm?.["share.hash"];
+  if (oldHash) {
+    return String(oldHash) === (await legacyHash(cleanedRemote));
+  }
+  return (await cleanFrontmatter(installedText)) === cleanedRemote;
+}
+
+// Writes a pulled page and records the remote text as this device's agreed
+// base, so a later share has a common ancestor.
+async function stampPulledPage(
+  uri: string,
+  cleaned: string,
+  pageName: string,
+): Promise<void> {
+  const stamped = await setShareFrontmatter(cleaned, { uri, mode: "pull" });
+  await space.writePage(pageName, stamped);
+  await clientStore.set(`share.base:${uri}`, cleaned);
+  // Same marker as the Lua share core: a base recorded by this version
+  await clientStore.set(`share.baseV2:${uri}`, true);
 }
 
 async function extractFrontmatter(
@@ -197,20 +227,23 @@ export function suggestRepoNameFromUri(uri: string): string {
 
 // ---------- Library install / update / remove ----------
 
-// Install or update a library from a URI. If `currentHash` is provided and
-// matches the remote hash, returns null (no-op). On success returns the
+// Install or update a library from a URI. If `installedText` is provided and
+// its content equals the remote's (ignoring share.*), returns null (no-op). On success returns the
 // page name that was written and any plug file paths to hot-load.
 async function installLibrary(
   uri: string,
-  opts: { currentHash?: string; allowOverwrite?: boolean } = {},
+  opts: { installedText?: string; allowOverwrite?: boolean } = {},
 ): Promise<{ page: string; plugPaths: string[] } | null> {
   const text = await readUriAsText(uri);
   const { frontmatter: remoteFm } = await extractFrontmatter(text);
   if (!remoteFm || !remoteFm.name) {
     throw new Error("Library frontmatter missing required 'name'");
   }
-  const remoteHash = await contentHash(text);
-  if (opts.currentHash && opts.currentHash === remoteHash) {
+  const cleaned = await cleanFrontmatter(text);
+  if (
+    opts.installedText !== undefined &&
+    (await unchangedSinceInstall(uri, cleaned, opts.installedText))
+  ) {
     return null;
   }
 
@@ -223,13 +256,7 @@ async function installLibrary(
   const sourceBase = urlDir(uri);
   const targetBase = urlDir(pageName);
 
-  const stamped = await setShareFrontmatter(text, {
-    uri,
-    hash: remoteHash,
-    mode: "pull",
-  });
-
-  await space.writePage(pageName, stamped);
+  await stampPulledPage(uri, cleaned, pageName);
 
   const files: string[] = Array.isArray(remoteFm.files)
     ? remoteFm.files.filter((f: unknown): f is string => typeof f === "string")
@@ -268,7 +295,7 @@ async function updateLibrary(
     throw new Error(`No share metadata on ${name}`);
   }
   const result = await installLibrary(share.uri, {
-    currentHash: force ? undefined : share.hash,
+    installedText: force ? undefined : text,
     allowOverwrite: true,
   });
   return { changed: result !== null, plugPaths: result?.plugPaths ?? [] };
@@ -309,13 +336,7 @@ async function addRepository(uri: string, targetPage: string): Promise<string> {
     throw new Error(`${targetPage} already exists`);
   }
   const text = await readUriAsText(uri);
-  const hash = await contentHash(text);
-  const stamped = await setShareFrontmatter(text, {
-    uri,
-    hash,
-    mode: "pull",
-  });
-  await space.writePage(targetPage, stamped);
+  await stampPulledPage(uri, await cleanFrontmatter(text), targetPage);
   return targetPage;
 }
 
