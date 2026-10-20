@@ -19,27 +19,6 @@
     border-radius: 0;
   }
 
-  .sb-header {
-    padding: 13px 10px 10px 10px;
-    display: flex;
-
-    label {
-      margin: 3px;
-    }
-
-    .sb-input {
-      flex-grow: 1;
-      min-width: 0;
-      background-color: transparent;
-      padding: 0;
-      border-radius: 0;
-
-      &:focus {
-        box-shadow: none;
-      }
-    }
-  }
-
   .sb-prompt {
     padding: 13px 10px 10px 10px;
 
@@ -59,44 +38,48 @@
       justify-content: flex-end;
       margin-top: 10px;
       gap: 10px;
-    }
-  }
 
-  .sb-help-text {
-    padding: 5px;
-  }
-
-  .sb-result-list {
-    max-height: 250px;
-    overflow-y: scroll;
-
-    .sb-icon {
-      padding: 0 8px 0 5px;
-      position: relative;
-      top: 3px;
+      a.sb-button {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+      }
     }
 
-    .sb-description {
-      font-size: 75%;
+    .sb-device-url {
+      overflow-wrap: anywhere;
+    }
+
+    .sb-device-code {
+      font-family: var(--editor-font, monospace);
+      font-size: 2em;
+      letter-spacing: 0.1em;
+      text-align: center;
+      margin: 0.5em 0;
+      user-select: all;
     }
   }
+}
 
-  .sb-option,
-  .sb-selected-option {
-    padding: 8px;
-    cursor: pointer;
-    line-height: 20px;
-  }
+// The filter box (editor.filterBox) renders the navigator's markup
+// (.sb-nav-root, see _navigator.scss), so its frame matches the page picker's
+// modal (.sb-modal.sb-modal-centered in main.scss) too: same offset and shadow,
+// and on narrow screens the same 8px inset with rounded corners.
+.sb-modal-box:has(> .sb-filter-box) {
+  margin-top: 100px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
 
-  .sb-option .sb-hint,
-  .sb-selected-option .sb-hint {
-    float: right;
-    margin-right: 0;
-    margin-top: -4px;
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-top: 3px;
-    padding-bottom: 3px;
+  @media only screen and (max-width: 600px) {
+    margin-top: calc(8px + var(--sb-top-height) + var(--sb-standalone-top-offset, 0px));
+    width: calc(100% - 16px);
+    max-width: none;
     border-radius: 4px;
   }
+}
+
+// The navigator has no muted *hint* chip; a filter option's `hintInactive`
+// keeps the hint's right alignment with the navigator's inactive-chip look.
+.sb-filter-box .sb-nav-chip-hint.sb-nav-chip-inactive {
+  background-color: transparent;
+  color: var(--sb-nav-muted);
 }

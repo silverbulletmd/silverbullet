@@ -114,49 +114,6 @@
   background-color: var(--modal-background-color);
   border: var(--modal-border-color) 1px solid;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
-
-  .sb-header {
-    border-bottom: 1px var(--modal-border-color) solid;
-
-    label {
-      color: var(--modal-header-label-color);
-    }
-
-    .sb-input {
-      font-family: var(--ui-font);
-    }
-  }
-
-  .sb-help-text {
-    background-color: var(--modal-help-background-color);
-    border-bottom: 1px var(--modal-border-color) solid;
-    color: var(--modal-help-color);
-  }
-
-  .sb-result-list {
-    .sb-hint:not(.sb-hint-inactive) {
-      color: var(--modal-hint-color);
-      background-color: var(--modal-hint-background-color);
-    }
-
-    .sb-hint.sb-hint-inactive {
-      color: var(--modal-hint-inactive-color);
-      background-color: var(--modal-hint-inactive-background-color);
-    }
-
-    .sb-description {
-      color: var(--modal-description-color);
-    }
-
-    .sb-selected-option {
-      background-color: var(--modal-selected-option-background-color);
-      color: var(--modal-selected-option-color);
-
-      .sb-description {
-        color: var(--modal-selected-option-description-color);
-      }
-    }
-  }
 }
 
 #sb-editor {
