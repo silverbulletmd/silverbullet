@@ -1,12 +1,12 @@
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import { describe, expect, test, vi } from "vitest";
 import { Config } from "../config.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { System } from "../plugos/system.ts";
-import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import { parseExpressionString } from "../space_lua/parse.ts";
-import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
 import { LuaEnv, LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
 import { DataStore } from "./datastore.ts";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { DataStoreMQ } from "./mq.datastore.ts";
@@ -645,6 +645,26 @@ describe("ObjectIndex dataObjects", () => {
     ] as ObjectValue<any>[]);
     const friends = await run(objectIndex.dataObjects("friend"));
     expect(friends.map((o: any) => o.ref)).toEqual(["P@2"]);
+  });
+});
+
+describe("ObjectIndex tagRecords", () => {
+  test("leaves out objects that are merely tagged #tag", async () => {
+    const objectIndex = makeObjectIndex();
+    await objectIndex.indexObjects("P", [
+      { ref: "work:page", tag: "tag", name: "work", page: "P", parent: "page" },
+      {
+        ref: "P@3",
+        tag: "paragraph",
+        tags: ["tag"],
+        itags: ["paragraph", "tag"],
+        page: "P",
+      },
+    ] as ObjectValue<any>[]);
+    const records = await objectIndex
+      .tagRecords()
+      .query({}, luaBuildStandardEnv(), LuaStackFrame.lostFrame);
+    expect(records.map((o: any) => o.ref)).toEqual(["work:page"]);
   });
 });
 

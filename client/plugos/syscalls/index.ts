@@ -5,12 +5,12 @@ import {
   type ObjectIndex,
   ObjectValidationError,
 } from "../../data/object_index.ts";
+import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../../space_lua/query_collection.ts";
 import type { LuaTable } from "../../space_lua/runtime.ts";
-import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type { SysCallMapping } from "../system.ts";
 import { describeSchemas, tagSchema } from "./schema_introspection.ts";
 
@@ -154,7 +154,7 @@ export function indexSyscalls(
     "index.tags": {
       dependsOn: () => ["index"],
       callback: (): LuaQueryCollection => {
-        return objectIndex.objectsWithTag("tag");
+        return objectIndex.tagRecords();
       },
       description: "Returns all indexed tag objects as a query collection.",
     },

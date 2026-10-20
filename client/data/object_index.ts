@@ -1,3 +1,4 @@
+import { metaPageLua } from "@silverbulletmd/silverbullet/lib/tags";
 import type {
   IndexQueueBody,
   KV,
@@ -7,7 +8,6 @@ import type {
   FileMeta,
   ObjectValue,
 } from "@silverbulletmd/silverbullet/type/index";
-import { metaPageLua } from "@silverbulletmd/silverbullet/lib/tags";
 import { relationToLink } from "../../plugs/index/link.ts";
 import type { Config } from "../config.ts";
 import type { EventHook } from "../plugos/hooks/event.ts";
@@ -17,10 +17,11 @@ import {
   getAggregateSpec,
   getBuiltinAggregateEntries,
 } from "../space_lua/aggregates.ts";
+import { tagChangedEvent } from "../space_lua/dependencies.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import {
-  applyQuery,
   ArrayQueryCollection,
+  applyQuery,
   type LuaCollectionQuery,
   type LuaQueryCollection,
   leadingRowsNeeded,
@@ -32,7 +33,6 @@ import {
   LuaStackFrame,
   LuaTable,
 } from "../space_lua/runtime.ts";
-import { tagChangedEvent } from "../space_lua/dependencies.ts";
 import type { DataStore } from "./datastore.ts";
 import type { DataStoreMQ } from "./mq.datastore.ts";
 
@@ -302,6 +302,14 @@ export class ObjectIndex {
     } else {
       return this.objectsWithTag(rootTag);
     }
+  }
+
+  /**
+   * Tag records only: the "tag" collection also holds anything a user tagged
+   * #tag (e.g. a paragraph), which has no tag name.
+   */
+  tagRecords(): LuaQueryCollection {
+    return this.filteredTag("tag", (varName) => `${varName}.tag == "tag"`);
   }
 
   /**
