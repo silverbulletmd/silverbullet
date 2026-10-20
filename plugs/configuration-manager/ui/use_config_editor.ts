@@ -1,13 +1,14 @@
 import { useCallback, useState } from "preact/hooks";
 import { useCfg } from "./cfg_context.tsx";
-import { getSchemaAtPath } from "./schema.ts";
+import type { OverrideChanges } from "../overrides.ts";
+import { configChanges, getSchemaAtPath } from "./schema.ts";
 
 export type ConfigEditor = {
   pendingConfig: Record<string, any>;
   setField(path: string, value: any): void;
   resetField(path: string): void;
   isModified(path: string): boolean;
-  changes(): Record<string, any>;
+  changes(): OverrideChanges<unknown>;
 };
 
 export function useConfigEditor(): ConfigEditor {
@@ -63,15 +64,10 @@ export function useConfigEditor(): ConfigEditor {
     [modifiedPaths],
   );
 
-  const changes = useCallback((): Record<string, any> => {
-    const out: Record<string, any> = {};
-    for (const path of modifiedPaths) {
-      const value = pendingConfig[path];
-      if (value === undefined) continue;
-      out[path] = value;
-    }
-    return out;
-  }, [modifiedPaths, pendingConfig]);
+  const changes = useCallback(
+    () => configChanges(cfg.configOverrides, modifiedPaths, pendingConfig),
+    [cfg.configOverrides, modifiedPaths, pendingConfig],
+  );
 
   return { pendingConfig, setField, resetField, isModified, changes };
 }

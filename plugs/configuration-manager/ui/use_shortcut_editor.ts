@@ -11,6 +11,8 @@ import {
   writeBindings,
 } from "./keys.ts";
 import type { Conflicts } from "./keys.ts";
+import { diffOverrides, type OverrideChanges } from "../overrides.ts";
+import type { CommandOverride } from "../lua.ts";
 import type { PendingShortcuts } from "./types.ts";
 
 export type ShortcutEditor = {
@@ -25,7 +27,7 @@ export type ShortcutEditor = {
   reset(name: string): void;
   isModified(name: string): boolean;
   alternateSlot(name: string): number;
-  changes(): PendingShortcuts;
+  changes(): OverrideChanges<CommandOverride>;
 };
 
 type Action =
@@ -144,7 +146,10 @@ export function useShortcutEditor(): ShortcutEditor {
     [pendingShortcuts, commands, isMac],
   );
 
-  const changes = useCallback(() => pendingShortcuts, [pendingShortcuts]);
+  const changes = useCallback(
+    () => diffOverrides(cfg.commandOverrides, pendingShortcuts),
+    [cfg.commandOverrides, pendingShortcuts],
+  );
 
   return {
     pendingShortcuts,

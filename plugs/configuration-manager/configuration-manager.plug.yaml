@@ -61,6 +61,8 @@ functions:
       requireMode: rw
   saveConfiguration:
     path: ./configuration.ts:saveConfiguration
+  setConfigValue:
+    path: ./configuration.ts:setConfigValue
   librariesAction:
     path: ./libraries.ts:librariesAction
   librariesRefresh:

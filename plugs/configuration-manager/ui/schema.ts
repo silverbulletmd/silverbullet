@@ -1,3 +1,4 @@
+import { diffOverrides, type OverrideChanges } from "../overrides.ts";
 import type { ConfigurationViewModel } from "./types.ts";
 
 export type UiSchema = { path: string; schema: any };
@@ -86,4 +87,21 @@ export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
     initialConfig,
     initialModifiedPaths: new Set(Object.keys(cfg.configOverrides || {})),
   };
+}
+
+/**
+ * What saving writes: the modified paths whose value changed since the panel
+ * opened, and the overrides that were reset. An override without a field
+ * (e.g. share.silverbullet.spaces, set by Share) has no pending value and is
+ * left alone.
+ */
+export function configChanges(
+  initialOverrides: Record<string, any>,
+  modifiedPaths: Set<string>,
+  pendingConfig: Record<string, any>,
+): OverrideChanges<unknown> {
+  return diffOverrides(
+    initialOverrides,
+    Object.fromEntries([...modifiedPaths].map((p) => [p, pendingConfig[p]])),
+  );
 }

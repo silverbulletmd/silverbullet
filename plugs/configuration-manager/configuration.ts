@@ -8,12 +8,14 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { buildConfigurationHtml } from "./configuration_html.ts";
-import { type CommandOverride, parseManagedBlock, toLua } from "./lua.ts";
+import { type CommandOverride, parseManagedBlock } from "./lua.ts";
 import {
   findManagedBlock,
+  invalidManagedBlockMessage,
   MANAGED_MARKER,
-  replaceManagedBlock,
 } from "./config_block.ts";
+import { applyManagedChanges } from "./managed_edit.ts";
+import type { ManagedChanges } from "./overrides.ts";
 import { listLibraries } from "./libraries.ts";
 import type { LibrariesFocus, TabId } from "./ui/types.ts";
 
@@ -76,11 +78,15 @@ async function openPanel(initialTab: TabId, librariesFocus?: LibrariesFocus) {
 
   let configOverrides: Record<string, any> = {};
   let commandOverrides: Record<string, CommandOverride> = {};
+  let managedBlockError: string | undefined;
   const block = findManagedBlock(configText);
   if (block) {
-    const parsed = parseManagedBlock(block.innerContent);
+    const parsed = await parseManagedBlock(block.innerContent);
     configOverrides = parsed.configOverrides;
     commandOverrides = parsed.commandOverrides;
+    if (parsed.error !== undefined) {
+      managedBlockError = invalidManagedBlockMessage(parsed.error);
+    }
   }
 
   const isMac = /Mac|iPhone|iPad/.test(globalThis.navigator?.userAgent || "");
@@ -92,6 +98,7 @@ async function openPanel(initialTab: TabId, librariesFocus?: LibrariesFocus) {
     commands,
     commandOverrides,
     configOverrides,
+    managedBlockError,
     isMac,
     initialTab,
     libraries,
@@ -100,48 +107,33 @@ async function openPanel(initialTab: TabId, librariesFocus?: LibrariesFocus) {
   await editor.showPanel("modal", 100, html, script);
 }
 
-export async function saveConfiguration(
-  pendingConfig: Record<string, any>,
-  pendingShortcuts: Record<string, CommandOverride>,
-) {
-  const lines: string[] = [MANAGED_MARKER];
-
-  for (const [path, value] of Object.entries(pendingConfig)) {
-    if (value === undefined) continue;
-    lines.push(`config.set(${toLua(path)}, ${toLua(value)})`);
-  }
-
-  for (const [name, override] of Object.entries(pendingShortcuts)) {
-    const parts: string[] = [];
-    parts.push(`name = ${toLua(name)}`);
-    if (override.key !== undefined) {
-      parts.push(`key = ${toLua(override.key)}`);
-    }
-    if (override.mac !== undefined) {
-      parts.push(`mac = ${toLua(override.mac)}`);
-    }
-    lines.push(`command.update { ${parts.join(", ")} }`);
-  }
-
-  const blockContent = lines.join("\n");
-
+/** Apply changes to the managed block of CONFIG and reload. */
+async function updateConfigPage(changes: ManagedChanges) {
   const configText =
     (await readConfigPage()) || (await readDefaultConfigTemplate());
-
-  const hasContent =
-    Object.keys(pendingConfig).length > 0 ||
-    Object.keys(pendingShortcuts).length > 0;
-
-  const newText = replaceManagedBlock(
-    configText,
-    hasContent ? blockContent : "",
+  await space.writePage(
+    CONFIG_PAGE,
+    await applyManagedChanges(configText, changes),
   );
-
-  await space.writePage(CONFIG_PAGE, newText);
-
   await sync.performFileSync(`${CONFIG_PAGE}.md`);
   await mq.send("indexQueue", `${CONFIG_PAGE}.md`);
   await mq.awaitEmptyQueue("indexQueue");
   await editor.reloadConfigAndCommands();
+}
+
+/**
+ * Saves the configuration panel: only the overrides changed in it, so
+ * values written meanwhile (e.g. by Share) are kept.
+ */
+export async function saveConfiguration(changes: ManagedChanges) {
+  await updateConfigPage(changes);
   await editor.rebuildEditorState();
+}
+
+/**
+ * Write or replace exactly one `config.set(path, value)` line in the managed
+ * block of CONFIG, leaving everything else untouched.
+ */
+export async function setConfigValue(path: string, value: unknown) {
+  await updateConfigPage({ config: { set: { [path]: value }, unset: [] } });
 }

@@ -195,3 +195,13 @@ Nested schemas can carry their own `ui` annotations. When a parent object's chil
 
 Registered categories appear in descending `priority`, with higher values first. A category's optional `description` appears at the top of the category. Categories referenced by a schema but never registered appear after registered categories in alphabetical order.
 
+
+## Writing the CONFIG page
+
+`config.set` only changes the running configuration. To persist a value, call `configuration-manager.setConfigValue` through `system.invokeFunction`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page and leaves everything else untouched.
+
+```lua
+system.invokeFunction("configuration-manager.setConfigValue", "share.silverbullet.spaces", {"https://example.com/notes"})
+```
+
+`value` may be a string, number, boolean, or a table of those.

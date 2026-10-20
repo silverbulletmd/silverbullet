@@ -1,83 +1,151 @@
 /**
- * Note: yes, this duplicates functionality also found in the Space Lua implementation,
- * for pragmatic reasons. Pulling in the entiretly of this library into this plug would
- * be overkill. We only need a few serialization features in practice.
+ * Conversion between JS values and the Lua source of the configuration
+ * manager's managed block, built on the native Space Lua parser and pretty
+ * printer. These are reached through the `lua.*` syscalls rather than
+ * imported, which would bundle the whole Space Lua runtime into this plug.
  */
+import { lua } from "@silverbulletmd/silverbullet/syscalls";
+import type {
+  LuaBlock,
+  LuaExpression,
+  LuaFunctionCallExpression,
+  LuaTableField,
+} from "../../client/space_lua/ast.ts";
 
-const LUA_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
-/**
- * Format a key for use in a Lua table constructor.
- * Simple identifiers use bare `key =`, others use `["key"] =`.
- */
-export function toLuaKey(key: string): string {
-  return LUA_IDENTIFIER.test(key) ? key : `["${escapeLuaString(key)}"]`;
-}
-
-function escapeLuaString(s: string): string {
-  return (
-    s
-      .replace(/\\/g, "\\\\")
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, "\\n")
-      .replace(/\t/g, "\\t")
-      // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally escaping control chars for Lua output
-      .replace(/[\x00-\x1f]/g, (ch) => {
-        return `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
-      })
-  );
+/** Build the AST of a Lua literal for a JS value. */
+function toLuaAst(value: unknown): LuaExpression {
+  const ctx = {};
+  if (value === null || value === undefined) return { type: "Nil", ctx };
+  if (typeof value === "boolean") return { type: "Boolean", value, ctx };
+  if (typeof value === "number") {
+    // Lua literals have no syntax for NaN or the infinities
+    if (!Number.isFinite(value)) return { type: "Nil", ctx };
+    const numericType = Number.isInteger(value) ? "int" : "float";
+    return { type: "Number", value, numericType, ctx };
+  }
+  if (typeof value === "string") return { type: "String", value, ctx };
+  if (Array.isArray(value)) {
+    // Note: [] becomes `{}`, which parses back as {}: Lua cannot tell an
+    // empty array from an empty table
+    const fields: LuaTableField[] = value.map((v) => ({
+      type: "ExpressionField",
+      value: toLuaAst(v),
+      ctx,
+    }));
+    return { type: "TableConstructor", fields, ctx };
+  }
+  if (typeof value === "object") {
+    const fields: LuaTableField[] = Object.entries(value)
+      .filter(([_, v]) => v !== null && v !== undefined)
+      .map(([key, v]) => ({ type: "PropField", key, value: toLuaAst(v), ctx }));
+    return { type: "TableConstructor", fields, ctx };
+  }
+  return { type: "Nil", ctx };
 }
 
 /**
  * Serialize a JavaScript value to Lua source code.
  */
-export function toLua(value: unknown, indent = 0): string {
-  if (value === null || value === undefined) {
-    return "nil";
+export function toLua(value: unknown): Promise<string> {
+  return lua.prettyPrintExpression(toLuaAst(value));
+}
+
+const UNPARSEABLE = Symbol("unparseable");
+
+/**
+ * Convert a literal expression AST (strings, numbers, booleans, nil, tables
+ * of literals) to a JS value. Returns UNPARSEABLE for anything else.
+ */
+function fromLuaAst(e: LuaExpression): any {
+  switch (e.type) {
+    case "Nil":
+      return undefined;
+    case "Boolean":
+    case "String":
+    case "Number":
+      return e.value;
+    case "Unary":
+      return e.operator === "-" && e.argument.type === "Number"
+        ? -e.argument.value
+        : UNPARSEABLE;
+    case "TableConstructor": {
+      const items: any[] = [];
+      const entries: Record<string, any> = {};
+      for (const f of e.fields) {
+        const v = fromLuaAst(f.value);
+        if (v === UNPARSEABLE) return UNPARSEABLE;
+        if (f.type === "ExpressionField") items.push(v);
+        else if (f.type === "PropField") entries[f.key] = v;
+        else if (f.key.type === "String") entries[f.key.value] = v;
+        else return UNPARSEABLE;
+      }
+      const keyed = items.length < e.fields.length;
+      if (keyed && items.length > 0) return UNPARSEABLE;
+      return keyed ? entries : items.length > 0 ? items : {};
+    }
+    default:
+      return UNPARSEABLE;
   }
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
+}
+
+async function tryParseBlock(
+  code: string,
+): Promise<{ block: LuaBlock; error?: undefined } | { error: string }> {
+  try {
+    return { block: await lua.parseBlock(code) };
+  } catch (e: any) {
+    return { error: e?.message ?? String(e) };
   }
-  if (typeof value === "number") {
-    return String(value);
+}
+
+/** Source range of a statement: start index, end index (exclusive) */
+type Range = { start: number; end: number };
+
+/** Top-level `<object>.<method>(...)` call statements of a parsed chunk. */
+function methodCalls(
+  block: LuaBlock,
+  object: string,
+  method: string,
+): ({ call: LuaFunctionCallExpression } & Range)[] {
+  const result = [];
+  for (const stmt of block.statements) {
+    if (stmt.type !== "FunctionCallStatement") continue;
+    const { prefix, name } = stmt.call;
+    if (
+      !name &&
+      prefix.type === "PropertyAccess" &&
+      prefix.property === method &&
+      prefix.object.type === "Variable" &&
+      prefix.object.name === object
+    ) {
+      result.push({
+        call: stmt.call,
+        start: stmt.ctx.from!,
+        end: stmt.ctx.to!,
+      });
+    }
   }
-  if (typeof value === "string") {
-    return `"${escapeLuaString(value)}"`;
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "{}";
-    const pad = "  ".repeat(indent + 1);
-    const items = value.map((v) => `${pad}${toLua(v, indent + 1)},`);
-    return `{\n${items.join("\n")}\n${"  ".repeat(indent)}}`;
-  }
-  if (typeof value === "object") {
-    const entries = Object.entries(value).filter(
-      ([_, v]) => v !== null && v !== undefined,
-    );
-    if (entries.length === 0) return "{}";
-    const pad = "  ".repeat(indent + 1);
-    const items = entries.map(
-      ([k, v]) => `${pad}${toLuaKey(k)} = ${toLua(v, indent + 1)},`,
-    );
-    return `{\n${items.join("\n")}\n${"  ".repeat(indent)}}`;
-  }
-  return "nil";
+  return result;
 }
 
 /**
- * Parse a single Lua literal as emitted by toLua().
- * Only handles the scalar literals (boolean, number, simple string, nil).
- * Complex values (tables) are not supported and return undefined.
+ * Top-level `config.set("path", value)` statements, with the value as a JS
+ * value: undefined for nil or non-literal expressions.
  */
-export function parseLuaLiteral(s: string): any {
-  s = s.trim();
-  if (s === "true") return true;
-  if (s === "false") return false;
-  if (s === "nil") return undefined;
-  if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
-  const strMatch = s.match(/^"([^"]*)"$/);
-  if (strMatch) return strMatch[1];
-  return undefined;
+function configSets(block: LuaBlock): ({ path: string; value: any } & Range)[] {
+  const result: ({ path: string; value: any } & Range)[] = [];
+  for (const { call, start, end } of methodCalls(block, "config", "set")) {
+    const [path, valueExpr] = call.args;
+    if (call.args.length !== 2 || path.type !== "String") continue;
+    const value = fromLuaAst(valueExpr);
+    result.push({
+      path: path.value,
+      value: value === UNPARSEABLE ? undefined : value,
+      start,
+      end,
+    });
+  }
+  return result;
 }
 
 export type CommandOverride = {
@@ -85,98 +153,94 @@ export type CommandOverride = {
   mac?: string | string[];
 };
 
+function isStringOrList(v: unknown): v is string | string[] {
+  return (
+    typeof v === "string" ||
+    (Array.isArray(v) && v.every((item) => typeof item === "string"))
+  );
+}
+
 /**
- * Parse a `key = "..."` or `key = { "a", "b" }` field out of a command.update
- * body. Returns undefined if the field isn't present.
+ * Top-level `command.update { name = "...", key = ..., mac = ... }`
+ * statements, where key/mac are strings or string lists. Other fields, and
+ * fields that are not literals, are ignored.
  */
-function parseStringOrList(
-  body: string,
-  field: string,
-): string | string[] | undefined {
-  const scalarRe = new RegExp(`\\b${field}\\s*=\\s*"([^"]*)"`);
-  const scalar = body.match(scalarRe);
-  if (scalar) return scalar[1];
-  const listRe = new RegExp(`\\b${field}\\s*=\\s*\\{([^}]*)\\}`);
-  const list = body.match(listRe);
-  if (!list) return undefined;
-  const items: string[] = [];
-  const itemRe = /"([^"]*)"/g;
-  let im: RegExpExecArray | null;
-  while ((im = itemRe.exec(list[1])) !== null) items.push(im[1]);
-  return items;
+function commandUpdates(
+  block: LuaBlock,
+): ({ name: string; override: CommandOverride } & Range)[] {
+  const result: ({ name: string; override: CommandOverride } & Range)[] = [];
+  for (const { call, start, end } of methodCalls(block, "command", "update")) {
+    const [spec] = call.args;
+    if (call.args.length !== 1 || spec.type !== "TableConstructor") continue;
+    const fields: Record<string, any> = {};
+    for (const f of spec.fields) {
+      if (f.type !== "PropField") continue;
+      const v = fromLuaAst(f.value);
+      if (v !== UNPARSEABLE) fields[f.key] = v;
+    }
+    if (typeof fields.name !== "string") continue;
+    const override: CommandOverride = {};
+    if (isStringOrList(fields.key)) override.key = fields.key;
+    if (isStringOrList(fields.mac)) override.mac = fields.mac;
+    result.push({ name: fields.name, override, start, end });
+  }
+  return result;
+}
+
+/** A statement of the managed block that sets one override. */
+export type ManagedStatement = {
+  kind: "config" | "command";
+  /** The config path or command name */
+  key: string;
+} & Range;
+
+/**
+ * Every top-level override statement of a managed block, with its source
+ * range. Throws if the text is not valid Lua.
+ */
+export async function scanManagedStatements(
+  text: string,
+): Promise<ManagedStatement[]> {
+  const block = await lua.parseBlock(text);
+  return [
+    ...configSets(block).map(({ path, start, end }) => ({
+      kind: "config" as const,
+      key: path,
+      start,
+      end,
+    })),
+    ...commandUpdates(block).map(({ name, start, end }) => ({
+      kind: "command" as const,
+      key: name,
+      start,
+      end,
+    })),
+  ];
 }
 
 /**
  * Parse the body of the configuration-manager managed block back into the
- * structured form the UI consumes. Only recognizes the exact shapes emitted by
- * the manager: `config.set("path", literal)` and
- * `command.update { name = "...", key = ..., mac = ... }`, where key/mac are
- * either string literals or `{ "a", "b" }` string lists.
- *
- * Strings with embedded quotes/braces/parens are not supported — matches the
- * constraints toLua() respects when emitting these blocks.
+ * structured form the UI consumes (see configSets and commandUpdates). A
+ * block that is not valid Lua yields no overrides and the parse error in
+ * `error`; callers must then not rewrite the block from these (empty)
+ * overrides.
  */
-export function parseManagedBlock(blockContent: string): {
+export async function parseManagedBlock(blockContent: string): Promise<{
   configOverrides: Record<string, any>;
   commandOverrides: Record<string, CommandOverride>;
-} {
+  error?: string;
+}> {
   const configOverrides: Record<string, any> = {};
   const commandOverrides: Record<string, CommandOverride> = {};
-
-  const configRe = /config\.set\("([^"]+)",\s*(.+)\)/g;
-  let m: RegExpExecArray | null;
-  while ((m = configRe.exec(blockContent)) !== null) {
-    configOverrides[m[1]] = parseLuaLiteral(m[2]);
+  const parsed = await tryParseBlock(blockContent);
+  if (parsed.error !== undefined) {
+    return { configOverrides, commandOverrides, error: parsed.error };
   }
-
-  // Scan for `command.update {...}` with brace-depth tracking so nested
-  // string lists like `key = { "a", "b" }` don't truncate the match early.
-  const needle = "command.update";
-  let idx = 0;
-  while (true) {
-    const start = blockContent.indexOf(needle, idx);
-    if (start === -1) break;
-    let i = start + needle.length;
-    while (i < blockContent.length && /\s/.test(blockContent[i])) i++;
-    if (blockContent[i] !== "{") {
-      idx = start + needle.length;
-      continue;
-    }
-    let depth = 0;
-    const bodyStart = i + 1;
-    let bodyEnd = -1;
-    for (; i < blockContent.length; i++) {
-      const ch = blockContent[i];
-      if (ch === '"') {
-        i++;
-        while (i < blockContent.length && blockContent[i] !== '"') {
-          if (blockContent[i] === "\\") i++;
-          i++;
-        }
-        continue;
-      }
-      if (ch === "{") depth++;
-      else if (ch === "}") {
-        depth--;
-        if (depth === 0) {
-          bodyEnd = i;
-          break;
-        }
-      }
-    }
-    if (bodyEnd === -1) break;
-    const body = blockContent.slice(bodyStart, bodyEnd);
-    idx = bodyEnd + 1;
-
-    const nameMatch = body.match(/\bname\s*=\s*"([^"]*)"/);
-    if (!nameMatch) continue;
-    const entry: CommandOverride = {};
-    const key = parseStringOrList(body, "key");
-    const mac = parseStringOrList(body, "mac");
-    if (key !== undefined) entry.key = key;
-    if (mac !== undefined) entry.mac = mac;
-    commandOverrides[nameMatch[1]] = entry;
+  for (const { path, value } of configSets(parsed.block)) {
+    configOverrides[path] = value;
   }
-
+  for (const { name, override } of commandUpdates(parsed.block)) {
+    commandOverrides[name] = override;
+  }
   return { configOverrides, commandOverrides };
 }

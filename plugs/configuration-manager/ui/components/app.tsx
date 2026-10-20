@@ -131,7 +131,7 @@ export function App() {
     saving,
     error: saveError,
     dismissError,
-  } = useSave(config, shortcuts);
+  } = useSave(config, shortcuts, cfg.managedBlockError);
   const [tab, setTab] = useState<TabId>(cfg.initialTab);
 
   useGlobalEscape(useCallback(() => close(), []));

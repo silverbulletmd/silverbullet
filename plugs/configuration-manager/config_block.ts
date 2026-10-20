@@ -58,3 +58,11 @@ export function replaceManagedBlock(text: string, newContent: string): string {
   const separator = text.endsWith("\n") ? "\n" : "\n\n";
   return text + separator + block;
 }
+
+/**
+ * Why a managed block that is not valid Lua can't be edited: its statements
+ * can't be found, so saving could drop or duplicate the overrides it holds.
+ */
+export function invalidManagedBlockMessage(detail: string): string {
+  return `The managed configuration block in CONFIG is not valid Lua, fix it there first: ${detail}`;
+}

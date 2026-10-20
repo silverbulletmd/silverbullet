@@ -4,20 +4,23 @@ import * as system from "../../../plug-api/syscalls/system.ts";
 import type { ConfigEditor } from "./use_config_editor.ts";
 import type { ShortcutEditor } from "./use_shortcut_editor.ts";
 
-export function useSave(config: ConfigEditor, shortcuts: ShortcutEditor) {
+export function useSave(
+  config: ConfigEditor,
+  shortcuts: ShortcutEditor,
+  initialError?: string,
+) {
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | undefined>(initialError);
 
   const save = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     setError(undefined);
     try {
-      await system.invokeFunction(
-        "configuration-manager.saveConfiguration",
-        config.changes(),
-        shortcuts.changes(),
-      );
+      await system.invokeFunction("configuration-manager.saveConfiguration", {
+        config: config.changes(),
+        commands: shortcuts.changes(),
+      });
       await editor.hidePanel("modal");
       await editor.focus();
     } catch (e: any) {

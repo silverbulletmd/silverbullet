@@ -24,6 +24,8 @@ export type ConfigurationViewModel = {
   commands: Record<string, any>;
   commandOverrides: Record<string, CommandOverride>;
   configOverrides: Record<string, any>;
+  /** Set when CONFIG's managed block is not valid Lua; saving is refused */
+  managedBlockError?: string;
   isMac: boolean;
   initialTab: TabId;
   libraries: LibrariesViewModel;
