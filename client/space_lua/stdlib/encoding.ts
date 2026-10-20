@@ -34,4 +34,29 @@ export const encodingApi = new LuaTable({
     parameters: [{ name: "data", type: "bytes" }],
     returns: [{ type: "string", description: "Decoded text." }],
   }),
+  urlEncode: new LuaBuiltinFunction({
+    callback: (_sf, s: string): string => {
+      return encodeURIComponent(s);
+    },
+    description:
+      "Percent-encodes a string as UTF-8, like JavaScript's encodeURIComponent.",
+    parameters: [{ name: "value", type: "string" }],
+    returns: [{ type: "string", description: "URL-encoded string." }],
+  }),
+  urlDecode: new LuaBuiltinFunction({
+    callback: (_sf, s: string): string => {
+      try {
+        return decodeURIComponent(s);
+      } catch (e) {
+        if (e instanceof URIError) {
+          return s;
+        }
+        throw e;
+      }
+    },
+    description:
+      "Decodes a percent-encoded string, like JavaScript's decodeURIComponent. Malformed input is returned unchanged.",
+    parameters: [{ name: "encoded", type: "string" }],
+    returns: [{ type: "string", description: "Decoded string." }],
+  }),
 });

@@ -4,7 +4,7 @@ references:
 - client/space_lua/stdlib/encoding.ts
 ---
 
-The `encoding` namespace converts between strings, byte buffers, Base64, and UTF-8.
+The `encoding` namespace converts between strings, byte buffers, Base64, URL percent-encoding, and UTF-8.
 
 <!--#lua spacelua.renderApiDocumentation("encoding") -->
 ## encoding.base64Decode
@@ -34,6 +34,34 @@ Encodes a string or byte buffer as Base64.
 **Returns:**
 
 - `string` — Base64-encoded data.
+
+## encoding.urlDecode
+
+`encoding.urlDecode(encoded)`
+
+Decodes a percent-encoded string, like JavaScript's decodeURIComponent. Malformed input is returned unchanged.
+
+**Parameters:**
+
+- `encoded` (`string`)
+
+**Returns:**
+
+- `string` — Decoded string.
+
+## encoding.urlEncode
+
+`encoding.urlEncode(value)`
+
+Percent-encodes a string as UTF-8, like JavaScript's encodeURIComponent.
+
+**Parameters:**
+
+- `value` (`string`)
+
+**Returns:**
+
+- `string` — URL-encoded string.
 
 ## encoding.utf8Decode
 
