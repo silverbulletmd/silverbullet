@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { renderToText } from "../../plug-api/lib/tree.ts";
 import { applyPatches, type YamlPatch } from "../../plug-api/lib/yaml.ts";
 import {
   extractFrontMatter,
@@ -15,7 +16,10 @@ const PAGES = [
   "libraries/Library/Std/Infrastructure/Auth.md",
   "libraries/Library/Std/Infrastructure/Share.md",
   "libraries/Library/Std/Infrastructure/SilverBullet Share.md",
+  "libraries/Library/Std/Infrastructure/Share Transforms.md",
 ];
+
+const GITHUB_PAGE = "libraries/Library/Std/Infrastructure/Github.md";
 
 export const SPACE = "https://h/n";
 export const URI = `${SPACE}/Page`;
@@ -56,6 +60,9 @@ export class ShareWorld {
   notifications: Array<[string, string | undefined]> = [];
   confirms: string[] = [];
   confirmAnswer = true;
+  // editor.chooseVersion calls, and the choice id it returns (nil: cancelled)
+  chooseVersions: Array<Record<string, unknown>> = [];
+  chooseAnswer: string | undefined;
   // Current page as the editor sees it, for the Share: Page command
   editorText = "";
   deviceFlows: unknown[] = [];
@@ -70,10 +77,18 @@ export class ShareWorld {
   refreshWorks = false;
   // Picked in Share: Page's provider list
   shareProvider = "SilverBullet space";
+  // Page metadata as the index would return it, by page name
+  pageMetas = new Map<string, Record<string, unknown>>();
+  // Recording fakes for markdown.bakeSections / expandMarkdown, in call order
+  markdownCalls: Array<{ fn: string; text: string; options?: unknown }> = [];
+  expandMarkdown: (text: string) => string = (text) => text;
+  // Also load Github.md (kept out of PAGES so the sync tests' services stay put)
+  withGithub = false;
   h!: StdPageHarness;
 
-  static async create(): Promise<ShareWorld> {
+  static async create({ github = false } = {}): Promise<ShareWorld> {
     const world = new ShareWorld();
+    world.withGithub = github;
     world.connect();
     world.h = await world.load();
     return world;
@@ -147,7 +162,7 @@ export class ShareWorld {
   /** Loads the pages afresh (keeping the store), e.g. a new device */
   load(): Promise<StdPageHarness> {
     return loadStdPages(
-      PAGES,
+      this.withGithub ? [...PAGES, GITHUB_PAGE] : PAGES,
       {
         print: () => undefined,
         schema: { string: () => ({ type: "string" }) },
@@ -166,7 +181,25 @@ export class ShareWorld {
               applyPatches(yaml, patches),
             ),
         },
+        markdown: {
+          parseMarkdown: (text: string) => parseMarkdown(text),
+          renderParseTree: (tree: Parameters<typeof renderToText>[0]) =>
+            renderToText(tree),
+          bakeSections: (text: string) => {
+            this.markdownCalls.push({ fn: "bakeSections", text });
+            return text;
+          },
+          expandMarkdown: (text: string, options: unknown) => {
+            this.markdownCalls.push({ fn: "expandMarkdown", text, options });
+            return this.expandMarkdown(text);
+          },
+        },
         space: {
+          getPageMeta: (name: string) => {
+            const meta = this.pageMetas.get(name);
+            if (!meta) throw new Error(`Page not found: ${name}`);
+            return meta;
+          },
           readPage: (name: string) => this.pages.get(name),
           writePage: (name: string, text: string) =>
             void this.pages.set(name, text),
@@ -192,6 +225,10 @@ export class ShareWorld {
           confirm: (msg: string) => {
             this.confirms.push(msg);
             return this.confirmAnswer;
+          },
+          chooseVersion: (options: Record<string, unknown>) => {
+            this.chooseVersions.push(options);
+            return this.chooseAnswer;
           },
           flashNotification: (msg: string, type?: string) => {
             this.notifications.push([msg, type]);
@@ -264,27 +301,29 @@ export class ShareWorld {
     this.h = await this.load();
   }
 
-  /** Page "Page" last shared at `base`, now `local` here and `remote` there. */
+  /** Page "Page" last shared at `base`, now `local` here and `remote` there.
+   * `legacyHash` seeds the share.hash older versions wrote for `base`. */
   async setup(
     base: string,
     local: string,
     remoteText: string,
-    { mode = "sync", storeBase = true, uri = URI } = {},
-  ): Promise<string> {
-    const hash = (await this.h.call("share.contentHash", base)) as string;
-    this.pages.set(
-      "Page",
-      (await this.h.call(
-        "share.setFrontmatter",
-        { uri, hash, mode },
-        local,
-      )) as string,
-    );
+    { mode = "sync", storeBase = true, uri = URI, legacyHash = false } = {},
+  ) {
+    const m: Record<string, string> = { uri, mode };
+    let text = (await this.h.call("share.setFrontmatter", m, local)) as string;
+    if (legacyHash) {
+      const hash = (await this.h.call("share.legacyHash", base)) as string;
+      text = patchFrontmatterText(text, parseMarkdown(text), (yaml) =>
+        applyPatches(yaml, [
+          { op: "set-key", path: "share.hash", value: hash },
+        ]),
+      );
+    }
+    this.pages.set("Page", text);
     this.setRemote("Page", remoteText);
     if (storeBase) {
       this.store.set(`share.base:${uri}`, base);
     }
-    return hash;
   }
 
   async localBody(): Promise<string> {

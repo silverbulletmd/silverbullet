@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { FS, SPACE, ShareWorld, URI } from "./share_world_test_util.ts";
+import { FS, ShareWorld, SPACE, URI } from "./share_world_test_util.ts";
 
 describe("Share.md signing in to SilverBullet spaces", () => {
   let w: ShareWorld;
@@ -107,7 +107,11 @@ describe("Share.md signing in to SilverBullet spaces", () => {
 
   test("sync on a new device signs in once, then syncs", async () => {
     await w.newDevice();
-    await w.setup("A\n", "A\n", "C\n", { mode: "sync", storeBase: false });
+    await w.setup("A\n", "A\n", "C\n", {
+      mode: "sync",
+      storeBase: false,
+      legacyHash: true,
+    });
     expect(await w.sharePage()).toBe(true);
     expect(w.confirms).toEqual([`Sign in to ${SPACE}?`]);
     expect(w.deviceFlows).toHaveLength(1);
@@ -132,15 +136,23 @@ describe("Share.md signing in to SilverBullet spaces", () => {
     expect(await w.sharePage()).toBe(true);
     expect(w.confirms).toEqual([`Sign in to ${SPACE}?`]);
     expect(w.deviceFlows).toHaveLength(1);
-    expect(w.methods()).toEqual(["PUT"]);
-    expect(w.fetches[0].opts.headers.Authorization).toBe("Bearer access1");
-    expect(w.fetches[0].opts.headers["If-Match"]).toBeUndefined();
+    // Without a base the push compares with the remote first
+    expect(w.methods()).toEqual(["GET", "PUT"]);
+    expect(w.fetches.map((f) => f.opts.headers.Authorization)).toEqual([
+      "Bearer access1",
+      "Bearer access1",
+    ]);
+    expect(w.fetches[1].opts.headers["If-Match"]).toBeUndefined();
     expect(w.remote.get("Page")!.text).toBe("B\n");
   });
 
   test("a push without local changes on a new device doesn't ask to sign in", async () => {
     await w.newDevice();
-    await w.setup("A\n", "A\n", "A\n", { mode: "push", storeBase: false });
+    await w.setup("A\n", "A\n", "A\n", {
+      mode: "push",
+      storeBase: false,
+      legacyHash: true,
+    });
     expect(await w.sharePage()).toBe(false);
     expect(w.confirms).toEqual([]);
     expect(w.deviceFlows).toHaveLength(0);
@@ -176,6 +188,8 @@ describe("Share.md signing in to SilverBullet spaces", () => {
       // Expired; refreshing it fails (the fake space has no token endpoint)
       w.expiredCredential();
       await w.setup("A\n", "B\n", "A\n", { mode, storeBase: false });
+      // Sync can't tell which side changed without a base
+      w.chooseAnswer = "mine";
       expect(await w.sharePage(), mode).toBe(true);
       expect(w.confirms, mode).toEqual([`Sign in to ${SPACE}?`]);
       expect(w.deviceFlows, mode).toHaveLength(1);
@@ -210,6 +224,8 @@ describe("Share.md signing in to SilverBullet spaces", () => {
       w.refreshWorks = true;
       w.expiredCredential();
       await w.setup("A\n", "B\n", "A\n", { mode, storeBase: false });
+      // Sync can't tell which side changed without a base
+      w.chooseAnswer = "mine";
       expect(await w.sharePage(), mode).toBe(true);
       expect(w.confirms, mode).toEqual([]);
       expect(w.deviceFlows, mode).toHaveLength(0);
@@ -225,7 +241,11 @@ describe("Share.md signing in to SilverBullet spaces", () => {
   test("a pull from the same space stays anonymous and never prompts", async () => {
     await w.newDevice();
     w.requireAuth = false;
-    await w.setup("A\n", "A\n", "C\n", { mode: "pull", storeBase: false });
+    await w.setup("A\n", "A\n", "C\n", {
+      mode: "pull",
+      storeBase: false,
+      legacyHash: true,
+    });
     expect(await w.sharePage()).toBe(true);
     expect(await w.localBody()).toBe("C\n");
     expect(w.fetches[0].opts.headers?.Authorization).toBeUndefined();

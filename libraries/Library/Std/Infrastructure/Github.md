@@ -123,6 +123,91 @@ function github.buildURI(repo, branch, path)
   return "https://github.com/" .. repo .. "/blob/" .. branch .. "/" .. path
 end
 
+-- "https://github.com/u/r/blob/main/a/B.md" or "github:u/r@main/a/B.md" -> "a/B.md"
+local function filePath(uri)
+  if uri:startsWith("github:") then
+    return uri:match("^github:[^/]+/[^/]+/(.+)$")
+  end
+  local _, _, path = github.extractData(uri)
+  return path
+end
+
+-- GitHub's heading anchors: lower-case, spaces to "-", other punctuation gone
+local function slug(anchor)
+  return (anchor:lower():gsub("%p", function(c)
+    if c == "-" or c == "_" then
+      return c
+    end
+    return ""
+  end):gsub(" ", "-"))
+end
+
+-- Segments are encoded, but not again when the URI already is
+local function encodePath(path)
+  local segments = {}
+  for _, segment in ipairs(path:split("/")) do
+    local ok, decoded = pcall(encoding.urlDecode, segment)
+    table.insert(segments, encoding.urlEncode(ok and decoded or segment))
+  end
+  return table.concat(segments, "/")
+end
+
+-- Path from the directory of file "from" to file "to", both repo-relative
+local function relativePath(from, to)
+  local fromDirs = from:split("/")
+  table.remove(fromDirs)
+  local toParts = to:split("/")
+  local common = 0
+  while common < #fromDirs and common < #toParts - 1
+      and fromDirs[common + 1] == toParts[common + 1] do
+    common = common + 1
+  end
+  local parts = {}
+  for _ = common + 1, #fromDirs do
+    table.insert(parts, "..")
+  end
+  for i = common + 1, #toParts do
+    table.insert(parts, toParts[i])
+  end
+  return table.concat(parts, "/")
+end
+
+-- Descriptor for share.transform: relative Markdown links between shared files
+local function githubTarget(data)
+  return {
+    kind = "github",
+    defaults = {links = true, comments = true, frontmatter = true, bake = true},
+    link = function(l)
+      local target = ""
+      if l.toUri != nil and l.toUri != l.fromUri then
+        local from, to = filePath(l.fromUri), filePath(l.toUri)
+        if from == nil or to == nil then
+          return l.text
+        end
+        target = encodePath(relativePath(from, to))
+        if not target:endsWith(".md") then
+          target = target .. ".md"
+        end
+      end
+      if l.anchor != nil then
+        target = target .. "#" .. slug(l.anchor)
+      end
+      if target == "" then
+        return l.text
+      end
+      return "[" .. l.text .. "](" .. target .. ")"
+    end,
+  }
+end
+
+for _, selector in ipairs({"share:target:https://github.com/*", "share:target:github:*"}) do
+  service.define {
+    selector = selector,
+    match = {priority = 10},
+    run = githubTarget,
+  }
+end
+
 local apiHeaders = {Accept = "application/vnd.github+json"}
 
 -- An API request that signs in when needed
@@ -153,7 +238,6 @@ service.define {
   },
   run = function(data)
     local name = data.name
-    local content = data.text
     local checkOk, err = pcall(github.checkConfig)
     if not checkOk then
       editor.flashNotification(err, "error")
@@ -171,27 +255,11 @@ service.define {
     if not path then
       return
     end
-    local message = editor.prompt("Commit message:", "Commit")
-    local resp = github.request(github.buildAPIURL(repo, path), "PUT", {
-      message = message,
-      committer = {
-        name = config.get("github.name"),
-        email = config.get("github.email"),
-      },
-      branch = branch,
-      content = encoding.base64Encode(content)
-    })
-    if resp.ok then
-      local uri = github.buildURI(repo, branch, path)
-      return {
-        uri = uri,
-        hash = share.contentHash(content),
-        mode = "push"
-      }
-    else
-      js.log("Error", resp)
-      error("Error, check console")
-    end
+    -- Nothing is uploaded here: the first share creates the file
+    return {
+      uri = github.buildURI(repo, branch, path),
+      mode = "push"
+    }
   end
 }
 
@@ -208,12 +276,14 @@ service.define {
       return
     end
     local repo, branch, path = github.extractData(uri)
-    -- We did find an existing file, let's fetch it to get the SHA
+    -- An existing file needs its SHA to be replaced, a missing one is created
     local oldContent = github.request(github.buildAPIURLWithBranch(repo, branch, path), "GET")
-    if not oldContent.ok then
+    local sha
+    if oldContent.ok then
+      sha = oldContent.body.sha
+    elseif oldContent.status != 404 then
       error("Could not fetch existing file")
     end
-    local sha = oldContent.body.sha
     local message = editor.prompt("Commit message:", "Commit")
     local resp = github.request(github.buildAPIURL(repo, path), "PUT", {
       message = message,
@@ -331,6 +401,21 @@ local function extractGistId(url)
   return url:match("([^/]+)$")
 end
 
+-- Multi-file gists are not handled yet: links become their text
+service.define {
+  selector = "share:target:https://gist.github.com/*",
+  match = {priority = 10},
+  run = function(data)
+    return {
+      kind = "gist",
+      defaults = {links = true, comments = true, frontmatter = true, bake = true},
+      link = function(l)
+        return l.text
+      end,
+    }
+  end,
+}
+
 service.define {
   selector = "share:onboard",
   match = {
@@ -338,9 +423,7 @@ service.define {
     description = "Share this page as a gist"
   },
   run = function(data)
-    local filename = "content.md"
-    local text = share.cleanFrontmatter(editor.getText())
-    filename = editor.prompt("File name", filename)
+    local filename = editor.prompt("File name", "content.md")
     if not filename then
       return
     end
@@ -348,14 +431,13 @@ service.define {
       public = true,
       files = {
         [filename] = {
-          content = text
+          content = data.content
         }
       }
     })
     if resp.ok then
       return {
         uri = resp.body.html_url,
-        hash = share.contentHash(text),
         mode = "push"
       }
     else

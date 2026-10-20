@@ -195,6 +195,15 @@ describe("SilverBullet Share.md", () => {
     expect(await resolve(h, "https://elsewhere/A")).toBeNull();
   });
 
+  test("the share target claims only URIs of known spaces", async () => {
+    seedIndex("https://h/n");
+    const h = await load();
+    const target = service(h, "share:target:http*");
+    const match = target.match as (d: { uri: string }) => unknown;
+    expect(await match({ uri: "https://h/n/A" })).toEqual({ priority: 10 });
+    expect(await match({ uri: "https://elsewhere/A" })).toBeFalsy();
+  });
+
   test("page names round-trip", async () => {
     seedIndex("https://h/n");
     const h = await load();

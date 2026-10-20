@@ -122,6 +122,43 @@ function sbShare.findSpaceRoot(url)
   return nil
 end
 
+-- Descriptor for share.transform: links stay wiki links between shared pages
+service.define {
+  selector = "share:target:http*",
+  match = function(data)
+    if sbShare.resolve(data.uri) then
+      return {priority = 10}
+    end
+    return nil
+  end,
+  run = function(data)
+    return {
+      kind = "silverbullet",
+      defaults = {links = true, comments = true, frontmatter = false, bake = false},
+      link = function(l)
+        local out = ""
+        if l.toUri != nil and l.toUri != l.fromUri then
+          local _, page = sbShare.resolve(l.toUri)
+          if page == nil then
+            return l.text
+          end
+          out = page
+        end
+        if l.anchor != nil then
+          out = out .. "#" .. l.anchor
+        end
+        if out == "" then
+          return l.text
+        end
+        if l.alias != nil then
+          out = out .. "|" .. l.alias
+        end
+        return "[[" .. out .. "]]"
+      end,
+    }
+  end,
+}
+
 local function fsUrl(spaceUrl, uri)
   local page = encoding.urlDecode(uri:sub(#spaceUrl + 2))
   return spaceUrl .. "/.fs/" .. encodePageURI(page) .. ".md"

@@ -24,7 +24,18 @@ describe("Github.md", () => {
     h = await loadStdPages(
       PAGES,
       {
-        editor: {},
+        editor: {
+          prompt: (message: string, def?: string) => {
+            const answers: Record<string, string> = {
+              "Github repo (user/repo):": "me/repo",
+              "Branch:": "main",
+              "File path:": "notes/page.md",
+              "File name": "page.md",
+            };
+            return answers[message] ?? def;
+          },
+          flashNotification: () => {},
+        },
         oauth: {
           deviceFlow: (opts: Record<string, string>) => {
             deviceFlows.push(opts);
@@ -38,10 +49,15 @@ describe("Github.md", () => {
               url,
               opts: { ...opts, headers: { ...opts?.headers } },
             });
+            const code = status(url, opts);
             return {
-              ok: true,
-              status: status(url, opts),
-              body: { tag_name: "v1", files: { "a.md": { content: "hi" } } },
+              ok: code < 400,
+              status: code,
+              body: {
+                tag_name: "v1",
+                sha: "abc123",
+                files: { "a.md": { content: "hi" } },
+              },
             };
           },
         },
@@ -212,5 +228,94 @@ describe("Github.md", () => {
       ).toEqual(authed.map((f) => f.url));
     }
     expect(deviceFlows).toHaveLength(0);
+  });
+
+  test("file and gist providers define share targets", () => {
+    const selectors = h.services
+      .filter((s) => s.selector.startsWith("share:target:"))
+      .map((s) => s.selector)
+      .sort();
+    expect(selectors).toEqual([
+      "share:target:github:*",
+      "share:target:https://gist.github.com/*",
+      "share:target:https://github.com/*",
+    ]);
+  });
+
+  const onboardService = (name: string) =>
+    h.services.find(
+      (s) => s.selector === "share:onboard" && (s.match as any).name === name,
+    )!;
+
+  test("file onboarding returns the URI without uploading or hashing", async () => {
+    cfg["github.name"] = "Jo";
+    cfg["github.email"] = "jo@example.com";
+    cfg["github.token"] = "pat123";
+    const res: any = await onboardService("Github file").run({
+      name: "page",
+      text: "raw text",
+      content: "published text",
+    });
+    expect(res).toEqual({
+      uri: "https://github.com/me/repo/blob/main/notes/page.md",
+      mode: "push",
+    });
+    expect(fetches).toHaveLength(0);
+  });
+
+  const writeService = () => readService("net.writeURI:https://github.com/*");
+
+  test("writing a missing file creates it without a sha", async () => {
+    cfg["github.name"] = "Jo";
+    cfg["github.email"] = "jo@example.com";
+    cfg["github.token"] = "pat123";
+    status = (_url, opts) => (opts?.method === "GET" ? 404 : 200);
+    await writeService().run({
+      uri: "https://github.com/me/repo/blob/main/notes/page.md",
+      content: "hello",
+    });
+    const put = fetches.find((f) => f.opts.method === "PUT")!;
+    expect(put.opts.body).not.toHaveProperty("sha");
+    expect(put.opts.body.content).toBe("aGVsbG8=");
+    expect(put.opts.body.committer.name).toBe("Jo");
+  });
+
+  test("writing an existing file sends its sha", async () => {
+    cfg["github.name"] = "Jo";
+    cfg["github.email"] = "jo@example.com";
+    cfg["github.token"] = "pat123";
+    await writeService().run({
+      uri: "https://github.com/me/repo/blob/main/notes/page.md",
+      content: "hello",
+    });
+    const put = fetches.find((f) => f.opts.method === "PUT")!;
+    expect(put.opts.body.sha).toBe("abc123");
+  });
+
+  test("writing fails when the existing file cannot be checked", async () => {
+    cfg["github.name"] = "Jo";
+    cfg["github.email"] = "jo@example.com";
+    cfg["github.token"] = "pat123";
+    status = (_url, opts) => (opts?.method === "GET" ? 500 : 200);
+    await expect(
+      writeService().run({
+        uri: "https://github.com/me/repo/blob/main/notes/page.md",
+        content: "hello",
+      }),
+    ).rejects.toThrow();
+    expect(fetches.some((f) => f.opts.method === "PUT")).toBe(false);
+  });
+
+  test("gist onboarding creates the gist from the transformed content", async () => {
+    cfg["github.token"] = "pat123";
+    const res: any = await onboardService("Github Gist").run({
+      name: "page",
+      text: "raw text",
+      content: "published text",
+    });
+    expect(res.hash).toBeUndefined();
+    expect(res.mode).toBe("push");
+    const post = fetches.find((f) => f.opts.method === "POST")!;
+    expect(post.opts.body.files["page.md"].content).toBe("published text");
   });
 });
