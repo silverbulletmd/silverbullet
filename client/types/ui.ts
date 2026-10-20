@@ -12,6 +12,7 @@ import type {
 import type { LogEntry as WorkerLogEntry } from "../lib/logger.ts";
 import type { SyncStatus } from "../spaces/sync.ts";
 import type { Command } from "./command.ts";
+import type { DeviceCode } from "../auth/device_flow.ts";
 
 export type PanelSlot = "lhs" | "rhs" | "bhs" | "modal";
 
@@ -61,7 +62,11 @@ export type AppViewState = {
   showPrompt: boolean;
   promptMessage?: string;
   promptDefaultValue?: string;
+  promptPassword?: boolean;
   promptCallback?: (value: string | undefined) => void;
+
+  /** The device code of a sign-in in progress (see MainUI.showDeviceCode) */
+  deviceCode?: { id: number; code: DeviceCode; onCancel: () => void };
 
   showConfirm: boolean;
   confirmMessage?: string;
@@ -138,9 +143,17 @@ export type Action =
       type: "show-prompt";
       message: string;
       defaultValue: string;
+      password?: boolean;
       callback: (value: string | undefined) => void;
     }
   | { type: "hide-prompt" }
+  | {
+      type: "show-device-code";
+      id: number;
+      code: DeviceCode;
+      onCancel: () => void;
+    }
+  | { type: "hide-device-code"; id: number }
   | {
       type: "show-confirm";
       message: string;

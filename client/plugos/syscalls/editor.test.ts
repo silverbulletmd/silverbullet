@@ -137,3 +137,15 @@ test("awaitRender reports whether the editor finished rendering in time", async 
     vi.unstubAllGlobals();
   }
 });
+
+test("editor.prompt forwards the password option to the UI", async () => {
+  const prompt = vi.fn(async () => "s3cret");
+  const client = { ui: { prompt } } as unknown as Client;
+  const system = new System();
+  system.registerSyscalls([], editorSyscalls(client));
+
+  await expect(
+    system.localSyscall("editor.prompt", ["Key", "", { password: true }]),
+  ).resolves.toBe("s3cret");
+  expect(prompt).toHaveBeenCalledWith("Key", "", { password: true });
+});

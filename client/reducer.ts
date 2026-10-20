@@ -159,6 +159,7 @@ export default function reducer(
         ...state,
         showPrompt: true,
         promptDefaultValue: action.defaultValue,
+        promptPassword: action.password,
         promptMessage: action.message,
         promptCallback: action.callback,
       };
@@ -167,9 +168,23 @@ export default function reducer(
         ...state,
         showPrompt: false,
         promptDefaultValue: undefined,
+        promptPassword: undefined,
         promptMessage: undefined,
         promptCallback: undefined,
       };
+    case "show-device-code":
+      return {
+        ...state,
+        deviceCode: {
+          id: action.id,
+          code: action.code,
+          onCancel: action.onCancel,
+        },
+      };
+    case "hide-device-code":
+      return state.deviceCode?.id === action.id
+        ? { ...state, deviceCode: undefined }
+        : state;
     case "show-confirm":
       return {
         ...state,

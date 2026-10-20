@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import { Button, Input } from "@silverbulletmd/silverbullet/ui";
+import type { DeviceCode } from "../auth/device_flow.ts";
+import { Button, ButtonLink, Input } from "@silverbulletmd/silverbullet/ui";
 
 export function Prompt({
   message,
   defaultValue,
+  password,
   callback,
 }: {
   message: string;
   defaultValue?: string;
+  password?: boolean;
   darkMode: boolean | undefined;
   callback: (value?: string) => void;
 }) {
@@ -33,6 +36,8 @@ export function Prompt({
         <Input
           inputRef={inputRef}
           class="sb-prompt-input"
+          type={password ? "password" : "text"}
+          autoComplete="off"
           value={text}
           onInput={(e) => setText(e.currentTarget.value)}
           onConfirm={(value) => callback(value)}
@@ -119,6 +124,68 @@ export function Confirm({
   );
 
   return returnEl;
+}
+
+export function DeviceCodeModal({
+  code,
+  onCancel,
+}: {
+  code: DeviceCode;
+  onCancel: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <AlwaysShownModal onCancel={onCancel}>
+      <div className="sb-prompt">
+        {code.verificationUriComplete ? (
+          // The Open link carries the code, so there is nothing to type here;
+          // the bare URL is for approving on another device
+          <label>
+            Click Open, approve the sign-in there, and check that it shows this
+            code (on another device, go to{" "}
+            <span className="sb-device-url">{code.verificationUri}</span> and
+            enter it):
+          </label>
+        ) : (
+          <label>
+            Open <span className="sb-device-url">{code.verificationUri}</span>{" "}
+            and enter this code:
+          </label>
+        )}
+        <div className="sb-device-code">{code.userCode}</div>
+        <div className="sb-prompt-buttons">
+          <ButtonLink
+            href={code.verificationUriComplete ?? code.verificationUri}
+            target="_blank"
+            rel="noopener"
+          >
+            Open
+          </ButtonLink>
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              navigator.clipboard?.writeText(code.userCode);
+              setCopied(true);
+            }}
+          >
+            {copied ? "Copied" : "Copy code"}
+          </Button>
+          <Button
+            shortcut="esc"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onCancel();
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+        <div>Waiting for approval…</div>
+      </div>
+    </AlwaysShownModal>
+  );
 }
 
 export function AlwaysShownModal({

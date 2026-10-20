@@ -11,11 +11,16 @@ import { h, render as preactRender } from "preact";
 import { useEffect, useMemo, useReducer, useState } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import type { Client } from "./client.ts";
+import type { DeviceCode } from "./auth/device_flow.ts";
 import {
   type ConfiguredActionButton,
   visibleActionButtons,
 } from "./action_buttons.ts";
-import { Confirm, Prompt } from "./components/basic_modals.tsx";
+import {
+  Confirm,
+  DeviceCodeModal,
+  Prompt,
+} from "./components/basic_modals.tsx";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import { BOTTOM_DOCK_MAX_HEIGHT } from "../plug-api/ui/dock_size.ts";
 import { resolveButtonIcon } from "./lib/feather_icons.ts";
@@ -266,12 +271,17 @@ export class MainUI {
     });
   }
 
-  prompt(message: string, defaultValue = ""): Promise<string | undefined> {
+  prompt(
+    message: string,
+    defaultValue = "",
+    options?: { password?: boolean },
+  ): Promise<string | undefined> {
     return new Promise((resolve) => {
       this.viewDispatch({
         type: "show-prompt",
         message,
         defaultValue,
+        password: options?.password,
         callback: (value: string | undefined) => {
           this.viewDispatch({ type: "hide-prompt" });
           this.client.focus();
@@ -279,6 +289,21 @@ export class MainUI {
         },
       });
     });
+  }
+
+  private lastDeviceCodeId = 0;
+
+  /**
+   * Shows a device code until the returned close is called. Closing only
+   * hides this code, not one another sign-in showed since.
+   */
+  showDeviceCode(code: DeviceCode, onCancel: () => void): () => void {
+    const id = ++this.lastDeviceCodeId;
+    this.viewDispatch({ type: "show-device-code", id, code, onCancel });
+    return () => {
+      this.viewDispatch({ type: "hide-device-code", id });
+      this.client.focus();
+    };
   }
 
   confirm(
@@ -481,11 +506,18 @@ export class MainUI {
           <Prompt
             message={viewState.promptMessage!}
             defaultValue={viewState.promptDefaultValue}
+            password={viewState.promptPassword}
             darkMode={viewState.uiOptions.darkMode}
             callback={(value) => {
               dispatch({ type: "hide-prompt" });
               viewState.promptCallback!(value);
             }}
+          />
+        )}
+        {viewState.deviceCode && (
+          <DeviceCodeModal
+            code={viewState.deviceCode.code}
+            onCancel={viewState.deviceCode.onCancel}
           />
         )}
         {viewState.showConfirm && (

@@ -1123,8 +1123,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         _ctx,
         message: string,
         defaultValue = "",
+        options?: { password?: boolean },
       ): Promise<string | undefined> => {
-        return client.ui.prompt(message, defaultValue);
+        return client.ui.prompt(message, defaultValue, options);
       },
       description: "Prompts the user for text input.",
       parameters: [
@@ -1137,6 +1138,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "defaultValue",
           type: "string",
           description: "The initial input value.",
+          optional: true,
+        },
+        {
+          name: "options",
+          type: "{ password?: boolean }",
+          description:
+            "Set password to true to mask the input (e.g. for secrets).",
           optional: true,
         },
       ],

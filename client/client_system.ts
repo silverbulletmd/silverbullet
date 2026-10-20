@@ -12,6 +12,7 @@ import { CommandHook } from "./plugos/hooks/command.ts";
 import { SlashCommandHook } from "./plugos/hooks/slash_command.ts";
 import { SyscallHook } from "./plugos/hooks/syscall.ts";
 import { clientStoreSyscalls } from "./plugos/syscalls/clientStore.ts";
+import { oauthSyscalls } from "./plugos/syscalls/oauth.ts";
 import { editorSyscalls } from "./plugos/syscalls/editor.ts";
 import { sandboxFetchSyscalls } from "./plugos/syscalls/fetch.ts";
 import { markdownSyscalls } from "./plugos/syscalls/markdown.ts";
@@ -321,6 +322,7 @@ export class ClientSystem {
       dataStoreWriteSyscalls(this.ds),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
+      oauthSyscalls(this.client),
       configSyscalls(this.client.config),
       searchSyscalls(search),
       iconSyscalls(),

@@ -699,7 +699,7 @@ Opens a URL in the browser.
 
 ## editor.prompt
 
-`editor.prompt(message, defaultValue?)`
+`editor.prompt(message, defaultValue?, options?)`
 
 Prompts the user for text input.
 
@@ -707,6 +707,7 @@ Prompts the user for text input.
 
 - `message` (`string`) — The prompt message.
 - `defaultValue?` (`string`) — The initial input value.
+- `options?` (`{ password?: boolean }`) — Set password to true to mask the input (e.g. for secrets).
 
 **Returns:**
 
