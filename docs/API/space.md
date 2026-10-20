@@ -195,6 +195,31 @@ Lists the revision history of a file.
 
 Looks up, for each path, whether it exists exactly and which files share its basename.
 
+## space.mergeText
+
+`space.mergeText(base, local, remote)`
+
+Three-way merges `local` and `remote` against their common `base` on the server, without writing anything. Overlapping changes are kept as conflict markers. Returns nil when the texts can't be merged (one already contains conflict markers, or is too large).
+
+**Parameters:**
+
+- `base` (`string`) — Common ancestor of both versions.
+- `local` (`string`) — Local version.
+- `remote` (`string`) — Remote version.
+
+**Returns:**
+
+- Value — Table with `status` ("clean" or "conflicted") and the merged `text`, or nil when not mergeable.
+
+**Example:**
+
+```lua
+local merged = space.mergeText("a\nb\n", "A\nb\n", "a\nB\n")
+if merged then
+  print(merged.status, merged.text)
+end
+```
+
 ## space.pageExists
 
 `space.pageExists(name)`

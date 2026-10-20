@@ -24,6 +24,7 @@ import type {
   SpaceLog,
 } from "@silverbulletmd/silverbullet/type/revisions";
 import type { Client } from "../../client.ts";
+import { ServerError, serverJson } from "../../spaces/server_api.ts";
 import { fsEndpoint } from "../../spaces/constants.ts";
 import { fileChangedEvent } from "../../space_lua/dependencies.ts";
 import type { SysCallMapping } from "../system.ts";
@@ -33,6 +34,12 @@ import { spaceLintDeps } from "../../space_lint_deps.ts";
 function revisionsUrl(client: Client, suffix: string): string {
   return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.revisions/${suffix}`;
 }
+
+/** The result of `space.mergeText` (the server's `/.merge`) */
+type MergeTextResult = {
+  status: "clean" | "conflicted";
+  text: string;
+};
 
 async function fetchRevisionsJson(
   client: Client,
@@ -424,6 +431,51 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       description:
         "Summarizes revision activity: the timestamps of commits since a point in time, and the most frequently changed files. Arguments are unix seconds; omitted ones use the server defaults.",
       signatures: ["space.getActivity(since?, filesSince?, top?)"],
+    },
+    "space.mergeText": {
+      callback: async (
+        _ctx,
+        base: string,
+        local: string,
+        remote: string,
+      ): Promise<MergeTextResult | null> => {
+        try {
+          return await serverJson<MergeTextResult>(client, ".merge", {
+            body: { base, local, remote },
+          });
+        } catch (e) {
+          // An input already has conflict markers (409) or is too large (413)
+          if (
+            e instanceof ServerError &&
+            (e.status === 409 || e.status === 413)
+          ) {
+            return null;
+          }
+          throw e;
+        }
+      },
+      description:
+        "Three-way merges `local` and `remote` against their common `base` on the server, without writing anything. Overlapping changes are kept as conflict markers. Returns nil when the texts can't be merged (one already contains conflict markers, or is too large).",
+      parameters: [
+        {
+          name: "base",
+          type: "string",
+          description: "Common ancestor of both versions.",
+        },
+        { name: "local", type: "string", description: "Local version." },
+        { name: "remote", type: "string", description: "Remote version." },
+      ],
+      returns: [
+        {
+          description:
+            'Table with `status` ("clean" or "conflicted") and the merged `text`, or nil when not mergeable.',
+        },
+      ],
+      examples: [
+        {
+          code: 'local merged = space.mergeText("a\\nb\\n", "A\\nb\\n", "a\\nB\\n")\nif merged then\n  print(merged.status, merged.text)\nend',
+        },
+      ],
     },
   };
 }
