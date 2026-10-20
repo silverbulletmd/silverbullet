@@ -1,10 +1,10 @@
-import type { Action, AppViewState } from "./types/ui.ts";
-import type { PageMeta } from "../plug-api/types/index.ts";
 import {
   isMarkdownPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import type { PageMeta } from "../plug-api/types/index.ts";
 import { isMobileDevice } from "./lib/mobile.ts";
+import type { Action, AppViewState } from "./types/ui.ts";
 
 export default function reducer(
   state: AppViewState,
@@ -184,6 +184,19 @@ export default function reducer(
     case "hide-device-code":
       return state.deviceCode?.id === action.id
         ? { ...state, deviceCode: undefined }
+        : state;
+    case "show-choose-version":
+      return {
+        ...state,
+        chooseVersion: {
+          id: action.id,
+          options: action.options,
+          callback: action.callback,
+        },
+      };
+    case "hide-choose-version":
+      return state.chooseVersion?.id === action.id
+        ? { ...state, chooseVersion: undefined }
         : state;
     case "show-confirm":
       return {

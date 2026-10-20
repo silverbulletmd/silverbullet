@@ -53,6 +53,28 @@
   user-select: text;
 }
 
+// The shared body above sizes itself inside the revision modal's fixed-height
+// flex column; in the choose-version dialog it needs its own bound.
+.sb-choose-version-diff {
+  flex: none;
+  max-height: 60vh;
+}
+
+.sb-choose-version-sign {
+  display: inline-block;
+  width: 2ch;
+  user-select: none;
+}
+
+// Four buttons don't fit side by side on a phone
+.sb-choose-version .sb-prompt-buttons {
+  flex-wrap: wrap;
+}
+
+.sb-choose-version-legend span + span {
+  margin-left: 1em;
+}
+
 .sb-revision-diff-add {
   color: var(--editor-code-inserted-color, #16a34a);
   background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));

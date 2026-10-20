@@ -10,44 +10,46 @@ import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/c
 import { h, render as preactRender } from "preact";
 import { useEffect, useMemo, useReducer, useState } from "preact/hooks";
 import * as featherIcons from "preact-feather";
-import type { Client } from "./client.ts";
-import type { DeviceCode } from "./auth/device_flow.ts";
+import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
+import type { ChooseVersionOptions } from "../plug-api/syscalls/editor.ts";
+import { BOTTOM_DOCK_MAX_HEIGHT } from "../plug-api/ui/dock_size.ts";
 import {
   type ConfiguredActionButton,
   visibleActionButtons,
 } from "./action_buttons.ts";
+import type { DeviceCode } from "./auth/device_flow.ts";
+import { CaptureController } from "./capture/CaptureController.tsx";
+import type { Client } from "./client.ts";
+import { AnchoredMenu } from "./components/anchored_menu.tsx";
 import {
   Confirm,
   DeviceCodeModal,
   Prompt,
 } from "./components/basic_modals.tsx";
-import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
-import { BOTTOM_DOCK_MAX_HEIGHT } from "../plug-api/ui/dock_size.ts";
-import { resolveButtonIcon } from "./lib/feather_icons.ts";
+import { ChooseVersionModal } from "./components/choose_version.tsx";
 import { FilterList } from "./components/filter.tsx";
-import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
-import { resolveMeta } from "./navigator/registry.ts";
-import { toggleMobileDock } from "./navigator/navigator.ts";
-import { RevisionPreviewModal } from "./navigator/ui/components/revision_preview.tsx";
-import {
-  useNavigatorDockTarget,
-  useNavigatorSlot,
-} from "./navigator/ui/slots.ts";
-import { Panel } from "./components/panel.tsx";
-import { TopBar } from "./components/top_bar.tsx";
 import {
   KeyboardBar,
   type KeyboardBarButton,
 } from "./components/keyboard_bar.tsx";
-import { installKeyboardViewport } from "./lib/keyboard_viewport.ts";
-import { CaptureController } from "./capture/CaptureController.tsx";
-import { AnchoredMenu } from "./components/anchored_menu.tsx";
+import { Panel } from "./components/panel.tsx";
 import {
+  editorProfileMenuItems,
   ProfileAvatar,
   profileMenuHeader,
-  editorProfileMenuItems,
   profileMenuLabel,
 } from "./components/profile_button.tsx";
+import { TopBar } from "./components/top_bar.tsx";
+import { resolveButtonIcon } from "./lib/feather_icons.ts";
+import { installKeyboardViewport } from "./lib/keyboard_viewport.ts";
+import { toggleMobileDock } from "./navigator/navigator.ts";
+import { resolveMeta } from "./navigator/registry.ts";
+import { RevisionPreviewModal } from "./navigator/ui/components/revision_preview.tsx";
+import { NavigatorDock, NavigatorModal } from "./navigator/ui/panels.tsx";
+import {
+  useNavigatorDockTarget,
+  useNavigatorSlot,
+} from "./navigator/ui/slots.ts";
 import { loadProfile, type ProfileState } from "./profile.ts";
 import reducer from "./reducer.ts";
 import {
@@ -306,6 +308,25 @@ export class MainUI {
     };
   }
 
+  private lastChooseVersionId = 0;
+
+  /** Resolves with the clicked choice's id, or undefined when cancelled. */
+  chooseVersion(options: ChooseVersionOptions): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      const id = ++this.lastChooseVersionId;
+      this.viewDispatch({
+        type: "show-choose-version",
+        id,
+        options,
+        callback: (choice) => {
+          this.viewDispatch({ type: "hide-choose-version", id });
+          this.client.focus();
+          resolve(choice);
+        },
+      });
+    });
+  }
+
   confirm(
     message: string,
     options?: { destructive?: boolean },
@@ -518,6 +539,13 @@ export class MainUI {
           <DeviceCodeModal
             code={viewState.deviceCode.code}
             onCancel={viewState.deviceCode.onCancel}
+          />
+        )}
+        {viewState.chooseVersion && (
+          <ChooseVersionModal
+            key={viewState.chooseVersion.id}
+            options={viewState.chooseVersion.options}
+            callback={viewState.chooseVersion.callback}
           />
         )}
         {viewState.showConfirm && (

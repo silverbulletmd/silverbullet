@@ -149,3 +149,21 @@ test("editor.prompt forwards the password option to the UI", async () => {
   ).resolves.toBe("s3cret");
   expect(prompt).toHaveBeenCalledWith("Key", "", { password: true });
 });
+
+test("editor.chooseVersion forwards the options to the UI and returns its answer", async () => {
+  const chooseVersion = vi.fn(async () => "keep-mine");
+  const client = { ui: { chooseVersion } } as unknown as Client;
+  const system = new System();
+  system.registerSyscalls([], editorSyscalls(client));
+  const options = {
+    title: "Conflict",
+    mine: "a\n",
+    theirs: "b\n",
+    choices: [{ id: "keep-mine", label: "Keep mine" }],
+  };
+
+  await expect(
+    system.localSyscall("editor.chooseVersion", [options]),
+  ).resolves.toBe("keep-mine");
+  expect(chooseVersion).toHaveBeenCalledWith(options);
+});

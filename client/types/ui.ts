@@ -9,10 +9,11 @@ import type {
   DocumentMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import type { ChooseVersionOptions } from "../../plug-api/syscalls/editor.ts";
+import type { DeviceCode } from "../auth/device_flow.ts";
 import type { LogEntry as WorkerLogEntry } from "../lib/logger.ts";
 import type { SyncStatus } from "../spaces/sync.ts";
 import type { Command } from "./command.ts";
-import type { DeviceCode } from "../auth/device_flow.ts";
 
 export type PanelSlot = "lhs" | "rhs" | "bhs" | "modal";
 
@@ -67,6 +68,13 @@ export type AppViewState = {
 
   /** The device code of a sign-in in progress (see MainUI.showDeviceCode) */
   deviceCode?: { id: number; code: DeviceCode; onCancel: () => void };
+
+  /** The open editor.chooseVersion dialog, if any */
+  chooseVersion?: {
+    id: number;
+    options: ChooseVersionOptions;
+    callback: (choice: string | undefined) => void;
+  };
 
   showConfirm: boolean;
   confirmMessage?: string;
@@ -154,6 +162,13 @@ export type Action =
       onCancel: () => void;
     }
   | { type: "hide-device-code"; id: number }
+  | {
+      type: "show-choose-version";
+      id: number;
+      options: ChooseVersionOptions;
+      callback: (choice: string | undefined) => void;
+    }
+  | { type: "hide-choose-version"; id: number }
   | {
       type: "show-confirm";
       message: string;

@@ -331,6 +331,25 @@ export function prompt(
   return syscall("editor.prompt", message, defaultValue);
 }
 
+export type ChooseVersionOptions = {
+  title: string;
+  message?: string;
+  mine: string;
+  theirs: string;
+  choices: { id: string; label: string }[];
+};
+
+/**
+ * Shows a line diff of `mine` against `theirs` and one button per choice.
+ *
+ * @returns the clicked choice's `id`, or undefined when cancelled
+ */
+export function chooseVersion(
+  options: ChooseVersionOptions,
+): Promise<string | undefined> {
+  return syscall("editor.chooseVersion", options);
+}
+
 /**
  * @param options optional settings; set `destructive: true` to style the
  *   confirm button as a destructive (danger) action

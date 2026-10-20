@@ -51,6 +51,20 @@ editor.navigate("index")
 editor.awaitRender()
 ```
 
+## editor.chooseVersion
+
+`editor.chooseVersion(options)`
+
+Shows a line diff of two versions of a text and lets the user pick one of the given choices.
+
+**Parameters:**
+
+- `options` (`{ title: string; message?: string; mine: string; theirs: string; choices: { id: string; label: string }[] }`) — The dialog title, an optional message, the two texts to diff (mine against theirs) and the buttons to offer.
+
+**Returns:**
+
+- `string | undefined` — The id of the clicked choice, or undefined if dismissed.
+
 ## editor.closeCompletion
 
 `editor.closeCompletion()`

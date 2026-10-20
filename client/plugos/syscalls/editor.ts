@@ -79,6 +79,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 import type { VimConfig } from "@silverbulletmd/silverbullet/type/config";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import type { ChooseVersionOptions } from "../../../plug-api/syscalls/editor.ts";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { copyToClipboard } from "../../clipboard.ts";
@@ -91,9 +92,9 @@ import { resolveDocumentCapability } from "../../document_editor_resolver.ts";
 import { isMobileDevice, isNarrowScreen } from "../../lib/mobile.ts";
 import { browserMediaCapabilities } from "../../media.ts";
 import { hide as hideNavigatorSlot } from "../../navigator/navigator.ts";
+import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type { PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
-import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type { SysCallMapping } from "../system.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
@@ -1179,6 +1180,31 @@ export function editorSyscalls(client: Client): SysCallMapping {
       ],
       returns: [
         { type: "boolean", description: "Whether the user confirmed." },
+      ],
+    },
+    "editor.chooseVersion": {
+      callback: (
+        _ctx,
+        options: ChooseVersionOptions,
+      ): Promise<string | undefined> => {
+        return client.ui.chooseVersion(options);
+      },
+      description:
+        "Shows a line diff of two versions of a text and lets the user pick one of the given choices.",
+      parameters: [
+        {
+          name: "options",
+          type: "{ title: string; message?: string; mine: string; theirs: string; choices: { id: string; label: string }[] }",
+          description:
+            "The dialog title, an optional message, the two texts to diff (mine against theirs) and the buttons to offer.",
+        },
+      ],
+      returns: [
+        {
+          type: "string | undefined",
+          description:
+            "The id of the clicked choice, or undefined if dismissed.",
+        },
       ],
     },
     "editor.alert": {
