@@ -12,7 +12,7 @@ use tower_http::compression::predicate::{DefaultPredicate, NotForContentType, Pr
 use tower_http::compression::CompressionLayer;
 
 use crate::auth::{AccessLevel, AuthOutcome};
-use crate::handlers::{accounts, bundle, control, fs, revisions, search};
+use crate::handlers::{accounts, bundle, control, fs, merge, revisions, search};
 use crate::state::ServerState;
 
 /// Run a synchronous `SpacePrimitives` operation on the blocking thread pool so
@@ -280,6 +280,10 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             get(fs::handle_fs_list).layer(CompressionLayer::new()),
         )
         .merge(fs_files)
+        .route(
+            "/.merge",
+            post(merge::handle_merge).layer(DefaultBodyLimit::max(merge::MERGE_BODY_LIMIT)),
+        )
         .merge(search::routes(&state))
         .route("/.events", get(crate::handlers::events::handle_events))
         .route(
@@ -340,15 +344,22 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         )
         .route(
             "/.auth/authorize",
-            get(crate::handlers::oauth::handle_authorize_get)
-                .post(crate::handlers::oauth::handle_authorize_post),
+            get(crate::handlers::oauth::authorize::handle_authorize_get)
+                .post(crate::handlers::oauth::authorize::handle_authorize_post),
         )
-        .route("/.auth/device/code", post(crate::handlers::device::issue))
+        .route(
+            "/.auth/device/code",
+            post(crate::handlers::oauth::device::issue),
+        )
         .route(
             "/.auth/device",
-            get(crate::handlers::device::verify).post(crate::handlers::device::decide),
+            get(crate::handlers::oauth::device::verify)
+                .post(crate::handlers::oauth::device::decide),
         )
-        .route("/.auth/token", post(crate::handlers::oauth::handle_token))
+        .route(
+            "/.auth/token",
+            post(crate::handlers::oauth::token::handle_token),
+        )
         .route_layer(DefaultBodyLimit::max(64 * 1024));
 
     // Open: liveness + the SPA shell/assets must always load.

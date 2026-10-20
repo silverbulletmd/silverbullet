@@ -20,12 +20,12 @@
         <h1>Authorize access</h1>
         {% if device_flow and not user_code %}
         <form method="get" action="{{ host_prefix }}/.auth/device">
-          <label>Code from your terminal <input class="sb-input" name="user_code" required autocomplete="off" /></label>
+          <label>Code shown by the application <input class="sb-input" name="user_code" required autocomplete="off" /></label>
           <button type="submit" class="sb-button-primary">Continue</button>
         </form>
         {% else %}
         <p>
-          {% if device_flow %}SilverBullet CLI{% else %}An application{% endif %} is asking for access to <strong>{{ space_name }}</strong>
+          {% if client_name %}{{ client_name }}{% else %}An application (<code>{{ client_id }}</code>){% endif %} is asking for access to <strong>{{ space_name }}</strong>
           as <strong>{{ username }}</strong>.
         </p>
         <p>
@@ -40,7 +40,7 @@
         </p>
         <p class="sb-help-text">
           {% if device_flow %}
-          Confirm that <strong>{{ user_code }}</strong> matches the code in your terminal.
+          Confirm that <strong>{{ user_code }}</strong> matches the code shown by the application.
           Only approve if you started this sign-in, on this computer or another device you trust.
           {% else %}
           Only approve this if you just started a sign-in from an application you

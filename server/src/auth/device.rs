@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const CLIENT_ID: &str = "silverbullet-cli";
+use super::client_id::ClientId;
+use super::oauth::OAuthError;
+
 pub const GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:device_code";
 pub const TTL: u64 = 300;
 pub const INTERVAL: u64 = 5;
@@ -10,6 +12,7 @@ const MAX_ATTEMPTS: usize = 256;
 
 #[derive(Clone)]
 pub struct Attempt {
+    pub client_id: ClientId,
     pub device_code: String,
     pub user_code: String,
     pub device_name: String,
@@ -45,6 +48,9 @@ fn permit(events: &mut Vec<u64>, now: u64, limit: usize) -> bool {
     true
 }
 
+const UNKNOWN_USER_CODE: OAuthError =
+    OAuthError::InvalidGrant("unknown, expired or already decided user code");
+
 fn normalize(code: &str) -> String {
     code.chars()
         .filter(|c| *c != '-' && !c.is_whitespace())
@@ -53,13 +59,18 @@ fn normalize(code: &str) -> String {
 }
 
 impl DeviceStore {
-    pub fn issue(&self, label: String, now: u64) -> Result<Attempt, &'static str> {
+    pub fn issue(
+        &self,
+        client_id: ClientId,
+        label: String,
+        now: u64,
+    ) -> Result<Attempt, OAuthError> {
         let mut inner = self.0.lock().unwrap();
         inner
             .attempts
             .retain(|_, a| now.saturating_sub(a.issued) < TTL);
         if inner.attempts.len() >= MAX_ATTEMPTS || !permit(&mut inner.issued, now, 30) {
-            return Err("slow_down");
+            return Err(OAuthError::SlowDown);
         }
         loop {
             let mut bytes = [0u8; 40];
@@ -81,6 +92,7 @@ impl DeviceStore {
                 continue;
             }
             let attempt = Attempt {
+                client_id: client_id.clone(),
                 device_code: device_code.clone(),
                 user_code: format!("{}-{}", &user_code[..4], &user_code[4..]),
                 device_name: label,
@@ -94,10 +106,10 @@ impl DeviceStore {
         }
     }
 
-    pub fn lookup(&self, code: &str, now: u64) -> Result<Attempt, &'static str> {
+    pub fn lookup(&self, code: &str, now: u64) -> Result<Attempt, OAuthError> {
         let mut inner = self.0.lock().unwrap();
         if !permit(&mut inner.guesses, now, 60) {
-            return Err("slow_down");
+            return Err(OAuthError::SlowDown);
         }
         inner
             .attempts
@@ -108,18 +120,13 @@ impl DeviceStore {
                     && a.decision.is_none()
             })
             .cloned()
-            .ok_or("invalid_grant")
+            .ok_or(UNKNOWN_USER_CODE)
     }
 
-    pub fn decide(
-        &self,
-        code: &str,
-        username: Option<String>,
-        now: u64,
-    ) -> Result<(), &'static str> {
+    pub fn decide(&self, code: &str, username: Option<String>, now: u64) -> Result<(), OAuthError> {
         let mut inner = self.0.lock().unwrap();
         if !permit(&mut inner.guesses, now, 60) {
-            return Err("slow_down");
+            return Err(OAuthError::SlowDown);
         }
         let attempt = inner
             .attempts
@@ -129,20 +136,25 @@ impl DeviceStore {
                     && now.saturating_sub(a.issued) < TTL
                     && a.decision.is_none()
             })
-            .ok_or("invalid_grant")?;
+            .ok_or(UNKNOWN_USER_CODE)?;
         attempt.decision = Some(username);
         Ok(())
     }
 
-    pub fn poll(&self, code: &str, client: &str, now: u64) -> Result<String, &'static str> {
-        if client != CLIENT_ID {
-            return Err("unauthorized_client");
-        }
+    pub fn poll(&self, code: &str, client: &ClientId, now: u64) -> Result<String, OAuthError> {
         let mut inner = self.0.lock().unwrap();
-        let attempt = inner.attempts.get_mut(code).ok_or("invalid_grant")?;
+        let attempt = inner
+            .attempts
+            .get_mut(code)
+            .ok_or(OAuthError::InvalidGrant(
+                "unknown or already used device code",
+            ))?;
+        if &attempt.client_id != client {
+            return Err(OAuthError::UnauthorizedClient);
+        }
         if now.saturating_sub(attempt.issued) >= TTL {
             inner.attempts.remove(code);
-            return Err("expired_token");
+            return Err(OAuthError::ExpiredToken);
         }
         if attempt
             .last_poll
@@ -150,69 +162,111 @@ impl DeviceStore {
         {
             attempt.interval = attempt.interval.saturating_add(5);
             attempt.last_poll = Some(now);
-            return Err("slow_down");
+            return Err(OAuthError::SlowDown);
         }
         attempt.last_poll = Some(now);
         if attempt.decision.is_none() {
-            return Err("authorization_pending");
+            return Err(OAuthError::AuthorizationPending);
         }
         let attempt = inner.attempts.remove(code).unwrap();
-        attempt.decision.unwrap().ok_or("access_denied")
+        attempt.decision.unwrap().ok_or(OAuthError::AccessDenied)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn client(id: &str) -> ClientId {
+        ClientId::parse(id).unwrap()
+    }
+
+    /// The error code of a result, for comparing with what the RFC names
+    fn code<T>(result: Result<T, OAuthError>) -> &'static str {
+        result.err().expect("an error").code()
+    }
     #[test]
     fn pending_slowdown_approval_and_replay() {
         let store = DeviceStore::default();
-        let a = store.issue("Workshop".into(), 100).unwrap();
+        let a = store
+            .issue(client("silverbullet-cli"), "Workshop".into(), 100)
+            .unwrap();
         assert_eq!(
-            store.poll(&a.device_code, CLIENT_ID, 100),
-            Err("authorization_pending")
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 100)),
+            "authorization_pending"
         );
-        assert_eq!(store.poll(&a.device_code, CLIENT_ID, 101), Err("slow_down"));
+        assert_eq!(
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 101)),
+            "slow_down"
+        );
         store
             .decide(&a.user_code, Some("river".into()), 102)
             .unwrap();
-        assert_eq!(store.poll(&a.device_code, CLIENT_ID, 106), Err("slow_down"));
         assert_eq!(
-            store.poll(&a.device_code, CLIENT_ID, 121),
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 106)),
+            "slow_down"
+        );
+        assert_eq!(
+            store.poll(&a.device_code, &client("silverbullet-cli"), 121),
             Ok("river".into())
         );
         assert_eq!(
-            store.poll(&a.device_code, CLIENT_ID, 126),
-            Err("invalid_grant")
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 126)),
+            "invalid_grant"
         );
     }
     #[test]
     fn denial_expiration_client_and_space_binding() {
         let store = DeviceStore::default();
-        let a = store.issue("Workshop".into(), 100).unwrap();
+        let a = store
+            .issue(client("silverbullet-cli"), "Workshop".into(), 100)
+            .unwrap();
         assert_eq!(
-            store.poll(&a.device_code, "other", 100),
-            Err("unauthorized_client")
+            code(store.poll(&a.device_code, &client("other"), 100)),
+            "unauthorized_client"
         );
         assert_eq!(
-            DeviceStore::default().poll(&a.device_code, CLIENT_ID, 100),
-            Err("invalid_grant")
+            code(DeviceStore::default().poll(&a.device_code, &client("silverbullet-cli"), 100)),
+            "invalid_grant"
         );
         store.decide(&a.user_code, None, 100).unwrap();
         assert_eq!(
-            store.poll(&a.device_code, CLIENT_ID, 100),
-            Err("access_denied")
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 100)),
+            "access_denied"
         );
-        let a = store.issue("Workshop".into(), 100).unwrap();
+        let a = store
+            .issue(client("silverbullet-cli"), "Workshop".into(), 100)
+            .unwrap();
         assert_eq!(
-            store.poll(&a.device_code, CLIENT_ID, 400),
-            Err("expired_token")
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 400)),
+            "expired_token"
         );
     }
     #[test]
+    fn poll_with_other_client_than_issued_is_unauthorized() {
+        let store = DeviceStore::default();
+        let a = store
+            .issue(client("silverbullet-share"), "Workshop".into(), 100)
+            .unwrap();
+        store
+            .decide(&a.user_code, Some("river".into()), 100)
+            .unwrap();
+        assert_eq!(
+            code(store.poll(&a.device_code, &client("silverbullet-cli"), 100)),
+            "unauthorized_client"
+        );
+        assert_eq!(
+            store.poll(&a.device_code, &client("silverbullet-share"), 100),
+            Ok("river".into())
+        );
+    }
+
+    #[test]
     fn parallel_polls_only_issue_one_grant() {
         let store = std::sync::Arc::new(DeviceStore::default());
-        let attempt = store.issue("Workshop".into(), 100).unwrap();
+        let attempt = store
+            .issue(client("silverbullet-cli"), "Workshop".into(), 100)
+            .unwrap();
         store
             .decide(&attempt.user_code, Some("river".into()), 100)
             .unwrap();
@@ -220,7 +274,9 @@ mod tests {
             .map(|_| {
                 let store = store.clone();
                 let code = attempt.device_code.clone();
-                std::thread::spawn(move || store.poll(&code, CLIENT_ID, 100).is_ok())
+                std::thread::spawn(move || {
+                    store.poll(&code, &client("silverbullet-cli"), 100).is_ok()
+                })
             })
             .collect::<Vec<_>>();
         assert_eq!(
@@ -236,14 +292,20 @@ mod tests {
     fn issuance_and_guesses_are_bounded() {
         let store = DeviceStore::default();
         for _ in 0..30 {
-            store.issue("Workshop".into(), 100).unwrap();
+            store
+                .issue(client("silverbullet-cli"), "Workshop".into(), 100)
+                .unwrap();
         }
-        assert!(store.issue("Workshop".into(), 100).is_err());
+        assert!(store
+            .issue(client("silverbullet-cli"), "Workshop".into(), 100)
+            .is_err());
         for _ in 0..60 {
             assert!(store.lookup("unknown", 100).is_err());
         }
-        assert_eq!(store.lookup("unknown", 100).err(), Some("slow_down"));
-        assert!(store.issue("Workshop".into(), 400).is_ok());
+        assert_eq!(code(store.lookup("unknown", 100)), "slow_down");
+        assert!(store
+            .issue(client("silverbullet-cli"), "Workshop".into(), 400)
+            .is_ok());
         assert_eq!(store.0.lock().unwrap().attempts.len(), 1);
     }
 }

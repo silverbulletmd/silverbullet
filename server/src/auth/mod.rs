@@ -7,6 +7,7 @@ pub mod access;
 pub mod authenticator;
 pub mod authorizer;
 pub mod browser_sessions;
+pub mod client_id;
 pub mod config;
 pub mod cookie;
 pub mod device;
@@ -34,7 +35,7 @@ pub use identity::{clean_email, clean_full_name, username_only, IdentityResolver
 pub use jwt_authorizer::JwtAuthorizer;
 pub use lockout::LockoutTimer;
 pub use login::LoginManager;
-pub use oauth::{AuthCodeStore, CodeGrant, OAuthError, CLIENT_ID};
+pub use oauth::{AuthCodeStore, CodeGrant, OAuthError};
 
 /// Verifies a username/password pair against some backing credential store.
 /// Lets `LoginManager` drive either the legacy single-user `AuthConfig` or a

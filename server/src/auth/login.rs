@@ -6,6 +6,7 @@
 use std::sync::Arc;
 
 use crate::auth::authenticator::Authenticator;
+use crate::auth::client_id::ClientId;
 use crate::auth::lockout::LockoutTimer;
 use crate::auth::Credentials;
 
@@ -18,7 +19,8 @@ type CredentialVersionProvider = Arc<dyn Fn(&str) -> String + Send + Sync>;
 pub const DEFAULT_ACCESS_TOKEN_DAYS: u64 = 365;
 pub const REFRESH_TOKEN_DAYS: u64 = 730;
 
-pub struct DeviceTokens {
+/// The access and refresh token issued to a client by any grant
+pub struct ClientTokens {
     pub access_token: String,
     pub refresh_token: String,
     pub expires_in: u64,
@@ -193,22 +195,15 @@ impl LoginManager {
         Some(claims)
     }
 
-    pub fn issue_device_tokens(
+    pub fn issue_tokens(
         &self,
         username: &str,
-    ) -> Result<DeviceTokens, jsonwebtoken::errors::Error> {
-        self.issue_client_tokens(username, crate::auth::oauth::CLIENT_ID)
-    }
-
-    pub fn issue_client_tokens(
-        &self,
-        username: &str,
-        client: &str,
-    ) -> Result<DeviceTokens, jsonwebtoken::errors::Error> {
+        client: &ClientId,
+    ) -> Result<ClientTokens, jsonwebtoken::errors::Error> {
         let version = self.credential_version.as_ref().map(|p| p(username));
         let expires_in = access_token_expiry_secs();
         let space = self.scoped_space();
-        Ok(DeviceTokens {
+        Ok(ClientTokens {
             access_token: self.authenticator.issue_token(
                 username,
                 version.clone(),
@@ -219,11 +214,7 @@ impl LoginManager {
             refresh_token: self.authenticator.issue_token(
                 username,
                 version,
-                Some(if client == crate::auth::device::CLIENT_ID {
-                    "refresh:silverbullet-cli"
-                } else {
-                    "refresh"
-                }),
+                Some(&client.refresh_token_use()),
                 space,
                 REFRESH_TOKEN_DAYS * 24 * 3600,
             )?,
@@ -235,18 +226,12 @@ impl LoginManager {
         Some(self.space_id.as_str()).filter(|s| !s.is_empty())
     }
 
-    pub fn verify_refresh_token(&self, token: &str) -> Option<String> {
-        self.verify_client_refresh_token(token, crate::auth::oauth::CLIENT_ID)
-    }
-
-    pub fn verify_client_refresh_token(&self, token: &str, client: &str) -> Option<String> {
+    /// The username of a refresh token issued to this client, if it is still
+    /// valid
+    pub fn verify_refresh_token(&self, token: &str, client: &ClientId) -> Option<String> {
         let claims = self.authenticator.verify_jwt(token).ok()?;
-        let token_use = if client == crate::auth::device::CLIENT_ID {
-            "refresh:silverbullet-cli"
-        } else {
-            "refresh"
-        };
-        if claims.token_use.as_deref() != Some(token_use) {
+        let token_use = client.refresh_token_use();
+        if claims.token_use.as_deref() != Some(token_use.as_str()) {
             return None;
         }
         if claims.space.as_deref() != self.scoped_space() {
@@ -270,26 +255,51 @@ impl LoginManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn client(id: &str) -> ClientId {
+        ClientId::parse(id).unwrap()
+    }
     use crate::auth::config::AuthConfig;
+
+    #[test]
+    fn share_client_refresh_token_round_trips() {
+        let manager = manager();
+        let tokens = manager
+            .issue_tokens("u", &client("silverbullet-share"))
+            .unwrap();
+        assert_eq!(
+            manager.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-share")),
+            Some("u".into())
+        );
+        assert_eq!(
+            manager.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app")),
+            None
+        );
+    }
 
     #[test]
     fn cli_and_app_refresh_credentials_are_isolated() {
         let manager = manager();
         let cli = manager
-            .issue_client_tokens("river", crate::auth::device::CLIENT_ID)
+            .issue_tokens("river", &client("silverbullet-cli"))
             .unwrap();
-        let app = manager.issue_device_tokens("river").unwrap();
+        let app = manager
+            .issue_tokens("river", &client("silverbullet-app"))
+            .unwrap();
         assert_eq!(
-            manager.verify_client_refresh_token(&cli.refresh_token, crate::auth::device::CLIENT_ID),
+            manager.verify_refresh_token(&cli.refresh_token, &client("silverbullet-cli")),
             Some("river".into())
         );
-        assert_eq!(manager.verify_refresh_token(&cli.refresh_token), None);
         assert_eq!(
-            manager.verify_client_refresh_token(&app.refresh_token, crate::auth::device::CLIENT_ID),
+            manager.verify_refresh_token(&cli.refresh_token, &client("silverbullet-app")),
             None
         );
         assert_eq!(
-            manager.verify_client_refresh_token(&cli.access_token, crate::auth::device::CLIENT_ID),
+            manager.verify_refresh_token(&app.refresh_token, &client("silverbullet-cli")),
+            None
+        );
+        assert_eq!(
+            manager.verify_refresh_token(&cli.access_token, &client("silverbullet-cli")),
             None
         );
     }
@@ -344,25 +354,28 @@ mod tests {
     #[test]
     fn device_tokens_carry_the_space_they_were_consented_for() {
         let m = manager().for_space("space-a");
-        let tokens = m.issue_device_tokens("alice").unwrap();
+        let tokens = m
+            .issue_tokens("alice", &client("silverbullet-app"))
+            .unwrap();
         for token in [&tokens.access_token, &tokens.refresh_token] {
             let claims = m.authenticator.verify_jwt(token).unwrap();
             assert_eq!(claims.space.as_deref(), Some("space-a"));
         }
         assert_eq!(
-            m.verify_refresh_token(&tokens.refresh_token).as_deref(),
+            m.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app"))
+                .as_deref(),
             Some("alice"),
             "its own space redeems it"
         );
 
         let elsewhere = manager().for_space("space-b");
         assert_eq!(
-            elsewhere.verify_refresh_token(&tokens.refresh_token),
+            elsewhere.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app")),
             None,
             "another space must not redeem it"
         );
         assert_eq!(
-            manager().verify_refresh_token(&tokens.refresh_token),
+            manager().verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app")),
             None,
             "nor may an unscoped surface"
         );
@@ -402,7 +415,9 @@ mod tests {
     #[test]
     fn device_tokens_are_distinguishable_and_long_lived() {
         let m = manager();
-        let tokens = m.issue_device_tokens("alice").unwrap();
+        let tokens = m
+            .issue_tokens("alice", &client("silverbullet-app"))
+            .unwrap();
         assert_eq!(tokens.expires_in, 365 * 24 * 3600);
 
         let access = m.authenticator.verify_jwt(&tokens.access_token).unwrap();
@@ -416,13 +431,22 @@ mod tests {
     #[test]
     fn only_a_refresh_token_verifies_as_one() {
         let m = manager();
-        let tokens = m.issue_device_tokens("alice").unwrap();
+        let tokens = m
+            .issue_tokens("alice", &client("silverbullet-app"))
+            .unwrap();
         assert_eq!(
-            m.verify_refresh_token(&tokens.refresh_token).as_deref(),
+            m.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app"))
+                .as_deref(),
             Some("alice")
         );
-        assert_eq!(m.verify_refresh_token(&tokens.access_token), None);
-        assert_eq!(m.verify_refresh_token("not-a-jwt"), None);
+        assert_eq!(
+            m.verify_refresh_token(&tokens.access_token, &client("silverbullet-app")),
+            None
+        );
+        assert_eq!(
+            m.verify_refresh_token("not-a-jwt", &client("silverbullet-app")),
+            None
+        );
     }
 
     #[test]
@@ -433,12 +457,18 @@ mod tests {
         let m = manager().with_credential_version(Arc::new(move |_u| {
             format!("v{}", seen.load(Ordering::SeqCst))
         }));
-        let tokens = m.issue_device_tokens("alice").unwrap();
+        let tokens = m
+            .issue_tokens("alice", &client("silverbullet-app"))
+            .unwrap();
         assert_eq!(
-            m.verify_refresh_token(&tokens.refresh_token).as_deref(),
+            m.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app"))
+                .as_deref(),
             Some("alice")
         );
         bumps.store(1, Ordering::SeqCst);
-        assert_eq!(m.verify_refresh_token(&tokens.refresh_token), None);
+        assert_eq!(
+            m.verify_refresh_token(&tokens.refresh_token, &client("silverbullet-app")),
+            None
+        );
     }
 }

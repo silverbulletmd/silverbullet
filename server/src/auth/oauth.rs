@@ -5,15 +5,22 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::Engine;
 use sha2::{Digest, Sha256};
 
-pub const CLIENT_ID: &str = "silverbullet-app";
+use super::client_id::ClientId;
+
 pub const CODE_TTL_SECS: u64 = 60;
 
-#[derive(Debug)]
+/// The errors of the OAuth endpoints (RFC 6749 §5.2, and RFC 8628 §3.5 for
+/// the device flow)
+#[derive(Debug, PartialEq, Eq)]
 pub enum OAuthError {
     InvalidRequest(&'static str),
     InvalidGrant(&'static str),
     UnauthorizedClient,
     UnsupportedGrantType,
+    AuthorizationPending,
+    SlowDown,
+    ExpiredToken,
+    AccessDenied,
 }
 
 impl OAuthError {
@@ -23,14 +30,22 @@ impl OAuthError {
             Self::InvalidGrant(_) => "invalid_grant",
             Self::UnauthorizedClient => "unauthorized_client",
             Self::UnsupportedGrantType => "unsupported_grant_type",
+            Self::AuthorizationPending => "authorization_pending",
+            Self::SlowDown => "slow_down",
+            Self::ExpiredToken => "expired_token",
+            Self::AccessDenied => "access_denied",
         }
     }
 
     pub fn description(&self) -> &'static str {
         match self {
             Self::InvalidRequest(d) | Self::InvalidGrant(d) => d,
-            Self::UnauthorizedClient => "unknown client_id",
+            Self::UnauthorizedClient => "invalid client_id, or not the one the grant was issued to",
             Self::UnsupportedGrantType => "unsupported grant_type",
+            Self::AuthorizationPending => "the user has not approved the request yet",
+            Self::SlowDown => "too many requests, slow down",
+            Self::ExpiredToken => "the device code expired",
+            Self::AccessDenied => "the user denied the request",
         }
     }
 }
@@ -75,7 +90,7 @@ pub struct CodeGrant {
     pub username: String,
     pub code_challenge: String,
     pub redirect_uri: String,
-    pub client_id: String,
+    pub client_id: ClientId,
 }
 
 struct StoredGrant {
@@ -120,7 +135,7 @@ impl AuthCodeStore {
         code: &str,
         verifier: &str,
         redirect_uri: &str,
-        client_id: &str,
+        client_id: &ClientId,
     ) -> Result<String, OAuthError> {
         self.consume_at(code, verifier, redirect_uri, client_id, now_secs())
     }
@@ -130,7 +145,7 @@ impl AuthCodeStore {
         code: &str,
         verifier: &str,
         redirect_uri: &str,
-        client_id: &str,
+        client_id: &ClientId,
         now: u64,
     ) -> Result<String, OAuthError> {
         // Removed before it is validated: a code that fails PKCE has been
@@ -144,7 +159,7 @@ impl AuthCodeStore {
         if now.saturating_sub(stored.issued_at) > CODE_TTL_SECS {
             return Err(OAuthError::InvalidGrant("code expired"));
         }
-        if stored.grant.client_id != client_id {
+        if &stored.grant.client_id != client_id {
             return Err(OAuthError::UnauthorizedClient);
         }
         if stored.grant.redirect_uri != redirect_uri {
@@ -168,12 +183,16 @@ fn now_secs() -> u64 {
 mod tests {
     use super::*;
 
+    fn app() -> ClientId {
+        ClientId::parse(crate::auth::client_id::APP).unwrap()
+    }
+
     fn grant() -> CodeGrant {
         CodeGrant {
             username: "alice".into(),
             code_challenge: challenge_for("verifier-abc"),
             redirect_uri: "http://127.0.0.1:51234/cb".into(),
-            client_id: CLIENT_ID.into(),
+            client_id: app(),
         }
     }
 
@@ -208,22 +227,12 @@ mod tests {
         let code = store.issue(grant());
         assert_eq!(
             store
-                .consume(
-                    &code,
-                    "verifier-abc",
-                    "http://127.0.0.1:51234/cb",
-                    CLIENT_ID
-                )
+                .consume(&code, "verifier-abc", "http://127.0.0.1:51234/cb", &app())
                 .unwrap(),
             "alice"
         );
         assert!(store
-            .consume(
-                &code,
-                "verifier-abc",
-                "http://127.0.0.1:51234/cb",
-                CLIENT_ID
-            )
+            .consume(&code, "verifier-abc", "http://127.0.0.1:51234/cb", &app())
             .is_err());
     }
 
@@ -232,16 +241,11 @@ mod tests {
         let store = AuthCodeStore::new();
         let c1 = store.issue(grant());
         assert!(store
-            .consume(
-                &c1,
-                "wrong-verifier",
-                "http://127.0.0.1:51234/cb",
-                CLIENT_ID
-            )
+            .consume(&c1, "wrong-verifier", "http://127.0.0.1:51234/cb", &app())
             .is_err());
         let c2 = store.issue(grant());
         assert!(store
-            .consume(&c2, "verifier-abc", "http://127.0.0.1:9999/cb", CLIENT_ID)
+            .consume(&c2, "verifier-abc", "http://127.0.0.1:9999/cb", &app())
             .is_err());
         let c3 = store.issue(grant());
         assert!(store
@@ -249,7 +253,7 @@ mod tests {
                 &c3,
                 "verifier-abc",
                 "http://127.0.0.1:51234/cb",
-                "someone-else"
+                &ClientId::parse("someone-else").unwrap()
             )
             .is_err());
     }
@@ -263,7 +267,7 @@ mod tests {
                 &code,
                 "verifier-abc",
                 "http://127.0.0.1:51234/cb",
-                CLIENT_ID,
+                &app(),
                 1_000 + CODE_TTL_SECS + 1,
             )
             .is_err());
@@ -274,15 +278,10 @@ mod tests {
         let store = AuthCodeStore::new();
         let code = store.issue(grant());
         assert!(store
-            .consume(&code, "wrong", "http://127.0.0.1:51234/cb", CLIENT_ID)
+            .consume(&code, "wrong", "http://127.0.0.1:51234/cb", &app())
             .is_err());
         assert!(store
-            .consume(
-                &code,
-                "verifier-abc",
-                "http://127.0.0.1:51234/cb",
-                CLIENT_ID
-            )
+            .consume(&code, "verifier-abc", "http://127.0.0.1:51234/cb", &app())
             .is_err());
     }
 }
