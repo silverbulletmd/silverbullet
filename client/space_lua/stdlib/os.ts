@@ -1,3 +1,4 @@
+import { untagNumber } from "../numeric.ts";
 import { LuaBuiltinFunction, LuaTable } from "../runtime.ts";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -287,12 +288,13 @@ export const osApi = new LuaTable({
           throw new Error("time(): day is required");
         }
 
-        const year = tbl.get("year");
-        const month = tbl.get("month");
-        const day = tbl.get("day");
-        const hour = tbl.get("hour") ?? 12;
-        const min = tbl.get("min") ?? 0;
-        const sec = tbl.get("sec") ?? 0;
+        // Lua `/` yields tagged floats, even for integer values
+        const year = untagNumber(tbl.get("year"));
+        const month = untagNumber(tbl.get("month"));
+        const day = untagNumber(tbl.get("day"));
+        const hour = untagNumber(tbl.get("hour") ?? 12);
+        const min = untagNumber(tbl.get("min") ?? 0);
+        const sec = untagNumber(tbl.get("sec") ?? 0);
         const date = new Date(year, month - 1, day, hour, min, sec);
 
         return Math.floor(date.getTime() / 1000);
@@ -326,7 +328,7 @@ export const osApi = new LuaTable({
   // In POSIX and some other systems, this value is exactly $t2-t1$.
   difftime: new LuaBuiltinFunction({
     callback: (_sf, t2: number, t1: number): number => {
-      return t2 - t1;
+      return untagNumber(t2) - untagNumber(t1);
     },
     description:
       "Returns the difference in seconds from timestamp `t1` to `t2`.",
@@ -371,7 +373,7 @@ export const osApi = new LuaTable({
 
       const d =
         timestamp !== undefined && timestamp !== null
-          ? new Date(timestamp * 1000)
+          ? new Date(untagNumber(timestamp) * 1000)
           : new Date();
 
       if (fmt === "*t") {

@@ -180,3 +180,9 @@ assert(os.clock() >= 0)
 local c1 = os.clock()
 local c2 = os.clock()
 assert(c2 >= c1)
+
+-- Integer-valued results of `/` are floats in Lua; os functions must accept them
+assertEquals(os.date("!%Y-%m-%d %H:%M", 1760000000123 / 1000), "2025-10-09 08:53")
+assertEquals(os.date("!%Y-%m-%d", 1760000000 / 1), "2025-10-09")
+assertEquals(os.difftime(20 / 1, 10 / 1), 10)
+assertEquals(os.time({year = 2020 / 1, month = 1 / 1, day = 1 / 1, hour = 12 / 1}), os.time({year = 2020, month = 1, day = 1, hour = 12}))
