@@ -29,97 +29,161 @@ function share.cleanFrontmatter(text)
   })
 end
 
+-- Sets the keys of m that are present (uri, hash, mode)
 function share.setFrontmatter(m, text)
-  return index.patchFrontmatter(text, {
-    {op="set-key", path="share.uri", value=m.uri},
-    {op="set-key", path="share.hash", value=m.hash},
-    {op="set-key", path="share.mode", value=m.mode}
-  })
+  local patches = {}
+  for _, key in ipairs({"uri", "hash", "mode"}) do
+    if m[key] != nil then
+      table.insert(patches, {op="set-key", path="share." .. key, value=m[key]})
+    end
+  end
+  return index.patchFrontmatter(text, patches)
 end
 
+-- Makes sure a transport exists for uri (e.g. connects to a SilverBullet
+-- space this page was shared to from another device)
+function share.ensureTransport(uri)
+  local matches = service.discover("share:ensure", {uri = uri})
+  if matches and #matches > 0 then
+    service.invoke(matches[1], {uri = uri})
+  end
+end
 
--- Returns true if actually performed share, false if it was a no-op
-function share.sharePage(name)
-  local updateCurrent = not name
+-- The content both sides agreed on at the last push or sync, kept on this
+-- device as the base for merging
+local function baseKey(uri)
+  return "share.base:" .. uri
+end
+
+local function recordBase(uri, text)
+  clientStore.set(baseKey(uri), share.cleanFrontmatter(text))
+end
+
+-- Three-way merge on the user's own server, or nil when the texts can't be
+-- merged (conflict markers, too large) or there is no base: none recorded, or
+-- one from before the page was last shared from another device (its hash is
+-- not m.hash)
+local function mergeRemote(m, localText, remoteText)
+  local baseText = clientStore.get(baseKey(m.uri))
+  if not baseText or share.contentHash(baseText) != m.hash then
+    return nil
+  end
+  return space.mergeText(baseText, share.cleanFrontmatter(localText),
+    share.cleanFrontmatter(remoteText))
+end
+
+-- Same naming as SilverBullet sync's conflict copies
+local function saveConflictCopy(name, remoteText)
+  local copyName = name .. ".conflicted-" .. crypto.sha256(remoteText):sub(1, 8)
+  space.writePage(copyName, remoteText)
+  return copyName
+end
+
+-- One share of the page (the current one without a name). Returns "shared",
+-- "unchanged", "notified" (the user was told the outcome: a conflict) or
+-- "retry" (a sync write found the remote changed since it was read).
+local function shareOnce(name)
+  local editing = not name
   local text
-  if updateCurrent then
-    text = editor.getText()
+  if editing then
     name = editor.getCurrentPage()
+    text = editor.getText()
   else
     text = space.readPage(name)
   end
-  
   local m = index.extractFrontmatter(text).frontmatter.share
-  if not m or type(m) != "table" then
+  if type(m) != "table" then
     error("Not configured")
   end
-
-  print("Current share frontmatter", m)
-  
   local mode = m.mode or "push"
-  local oldHash = m.hash
-  local newLocalHash = share.contentHash(text)
-  local newHash = newLocalHash
 
-  if mode == "sync" then
-    local remoteText = net.readURI(m.uri, {encoding="text/markdown"})
+  local localChanged = share.contentHash(text) != m.hash
+  if mode == "push" and not localChanged then
+    return "unchanged"
+  end
+  -- Pulls (e.g. libraries) read through whatever reader matches, never
+  -- connecting
+  if mode != "pull" then
+    share.ensureTransport(m.uri)
+  end
+  -- Push never reads: the local page wins
+  local remoteText
+  local remoteChanged = false
+  if mode != "push" then
+    remoteText = net.readURI(m.uri, {encoding="text/markdown"})
     if not remoteText then
       error("Could not read " .. m.uri)
     end
-    local newRemoteHash = share.contentHash(remoteText)
-    if oldHash == newLocalHash and oldHash == newRemoteHash then
-      print("Both sides up to date: nothing to do")
-      return false
-    elseif oldHash != newLocalHash and oldHash == newRemoteHash then
-      print("Local changes, not remote one: local -> remote")
-      net.writeURI(m.uri, share.cleanFrontmatter(text))
-    elseif oldHash == newLocalHash and oldHash != newRemoteHash then
-      print("Remote changes, not local ones: remote -> local")
-      text = remoteText
-      newHash = newRemoteHash
-    else
-      print("Changes on both ends: conflict")
-      error("Conflict: not implemented yet")
+    remoteChanged = share.contentHash(remoteText) != m.hash
+  end
+  if mode == "pull" then
+    if not remoteChanged then
+      return "unchanged"
     end
-  elseif mode == "push" then
-    if oldHash == newLocalHash then
-      print("No local changes: nothing to do")
-      return false
-    else
-      print("Local changes in push mode: local -> remote")
-      net.writeURI(m.uri, share.cleanFrontmatter(text))
-    end 
-  elseif mode == "pull" then
-    local remoteText = net.readURI(m.uri, {encoding="text/markdown"})
-    if not remoteText then
-      error("Could not read " .. m.uri)
+    if localChanged and not editor.confirm("Local changes made to " .. name .. " are you ok to overwrite them with updated remote content from " .. m.uri .. "?") then
+      return "unchanged"
     end
-    local newRemoteHash = share.contentHash(remoteText)
-    if oldHash == newRemoteHash then
-      print("No remote changes: nothing to do")
-      return false
-    else
-      if oldHash != newLocalHash then
-        -- Local changes made since last pull, warn user
-        if not editor.confirm("Local changes made to " .. name .. " are you ok to overwrite them with updated remote content from " .. m.uri .. "?") then
-          return false
-        end
-      end  
-      print("Remote changes in pull mode: remote -> local")
-      text = remoteText
-      newHash = newRemoteHash
+    -- The remote wins
+    localChanged = false
+  end
+
+  local conflicted = false
+  if not localChanged and not remoteChanged then
+    -- Recorded e.g. on a device that never shared the page before
+    recordBase(m.uri, text)
+    return "unchanged"
+  elseif not localChanged then
+    text = remoteText
+  else
+    if remoteChanged then
+      local merged = mergeRemote(m, text, remoteText)
+      if not merged then
+        local copyName = saveConflictCopy(name, remoteText)
+        editor.flashNotification("Conflict: remote copy saved as " .. copyName, "error")
+        return "notified"
+      end
+      text = merged.text
+      conflicted = merged.status == "conflicted"
+    end
+    local written = net.writeURI(m.uri, share.cleanFrontmatter(text),
+      {conditional = mode == "sync"})
+    if written and written.conflict then
+      return "retry"
     end
   end
 
-  m.hash = newHash
+  m.hash = share.contentHash(text)
   m.mode = mode
   local updatedText = share.setFrontmatter(m, text)
-  if updateCurrent then
+  if editing then
     editor.setText(updatedText)
   else
     space.writePage(name, updatedText)
   end
-  return true
+  -- Pulls don't need a base (e.g. libraries)
+  if mode != "pull" then
+    recordBase(m.uri, text)
+  end
+  if conflicted then
+    editor.flashNotification("Merged with conflicts — resolve the markers, then share again", "error")
+    return "notified"
+  end
+  return "shared"
+end
+
+local results = {shared = true, unchanged = false}
+
+-- Returns true if something was shared, false if there was nothing to do,
+-- nil if the user was already notified of the outcome (conflicts)
+function share.sharePage(name)
+  local outcome = shareOnce(name)
+  if outcome == "retry" then
+    outcome = shareOnce(name)
+  end
+  if outcome == "retry" then
+    error("Conflict: the remote changed again while sharing, try again")
+  end
+  return results[outcome]
 end
 
 command.define {
@@ -131,9 +195,9 @@ command.define {
     if ok then
       if ret then
         editor.flashNotification "Share successful"
-      else
+      elseif ret == false then
         editor.flashNotification "No changes"
-      end
+      end -- nil: sharePage already notified
     else -- error
       if ret == "Not configured" then
         local data = {
@@ -146,11 +210,18 @@ command.define {
           return
         end
   
-        print("Selected", provider)
-        local m = service.invoke(provider, data)
-        if m then
+        local onboarded, m = pcall(service.invoke, provider, data)
+        if not onboarded then
+          editor.flashNotification("Error: " .. m, "error")
+        elseif m then
           editor.setText(share.setFrontmatter(m, data.text))
-          editor.flashNotification "Share complete!"
+          -- Uploads the page unless the provider already did (and set the hash)
+          local shared, err = pcall(share.sharePage)
+          if shared then
+            editor.flashNotification "Share complete!"
+          else
+            editor.flashNotification("Error: " .. err, "error")
+          end
         end
       else
         editor.flashNotification("Error: ".. ret)

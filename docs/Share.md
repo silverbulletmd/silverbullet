@@ -3,6 +3,7 @@ description: The mechanism for publishing or sharing individual pages.
 tags: maturity/beta glossary
 references:
 - libraries/Library/Std/Infrastructure/Share.md
+- docs/API/share.md
 - plugs/configuration-manager/libraries.ts
 ---
 A [[Space]] is a boundary: what lives in it sits on your server and stays there unless you decide otherwise. Often, though, some of that content needs to cross the boundary — to push it out into the world, pull it in, or even sync between different locations. This is where SilverBullet _share_ functionality comes in.
@@ -18,7 +19,9 @@ Sharing may be desirable in different directions:
 * _Pull_: pull in content from an external location and import it into your space and be able to keep pulling in new versions on demand. Use cases:
   * [[Library]] that you install
 * _Sync_: For bi-directional push and pull. Example use cases:
-  * Collaborate on a page with other SilverBullet users (not implemented yet)
+  * Collaborate on a page with other SilverBullet users
+
+In sync mode, SilverBullet remembers the content both sides last agreed on. When only one side changed, it is copied to the other. When both changed, the two versions are merged three-way; overlapping edits are kept as conflict markers for you to resolve before sharing again. If a merge isn't possible, the remote version is saved as a separate `.conflicted-` copy and nothing is overwritten. See [[API/share]] for details.
 
 # Operation
 SilverBullet has [[^Library/Std/Infrastructure/Share|infrastructural support]] to solve this problem in a general way. It leverages [[Frontmatter]], specifically the following three keys:
@@ -36,6 +39,7 @@ Subsequent shares can be done simply by running the `Share: Page` command again.
 Out of the box, sharing is supported for:
 
 * Plain `https://` URIs (_Pull_ mode only) (implemented in [[^Library/Std/Infrastructure/URI]]).
-* [[^Library/Std/Infrastructure/Github]] (`https://github.com/*` for repository files and `https://gist.github.com/*` URLs): both in _Pull_ mode, and _Push_ mode when a token is configured. Technically _Sync_ should work except that Github aggressively caches files, making this impractical.
+* [[^Library/Std/Infrastructure/Github]] (`https://github.com/*` for repository files and `https://gist.github.com/*` URLs): both in _Pull_ mode, and _Push_ mode after signing in to Github through a device code (or with a personal token configured instead). Technically _Sync_ should work except that Github aggressively caches files, making this impractical.
+* [[^Library/Std/Infrastructure/SilverBullet Share|SilverBullet space]]: pages in another SilverBullet space, in _Push_, _Pull_ and _Sync_ mode, signing in with a device code.
 
 To implement your own share provider, have a look at the implementations linked to understand how they work.
