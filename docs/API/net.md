@@ -14,7 +14,7 @@ The response table contains `ok`, `status`, `headers`, and `body`. JSON response
 
 ## URI services
 
-`net.readURI` and `net.writeURI` dispatch to the best service registered for the URI. Pass `{encoding = "text/markdown"}` to `net.readURI` when a service should force a particular result encoding.
+`net.readURI` and `net.writeURI` dispatch to the best service registered for the URI. Pass `{encoding = "text/markdown"}` to `net.readURI` when a service should force a particular result encoding. Options passed to `net.writeURI` reach the service too, e.g. `{conditional = true}` for a write that should fail when the remote changed since it was last read (see [[API/share]]).
 
 <!--#lua spacelua.renderApiDocumentation("net") -->
 ## net.proxyFetch
@@ -49,7 +49,7 @@ Reads content from a URI using the best matching service.
 
 ## net.writeURI
 
-`net.writeURI(uri, content)`
+`net.writeURI(uri, content, options?)`
 
 Writes content to a URI using the best matching service.
 
@@ -57,6 +57,7 @@ Writes content to a URI using the best matching service.
 
 - `uri` (`string`) — URI to write.
 - `content` (`string|userdata`) — Text or binary content to write.
+- `options?` (`table`) — Optional service-specific values, such as conditional = true for a write that fails when the remote changed since it was last read.
 
 **Returns:**
 

@@ -6,68 +6,65 @@ import type {
 import { fsEndpoint } from "../../spaces/constants.ts";
 import { LuaNativeJSFunction, LuaTable } from "../runtime.ts";
 
+export async function proxyFetch(
+  url: string,
+  options: ProxyFetchRequest = {},
+): Promise<ProxyFetchResponse> {
+  // A table body is sent as JSON
+  const requestBody =
+    options.body &&
+    typeof options.body !== "string" &&
+    !(options.body instanceof Uint8Array)
+      ? JSON.stringify(options.body)
+      : options.body;
+  const resp = await client.httpSpacePrimitives.authenticatedFetch(
+    buildProxyUrl(client, url),
+    {
+      method: options.method,
+      headers: buildProxyHeaders(options.headers),
+      body: requestBody,
+    },
+  );
+  if (resp.status !== 200) {
+    return {
+      ok: false,
+      status: resp.status,
+      headers: extractProxyHeaders(resp.headers),
+      body: await resp.text(),
+    };
+  }
+  // Read as ArrayBuffer first to safely handle empty responses (e.g.
+  // PUT/DELETE returning 204 with Content-Type: application/json).
+  // resp.arrayBuffer() never throws on an empty body, whereas
+  // resp.json() would throw a SyntaxError.
+  const rawBytes = new Uint8Array(await resp.arrayBuffer());
+  let body: any;
+  const contentTypeHeader =
+    options.responseEncoding || resp.headers.get("x-proxy-header-content-type");
+  const statusCode = +(resp.headers.get("x-proxy-status-code") || "200");
+  if (rawBytes.length === 0) {
+    body = null;
+  } else if (contentTypeHeader?.startsWith("application/json")) {
+    body = JSON.parse(new TextDecoder().decode(rawBytes));
+  } else if (
+    contentTypeHeader?.startsWith("application/xml") ||
+    contentTypeHeader?.startsWith("text/")
+  ) {
+    body = new TextDecoder().decode(rawBytes);
+  } else {
+    body = rawBytes;
+  }
+  return {
+    ok: resp.ok,
+    status: statusCode,
+    headers: extractProxyHeaders(resp.headers),
+    body: body,
+  };
+}
+
 export const netApi = new LuaTable({
   proxyFetch: new LuaNativeJSFunction({
-    callback: async (
-      url: string,
-      options: ProxyFetchRequest = {},
-    ): Promise<ProxyFetchResponse> => {
-      if (
-        options?.body &&
-        typeof options.body !== "string" &&
-        !(options.body instanceof Uint8Array)
-      ) {
-        options.body = JSON.stringify(options.body);
-      }
-      const fetchOptions = options
-        ? {
-            method: options.method,
-            headers: {} as Record<string, string>,
-            body: options.body,
-          }
-        : {};
-      fetchOptions.headers = buildProxyHeaders(options.headers);
-      const resp = await client.httpSpacePrimitives.authenticatedFetch(
-        buildProxyUrl(client, url),
-        fetchOptions,
-      );
-      if (resp.status !== 200) {
-        return {
-          ok: false,
-          status: resp.status,
-          headers: extractProxyHeaders(resp.headers),
-          body: await resp.text(),
-        };
-      }
-      // Read as ArrayBuffer first to safely handle empty responses (e.g.
-      // PUT/DELETE returning 204 with Content-Type: application/json).
-      // resp.arrayBuffer() never throws on an empty body, whereas
-      // resp.json() would throw a SyntaxError.
-      const rawBytes = new Uint8Array(await resp.arrayBuffer());
-      let body: any;
-      const contentTypeHeader =
-        options.responseEncoding ||
-        resp.headers.get("x-proxy-header-content-type");
-      const statusCode = +(resp.headers.get("x-proxy-status-code") || "200");
-      if (rawBytes.length === 0) {
-        body = null;
-      } else if (contentTypeHeader?.startsWith("application/json")) {
-        body = JSON.parse(new TextDecoder().decode(rawBytes));
-      } else if (
-        contentTypeHeader?.startsWith("application/xml") ||
-        contentTypeHeader?.startsWith("text/")
-      ) {
-        body = new TextDecoder().decode(rawBytes);
-      } else {
-        body = rawBytes;
-      }
-      return {
-        ok: resp.ok,
-        status: statusCode,
-        headers: extractProxyHeaders(resp.headers),
-        body: body,
-      };
-    },
+    callback: proxyFetch,
     description:
       "Performs an HTTP request through the SilverBullet server to avoid browser CORS restrictions.",
     signatures: ["net.proxyFetch(url, options?)"],
@@ -115,20 +112,31 @@ export const netApi = new LuaTable({
     see: "API/net",
   }),
   writeURI: new LuaNativeJSFunction({
-    callback: (uri: string, content: string | Uint8Array) => {
+    callback: (
+      uri: string,
+      content: string | Uint8Array,
+      options: Record<string, unknown> = {},
+    ) => {
       return client.clientSystem.serviceRegistry.invokeBestMatch(
         `net.writeURI:${uri}`,
-        { uri, content },
+        { ...options, uri, content },
       );
     },
     description: "Writes content to a URI using the best matching service.",
-    signatures: ["net.writeURI(uri, content)"],
+    signatures: ["net.writeURI(uri, content, options?)"],
     parameters: [
       { name: "uri", type: "string", description: "URI to write." },
       {
         name: "content",
         type: "string|userdata",
         description: "Text or binary content to write.",
+      },
+      {
+        name: "options",
+        type: "table",
+        description:
+          "Optional service-specific values, such as conditional = true for a write that fails when the remote changed since it was last read.",
+        optional: true,
       },
     ],
     returns: [{ description: "Result returned by the matching service." }],
