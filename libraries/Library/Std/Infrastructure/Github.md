@@ -15,12 +15,20 @@ As well as [URI](https://docs.silverbullet.md/URI) support (both read and write)
 * `ghr:username/repo@version/path` (github release support)
 
 # Configuration
-If you only want to read from Github URLs, no configuration is required.
+If you only want to read public content from Github URLs, no configuration is required. Reads never ask you to sign in; if you are already connected (or have a token configured) it is used, so private repos you have access to can be read too. When GitHub rejects that token (expired or revoked), the read is retried without it.
 
-To _write_ to Github repos and gists, you need to get a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo and gists permissions). Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page.
+To _write_ to Github repos and gists you need to connect to Github. This happens automatically the first time you share or access something that needs it: a device code is shown, which you enter on github.com to authorize SilverBullet. The resulting token is stored on this device only (see {[Credentials: List]}) and can be cleared with {[Credentials: Clear]}.
+
+Optionally, you can use a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo and gists permissions) instead. Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page. When set (and you have not connected through the device flow), it is used without asking you to sign in.
 
 ```lua
 config.set("github.token", "your token")
+```
+
+To use your own Github OAuth app for the sign-in instead of the default one, set its client ID:
+
+```lua
+config.set("github.clientId", "your client id")
 ```
 
 In addition, to push to Github repos you need to configure a name and email that will be part of the commit:
@@ -51,14 +59,45 @@ config.define("github", {
       description = "Author email for Git commits",
       ui = { category = "GitHub", label = "Author email", priority = 2 },
     },
+    clientId = {
+      type = "string",
+      description = "Client ID of a GitHub OAuth app (device flow), overrides the default",
+      ui = { category = "GitHub", label = "OAuth client ID", priority = 0 },
+    },
     token = {
       type = "string",
-      description = "Personal access token for GitHub API",
+      description = "Personal access token for GitHub API (optional alternative to signing in)",
       ui = { category = "GitHub", label = "GitHub token", priority = 1, inputType = "password" },
     },
   },
   additionalProperties = false,
 })
+```
+
+## Auth provider
+```space-lua
+-- priority: 5
+-- GitHub tokens do not expire, so there is no refresh
+auth.defineProvider {
+  id = "github",
+  connect = function()
+    local token = oauth.deviceFlow {
+      deviceCodeUrl = "https://github.com/login/device/code",
+      tokenUrl = "https://github.com/login/oauth/access_token",
+      clientId = config.get("github.clientId") or "Ov23liZmRh8sR6UeL8fQ",
+      scope = "repo gist",
+    }
+    return {access_token = token.access_token}
+  end,
+  configured = function()
+    local token = config.get("github.token")
+    return token and {access_token = token}
+  end,
+  -- Only Authorization: raw and download hosts reject other headers
+  headers = function(cred)
+    return {Authorization = "Bearer " .. cred.access_token}
+  end,
+}
 ```
 
 ## Github Repo Files
@@ -84,25 +123,18 @@ function github.buildURI(repo, branch, path)
   return "https://github.com/" .. repo .. "/blob/" .. branch .. "/" .. path
 end
 
+local apiHeaders = {Accept = "application/vnd.github+json"}
+
+-- An API request that signs in when needed
 function github.request(url, method, body)
-  local token = config.get("github.token")
-  if not token then
-    error("github.token config not set")
-  end
-  return net.proxyFetch(url, {
+  return auth.fetch("github", url, {
     method = method,
-    headers = {
-      Authorization = "token " .. token,
-      Accept = "application/vnd.github+json"
-    },
-    body = body
-  })
+    headers = apiHeaders,
+    body = body,
+  }, true)
 end
 
 function github.checkConfig()
-  if not config.get("github.token") then
-    error("github.token needs to be set")
-  end
   if not config.get("github.name") then
     error("github.name needs to be set")
     return
@@ -232,7 +264,7 @@ service.define {
     else
       url = "https://api.github.com/repos/" .. owner .. "/" .. repoClean .. "/releases/tags/" .. version
     end
-    local res = net.proxyFetch(url)
+    local res = auth.fetch("github", url, {headers = apiHeaders})
     if res.status != 200 then
       print("Could not fetch", url, res)
       return
@@ -240,9 +272,9 @@ service.define {
     local releaseInfo = res.body
     version = releaseInfo.tag_name
     local url = "https://github.com/" .. owner .. "/" .. repoClean .. "/releases/download/" .. version .. "/" .. path
-    local res = net.proxyFetch(url, {responseEncoding=data.encoding})
+    local res = auth.fetch("github", url, {responseEncoding = data.encoding})
     if res.status != 200 then
-      print("Failed to fetch", ur, res)
+      print("Failed to fetch", url, res)
       return nil
     end
     return res.body
@@ -264,7 +296,7 @@ service.define {
       branch = "main"
     end
     local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
-    local res = net.proxyFetch(url)
+    local res = auth.fetch("github", url)
     if res.status != 200 then
       return nil
     end
@@ -280,7 +312,7 @@ service.define {
   run = function(data)
     local owner, repo, branch, path = data.uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
     local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
-    local res = net.proxyFetch(url)
+    local res = auth.fetch("github", url)
     if res.status != 200 then
       return nil
     end
@@ -340,7 +372,9 @@ service.define {
   match = {priority=10},
   run = function(data)
     local gistId = extractGistId(data.uri)
-    local resp = net.proxyFetch("https://api.github.com/gists/" .. gistId)
+    local resp = auth.fetch("github", "https://api.github.com/gists/" .. gistId, {
+      headers = {Accept = "application/vnd.github+json"},
+    })
     if resp.status != 200 then
       print("Failed to fetch gist", resp)
       return nil
