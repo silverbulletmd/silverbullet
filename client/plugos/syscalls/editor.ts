@@ -1187,7 +1187,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         _ctx,
         options: ChooseVersionOptions,
       ): Promise<string | undefined> => {
-        return client.ui.chooseVersion(options);
+        // An empty Lua table arrives as {}
+        const choices = Array.isArray(options.choices) ? options.choices : [];
+        return client.ui.chooseVersion({ ...options, choices });
       },
       description:
         "Shows a line diff of two versions of a text and lets the user pick one of the given choices.",

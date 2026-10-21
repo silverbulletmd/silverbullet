@@ -167,3 +167,19 @@ test("editor.chooseVersion forwards the options to the UI and returns its answer
   ).resolves.toBe("keep-mine");
   expect(chooseVersion).toHaveBeenCalledWith(options);
 });
+
+test("editor.chooseVersion takes an empty Lua table of choices as none", async () => {
+  const chooseVersion = vi.fn(async () => undefined);
+  const client = { ui: { chooseVersion } } as unknown as Client;
+  const syscalls = editorSyscalls(client) as Record<string, any>;
+  await syscalls["editor.chooseVersion"].callback(
+    {},
+    { title: "T", mine: "a", theirs: "b", choices: {} },
+  );
+  expect(chooseVersion).toHaveBeenCalledWith({
+    title: "T",
+    mine: "a",
+    theirs: "b",
+    choices: [],
+  });
+});

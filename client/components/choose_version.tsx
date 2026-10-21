@@ -1,4 +1,5 @@
 import { Button } from "@silverbulletmd/silverbullet/ui";
+import { useMemo } from "preact/hooks";
 import type { ChooseVersionOptions } from "../../plug-api/syscalls/editor.ts";
 import { lineDiff } from "../lib/line_diff.ts";
 import { AlwaysShownModal } from "./basic_modals.tsx";
@@ -10,7 +11,10 @@ export function ChooseVersionModal({
   options: ChooseVersionOptions;
   callback: (choice: string | undefined) => void;
 }) {
-  const diff = lineDiff(options.mine, options.theirs);
+  const diff = useMemo(
+    () => lineDiff(options.mine, options.theirs),
+    [options.mine, options.theirs],
+  );
   return (
     <AlwaysShownModal onCancel={() => callback(undefined)}>
       <div className="sb-prompt sb-choose-version">
