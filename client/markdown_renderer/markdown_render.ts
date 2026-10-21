@@ -515,11 +515,19 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       };
     }
 
-    case "Table":
+    case "Table": {
+      // Normalize the header before any rendering: the parser drops blank
+      // header cells, and normalizing later (in TableRow) is too late,
+      // because the header is rendered first.
+      const header = t.children?.find((c) => c.type === "TableHeader");
+      if (header) {
+        normalizeTableRow(header);
+      }
       return {
         name: "table",
         body: justifiedTableRender(cleanTags(mapRender(t.children!)), t),
       };
+    }
     case "TableHeader":
       return {
         name: "thead",
