@@ -1,25 +1,25 @@
-import { waitForLogout } from "./logout_state.ts";
-import { logoutInProgress } from "./logout.ts";
-import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import {
   notAuthenticatedError,
   offlineError,
 } from "@silverbulletmd/silverbullet/constants";
-import { initLogger } from "./lib/logger.ts";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
 import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
+import { initLogger } from "./lib/logger.ts";
+import { logoutInProgress } from "./logout.ts";
+import { waitForLogout } from "./logout_state.ts";
 import {
   flushCachesAndUnregisterServiceWorker,
   unregisterServiceWorkers,
 } from "./service_worker/util.ts";
 import "./lib/polyfills.ts";
-import type { BootConfig } from "./types/ui.ts";
-import { BoxProxy } from "./lib/box_proxy.ts";
 import { exportKey, importKey } from "@silverbulletmd/silverbullet/lib/crypto";
+import { BoxProxy } from "./lib/box_proxy.ts";
+import type { BootConfig } from "./types/ui.ts";
 import "./debug.ts";
 import { recordMark } from "./lib/perf.ts";
-import { consoleLog } from "./workbench/console_log.ts";
+import { consoleLog } from "./workbench/console/console_log.ts";
 
 // Initialize the runtime-bridge namespace. `??=` preserves any value an
 // earlier init script may have already installed (desktop wrapper does this)

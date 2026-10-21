@@ -19,7 +19,7 @@ Each plug runs in its own _sandboxed environment_ and communicates with SB via _
 These days, plugs are distributed as assets attached to [[Library|libraries]], ending in a file name with `.plug.js`.
 
 # Available plugs
-You can discover libraries and plugs via the [SilverBullet ‘Plugs and Libraries’](https://community.silverbullet.md/c/plugs/14) or through [[Configuration Manager#Libraries]].
+You can discover libraries and plugs via the [SilverBullet ‘Plugs and Libraries’](https://community.silverbullet.md/c/plugs/14) or through [[Workbench#Libraries]].
 
 # Development
 Want to develop your own plugs? Have a look at [[Plugs/Development]].

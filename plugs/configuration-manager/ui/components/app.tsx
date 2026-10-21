@@ -5,19 +5,16 @@ import { useCfg } from "../cfg_context.tsx";
 import { EditorsContext } from "../editors_context.tsx";
 import { useConfigEditor } from "../use_config_editor.ts";
 import { useShortcutEditor } from "../use_shortcut_editor.ts";
-import { useLibrariesEditor } from "../use_libraries_editor.ts";
 import { useSave } from "../use_save.ts";
 import { useGlobalEscape } from "../use_global_escape.ts";
 import { ConfigurationTab } from "./configuration_tab.tsx";
 import { ShortcutsTab } from "./shortcuts_tab.tsx";
-import { LibrariesTab } from "./libraries_tab.tsx";
 import { Alert, Button, Tabs } from "@silverbulletmd/silverbullet/ui";
 import type { TabId } from "../types.ts";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "configuration", label: "Configuration" },
   { id: "shortcuts", label: "Keyboard Shortcuts" },
-  { id: "libraries", label: "Libraries" },
 ];
 
 async function close() {
@@ -108,24 +105,10 @@ function SaveFooter({
   );
 }
 
-function LibrariesFooter() {
-  return (
-    <div id="cfg-footer">
-      <span id="cfg-edit-config" class="lib-footer-note">
-        Library changes are applied immediately.
-      </span>
-      <Button onClick={close} shortcut="esc">
-        Close
-      </Button>
-    </div>
-  );
-}
-
 export function App() {
   const { cfg } = useCfg();
   const config = useConfigEditor();
   const shortcuts = useShortcutEditor();
-  const libraries = useLibrariesEditor(cfg.libraries);
   const {
     save,
     saving,
@@ -137,27 +120,17 @@ export function App() {
   useGlobalEscape(useCallback(() => close(), []));
 
   return (
-    <EditorsContext.Provider value={{ config, shortcuts, libraries }}>
+    <EditorsContext.Provider value={{ config, shortcuts }}>
       <Header tab={tab} setTab={setTab} />
       <div id="cfg-content">
-        {tab === "configuration" ? (
-          <ConfigurationTab />
-        ) : tab === "shortcuts" ? (
-          <ShortcutsTab />
-        ) : (
-          <LibrariesTab />
-        )}
+        {tab === "configuration" ? <ConfigurationTab /> : <ShortcutsTab />}
       </div>
-      {tab === "libraries" ? (
-        <LibrariesFooter />
-      ) : (
-        <SaveFooter
-          saving={saving}
-          save={save}
-          error={saveError}
-          dismissError={dismissError}
-        />
-      )}
+      <SaveFooter
+        saving={saving}
+        save={save}
+        error={saveError}
+        dismissError={dismissError}
+      />
     </EditorsContext.Provider>
   );
 }

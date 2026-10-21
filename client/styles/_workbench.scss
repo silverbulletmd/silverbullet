@@ -1,3 +1,5 @@
+@use "workbench_rows" as rows;
+
 // The navigator's body scrolls rows; a native view scrolls its own log instead
 .sb-nav-root-native .sb-nav-body {
   display: flex;
@@ -526,8 +528,7 @@
   }
 
   .sb-wbh-count {
-    color: var(--subtle-color);
-    font-weight: normal;
+    @include rows.count;
   }
 
   .sb-wbh-hint {
@@ -550,21 +551,7 @@
   }
 
   .sb-wbh-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 20px;
-    align-items: center;
-    gap: 8px;
-    padding: 3px 10px 3px 32px;
-    border-bottom: 1px solid var(--ui-surface-border-color);
-    line-height: 1.5;
-
-    &:hover {
-      background-color: var(--ui-surface-hover-background-color);
-
-      .sb-wb-menu {
-        opacity: 1;
-      }
-    }
+    @include rows.list-row(3px 10px 3px 32px);
   }
 
   .sb-wbh-main {

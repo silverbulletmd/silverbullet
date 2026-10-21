@@ -26,7 +26,7 @@ Text documents up to 5 MiB are edited in the same CodeMirror editor used for pag
 Safe images can use the built-in browser image fallback when no plug claims their extension. Audio and video open with native controls only when the browser reports support for their content type.
 
 # Available editors
-Optional document-editor plugs can replace the built-in fallback for their declared extensions. These editors are installable through the [[Configuration Manager#Libraries|Library Manager]].
+Optional document-editor plugs can replace the built-in fallback for their declared extensions. These editors are installable through the [[Workbench#Libraries|Library Manager]].
 
 - [PDF viewer](https://github.com/MrMugame/silverbullet-pdf/)
 - [Excalidraw](https://github.com/LogeshG5/silverbullet-excalidraw)

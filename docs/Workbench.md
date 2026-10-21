@@ -1,7 +1,7 @@
 ---
-description: "The panel where you shape and understand your space: an overview of your space and its health, browse your objects and build queries over them, a Lua console with a unified log, and overviews of your space-lua scripts and space-style styles."
+description: "The panel where you shape and understand your space: an overview of your space and its health, browse your objects and build queries over them, a Lua console with a unified log, overviews of your space-lua scripts and space-style styles, and a manager for your libraries."
 references:
-- client/workbench/*
+- client/workbench/**
 - client/navigator/views/workbench.ts
 ---
 The workbench is where you shape and understand your space: look through your data, build queries over it, try out [[Space Lua]], and see how your scripts and styles loaded.
@@ -15,16 +15,17 @@ Ultimately it will contain many things, but for now it covers the following:
 * [[#Console]]: everything your space logs, plus a [[Space Lua]] REPL.
 * [[#Scripts]]: every `space-lua` block in your space, and how loading it went.
 * [[#Styles]]: every `space-style` block in your space, and whether the browser could make sense of it.
+* [[#Libraries]]: install, update and remove [[Library|libraries]] and [[Repository|repositories]], and check what has an update.
 * [[#Health]]: problems in your space, such as broken links, failed scripts, merge conflicts and (on demand) lint errors.
 
 # Opening the workbench
 The workbench is a panel that opens at the bottom of the window. Like other panels, you can drag its top edge to resize it, and move it to the left or right sidebar, or open it as a large modal window, with its dock menu. On a phone it takes the full height of the screen instead, apart from a strip of your page. These commands open it:
 
 * ${widgets.commandButton("Workbench: Toggle")} (Cmd-Alt-j on Mac, Ctrl-Alt-j elsewhere): opens the workbench, focuses it when it’s open but you’re working elsewhere, and closes it when it already has focus.
-* ${widgets.commandButton("Workbench: Overview")}, ${widgets.commandButton("Workbench: Query")}, ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")}, ${widgets.commandButton("Workbench: Styles")} and ${widgets.commandButton("Workbench: Health")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
+* ${widgets.commandButton("Workbench: Overview")}, ${widgets.commandButton("Workbench: Query")}, ${widgets.commandButton("Workbench: Console")}, ${widgets.commandButton("Workbench: Scripts")}, ${widgets.commandButton("Workbench: Styles")}, ${widgets.commandButton("Workbench: Libraries")} and ${widgets.commandButton("Workbench: Health")}: open the workbench on that tab, or switch an open workbench to it. These never close the panel.
 * The `/Query…` slash command, typed in a page: opens the [[#Query]] tab with its query editor showing, to build a query that goes where you typed it.
 
-The tabs are, in order: Overview, Query, Console, Scripts, Styles and Health. It opens on Overview the first time, and after that on the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
+The tabs are, in order: Overview, Query, Console, Scripts, Styles, Libraries and Health. It opens on Overview the first time, and after that on the tab you last picked. Switching tabs keeps each tab’s state, such as a half-typed line in the REPL.
 
 # Overview
 The Overview tab is the default, and shows your space at a glance. It is quick to open: the counts show first, and the revision-based cards fill in as they arrive. Counts update as your space changes; activity and Git sync update when the tab becomes visible and every minute while it is. Cards:
@@ -155,6 +156,46 @@ The bar at the bottom shows the query; *Show* expands it.
 To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s ⋯ menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. The query editor opens with the query taken apart into its rows: a filter the builder could have written becomes that filter again, and any other condition, order or column stays as Lua, in an *Expression*. The query keeps its own variable name, or none.
 
 Some queries don’t fit the builder, and say why instead of opening: a query over something other than one `index.*()` collection (such as `index.pages()`, or the older `index.tag "page"`, which is rewritten as `index.pages()`), an `offset`, a `having`, grouping by anything but fields, an `order by` with `using`, or a select other than a table with named columns or a template.
+
+# Libraries
+The Libraries tab manages the [[Library|libraries]] in your space. In a read-only space it only shows what's there: installing, updating, removing and checking for updates are hidden, with a note saying why (a read-only server doesn't reach other servers, so there is nothing to check against). It reloads every time you show the tab, so what you see matches your space. The toolbar has:
+
+* **Filter libraries**: narrows installed libraries by name and available ones by name, description and page.
+* **Install…**: asks for a library or plug URI (`https://…` or `github:…`) and installs it. For a plug (a URI ending in `.plug.js`) it also asks where to save it.
+* **Add repository…**: asks for a [[Repository]] URI and the page to put it on, then adds it so its libraries show up under Available.
+* **Check for updates**: compares each installed library and repository with its source, and shows the result beside it (see below).
+* **Update all**: updates every installed library that can be updated, with progress. It only shows when there is something to update.
+
+Below it are three sections, each with its own error and info banner:
+
+* **Installed**: the libraries you installed, plus plugs that no library brought along. Built-in libraries (on `Library/Std/` pages, or without a share URI) are marked *built-in* and can’t be updated or removed. Libraries in dev mode are marked *dev mode* and are left alone, too. Click a row to open its page.
+* **Available**: the libraries your repositories offer, grouped by repository, with the recommended Std repository first. **Install** puts one in your space.
+* **Repositories**: the [[Repository|repositories]] you added, with **Update all** to refresh all of them; any that fail are listed with the reason. The built-in Std repository is read-only.
+
+An installed library or repository row shows its share URI. Its ⋯ menu offers:
+
+* *Update*: pulls the latest version from its source. When you edited a library here and its source changed too, it asks before replacing your edits.
+* *Revert*: in place of *Update* when a check found a library **changed locally** (edited here, unchanged at its source): discards your edits and restores the installed version, after asking.
+* *Open page*: opens its page, the same as clicking the row.
+* *Copy URI*: copies its share URI.
+* *Remove*: removes it, after asking.
+
+Plugs only offer *Remove*.
+
+## Checking for updates
+**Check for updates** reads the source of every library you installed (not built-in or dev-mode ones) and every repository you added, and labels each one:
+
+* **up to date**: nothing changed.
+* **update available**: its source has changed (or differs from your copy, for a library installed before SilverBullet kept track of changes).
+* **update available, changed locally**: its source has changed, and so have you. Updating needs your attention.
+* **changed locally**: you edited it, its source didn’t change.
+* **missing on remote**: its source no longer has this page.
+* **check failed**: its source couldn’t be read, such as when you’re offline. Hover the label for the reason. The other rows still get their label.
+
+The footer counts libraries, repositories and available libraries, and shows when you last checked. A label stays until you update or remove that row, or check again; labels of rows that are gone disappear when the list reloads.
+
+## Commands
+${widgets.commandButton("Libraries: Manager")} (also the **Libraries...** menu item) and ${widgets.commandButton("Library: Manager")} open the workbench on this tab. ${widgets.commandButton("Library: Install")}, ${widgets.commandButton("Library: Add Repository")}, ${widgets.commandButton("Library: Update All")} and ${widgets.commandButton("Library: Update All Repositories")} open it too, and then start that action. They work while the workbench is closed.
 
 # Health
 The Health tab lists problems in your space in one place. The tab's label shows a count of errors, so you notice a real problem from any tab. It counts failed scripts, Git conflicts and Git sync errors, plus each error from a finished space-wide lint once per page and line. Space-wide lint errors on a page whose script already failed aren't counted again, and neither are conflict markers on a page that already has a Git conflict. Click a problem to open its page.

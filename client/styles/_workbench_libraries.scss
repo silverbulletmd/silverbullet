@@ -1,0 +1,277 @@
+@use "workbench_rows" as rows;
+
+// The Libraries tab: three sections of rows (Installed, Repositories) and
+// cards (Available), under one toolbar
+.sb-workbench.sb-wb-libraries {
+  .sb-workbench-body {
+    font-family: var(--ui-font);
+  }
+
+  // A phone's toolbar would otherwise scroll sideways past four buttons:
+  // the filter takes its own line and the buttons wrap under it. Keep 600px
+  // in step with `MOBILE_MEDIA_QUERY` in `client/lib/mobile.ts`.
+  @media only screen and (max-width: 600px) {
+    .sb-wb-toolbar {
+      flex-wrap: wrap;
+      overflow-x: visible;
+
+      .sb-wb-filter {
+        flex: 1 1 100%;
+        min-width: 0;
+      }
+    }
+  }
+
+  .sb-wb-toolbar .sb-button {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .sb-wb-lib-progress {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    font-size: 12px;
+
+    .sb-progress {
+      height: 3px;
+    }
+
+    .sb-wb-muted {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .sb-wb-lib-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 26px;
+    padding: 2px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    background-color: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wb-lib-title {
+    margin: 0;
+    font-size: inherit;
+    font-weight: 600;
+  }
+
+  .sb-wb-lib-count {
+    @include rows.count;
+  }
+
+  .sb-wb-lib-head-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+
+    .sb-button {
+      display: inline-flex;
+      align-items: center;
+      padding-top: 1px;
+      padding-bottom: 1px;
+      font-size: 12px;
+    }
+  }
+
+  .sb-wb-lib-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 6px 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .sb-wb-lib-row {
+    @include rows.list-row(3px 10px);
+  }
+
+  .sb-wb-lib-openable {
+    cursor: pointer;
+  }
+
+  // Name and badges first; the URI takes what's left of the line, or a line
+  // of its own when the panel is narrow
+  .sb-wb-lib-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    min-width: 0;
+  }
+
+  .sb-wb-lib-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .sb-wb-lib-openable .sb-wb-lib-name {
+    color: var(--editor-link-color);
+  }
+
+  .sb-wb-lib-uri {
+    flex: 1 1 12rem;
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    font-family: var(--editor-font), monospace;
+    font-size: 11px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-decoration: none;
+  }
+
+  a.sb-wb-lib-uri:hover {
+    text-decoration: underline;
+  }
+
+  .sb-wb-lib-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  .sb-wb-lib-badge {
+    white-space: nowrap;
+  }
+
+  // Kind badges stay quiet; the update statuses carry the colour, and an
+  // available update, the one to act on, is filled
+  .sb-wb-lib-built-in,
+  .sb-wb-lib-installed,
+  .sb-wb-lib-dev-mode,
+  .sb-wb-lib-plug {
+    background-color: var(--tone-neutral-soft);
+    color: var(--tone-neutral);
+  }
+
+  .sb-wb-lib-tone-update {
+    background-color: var(--tone-accent);
+    color: var(--ui-accent-contrast-color);
+    font-weight: 600;
+  }
+
+  .sb-wb-lib-tone-ok {
+    background-color: var(--tone-success-soft);
+    color: var(--tone-success);
+  }
+
+  .sb-wb-lib-tone-warn {
+    background-color: var(--tone-warning-soft);
+    color: var(--tone-warning);
+  }
+
+  .sb-wb-lib-tone-error {
+    background-color: var(--tone-danger-soft);
+    color: var(--tone-danger);
+  }
+
+  .sb-wb-lib-group-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px 10px 2px;
+    border: 0;
+    background: none;
+    color: var(--root-color);
+    font: inherit;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+
+    svg {
+      flex: none;
+      color: var(--subtle-color);
+    }
+  }
+
+  // Cards like the Overview's; as many columns as fit, one on a phone
+  .sb-wb-lib-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: 8px;
+    padding: 4px 10px 10px;
+  }
+
+  .sb-wb-lib-card {
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wb-lib-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    .sb-button {
+      display: inline-flex;
+      flex: none;
+      align-items: center;
+    }
+  }
+
+  .sb-wb-lib-card-title {
+    min-width: 0;
+    color: var(--ui-accent-text-color);
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  a.sb-wb-lib-card-title:hover {
+    text-decoration: underline;
+  }
+
+  .sb-wb-lib-card-desc {
+    margin-top: 4px;
+    color: var(--ui-surface-subtle-color);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+
+    p,
+    ul,
+    ol {
+      margin: 4px 0;
+    }
+
+    img,
+    pre {
+      max-width: 100%;
+    }
+
+    pre {
+      overflow-x: auto;
+    }
+  }
+
+  // A busy button's spinner sits before its label
+  .sb-button .sb-nav-spinner {
+    margin-right: 6px;
+  }
+
+  .sb-wb-footer {
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+}

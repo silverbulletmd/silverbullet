@@ -16,8 +16,7 @@ import {
 } from "./config_block.ts";
 import { applyManagedChanges } from "./managed_edit.ts";
 import type { ManagedChanges } from "./overrides.ts";
-import { listLibraries } from "./libraries.ts";
-import type { LibrariesFocus, TabId } from "./ui/types.ts";
+import type { TabId } from "./ui/types.ts";
 
 const CONFIG_PAGE = "CONFIG";
 const PLUG_NAME = "configuration-manager";
@@ -43,38 +42,16 @@ export async function openShortcuts() {
   await openPanel("shortcuts");
 }
 
-export async function openLibraries() {
-  await openPanel("libraries");
-}
-
-// Legacy slash-command aliases — each opens the Libraries tab with a specific
-// focus hint so the UI can auto-trigger the matching action/form.
-export async function openLibrariesLegacyManager() {
-  await openPanel("libraries", "manager");
-}
-export async function openLibrariesInstall() {
-  await openPanel("libraries", "install");
-}
-export async function openLibrariesAddRepo() {
-  await openPanel("libraries", "addRepository");
-}
-export async function openLibrariesUpdateAll() {
-  await openPanel("libraries", "updateAll");
-}
-export async function openLibrariesUpdateAllRepos() {
-  await openPanel("libraries", "updateAllRepositories");
-}
-
-async function openPanel(initialTab: TabId, librariesFocus?: LibrariesFocus) {
-  const [schemas, values, categories, commands, configText, libraries] =
-    await Promise.all([
+async function openPanel(initialTab: TabId) {
+  const [schemas, values, categories, commands, configText] = await Promise.all(
+    [
       config.getSchemas(),
       config.getValues(),
       config.getCategories(),
       system.listCommands(),
       readConfigPage(),
-      listLibraries(),
-    ]);
+    ],
+  );
 
   let configOverrides: Record<string, any> = {};
   let commandOverrides: Record<string, CommandOverride> = {};
@@ -101,8 +78,6 @@ async function openPanel(initialTab: TabId, librariesFocus?: LibrariesFocus) {
     managedBlockError,
     isMac,
     initialTab,
-    libraries,
-    librariesFocus,
   });
   await editor.showPanel("modal", 100, html, script);
 }

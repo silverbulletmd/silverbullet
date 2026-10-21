@@ -33,12 +33,6 @@ describe("buildSchemaIndex", () => {
       },
       isMac: false,
       initialTab: "configuration",
-      libraries: {
-        repositories: [],
-        installed: [],
-        installable: [],
-        roguePlugs: [],
-      },
     });
 
     expect(index.initialConfig["frontmatterFolding.foldByDefault"]).toBe(

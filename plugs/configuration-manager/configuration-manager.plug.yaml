@@ -27,43 +27,7 @@ functions:
       requireMode: rw
       menuMac: { location: app, group: "4_prefs", order: 2, label: "Keyboard Shortcuts..." }
       menu: { location: file, group: "2_prefs", order: 2, label: "Keyboard Shortcuts..." }
-  openLibraries:
-    path: ./configuration.ts:openLibraries
-    command:
-      name: "Libraries: Manager"
-      requireMode: rw
-      menuMac: { location: app, group: "4_prefs", order: 3, label: "Libraries..." }
-      menu: { location: file, group: "2_prefs", order: 3, label: "Libraries..." }
-  openLibrariesLegacyManager:
-    path: ./configuration.ts:openLibrariesLegacyManager
-    command:
-      name: "Library: Manager"
-      requireMode: rw
-  openLibrariesInstall:
-    path: ./configuration.ts:openLibrariesInstall
-    command:
-      name: "Library: Install"
-      requireMode: rw
-  openLibrariesAddRepo:
-    path: ./configuration.ts:openLibrariesAddRepo
-    command:
-      name: "Library: Add Repository"
-      requireMode: rw
-  openLibrariesUpdateAll:
-    path: ./configuration.ts:openLibrariesUpdateAll
-    command:
-      name: "Library: Update All"
-      requireMode: rw
-  openLibrariesUpdateAllRepos:
-    path: ./configuration.ts:openLibrariesUpdateAllRepos
-    command:
-      name: "Library: Update All Repositories"
-      requireMode: rw
   saveConfiguration:
     path: ./configuration.ts:saveConfiguration
   setConfigValue:
     path: ./configuration.ts:setConfigValue
-  librariesAction:
-    path: ./libraries.ts:librariesAction
-  librariesRefresh:
-    path: ./libraries.ts:librariesRefresh

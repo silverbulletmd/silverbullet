@@ -2,7 +2,7 @@
 description: A collection of reusable Space Lua scripts, templates, and pages that can be imported into your space.
 tags: maturity/beta glossary
 references:
-- plugs/configuration-manager/libraries.ts
+- client/workbench/libraries/libraries_backend.ts
 - libraries/Library/Std/Infrastructure/Share.md
 ---
 SilverBullet is designed to be [[Extensions|extensible]]. In fact, a lot of functionality in SilverBullet is implemented through [[Space Lua]] embedded in [[Meta Page|Meta Pages]], other functionality is implemented using [[Plugs]].
@@ -18,7 +18,7 @@ A [[Repository]] is a **discovery and curation mechanism** for libraries. They a
 
 [[Share]] is the general-purpose mechanism built into SilverBullet to both _push_, _pull_ and _sync_ content in your space with the outside world. In the context of Libraries this mechanism is used (partially under the hood, but you’ll recognize traces of it) both for you to _publish_ your libraries, as well as to _install_ and _update_ other people’s creations.
 
-To make discovery and installation of libraries easier, SilverBullet includes a [[Configuration Manager#Libraries|Library Manager]].
+To make discovery and installation of libraries easier, SilverBullet includes a [[Workbench#Libraries|Library Manager]].
 
 By convention, libraries are kept under the `Library/` prefix (folder) in your space.
 

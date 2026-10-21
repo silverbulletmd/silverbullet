@@ -10,13 +10,21 @@ import type { CommandHook } from "../plugos/hooks/command.ts";
 import { lintPages } from "../space_lint.ts";
 import { spaceLintDeps } from "../space_lint_deps.ts";
 import type { SlashCommand } from "../types/command.ts";
-import { consoleLog } from "./console_log.ts";
-import { ConsoleSession } from "./console_session.ts";
-import { DeepCheck } from "./deep_check.ts";
-import { HealthMonitor, healthWatch } from "./health_sources.ts";
-import { QueryBuilder } from "./query_builder.ts";
-import { openQuery, type QuerySpan, showQueryEditor } from "./query_open.ts";
-import { WorkbenchView } from "./ui/workbench.tsx";
+import { consoleLog } from "./console/console_log.ts";
+import { ConsoleSession } from "./console/console_session.ts";
+import { DeepCheck } from "./health/deep_check.ts";
+import { HealthMonitor, healthWatch } from "./health/health_sources.ts";
+import {
+  LIBRARY_COMMANDS,
+  runLibraryCommand,
+} from "./libraries/libraries_commands.ts";
+import { QueryBuilder } from "./query/query_builder.ts";
+import {
+  openQuery,
+  type QuerySpan,
+  showQueryEditor,
+} from "./query/query_open.ts";
+import { WorkbenchView } from "./workbench.tsx";
 
 export function registerWorkbenchCommands(
   client: Client,
@@ -63,6 +71,15 @@ export function registerWorkbenchCommands(
         await showView(WORKBENCH_VIEW, { segment: tab });
         return false;
       },
+    });
+  }
+  for (const { name, focus, requireMode, menu, menuMac } of LIBRARY_COMMANDS) {
+    hook.registerCommand({
+      name,
+      requireMode,
+      menu,
+      menuMac,
+      run: () => runLibraryCommand(focus, showView),
     });
   }
   // The ⋯ menu of a query widget passes the query; the palette leaves it to the cursor

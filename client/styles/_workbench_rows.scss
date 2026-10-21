@@ -1,0 +1,26 @@
+// Shared by the Workbench tabs that list rows with a ⋯ menu (Health, Libraries)
+
+// A row: its content, then the ⋯ menu, which shows on hover
+@mixin list-row($padding) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 8px;
+  padding: $padding;
+  border-bottom: 1px solid var(--ui-surface-border-color);
+  line-height: 1.5;
+
+  &:hover {
+    background-color: var(--ui-surface-hover-background-color);
+
+    .sb-wb-menu {
+      opacity: 1;
+    }
+  }
+}
+
+// The count beside a section's title
+@mixin count {
+  color: var(--subtle-color);
+  font-weight: normal;
+}

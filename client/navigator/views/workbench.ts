@@ -2,18 +2,19 @@ import { type BuiltinView, baseMeta } from "./types.ts";
 
 export const WORKBENCH_VIEW = "std.workbench";
 
-/** The Workbench's tabs, in order; each swaps the whole body (`client/workbench/ui/workbench.tsx`). */
+/** The Workbench's tabs, in order; each swaps the whole body (`client/workbench/workbench.tsx`). */
 export const WORKBENCH_TABS = [
   "Overview",
   "Query",
   "Console",
   "Scripts",
   "Styles",
+  "Libraries",
   "Health",
 ] as const;
 export type WorkbenchTab = (typeof WORKBENCH_TABS)[number];
 
-/** Opens a page's `query[[…]]` in the Query tab's query editor (`client/workbench/query_open.ts`) */
+/** Opens a page's `query[[…]]` in the Query tab's query editor (`client/workbench/query/query_open.ts`) */
 export const EDIT_QUERY_COMMAND = "Workbench: Edit Query";
 
 /**
