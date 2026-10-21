@@ -42,7 +42,7 @@ Expands Markdown transclusions, Lua directives, and task references. Directive r
 **Parameters:**
 
 - `textOrTree` — Markdown text or parsed tree.
-- `options?` (`table`) — Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks; all default to true.
+- `options?` (`table`) — Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks; all default to true. pageName: the page the text comes from, which directives run as (default: the open page).
 
 **Returns:**
 

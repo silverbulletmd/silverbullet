@@ -151,6 +151,7 @@ export function staticContextForClient(
   // Syscall contract: the caller passes the page's text, so "page" unless
   // told otherwise
   taskRefs: TaskRefs,
+  hostPageName = client.currentName(),
 ): RenderContext {
   const host: RenderHost = {
     ...renderHostForClient(client),
@@ -158,7 +159,7 @@ export function staticContextForClient(
     renderOptions,
   };
   return createRenderContext(host, {
-    hostPage: { name: client.currentName() },
+    hostPage: { name: hostPageName },
     taskRefs,
   });
 }

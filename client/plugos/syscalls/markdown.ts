@@ -75,18 +75,21 @@ export function markdownSyscalls(client: Client): SysCallMapping {
             treeOrText,
           );
         }
-        const { rewriteTasks, expandLuaDirectives, ...switches } = options;
-        // The caller's text is the open page's source
+        const { rewriteTasks, expandLuaDirectives, pageName, ...switches } =
+          options;
+        // The caller's text is the source of `pageName`, by default the open page
         const taskRefs: TaskRefs = rewriteTasks === false ? "none" : "page";
         const result =
           expandLuaDirectives === false
-            ? await expandMarkdownWithClient(client, treeOrText, {
-                ...switches,
-                taskRefs,
-              })
+            ? await expandMarkdownWithClient(
+                client,
+                treeOrText,
+                { ...switches, taskRefs },
+                pageName,
+              )
             : await expandMarkdownStatic(
                 treeOrText,
-                staticContextForClient(client, {}, taskRefs),
+                staticContextForClient(client, {}, taskRefs, pageName),
                 switches,
               );
         if (outputString) {
@@ -107,7 +110,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks; all default to true.",
+            "Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks; all default to true. pageName: the page the text comes from, which directives run as (default: the open page).",
           optional: true,
         },
       ],
@@ -278,16 +281,18 @@ type SyscallExpandOptions = {
   expandTransclusions?: boolean;
   expandLuaDirectives?: boolean;
   rewriteTasks?: boolean;
+  pageName?: string;
 };
 
 function expandMarkdownWithClient(
   client: Client,
   tree: ParseTree,
   options: MarkdownExpandOptions,
+  pageName = client.currentName(),
 ) {
   return expandMarkdown(
     client.space,
-    client.currentName(),
+    pageName,
     tree,
     client.clientSystem.spaceLuaEnv,
     {

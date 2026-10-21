@@ -70,6 +70,19 @@ test("expandMarkdown adds task references by default, as documented", async () =
   ).not.toContain("[[Host@");
 });
 
+test("expandMarkdown evaluates as pageName when given", async () => {
+  const s = await syscalls();
+  const out = await s(
+    "markdown.expandMarkdown",
+    "* [ ] task ${_CTX.currentPage.name}",
+    {
+      pageName: "Other",
+    },
+  );
+  expect(out).toContain("[[Other@");
+  expect(out).toContain("task Other");
+});
+
 test("markdownToHtml with expand keeps task references", async () => {
   const s = await syscalls();
   const html = await s("markdown.markdownToHtml", "* [ ] task", {
