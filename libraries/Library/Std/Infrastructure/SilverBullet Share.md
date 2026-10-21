@@ -333,7 +333,7 @@ service.define {
       return
     end
     rememberSpace(root)
-    -- No hash: the push that follows uploads the page
+    -- The push that follows uploads the page
     return {uri = uri, mode = "push"}
   end,
 }

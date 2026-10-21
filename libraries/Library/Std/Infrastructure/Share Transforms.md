@@ -24,43 +24,16 @@ function share.target(uri)
   return share.genericTarget
 end
 
-local function isMetaTag(tag)
-  tag = tostring(tag):gsub("^#", "")
-  return tag == "meta" or tag:startsWith("meta/")
-end
-
-local function hasMetaTag(tags)
-  if type(tags) == "string" then
-    return isMetaTag(tags)
-  end
-  if type(tags) == "table" then
-    for _, tag in ipairs(tags) do
-      if isMetaTag(tag) then
-        return true
-      end
-    end
-  end
-  return false
-end
-
--- Library pages (tagged meta or meta/*) are shared as they are
-function share.isExempt(name, text)
-  if hasMetaTag(index.extractFrontmatter(text).frontmatter.tags) then
-    return true
-  end
-  local ok, meta = pcall(space.getPageMeta, name)
-  return ok and meta != nil and hasMetaTag(meta.tags)
-end
-
 local stepNames = {"links", "comments", "frontmatter", "bake"}
 
--- override is false (everything off) or a table of steps set to false
+-- override is false (everything off) or a table of steps set to false.
+-- extensions: the share:transform services, off for exempt pages and with
+-- share.transform: false.
 function share.resolveSteps(name, text, target, override)
-  local steps = {}
   local exempt = share.isExempt(name, text)
+  local steps = {extensions = not exempt and override != false}
   for _, step in ipairs(stepNames) do
-    steps[step] = not exempt and target.defaults[step] == true
-      and override != false
+    steps[step] = steps.extensions and target.defaults[step] == true
       and not (type(override) == "table" and override[step] == false)
   end
   return steps
@@ -71,15 +44,17 @@ local function replaceNode(node, text)
   node.text = text
 end
 
--- "Page#Header" -> page, anchor; "Page@123" positions are dropped
+-- "Page#Header" and "Page$anchor" -> page, anchor; positions ("@123",
+-- "@L12C3") and a leading "^" are dropped
 local function splitRef(ref)
+  ref = ref:gsub("^%^", "")
   local anchor
-  local hash = ref:find("#", 1, true)
-  if hash then
-    anchor = ref:sub(hash + 1)
-    ref = ref:sub(1, hash - 1)
+  local at = ref:find("[#$]")
+  if at then
+    anchor = ref:sub(at + 1)
+    ref = ref:sub(1, at - 1)
   end
-  ref = ref:gsub("@[%d:]+$", "")
+  ref = ref:gsub("@L?%d+[C:]?%d*$", "")
   return ref, anchor
 end
 
@@ -133,23 +108,42 @@ local function walk(node, ctx)
   end
 end
 
+-- Replaces the block children[i] with text (by default nothing). The
+-- newlines after a removed block go too when a blank line already separates
+-- it from what came before (or nothing follows), so no gap is left; else one
+-- stays, so the blocks on either side don't merge.
+local function removeBlock(children, i, text)
+  replaceNode(children[i], text or "")
+  local after = children[i + 1]
+  if text != nil and text != "" or after == nil or after.children != nil
+      or not (after.text or ""):match("^\n+$") then
+    return
+  end
+  local before = children[i - 1]
+  local separated = before == nil or children[i + 2] == nil
+    or (before.children == nil and (before.text or ""):match("\n\n$"))
+  after.text = separated and "" or "\n"
+end
+
+-- The markers of baked sections: <!--#lua EXPR --> and <!--/lua-->
+local function isBakedMarker(node)
+  local text = markdown.renderParseTree(node)
+  return text:match("^%s*<!%-%-#lua%s") != nil or text:match("^%s*<!%-%-/lua%-%->") != nil
+end
+
 local function stripComments(node)
   if node.children == nil then
     return
   end
-  if node.type == "CommentBlock" or node.type == "Comment" then
-    replaceNode(node, "")
-    return
-  end
-  local removedBlock = false
-  for _, child in ipairs(node.children) do
-    -- A removed block takes the blank line after it along, so no gap is left
-    if removedBlock and child.children == nil and child.text
-        and child.text:match("^\n+$") then
+  for i, child in ipairs(node.children) do
+    if child.type == "Comment" and not isBakedMarker(child) then
       replaceNode(child, "")
+    elseif child.type == "CommentBlock"
+        or (child.type == "CommentMarkerBlock" and not isBakedMarker(child)) then
+      removeBlock(node.children, i)
+    else
+      stripComments(child)
     end
-    removedBlock = child.type == "CommentBlock"
-    stripComments(child)
   end
 end
 
@@ -186,32 +180,31 @@ local function stripFrontmatter(text)
   return index.patchFrontmatter(body, patches)
 end
 
--- Baked sections are kept in their expanded form; only the markers go. The
--- newline after a marker goes with it so the body stays on its own line.
+-- Baked sections are kept in their expanded form; only the markers go. A
+-- marker line keeps any text after the marker.
 local function dropBakedMarkers(node)
   if node.children == nil then
     return
   end
-  local children = node.children
-  for i, child in ipairs(children) do
-    if child.type == "CommentMarkerBlock" then
+  for i, child in ipairs(node.children) do
+    if child.type == "CommentMarkerBlock" and isBakedMarker(child) then
+      local rest = markdown.renderParseTree(child):gsub("^%s*<!%-%-.-%-%->%s*", "")
+      removeBlock(node.children, i, rest)
+    elseif child.type == "Comment" and isBakedMarker(child) then
       replaceNode(child, "")
-      local nextChild = children[i + 1]
-      if nextChild != nil and nextChild.type == nil
-          and nextChild.text == "\n" then
-        nextChild.text = ""
-      end
     else
       dropBakedMarkers(child)
     end
   end
 end
 
-local function bake(text)
-  text = markdown.bakeSections(text)
+-- Directives run as the shared page, wherever the editor is
+local function bake(text, page)
+  text = markdown.bakeSections(text, page)
   text = markdown.expandMarkdown(text, {
     expandTransclusions = false,
     rewriteTasks = false,
+    pageName = page,
   })
   local tree = markdown.parseMarkdown(text)
   dropBakedMarkers(tree)
@@ -235,20 +228,23 @@ local function runExtensions(text, ctx)
     return a.index < b.index
   end)
   for _, entry in ipairs(ordered) do
-    text = service.invoke(entry.match, {text = text, ctx = ctx})
+    -- Nothing returned: nothing to change
+    local result = service.invoke(entry.match, {text = text, ctx = ctx})
+    if type(result) == "string" then
+      text = result
+    elseif result != nil then
+      error("share:transform " .. tostring(entry.match.name)
+        .. " returned a " .. type(result) .. ", not text")
+    end
   end
   return text
 end
 
 function share.transform(text, ctx)
-  -- share.transform: false publishes the page unchanged, extensions included
-  local m = index.extractFrontmatter(text).frontmatter.share
-  local optedOut = type(m) == "table" and m.transform == false
   text = share.cleanFrontmatter(text)
-  local exempt = share.isExempt(ctx.page, text)
   local steps = ctx.steps
   if steps.bake then
-    text = bake(text)
+    text = bake(text, ctx.page)
   end
   if steps.links or steps.comments then
     local tree = markdown.parseMarkdown(text)
@@ -263,7 +259,7 @@ function share.transform(text, ctx)
   if steps.frontmatter then
     text = stripFrontmatter(text)
   end
-  if not exempt and not optedOut then
+  if steps.extensions then
     text = runExtensions(text, ctx)
   end
   return text

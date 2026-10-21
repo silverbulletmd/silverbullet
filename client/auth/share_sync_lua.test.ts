@@ -192,7 +192,8 @@ describe("Share.md sharing", () => {
 
     test("cancel", async () => {
       const before = w.pages.get("Page");
-      expect(await w.h.call("share.sharePage", "Page")).toBe(false);
+      // nil: the user knows the sides still differ
+      expect(await w.h.call("share.sharePage", "Page")).toBeNull();
       expect(w.methods()).toEqual(["GET"]);
       expect([...w.pages.keys()]).toEqual(["Page"]);
       expect(w.pages.get("Page")).toBe(before);
@@ -348,7 +349,7 @@ describe("Share.md sharing", () => {
     w.store.set(`share.base:${URI}`, "A\n");
     w.mergeText = () => ({ status: "clean", text: "M\n" });
     const before = w.pages.get("Page");
-    expect(await w.h.call("share.sharePage", "Page")).toBe(false);
+    expect(await w.h.call("share.sharePage", "Page")).toBeNull();
     expect(w.merges).toEqual([]);
     expect(w.chooseVersions).toHaveLength(1);
     expect(w.pages.get("Page")).toBe(before);
@@ -548,5 +549,102 @@ describe("Share.md sharing", () => {
       mode: "sync",
       transform: { comments: false },
     });
+  });
+
+  describe("pull with only local changes", () => {
+    test("keeps the local edits when the remote is still the base", async () => {
+      await w.setup("A\n", "B\n", "A\n", { mode: "pull" });
+      expect(await w.sharePage()).toBe(false);
+      expect(w.confirms).toEqual([]);
+      expect(await w.localBody()).toBe("B\n");
+    });
+
+    test("and when the remote still has the legacy hash", async () => {
+      await w.setup("A\n", "B\n", "A\n", {
+        mode: "pull",
+        storeBase: false,
+        legacyHash: true,
+      });
+      expect(await w.sharePage()).toBe(false);
+      expect(w.confirms).toEqual([]);
+      expect(await w.localBody()).toBe("B\n");
+    });
+  });
+
+  test("share settings without a uri mean not configured", async () => {
+    await setPage({ transform: false }, "A\n");
+    expect(await w.sharePage()).toBe("THREW Not configured");
+  });
+
+  test("cancelling Which version leaves the outcome to the user", async () => {
+    await w.setup("A\n", "B\n", "C\n", { storeBase: false });
+    w.chooseAnswer = undefined;
+    expect(await w.sharePage()).toBeNull();
+  });
+
+  test("a first push to a write-only transport writes without reading", async () => {
+    const written: string[] = [];
+    w.h.services.push({
+      selector: "net.writeURI:wo:*",
+      match: { priority: 10 },
+      run: async (data: any) => {
+        written.push(data.content);
+      },
+      id: "write-only",
+    });
+    await setPage({ uri: "wo:post", mode: "push" }, "A\n");
+    expect(await w.sharePage()).toBe(true);
+    expect(written).toEqual(["A\n"]);
+    expect(w.store.get("share.base:wo:post")).toBe("A\n");
+  });
+
+  test("a first push to a space this device connects to uses that space's target", async () => {
+    w.store.clear();
+    w.h = await w.load();
+    await setPage(
+      { uri: URI, mode: "push" },
+      "---\nsecret: s\n---\nBody [[#Top]]\n",
+    );
+    w.setRemote("Page", "Old\n");
+    expect(await w.sharePage()).toBe(true);
+    // The SilverBullet target keeps frontmatter and links
+    expect(w.remote.get("Page")!.text).toBe(
+      "---\nsecret: s\n---\nBody [[#Top]]\n",
+    );
+    expect(await w.sharePage()).toBe(false);
+  });
+
+  test("a share: map is never sent", async () => {
+    w.pages.set(
+      "Page",
+      `---\nshare:\n  uri: ${URI}\n  mode: push\n---\nHello\n`,
+    );
+    expect(await w.sharePage()).toBe(true);
+    expect(w.remote.get("Page")!.text).toBe("Hello\n");
+  });
+
+  test("onboarding that can't prepare the page says so and offers nothing", async () => {
+    w.h.services.push({
+      selector: "share:transform",
+      match: { name: "Needs a uri" },
+      run: async (data: any) => data.ctx.uri.toUpperCase(),
+      id: "needs-uri",
+    });
+    w.editorText = "Hello\n";
+    await w.h.commands.get("Share: Page")!();
+    expect(w.notifications).toHaveLength(1);
+    expect(w.notifications[0][1]).toBe("error");
+    expect(w.editorText).toBe("Hello\n");
+  });
+
+  test("a first share that fails leaves the page unshared", async () => {
+    w.cfg["share.silverbullet.spaces"] = [SPACE];
+    w.editorText = "Hello\n";
+    w.beforePut = () => {
+      throw new Error("offline");
+    };
+    await w.h.commands.get("Share: Page")!();
+    expect(w.editorText).toBe("Hello\n");
+    expect(w.notifications.at(-1)![1]).toBe("error");
   });
 });

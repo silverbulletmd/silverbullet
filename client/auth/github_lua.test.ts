@@ -6,6 +6,10 @@ const PAGES = [
   "libraries/Library/Std/Infrastructure/Github.md",
 ];
 
+// Errors as strings: Lua error objects don't survive vitest's reporting
+const threw = (run: () => unknown) =>
+  (async () => run())().catch((e: Error) => `THREW ${e.message}`);
+
 describe("Github.md", () => {
   let cfg: Record<string, string>;
   let deviceFlows: Array<Record<string, string>>;
@@ -51,7 +55,7 @@ describe("Github.md", () => {
             });
             const code = status(url, opts);
             return {
-              ok: code < 400,
+              ok: code >= 200 && code < 300,
               status: code,
               body: {
                 tag_name: "v1",
@@ -230,14 +234,13 @@ describe("Github.md", () => {
     expect(deviceFlows).toHaveLength(0);
   });
 
-  test("file and gist providers define share targets", () => {
+  test("file providers define share targets; gists use the generic one", () => {
     const selectors = h.services
       .filter((s) => s.selector.startsWith("share:target:"))
       .map((s) => s.selector)
       .sort();
     expect(selectors).toEqual([
       "share:target:github:*",
-      "share:target:https://gist.github.com/*",
       "share:target:https://github.com/*",
     ]);
   });
@@ -317,5 +320,47 @@ describe("Github.md", () => {
     expect(res.mode).toBe("push");
     const post = fetches.find((f) => f.opts.method === "POST")!;
     expect(post.opts.body.files["page.md"].content).toBe("published text");
+  });
+
+  test("github: URIs keep nested paths", async () => {
+    await readService("net.readURI:github:*").run({
+      uri: "github:u/r@dev/docs/A.md",
+    });
+    expect(fetches[0].url).toBe(
+      "https://raw.githubusercontent.com/u/r/dev/docs/A.md",
+    );
+  });
+
+  test("a missing file reads as nil, other failures as errors", async () => {
+    for (const [selector, uri] of [
+      ["net.readURI:github:*", "github:u/r/A.md"],
+      [
+        "net.readURI:https://github.com/*",
+        "https://github.com/u/r/blob/main/A.md",
+      ],
+      ["net.readURI:ghr:*", "ghr:u/r/A.md"],
+    ]) {
+      status = () => 404;
+      expect(await readService(selector).run({ uri })).toBeFalsy();
+      status = () => 403;
+      expect(await threw(() => readService(selector).run({ uri }))).toMatch(
+        /^THREW .*403/,
+      );
+    }
+  });
+
+  test("a refused write is an error", async () => {
+    cfg["github.name"] = "Jo";
+    cfg["github.email"] = "jo@example.com";
+    cfg["github.token"] = "pat123";
+    status = (_url, opts) => (opts?.method === "PUT" ? 422 : 200);
+    expect(
+      await threw(() =>
+        writeService().run({
+          uri: "https://github.com/me/repo/blob/main/notes/page.md",
+          content: "hello",
+        }),
+      ),
+    ).toMatch(/^THREW .*422/);
   });
 });

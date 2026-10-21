@@ -4,7 +4,7 @@ tags: maturity/beta glossary
 references:
 - libraries/Library/Std/Infrastructure/Share.md
 - docs/API/share.md
-- plugs/configuration-manager/libraries.ts
+- client/workbench/libraries/libraries_backend.ts
 ---
 A [[Space]] is a boundary: what lives in it sits on your server and stays there unless you decide otherwise. Often, though, some of that content needs to cross the boundary — to push it out into the world, pull it in, or even sync between different locations. This is where SilverBullet _share_ functionality comes in.
 
@@ -43,9 +43,9 @@ Subsequent shares can be done simply by running the `Share: Page` command again.
 In _push_ mode the page is not sent as it is. These steps run first, switched on or off depending on where it goes:
 
 * **links**: a page is shared on its own, so [[Link|wiki links]] to other pages turn into plain text and transclusions of them are removed: no dead links are published. Links to a header on the same page stay links, in the form the location understands (for GitHub a Markdown link to the anchor). Gists and other locations reduce all links to text.
-* **comments**: HTML comments (`<!-- ... -->`, both whole blocks and inline) are removed.
+* **comments**: HTML comments (`<!-- ... -->`, both whole blocks and inline) are removed, apart from the markers of [[Baked Sections|baked sections]]. The text around a removed comment keeps its paragraphs apart.
 * **frontmatter**: only `title`, `description` and `tags` are kept, so private keys (including `share.*`) are not published.
-* **bake**: [[Baked Sections|live content]] such as queries and templates is replaced by its current result, since the place you publish to can't run it.
+* **bake**: [[Baked Sections|live content]] such as queries and templates is replaced by its current result, since the place you publish to can't run it. It is evaluated as the page being shared, whichever page is open.
 
 | Destination | links | comments | frontmatter | bake |
 |---|---|---|---|---|

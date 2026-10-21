@@ -8,7 +8,13 @@ const GENERIC = {
   defaults: { links: true, comments: true, frontmatter: true, bake: true },
   link: (l: { text: string }) => l.text,
 };
-const ALL = { links: true, comments: true, frontmatter: true, bake: false };
+const ALL = {
+  links: true,
+  comments: true,
+  frontmatter: true,
+  bake: false,
+  extensions: true,
+};
 
 describe("Share Transforms.md", () => {
   let w: ShareWorld;
@@ -89,6 +95,42 @@ describe("Share Transforms.md", () => {
     expect(await transform("A\n\n<!--\nprivate\n-->\n\nB\n")).toBe("A\n\nB\n");
   });
 
+  test("comments starting with # or / are stripped too", async () => {
+    expect(
+      await transform(
+        "Intro\n\n<!-- #private note -->\n\nBody\n<!-- /draft -->\n",
+      ),
+    ).toBe("Intro\n\nBody\n");
+  });
+
+  test("removing a comment never merges the blocks around it", async () => {
+    expect(await transform("Text\n<!-- note -->\nMore\n")).toBe(
+      "Text\n\nMore\n",
+    );
+    expect(await transform("| 1 |\n|---|\n| 2 |\n<!-- c -->\nNext\n")).toBe(
+      "| 1 |\n|---|\n| 2 |\n\nNext\n",
+    );
+  });
+
+  test("other ref forms become plain page names", async () => {
+    expect(
+      await transform(
+        "[[Other@L5]] [[Other@L5C2]] [[Other$anchor]] [[^Lib/Page]]\n",
+      ),
+    ).toBe("Other Other Other Lib/Page\n");
+  });
+
+  test("self-links in any ref form count as members", async () => {
+    const target = {
+      kind: "test",
+      defaults: ALL,
+      link: (l: { page: string; anchor?: string }) => `<${l.page}|${l.anchor}>`,
+    };
+    expect(await transform("[[Here@L12C3]] [[Here$top]]", { target })).toBe(
+      "<Here|undefined> <Here|top>",
+    );
+  });
+
   test("inline comments are stripped", async () => {
     expect(await transform("Hello <!-- secret --> world\n")).toBe(
       "Hello  world\n",
@@ -137,12 +179,14 @@ describe("Share Transforms.md", () => {
       comments: false,
       frontmatter: false,
       bake: false,
+      extensions: false,
     });
     expect(await steps({ bake: false })).toEqual({
       links: true,
       comments: true,
       frontmatter: true,
       bake: false,
+      extensions: true,
     });
   });
 
@@ -229,6 +273,15 @@ describe("Share Transforms.md", () => {
       );
     });
 
+    test("GitHub anchors drop non-ASCII punctuation and emoji, like GitHub", async () => {
+      expect(await link(`${GH}/a/A.md`, undefined, "#What’s new — 🎉|x")).toBe(
+        "[x](#whats-new--)",
+      );
+      expect(await link(`${GH}/a/A.md`, undefined, "#Café notes|x")).toBe(
+        "[x](#café-notes)",
+      );
+    });
+
     test("GitHub URIs without a file path fall back to the text", async () => {
       expect(
         await link("https://github.com/u/r", `${GH}/B.md`, "Other|that"),
@@ -276,7 +329,8 @@ describe("Share Transforms.md", () => {
         "share.target",
         "https://gist.github.com/me/abc123",
       )) as { kind: string };
-      expect(t.kind).toBe("gist");
+      // The generic target: no descriptor of its own
+      expect(t.kind).toBe("other");
       expect(
         await link(
           "https://gist.github.com/me/abc123",
@@ -313,7 +367,61 @@ describe("Share Transforms.md", () => {
       expect(w.markdownCalls[1].options).toEqual({
         expandTransclusions: false,
         rewriteTasks: false,
+        pageName: "Here",
       });
+    });
+
+    test("bake evaluates as the shared page", async () => {
+      await transform("${1+1}", {
+        page: "Elsewhere",
+        steps: { ...ALL, bake: true },
+      });
+      expect(w.markdownCalls[0].pageName).toBe("Elsewhere");
+      expect(w.markdownCalls[1].options).toMatchObject({
+        pageName: "Elsewhere",
+      });
+    });
+
+    test("text after a closing marker stays", async () => {
+      const out = await transform(
+        "Total: <!--#lua 1+2 -->\n3\n<!--/lua--> items\n",
+        {
+          steps: { ...ALL, bake: true },
+        },
+      );
+      expect(out).toContain("items");
+      expect(out).not.toContain("<!--");
+    });
+
+    test("the block after a baked section stays its own block", async () => {
+      expect(
+        await transform(
+          "<!--#lua q -->\n| a |\n|---|\n| 1 |\n<!--/lua-->\nNext line\n",
+          {
+            steps: { ...ALL, bake: true },
+          },
+        ),
+      ).toBe("| a |\n|---|\n| 1 |\n\nNext line\n");
+    });
+
+    test("an extension that returns nothing changes nothing", async () => {
+      w.h.services.push({
+        id: "silent",
+        selector: "share:transform",
+        match: { name: "silent" },
+        run: async () => undefined,
+      } as never);
+      expect(await transform("Body\n")).toBe("Body\n");
+    });
+
+    test("an extension that returns something other than text is an error", async () => {
+      w.h.services.push({
+        id: "odd",
+        selector: "share:transform",
+        match: { name: "odd" },
+        run: async () => 42,
+      } as never);
+      expect(await transform("Body\n")).toMatch(/^THREW .*odd/);
     });
 
     test("baked markers are dropped when baking", async () => {

@@ -132,14 +132,17 @@ local function filePath(uri)
   return path
 end
 
--- GitHub's heading anchors: lower-case, spaces to "-", other punctuation gone
+-- GitHub's heading anchors: lower-case, spaces to "-", punctuation and
+-- symbols gone (also outside ASCII: quotes, dashes, emoji), letters kept
 local function slug(anchor)
-  return (anchor:lower():gsub("%p", function(c)
+  local s = anchor:lower():gsub("%p", function(c)
     if c == "-" or c == "_" then
       return c
     end
     return ""
-  end):gsub(" ", "-"))
+  end)
+  s = s:gsub("[\u{00A1}-\u{00A9}\u{00AB}-\u{00B1}\u{00B4}\u{00B6}-\u{00B8}\u{00BB}\u{00BF}\u{00D7}\u{00F7}\u{2010}-\u{2BFF}\u{2E00}-\u{2E7F}\u{3000}-\u{303F}\u{FE00}-\u{FE0F}\u{FF01}-\u{FF0F}\u{D800}-\u{DFFF}]", "")
+  return (s:gsub(" ", "-"))
 end
 
 -- Segments are encoded, but not again when the URI already is
@@ -209,6 +212,28 @@ for _, selector in ipairs({"share:target:https://github.com/*", "share:target:gi
 end
 
 local apiHeaders = {Accept = "application/vnd.github+json"}
+
+-- The body of a successful response, nil for a missing file. Any other
+-- status is an error, so a failed read never looks like a missing file.
+local function readBody(res, url)
+  if res.status == 404 then
+    return nil
+  end
+  if not res.ok then
+    error("Could not read " .. url .. ": HTTP " .. res.status)
+  end
+  return res.body
+end
+
+-- "owner/repo@ref/some/path" -> owner, repo, ref (nil when not given), path
+local function splitRepoPath(rest)
+  local owner, repo, path = rest:match("^([^/]+)/([^/]+)/(.+)$")
+  if not owner then
+    error("Expected owner/repo/path, got " .. rest)
+  end
+  local name, ref = table.unpack(repo:split("@"))
+  return owner, name, ref, path
+end
 
 -- An API request that signs in when needed
 function github.request(url, method, body)
@@ -282,7 +307,7 @@ service.define {
     if oldContent.ok then
       sha = oldContent.body.sha
     elseif oldContent.status != 404 then
-      error("Could not fetch existing file")
+      error("Could not check " .. path .. " on GitHub: HTTP " .. oldContent.status)
     end
     local message = editor.prompt("Commit message:", "Commit")
     local resp = github.request(github.buildAPIURL(repo, path), "PUT", {
@@ -296,8 +321,9 @@ service.define {
       content = encoding.base64Encode(content)
     })
     if not resp.ok then
-      js.log("Error", resp)
-      error("Error, check console")
+      local reason = type(resp.body) == "table" and resp.body.message
+      error("GitHub refused the write: HTTP " .. resp.status
+        .. (reason and (": " .. reason) or ""))
     end
   end
 }
@@ -306,14 +332,9 @@ service.define {
   selector = "net.writeURI:github:*",
   match = {priority=10},
   run = function(data)
-    local uri = data.uri:sub(#"github:"+1)
-    local owner, repo, path = table.unpack(uri:split("/"))
-    local repo, branch = table.unpack(repo:split("@"))
-    if not branch then
-      branch = "main"
-    end
-    local fullUrl = "https://github.com/" .. owner .. "/" .. repo .. "/blob/" .. branch .. "/" .. path
-    net.writeURI(fullUrl, data.content)
+    local owner, repo, branch, path = splitRepoPath(data.uri:sub(#"github:"+1))
+    local fullUrl = "https://github.com/" .. owner .. "/" .. repo .. "/blob/" .. (branch or "main") .. "/" .. path
+    return net.writeURI(fullUrl, data.content)
   end
 }
 
@@ -324,9 +345,7 @@ service.define {
   selector = "net.readURI:ghr:*",
   match = { priority=10 },
   run = function(data)
-    local uri = data.uri:sub(#"ghr:"+1)
-    local owner, repo, path = table.unpack(uri:split("/"))
-    local repoClean, version = table.unpack(repo:split("@"))
+    local owner, repoClean, version, path = splitRepoPath(data.uri:sub(#"ghr:"+1))
     local url
     if not version or version == "latest" then
       url = "https://api.github.com/repos/"
@@ -334,20 +353,12 @@ service.define {
     else
       url = "https://api.github.com/repos/" .. owner .. "/" .. repoClean .. "/releases/tags/" .. version
     end
-    local res = auth.fetch("github", url, {headers = apiHeaders})
-    if res.status != 200 then
-      print("Could not fetch", url, res)
-      return
-    end
-    local releaseInfo = res.body
-    version = releaseInfo.tag_name
-    local url = "https://github.com/" .. owner .. "/" .. repoClean .. "/releases/download/" .. version .. "/" .. path
-    local res = auth.fetch("github", url, {responseEncoding = data.encoding})
-    if res.status != 200 then
-      print("Failed to fetch", url, res)
+    local releaseInfo = readBody(auth.fetch("github", url, {headers = apiHeaders}), url)
+    if releaseInfo == nil then
       return nil
     end
-    return res.body
+    local url = "https://github.com/" .. owner .. "/" .. repoClean .. "/releases/download/" .. releaseInfo.tag_name .. "/" .. path
+    return readBody(auth.fetch("github", url, {responseEncoding = data.encoding}), url)
   end
 }
 
@@ -358,19 +369,9 @@ service.define {
   selector = "net.readURI:github:*",
   match = { priority=10 },
   run = function(data)
-    local uri = data.uri:sub(#"github:"+1)
-    local owner, repo, path, branch
-    owner, repo, path = table.unpack(uri:split("/"))
-    repo, branch = table.unpack(repo:split("@"))
-    if not branch then
-      branch = "main"
-    end
-    local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
-    local res = auth.fetch("github", url)
-    if res.status != 200 then
-      return nil
-    end
-    return res.body
+    local owner, repo, branch, path = splitRepoPath(data.uri:sub(#"github:"+1))
+    local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. (branch or "main") .. "/" .. path
+    return readBody(auth.fetch("github", url), url)
   end
 }
 
@@ -382,11 +383,7 @@ service.define {
   run = function(data)
     local owner, repo, branch, path = data.uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
     local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
-    local res = auth.fetch("github", url)
-    if res.status != 200 then
-      return nil
-    end
-    return res.body
+    return readBody(auth.fetch("github", url), url)
   end
 }
 ```
@@ -401,20 +398,8 @@ local function extractGistId(url)
   return url:match("([^/]+)$")
 end
 
--- Multi-file gists are not handled yet: links become their text
-service.define {
-  selector = "share:target:https://gist.github.com/*",
-  match = {priority = 10},
-  run = function(data)
-    return {
-      kind = "gist",
-      defaults = {links = true, comments = true, frontmatter = true, bake = true},
-      link = function(l)
-        return l.text
-      end,
-    }
-  end,
-}
+-- Gists get the generic share target: multi-file gists are not handled
+-- yet, so links become their text
 
 service.define {
   selector = "share:onboard",

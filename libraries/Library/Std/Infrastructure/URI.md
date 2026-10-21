@@ -18,8 +18,17 @@ virtualPage.define {
 service.define {
   selector = "net.readURI:https:*",
   match = {},
+  -- nil for a missing page; any other failure is an error, so an error
+  -- page never passes for content
   run = function(data)
-    return net.proxyFetch(data.uri).body
+    local res = net.proxyFetch(data.uri)
+    if res.status == 404 then
+      return nil
+    end
+    if not res.ok then
+      error("Could not read " .. data.uri .. ": HTTP " .. res.status)
+    end
+    return res.body
   end
 }
 ```

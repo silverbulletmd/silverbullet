@@ -80,7 +80,12 @@ export class ShareWorld {
   // Page metadata as the index would return it, by page name
   pageMetas = new Map<string, Record<string, unknown>>();
   // Recording fakes for markdown.bakeSections / expandMarkdown, in call order
-  markdownCalls: Array<{ fn: string; text: string; options?: unknown }> = [];
+  markdownCalls: Array<{
+    fn: string;
+    text: string;
+    pageName?: string;
+    options?: any;
+  }> = [];
   expandMarkdown: (text: string) => string = (text) => text;
   // Also load Github.md (kept out of PAGES so the sync tests' services stay put)
   withGithub = false;
@@ -185,8 +190,8 @@ export class ShareWorld {
           parseMarkdown: (text: string) => parseMarkdown(text),
           renderParseTree: (tree: Parameters<typeof renderToText>[0]) =>
             renderToText(tree),
-          bakeSections: (text: string) => {
-            this.markdownCalls.push({ fn: "bakeSections", text });
+          bakeSections: (text: string, pageName?: string) => {
+            this.markdownCalls.push({ fn: "bakeSections", text, pageName });
             return text;
           },
           expandMarkdown: (text: string, options: unknown) => {
@@ -201,6 +206,7 @@ export class ShareWorld {
             return meta;
           },
           readPage: (name: string) => this.pages.get(name),
+          pageExists: (name: string) => this.pages.has(name),
           writePage: (name: string, text: string) =>
             void this.pages.set(name, text),
           mergeText: (base: string, local: string, remote: string) => {

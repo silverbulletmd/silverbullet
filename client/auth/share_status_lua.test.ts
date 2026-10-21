@@ -185,4 +185,9 @@ describe("Share.md status engine", () => {
       expect(Object.keys(results)).toEqual(["Page"]);
     });
   });
+
+  test("check: a remote still at the legacy hash means only local changed", async () => {
+    await w.setup("A\n", "B\n", "A\n", { storeBase: false, legacyHash: true });
+    expect(((await check()) as any).state).toBe("localChanged");
+  });
 });

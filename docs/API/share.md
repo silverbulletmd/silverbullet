@@ -8,7 +8,7 @@ APIs and extension points of [[Share]], which publishes a page to, pulls it from
 
 # API
 ## share.sharePage(name?)
-Shares a page according to its `share.*` frontmatter, the same as the {[Share: Page]} command. Without a name it shares the current page. Returns `true` when something was shared, `false` when there was nothing to do, and `nil` when the user was already notified of the outcome (a conflict). Errors with `Not configured` when the page has no `share.uri`.
+Shares a page according to its `share.*` frontmatter, the same as the {[Share: Page]} command. Without a name it shares the current page. Returns `true` when something was shared, `false` when there was nothing to do, and `nil` when the user already knows the outcome (a conflict, or a cancelled "Which version?" dialog). Errors with `Not configured` when the page has no `share.uri`.
 
 ## share.shareMany(names, opts?)
 Shares the pages in order with `share.sharePage`. `opts.onProgress(index, total, name)` is called before each page, and `opts.cancelled()` is also checked before each page: when it returns true the run stops and the remaining pages are left out of the result. Returns a table keyed by page name with `{ok = true, result = ...}` or `{ok = false, error = ...}`; one failing page doesn't stop the others.
@@ -27,7 +27,7 @@ Reads the remotes of the given pages and compares them with the local pages and 
 * `error`: reading failed, with the message in `error`.
 
 ## share.prepare(name, text)
-Returns `{m, mode, outgoing}` for a page: its `share` frontmatter table, the mode (`push` when unset), and the text that goes to the remote. For `push` that is `text` run through [[#share.transform(text, ctx)]] with the steps resolved for the target of the URI; for `pull` and `sync` it is `text` with only the `share.*` keys removed. Errors with `Not configured` when the page has no `share` table.
+Returns `{m, mode, outgoing}` for a page: its `share` frontmatter table, the mode (`push` when unset), and the text that goes to the remote. For `push` that is `text` run through [[#share.transform(text, ctx)]] with the steps resolved for the target of the URI; for `pull` and `sync` it is `text` with only the `share.*` keys removed. Errors with `Not configured` when the page has no `share.uri`.
 
 ## share.legacyHash(content)
 Returns the 8-character hash older versions stored in `share.hash` (the sha256 of the text without its `share.*` keys). It is only used to recognize pages that were shared before this device kept its own record of what it last shared, so such a page that hasn't changed doesn't prompt after an update.
@@ -38,6 +38,14 @@ Deprecated alias of `share.legacyHash`.
 ## share.isManaged(name, text)
 Returns true for pages tagged `meta/library` or `meta/repository` (installed libraries and repositories), whose remote is the source of truth: a `pull` of such a page overwrites local changes without asking when this device has no record of the last share and the page has no `share.hash` left from an older version (when it has one, a mismatch asks first).
 
+## share.install(uri, opts?)
+Pulls `uri` into a page the way the [[Workbench#Libraries|Library Manager]] does, never prompting: the page gets `share.uri` and `share.mode: pull`, and this device records the content as the last share. `opts` is a table with:
+* `page`: the page to write; by default the `name` in the remote's frontmatter (an error when it has none).
+* `installed`: the page installed from `uri` before, for an update. Nothing is written when the page already equals the remote, or the remote hasn't changed since this device installed it, so local edits stay until there is something new. When there is, local edits are only replaced once the user confirms; with no record of the last install (no base and no `share.hash`) the remote replaces the page without asking. Without `installed`, an existing page is an error.
+* `force`: with `installed`, writes the remote even when it hasn't changed, dropping local edits.
+
+Returns `{page, files, changed}`: the page, the `files` list of the remote's frontmatter, and whether the page was written.
+
 ## share.ensureTransport(uri)
 Makes sure a transport exists for a URI by invoking the first matching `share:ensure` service, if any. Called before sharing in `push` and `sync` mode. Errors from the service are passed on and stop the share.
 
@@ -45,26 +53,26 @@ Makes sure a transport exists for a URI by invoking the first matching `share:en
 Returns `text` with the `share.uri`, `share.mode` and `share.transform` frontmatter keys set from the table `m` (`uri`, `mode`, `transform`). Keys missing from `m` are left as they are. No `share.hash` is written any more.
 
 ## share.cleanFrontmatter(text)
-Returns `text` with all `share.*` keys removed (including a leftover `share.hash`).
+Returns `text` with all `share.*` keys removed (including a leftover `share.hash`), written as dotted keys or as a `share:` map.
 
 ## share.transform(text, ctx)
 Returns what a push sends: `text` without its `share.*` keys, with the steps enabled in `ctx.steps` applied (see [[Share#What gets published]]). `ctx` is a table with:
-* `page`: the name of the page.
+* `page`: the name of the page; `bake` evaluates live content as this page.
 * `uri`: the URI it is shared to.
 * `target`: the descriptor of the provider, see [[#share:target:<uri>]].
 * `members`: a table mapping the names of the pages that are shared together to their URIs, used to tell links inside the share from links outside it. `share.prepare` passes just the page itself, so links to other pages become text.
-* `steps`: a table of booleans for `links`, `comments`, `frontmatter` and `bake`.
+* `steps`: a table of booleans for `links`, `comments`, `frontmatter`, `bake` and `extensions` (the `share:transform` services).
 
 The steps are:
-* `bake`: runs the page's [[Baked Sections|live content]] and keeps the result as plain text, without the markers.
+* `bake`: runs the page's [[Baked Sections|live content]] and keeps the result as plain text, without the markers (text after a marker on its line stays).
 * `links`: [[Link|wiki links]] and transclusions to a page in the share (or the page itself) are rewritten by the target's `link` function; a link to any other page becomes its text (its alias, or the page name), and a transclusion of anything outside the share is removed. Wiki link syntax inside code is left alone.
-* `comments`: removes HTML comments (`<!-- ... -->`), both whole blocks and inline.
+* `comments`: removes HTML comments (`<!-- ... -->`), both whole blocks and inline, except the markers of baked sections. A removed block leaves its neighbours as separate blocks.
 * `frontmatter`: keeps only `title`, `description` and `tags`; when nothing is left the page has no frontmatter block at all.
 
-After the built-in steps the `share:transform` services run (see below), except for exempt pages and pages with `share.transform: false`.
+After the built-in steps the `share:transform` services run (see below) when `extensions` is set.
 
 ## share.resolveSteps(name, text, target, override?)
-Returns the `steps` table for a page: the `defaults` of the target, switched off for pages that are exempt, and for the steps `override` turns off. `override` is the page's `share.transform` value: `false` switches every step off, a table such as `{bake = false}` switches the listed steps off. It can only turn steps off, never on.
+Returns the `steps` table for a page: the `defaults` of the target, switched off for pages that are exempt, and for the steps `override` turns off. `override` is the page's `share.transform` value: `false` switches every step off, a table such as `{bake = false}` switches the listed steps off. It can only turn steps off, never on. `extensions` is on unless the page is exempt or `override` is `false`.
 
 ## share.isExempt(name, text)
 Returns true for pages tagged `meta` or `meta/...`, such as library pages: they are published as they are apart from removing their `share.*` keys, with no step and no `share:transform` service applied.
@@ -93,13 +101,13 @@ In `sync` mode the local page, the remote page and the content this device last 
 * Changes on both sides, but the texts can't be merged (a version already has conflict markers, or is too large): the remote version is saved as a copy named `<page>.conflicted-<hash>` and nothing is overwritten.
 * This device can't tell which side changed (it has no record of the last share, and the page has no unchanged `share.hash` left from an older version): you are asked with a diff, see [[API/editor#editor.chooseVersion]]. You can take theirs, keep mine, or save theirs as a copy.
 
-Sync writes to the remote are conditional where the transport supports it: they pass `{conditional = true}` to `net.writeURI`. When the remote changed in the meantime (the write returns `{conflict = true}`), the share is retried once from the new remote state; when it changed yet again, the share fails. Push writes are never conditional: the local page wins, whatever changed remotely. A push with nothing changed locally since this device last pushed doesn't touch the remote at all, and one with changes writes without reading the remote first. Only when this device has no record of the last push is the remote read, so what is already there isn't written again.
+Sync writes to the remote are conditional where the transport supports it: they pass `{conditional = true}` to `net.writeURI`. When the remote changed in the meantime (the write returns `{conflict = true}`), the share is retried once from the new remote state; when it changed yet again, the share fails. Push writes are never conditional: the local page wins, whatever changed remotely. A push with nothing changed locally since this device last pushed doesn't touch the remote at all, and one with changes writes without reading the remote first. Only when this device has no record of the last push is the remote read, so what is already there isn't written again; a transport that can't read is written to all the same.
 
 # Services
 Share is extended through the [[API/service|service]] API.
 
 ## share:onboard
-Offers a way to share a page for the first time; these are the options listed by {[Share: Page]}. Register one with `match` fields `name` and `description` (shown in the list). `run(data)` receives `{name, text, content}`: the page name, its text, and `content`, the text a push would send (transformed for a generic target, so a provider that uploads during onboarding doesn't publish comments or private frontmatter). It returns `{uri, mode}` to set up the frontmatter, or nil when cancelled. A `hash` in the result is ignored. {[Share: Page]} then shares the page as usual, which uploads it in `push` mode; a provider doesn't need to upload it itself.
+Offers a way to share a page for the first time; these are the options listed by {[Share: Page]}. Register one with `match` fields `name` and `description` (shown in the list). `run(data)` receives `{name, text, content}`: the page name, its text, and `content`, the text a push would send (transformed for a generic target, so a provider that uploads during onboarding doesn't publish comments or private frontmatter; `ctx.uri` is not set during this transform). When that transform fails, {[Share: Page]} reports the error and offers no providers. It returns `{uri, mode}` to set up the frontmatter, or nil when cancelled. A `hash` in the result is ignored. {[Share: Page]} then shares the page as usual, which uploads it in `push` mode; a provider doesn't need to upload it itself. When that first share fails, the `share.*` keys are taken out again, so the page stays unshared.
 
 ```lua
 service.define {
@@ -112,7 +120,7 @@ service.define {
 ```
 
 ## share:ensure
-Called with `{uri}` before sharing in `push` or `sync` mode (a `push` without local changes skips it, since it touches no remote), to prepare a transport for a URI nothing handles yet, or to sign in before the first read or write, for example connecting to a SilverBullet space a page was shared to from another device, or signing in to a known space this device has no credential for yet. Register it with a `match` function that returns a table with `priority` when it recognizes the URI. The return value of `run` is informational: `share.ensureTransport` ignores it. When the URI does belong to the service but it can't prepare a transport (for example the user declines to connect), `run` should raise an error, so the share stops instead of falling back to another reader such as the generic `https:` one.
+Called with `{uri}` before sharing in `push` or `sync` mode (a `push` this device knows has no local changes skips it, since it touches no remote; on a device with no record of the last push it runs, so the remote can be read), to prepare a transport for a URI nothing handles yet, or to sign in before the first read or write, for example connecting to a SilverBullet space a page was shared to from another device, or signing in to a known space this device has no credential for yet. Register it with a `match` function that returns a table with `priority` when it recognizes the URI. The return value of `run` is informational: `share.ensureTransport` ignores it. When the URI does belong to the service but it can't prepare a transport (for example the user declines to connect), `run` should raise an error, so the share stops instead of falling back to another reader such as the generic `https:` one.
 
 ## share:target:<uri>
 Describes how a location wants the pages published to it. A provider registers a service with a selector such as `share:target:myservice:*` (with a `match` that has a `priority`, or a function that returns one when it recognizes the URI), and `run({uri})` returns a descriptor table:
@@ -121,7 +129,7 @@ Describes how a location wants the pages published to it. A provider registers a
 * `link(l)`: returns the text that replaces a wiki link or transclusion that points inside the share. `l` has `page` and `anchor` (the target, the anchor without `#`), `alias`, `text` (the alias, or the page name), `transclusion` (true for `![[...]]`), `fromUri` (the URI of the page being shared) and `toUri` (the URI of the target page, or nil for a link within the page itself).
 
 ## share:transform
-Extends `share.transform` with your own step. Register a service with `match = {name = "...", order = n}`; `run({text, ctx})` returns the new text (`ctx` is described at [[#share.transform(text, ctx)]]). Services run after the built-in steps in ascending `order` (100 when not set) and are skipped for exempt pages and for pages with `share.transform: false`.
+Extends `share.transform` with your own step. Register a service with `match = {name = "...", order = n}`; `run({text, ctx})` returns the new text (`ctx` is described at [[#share.transform(text, ctx)]]). Services run after the built-in steps in ascending `order` (100 when not set) and are skipped for exempt pages and for pages with `share.transform: false`. A service that returns `nil` leaves the text as it is; returning anything other than text is an error.
 
 ```lua
 service.define {
