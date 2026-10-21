@@ -55,7 +55,8 @@ export async function proxyFetch(
     body = rawBytes;
   }
   return {
-    ok: resp.ok,
+    // The upstream's, not the proxy's (which answered 200)
+    ok: statusCode >= 200 && statusCode < 300,
     status: statusCode,
     headers: extractProxyHeaders(resp.headers),
     body: body,

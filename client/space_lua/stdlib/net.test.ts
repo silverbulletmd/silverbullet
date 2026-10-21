@@ -4,7 +4,7 @@ import {
   LuaTable,
   type LuaNativeJSFunction,
 } from "../runtime.ts";
-import { netApi } from "./net.ts";
+import { netApi, proxyFetch } from "./net.ts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -31,4 +31,29 @@ test("net.writeURI passes its options on to the service", async () => {
     ],
     ["net.writeURI:https://h/Q", { uri: "https://h/Q", content: "more" }],
   ]);
+});
+
+test("proxyFetch's ok and status are the upstream's", async () => {
+  const upstream = (code: string) =>
+    new Response("Not here", {
+      status: 200,
+      headers: {
+        "x-proxy-status-code": code,
+        "x-proxy-header-content-type": "text/plain",
+      },
+    });
+  const authenticatedFetch = vi.fn(async () => upstream("404"));
+  vi.stubGlobal("client", {
+    httpSpacePrimitives: { url: "https://sb/.fs", authenticatedFetch },
+  });
+  expect(await proxyFetch("https://example.com/x")).toMatchObject({
+    ok: false,
+    status: 404,
+    body: "Not here",
+  });
+  authenticatedFetch.mockImplementation(async () => upstream("201"));
+  expect(await proxyFetch("https://example.com/x")).toMatchObject({
+    ok: true,
+    status: 201,
+  });
 });
