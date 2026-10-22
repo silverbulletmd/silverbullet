@@ -1,3 +1,4 @@
+import { sha1 } from "@noble/hashes/legacy.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
 export function base64Decode(s: string): Uint8Array {
@@ -34,20 +35,30 @@ export function base64DecodeDataUrl(dataUrl: string): Uint8Array {
   return base64Decode(b64Encoded);
 }
 
-export async function hashSHA256(
+// Hex digest via WebCrypto, falling back to noble where subtle is unavailable
+async function hexDigest(
+  algorithm: "SHA-1" | "SHA-256",
+  fallback: (data: Uint8Array) => Uint8Array,
   message: string | Uint8Array,
 ): Promise<string> {
-  const encoder = new TextEncoder();
   const data: Uint8Array =
-    typeof message === "string" ? encoder.encode(message) : message;
+    typeof message === "string" ? new TextEncoder().encode(message) : message;
 
   const hashBuffer = globalThis.crypto.subtle
-    ? await globalThis.crypto.subtle.digest("SHA-256", data as BufferSource)
-    : sha256(data);
+    ? await globalThis.crypto.subtle.digest(algorithm, data as BufferSource)
+    : fallback(data);
 
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+export function hashSHA256(message: string | Uint8Array): Promise<string> {
+  return hexDigest("SHA-256", sha256, message);
+}
+
+export function hashSHA1(message: string | Uint8Array): Promise<string> {
+  return hexDigest("SHA-1", sha1, message);
 }
 
 export function randomUUID(): string {
