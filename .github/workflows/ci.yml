@@ -113,7 +113,9 @@ jobs:
 
   # Debug rust-embed serves from disk, so runtime tests need a built client bundle.
   test-rust:
-    runs-on: ubuntu-latest
+    # Playwright 1.58 can't install browsers on Ubuntu 26.04 (ubuntu-latest
+    # since October 2026)
+    runs-on: ubuntu-24.04
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -146,7 +148,9 @@ jobs:
         run: cargo test --workspace --all-features
 
   test-e2e:
-    runs-on: ubuntu-latest
+    # Playwright 1.58 can't install browsers on Ubuntu 26.04 (ubuntu-latest
+    # since October 2026)
+    runs-on: ubuntu-24.04
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -189,7 +193,9 @@ jobs:
   # separate from test-e2e so the fast gate isn't blocked on a release compile;
   # runs in parallel and gates release/docker.
   test-e2e-release:
-    runs-on: ubuntu-latest
+    # Playwright 1.58 can't install browsers on Ubuntu 26.04 (ubuntu-latest
+    # since October 2026)
+    runs-on: ubuntu-24.04
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
