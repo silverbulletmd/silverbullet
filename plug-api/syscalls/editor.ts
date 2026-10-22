@@ -331,6 +331,25 @@ export function prompt(
   return syscall("editor.prompt", message, defaultValue);
 }
 
+export type PickManyOptions = {
+  title: string;
+  message?: string;
+  items: { id: string; label: string }[];
+  /** Label of the confirm button, defaults to "OK" */
+  confirmLabel?: string;
+};
+
+/**
+ * Shows a checklist, every item unchecked, with a confirm and a cancel button.
+ *
+ * @returns the `id`s of the ticked items (possibly none), or undefined when cancelled
+ */
+export function pickMany(
+  options: PickManyOptions,
+): Promise<string[] | undefined> {
+  return syscall("editor.pickMany", options);
+}
+
 export type ChooseVersionOptions = {
   title: string;
   message?: string;

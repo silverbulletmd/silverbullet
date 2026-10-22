@@ -183,3 +183,27 @@ test("editor.chooseVersion takes an empty Lua table of choices as none", async (
     choices: [],
   });
 });
+
+test("editor.pickMany forwards the options to the UI and returns its answer", async () => {
+  const pickMany = vi.fn(async () => ["a"]);
+  const client = { ui: { pickMany } } as unknown as Client;
+  const system = new System();
+  system.registerSyscalls([], editorSyscalls(client));
+  const options = {
+    title: "Remove?",
+    items: [{ id: "a", label: "A" }],
+  };
+
+  await expect(
+    system.localSyscall("editor.pickMany", [options]),
+  ).resolves.toEqual(["a"]);
+  expect(pickMany).toHaveBeenCalledWith(options);
+});
+
+test("editor.pickMany takes an empty Lua table of items as none", async () => {
+  const pickMany = vi.fn(async () => undefined);
+  const client = { ui: { pickMany } } as unknown as Client;
+  const syscalls = editorSyscalls(client) as Record<string, any>;
+  await syscalls["editor.pickMany"].callback({}, { title: "T", items: {} });
+  expect(pickMany).toHaveBeenCalledWith({ title: "T", items: [] });
+});

@@ -11,7 +11,10 @@ import { h, render as preactRender } from "preact";
 import { useEffect, useMemo, useReducer, useState } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
-import type { ChooseVersionOptions } from "../plug-api/syscalls/editor.ts";
+import type {
+  ChooseVersionOptions,
+  PickManyOptions,
+} from "../plug-api/syscalls/editor.ts";
 import { BOTTOM_DOCK_MAX_HEIGHT } from "../plug-api/ui/dock_size.ts";
 import {
   type ConfiguredActionButton,
@@ -33,6 +36,7 @@ import {
   type KeyboardBarButton,
 } from "./components/keyboard_bar.tsx";
 import { Panel } from "./components/panel.tsx";
+import { PickManyModal } from "./components/pick_many.tsx";
 import {
   editorProfileMenuItems,
   ProfileAvatar,
@@ -327,6 +331,25 @@ export class MainUI {
     });
   }
 
+  private lastPickManyId = 0;
+
+  /** Resolves with the ticked items' ids, or undefined when cancelled. */
+  pickMany(options: PickManyOptions): Promise<string[] | undefined> {
+    return new Promise((resolve) => {
+      const id = ++this.lastPickManyId;
+      this.viewDispatch({
+        type: "show-pick-many",
+        id,
+        options,
+        callback: (ids) => {
+          this.viewDispatch({ type: "hide-pick-many", id });
+          this.client.focus();
+          resolve(ids);
+        },
+      });
+    });
+  }
+
   confirm(
     message: string,
     options?: { destructive?: boolean },
@@ -546,6 +569,13 @@ export class MainUI {
             key={viewState.chooseVersion.id}
             options={viewState.chooseVersion.options}
             callback={viewState.chooseVersion.callback}
+          />
+        )}
+        {viewState.pickMany && (
+          <PickManyModal
+            key={viewState.pickMany.id}
+            options={viewState.pickMany.options}
+            callback={viewState.pickMany.callback}
           />
         )}
         {viewState.showConfirm && (

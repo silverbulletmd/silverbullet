@@ -9,7 +9,10 @@ import type {
   DocumentMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import type { ChooseVersionOptions } from "../../plug-api/syscalls/editor.ts";
+import type {
+  ChooseVersionOptions,
+  PickManyOptions,
+} from "../../plug-api/syscalls/editor.ts";
 import type { DeviceCode } from "../auth/device_flow.ts";
 import type { LogEntry as WorkerLogEntry } from "../lib/logger.ts";
 import type { SyncStatus } from "../spaces/sync.ts";
@@ -74,6 +77,13 @@ export type AppViewState = {
     id: number;
     options: ChooseVersionOptions;
     callback: (choice: string | undefined) => void;
+  };
+
+  /** The open editor.pickMany dialog, if any */
+  pickMany?: {
+    id: number;
+    options: PickManyOptions;
+    callback: (ids: string[] | undefined) => void;
   };
 
   showConfirm: boolean;
@@ -169,6 +179,13 @@ export type Action =
       callback: (choice: string | undefined) => void;
     }
   | { type: "hide-choose-version"; id: number }
+  | {
+      type: "show-pick-many";
+      id: number;
+      options: PickManyOptions;
+      callback: (ids: string[] | undefined) => void;
+    }
+  | { type: "hide-pick-many"; id: number }
   | {
       type: "show-confirm";
       message: string;

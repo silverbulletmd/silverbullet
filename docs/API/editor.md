@@ -711,6 +711,20 @@ Opens a URL in the browser.
 - `url` (`string`) — The URL to open.
 - `existingWindow?` (`boolean`) — Whether to reuse an existing window.
 
+## editor.pickMany
+
+`editor.pickMany(options)`
+
+Shows a checklist, every item unchecked, and lets the user tick any number of them.
+
+**Parameters:**
+
+- `options` (`{ title: string; message?: string; items: { id: string; label: string }[]; confirmLabel?: string }`) — The dialog title, an optional message, the items to offer and the confirm button label (default "OK").
+
+**Returns:**
+
+- `string[] | undefined` — The ids of the ticked items (possibly none), or undefined if dismissed.
+
 ## editor.prompt
 
 `editor.prompt(message, defaultValue?, options?)`

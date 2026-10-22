@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { PageMeta } from "../plug-api/types/index.ts";
-import type { Action, AppViewState } from "./types/ui.ts";
 import reducer from "./reducer.ts";
+import type { Action, AppViewState } from "./types/ui.ts";
 
 function pageMeta(name: string, extra: Partial<PageMeta> = {}): PageMeta {
   return {
@@ -69,5 +69,42 @@ describe("update-page-list current page meta matching", () => {
     } as unknown as AppViewState;
     const next = updatePageList(state, [pageMeta("foo")]);
     expect(next.allPages[0].lastOpened).toBe(42);
+  });
+});
+
+describe("pick-many dialog", () => {
+  const options = {
+    title: "Remove?",
+    items: [{ id: "a", label: "A" }],
+  };
+  const callback = () => {};
+
+  test("show-pick-many stores the dialog and hide-pick-many removes it by id", () => {
+    const state = {} as unknown as AppViewState;
+    const shown = reducer(state, {
+      type: "show-pick-many",
+      id: 1,
+      options,
+      callback,
+    } as Action);
+    expect(shown.pickMany).toEqual({ id: 1, options, callback });
+    expect(
+      reducer(shown, { type: "hide-pick-many", id: 1 } as Action).pickMany,
+    ).toBeUndefined();
+  });
+
+  test("hide-pick-many for another id keeps the open dialog", () => {
+    const shown = reducer(
+      {} as unknown as AppViewState,
+      {
+        type: "show-pick-many",
+        id: 2,
+        options,
+        callback,
+      } as Action,
+    );
+    expect(
+      reducer(shown, { type: "hide-pick-many", id: 1 } as Action).pickMany?.id,
+    ).toBe(2);
   });
 });

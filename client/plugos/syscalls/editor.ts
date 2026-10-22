@@ -79,7 +79,10 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 import type { VimConfig } from "@silverbulletmd/silverbullet/type/config";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import type { ChooseVersionOptions } from "../../../plug-api/syscalls/editor.ts";
+import type {
+  ChooseVersionOptions,
+  PickManyOptions,
+} from "../../../plug-api/syscalls/editor.ts";
 import { updateBakedSections } from "../../baked_sections/bake.ts";
 import type { Client } from "../../client.ts";
 import { copyToClipboard } from "../../clipboard.ts";
@@ -1206,6 +1209,33 @@ export function editorSyscalls(client: Client): SysCallMapping {
           type: "string | undefined",
           description:
             "The id of the clicked choice, or undefined if dismissed.",
+        },
+      ],
+    },
+    "editor.pickMany": {
+      callback: (
+        _ctx,
+        options: PickManyOptions,
+      ): Promise<string[] | undefined> => {
+        // An empty Lua table arrives as {}
+        const items = Array.isArray(options.items) ? options.items : [];
+        return client.ui.pickMany({ ...options, items });
+      },
+      description:
+        "Shows a checklist, every item unchecked, and lets the user tick any number of them.",
+      parameters: [
+        {
+          name: "options",
+          type: "{ title: string; message?: string; items: { id: string; label: string }[]; confirmLabel?: string }",
+          description:
+            'The dialog title, an optional message, the items to offer and the confirm button label (default "OK").',
+        },
+      ],
+      returns: [
+        {
+          type: "string[] | undefined",
+          description:
+            "The ids of the ticked items (possibly none), or undefined if dismissed.",
         },
       ],
     },

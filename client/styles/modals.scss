@@ -46,6 +46,27 @@
       }
     }
 
+    // A long list scrolls inside the modal; the buttons stay below it
+    .sb-pick-many-list {
+      max-height: 50vh;
+      overflow-y: auto;
+      margin: 10px 0 0;
+
+      label {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 4px 0;
+        font-weight: normal;
+        overflow-wrap: anywhere;
+      }
+
+      input {
+        flex: none;
+        margin-top: 0.3em;
+      }
+    }
+
     .sb-device-url {
       overflow-wrap: anywhere;
     }

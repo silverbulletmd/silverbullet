@@ -198,6 +198,19 @@ export default function reducer(
       return state.chooseVersion?.id === action.id
         ? { ...state, chooseVersion: undefined }
         : state;
+    case "show-pick-many":
+      return {
+        ...state,
+        pickMany: {
+          id: action.id,
+          options: action.options,
+          callback: action.callback,
+        },
+      };
+    case "hide-pick-many":
+      return state.pickMany?.id === action.id
+        ? { ...state, pickMany: undefined }
+        : state;
     case "show-confirm":
       return {
         ...state,
