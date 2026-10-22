@@ -4,6 +4,7 @@ import {
   checkUpdates,
   installLibrary,
   updateAllRepositories,
+  updateByName,
   updateLibrary,
 } from "./libraries_backend.ts";
 
@@ -209,4 +210,57 @@ describe("updateAllRepositories", () => {
     });
     expect(expressions).toEqual(['share.shareMany({"R", "S", "T"})']);
   });
+});
+
+describe("updateByName", () => {
+  function stubSpace(evalExpression: (expr: string) => any) {
+    handlers["index.queryLuaObjects"] = (tag: string) => {
+      if (tag === "meta/library") {
+        return [
+          { name: "Library/A", share: { uri: "https://e/A.md", mode: "pull" } },
+          { name: "Library/B", share: { uri: "https://e/B.md", mode: "push" } },
+        ];
+      }
+      if (tag === "meta/repository") {
+        return [{ name: "Repositories/R", share: { uri: "https://e/R.md" } }];
+      }
+      return [];
+    };
+    handlers["space.listPlugs"] = () => [];
+    handlers["lua.evalExpression"] = evalExpression;
+  }
+
+  test("a repository goes through share.sharePage", async () => {
+    const expressions: string[] = [];
+    stubSpace((expr) => {
+      expressions.push(expr);
+      return true;
+    });
+    expect(await updateByName("Repositories/R")).toEqual({ changed: true });
+    expect(expressions).toEqual(['share.sharePage("Repositories/R")']);
+  });
+
+  test("an updatable library is pulled again", async () => {
+    const expressions: string[] = [];
+    stubSpace((expr) => {
+      expressions.push(expr);
+      return { page: "Library/A", changed: false };
+    });
+    expect(await updateByName("Library/A")).toEqual({ changed: false });
+    expect(expressions).toEqual([
+      'share.install("https://e/A.md", {installed = "Library/A"})',
+    ]);
+  });
+
+  test.each(["Library/B", "Library/Missing"])(
+    "%s is not an installed library or repository",
+    async (name) => {
+      stubSpace(() => {
+        throw new Error("must not be reached");
+      });
+      await expect(updateByName(name)).rejects.toThrow(
+        `Not an installed library or repository: ${name}`,
+      );
+    },
+  );
 });

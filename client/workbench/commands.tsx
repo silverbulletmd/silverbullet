@@ -14,9 +14,11 @@ import { consoleLog } from "./console/console_log.ts";
 import { ConsoleSession } from "./console/console_session.ts";
 import { DeepCheck } from "./health/deep_check.ts";
 import { HealthMonitor, healthWatch } from "./health/health_sources.ts";
+import { updateByName } from "./libraries/libraries_backend.ts";
 import {
   LIBRARY_COMMANDS,
   runLibraryCommand,
+  runLibraryUpdate,
 } from "./libraries/libraries_commands.ts";
 import { QueryBuilder } from "./query/query_builder.ts";
 import {
@@ -82,6 +84,18 @@ export function registerWorkbenchCommands(
       run: () => runLibraryCommand(focus, showView),
     });
   }
+  // Called by the Shared Pages view; opens nothing
+  hook.registerCommand({
+    name: "Library: Update",
+    hide: true,
+    requireMode: "rw",
+    run: async (args?: unknown[]) => {
+      await runLibraryUpdate(args, updateByName, (message, type) =>
+        client.ui.flashNotification(message, type),
+      );
+      return false;
+    },
+  });
   // The ⋯ menu of a query widget passes the query; the palette leaves it to the cursor
   hook.registerCommand({
     name: EDIT_QUERY_COMMAND,

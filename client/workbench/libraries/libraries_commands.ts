@@ -66,3 +66,25 @@ export async function runLibraryCommand(
   // The panel took focus; `false` stops the palette handing it back to the editor
   return false;
 }
+
+/** Backs the hidden `Library: Update` command, called with `{ name }`. */
+export async function runLibraryUpdate(
+  args: unknown[] | undefined,
+  update: (name: string) => Promise<{ changed: boolean }>,
+  notify: (message: string, type: "info" | "error") => void,
+): Promise<void> {
+  const name = (args?.[0] as { name?: unknown } | undefined)?.name;
+  if (typeof name !== "string") {
+    notify("Library: Update needs a library name", "error");
+    return;
+  }
+  try {
+    const { changed } = await update(name);
+    notify(
+      changed ? `Updated ${name}` : `${name} is already up to date`,
+      "info",
+    );
+  } catch (e) {
+    notify(e instanceof Error ? e.message : String(e), "error");
+  }
+}

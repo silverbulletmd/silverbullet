@@ -1,6 +1,10 @@
-import { expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
-import { LIBRARY_COMMANDS, runLibraryCommand } from "./libraries_commands.ts";
+import {
+  LIBRARY_COMMANDS,
+  runLibraryCommand,
+  runLibraryUpdate,
+} from "./libraries_commands.ts";
 import { takeLibrariesFocus } from "./libraries_focus.ts";
 
 test("the commands keep their names, order and focus", () => {
@@ -67,4 +71,62 @@ test("a failing show clears the pending request and rethrows", async () => {
     "no view",
   );
   expect(takeLibrariesFocus()).toBeUndefined();
+});
+
+describe("runLibraryUpdate", () => {
+  test("says what was updated", async () => {
+    const notify = vi.fn();
+    const update = vi.fn(async () => ({ changed: true }));
+    await runLibraryUpdate([{ name: "Library/A" }], update, notify);
+    expect(update).toHaveBeenCalledWith("Library/A");
+    expect(notify).toHaveBeenCalledWith("Updated Library/A", "info");
+  });
+
+  test("says when nothing changed", async () => {
+    const notify = vi.fn();
+    await runLibraryUpdate(
+      [{ name: "Library/A" }],
+      async () => ({ changed: false }),
+      notify,
+    );
+    expect(notify).toHaveBeenCalledWith(
+      "Library/A is already up to date",
+      "info",
+    );
+  });
+
+  test("reports a failure as an error notification", async () => {
+    const notify = vi.fn();
+    await runLibraryUpdate(
+      [{ name: "Library/A" }],
+      async () => {
+        throw new Error("boom");
+      },
+      notify,
+    );
+    expect(notify).toHaveBeenCalledWith("boom", "error");
+  });
+
+  test("reports a thrown non-Error as its text", async () => {
+    const notify = vi.fn();
+    await runLibraryUpdate(
+      [{ name: "Library/A" }],
+      async () => {
+        throw "offline";
+      },
+      notify,
+    );
+    expect(notify).toHaveBeenCalledWith("offline", "error");
+  });
+
+  test("rejects a call without a name", async () => {
+    const notify = vi.fn();
+    const update = vi.fn();
+    await runLibraryUpdate([], update, notify);
+    expect(update).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith(
+      "Library: Update needs a library name",
+      "error",
+    );
+  });
 });

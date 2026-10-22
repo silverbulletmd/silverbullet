@@ -11,9 +11,9 @@ import { stdLibPrefix } from "../../spaces/constants.ts";
 import { luaString } from "../shared/lua_string.ts";
 
 // What the Libraries tab does to the space. Pulls go through the share core
-// in Lua (share.install, share.sharePage, share.check), which keeps this
-// device's record of what it last pulled; this file adds what only
-// libraries have: their files and plugs.
+// in Lua (share.install, share.sharePage, share.check), which keeps the
+// page's share.hash, its record of what was last pulled; this file adds what
+// only libraries have: their files and plugs.
 
 const LIBRARY_TAG = "meta/library";
 const REMOTE_LIBRARY_TAG = "meta/library/remote";
@@ -283,6 +283,21 @@ export async function updateRepository(
   ));
   if (changed) await reloadEverything();
   return { changed };
+}
+
+/** Updates what is installed under `name`, whether a library or a repository. */
+export async function updateByName(
+  name: string,
+): Promise<{ changed: boolean }> {
+  const { installed, repositories } = await listLibraries();
+  if (repositories.some((r) => r.name === name)) {
+    return await updateRepository(name);
+  }
+  const lib = installed.find((l) => l.name === name);
+  if (lib?.uri && isUpdatable(lib)) {
+    return await updateLibrary({ name, uri: lib.uri });
+  }
+  throw new Error(`Not an installed library or repository: ${name}`);
 }
 
 /**
