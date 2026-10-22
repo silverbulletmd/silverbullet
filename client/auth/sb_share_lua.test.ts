@@ -195,6 +195,22 @@ describe("SilverBullet Share.md", () => {
     expect(await resolve(h, "https://elsewhere/A")).toBeNull();
   });
 
+  test("resolve gives a space's own URL an empty page name", async () => {
+    seedIndex("https://h", "https://h/notes");
+    const h = await load();
+    for (const uri of ["https://h/notes", "https://h/notes/"]) {
+      expect(await resolve(h, uri)).toEqual(["https://h/notes", ""]);
+    }
+    expect(await resolve(h, "https://h/")).toEqual(["https://h", ""]);
+    // Reading or writing the space itself is not a page's
+    const matches = await h.call(
+      "service.discover",
+      "net.readURI:https://h/notes",
+      { uri: "https://h/notes" },
+    );
+    expect(Object.values((matches as object) ?? {})).toEqual([]);
+  });
+
   test("the share target claims only URIs of known spaces", async () => {
     seedIndex("https://h/n");
     const h = await load();

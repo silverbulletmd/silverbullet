@@ -17,6 +17,9 @@ describe("Github.md", () => {
   let fetches: Array<{ url: string; opts: any }>;
   // Status for a request, 200 by default
   let status: (url: string, opts: any) => number;
+  // Body for a request, undefined for the default one
+  let body: (url: string, opts: any) => unknown;
+  let commitMessage: string | undefined;
   let h: Awaited<ReturnType<typeof loadStdPages>>;
 
   beforeEach(async () => {
@@ -25,6 +28,8 @@ describe("Github.md", () => {
     deviceToken = "gho_device";
     fetches = [];
     status = () => 200;
+    body = () => undefined;
+    commitMessage = "Publish docs";
     h = await loadStdPages(
       PAGES,
       {
@@ -36,6 +41,7 @@ describe("Github.md", () => {
               "File path:": "notes/page.md",
               "File name": "page.md",
             };
+            if (message === "Commit message:") return commitMessage;
             return answers[message] ?? def;
           },
           flashNotification: () => {},
@@ -57,7 +63,7 @@ describe("Github.md", () => {
             return {
               ok: code >= 200 && code < 300,
               status: code,
-              body: {
+              body: body(url, opts) ?? {
                 tag_name: "v1",
                 sha: "abc123",
                 files: { "a.md": { content: "hi" } },
@@ -234,13 +240,14 @@ describe("Github.md", () => {
     expect(deviceFlows).toHaveLength(0);
   });
 
-  test("file providers define share targets; gists use the generic one", () => {
+  test("file providers and gists define share targets", () => {
     const selectors = h.services
       .filter((s) => s.selector.startsWith("share:target:"))
       .map((s) => s.selector)
       .sort();
     expect(selectors).toEqual([
       "share:target:github:*",
+      "share:target:https://gist.github.com/*",
       "share:target:https://github.com/*",
     ]);
   });
@@ -362,5 +369,397 @@ describe("Github.md", () => {
         }),
       ),
     ).toMatch(/^THREW .*422/);
+  });
+
+  describe("gists", () => {
+    const GIST = "https://gist.github.com/u/abc";
+    const API = "https://api.github.com/gists/abc";
+    const run = (selector: string, data: unknown) =>
+      threw(() => readService(selector).run(data));
+    const target = async () =>
+      (await readService("share:target:https://gist.github.com/*").run({
+        uri: GIST,
+      })) as any;
+    const list = (extra = {}) =>
+      run("net.listURI:https://gist.github.com/*", { uri: GIST, ...extra });
+
+    beforeEach(() => {
+      cfg["github.token"] = "pat123";
+    });
+
+    test("member URIs flatten the path into one file name", async () => {
+      const t = await target();
+      expect(await t.memberUri(GIST, "Blog/Post")).toBe(`${GIST}/Blog-Post.md`);
+      expect(await t.memberUri(GIST, "My Notes/C D")).toBe(
+        `${GIST}/My Notes-C D.md`,
+      );
+      expect(t.defaults).toEqual({
+        links: true,
+        comments: true,
+        bake: true,
+      });
+    });
+
+    test("links between files of the gist point at the file", async () => {
+      const t = await target();
+      const link = (toUri: string | undefined, text = "Post") =>
+        t.link({ fromUri: `${GIST}/A.md`, toUri, text, page: "Blog/Post" });
+      expect(await link(`${GIST}/Blog-Post.md`)).toBe(
+        "[Post](https://gist.github.com/u/abc#file-blog-post-md)",
+      );
+      expect(await link(`${GIST}/My Notes-C D.md`, "C")).toBe(
+        "[C](https://gist.github.com/u/abc#file-my-notes-c-d-md)",
+      );
+      expect(await link("https://gist.github.com/u/other/B.md")).toBe("Post");
+      expect(await link(`${GIST}/A.md`)).toBe("Post");
+      expect(await link(undefined)).toBe("Post");
+    });
+
+    test("web URLs name the file with an anchor", async () => {
+      const t = await target();
+      expect(await t.webUrl(`${GIST}/Blog-Post.md`)).toBe(
+        `${GIST}#file-blog-post-md`,
+      );
+      expect(await t.webUrl(GIST)).toBe(GIST);
+      expect(await t.webUrl("https://gist.github.com/abc")).toBe(
+        "https://gist.github.com/abc",
+      );
+    });
+
+    test("listing names the gist's Markdown files, content or not", async () => {
+      body = () => ({
+        files: {
+          "notes.txt": { content: "not a member" },
+          "B.md": { content: "b" },
+          // Large files come without their content
+          "Big.md": { truncated: true, raw_url: "https://raw/big" },
+          "A.md": { content: "a" },
+        },
+      });
+      expect(await list()).toEqual([
+        { uri: `${GIST}/A.md` },
+        { uri: `${GIST}/B.md` },
+        { uri: `${GIST}/Big.md` },
+      ]);
+      expect(fetches.map((f) => `${f.opts.method ?? "GET"} ${f.url}`)).toEqual([
+        `GET ${API}`,
+      ]);
+    });
+
+    test("a truncated gist is an error", async () => {
+      body = () => ({ files: { "A.md": { content: "a" } }, truncated: true });
+      expect(await list()).toBe(
+        `THREW GitHub: too many files in ${GIST} to list`,
+      );
+    });
+
+    test("a failed or refused listing is an error, never an empty gist", async () => {
+      status = () => 404;
+      expect(await list()).toBe(
+        "THREW GitHub: gist abc not found (or not signed in to GitHub)",
+      );
+      status = () => 403;
+      expect(await list()).toMatch(/^THREW GitHub refused .*: HTTP 403/);
+    });
+
+    test("listing signs in only when asked to", async () => {
+      delete cfg["github.token"];
+      body = () => ({ files: {} });
+      await list();
+      expect(deviceFlows).toHaveLength(0);
+      expect(fetches[0].opts.headers.Authorization).toBeUndefined();
+      await list({ signIn: true });
+      expect(deviceFlows).toHaveLength(1);
+      expect(fetches[1].opts.headers.Authorization).toBe("Bearer gho_device");
+    });
+
+    test("a file URI reads that file, fetching truncated content", async () => {
+      body = (url) =>
+        url === "https://raw/big"
+          ? "big text"
+          : {
+              files: {
+                "A.md": { content: "a" },
+                "Big.md": { truncated: true, raw_url: "https://raw/big" },
+              },
+            };
+      const read = (uri: string) =>
+        run("net.readURI:https://gist.github.com/*", { uri });
+      expect(await read(`${GIST}/A.md`)).toBe("a");
+      expect(await read(`${GIST}/Big.md`)).toBe("big text");
+      expect(await read(`${GIST}/Missing.md`)).toBeNull();
+      expect(fetches.map((f) => f.url)).toEqual([
+        API,
+        API,
+        "https://raw/big",
+        API,
+      ]);
+      status = () => 500;
+      expect(await read(`${GIST}/A.md`)).toMatch(/^THREW .*500/);
+    });
+
+    test("a file URI writes that file only", async () => {
+      expect(
+        await run("net.writeURI:https://gist.github.com/*", {
+          uri: `${GIST}/My Notes-C D.md`,
+          content: "c",
+        }),
+      ).toBeUndefined();
+      expect(fetches).toHaveLength(1);
+      expect(fetches[0].url).toBe(API);
+      expect(fetches[0].opts.method).toBe("PATCH");
+      expect(fetches[0].opts.body).toEqual({
+        files: { "My Notes-C D.md": { content: "c" } },
+      });
+      status = () => 422;
+      expect(
+        await run("net.writeURI:https://gist.github.com/*", {
+          uri: `${GIST}/A.md`,
+          content: "a",
+        }),
+      ).toMatch(/^THREW .*422/);
+    });
+
+    test("a delete sends the file as JSON null", async () => {
+      expect(
+        await run("net.deleteURI:https://gist.github.com/*", {
+          uri: `${GIST}/My Notes-C D.md`,
+        }),
+      ).toBeUndefined();
+      expect(fetches).toHaveLength(1);
+      expect(fetches[0].url).toBe(API);
+      expect(fetches[0].opts.method).toBe("PATCH");
+      expect(JSON.parse(fetches[0].opts.body)).toEqual({
+        files: { "My Notes-C D.md": null },
+      });
+      status = () => 404;
+      expect(
+        await run("net.deleteURI:https://gist.github.com/*", {
+          uri: `${GIST}/A.md`,
+        }),
+      ).toBeUndefined();
+      expect(
+        await run("net.deleteURI:https://gist.github.com/*", { uri: GIST }),
+      ).toMatch(/^THREW /);
+    });
+
+    test("a single-page gist URI still writes its first .md file", async () => {
+      body = (_url, opts) =>
+        opts?.method === "PATCH"
+          ? {}
+          : {
+              files: {
+                "notes.txt": { content: "x" },
+                "page.md": { content: "old" },
+              },
+            };
+      expect(
+        await run("net.writeURI:https://gist.github.com/*", {
+          uri: GIST,
+          content: "new",
+        }),
+      ).toBeUndefined();
+      expect(fetches.map((f) => `${f.opts.method} ${f.url}`)).toEqual([
+        `GET ${API}`,
+        `PATCH ${API}`,
+      ]);
+      expect(fetches[1].opts.body.files).toEqual({
+        "page.md": { content: "new" },
+      });
+    });
+  });
+
+  describe("collections", () => {
+    const API = "https://api.github.com/repos/me/repo/";
+    const ROOT = "github:me/repo@dev/docs";
+    // The git data API, by path under API
+    const gitBodies: Record<string, unknown> = {
+      "git/ref/heads/dev": { object: { sha: "head1" } },
+      "git/commits/head1": { tree: { sha: "base1" } },
+      "git/trees": { sha: "tree2" },
+      "git/commits": { sha: "commit2" },
+    };
+
+    beforeEach(() => {
+      cfg["github.name"] = "Jo";
+      cfg["github.email"] = "jo@example.com";
+      cfg["github.token"] = "pat123";
+      body = (url) =>
+        url.startsWith(API) ? gitBodies[url.slice(API.length)] : undefined;
+    });
+
+    const run = (selector: string, data: unknown) =>
+      threw(() => readService(selector).run(data));
+    const batch = (root = ROOT) =>
+      run(
+        `share:writeBatch:${root.startsWith("github:") ? "github:" : "https://github.com/"}*`,
+        {
+          root,
+          writes: [
+            { uri: `${root}/A.md`, content: "a" },
+            { uri: `${root}/My%20Notes/C%20D.md`, content: "c" },
+          ],
+          deletes: [`${root}/Old.md`],
+        },
+      );
+
+    test("member URIs encode each segment and add .md", async () => {
+      for (const root of [ROOT, "https://github.com/me/repo/blob/dev/docs"]) {
+        const service = h.services.find(
+          (s) =>
+            s.selector ===
+            `share:target:${root.startsWith("github:") ? "github:" : "https://github.com/"}*`,
+        )!;
+        const t: any = await service.run({ uri: root });
+        expect(await t.memberUri(root, "My Notes/C D")).toBe(
+          `${root}/My%20Notes/C%20D.md`,
+        );
+      }
+    });
+
+    const list = (uri: string, extra = {}) =>
+      run(
+        `net.listURI:${uri.startsWith("github:") ? "github:" : "https://github.com/"}*`,
+        { uri, ...extra },
+      );
+
+    test("listing maps the root's subtree to member URIs with blob SHAs", async () => {
+      for (const root of [ROOT, "https://github.com/me/repo/blob/dev/docs"]) {
+        fetches = [];
+        body = (url) =>
+          url === `${API}git/trees/dev:docs?recursive=1`
+            ? {
+                tree: [
+                  { path: "A.md", type: "blob", sha: "a1" },
+                  { path: "My Notes", type: "tree", sha: "t2" },
+                  { path: "My Notes/C D.md", type: "blob", sha: "c1" },
+                  { path: "logo.png", type: "blob", sha: "p" },
+                ],
+                truncated: false,
+              }
+            : undefined;
+        expect(await list(root)).toEqual([
+          { uri: `${root}/A.md`, hash: "a1" },
+          { uri: `${root}/My%20Notes/C%20D.md`, hash: "c1" },
+        ]);
+        expect(fetches.map((f) => f.url)).toEqual([
+          `${API}git/trees/dev:docs?recursive=1`,
+        ]);
+      }
+    });
+
+    test("a nested root's tree is addressed with encoded segments", async () => {
+      body = () => ({ tree: [] });
+      await list("github:me/repo@dev/My%20Docs/sub");
+      expect(fetches[0].url).toBe(
+        `${API}git/trees/dev:My%20Docs/sub?recursive=1`,
+      );
+    });
+
+    test("a repo root lists the whole branch", async () => {
+      body = () => ({ tree: [{ path: "A.md", type: "blob", sha: "a1" }] });
+      expect(await list("github:me/repo")).toEqual([
+        { uri: "github:me/repo/A.md", hash: "a1" },
+      ]);
+      expect(fetches[0].url).toBe(`${API}git/trees/main?recursive=1`);
+    });
+
+    test("a missing branch or repo is an error", async () => {
+      status = () => 404;
+      expect(await list("github:me/repo")).toBe(
+        "THREW GitHub: me/repo@main not found (or not signed in to GitHub)",
+      );
+      expect(await list(ROOT)).toBe(
+        "THREW GitHub: me/repo@dev not found (or not signed in to GitHub)",
+      );
+    });
+
+    test("a folder not created yet on an existing branch lists nothing", async () => {
+      status = (url) => (url.includes("git/trees/") ? 404 : 200);
+      // An empty Lua table comes back as {}
+      expect(await list(ROOT)).toEqual({});
+      expect(fetches.map((f) => f.url)).toEqual([
+        `${API}git/trees/dev:docs?recursive=1`,
+        `${API}git/ref/heads/dev`,
+      ]);
+    });
+
+    test("a truncated tree is an error", async () => {
+      body = () => ({
+        tree: [{ path: "A.md", type: "blob", sha: "a1" }],
+        truncated: true,
+      });
+      expect(await list(ROOT)).toBe(
+        `THREW GitHub: too many files under ${ROOT} to list`,
+      );
+    });
+
+    test("listing signs in only when asked to", async () => {
+      delete cfg["github.token"];
+      body = () => ({ tree: [] });
+      await list(ROOT);
+      expect(deviceFlows).toHaveLength(0);
+      expect(fetches[0].opts.headers.Authorization).toBeUndefined();
+      await list(ROOT, { signIn: true });
+      expect(deviceFlows).toHaveLength(1);
+      expect(fetches[1].opts.headers.Authorization).toBe("Bearer gho_device");
+    });
+
+    test("a publish is one commit with a null sha for each removal", async () => {
+      expect(await batch()).toBeUndefined();
+      expect(
+        fetches.map((f) => `${f.opts.method} ${f.url.replace(API, "")}`),
+      ).toEqual([
+        "GET git/ref/heads/dev",
+        "GET git/commits/head1",
+        "POST git/trees",
+        "POST git/commits",
+        "PATCH git/refs/heads/dev",
+      ]);
+      // Sent as JSON text so the null survives
+      expect(JSON.parse(fetches[2].opts.body)).toEqual({
+        base_tree: "base1",
+        tree: [
+          { path: "docs/A.md", mode: "100644", type: "blob", content: "a" },
+          {
+            path: "docs/My Notes/C D.md",
+            mode: "100644",
+            type: "blob",
+            content: "c",
+          },
+          { path: "docs/Old.md", mode: "100644", type: "blob", sha: null },
+        ],
+      });
+      expect(fetches[3].opts.body).toEqual({
+        message: "Publish docs",
+        tree: "tree2",
+        parents: ["head1"],
+        author: { name: "Jo", email: "jo@example.com" },
+        committer: { name: "Jo", email: "jo@example.com" },
+      });
+      expect(fetches[4].opts.body).toEqual({ sha: "commit2" });
+    });
+
+    test("https://github.com/ roots commit the same way", async () => {
+      expect(
+        await batch("https://github.com/me/repo/blob/dev/docs"),
+      ).toBeUndefined();
+      expect(
+        JSON.parse(fetches[2].opts.body).tree.map((e: any) => e.path),
+      ).toEqual(["docs/A.md", "docs/My Notes/C D.md", "docs/Old.md"]);
+    });
+
+    test("a cancelled commit message writes nothing", async () => {
+      commitMessage = undefined;
+      expect(await batch()).toEqual({ cancelled: true });
+      expect(fetches).toHaveLength(0);
+    });
+
+    test("a moved branch is reported", async () => {
+      status = (_url, opts) => (opts?.method === "PATCH" ? 422 : 200);
+      expect(await batch()).toBe(
+        "THREW The branch moved while publishing; publish again",
+      );
+    });
   });
 });

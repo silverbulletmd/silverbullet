@@ -9,9 +9,13 @@ Push-time transforms for [[Share]]: what is rewritten or removed from a page bef
 -- Used when no provider claims a URI
 share.genericTarget = {
   kind = "other",
-  defaults = {links = true, comments = true, frontmatter = true, bake = true},
+  defaults = {links = true, comments = true, bake = true},
   link = function(l)
     return l.text
+  end,
+  -- Where a collection member goes under the target root
+  memberUri = function(root, path)
+    return root .. "/" .. path .. ".md"
   end,
 }
 
@@ -24,7 +28,7 @@ function share.target(uri)
   return share.genericTarget
 end
 
-local stepNames = {"links", "comments", "frontmatter", "bake"}
+local stepNames = {"links", "comments", "bake"}
 
 -- override is false (everything off) or a table of steps set to false.
 -- extensions: the share:transform services, off for exempt pages and with
@@ -147,39 +151,6 @@ local function stripComments(node)
   end
 end
 
-local keptKeys = {"title", "description", "tags"}
-
--- Rebuilt from the kept keys rather than deleting the others, so keys can't
--- slip through by how they are spelled (dotted, quoted)
-local function stripFrontmatter(text)
-  local tree = markdown.parseMarkdown(text)
-  local node
-  for _, child in ipairs(tree.children or {}) do
-    if child.type == "FrontMatter" then
-      node = child
-      break
-    end
-  end
-  if node == nil then
-    return text
-  end
-  -- +1 skips the newline after the closing marker
-  local block = text:sub(1, node.to)
-  local body = text:sub(node.to + 2)
-  local frontmatter = index.extractFrontmatter(block).frontmatter
-  local patches = {}
-  for _, key in ipairs(keptKeys) do
-    local value = frontmatter[key]
-    if value != nil and not (type(value) == "table" and next(value) == nil) then
-      table.insert(patches, {op = "set-key", path = key, value = value})
-    end
-  end
-  if #patches == 0 then
-    return body
-  end
-  return index.patchFrontmatter(body, patches)
-end
-
 -- Baked sections are kept in their expanded form; only the markers go. A
 -- marker line keeps any text after the marker.
 local function dropBakedMarkers(node)
@@ -255,9 +226,6 @@ function share.transform(text, ctx)
       stripComments(tree)
     end
     text = markdown.renderParseTree(tree)
-  end
-  if steps.frontmatter then
-    text = stripFrontmatter(text)
   end
   if steps.extensions then
     text = runExtensions(text, ctx)

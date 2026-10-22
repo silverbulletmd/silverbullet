@@ -6,6 +6,8 @@ import {
   patchFrontmatterText,
 } from "../../plugs/index/frontmatter.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
+import { ArrayQueryCollection } from "../space_lua/query_collection.ts";
+import { jsToLuaValue } from "../space_lua/runtime.ts";
 import {
   loadStdPages,
   type StdPageHarness,
@@ -17,6 +19,8 @@ const PAGES = [
   "libraries/Library/Std/Infrastructure/Share.md",
   "libraries/Library/Std/Infrastructure/SilverBullet Share.md",
   "libraries/Library/Std/Infrastructure/Share Transforms.md",
+  "libraries/Library/Std/Infrastructure/Share Collections.md",
+  "libraries/Library/Std/Infrastructure/Share Commands.md",
 ];
 
 const GITHUB_PAGE = "libraries/Library/Std/Infrastructure/Github.md";
@@ -31,7 +35,7 @@ const KEY = `sb:${SPACE}`;
 export const sha256 = (s: string) =>
   createHash("sha256").update(s).digest("hex");
 
-type Response = {
+export type Response = {
   status: number;
   headers?: Record<string, string>;
   body?: unknown;
@@ -50,19 +54,22 @@ export class ShareWorld {
   remote = new Map<string, { text: string; etag: string }>();
   etagCounter = 0;
   fetches: Array<{ url: string; opts: any }> = [];
-  mergeText: (base: string, local: string, remote: string) => unknown = () => {
-    throw new Error("unexpected merge");
-  };
-  merges: Array<[string, string, string]> = [];
   // Remote of the non-SilverBullet test transport
   other = new Map<string, string>();
+  // Whether the test transport offers net.listURI
+  otherListable = true;
   beforePut: (() => void) | undefined;
   notifications: Array<[string, string | undefined]> = [];
   confirms: string[] = [];
+  openedUrls: string[] = [];
+  clipboard: string[] = [];
   confirmAnswer = true;
   // editor.chooseVersion calls, and the choice id it returns (nil: cancelled)
   chooseVersions: Array<Record<string, unknown>> = [];
   chooseAnswer: string | undefined;
+  // editor.pickMany calls, and the ids it returns (nil: cancelled)
+  pickManys: Array<Record<string, unknown>> = [];
+  pickManyAnswer: string[] | undefined;
   // Current page as the editor sees it, for the Share: Page command
   editorText = "";
   deviceFlows: unknown[] = [];
@@ -77,6 +84,8 @@ export class ShareWorld {
   refreshWorks = false;
   // Picked in Share: Page's provider list
   shareProvider = "SilverBullet space";
+  // Picked in Share: Collection's list (nil: cancelled)
+  collectionPick: string | undefined;
   // Page metadata as the index would return it, by page name
   pageMetas = new Map<string, Record<string, unknown>>();
   // Recording fakes for markdown.bakeSections / expandMarkdown, in call order
@@ -89,11 +98,25 @@ export class ShareWorld {
   expandMarkdown: (text: string) => string = (text) => text;
   // Also load Github.md (kept out of PAGES so the sync tests' services stay put)
   withGithub = false;
+  // Std pages loaded after the share pages, and the globals they need
+  extraPages: string[] = [];
+  extraGlobals: Record<string, unknown> = {};
+  // editor.invokeCommand calls: [name, args]
+  invokedCommands: Array<[string, unknown]> = [];
+  navigations: string[] = [];
+  // Answers requests to other hosts (e.g. GitHub's API) when it returns one
+  fetchHandler: ((url: string, opts: any) => Response | undefined) | undefined;
   h!: StdPageHarness;
 
-  static async create({ github = false } = {}): Promise<ShareWorld> {
+  static async create({
+    github = false,
+    pages = [] as string[],
+    globals = {} as Record<string, unknown>,
+  } = {}): Promise<ShareWorld> {
     const world = new ShareWorld();
     world.withGithub = github;
+    world.extraPages = pages;
+    world.extraGlobals = globals;
     world.connect();
     world.h = await world.load();
     return world;
@@ -117,6 +140,15 @@ export class ShareWorld {
         ? { status: 200, headers: { "x-server-version": "2.12.1" } }
         : { status: 404 };
     }
+    if (url === `${SPACE}/.fs`) {
+      return {
+        status: 200,
+        body: [...this.remote.keys()].map((name) => ({
+          name: `${name}.md`,
+          lastModified: 1,
+        })),
+      };
+    }
     const page = decodeURIComponent(
       url.slice(`${SPACE}/.fs/`.length).replace(/\.md$/, ""),
     );
@@ -137,6 +169,10 @@ export class ShareWorld {
     const current = this.remote.get(page);
     if (!current) {
       return { status: 404 };
+    }
+    if (method === "DELETE") {
+      this.remote.delete(page);
+      return { status: 200 };
     }
     return { status: 200, headers: { etag: current.etag }, body: current.text };
   }
@@ -164,13 +200,68 @@ export class ShareWorld {
     return this.h.call("service.invoke", matches[0], data);
   }
 
-  /** Loads the pages afresh (keeping the store), e.g. a new device */
-  load(): Promise<StdPageHarness> {
-    return loadStdPages(
-      this.withGithub ? [...PAGES, GITHUB_PAGE] : PAGES,
+  /** Sets config key to the value of a Lua expression (e.g. functions) */
+  async luaConfig(key: string, expr: string) {
+    const define = (await this.h.call(
+      "load",
+      `__luaConfig = ${expr}`,
+    )) as () => Promise<unknown>;
+    await define();
+    this.cfg[key] = this.h.env.get("__luaConfig");
+  }
+
+  // Page objects of w.pages, as the index would return them
+  private pageObjects() {
+    return [...this.pages].map(([name, text]) => {
+      const frontmatter = extractFrontMatter(parseMarkdown(text));
+      const tags = frontmatter.tags;
+      return {
+        ...frontmatter,
+        name,
+        tags: tags === undefined ? [] : [tags].flat(),
+      };
+    });
+  }
+
+  // The test transport's list and delete, as services so they can be
+  // discovered
+  private otherServices(h: StdPageHarness) {
+    const listable = () => (this.otherListable ? {} : null);
+    h.services.push(
       {
+        selector: "net.listURI:test://other/*",
+        match: listable,
+        run: async (data) => {
+          const root = `${(data as { uri: string }).uri.replace(/\/$/, "")}/`;
+          return [...this.other.keys()]
+            .filter((uri) => uri.startsWith(root))
+            .map((uri) => ({ uri }));
+        },
+        id: "test-other-list",
+      },
+      {
+        selector: "net.deleteURI:test://other/*",
+        match: {},
+        run: async (data) => {
+          this.other.delete((data as { uri: string }).uri);
+        },
+        id: "test-other-delete",
+      },
+    );
+    return h;
+  }
+
+  /** Loads the pages afresh (keeping the store), e.g. a new device */
+  async load(): Promise<StdPageHarness> {
+    const h = await loadStdPages(
+      [...PAGES, ...(this.withGithub ? [GITHUB_PAGE] : []), ...this.extraPages],
+      {
+        ...this.extraGlobals,
         print: () => undefined,
-        schema: { string: () => ({ type: "string" }) },
+        schema: {
+          string: () => ({ type: "string" }),
+          func: () => ({}),
+        },
         system: {
           invokeFunction: (_fn: string, path: string, value: unknown) => {
             this.configWrites.push({ path, value });
@@ -184,6 +275,16 @@ export class ShareWorld {
           patchFrontmatter: (text: string, patches: YamlPatch[]) =>
             patchFrontmatterText(text, parseMarkdown(text), (yaml) =>
               applyPatches(yaml, patches),
+            ),
+          // Page objects of w.pages; only the "page" tag, query ignored
+          queryLuaObjects: (tag: string) =>
+            tag === "page" ? this.pageObjects() : [],
+          // A query collection, as the real index returns (not an array)
+          contentPages: (tag?: string) =>
+            new ArrayQueryCollection(
+              this.pageObjects()
+                .filter((p) => tag === undefined || p.tags.includes(tag))
+                .map(jsToLuaValue),
             ),
         },
         markdown: {
@@ -209,10 +310,6 @@ export class ShareWorld {
           pageExists: (name: string) => this.pages.has(name),
           writePage: (name: string, text: string) =>
             void this.pages.set(name, text),
-          mergeText: (base: string, local: string, remote: string) => {
-            this.merges.push([base, local, remote]);
-            return this.mergeText(base, local, remote);
-          },
         },
         editor: {
           getText: () => this.editorText,
@@ -221,13 +318,29 @@ export class ShareWorld {
             this.editorText = text;
           },
           prompt: () => "Page",
+          openUrl: (url: string) => {
+            this.openedUrls.push(url);
+          },
+          copyToClipboard: (text: string) => {
+            this.clipboard.push(text);
+          },
+          invokeCommand: (name: string, args?: unknown) => {
+            this.invokedCommands.push([name, args ?? null]);
+          },
+          navigate: (name: string) => {
+            this.navigations.push(name);
+          },
           filterBox: (
             label: string,
             options: Array<Record<string, unknown>>,
-          ) =>
-            label === "Share provider"
+          ) => {
+            if (label === "Collection") {
+              return options.find((o) => o.name === this.collectionPick);
+            }
+            return label === "Share provider"
               ? options.find((o) => o.name === this.shareProvider)
-              : options.find((o) => o.name === SPACE),
+              : options.find((o) => o.name === SPACE);
+          },
           confirm: (msg: string) => {
             this.confirms.push(msg);
             return this.confirmAnswer;
@@ -235,6 +348,10 @@ export class ShareWorld {
           chooseVersion: (options: Record<string, unknown>) => {
             this.chooseVersions.push(options);
             return this.chooseAnswer;
+          },
+          pickMany: (options: Record<string, unknown>) => {
+            this.pickManys.push(options);
+            return jsToLuaValue(this.pickManyAnswer);
           },
           flashNotification: (msg: string, type?: string) => {
             this.notifications.push([msg, type]);
@@ -260,11 +377,30 @@ export class ShareWorld {
               uri,
               content,
             }),
+          // Like the real one: nil when no service can list
+          listURI: async (
+            uri: string,
+            options: Record<string, unknown> = {},
+          ) => {
+            const data = { ...options, uri };
+            const matches = (await this.h.call(
+              "service.discover",
+              `net.listURI:${uri}`,
+              data,
+            )) as Array<Record<string, unknown>> | undefined;
+            if (!matches?.length) return null;
+            return jsToLuaValue(
+              await this.h.call("service.invoke", matches[0], data),
+            );
+          },
+          deleteURI: (uri: string, options: Record<string, unknown> = {}) =>
+            this.invokeBestMatch(`net.deleteURI:${uri}`, { ...options, uri }),
           proxyFetch: (url: string, opts: any) => {
             this.fetches.push({ url, opts });
-            const r = this.fsHandler(url, opts);
+            const r =
+              this.fetchHandler?.(url, opts) ?? this.fsHandler(url, opts);
             return {
-              ok: true,
+              ok: r.status >= 200 && r.status < 300,
               status: r.status,
               headers: r.headers ?? {},
               body: r.body ?? null,
@@ -274,6 +410,7 @@ export class ShareWorld {
       },
       { store: this.store, config: this.cfg },
     );
+    return this.otherServices(h);
   }
 
   /** The stored credential for SPACE (all live in one store entry) */
@@ -307,29 +444,24 @@ export class ShareWorld {
     this.h = await this.load();
   }
 
-  /** Page "Page" last shared at `base`, now `local` here and `remote` there.
-   * `legacyHash` seeds the share.hash older versions wrote for `base`. */
+  /** Page "Page" last shared at `last`, now `local` here and `remote` there.
+   * `hash` (the default) records `last` in the page's share.hash. */
   async setup(
-    base: string,
+    last: string,
     local: string,
     remoteText: string,
-    { mode = "sync", storeBase = true, uri = URI, legacyHash = false } = {},
+    { mode = "sync", hash = true, uri = URI } = {},
   ) {
     const m: Record<string, string> = { uri, mode };
     let text = (await this.h.call("share.setFrontmatter", m, local)) as string;
-    if (legacyHash) {
-      const hash = (await this.h.call("share.legacyHash", base)) as string;
+    if (hash) {
+      const value = (await this.h.call("share.legacyHash", last)) as string;
       text = patchFrontmatterText(text, parseMarkdown(text), (yaml) =>
-        applyPatches(yaml, [
-          { op: "set-key", path: "share.hash", value: hash },
-        ]),
+        applyPatches(yaml, [{ op: "set-key", path: "share.hash", value }]),
       );
     }
     this.pages.set("Page", text);
     this.setRemote("Page", remoteText);
-    if (storeBase) {
-      this.store.set(`share.base:${uri}`, base);
-    }
   }
 
   async localBody(): Promise<string> {

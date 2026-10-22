@@ -13,57 +13,64 @@ describe("Share.md status engine", () => {
     ((await w.h.call("share.check", ["Page"])) as Record<string, any>).Page;
 
   describe("status", () => {
-    test("unchanged when the outgoing text is the base", async () => {
-      await w.setup("A\n", "A\n", "A\n", { mode: "push" });
+    test("unchanged when the page is what its share.hash describes", async () => {
+      await w.setup("A\n", "A\n", "B\n", { mode: "pull" });
       expect(await status()).toEqual({
         uri: URI,
-        mode: "push",
+        mode: "pull",
         state: "unchanged",
       });
     });
 
-    test("localChanged when it differs from the base", async () => {
-      await w.setup("A\n", "B\n", "A\n", { mode: "pull" });
+    test("localChanged when the page no longer matches its share.hash", async () => {
+      await w.setup("A\n", "B\n", "A\n");
       expect(await status()).toEqual({
         uri: URI,
-        mode: "pull",
+        mode: "sync",
         state: "localChanged",
       });
     });
 
-    test("compares the transformed text for push", async () => {
-      await w.setup("A\n", "A<!-- note -->\n", "A\n", { mode: "push" });
-      expect(((await status()) as any).state).toBe("unchanged");
-    });
-
-    test("unknown without a base or hint", async () => {
-      await w.setup("A\n", "A\n", "A\n", { storeBase: false });
+    test("unknown without a share.hash", async () => {
+      await w.setup("A\n", "A\n", "A\n", { hash: false });
       expect(((await status()) as any).state).toBe("unknown");
     });
 
-    test("an unchanged legacy hash stands for the base", async () => {
-      await w.setup("A\n", "A\n", "A\n", {
-        storeBase: false,
-        legacyHash: true,
-      });
-      expect(((await status()) as any).state).toBe("unchanged");
-    });
-
-    test("a legacy hash that no longer matches gives no baseline", async () => {
-      await w.setup("A\n", "B\n", "A\n", {
-        storeBase: false,
-        legacyHash: true,
-      });
-      expect(((await status()) as any).state).toBe("unknown");
-    });
-
-    test("a push hint does not count when the transform changed the text", async () => {
-      await w.setup("A\n", "A<!-- note -->\n", "A\n", {
+    test("push is unchecked: nothing to compare with offline", async () => {
+      await w.setup("A\n", "A\n", "A\n", { mode: "push" });
+      expect(await status()).toEqual({
+        uri: URI,
         mode: "push",
-        storeBase: false,
-        legacyHash: true,
+        state: "unchecked",
       });
-      expect(((await status()) as any).state).toBe("unknown");
+      await w.setup("A\n", "B\n", "A\n", { mode: "push", hash: false });
+      expect(((await status()) as any).state).toBe("unchecked");
+      // Offline: not even a read
+      expect(w.fetches).toEqual([]);
+    });
+
+    test("a caller changing the result leaves the memo alone", async () => {
+      await w.setup("A\n", "A\n", "A\n");
+      const define = (await w.h.call(
+        "load",
+        `function tamperedStatus()
+           share.status("Page").state = "tampered"
+           return share.status("Page")
+         end`,
+      )) as () => Promise<unknown>;
+      await define();
+      expect(
+        await w.h.call("tamperedStatus").catch((e) => `THREW ${e.message}`),
+      ).toEqual({ uri: URI, mode: "sync", state: "unchanged" });
+    });
+
+    test("an unconfigured page is an error", async () => {
+      w.pages.set("Page", "Plain\n");
+      expect(
+        await w.h
+          .call("share.status", "Page")
+          .catch((e) => `THREW ${e.message}`),
+      ).toContain("Not configured");
     });
   });
 
@@ -92,17 +99,24 @@ describe("Share.md status engine", () => {
       expect((await check()).state).toBe("bothChanged");
     });
 
-    test("differs without a base or hint", async () => {
-      await w.setup("A\n", "B\n", "C\n", { storeBase: false });
+    test("differs without a share.hash", async () => {
+      await w.setup("A\n", "B\n", "C\n", { hash: false });
       expect((await check()).state).toBe("differs");
     });
 
-    test("an unchanged legacy hash with a different remote is remoteChanged", async () => {
-      await w.setup("A\n", "A\n", "C\n", {
-        storeBase: false,
-        legacyHash: true,
-      });
-      expect((await check()).state).toBe("remoteChanged");
+    test("push differs or is upToDate, whatever its share.hash", async () => {
+      // A share.hash older versions wrote for push says nothing
+      await w.setup("A\n", "B\n", "A\n", { mode: "push" });
+      expect((await check()).state).toBe("differs");
+      await w.setup("A\n", "B\n", "B\n", { mode: "push" });
+      expect((await check()).state).toBe("upToDate");
+      w.remote.delete("Page");
+      expect((await check()).state).toBe("missing");
+    });
+
+    test("push compares the transformed text", async () => {
+      await w.setup("A\n", "A<!-- note -->\n", "A\n", { mode: "push" });
+      expect((await check()).state).toBe("upToDate");
     });
 
     test("a remote's own share keys are ignored", async () => {
@@ -140,7 +154,7 @@ describe("Share.md status engine", () => {
       await check();
       expect(w.methods().every((m) => m === "GET")).toBe(true);
       expect(w.pages.get("Page")).toBe(before);
-      expect(w.store.get(`share.base:${URI}`)).toBe("A\n");
+      expect(w.store.size).toBe(1); // just the credential
       expect(w.remote.get("Page")!.text).toBe("C\n");
     });
   });
@@ -184,10 +198,5 @@ describe("Share.md status engine", () => {
       })) as Record<string, unknown>;
       expect(Object.keys(results)).toEqual(["Page"]);
     });
-  });
-
-  test("check: a remote still at the legacy hash means only local changed", async () => {
-    await w.setup("A\n", "B\n", "A\n", { storeBase: false, legacyHash: true });
-    expect(((await check()) as any).state).toBe("localChanged");
   });
 });

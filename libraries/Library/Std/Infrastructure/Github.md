@@ -10,6 +10,7 @@ Support for [SilverBullet Share](https://docs.silverbullet.md/Share) for:
 As well as [URI](https://docs.silverbullet.md/URI) support (both read and write) for the following schemes:
 * `https://github.com/username/repo/blob/branch/path`
 * `https://gist.github.com/username/gist-id`
+* `https://gist.github.com/username/gist-id/file` (one file of a gist, as collections use them)
 * `github:username/repo@branch/path`
 * `github:username/repo/path` (defaults to `main` branch)
 * `ghr:username/repo@version/path` (github release support)
@@ -103,12 +104,43 @@ auth.defineProvider {
 ## Github Repo Files
 ```space-lua
 -- priority: 10
--- returns (something/bla, branch, path)
+-- "github:owner/repo[@ref]/path" or "https://github.com/owner/repo/blob/ref/path"
+-- -> "owner/repo", ref (nil when not given), path as written ("" for a root).
+-- nil when it is neither.
+local function parseRepoURI(uri)
+  if uri:startsWith("github:") then
+    local owner, name, path = uri:match("^github:([^/]+)/([^/]+)/?(.*)$")
+    if not owner then
+      return nil
+    end
+    local name, ref = table.unpack(name:split("@"))
+    return owner .. "/" .. name, ref, path
+  end
+  local repo, ref, path = uri:match("github%.com/([^/]+/[^/]+)/[^/]+/([^/]+)/?(.*)$")
+  if repo then
+    return repo, ref, path
+  end
+end
+
+-- Public, kept for Space Lua that calls it: (owner/repo, branch, path) of an
+-- https://github.com/... file URL, nil for anything else
 function github.extractData(url)
-  if url == nil then
+  if url == nil or url:startsWith("github:") then
     return nil
   end
-  return url:match("github%.com/([^/]+/[^/]+)/[^/]+/([^/]+)/(.+)")
+  local repo, ref, path = parseRepoURI(url)
+  if repo and path != "" then
+    return repo, ref, path
+  end
+end
+
+-- Like parseRepoURI, for a URI of a file: an error for a root or other URI
+local function parseFileURI(uri)
+  local repo, ref, path = parseRepoURI(uri)
+  if not repo or path == "" then
+    error("Expected owner/repo/path, got " .. uri)
+  end
+  return repo, ref, path
 end
 
 function github.buildAPIURL(repo, path)
@@ -125,11 +157,10 @@ end
 
 -- "https://github.com/u/r/blob/main/a/B.md" or "github:u/r@main/a/B.md" -> "a/B.md"
 local function filePath(uri)
-  if uri:startsWith("github:") then
-    return uri:match("^github:[^/]+/[^/]+/(.+)$")
+  local _, _, path = parseRepoURI(uri)
+  if path != "" then
+    return path
   end
-  local _, _, path = github.extractData(uri)
-  return path
 end
 
 -- GitHub's heading anchors: lower-case, spaces to "-", punctuation and
@@ -179,7 +210,17 @@ end
 local function githubTarget(data)
   return {
     kind = "github",
-    defaults = {links = true, comments = true, frontmatter = true, bake = true},
+    defaults = {links = true, comments = true, bake = true},
+    webUrl = function(uri)
+      if not uri:startsWith("github:") then
+        return uri
+      end
+      local repo, ref, path = parseFileURI(uri)
+      return github.buildURI(repo, ref or "main", path)
+    end,
+    memberUri = function(root, path)
+      return root .. "/" .. encodePath(path) .. ".md"
+    end,
     link = function(l)
       local target = ""
       if l.toUri != nil and l.toUri != l.fromUri then
@@ -213,26 +254,23 @@ end
 
 local apiHeaders = {Accept = "application/vnd.github+json"}
 
--- The body of a successful response, nil for a missing file. Any other
--- status is an error, so a failed read never looks like a missing file.
-local function readBody(res, url)
-  if res.status == 404 then
+-- The body of a successful response (nil for a 404 when missingOk). Any
+-- other status is an error, so a failed read never looks like a missing file.
+function github.responseBody(res, what, missingOk)
+  if missingOk and res.status == 404 then
     return nil
   end
   if not res.ok then
-    error("Could not read " .. url .. ": HTTP " .. res.status)
+    local reason = type(res.body) == "table" and res.body.message
+    error("GitHub refused " .. what .. ": HTTP " .. res.status
+      .. (reason and (": " .. reason) or ""))
   end
   return res.body
 end
+local responseBody = github.responseBody
 
--- "owner/repo@ref/some/path" -> owner, repo, ref (nil when not given), path
-local function splitRepoPath(rest)
-  local owner, repo, path = rest:match("^([^/]+)/([^/]+)/(.+)$")
-  if not owner then
-    error("Expected owner/repo/path, got " .. rest)
-  end
-  local name, ref = table.unpack(repo:split("@"))
-  return owner, name, ref, path
+local function readBody(res, url)
+  return responseBody(res, "reading " .. url, true)
 end
 
 -- An API request that signs in when needed
@@ -300,7 +338,7 @@ service.define {
       editor.flashNotification(err, "error")
       return
     end
-    local repo, branch, path = github.extractData(uri)
+    local repo, branch, path = parseFileURI(uri)
     -- An existing file needs its SHA to be replaced, a missing one is created
     local oldContent = github.request(github.buildAPIURLWithBranch(repo, branch, path), "GET")
     local sha
@@ -320,11 +358,7 @@ service.define {
       sha = sha,
       content = encoding.base64Encode(content)
     })
-    if not resp.ok then
-      local reason = type(resp.body) == "table" and resp.body.message
-      error("GitHub refused the write: HTTP " .. resp.status
-        .. (reason and (": " .. reason) or ""))
-    end
+    responseBody(resp, "the write")
   end
 }
 
@@ -332,11 +366,122 @@ service.define {
   selector = "net.writeURI:github:*",
   match = {priority=10},
   run = function(data)
-    local owner, repo, branch, path = splitRepoPath(data.uri:sub(#"github:"+1))
-    local fullUrl = "https://github.com/" .. owner .. "/" .. repo .. "/blob/" .. (branch or "main") .. "/" .. path
-    return net.writeURI(fullUrl, data.content)
+    local repo, ref, path = parseFileURI(data.uri)
+    return net.writeURI(github.buildURI(repo, ref or "main", path), data.content)
   end
 }
+
+-- A github: or https://github.com/ root (a directory, or the repo itself) ->
+-- "owner/repo", ref, directory path decoded ("" for the repo root)
+local function splitRoot(root)
+  local repo, ref, dir = parseRepoURI(root)
+  if not repo then
+    error("Expected github:owner/repo or https://github.com/owner/repo/blob/branch, got " .. root)
+  end
+  return repo, ref or "main", encoding.urlDecode(dir)
+end
+
+local function repoAPIURL(repo, path)
+  return "https://api.github.com/repos/" .. repo .. "/" .. path
+end
+
+-- The path in the repo of a file URI under root, decoded
+local function repoPath(uri)
+  return encoding.urlDecode(filePath(uri))
+end
+
+-- The Markdown files under root, as memberUri builds them, with their blob
+-- SHAs. Signs in only with data.signIn (a publish; check never prompts).
+local function listFiles(data)
+  local root = data.uri
+  local repo, ref, dir = splitRoot(root)
+  local function get(path)
+    local url = repoAPIURL(repo, path)
+    if data.signIn then
+      return github.request(url, "GET")
+    end
+    return auth.fetch("github", url, {headers = apiHeaders})
+  end
+  -- Only the root's subtree, so entry paths are relative to it
+  local treeish = dir == "" and ref or (ref .. ":" .. encodePath(dir))
+  local resp = get("git/trees/" .. treeish .. "?recursive=1")
+  -- A folder not created yet, on a branch that exists
+  if resp.status == 404 and dir != "" and get("git/ref/heads/" .. ref).ok then
+    return {}
+  end
+  if resp.status == 404 then
+    error("GitHub: " .. repo .. "@" .. ref .. " not found (or not signed in to GitHub)")
+  end
+  local body = responseBody(resp, "the listing")
+  if body.truncated then
+    error("GitHub: too many files under " .. root .. " to list")
+  end
+  local entries = {}
+  for _, entry in ipairs(body.tree or {}) do
+    if entry.type == "blob" and entry.path:endsWith(".md") then
+      table.insert(entries, {uri = root .. "/" .. encodePath(entry.path), hash = entry.sha})
+    end
+  end
+  return entries
+end
+
+-- JSON by hand: a nil sha (deleting the file) would vanish from a Lua table
+local function treeBody(baseTree, writes, deletes)
+  local entries = {}
+  for _, w in ipairs(writes) do
+    table.insert(entries, '{"path":' .. js.stringify(repoPath(w.uri))
+      .. ',"mode":"100644","type":"blob","content":' .. js.stringify(w.content) .. "}")
+  end
+  for _, uri in ipairs(deletes) do
+    table.insert(entries, '{"path":' .. js.stringify(repoPath(uri))
+      .. ',"mode":"100644","type":"blob","sha":null}')
+  end
+  return '{"base_tree":' .. js.stringify(baseTree) .. ',"tree":['
+    .. table.concat(entries, ",") .. "]}"
+end
+
+-- All writes and deletes of a collection publish as one commit
+local function writeBatch(data)
+  github.checkConfig()
+  local message = editor.prompt("Commit message:", "Publish " .. data.root)
+  if not message or message:trim() == "" then
+    return {cancelled = true}
+  end
+  local repo, ref = splitRoot(data.root)
+  local head = responseBody(github.request(
+    repoAPIURL(repo, "git/ref/heads/" .. ref), "GET"), "the branch").object.sha
+  local baseTree = responseBody(github.request(
+    repoAPIURL(repo, "git/commits/" .. head), "GET"), "the commit").tree.sha
+  local tree = responseBody(github.request(repoAPIURL(repo, "git/trees"), "POST",
+    treeBody(baseTree, data.writes or {}, data.deletes or {})), "the tree").sha
+  local person = {name = config.get("github.name"), email = config.get("github.email")}
+  local commit = responseBody(github.request(repoAPIURL(repo, "git/commits"), "POST", {
+    message = message,
+    tree = tree,
+    parents = {head},
+    author = person,
+    committer = person,
+  }), "the commit").sha
+  local resp = github.request(repoAPIURL(repo, "git/refs/heads/" .. ref), "PATCH",
+    {sha = commit})
+  if resp.status == 422 then
+    error("The branch moved while publishing; publish again")
+  end
+  responseBody(resp, "the branch update")
+end
+
+for _, scheme in ipairs({"github:", "https://github.com/"}) do
+  service.define {
+    selector = "net.listURI:" .. scheme .. "*",
+    match = {priority = 10},
+    run = listFiles,
+  }
+  service.define {
+    selector = "share:writeBatch:" .. scheme .. "*",
+    match = {priority = 10},
+    run = writeBatch,
+  }
+end
 
 -- readURI
 --   ghr:owner/repo/path (latest)
@@ -345,19 +490,19 @@ service.define {
   selector = "net.readURI:ghr:*",
   match = { priority=10 },
   run = function(data)
-    local owner, repoClean, version, path = splitRepoPath(data.uri:sub(#"ghr:"+1))
+    -- Same shape as github:, with a release version for the ref
+    local repo, version, path = parseFileURI("github:" .. data.uri:sub(#"ghr:"+1))
     local url
     if not version or version == "latest" then
-      url = "https://api.github.com/repos/"
-            .. owner .. "/" .. repoClean .. "/releases/latest"
+      url = repoAPIURL(repo, "releases/latest")
     else
-      url = "https://api.github.com/repos/" .. owner .. "/" .. repoClean .. "/releases/tags/" .. version
+      url = repoAPIURL(repo, "releases/tags/" .. version)
     end
     local releaseInfo = readBody(auth.fetch("github", url, {headers = apiHeaders}), url)
     if releaseInfo == nil then
       return nil
     end
-    local url = "https://github.com/" .. owner .. "/" .. repoClean .. "/releases/download/" .. releaseInfo.tag_name .. "/" .. path
+    local url = "https://github.com/" .. repo .. "/releases/download/" .. releaseInfo.tag_name .. "/" .. path
     return readBody(auth.fetch("github", url, {responseEncoding = data.encoding}), url)
   end
 }
@@ -369,8 +514,8 @@ service.define {
   selector = "net.readURI:github:*",
   match = { priority=10 },
   run = function(data)
-    local owner, repo, branch, path = splitRepoPath(data.uri:sub(#"github:"+1))
-    local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. (branch or "main") .. "/" .. path
+    local repo, ref, path = parseFileURI(data.uri)
+    local url = "https://raw.githubusercontent.com/" .. repo .. "/" .. (ref or "main") .. "/" .. path
     return readBody(auth.fetch("github", url), url)
   end
 }
@@ -381,8 +526,8 @@ service.define {
   selector = "net.readURI:https://github.com/*",
   match = {priority=10},
   run = function(data)
-    local owner, repo, branch, path = data.uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
-    local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
+    local repo, ref, path = parseFileURI(data.uri)
+    local url = "https://raw.githubusercontent.com/" .. repo .. "/" .. ref .. "/" .. path
     return readBody(auth.fetch("github", url), url)
   end
 }
@@ -391,15 +536,114 @@ service.define {
 ## Gists
 ```space-lua
 -- priority: 10
-local function extractGistId(url)
-  if not url:startsWith("https://gist.github.com/") then
-    return nil
+-- https://gist.github.com/[user/]id[/file] -> user (nil when not given), id,
+-- file (nil for the gist itself: a single-page share's first .md file). File
+-- names hold a "." and ids and user names never do.
+local function splitGist(uri)
+  local segments = uri:sub(#"https://gist.github.com/" + 1):gsub("/+$", ""):split("/")
+  if #segments >= 3 then
+    return segments[1], segments[2], segments[3]
+  elseif #segments == 2 and segments[2]:find(".", 1, true) then
+    return nil, segments[1], segments[2]
+  elseif #segments == 2 then
+    return segments[1], segments[2]
   end
-  return url:match("([^/]+)$")
+  return nil, segments[1]
 end
 
--- Gists get the generic share target: multi-file gists are not handled
--- yet, so links become their text
+local gistHeaders = {Accept = "application/vnd.github+json"}
+
+local function gistAPIURL(id)
+  return "https://api.github.com/gists/" .. id
+end
+
+-- The gist's page, at the file's anchor for a file URI
+local function gistWebUrl(uri)
+  local user, id, file = splitGist(uri)
+  local url = "https://gist.github.com/" .. (user and (user .. "/") or "") .. id
+  if file then
+    url = url .. "#file-" .. file:lower():gsub("[^%w_-]", "-")
+  end
+  return url
+end
+
+-- One file per member, named after its path
+service.define {
+  selector = "share:target:https://gist.github.com/*",
+  match = {priority = 10},
+  run = function()
+    return {
+      kind = "gist",
+      defaults = {links = true, comments = true, bake = true},
+      webUrl = gistWebUrl,
+      memberUri = function(root, path)
+        return root .. "/" .. (path:gsub("/", "-")) .. ".md"
+      end,
+      link = function(l)
+        if l.toUri == nil or l.toUri == l.fromUri then
+          return l.text
+        end
+        local _, fromId = splitGist(l.fromUri)
+        local _, toId, toFile = splitGist(l.toUri)
+        if toFile == nil or toId != fromId then
+          return l.text
+        end
+        return "[" .. l.text .. "](" .. gistWebUrl(l.toUri) .. ")"
+      end,
+    }
+  end,
+}
+
+-- The Markdown files of the gist, as memberUri builds them. Only names:
+-- large files come without their content. Signs in only with data.signIn (a publish).
+service.define {
+  selector = "net.listURI:https://gist.github.com/*",
+  match = {priority = 10},
+  run = function(data)
+    local _, id = splitGist(data.uri)
+    local url = gistAPIURL(id)
+    local resp
+    if data.signIn then
+      resp = github.request(url, "GET")
+    else
+      resp = auth.fetch("github", url, {headers = gistHeaders})
+    end
+    if resp.status == 404 then
+      error("GitHub: gist " .. id .. " not found (or not signed in to GitHub)")
+    end
+    local gist = github.responseBody(resp, "the gist listing")
+    if gist.truncated then
+      error("GitHub: too many files in " .. data.uri .. " to list")
+    end
+    local names = {}
+    for name in pairs(gist.files or {}) do
+      if name:endsWith(".md") then
+        table.insert(names, name)
+      end
+    end
+    table.sort(names)
+    local entries = {}
+    for _, name in ipairs(names) do
+      table.insert(entries, {uri = data.uri .. "/" .. name})
+    end
+    return entries
+  end,
+}
+
+-- PATCH with the file as JSON null, which a Lua table can't hold
+service.define {
+  selector = "net.deleteURI:https://gist.github.com/*",
+  match = {priority = 10},
+  run = function(data)
+    local _, id, file = splitGist(data.uri)
+    if not file then
+      error("Not a gist file: " .. data.uri)
+    end
+    local resp = github.request(gistAPIURL(id), "PATCH",
+      '{"files":{' .. js.stringify(file) .. ":null}}")
+    github.responseBody(resp, "the delete", true)
+  end,
+}
 
 service.define {
   selector = "share:onboard",
@@ -433,15 +677,27 @@ service.define {
 }
 
 -- readURI supports
---   https://gist.github.com/user/gistid
+--   https://gist.github.com/user/gistid (the first file with content)
+--   https://gist.github.com/user/gistid/file
 service.define {
   selector = "net.readURI:https://gist.github.com/*",
   match = {priority=10},
   run = function(data)
-    local gistId = extractGistId(data.uri)
-    local resp = auth.fetch("github", "https://api.github.com/gists/" .. gistId, {
-      headers = {Accept = "application/vnd.github+json"},
-    })
+    local _, gistId, file = splitGist(data.uri)
+    local resp = auth.fetch("github", gistAPIURL(gistId), {headers = gistHeaders})
+    if file then
+      local gist = github.responseBody(resp, "reading " .. data.uri, true)
+      local meta = gist and gist.files and gist.files[file]
+      if meta == nil then
+        return nil
+      end
+      -- Large files come truncated or without content
+      if meta.truncated or meta.content == nil then
+        return github.responseBody(auth.fetch("github", meta.raw_url),
+          "reading " .. data.uri)
+      end
+      return meta.content
+    end
     if resp.status != 200 then
       print("Failed to fetch gist", resp)
       return nil
@@ -461,8 +717,13 @@ service.define {
   selector = "net.writeURI:https://gist.github.com/*",
   match = {priority=10},
   run = function(data)
-    local gistId = extractGistId(data.uri)
-    
+    local _, gistId, file = splitGist(data.uri)
+    if file then
+      github.responseBody(github.request(gistAPIURL(gistId), "PATCH", {
+        files = {[file] = {content = data.content}},
+      }), "the gist write")
+      return
+    end
     -- First fetch the gist to find the file name
     local resp = github.request("https://api.github.com/gists/" .. gistId, "GET")
     if not resp.ok then

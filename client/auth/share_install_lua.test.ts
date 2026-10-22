@@ -37,7 +37,7 @@ describe("share.install", () => {
     w.pages.set(PAGE, text);
   }
 
-  test("installs under the remote's name, as a pull, and records the base", async () => {
+  test("installs under the remote's name, as a pull, with its hash", async () => {
     w.other.set(URI, REMOTE_V1);
     expect(await install()).toEqual({
       page: PAGE,
@@ -48,8 +48,9 @@ describe("share.install", () => {
     expect(text).toContain(URI);
     expect(text).toContain("mode: pull");
     expect(text).toContain("Body one");
-    expect(w.store.get(`share.base:${URI}`)).toBe(REMOTE_V1);
-    expect(w.store.get(`share.baseV2:${URI}`)).toBe(true);
+    const hash = await w.h.call("share.legacyHash", REMOTE_V1);
+    expect(text).toContain(`hash: ${hash}`);
+    expect(w.store.size).toBe(1); // just the credential
   });
 
   test("a remote without a name needs a page", async () => {
@@ -87,39 +88,31 @@ describe("share.install", () => {
       expect(w.store.size).toBe(1); // just the credential
     });
 
-    test("a legacy share.hash does not block the no-op", async () => {
+    test("a share.hash does not block the no-op", async () => {
       await installed(REMOTE_V1, { hash: true });
       w.other.set(URI, REMOTE_V1);
       expect(await update()).toMatchObject({ changed: false });
     });
 
-    test("a changed remote is written without a hash and sets the base", async () => {
+    test("a changed remote is written with its hash", async () => {
       await installed(REMOTE_V1, { hash: true });
       w.other.set(URI, REMOTE_V2);
       expect(await update()).toMatchObject({ page: PAGE, changed: true });
       const text = w.pages.get(PAGE)!;
       expect(text).toContain("Body two");
-      expect(text).not.toContain("share.hash");
-      expect(w.store.get(`share.base:${URI}`)).toBe(REMOTE_V2);
+      const hash = await w.h.call("share.legacyHash", REMOTE_V2);
+      expect(text).toContain(`hash: ${hash}`);
+      expect(w.store.size).toBe(1); // just the credential
     });
 
     test("force rewrites even when identical", async () => {
-      await installed(REMOTE_V1, { edit: true });
+      await installed(REMOTE_V1, { hash: true, edit: true });
       w.other.set(URI, REMOTE_V1);
-      w.store.set(`share.base:${URI}`, REMOTE_V1);
       expect(await update(true)).toMatchObject({ changed: true });
       expect(w.pages.get(PAGE)).not.toContain("edited locally");
     });
 
     test("local edits stay while the remote is unchanged since install", async () => {
-      await installed(REMOTE_V1, { edit: true });
-      w.other.set(URI, REMOTE_V1);
-      w.store.set(`share.base:${URI}`, REMOTE_V1);
-      expect(await update()).toMatchObject({ changed: false });
-      expect(w.pages.get(PAGE)).toContain("edited locally");
-    });
-
-    test("local edits stay with only a legacy hash and no base", async () => {
       await installed(REMOTE_V1, { hash: true, edit: true });
       w.other.set(URI, REMOTE_V1);
       expect(await update()).toMatchObject({ changed: false });
@@ -127,9 +120,8 @@ describe("share.install", () => {
     });
 
     test("local edits are replaced when the remote changed, once confirmed", async () => {
-      await installed(REMOTE_V1, { edit: true });
+      await installed(REMOTE_V1, { hash: true, edit: true });
       w.other.set(URI, REMOTE_V2);
-      w.store.set(`share.base:${URI}`, REMOTE_V1);
       w.confirmAnswer = false;
       expect(await update()).toMatchObject({ changed: false });
       expect(w.pages.get(PAGE)).toContain("edited locally");
@@ -142,29 +134,22 @@ describe("share.install", () => {
       ]);
     });
 
-    test("without a base or hash the remote wins without asking", async () => {
+    test("without a hash the remote wins without asking", async () => {
       await installed(REMOTE_V1, { edit: true });
       w.other.set(URI, REMOTE_V2);
       expect(await update()).toMatchObject({ changed: true });
       expect(w.confirms).toEqual([]);
     });
 
-    test("an installed page that already is the remote is left alone, whatever the base", async () => {
-      // Updated on another device and synced in; this device's base is older
-      await installed(REMOTE_V2);
-      w.store.set(`share.base:${URI}`, REMOTE_V1);
+    test("an installed page that already is the remote is left alone, whatever its hash", async () => {
+      // The page's hash is V1's, but it already holds V2 (say, edited to match)
+      await installed(REMOTE_V1, { hash: true });
+      w.pages.set(PAGE, w.pages.get(PAGE)!.replace("Body one", "Body two"));
       w.other.set(URI, REMOTE_V2);
       const before = w.pages.get(PAGE);
       expect(await update()).toMatchObject({ changed: false });
       expect(w.pages.get(PAGE)).toBe(before);
-    });
-
-    test("a base from before another device installed it is not used", async () => {
-      // This device's base is V1, but the page's hash says V2 was installed since
-      await installed(REMOTE_V2, { hash: true, edit: true });
-      w.store.set(`share.base:${URI}`, REMOTE_V1);
-      w.other.set(URI, REMOTE_V2);
-      expect(await update()).toMatchObject({ changed: false });
+      expect(w.confirms).toEqual([]);
     });
 
     test("install then update with an unchanged remote is a no-op", async () => {

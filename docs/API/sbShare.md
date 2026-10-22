@@ -24,7 +24,7 @@ Only sync writes are conditional (they pass `{conditional = true}` to `net.write
 Builds the share URI of a page in a space: the space URL without trailing slashes, then the page name percent-encoded except for `/`, e.g. `sbShare.pageUri("https://h/notes/", "Café Plan")` is `https://h/notes/Caf%C3%A9%20Plan`.
 
 ## sbShare.resolve(uri)
-Returns the space URL and page name a share URI points to, choosing the longest matching known space (one in `share.silverbullet.spaces` or with a stored credential on this device), or nil.
+Returns the space URL and page name a share URI points to, choosing the longest matching known space (one in `share.silverbullet.spaces` or with a stored credential on this device), or nil. The space's own URL (with or without a trailing slash) gives the page name `""`: it can be a collection root, but isn't a page to read or write, and isn't listed (a collection rooted at a whole space is published member by member, with nothing offered for removal).
 
 ## sbShare.findSpaceRoot(url)
 Finds the root of the SilverBullet space a URL belongs to by probing `.ping` at each path prefix, longest first (sending a stored credential, never signing in). Returns nil when it is not a SilverBullet space. Definitive misses (a 404, a 405, or a 200 without an `X-Server-Version` header) are remembered for the session; failures such as 401, 429, 5xx or network errors are not.

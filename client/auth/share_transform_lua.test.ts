@@ -5,13 +5,12 @@ import { OTHER, ShareWorld } from "./share_world_test_util.ts";
 
 const GENERIC = {
   kind: "other",
-  defaults: { links: true, comments: true, frontmatter: true, bake: true },
+  defaults: { links: true, comments: true, bake: true },
   link: (l: { text: string }) => l.text,
 };
 const ALL = {
   links: true,
   comments: true,
-  frontmatter: true,
   bake: false,
   extensions: true,
 };
@@ -83,12 +82,11 @@ describe("Share Transforms.md", () => {
     expect(out.startsWith("A\n")).toBe(true);
   });
 
-  test("frontmatter keeps only title, description, tags and drops share.*", async () => {
+  test("frontmatter is published as is, apart from share.*", async () => {
     const out = await transform(
-      "---\ntitle: T\nsecret: s\nshare.uri: u\n---\nBody\n",
+      '---\ntitle: T\nsecret.note: x\nshare.uri: u\ntags: pub\n---\nBody\n',
     );
-    expect(frontmatterOf(out)).toEqual({ title: "T", tags: [] });
-    expect(out.endsWith("Body\n")).toBe(true);
+    expect(out).toBe("---\ntitle: T\nsecret.note: x\ntags: pub\n---\nBody\n");
   });
 
   test("a removed comment block leaves no blank gap", async () => {
@@ -137,20 +135,6 @@ describe("Share Transforms.md", () => {
     );
   });
 
-  test("dotted and quoted private keys do not survive", async () => {
-    const out = await transform(
-      '---\ntitle: T\nsecret.note: x\n"my key": y\ntags: [a, b]\n---\nBody\n',
-    );
-    expect(out).not.toContain("secret");
-    expect(out).not.toContain("my key");
-    expect(frontmatterOf(out)).toEqual({ title: "T", tags: ["a", "b"] });
-    expect(out.endsWith("\nBody\n")).toBe(true);
-  });
-
-  test("fully private frontmatter disappears", async () => {
-    expect(await transform("---\nsecret: s\n---\nBody\n")).toBe("Body\n");
-  });
-
   test("exempt pages are never transformed", async () => {
     const resolved = async (text: string, page: string) =>
       transform(text, {
@@ -170,21 +154,19 @@ describe("Share Transforms.md", () => {
 
   test("opt-out", async () => {
     const target = {
-      defaults: { links: true, comments: true, frontmatter: true, bake: true },
+      defaults: { links: true, comments: true, bake: true },
     };
     const steps = (override: unknown) =>
       w.h.call("share.resolveSteps", "Here", "Body\n", target, override);
     expect(await steps(false)).toEqual({
       links: false,
       comments: false,
-      frontmatter: false,
       bake: false,
       extensions: false,
     });
     expect(await steps({ bake: false })).toEqual({
       links: true,
       comments: true,
-      frontmatter: true,
       bake: false,
       extensions: true,
     });
@@ -227,7 +209,6 @@ describe("Share Transforms.md", () => {
       expect(t.defaults).toEqual({
         links: true,
         comments: true,
-        frontmatter: false,
         bake: false,
       });
       expect(
@@ -282,6 +263,44 @@ describe("Share Transforms.md", () => {
       );
     });
 
+    test("GitHub URIs map to their blob page", async () => {
+      expect(
+        await w.h
+          .call("share.webUrl", "github:u/r@dev/docs/A.md")
+          .catch((e) => `THREW ${e.message}`),
+      ).toBe("https://github.com/u/r/blob/dev/docs/A.md");
+      expect(
+        await w.h
+          .call("share.webUrl", "github:u/r/A.md")
+          .catch((e) => `THREW ${e.message}`),
+      ).toBe("https://github.com/u/r/blob/main/A.md");
+      expect(
+        await w.h
+          .call("share.webUrl", `${GH}/A.md`)
+          .catch((e) => `THREW ${e.message}`),
+      ).toBe(`${GH}/A.md`);
+    });
+
+    test("a GitHub URI without a file path has no web URL", async () => {
+      expect(
+        await w.h
+          .call("share.webUrl", "github:u/r")
+          .catch((e) => `THREW ${e.message}`),
+      ).toBe(null);
+    });
+
+    test("a SilverBullet page is its own link", async () => {
+      const t = (await w.h.call("share.target", "https://h/n/Page")) as {
+        webUrl?: unknown;
+      };
+      expect(t.webUrl).toBeTypeOf("function");
+      expect(
+        await w.h
+          .call("share.webUrl", "https://h/n/Page")
+          .catch((e) => `THREW ${e.message}`),
+      ).toBe("https://h/n/Page");
+    });
+
     test("GitHub URIs without a file path fall back to the text", async () => {
       expect(
         await link("https://github.com/u/r", `${GH}/B.md`, "Other|that"),
@@ -324,13 +343,12 @@ describe("Share Transforms.md", () => {
       ).toBe("[Other](b/B.md#x)");
     });
 
-    test("gist links are their display text", async () => {
+    test("links to another gist are their display text", async () => {
       const t = (await w.h.call(
         "share.target",
         "https://gist.github.com/me/abc123",
       )) as { kind: string };
-      // The generic target: no descriptor of its own
-      expect(t.kind).toBe("other");
+      expect(t.kind).toBe("gist");
       expect(
         await link(
           "https://gist.github.com/me/abc123",

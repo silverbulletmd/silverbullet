@@ -5,15 +5,28 @@
 -- priority: 10
 share = {}
 
--- The change detection hash pages carried in share.hash before bases were
--- kept per device: the first 8 characters of the sha256 of the cleaned text
+-- The hash pull and sync shares keep in share.hash, of the text both sides
+-- agreed on at the last pull or sync: the first 8 characters of the sha256 of
+-- the cleaned text. The name stays from when it was on its way out.
 function share.legacyHash(content)
   content = share.cleanFrontmatter(content)
   return crypto.sha256(content):sub(1, 8)
 end
 
--- Deprecated alias
+-- An older name for it
 share.contentHash = share.legacyHash
+
+-- The git blob id of text: what GitHub's tree listing reports for a file with
+-- that content
+function share.gitBlobSha(text)
+  -- # and string.len count UTF-16 units and byte buffers have no length, so
+  -- derive the UTF-8 byte count from the unpadded Base64 length
+  local b64 = encoding.base64Encode(text)
+  local padding = #b64:match("=*$")
+  local size = #b64 // 4 * 3 - padding
+  -- string.char(0) because the "\0" escape is not parsed as a NUL byte
+  return crypto.sha1("blob " .. size .. string.char(0) .. text)
+end
 
 function share.cleanFrontmatter(text)
   return index.patchFrontmatter(text, {
@@ -26,10 +39,10 @@ function share.cleanFrontmatter(text)
   })
 end
 
--- Sets the keys of m that are present (uri, mode, transform)
+-- Sets the keys of m that are present (uri, mode, transform, hash)
 function share.setFrontmatter(m, text)
   local patches = {}
-  for _, key in ipairs({"uri", "mode", "transform"}) do
+  for _, key in ipairs({"uri", "mode", "transform", "hash"}) do
     if m[key] != nil then
       table.insert(patches, {op="set-key", path="share." .. key, value=m[key]})
     end
@@ -109,81 +122,108 @@ function share.ensureTransport(uri)
   end
 end
 
--- The text both sides agreed on at the last share from this device: the base
--- for change detection and merging
-local function baseKey(uri)
-  return "share.base:" .. uri
-end
-
--- Marks bases recorded by this version: older ones may predate a share of
--- the page from another device
-local function baseMarkerKey(uri)
-  return "share.baseV2:" .. uri
-end
-
-local function recordBase(uri, text)
-  clientStore.set(baseKey(uri), text)
-  clientStore.set(baseMarkerKey(uri), true)
-end
-
--- Whether text is what an older version shared, by the share.hash it left
-local function legacyMatches(hash, text)
-  return hash != nil and tostring(hash) == share.legacyHash(text)
-end
-
--- The base for uri, or nil when there is none to trust: an unmarked base
--- that doesn't match the page's share.hash was recorded before the page was
--- shared from elsewhere
-local function loadBase(uri, hash)
-  local base = clientStore.get(baseKey(uri))
-  if base != nil and hash != nil and not clientStore.get(baseMarkerKey(uri))
-      and not legacyMatches(hash, base) then
-    return nil
+-- Whether share.hash describes text. A hash written without quotes may read
+-- back as a number (e.g. 83464e55)
+local function hashMatches(hash, text)
+  if hash == nil then
+    return false
   end
-  return base
+  local expected = share.legacyHash(text)
+  if type(hash) == "number" then
+    return tonumber(expected) == hash
+  end
+  return tostring(hash) == expected
 end
 
--- Whether text is what was agreed at the last share: the base, or without
--- one what the legacy share.hash describes. False when nothing is known.
-local function isLastShared(base, hash, text)
-  if base != nil then
-    return text == base
+-- For Std pages: a memo of results by key, each kept while its inputs (a
+-- table of values compared with ==) stay the same. memo(key, inputs, compute)
+-- returns the result, computed only when the inputs changed; copy (if given)
+-- makes what callers get, so changing it leaves the memo alone.
+function share.memo(copy)
+  copy = copy or function(r)
+    return r
   end
-  return legacyMatches(hash, text)
+  local entries = {}
+  local function sameInputs(a, b)
+    for k, v in pairs(a) do
+      if b[k] != v then
+        return false
+      end
+    end
+    for k in pairs(b) do
+      if a[k] == nil then
+        return false
+      end
+    end
+    return true
+  end
+  return function(key, inputs, compute)
+    local entry = entries[key]
+    if entry == nil or not sameInputs(entry.inputs, inputs) then
+      entry = {inputs = inputs, result = compute()}
+      entries[key] = entry
+    end
+    return copy(entry.result)
+  end
 end
 
 -- The remote's text without its share keys (a remote page can be shared
 -- onward itself), or nil when it is missing
-local function readRemote(uri)
+function share.readRemote(uri)
   local remoteText = net.readURI(uri, {encoding="text/markdown"})
   if remoteText then
     remoteText = share.cleanFrontmatter(remoteText)
   end
   return remoteText
 end
+local readRemote = share.readRemote
 
--- Where a page stands against the base this device last agreed on. hint:
--- for pages shared before bases were kept, an unchanged share.hash stands
--- for the base (for push only when transforms change nothing, since older
--- versions pushed the page untransformed). same: the outgoing text is the
--- base; known: there is anything to compare with.
+-- How a remote stands against the outgoing text, as share.check and
+-- share.checkCollection report it. r.remote is nil when missing, else {text}
+-- or {sha} (a git blob SHA, see share.gitBlobSha). r.hash is the page's
+-- share.hash (pull and sync only): without one, there is no telling which
+-- side changed. It is compared with r.remote.text only.
+function share.remoteState(r)
+  local remote = r.remote
+  if remote == nil then
+    return "missing"
+  end
+  local remoteIs
+  if remote.text != nil then
+    remoteIs = function(text)
+      return text == remote.text
+    end
+  else
+    remoteIs = function(text)
+      return share.gitBlobSha(text) == remote.sha
+    end
+  end
+  if remoteIs(r.outgoing) then
+    return "upToDate"
+  elseif r.hash == nil then
+    return "differs"
+  elseif remote.text != nil and hashMatches(r.hash, remote.text) then
+    return "localChanged"
+  elseif hashMatches(r.hash, r.outgoing) then
+    return "remoteChanged"
+  end
+  return "bothChanged"
+end
+
+-- The share in progress for a page: its settings, what it sends and its
+-- share.hash
 local function standing(name, text)
   local prepared = share.prepare(name, text)
-  local m, mode, outgoing = prepared.m, prepared.mode, prepared.outgoing
-  local base = loadBase(m.uri, m.hash)
-  local hint = base == nil and legacyMatches(m.hash, text)
-    and (mode != "push" or outgoing == share.cleanFrontmatter(text))
+  local m = prepared.m
   return {
     name = name,
     text = text,
     m = m,
     uri = m.uri,
-    mode = mode,
+    mode = prepared.mode,
     target = prepared.target,
-    outgoing = outgoing,
-    base = base,
-    same = outgoing == base or hint,
-    known = base != nil or hint,
+    outgoing = prepared.outgoing,
+    hash = m.hash,
   }
 end
 
@@ -194,8 +234,38 @@ local function saveConflictCopy(name, remoteText)
   return copyName
 end
 
+-- Writes body, the remote's text just taken, to the page with its hash
 local function writeLocal(s, body)
-  local updated = share.setFrontmatter(s.m, body)
+  local m = {
+    uri = s.m.uri,
+    mode = s.m.mode,
+    transform = s.m.transform,
+    hash = share.legacyHash(body),
+  }
+  local updated = share.setFrontmatter(m, body)
+  if s.editing then
+    editor.setText(updated)
+  else
+    space.writePage(s.name, updated)
+  end
+end
+
+-- For pull and sync, after a share that agreed on a text with the remote:
+-- sets the page's share.hash to match it, on the page as it is now (it may
+-- have been edited during the share, or written with the hash already)
+local function keepHash(s)
+  local text
+  if s.editing then
+    text = editor.getText()
+  else
+    text = space.readPage(s.name)
+  end
+  local m = index.extractFrontmatter(text).frontmatter.share
+  local hash = type(m) == "table" and m.hash or nil
+  if hashMatches(hash, s.agreed) then
+    return
+  end
+  local updated = share.setFrontmatter({hash = share.legacyHash(s.agreed)}, text)
   if s.editing then
     editor.setText(updated)
   else
@@ -205,7 +275,7 @@ end
 
 local function takeRemote(s, remoteText)
   writeLocal(s, remoteText)
-  recordBase(s.uri, remoteText)
+  s.agreed = remoteText
   return "shared"
 end
 
@@ -214,16 +284,16 @@ local function writeRemote(s, body, conditional)
   if written and written.conflict then
     return "retry"
   end
-  recordBase(s.uri, body)
+  s.agreed = body
   return "shared"
 end
 
 -- For pull and sync: the remote text, or nil when it is what this side has
--- (then recorded as the base)
+-- (then agreed on)
 local function remoteDiffering(s)
   local remoteText = readRemote(s.uri)
   if remoteText == s.outgoing then
-    recordBase(s.uri, s.outgoing)
+    s.agreed = s.outgoing
     return nil
   end
   if not remoteText then
@@ -234,62 +304,52 @@ end
 
 local strategies = {}
 
--- The local page wins (a missing remote page is created). Only without a
--- base is the remote read, to skip writing what is already there; a
--- transport that can't read is written to all the same.
+-- The local page wins (a missing remote page is created), unless the remote
+-- already has it. A transport that can't read is written to all the same.
 function strategies.push(s)
-  if s.same then
-    return "unchanged"
-  end
   share.ensureTransport(s.uri)
-  -- A transport set up just now may come with its own target
+  -- A transport set up just now may come with its own target, which changes
+  -- what is sent
   if share.target(s.uri).kind != s.target.kind then
     local editing = s.editing
     s = standing(s.name, s.text)
     s.editing = editing
-    if s.same then
-      return "unchanged"
-    end
   end
-  if s.base == nil then
-    local ok, remoteText = pcall(readRemote, s.uri)
-    if ok and remoteText == s.outgoing then
-      recordBase(s.uri, s.outgoing)
-      return "unchanged"
-    end
+  local ok, remoteText = pcall(readRemote, s.uri)
+  if ok and remoteText == s.outgoing then
+    return "unchanged"
   end
   return writeRemote(s, s.outgoing, false)
 end
 
--- The remote wins, asking first when there are local changes. Reads through
--- whatever reader matches, never connecting (e.g. libraries).
+-- The remote wins, asking first when there are local changes (or no
+-- share.hash to tell). Reads through whatever reader matches, never
+-- connecting (e.g. libraries).
 function strategies.pull(s)
   local remoteText = remoteDiffering(s)
   -- Only local changes: nothing to pull
-  if remoteText == nil or isLastShared(s.base, s.m.hash, remoteText) then
+  if remoteText == nil or hashMatches(s.hash, remoteText) then
     return "unchanged"
   end
-  local overwrite = s.same
-    or (s.base == nil and s.m.hash == nil and share.isManaged(s.name, s.text))
-  if not overwrite then
-    local message
-    if s.base != nil then
-      message = "You changed " .. s.name .. " locally. Overwrite it with the version from " .. s.uri .. "?"
-    else
+  local message
+  if s.hash == nil then
+    if not share.isManaged(s.name, s.text) then
       message = s.name .. " differs from " .. s.uri .. ". Overwrite it with the remote version?"
     end
-    if not editor.confirm(message) then
-      return "unchanged"
-    end
+  elseif not hashMatches(s.hash, s.outgoing) then
+    message = "You changed " .. s.name .. " locally. Overwrite it with the version from " .. s.uri .. "?"
+  end
+  if message and not editor.confirm(message) then
+    return "unchanged"
   end
   return takeRemote(s, remoteText)
 end
 
--- Without a base there is no telling which side changed: the user picks
-local function chooseVersion(s, remoteText)
+-- When there is no telling which side to keep: the user picks
+local function chooseVersion(s, remoteText, message)
   local choice = editor.chooseVersion {
     title = "Which version of " .. s.name .. "?",
-    message = "This device can't tell which side changed since the last share.",
+    message = message,
     mine = s.outgoing,
     theirs = remoteText,
     choices = {
@@ -310,45 +370,25 @@ local function chooseVersion(s, remoteText)
   return "notified"
 end
 
--- Both sides changed: a three-way merge on the base
-local function merge(s, remoteText)
-  local merged = space.mergeText(s.base, s.outgoing, remoteText)
-  if not merged then
-    local copyName = saveConflictCopy(s.name, remoteText)
-    editor.flashNotification("Conflict: remote copy saved as " .. copyName, "error")
-    return "notified"
-  end
-  if merged.text == remoteText then
-    recordBase(s.uri, remoteText)
-  elseif writeRemote(s, merged.text, true) == "retry" then
-    return "retry"
-  end
-  if merged.text != s.outgoing then
-    writeLocal(s, merged.text)
-  end
-  if merged.status == "conflicted" then
-    editor.flashNotification("Merged with conflicts — resolve the markers, then share again", "error")
-    return "notified"
-  end
-  return "shared"
-end
-
+-- share.hash tells which side changed since the last pull or sync
 function strategies.sync(s)
   share.ensureTransport(s.uri)
   local remoteText = remoteDiffering(s)
   if remoteText == nil then
     return "unchanged"
   end
-  if not s.known then
-    return chooseVersion(s, remoteText)
+  if s.hash == nil then
+    return chooseVersion(s, remoteText,
+      "There's no record of the last share to tell which side changed.")
   end
-  if s.same then
+  local localChanged = not hashMatches(s.hash, s.outgoing)
+  local remoteChanged = not hashMatches(s.hash, remoteText)
+  if not localChanged then
     return takeRemote(s, remoteText)
-  end
-  if remoteText == s.base then
+  elseif not remoteChanged then
     return writeRemote(s, s.outgoing, true)
   end
-  return merge(s, remoteText)
+  return chooseVersion(s, remoteText, "Both sides changed since the last share.")
 end
 
 -- One share of the page (the current one without a name). Returns "shared",
@@ -365,7 +405,11 @@ local function shareOnce(name)
   end
   local s = standing(name, text)
   s.editing = editing
-  return (strategies[s.mode] or strategies.sync)(s)
+  local outcome = (strategies[s.mode] or strategies.sync)(s)
+  if s.mode != "push" and s.agreed != nil then
+    keepHash(s)
+  end
+  return outcome
 end
 
 local results = {shared = true, unchanged = false}
@@ -383,42 +427,54 @@ function share.sharePage(name)
   return results[outcome]
 end
 
--- Offline: has the page changed locally since this device last shared it?
--- state is "unchanged", "localChanged" or "unknown" (nothing to compare with)
+-- Offline: has the page changed since its last pull or sync, as its
+-- share.hash tells? state is "unchanged", "localChanged", "unknown" (no
+-- share.hash) or, for push, "unchecked" (nothing to compare with offline).
+-- Memoized per page on its text, as views ask for it often
+local statusMemo = share.memo(function(r)
+  return {uri = r.uri, mode = r.mode, state = r.state}
+end)
+
 function share.status(name)
-  local s = standing(name, space.readPage(name))
-  local state = "unknown"
-  if s.same then
-    state = "unchanged"
-  elseif s.known then
-    state = "localChanged"
-  end
-  return {uri = s.uri, mode = s.mode, state = state}
+  local text = space.readPage(name)
+  return statusMemo(name, {text = text}, function()
+    local m = index.extractFrontmatter(text).frontmatter.share
+    if type(m) != "table" or m.uri == nil then
+      error("Not configured")
+    end
+    local mode = m.mode or "push"
+    local state = "unchecked"
+    if mode == "push" then
+      -- Push keeps no share.hash: only the remote can tell
+    elseif m.hash == nil then
+      state = "unknown"
+    elseif hashMatches(m.hash, share.cleanFrontmatter(text)) then
+      state = "unchanged"
+    else
+      state = "localChanged"
+    end
+    return {uri = m.uri, mode = mode, state = state}
+  end)
 end
 
 local function checkOne(name)
   local s = standing(name, space.readPage(name))
-  local result = {uri = s.uri, mode = s.mode}
   -- Never connects: a remote that needs a sign-in throws
   local remoteText = readRemote(s.uri)
-  if remoteText == nil then
-    result.state = "missing"
-  elseif remoteText == s.outgoing then
-    result.state = "upToDate"
-  elseif s.same then
-    result.state = "remoteChanged"
-  elseif isLastShared(s.base, s.m.hash, remoteText) then
-    result.state = "localChanged"
-  elseif not s.known then
-    result.state = "differs"
-  else
-    result.state = "bothChanged"
-  end
-  return result
+  return {
+    uri = s.uri,
+    mode = s.mode,
+    state = share.remoteState {
+      remote = remoteText and {text = remoteText},
+      outgoing = s.outgoing,
+      -- A push page's share.hash (from older versions) says nothing
+      hash = s.mode != "push" and s.hash or nil,
+    },
+  }
 end
 
 -- Reads the remotes of the pages and compares them with the local pages and
--- bases. Never prompts, connects or writes.
+-- their share.hash. Never prompts, connects or writes.
 function share.check(names)
   local results = {}
   for _, name in ipairs(names) do
@@ -456,8 +512,8 @@ function share.shareMany(names, opts)
 end
 
 -- Whether to replace the installed page with remoteText: only when the
--- remote changed since this device installed it, and when the page was edited
--- here since, only if the user agrees. Without a base or share.hash the
+-- remote changed since it was installed (as share.hash tells), and when the
+-- page was edited since, only if the user agrees. Without a share.hash the
 -- remote wins.
 local function shouldUpdate(installed, uri, remoteText)
   local text = space.readPage(installed)
@@ -467,12 +523,10 @@ local function shouldUpdate(installed, uri, remoteText)
   end
   local m = index.extractFrontmatter(text).frontmatter.share
   local hash = type(m) == "table" and m.hash or nil
-  local base = loadBase(uri, hash)
-  if isLastShared(base, hash, remoteText) then
+  if hashMatches(hash, remoteText) then
     return false
   end
-  local edited = (base != nil or hash != nil)
-    and not isLastShared(base, hash, localText)
+  local edited = hash != nil and not hashMatches(hash, localText)
   return not edited or editor.confirm("You changed " .. installed
     .. " locally. Overwrite it with the version from " .. uri .. "?")
 end
@@ -498,67 +552,12 @@ function share.install(uri, opts)
   elseif space.pageExists(page) then
     error("Page already exists: " .. page)
   end
-  space.writePage(page, share.setFrontmatter({uri = uri, mode = "pull"}, remoteText))
-  recordBase(uri, remoteText)
+  space.writePage(page, share.setFrontmatter({
+    uri = uri,
+    mode = "pull",
+    hash = share.legacyHash(remoteText),
+  }, remoteText))
   result.changed = true
   return result
 end
-
-command.define {
-  name = "Share: Page",
-  key = "Ctrl-p",
-  mac = "Cmd-p",
-  run = function()
-    local ok, ret = pcall(share.sharePage)
-    if ok then
-      if ret then
-        editor.flashNotification "Share successful"
-      elseif ret == false then
-        editor.flashNotification "No changes"
-      end -- nil: sharePage already notified
-    else -- error
-      if ret == "Not configured" then
-        local name = editor.getCurrentPage()
-        local text = editor.getText()
-        -- What a provider that uploads during onboarding may publish
-        local prepared, content = pcall(share.transform, text, {
-          page = name,
-          target = share.genericTarget,
-          members = {},
-          steps = share.resolveSteps(name, text, share.genericTarget),
-        })
-        if not prepared then
-          editor.flashNotification("Error: " .. content, "error")
-          return
-        end
-        local data = {name = name, text = text, content = content}
-        local shareProviders = service.discover("share:onboard", data)
-        local provider = editor.filterBox("Share provider", shareProviders, "Select how you would like to share this page")
-        if not provider then
-          return
-        end
-  
-        local onboarded, m = pcall(service.invoke, provider, data)
-        if not onboarded then
-          editor.flashNotification("Error: " .. m, "error")
-        elseif m then
-          -- Any hash a provider returns is ignored: setFrontmatter doesn't
-          -- write one
-          editor.setText(share.setFrontmatter(m, data.text))
-          -- Uploads the page unless the provider already did; a failure
-          -- leaves the page unshared, so the providers are offered again
-          local shared, err = pcall(share.sharePage)
-          if shared then
-            editor.flashNotification "Share complete!"
-          else
-            editor.setText(data.text)
-            editor.flashNotification("Error: " .. err, "error")
-          end
-        end
-      else
-        editor.flashNotification("Error: ".. ret)
-      end
-    end
-  end
-}
 ```

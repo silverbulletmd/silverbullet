@@ -17,6 +17,8 @@ describe("Share.md sharing", () => {
     w = await ShareWorld.create();
   });
 
+  const hashOf = (text: string) => w.h.call("share.legacyHash", text);
+
   async function setPage(m: Record<string, unknown>, body: string) {
     w.pages.set(
       "Page",
@@ -34,12 +36,11 @@ describe("Share.md sharing", () => {
       mode: "push",
     });
     expect(w.notifications).toEqual([["Share complete!", undefined]]);
-    expect(w.store.get(`share.base:${URI}`)).toBe("Hello\n");
-    // Already in sync: a later share has nothing to push
-    const before = w.fetches.length;
+    // Already in sync: a later share reads the remote and has nothing to push
+    w.fetches = [];
     w.pages.set("Page", w.editorText);
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
-    expect(w.fetches.length).toBe(before);
+    expect(w.methods()).toEqual(["GET"]);
   });
 
   test("onboarding passes transformed content and ignores a returned hash", async () => {
@@ -65,33 +66,36 @@ describe("Share.md sharing", () => {
       mode: "push",
     });
     expect(w.other.get(OTHER)).toBe("Hello\n");
-    expect(w.store.get(`share.base:${OTHER}`)).toBe("Hello\n");
     expect(w.fetches).toEqual([]);
   });
 
-  test("push transforms and records the base, without touching the page", async () => {
+  test("push transforms, without touching the page or the device store", async () => {
     await setPage({ uri: OTHER, mode: "push" }, "B<!-- x -->\n");
     const before = w.pages.get("Page");
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(w.other.get(OTHER)).toBe("B\n");
-    expect(w.store.get(`share.base:${OTHER}`)).toBe("B\n");
     expect(w.pages.get("Page")).toBe(before);
+    expect(w.store.size).toBe(1); // just the credential
   });
 
-  test("push with nothing new since this device pushed makes no request", async () => {
+  test("push compares the transformed text with the remote", async () => {
     await setPage({ uri: OTHER, mode: "push" }, "B<!-- x -->\n");
-    w.store.set(`share.base:${OTHER}`, "B\n");
+    w.other.set(OTHER, "B\n");
+    const writes: string[] = [];
+    const set = w.other.set.bind(w.other);
+    w.other.set = (k: string, v: string) => {
+      writes.push(v);
+      return set(k, v);
+    };
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
-    expect(w.fetches).toEqual([]);
-    expect(w.other.size).toBe(0);
+    expect(writes).toEqual([]);
   });
 
-  test("push compares with the remote when there is no base", async () => {
-    await w.setup("A\n", "B\n", "B\n", { mode: "push", storeBase: false });
+  test("push with the remote already at the page reads only", async () => {
+    await w.setup("A\n", "B\n", "B\n", { mode: "push", hash: false });
     const before = w.pages.get("Page");
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
     expect(w.methods()).toEqual(["GET"]);
-    expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
     expect(w.pages.get("Page")).toBe(before);
   });
 
@@ -99,44 +103,91 @@ describe("Share.md sharing", () => {
     await w.setup("A\n", "B\n", "R\n", { mode: "push" });
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(w.remote.get("Page")!.text).toBe("B\n");
+    expect(w.methods()).toEqual(["GET", "PUT"]);
     for (const put of w.fetches.filter((f) => f.opts?.method === "PUT")) {
       expect(put.opts.headers["If-Match"]).toBeUndefined();
     }
   });
 
-  test("sync pushes when only local changed and records the base text", async () => {
+  test("push creates a missing remote", async () => {
+    await w.setup("A\n", "B\n", "x\n", { mode: "push", hash: false });
+    w.remote.delete("Page");
+    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
+    expect(w.methods()).toEqual(["GET", "PUT"]);
+    expect(w.remote.get("Page")!.text).toBe("B\n");
+  });
+
+  test("push writes whenever the transformed text differs from the remote, whatever share.hash says", async () => {
+    for (const body of ["A<!-- note -->\n", "A\n<!--\nnote\n-->\n"]) {
+      w.fetches = [];
+      await w.setup(body, body, body, { mode: "push" });
+      expect(await w.h.call("share.sharePage", "Page"), body).toBe(true);
+      expect(w.methods(), body).toEqual(["GET", "PUT"]);
+      expect(w.remote.get("Page")!.text, body).not.toContain("note");
+    }
+  });
+
+  test("push compares with what the remote reads, stale or not", async () => {
+    const writes: string[] = [];
+    const set = w.other.set.bind(w.other);
+    w.other.set = (k: string, v: string) => {
+      writes.push(v);
+      return set(k, v);
+    };
+    await setPage({ uri: OTHER, mode: "push" }, "A\n");
+    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
+    await setPage({ uri: OTHER, mode: "push" }, "B\n");
+    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
+    // A reader serving A (stale or not): back at A, there is nothing to send
+    set(OTHER, "A\n");
+    await setPage({ uri: OTHER, mode: "push" }, "A\n");
+    expect(await w.h.call("share.sharePage", "Page")).toBe(false);
+    expect(writes).toEqual(["A\n", "B\n"]);
+  });
+
+  test("push never writes share.hash", async () => {
+    await w.setup("A\n", "B\n", "A\n", { mode: "push", hash: false });
+    expect(await w.sharePage()).toBe(true);
+    expect(w.localShare()).toEqual({ uri: URI, mode: "push" });
+    await w.setup("A\n", "B\n", "B\n", { mode: "push", hash: false });
+    expect(await w.sharePage()).toBe(false);
+    expect(w.localShare()).toEqual({ uri: URI, mode: "push" });
+  });
+
+  test("sync pushes when only local changed and records its hash", async () => {
     await w.setup("A\n", "B\n", "A\n");
-    const before = w.pages.get("Page");
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(w.methods()).toEqual(["GET", "PUT"]);
     expect(w.fetches[1].opts.headers["If-Match"]).toBe('"e1"');
     expect(w.remote.get("Page")!.text).toBe("B\n");
-    expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
-    expect(w.pages.get("Page")).toBe(before);
+    expect(await w.localBody()).toBe("B\n");
+    expect(w.localShare().hash).toBe(await hashOf("B\n"));
   });
 
   test("sync takes the remote when only it changed", async () => {
     await w.setup("A\n", "A\n", "C\n");
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(await w.localBody()).toBe("C\n");
-    expect(w.localShare()).toEqual({ uri: URI, mode: "sync" });
-    expect(w.store.get(`share.base:${URI}`)).toBe("C\n");
+    expect(w.localShare()).toEqual({
+      uri: URI,
+      mode: "sync",
+      hash: await hashOf("C\n"),
+    });
     expect(w.methods()).toEqual(["GET"]);
   });
 
-  test("sync with equal sides records the base without writing", async () => {
-    await w.setup("A\n", "B\n", "B\n", { storeBase: false });
-    const before = w.pages.get("Page");
+  test("sync with equal sides records the hash without writing the remote", async () => {
+    await w.setup("A\n", "B\n", "B\n", { hash: false });
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
     expect(w.methods()).toEqual(["GET"]);
-    expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
-    expect(w.pages.get("Page")).toBe(before);
+    expect(await w.localBody()).toBe("B\n");
+    expect(w.localShare().hash).toBe(await hashOf("B\n"));
     expect(w.chooseVersions).toEqual([]);
   });
 
-  describe("sync without base asks which version", () => {
+  describe("sync without a share.hash asks which version", () => {
     beforeEach(async () => {
-      await w.setup("A\n", "B\n", "C\n", { storeBase: false });
+      await w.setup("A\n", "B\n", "C\n", { hash: false });
     });
 
     test("asks with both sides", async () => {
@@ -145,7 +196,7 @@ describe("Share.md sharing", () => {
         {
           title: "Which version of Page?",
           message:
-            "This device can't tell which side changed since the last share.",
+            "There's no record of the last share to tell which side changed.",
           mine: "B\n",
           theirs: "C\n",
           choices: [
@@ -161,19 +212,18 @@ describe("Share.md sharing", () => {
       w.chooseAnswer = "theirs";
       expect(await w.h.call("share.sharePage", "Page")).toBe(true);
       expect(await w.localBody()).toBe("C\n");
-      expect(w.store.get(`share.base:${URI}`)).toBe("C\n");
+      expect(w.localShare().hash).toBe(await hashOf("C\n"));
       expect(w.methods()).toEqual(["GET"]);
     });
 
     test("mine", async () => {
       w.chooseAnswer = "mine";
-      const before = w.pages.get("Page");
       expect(await w.h.call("share.sharePage", "Page")).toBe(true);
       expect(w.methods()).toEqual(["GET", "PUT"]);
       expect(w.fetches[1].opts.headers["If-Match"]).toBe('"e1"');
       expect(w.remote.get("Page")!.text).toBe("B\n");
-      expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
-      expect(w.pages.get("Page")).toBe(before);
+      expect(await w.localBody()).toBe("B\n");
+      expect(w.localShare().hash).toBe(await hashOf("B\n"));
     });
 
     test("copy", async () => {
@@ -184,7 +234,6 @@ describe("Share.md sharing", () => {
       expect(w.pages.get(copy)).toBe("C\n");
       expect(w.pages.get("Page")).toBe(before);
       expect(w.remote.get("Page")!.text).toBe("C\n");
-      expect(w.store.has(`share.base:${URI}`)).toBe(false);
       expect(w.notifications).toEqual([
         [`Saved their version as ${copy}`, undefined],
       ]);
@@ -198,42 +247,51 @@ describe("Share.md sharing", () => {
       expect([...w.pages.keys()]).toEqual(["Page"]);
       expect(w.pages.get("Page")).toBe(before);
       expect(w.remote.get("Page")!.text).toBe("C\n");
-      expect(w.store.has(`share.base:${URI}`)).toBe(false);
     });
   });
 
-  test("a legacy hash stands in for a missing base", async () => {
-    for (const mode of ["sync", "pull"]) {
-      await w.setup("A\n", "A\n", "C\n", {
-        mode,
-        storeBase: false,
-        legacyHash: true,
+  describe("sync with both sides changed since the share.hash asks which version", () => {
+    beforeEach(async () => {
+      await w.setup("A\n", "B\n", "C\n");
+    });
+
+    test("asks, saying both changed", async () => {
+      expect(await w.h.call("share.sharePage", "Page")).toBeNull();
+      expect(w.chooseVersions).toHaveLength(1);
+      expect(w.chooseVersions[0]).toMatchObject({
+        message: "Both sides changed since the last share.",
+        mine: "B\n",
+        theirs: "C\n",
       });
+      expect(w.methods()).toEqual(["GET"]);
+    });
+
+    test("theirs", async () => {
+      w.chooseAnswer = "theirs";
+      expect(await w.h.call("share.sharePage", "Page")).toBe(true);
+      expect(await w.localBody()).toBe("C\n");
+      expect(w.localShare().hash).toBe(await hashOf("C\n"));
+    });
+
+    test("mine", async () => {
+      w.chooseAnswer = "mine";
+      expect(await w.h.call("share.sharePage", "Page")).toBe(true);
+      expect(w.methods()).toEqual(["GET", "PUT"]);
+      expect(w.fetches[1].opts.headers["If-Match"]).toBe('"e1"');
+      expect(w.remote.get("Page")!.text).toBe("B\n");
+      expect(w.localShare().hash).toBe(await hashOf("B\n"));
+    });
+  });
+
+  test("the hash tells that only the remote changed, for sync and pull", async () => {
+    for (const mode of ["sync", "pull"]) {
+      await w.setup("A\n", "A\n", "C\n", { mode });
       expect(await w.h.call("share.sharePage", "Page"), mode).toBe(true);
       expect(await w.localBody(), mode).toBe("C\n");
-      expect(w.store.get(`share.base:${URI}`), mode).toBe("C\n");
-      w.store.delete(`share.base:${URI}`);
+      expect(w.localShare().hash, mode).toBe(await hashOf("C\n"));
     }
     expect(w.chooseVersions).toEqual([]);
     expect(w.confirms).toEqual([]);
-  });
-
-  test("a legacy hash only skips a push when transforms change nothing", async () => {
-    for (const body of ["A<!-- note -->\n", "A\n<!--\nnote\n-->\n"]) {
-      w.fetches = [];
-      w.store.delete(`share.base:${URI}`);
-      await w.setup(body, body, body, {
-        mode: "push",
-        storeBase: false,
-        legacyHash: true,
-      });
-      expect(await w.h.call("share.sharePage", "Page"), body).toBe(true);
-      expect(w.methods(), body).toEqual(["GET", "PUT"]);
-      expect(w.remote.get("Page")!.text, body).not.toContain("note");
-      expect(w.store.get(`share.base:${URI}`), body).toBe(
-        w.remote.get("Page")!.text,
-      );
-    }
   });
 
   test("a remote's own share keys are ignored", async () => {
@@ -243,145 +301,177 @@ describe("Share.md sharing", () => {
     w.setRemote("Page", shared);
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(await w.localBody()).toBe("C\n");
-    expect(w.localShare()).toEqual({ uri: URI, mode: "pull" });
-    expect(w.store.get(`share.base:${URI}`)).toBe("C\n");
+    const pulled = { uri: URI, mode: "pull", hash: await hashOf("C\n") };
+    expect(w.localShare()).toEqual(pulled);
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
     expect(w.confirms).toEqual([]);
-    expect(w.localShare()).toEqual({ uri: URI, mode: "pull" });
+    expect(w.localShare()).toEqual(pulled);
   });
 
-  test("a merge equal to one side doesn't rewrite that side", async () => {
-    await w.setup("A\n", "B\n", "C\n");
-    w.mergeText = () => ({ status: "clean", text: "C\n" });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(w.methods()).toEqual(["GET"]);
-    expect(await w.localBody()).toBe("C\n");
-    expect(w.store.get(`share.base:${URI}`)).toBe("C\n");
-
-    await w.setup("A\n", "B\n", "C\n");
-    w.fetches = [];
-    const before = w.pages.get("Page");
-    w.mergeText = () => ({ status: "clean", text: "B\n" });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(w.methods()).toEqual(["GET", "PUT"]);
-    expect(w.remote.get("Page")!.text).toBe("B\n");
-    expect(w.pages.get("Page")).toBe(before);
-    expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
-  });
-
-  test("a legacy hash of an unchanged page means a push has nothing to do", async () => {
-    await w.setup("A\n", "A\n", "R\n", {
-      mode: "push",
-      storeBase: false,
-      legacyHash: true,
-    });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(false);
-    expect(w.fetches).toEqual([]);
-  });
-
-  test("managed pages pull without asking when nothing is known", async () => {
+  test("managed pages pull without asking when there is no share.hash", async () => {
     await w.setup(
       "x\n",
       "---\ntags: meta/repository\n---\nA\n",
       "---\ntags: meta/repository\n---\nC\n",
-      { mode: "pull", storeBase: false },
+      { mode: "pull", hash: false },
     );
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(await w.localBody()).toBe("---\ntags: meta/repository\n---\nC\n");
-    expect(w.localShare()).toEqual({ uri: URI, mode: "pull" });
+    const body = "---\ntags: meta/repository\n---\nC\n";
+    expect(await w.localBody()).toBe(body);
+    expect(w.localShare()).toEqual({
+      uri: URI,
+      mode: "pull",
+      hash: await hashOf(body),
+    });
     expect(w.confirms).toEqual([]);
   });
 
-  test("a managed page edited since its legacy hash asks before a pull", async () => {
+  test("a managed page edited since its share.hash asks before a pull", async () => {
     await w.setup(
       "---\ntags: meta/repository\n---\nA\n",
       "---\ntags: meta/repository\n---\nB\n",
       "---\ntags: meta/repository\n---\nC\n",
-      { mode: "pull", storeBase: false, legacyHash: true },
+      { mode: "pull" },
     );
     w.confirmAnswer = false;
     const before = w.pages.get("Page");
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
     expect(w.confirms).toEqual([
-      `Page differs from ${URI}. Overwrite it with the remote version?`,
+      `You changed Page locally. Overwrite it with the version from ${URI}?`,
     ]);
     expect(w.pages.get("Page")).toBe(before);
-    expect(w.store.has(`share.base:${URI}`)).toBe(false);
   });
 
-  test("push with a base writes without reading the remote", async () => {
-    await w.setup("A\n", "B\n", "A\n", { mode: "push" });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(w.methods()).toEqual(["PUT"]);
-    expect(w.remote.get("Page")!.text).toBe("B\n");
-    expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
-  });
-
-  test("push back to an earlier version writes even if the remote reads stale", async () => {
-    const writes: string[] = [];
-    const set = w.other.set.bind(w.other);
-    w.other.set = (k: string, v: string) => {
-      writes.push(v);
-      return set(k, v);
-    };
-    await setPage({ uri: OTHER, mode: "push" }, "A\n");
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    await setPage({ uri: OTHER, mode: "push" }, "B\n");
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    // A stale reader still serves A
-    set(OTHER, "A\n");
-    await setPage({ uri: OTHER, mode: "push" }, "A\n");
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(writes).toEqual(["A\n", "B\n", "A\n"]);
-    expect(w.store.get(`share.base:${OTHER}`)).toBe("A\n");
-  });
-
-  test("bases this device records are marked", async () => {
+  test("sync records the agreed text's hash in the page", async () => {
+    // Push
     await w.setup("A\n", "B\n", "A\n");
-    await w.h.call("share.sharePage", "Page");
-    expect(w.store.get(`share.base:${URI}`)).toBe("B\n");
-    expect(w.store.get(`share.baseV2:${URI}`)).toBe(true);
-  });
-
-  test("a base from before another device shared the page is not used", async () => {
-    // Another device shared B (its legacy hash), this device's old base is A
-    await w.setup("B\n", "C\n", "D\n", { legacyHash: true });
-    w.store.set(`share.base:${URI}`, "A\n");
-    w.mergeText = () => ({ status: "clean", text: "M\n" });
-    const before = w.pages.get("Page");
-    expect(await w.h.call("share.sharePage", "Page")).toBeNull();
-    expect(w.merges).toEqual([]);
-    expect(w.chooseVersions).toHaveLength(1);
-    expect(w.pages.get("Page")).toBe(before);
-    expect(await w.h.call("share.status", "Page")).toEqual({
-      uri: URI,
-      mode: "sync",
-      state: "unknown",
-    });
-  });
-
-  test("a marked base is trusted even when the legacy hash differs", async () => {
-    await w.setup("B\n", "C\n", "D\n", { legacyHash: true });
-    w.store.set(`share.base:${URI}`, "A\n");
-    w.store.set(`share.baseV2:${URI}`, true);
-    w.mergeText = () => ({ status: "clean", text: "M\n" });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(w.merges).toEqual([["A\n", "C\n", "D\n"]]);
+    expect(await w.sharePage()).toBe(true);
+    expect(w.localShare().hash).toBe(await hashOf("B\n"));
+    // Take the remote
+    await w.setup("A\n", "A\n", "C\n");
+    expect(await w.sharePage()).toBe(true);
+    expect(w.localShare().hash).toBe(await hashOf("C\n"));
+    // Recorded once, the hash tells the next share which side changed
+    w.setRemote("Page", "N\n");
+    expect(await w.sharePage()).toBe(true);
+    expect(await w.localBody()).toBe("N\n");
+    expect(w.localShare().hash).toBe(await hashOf("N\n"));
     expect(w.chooseVersions).toEqual([]);
   });
 
-  test("pull asks when local changed since the base", async () => {
+  test("recording the hash keeps edits made during the share", async () => {
+    await w.setup("A\n", "B\n", "A\n");
+    const edited = (await w.h.call(
+      "share.setFrontmatter",
+      { uri: URI, mode: "sync" },
+      "B edited\n",
+    )) as string;
+    w.beforePut = () => {
+      w.pages.set("Page", edited);
+    };
+    expect(await w.sharePage()).toBe(true);
+    expect(w.remote.get("Page")!.text).toBe("B\n");
+    expect(await w.localBody()).toBe("B edited\n");
+    expect(w.localShare().hash).toBe(await hashOf("B\n"));
+
+    // The same in the editor
+    await w.setup("A\n", "C\n", "A\n");
+    w.editorText = w.pages.get("Page")!;
+    w.beforePut = () => {
+      w.editorText = edited;
+    };
+    expect(
+      await w.h.call("share.sharePage").catch((e) => `THREW ${e.message}`),
+    ).toBe(true);
+    expect(await w.h.call("share.cleanFrontmatter", w.editorText)).toBe(
+      "B edited\n",
+    );
+    expect(extractFrontMatter(parseMarkdown(w.editorText)).share.hash).toBe(
+      await hashOf("C\n"),
+    );
+  });
+
+  test("the hash is written only when it doesn't match the agreed text", async () => {
+    // Unchanged, the hash already matching: the page isn't written
+    await w.setup("A\n", "A\n", "A\n");
+    const writes: string[] = [];
+    const set = w.pages.set.bind(w.pages);
+    w.pages.set = (name: string, text: string) => {
+      writes.push(name);
+      return set(name, text);
+    };
+    expect(await w.sharePage()).toBe(false);
+    expect(writes).toEqual([]);
+    // Unchanged without a hash: written once
+    w.pages.set = set;
+    await w.setup("A\n", "A\n", "A\n", { hash: false });
+    w.pages.set = (name: string, text: string) => {
+      writes.push(name);
+      return set(name, text);
+    };
+    expect(await w.sharePage()).toBe(false);
+    expect(writes).toEqual(["Page"]);
+    expect(w.localShare().hash).toBe(await hashOf("A\n"));
+  });
+
+  test("a cancelled version choice leaves the hash alone", async () => {
+    await w.setup("A\n", "B\n", "C\n");
+    const before = w.pages.get("Page");
+    w.chooseAnswer = undefined;
+    expect(await w.sharePage()).toBeNull();
+    expect(w.chooseVersions).toHaveLength(1);
+    expect(w.pages.get("Page")).toBe(before);
+  });
+
+  test("hashes that look like numbers still match", async () => {
+    // legacyHash("T46\n") is 83464e55, which YAML would read as a number
+    expect(await hashOf("T46\n")).toBe("83464e55");
+    await w.setup("A\n", "A\n", "T46\n");
+    expect(await w.sharePage()).toBe(true);
+    expect(w.localShare().hash).toBe("83464e55");
+    // Written unquoted (e.g. by hand), it still stands for the last share
+    w.pages.set(
+      "Page",
+      `---\nshare.uri: ${URI}\nshare.mode: sync\nshare.hash: 83464e55\n---\nT46\n`,
+    );
+    expect(typeof w.localShare().hash).toBe("number");
+    w.setRemote("Page", "C\n");
+    expect(await w.sharePage()).toBe(true);
+    expect(await w.localBody()).toBe("C\n");
+    expect(w.chooseVersions).toEqual([]);
+  });
+
+  test("pull writes share.hash when the sides agree or it takes the remote", async () => {
+    await w.setup("A\n", "B\n", "B\n", { mode: "pull" });
+    expect(await w.sharePage()).toBe(false);
+    expect(await w.localBody()).toBe("B\n");
+    expect(w.localShare()).toEqual({
+      uri: URI,
+      mode: "pull",
+      hash: await hashOf("B\n"),
+    });
+    await w.setup("A\n", "A\n", "C\n", { mode: "pull" });
+    expect(await w.sharePage()).toBe(true);
+    expect(await w.localBody()).toBe("C\n");
+    expect(w.localShare()).toEqual({
+      uri: URI,
+      mode: "pull",
+      hash: await hashOf("C\n"),
+    });
+  });
+
+  test("pull asks when the page changed since its share.hash", async () => {
     await w.setup("A\n", "B\n", "C\n", { mode: "pull" });
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(w.confirms).toEqual([
       `You changed Page locally. Overwrite it with the version from ${URI}?`,
     ]);
     expect(await w.localBody()).toBe("C\n");
-    expect(w.store.get(`share.base:${URI}`)).toBe("C\n");
+    expect(w.localShare().hash).toBe(await hashOf("C\n"));
   });
 
-  test("pull asks when there is no base", async () => {
-    await w.setup("A\n", "B\n", "C\n", { mode: "pull", storeBase: false });
+  test("pull asks when there is no share.hash", async () => {
+    await w.setup("A\n", "B\n", "C\n", { mode: "pull", hash: false });
     w.confirmAnswer = false;
     const before = w.pages.get("Page");
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
@@ -389,115 +479,51 @@ describe("Share.md sharing", () => {
       `Page differs from ${URI}. Overwrite it with the remote version?`,
     ]);
     expect(w.pages.get("Page")).toBe(before);
-    expect(w.store.has(`share.base:${URI}`)).toBe(false);
   });
 
-  test("pull without changes on either side records the base", async () => {
-    await w.setup("A\n", "C\n", "C\n", { mode: "pull" });
+  test("pull keeps the local edits when the remote is still at the share.hash", async () => {
+    await w.setup("A\n", "B\n", "A\n", { mode: "pull" });
     const before = w.pages.get("Page");
-    expect(await w.h.call("share.sharePage", "Page")).toBe(false);
+    expect(await w.sharePage()).toBe(false);
+    expect(w.confirms).toEqual([]);
     expect(w.pages.get("Page")).toBe(before);
-    expect(w.store.get(`share.base:${URI}`)).toBe("C\n");
   });
 
-  test("sync merges through space.mergeText for any provider", async () => {
-    await setPage({ uri: OTHER, mode: "sync" }, "B\n");
-    w.other.set(OTHER, "C\n");
-    w.store.set(`share.base:${OTHER}`, "A\n");
-    w.mergeText = () => ({ status: "clean", text: "M\n" });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(w.merges).toEqual([["A\n", "B\n", "C\n"]]);
-    expect(await w.localBody()).toBe("M\n");
-    expect(w.localShare()).toEqual({ uri: OTHER, mode: "sync" });
-    expect(w.other.get(OTHER)).toBe("M\n");
-    expect(w.store.get(`share.base:${OTHER}`)).toBe("M\n");
-    expect(w.notifications).toEqual([]);
-    // No SilverBullet requests (nor space probes)
-    expect(w.fetches).toEqual([]);
-  });
-
-  test("merges cleanly with a SilverBullet space and pushes with If-Match", async () => {
-    await w.setup("A\n", "B\n", "C\n");
-    w.mergeText = () => ({ status: "clean", text: "M\n" });
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(w.merges).toEqual([["A\n", "B\n", "C\n"]]);
-    expect(w.methods()).toEqual(["GET", "PUT"]);
-    expect(w.fetches[1].opts.headers["If-Match"]).toBe('"e1"');
-    expect(w.remote.get("Page")!.text).toBe("M\n");
-    expect(await w.localBody()).toBe("M\n");
-    expect(w.store.get(`share.base:${URI}`)).toBe("M\n");
-  });
-
-  test("conflicted merge writes markers on both sides", async () => {
-    await w.setup("A\n", "B\n", "C\n");
-    const marked = "<<<<<<< local\nB\n=======\nC\n>>>>>>> remote\n";
-    w.mergeText = () => ({ status: "conflicted", text: marked });
-    expect(await w.h.call("share.sharePage", "Page")).toBeNull();
-    expect(await w.localBody()).toBe(marked);
-    expect(w.remote.get("Page")!.text).toBe(marked);
-    expect(w.localShare()).toEqual({ uri: URI, mode: "sync" });
-    expect(w.store.get(`share.base:${URI}`)).toBe(marked);
-    expect(w.notifications).toContainEqual([
-      "Merged with conflicts — resolve the markers, then share again",
-      "error",
-    ]);
-  });
-
-  test("unmergeable inputs fall back to a conflict copy", async () => {
-    await w.setup("A\n", "B\n", "C\n");
-    const before = w.pages.get("Page");
-    w.mergeText = () => null;
-    expect(await w.h.call("share.sharePage", "Page")).toBeNull();
-    expect(w.merges).toHaveLength(1);
-    expect(w.methods()).toEqual(["GET"]);
-    const copy = `Page.conflicted-${sha256("C\n").slice(0, 8)}`;
-    expect(w.pages.get(copy)).toBe("C\n");
-    expect(w.pages.get("Page")).toBe(before);
-    expect(w.remote.get("Page")!.text).toBe("C\n");
-    expect(w.store.get(`share.base:${URI}`)).toBe("A\n");
-    expect(w.notifications).toContainEqual([
-      `Conflict: remote copy saved as ${copy}`,
-      "error",
-    ]);
-  });
-
-  test("retries once when the write hits a 412", async () => {
+  test("retries once when the write hits a 412, then asks", async () => {
     await w.setup("A\n", "B\n", "A\n");
     // Someone else writes between our read and our write
     w.beforePut = () => {
       w.beforePut = undefined;
       w.setRemote("Page", "C\n");
     };
-    w.mergeText = (base) => ({ status: "clean", text: `merged:${base}` });
-    await w.h.call("share.sharePage", "Page");
+    w.chooseAnswer = "mine";
+    expect(await w.sharePage()).toBe(true);
     expect(w.methods()).toEqual(["GET", "PUT", "GET", "PUT"]);
     expect(w.fetches[1].opts.headers["If-Match"]).toBe('"e1"');
-    expect(w.merges).toEqual([["A\n", "B\n", "C\n"]]);
-    expect(await w.localBody()).toBe("merged:A\n");
-    expect(w.remote.get("Page")!.text).toBe("merged:A\n");
+    // Both sides changed since the share.hash by the second read
+    expect(w.chooseVersions).toHaveLength(1);
+    expect(w.chooseVersions[0].theirs).toBe("C\n");
+    expect(w.remote.get("Page")!.text).toBe("B\n");
+    expect(w.localShare().hash).toBe(await hashOf("B\n"));
   });
 
-  test("retries once when the merged write hits a 412", async () => {
+  test("a Keep mine write that hits a 412 asks again", async () => {
     await w.setup("A\n", "B\n", "C\n");
     w.beforePut = () => {
       w.beforePut = undefined;
       w.setRemote("Page", "D\n");
     };
-    w.mergeText = (_base, _local, remoteText) => ({
-      status: "clean",
-      text: `merged:${remoteText}`,
-    });
-    await w.h.call("share.sharePage", "Page");
+    w.chooseAnswer = "mine";
+    expect(await w.sharePage()).toBe(true);
     expect(w.methods()).toEqual(["GET", "PUT", "GET", "PUT"]);
-    expect(w.merges.map((m) => m[2])).toEqual(["C\n", "D\n"]);
-    expect(w.remote.get("Page")!.text).toBe("merged:D\n");
-    expect(await w.localBody()).toBe("merged:D\n");
+    expect(w.chooseVersions.map((c) => c.theirs)).toEqual(["C\n", "D\n"]);
+    expect(w.remote.get("Page")!.text).toBe("B\n");
   });
 
   test("gives up when the remote keeps changing", async () => {
     await w.setup("A\n", "B\n", "A\n");
     w.beforePut = () => w.setRemote("Page", `R${w.etagCounter}\n`);
-    w.mergeText = () => ({ status: "clean", text: "M\n" });
+    w.chooseAnswer = "mine";
     const before = w.pages.get("Page");
     await expect(w.h.call("share.sharePage", "Page")).rejects.toThrow(
       /remote changed again/,
@@ -520,15 +546,15 @@ describe("Share.md sharing", () => {
     expect(w.fetches.map((f) => f.url)).toEqual([]);
     expect(w.confirms).toEqual([]);
     expect(await w.localBody()).toBe("v2\n");
-    expect(w.localShare()).toEqual({ uri: lib, mode: "pull" });
+    expect(w.localShare()).toEqual({
+      uri: lib,
+      mode: "pull",
+      hash: await hashOf("v2\n"),
+    });
   });
 
   test("a pull from a known space uses its transport", async () => {
-    await w.setup("A\n", "A\n", "C\n", {
-      mode: "pull",
-      storeBase: false,
-      legacyHash: true,
-    });
+    await w.setup("A\n", "A\n", "C\n", { mode: "pull" });
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(w.fetches.map((f) => f.url)).toEqual([FS]);
     expect(w.fetches[0].opts.headers.Authorization).toBe("Bearer token");
@@ -537,10 +563,14 @@ describe("Share.md sharing", () => {
 
   test("share.transform settings survive taking the remote", async () => {
     await setPage(
-      { uri: URI, mode: "sync", transform: { comments: false } },
+      {
+        uri: URI,
+        mode: "sync",
+        transform: { comments: false },
+        hash: await hashOf("A\n"),
+      },
       "A\n",
     );
-    w.store.set(`share.base:${URI}`, "A\n");
     w.setRemote("Page", "C\n");
     expect(await w.h.call("share.sharePage", "Page")).toBe(true);
     expect(await w.localBody()).toBe("C\n");
@@ -548,26 +578,7 @@ describe("Share.md sharing", () => {
       uri: URI,
       mode: "sync",
       transform: { comments: false },
-    });
-  });
-
-  describe("pull with only local changes", () => {
-    test("keeps the local edits when the remote is still the base", async () => {
-      await w.setup("A\n", "B\n", "A\n", { mode: "pull" });
-      expect(await w.sharePage()).toBe(false);
-      expect(w.confirms).toEqual([]);
-      expect(await w.localBody()).toBe("B\n");
-    });
-
-    test("and when the remote still has the legacy hash", async () => {
-      await w.setup("A\n", "B\n", "A\n", {
-        mode: "pull",
-        storeBase: false,
-        legacyHash: true,
-      });
-      expect(await w.sharePage()).toBe(false);
-      expect(w.confirms).toEqual([]);
-      expect(await w.localBody()).toBe("B\n");
+      hash: await hashOf("C\n"),
     });
   });
 
@@ -577,7 +588,7 @@ describe("Share.md sharing", () => {
   });
 
   test("cancelling Which version leaves the outcome to the user", async () => {
-    await w.setup("A\n", "B\n", "C\n", { storeBase: false });
+    await w.setup("A\n", "B\n", "C\n", { hash: false });
     w.chooseAnswer = undefined;
     expect(await w.sharePage()).toBeNull();
   });
@@ -595,7 +606,6 @@ describe("Share.md sharing", () => {
     await setPage({ uri: "wo:post", mode: "push" }, "A\n");
     expect(await w.sharePage()).toBe(true);
     expect(written).toEqual(["A\n"]);
-    expect(w.store.get("share.base:wo:post")).toBe("A\n");
   });
 
   test("a first push to a space this device connects to uses that space's target", async () => {

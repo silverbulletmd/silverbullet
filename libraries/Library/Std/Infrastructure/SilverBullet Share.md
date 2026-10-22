@@ -60,18 +60,22 @@ local function knownSpaces()
   return spaces
 end
 
--- Returns the space URL and page name of a share URI, or nil
+-- Returns the space URL and page name of a share URI, or nil. The space's
+-- own URL (a collection root) has page name "".
 function sbShare.resolve(uri)
   local best = nil
   for _, space in ipairs(knownSpaces()) do
     local prefix = space .. "/"
-    if #uri > #prefix and uri:sub(1, #prefix) == prefix
+    if (normalize(uri) == space or uri:sub(1, #prefix) == prefix)
         and (best == nil or #space > #best) then
       best = space
     end
   end
   if not best then
     return nil
+  end
+  if normalize(uri) == best then
+    return best, ""
   end
   return best, encoding.urlDecode(uri:sub(#best + 2))
 end
@@ -134,7 +138,15 @@ service.define {
   run = function(data)
     return {
       kind = "silverbullet",
-      defaults = {links = true, comments = true, frontmatter = false, bake = false},
+      defaults = {links = true, comments = true, bake = false},
+      -- A share URI is the page's URL in that space
+      webUrl = function(uri)
+        return uri
+      end,
+      -- Like single-page share URIs: the page's URL, without ".md"
+      memberUri = function(root, path)
+        return root .. "/" .. encodePageURI(path)
+      end,
       link = function(l)
         local out = ""
         if l.toUri != nil and l.toUri != l.fromUri then
@@ -181,8 +193,10 @@ local function readPage(spaceUrl, uri)
   return resp.body
 end
 
+-- A page (or page prefix) of a known space, not the space itself
 local function transportMatch(data)
-  if sbShare.resolve(data.uri) then
+  local _, page = sbShare.resolve(data.uri)
+  if page and page != "" then
     return {priority = 20}
   end
   return nil
@@ -217,6 +231,52 @@ service.define {
       error("SilverBullet share: write failed (" .. resp.status .. ")")
     end
     etags[data.uri] = resp.headers and resp.headers.etag
+  end,
+}
+
+-- The pages under root, as root .. "/" .. encodePageURI(rest): the form the
+-- descriptor's memberUri builds, however root itself is encoded. The space
+-- itself isn't listed: its other pages aren't a collection's to remove.
+service.define {
+  selector = "net.listURI:http*",
+  match = transportMatch,
+  run = function(data)
+    local spaceUrl, rootPage = sbShare.resolve(data.uri)
+    local root = normalize(data.uri)
+    local resp = auth.fetch(credentialKey(spaceUrl), spaceUrl .. "/.fs", {
+      method = "GET",
+      responseEncoding = "application/json",
+    })
+    if resp.status == 401 then
+      error("Not connected to " .. spaceUrl .. ": share a page to it in push or sync mode to sign in")
+    elseif resp.status != 200 then
+      error("SilverBullet share: listing failed (" .. resp.status .. ")")
+    end
+    local prefix = rootPage .. "/"
+    local entries = {}
+    for _, file in ipairs(resp.body or {}) do
+      local name = file.name
+      if name:endsWith(".md") and name:startsWith(prefix) then
+        local rest = name:sub(#prefix + 1, -4)
+        table.insert(entries, {uri = root .. "/" .. encodePageURI(rest)})
+      end
+    end
+    return entries
+  end,
+}
+
+service.define {
+  selector = "net.deleteURI:http*",
+  match = transportMatch,
+  run = function(data)
+    local spaceUrl = sbShare.resolve(data.uri)
+    local resp = auth.fetch(credentialKey(spaceUrl), fsUrl(spaceUrl, data.uri), {
+      method = "DELETE",
+    }, true)
+    if resp.status != 404 and (resp.status < 200 or resp.status >= 300) then
+      error("SilverBullet share: delete failed (" .. resp.status .. ")")
+    end
+    etags[data.uri] = nil
   end,
 }
 
