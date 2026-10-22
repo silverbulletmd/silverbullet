@@ -1,4 +1,3 @@
-import { RowText } from "./row_text.tsx";
 import { Component } from "preact";
 import {
   useEffect,
@@ -7,13 +6,15 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
+import { TrailingChips } from "./chips.tsx";
 import { highlightMatches } from "./highlight.tsx";
 import { HoverTracker, resolveHover, useHovered } from "./hover.ts";
 import { Icon } from "./icon.tsx";
 import { RowActions } from "./row_actions.tsx";
+import { RowText } from "./row_text.tsx";
 import { revealInClosest } from "./scroll.ts";
 import { allFolderPaths, findNode, type TreeNode } from "./tree_model.ts";
-import type { ActionMeta, Decoration, RowStates } from "./tree_types.ts";
+import type { ActionMeta, RowStates } from "./tree_types.ts";
 
 /** How long a collapsed folder has to be hovered before it springs open. */
 const SPRING_LOAD_MS = 700;
@@ -61,17 +62,6 @@ export function activateTreeRow<T extends { path: string; isFolder: boolean }>(
 ): void {
   if (onSelect) onSelect(node);
   else if (node.isFolder) onToggle(node.path);
-}
-
-function Chip({ decoration }: { decoration: Decoration }) {
-  return (
-    <span
-      class={"sb-nav-chip " + (decoration.cssClass ?? "")}
-      title={decoration.title}
-    >
-      {decoration.text ?? decoration.icon}
-    </span>
-  );
 }
 
 export type TreeViewProps = {
@@ -763,9 +753,7 @@ function TreeItemRow(props: TreeItemProps) {
           }
           description={node.row?.description}
         />
-        {decorations.map((d, i) => (
-          <Chip key={i} decoration={d} />
-        ))}
+        {decorations.length > 0 && <TrailingChips decorations={decorations} />}
         {actions && (documentActions || selected || hovered) && (
           <RowActions
             actions={actions}
