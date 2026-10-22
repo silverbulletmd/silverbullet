@@ -14,7 +14,7 @@ The response table contains `ok` (true for a 2xx status), `status` (the remote s
 
 ## URI services
 
-`net.readURI` and `net.writeURI` dispatch to the best service registered for the URI. Pass `{encoding = "text/markdown"}` to `net.readURI` when a service should force a particular result encoding. Options passed to `net.writeURI` reach the service too, e.g. `{conditional = true}` for a write that should fail when the remote changed since it was last read (see [[API/share]]).
+`net.readURI`, `net.writeURI`, `net.listURI` and `net.deleteURI` dispatch to the best service registered for the URI. Pass `{encoding = "text/markdown"}` to `net.readURI` when a service should force a particular result encoding. Options passed to `net.writeURI` reach the service too, e.g. `{conditional = true}` for a write that should fail when the remote changed since it was last read (see [[API/share]]). `net.listURI` returns `{uri, hash?}` entries for every file under a root, `hash` being a git blob SHA-1 when the provider has one, or nil when no service can list the root (the other three error then).
 
 <!--#lua spacelua.renderApiDocumentation("net") -->
 ## net.proxyFetch
@@ -58,6 +58,36 @@ Writes content to a URI using the best matching service.
 - `uri` (`string`) — URI to write.
 - `content` (`string|userdata`) — Text or binary content to write.
 - `options?` (`table`) — Optional service-specific values, such as conditional = true for a write that fails when the remote changed since it was last read.
+
+**Returns:**
+
+- Value — Result returned by the matching service.
+
+## net.listURI
+
+`net.listURI(uri, options?)`
+
+Lists the files under a root URI using the best matching service, or returns nil when no service can list it.
+
+**Parameters:**
+
+- `uri` (`string`) — Root URI to list.
+- `options?` (`table`) — Optional service-specific values.
+
+**Returns:**
+
+- `table` — List of {uri, hash?} entries, with hash a git blob SHA-1 when the provider has one, or nil when no service matches.
+
+## net.deleteURI
+
+`net.deleteURI(uri, options?)`
+
+Deletes a URI using the best matching service.
+
+**Parameters:**
+
+- `uri` (`string`) — URI to delete.
+- `options?` (`table`) — Optional service-specific values.
 
 **Returns:**
 

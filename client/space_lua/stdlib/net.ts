@@ -143,6 +143,56 @@ export const netApi = new LuaTable({
     returns: [{ description: "Result returned by the matching service." }],
     see: "API/net",
   }),
+  listURI: new LuaNativeJSFunction({
+    callback: async (uri: string, options: Record<string, unknown> = {}) => {
+      const registry = client.clientSystem.serviceRegistry;
+      const data = { ...options, uri };
+      // nil rather than an error: many targets can't list
+      const [best] = await registry.discover(`net.listURI:${uri}`, data);
+      return best ? registry.invoke(best, data) : null;
+    },
+    description:
+      "Lists the files under a root URI using the best matching service, or returns nil when no service can list it.",
+    signatures: ["net.listURI(uri, options?)"],
+    parameters: [
+      { name: "uri", type: "string", description: "Root URI to list." },
+      {
+        name: "options",
+        type: "table",
+        description: "Optional service-specific values.",
+        optional: true,
+      },
+    ],
+    returns: [
+      {
+        type: "table",
+        description:
+          "List of {uri, hash?} entries, with hash a git blob SHA-1 when the provider has one, or nil when no service matches.",
+      },
+    ],
+    see: "API/net",
+  }),
+  deleteURI: new LuaNativeJSFunction({
+    callback: (uri: string, options: Record<string, unknown> = {}) => {
+      return client.clientSystem.serviceRegistry.invokeBestMatch(
+        `net.deleteURI:${uri}`,
+        { ...options, uri },
+      );
+    },
+    description: "Deletes a URI using the best matching service.",
+    signatures: ["net.deleteURI(uri, options?)"],
+    parameters: [
+      { name: "uri", type: "string", description: "URI to delete." },
+      {
+        name: "options",
+        type: "table",
+        description: "Optional service-specific values.",
+        optional: true,
+      },
+    ],
+    returns: [{ description: "Result returned by the matching service." }],
+    see: "API/net",
+  }),
 });
 
 function buildProxyUrl(client: Client, url: string) {
