@@ -9,6 +9,10 @@
   border-left: 1.2px solid var(--editor-caret-color) !important;
 }
 
+.cm-editor.sb-readonly-cursor .cm-cursor-primary {
+  display: block;
+}
+
 #sb-top {
   color: var(--top-color);
   background-color: var(--top-background-color);

@@ -77,7 +77,7 @@ import {
 import { frontmatterPreviewForState } from "./syntax/frontmatter_preview.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
 import { lineWrapper } from "./syntax/line_wrapper.ts";
-import { readOnlyCursorActive } from "./util.ts";
+import { readOnlyCursorActive, readOnlyCursorVisible } from "./util.ts";
 import { postScriptPrefacePlugin } from "./widgets/top_bottom_panels.ts";
 
 export type EditorMode =
@@ -162,6 +162,7 @@ export function buildSharedEditorExtensions(
           EditorView.editable.of(false),
           EditorState.readOnly.of(true),
           readOnlyCursorActive,
+          readOnlyCursorVisible,
         ]
       : [];
 

@@ -208,6 +208,18 @@ export const readOnlyCursorActive = StateField.define<boolean>({
 });
 
 /**
+ * A read-only editor never gets DOM focus, so CodeMirror's theme hides its
+ * cursor. Flag the editor once the user has moved the cursor so the stylesheet
+ * can show it anyway.
+ */
+export const readOnlyCursorVisible = EditorView.editorAttributes.compute(
+  [readOnlyCursorActive],
+  (state) => ({
+    class: state.field(readOnlyCursorActive) ? "sb-readonly-cursor" : "",
+  }),
+);
+
+/**
  * Check if any of the editor cursors is in the given range
  *
  * Read-only mode never reveals the underlying Markdown source just because
