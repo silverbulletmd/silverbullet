@@ -61,7 +61,7 @@ Replace `silverbullet.mydomain.com` with any domain that you have configured to 
 Restart Caddy and access SilverBullet via `https://silverbullet.mydomain.com`. On first load, Caddy will work with Let’s Encrypt to issue a TLS certificate and install (and update) it automatically, this may take a minute, so be patient.
 
 ## Enable HTTP/2 on your reverse proxy
-Whichever reverse proxy you use, make sure it serves SilverBullet over HTTP/2. Over HTTP/1.1, browsers allow only six simultaneous connections per host, and SilverBullet's service worker and sync engine can use all of them. When that happens, every request stalls: the client reports "Could not reach remote server, we're offline or the server is down", requests to `/.ping` time out, and pages load slowly from the local copy, even though the server itself is up. One way to trigger this is to delete a page while a tab still has it open, because the client keeps polling the missing file.
+Whichever reverse proxy you use, make sure it serves SilverBullet over HTTP/2. Over HTTP/1.1, browsers allow only six simultaneous connections per host, and SilverBullet's service worker and sync engine can use all of them. When that happens, every request stalls: the client reports "Could not reach remote server, we're offline or the server is down", requests to `/.ping` time out, and pages load slowly from the local copy, even though the server itself is up.
 
 * **Caddy** enables HTTP/2 by default, so the configuration above needs no changes.
 * **nginx**: add `http2 on;` to the `server` block (nginx 1.25.1 and later), or use `listen 443 ssl http2;` on older versions.
