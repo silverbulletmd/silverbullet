@@ -73,6 +73,27 @@ To check, run the following, which should print `2`:
 curl -s -o /dev/null -w '%{http_version}\n' https://silverbullet.mydomain.com/.ping
 ```
 
+## Don't buffer the event stream
+SilverBullet keeps a server-sent events stream open at `/.events` for live updates. The server sends a ping on it every 30 seconds. If your reverse proxy buffers or compresses this stream, those pings never reach the browser. Live updates then fall back to polling, and stale streams can pile up in the browser and hold connections open.
+
+* **Caddy** passes event streams through unbuffered, so the configuration above needs no changes. If you added an `encode` directive, make sure it doesn't apply to `text/event-stream`.
+* **nginx**: add a location for `/.events` next to your existing one, with buffering and compression turned off:
+
+  ```
+  location /.events {
+      proxy_pass http://localhost:3000;
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      proxy_set_header Host $host;
+      proxy_buffering off;
+      proxy_cache off;
+      gzip off;
+      proxy_read_timeout 1h;
+  }
+  ```
+
+* **Nginx Proxy Manager**: edit the proxy host, open the _Advanced_ tab and paste the same block, with `proxy_pass $forward_scheme://$server:$port;` so it uses the host's forward settings.
+
 ## Community guides
 For end-to-end walkthroughs of specific setups, the community has written several [guides](https://community.silverbullet.md/c/guides/6):
 
