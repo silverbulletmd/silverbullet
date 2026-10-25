@@ -597,7 +597,19 @@ export class ContentManager {
         doc.text,
         doc.meta.perm === "ro",
       );
-      this.client.editorView.setState(editorState);
+      // A native selection left in an unfocused (e.g. read-only) editor, say
+      // by a click, would be collapsed by the browser when the old content is
+      // replaced and then read back, moving the cursor to the end of the page.
+      const domSelection = document.getSelection?.();
+      const { editorView } = this.client;
+      if (
+        domSelection?.anchorNode &&
+        !editorView.hasFocus &&
+        editorView.contentDOM.contains(domSelection.anchorNode)
+      ) {
+        domSelection.removeAllRanges();
+      }
+      editorView.setState(editorState);
       recordMark("sb:page-content");
     } else {
       // Same-page reload: applyExternalPatches diffs against the base from

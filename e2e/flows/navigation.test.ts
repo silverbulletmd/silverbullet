@@ -577,3 +577,31 @@ test.describe("browser history", () => {
     await expect.poll(() => selectionLine(page)).toBe(8);
   });
 });
+
+test.describe("read-only keyboard navigation", () => {
+  test.use({
+    serverEnv: { SB_READ_ONLY: "1" },
+    spaceFiles: {
+      "index.md": "# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n",
+      "Destination.md": "# Destination\n\nFirst line.\n\nBack to [[index]].\n",
+    },
+  });
+
+  test("following a link after a click opens the page at the top", async ({
+    sbPage: page,
+  }) => {
+    // A click leaves a native selection in the read-only editor, which must
+    // not be read back into the next page as a cursor at its end.
+    await page.getByText("Intro text.").click();
+    await page.evaluate(() => {
+      const view = (globalThis as any).client.editorView;
+      view.dispatch({
+        selection: { anchor: view.state.doc.toString().indexOf("[[") },
+      });
+    });
+    await expect(page.locator(".sb-link-cursor")).toHaveText("Destination");
+    await page.keyboard.press(`${mod}+Enter`);
+    await expect(currentPage(page)).toHaveValue("Destination");
+    await expect.poll(() => selectionLine(page)).toBe(1);
+  });
+});
