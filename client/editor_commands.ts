@@ -95,6 +95,9 @@ function withCollapsedBlockSnap(
   forward: boolean,
 ): (v: EditorView) => boolean {
   return (v: EditorView) => {
+    // Read-only mode never reveals the source, so snapping into it would
+    // park the cursor on an invisible line.
+    if (v.state.readOnly) return motion(v);
     const prev = v.state.selection.main;
     const prevLine = v.state.doc.lineAt(prev.head).number;
     const decorations = v.state

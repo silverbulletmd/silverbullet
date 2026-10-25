@@ -67,6 +67,7 @@ import { customEnterCommand } from "./editing/markdown_enter.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
+import { readOnlyWidgetLinks } from "./readonly_widget_links.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import {
@@ -163,6 +164,7 @@ export function buildSharedEditorExtensions(
           EditorState.readOnly.of(true),
           readOnlyCursorActive,
           readOnlyCursorVisible,
+          readOnlyWidgetLinks,
         ]
       : [];
 

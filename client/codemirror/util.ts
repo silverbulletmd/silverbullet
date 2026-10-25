@@ -83,7 +83,8 @@ export class LinkWidget extends WidgetType {
       this.options.text === other.options.text &&
       this.options.icon === other.options.icon &&
       this.options.href === other.options.href &&
-      this.options.title === other.options.title
+      this.options.title === other.options.title &&
+      this.options.cssClass === other.options.cssClass
     );
   }
 }
@@ -294,6 +295,55 @@ export function hideBlockSource(
   } else {
     widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   }
+}
+
+/**
+ * Read-only mode never reveals source, so the cursor would otherwise walk
+ * through characters hidden behind replaced ranges (link targets, markup,
+ * widgets) and lines hidden by hideBlockSource, without visibly moving.
+ * Make those ranges atomic so each takes a single cursor step.
+ */
+export const readOnlyAtomicRanges = EditorView.atomicRanges.of((view) => {
+  const { doc } = view.state;
+  const { from, to } = view.viewport;
+  const ranges: Range<Decoration>[] = [];
+  for (const source of view.state.facet(EditorView.decorations)) {
+    const set = typeof source === "function" ? source(view) : source;
+    set.between(from, to, (rangeFrom, rangeTo, value) => {
+      if (value === hiddenLineDecoration) {
+        // Include both surrounding line breaks so the cursor can only stop
+        // on the neighbouring (visible) lines, never inside the hidden one.
+        const line = doc.lineAt(rangeFrom);
+        ranges.push(
+          invisibleDecoration.range(
+            Math.max(line.from - 1, 0),
+            Math.min(line.to + 1, doc.length),
+          ),
+        );
+      } else if (value.point && rangeTo > rangeFrom) {
+        ranges.push(invisibleDecoration.range(rangeFrom, rangeTo));
+      }
+    });
+  }
+  return Decoration.set(ranges, true);
+});
+
+/**
+ * Whether the read-only cursor sits on the rendered element starting at
+ * `from`, i.e. the one "Navigate: To This Page" would follow.
+ */
+export function isReadOnlyCursorAt(
+  state: EditorState,
+  from: number,
+  to: number,
+) {
+  if (!state.readOnly || !state.field(readOnlyCursorActive, false)) {
+    return false;
+  }
+  return state.selection.ranges.some(
+    (selection) =>
+      selection.empty && selection.head >= from && selection.head < to,
+  );
 }
 
 export type WidgetRenderMode = "ready" | "loading" | "disabled";
