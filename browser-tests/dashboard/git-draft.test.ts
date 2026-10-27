@@ -165,3 +165,115 @@ test("draft editing invalidates a late check and Cancel preserves the active con
     page.getByRole("button", { name: "Apply changes" }),
   ).toBeEnabled();
 });
+
+test("unrelated history error opens a checked recovery requiring merge consent", async ({
+  page,
+}) => {
+  const url = "git@example.org:team/notes.git";
+  let recovered = false;
+  let draft: GitDraft = {
+    id: "recovery-draft",
+    version: 1,
+    url,
+    branch: "main",
+    remoteBranch: "main",
+    remoteBranchSelected: false,
+    mode: "manual",
+    pullIntervalSecs: 300,
+    publicKey: null,
+    fingerprint: null,
+  };
+  await page.route("**/.dashboard/api/admin/spaces/sample**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/git/draft") && method === "POST")
+      return route.fulfill({ json: draft });
+    if (path.endsWith("/test")) {
+      draft = {
+        ...draft,
+        version: 2,
+        test: {
+          reachable: true,
+          writable: false,
+          kind: "behind",
+          message: "",
+          checkedUrl: url,
+          checkedAt: Date.now(),
+          branch: "main",
+          remoteBranch: "main",
+          localHead: "local-head",
+          remoteHead: "remote-head",
+          ahead: 2,
+          behind: 3,
+          unrelated: true,
+        },
+      };
+      return route.fulfill({ json: draft });
+    }
+    if (path.endsWith("/apply")) {
+      expect(route.request().postDataJSON()).toEqual({
+        version: 2,
+        allowUnrelated: true,
+      });
+      recovered = true;
+      return route.fulfill({ json: { status: "ok" } });
+    }
+    if (method === "DELETE") return route.fulfill({ json: { status: "ok" } });
+    if (path.endsWith("/git"))
+      return route.fulfill({
+        json: {
+          remoteUrl: url,
+          branch: "main",
+          remoteBranch: "main",
+          remoteName: "origin",
+          credentialMode: "manual",
+          publicKey: null,
+          fingerprint: null,
+          ahead: recovered ? 0 : 2,
+          behind: recovered ? 0 : 3,
+          sync: recovered
+            ? { state: "idle" }
+            : {
+                state: "error",
+                kind: "UnrelatedHistories",
+                message: "UnrelatedHistories",
+              },
+          enabled: true,
+          paused: false,
+          version: recovered ? 2 : 1,
+          lastSuccess: null,
+          lastAttempt: null,
+        },
+      });
+    if (path.endsWith("/sample"))
+      return route.fulfill({
+        json: {
+          name: "Notebook",
+          binding: { prefix: "/notebook" },
+          folder: "spaces/notebook",
+          shell: { enabled: false, whitelist: [] },
+          revisions: "managed",
+        },
+      });
+    throw new Error(`Unexpected recovery request: ${method} ${path}`);
+  });
+  await page.goto(`${origin}/.dashboard/sample/git`);
+  await page
+    .getByRole("button", { name: "Resolve unrelated histories" })
+    .click();
+  await expect(page.getByLabel("Repository", { exact: true })).toHaveValue(url);
+  await page
+    .getByRole("button", { name: "Check connection", exact: true })
+    .click();
+  const apply = page.getByRole("button", {
+    name: "Apply changes",
+    exact: true,
+  });
+  await expect(apply).toBeDisabled();
+  await page.getByLabel("Combine these histories").check();
+  await apply.click();
+  await expect(page.getByRole("heading", { name: url })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Resolve unrelated histories" }),
+  ).toHaveCount(0);
+});

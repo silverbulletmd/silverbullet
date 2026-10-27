@@ -222,6 +222,16 @@ export function GitSyncPage({
       }
       await refresh();
     });
+  const openDraft = () =>
+    operation("draft", async () => {
+      const value = await createGitDraft(spaceId);
+      setSession(new GitDraftSession(value));
+      setRepository(value.url);
+      setGeneratedDraftKey(false);
+      setAdvanced(false);
+      setCombine(false);
+      setNotice("");
+    });
   const test = draft?.test;
   const provider = draft ? parseRepoUrl(draft.url) : null;
   const syncText =
@@ -342,6 +352,17 @@ export function GitSyncPage({
                             status.sync.kind,
                             status.sync.message ?? "",
                           )}
+                          {(status.sync.kind === "UnrelatedHistories" ||
+                            status.sync.kind === "ConsentStale") && (
+                            <p>
+                              <Button
+                                disabled={!!busy}
+                                onClick={() => void openDraft()}
+                              >
+                                Resolve unrelated histories
+                              </Button>
+                            </p>
+                          )}
                         </Alert>
                       )}
                       {status.sync.state === "conflicted" && (
@@ -400,17 +421,7 @@ export function GitSyncPage({
                     <Button
                       disabled={!!busy}
                       variant="primary"
-                      onClick={() =>
-                        void operation("draft", async () => {
-                          const value = await createGitDraft(spaceId);
-                          setSession(new GitDraftSession(value));
-                          setRepository(value.url);
-                          setGeneratedDraftKey(false);
-                          setAdvanced(false);
-                          setCombine(false);
-                          setNotice("");
-                        })
-                      }
+                      onClick={() => void openDraft()}
                     >
                       {connected ? "Edit connection" : "Connect repository"}
                     </Button>

@@ -793,7 +793,7 @@ mod tests {
         }
     }
     #[test]
-    fn draft_check_distinguishes_unrelated_history_and_missing_remote() {
+    fn unrelated_history_recovery_accepts_local_commits_and_rejects_replacement() {
         fn commit(repo: &Path, name: &str) {
             std::fs::write(repo.join(name), name).unwrap();
             git::run(repo, &["add", "--", name], &[]).unwrap();
@@ -817,6 +817,20 @@ mod tests {
         let remote = repo();
         commit(local.path(), "Local.md");
         commit(remote.path(), "Remote.md");
+        let bare_remote = tempfile::TempDir::new().unwrap();
+        git::run(
+            remote.path(),
+            &[
+                "clone",
+                "--bare",
+                "--",
+                remote.path().to_str().unwrap(),
+                bare_remote.path().to_str().unwrap(),
+            ],
+            &[],
+        )
+        .unwrap();
+        let remote = bare_remote;
         let mut draft = create_draft(
             root.path(),
             "sample",
@@ -833,6 +847,39 @@ mod tests {
         assert_eq!(check["ahead"], 1);
         assert_eq!(check["behind"], 1);
         assert_eq!(check["kind"], "behind");
+        commit(local.path(), "Later.md");
+        assert_eq!(validate_checked_history(local.path(), check), Ok(()));
+        configure(local.path(), &draft).unwrap();
+        let connection_dir = root.path().join("git-connections");
+        atomic_write(
+            &connection_dir.join("sample.consent"),
+            &serde_json::to_vec(&serde_json::json!({
+                "localHead": check["localHead"], "remoteHead": check["remoteHead"]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let settings = crate::revisions::engine::SyncSettings {
+            server_root: root.path().to_path_buf(),
+            space_id: "sample".into(),
+            mode: GitSyncMode::Manual,
+            pull_interval: None,
+            paused: false,
+        };
+        assert_eq!(
+            crate::revisions::sync::tick_guarded(local.path(), &[], false, None, Some(&settings))
+                .unwrap(),
+            crate::revisions::sync::TickOutcome::MergedAndPushed,
+        );
+        for file in ["Local.md", "Later.md", "Remote.md"] {
+            assert!(local.path().join(file).exists(), "missing {file}");
+        }
+        git::run(local.path(), &["checkout", "--orphan", "replacement"], &[]).unwrap();
+        commit(local.path(), "Replacement.md");
+        assert_eq!(
+            validate_checked_history(local.path(), check),
+            Err("staleDraft".into())
+        );
         draft.url = root.path().join("missing").to_string_lossy().into_owned();
         check_draft(root.path(), "sample", local.path(), &mut draft).unwrap();
         assert_eq!(draft.test.as_ref().unwrap()["reachable"], false);
@@ -1125,6 +1172,28 @@ fn manager_error(error: super::manager::ApiError) -> String {
             .join("; "),
     }
 }
+fn validate_checked_history(repo: &Path, checked: &Value) -> Result<(), String> {
+    let head = git::run(repo, &["rev-parse", "--verify", "HEAD"], &[])
+        .ok()
+        .map(|s| s.trim().to_string());
+    // Automatic revisions may advance HEAD while a slow connection check runs.
+    // A reset behind the checked commit or a replacement requires another check.
+    if checked["localHead"] == serde_json::json!(head)
+        || checked["localHead"].as_str().is_some_and(|checked_head| {
+            git::check(
+                repo,
+                &["merge-base", "--is-ancestor", checked_head, "HEAD"],
+                1,
+            )
+            .unwrap_or(false)
+        })
+    {
+        Ok(())
+    } else {
+        Err("staleDraft".into())
+    }
+}
+
 async fn apply(
     State(state): State<Arc<AdminState>>,
     AxumPath((id, draft_id)): AxumPath<(String, String)>,
@@ -1138,14 +1207,12 @@ async fn apply(
         if checked["reachable"] != true || !matches!(checked["kind"].as_str(),Some("ok"|"behind"|"emptyRepo")) { return Err("the connection check must succeed before enabling sync".into()); }
         if checked["checkedAt"].as_u64().is_none_or(|time| now().saturating_sub(time) > 600_000) { return Err("staleDraft".into()); }
         if checked["unrelated"] == true && !body.allow_unrelated { return Err("review and confirm combining these unrelated histories".into()); }
-        let head = git::run(&repo,&["rev-parse","--verify","HEAD"],&[]).ok().map(|s|s.trim().to_string());
-        if checked["localHead"] != json!(head) { return Err("staleDraft".into()); }
+        validate_checked_history(&repo, checked)?;
         let root = manager.root();
         manager.change_git(id,false,|instance,config| {
             let repo = syncable_repo(instance).ok_or("this space cannot sync")?;
             if git::run(&repo,&["symbolic-ref","--short","HEAD"],&[])?.trim() != draft.branch { return Err("staleDraft".into()); }
-            let head = git::run(&repo,&["rev-parse","--verify","HEAD"],&[]).ok().map(|s|s.trim().to_string());
-            if checked["localHead"] != json!(head) { return Err("staleDraft".into()); }
+            validate_checked_history(&repo, checked)?;
             if draft.base_connection_revision != live_connection_revision(root,id,&repo,&draft.remote_name)? { return Err("staleDraft".into()); }
             configure(&repo,&draft)?;
             let folder = draft_dir(root,id,&draft.id)?;

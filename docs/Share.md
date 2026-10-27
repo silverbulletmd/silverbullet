@@ -45,6 +45,9 @@ For the current page, these commands exist:
 ${widgets.commandButton "Share: All Changed"} shares every _sync_ page you changed since its last share (as its `share.hash` tells), every _push_ page whose remote differs from it or is missing (it reads each push page's remote to find out), and every [[#Collections|collection]] with such a page. _Pull_ pages are left alone. To see all your shared pages and collections and their status, open [[Shared Pages]].
 
 # Collections
+> **warning** Warning
+> Experimental, this feature may change in the near future.
+> 
 A _collection_ publishes a set of pages together under one location, keeping the links between them: a blog, or a set of documentation pages. Collections are defined in [[CONFIG]] rather than with frontmatter:
 
 ```lua

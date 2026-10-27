@@ -1026,6 +1026,44 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn unrelated_histories_with_overlapping_pages_resume_after_conflict_resolution() {
+        let remote = bare_remote();
+        let _seed = seeded_clone(remote.path());
+        let work = unpushed_repo(remote.path());
+        commit_file(work.path(), "note.md", "local version\n", "local note");
+        let local_head = git::run(work.path(), &["rev-parse", "HEAD"], &[]).unwrap();
+        let remote_head = git::run(remote.path(), &["rev-parse", "HEAD"], &[]).unwrap();
+
+        assert_eq!(
+            tick(work.path(), &[], true).unwrap(),
+            TickOutcome::Conflicted(vec!["note.md".into()]),
+        );
+        let conflicted = std::fs::read_to_string(work.path().join("note.md")).unwrap();
+        assert!(has_conflict_markers(&conflicted));
+        assert!(conflicted.contains("local version"));
+        assert!(conflicted.contains("base"));
+        std::fs::write(work.path().join("note.md"), "local version\nbase\n").unwrap();
+        assert_eq!(
+            try_complete_merge(work.path()).unwrap(),
+            MergeCompletion::Completed
+        );
+        assert_eq!(tick(work.path(), &[], false).unwrap(), TickOutcome::Pushed);
+        for head in [local_head, remote_head] {
+            assert!(git::check(
+                work.path(),
+                &["merge-base", "--is-ancestor", head.trim(), "HEAD"],
+                1
+            )
+            .unwrap());
+        }
+        let other = plain_clone(remote.path());
+        assert_eq!(
+            std::fs::read_to_string(other.path().join("note.md")).unwrap(),
+            "local version\nbase\n"
+        );
+    }
+
+    #[test]
     fn changed_unrelated_history_requires_a_new_connection_check() {
         let remote = bare_remote();
         let _seed = seeded_clone(remote.path());
