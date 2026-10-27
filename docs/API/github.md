@@ -18,10 +18,8 @@ config.set("github.token", "your token")
 config.set("github.clientId", "your client id")
 ```
 
-The provider's headers hold only `Authorization`, since raw and download hosts reject others; API requests add `Accept` themselves.
+The provider supplies `Authorization`; API requests add `Accept` themselves.
 
 # API
 ## github.request(url, method, body?)
 Makes a Github API request with [[API/auth|auth.fetch]], signing in when needed (or using `github.token`). A rejected token from signing in is dropped and you sign in again, once. Returns the response.
-
-Reads of Github content use `auth.fetch("github", url, options)` directly: they never sign in, and a rejected token is retried without credentials, so public content stays readable.

@@ -7,7 +7,7 @@ Lets [SilverBullet Share](https://docs.silverbullet.md/Share) publish pages to (
 # Connecting
 Run `Share: Page` and pick **SilverBullet space**. The first time, choose `Another space…` and enter the URL of the other space (e.g. `https://example.com/notes`). SilverBullet checks that it really is a SilverBullet space, then signs you in with a device code: open the link that is shown, log in to the other space and approve the request. Finally enter the page path to share to; it defaults to the name of the current page.
 
-Spaces you have shared to are remembered in this space's configuration (`share.silverbullet.spaces` in [[CONFIG]]), most recent first, so they are offered again next time, on every device. The sign-in tokens are not: they stay in this browser (see {[Credentials: List]} and {[Credentials: Clear]}). On another device you are asked to sign in again the first time you share to that space.
+Spaces you have shared to are remembered in this space's configuration (`share.silverbullet.spaces` in `CONFIG`), most recent first, so they are offered again next time, on every device. The sign-in tokens are not: they stay in this browser (see `Credentials: List` and `Credentials: Clear`). On another device you are asked to sign in again the first time you share to that space.
 
 # Implementation
 ```space-lua

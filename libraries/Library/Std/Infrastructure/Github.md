@@ -16,7 +16,7 @@ As well as [URI](https://docs.silverbullet.md/URI) support (both read and write)
 * `ghr:username/repo@version/path` (github release support)
 
 # Configuration
-If you only want to read public content from Github URLs, no configuration is required. Reads never ask you to sign in; if you are already connected (or have a token configured) it is used, so private repos you have access to can be read too. When GitHub rejects that token (expired or revoked), the read is retried without it.
+Reading public content from Github URLs requires no configuration. Downloads and update checks are anonymous, even when you are signed in or have a token configured. Private repositories are not supported for these reads.
 
 To _write_ to Github repos and gists you need to connect to Github. This happens automatically the first time you share or access something that needs it: a device code is shown, which you enter on github.com to authorize SilverBullet. The resulting token is stored on this device only (see {[Credentials: List]}) and can be cleared with {[Credentials: Clear]}.
 
@@ -94,7 +94,6 @@ auth.defineProvider {
     local token = config.get("github.token")
     return token and {access_token = token}
   end,
-  -- Only Authorization: raw and download hosts reject other headers
   headers = function(cred)
     return {Authorization = "Bearer " .. cred.access_token}
   end,
@@ -400,7 +399,7 @@ local function listFiles(data)
     if data.signIn then
       return github.request(url, "GET")
     end
-    return auth.fetch("github", url, {headers = apiHeaders})
+    return net.proxyFetch(url, {headers = apiHeaders})
   end
   -- Only the root's subtree, so entry paths are relative to it
   local treeish = dir == "" and ref or (ref .. ":" .. encodePath(dir))
@@ -498,12 +497,12 @@ service.define {
     else
       url = repoAPIURL(repo, "releases/tags/" .. version)
     end
-    local releaseInfo = readBody(auth.fetch("github", url, {headers = apiHeaders}), url)
+    local releaseInfo = readBody(net.proxyFetch(url, {headers = apiHeaders}), url)
     if releaseInfo == nil then
       return nil
     end
     local url = "https://github.com/" .. repo .. "/releases/download/" .. releaseInfo.tag_name .. "/" .. path
-    return readBody(auth.fetch("github", url, {responseEncoding = data.encoding}), url)
+    return readBody(net.proxyFetch(url, {responseEncoding = data.encoding}), url)
   end
 }
 
@@ -516,7 +515,7 @@ service.define {
   run = function(data)
     local repo, ref, path = parseFileURI(data.uri)
     local url = "https://raw.githubusercontent.com/" .. repo .. "/" .. (ref or "main") .. "/" .. path
-    return readBody(auth.fetch("github", url), url)
+    return readBody(net.proxyFetch(url), url)
   end
 }
 
@@ -528,7 +527,7 @@ service.define {
   run = function(data)
     local repo, ref, path = parseFileURI(data.uri)
     local url = "https://raw.githubusercontent.com/" .. repo .. "/" .. ref .. "/" .. path
-    return readBody(auth.fetch("github", url), url)
+    return readBody(net.proxyFetch(url), url)
   end
 }
 ```
@@ -606,7 +605,7 @@ service.define {
     if data.signIn then
       resp = github.request(url, "GET")
     else
-      resp = auth.fetch("github", url, {headers = gistHeaders})
+      resp = net.proxyFetch(url, {headers = gistHeaders})
     end
     if resp.status == 404 then
       error("GitHub: gist " .. id .. " not found (or not signed in to GitHub)")
@@ -684,7 +683,7 @@ service.define {
   match = {priority=10},
   run = function(data)
     local _, gistId, file = splitGist(data.uri)
-    local resp = auth.fetch("github", gistAPIURL(gistId), {headers = gistHeaders})
+    local resp = net.proxyFetch(gistAPIURL(gistId), {headers = gistHeaders})
     if file then
       local gist = github.responseBody(resp, "reading " .. data.uri, true)
       local meta = gist and gist.files and gist.files[file]
@@ -693,7 +692,7 @@ service.define {
       end
       -- Large files come truncated or without content
       if meta.truncated or meta.content == nil then
-        return github.responseBody(auth.fetch("github", meta.raw_url),
+        return github.responseBody(net.proxyFetch(meta.raw_url),
           "reading " .. data.uri)
       end
       return meta.content
