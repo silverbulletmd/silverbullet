@@ -3,24 +3,28 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
-* Experimental [[Space Lua/Page Lua]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page (definitions can reference each other in any order, like spreadsheet cells, with circular references reported as errors), read another page's values with `pageVars.get(name, "Page")` or `pageVars.all("Page")`, and change a value from code with `pageVars.set(name, value)` (for example from a button).
+* [[Space Lua/Page Lua]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page.
+* [[Workbench]]: Think _DevTools for SilverBullet_. This is a large feature that will likely take some time to fully iron out, but you’re welcome to play with it. Currently there:
+  * [[Workbench/Overview]]: “Fun facts” about your space (replacing the old Space Overview page that nobody found)
+  * [[Workbench/Query]]: UI to build queries (exportable as [[Space Lua/Integrated Query]] to paste in your page)
+  * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Also logs a lot of useful stuff.
+  * [[Workbench/Scripts]]: all the [[Space Lua]] that’s loaded, in what order
+  * [[Workbench/Styles]]: all the [[Space Style]] that’s loaded, in what order
+  * [[Workbench/Health]]: checks the “health” of your space: broken links, conflicts, other things.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
-  * `sb search` and `sb related` search the space from the command line, through the server's [[HTTP API#Search|search API]] and without a headless browser; `sb search --status` shows the index state and whether semantic search is available. See [[CLI]].
+* `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
+* [[Share]] refresh:
+  * New [[Shared Pages]] view (`Navigate: Shared Pages`): lists your shared pages, libraries and repositories with their status, checks their remotes, and shares, opens, copies links to or updates them.
+  * [[Share#Collections|Collections]]: publish a _set_ of pages, chosen with a function in `share.collections` config, under one location with the links between them kept: a folder in a GitHub repository (as a single commit), a gist, or another SilverBullet space. `Share: Collection` publishes the changed pages and offers files no longer in the collection for removal (none are ticked). `Share: All Changed` publishes changed collections too, and [[Shared Pages]] lists them with their pages.
 * New [[API/object]] API to change, delete and create objects where they are written, for building small apps on your pages: `object.update` (frontmatter, task state and text, tags, inline attributes, data block keys, table cells), `object.delete`, `object.append` (tasks, items, table rows, data block documents) and `object.createPage`. Changes are checked against tag schemas. `index.deleteObject` only ever removed index entries; its documentation now says so.
 * More consistent [[Tag]] terminology: every object has exactly one root tag (`page`, `task`, `data`, ...), plus any number of user tags. Every built-in tag now has its own page under `Tag/` (formerly `Object/`), grouped into root, system, edge and index tags.
   * New `index.data(tag?)` returns the objects of every data block.
   * Hashtags in headers and table rows are now recorded as tags, and every tag records the root tag it is used on as its `parent` (hashtags in paragraphs used to say `page`). Headers and table rows now get `itags` like other objects.
   * [[Tag/data]] block keys can no longer overwrite `ref`, `tag` or `itags`, and relations from data blocks now point at the object they're written in. A data block named after a built-in tag (` ```#task `) is no longer indexed; lint flags it.
-* `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets (up to 8 levels deep), in transcluded pages, and in query results and templates.
-* New [[Workbench]] panel. Work in progress.
-  * The new **Libraries** tab is the Libraries manager, moved here from the [[Configuration Manager]] (`Workbench: Libraries`; the `Libraries: Manager` and `Library: …` commands and the Libraries... menu item open it). It can now check installed libraries and repositories for updates.
-* Plugs can declare dockable panel views in their manifest ([[Plugs/Development/Reference#`view` (panel view)|`view`]]): a sandboxed HTML panel that can show in the modal window, a sidebar or the bottom panel, with tabs, and optionally rebuilt for each page opened.
 * The [[Object Graph]] is now a view with **Local** and **Global** tabs (`Graph: Explore`, `Graph: Global Page Map`) that can dock in a sidebar or the bottom panel, where the local graph follows the page you open.
 * New context menus for widgets and views.
+* Plugs can declare dockable panel views in their manifest ([[Plugs/Development/Reference#`view` (panel view)|`view`]]): a sandboxed HTML panel that can show in the modal window, a sidebar or the bottom panel, with tabs, and optionally rebuilt for each page opened.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
-* [[Share]] refresh:
-  * New [[Shared Pages]] view (`Navigate: Shared Pages`): lists your shared pages, libraries and repositories with their status, checks their remotes, and shares, opens, copies links to or updates them.
-  * [[Share#Collections|Collections]]: publish a _set_ of pages, chosen with a function in `share.collections` config, under one location with the links between them kept: a folder in a GitHub repository (as a single commit), a gist, or another SilverBullet space. `Share: Collection` publishes the changed pages and offers files no longer in the collection for removal (none are ticked). `Share: All Changed` publishes changed collections too, and [[Shared Pages]] lists them with their pages. See [[API/share]].
 * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don't depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
 * New Space Lua APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), and `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]).
 * `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
@@ -59,7 +63,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Top and bottom page widgets and page-docked views now have a Go to definition button (`</>`) that jumps to the Space Lua defining them.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported.
 * The [[Runtime API]] and [[CLI]] can capture screenshots again: `sb screenshot` saves a PNG of the runtime client, optionally clipped to one element with `--selector`.
-* Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and a checked unrelated-history merge tolerates new commits on either side before its first sync.
+* Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and unrelated-history errors offer a recovery action to check and combine both histories. Automatic commits during the connection check no longer invalidate it, and a checked merge tolerates new commits on either side before its first sync.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 * Fix: text you type right after another user's newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
 
