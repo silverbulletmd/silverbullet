@@ -143,22 +143,50 @@ describe("Github.md", () => {
     expect(deviceFlows[0].clientId).toBe("my-client");
   });
 
-  test("reads from private repos with auth headers", async () => {
-    cfg["github.token"] = "pat123";
-    const service = h.services.find(
-      (s) => s.selector === "net.readURI:https://github.com/*",
-    )!;
-    await service.run({
-      uri: "https://github.com/me/repo/blob/main/a.md",
-    });
-    expect(fetches[0].url).toBe(
-      "https://raw.githubusercontent.com/me/repo/main/a.md",
-    );
-    expect(fetches[0].opts.headers.Authorization).toBe("Bearer pat123");
-  });
-
   const readService = (selector: string) =>
     h.services.find((s) => s.selector === selector)!;
+
+  test.each([
+    ["net.readURI:github:*", "github:sample/widgets/Library.md"],
+    [
+      "net.readURI:https://github.com/*",
+      "https://github.com/sample/widgets/blob/main/Library.md",
+    ],
+    ["net.readURI:ghr:*", "ghr:sample/widgets/Library.md"],
+    [
+      "net.readURI:https://gist.github.com/*",
+      "https://gist.github.com/sample/abc123",
+    ],
+  ])(
+    "%s reads anonymously despite configured and stored tokens",
+    async (selector, uri) => {
+      cfg["github.token"] = "configured";
+      await h.call("auth.setCredential", "github", { access_token: "stored" });
+      status = (_url, opts) => (opts?.headers?.Authorization ? 404 : 200);
+      body = (url) => {
+        if (
+          url.includes("/releases/") &&
+          url.startsWith("https://api.github.com/")
+        ) {
+          return { tag_name: "v1" };
+        }
+        if (url.startsWith("https://api.github.com/gists/")) {
+          return { files: { "Library.md": { content: "# Public library" } } };
+        }
+        return "# Public library";
+      };
+
+      expect(await readService(selector).run({ uri })).toBe("# Public library");
+      expect(fetches.length).toBeGreaterThan(0);
+      for (const f of fetches) {
+        expect(f.opts.headers?.Authorization).toBeUndefined();
+      }
+      expect(deviceFlows).toHaveLength(0);
+      expect(await h.call("auth.getCredential", "github")).toMatchObject({
+        access_token: "stored",
+      });
+    },
+  );
 
   test("public reads work without signing in", async () => {
     const ghr = await readService("net.readURI:ghr:*").run({
@@ -176,67 +204,15 @@ describe("Github.md", () => {
     }
   });
 
-  test("reads use an existing credential without prompting", async () => {
-    await h.call("auth.setCredential", "github", { access_token: "stored" });
-    await readService("net.readURI:ghr:*").run({ uri: "ghr:me/repo/file.md" });
-    expect(deviceFlows).toHaveLength(0);
-    expect(fetches[0].opts.headers.Authorization).toBe("Bearer stored");
-  });
-
-  test("reads never sign in, even with an expired credential", async () => {
-    // Expired, and GitHub tokens can't be refreshed
-    await h.call("auth.setCredential", "github", {
-      access_token: "old",
-      expires_at: 1,
-    });
-    await readService("net.readURI:ghr:*").run({ uri: "ghr:me/repo/file.md" });
-    expect(deviceFlows).toHaveLength(0);
-    expect(fetches[0].opts.headers?.Authorization).toBeUndefined();
-  });
-
-  test("raw and release downloads send only Authorization", async () => {
-    cfg["github.token"] = "pat123";
-    await readService("net.readURI:ghr:*").run({ uri: "ghr:me/repo/file.md" });
-    await readService("net.readURI:github:*").run({
-      uri: "github:me/repo/a.md",
-    });
-    const downloads = fetches.filter(
-      (f) => !f.url.startsWith("https://api.github.com/"),
-    );
-    expect(downloads).toHaveLength(2);
-    for (const f of downloads) {
-      expect(f.opts.headers.Authorization).toBe("Bearer pat123");
-      expect(f.opts.headers.Accept).toBeUndefined();
-    }
-  });
-
-  test("reads retry anonymously when the token is rejected", async () => {
-    cfg["github.token"] = "revoked";
-    status = (_url, opts) => (opts?.headers?.Authorization ? 401 : 200);
-    const reads: Array<[string, string]> = [
-      ["net.readURI:ghr:*", "ghr:me/repo/file.md"],
-      ["net.readURI:github:*", "github:me/repo/a.md"],
-      [
-        "net.readURI:https://github.com/*",
-        "https://github.com/me/repo/blob/main/a.md",
-      ],
-      [
-        "net.readURI:https://gist.github.com/*",
-        "https://gist.github.com/me/abc123",
-      ],
-    ];
-    for (const [selector, uri] of reads) {
-      fetches = [];
-      expect(await readService(selector).run({ uri }), uri).toBeTruthy();
-      // Every rejected request is repeated once, without credentials
-      const authed = fetches.filter((f) => f.opts.headers?.Authorization);
-      const anonymous = fetches.filter((f) => !f.opts.headers?.Authorization);
-      expect(authed.length, uri).toBeGreaterThan(0);
-      expect(
-        anonymous.map((f) => f.url),
-        uri,
-      ).toEqual(authed.map((f) => f.url));
-    }
+  test("a missing raw file reads as nil without retries", async () => {
+    cfg["github.token"] = "limited";
+    status = () => 404;
+    expect(
+      await readService("net.readURI:github:*").run({
+        uri: "github:sample/widgets/Library.md",
+      }),
+    ).toBeNull();
+    expect(fetches).toHaveLength(1);
     expect(deviceFlows).toHaveLength(0);
   });
 

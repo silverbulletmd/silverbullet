@@ -7,16 +7,22 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * [[Workbench]]: Think _DevTools for SilverBullet_. This is a large feature that will likely take some time to fully iron out, but you’re welcome to play with it. Currently there:
   * [[Workbench/Overview]]: “Fun facts” about your space (replacing the old Space Overview page that nobody found)
   * [[Workbench/Query]]: UI to build queries (exportable as [[Space Lua/Integrated Query]] to paste in your page)
-  * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Also logs a lot of useful stuff.
+  * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Switch between space and page context to work with Page Lua variables and functions. Also logs a lot of useful stuff.
   * [[Workbench/Scripts]]: all the [[Space Lua]] that’s loaded, in what order
   * [[Workbench/Styles]]: all the [[Space Style]] that’s loaded, in what order
+  * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Health]]: checks the “health” of your space: broken links, conflicts, other things.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
 * [[Share]] refresh:
   * New [[Shared Pages]] view (`Navigate: Shared Pages`): lists your shared pages, libraries and repositories with their status, checks their remotes, and shares, opens, copies links to or updates them.
-  * [[Share#Collections|Collections]]: publish a _set_ of pages, chosen with a function in `share.collections` config, under one location with the links between them kept: a folder in a GitHub repository (as a single commit), a gist, or another SilverBullet space. `Share: Collection` publishes the changed pages and offers files no longer in the collection for removal (none are ticked). `Share: All Changed` publishes changed collections too, and [[Shared Pages]] lists them with their pages.
-* New [[API/object]] API to change, delete and create objects where they are written, for building small apps on your pages: `object.update` (frontmatter, task state and text, tags, inline attributes, data block keys, table cells), `object.delete`, `object.append` (tasks, items, table rows, data block documents) and `object.createPage`. Changes are checked against tag schemas. `index.deleteObject` only ever removed index entries; its documentation now says so.
+  * [[Share#Collections|Collections]]: publish a _set_ of pages.
+  * Sharing no longer changes the source page or stores `share.hash` in its frontmatter.
+  * Support for publishing to other SilverBullet spaces (see [[^Library/Std/Infrastructure/SilverBullet Share]])
+  * Sign in to GitHub with a device code instead of configuring a personal access token. Credentials stay on the current device and are never synced; `Credentials: List` and `Credentials: Clear` let you inspect and remove them. Sharing individual pages with another SilverBullet space now supports push, pull and sync with device-code sign-in. See [[API/auth]] and [[API/github]].
+* [[CLI]] unification. There is now a single `sb` CLI (installation instructions in [[CLI#Installation]]) that can be used both remotely with Server, and locally with [[Desktop]].
+* New dashboard widgets: `widgets.chip`, `widgets.stat`, `widgets.bars` and `widgets.grid` show badges, statistics, bar charts and responsive grids directly in your pages. See [[API/widgets]].
+* New [[API/object]] API to change, delete and create objects where they are written, for building small apps on your pages: `object.update` (frontmatter, task state and text, tags, inline attributes, data block keys, table cells), `object.delete`, `object.append` (tasks, items, table rows, data block documents) and `object.createPage`.
 * More consistent [[Tag]] terminology: every object has exactly one root tag (`page`, `task`, `data`, ...), plus any number of user tags. Every built-in tag now has its own page under `Tag/` (formerly `Object/`), grouped into root, system, edge and index tags.
   * New `index.data(tag?)` returns the objects of every data block.
   * Hashtags in headers and table rows are now recorded as tags, and every tag records the root tag it is used on as its `parent` (hashtags in paragraphs used to say `page`). Headers and table rows now get `itags` like other objects.
@@ -25,11 +31,14 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * New context menus for widgets and views.
 * Plugs can declare dockable panel views in their manifest ([[Plugs/Development/Reference#`view` (panel view)|`view`]]): a sandboxed HTML panel that can show in the modal window, a sidebar or the bottom panel, with tabs, and optionally rebuilt for each page opened.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
-* Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don't depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
-* New Space Lua APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), and `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]).
-* `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
-* `net.proxyFetch` now sets `ok` from the remote server's status (2xx), as its `status` already was; it used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. See [[API/net]].
-* `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
+* Lua:
+  * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don't depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
+  * Eligible queries with a `limit` stop reading once enough rows are collected, and Workbench query previews avoid loading unnecessary rows.
+  * New APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), and `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]).
+  * `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
+  * `net.proxyFetch` now sets `ok` from the remote server's status (2xx), as its `status` already was; it used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing; publishing still authenticates. See [[API/net]].
+  * `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
+* Fix: Git sync errors caused by unrelated histories now offer a recovery action to check and combine both histories. Automatic revisions created during the connection check no longer invalidate it.
 * Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
 * Fix: sandboxed widgets and document editors (such as the image viewer) no longer leak memory each time they render or open, which made long sessions gradually slower.
