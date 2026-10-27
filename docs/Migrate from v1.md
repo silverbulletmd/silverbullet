@@ -40,7 +40,7 @@ _Snippets_ can be implemented as follows: [[^Library/Std/Infrastructure/Slash Te
 _Page templates_ now work slightly differently: [[^Library/Std/Infrastructure/Page Templates]].
 
 # Plugs
-Many existing plugs _should_ keep working, but some may need updating. Plug installation is now handled in the [[Workbench#Libraries|Libraries]] tab of the Workbench (open with `Libraries: Manager`). Legacy `plugs:` config entries are ignored — install plugs from the Libraries UI instead.
+Many existing plugs _should_ keep working, but some may need updating. Plug installation is now handled in the [[Workbench/Libraries|Libraries]] tab of the Workbench (open with `Libraries: Manager`). Legacy `plugs:` config entries are ignored — install plugs from the Libraries UI instead.
 
 # Other changes
 * Since no database is kept on the server, you can safely delete any `.silverbullet.db` file from your space — this isn’t used anymore.

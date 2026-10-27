@@ -100,7 +100,7 @@ Alias of `share.legacyHash`.
 Returns true for pages tagged `meta/library` or `meta/repository` (installed libraries and repositories), whose remote is the source of truth: a `pull` of such a page overwrites local changes without asking when the page has no `share.hash` (when it has one, a page changed since asks first).
 
 ## share.install(uri, opts?)
-Pulls `uri` into a page the way the [[Workbench#Libraries|Library Manager]] does: the page gets `share.uri`, `share.mode: pull` and the `share.hash` of the content. `opts` is a table with:
+Pulls `uri` into a page the way the [[Workbench/Libraries|Library Manager]] does: the page gets `share.uri`, `share.mode: pull` and the `share.hash` of the content. `opts` is a table with:
 * `page`: the page to write; by default the `name` in the remote's frontmatter (an error when it has none).
 * `installed`: the page installed from `uri` before, for an update. Nothing is written when the page already equals the remote, or the remote hasn't changed since it was installed (it matches the page's `share.hash`), so local edits stay until there is something new. When there is, local edits (the page no longer matches its `share.hash`) are only replaced once the user confirms; without a `share.hash` the remote replaces the page without asking. Without `installed`, an existing page is an error.
 * `force`: with `installed`, writes the remote even when it hasn't changed, dropping local edits.

@@ -54,7 +54,7 @@ Candidates are ranked relative to the page the link is written on:
 2. **Shallowest path**, which lets a root-level page win once proximity ties.
 3. **Alphabetical order**, as the final tie-break.
 
-Every ambiguous link to a page is indexed as an [[Tag/ambiguous-link|ambiguous-link]] object, so you can find them all (this is used in the [[Workbench#Health]] tab):
+Every ambiguous link to a page is indexed as an [[Tag/ambiguous-link|ambiguous-link]] object, so you can find them all (this is used in the [[Workbench/Health]] tab):
 
 ${query[[
   from a = index.objects("ambiguous-link")

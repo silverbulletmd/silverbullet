@@ -18,7 +18,7 @@ A [[Repository]] is a **discovery and curation mechanism** for libraries. They a
 
 [[Share]] is the general-purpose mechanism built into SilverBullet to both _push_, _pull_ and _sync_ content in your space with the outside world. In the context of Libraries this mechanism is used (partially under the hood, but you’ll recognize traces of it) both for you to _publish_ your libraries, as well as to _install_ and _update_ other people’s creations.
 
-To make discovery and installation of libraries easier, SilverBullet includes a [[Workbench#Libraries|Library Manager]].
+To make discovery and installation of libraries easier, SilverBullet includes a [[Workbench/Libraries|Library Manager]].
 
 By convention, libraries are kept under the `Library/` prefix (folder) in your space.
 
@@ -27,7 +27,7 @@ Here are some things that a library may provide:
 * Various [[Slash Command|Slash Commands]], such as `/today`, `/task`, `/table`.
 * Useful [[Page Template|Page Templates]]
 * Useful [[^Library/Std/Widgets/Widgets|Widgets]]
-* Useful pages that help you look after your space. For checking its health (broken links and more), see the [[Workbench#Health]] tab.
+* Useful pages that help you look after your space. For checking its health (broken links and more), see the [[Workbench/Health]] tab.
 * Additional functionality with compiled [[Plugs]]
 
 # Can I change libraries locally?

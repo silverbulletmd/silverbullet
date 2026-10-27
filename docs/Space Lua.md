@@ -51,7 +51,7 @@ local myCodeHere
 
 Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
 
-The order used is determined by this [[Space Lua/Integrated Query|query]] (the [[Workbench#Scripts]] tab shows the same order):
+The order used is determined by this [[Space Lua/Integrated Query|query]] (the [[Workbench/Scripts]] tab shows the same order):
 
     query[[
       from t = index.objects("space-lua")

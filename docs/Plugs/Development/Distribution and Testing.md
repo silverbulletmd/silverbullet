@@ -28,7 +28,7 @@ The recipe mirrors [[Library/Development]]:
 4. End users install it with ${widgets.commandButton "Library: Install"} using that URI, or discover it through a [[Repository]].
 5. Updates: push new versions of the library page via `Share: Page`.
 
-See [[Library]], [[Library/Development]], [[Share]], [[Repository]], and [[Workbench#Libraries]] for the broader library system.
+See [[Library]], [[Library/Development]], [[Share]], [[Repository]], and [[Workbench/Libraries]] for the broader library system.
 
 # Testing & debugging
 ## Browser console
