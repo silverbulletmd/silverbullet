@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 import {
   belongsToAnotherSpace,
   belongsToSiblingSpace,
+  isEventStreamRequest,
   isInitialSyncLocalReadCandidate,
   ProxyRouter,
   scopedSiblingPrefixes,
@@ -240,6 +241,38 @@ test("onFetch initial-sync fast path serves images inline (no download header)",
   const resp = await onFetchLocalRead(router, "photo.png");
   expect(resp.headers.get("Content-Disposition")).toBeNull();
   expect(resp.headers.get("X-Content-Type-Options")).toBeNull();
+});
+
+test("event streams are left to the browser instead of proxied", () => {
+  const router = routerWithFile("text/markdown");
+  const respondWith = vi.fn();
+  router.onFetch({
+    request: new Request("http://localhost/.events", {
+      headers: { Accept: "text/event-stream" },
+    }),
+    respondWith,
+  });
+  expect(respondWith).not.toHaveBeenCalled();
+});
+
+test("only event-stream requests are recognized as event streams", () => {
+  expect(
+    isEventStreamRequest(
+      new Request("http://localhost/.events", {
+        headers: { Accept: "text/event-stream" },
+      }),
+    ),
+  ).toBe(true);
+  expect(isEventStreamRequest(new Request("http://localhost/.events"))).toBe(
+    false,
+  );
+  expect(
+    isEventStreamRequest(
+      new Request("http://localhost/.fs/note.md", {
+        headers: { Accept: "application/octet-stream" },
+      }),
+    ),
+  ).toBe(false);
 });
 
 test("handleGet serves a local byte range", async () => {

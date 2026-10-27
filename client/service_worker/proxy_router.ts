@@ -117,6 +117,19 @@ export function isInitialSyncLocalReadCandidate(
   );
 }
 
+/**
+ * Whether a request is a server-sent event stream (EventSource always asks for
+ * `text/event-stream`). The worker must not proxy these: a stream it forwards
+ * with `fetch()` is not cancelled when the page that opened it goes away, and
+ * if the reverse proxy holds back the stream's bytes, Chrome never notices the
+ * reader is gone. Every page load then leaks one connection, and over HTTP/1.1
+ * (six per host) the whole space stalls after a handful of reloads. Left
+ * alone, the browser fetches the stream itself and closes it with the page.
+ */
+export function isEventStreamRequest(request: Request): boolean {
+  return request.headers.get("Accept")?.includes("text/event-stream") ?? false;
+}
+
 export type ProxyRouterEvents = {
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   observedRequest: (path: string) => void;
@@ -247,6 +260,11 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
    * @param event FetchEvent from the service worker
    */
   public onFetch(event: any) {
+    if (isEventStreamRequest(event.request)) {
+      // Not calling respondWith hands the request back to the browser
+      return;
+    }
+
     const url = new URL(event.request.url);
 
     const pathname = url.pathname.substring(this.basePathName.length); //url.pathname with any URL prefix removed
