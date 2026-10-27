@@ -2,8 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
 import type { ScriptRecord } from "../../space_lua.ts";
-import { copyText, openRef } from "../shared/action.ts";
-import { ActionMenu } from "../shared/action_menu.tsx";
+import { openRef } from "../shared/action.ts";
 import {
   BlockNote,
   BlockRow,
@@ -25,9 +24,7 @@ import {
   filterScripts,
   formatLoadTime,
   SCRIPT_STATUS_TITLES,
-  type ScriptActionDeps,
   type ScriptFilter,
-  scriptActions,
   scriptCounts,
 } from "./scripts.ts";
 
@@ -40,7 +37,7 @@ const FILTERS: { value: ScriptFilter; label: string }[] = [
 
 /** What rows need besides their record; stable across renders. */
 type RowContext = {
-  deps: ScriptActionDeps;
+  openSource: (ref: string) => Promise<void>;
   onOpen: OpenTarget;
   sourceFor: SourceLookup;
 };
@@ -64,13 +61,9 @@ export function ScriptsView({ client, focusTarget }: TabProps) {
 
   const ctx = useMemo(
     (): RowContext => ({
-      deps: {
-        openSource: async (ref) => {
-          const target = blockSourceRef(ref, "space-lua");
-          if (target) await openRef(client, target);
-        },
-        copyText: (text) => copyText(client, text),
-        reEnable: (ref) => clientSystem.reEnableScripts([ref]),
+      openSource: async (ref) => {
+        const target = blockSourceRef(ref, "space-lua");
+        if (target) await openRef(client, target);
       },
       // Script errors point into pages, never into console input
       onOpen: (target) => {
@@ -150,8 +143,7 @@ function ScriptRow({
         status={record.status}
         statusTitle={SCRIPT_STATUS_TITLES[record.status]}
         numbers={[record.priority, formatLoadTime(record)]}
-        menu={<ActionMenu actions={scriptActions(record)} deps={ctx.deps} />}
-        onOpen={() => void ctx.deps.openSource(record.ref)}
+        onOpen={() => void ctx.openSource(record.ref)}
       />
       {record.status === "failed" ? (
         <div className="sb-wb-block-error" role="row">

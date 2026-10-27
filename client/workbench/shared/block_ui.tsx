@@ -138,7 +138,6 @@ export function BlockTable({
         <span role="columnheader" className="sb-wb-num">
           {columns[2]}
         </span>
-        <span role="columnheader" aria-label="Actions" />
       </div>
       {children}
     </div>
@@ -152,7 +151,6 @@ export function BlockRow({
   status,
   statusTitle,
   numbers,
-  menu,
   onOpen,
 }: {
   block: SpaceBlock;
@@ -161,7 +159,6 @@ export function BlockRow({
   status: string;
   statusTitle: string;
   numbers: [ComponentChildren, ComponentChildren];
-  menu: ComponentChildren;
   onOpen: () => void;
 }) {
   return (
@@ -189,7 +186,6 @@ export function BlockRow({
       <span className="sb-wb-num" role="cell">
         {numbers[1]}
       </span>
-      <span role="cell">{menu}</span>
     </div>
   );
 }

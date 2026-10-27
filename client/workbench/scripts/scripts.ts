@@ -3,7 +3,6 @@ import {
   type ScriptRecord,
   type ScriptStatus,
 } from "../../space_lua.ts";
-import type { Action } from "../shared/action.ts";
 import { refMatches } from "../shared/blocks.ts";
 
 export const SCRIPT_STATUS_TITLES: Record<ScriptRecord["status"], string> = {
@@ -49,37 +48,4 @@ export function scriptCounts(
 export function formatLoadTime(r: ScriptRecord): string {
   if (!hasRun(r)) return "–";
   return r.ms < 1 ? "<1 ms" : `${Math.round(r.ms)} ms`;
-}
-
-/** What a script row's actions act through. */
-export type ScriptActionDeps = {
-  openSource: (ref: string) => Promise<void>;
-  copyText: (text: string) => Promise<void>;
-  reEnable: (ref: string) => Promise<void>;
-};
-
-export type ScriptAction = Action<ScriptActionDeps>;
-
-/** What a script row's ⋯ menu offers. */
-export function scriptActions(r: ScriptRecord): ScriptAction[] {
-  const actions: ScriptAction[] = [
-    {
-      label: "Open source",
-      icon: "definition",
-      run: (deps) => deps.openSource(r.ref),
-    },
-    {
-      label: "Copy code",
-      icon: "copy",
-      run: (deps) => deps.copyText(r.source),
-    },
-  ];
-  if (r.status === "quarantined" || r.status === "stopped") {
-    actions.push({
-      label: "Re-enable and reload",
-      icon: "reload",
-      run: (deps) => deps.reEnable(r.ref),
-    });
-  }
-  return actions;
 }

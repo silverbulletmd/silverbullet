@@ -272,8 +272,7 @@
     }
   }
 
-  .sb-wb-row:hover .sb-wb-menu,
-  .sb-wb-block:hover .sb-wb-menu {
+  .sb-wb-row:hover .sb-wb-menu {
     opacity: 1;
   }
 
@@ -399,7 +398,7 @@
   // Scripts and Styles tabs: one row per space-lua or space-style block
   .sb-wb-block {
     display: grid;
-    grid-template-columns: 10px minmax(0, 1fr) 64px 64px 20px;
+    grid-template-columns: 10px minmax(0, 1fr) 64px 64px;
     align-items: center;
     gap: 10px;
     padding: 3px 10px;

@@ -1,6 +1,5 @@
 import { useMemo } from "preact/hooks";
-import { copyText, openRef } from "../shared/action.ts";
-import { ActionMenu } from "../shared/action_menu.tsx";
+import { openRef } from "../shared/action.ts";
 import {
   BlockNote,
   BlockRow,
@@ -11,12 +10,7 @@ import {
 } from "../shared/block_ui.tsx";
 import { blockSourceRef, refMatches } from "../shared/blocks.ts";
 import type { TabProps } from "../tab.ts";
-import {
-  type StyleActionDeps,
-  type StyleStatus,
-  styleActions,
-  styleStatus,
-} from "./styles.ts";
+import { type StyleStatus, styleStatus } from "./styles.ts";
 
 const STATUS_TITLES: Record<StyleStatus, string> = {
   applied: "Applied",
@@ -38,16 +32,10 @@ export function StylesView({ client, focusTarget }: TabProps) {
     [styles],
   );
 
-  const deps = useMemo(
-    (): StyleActionDeps => ({
-      openSource: async (ref) => {
-        const target = blockSourceRef(ref, "space-style");
-        if (target) await openRef(client, target);
-      },
-      copyText: (text) => copyText(client, text),
-    }),
-    [client],
-  );
+  const openSource = async (ref: string) => {
+    const target = blockSourceRef(ref, "space-style");
+    if (target) await openRef(client, target);
+  };
 
   return (
     <div className="sb-workbench">
@@ -77,8 +65,7 @@ export function StylesView({ client, focusTarget }: TabProps) {
                   status={status}
                   statusTitle={STATUS_TITLES[status]}
                   numbers={[s.priority ?? "–", s.rules]}
-                  menu={<ActionMenu actions={styleActions(s)} deps={deps} />}
-                  onOpen={() => void deps.openSource(s.ref)}
+                  onOpen={() => void openSource(s.ref)}
                 />
               );
             })}

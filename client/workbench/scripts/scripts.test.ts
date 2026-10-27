@@ -1,11 +1,6 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import type { ScriptRecord } from "../../space_lua.ts";
-import {
-  filterScripts,
-  formatLoadTime,
-  scriptActions,
-  scriptCounts,
-} from "./scripts.ts";
+import { filterScripts, formatLoadTime, scriptCounts } from "./scripts.ts";
 
 // Loose on purpose: each case sets only the fields its status has
 const record = (over: Record<string, unknown>): ScriptRecord =>
@@ -55,23 +50,4 @@ test("load times round, and a skipped script has none", () => {
   expect(formatLoadTime(record({ ms: 0.4 }))).toBe("<1 ms");
   expect(formatLoadTime(record({ ms: 11.6 }))).toBe("12 ms");
   expect(formatLoadTime(record({ status: "quarantined" }))).toBe("–");
-});
-
-test("only quarantined or stopped scripts offer re-enabling", async () => {
-  const labels = (r: ScriptRecord) => scriptActions(r).map((a) => a.label);
-  expect(labels(scripts[0])).toEqual(["Open source", "Copy code"]);
-  expect(labels(scripts[3])).toEqual([
-    "Open source",
-    "Copy code",
-    "Re-enable and reload",
-  ]);
-  const deps = {
-    openSource: vi.fn(async () => {}),
-    copyText: vi.fn(async () => {}),
-    reEnable: vi.fn(async () => {}),
-  };
-  for (const a of scriptActions(scripts[4])) await a.run(deps);
-  expect(deps.openSource).toHaveBeenCalledWith("Scratch/Loop@0");
-  expect(deps.copyText).toHaveBeenCalledWith("x = 1");
-  expect(deps.reEnable).toHaveBeenCalledWith("Scratch/Loop@0");
 });
