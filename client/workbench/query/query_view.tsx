@@ -10,7 +10,7 @@ import {
   OrderByRow,
   WhereRow,
 } from "./query_clauses.tsx";
-import { FieldsPanel } from "./query_fields_panel.tsx";
+import { AttributesPanel } from "./query_attributes_panel.tsx";
 import {
   canNarrow,
   dataRootSource,
@@ -26,7 +26,7 @@ import {
   filterTags,
   listRelationKinds,
   listTags,
-  loadFields,
+  loadAttributes,
   NO_TAGS,
   SAMPLE_LIMIT,
   START_SOURCE,
@@ -77,7 +77,7 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
   const [tags, setTags] = useState<TagLists>(NO_TAGS);
   const [kinds, setKinds] = useState<string[]>([]);
   const [sampled, setSampled] = useState<Record<string, number>>({});
-  const [showFields, setShowFields] = useState(false);
+  const [showAttributes, setShowAttributes] = useState(false);
   const [phrase, setPhrase] = useState("");
   const tagFilter = useRef<HTMLInputElement>(null);
   const m = builder.model;
@@ -85,9 +85,9 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
   async function pick(source: QuerySource) {
     const old = builder.model?.source;
     if (old && sameSource(source, old)) return;
-    const { fields, sampled: n } = await loadFields(client, source);
+    const { attributes, sampled: n } = await loadAttributes(client, source);
     setSampled((s) => ({ ...s, [sourceKey(source)]: n }));
-    if (builder.pickSource(source, fields) && old) {
+    if (builder.pickSource(source, attributes) && old) {
       const label = pickedEntry(old, tags).label;
       client.ui.flashNotification(`Cleared the query for ${label}`, "info", {
         actions: [{ name: "Undo", run: () => void builder.undo() }],
@@ -97,25 +97,25 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
 
   /** Narrows the picked root tag to a user tag (or kind), or a user tag to a root tag */
   async function narrow(source: QuerySource) {
-    const { fields, sampled: n } = await loadFields(client, source);
+    const { attributes, sampled: n } = await loadAttributes(client, source);
     setSampled((s) => ({ ...s, [sourceKey(source)]: n }));
-    builder.narrow(source, fields);
+    builder.narrow(source, attributes);
   }
 
   useEffect(() => {
     void listTags(client).then(setTags);
     if (!builder.model) void pick(START_SOURCE);
     // Opened early, the space's scripts or index may not be there yet; when
-    // they arrive the tags, fields and results follow, keeping the query
+    // they arrive the tags, attributes and results follow, keeping the query
     const refresh = async () => {
       setTags(await listTags(client));
       const source = builder.model?.source;
       if (!source) return;
-      const { fields, sampled: n } = await loadFields(client, source);
-      // Another tag picked meanwhile brought its own fields
+      const { attributes, sampled: n } = await loadAttributes(client, source);
+      // Another tag picked meanwhile brought its own attributes
       if (builder.model?.source !== source) return;
       setSampled((s) => ({ ...s, [sourceKey(source)]: n }));
-      builder.refreshData(fields);
+      builder.refreshData(attributes);
     };
     const onRefresh = () => void refresh();
     const offLoad = client.clientSystem.spaceLuaEnv.onLoad(onRefresh);
@@ -260,8 +260,8 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
                   <button
                     type="button"
                     className="sb-wbq-link"
-                    aria-expanded={showFields}
-                    onClick={() => setShowFields(!showFields)}
+                    aria-expanded={showAttributes}
+                    onClick={() => setShowAttributes(!showAttributes)}
                   >
                     Schema
                   </button>
@@ -276,11 +276,11 @@ export function QueryView({ client, session, builder, focusTarget }: TabProps) {
                     ✕
                   </button>
                 </div>
-                {showFields ? (
-                  <FieldsPanel
+                {showAttributes ? (
+                  <AttributesPanel
                     client={client}
                     builder={builder}
-                    onClose={() => setShowFields(false)}
+                    onClose={() => setShowAttributes(false)}
                   />
                 ) : null}
                 <WhereRow client={client} builder={builder} model={m} />

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { addGroupKey } from "./query_edits.ts";
-import { inferFields } from "./query_fields.ts";
+import { inferAttributes } from "./query_attributes.ts";
 import { sourceFor } from "./query_from.ts";
 import { emptyModel, type QueryModel } from "./query_model.ts";
-import type { FieldFilter } from "./query_ops.ts";
+import type { AttributeFilter } from "./query_ops.ts";
 import { parseQuery, querySource } from "./query_parse.ts";
 import { generateQuery } from "./query_text.ts";
 
-// Made-up objects, enough to type each field
-const taskFields = inferFields(
+// Made-up objects, enough to type each attribute
+const taskAttributes = inferAttributes(
   [
     {
       name: "Send report",
@@ -34,7 +34,7 @@ const taskFields = inferFields(
   null,
   false,
 );
-const bookFields = inferFields(
+const bookAttributes = inferAttributes(
   [
     { title: "Piranesi", status: "finished", rating: 4 },
     { title: "Klara and the Sun", status: "finished", rating: 3 },
@@ -45,19 +45,23 @@ const bookFields = inferFields(
   false,
 );
 
-const ff = (field: string, op: string, values: string[] = []): FieldFilter => ({
-  kind: "field",
-  field,
+const ff = (
+  attribute: string,
+  op: string,
+  values: string[] = [],
+): AttributeFilter => ({
+  kind: "attribute",
+  attribute,
   op,
   values,
 });
 
 function task(patch: Partial<QueryModel> = {}): QueryModel {
-  return { ...emptyModel(sourceFor("task"), taskFields), ...patch };
+  return { ...emptyModel(sourceFor("task"), taskAttributes), ...patch };
 }
 
 function grouped(): QueryModel {
-  let m = addGroupKey(emptyModel(sourceFor("book"), bookFields), "status");
+  let m = addGroupKey(emptyModel(sourceFor("book"), bookAttributes), "status");
   m = {
     ...m,
     groupColumns: [
@@ -67,7 +71,7 @@ function grouped(): QueryModel {
         header: "Books",
         kind: "agg",
         agg: "count",
-        field: "title",
+        attribute: "title",
         sorted: false,
       },
       {
@@ -75,7 +79,7 @@ function grouped(): QueryModel {
         header: "Rated",
         kind: "agg",
         agg: "count",
-        field: "title",
+        attribute: "title",
         sorted: false,
         where: "b.rating ~= nil",
       },
@@ -84,7 +88,7 @@ function grouped(): QueryModel {
         header: "Titles",
         kind: "agg",
         agg: "array_agg",
-        field: "title",
+        attribute: "title",
         sorted: true,
       },
     ],
@@ -95,11 +99,11 @@ function grouped(): QueryModel {
 }
 
 /** Parses `m`'s text and generates it again: a faithful parse gives the same text */
-function roundTrip(m: QueryModel, fields = taskFields) {
-  const text = generateQuery(m, fields, { wrap: false });
-  const parsed = parseQuery(text, fields);
+function roundTrip(m: QueryModel, attributes = taskAttributes) {
+  const text = generateQuery(m, attributes, { wrap: false });
+  const parsed = parseQuery(text, attributes);
   if (!parsed.ok) throw new Error(parsed.reason);
-  expect(generateQuery(parsed.model, fields, { wrap: false })).toBe(text);
+  expect(generateQuery(parsed.model, attributes, { wrap: false })).toBe(text);
   return parsed;
 }
 
@@ -139,28 +143,30 @@ describe("round trip of generated queries", () => {
     }
   });
 
-  test("nested fields", () => {
-    const fields = inferFields(
+  test("nested attributes", () => {
+    const attributes = inferAttributes(
       [{ name: "a" }, { name: "b", meta: { prefix: "x" } }],
       null,
       false,
     );
     const m: QueryModel = {
-      ...emptyModel(sourceFor("note"), fields),
+      ...emptyModel(sourceFor("note"), attributes),
       filters: [ff("meta.prefix", "is", ["x"])],
-      sorts: [{ by: { kind: "field", field: "meta.prefix" }, desc: false }],
+      sorts: [
+        { by: { kind: "attribute", attribute: "meta.prefix" }, desc: false },
+      ],
     };
-    const parsed = roundTrip(addGroupKey(m, "meta.prefix"), fields);
+    const parsed = roundTrip(addGroupKey(m, "meta.prefix"), attributes);
     expect(parsed.model.group).toEqual(["meta.prefix"]);
     expect(parsed.model.filters).toEqual([ff("meta.prefix", "is", ["x"])]);
-    // Written the plain way by hand, it's still the field
+    // Written the plain way by hand, it's still the attribute
     const plain = parseQuery(
       'query[[from n = index.tag "note" order by n.meta.prefix]]',
-      fields,
+      attributes,
     );
     expect(plain.ok && plain.model.sorts[0].by).toEqual({
-      kind: "field",
-      field: "meta.prefix",
+      kind: "attribute",
+      attribute: "meta.prefix",
     });
   });
 
@@ -183,14 +189,23 @@ describe("round trip of generated queries", () => {
     const parsed = roundTrip(
       task({
         sorts: [
-          { by: { kind: "field", field: "due" }, desc: false, nulls: "last" },
+          {
+            by: { kind: "attribute", attribute: "due" },
+            desc: false,
+            nulls: "last",
+          },
           { by: { kind: "expr", lua: "#t.tags" }, desc: true },
         ],
         select: {
           mode: "table",
           columns: [
-            { id: "1", header: "Task", kind: "field", value: "name" },
-            { id: "2", header: "Due date", kind: "field", value: "due date" },
+            { id: "1", header: "Task", kind: "attribute", value: "name" },
+            {
+              id: "2",
+              header: "Due date",
+              kind: "attribute",
+              value: "due date",
+            },
             { id: "3", header: "Page", kind: "link", value: "page" },
             { id: "4", header: "Tags", kind: "expr", value: "#t.tags" },
           ],
@@ -202,8 +217,8 @@ describe("round trip of generated queries", () => {
       parsed.model.select.mode === "table" &&
         parsed.model.select.columns.map((c) => [c.kind, c.value]),
     ).toEqual([
-      ["field", "name"],
-      ["field", "due date"],
+      ["attribute", "name"],
+      ["attribute", "due date"],
       ["link", "page"],
       ["expr", "#t.tags"],
     ]);
@@ -227,7 +242,7 @@ describe("round trip of generated queries", () => {
   });
 
   test("grouped: keys, aggregates, only where, sorted, ordered by a column", () => {
-    const parsed = roundTrip(grouped(), bookFields);
+    const parsed = roundTrip(grouped(), bookAttributes);
     expect(parsed.model.group).toEqual(["status"]);
     expect(parsed.model.groupColumns.map((c) => c.kind)).toEqual([
       "key",
@@ -241,9 +256,9 @@ describe("round trip of generated queries", () => {
     let m = addGroupKey(grouped(), "rating");
     m = {
       ...m,
-      sorts: [{ by: { kind: "groupKey", field: "rating" }, desc: true }],
+      sorts: [{ by: { kind: "groupKey", attribute: "rating" }, desc: true }],
     };
-    roundTrip(m, bookFields);
+    roundTrip(m, bookAttributes);
   });
 });
 
@@ -251,16 +266,16 @@ describe("hand-written queries", () => {
   test("another variable name is kept", () => {
     const parsed = parseQuery(
       'query[[from x = index.tag "task" where not x.done order by x.due select { Task = x.name }]]',
-      taskFields,
+      taskAttributes,
     );
     if (!parsed.ok) throw new Error(parsed.reason);
     expect(parsed.model.binding).toBe("x");
     expect(parsed.model.filters).toEqual([ff("done", "false")]);
     expect(parsed.model.sorts).toEqual([
-      { by: { kind: "field", field: "due" }, desc: false },
+      { by: { kind: "attribute", attribute: "due" }, desc: false },
     ]);
     // The older index.tag form comes back as the root tag's helper
-    expect(generateQuery(parsed.model, taskFields)).toContain(
+    expect(generateQuery(parsed.model, taskAttributes)).toContain(
       "from x = index.tasks()",
     );
   });
@@ -268,12 +283,12 @@ describe("hand-written queries", () => {
   test("a query without a variable keeps that form", () => {
     const text =
       'query[[from index.tag "task" where done select { n = name }]]';
-    const parsed = parseQuery(text, taskFields);
+    const parsed = parseQuery(text, taskAttributes);
     if (!parsed.ok) throw new Error(parsed.reason);
     expect(parsed.model.binding).toBe(null);
     // Bare names can't be told from globals, so they stay expressions
     expect(parsed.model.filters).toEqual([{ kind: "expr", expr: "done" }]);
-    expect(generateQuery(parsed.model, taskFields, { wrap: false })).toBe(
+    expect(generateQuery(parsed.model, taskAttributes, { wrap: false })).toBe(
       [
         "query[[",
         "  from index.tasks()",
@@ -289,7 +304,7 @@ describe("hand-written queries", () => {
   test("any templates.x the space defines is a list template", () => {
     const parsed = parseQuery(
       'query[[from t = index.tag "task" select templates.myOwnLine(t)]]',
-      taskFields,
+      taskAttributes,
     );
     expect(parsed.ok && parsed.model.select).toEqual({
       mode: "list",
@@ -300,29 +315,32 @@ describe("hand-written queries", () => {
   test("the ${} around a directive is allowed", () => {
     const parsed = parseQuery(
       '${query[[from t = index.tag "task"]]}',
-      taskFields,
+      taskAttributes,
     );
     expect(parsed.ok).toBe(true);
   });
 
-  test("a query without select gets every field as a column, and says so", () => {
-    const parsed = parseQuery('query[[from t = index.tag "task"]]', taskFields);
+  test("a query without select gets every attribute as a column, and says so", () => {
+    const parsed = parseQuery(
+      'query[[from t = index.tag "task"]]',
+      taskAttributes,
+    );
     if (!parsed.ok) throw new Error(parsed.reason);
     expect(parsed.model.select.mode).toBe("table");
     expect(parsed.notes).toEqual([
-      "The query had no select, so every field is a column",
+      "The query had no select, so every attribute is a column",
     ]);
   });
 
   test("a guard written in another order is an expression, not lost", () => {
     const parsed = parseQuery(
       'query[[from t = index.tag "task" where t.due < "2026-11-01" and type(t.due) == "string"]]',
-      taskFields,
+      taskAttributes,
     );
     if (!parsed.ok) throw new Error(parsed.reason);
-    expect(generateQuery(parsed.model, taskFields, { wrap: false })).toContain(
-      'where t.due < "2026-11-01"\n    and type(t.due) == "string"',
-    );
+    expect(
+      generateQuery(parsed.model, taskAttributes, { wrap: false }),
+    ).toContain('where t.due < "2026-11-01"\n    and type(t.due) == "string"');
   });
 
   test("what the builder can't show is refused with a reason", () => {
@@ -339,7 +357,7 @@ describe("hand-written queries", () => {
       ],
     ];
     for (const [text, reason] of cases) {
-      const parsed = parseQuery(text, taskFields);
+      const parsed = parseQuery(text, taskAttributes);
       expect(parsed.ok, text).toBe(false);
       if (!parsed.ok) expect(parsed.reason, text).toMatch(reason);
     }

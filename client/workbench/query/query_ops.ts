@@ -1,10 +1,10 @@
 /**
- * Filter operators for the query builder: which ones each field type offers,
+ * Filter operators for the query builder: which ones each attribute type offers,
  * and the Lua condition each generates.
  */
 
 import { luaString } from "../shared/lua_string.ts";
-import type { FieldType } from "./query_fields.ts";
+import type { AttributeType } from "./query_attributes.ts";
 
 export type OperatorInput =
   | "none"
@@ -14,9 +14,9 @@ export type OperatorInput =
   | "enum"
   | "multi";
 
-export type FieldFilter = {
-  kind: "field";
-  field: string;
+export type AttributeFilter = {
+  kind: "attribute";
+  attribute: string;
   op: string;
   /** The operator's values: none, one, two (between), or any number (multi) */
   values: string[];
@@ -24,7 +24,7 @@ export type FieldFilter = {
 
 export type ExpressionFilter = { kind: "expr"; expr: string };
 
-export type Filter = FieldFilter | ExpressionFilter;
+export type Filter = AttributeFilter | ExpressionFilter;
 
 export type Operator = {
   id: string;
@@ -36,12 +36,12 @@ export type Operator = {
   lua(access: string, values: string[]): string;
   /**
    * The value type the condition needs: it would throw for anything else
-   * (a missing value, or another type in a mixed field), so it's checked first
+   * (a missing value, or another type in a mixed attribute), so it's checked first
    */
   needs?: "string" | "number";
 };
 
-export type OperatorType = Exclude<FieldType, "mixed">;
+export type OperatorType = Exclude<AttributeType, "mixed">;
 
 const num = (s: string) => {
   const n = Number(s);
@@ -227,23 +227,23 @@ export function filterLua(
 }
 
 /** Whether the filter has every value its operator needs */
-export function filterValid(f: FieldFilter, type: OperatorType): boolean {
+export function filterValid(f: AttributeFilter, type: OperatorType): boolean {
   const o = operatorOf(type, f.op);
   if (o.input === "multi") return f.values.length > 0;
   return f.values.length === o.arity && f.values.every((v) => v !== "");
 }
 
-/** A filter on `field` with operator `opId`, its values reset (a one-of starts on `first`) */
+/** A filter on `attribute` with operator `opId`, its values reset (a one-of starts on `first`) */
 export function withOperator(
-  field: string,
+  attribute: string,
   type: OperatorType,
   opId: string,
   first: string,
-): FieldFilter {
+): AttributeFilter {
   const o = operatorOf(type, opId);
   return {
-    kind: "field",
-    field,
+    kind: "attribute",
+    attribute,
     op: o.id,
     values: o.input === "enum" ? [first] : [],
   };

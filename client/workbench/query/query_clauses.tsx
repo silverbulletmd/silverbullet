@@ -7,7 +7,7 @@ import type { QueryBuilder } from "./query_builder.ts";
 import {
   addGroupKey,
   isGrouped,
-  newFieldFilter,
+  newAttributeFilter,
   removeGroupKey,
 } from "./query_edits.ts";
 import { EditorClose, FilterEditor } from "./query_filter_editor.tsx";
@@ -140,9 +140,9 @@ export function WhereRow({ client, builder, model }: RowProps) {
             </>
           ) : (
             <>
-              <span className="sb-wbq-field">{f.field}</span>
+              <span className="sb-wbq-attribute">{f.attribute}</span>
               <span className="sb-wbq-op">
-                {operatorOf(builder.typeOf(f.field), f.op).label}
+                {operatorOf(builder.typeOf(f.attribute), f.op).label}
               </span>
               {f.values.map((v, j) => (
                 <span key={j} className="sb-wbq-value">
@@ -170,10 +170,10 @@ export function WhereRow({ client, builder, model }: RowProps) {
             onClick={() =>
               setEditing({
                 index: -1,
-                draft: newFieldFilter(
+                draft: newAttributeFilter(
                   model,
-                  builder.fields,
-                  builder.firstField(),
+                  builder.attributes,
+                  builder.firstAttribute(),
                 ),
               })
             }
@@ -205,23 +205,23 @@ export function GroupByRow({ builder, model }: RowProps) {
           removeLabel={`Remove group key ${g}`}
           onRemove={() => builder.update((m) => removeGroupKey(m, g))}
         >
-          <span className="sb-wbq-field">{g}</span>
+          <span className="sb-wbq-attribute">{g}</span>
         </Pill>
       ))}
       {adding ? (
         <div className="sb-wbq-editor">
           <select
             className="sb-select"
-            aria-label="Field"
+            aria-label="Attribute"
             value=""
             onChange={(e) => {
-              const field = e.currentTarget.value;
-              if (field) builder.update((m) => addGroupKey(m, field));
+              const attribute = e.currentTarget.value;
+              if (attribute) builder.update((m) => addGroupKey(m, attribute));
               setAdding(false);
             }}
           >
-            <option value="">choose a field</option>
-            {builder.offeredFields().map((f) => (
+            <option value="">choose an attribute</option>
+            {builder.offeredAttributes().map((f) => (
               <option key={f.name} value={f.name}>
                 {f.name}
               </option>
@@ -257,8 +257,8 @@ const DIRECTIONS: Record<string, [string, string]> = {
 
 function directionLabel(builder: QueryBuilder, s: Sort): string {
   const words =
-    s.by.kind === "field"
-      ? (DIRECTIONS[builder.typeOf(s.by.field)] ?? ["A–Z", "Z–A"])
+    s.by.kind === "attribute"
+      ? (DIRECTIONS[builder.typeOf(s.by.attribute)] ?? ["A–Z", "Z–A"])
       : ["ascending", "descending"];
   return s.desc ? words[1] : words[0];
 }
@@ -272,15 +272,15 @@ function byChoice(value: string): SortBy {
   return value === "expr" ? { kind: "expr", lua: "" } : JSON.parse(value);
 }
 
-/** What a sort can order by: fields and expressions, or while grouped the group keys and columns */
+/** What a sort can order by: attributes and expressions, or while grouped the group keys and columns */
 function sortChoices(
   builder: QueryBuilder,
   m: QueryModel,
 ): { by: SortBy; label: string }[] {
   if (!isGrouped(m)) {
     return [
-      ...builder.offeredFields().map((f) => ({
-        by: { kind: "field", field: f.name } as const,
+      ...builder.offeredAttributes().map((f) => ({
+        by: { kind: "attribute", attribute: f.name } as const,
         label: f.name,
       })),
       { by: { kind: "expr", lua: "" }, label: "Expression…" },
@@ -288,7 +288,7 @@ function sortChoices(
   }
   return [
     ...m.group.map((g) => ({
-      by: { kind: "groupKey", field: g } as const,
+      by: { kind: "groupKey", attribute: g } as const,
       label: `${g} (group key)`,
     })),
     ...m.groupColumns.flatMap((c) =>
@@ -304,19 +304,19 @@ function sortChoices(
   ];
 }
 
-/** What a sort pill names: a field, an expression, a group key or a column */
+/** What a sort pill names: an attribute, an expression, a group key or a column */
 function sortName(m: QueryModel, { by }: Sort): string {
   switch (by.kind) {
-    case "field":
-      return by.field;
+    case "attribute":
+      return by.attribute;
     case "expr":
       return by.lua;
     case "groupKey":
-      return `${by.field} (group key)`;
+      return `${by.attribute} (group key)`;
     case "column": {
       const c = m.groupColumns.find((x) => x.id === by.id);
       if (!c) return "(removed column)";
-      return c.header || (c.kind === "agg" ? c.agg : c.field);
+      return c.header || (c.kind === "agg" ? c.agg : c.attribute);
     }
   }
 }
@@ -348,7 +348,9 @@ export function OrderByRow({ client, builder, model }: RowProps) {
           onRemove={() => update(model.sorts.filter((_, j) => j !== i))}
         >
           <span
-            className={s.by.kind === "expr" ? "sb-wbq-expr" : "sb-wbq-field"}
+            className={
+              s.by.kind === "expr" ? "sb-wbq-expr" : "sb-wbq-attribute"
+            }
           >
             {sortName(model, s)}
           </span>
@@ -360,7 +362,7 @@ export function OrderByRow({ client, builder, model }: RowProps) {
         <div className="sb-wbq-editor">
           <select
             className="sb-select"
-            aria-label="Field"
+            aria-label="Attribute"
             value={choiceOf(draft.by)}
             onChange={(e) =>
               setDraft({ ...draft, by: byChoice(e.currentTarget.value) })

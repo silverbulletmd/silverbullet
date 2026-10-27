@@ -9,10 +9,10 @@ import {
   isGrouped,
   removeGroupColumn,
 } from "./query_edits.ts";
-import { FieldSelect } from "./query_filter_editor.tsx";
+import { AttributeSelect } from "./query_filter_editor.tsx";
 import { sourceType } from "./query_from.ts";
 import {
-  fieldColumn,
+  attributeColumn,
   type GroupColumn,
   newId,
   objectVar,
@@ -68,12 +68,12 @@ function TableColumns({ client, builder, model }: RowProps) {
                   c,
                   e.currentTarget.value as TableColumn["kind"],
                   v,
-                  builder.firstField(),
+                  builder.firstAttribute(),
                 ),
               )
             }
           >
-            <option value="field">Field</option>
+            <option value="attribute">Attribute</option>
             <option value="link">Page link</option>
             <option value="expr">Expression</option>
           </select>
@@ -85,7 +85,7 @@ function TableColumns({ client, builder, model }: RowProps) {
               onChange={(value) => patch(i, { ...c, value })}
             />
           ) : (
-            <FieldSelect
+            <AttributeSelect
               builder={builder}
               value={c.value}
               withTypes={false}
@@ -129,7 +129,7 @@ function TableColumns({ client, builder, model }: RowProps) {
       <div className="sb-wbq-row">
         <AddButton
           onClick={() =>
-            setColumns([...columns, fieldColumn(builder.firstField())])
+            setColumns([...columns, attributeColumn(builder.firstAttribute())])
           }
         >
           + Column
@@ -138,7 +138,7 @@ function TableColumns({ client, builder, model }: RowProps) {
           onClick={() =>
             setColumns([
               ...columns,
-              ...tableColumns(builder.fields).filter(
+              ...tableColumns(builder.attributes).filter(
                 (n) =>
                   !columns.some(
                     (c) => c.kind !== "expr" && c.value === n.value,
@@ -147,7 +147,7 @@ function TableColumns({ client, builder, model }: RowProps) {
             ])
           }
         >
-          + All schema fields
+          + All schema attributes
         </AddButton>
         {columns.length ? (
           <>
@@ -204,7 +204,7 @@ function ListTemplate({ client, builder, model }: RowProps) {
             const v = e.currentTarget.value;
             setList(
               v === "custom"
-                ? { custom: `* [[\${${builder.firstField()}}]]` }
+                ? { custom: `* [[\${${builder.firstAttribute()}}]]` }
                 : { template: v },
             );
           }}
@@ -240,7 +240,7 @@ function ListTemplate({ client, builder, model }: RowProps) {
           />
           <div className="sb-wbq-row">
             <span className="sb-wbq-note">Insert</span>
-            {builder.offeredFields().map((f) => (
+            {builder.offeredAttributes().map((f) => (
               <button
                 key={f.name}
                 type="button"
@@ -252,7 +252,7 @@ function ListTemplate({ client, builder, model }: RowProps) {
             ))}
             <span className="sb-wbq-note">as link</span>
             {builder
-              .offeredFields()
+              .offeredAttributes()
               .filter((f) =>
                 ["text", "pagelink"].includes(builder.typeOf(f.name)),
               )
@@ -287,7 +287,7 @@ function GroupColumns({ client, builder, model }: RowProps) {
           key={c.id}
           className="sb-wbq-column sb-wbq-aggcol"
           role="group"
-          aria-label={`Column ${c.header || (c.kind === "agg" ? c.agg : c.field)}`}
+          aria-label={`Column ${c.header || (c.kind === "agg" ? c.agg : c.attribute)}`}
         >
           <input
             className="sb-wbq-input sb-wbq-header"
@@ -306,7 +306,7 @@ function GroupColumns({ client, builder, model }: RowProps) {
                   model,
                   c,
                   e.currentTarget.value,
-                  builder.firstField(),
+                  builder.firstAttribute(),
                 ),
               )
             }
@@ -323,9 +323,9 @@ function GroupColumns({ client, builder, model }: RowProps) {
               <select
                 className="sb-select"
                 aria-label="Group key"
-                value={c.field}
+                value={c.attribute}
                 onChange={(e) =>
-                  patch(i, { ...c, field: e.currentTarget.value })
+                  patch(i, { ...c, attribute: e.currentTarget.value })
                 }
               >
                 {model.group.map((g) => (
@@ -337,11 +337,11 @@ function GroupColumns({ client, builder, model }: RowProps) {
             ) : null
           ) : (
             <>
-              <FieldSelect
+              <AttributeSelect
                 builder={builder}
-                value={c.field}
+                value={c.attribute}
                 withTypes={false}
-                onChange={(field) => patch(i, { ...c, field })}
+                onChange={(attribute) => patch(i, { ...c, attribute })}
               />
               {c.agg === "array_agg" ? (
                 <label className="sb-wbq-note">
@@ -386,7 +386,7 @@ function GroupColumns({ client, builder, model }: RowProps) {
                 header: "",
                 kind: "agg",
                 agg: "count",
-                field: builder.firstField(),
+                attribute: builder.firstAttribute(),
                 sorted: false,
               },
             ])
@@ -424,7 +424,12 @@ export function SelectRow(props: RowProps) {
             }
             onClick={() =>
               builder.update((x) =>
-                changeSelectMode(x, m, builder.fields, loadTemplates(client)),
+                changeSelectMode(
+                  x,
+                  m,
+                  builder.attributes,
+                  loadTemplates(client),
+                ),
               )
             }
           >

@@ -10,15 +10,19 @@ import {
 } from "../../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../../space_lua/stdlib.ts";
 import { addGroupKey, removeGroupKey } from "./query_edits.ts";
-import { type FieldInfo, inferFields, tableKey } from "./query_fields.ts";
+import {
+  type AttributeInfo,
+  inferAttributes,
+  tableKey,
+} from "./query_attributes.ts";
 import { sourceFor } from "./query_from.ts";
 import {
   bindingVar,
   emptyModel,
-  fieldAccess,
+  attributeAccess,
   type QueryModel,
 } from "./query_model.ts";
-import type { FieldFilter } from "./query_ops.ts";
+import type { AttributeFilter } from "./query_ops.ts";
 import { generateQuery } from "./query_text.ts";
 
 // Made-up sample data, the same as the design prototype's
@@ -116,7 +120,7 @@ const BOOKS = [
   { title: "Klara and the Sun", status: "finished", rating: 3 },
   { title: "The Name of the Rose", status: "want" },
 ];
-// Only some notes have a record field, like pages with pageDecoration
+// Only some notes have a record attribute, like pages with pageDecoration
 const NOTES = [
   { name: "Plain" },
   { name: "Decorated", meta: { prefix: "🌟", hidden: false } },
@@ -127,7 +131,7 @@ const FIXTURES: Record<string, Record<string, unknown>[]> = {
   note: NOTES,
 };
 
-const taskFields = inferFields(
+const taskAttributes = inferAttributes(
   TASKS,
   {
     name: { type: "text" },
@@ -137,30 +141,34 @@ const taskFields = inferFields(
   },
   true,
 );
-const bookFields = inferFields(BOOKS, null, false);
+const bookAttributes = inferAttributes(BOOKS, null, false);
 
-const ff = (field: string, op: string, extra: Partial<FieldFilter> = {}) =>
+const ff = (
+  attribute: string,
+  op: string,
+  extra: Partial<AttributeFilter> = {},
+) =>
   ({
-    kind: "field",
-    field,
+    kind: "attribute",
+    attribute,
     op,
     values: [],
     ...extra,
-  }) as FieldFilter;
+  }) as AttributeFilter;
 
 function example1(): QueryModel {
   return {
-    ...emptyModel(sourceFor("task"), taskFields),
+    ...emptyModel(sourceFor("task"), taskAttributes),
     filters: [
       ff("done", "false"),
       ff("due", "before", { values: ["2026-11-01"] }),
     ],
-    sorts: [{ by: { kind: "field", field: "due" }, desc: false }],
+    sorts: [{ by: { kind: "attribute", attribute: "due" }, desc: false }],
     select: {
       mode: "table",
       columns: [
-        { id: "name", header: "Task", kind: "field", value: "name" },
-        { id: "due", header: "Due date", kind: "field", value: "due" },
+        { id: "name", header: "Task", kind: "attribute", value: "name" },
+        { id: "due", header: "Due date", kind: "attribute", value: "due" },
         { id: "page", header: "Page", kind: "link", value: "page" },
       ],
     },
@@ -170,17 +178,17 @@ function example1(): QueryModel {
 
 function grouped(): QueryModel {
   return {
-    ...emptyModel(sourceFor("book"), bookFields),
+    ...emptyModel(sourceFor("book"), bookAttributes),
     group: ["status"],
-    sorts: [{ by: { kind: "groupKey", field: "status" }, desc: false }],
+    sorts: [{ by: { kind: "groupKey", attribute: "status" }, desc: false }],
     groupColumns: [
-      { id: "s", header: "Status", kind: "key", field: "status" },
+      { id: "s", header: "Status", kind: "key", attribute: "status" },
       {
         id: "n",
         header: "Books",
         kind: "agg",
         agg: "count",
-        field: "title",
+        attribute: "title",
         sorted: false,
       },
       {
@@ -188,7 +196,7 @@ function grouped(): QueryModel {
         header: "Avg rating",
         kind: "agg",
         agg: "avg",
-        field: "rating",
+        attribute: "rating",
         sorted: false,
       },
       {
@@ -196,7 +204,7 @@ function grouped(): QueryModel {
         header: "Titles",
         kind: "agg",
         agg: "array_agg",
-        field: "title",
+        attribute: "title",
         sorted: true,
       },
     ],
@@ -231,11 +239,13 @@ describe("model helpers", () => {
     expect(bindingVar("2026-goals")).toBe("o");
   });
 
-  test("field access quotes what isn't an identifier", () => {
-    expect(fieldAccess("t", "due date")).toBe('t["due date"]');
-    // A nested field reads its record first, so a missing record gives nil
-    expect(fieldAccess("t", "meta.author")).toBe("(t.meta and t.meta.author)");
-    expect(fieldAccess("t", "x-id")).toBe('t["x-id"]');
+  test("attribute access quotes what isn't an identifier", () => {
+    expect(attributeAccess("t", "due date")).toBe('t["due date"]');
+    // A nested attribute reads its record first, so a missing record gives nil
+    expect(attributeAccess("t", "meta.author")).toBe(
+      "(t.meta and t.meta.author)",
+    );
+    expect(attributeAccess("t", "x-id")).toBe('t["x-id"]');
   });
 
   test("table keys", () => {
@@ -243,39 +253,39 @@ describe("model helpers", () => {
     expect(tableKey("Due date")).toBe('["Due date"]');
   });
 
-  test("default columns skip declared fields no sampled object has", () => {
-    const fields = inferFields(
+  test("default columns skip declared attributes no sampled object has", () => {
+    const attributes = inferAttributes(
       [{ name: "Dashboard" }],
       { name: { type: "text" }, aliases: { type: "list" } },
       true,
     );
-    const m = emptyModel(sourceFor("page"), fields);
+    const m = emptyModel(sourceFor("page"), attributes);
     expect(m.select).toEqual({
       mode: "table",
       columns: [
         {
           id: expect.any(String),
           header: "name",
-          kind: "field",
+          kind: "attribute",
           value: "name",
         },
       ],
     });
   });
 
-  test("an empty model selects a column per non-system field, no limit", () => {
+  test("an empty model selects a column per non-system attribute, no limit", () => {
     const m = emptyModel(sourceFor("task"), [
-      ...taskFields,
-      { name: "ref", system: true } as FieldInfo,
+      ...taskAttributes,
+      { name: "ref", system: true } as AttributeInfo,
     ]);
     expect(m.select).toEqual({
       mode: "table",
-      columns: taskFields
+      columns: taskAttributes
         .filter((f) => !f.system)
         .map((f) => ({
           id: expect.any(String),
           header: f.name,
-          kind: "field",
+          kind: "attribute",
           value: f.name,
         })),
     });
@@ -285,7 +295,7 @@ describe("model helpers", () => {
 
 describe("generateQuery", () => {
   test("example 1: open tasks due soon", () => {
-    expect(generateQuery(example1(), taskFields)).toBe(
+    expect(generateQuery(example1(), taskAttributes)).toBe(
       [
         "${query[[",
         "  from t = index.tasks()",
@@ -304,13 +314,13 @@ describe("generateQuery", () => {
   });
 
   test("unwrapped text has no ${}", () => {
-    const text = generateQuery(example1(), taskFields, { wrap: false });
+    const text = generateQuery(example1(), taskAttributes, { wrap: false });
     expect(text.startsWith("query[[")).toBe(true);
     expect(text.endsWith("]]")).toBe(true);
   });
 
   test("grouped queries use key and groupColumns", () => {
-    const text = generateQuery(grouped(), bookFields);
+    const text = generateQuery(grouped(), bookAttributes);
     expect(text).toContain("group by b.status");
     expect(text).toContain("order by key");
     expect(text).toContain("Status = key,");
@@ -322,10 +332,10 @@ describe("generateQuery", () => {
     const m = grouped();
     m.group = ["status", "rating"];
     m.groupColumns = [
-      { id: "s", header: "Status", kind: "key", field: "status" },
-      { id: "k", header: "Rating", kind: "key", field: "rating" },
+      { id: "s", header: "Status", kind: "key", attribute: "status" },
+      { id: "k", header: "Rating", kind: "key", attribute: "rating" },
     ];
-    const text = generateQuery(m, bookFields);
+    const text = generateQuery(m, bookAttributes);
     expect(text).toContain("group by b.status, b.rating");
     expect(text).toContain("Status = key[1],");
     expect(text).toContain("Rating = key[2]");
@@ -339,12 +349,12 @@ describe("generateQuery", () => {
         header: "Rated",
         kind: "agg",
         agg: "count",
-        field: "title",
+        attribute: "title",
         sorted: false,
         where: "b.rating ~= nil",
       },
     ];
-    expect(generateQuery(m, bookFields)).toContain(
+    expect(generateQuery(m, bookAttributes)).toContain(
       "Rated = count(b.title) filter(where b.rating ~= nil)",
     );
   });
@@ -353,9 +363,13 @@ describe("generateQuery", () => {
     const m = example1();
     m.sorts = [
       { by: { kind: "expr", lua: "#t.tags" }, desc: true },
-      { by: { kind: "field", field: "due" }, desc: false, nulls: "last" },
+      {
+        by: { kind: "attribute", attribute: "due" },
+        desc: false,
+        nulls: "last",
+      },
     ];
-    expect(generateQuery(m, taskFields)).toContain(
+    expect(generateQuery(m, taskAttributes)).toContain(
       "order by #t.tags desc, t.due nulls last",
     );
   });
@@ -363,24 +377,24 @@ describe("generateQuery", () => {
   test("an empty limit writes no limit clause", () => {
     const m = example1();
     m.limit = null;
-    expect(generateQuery(m, taskFields)).not.toContain("limit");
+    expect(generateQuery(m, taskAttributes)).not.toContain("limit");
   });
 
   test("list templates", () => {
     const m = example1();
     m.select = { mode: "list", list: { template: "templates.taskItem" } };
-    expect(generateQuery(m, taskFields)).toContain(
+    expect(generateQuery(m, taskAttributes)).toContain(
       "select templates.taskItem(t)",
     );
   });
 
   test("a custom template with links still parses", () => {
-    const m = emptyModel(sourceFor("book"), bookFields);
+    const m = emptyModel(sourceFor("book"), bookAttributes);
     m.select = {
       mode: "list",
       list: { custom: "* [[${title}]] by ${author}" },
     };
-    const text = generateQuery(m, bookFields);
+    const text = generateQuery(m, bookAttributes);
     expect(text).toContain(
       "select template.new[==[\n    * [[${title}]] by ${author}\n  ]==](b)",
     );
@@ -388,17 +402,17 @@ describe("generateQuery", () => {
   });
 
   test("a custom template the double bracket can't hold gets another literal", () => {
-    const m = emptyModel(sourceFor("book"), bookFields);
+    const m = emptyModel(sourceFor("book"), bookAttributes);
     m.select = { mode: "list", list: { custom: "* ${title} ]==]" } };
-    const text = generateQuery(m, bookFields);
+    const text = generateQuery(m, bookAttributes);
     expect(text).not.toContain("template.new[==[");
     expect(() => parseExpressionString(unwrap(text))).not.toThrow();
   });
 
   test("a custom template no long bracket fits becomes a quoted string", () => {
-    const m = emptyModel(sourceFor("book"), bookFields);
+    const m = emptyModel(sourceFor("book"), bookAttributes);
     m.select = { mode: "list", list: { custom: "]] ]=] ]==] ${title}" } };
-    const text = generateQuery(m, bookFields);
+    const text = generateQuery(m, bookAttributes);
     expect(text).toContain('template.new("]] ]=] ]==] ${title}")(b)');
     expect(() => parseExpressionString(unwrap(text))).not.toThrow();
   });
@@ -406,22 +420,24 @@ describe("generateQuery", () => {
   test("a value containing ]] still parses", () => {
     const m = example1();
     m.filters = [ff("name", "is", { values: ['Notes [[draft]] "x"'] })];
-    const text = generateQuery(m, taskFields);
+    const text = generateQuery(m, taskAttributes);
     expect(() => parseExpressionString(unwrap(text))).not.toThrow();
   });
 
-  test("odd field names are quoted", () => {
-    const fields = inferFields(
+  test("odd attribute names are quoted", () => {
+    const attributes = inferAttributes(
       [{ "due date": "2026-10-21", meta: { author: "Sam" } }],
       null,
       false,
     );
     const m: QueryModel = {
-      ...emptyModel(sourceFor("task"), fields),
+      ...emptyModel(sourceFor("task"), attributes),
       filters: [ff("due date", "exists")],
-      sorts: [{ by: { kind: "field", field: "meta.author" }, desc: false }],
+      sorts: [
+        { by: { kind: "attribute", attribute: "meta.author" }, desc: false },
+      ],
     };
-    const text = generateQuery(m, fields);
+    const text = generateQuery(m, attributes);
     expect(text).toContain('where t["due date"] ~= nil');
     expect(text).toContain("order by (t.meta and t.meta.author)");
     expect(text).toContain('["due date"] = t["due date"]');
@@ -430,14 +446,15 @@ describe("generateQuery", () => {
 
   test("generated queries parse; an invalid expression filter is kept as is", () => {
     for (const m of [example1(), grouped()]) {
-      const fields = m.source.root === "task" ? taskFields : bookFields;
+      const attributes =
+        m.source.root === "task" ? taskAttributes : bookAttributes;
       expect(() =>
-        parseExpressionString(unwrap(generateQuery(m, fields))),
+        parseExpressionString(unwrap(generateQuery(m, attributes))),
       ).not.toThrow();
     }
     const bad = example1();
     bad.filters = [{ kind: "expr", expr: "t.name ==" }];
-    const text = generateQuery(bad, taskFields);
+    const text = generateQuery(bad, taskAttributes);
     expect(text).toContain("where t.name ==");
     expect(() => parseExpressionString(unwrap(text))).toThrow();
   });
@@ -454,7 +471,7 @@ describe("review fixes", () => {
       ff("done", "false"),
     ];
     m.limit = null;
-    const rows = await run(generateQuery(m, taskFields));
+    const rows = await run(generateQuery(m, taskAttributes));
     expect(rows.map((r: any) => r.Task)).toEqual(["Send quarterly report"]);
   });
 
@@ -464,7 +481,7 @@ describe("review fixes", () => {
       ff("done", "false"),
       ff("tags", "any", { values: ["home", "work"] }),
     ];
-    expect(generateQuery(m, taskFields)).toContain(
+    expect(generateQuery(m, taskAttributes)).toContain(
       '\n    and (table.includes(t.tags, "home") or table.includes(t.tags, "work"))',
     );
   });
@@ -478,36 +495,36 @@ describe("review fixes", () => {
         expr: 'not (t.done or t.due == nil) and t.name ~= "a or b"',
       },
     ];
-    expect(generateQuery(m, taskFields)).toContain(
+    expect(generateQuery(m, taskAttributes)).toContain(
       '\n    and not (t.done or t.due == nil) and t.name ~= "a or b"',
     );
   });
 
-  test("text operators on a mixed field don't throw", async () => {
+  test("text operators on a mixed attribute don't throw", async () => {
     const env = new LuaEnv(luaBuildStandardEnv());
     const index = new LuaTable();
     await index.set("objects", () =>
       jsToLuaValue([{ rating: 5 }, { rating: "loved it" }, { rating: 3 }]),
     );
     env.set("index", index);
-    const fields = inferFields(
+    const attributes = inferAttributes(
       [{ rating: 5 }, { rating: "loved it" }],
       null,
       false,
     );
     const m: QueryModel = {
-      ...emptyModel(sourceFor("book"), fields),
+      ...emptyModel(sourceFor("book"), attributes),
       filters: [ff("rating", "contains", { values: ["lo"] })],
     };
     const expr = parseExpressionString(
-      generateQuery(m, fields, { wrap: false }),
+      generateQuery(m, attributes, { wrap: false }),
     );
     const sf = LuaStackFrame.createWithGlobalEnv(env, expr.ctx);
     const rows = luaValueToJS(await evalExpression(expr, env, sf), sf);
     expect(rows).toHaveLength(1);
   });
 
-  test("Lua keywords are quoted as field names and keys", () => {
+  test("Lua keywords are quoted as attribute names and keys", () => {
     for (const name of [
       "end",
       "in",
@@ -519,15 +536,18 @@ describe("review fixes", () => {
       "where",
       "limit",
     ]) {
-      expect(fieldAccess("e", name)).toBe(`e[${JSON.stringify(name)}]`);
+      expect(attributeAccess("e", name)).toBe(`e[${JSON.stringify(name)}]`);
       expect(tableKey(name)).toBe(`[${JSON.stringify(name)}]`);
     }
-    const fields = inferFields(
+    const attributes = inferAttributes(
       [{ start: "2026-10-21", end: "2026-10-22", in: 1 }],
       null,
       false,
     );
-    const text = generateQuery(emptyModel(sourceFor("event"), fields), fields);
+    const text = generateQuery(
+      emptyModel(sourceFor("event"), attributes),
+      attributes,
+    );
     expect(text).toContain('["end"] = e["end"]');
     expect(() => parseExpressionString(unwrap(text))).not.toThrow();
   });
@@ -538,7 +558,7 @@ describe("review fixes", () => {
     m.groupColumns = m.groupColumns.map((a) =>
       a.id === "r" ? { ...a, header: "N" } : a,
     );
-    expect(generateQuery(m, bookFields)).toContain(
+    expect(generateQuery(m, bookAttributes)).toContain(
       "order by avg(b.rating) desc",
     );
   });
@@ -547,16 +567,16 @@ describe("review fixes", () => {
     const m = grouped();
     m.sorts = [{ by: { kind: "column", id: "r" }, desc: true }];
     m.groupColumns = m.groupColumns.filter((a) => a.id !== "r");
-    expect(generateQuery(m, bookFields)).not.toMatch(/^\s*order by/m);
+    expect(generateQuery(m, bookAttributes)).not.toMatch(/^\s*order by/m);
   });
 
   test("a key sort follows its key as keys are added and removed", () => {
     let m = grouped();
-    m.sorts = [{ by: { kind: "groupKey", field: "rating" }, desc: false }];
+    m.sorts = [{ by: { kind: "groupKey", attribute: "rating" }, desc: false }];
     m = addGroupKey(m, "rating");
-    expect(generateQuery(m, bookFields)).toContain("order by key[2]");
+    expect(generateQuery(m, bookAttributes)).toContain("order by key[2]");
     m = removeGroupKey(m, "status");
-    expect(generateQuery(m, bookFields)).toContain("order by key\n");
+    expect(generateQuery(m, bookAttributes)).toContain("order by key\n");
   });
 
   test("ordering by a second group key sorts by it", async () => {
@@ -566,14 +586,14 @@ describe("review fixes", () => {
       groupColumns: m.groupColumns.filter((a) => a.kind === "key"),
       sorts: [
         {
-          by: { kind: "groupKey", field: "rating" },
+          by: { kind: "groupKey", attribute: "rating" },
           desc: true,
           nulls: "last",
         },
-        { by: { kind: "groupKey", field: "status" }, desc: false },
+        { by: { kind: "groupKey", attribute: "status" }, desc: false },
       ],
     };
-    const rows = await run(generateQuery(m, bookFields));
+    const rows = await run(generateQuery(m, bookAttributes));
     const ratings = rows.map((r: any) => r.rating ?? null);
     expect(ratings.slice(0, 3)).toEqual([5, 4, 3]);
   });
@@ -581,14 +601,14 @@ describe("review fixes", () => {
 
 describe("generated queries run", () => {
   test("example 1 returns the five earliest open tasks", async () => {
-    const rows = await run(generateQuery(example1(), taskFields));
+    const rows = await run(generateQuery(example1(), taskAttributes));
     expect(rows).toHaveLength(5);
     expect(rows[0].Task).toBe("Update team wiki");
     expect(rows[0].Page).toBe("[[Work/Team]]");
   });
 
-  test("guarded operators skip objects without the field", async () => {
-    const ops: FieldFilter[] = [
+  test("guarded operators skip objects without the attribute", async () => {
+    const ops: AttributeFilter[] = [
       ff("due", "before", { values: ["2026-11-01"] }),
       ff("due", "after", { values: ["2026-10-01"] }),
       ff("due", "between", { values: ["2026-10-01", "2026-11-01"] }),
@@ -600,30 +620,32 @@ describe("generated queries run", () => {
     for (const f of ops) {
       const m = { ...example1(), filters: [f], limit: null };
       await expect(
-        run(generateQuery(m, taskFields)),
+        run(generateQuery(m, taskAttributes)),
         f.op,
       ).resolves.toBeDefined();
     }
   });
 
-  test("a nested field reads as nil where its record is missing", async () => {
-    const fields = inferFields(NOTES, null, false);
+  test("a nested attribute reads as nil where its record is missing", async () => {
+    const attributes = inferAttributes(NOTES, null, false);
     let m: QueryModel = {
-      ...emptyModel(sourceFor("note"), fields),
+      ...emptyModel(sourceFor("note"), attributes),
       filters: [ff("meta.prefix", "exists")],
-      sorts: [{ by: { kind: "field", field: "meta.prefix" }, desc: false }],
+      sorts: [
+        { by: { kind: "attribute", attribute: "meta.prefix" }, desc: false },
+      ],
     };
-    const rows = await run(generateQuery(m, fields));
+    const rows = await run(generateQuery(m, attributes));
     expect(rows.map((r: any) => r.name)).toEqual(["Decorated"]);
     // The default table shows every note, with or without the record
-    m = emptyModel(sourceFor("note"), fields);
-    expect((await run(generateQuery(m, fields))).length).toBe(2);
+    m = emptyModel(sourceFor("note"), attributes);
+    expect((await run(generateQuery(m, attributes))).length).toBe(2);
     m = addGroupKey(m, "meta.prefix");
-    expect(await run(generateQuery(m, fields))).toHaveLength(2);
+    expect(await run(generateQuery(m, attributes))).toHaveLength(2);
   });
 
   test("grouped by status, ordered by key", async () => {
-    const rows = await run(generateQuery(grouped(), bookFields));
+    const rows = await run(generateQuery(grouped(), bookAttributes));
     expect(rows.map((r: any) => r.Status)).toEqual([
       "finished",
       "reading",
@@ -636,7 +658,7 @@ describe("generated queries run", () => {
     const m = grouped();
     m.groupColumns = m.groupColumns.slice(0, 2);
     m.sorts = [{ by: { kind: "column", id: "n" }, desc: true }];
-    const text = generateQuery(m, bookFields);
+    const text = generateQuery(m, bookAttributes);
     expect(text).toContain("order by count(b.title) desc");
     const rows = await run(text);
     expect(rows[0].Status).toBe("finished");

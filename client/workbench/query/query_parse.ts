@@ -1,11 +1,11 @@
 /**
  * Turns `query[[…]]` text back into a builder model, best effort: what the
- * builder has a control for becomes that control (a field filter, a group
+ * builder has a control for becomes that control (an attribute filter, a group
  * key…), other Lua is kept as an expression, and a query the model can't
  * hold (an offset, a `having`, a computed group key…) is refused with the
  * reason.
  *
- * A filter is recognized by generating each operator's Lua for the field it
+ * A filter is recognized by generating each operator's Lua for the attribute it
  * reads and comparing syntax trees, so `query_ops.ts` stays the one
  * definition of what each operator writes.
  */
@@ -17,12 +17,12 @@ import type {
   LuaTableField,
 } from "../../space_lua/ast.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
-import type { FieldInfo } from "./query_fields.ts";
+import type { AttributeInfo } from "./query_attributes.ts";
 import { type QuerySource, sourceFromCall } from "./query_from.ts";
 import {
   emptyModel,
-  fieldAccess,
-  fieldType,
+  attributeAccess,
+  attributeType,
   type GroupColumn,
   newId,
   type QueryModel,
@@ -111,9 +111,12 @@ export function querySource(text: string): QuerySource | null {
   }
 }
 
-export function parseQuery(text: string, fields: FieldInfo[]): ParsedQuery {
+export function parseQuery(
+  text: string,
+  attributes: AttributeInfo[],
+): ParsedQuery {
   try {
-    return { ok: true, ...new Reader(unwrap(text), fields).read() };
+    return { ok: true, ...new Reader(unwrap(text), attributes).read() };
   } catch (e) {
     if (e instanceof Unsupported) return { ok: false, reason: e.message };
     throw e;
@@ -129,7 +132,7 @@ class Reader {
 
   constructor(
     private text: string,
-    private fields: FieldInfo[],
+    private attributes: AttributeInfo[],
   ) {}
 
   read(): { model: QueryModel; notes: string[] } {
@@ -137,7 +140,7 @@ class Reader {
     this.base = q.ctx.from ?? 0;
     const { source, binding } = fromClause(q);
     this.v = binding ?? "_";
-    this.model = { ...emptyModel(source, this.fields), binding };
+    this.model = { ...emptyModel(source, this.attributes), binding };
     const m = this.model;
     // Each column's syntax tree, to know an `order by` on it
     const columnTrees = new Map<string, LuaExpression>();
@@ -186,7 +189,9 @@ class Reader {
         m.select = this.select(value);
       }
     } else if (!m.group.length) {
-      this.notes.push("The query had no select, so every field is a column");
+      this.notes.push(
+        "The query had no select, so every attribute is a column",
+      );
     }
     m.sorts = order.map((o) => this.sort(o, columnTrees));
     return { model: m, notes: this.notes };
@@ -197,22 +202,23 @@ class Reader {
     return this.text.slice(from - this.base, to - this.base);
   }
 
-  /** The field path `node` reads from the object (`t.a.b` → `a.b`), or null */
+  /** The attribute path `node` reads from the object (`t.a.b` → `a.b`), or null */
   private accessPath(node: LuaExpression): string | null {
-    // A nested field as the builder writes it: `(t.a and t.a.b)`
+    // A nested attribute as the builder writes it: `(t.a and t.a.b)`
     if (
       node.type === "Parenthesized" &&
       node.expression.type === "Binary" &&
       node.expression.operator === "and"
     ) {
       const path = this.plainPath(node.expression.right);
-      const written = path && parseExpressionString(fieldAccess(this.v, path));
+      const written =
+        path && parseExpressionString(attributeAccess(this.v, path));
       return written && sameTree(written, node) ? path : null;
     }
     return this.plainPath(node);
   }
 
-  /** The field path of a plain `t.a.b` */
+  /** The attribute path of a plain `t.a.b` */
   private plainPath(node: LuaExpression): string | null {
     const segments: string[] = [];
     let n: LuaExpression = node;
@@ -231,7 +237,7 @@ class Reader {
     return segments.join(".");
   }
 
-  /** The first field path read anywhere in `node` */
+  /** The first attribute path read anywhere in `node` */
   private firstPath(node: unknown): string | null {
     if (!node || typeof node !== "object") return null;
     const path = "type" in node ? this.accessPath(node as LuaExpression) : null;
@@ -270,14 +276,14 @@ class Reader {
           right: next,
           ctx: c.ctx,
         };
-        const f = this.fieldFilter(pair);
+        const f = this.attributeFilter(pair);
         if (f) {
           out.push(f);
           i++;
           continue;
         }
       }
-      out.push(this.fieldFilter(c) ?? this.expressionFilter(c));
+      out.push(this.attributeFilter(c) ?? this.expressionFilter(c));
     }
     return out;
   }
@@ -293,12 +299,12 @@ class Reader {
     return { kind: "expr", expr: this.src(inner) };
   }
 
-  /** The field filter whose Lua is `cond`, if one is */
-  private fieldFilter(cond: LuaExpression): Filter | null {
-    const field = this.firstPath(cond);
-    if (!field) return null;
-    const type = fieldType(this.model, this.fields, field);
-    const access = fieldAccess(this.v, field);
+  /** The attribute filter whose Lua is `cond`, if one is */
+  private attributeFilter(cond: LuaExpression): Filter | null {
+    const attribute = this.firstPath(cond);
+    if (!attribute) return null;
+    const type = attributeType(this.model, this.attributes, attribute);
+    const access = attributeAccess(this.v, attribute);
     // The values could be any of the literals; a type guard's comes first
     const literals = literalsOf(cond);
     const candidates = [
@@ -310,7 +316,7 @@ class Reader {
     ];
     for (const op of operatorsFor(type)) {
       for (const values of candidates) {
-        const f: Filter = { kind: "field", field, op: op.id, values };
+        const f: Filter = { kind: "attribute", attribute, op: op.id, values };
         let tree: LuaExpression;
         try {
           tree = parseExpressionString(filterLua(f, access, type));
@@ -327,7 +333,7 @@ class Reader {
 
   private groupKey(f: LuaTableField): string {
     const path = f.type === "ExpressionField" ? this.accessPath(f.value) : null;
-    if (!path) refuse("The builder can only group by fields");
+    if (!path) refuse("The builder can only group by attributes");
     return path;
   }
 
@@ -410,11 +416,11 @@ class Reader {
   private column(header: string, value: LuaExpression): TableColumn {
     const id = newId();
     const path = this.accessPath(value);
-    if (path) return { id, header, kind: "field", value: path };
+    if (path) return { id, header, kind: "attribute", value: path };
     const linked = this.firstPath(value);
     if (linked) {
       const link = parseExpressionString(
-        `"[[" .. ${fieldAccess(this.v, linked)} .. "]]"`,
+        `"[[" .. ${attributeAccess(this.v, linked)} .. "]]"`,
       );
       if (sameTree(link, value)) {
         return { id, header, kind: "link", value: linked };
@@ -431,7 +437,7 @@ class Reader {
       const id = newId();
       trees.set(id, value);
       const key = this.keyOf(value);
-      if (key) return { id, header, kind: "key", field: key };
+      if (key) return { id, header, kind: "key", attribute: key };
       const agg = this.aggregate(value);
       if (!agg) refuse(`The builder can't show the column ${header}`);
       return { id, header, kind: "agg", ...agg };
@@ -441,7 +447,7 @@ class Reader {
   /** `count(t.x)`, `array_agg(t.x order by t.x)`, `… filter(where …)` */
   private aggregate(node: LuaExpression): {
     agg: string;
-    field: string;
+    attribute: string;
     sorted: boolean;
     where?: string;
   } | null {
@@ -460,8 +466,9 @@ class Reader {
       return null;
     }
     orderBy ??= call.orderBy;
-    const field = call.args.length === 1 ? this.accessPath(call.args[0]) : null;
-    if (!field) return null;
+    const attribute =
+      call.args.length === 1 ? this.accessPath(call.args[0]) : null;
+    if (!attribute) return null;
     const agg = call.prefix.name;
     const sorted =
       !!orderBy?.length &&
@@ -471,7 +478,7 @@ class Reader {
       !orderBy[0].nulls &&
       sameTree(orderBy[0].expression, call.args[0]);
     if (orderBy?.length && !sorted) return null;
-    return { agg, field, sorted, ...(where ? { where } : {}) };
+    return { agg, attribute, sorted, ...(where ? { where } : {}) };
   }
 
   // ---- Order By
@@ -492,15 +499,15 @@ class Reader {
   ): SortBy {
     if (this.model.group.length) {
       const key = this.keyOf(e);
-      if (key) return { kind: "groupKey", field: key };
+      if (key) return { kind: "groupKey", attribute: key };
       for (const [id, tree] of columns) {
         const c = this.model.groupColumns.find((x) => x.id === id);
         if (c?.kind === "agg" && sameTree(tree, e))
           return { kind: "column", id };
       }
     } else {
-      const field = this.accessPath(e);
-      if (field) return { kind: "field", field };
+      const attribute = this.accessPath(e);
+      if (attribute) return { kind: "attribute", attribute };
     }
     return { kind: "expr", lua: this.src(e) };
   }

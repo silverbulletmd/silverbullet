@@ -126,7 +126,7 @@ export function sourceType(s: QuerySource): string {
   return s.root ?? s.tag ?? "";
 }
 
-/** The tag whose schema describes the objects beyond their root tag's fields */
+/** The tag whose schema describes the objects beyond their root tag's attributes */
 export function schemaTag(s: QuerySource): string {
   if (s.root === "relation" || s.tag === null) return s.root ?? "";
   return s.tag;
@@ -147,7 +147,7 @@ export function sameSource(a: QuerySource, b: QuerySource): boolean {
 }
 
 /**
- * The index entries to sample for the source's fields: the tag they're
+ * The index entries to sample for the source's attributes: the tag they're
  * stored under, and a Lua condition on `o` that keeps the source's ones
  */
 export function sampleQuery(s: QuerySource): { key: string; where?: string } {

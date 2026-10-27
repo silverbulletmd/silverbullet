@@ -313,13 +313,13 @@ test.describe("query builder clauses", () => {
 
   async function addFilter(
     page: Page,
-    field: string,
+    attribute: string,
     op: string,
     value?: string,
   ) {
     const where = page.getByRole("group", { name: "Where" });
     await where.getByRole("button", { name: "+ Filter" }).click();
-    await where.getByLabel("Field").selectOption(field);
+    await where.getByLabel("Attribute").selectOption(attribute);
     await where.getByLabel("Operator").selectOption({ label: op });
     if (value !== undefined) await where.getByLabel("Value").fill(value);
     await where.getByRole("button", { name: "Add filter" }).click();
@@ -340,7 +340,7 @@ test.describe("query builder clauses", () => {
 
     const orderBy = page.getByRole("group", { name: "Order By" });
     await orderBy.getByRole("button", { name: "+ Order by" }).click();
-    await orderBy.getByLabel("Field").selectOption("due");
+    await orderBy.getByLabel("Attribute").selectOption("due");
     await orderBy.getByRole("button", { name: "Add" }).click();
 
     // Keep only the name, due and page columns
@@ -474,7 +474,7 @@ test.describe("query builder clauses", () => {
   });
 });
 
-test.describe("query builder fields", () => {
+test.describe("query builder attributes", () => {
   // Made-up books; one rating is text, so rating is mixed
   const book = (author: string, status: string, rating?: string) =>
     `---\ntags: book\nauthor: ${author}\nstatus: ${status}\n${rating ? `rating: ${rating}\n` : ""}---\nNotes.`;
@@ -493,21 +493,21 @@ test.describe("query builder fields", () => {
     },
   });
 
-  test("fields panel infers a schema for an untyped tag", async ({
+  test("attributes panel infers a schema for an untyped tag", async ({
     page,
     sbServer,
   }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
     await editQuery(page, /^#book/);
     await page.getByRole("button", { name: "Schema", exact: true }).click();
-    const fields = page.getByRole("table", { name: "Fields" });
+    const attributes = page.getByRole("table", { name: "Attributes" });
     await expect(
-      fields.getByLabel("Type of status").locator("option:checked"),
+      attributes.getByLabel("Type of status").locator("option:checked"),
     ).toHaveText("one of (2)");
-    await expect(fields.getByRole("row", { name: /rating/ })).toContainText(
+    await expect(attributes.getByRole("row", { name: /rating/ })).toContainText(
       "mixed",
     );
-    await fields.getByLabel("Type of rating").selectOption("number");
+    await attributes.getByLabel("Type of rating").selectOption("number");
     // Copied straight away, nothing else to click. The copy is caught on
     // its way out: headless browsers don't share a clipboard to paste from.
     await page.evaluate(() => {
@@ -525,7 +525,7 @@ test.describe("query builder fields", () => {
     );
     // The panel closes with its own ✕
     await page.getByRole("button", { name: "Close schema" }).click();
-    await expect(fields).toBeHidden();
+    await expect(attributes).toBeHidden();
   });
 
   test("switching tag offers undo", async ({ page, sbServer }) => {

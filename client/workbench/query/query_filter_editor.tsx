@@ -2,9 +2,9 @@ import { Button } from "@silverbulletmd/silverbullet/ui";
 import type { Client } from "../../client.ts";
 import { LuaLineInput } from "../shared/lua_line_input.tsx";
 import type { QueryBuilder } from "./query_builder.ts";
-import { changeOperator, newFieldFilter } from "./query_edits.ts";
-import type { FieldType } from "./query_fields.ts";
-import { fieldChoices } from "./query_model.ts";
+import { changeOperator, newAttributeFilter } from "./query_edits.ts";
+import type { AttributeType } from "./query_attributes.ts";
+import { attributeChoices } from "./query_model.ts";
 import {
   type Filter,
   filterValid,
@@ -12,7 +12,7 @@ import {
   operatorsFor,
 } from "./query_ops.ts";
 
-export const TYPE_LABEL: Record<FieldType, string> = {
+export const TYPE_LABEL: Record<AttributeType, string> = {
   text: "text",
   enum: "one of",
   number: "number",
@@ -29,10 +29,10 @@ export const TYPE_LABEL: Record<FieldType, string> = {
 const MULTI_CHOICES = 12;
 const SUGGESTIONS = 20;
 
-export function FieldSelect({
+export function AttributeSelect({
   builder,
   value,
-  label = "Field",
+  label = "Attribute",
   withTypes = true,
   onChange,
 }: {
@@ -49,7 +49,7 @@ export function FieldSelect({
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
     >
-      {builder.offeredFields().map((f) => (
+      {builder.offeredAttributes().map((f) => (
         <option key={f.name} value={f.name}>
           {f.name}
           {withTypes ? ` · ${TYPE_LABEL[builder.typeOf(f.name)]}` : ""}
@@ -100,7 +100,7 @@ export function FilterEditor({
   const valid =
     draft.kind === "expr"
       ? draft.expr.trim() !== ""
-      : filterValid(draft, builder.typeOf(draft.field));
+      : filterValid(draft, builder.typeOf(draft.attribute));
   const apply = () => {
     if (valid) onApply();
   };
@@ -135,9 +135,9 @@ export function FilterEditor({
   }
 
   const m = builder.model!;
-  const type = builder.typeOf(draft.field);
+  const type = builder.typeOf(draft.attribute);
   const op = operatorOf(type, draft.op);
-  const choices = fieldChoices(builder.fields, draft.field);
+  const choices = attributeChoices(builder.attributes, draft.attribute);
   const setValue = (i: number, v: string) => {
     const values = [...draft.values];
     values[i] = v;
@@ -149,7 +149,7 @@ export function FilterEditor({
       apply();
     }
   };
-  const listId = `sb-wbq-seen-${draft.field}`;
+  const listId = `sb-wbq-seen-${draft.attribute}`;
   const suggestions =
     type === "pagelink"
       ? client.ui.viewState.allPages.map((p) => p.name)
@@ -236,10 +236,12 @@ export function FilterEditor({
 
   return (
     <div className="sb-wbq-editor">
-      <FieldSelect
+      <AttributeSelect
         builder={builder}
-        value={draft.field}
-        onChange={(name) => onChange(newFieldFilter(m, builder.fields, name))}
+        value={draft.attribute}
+        onChange={(name) =>
+          onChange(newAttributeFilter(m, builder.attributes, name))
+        }
       />
       <select
         className="sb-select"
@@ -249,8 +251,8 @@ export function FilterEditor({
           onChange(
             changeOperator(
               m,
-              builder.fields,
-              draft.field,
+              builder.attributes,
+              draft.attribute,
               e.currentTarget.value,
             ),
           )

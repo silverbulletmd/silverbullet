@@ -1,9 +1,9 @@
 /**
- * The query builder's field list for a tag: a declared schema merged with one
+ * The query builder's attribute list for a tag: a declared schema merged with one
  * inferred from a sample of the tag's objects.
  */
 
-export type FieldType =
+export type AttributeType =
   | "text"
   | "enum"
   | "number"
@@ -16,19 +16,19 @@ export type FieldType =
   | "record"
   | "mixed";
 
-export type ValueType = Exclude<FieldType, "enum" | "mixed">;
+export type ValueType = Exclude<AttributeType, "enum" | "mixed">;
 
-export type FieldSource = "built-in" | "declared" | "inferred";
+export type AttributeSource = "built-in" | "declared" | "inferred";
 
-export type FieldInfo = {
+export type AttributeInfo = {
   name: string;
-  type: FieldType;
-  source: FieldSource;
+  type: AttributeType;
+  source: AttributeSource;
   system: boolean;
   /** How many sampled objects have a value */
   present: number;
   total: number;
-  /** Distinct values (list fields: distinct items), by descending count */
+  /** Distinct values (list attributes: distinct items), by descending count */
   values: [string, number][];
   enumValues?: string[];
   range?: [number, number];
@@ -36,13 +36,13 @@ export type FieldInfo = {
   mixed?: Record<string, number>;
 };
 
-export type DeclaredFields = Record<
+export type DeclaredAttributes = Record<
   string,
-  { type: FieldType; enumValues?: string[] }
+  { type: AttributeType; enumValues?: string[] }
 >;
 
 /** Indexer bookkeeping, hidden unless asked for */
-export const SYSTEM_FIELDS: ReadonlySet<string> = new Set([
+export const SYSTEM_ATTRIBUTES: ReadonlySet<string> = new Set([
   "ref",
   "tag",
   "itags",
@@ -87,16 +87,16 @@ function countsByDescending(counts: Map<string, number>): [string, number][] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_VALUES);
 }
 
-export function inferFields(
+export function inferAttributes(
   samples: Record<string, unknown>[],
-  declared: DeclaredFields | null,
+  declared: DeclaredAttributes | null,
   builtIn: boolean,
-): FieldInfo[] {
+): AttributeInfo[] {
   const flat = samples.map(flatten);
   const names: string[] = [];
   for (const o of flat) {
     for (const k of o.keys()) {
-      // A record field is listed through its dotted children
+      // A record attribute is listed through its dotted children
       if (!names.includes(k)) names.push(k);
     }
   }
@@ -119,11 +119,11 @@ export function inferFields(
         distinct.set(key, (distinct.get(key) ?? 0) + 1);
       }
     }
-    const field: FieldInfo = {
+    const attribute: AttributeInfo = {
       name,
       type: "text",
       source: "inferred",
-      system: SYSTEM_FIELDS.has(name),
+      system: SYSTEM_ATTRIBUTES.has(name),
       present: vals.length,
       total: samples.length,
       values: countsByDescending(distinct),
@@ -135,28 +135,28 @@ export function inferFields(
     const format =
       types.length === 1 &&
       ["date", "datetime", "pagelink", "url"].includes(types[0])
-        ? (types[0] as FieldType)
+        ? (types[0] as AttributeType)
         : null;
     if (decl) {
-      field.type = decl.type === "text" && format ? format : decl.type;
-      field.source = builtIn ? "built-in" : "declared";
-      if (decl.enumValues) field.enumValues = decl.enumValues;
+      attribute.type = decl.type === "text" && format ? format : decl.type;
+      attribute.source = builtIn ? "built-in" : "declared";
+      if (decl.enumValues) attribute.enumValues = decl.enumValues;
     } else {
       if (types.length > 1) {
-        field.type = "mixed";
-        field.mixed = typeCounts;
+        attribute.type = "mixed";
+        attribute.mixed = typeCounts;
       } else if (types.length === 1) {
-        field.type = types[0] as FieldType;
+        attribute.type = types[0] as AttributeType;
       }
-      if (field.type === "text" && isEnum(distinct, vals.length)) {
-        field.type = "enum";
-        field.enumValues = [...distinct.keys()];
+      if (attribute.type === "text" && isEnum(distinct, vals.length)) {
+        attribute.type = "enum";
+        attribute.enumValues = [...distinct.keys()];
       }
     }
 
     const nums = vals.filter((v): v is number => typeof v === "number");
-    if (nums.length) field.range = [Math.min(...nums), Math.max(...nums)];
-    return field;
+    if (nums.length) attribute.range = [Math.min(...nums), Math.max(...nums)];
+    return attribute;
   });
 }
 
@@ -167,22 +167,22 @@ function isEnum(distinct: Map<string, number>, present: number): boolean {
   return repeated / present >= ENUM_MIN_COVERAGE;
 }
 
-/** Mixed fields are offered text operators */
+/** Mixed attributes are offered text operators */
 export function effectiveType(
-  f: FieldInfo,
-  override?: FieldType,
-): Exclude<FieldType, "mixed"> {
+  f: AttributeInfo,
+  override?: AttributeType,
+): Exclude<AttributeType, "mixed"> {
   const t = override ?? f.type;
   return t === "mixed" ? "text" : t;
 }
 
-function schemaFieldType(prop: any): {
-  type: FieldType;
+function schemaAttributeType(prop: any): {
+  type: AttributeType;
   enumValues?: string[];
 } {
   if (Array.isArray(prop?.anyOf)) {
     const nonNull = prop.anyOf.find((p: any) => p?.type !== "null");
-    return schemaFieldType(nonNull);
+    return schemaAttributeType(nonNull);
   }
   if (Array.isArray(prop?.enum)) {
     return { type: "enum", enumValues: prop.enum.map(String) };
@@ -206,14 +206,14 @@ function schemaFieldType(prop: any): {
   }
 }
 
-export function declaredFieldsFromSchema(
+export function declaredAttributesFromSchema(
   schema: unknown,
-): DeclaredFields | null {
+): DeclaredAttributes | null {
   const props = (schema as any)?.properties;
   if (!props || typeof props !== "object") return null;
-  const out: DeclaredFields = {};
+  const out: DeclaredAttributes = {};
   for (const [name, prop] of Object.entries(props)) {
-    out[name] = schemaFieldType(prop);
+    out[name] = schemaAttributeType(prop);
   }
   return out;
 }
@@ -272,13 +272,13 @@ function mixedNote(mixed: Record<string, number>): string {
     .join(", ");
 }
 
-/** A `tag.define` snippet giving `tag` a declared schema from these fields */
+/** A `tag.define` snippet giving `tag` a declared schema from these attributes */
 export function tagDefineSnippet(
   tag: string,
-  fields: FieldInfo[],
-  overrides: Record<string, FieldType>,
+  attributes: AttributeInfo[],
+  overrides: Record<string, AttributeType>,
 ): string {
-  const props = fields
+  const props = attributes
     .filter((f) => !f.system)
     .map((f) => {
       const t = overrides[f.name] ?? f.type;

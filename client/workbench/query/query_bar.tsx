@@ -83,7 +83,7 @@ export function QueryBar({
   const [open, setOpen] = useState(false);
   const m = builder.model;
   if (!m) return null;
-  const text = generateQuery(m, builder.fields);
+  const text = generateQuery(m, builder.attributes);
   const target = builder.target;
 
   return (
@@ -115,7 +115,7 @@ export function QueryBar({
           <Button
             onClick={() => {
               void session.run(
-                generateQuery(m, builder.fields, { wrap: false }),
+                generateQuery(m, builder.attributes, { wrap: false }),
               );
               void showView(WORKBENCH_VIEW, { segment: "Console" });
             }}

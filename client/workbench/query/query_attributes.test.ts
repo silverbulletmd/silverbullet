@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
 import {
-  declaredFieldsFromSchema,
+  declaredAttributesFromSchema,
   effectiveType,
-  type FieldInfo,
-  inferFields,
+  type AttributeInfo,
+  inferAttributes,
   tagDefineSnippet,
   valueType,
-} from "./query_fields.ts";
+} from "./query_attributes.ts";
 
 const books = [
   {
@@ -61,8 +61,8 @@ const books = [
   },
 ];
 
-const byName = (fields: FieldInfo[], name: string) =>
-  fields.find((f) => f.name === name)!;
+const byName = (attributes: AttributeInfo[], name: string) =>
+  attributes.find((f) => f.name === name)!;
 
 describe("valueType", () => {
   test("recognizes basic types and text formats", () => {
@@ -80,11 +80,11 @@ describe("valueType", () => {
   });
 });
 
-describe("inferFields", () => {
-  const fields = inferFields(books, null, false);
+describe("inferAttributes", () => {
+  const attributes = inferAttributes(books, null, false);
 
-  test("a field with few repeating values is one of", () => {
-    const status = byName(fields, "status");
+  test("an attribute with few repeating values is one of", () => {
+    const status = byName(attributes, "status");
     expect(status.type).toBe("enum");
     expect([...status.enumValues!].sort()).toEqual([
       "finished",
@@ -93,12 +93,12 @@ describe("inferFields", () => {
     ]);
   });
 
-  test("a field whose repeated values cover under 80% stays text", () => {
-    expect(byName(fields, "genre").type).toBe("text");
+  test("an attribute whose repeated values cover under 80% stays text", () => {
+    expect(byName(attributes, "genre").type).toBe("text");
   });
 
   test("values of several types are mixed, falling back to text", () => {
-    const rating = byName(fields, "rating");
+    const rating = byName(attributes, "rating");
     expect(rating.type).toBe("mixed");
     expect(rating.mixed).toEqual({ number: 4, text: 1 });
     expect(effectiveType(rating)).toBe("text");
@@ -106,17 +106,17 @@ describe("inferFields", () => {
   });
 
   test("records presence and numeric range", () => {
-    const rating = byName(fields, "rating");
+    const rating = byName(attributes, "rating");
     expect(rating.present).toBe(5);
     expect(rating.total).toBe(10);
-    expect(byName(fields, "year").range).toEqual([1969, 2021]);
+    expect(byName(attributes, "year").range).toEqual([1969, 2021]);
   });
 
   test("lists values by descending count", () => {
-    expect(byName(fields, "status").values[0]).toEqual(["finished", 5]);
+    expect(byName(attributes, "status").values[0]).toEqual(["finished", 5]);
   });
 
-  test("merges declared and inferred fields", () => {
+  test("merges declared and inferred attributes", () => {
     const tasks = [
       {
         name: "Send report",
@@ -127,7 +127,7 @@ describe("inferFields", () => {
       },
       { name: "Fix bike", done: false, ref: "Home@2", itags: ["task"] },
     ];
-    const merged = inferFields(
+    const merged = inferAttributes(
       tasks,
       {
         name: { type: "text" },
@@ -142,12 +142,12 @@ describe("inferFields", () => {
     expect(byName(merged, "tags").present).toBe(0);
     expect(byName(merged, "ref").system).toBe(true);
     expect(byName(merged, "itags").system).toBe(true);
-    expect(inferFields([{ toPos: 5 }], null, true)[0].system).toBe(true);
+    expect(inferAttributes([{ toPos: 5 }], null, true)[0].system).toBe(true);
     expect(byName(merged, "name").system).toBe(false);
   });
 
-  test("a declared plain text field takes the format its values all have", () => {
-    const merged = inferFields(
+  test("a declared plain text attribute takes the format its values all have", () => {
+    const merged = inferAttributes(
       [
         { lastModified: "2026-10-16T08:12:00", name: "Dashboard" },
         { lastModified: "2026-10-15T17:40:00", name: "Work" },
@@ -159,8 +159,8 @@ describe("inferFields", () => {
     expect(byName(merged, "name").type).toBe("text");
   });
 
-  test("a declared field of a custom tag is declared", () => {
-    const merged = inferFields(
+  test("a declared attribute of a custom tag is declared", () => {
+    const merged = inferAttributes(
       [{ status: "active" }],
       { status: { type: "enum", enumValues: ["active", "paused"] } },
       false,
@@ -169,8 +169,8 @@ describe("inferFields", () => {
     expect(byName(merged, "status").enumValues).toEqual(["active", "paused"]);
   });
 
-  test("nested records become dotted fields one level deep", () => {
-    const nested = inferFields(
+  test("nested records become dotted attributes one level deep", () => {
+    const nested = inferAttributes(
       [{ meta: { author: "Sam", deep: { x: 1 } } }],
       null,
       false,
@@ -181,10 +181,10 @@ describe("inferFields", () => {
   });
 });
 
-describe("declaredFieldsFromSchema", () => {
-  test("maps JSON Schema properties to field types", () => {
+describe("declaredAttributesFromSchema", () => {
+  test("maps JSON Schema properties to attribute types", () => {
     expect(
-      declaredFieldsFromSchema({
+      declaredAttributesFromSchema({
         type: "object",
         properties: {
           status: { type: "string", enum: ["active", "paused"] },
@@ -208,13 +208,13 @@ describe("declaredFieldsFromSchema", () => {
   });
 
   test("no schema gives null", () => {
-    expect(declaredFieldsFromSchema(null)).toBe(null);
+    expect(declaredAttributesFromSchema(null)).toBe(null);
   });
 });
 
 describe("tagDefineSnippet", () => {
   test("writes a tag.define with schema helpers and notes", () => {
-    const fields = inferFields(
+    const attributes = inferAttributes(
       books.map((b, i) => ({
         ...b,
         tags: ["reading"],
@@ -225,7 +225,7 @@ describe("tagDefineSnippet", () => {
     ).filter((f) =>
       ["title", "rating", "status", "tags", "finished"].includes(f.name),
     );
-    const snippet = tagDefineSnippet("book", fields, { rating: "number" });
+    const snippet = tagDefineSnippet("book", attributes, { rating: "number" });
     const expected = [
       'name = "book",',
       'type = "object",',
@@ -244,11 +244,11 @@ describe("tagDefineSnippet", () => {
     expect(snippet.startsWith("tag.define {")).toBe(true);
   });
 
-  test("an un-overridden mixed field is noted", () => {
-    const fields = inferFields(books, null, false).filter(
+  test("an un-overridden mixed attribute is noted", () => {
+    const attributes = inferAttributes(books, null, false).filter(
       (f) => f.name === "rating",
     );
-    expect(tagDefineSnippet("book", fields, {})).toContain(
+    expect(tagDefineSnippet("book", attributes, {})).toContain(
       "rating = schema.string(), -- seen as 4 number, 1 text",
     );
   });

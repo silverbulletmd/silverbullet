@@ -43,13 +43,13 @@ export function QueryPreview({
   const grouped = !!m && isGrouped(m);
   // Run without the limit, for "N of M": the limit only cuts the rows off
   const text = m
-    ? generateQuery({ ...m, limit: null }, builder.fields, { wrap: false })
+    ? generateQuery({ ...m, limit: null }, builder.attributes, { wrap: false })
     : null;
   // Unsorted and ungrouped, the first rows don't need every object read
   // (`leadingRowsNeeded`): show them first, then count the rest
   const leadingText =
     m && !grouped && !m.sorts.length
-      ? generateQuery({ ...m, limit: LEADING_ROWS }, builder.fields, {
+      ? generateQuery({ ...m, limit: LEADING_ROWS }, builder.attributes, {
           wrap: false,
         })
       : null;
@@ -58,7 +58,7 @@ export function QueryPreview({
     m && leadingText
       ? generateQuery(
           { ...m, limit: null, select: { mode: "table", columns: [] } },
-          builder.fields,
+          builder.attributes,
           { wrap: false },
         )
       : null;

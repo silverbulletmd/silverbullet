@@ -4,19 +4,19 @@
  */
 import {
   effectiveType,
-  type FieldInfo,
-  type FieldType,
+  type AttributeInfo,
+  type AttributeType,
   isLuaName,
-} from "./query_fields.ts";
+} from "./query_attributes.ts";
 import { type QuerySource, sourceType } from "./query_from.ts";
 import type { Filter, OperatorType } from "./query_ops.ts";
 
 /** What a sort orders by */
 export type SortBy =
-  | { kind: "field"; field: string }
+  | { kind: "attribute"; attribute: string }
   | { kind: "expr"; lua: string }
-  /** While grouped: the group key of this field */
-  | { kind: "groupKey"; field: string }
+  /** While grouped: the group key of this attribute */
+  | { kind: "groupKey"; attribute: string }
   /** While grouped: the group column with this id */
   | { kind: "column"; id: string };
 
@@ -26,7 +26,7 @@ export type TableColumn = {
   /** Stable while the column is edited or moved */
   id: string;
   header: string;
-  kind: "field" | "link" | "expr";
+  kind: "attribute" | "link" | "expr";
   value: string;
 };
 
@@ -36,11 +36,11 @@ export type GroupColumn = {
   id: string;
   header: string;
 } & (
-  | { kind: "key"; field: string }
+  | { kind: "key"; attribute: string }
   | {
       kind: "agg";
       agg: string;
-      field: string;
+      attribute: string;
       sorted: boolean;
       where?: string;
     }
@@ -64,7 +64,7 @@ export type QueryModel = {
   /** Used instead of `select` while grouped */
   groupColumns: GroupColumn[];
   limit: number | null;
-  overrides: Record<string, FieldType>;
+  overrides: Record<string, AttributeType>;
 };
 
 /** The variable the query's Lua uses for each object */
@@ -90,7 +90,7 @@ export function newId(): string {
  * first, `(t.a and t.a.b)`, so an object without the record gives nil
  * rather than an error.
  */
-export function fieldAccess(v: string, path: string): string {
+export function attributeAccess(v: string, path: string): string {
   const steps = path
     .split(".")
     .map((seg) => (isLuaName(seg) ? `.${seg}` : `[${JSON.stringify(seg)}]`));
@@ -100,21 +100,21 @@ export function fieldAccess(v: string, path: string): string {
 }
 
 /** The type `name` is treated as: its override, else its inferred type */
-export function fieldType(
+export function attributeType(
   m: QueryModel,
-  fields: FieldInfo[],
+  attributes: AttributeInfo[],
   name: string,
 ): OperatorType {
-  const f = fields.find((x) => x.name === name);
+  const f = attributes.find((x) => x.name === name);
   return f ? effectiveType(f, m.overrides[name]) : "text";
 }
 
 /** Values to pick from: one-of values, list items or seen values, with counts */
-export function fieldChoices(
-  fields: FieldInfo[],
+export function attributeChoices(
+  attributes: AttributeInfo[],
   name: string,
 ): [string, number][] {
-  const f = fields.find((x) => x.name === name);
+  const f = attributes.find((x) => x.name === name);
   if (!f) return [];
   if (f.enumValues) {
     const counts = new Map(f.values);
@@ -123,20 +123,27 @@ export function fieldChoices(
   return f.values;
 }
 
-export function fieldColumn(field: string): TableColumn {
-  return { id: newId(), header: field, kind: "field", value: field };
+export function attributeColumn(attribute: string): TableColumn {
+  return {
+    id: newId(),
+    header: attribute,
+    kind: "attribute",
+    value: attribute,
+  };
 }
 
-export function tableColumns(fields: FieldInfo[]): TableColumn[] {
-  return fields.filter((f) => !f.system).map((f) => fieldColumn(f.name));
+export function tableColumns(attributes: AttributeInfo[]): TableColumn[] {
+  return attributes
+    .filter((f) => !f.system)
+    .map((f) => attributeColumn(f.name));
 }
 
 export function emptyModel(
   source: QuerySource,
-  fields: FieldInfo[],
+  attributes: AttributeInfo[],
 ): QueryModel {
-  // Declared fields no sampled object has would only add empty columns
-  const sampled = fields.some((f) => f.present > 0);
+  // Declared attributes no sampled object has would only add empty columns
+  const sampled = attributes.some((f) => f.present > 0);
   return {
     source,
     binding: bindingVar(sourceType(source)),
@@ -146,7 +153,7 @@ export function emptyModel(
     select: {
       mode: "table",
       columns: tableColumns(
-        sampled ? fields.filter((f) => f.present > 0) : fields,
+        sampled ? attributes.filter((f) => f.present > 0) : attributes,
       ),
     },
     groupColumns: [],

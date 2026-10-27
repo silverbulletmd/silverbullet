@@ -9,7 +9,7 @@ import { showView } from "../../navigator/navigator.ts";
 import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
 import type { InsertTarget, QueryBuilder } from "./query_builder.ts";
 import { parseQuery, querySource } from "./query_parse.ts";
-import { loadFields } from "./query_source.ts";
+import { loadAttributes } from "./query_source.ts";
 import { followTarget } from "./query_target.ts";
 
 /** Shows the query editor, bound to `target` on the open page */
@@ -48,10 +48,10 @@ export async function openQuery(
     const parsed = parseQuery(found.expr, []);
     return fail(parsed.ok ? "This isn't a query over a tag" : parsed.reason);
   }
-  const { fields } = await loadFields(client, source);
-  const parsed = parseQuery(found.expr, fields);
+  const { attributes } = await loadAttributes(client, source);
+  const parsed = parseQuery(found.expr, attributes);
   if (!parsed.ok) return fail(`Can't edit this query: ${parsed.reason}`);
-  builder.openModel(parsed.model, fields);
+  builder.openModel(parsed.model, attributes);
   await showQueryEditor(client, builder, {
     page: client.currentName(),
     from: found.from,

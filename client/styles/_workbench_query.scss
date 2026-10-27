@@ -154,7 +154,7 @@
     font-size: 12px;
   }
 
-  .sb-wbq-fields {
+  .sb-wbq-attributes {
     grid-column: 1 / -1;
     min-width: 0;
     border: 1px solid var(--ui-surface-border-color);
@@ -188,17 +188,17 @@
       border-bottom: 1px solid var(--ui-surface-border-color);
       vertical-align: top;
     }
-    td.sb-wbq-field {
+    td.sb-wbq-attribute {
       overflow-wrap: normal;
       white-space: nowrap;
     }
   }
 
-  .sb-wbq-fields-scroll {
+  .sb-wbq-attributes-scroll {
     overflow-x: auto;
   }
 
-  .sb-wbq-fields-foot {
+  .sb-wbq-attributes-foot {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -274,7 +274,7 @@
     cursor: default;
   }
 
-  .sb-wbq-field,
+  .sb-wbq-attribute,
   .sb-wbq-expr,
   .sb-wbq-value {
     font-family: var(--editor-font), monospace;
@@ -412,7 +412,7 @@
     gap: 5px;
   }
 
-  // An aggregate column: header, aggregate, field and ✕ on one line;
+  // An aggregate column: header, aggregate, attribute and ✕ on one line;
   // "sorted" and "only where" below
   .sb-wbq-aggcol {
     display: grid;
@@ -441,7 +441,7 @@
   // A table column on one line: header, kind, value, then its buttons
   .sb-wbq-tablecol {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 6.5rem) minmax(0, 1.3fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1.3fr) auto auto auto;
 
     .sb-wbq-header,
     select,

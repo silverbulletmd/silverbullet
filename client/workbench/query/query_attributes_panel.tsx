@@ -4,19 +4,19 @@ import type { QueryBuilder } from "./query_builder.ts";
 import {
   type Dropped,
   droppedMessage,
-  dropSystemFieldUses,
-  setFieldType,
+  dropSystemAttributeUses,
+  setAttributeType,
 } from "./query_edits.ts";
 import {
-  type FieldInfo,
-  type FieldType,
+  type AttributeInfo,
+  type AttributeType,
   tagDefineSnippet,
-} from "./query_fields.ts";
+} from "./query_attributes.ts";
 import { TYPE_LABEL } from "./query_filter_editor.tsx";
 import { schemaTag } from "./query_from.ts";
 import type { QueryModel } from "./query_model.ts";
 
-const TYPES: Exclude<FieldType, "mixed">[] = [
+const TYPES: Exclude<AttributeType, "mixed">[] = [
   "text",
   "enum",
   "number",
@@ -31,7 +31,7 @@ const TYPES: Exclude<FieldType, "mixed">[] = [
 
 const SEEN = 4;
 
-function seen(f: FieldInfo, type: FieldType): string {
+function seen(f: AttributeInfo, type: AttributeType): string {
   if (type === "number" && f.range) return `${f.range[0]}–${f.range[1]}`;
   return f.values
     .slice(0, SEEN)
@@ -39,9 +39,9 @@ function seen(f: FieldInfo, type: FieldType): string {
     .join(", ");
 }
 
-function mixedText(f: FieldInfo): string {
+function mixedText(f: AttributeInfo): string {
   return Object.entries(f.mixed ?? {})
-    .map(([t, n]) => `${n} ${TYPE_LABEL[t as FieldType] ?? t}`)
+    .map(([t, n]) => `${n} ${TYPE_LABEL[t as AttributeType] ?? t}`)
     .join(", ");
 }
 
@@ -66,10 +66,10 @@ function applyDropping(
 }
 
 /**
- * Every field of the tag: its type (changeable for the session), where it
+ * Every attribute of the tag: its type (changeable for the session), where it
  * came from, how many objects have it, and values seen.
  */
-export function FieldsPanel({
+export function AttributesPanel({
   client,
   builder,
   onClose,
@@ -80,27 +80,27 @@ export function FieldsPanel({
 }) {
   const m = builder.model;
   if (!m) return null;
-  const fields = builder.offeredFields();
+  const attributes = builder.offeredAttributes();
 
-  const setType = (f: FieldInfo, type: FieldType) =>
-    applyDropping(client, builder, f.name, (x) => setFieldType(x, f, type));
+  const setType = (f: AttributeInfo, type: AttributeType) =>
+    applyDropping(client, builder, f.name, (x) => setAttributeType(x, f, type));
 
   const setShowSystem = (show: boolean) => {
     builder.setShowSystem(show);
     if (!show) {
-      applyDropping(client, builder, "system fields", (x) =>
-        dropSystemFieldUses(x, builder.fields),
+      applyDropping(client, builder, "system attributes", (x) =>
+        dropSystemAttributeUses(x, builder.attributes),
       );
     }
   };
 
   return (
-    <div className="sb-wbq-fields">
-      <div className="sb-wbq-fields-scroll">
-        <table aria-label="Fields">
+    <div className="sb-wbq-attributes">
+      <div className="sb-wbq-attributes-scroll">
+        <table aria-label="Attributes">
           <thead>
             <tr>
-              <th>Field</th>
+              <th>Attribute</th>
               <th>Type</th>
               <th>Source</th>
               <th>Present</th>
@@ -108,26 +108,26 @@ export function FieldsPanel({
             </tr>
           </thead>
           <tbody>
-            {fields.map((f) => {
+            {attributes.map((f) => {
               const override = m.overrides[f.name];
               const type = override ?? f.type;
               const options =
                 f.type === "mixed" && !override ? ["mixed", ...TYPES] : TYPES;
               return (
                 <tr key={f.name} aria-label={f.name}>
-                  <td className="sb-wbq-field">{f.name}</td>
+                  <td className="sb-wbq-attribute">{f.name}</td>
                   <td>
                     <select
                       className="sb-select"
                       aria-label={`Type of ${f.name}`}
                       value={type}
                       onChange={(e) =>
-                        setType(f, e.currentTarget.value as FieldType)
+                        setType(f, e.currentTarget.value as AttributeType)
                       }
                     >
                       {options.map((t) => (
                         <option key={t} value={t}>
-                          {TYPE_LABEL[t as FieldType]}
+                          {TYPE_LABEL[t as AttributeType]}
                           {t === "enum" && f.enumValues
                             ? ` (${f.enumValues.length})`
                             : ""}
@@ -162,20 +162,20 @@ export function FieldsPanel({
           </tbody>
         </table>
       </div>
-      <div className="sb-wbq-fields-foot">
+      <div className="sb-wbq-attributes-foot">
         <label>
           <input
             type="checkbox"
             checked={builder.showSystem}
             onChange={(e) => setShowSystem(e.currentTarget.checked)}
           />{" "}
-          System fields
+          System attributes
         </label>
         <span className="sb-wbq-note">
           Changing a type only changes the filters offered.
         </span>
         <span className="sb-wbq-spacer" />
-        {fields.some((f) => f.source === "inferred") ? (
+        {attributes.some((f) => f.source === "inferred") ? (
           <button
             type="button"
             className="sb-wbq-link"
@@ -184,7 +184,7 @@ export function FieldsPanel({
                 client,
                 tagDefineSnippet(
                   schemaTag(m.source),
-                  builder.fields,
+                  builder.attributes,
                   m.overrides,
                 ),
               )

@@ -14,7 +14,7 @@ import type { QueryBuilder } from "../query/query_builder.ts";
 import { type QuerySource, sourceFor } from "../query/query_from.ts";
 import { withOperator } from "../query/query_ops.ts";
 import { parseQuery, querySource } from "../query/query_parse.ts";
-import { loadFields } from "../query/query_source.ts";
+import { loadAttributes } from "../query/query_source.ts";
 import { openRef } from "../shared/action.ts";
 
 export type OverviewLink =
@@ -73,10 +73,10 @@ export async function followOverviewLink(
       builder.setTarget(null);
       const source = querySource(link.expr);
       if (!source) return;
-      const { fields } = await loadFields(client, source);
-      const parsed = parseQuery(link.expr, fields);
+      const { attributes } = await loadAttributes(client, source);
+      const parsed = parseQuery(link.expr, attributes);
       if (!parsed.ok) return;
-      builder.openModel(parsed.model, fields);
+      builder.openModel(parsed.model, attributes);
       return showView(WORKBENCH_VIEW, { segment: "Query" });
     }
     case "query":
@@ -103,6 +103,6 @@ async function browse(
 ): Promise<void> {
   // Browsing, not inserting: an abandoned /Query… or "Edit query" target must not survive
   builder.setTarget(null);
-  const { fields } = await loadFields(client, source);
-  builder.pickSource(source, fields);
+  const { attributes } = await loadAttributes(client, source);
+  builder.pickSource(source, attributes);
 }

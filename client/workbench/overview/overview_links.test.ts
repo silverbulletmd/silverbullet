@@ -7,18 +7,18 @@ const showView = vi.fn(async (..._args: unknown[]) => {});
 vi.mock("../../navigator/navigator.ts", () => ({
   showView: (...args: unknown[]) => showView(...args),
 }));
-const loadFields = vi.fn(async (..._args: unknown[]) => ({
-  fields: [],
+const loadAttributes = vi.fn(async (..._args: unknown[]) => ({
+  attributes: [],
   sampled: 0,
 }));
 vi.mock("../query/query_source.ts", () => ({
-  loadFields: (...args: unknown[]) => loadFields(...args),
+  loadAttributes: (...args: unknown[]) => loadAttributes(...args),
 }));
 
 describe("followOverviewLink", () => {
   beforeEach(() => {
     showView.mockClear();
-    loadFields.mockClear();
+    loadAttributes.mockClear();
   });
   const client = { ui: { flashNotification: vi.fn() } } as never;
 
@@ -118,11 +118,11 @@ describe("followOverviewLink", () => {
     const builder = new QueryBuilder();
     await followOverviewLink(client, builder, LINKS.tasksOpen);
     expect(builder.model?.filters).toEqual([
-      { kind: "field", field: "done", op: "false", values: [] },
+      { kind: "attribute", attribute: "done", op: "false", values: [] },
     ]);
     await followOverviewLink(client, builder, LINKS.tasksDone);
     expect(builder.model?.filters).toEqual([
-      { kind: "field", field: "done", op: "true", values: [] },
+      { kind: "attribute", attribute: "done", op: "true", values: [] },
     ]);
   });
 
@@ -147,7 +147,7 @@ describe("followOverviewLink", () => {
     });
     expect(builder.model?.select).toEqual({
       mode: "table",
-      columns: [{ id: "c1", header: "name", kind: "field", value: "name" }],
+      columns: [{ id: "c1", header: "name", kind: "attribute", value: "name" }],
     });
     expect(showView).toHaveBeenLastCalledWith(WORKBENCH_VIEW, {
       segment: "Query",

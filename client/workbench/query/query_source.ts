@@ -19,10 +19,10 @@ import { parseExpressionString } from "../../space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame } from "../../space_lua/runtime.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import {
-  declaredFieldsFromSchema,
-  type FieldInfo,
-  inferFields,
-} from "./query_fields.ts";
+  declaredAttributesFromSchema,
+  type AttributeInfo,
+  inferAttributes,
+} from "./query_attributes.ts";
 import {
   listedSource,
   type QuerySource,
@@ -154,10 +154,10 @@ export async function listRelationKinds(client: Client): Promise<string[]> {
   return kinds.filter((k) => typeof k === "string").sort(byName);
 }
 
-export async function loadFields(
+export async function loadAttributes(
   client: Client,
   source: QuerySource,
-): Promise<{ fields: FieldInfo[]; sampled: number }> {
+): Promise<{ attributes: AttributeInfo[]; sampled: number }> {
   const { key, where } = sampleQuery(source);
   const samples = await client.queryLuaObjects<Record<string, unknown>>(key, {
     objectVariable: "o",
@@ -166,30 +166,35 @@ export async function loadFields(
   });
   const tag = schemaTag(source);
   const tags = client.config.get(["tags"], {});
-  const declared = declaredFieldsFromSchema(tagSchema(tags, tag));
-  if (!samples.length && !declared) return { fields: [], sampled: 0 };
+  const declared = declaredAttributesFromSchema(tagSchema(tags, tag));
+  if (!samples.length && !declared) return { attributes: [], sampled: 0 };
   // A user tag on pages (or tasks, items…): the objects also carry their
-  // root tag's own fields, which say little about the user tag
+  // root tag's own attributes, which say little about the user tag
   const base = samples[0]?.tag;
   if (typeof base !== "string" || base === tag) {
     return {
-      fields: inferFields(samples, declared, isBuiltinTag(tag)),
+      attributes: inferAttributes(samples, declared, isBuiltinTag(tag)),
       sampled: samples.length,
     };
   }
-  const baseFields = declaredFieldsFromSchema(tagSchema(tags, base)) ?? {};
-  const fields = inferFields(samples, { ...baseFields, ...declared }, false)
+  const baseAttributes =
+    declaredAttributesFromSchema(tagSchema(tags, base)) ?? {};
+  const attributes = inferAttributes(
+    samples,
+    { ...baseAttributes, ...declared },
+    false,
+  )
     .map((f) =>
-      f.name in baseFields && !declared?.[f.name]
+      f.name in baseAttributes && !declared?.[f.name]
         ? { ...f, source: "built-in" as const }
         : f,
     )
-    // The base type's fields that none of these objects use are only noise
+    // The base type's attributes that none of these objects use are only noise
     .filter((f) => f.source !== "built-in" || f.present > 0);
-  const rank = (f: FieldInfo) =>
+  const rank = (f: AttributeInfo) =>
     f.name === "name" ? 0 : f.source === "built-in" ? 2 : 1;
   return {
-    fields: fields
+    attributes: attributes
       .map((f, i) => [f, i] as const)
       .sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j)
       .map(([f]) => f),

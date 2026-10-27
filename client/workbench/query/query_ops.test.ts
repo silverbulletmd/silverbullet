@@ -1,14 +1,18 @@
 import { describe, expect, test } from "vitest";
-import { type FieldFilter, filterLua, operatorsFor } from "./query_ops.ts";
+import { type AttributeFilter, filterLua, operatorsFor } from "./query_ops.ts";
 
-const f = (field: string, op: string, extra: Partial<FieldFilter> = {}) =>
+const f = (
+  attribute: string,
+  op: string,
+  extra: Partial<AttributeFilter> = {},
+) =>
   ({
-    kind: "field",
-    field,
+    kind: "attribute",
+    attribute,
     op,
     values: [],
     ...extra,
-  }) as FieldFilter;
+  }) as AttributeFilter;
 
 describe("filterLua", () => {
   test("date comparisons are guarded against missing values", () => {

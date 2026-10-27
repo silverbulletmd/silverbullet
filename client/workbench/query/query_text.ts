@@ -5,11 +5,11 @@
 
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import { luaString } from "../shared/lua_string.ts";
-import { type FieldInfo, tableKey } from "./query_fields.ts";
+import { type AttributeInfo, tableKey } from "./query_attributes.ts";
 import { sourceLua } from "./query_from.ts";
 import {
-  fieldAccess,
-  fieldType,
+  attributeAccess,
+  attributeType,
   type GroupColumn,
   objectVar,
   type QueryModel,
@@ -34,21 +34,21 @@ function columnLua(c: TableColumn, v: string): string {
     case "expr":
       return c.value || "nil";
     case "link":
-      return `"[[" .. ${fieldAccess(v, c.value)} .. "]]"`;
+      return `"[[" .. ${attributeAccess(v, c.value)} .. "]]"`;
     default:
-      return fieldAccess(v, c.value);
+      return attributeAccess(v, c.value);
   }
 }
 
-function keyLua(m: QueryModel, field: string): string | null {
-  const i = m.group.indexOf(field);
+function keyLua(m: QueryModel, attribute: string): string | null {
+  const i = m.group.indexOf(attribute);
   if (i < 0) return null;
   return m.group.length > 1 ? `key[${i + 1}]` : "key";
 }
 
 function groupColumnLua(c: GroupColumn, m: QueryModel, v: string): string {
-  if (c.kind === "key") return keyLua(m, c.field) ?? "nil";
-  const access = fieldAccess(v, c.field);
+  if (c.kind === "key") return keyLua(m, c.attribute) ?? "nil";
+  const access = attributeAccess(v, c.attribute);
   const call =
     c.agg === "array_agg" && c.sorted
       ? `array_agg(${access} order by ${access})`
@@ -68,11 +68,11 @@ function sortLua(
     case "expr":
       key = by.lua;
       break;
-    case "field":
-      key = grouped ? null : fieldAccess(v, by.field);
+    case "attribute":
+      key = grouped ? null : attributeAccess(v, by.attribute);
       break;
     case "groupKey":
-      key = keyLua(m, by.field);
+      key = keyLua(m, by.attribute);
       break;
     case "column": {
       const c = m.groupColumns.find((x) => x.id === by.id);
@@ -112,7 +112,7 @@ function selectLua(m: QueryModel, v: string): string | null {
     return block(
       m.groupColumns.map(
         (c) =>
-          `${tableKey(c.header || (c.kind === "key" ? c.field : c.agg))} = ${groupColumnLua(c, m, v)}`,
+          `${tableKey(c.header || (c.kind === "key" ? c.attribute : c.agg))} = ${groupColumnLua(c, m, v)}`,
       ),
     );
   }
@@ -134,7 +134,7 @@ function selectLua(m: QueryModel, v: string): string | null {
 
 export function generateQuery(
   m: QueryModel,
-  fields: FieldInfo[],
+  attributes: AttributeInfo[],
   opts: { wrap?: boolean } = {},
 ): string {
   const v = objectVar(m);
@@ -146,8 +146,10 @@ export function generateQuery(
     const conds = m.filters.map((f) => {
       const cond = filterLua(
         f,
-        f.kind === "field" ? fieldAccess(v, f.field) : "",
-        f.kind === "field" ? fieldType(m, fields, f.field) : "text",
+        f.kind === "attribute" ? attributeAccess(v, f.attribute) : "",
+        f.kind === "attribute"
+          ? attributeType(m, attributes, f.attribute)
+          : "text",
       );
       // `and` binds tighter than `or`: keep each filter's meaning
       return m.filters.length > 1 && isOr(cond) ? `(${cond})` : cond;
@@ -155,7 +157,9 @@ export function generateQuery(
     lines.push(`where ${conds.join("\n    and ")}`);
   }
   if (m.group.length) {
-    lines.push(`group by ${m.group.map((g) => fieldAccess(v, g)).join(", ")}`);
+    lines.push(
+      `group by ${m.group.map((g) => attributeAccess(v, g)).join(", ")}`,
+    );
   }
   const sorts = m.sorts
     .map((s) => sortLua(s, m, v))

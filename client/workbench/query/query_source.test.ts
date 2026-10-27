@@ -13,7 +13,7 @@ import {
   evalQueryText,
   filterTags,
   listTags,
-  loadFields,
+  loadAttributes,
   NO_TAGS,
   SAMPLE_LIMIT,
   splitTags,
@@ -139,11 +139,11 @@ describe("listTags", () => {
   });
 });
 
-describe("loadFields", () => {
-  test("an empty tag gives no fields", async () => {
+describe("loadAttributes", () => {
+  test("an empty tag gives no attributes", async () => {
     const { client } = stubClient({});
-    expect(await loadFields(client, sourceFor("book"))).toEqual({
-      fields: [],
+    expect(await loadAttributes(client, sourceFor("book"))).toEqual({
+      attributes: [],
       sampled: 0,
     });
   });
@@ -152,14 +152,17 @@ describe("loadFields", () => {
     const { client, queryLuaObjects } = stubClient({
       objects: [{ title: "Piranesi" }],
     });
-    const { fields, sampled } = await loadFields(client, sourceFor("book"));
+    const { attributes, sampled } = await loadAttributes(
+      client,
+      sourceFor("book"),
+    );
     expect(SAMPLE_LIMIT).toBe(500);
     expect(queryLuaObjects).toHaveBeenCalledWith(
       "book",
       expect.objectContaining({ limit: 500 }),
     );
     expect(sampled).toBe(1);
-    expect(fields.map((f) => f.name)).toEqual(["title"]);
+    expect(attributes.map((f) => f.name)).toEqual(["title"]);
   });
 
   test("merges the declared schema from the tags config", async () => {
@@ -176,13 +179,15 @@ describe("loadFields", () => {
         },
       },
     });
-    const { fields } = await loadFields(client, sourceFor("project"));
-    const status = fields.find((f) => f.name === "status")!;
+    const { attributes } = await loadAttributes(client, sourceFor("project"));
+    const status = attributes.find((f) => f.name === "status")!;
     expect(status.source).toBe("declared");
-    expect(fields.find((f) => f.name === "budget")!.source).toBe("inferred");
+    expect(attributes.find((f) => f.name === "budget")!.source).toBe(
+      "inferred",
+    );
   });
 
-  test("built-in tags mark declared fields built-in", async () => {
+  test("built-in tags mark declared attributes built-in", async () => {
     const { client } = stubClient({
       objects: [{ name: "x" }],
       config: {
@@ -196,13 +201,13 @@ describe("loadFields", () => {
         },
       },
     });
-    const { fields } = await loadFields(client, sourceFor("task"));
-    expect(fields[0].source).toBe("built-in");
+    const { attributes } = await loadAttributes(client, sourceFor("task"));
+    expect(attributes[0].source).toBe("built-in");
   });
 });
 
-describe("fields of a tag on pages", () => {
-  test("the tag's own fields come first; the page's own fields are built-in", async () => {
+describe("attributes of a tag on pages", () => {
+  test("the tag's own attributes come first; the page's own attributes are built-in", async () => {
     const { client } = stubClient({
       objects: [
         {
@@ -231,8 +236,10 @@ describe("fields of a tag on pages", () => {
         },
       },
     });
-    const { fields } = await loadFields(client, sourceFor("book"));
-    const own = fields.filter((f) => !f.system).map((f) => [f.name, f.source]);
+    const { attributes } = await loadAttributes(client, sourceFor("book"));
+    const own = attributes
+      .filter((f) => !f.system)
+      .map((f) => [f.name, f.source]);
     expect(own).toEqual([
       ["name", "built-in"],
       ["author", "inferred"],
