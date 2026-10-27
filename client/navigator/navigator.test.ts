@@ -627,3 +627,30 @@ test("defineView points a legacy view key at widget before other checks", async 
     nav.defineView({ name: "space.legacy", view: value }),
   ).rejects.toThrow("view.define: 'view' was renamed to 'widget'");
 });
+
+test.each([undefined, "modal", "bhs"])(
+  "toggle closes a visible Workbench when focus is in %s",
+  async (focus) => {
+    const nav = await freshNavigator();
+    registry.resolveMeta.mockReturnValue({ dock: "bhs", refreshOn: [] });
+    await nav.open("workbench");
+    slots.focusedSlot.mockReturnValue(focus);
+    class FocusTarget {
+      dataset = { slot: "bhs" };
+      querySelector() {
+        return this;
+      }
+      focus() {}
+    }
+    vi.stubGlobal("CSS", { escape: (value: string) => value });
+    vi.stubGlobal("HTMLElement", FocusTarget);
+    vi.stubGlobal("document", { querySelector: () => new FocusTarget() });
+    try {
+      expect(await nav.toggleView("workbench")).toBe("closed");
+      expect(slots.hideSlot).toHaveBeenCalledWith("bhs");
+      expect(await nav.toggleView("workbench")).toBe("opened");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  },
+);

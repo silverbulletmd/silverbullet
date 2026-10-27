@@ -4,6 +4,8 @@ import {
   LuaNativeJSFunction,
   LuaRuntimeError,
 } from "../../space_lua/runtime.ts";
+import { PageScopes } from "../../space_lua/page_scope.ts";
+import { entryActions } from "./entry_actions.ts";
 import { luaBuildStandardEnv } from "../../space_lua/stdlib.ts";
 import { ConsoleLog, type LogEntry } from "./console_log.ts";
 import {
@@ -198,4 +200,146 @@ test.each([
   ["", false],
 ])("isExpressionInput(%j) is %s", (code, expected) => {
   expect(isExpressionInput(code)).toBe(expected);
+});
+
+function pageSetup() {
+  const space = new LuaEnv(luaBuildStandardEnv());
+  space.setLocal("amount", 100);
+  let page = "Recipes";
+  const pages = new Map([
+    ["Recipes", "${amount = 21}"],
+    ["Projects", "${amount = 7}"],
+    ["Empty", "No definitions"],
+  ]);
+  const scopes = new PageScopes({
+    spaceEnv: () => space,
+    readPageText: async (name) => pages.get(name) ?? null,
+  });
+  const log = new ConsoleLog();
+  const session = new ConsoleSession({
+    spaceEnv: () => space,
+    currentPage: () => page,
+    pageContext: async (name) => ({
+      env:
+        (await scopes.get(name))?.env ?? new LuaEnv(space, { boundary: true }),
+      meta: { name },
+    }),
+    log,
+    ui: () => ({ flashNotification() {} }),
+  });
+  return {
+    space,
+    session,
+    log,
+    scopes,
+    pages,
+    navigate: (name: string) => {
+      page = name;
+    },
+  };
+}
+
+test("Space is the default and page context follows navigation", async () => {
+  const { session, log, navigate } = pageSetup();
+  await session.run("amount");
+  expect(value(log.entries.at(-1)!)).toBe(100);
+  session.context = "page";
+  await session.run("amount");
+  expect(value(log.entries.at(-1)!)).toBe(21);
+  navigate("Projects");
+  await session.run("amount");
+  expect(value(log.entries.at(-1)!)).toBe(7);
+  await session.run("_CTX.currentPage.name");
+  expect(value(log.entries.at(-1)!)).toBe("Projects");
+});
+
+test("console locals belong to each context and survive scope rebuilds", async () => {
+  const { session, log, navigate, pages, scopes } = pageSetup();
+  await session.run("local n = 100");
+  session.context = "page";
+  await session.run(
+    "local n = 1; local function total() return n + amount end",
+  );
+  navigate("Projects");
+  await session.run("n");
+  expect(value(log.entries.at(-1)!)).toBeNull();
+  await session.run("local n = 2");
+  navigate("Recipes");
+  pages.set("Recipes", "${amount = 40}");
+  await scopes.pageChanged("Recipes");
+  await session.run("total()");
+  expect(value(log.entries.at(-1)!)).toBe(41);
+  session.context = "space";
+  await session.run("n");
+  expect(value(log.entries.at(-1)!)).toBe(100);
+});
+
+test("queued inputs and Run again retain the submitted page", async () => {
+  const { session, log, navigate } = pageSetup();
+  session.context = "page";
+  const first = session.run("amount");
+  const second = session.run("_CTX.currentPage.name");
+  navigate("Projects");
+  session.context = "space";
+  await Promise.all([first, second]);
+  expect(log.entries.filter((e) => e.kind === "result").map(value)).toEqual([
+    21,
+    "Recipes",
+  ]);
+  const input = log.entries[0];
+  expect(input).toMatchObject({ kind: "input", page: "Recipes" });
+  const rerun = entryActions(input).find((a) => a.label === "Run again")!;
+  await rerun.run({
+    copyText: async () => {},
+    copyValue: async () => {},
+    rerun: (code, page) => session.run(code, page),
+  });
+  expect(value(log.entries.at(-1)!)).toBe(21);
+});
+
+test("page context supports pages without definitions and reports missing pages", async () => {
+  const { session, log, navigate } = pageSetup();
+  session.context = "page";
+  navigate("Empty");
+  await session.run("_CTX.currentPage.name");
+  expect(value(log.entries.at(-1)!)).toBe("Empty");
+  navigate("Missing");
+  await session.run("amount");
+  expect(log.entries.at(-1)).toMatchObject({ kind: "message", level: "error" });
+  expect(String(value(log.entries.at(-1)!))).toContain("not found");
+});
+
+test("completion resolves the current page environment after navigation", async () => {
+  const { session, navigate } = pageSetup();
+  session.context = "page";
+  expect(await (await session.completionEnv()).get("amount")).toBe(21);
+  navigate("Projects");
+  expect(await (await session.completionEnv()).get("amount")).toBe(7);
+});
+
+test("completion does not change a running command's page context", async () => {
+  const { session, log, space } = pageSetup();
+  let release!: (value: string) => void;
+  let started!: () => void;
+  const waiting = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  space.setLocal(
+    "pause",
+    new LuaNativeJSFunction(() => {
+      started();
+      return new Promise<string>((resolve) => {
+        release = resolve;
+      });
+    }),
+  );
+  session.context = "page";
+  const running = session.run(
+    "_CTX.currentPage.name .. pause() .. _CTX.currentPage.name",
+  );
+  await waiting;
+  await session.completionEnv();
+  release("");
+  await running;
+  expect(value(log.entries.at(-1)!)).toBe("RecipesRecipes");
 });

@@ -1,9 +1,18 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { runCommandViaPalette } from "../fixtures/actions.ts";
+import {
+  navigateViaPagePicker,
+  runCommandViaPalette,
+} from "../fixtures/actions.ts";
 import { expect, gotoSilverBulletPage, test } from "../fixtures/core.ts";
 
-test.use({ spaceFiles: { "index.md": "Welcome" } });
+test.use({
+  spaceFiles: {
+    "index.md": "Welcome\n${pageAmount = 21}",
+    "Recipes.md":
+      '${pageAmount = 7}\n\n${widgets.commandButton("Workbench: Toggle")}\n\nEnd\n',
+  },
+});
 
 type Page = import("@playwright/test").Page;
 
@@ -46,6 +55,31 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
   await run("nil_thing.x");
   await expect(log).toContainText("console#3");
 
+  const context = workbench
+    .locator(".sb-wb-toolbar")
+    .getByRole("button", { name: "Console context" });
+  await expect(context).toHaveText("Space ▾");
+  await expect(workbench.locator(".sb-workbench-input select")).toHaveCount(0);
+  await context.click();
+  await page
+    .getByRole("menuitem", { name: "Current page: index", exact: true })
+    .click();
+  await expect(context).toHaveText("Page ▾");
+  await workbench.locator(".cm-content").click();
+  await run("pageAmount * 2");
+  await expect(log.locator(".sb-wb-row-result").last()).toContainText("42");
+  await page.keyboard.type("pageAmount * 3");
+  await navigateViaPagePicker(page, "Recipes");
+  await expect(context).toHaveAttribute("title", "Current page: Recipes");
+  await expect(workbench.locator(".cm-content")).toHaveText("pageAmount * 3");
+  await workbench.locator(".cm-content").click();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Enter");
+  await expect(log.locator(".sb-wb-row-result").last()).toContainText("21");
+  await expect(log.locator(".sb-wb-row-input").last()).toContainText(
+    "[Recipes]",
+  );
+
   // "Workbench: Scripts" switches the open panel to its Scripts tab and
   // focuses it; switching back keeps the console
   await runCommandViaPalette(page, "Workbench: Scripts");
@@ -73,6 +107,21 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
   );
   await page.getByRole("radio", { name: "Console" }).click();
   await expect(log).toContainText("console#3");
+  await workbench.locator(".cm-content").click();
+
+  const toggleButton = page
+    .locator("#sb-editor")
+    .getByRole("button", { name: "Workbench: Toggle", exact: true });
+  await toggleButton.click();
+  await expect(workbench).toBeHidden();
+  await toggleButton.click();
+  await expect(workbench).toBeVisible();
+
+  // The palette takes focus away from the panel; Toggle must still close it.
+  await runCommandViaPalette(page, "Workbench: Toggle");
+  await expect(workbench).toBeHidden();
+  await runCommandViaPalette(page, "Workbench: Toggle");
+  await expect(workbench).toBeVisible();
   await workbench.locator(".cm-content").click();
 
   // App shortcuts still work with focus in the REPL, and closing returns focus to the page

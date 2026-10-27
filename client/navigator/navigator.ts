@@ -252,15 +252,11 @@ export async function moveDock(name: string, dock: string): Promise<void> {
 }
 
 /**
- * Closes `name` if it is showing in its dock and holds focus; focuses it if it
- * is showing without focus; opens it otherwise.
+ * Closes `name` if it is showing in its dock, regardless of focus; opens it otherwise.
  */
-export async function toggleView(
-  name: string,
-): Promise<"opened" | "focused" | "closed"> {
+export async function toggleView(name: string): Promise<"opened" | "closed"> {
   const dock = await resolvedDock(name);
   if (dock && lifecycle.current(dock)?.view === name) {
-    if (focusedSlot() !== dock && focusPanel(dock)) return "focused";
     await closeView(name, dock);
     return "closed";
   }

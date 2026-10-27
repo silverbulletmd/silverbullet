@@ -11,7 +11,9 @@ import {
 import type { LuaEnv } from "../../space_lua/runtime.ts";
 import { inspectLuaPath } from "../../space_lua/syscalls.ts";
 
-export function replCompletionSource(env: () => LuaEnv): CompletionSource {
+export function replCompletionSource(
+  env: () => LuaEnv | Promise<LuaEnv>,
+): CompletionSource {
   return async (ctx: CompletionContext): Promise<CompletionResult | null> => {
     const line = ctx.state.doc.lineAt(ctx.pos);
     const linePrefix = line.text.slice(0, ctx.pos - line.from);
@@ -21,7 +23,13 @@ export function replCompletionSource(env: () => LuaEnv): CompletionSource {
       luaAccessAt(linePrefix) ??
       (ctx.explicit ? { parts: [], prefix: "" } : null);
     if (!access) return null;
-    const inspection = await inspectLuaPath(env(), access.parts);
+    let scope: LuaEnv;
+    try {
+      scope = await env();
+    } catch {
+      return null;
+    }
+    const inspection = await inspectLuaPath(scope, access.parts);
     const options = luaCompletionOptions(
       inspection?.properties ?? [],
       access.parts,

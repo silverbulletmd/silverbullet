@@ -352,6 +352,11 @@
     background-color: color-mix(in srgb, var(--editor-link-color) 25%, transparent);
   }
 
+  .sb-wb-context {
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
   .sb-workbench-input {
     display: flex;
     flex: none;

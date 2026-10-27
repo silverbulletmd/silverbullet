@@ -67,10 +67,13 @@ export function isIncompleteInput(code: string): boolean {
   return parsed.kind === "invalid" && parsed.incomplete;
 }
 
+export type ConsoleContext = "space" | "page";
+
 export class ConsoleSession {
+  context: ConsoleContext = "space";
   private readonly sources = new Map<string, string>();
-  // One env for the session's lifetime: console closures capture it
-  private readonly locals = new LuaEnv();
+  // Stable per context: console closures capture these environments.
+  private readonly locals = new Map<string | null, LuaEnv>();
   private counter = 0;
   // Inputs run one after another, as typed: a later input may use an earlier one's locals
   private queue: Promise<void> = Promise.resolve();
@@ -78,19 +81,50 @@ export class ConsoleSession {
   constructor(
     private opts: {
       spaceEnv: () => LuaEnv;
+      currentPage?: () => string;
+      pageContext?: (page: string) => Promise<{ env: LuaEnv; meta: unknown }>;
       log: ConsoleLog;
       ui: () => BudgetUi;
       busyLimitMs?: number;
     },
   ) {}
 
-  /**
-   * The console's env, attached to the current space env. Reloading space
-   * scripts replaces that env, so this re-attaches the locals to it.
-   */
+  private localsFor(page: string | null): LuaEnv {
+    let env = this.locals.get(page);
+    if (!env) {
+      env = new LuaEnv();
+      this.locals.set(page, env);
+    }
+    return env;
+  }
+
   env(): LuaEnv {
-    this.locals.parent = this.opts.spaceEnv();
-    return this.locals;
+    const env = this.localsFor(null);
+    env.parent = this.opts.spaceEnv();
+    return env;
+  }
+
+  private selectedPage(): string | null {
+    return this.context === "page" ? (this.opts.currentPage?.() ?? null) : null;
+  }
+
+  private async contextEnvironment(page: string | null) {
+    if (page === null) return { env: this.opts.spaceEnv(), meta: undefined };
+    if (!this.opts.pageContext) throw new Error("Page context unavailable");
+    return this.opts.pageContext(page);
+  }
+
+  async completionEnv(): Promise<LuaEnv> {
+    const page = this.selectedPage();
+    const { env: parent, meta } = await this.contextEnvironment(page);
+    // Completion must not reparent a running input's captured environment.
+    const env = new LuaEnv(parent);
+    for (const [name, value] of this.localsFor(page).variables)
+      env.setLocal(name, value);
+    const tl = new LuaEnv();
+    tl.setLocal("currentPage", meta);
+    env.setLocal("_CTX", tl);
+    return env;
   }
 
   sourceFor(ref: string): string | undefined {
@@ -98,22 +132,20 @@ export class ConsoleSession {
   }
 
   localNames(): string[] {
-    return [...this.locals.variables.keys()];
+    return [...this.localsFor(this.selectedPage()).variables.keys()];
   }
 
-  run(code: string): Promise<void> {
-    const next = this.queue.then(() => this.evaluate(code));
+  run(code: string, page: string | null = this.selectedPage()): Promise<void> {
+    const next = this.queue.then(() => this.evaluate(code, page));
     this.queue = next.catch(() => {});
     return next;
   }
 
-  private async evaluate(code: string): Promise<void> {
+  private async evaluate(code: string, page: string | null): Promise<void> {
     const ref = `${CONSOLE_REF_PREFIX}${++this.counter}`;
     this.sources.set(ref, code);
     const { log } = this.opts;
-    log.append({ kind: "input", ref, code });
-
-    const env = this.env();
+    log.append({ kind: "input", ref, code, page });
     const budget = makeLuaBudget({
       busyLimitMs: this.opts.busyLimitMs ?? BUSY_LIMIT_DEFAULT_MS,
       onLimit: (b) =>
@@ -124,8 +156,17 @@ export class ConsoleSession {
         ),
     });
     const tl = new LuaEnv();
-    tl.setLocal("_GLOBAL", env);
     try {
+      const { env: contextEnv, meta } = await this.contextEnvironment(page);
+      const env = this.localsFor(page);
+      tl.setLocal("_GLOBAL", env);
+      if (page !== null) {
+        tl.setLocal("currentPage", meta);
+        tl.setLocal("sourcePage", { name: page });
+      }
+      const parent = new LuaEnv(contextEnv);
+      parent.setLocal("_CTX", tl);
+      env.parent = parent;
       const parsed = parseInput(code, ref);
       if (parsed.kind === "invalid") throw parsed.error;
       const sf = new LuaStackFrame(tl, parsed.block.ctx, undefined, undefined, {

@@ -7,7 +7,7 @@ export type LogOrigin = { ref: string; from?: number };
 
 /** What gets logged: console input and its outcome, or a message from a source. */
 export type LogRecord =
-  | { kind: "input"; ref: string; code: string }
+  | { kind: "input"; ref: string; code: string; page?: string | null }
   | { kind: "result"; values: unknown[] }
   | { kind: "stopped" }
   | {

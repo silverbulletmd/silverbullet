@@ -1,5 +1,12 @@
 import type { ChildProcess } from "node:child_process";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Page } from "@playwright/test";
@@ -123,7 +130,9 @@ test("a collection publishes to another SilverBullet space, and removes a page t
     await approval.locator("#username").fill(USER);
     await approval.locator("#password").fill(PASSWORD);
     await approval.getByRole("button", { name: "Log in" }).click();
-    await approval.getByRole("button", { name: "Approve", exact: true }).click();
+    await approval
+      .getByRole("button", { name: "Approve", exact: true })
+      .click();
     await expect(approval.locator("body")).toContainText("Decision saved");
     await approval.close();
 

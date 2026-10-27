@@ -8,7 +8,7 @@ export type ActionDeps = {
   copyText: (text: string) => Promise<void>;
   /** Copies a value the way a `${…}` widget's Copy as Markdown does. */
   copyValue: (value: unknown) => Promise<void>;
-  rerun: (code: string) => Promise<void>;
+  rerun: (code: string, page: string | null) => Promise<void>;
 };
 
 export type EntryAction = Action<ActionDeps>;
@@ -30,7 +30,11 @@ export function entryActions(entry: LogEntry): EntryAction[] {
           : []),
         copy("Copy code", () => code),
         // Run again re-evaluates, like a widget's reload
-        { label: "Run again", icon: "reload", run: (deps) => deps.rerun(code) },
+        {
+          label: "Run again",
+          icon: "reload",
+          run: (deps) => deps.rerun(code, entry.page ?? null),
+        },
       ];
     }
     case "result": {

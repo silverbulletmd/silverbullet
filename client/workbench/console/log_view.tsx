@@ -106,6 +106,9 @@ function Row({ entry, ctx }: { entry: LogEntry; ctx: RowContext }) {
       return (
         <>
           <span className="sb-wb-icon">›</span>
+          {entry.page != null && (
+            <span className="sb-wb-muted">[{entry.page}]</span>
+          )}
           <pre className="sb-wb-code">
             {highlightLua(entry.code).map((seg, i) =>
               seg.cls ? (

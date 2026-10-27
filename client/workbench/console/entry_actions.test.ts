@@ -34,7 +34,7 @@ test("a statement input has no ${…} form and runs again", async () => {
   const input = e({ kind: "input", ref: "console#1", code: "local n = 1" });
   expect(labels(input)).toEqual(["Copy code", "Run again"]);
   const deps = await runAction(input, "Run again");
-  expect(deps.rerun).toHaveBeenCalledWith("local n = 1");
+  expect(deps.rerun).toHaveBeenCalledWith("local n = 1", null);
 });
 
 test("a single result copies as markdown", async () => {

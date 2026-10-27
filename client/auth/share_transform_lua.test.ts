@@ -84,7 +84,7 @@ describe("Share Transforms.md", () => {
 
   test("frontmatter is published as is, apart from share.*", async () => {
     const out = await transform(
-      '---\ntitle: T\nsecret.note: x\nshare.uri: u\ntags: pub\n---\nBody\n',
+      "---\ntitle: T\nsecret.note: x\nshare.uri: u\ntags: pub\n---\nBody\n",
     );
     expect(out).toBe("---\ntitle: T\nsecret.note: x\ntags: pub\n---\nBody\n");
   });

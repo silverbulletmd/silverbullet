@@ -7,6 +7,7 @@ import {
   WORKBENCH_VIEW,
 } from "../navigator/views/workbench.ts";
 import type { CommandHook } from "../plugos/hooks/command.ts";
+import { LuaEnv } from "../space_lua/runtime.ts";
 import { lintPages } from "../space_lint.ts";
 import { spaceLintDeps } from "../space_lint_deps.ts";
 import type { SlashCommand } from "../types/command.ts";
@@ -35,6 +36,20 @@ export function registerWorkbenchCommands(
   // Called while the client is still being set up, so its parts are read when used
   const session = new ConsoleSession({
     spaceEnv: () => client.clientSystem.spaceLuaEnv.env,
+    currentPage: () => client.currentName(),
+    pageContext: async (page) => {
+      const scope = await client.clientSystem.pageScopes.get(page);
+      if (scope?.firstError) throw new Error(scope.firstError);
+      return {
+        env:
+          scope?.env ??
+          new LuaEnv(client.clientSystem.spaceLuaEnv.env, { boundary: true }),
+        meta: {
+          ...(await client.objectIndex.getObjectByRef(page, "page", page)),
+          name: page,
+        },
+      };
+    },
     log: consoleLog,
     ui: () => client.ui,
   });

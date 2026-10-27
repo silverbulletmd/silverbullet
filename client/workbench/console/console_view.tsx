@@ -7,6 +7,9 @@ import {
   useState,
 } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
+import { openPopupMenu } from "../../components/popup_menu.ts";
+import { expandRefreshTriggers } from "../../navigator/refresh_triggers.ts";
+import type { ConsoleContext } from "./console_session.ts";
 import { copyValue } from "../../codemirror/widgets/directive_actions.ts";
 import { copyText, openRef } from "../shared/action.ts";
 import type { TabProps } from "../tab.ts";
@@ -30,6 +33,9 @@ const FLASH_MS = 1000;
 const STICKY_SLACK_PX = 8;
 
 export function ConsoleView({ client, session, focusTarget }: TabProps) {
+  const [context, setContext] = useState(session.context);
+  const [pageName, setPageName] = useState(() => client.currentName());
+  const closeContextMenu = useRef<() => void>();
   const [phrase, setPhrase] = useState("");
   const [source, setSource] = useState(0);
   const [entries, setEntries] = useState<LogEntry[]>(() => [
@@ -48,6 +54,20 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
       update.cancel();
     };
   }, []);
+
+  useEffect(() => {
+    const update = () => setPageName(client.currentName());
+    const events = expandRefreshTriggers(["navigate"]);
+    for (const event of events)
+      client.eventHook.addLocalListener(event, update);
+    update();
+    return () => {
+      for (const event of events)
+        client.eventHook.removeLocalListener(event, update);
+    };
+  }, [client]);
+
+  useEffect(() => () => closeContextMenu.current?.(), [context, pageName]);
 
   const visible = useMemo(
     () => filterEntries(entries, phrase, SOURCES[source].value),
@@ -109,7 +129,7 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
       actions: {
         copyText: (text) => copyText(client, text),
         copyValue: (value) => copyValue(client, value),
-        rerun: (code) => session.run(code),
+        rerun: (code, page) => session.run(code, page),
       },
       onOpen: (target) =>
         target.kind === "console"
@@ -139,12 +159,58 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
           takeFocus
           ariaLabel="Show entries from"
         />
+        <Button
+          class="sb-wb-context"
+          aria-label="Console context"
+          aria-haspopup="menu"
+          title={context === "space" ? "Space" : `Current page: ${pageName}`}
+          onClick={(e) => {
+            const anchor = e.currentTarget;
+            if (anchor.getAttribute("aria-expanded") === "true") {
+              closeContextMenu.current?.();
+              return;
+            }
+            closeContextMenu.current = openPopupMenu<ConsoleContext>(
+              anchor,
+              [
+                {
+                  kind: "item",
+                  id: "space",
+                  label: "Space",
+                  icon: "",
+                  current: context === "space",
+                },
+                {
+                  kind: "item",
+                  id: "page",
+                  label: `Current page: ${pageName}`,
+                  icon: "",
+                  current: context === "page",
+                },
+              ],
+              (next) => {
+                session.context = next;
+                setContext(next);
+                anchor.focus();
+              },
+            );
+          }}
+        >
+          {context === "space" ? "Space" : "Page"}{" "}
+          <span aria-hidden="true">▾</span>
+        </Button>
         <Button onClick={() => consoleLog.clear()}>Clear</Button>
       </div>
       <div className="sb-workbench-body" ref={body} onScroll={onScroll}>
         <LogView entries={visible} ctx={rowContext} />
       </div>
-      <ReplInput client={client} session={session} focusTarget={focusTarget} />
+      <ReplInput
+        client={client}
+        session={session}
+        focusTarget={focusTarget}
+        context={context}
+        pageName={pageName}
+      />
     </div>
   );
 }

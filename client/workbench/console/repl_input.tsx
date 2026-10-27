@@ -1,6 +1,7 @@
 import {
   autocompletion,
   closeBrackets,
+  closeCompletion,
   closeBracketsKeymap,
   completionStatus,
 } from "@codemirror/autocomplete";
@@ -20,7 +21,11 @@ import type { FocusTarget } from "../../navigator/ui/native_views.ts";
 import { luaLanguage } from "../../space_lua/parse.ts";
 import { editorHighlightStyle } from "../../style.ts";
 import { replCompletionSource } from "../shared/repl_completion.ts";
-import { type ConsoleSession, isIncompleteInput } from "./console_session.ts";
+import {
+  type ConsoleContext,
+  type ConsoleSession,
+  isIncompleteInput,
+} from "./console_session.ts";
 import { historyKey, historyStore, InputHistory } from "./history.ts";
 import { replCommandBindings } from "./repl_keys.ts";
 
@@ -28,9 +33,13 @@ export function ReplInput({
   client,
   session,
   focusTarget,
+  context,
+  pageName,
 }: {
   client: Client;
   session: ConsoleSession;
+  context: ConsoleContext;
+  pageName: string;
   /** Receives the editor's content element, which takes focus when the panel does. */
   focusTarget: FocusTarget;
 }) {
@@ -111,7 +120,7 @@ export function ReplInput({
         closeBrackets(),
         // autocompletion() installs its keymap at highest precedence, so an open list takes Enter and arrows first
         autocompletion({
-          override: [replCompletionSource(() => session.env())],
+          override: [replCompletionSource(() => session.completionEnv())],
         }),
         Prec.high(replKeymap),
         // App shortcuts outrank the default editing keymap (Mod-/ opens the palette, not toggles a comment)
@@ -129,6 +138,10 @@ export function ReplInput({
       view.destroy();
     };
   }, [client, session]);
+
+  useEffect(() => {
+    if (viewRef.current) closeCompletion(viewRef.current);
+  }, [context, pageName]);
 
   // Its own effect: switching tabs swaps `focusTarget` without recreating the editor
   useEffect(() => {
