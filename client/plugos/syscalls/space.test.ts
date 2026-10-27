@@ -10,6 +10,7 @@ async function activityUrl(...args: (number | undefined)[]): Promise<string> {
       }),
   );
   const client = {
+    bootConfig: { revisions: "managed" },
     httpSpacePrimitives: { url: "http://host/.fs", authenticatedFetch },
   } as unknown as Client;
   const syscall = spaceReadSyscalls(client)["space.getActivity"] as any;
@@ -24,6 +25,39 @@ test("space.getActivity builds the _activity URL with only the given params", as
   );
   expect(await activityUrl()).toMatch(/\/\.revisions\/_activity$/);
 });
+
+test.each(["disabled", undefined])(
+  "revision reads skip HTTP when boot config reports %s revisions",
+  async (revisions) => {
+    const authenticatedFetch = vi.fn(async () => Response.json({}));
+    const client = {
+      bootConfig: { revisions },
+      httpSpacePrimitives: { url: "http://host/.fs", authenticatedFetch },
+    } as unknown as Client;
+    const syscalls = spaceReadSyscalls(client);
+    for (const name of ["space.getActivity", "space.getGitSyncStatus"]) {
+      const syscall = syscalls[name] as any;
+      await expect(syscall.callback({})).rejects.toMatchObject({ status: 404 });
+    }
+    expect(authenticatedFetch).not.toHaveBeenCalled();
+  },
+);
+
+test.each(["managed", "unmanaged"])(
+  "Git sync status still loads with %s revisions in a read-only space",
+  async (revisions) => {
+    const authenticatedFetch = vi.fn(async () =>
+      Response.json({ enabled: false }),
+    );
+    const client = {
+      bootConfig: { revisions, readOnly: true },
+      httpSpacePrimitives: { url: "http://host/.fs", authenticatedFetch },
+    } as unknown as Client;
+    const syscall = spaceReadSyscalls(client)["space.getGitSyncStatus"] as any;
+    expect(await syscall.callback({})).toEqual({ enabled: false });
+    expect(authenticatedFetch.mock.calls).toHaveLength(1);
+  },
+);
 
 function mergeSyscall(response: Response) {
   const authenticatedFetch = vi.fn(

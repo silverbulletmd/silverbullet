@@ -46,6 +46,16 @@ async function fetchRevisionsJson(
   suffix: string,
   body?: unknown,
 ): Promise<any> {
+  // Public visitors have revisions hidden in boot config; probing would trigger login.
+  if (
+    !client.bootConfig.revisions ||
+    client.bootConfig.revisions === "disabled"
+  ) {
+    throw Object.assign(
+      new Error("Revisions are not available for this space"),
+      { status: 404 },
+    );
+  }
   const resp = await client.httpSpacePrimitives.authenticatedFetch(
     revisionsUrl(client, suffix),
     {
