@@ -98,7 +98,8 @@ function spliceMarkdownLink(
 ): string {
   // [text](url) or [text](<url with spaces>)
   const slice = text.substring(start, end);
-  const m = slice.match(/^(\[[^\]]*\]\()(<)?([^)]*?)(>)?(\))$/);
+  // The indexed range already identifies the full link, including nested parentheses.
+  const m = slice.match(/^(\[[^\]]*\]\()(<)?(.*?)(>)?(\))$/);
   if (!m) return text;
   const [, leftBracketText, openAngle, urlBody, closeAngle, closeParen] = m;
   if (!!openAngle !== !!closeAngle) return text; // mismatched < >
