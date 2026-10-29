@@ -5,7 +5,7 @@ Implements the API for defining identities addressable with `@name`.
 # API
 
 ## identity.define(def)
-Defines an identity. Options:
+Defines an identity. Repeated calls with the same `name` merge (set a field to `config.unset` to remove it). Options:
 * `name` _(required)_: the name it is addressed by, without the `@`. Matched case-insensitively.
 * `description`: shown beside the name in autocomplete.
 
@@ -40,7 +40,7 @@ identity.define {
 identity = identity or {}
 
 function identity.define(spec)
-  config.set({"identities", spec.name}, spec)
+  config.merge({"identities", spec.name}, spec)
 end
 
 -- The identity the current user is, or nil when the space does not know.

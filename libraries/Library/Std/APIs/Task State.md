@@ -5,7 +5,7 @@ Implements APIs for defining custom task states. Currently extremely basic.
 # API
 
 ## taskState.define(def)
-Defines a custom task state. Options:
+Defines a custom task state. Repeated calls with the same `name` merge (set a field to `config.unset` to remove it). Options:
 * `name` _(required)_: name of the state
 * `done`: whether or not the state should be considered "done", used by the `Task: Remove Completed` command and for filtering via `t.done` in queries
 * `order`: numeric value controlling the cycle order when toggling between states (lower values come first)
@@ -34,6 +34,6 @@ taskState.define {
 taskState = taskState or {}
 
 function taskState.define(spec)
-  config.set({"taskStates", spec.name}, spec)
+  config.merge({"taskStates", spec.name}, spec)
 end
 ```

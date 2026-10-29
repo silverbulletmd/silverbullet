@@ -5,7 +5,7 @@ tags: meta/api
 
 # API
 ## syntax.define(spec)
-Registers a custom syntax extension. The extension will be active after the next editor state rebuild (e.g. on page reload or config change).
+Registers a custom syntax extension. The extension will be active after the next editor state rebuild (e.g. on page reload or config change). Repeated calls with the same `name` merge (set a field to `config.unset` to remove it), so `startMarker`, `endMarker` and `mode` can come from an earlier call.
 
 Available keys:
 * `name`: AST node name (e.g. "LatexBlock")
@@ -26,9 +26,15 @@ syntax = syntax or {}
 
 function syntax.define(spec)
   if not spec.name then error("syntax.define requires 'name'") end
-  if not spec.startMarker then error("syntax.define requires 'startMarker'") end
-  if not spec.endMarker then error("syntax.define requires 'endMarker'") end
-  if not spec.mode then error("syntax.define requires 'mode'") end
-  config.set({"syntaxExtensions", spec.name}, spec)
+  -- Required fields may come from an earlier definition of the same name
+  local existing = config.get({"syntaxExtensions", spec.name}, {})
+  for _, key in ipairs({"startMarker", "endMarker", "mode"}) do
+    local value = spec[key]
+    if value == nil then value = existing[key] end
+    if value == nil or value == config.unset then
+      error("syntax.define requires '" .. key .. "'")
+    end
+  end
+  config.merge({"syntaxExtensions", spec.name}, spec)
 end
 ```

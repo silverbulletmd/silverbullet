@@ -128,6 +128,27 @@ Appends a value to the configuration array at a path.
 - `path` — Configuration path.
 - `value` — Value to append.
 
+## config.merge
+
+`config.merge(path, values)`
+
+Shallow-merges a table into the table at a path: given fields replace existing ones, fields set to config.unset are removed, and other existing fields are kept.
+
+**Parameters:**
+
+- `path` — Configuration path.
+- `values` (`table`) — Fields to merge in.
+
+**Examples:**
+
+```lua
+config.merge({"commands", "Say hello"}, {key = "Ctrl-Alt-h"})
+```
+
+```lua
+config.merge({"commands", "Say hello"}, {key = config.unset})
+```
+
 ## config.set
 
 `config.set(path, value)`
@@ -195,6 +216,22 @@ Nested schemas can carry their own `ui` annotations. When a parent object's chil
 
 Registered categories appear in descending `priority`, with higher values first. A category's optional `description` appears at the top of the category. Categories referenced by a schema but never registered appear after registered categories in alphabetical order.
 
+
+## Merging and removing values
+
+`config.merge(path, values)` shallow-merges a table into the table at `path`: fields in `values` replace existing ones, and all other existing fields are kept. This is what the `*.define` APIs (`command.define`, `tag.define`, `taskState.define` etc.) use, so calling them again with the same name adds to or overrides an earlier definition rather than replacing it.
+
+Lua tables can't hold `nil`, so to remove a field set it to the special `config.unset` value:
+
+```lua
+-- Removes the key binding from an earlier definition, keeps everything else
+command.define {
+  name = "My custom command",
+  key = config.unset,
+}
+```
+
+`config.set(path, config.unset)` removes the value at `path` altogether.
 
 ## Writing the CONFIG page
 

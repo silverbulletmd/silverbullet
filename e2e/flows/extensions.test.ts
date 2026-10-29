@@ -232,6 +232,61 @@ test.describe("Lua picker", () => {
   });
 });
 
+const mergeConfig = `# Merged definitions
+\`\`\`space-lua
+command.define {
+  name = "Fixture: Merge",
+  key = "Ctrl-Alt-m",
+  hide = true,
+  run = function() return "merged" end,
+}
+command.define { name = "Fixture: Merge", hide = config.unset, priority = 5 }
+tag.define { name = "mergetag", schema = { type = "object" } }
+tag.define { name = "mergetag", mustValidate = true }
+syntax.define { name = "FixtureMark", startMarker = "%%", endMarker = "%%", mode = "inline" }
+syntax.define { name = "FixtureMark", bodyClass = "fixture-mark" }
+\`\`\`
+`;
+
+test.describe("merged define calls", () => {
+  test.use({
+    spaceFiles: { "index.md": "Welcome", "CONFIG.md": mergeConfig },
+  });
+
+  test("repeated *.define calls merge fields and config.unset removes them", async ({
+    sbPage,
+  }) => {
+    const evalLua = (code: string) =>
+      sbPage.evaluate((c) => (globalThis as any).sbRuntime.evalLua(c), code);
+    await expect
+      .poll(
+        () => evalLua('config.get({"commands", "Fixture: Merge", "priority"})'),
+        {
+          timeout: 20_000,
+        },
+      )
+      .toBe(5);
+    expect(
+      await evalLua(
+        'config.get({"commands", "Fixture: Merge", "key"}) .. "|" .. tostring(config.has("commands.Fixture: Merge.hide"))',
+      ),
+    ).toBe("Ctrl-Alt-m|false");
+    expect(await evalLua('editor.invokeCommand("Fixture: Merge")')).toBe(
+      "merged",
+    );
+    expect(
+      await evalLua(
+        'config.get({"tags", "mergetag", "schema", "type"}) .. "|" .. tostring(config.get({"tags", "mergetag", "mustValidate"}))',
+      ),
+    ).toBe("object|true");
+    expect(
+      await evalLua(
+        'config.get({"syntaxExtensions", "FixtureMark", "mode"}) .. "|" .. config.get({"syntaxExtensions", "FixtureMark", "bodyClass"})',
+      ),
+    ).toBe("inline|fixture-mark");
+  });
+});
+
 test.describe("configuration extension", () => {
   test.use({ spaceFiles: { "index.md": "Workspace text" } });
 

@@ -35,16 +35,16 @@ When multiple frontmatter tags define a renderer, the first matching tag in the 
 tag = tag or {}
 
 function tag.define(spec)
-  local finalSpec = config.get({"tags", spec.name}, {})
+  local fields = {}
   local metatable = nil
   for k, v in pairs(spec) do
-    if k == "metatable" then
+    if k == "metatable" and v ~= config.unset then
       metatable = v
     else
-      finalSpec[k] = v
+      fields[k] = v
     end
   end
-  config.set({"tags", spec.name}, finalSpec)
+  config.merge({"tags", spec.name}, fields)
   if metatable then
     config.setLuaValue({"tags", spec.name, "metatable"}, metatable)
   end

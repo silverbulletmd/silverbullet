@@ -7,7 +7,7 @@ API to define custom renderers for fenced code blocks (code widgets) from Space 
 # API
 
 ## codeWidget.define(def)
-Registers a renderer for fenced code blocks of a given language.
+Registers a renderer for fenced code blocks of a given language. Repeated calls for the same `language` merge (set a field to `config.unset` to remove it).
 
 Available keys:
 
@@ -57,6 +57,6 @@ Most of the heavy lifting happens in SB itself. This is just a thin wrapper arou
 codeWidget = codeWidget or {}
 
 function codeWidget.define(def)
-  config.set({"codeWidgets", def.language}, def)
+  config.merge({"codeWidgets", def.language}, def)
 end
 ```

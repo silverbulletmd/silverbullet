@@ -7,7 +7,7 @@ Virtual pages are (read-only) pages that don't actually exist in your space, but
 # API
 
 ## virtualPage.define(def)
-Defines a virtual page for specified pattern. Options:
+Defines a virtual page for specified pattern. Repeated calls with the same `pattern` merge (set a field to `config.unset` to remove it). Options:
 * `pattern`: a Lua regular expression, e.g. `"myprefix:(.+)"` the captured groups will be passed as arguments to the `run` function
 * `run`: a callback function where each captured group in the regex will be passed as an argument
 
@@ -31,7 +31,7 @@ virtualPage = virtualPage or {}
 --   pattern
 --   run()
 function virtualPage.define(def)
-  config.set({"virtualPages", def.pattern}, def)
+  config.merge({"virtualPages", def.pattern}, def)
 end
 ```
 

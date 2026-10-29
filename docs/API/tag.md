@@ -29,7 +29,7 @@ Defines a tag explicitly.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
 * `renderFrontmatter` callback function `function(pageMeta)` that renders the [[Frontmatter]] of pages with this tag as a custom widget in the editor. See [[#Frontmatter live previews]].
 
-When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback.
+When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback. To remove a field set by an earlier call, set it to `config.unset` (e.g. `tag.define { name = "person", transform = config.unset }`).
 
 This is a very powerful API, with a wide range of potential use cases.
 

@@ -8,7 +8,7 @@ APIs to define and patch commands and slash commands.
 # API
 
 ## command.define(commandDef)
-Registers a command.
+Registers a command. Calling it again with the same `name` merges the new fields into the existing definition; set a field to `config.unset` to remove it.
 
 Available keys:
 
@@ -33,7 +33,7 @@ command.define {
 ```
 
 ## command.update(commandDef)
-Equivalent to `command.define`, but can be used to update the definition of previously defined commands (including built-in ones).
+Equivalent to `command.define`. Kept for compatibility; use it to update the definition of previously defined commands (including built-in ones).
 
 Example:
 
@@ -51,10 +51,16 @@ command.update {
   key = "",
   mac = "",
 }
+
+-- To remove a field from an existing definition
+command.define {
+  name = "My custom command",
+  priority = config.unset,
+}
 ```
 
 ## slashCommand.define(spec)
-Defines a custom slash command.
+Defines a custom slash command. Like `command.define`, repeated calls with the same `name` merge.
 
 Supported keys in the spec:
 
@@ -85,18 +91,14 @@ slashCommand = slashCommand or {}
 slashcommand = slashCommand
 
 function command.define(def)
-  config.set({"commands", def.name}, def)
+  config.merge({"commands", def.name}, def)
 end
 
 function command.update(newDef)
-  local def = config.get({"commands", newDef.name}, {})
-  for k, v in pairs(newDef) do
-    def[k] = v
-  end
-  config.set({"commands", newDef.name}, def)
+  config.merge({"commands", newDef.name}, newDef)
 end
 
 function slashCommand.define(def)
-  config.set({"slashCommands", def.name}, def)
+  config.merge({"slashCommands", def.name}, def)
 end
 ```

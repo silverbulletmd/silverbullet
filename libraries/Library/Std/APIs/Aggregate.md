@@ -54,7 +54,7 @@ This allows parameterized aggregates, for example a separator argument for strin
 
 ## aggregate.update(spec)
 
-Updates an existing aggregate definition. Same keys as `aggregate.define`. Only the provided keys are overwritten.
+Updates an existing aggregate definition. Same keys as `aggregate.define`. Only the provided keys are overwritten; set a key to `config.unset` to remove it (e.g. `finish = config.unset`). Unlike other `*.define` APIs, `aggregate.define` still replaces the whole definition.
 
 ## aggregate.alias(name, target, description?)
 
@@ -217,7 +217,11 @@ function aggregate.update(spec)
   local existing = config.get({'aggregates', spec.name}, {})
 
   for k, v in pairs(spec) do
-    existing[k] = v
+    if v == config.unset then
+      existing[k] = nil
+    else
+      existing[k] = v
+    end
   end
 
   if not existing.initialize then
