@@ -701,7 +701,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
         options: FilterOption[],
         helpText = "",
         placeHolder = "",
-        opts: FilterBoxOptions = {},
+        // Null as well as undefined: a plug may send an explicit null
+        opts?: FilterBoxOptions | null,
       ): Promise<FilterOption | undefined> => {
         return client.ui.filterBox(
           label,

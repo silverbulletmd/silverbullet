@@ -76,7 +76,6 @@ test.describe("frontmatter live preview", () => {
       "index.md": "Welcome",
       "CONFIG.md": `# Configuration
 \`\`\`space-lua
-config.set("frontmatterFolding", { foldByDefault = "always" })
 tag.define {
   name = "team",
   renderFrontmatter = function(pageMeta)

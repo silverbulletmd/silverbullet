@@ -113,7 +113,15 @@ export type WidgetHost =
   | { kind: "directive"; wrappers: InlineWrapper[]; label?: string }
   | { kind: "code"; codeText: string }
   | { kind: "transclusion"; codeText: string; openRef: Ref | null }
-  | { kind: "frontmatter"; editPos: number; definitionRef: Ref | null }
+  // A tag-rendered object (frontmatter, data block): Edit source goes to its
+  // YAML, wherever that is by then
+  | {
+      kind: "object";
+      editPos: () => number | undefined;
+      definitionRef: Ref | null;
+      /** Deletes the whole object from the page; only frontmatter has it */
+      remove?: () => Promise<void>;
+    }
   // Legacy hooks:renderTopWidgets/BottomWidgets: a captured result
   | { kind: "panel"; definitionRef: Ref | null };
 
@@ -145,14 +153,14 @@ export function widgetCaps(
   const assignment = host.kind === "directive" && !!host.label;
   return {
     definition:
-      (host.kind === "frontmatter" || host.kind === "panel") &&
-      !!host.definitionRef,
+      (host.kind === "object" || host.kind === "panel") && !!host.definitionRef,
     open: host.kind === "transclusion" && !!host.openRef,
     edit: host.kind !== "panel" && !env.readOnly,
     query:
       directive && !assignment && /^\s*query\s*\[/.test(env.expression ?? ""),
-    copy: host.kind !== "frontmatter" && shown.copyable,
+    copy: host.kind !== "object" && shown.copyable,
     bake: directive && !assignment && shown.bakeable && !shown.luaError,
+    remove: host.kind === "object" && !!host.remove && !env.readOnly,
   };
 }
 
@@ -214,7 +222,7 @@ export class LuaWidget extends WidgetType {
         console.error("Live widget reload failed", e),
       );
     });
-    if (this.inPage) {
+    if (this.cachesResult) {
       this.prewarm().catch(() => {
         // Ignore: rendering re-awaits the same promise and handles errors
       });
@@ -225,15 +233,15 @@ export class LuaWidget extends WidgetType {
     return this.opts.cacheKey;
   }
 
-  private get inPage(): boolean {
-    return this.opts.host.kind !== "panel";
+  private get cachesResult(): boolean {
+    const kind = this.opts.host.kind;
+    // Editable DOM and its callbacks belong to a mount, never a source cache.
+    return kind !== "panel" && kind !== "object";
   }
 
   private get renderEmpty(): boolean {
     const kind = this.opts.host.kind;
-    return (
-      kind === "directive" || kind === "transclusion" || kind === "frontmatter"
-    );
+    return kind === "directive" || kind === "transclusion" || kind === "object";
   }
 
   /** The widget's source in the page, for Alt-click and Edit source. */
@@ -252,7 +260,9 @@ export class LuaWidget extends WidgetType {
   }
 
   invalidatePrewarm() {
-    this.opts.client.widgetCache.invalidatePrewarm(this.opts.cacheKey);
+    if (this.cachesResult) {
+      this.opts.client.widgetCache.invalidatePrewarm(this.opts.cacheKey);
+    }
   }
 
   private prewarm(): Promise<LuaWidgetContent | null> {
@@ -368,19 +378,19 @@ export class LuaWidget extends WidgetType {
     // What this render reads: a change to any of it refreshes it
     const triggers = new Set<string>();
     const track = (event: string) => triggers.add(event);
-    let value = this.inPage
+    let value = this.cachesResult
       ? await this.prewarm()
       : await this.opts.callback(
           this.opts.expressionText,
           client.currentName(),
           track,
         );
-    if (this.inPage) {
+    if (this.cachesResult) {
       for (const t of client.widgetCache.triggers(cacheKey)) triggers.add(t);
     }
     if (version !== this.renderVersion) return;
     // A cached result was computed when its entry was created, maybe earlier
-    const computedAt = this.inPage
+    const computedAt = this.cachesResult
       ? (client.widgetCache.computedAt(cacheKey) ?? startedAt)
       : startedAt;
     activeWidgets.add(this);
@@ -488,7 +498,7 @@ export class LuaWidget extends WidgetType {
     attachWidgetEventHandlers(
       div,
       client,
-      this.inPage ? this.sourceText : undefined,
+      this.cachesResult ? this.sourceText : undefined,
     );
     this.scope.add(bindWidgetEvents(div, rendered.chrome.events));
 
@@ -578,7 +588,7 @@ export class LuaWidget extends WidgetType {
     switch (id) {
       case "definition":
         if (
-          (host.kind === "frontmatter" || host.kind === "panel") &&
+          (host.kind === "object" || host.kind === "panel") &&
           host.definitionRef
         ) {
           await client.navigate(host.definitionRef);
@@ -590,8 +600,10 @@ export class LuaWidget extends WidgetType {
         }
         return;
       case "edit":
-        if (host.kind === "frontmatter") {
-          client.editorView.dispatch({ selection: { anchor: host.editPos } });
+        if (host.kind === "object") {
+          const anchor = host.editPos();
+          if (anchor === undefined) return;
+          client.editorView.dispatch({ selection: { anchor } });
           client.focus();
         } else if (this.dom) {
           moveCursorToWidgetStart(client, this.dom, this.sourceText);
@@ -622,6 +634,9 @@ export class LuaWidget extends WidgetType {
         if (target) await bakeDirective(client, target, this.shownValue);
         return;
       }
+      case "remove":
+        if (host.kind === "object") await host.remove?.();
+        return;
     }
   }
 

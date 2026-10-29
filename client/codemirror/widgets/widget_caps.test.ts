@@ -19,6 +19,7 @@ test("a ${…} directive offers everything", () => {
     query: false,
     copy: true,
     bake: true,
+    remove: false,
   });
 });
 
@@ -65,11 +66,22 @@ test("each host's own rules", () => {
   ).toMatchObject({ open: true });
   expect(
     widgetCaps(
-      { kind: "frontmatter", editPos: 4, definitionRef: ref },
+      { kind: "object", editPos: () => 4, definitionRef: ref },
       shown,
       env,
     ),
-  ).toMatchObject({ definition: true, copy: false, edit: true });
+  ).toMatchObject({ definition: true, copy: false, edit: true, remove: false });
+  // Only an object that can be deleted, and not read-only
+  const frontmatter = {
+    kind: "object" as const,
+    editPos: () => 4,
+    definitionRef: null,
+    remove: async () => {},
+  };
+  expect(widgetCaps(frontmatter, shown, env).remove).toBe(true);
+  expect(
+    widgetCaps(frontmatter, shown, { ...env, readOnly: true }).remove,
+  ).toBe(false);
   expect(
     widgetCaps({ kind: "panel", definitionRef: ref }, shown, env),
   ).toMatchObject({ definition: true, edit: false });

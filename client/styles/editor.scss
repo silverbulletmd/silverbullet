@@ -193,24 +193,6 @@ $comment-border: 1px;
     border: 0;
   }
 
-  .cm-frontmatterFoldPlaceholder {
-    box-sizing: border-box;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 3px;
-    padding: 2px 7px !important;
-    user-select: none;
-    width: 100%;
-  }
-
-  .cm-frontmatterFoldStatus {
-    color: var(--subtle-color);
-    font-size: 0.85em;
-    margin-left: 0.4em;
-    opacity: 0.75;
-  }
-
   .sb-line-comment {
     --sb-inline-comment-indent: calc(3 * var(--editor-column));
   }
@@ -539,7 +521,6 @@ $comment-border: 1px;
     font-weight: normal;
   }
 
-
   .sb-table-widget {
     display: inline-block;
     vertical-align: top;
@@ -671,10 +652,20 @@ $comment-border: 1px;
   }
 
   // Padding, not margin: CodeMirror doesn't count a block widget's margins in its height, which shifts every click below it.
-  .sb-frontmatter-preview {
+  .sb-object-preview {
     width: 100%;
     padding-bottom: 10px;
     white-space: normal;
+
+    .sb-object-preview-item + .sb-object-preview-item {
+      margin-top: 6px;
+    }
+
+    // Row menus sit left of the widget's own ⋯ (top right), so the two never
+    // stack, also with touch-sized hit areas
+    .sb-fm-aside {
+      padding-right: 46px;
+    }
 
     .sb-lua-wrapper {
       display: block;
@@ -689,6 +680,111 @@ $comment-border: 1px;
       > div > .content {
         overflow: visible;
       }
+    }
+
+    // The widget's ⋯ sits inside the form's rounded border, on the form's own
+    // background, rather than as a tab over its corner
+    .sb-widget-menu-bar {
+      top: 4px;
+      right: 4px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+    }
+  }
+
+  // "frontmatter" in the form's top-right corner, where the widget's ⋯ shows
+  // instead while the form is hovered or focused
+  .sb-frontmatter-preview {
+    position: relative;
+
+    > .sb-object-preview-label {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      padding-right: 7px;
+      color: var(--editor-frontmatter-marker-color);
+      font-size: 80%;
+      opacity: 0.8;
+      pointer-events: none;
+      user-select: none;
+      transition: opacity 0.12s;
+    }
+
+    &:not(:hover):not(:focus-within) .sb-widget-menu-bar {
+      visibility: hidden;
+    }
+
+    &:is(:hover, :focus-within) > .sb-object-preview-label {
+      opacity: 0;
+    }
+
+    // The label is wider than the ⋯ the rows' asides leave room for; the
+    // first row's value stops short of it
+    .sb-fm-form > .sb-fm-row:first-child > .sb-fm-value {
+      margin-right: 2em;
+    }
+  }
+
+  // Touch screens always show the ⋯ menus, so the label would cover them
+  @media (hover: none) {
+    .sb-frontmatter-preview {
+      > .sb-object-preview-label {
+        display: none;
+      }
+
+      .sb-fm-form > .sb-fm-row:first-child > .sb-fm-value {
+        margin-right: 0;
+      }
+
+      &:not(:hover):not(:focus-within) .sb-widget-menu-bar {
+        visibility: visible;
+      }
+    }
+  }
+
+  .sb-frontmatter-marker {
+    float: right;
+    font-size: 80%;
+    opacity: 0.8;
+    padding-right: 7px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  // The ghost tag icon of a page without frontmatter: an overlay in the left
+  // padding, level with line 1's first row and as tall as it, styled like the
+  // form's add line. It reserves no space; the plugin places it and shows it
+  // on hover only.
+  .cm-scroller > .sb-frontmatter-ghost {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    font-size: 0.9em;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s;
+
+    &[hidden] {
+      display: none;
+    }
+
+    &.sb-frontmatter-ghost-shown {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  // Touch screens have no hover to reveal it
+  @media (hover: none) {
+    .cm-scroller > .sb-frontmatter-ghost {
+      display: none;
     }
   }
 
@@ -1197,20 +1293,6 @@ $comment-border: 1px;
     &[aria-expanded="true"] {
       opacity: 1;
     }
-  }
-
-  .sb-frontmatter-marker {
-    cursor: pointer;
-    float: right;
-    font-size: 80%;
-    opacity: 0.8;
-    padding-right: 7px;
-    user-select: none;
-  }
-
-  .sb-frontmatter-marker:hover,
-  .sb-frontmatter-marker:focus-visible {
-    opacity: 1;
   }
 
   .cm-scroller {

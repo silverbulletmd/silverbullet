@@ -1,11 +1,6 @@
-import {
-  foldEffect,
-  foldedRanges,
-  syntaxTree,
-  unfoldEffect,
-} from "@codemirror/language";
+import { syntaxTree } from "@codemirror/language";
 import type { EditorState } from "@codemirror/state";
-import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
+import { Decoration, WidgetType } from "@codemirror/view";
 import type { Client } from "../../client.ts";
 import {
   frontmatterMailtoRegex,
@@ -16,72 +11,24 @@ import {
 import { decoratorStateField, isCursorInRange, LinkWidget } from "../util.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
-class FrontmatterMarkerWidget extends WidgetType {
-  constructor(
-    private readonly from: number,
-    private readonly to: number,
-    private readonly folded: boolean,
-  ) {
-    super();
-  }
-
-  toDOM(view: EditorView): HTMLElement {
-    const marker = document.createElement("span");
-    marker.className = "sb-frontmatter-marker";
-    marker.role = "button";
-    marker.tabIndex = 0;
-    marker.title = this.folded ? "Unfold frontmatter" : "Fold frontmatter";
-    marker.setAttribute(
-      "aria-label",
-      this.folded ? "Unfold frontmatter" : "Fold frontmatter",
-    );
-    marker.textContent = `${this.folded ? "◂" : "▾"} frontmatter`;
-
-    const toggleFold = (event: Event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      view.dispatch({
-        effects: (this.folded ? unfoldEffect : foldEffect).of({
-          from: this.from,
-          to: this.to,
-        }),
-      });
-      view.focus();
-    };
-
-    marker.addEventListener("click", toggleFold);
-    marker.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        toggleFold(event);
-      }
-    });
-    return marker;
+/** "frontmatter", in the top-right corner of frontmatter shown as YAML */
+class FrontmatterLabelWidget extends WidgetType {
+  toDOM(): HTMLElement {
+    const label = document.createElement("span");
+    label.className = "sb-frontmatter-marker";
+    label.setAttribute("aria-hidden", "true");
+    label.textContent = "frontmatter";
+    return label;
   }
 
   override eq(other: WidgetType): boolean {
-    return (
-      other instanceof FrontmatterMarkerWidget &&
-      other.from === this.from &&
-      other.to === this.to &&
-      other.folded === this.folded
-    );
+    return other instanceof FrontmatterLabelWidget;
   }
 }
 
-function hasExactFoldedRange(
-  state: EditorState,
-  from: number,
-  to: number,
-): boolean {
-  const folded = foldedRanges(state).iter();
-  while (folded.value) {
-    if (folded.from === from && folded.to === to) {
-      return true;
-    }
-    folded.next();
-  }
-  return false;
-}
+const frontmatterLabel = Decoration.widget({
+  widget: new FrontmatterLabelWidget(),
+});
 
 export function shouldRenderFrontmatterLivePreview({
   state,
@@ -103,46 +50,21 @@ export function shouldRenderFrontmatterLivePreview({
 export function frontmatterPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
-    const foldRanges = foldedRanges(state);
     const shortWikiLinks = client.config.get("shortWikiLinks", true);
 
     syntaxTree(state).iterate({
       enter(node) {
         if (node.name === "FrontMatterMarker") {
           const parent = node.node.parent!;
-          const frontmatterFolded = hasExactFoldedRange(
-            state,
-            parent.from,
-            parent.to,
-          );
-
-          const folded = foldRanges.iter();
-          let shouldShowFrontmatterBanner = false;
-          while (folded.value) {
-            if (isCursorInRange(state, [folded.from, folded.to])) {
-              shouldShowFrontmatterBanner = true;
-              break;
-            }
-            folded.next();
-          }
           if (!isCursorInRange(state, [parent.from, parent.to])) {
             widgets.push(
               Decoration.line({
                 class: "sb-line-frontmatter-outside",
               }).range(node.from),
             );
-            shouldShowFrontmatterBanner = true;
           }
-          if (shouldShowFrontmatterBanner && parent.from === node.from) {
-            widgets.push(
-              Decoration.widget({
-                widget: new FrontmatterMarkerWidget(
-                  parent.from,
-                  parent.to,
-                  frontmatterFolded,
-                ),
-              }).range(node.from),
-            );
+          if (parent.from === node.from) {
+            widgets.push(frontmatterLabel.range(node.from));
           }
         }
 

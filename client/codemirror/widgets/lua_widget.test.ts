@@ -186,7 +186,7 @@ test("an in-page widget can edit a known source position without searching its t
     cacheKey: "frontmatter",
     expressionText: "",
     callback: someValue,
-    host: { kind: "frontmatter", editPos: 4, definitionRef: null },
+    host: { kind: "object", editPos: () => 4, definitionRef: null },
   });
   const root = await show(widget, NONE);
   expect(openMenu(root)).toEqual(["edit", "reload"]);
@@ -218,8 +218,8 @@ test("an in-page inline widget keeps its unwrapped content", async () => {
     expressionText: "",
     callback: someValue,
     host: {
-      kind: "frontmatter",
-      editPos: 4,
+      kind: "object",
+      editPos: () => 4,
       definitionRef: { path: "Test/Page.md" },
     },
   });
@@ -239,7 +239,7 @@ test("read-only mode leaves Copy and Reload but no editing actions", async () =>
   expect(openMenu(await show(widget, BOTH))).toEqual(["reload", "copy"]);
 });
 
-test("a frontmatter-style widget offers Go to definition before Edit, and no Copy", async () => {
+test("an object widget offers Go to definition before Edit, and no Copy", async () => {
   const navigate = vi.fn(async () => {});
   const ref = { path: "CONFIG.md" } as Ref;
   const widget = new LuaWidget({
@@ -247,7 +247,7 @@ test("a frontmatter-style widget offers Go to definition before Edit, and no Cop
     cacheKey: "frontmatter",
     expressionText: "",
     callback: someValue,
-    host: { kind: "frontmatter", editPos: 4, definitionRef: ref },
+    host: { kind: "object", editPos: () => 4, definitionRef: ref },
   });
   const root = await show(widget, BOTH);
   expect(openMenu(root)).toEqual(["definition", "edit", "reload"]);
@@ -481,4 +481,25 @@ test("a sandbox offers only Edit and Reload", async () => {
   const sandbox = { kind: "sandbox", bakeable: false } as const;
   const plain = directiveWidget("widget.sandbox(s)").widget;
   expect(openMenu(await show(plain, sandbox))).toEqual(["edit", "reload"]);
+});
+
+test("editable object renders never reuse prewarmed DOM", async () => {
+  const prewarmResult = vi.fn(async () => "cached");
+  const callback = vi.fn(async () => "form");
+  const widget = new LuaWidget({
+    client: fakeClient({
+      widgetCache: { ...fakeClient().widgetCache, prewarmResult },
+    }),
+    cacheKey: "object:sample",
+    expressionText: "",
+    callback,
+    host: { kind: "object", editPos: () => 0, definitionRef: null },
+  });
+  try {
+    await show(widget, {});
+    expect(prewarmResult).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledOnce();
+  } finally {
+    widget.destroy();
+  }
 });

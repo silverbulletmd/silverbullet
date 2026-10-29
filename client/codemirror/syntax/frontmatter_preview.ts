@@ -1,45 +1,32 @@
-import { EditorState, type Extension, StateField } from "@codemirror/state";
-import {
-  Decoration,
-  type DecorationSet,
-  EditorView,
-  WidgetType,
-} from "@codemirror/view";
-import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
+import type { EditorState, Extension } from "@codemirror/state";
 import YAML from "js-yaml";
 import type { Client } from "../../client.ts";
-import { luaDefinitionRef } from "../../space_lua.ts";
-import { widgetRenderMode } from "../util.ts";
-import { LuaWidget, type LuaWidgetContent } from "../widgets/lua_widget.ts";
-import { callWithTracking } from "../../space_lua/runtime.ts";
+import { findFrontmatterBlock } from "./frontmatter_block.ts";
 import {
-  findFrontmatterBlock,
-  selectionIntersectsRange,
-} from "./frontmatter_folding.ts";
-
-export type FrontmatterRenderer = (
-  pageMeta: Record<string, unknown>,
-) => LuaWidgetContent | Promise<LuaWidgetContent>;
+  hookLookup,
+  normalizeTags,
+  objectPreviewField,
+  type ObjectPreview,
+  type ObjectPreviewHost,
+  type ObjectRenderer,
+  previewsEnabled,
+  type RendererLookup,
+  selectionShowsSource,
+  selectRenderer,
+  type YamlContext,
+  yamlContext,
+} from "./object_preview.ts";
 
 export type FrontmatterPreviewSource = {
   from: number;
   to: number;
   source: string;
   pageMeta: Record<string, unknown>;
+  context: YamlContext;
 };
 
-function normalizeTags(value: unknown): string[] {
-  const values = Array.isArray(value)
-    ? value
-    : typeof value === "string"
-      ? value.split(/,\s*|\s+/)
-      : [];
-  return [
-    ...new Set(
-      values.map((tag) => String(tag).replace(/^#/, "")).filter(Boolean),
-    ),
-  ];
-}
+/** The opening fence with its line break, then the YAML */
+const FENCED = /^(---\r?\n)([\s\S]*?)\r?\n---$/;
 
 export function parseFrontmatterPreview(
   state: EditorState,
@@ -48,23 +35,28 @@ export function parseFrontmatterPreview(
   const block = findFrontmatterBlock(state);
   if (!block) return;
   const source = state.sliceDoc(block.from, block.to);
-  const fenced = /^---\r?\n([\s\S]*?)\r?\n---$/.exec(source);
+  const fenced = FENCED.exec(source);
   if (!fenced) return;
 
   try {
-    const parsed = cleanupJSON(YAML.load(fenced[1]));
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    const loaded = YAML.load(fenced[2]);
+    if (!loaded || typeof loaded !== "object" || Array.isArray(loaded)) {
       return;
     }
+    const { context, parsed } = yamlContext(
+      loaded as Record<string, unknown>,
+      fenced[2],
+    );
     return {
       from: block.from,
       to: block.to,
       source,
       pageMeta: {
-        ...(parsed as Record<string, unknown>),
+        ...parsed,
         name: pageName,
-        tags: normalizeTags((parsed as Record<string, unknown>).tags),
+        tags: normalizeTags(parsed.tags),
       },
+      context,
     };
   } catch {
     return;
@@ -73,152 +65,69 @@ export function parseFrontmatterPreview(
 
 export function selectFrontmatterRenderer(
   pageMeta: Record<string, unknown>,
-  getRenderer: (tag: string) => FrontmatterRenderer | undefined,
-): FrontmatterRenderer | undefined {
-  if (!Array.isArray(pageMeta.tags)) return;
-  for (const tag of pageMeta.tags) {
-    const renderer = getRenderer(tag);
-    if (renderer) return renderer;
-  }
+  getRenderer: RendererLookup,
+): ObjectRenderer | undefined {
+  // Every page carries the root `page` tag, so its renderer is the default
+  return selectRenderer(
+    Array.isArray(pageMeta.tags) ? pageMeta.tags : [],
+    "page",
+    getRenderer,
+  );
 }
+
+const frontmatterHost: ObjectPreviewHost = {
+  kind: "page",
+  className: "sb-frontmatter-preview",
+  label: "Frontmatter preview",
+  cornerLabel: "frontmatter",
+  documents: (state) => {
+    const block = findFrontmatterBlock(state);
+    if (!block) return;
+    const fenced = FENCED.exec(state.sliceDoc(block.from, block.to));
+    return fenced
+      ? [{ from: block.from + fenced[1].length, text: fenced[2] }]
+      : undefined;
+  },
+  // The frontmatter with the line break after it
+  removal: (state) => {
+    const block = findFrontmatterBlock(state);
+    if (!block) return;
+    const to =
+      state.sliceDoc(block.to, block.to + 1) === "\n" ? block.to + 1 : block.to;
+    return { from: block.from, to };
+  },
+  target: (_state, _from, _index, page) => ({ page, ref: page }),
+};
 
 export function frontmatterPreviewForState(
   state: EditorState,
   client: Client,
-):
-  | { source: FrontmatterPreviewSource; render: FrontmatterRenderer }
-  | undefined {
-  if (
-    widgetRenderMode(client) !== "ready" ||
-    client.ui.viewState.uiOptions.markdownSyntaxRendering
-  ) {
+): ObjectPreview | undefined {
+  if (!previewsEnabled(client)) return;
+  const page = client.currentName();
+  const source = parseFrontmatterPreview(state, page);
+  if (!source || selectionShowsSource(state, source.from, source.to)) {
     return;
   }
-  const source = parseFrontmatterPreview(state, client.currentName());
-  if (!source || selectionIntersectsRange(state, source.from, source.to)) {
-    return;
-  }
-  const render = selectFrontmatterRenderer(source.pageMeta, (tag) =>
-    client.config.get<FrontmatterRenderer | undefined>(
-      ["tags", tag, "renderFrontmatter"],
-      undefined,
-    ),
+  const render = selectFrontmatterRenderer(
+    source.pageMeta,
+    hookLookup(client, "page"),
   );
-  return render ? { source, render } : undefined;
-}
-
-class FrontmatterPreviewWidget extends WidgetType {
-  private content?: LuaWidget;
-
-  constructor(
-    private client: Client,
-    private source: FrontmatterPreviewSource,
-    private render: FrontmatterRenderer,
-  ) {
-    super();
-  }
-
-  toDOM(view: EditorView): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "sb-frontmatter-preview";
-    const edit = (event: MouseEvent) => {
-      const target = event.target;
-      const interactive =
-        target instanceof Element
-          ? target.closest(
-              "a, button, input, select, textarea, [role=button], [contenteditable]",
-            )
-          : null;
-      if (
-        !event.altKey &&
-        interactive &&
-        interactive !== container &&
-        container.contains(interactive)
-      ) {
-        return;
-      }
-      if (view.state.readOnly || this.client.isReadOnlyMode()) return;
-      event.preventDefault();
-      event.stopPropagation();
-      view.dispatch({ selection: { anchor: this.source.from + 4 } });
-      view.focus();
-    };
-    container.addEventListener("mousedown", edit, true);
-    this.content = new LuaWidget({
-      client: this.client,
-      cacheKey: `frontmatter:${this.client.currentName()}:${this.source.source}`,
-      expressionText: "",
-      callback: async (_body, _page, track) => {
-        try {
-          const result = await callWithTracking(
-            this.render,
-            track,
-            this.source.pageMeta,
-          );
-          return result == null ||
-            (typeof result === "string" && !result.trim())
-            ? {
-                _isWidget: true,
-                markdown: "**Frontmatter preview returned no content**",
-                display: "block",
-              }
-            : result;
-        } catch (error) {
-          console.error("Error rendering frontmatter preview", error);
-          return {
-            _isWidget: true,
-            markdown: "**Could not render frontmatter preview**",
-            display: "block",
-          };
-        }
-      },
-      host: {
-        kind: "frontmatter",
-        editPos: this.source.from + 4,
-        definitionRef: luaDefinitionRef(this.render),
-      },
-    });
-    container.appendChild(this.content.toDOM());
-    return container;
-  }
-
-  override destroy(): void {
-    this.content?.destroy();
-  }
-
-  override eq(other: WidgetType): boolean {
-    return (
-      other instanceof FrontmatterPreviewWidget &&
-      other.source.source === this.source.source &&
-      other.source.pageMeta.name === this.source.pageMeta.name &&
-      other.render === this.render
-    );
-  }
-
-  override ignoreEvent(): boolean {
-    return true;
-  }
+  if (!render) return;
+  return {
+    host: frontmatterHost,
+    page,
+    from: source.from,
+    to: source.to,
+    source: source.source,
+    objects: [{ index: 0, object: source.pageMeta, context: source.context }],
+    render,
+  };
 }
 
 export function frontmatterPreviewPlugin(client: Client): Extension {
-  const decorate = (state: EditorState): DecorationSet => {
+  return objectPreviewField(client, (state) => {
     const preview = frontmatterPreviewForState(state, client);
-    if (!preview) return Decoration.none;
-    return Decoration.set([
-      Decoration.replace({
-        widget: new FrontmatterPreviewWidget(
-          client,
-          preview.source,
-          preview.render,
-        ),
-        block: true,
-      }).range(preview.source.from, preview.source.to),
-    ]);
-  };
-
-  return StateField.define<DecorationSet>({
-    create: decorate,
-    update: (_value, transaction) => decorate(transaction.state),
-    provide: (field) => EditorView.decorations.from(field),
+    return preview ? [preview] : [];
   });
 }

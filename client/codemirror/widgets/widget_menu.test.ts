@@ -9,6 +9,7 @@ const base = {
   query: false,
   copy: true,
   bake: true,
+  remove: false,
 };
 const labels = (caps: any) =>
   widgetMenuEntries(caps).map((e) =>
@@ -42,5 +43,14 @@ test("an HTML-only widget in read-only mode", () => {
   expect(labels({ ...base, copy: false, bake: false })).toEqual([
     "Edit source",
     "Reload",
+  ]);
+});
+
+test("a deletable object ends with Delete, apart from the rest", () => {
+  expect(labels({ ...base, copy: false, bake: false, remove: true })).toEqual([
+    "Edit source",
+    "Reload",
+    "—",
+    "Delete",
   ]);
 });

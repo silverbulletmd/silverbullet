@@ -7,7 +7,7 @@ This implements the widget API. Widgets are values describing what to render: st
 
 widget = widget or {}
 
-widgets = {}
+widgets = widgets or {}
 
 local widgetSchema = {
   type = "object",
@@ -44,7 +44,10 @@ local widgetSchema = {
   }
 }
 
--- Creates a widget
+--- Creates a widget; a spec with `source` or `content` creates a live widget.
+--- @param spec table { markdown?: string|widget, html?: string|HTMLElement, display?: "block"|"inline", cssClasses?: string[], events?: table, evaluate?: boolean, sandbox?: boolean, script?: string, source?: any, content?: any }
+--- @return table a widget
+--- @see API/widget
 function widget.new(spec)
   if spec.source ~= nil or spec.content ~= nil then
     return widget.newLive(spec)
@@ -64,13 +67,20 @@ function widget.new(spec)
   return spec
 end
 
--- Convenience function for HTML widgets
+--- Creates an inline HTML widget.
+--- @param html string|HTMLElement HTML code or a DOM node, e.g. built with `dom.*`
+--- @return table a widget
+--- @see API/widget
 function widget.html(html)
   return widget.new {
     html = html
   }
 end
 
+--- Creates a block-level HTML widget.
+--- @param html string|HTMLElement HTML code or a DOM node, e.g. built with `dom.*`
+--- @return table a widget
+--- @see API/widget
 function widget.htmlBlock(html)
   return widget.new {
     html = html,
@@ -78,8 +88,11 @@ function widget.htmlBlock(html)
   }
 end
 
--- Convenience function for markdown widgets
--- opts.evaluate = false renders the Markdown without evaluating it.
+--- Creates an inline Markdown widget.
+--- @param markdown string the Markdown to render
+--- @param opts? table { evaluate?: boolean }; `evaluate = false` renders the Markdown without running `${...}` or transclusions
+--- @return table a widget
+--- @see API/widget
 function widget.markdown(markdown, opts)
   return widget.new {
     markdown = markdown,
@@ -87,6 +100,11 @@ function widget.markdown(markdown, opts)
   }
 end
 
+--- Creates a block-level Markdown widget.
+--- @param markdown string the Markdown to render
+--- @param opts? table { evaluate?: boolean }; `evaluate = false` renders the Markdown without running `${...}` or transclusions
+--- @return table a widget
+--- @see API/widget
 function widget.markdownBlock(markdown, opts)
   return widget.new {
     markdown = markdown,
@@ -95,10 +113,11 @@ function widget.markdownBlock(markdown, opts)
   }
 end
 
--- A sandboxed, scripted widget: html + script run inside an isolated iframe
--- (the same machinery code widgets use). `script` has access to syscall(),
--- loadJsByUrl, and auto height. The Copy button copies `markdown`. Equivalent to
--- `widget.new` with `sandbox = true`.
+--- Creates a sandboxed, scripted widget: `html` and `script` run inside an isolated iframe, the same machinery code widgets use.
+--- `script` has access to `syscall()`, `loadJsByUrl` and auto height. The Copy button copies `markdown`. Equivalent to `widget.new` with `sandbox = true`.
+--- @param spec table { html?: string, script?: string, markdown?: string, display?: "block"|"inline", cssClasses?: string[] }; `display` defaults to "block"
+--- @return table a widget
+--- @see API/widget
 function widget.sandbox(spec)
   return widget.new {
     sandbox = true,

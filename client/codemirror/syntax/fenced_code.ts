@@ -12,6 +12,7 @@ import {
 import { IFrameWidget } from "../widgets/iframe_widget.ts";
 import { LoadingWidget } from "../widgets/loading_widget.ts";
 import { LuaWidget, OccurrenceKeys } from "../widgets/lua_widget.ts";
+import { dataBlockPreviewShows } from "./data_block_preview.ts";
 
 export function fencedCodePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -26,6 +27,9 @@ export function fencedCodePlugin(client: Client) {
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^(?:```+|~~~+)(\S+)?/)!;
           const renderMode = widgetRenderMode(client);
+          // The data block preview renders it (a tag's own renderDataBlock
+          // beats code widgets); when it doesn't, a code widget still can
+          if (dataBlockPreviewShows(state, client, from)) return true;
 
           const luaWidgetDef = lang
             ? client.clientSystem.luaCodeWidgets.get(lang)

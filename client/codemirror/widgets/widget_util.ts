@@ -221,7 +221,8 @@ export function attachWidgetEventHandlers(
       el.style.cursor = "pointer";
     });
 
-  div.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+  // Only markdown-rendered task boxes; DOM-built widget inputs stay live
+  div.querySelectorAll("input[type=checkbox][data-state]").forEach((cb) => {
     if (!cb.closest("span[data-external-task-ref]")) {
       cb.setAttribute("disabled", "disabled");
     }

@@ -119,7 +119,7 @@ test("an external task's checkbox and state toggle through the index", async () 
   const div = widget(
     '<span data-external-task-ref="Tasks@4"><input type="checkbox" data-state=" "></span>' +
       '<span data-external-task-ref="Tasks@9"><span class="sb-task-state" data-task-state="TODO">TODO</span></span>' +
-      '<input type="checkbox" class="plain">',
+      '<input type="checkbox" class="plain" data-state=" ">',
   );
   attachWidgetEventHandlers(div, client as unknown as Client);
 
@@ -145,6 +145,16 @@ test("an external task's checkbox and state toggle through the index", async () 
   expect(state.textContent).toBe("x");
 
   expect(div.querySelector(".plain")!.hasAttribute("disabled")).toBe(true);
+});
+
+test("a checkbox built without data-state stays enabled", () => {
+  const client = fakeClient();
+  const div = widget(
+    '<input type="checkbox" class="live"><input type="checkbox" class="md" data-state=" ">',
+  );
+  attachWidgetEventHandlers(div, client as unknown as Client);
+  expect(div.querySelector(".live")!.hasAttribute("disabled")).toBe(false);
+  expect(div.querySelector(".md")!.hasAttribute("disabled")).toBe(true);
 });
 
 test("Alt-click on a task state is left to cursor positioning", () => {

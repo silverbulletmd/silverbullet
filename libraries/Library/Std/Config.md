@@ -128,24 +128,21 @@ config.define("linkWriteFormat", {
   ui = { category = "Editor", label = "Link write format", priority = 2 },
 })
 
-config.define("frontmatterFolding", {
-  description = "Configure folding behavior for YAML frontmatter at the top of pages",
+config.define("liveEdit", {
+  description = "Edit YAML as a form in the editor",
   type = "object",
   properties = {
-    foldByDefault = {
-      type = "string",
-      enum = { "never", "long", "always" },
-      default = "long",
-      description = "When to automatically fold frontmatter when opening a page",
-      ui = { category = "Editor", label = "Auto-fold frontmatter", priority = 0 },
+    frontmatter = {
+      type = "boolean",
+      default = true,
+      description = "Show page frontmatter as an editable form. When off, frontmatter is plain YAML; a tag's own renderFrontmatter still applies",
+      ui = { category = "Editor", label = "Edit frontmatter as a form", priority = 0 },
     },
-    foldByDefaultLines = {
-      type = "number",
-      default = 5,
-      minimum = 1,
-      multipleOf = 1,
-      description = "Fold frontmatter automatically when it has more than this positive whole number of lines and auto-fold is set to long",
-      ui = { category = "Editor", label = "Frontmatter auto-fold lines", priority = -2 },
+    dataBlocks = {
+      type = "boolean",
+      default = true,
+      description = "Show data blocks (```#tag and ```data) as editable forms. When off, they are plain YAML; a tag's own renderDataBlock or a code widget still applies",
+      ui = { category = "Editor", label = "Edit data blocks as a form", priority = -1 },
     },
   },
   additionalProperties = false,

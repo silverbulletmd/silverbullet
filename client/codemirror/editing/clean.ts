@@ -8,10 +8,12 @@ import { cleanBlockPlugin } from "../syntax/block.ts";
 import { blockquotePlugin } from "../syntax/block_quote.ts";
 import { bakedSectionPlugin } from "../syntax/baked_section.ts";
 import { commentRegionPlugin } from "../syntax/comment_region.ts";
+import { dataBlockPreviewPlugin } from "../syntax/data_block_preview.ts";
 import { cleanEscapePlugin } from "../syntax/escapes.ts";
 import { fencedCodePlugin } from "../syntax/fenced_code.ts";
 import { footnotePlugin } from "../syntax/footnote.ts";
 import { frontmatterPlugin } from "../syntax/frontmatter.ts";
+import { frontmatterGhostPlugin } from "../syntax/frontmatter_ghost.ts";
 import { frontmatterPreviewPlugin } from "../syntax/frontmatter_preview.ts";
 import { hashtagPlugin } from "../syntax/hashtag.ts";
 import { hideHeaderMarkPlugin, hideMarksPlugin } from "../syntax/hide_mark.ts";
@@ -34,6 +36,8 @@ export function cleanModePlugins(client: Client) {
     attributePlugin(client),
     frontmatterPlugin(client),
     frontmatterPreviewPlugin(client),
+    frontmatterGhostPlugin(client),
+    dataBlockPreviewPlugin(client),
     customSyntaxPlugin(client),
   ];
 

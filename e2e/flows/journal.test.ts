@@ -9,7 +9,14 @@ function today(): string {
   return `${year}-${month}-${day}`;
 }
 
-test.use({ spaceFiles: { "index.md": "# Welcome\n" } });
+// Asserts on the raw YAML, so the frontmatter form is turned off
+test.use({
+  spaceFiles: {
+    "index.md": "# Welcome\n",
+    "CONFIG.md":
+      '```space-lua\ntag.define { name = "page", renderFrontmatter = config.unset }\n```\n',
+  },
+});
 
 test("today's journal starts from the template and saves an entry", async ({
   sbPage,

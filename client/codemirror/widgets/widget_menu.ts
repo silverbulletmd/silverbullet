@@ -25,6 +25,8 @@ export type WidgetCaps = {
   query: boolean;
   copy: boolean;
   bake: boolean;
+  /** Delete the object the widget shows */
+  remove: boolean;
 };
 
 const feather = (name: string, body: string) =>
@@ -97,6 +99,10 @@ export function widgetMenuEntries(
   if (caps.bake) {
     out.push({ kind: "separator" });
     action("bake", "Bake into page");
+  }
+  if (caps.remove) {
+    out.push({ kind: "separator" });
+    action("remove", "Delete");
   }
   return out;
 }

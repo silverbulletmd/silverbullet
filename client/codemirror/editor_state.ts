@@ -69,12 +69,6 @@ import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
-import {
-  frontmatterFoldingExtension,
-  frontmatterFoldPlaceholderDOM,
-  prepareFrontmatterFoldPlaceholder,
-} from "./syntax/frontmatter_folding.ts";
-import { frontmatterPreviewForState } from "./syntax/frontmatter_preview.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
 import { lineWrapper } from "./syntax/line_wrapper.ts";
 import { readOnlyCursorActive } from "./util.ts";
@@ -250,14 +244,7 @@ export function buildPageExtensions(
     codeCopyPlugin(client),
     externalPresence(),
     conflictMarkers(client),
-    codeFolding({
-      preparePlaceholder: prepareFrontmatterFoldPlaceholder,
-      placeholderDOM: (view, onclick, prepared) =>
-        frontmatterFoldPlaceholderDOM(view, onclick, prepared, client),
-    }),
-    frontmatterFoldingExtension(client, (state) =>
-      Boolean(frontmatterPreviewForState(state, client)),
-    ),
+    codeFolding(),
     ...cleanModePlugins(client),
     EditorView.lineWrapping,
     plugLinter(client),

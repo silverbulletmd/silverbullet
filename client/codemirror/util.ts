@@ -111,7 +111,10 @@ export class HtmlWidget extends WidgetType {
 }
 
 export function decoratorStateField(
-  stateToDecoratorMapper: (state: EditorState) => DecorationSet,
+  stateToDecoratorMapper: (
+    state: EditorState,
+    tr?: Transaction,
+  ) => DecorationSet,
 ) {
   return StateField.define<DecorationSet>({
     create(state: EditorState) {
@@ -129,7 +132,7 @@ export function decoratorStateField(
       }
 
       if (tr.isUserEvent("select.pointer")) return value;
-      return stateToDecoratorMapper(tr.state);
+      return stateToDecoratorMapper(tr.state, tr);
     },
 
     provide: (f) => EditorView.decorations.from(f),

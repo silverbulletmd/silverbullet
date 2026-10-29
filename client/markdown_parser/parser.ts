@@ -539,10 +539,6 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
           from: state.doc.lineAt(tree.from).to,
           to: tree.to,
         }),
-        FrontMatter: (tree) => ({
-          from: tree.from,
-          to: tree.to,
-        }),
       }),
 
       styleTags({
