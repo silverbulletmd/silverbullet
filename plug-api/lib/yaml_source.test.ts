@@ -1,7 +1,9 @@
 import { expect, test } from "vitest";
 import {
+  unwrap,
+  yamlAllEntries,
   yamlEntries,
-  yamlScalars,
+  yamlNodes,
   yamlSource,
   yamlTopLevelEntries,
 } from "./yaml_source.ts";
@@ -48,7 +50,9 @@ test("nested and flow mappings keep scalar spans and decoded values", () => {
     yamlEntries(text, entries[1].valueNode).map((entry) => entry.key),
   ).toEqual(["nested"]);
   expect(
-    yamlScalars(root).map((node) => text.slice(node.from, node.to)),
+    yamlNodes(root)
+      .filter((node) => node.kind === "scalar" && unwrap(node) === node)
+      .map((node) => text.slice(node.from, node.to)),
   ).toEqual(["outer", "list", "one", "'two'", "flow", "nested", "value"]);
 });
 
@@ -61,4 +65,26 @@ test("anchors and aliases keep their source spans and shared decoded value", () 
   expect(text.slice(entries[1].valueNode.from, entries[1].valueNode.to)).toBe(
     "*shared",
   );
+});
+
+test("unwrap skips the outer node js-yaml composes around flow and item nodes", () => {
+  const flow = yamlSource("{one: 1}")[0];
+  expect(flow.children).toHaveLength(1);
+  expect(unwrap(flow)).toBe(flow.children[0]);
+  const item = yamlSource("- x")[0].children[0];
+  expect(unwrap(item)).toBe(item.children[0]);
+  // A one-item sequence is no wrapper
+  const sequence = yamlSource("- x")[0];
+  expect(unwrap(sequence)).toBe(sequence);
+});
+
+test("yamlAllEntries reports nested entries with their depth", () => {
+  const text = "a: 1\nb:\n  - x\n  - c: 2\nd:\n  e: 3";
+  expect(yamlAllEntries(text).map(({ key, depth }) => [key, depth])).toEqual([
+    ["a", 0],
+    ["b", 0],
+    ["c", 2],
+    ["d", 0],
+    ["e", 1],
+  ]);
 });
