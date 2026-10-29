@@ -143,17 +143,38 @@ async function cycleTaskState(
   });
 }
 
+/**
+ * The TaskState node of the task whose list item starts at `pos`, the
+ * position a task ref records. Null when no task's item starts there, so a ref
+ * that has gone stale never lands on a neighbouring task.
+ */
+export function findTaskStateAtRefPos(
+  tree: ParseTree,
+  pos: number,
+): ParseTree | null {
+  const item = findNodeMatching(
+    tree,
+    (n) => n.type === "ListItem" && n.from === pos,
+  );
+  const task = item?.children?.find((n) => n.type === "Task");
+  return task?.children?.find((n) => n.type === "TaskState") ?? null;
+}
+
+/**
+ * Sets the state of the task a ref points to, if it is still in `oldState`.
+ * @returns whether the task was changed
+ */
 export async function updateTaskState(
   path: string,
   oldState: string,
   newState: string,
-) {
+): Promise<boolean> {
   const currentPath = await editor.getCurrentPath();
   const ref = parseToRef(path);
 
   if (!ref) {
     console.log("Could not parse task ref, skipping", path);
-    return;
+    return false;
   }
 
   // Anchor refs need resolving to a concrete page+position before we can
@@ -167,7 +188,7 @@ export async function updateTaskState(
     const result = await index.resolveAnchor(ref.details.name, pageFilter);
     if (!result.ok) {
       console.log("Could not resolve task anchor, skipping", path, result);
-      return;
+      return false;
     }
     ref.path = `${result.page}.md`;
     ref.details = { type: "position", pos: result.range[0] };
@@ -179,64 +200,38 @@ export async function updateTaskState(
     (ref.details.type !== "linecolumn" && ref.details.type !== "position")
   ) {
     console.log("No position found in page ref, skipping", ref);
-    return;
+    return false;
   }
 
-  if (ref.path === currentPath) {
-    const editorText = await editor.getText();
+  const inEditor = ref.path === currentPath;
+  const pageName = getNameFromPath(ref.path);
+  const text = inEditor
+    ? await editor.getText()
+    : await space.readPage(pageName);
+  const targetPos =
+    ref.details.type === "position"
+      ? ref.details.pos
+      : getOffsetFromLineColumn(text, ref.details.line, ref.details.column);
+  const tree = await markdown.parseMarkdown(text);
+  const stateNode = findTaskStateAtRefPos(tree, targetPos)?.children?.[1];
+  if (stateNode?.text !== oldState) {
+    console.error("Task ref out of date, not updating", path, oldState);
+    return false;
+  }
 
-    const targetPos =
-      ref.details.type === "position"
-        ? ref.details.pos
-        : getOffsetFromLineColumn(
-            editorText,
-            ref.details.line,
-            ref.details.column,
-          );
-
-    const targetText = editorText.substring(
-      targetPos + 3, // 3 because: "* ["
-      targetPos + 3 + oldState.length,
-    );
-    if (targetText !== oldState) {
-      console.error("Reference not a task marker, out of date?", targetText);
-      return;
-    }
+  if (inEditor) {
     await editor.dispatch({
-      changes: {
-        from: targetPos + 3,
-        to: targetPos + 3 + oldState.length,
-        insert: newState,
-      },
+      changes: { from: stateNode.from, to: stateNode.to, insert: newState },
     });
   } else {
-    const pageName = getNameFromPath(ref.path);
-    let text = await space.readPage(pageName);
-
-    const referenceMdTree = await markdown.parseMarkdown(text);
-    const targetPos =
-      ref.details.type === "position"
-        ? ref.details.pos
-        : getOffsetFromLineColumn(text, ref.details.line, ref.details.column);
-
-    const itemNode = nodeAtPos(referenceMdTree, targetPos + 1);
-    if (!itemNode) {
-      console.error("Reference not a valid item, out of date?", itemNode);
-      return;
-    }
-    const taskStateNode = findNodeOfType(itemNode, "TaskState");
-    if (!taskStateNode) {
-      console.error("Cannot find a task state", taskStateNode);
-      return;
-    }
-    taskStateNode.children![1].text = newState;
-    text = renderToText(referenceMdTree);
-    await space.writePage(pageName, text);
+    stateNode.text = newState;
+    await space.writePage(pageName, renderToText(tree));
     // Best-effort sync; will catch up on next cycle if SW is unavailable
     sync.performFileSync(`${pageName}.md`).catch((e) => {
       console.warn("File sync after task update failed:", e.message);
     });
   }
+  return true;
 }
 
 let taskCycleLock = false;
@@ -391,10 +386,15 @@ export async function removeCompletedTasksCommand() {
   await editor.setText(renderToText(tree));
 }
 
+/**
+ * Moves the task a ref points to from `oldState` to the next state.
+ * @returns the new state, or undefined when the task is no longer in
+ * `oldState` at that ref and was left as it is
+ */
 export async function cycleTaskStateByRef(
   path: string,
   oldState: string,
-): Promise<string> {
+): Promise<string | undefined> {
   let newState: string;
   if (completeStates.includes(oldState)) {
     newState = " ";
@@ -409,7 +409,9 @@ export async function cycleTaskStateByRef(
     }
     newState = states[(idx + 1) % states.length];
   }
-  await updateTaskState(path, oldState, newState);
+  if (!(await updateTaskState(path, oldState, newState))) {
+    return undefined;
+  }
   await events.dispatchEvent("task:stateChange", {
     newState,
   });
