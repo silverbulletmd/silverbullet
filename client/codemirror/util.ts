@@ -3,7 +3,9 @@
 // License: Apache License 2.0.
 import {
   type EditorState,
+  type EditorSelection,
   type Range,
+  StateEffect,
   StateField,
   type Transaction,
 } from "@codemirror/state";
@@ -220,18 +222,57 @@ export const readOnlyCursorVisible = EditorView.editorAttributes.compute(
   }),
 );
 
+/** Marks a selection change as an explicit request to show the source (Alt-click) */
+export const revealSourceEffect = StateEffect.define<null>();
+
+/**
+ * In read-only mode the source only shows after an explicit request
+ * (Alt-click), not just because the cursor moved there. It stays shown until
+ * the selection changes again (arrow keys, plain click). A new page gets a
+ * new state, which resets it too.
+ */
+export const readOnlyReveal = StateField.define<boolean>({
+  create: () => false,
+  update(value, tr) {
+    if (tr.effects.some((e) => e.is(revealSourceEffect))) {
+      return true;
+    }
+    // Compare positions: widgets dispatch a no-op selection to re-measure
+    if (!tr.startState.selection.eq(tr.newSelection)) {
+      return false;
+    }
+    return value;
+  },
+});
+
+function sourceRevealed(state: EditorState) {
+  return state.readOnly && state.field(readOnlyReveal, false) === true;
+}
+
+/**
+ * Move the cursor to show the Markdown source of a rendered element
+ * (Alt-click). Read-only editors only reveal it for this move.
+ */
+export function revealSource(
+  view: EditorView,
+  selection: { anchor: number } | EditorSelection,
+) {
+  view.dispatch({ selection, effects: revealSourceEffect.of(null) });
+}
+
 /**
  * Check if any of the editor cursors is in the given range
  *
  * Read-only mode never reveals the underlying Markdown source just because
  * the cursor moved there, so rendered links, query results and widgets stay
- * visible while navigating with the keyboard.
+ * visible while navigating with the keyboard. Only an Alt-click does
+ * (see `revealSource`).
  * @param state - Editor state
  * @param range - Range to check
  * @returns True if the cursor is in the range
  */
 export function isCursorInRange(state: EditorState, range: [number, number]) {
-  if (state.readOnly) {
+  if (state.readOnly && !sourceRevealed(state)) {
     return false;
   }
   return state.selection.ranges.some((selection) =>
@@ -304,6 +345,8 @@ export function hideBlockSource(
  * Make those ranges atomic so each takes a single cursor step.
  */
 export const readOnlyAtomicRanges = EditorView.atomicRanges.of((view) => {
+  // Revealed source is walked character by character
+  if (sourceRevealed(view.state)) return Decoration.none;
   const { doc } = view.state;
   const { from, to } = view.viewport;
   const ranges: Range<Decoration>[] = [];
@@ -337,7 +380,11 @@ export function isReadOnlyCursorAt(
   from: number,
   to: number,
 ) {
-  if (!state.readOnly || !state.field(readOnlyCursorActive, false)) {
+  if (
+    !state.readOnly ||
+    !state.field(readOnlyCursorActive, false) ||
+    sourceRevealed(state)
+  ) {
     return false;
   }
   return state.selection.ranges.some(

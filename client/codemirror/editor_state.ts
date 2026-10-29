@@ -78,7 +78,11 @@ import {
 import { frontmatterPreviewForState } from "./syntax/frontmatter_preview.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
 import { lineWrapper } from "./syntax/line_wrapper.ts";
-import { readOnlyCursorActive, readOnlyCursorVisible } from "./util.ts";
+import {
+  readOnlyCursorActive,
+  readOnlyCursorVisible,
+  readOnlyReveal,
+} from "./util.ts";
 import { postScriptPrefacePlugin } from "./widgets/top_bottom_panels.ts";
 
 export type EditorMode =
@@ -164,6 +168,7 @@ export function buildSharedEditorExtensions(
           EditorState.readOnly.of(true),
           readOnlyCursorActive,
           readOnlyCursorVisible,
+          readOnlyReveal,
           readOnlyWidgetLinks,
         ]
       : [];

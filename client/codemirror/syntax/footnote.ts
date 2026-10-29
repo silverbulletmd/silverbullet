@@ -8,7 +8,7 @@ import {
 } from "@codemirror/view";
 import { parseMarkdown } from "../../markdown_parser/parser.ts";
 import { renderMarkdownToHtml } from "../../markdown_renderer/markdown_render.ts";
-import { decoratorStateField, isCursorInRange } from "../util.ts";
+import { decoratorStateField, isCursorInRange, revealSource } from "../util.ts";
 
 function outdentFootnoteBody(text: string): string {
   return text.replace(/^(?: {4}|\t)/gm, "");
@@ -144,9 +144,7 @@ function footnoteRefDecorator(editorView: () => EditorView) {
               widget: new FootnoteRefWidget(labelText, resolved, (e) => {
                 const view = editorView();
                 if (e.altKey || !resolved) {
-                  view.dispatch({
-                    selection: { anchor: refFrom + 2 }, // after [^
-                  });
+                  revealSource(view, { anchor: refFrom + 2 }); // after [^
                   view.focus();
                 } else {
                   const def = findFootnoteDef(state, labelText);

@@ -9,6 +9,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { identityId } from "../../../plugs/index/identity_id.ts";
 import type { Client } from "../../client.ts";
+import { revealSource } from "../util.ts";
 
 /**
  * Gives widget renderers the same wiki-link resolution the editor's own link
@@ -55,7 +56,7 @@ export function moveCursorToWidgetStart(
     }
   }
 
-  view.dispatch({ selection: { anchor } });
+  revealSource(view, { anchor });
   client.focus();
 }
 
