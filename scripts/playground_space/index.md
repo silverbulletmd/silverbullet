@@ -12,7 +12,7 @@ So go ahead, play around, but don't keep anything valuable here. It will be gone
 * [ ] Tap this box 👈 to mark this task as done.
 * Start typing `:party` to trigger the emoji picker 🎉
 * Type `/` somewhere in the text to invoke a **slash command**.
-* Click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode
+* Run `Editor: Toggle Vim Mode` to toggle Vim mode
 * Open this site on your phone or tablet and... it just works!
 * Are you using a browser with **PWA support** (e.g., any Chromium-based
   browser or recent version of Safari)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app. Now, unplug your network cable and reload the page. It still works!

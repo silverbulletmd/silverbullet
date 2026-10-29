@@ -41,12 +41,12 @@ Check on a collection reads its target once where the target can list its files,
 
 # Actions
 On a page:
-* **Share**: shares the page, the same as {[Share: Page]} on it.
+* **Share**: shares the page, the same as `Share: Page` on it.
 * **Open Remote**: opens the shared copy in your browser, where the location has a web address.
 * **Copy Link**: copies that web address.
 
 On a collection:
-* **Share Collection**: publishes it, the same as {[Share: Collection]}.
+* **Share Collection**: publishes it, the same as `Share: Collection`.
 
 On a collection's page: **Open Remote** and **Copy Link**, for its published copy.
 

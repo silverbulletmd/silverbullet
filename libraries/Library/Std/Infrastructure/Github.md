@@ -18,7 +18,7 @@ As well as [URI](https://docs.silverbullet.md/URI) support (both read and write)
 # Configuration
 Reading public content from Github URLs requires no configuration. Downloads and update checks are anonymous, even when you are signed in or have a token configured. Private repositories are not supported for these reads.
 
-To _write_ to Github repos and gists you need to connect to Github. This happens automatically the first time you share or access something that needs it: a device code is shown, which you enter on github.com to authorize SilverBullet. The resulting token is stored on this device only (see {[Credentials: List]}) and can be cleared with {[Credentials: Clear]}.
+To _write_ to Github repos and gists you need to connect to Github. This happens automatically the first time you share or access something that needs it: a device code is shown, which you enter on github.com to authorize SilverBullet. The resulting token is stored on this device only (see `Credentials: List`) and can be cleared with `Credentials: Clear`.
 
 Optionally, you can use a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo and gists permissions) instead. Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page. When set (and you have not connected through the device flow), it is used without asking you to sign in.
 

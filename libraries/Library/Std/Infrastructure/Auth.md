@@ -8,8 +8,8 @@ Credentials are kept in the client-side store, so they are never synced to the s
 
 Two commands manage them:
 
-* {[Credentials: List]}: show the stored credentials
-* {[Credentials: Clear]}: clear a credential (or all of them), so you are asked to sign in again the next time it is needed
+* `Credentials: List`: show the stored credentials
+* `Credentials: Clear`: clear a credential (or all of them), so you are asked to sign in again the next time it is needed
 
 # For library authors
 Credential keys are `provider` or `provider:target`, e.g. `github` or `sb:https://example.com/notes`.

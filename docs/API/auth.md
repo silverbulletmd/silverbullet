@@ -82,5 +82,5 @@ Splits a key into provider and target: `auth.splitKey("sb:https://h/notes")` ret
 Returns a table per stored credential with `key`, `provider` and `createdAt`.
 
 # Commands
-* {[Credentials: List]} shows the stored credentials.
-* {[Credentials: Clear]} clears one (or, with several stored, all of them at once), so you are asked to sign in again the next time it is needed.
+* `Credentials: List` shows the stored credentials.
+* `Credentials: Clear` clears one (or, with several stored, all of them at once), so you are asked to sign in again the next time it is needed.
