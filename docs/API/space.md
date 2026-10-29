@@ -129,11 +129,11 @@ end
 `space.lint(page)`
 `space.lint(pages)`
 
-Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page outside `Library/` and `Repositories/`.
+Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page.
 
 **Parameters:**
 
-- `pages?` — A page name or a list of page names; omit to lint all pages outside `Library/` and `Repositories/`.
+- `pages?` — A page name or a list of page names; omit to lint all pages.
 
 **Returns:**
 

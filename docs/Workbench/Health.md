@@ -14,4 +14,4 @@ The checks below are instant, and refresh as your space changes:
 * **Merge conflicts:** unresolved merges that need your decision.
 
 # Space-wide lint
-The space-wide lint runs [[API/space#space.lint]] over every page outside `Library/`. This reads each page, runs every lint rule and renders its `${…}` expressions and Lua widgets, so on a large space it can take a while. That’s why it never runs by itself: press **Run space-wide lint** when you want it.
+The space-wide lint runs [[API/space#space.lint]] over every page. This reads each page, runs every lint rule and renders its `${…}` expressions and Lua widgets, so on a large space it can take a while. That’s why it never runs by itself: press **Run space-wide lint** when you want it.

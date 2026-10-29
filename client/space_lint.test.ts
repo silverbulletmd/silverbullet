@@ -242,7 +242,7 @@ describe("lintPages", () => {
     ]);
   });
 
-  test("without pages, lints every page except Library/ and Repositories/ pages, sorted by page then position", async () => {
+  test("without pages, lints all pages including libraries and repositories, sorted by page then position", async () => {
     const deps = fakeDeps(
       {
         "Library/Std/Thing": "${boom()}",
@@ -257,6 +257,8 @@ describe("lintPages", () => {
       "a:1:1",
       "a:1:11",
       "b:2:1",
+      "Library/Std/Thing:1:1",
+      "Repositories/Example/Readme:1:1",
     ]);
   });
 

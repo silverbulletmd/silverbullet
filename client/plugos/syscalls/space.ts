@@ -146,13 +146,13 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
           typeof pages === "string" ? [pages] : pages,
         ),
       description:
-        "Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page outside `Library/`.",
+        "Lints pages the way the editor does — frontmatter and data block YAML, `space-lua` syntax, object validation against tag schemas, anchors — and also renders each `${...}` directive and Lua code widget, reporting those that fail. Without an argument, lints every page.",
       signatures: ["space.lint()", "space.lint(page)", "space.lint(pages)"],
       parameters: [
         {
           name: "pages",
           description:
-            "A page name or a list of page names; omit to lint all pages outside `Library/`.",
+            "A page name or a list of page names; omit to lint all pages.",
           optional: true,
         },
       ],

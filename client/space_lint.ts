@@ -12,7 +12,6 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { Text } from "@codemirror/state";
 import { findConflictHunks } from "./codemirror/syntax/conflict_markers.ts";
 import { parse } from "./markdown_parser/parse_tree.ts";
-import { isUserPage } from "./user_pages.ts";
 import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
 import { isLuaWidgetError } from "./space_lua/render_lua_markdown.ts";
 
@@ -192,7 +191,7 @@ async function lintPage(
  * Lint pages the way the editor does (the `editor:lint` listeners, minus
  * `hint` diagnostics) and also render their Lua directives and Lua code
  * widgets, reporting those that fail.
- * Without page names, lints every page outside `Library/`.
+ * Without page names, lints every page.
  */
 export async function lintPages(
   deps: LintPagesDeps,
@@ -200,10 +199,7 @@ export async function lintPages(
   options: LintOptions = {},
 ): Promise<SpaceLintDiagnostic[]> {
   const names =
-    pages ??
-    (await deps.listPageNames())
-      .filter(isUserPage)
-      .sort((a, b) => a.localeCompare(b));
+    pages ?? (await deps.listPageNames()).sort((a, b) => a.localeCompare(b));
   const result: SpaceLintDiagnostic[] = [];
   for (const [i, name] of names.entries()) {
     if (options.signal?.aborted) break;

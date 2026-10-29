@@ -8,7 +8,6 @@ import type { SpaceLintDiagnostic } from "../../space_lint.ts";
 import { LuaEnv } from "../../space_lua/runtime.ts";
 import type { ScriptRecord } from "../../space_lua.ts";
 import type { StyleRecord } from "../../space_style.ts";
-import { isUserPage } from "../../user_pages.ts";
 import {
   type GitSources,
   gitSources,
@@ -36,10 +35,10 @@ export type InstantSources = GitSources & {
   styles: () => StyleRecord[];
 };
 
-function userLinks<R extends LinkRow>(rows: R[]): R[] {
-  return rows
-    .filter((r) => isUserPage(r.page))
-    .sort((a, b) => a.page.localeCompare(b.page) || a.pos - b.pos);
+function sortedLinks<R extends LinkRow>(rows: R[]): R[] {
+  return [...rows].sort(
+    (a, b) => a.page.localeCompare(b.page) || a.pos - b.pos,
+  );
 }
 
 // One failing source (an index still building) mustn't hide the rest
@@ -59,8 +58,8 @@ export async function loadInstantHealth(
   ]);
   const conflicts = git?.conflicts ?? [];
   return [
-    ...brokenLinkProblems(userLinks(aspiring)),
-    ...ambiguousLinkProblems(userLinks(ambiguous)),
+    ...brokenLinkProblems(sortedLinks(aspiring)),
+    ...ambiguousLinkProblems(sortedLinks(ambiguous)),
     ...scriptStyleProblems(src.scripts(), src.styles()),
     ...(git ? syncStateProblems(git.snapshot, conflicts) : []),
     ...conflictProblems(conflicts),

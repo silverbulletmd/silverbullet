@@ -34,7 +34,7 @@ function sources(over: Partial<InstantSources> = {}): InstantSources {
 }
 
 describe("loadInstantHealth", () => {
-  it("leaves out links from Library pages and sorts by page and position", async () => {
+  it("includes links from library and repository pages, sorted by page and position", async () => {
     const problems = await loadInstantHealth(
       sources({
         aspiring: async () => [
@@ -53,8 +53,34 @@ describe("loadInstantHealth", () => {
     );
     expect(problems.map((p) => p.target)).toEqual([
       { ref: "Alpha@9" },
+      { ref: "Library/Std/X@3" },
       { ref: "Notes@5" },
       { ref: "Notes@40" },
+      { ref: "Repositories/R@3" },
+    ]);
+  });
+
+  it("includes ambiguous links in library pages", async () => {
+    const problems = await loadInstantHealth(
+      sources({
+        ambiguous: async () => [
+          {
+            ref: "Library/Examples/Dashboard@8",
+            page: "Library/Examples/Dashboard",
+            pos: 8,
+            name: "Notes",
+            resolvesTo: "Projects/Notes",
+            candidates: ["Projects/Notes", "Archive/Notes"],
+          },
+        ],
+      }),
+    );
+    expect(problems).toMatchObject([
+      {
+        group: "ambiguous",
+        target: { ref: "Library/Examples/Dashboard@8" },
+        message: '"Notes" opens Projects/Notes · also Archive/Notes',
+      },
     ]);
   });
 

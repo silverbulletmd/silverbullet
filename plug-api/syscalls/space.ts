@@ -29,7 +29,7 @@ export function listPages(): Promise<PageMeta[]> {
 /**
  * Lints pages like the editor does and renders their Lua directives and code
  * widgets, reporting problems with 1-based line and column.
- * @param pages a page name or list of names; omit for every page outside `Library/`
+ * @param pages a page name or list of names; omit for every page
  */
 export function lint(pages?: string | string[]): Promise<
   {

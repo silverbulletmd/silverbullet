@@ -169,7 +169,7 @@ sb eval "editor.getCurrentPage()"
 # => "index"
 
 sb eval 'system.reboot()'   # pick up edited Space Lua, styles and config
-sb eval 'space.lint("Page")'   # problems on a page; space.lint() checks every page outside Library/
+sb eval 'space.lint("Page")'   # problems on a page; space.lint() checks every page
 ```
 
 To check a page without opening it in the editor, call [[API/space#space.lint]]: it runs the editor's linters (frontmatter and data block YAML, `space-lua` syntax, objects checked against tag schemas, anchors) and renders every `${…}` directive and Lua code widget, returning a list of `{page, line, column, severity, message, source}` for the ones that fail. An empty list means no problems. Widgets render with the Space Lua currently loaded, so after editing `space-lua` blocks run `sb eval 'system.reboot()'` first.
