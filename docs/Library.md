@@ -14,7 +14,7 @@ Let’s define terms:
 
 The [[Library]] is the **unit of distribution**, typically implemented as [[Meta Page]]. Most libraries will be implemented in a single page (e.g. with a big [[Space Lua]] block), but more elaborate libraries may span multiple pages, some may wrap [[Plugs]].
 
-A [[Repository]] is a **discovery and curation mechanism** for libraries. They are collections of _pointers_ of _where_ to find libraries to install. SilverBullet ships with the [[^Repositories/Std]] repository, but you can install additional ones.
+A [[Repository]] is a **discovery and curation mechanism** for libraries. They are collections of _pointers_ of _where_ to find libraries to install. SilverBullet ships with the [[^Repositories/Std]] and [[^Repositories/SilverBulletMD]] repositories, but you can install additional ones.
 
 [[Share]] is the general-purpose mechanism built into SilverBullet to both _push_, _pull_ and _sync_ content in your space with the outside world. In the context of Libraries this mechanism is used (partially under the hood, but you’ll recognize traces of it) both for you to _publish_ your libraries, as well as to _install_ and _update_ other people’s creations.
 

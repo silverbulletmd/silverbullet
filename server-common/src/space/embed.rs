@@ -16,11 +16,31 @@ fn build_timestamp_millis() -> i64 {
     BUILD_TIMESTAMP_MILLIS_STR.parse().unwrap_or(1)
 }
 
+/// The bundled base_fs paths users may change: bundled repositories, so they
+/// update through share like any installed one.
+pub const BUNDLED_COPY_ON_WRITE: &[&str] = &["Repositories/"];
+
+/// The `perm` of a file in a read-only layer: `"rw"` under one of the
+/// `copy_on_write` prefixes, which tells [`FallthroughSpacePrimitives`] to
+/// copy it into the primary layer on its first write.
+pub fn layer_perm(copy_on_write: &[String], path: &str) -> String {
+    if copy_on_write
+        .iter()
+        .any(|prefix| path.starts_with(prefix.as_str()))
+    {
+        "rw"
+    } else {
+        "ro"
+    }
+    .to_string()
+}
+
 /// Read-only SpacePrimitives backed by a directory on disk.
 /// Used to serve the client bundle and base_fs.
 pub struct ReadOnlyDirSpacePrimitives {
     root_path: PathBuf,
     fixed_mtime: i64,
+    copy_on_write: Vec<String>,
 }
 
 impl ReadOnlyDirSpacePrimitives {
@@ -38,7 +58,14 @@ impl ReadOnlyDirSpacePrimitives {
         Ok(Self {
             root_path: root,
             fixed_mtime,
+            copy_on_write: Vec::new(),
         })
+    }
+
+    /// Marks files under these path prefixes copy-on-write (see [`layer_perm`]).
+    pub fn with_copy_on_write(mut self, prefixes: &[&str]) -> Self {
+        self.copy_on_write = prefixes.iter().map(|p| p.to_string()).collect();
+        self
     }
 
     /// Resolve a request path under the root, rejecting lexical traversal
@@ -122,7 +149,7 @@ impl SpacePrimitives for ReadOnlyDirSpacePrimitives {
                     last_modified,
                     content_type: lookup_content_type(&rel),
                     size: metadata.len() as i64,
-                    perm: "ro".to_string(),
+                    perm: layer_perm(&self.copy_on_write, &rel),
                 });
             }
         }
@@ -143,7 +170,7 @@ impl SpacePrimitives for ReadOnlyDirSpacePrimitives {
             last_modified,
             content_type: lookup_content_type(path),
             size: metadata.len() as i64,
-            perm: "ro".to_string(),
+            perm: layer_perm(&self.copy_on_write, path),
         })
     }
 
@@ -251,8 +278,15 @@ impl SpacePrimitives for FallthroughSpacePrimitives {
         data: &[u8],
         meta: Option<&FileMeta>,
     ) -> Result<FileMeta, SpaceError> {
-        // Fallback-only paths are read-only; existing primary overrides remain writable.
-        if self.primary.get_file_meta(path).is_err() && self.fallback.get_file_meta(path).is_ok() {
+        // Fallback-only paths are read-only unless the fallback marks them
+        // copy-on-write ("rw"): then this write is the copy. Existing primary
+        // overrides remain writable.
+        if self.primary.get_file_meta(path).is_err()
+            && self
+                .fallback
+                .get_file_meta(path)
+                .is_ok_and(|meta| meta.perm != "rw")
+        {
             return Err(SpaceError::ReadOnly(format!(
                 "Cannot write file {path}: read-only"
             )));
@@ -492,6 +526,62 @@ mod tests {
             SpaceError::ReadOnly(_) => {}
             other => panic!("expected ReadOnly, got {other:?}"),
         }
+    }
+
+    fn make_copy_on_write_with_file(
+        name: &str,
+        contents: &[u8],
+    ) -> (TempDir, Box<dyn SpacePrimitives>) {
+        let td = TempDir::new().unwrap();
+        let full_path = td.path().join(name);
+        std::fs::create_dir_all(full_path.parent().unwrap()).unwrap();
+        std::fs::write(&full_path, contents).unwrap();
+        let p = ReadOnlyDirSpacePrimitives::new(td.path())
+            .unwrap()
+            .with_copy_on_write(&["Repositories/"]);
+        (td, Box::new(p))
+    }
+
+    #[test]
+    fn read_only_dir_marks_copy_on_write_prefixes_rw() {
+        let (_td, p) = make_copy_on_write_with_file("Repositories/Foo.md", b"v1");
+        assert_eq!(p.get_file_meta("Repositories/Foo.md").unwrap().perm, "rw");
+        assert_eq!(p.fetch_file_list().unwrap()[0].perm, "rw");
+        assert!(p.write_file("Repositories/Foo.md", b"v2", None).is_err());
+
+        let (_td, p) = make_readonly_with_file("Repositories/Foo.md", b"v1");
+        assert_eq!(p.get_file_meta("Repositories/Foo.md").unwrap().perm, "ro");
+    }
+
+    #[test]
+    fn fallthrough_copies_copy_on_write_file_on_first_write() {
+        let primary_td = TempDir::new().unwrap();
+        let primary = make_disk(&primary_td);
+        let (_fallback_td, fallback) = make_copy_on_write_with_file("Repositories/Foo.md", b"v1");
+        let ft = FallthroughSpacePrimitives::new(primary, fallback);
+
+        ft.write_file("Repositories/Foo.md", b"v2", None).unwrap();
+        assert_eq!(
+            std::fs::read(primary_td.path().join("Repositories/Foo.md")).unwrap(),
+            b"v2"
+        );
+        assert_eq!(ft.read_file("Repositories/Foo.md").unwrap().0, b"v2");
+    }
+
+    #[test]
+    fn fallthrough_delete_of_copied_file_restores_bundled() {
+        let primary_td = TempDir::new().unwrap();
+        let primary = make_disk(&primary_td);
+        let (_fallback_td, fallback) = make_copy_on_write_with_file("Repositories/Foo.md", b"v1");
+        let ft = FallthroughSpacePrimitives::new(primary, fallback);
+
+        assert!(matches!(
+            ft.delete_file("Repositories/Foo.md"),
+            Err(SpaceError::ReadOnly(_))
+        ));
+        ft.write_file("Repositories/Foo.md", b"v2", None).unwrap();
+        ft.delete_file("Repositories/Foo.md").unwrap();
+        assert_eq!(ft.read_file("Repositories/Foo.md").unwrap().0, b"v1");
     }
 
     #[test]

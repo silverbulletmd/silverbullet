@@ -10,7 +10,11 @@ import {
   type LibraryCheck,
 } from "./libraries_backend.ts";
 import type { LibrariesFocus } from "./libraries_focus.ts";
-import { REPOSITORY_PAGE_PREFIX, STD_REPOSITORY } from "./library_names.ts";
+import {
+  BUNDLED_REPOSITORIES,
+  REPOSITORY_PAGE_PREFIX,
+  STD_REPOSITORY,
+} from "./library_names.ts";
 
 export type SectionKey = "installed" | "available" | "repositories";
 
@@ -311,11 +315,10 @@ export function libraryLists(
       kind: "repository",
       name: r.name,
       uri: r.uri,
-      // Repositories without share metadata (the built-in Std) are read-only
-      badge: r.uri ? undefined : "built-in",
+      badge: BUNDLED_REPOSITORIES.has(r.name) ? "built-in" : undefined,
       check: checks[r.name],
       updatable: !!r.uri,
-      removable: !!r.uri,
+      removable: !!r.uri && !BUNDLED_REPOSITORIES.has(r.name),
       openable: true,
     }),
   );

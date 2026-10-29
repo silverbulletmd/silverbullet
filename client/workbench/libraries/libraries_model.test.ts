@@ -232,10 +232,31 @@ describe("lists", () => {
       false,
       false,
     ]);
-    expect(repositories.map((r) => [r.name, r.badge, r.updatable])).toEqual([
-      ["Repositories/Std", "built-in", false],
-      ["Repositories/Acme", undefined, true],
+    expect(
+      repositories.map((r) => [r.name, r.badge, r.updatable, r.removable]),
+    ).toEqual([
+      ["Repositories/Std", "built-in", false, false],
+      ["Repositories/Acme", undefined, true, true],
     ]);
+  });
+
+  test("a bundled repository with a source updates but can't be removed", () => {
+    const { repositories } = libraryLists(
+      {
+        ...sample,
+        repositories: [
+          {
+            name: "Repositories/SilverBulletMD",
+            uri: "https://e/SilverBulletMD.md",
+            mode: "pull",
+          },
+        ],
+      },
+      "",
+    );
+    expect(
+      repositories.map((r) => [r.badge, r.updatable, r.removable]),
+    ).toEqual([["built-in", true, false]]);
   });
 
   test("Update all counts exactly the rows that offer Update", () => {

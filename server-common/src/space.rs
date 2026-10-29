@@ -9,7 +9,10 @@ pub mod readonly;
 
 pub use conditional::{ConditionalSpacePrimitives, WritePrecondition};
 pub use disk::{DiskSpacePrimitives, GitignoreMatcher};
-pub use embed::{EmptySpacePrimitives, FallthroughSpacePrimitives, ReadOnlyDirSpacePrimitives};
+pub use embed::{
+    layer_perm, EmptySpacePrimitives, FallthroughSpacePrimitives, ReadOnlyDirSpacePrimitives,
+    BUNDLED_COPY_ON_WRITE,
+};
 pub use http::HttpSpacePrimitives;
 pub use readonly::ReadOnlySpacePrimitives;
 

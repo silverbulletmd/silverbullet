@@ -18,6 +18,7 @@ use silverbullet_server::multi::instance::{
 use silverbullet_server::multi::manager::MultiManager;
 use silverbullet_server::multi::users::UserStore;
 use silverbullet_server::runtime::RuntimeAvailability;
+use silverbullet_server_common::space::BUNDLED_COPY_ON_WRITE;
 
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
@@ -107,7 +108,11 @@ pub async fn build_multi_stack(
         root: root.clone(),
         assets: AssetFactories {
             client_bundle: Box::new(|| Box::new(EmbeddedSpace::<ClientAssets>::new())),
-            base_fs: Box::new(|| Box::new(EmbeddedSpace::<BaseFsAssets>::new())),
+            base_fs: Box::new(|| {
+                Box::new(
+                    EmbeddedSpace::<BaseFsAssets>::new().with_copy_on_write(BUNDLED_COPY_ON_WRITE),
+                )
+            }),
         },
         runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
         runtime,

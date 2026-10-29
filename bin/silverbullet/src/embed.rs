@@ -4,6 +4,7 @@
 use std::marker::PhantomData;
 
 use rust_embed::RustEmbed;
+use silverbullet_server_common::space::layer_perm;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 
 // Source maps outweigh the code they describe, so release binaries leave them
@@ -29,12 +30,35 @@ pub struct BaseFsAssets;
 /// (required by `SpacePrimitives`) without imposing those bounds on `E`.
 pub struct EmbeddedSpace<E: RustEmbed> {
     _marker: PhantomData<fn() -> E>,
+    copy_on_write: Vec<String>,
 }
 
 impl<E: RustEmbed> EmbeddedSpace<E> {
     pub fn new() -> Self {
         Self {
             _marker: PhantomData,
+            copy_on_write: Vec::new(),
+        }
+    }
+
+    /// Marks files under these path prefixes copy-on-write (see [`layer_perm`]).
+    pub fn with_copy_on_write(mut self, prefixes: &[&str]) -> Self {
+        self.copy_on_write = prefixes.iter().map(|p| p.to_string()).collect();
+        self
+    }
+
+    fn meta_for(&self, path: &str, data_len: usize, last_modified: Option<u64>) -> FileMeta {
+        // rust-embed reports seconds; FileMeta and the client sync hash use milliseconds.
+        let ts = last_modified.unwrap_or(0) as i64 * 1000;
+        FileMeta {
+            name: path.to_string(),
+            created: ts,
+            last_modified: ts,
+            content_type: mime_guess::from_path(path)
+                .first_or_octet_stream()
+                .to_string(),
+            size: data_len as i64,
+            perm: layer_perm(&self.copy_on_write, path),
         }
     }
 }
@@ -42,21 +66,6 @@ impl<E: RustEmbed> EmbeddedSpace<E> {
 impl<E: RustEmbed> Default for EmbeddedSpace<E> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-fn meta_for(path: &str, data_len: usize, last_modified: Option<u64>) -> FileMeta {
-    // rust-embed reports seconds; FileMeta and the client sync hash use milliseconds.
-    let ts = last_modified.unwrap_or(0) as i64 * 1000;
-    FileMeta {
-        name: path.to_string(),
-        created: ts,
-        last_modified: ts,
-        content_type: mime_guess::from_path(path)
-            .first_or_octet_stream()
-            .to_string(),
-        size: data_len as i64,
-        perm: "ro".to_string(),
     }
 }
 
@@ -69,12 +78,12 @@ impl<E: RustEmbed> SpacePrimitives for EmbeddedSpace<E> {
 
     fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
         let f = E::get(path).ok_or(SpaceError::NotFound)?;
-        Ok(meta_for(path, f.data.len(), f.metadata.last_modified()))
+        Ok(self.meta_for(path, f.data.len(), f.metadata.last_modified()))
     }
 
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
         let f = E::get(path).ok_or(SpaceError::NotFound)?;
-        let meta = meta_for(path, f.data.len(), f.metadata.last_modified());
+        let meta = self.meta_for(path, f.data.len(), f.metadata.last_modified());
         Ok((f.data.into_owned(), meta))
     }
 
@@ -99,6 +108,7 @@ impl<E: RustEmbed> SpacePrimitives for EmbeddedSpace<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use silverbullet_server_common::space::BUNDLED_COPY_ON_WRITE;
 
     #[test]
     fn client_bundle_contains_index_html() {
@@ -121,6 +131,19 @@ mod tests {
     fn writes_are_rejected() {
         let space = EmbeddedSpace::<ClientAssets>::new();
         assert!(space.write_file("x", b"y", None).is_err());
+    }
+
+    #[test]
+    fn copy_on_write_prefixes_are_rw() {
+        let space = EmbeddedSpace::<BaseFsAssets>::new().with_copy_on_write(BUNDLED_COPY_ON_WRITE);
+        assert_eq!(
+            space.get_file_meta("Repositories/Std.md").unwrap().perm,
+            "rw"
+        );
+        assert_eq!(
+            space.get_file_meta("Library/Std/Config.md").unwrap().perm,
+            "ro"
+        );
     }
 
     #[test]
