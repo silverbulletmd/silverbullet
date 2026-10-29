@@ -11,6 +11,8 @@ import { exposeSyscalls } from "./space_lua_api.ts";
 import { evalExpression } from "./space_lua/eval.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";
 import { renderThread } from "./space_lua/render_thread.ts";
+import { Config } from "./config.ts";
+import { configSyscalls } from "./plugos/syscalls/config.ts";
 
 test("documented syscalls retain metadata when exposed to Lua", async () => {
   const system = new System();
@@ -90,4 +92,24 @@ test("a syscall's dependsOn reaches the thread tracker; its info leaves it out",
   expect(seen).toEqual(["demo:x"]);
   const info = (env.get("demo") as any).get("read").info;
   expect(info.dependsOn).toBeUndefined();
+});
+
+test("config.unset removes fields merged from Lua", async () => {
+  const config = new Config();
+  const system = new System<any>();
+  system.registerSyscalls([], configSyscalls(config));
+  const env = new LuaEnv(luaBuildStandardEnv());
+  exposeSyscalls(env, system);
+  const sf = LuaStackFrame.createWithGlobalEnv(env);
+  const run = (code: string) =>
+    evalExpression(parseExpressionString(code), env, sf);
+
+  await run(
+    'config.merge({"commands", "Say hello"}, {key = "Ctrl-h", run = function() return "hi" end})',
+  );
+  await run('config.merge({"commands", "Say hello"}, {key = config.unset})');
+  const def = config.get<any>(["commands", "Say hello"], null);
+  expect(Object.keys(def)).toEqual(["run"]);
+  expect(await def.run()).toBe("hi");
+  expect(await run("config.unset == config.unset")).toBe(true);
 });

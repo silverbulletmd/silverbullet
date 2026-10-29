@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { Config } from "./config.ts";
+import { CONFIG_UNSET, Config } from "./config.ts";
 
 test("Config - basic get/set/has/insert", () => {
   const config = new Config();
@@ -239,5 +239,44 @@ test("Config - custom format validation", () => {
   );
   expect(() => config.set("link", { ref: "[[no close" })).toThrow(
     "Validation error for link",
+  );
+});
+
+test("Config - merge keeps, replaces and unsets fields", () => {
+  const config = new Config();
+
+  config.merge(["commands", "Say hello"], { key: "Ctrl-h", hide: true });
+  config.merge(["commands", "Say hello"], {
+    key: "Ctrl-Alt-h",
+    hide: CONFIG_UNSET,
+    priority: 2,
+  });
+  expect(config.get(["commands", "Say hello"], null)).toEqual({
+    key: "Ctrl-Alt-h",
+    priority: 2,
+  });
+
+  config.set("commands.Say hello.priority", CONFIG_UNSET);
+  expect(config.get(["commands", "Say hello"], null)).toEqual({
+    key: "Ctrl-Alt-h",
+  });
+});
+
+test("Config - merge validates the merged result", () => {
+  const config = new Config();
+  config.define("people", {
+    type: "object",
+    additionalProperties: {
+      type: "object",
+      properties: { name: { type: "string" }, age: { type: "number" } },
+      required: ["name"],
+    },
+  });
+
+  config.merge(["people", "p1"], { name: "Ada" });
+  config.merge(["people", "p1"], { age: 36 });
+  expect(config.get(["people", "p1"], null)).toEqual({ name: "Ada", age: 36 });
+  expect(() => config.merge(["people", "p1"], { name: CONFIG_UNSET })).toThrow(
+    "Validation error for people",
   );
 });

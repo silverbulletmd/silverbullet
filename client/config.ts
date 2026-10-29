@@ -60,6 +60,13 @@ function isValidJsonSchema(schema: any): { valid: boolean; error?: string } {
 }
 
 /**
+ * Sentinel exposed to Lua as `config.unset`: a field set to it is removed
+ * (by `merge`), and a path set to it is deleted (by `set`). Lua tables can't
+ * hold `nil`, so this is the only way to express "remove this field".
+ */
+export const CONFIG_UNSET = Symbol.for("silverbullet.configUnset");
+
+/**
  * Configuration management (config.* APIs) for the client
  */
 export type CategoryDefinition = {
@@ -204,7 +211,11 @@ export class Config {
 
       const resolved = resolvePath(this.values, key, true);
       if (resolved) {
-        resolved.obj[resolved.key] = value;
+        if (value === CONFIG_UNSET) {
+          delete resolved.obj[resolved.key];
+        } else {
+          resolved.obj[resolved.key] = value;
+        }
       } else {
         throw new Error(`Invalid key ${key}`);
       }
@@ -222,6 +233,32 @@ export class Config {
         this.set(key, val);
       }
     }
+  }
+
+  /**
+   * Shallow-merges an object into the object at a path: fields in `values`
+   * replace existing ones, fields set to CONFIG_UNSET are removed, and all
+   * other existing fields are kept. Backs the `*.define` APIs.
+   * @param path The path to merge into, supports dot notation
+   * @param values The fields to merge in
+   */
+  merge(path: string | string[], values: Record<string, any>): void {
+    if (typeof path === "string") {
+      path = path.split(".");
+    }
+    const existing = this.get<any>(path, undefined);
+    const merged: Record<string, any> =
+      existing && typeof existing === "object" && !Array.isArray(existing)
+        ? { ...existing }
+        : {};
+    for (const [key, value] of Object.entries(values)) {
+      if (value === CONFIG_UNSET) {
+        delete merged[key];
+      } else {
+        merged[key] = value;
+      }
+    }
+    this.set(path, merged);
   }
 
   insert<T>(key: string | string[], value?: T): void {

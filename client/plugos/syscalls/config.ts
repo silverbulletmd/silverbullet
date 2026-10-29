@@ -75,6 +75,29 @@ export function configSyscalls(config: Config): SysCallMapping {
         },
       ],
     },
+    "config.merge": {
+      callback: (
+        _ctx,
+        path: string | string[],
+        values: Record<string, any>,
+      ) => {
+        config.merge(path, values);
+      },
+      description:
+        "Shallow-merges a table into the table at a path: given fields replace existing ones, fields set to config.unset are removed, and other existing fields are kept.",
+      parameters: [
+        { name: "path", description: "Configuration path." },
+        { name: "values", type: "table", description: "Fields to merge in." },
+      ],
+      examples: [
+        {
+          code: 'config.merge({"commands", "Say hello"}, {key = "Ctrl-Alt-h"})',
+        },
+        {
+          code: 'config.merge({"commands", "Say hello"}, {key = config.unset})',
+        },
+      ],
+    },
     "config.insert": {
       callback: (_ctx, key: string | string[], value: any) => {
         config.insert(key, value);

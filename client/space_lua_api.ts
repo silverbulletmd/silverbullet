@@ -10,6 +10,7 @@ import {
 } from "./space_lua/runtime.ts";
 import type { System } from "./plugos/system.ts";
 import { resolveASTReference } from "./space_lua.ts";
+import { CONFIG_UNSET } from "./config.ts";
 
 export function buildLuaEnv(system: System<any>) {
   const env = new LuaEnv(luaBuildStandardEnv());
@@ -81,6 +82,10 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
           ...definition,
         });
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
+  }
+  // Constants that live alongside syscalls in their namespace
+  if (env.has("config")) {
+    env.get("config", nativeFs).set("unset", CONFIG_UNSET, nativeFs);
   }
 }
 
