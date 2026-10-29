@@ -79,9 +79,11 @@ export function attributePlugin(client: Client) {
               state,
               callback: (event, ref) => {
                 if (event.altKey) {
-                  revealSource(client.editorView, {
-                    anchor: from + wikiLinkMatch.leadingTrivia.length,
-                  });
+                  revealSource(
+                    client.editorView,
+                    { anchor: from + wikiLinkMatch.leadingTrivia.length },
+                    { from, to },
+                  );
                   client.focus();
                   return;
                 }

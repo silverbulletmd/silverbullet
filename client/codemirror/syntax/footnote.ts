@@ -144,7 +144,11 @@ function footnoteRefDecorator(editorView: () => EditorView) {
               widget: new FootnoteRefWidget(labelText, resolved, (e) => {
                 const view = editorView();
                 if (e.altKey || !resolved) {
-                  revealSource(view, { anchor: refFrom + 2 }); // after [^
+                  revealSource(
+                    view,
+                    { anchor: refFrom + 2 },
+                    { from: refFrom, to },
+                  ); // after [^
                   view.focus();
                 } else {
                   const def = findFootnoteDef(state, labelText);

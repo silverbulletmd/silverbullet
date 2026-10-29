@@ -222,42 +222,57 @@ export const readOnlyCursorVisible = EditorView.editorAttributes.compute(
   }),
 );
 
+type SourceRange = { from: number; to: number };
+
 /** Marks a selection change as an explicit request to show the source (Alt-click) */
-export const revealSourceEffect = StateEffect.define<null>();
+export const revealSourceEffect = StateEffect.define<SourceRange>({
+  map: (range, changes) => ({
+    from: changes.mapPos(range.from, -1),
+    to: changes.mapPos(range.to, 1),
+  }),
+});
 
 /**
  * In read-only mode the source only shows after an explicit request
- * (Alt-click), not just because the cursor moved there. It stays shown until
- * the selection changes again (arrow keys, plain click). A new page gets a
- * new state, which resets it too.
+ * (Alt-click), not just because the cursor moved there. The field holds the
+ * revealed source range. It stays shown while the selection overlaps or
+ * touches that range (so it can be selected and copied), and is cleared for
+ * good once the selection lies entirely outside it. A new page gets a new
+ * state, which resets it too.
  */
-export const readOnlyReveal = StateField.define<boolean>({
-  create: () => false,
+export const readOnlyReveal = StateField.define<SourceRange | null>({
+  create: () => null,
   update(value, tr) {
-    if (tr.effects.some((e) => e.is(revealSourceEffect))) {
-      return true;
+    for (const effect of tr.effects) {
+      if (effect.is(revealSourceEffect)) {
+        return effect.value;
+      }
     }
-    // Compare positions: widgets dispatch a no-op selection to re-measure
-    if (!tr.startState.selection.eq(tr.newSelection)) {
-      return false;
+    if (!value) {
+      return null;
     }
-    return value;
+    const from = tr.changes.mapPos(value.from, -1);
+    const to = tr.changes.mapPos(value.to, 1);
+    const { main } = tr.newSelection;
+    return main.from <= to && main.to >= from ? { from, to } : null;
   },
 });
 
 function sourceRevealed(state: EditorState) {
-  return state.readOnly && state.field(readOnlyReveal, false) === true;
+  return state.readOnly && !!state.field(readOnlyReveal, false);
 }
 
 /**
  * Move the cursor to show the Markdown source of a rendered element
- * (Alt-click). Read-only editors only reveal it for this move.
+ * (Alt-click), given the range that source occupies. Read-only editors only
+ * reveal it while the selection stays in that range.
  */
 export function revealSource(
   view: EditorView,
   selection: { anchor: number } | EditorSelection,
+  range: SourceRange,
 ) {
-  view.dispatch({ selection, effects: revealSourceEffect.of(null) });
+  view.dispatch({ selection, effects: revealSourceEffect.of(range) });
 }
 
 /**

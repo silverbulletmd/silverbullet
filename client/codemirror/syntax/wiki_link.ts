@@ -46,9 +46,11 @@ export function cleanWikiLinkPlugin(client: Client) {
           state,
           callback: (e) => {
             if (e.altKey) {
-              revealSource(client.editorView, {
-                anchor: from + wikiLinkMatch.leadingTrivia.length,
-              });
+              revealSource(
+                client.editorView,
+                { anchor: from + wikiLinkMatch.leadingTrivia.length },
+                { from, to },
+              );
               client.focus();
               return;
             }

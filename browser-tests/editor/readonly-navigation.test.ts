@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { build } from "esbuild";
 
 test("read-only keyboard navigation steps over links and through widget controls", async ({
@@ -139,9 +139,7 @@ test("read-only keyboard navigation steps over links and through widget controls
   await expect(page.locator(".cm-content")).not.toContainText("${");
 });
 
-test("Alt-click reveals the source of a read-only wiki link and widget until the cursor moves", async ({
-  page,
-}) => {
+async function openRevealFixture(page: Page) {
   const bundle = await build({
     stdin: {
       resolveDir: fileURLToPath(new URL("../../client/", import.meta.url)),
@@ -217,6 +215,12 @@ test("Alt-click reveals the source of a read-only wiki link and widget until the
     logLevel: "silent",
   });
   await page.addScriptTag({ content: bundle.outputFiles[0].text });
+}
+
+test("Alt-click reveals the source of a read-only wiki link and widget until the cursor leaves it", async ({
+  page,
+}) => {
+  await openRevealFixture(page);
 
   const content = page.locator(".cm-content");
   const head = () =>
@@ -235,21 +239,26 @@ test("Alt-click reveals the source of a read-only wiki link and widget until the
   await expect(content).toContainText("[[Page]]");
   await expect(page.locator("a.sb-wiki-link")).toHaveCount(0);
 
-  // The next arrow key steps off the source one character and renders it again
+  // Arrow keys within the source keep it shown
   const revealedHead = await head();
   await page.keyboard.press("ArrowRight");
   expect(await head()).toBe(revealedHead + 1);
+  await expect(content).toContainText("[[Page]]");
+
+  // Moving out of it renders it again, without getting stuck
+  await page.keyboard.press("ArrowDown");
   await expect(content).not.toContainText("[[");
   await expect(page.locator("a.sb-wiki-link")).toBeVisible();
-  // ... without getting stuck inside the hidden source
-  await page.keyboard.press("ArrowRight");
-  expect(await head()).toBeGreaterThan(revealedHead + 1);
+  const outsideHead = await head();
+  expect(outsideHead).toBeGreaterThan(13);
+  await page.keyboard.press("ArrowLeft");
+  expect(await head()).toBeLessThan(outsideHead);
 
   // Alt-click on the widget shows its source
   await page
     .getByText("Rendered value")
     .click({ modifiers: ["Alt"], position: { x: 3, y: 3 } });
-  await expect(content).toContainText("\${1 + 2}");
+  await expect(content).toContainText("${1 + 2}");
   await expect(page.getByText("Rendered value")).toHaveCount(0);
   await expect(content).not.toContainText("[[");
 
@@ -257,9 +266,75 @@ test("Alt-click reveals the source of a read-only wiki link and widget until the
   const widgetHead = await head();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByText("Rendered value")).toBeVisible();
-  await expect(content).not.toContainText("\${1 + 2}");
+  await expect(content).not.toContainText("${1 + 2}");
   const afterWidget = await head();
   expect(afterWidget).not.toBe(widgetHead);
   await page.keyboard.press("ArrowDown");
   expect(await head()).toBeGreaterThan(afterWidget);
+});
+
+const dragBetween = (page: Page, from: number, to: number) =>
+  page.evaluate(
+    ([from, to]) => {
+      const view = (globalThis as any).view;
+      const a = view.coordsAtPos(from);
+      const b = view.coordsAtPos(to);
+      return {
+        start: { x: a.left, y: (a.top + a.bottom) / 2 },
+        end: { x: b.left, y: (b.top + b.bottom) / 2 },
+      };
+    },
+    [from, to],
+  );
+
+test("dragging over revealed source selects it and keeps it shown", async ({
+  page,
+}) => {
+  await openRevealFixture(page);
+  const content = page.locator(".cm-content");
+  const selected = () =>
+    page.evaluate(() => {
+      const { state } = (globalThis as any).view;
+      const { from, to } = state.selection.main;
+      return state.sliceDoc(from, to);
+    });
+
+  // Link source is 5..13; drag over "Page"
+  await page
+    .locator("a.sb-wiki-link")
+    .click({ modifiers: ["Alt"], position: { x: 3, y: 3 } });
+  await expect(content).toContainText("[[Page]]");
+  const link = await dragBetween(page, 7, 11);
+  await page.mouse.move(link.start.x, link.start.y);
+  await page.mouse.down();
+  await page.mouse.move(link.end.x, link.end.y, { steps: 5 });
+  await page.mouse.up();
+  expect(await selected()).toBe("Page");
+  await expect(content).toContainText("[[Page]]");
+
+  // Shift-arrows keep it shown too
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("Shift+ArrowRight");
+  await page.keyboard.press("Shift+ArrowRight");
+  expect((await selected()).length).toBe(2);
+  await expect(content).toContainText("[[Page]]");
+
+  // Alt-click on the widget, then drag over its source
+  await page
+    .getByText("Rendered value")
+    .click({ modifiers: ["Alt"], position: { x: 3, y: 3 } });
+  await expect(content).toContainText("${1 + 2}");
+  const widget = await page.evaluate(() => {
+    const { doc } = (globalThis as any).view.state;
+    const from = doc.toString().indexOf("${1 + 2}");
+    return { from, to: from + "${1 + 2}".length };
+  });
+  const w = await dragBetween(page, widget.from, widget.to - 1);
+  await page.mouse.move(w.start.x, w.start.y);
+  await page.mouse.down();
+  await page.mouse.move(w.end.x, w.end.y, { steps: 5 });
+  await page.mouse.up();
+  expect((await selected()).length).toBeGreaterThan(3);
+  await expect(content).toContainText("${1 + 2}");
+  await expect(page.getByText("Rendered value")).toHaveCount(0);
 });

@@ -188,7 +188,11 @@ export function frontmatterPlugin(client: Client) {
                     from: mFrom,
                     callback: (e) => {
                       if (e.altKey) {
-                        revealSource(client.editorView, { anchor: mFrom });
+                        revealSource(
+                          client.editorView,
+                          { anchor: mFrom },
+                          { from: mFrom, to: mTo },
+                        );
                         client.focus();
                         return;
                       }
@@ -237,9 +241,11 @@ export function frontmatterPlugin(client: Client) {
                 state,
                 callback: (e, ref) => {
                   if (e.altKey) {
-                    revealSource(client.editorView, {
-                      anchor: mFrom + wikiLinkMatch.leadingTrivia.length,
-                    });
+                    revealSource(
+                      client.editorView,
+                      { anchor: mFrom + wikiLinkMatch.leadingTrivia.length },
+                      { from: mFrom, to: mTo },
+                    );
                     client.focus();
                     return;
                   }
@@ -277,7 +283,11 @@ export function frontmatterPlugin(client: Client) {
                     from: mFrom,
                     callback: (e) => {
                       if (e.altKey) {
-                        revealSource(client.editorView, { anchor: mFrom });
+                        revealSource(
+                          client.editorView,
+                          { anchor: mFrom },
+                          { from: mFrom, to: mTo },
+                        );
                         client.focus();
                         return;
                       }
