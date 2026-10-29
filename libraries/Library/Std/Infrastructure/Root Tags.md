@@ -28,12 +28,7 @@ tag.define {
     properties = {
       ref = readOnlyType("string"),
       tag = readOnlyType("string"),
-      tags = {
-        anyOf = {
-          { type = "array", items = schema.string() },
-          schema.string(),
-        },
-      },
+      tags = schema.tags(),
       -- range of where fronmatter appears in the page (if present)
       range = rangeType,
       itags = {
@@ -72,20 +67,12 @@ tag.define {
         items = schema.string(),
         nullable = true,
       },
-      recipients = {
+      recipients = schema.identities {
         description = "Who this page is for, by @name",
-        anyOf = {
-          { type = "array", items = schema.string() },
-          schema.string(),
-        },
         nullable = true,
       },
-      authors = {
+      authors = schema.identities {
         description = "Who wrote this page, by @name.",
-        anyOf = {
-          { type = "array", items = schema.string() },
-          schema.string(),
-        },
         nullable = true,
       },
       created = readOnlyType("string"),
@@ -340,7 +327,7 @@ tag.define {
     properties = {
       ref = readOnlyType("string"),
       tag = readOnlyType("string"),
-      tags = schema.array("string"),
+      tags = schema.tags(),
       itags = {
         type = "array",
         items = schema.string(),

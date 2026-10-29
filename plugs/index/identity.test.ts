@@ -254,6 +254,19 @@ test("parseDeclaredNames accepts a list, a plain string, and @ notation", () => 
   expect(parseDeclaredNames(undefined)).toEqual([]);
 });
 
+test("parseDeclaredNames also cuts a plain string on commas", () => {
+  expect(parseDeclaredNames("alice, bob")).toEqual(["alice", "bob"]);
+  expect(parseDeclaredNames("alice,@bob  carol")).toEqual([
+    "alice",
+    "bob",
+    "carol",
+  ]);
+  expect(parseDeclaredNames("[[Team/Ops, East]], ada")).toEqual([
+    "[[Team/Ops, East]]",
+    "ada",
+  ]);
+});
+
 function makeCompleteEvent(linePrefix: string) {
   return {
     linePrefix,

@@ -46,6 +46,9 @@ This ensures that `config.set("myLibrary.config", ...)` only accepts values matc
 # Schema helper functions
 The [[^Library/Std/APIs/Schema]] library provides convenience functions like `schema.string()`, `schema.number()`, `schema.array(typ)`, etc. for building JSON Schema objects in Lua. See the API page for the full list.
 
+# References
+`schema.ref("person")` describes a reference: a single quoted wikilink such as `owner: "[[Person/Alice]]"`, pointing at a page or at an object with an anchor (`"[[$alice]]"`).
+
 # How validation surfaces
 When schema validation fails for page and attributes, SilverBullet shows the error as a lint warning in the editor.
 

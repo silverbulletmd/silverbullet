@@ -14,12 +14,12 @@ export { IDENTITY_PREFIX, identityId } from "./identity_id.ts";
 
 // One entry of a `recipients:` frontmatter value: a wikilink (kept whole, so
 // the indexer can recognise one and leave it alone rather than minting junk
-// names out of its halves) or a run of non-space characters.
-const declaredRecipientRegex = /\[\[[^\]]*\]\]|\S+/g;
+// names out of its halves) or a run of characters other than spaces and commas.
+const declaredRecipientRegex = /\[\[[^\]]*\]\]|[^\s,]+/g;
 
 /** The entries of a `recipients:` frontmatter value. A list gives one entry
- * per item; a plain string is cut on whitespace, so `recipients: ada sales`
- * names two. A leading `@` is optional either way, the way a leading `#` is
+ * per item; a plain string is cut on whitespace and commas, so both
+ * `recipients: ada sales` and `recipients: ada, sales` name two. A leading `@` is optional either way, the way a leading `#` is
  * on a tag. */
 export function parseDeclaredNames(value: unknown): string[] {
   const entries =

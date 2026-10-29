@@ -3,8 +3,29 @@ import { type OutputUnit, Validator, format } from "@cfworker/json-schema";
 import { stripFunctions } from "../util.ts";
 
 format.email = (data: string) => data.includes("@");
-format["page-ref"] = (data: string) =>
-  data.startsWith("[[") && data.endsWith("]]");
+// Exactly one non-empty wikilink: [[Page]], [[$anchor]] or [[Page$anchor]]
+format.ref = (data: string) =>
+  data.length > 4 &&
+  data.startsWith("[[") &&
+  data.endsWith("]]") &&
+  !data.slice(2, -2).includes("]]");
+format["page-ref"] = format.ref;
+
+// Tag names and @names as frontmatter writes them (schema.tags(), schema.identities()).
+// Lenient on purpose: they accept whatever the indexer reads (normalizeTagList,
+// parseDeclaredNames), since any name can be written as a hashtag (`#<my tag>`).
+// They only refuse entries with nothing left once the `#` or `@` is dropped.
+const hasName = (entry: string, sigil: string) =>
+  entry.trim().replace(sigil, "").trim() !== "";
+format.tag = (data: string) => hasName(data, "#");
+format.tags = (data: string) =>
+  data
+    .split(/[,\s]+/)
+    .filter((t) => t !== "")
+    .every((t) => hasName(t, "#"));
+format.identity = (data: string) => hasName(data, "@");
+format.identities = (data: string) =>
+  (data.match(/\[\[[^\]]*\]\]|[^,\s]+/g) ?? []).every((n) => hasName(n, "@"));
 
 const schemaCache = new Map<string, Validator>();
 
