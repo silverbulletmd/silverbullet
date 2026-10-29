@@ -27,7 +27,8 @@ Defines a tag explicitly.
 * `schema` [[Schema]] to validate against
 * `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
-* `renderFrontmatter` callback function `function(pageMeta)` that renders the [[Frontmatter]] of pages with this tag as a custom widget in the editor. See [[#Frontmatter live previews]].
+* `renderFrontmatter` callback function `function(pageMeta, ctx)` that renders the [[Frontmatter]] of pages with this tag as a custom widget in the editor. See [[#Frontmatter live previews]].
+* `renderDataBlock` callback function `function(object, ctx)` that renders each object of a ` ```#name ` [[Tag/data|data block]] as a custom widget in the editor. See [[#Data block previews]].
 
 When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback. To remove a field set by an earlier call, set it to `config.unset` (e.g. `tag.define { name = "person", transform = config.unset }`).
 
@@ -132,8 +133,12 @@ The result is the following:
 |Hello |false|2026-12-31|
 <!--/lua-->
 
-## Frontmatter live previews
-A tag can replace the YAML [[Frontmatter]] of its pages with a custom widget in the editor, e.g. a header card. `renderFrontmatter` receives `pageMeta`: the current (possibly unsaved) frontmatter values, plus the page's name in `pageMeta.name`. It returns a widget, typically built with `widget.htmlBlock` and the [[API/dom|dom]] API.
+## Rendering objects
+A tag can replace the YAML of its objects with a custom widget in the editor, e.g. a header card or a form. Each kind of object has its own hook: `renderFrontmatter` for a page's [[Frontmatter]], `renderDataBlock` for the documents of a [[Tag/data|data block]]. Both are called as `render(object, ctx)` and return a widget, typically built with `widget.htmlBlock` and the [[API/dom|dom]] API. By default, both render the form from [[^Library/Std/Widgets/Object Form]] (`objectForm.render`).
+
+`object` is the object with its current, possibly unsaved values: for a page, its frontmatter plus `name` (the page name) and `tags`; for a data object, its YAML plus `ref`, `tag`, `tags` and `page`, as the [[Object Index]] would have it.
+
+`ctx` is the [[Live Object Edit#The render context|render context]]: the raw YAML (`ctx.values`, `ctx.types`, `ctx.keys`), `ctx.kind`, `ctx.readOnly`, and `ctx.set`, `ctx.remove` and `ctx.move` to change it. See [[Live Object Edit]] for the full reference and an editable example.
 
 ```lua
 tag.define {
@@ -148,12 +153,35 @@ tag.define {
 ```
 
 How it behaves:
-* When multiple tags in a page’s `tags` field define a renderer, the first one wins. Without a renderer, frontmatter keeps its ordinary display and [[Frontmatter|folding]] behavior.
-* Pick **Edit source** from its ⋯ menu, Alt-click the preview, or click its noninteractive space to reveal the YAML and edit it directly. The preview returns when the cursor leaves the frontmatter.
-* **Go to definition** in its ⋯ menu jumps to the `renderFrontmatter` function.
+* Pick **Edit source** from its ⋯ menu, Alt-click the widget, click its noninteractive space, or press Esc inside one of its inputs to reveal the YAML and edit it directly. Esc places the cursor on the line of the attribute whose element (or an ancestor) carries a `data-key` attribute. The widget returns when the cursor leaves the YAML.
+* **Go to definition** in its ⋯ menu jumps to the render function.
 * Explicit Markdown syntax mode shows the source.
 
-For a full example, see the `adr` tag in [[CONFIG]], which renders every [[ADR]] as a decision card.
+### Frontmatter live previews
+When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag's renderer is the default form; the `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Configuration Manager]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag's own `renderFrontmatter` applies either way.
+
+### Data block previews
+A ` ```#name ` block shows one widget per YAML document (documents are separated by `---` lines), stacked in place of the block. A plain ` ```data ` block works the same, with the root `data` tag. For a ` ```#name ` block, the first match wins:
+1. the `name` tag's `renderDataBlock`;
+2. a [[API/codeWidget|code widget]] for the language `#name`, so existing code widgets keep working;
+3. the `data` tag's `renderDataBlock`, which is the form;
+4. none: the YAML shows as a code block.
+
+A block whose YAML doesn't parse, or isn't a key/value mapping, shows its source. Step 3 is the default form; the `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Configuration Manager]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
+
+```lua
+tag.define {
+  name = "contact",
+  renderDataBlock = function(contact, ctx)
+    return widget.htmlBlock(dom.div {
+      class = "contact-card",
+      dom.strong { contact.name or "Unnamed" },
+      " · ",
+      contact.email or "no email",
+    })
+  end,
+}
+```
 
 ## Styling
 Tags get assigned a `data-tag-name` attribute in the DOM, which you can use to do custom styling with [[Space Style]].

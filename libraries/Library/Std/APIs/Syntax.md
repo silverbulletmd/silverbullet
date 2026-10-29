@@ -24,6 +24,9 @@ Available keys:
 -- priority: 99
 syntax = syntax or {}
 
+--- Registers a custom syntax extension, or merges `spec` into an existing one with the same name; active after the next editor state rebuild.
+--- @param spec table { name: string, startMarker: string, endMarker: string, mode: "block"|"inline", startMarkerClass?: string, bodyClass?: string, endMarkerClass?: string, renderClass?: string, renderWidget?: function(body, pageName), renderHtml?: function(body, pageName) }; markers are regex strings
+--- @see API/syntax
 function syntax.define(spec)
   if not spec.name then error("syntax.define requires 'name'") end
   -- Required fields may come from an earlier definition of the same name

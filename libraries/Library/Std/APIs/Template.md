@@ -73,8 +73,11 @@ The `templates` table contains ready-made templates for common query rendering p
 template = template or {}
 templates = {}
 
--- Iterates over a table/array and applies a function to each element,
--- concatenating the results
+--- Applies `fn` to each element of an array and concatenates the results.
+--- @param tbl table the array to iterate over
+--- @param fn function called with each element, returning a string
+--- @return string? the concatenated results, or nil when there are none
+--- @see API/template
 function template.each(tbl, fn)
   local result = {}
   for _, item in ipairs(tbl) do
@@ -83,7 +86,11 @@ function template.each(tbl, fn)
   return #result > 0 and table.concat(result) or nil
 end
 
--- Creates a new template function from a string template
+--- Creates a template function from a string with `${expression}` placeholders.
+--- @param templateStr string the template text
+--- @param stripIndent? boolean strip leading 4-space indentation from each line (default true)
+--- @return function a function that takes an object and returns the interpolated string
+--- @see API/template
 function template.new(templateStr, stripIndent)
   if stripIndent == nil or stripIndent == true then
     local lines = {}
@@ -99,10 +106,12 @@ function template.new(templateStr, stripIndent)
   end
 end
 
--- Reads a template from a page
--- Return value:
--- * The template itself
--- * The extracted frontmatter
+--- Reads a template from a page, removing its frontmatter.
+--- @param name string the page name
+--- @param raw? boolean return the text as is, without interpolating it
+--- @return function the template function
+--- @return table the page's frontmatter
+--- @see API/template
 function template.fromPage(name, raw)
   local fm = index.extractFrontmatter(space.readPage(name),  {
     removeFrontMatterSection = true,

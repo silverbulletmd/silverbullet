@@ -35,6 +35,8 @@ A code block like this:
 
 would then render as "Hello, **world**! (on page ...)".
 
+Data blocks (` ```data ` and ` ```#tag `) render as a form by default (see `renderDataBlock` in [[^Library/Std/APIs/Tag]]). For a ` ```#tag ` block, the first match wins: the tag's own `renderDataBlock`, then a code widget for `#tag` defined here, then the `data` tag's `renderDataBlock` (the form), then the plain YAML. So a code widget for `#tag` keeps working, unless the tag itself defines `renderDataBlock`.
+
 Example producing a rich widget (a mermaid diagram):
 
 ```lua
@@ -56,6 +58,9 @@ Most of the heavy lifting happens in SB itself. This is just a thin wrapper arou
 -- priority: 99
 codeWidget = codeWidget or {}
 
+--- Registers a renderer for fenced code blocks of a given language, or merges `def` into an existing one.
+--- @param def table { language: string, render: function(bodyText, pageName) }; `render` returns a Markdown string or a widget
+--- @see API/codeWidget
 function codeWidget.define(def)
   config.merge({"codeWidgets", def.language}, def)
 end

@@ -43,6 +43,8 @@ actionButton.define {
 
 actionButton = actionButton or {}
 
+--- Adds a button to the top bar.
+--- @param spec table { icon: string, command?: string, run?: function, description?: string, priority?: number, mobile?: boolean, standalone?: boolean, accountManaged?: boolean, dropdown?: boolean }; set `command` or `run`
 function actionButton.define(spec)
   local actionButtonConfig = config.get("actionButtons", {})
   table.insert(actionButtonConfig, spec)

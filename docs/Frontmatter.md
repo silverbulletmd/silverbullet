@@ -1,17 +1,16 @@
 ---
 description: A YAML block at the top of a page that sets page-level attributes.
-status: Complete
 tags: glossary
 references:
 - client/codemirror/syntax/frontmatter.ts
-- client/codemirror/syntax/frontmatter_folding.ts
+- client/codemirror/syntax/frontmatter_preview.ts
 - plugs/index/frontmatter.ts
 ---
 Frontmatter is a common format to attach additional metadata (data about data) to markdown documents. Many tools support it as a markdown [[Markdown/Extensions|extension]].
 
-In SilverBullet, there are multiple ways to attach [[Metadata]] to a page; frontmatter is the most popular one.
+In SilverBullet, there are multiple ways to attach [[Metadata]] to a page, frontmatter is the most popular one.
 
-You create frontmatter by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document. This very page contains some frontmatter, click on it to see the underlying code.
+You create frontmatter by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document. This very page contains some frontmatter, click on it to see the underlying code. On a page without frontmatter, hover the first line and click the tag icon left of it to create it (see [[Live Object Edit]]).
 
 Here is another example:
 
@@ -36,36 +35,6 @@ to
 ```yaml
 attribute:
    subAttribute: 10
-```
-
-# Folding
-Frontmatter can be folded in the editor. By default, frontmatter blocks with more than 5 lines fold automatically when you open a page, unless your cursor or selection is inside the frontmatter. When folded, frontmatter with a `tags` key previews those tags as tag chips. Tags can also replace the frontmatter with a custom live preview, see [[API/tag#Frontmatter live previews]].
-
-You can configure this in your [[CONFIG]] page with `frontmatterFolding`:
-
-Never auto-fold frontmatter:
-
-```lua
-config.set("frontmatterFolding", {
-  foldByDefault = "never",
-})
-```
-
-Always auto-fold frontmatter:
-
-```lua
-config.set("frontmatterFolding", {
-  foldByDefault = "always",
-})
-```
-
-Only auto-fold frontmatter above a custom line threshold:
-
-```lua
-config.set("frontmatterFolding", {
-  foldByDefault = "long",
-  foldByDefaultLines = 10,
-})
 ```
 
 # Special attributes

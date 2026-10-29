@@ -21,14 +21,6 @@ ${query[[from index.objects("contact")]]}
 
 Built-in tag names are taken: a ` ```#task ` block would look like a real task, so it is not indexed, and lint flags it.
 
-## Plain data blocks
-A block with `data` as its language holds objects with the built-in `data` root tag:
-
-```data
-name: Hank
-age: 61
-```
-
 ## Several objects per block
 Separate objects with a `---` line:
 
@@ -36,6 +28,13 @@ Separate objects with a `---` line:
 name: Linda
 ---
 name: Jack
+```
+
+## Editing as a form
+In the editor, each object of a data block shows as a form. To edit data blocks as plain YAML instead, switch off **Edit data blocks as a form** in the [[Configuration Manager]]  or put this in your [[CONFIG]]:
+
+```lua
+config.set("liveEdit", { dataBlocks = false })
 ```
 
 ## Attributes

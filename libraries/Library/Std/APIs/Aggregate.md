@@ -199,6 +199,8 @@ local aggregateSchema = {
   }
 }
 
+--- Defines a new aggregate function for use in queries as `name(expr, ...)`, replacing any existing definition with the same name.
+--- @param spec table { name: string, initialize: function(ctx, ...), iterate: function(state, value, ctx, ...), finish?: function(state, ctx, ...), description?: string }; extra query arguments are passed after `ctx`
 function aggregate.define(spec)
   local validationResult = jsonschema.validateObject(aggregateSchema, spec)
 
@@ -209,6 +211,8 @@ function aggregate.define(spec)
   config.setLuaValue({'aggregates', spec.name}, spec)
 end
 
+--- Merges `spec` into an existing aggregate definition; set a key to `config.unset` to remove it.
+--- @param spec table { name: string } plus any keys accepted by `aggregate.define`
 function aggregate.update(spec)
   if not spec.name then
     error('aggregate.update: name is required')
@@ -237,6 +241,10 @@ function aggregate.update(spec)
   config.setLuaValue({'aggregates', spec.name}, existing)
 end
 
+--- Creates an alias so that `name` resolves to the aggregate `target` at query time.
+--- @param name string the alias name
+--- @param target string a builtin, user-defined aggregate or another alias
+--- @param description? string description of the alias
 function aggregate.alias(name, target, description)
   if not name or not target then
     error('aggregate.alias: both name and target are required')

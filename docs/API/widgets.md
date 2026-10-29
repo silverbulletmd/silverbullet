@@ -22,3 +22,6 @@ ${widgets.commandButton("Reload", "System: Reload")}
 
 ## widgets.subPages(pageName?)
 A list of the pages below `pageName` (default: the current page).
+
+## Input widgets
+`widgets.textInput`, `numberInput`, `booleanInput`, `dateInput`, `selectInput`, `listInput`, `chipsInput`, `tagsInput`, `identitiesInput`, `refInput`, `refListInput`, `schemaInput`, `menu` and `openMenu` (opens a `menu` node from the keyboard) are form controls for your own widgets and forms; `widgets.inputFormats` registers inputs for custom formats. They are documented in [[^Library/Std/Widgets/Inputs]].

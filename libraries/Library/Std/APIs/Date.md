@@ -22,18 +22,26 @@ date = {
   time_format = "%H:%M:%S",
 }
 
+--- Returns today's date, formatted with `date.date_format` (`YYYY-MM-DD` by default).
+--- @return string the date
 function date.today()
   return os.date(date.date_format)
 end
 
+--- Returns tomorrow's date, formatted with `date.date_format` (`YYYY-MM-DD` by default).
+--- @return string the date
 function date.tomorrow()
   return os.date(date.date_format, os.time() + DAY_SECONDS)
 end
 
+--- Returns yesterday's date, formatted with `date.date_format` (`YYYY-MM-DD` by default).
+--- @return string the date
 function date.yesterday()
   return os.date(date.date_format, os.time() - DAY_SECONDS)
 end
 
+--- Returns the current time, formatted with `date.time_format` (`HH:MM:SS`, 24h, by default).
+--- @return string the time
 function date.time()
   return os.date(date.time_format)
 end

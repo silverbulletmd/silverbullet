@@ -55,47 +55,38 @@ tag.define {
 }
 
 -- Architecture Decision Records
+local function described(s, description)
+  s.description = description
+  return s
+end
+
+local function adrLinks(description)
+  return described(schema.nullable(schema.array(schema.ref("adr"))), description)
+end
+
 tag.define {
   name = "adr",
   tagPage = "ADR",
   schema = {
     type = "object",
     properties = {
-      status = {
-        type = "string",
-        enum = { "proposed", "accepted", "superseded", "deprecated", "rejected" },
-        description = "Lifecycle state of the decision."
-      },
-      date = {
-        type = "string",
-        description = "Date the decision was made (YYYY-MM-DD)."
-      },
-      deciders = {
-        type = "string",
-        description = "Who made the call, a contributor page link, e.g. [[Zef Hemel]]."
-      },
-      owner = {
-        type = "string",
-        description = "Who maintains this ADR, a contributor page link, surfaced in [[Health]]."
-      },
-      lastReviewed = {
-        type = "string",
-        description = "Date this ADR was last reviewed (YYYY-MM-DD), powers the [[Health]] freshness view."
-      },
-      supersededBy = {
-        anyOf = { schema.array("string"), schema.null() },
-        description = "If this decision was superseded, the ADR(s) that replace it (page links). The inverse is a backlink."
-      },
-      dependsOn = {
-        anyOf = { schema.array("string"), schema.null() }, 
-        description = "ADRs this decision rests on (page links). The inverse (enabled-by) is a backlink."
-      },
-      related = {
-        anyOf = { schema.array("string"), schema.null() }, 
-        description = "Non-directional see-also ADRs (page links)."
-      },
+      status = described(
+        schema.enum { "proposed", "accepted", "superseded", "deprecated", "rejected" },
+        "Lifecycle state of the decision."),
+      date = described(schema.date(), "Date the decision was made."),
+      deciders = described(schema.ref("contributor"),
+        "Who made the call, e.g. [[Zef Hemel]]."),
+      owner = described(schema.ref("contributor"),
+        "Who maintains this ADR, surfaced in [[Health]]."),
+      lastReviewed = described(schema.date(),
+        "Date this ADR was last reviewed, powers the [[Health]] freshness view."),
+      supersededBy = adrLinks("If superseded, the ADR(s) that replace it. The inverse is a backlink."),
+      dependsOn = adrLinks("ADRs this decision rests on. The inverse (enabled-by) is a backlink."),
+      related = adrLinks("Non-directional see-also ADRs."),
+      references = described(schema.nullable(schema.array("string")),
+        "Source files (repo-relative paths) that implement this decision."),
     },
-    required = { "status" },
+    required = { "status", "date", "owner" },
   },
   transform = function(o)
     local dot = ({
@@ -107,64 +98,6 @@ tag.define {
     })[o.status] or "📐"
     o.pageDecoration = { prefix = dot .. " " }
     return o
-  end,
-  -- Replaces the YAML with a decision card in the editor (click it to edit)
-  renderFrontmatter = function(adr)
-    local function list(v)
-      if type(v) == "string" then return { v } end
-      return v or {}
-    end
-    local function row(parent, label, items)
-      if #items == 0 then return end
-      parent.appendChild(dom.div {
-        class = "adr-row",
-        dom.span { class = "adr-label", label },
-        dom.span { table.concat(items, " · ") },
-      })
-    end
-
-    local status = adr.status or "unknown"
-    local card = dom.div { class = "adr-card adr-" .. status }
-
-    local meta = dom.div {
-      class = "adr-meta",
-      dom.span { class = "adr-status", status },
-    }
-    if adr.date then
-      meta.appendChild(dom.span {
-        "Decided " .. adr.date .. (adr.deciders and (" by " .. adr.deciders) or ""),
-      })
-    end
-    if adr.owner then
-      meta.appendChild(dom.span { "Owner " .. adr.owner })
-    end
-    local y, m, d = tostring(adr.lastReviewed or ""):match("^(%d+)-(%d+)-(%d+)$")
-    if y then
-      local reviewed = os.time { year = tonumber(y), month = tonumber(m), day = tonumber(d) }
-      local days = math.floor(os.difftime(os.time(), reviewed) / 86400)
-      meta.appendChild(dom.span {
-        class = days > 180 and "adr-stale" or nil,
-        "Reviewed " .. days .. " days ago",
-      })
-    end
-    card.appendChild(meta)
-
-    local supersededBy = list(adr.supersededBy)
-    if status == "superseded" and #supersededBy > 0 then
-      card.appendChild(dom.div {
-        class = "adr-banner",
-        "Superseded by " .. table.concat(supersededBy, ", "),
-      })
-    elseif status == "deprecated" then
-      card.appendChild(dom.div {
-        class = "adr-banner",
-        "Deprecated: kept for history, no longer reflects how SilverBullet works.",
-      })
-    end
-
-    row(card, "Depends on", list(adr.dependsOn))
-    row(card, "Related", list(adr.related))
-    return widget.htmlBlock(card)
   end,
 }
 

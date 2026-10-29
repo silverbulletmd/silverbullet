@@ -33,6 +33,9 @@ taskState.define {
 -- priority: 50
 taskState = taskState or {}
 
+--- Defines a custom task state, or merges `spec` into an existing one with the same name.
+--- @param spec table { name: string, done?: boolean, order?: number }; `order` sets the toggle cycle order, lower first
+--- @see API/taskState
 function taskState.define(spec)
   config.merge({"taskStates", spec.name}, spec)
 end

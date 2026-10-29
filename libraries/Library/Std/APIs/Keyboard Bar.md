@@ -51,6 +51,9 @@ config.set("keyboardBar", {
 
 keyboardBar = keyboardBar or {}
 
+--- Appends a button to the mobile keyboard bar.
+--- @param spec table { icon: string, command?: string, run?: function, description?: string, onlyContexts?: string[], exceptContexts?: string[] }; set `command` or `run`
+--- @see API/keyboardBar
 function keyboardBar.define(spec)
   local buttons = config.get("keyboardBar", {})
   table.insert(buttons, spec)

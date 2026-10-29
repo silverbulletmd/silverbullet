@@ -27,9 +27,8 @@ virtualPage.define {
 -- priority: 99
 virtualPage = virtualPage or {}
 
--- options:
---   pattern
---   run()
+--- Defines a read-only virtual page generated for page names matching `pattern`, or merges `def` into an existing one.
+--- @param def table { pattern: string, run: function(...) }; `run` receives the captured groups of the Lua pattern and returns the page text
 function virtualPage.define(def)
   config.merge({"virtualPages", def.pattern}, def)
 end

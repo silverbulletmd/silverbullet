@@ -9,6 +9,8 @@ references:
 
 The Code Widget API provides functions for managing code widgets in the editor.
 
+Fenced [[Tag/data|data blocks]] (` ```data ` and ` ```#tag `) render as a form by default. For a ` ```#tag ` block, the first match wins: the tag's own `renderDataBlock` (see [[API/tag#Data block previews]]), then a code widget for `#tag`, then the `data` tag's `renderDataBlock` (the form), then the plain YAML. Existing code widgets for `#tag` keep working unless the tag defines `renderDataBlock`.
+
 <!--#lua spacelua.renderApiDocumentation("codeWidget") -->
 ## codeWidget.define
 

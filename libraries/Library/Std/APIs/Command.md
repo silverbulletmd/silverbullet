@@ -90,14 +90,23 @@ slashCommand = slashCommand or {}
 -- Deprecated: use command.define.
 slashcommand = slashCommand
 
+--- Registers a command, or merges `def` into an existing command with the same name; set a field to `config.unset` to remove it.
+--- @param def table { name: string, run: function, contexts?: string[], priority?: number, key?: string, mac?: string, hide?: boolean, requireMode?: "rw"|"ro" }
+--- @see API/command
 function command.define(def)
   config.merge({"commands", def.name}, def)
 end
 
+--- Equivalent to `command.define`; kept for compatibility, e.g. to change the key binding of a built-in command.
+--- @param newDef table { name: string } plus any keys accepted by `command.define`
+--- @see API/command
 function command.update(newDef)
   config.merge({"commands", newDef.name}, newDef)
 end
 
+--- Defines a slash command, or merges `def` into an existing one with the same name.
+--- @param def table { name: string, run: function, description?: string }
+--- @see API/slashCommand
 function slashCommand.define(def)
   config.merge({"slashCommands", def.name}, def)
 end

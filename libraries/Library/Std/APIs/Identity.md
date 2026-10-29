@@ -39,13 +39,17 @@ identity.define {
 -- priority: 50
 identity = identity or {}
 
+--- Defines an identity addressable with `@name`, or merges `spec` into an existing one with the same name.
+--- @param spec table { name: string, description?: string }; `name` is matched case-insensitively, without the `@`
+--- @see API/identity
 function identity.define(spec)
   config.merge({"identities", spec.name}, spec)
 end
 
--- The identity the current user is, or nil when the space does not know.
--- An anonymous reader of a public space is nobody; owner-only deployments
--- without account usernames use self.
+--- Returns the identity the current user is, or nil when the space does not know.
+--- An anonymous reader of a public space is nobody; owner-only deployments without account usernames use `self`.
+--- @return table? `{ name, id, detail? }`
+--- @see API/identity
 function identity.own()
   local me
   for _, account in ipairs(system.listAccounts()) do
@@ -60,9 +64,10 @@ function identity.own()
 end
 
 --- Lists open addressed mentions and page recipients from the index.
--- @param recipient string Optional identity name, with or without @; omitted lists all recipients.
--- @param options table Optional limit (positive integer) and offset (nonnegative integer).
--- @return table Paginated mentions, total count, and whether more matches remain.
+--- @param recipient? string identity name, with or without `@`; omit it to list all recipients
+--- @param options? table { limit?: number, offset?: number }; `limit` is a positive integer, `offset` defaults to 0
+--- @return table { recipient?, mentions, total, truncated }
+--- @see API/identity
 function identity.mentions(recipient, options)
   local target
   if recipient ~= nil then

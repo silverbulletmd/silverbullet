@@ -21,10 +21,4 @@ list of pages:
   - "[[Links]]"
 ```
 
-This is because the square brackets used in the internal link format have a meaning in YAML as well. So an unquoted link is parsed as list inside a list:
-```yaml
-some page: [[Pages]]
-equivalent yaml: [
-    [ "Pages" ]
-]
-```
+This is because the square brackets used in the internal link format have a meaning in YAML as well (array nested in arrays).

@@ -4,8 +4,7 @@ references:
 - libraries/Library/Std/Infrastructure/Auth.md
 - client/plugos/syscalls/oauth.ts
 ---
-
-APIs to store credentials for remote services and to turn them into HTTP headers; see [[^Library/Std/Infrastructure/Auth]] for the page that implements them.
+APIs to store credentials for remote services and to turn them into HTTP headers, see [[^Library/Std/Infrastructure/Auth]] for the page that implements them.
 
 Credentials live in the client-side store of the current device. They are never synced to the server or to other devices, and are stored encrypted when client encryption is enabled.
 
