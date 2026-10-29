@@ -18,7 +18,7 @@ The toolbar has:
 Below it are three sections, each with its own error and info banner:
 
 * **Installed**: the libraries you installed, plus plugs that no library brought along. Built-in libraries (on `Library/Std/` pages, or without a share URI) are marked *built-in* and can’t be updated or removed. Libraries in dev mode are marked *dev mode* and are left alone, too. Click a row to open its page.
-* **Available**: the libraries your repositories offer, grouped by repository, with the recommended Std repository first. **Install** puts one in your space.
+* **Available**: the libraries your repositories offer, grouped by repository, with the recommended Std repository first. **Install** puts one in your space. Available library titles open their configured website. When no website is configured, the title opens the library’s source page using the browser URL for its URI (for example, expanding a `github:` URI to its GitHub file page).
 * **Repositories**: the [[Repository|repositories]] you added, with **Update all** to refresh all of them; any that fail are listed with the reason. The built-in Std repository is read-only.
 
 An installed library or repository row shows its share URI. Its context menu offers:

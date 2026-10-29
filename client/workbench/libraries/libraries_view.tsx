@@ -498,7 +498,7 @@ function Group({ libs, group }: { libs: Libraries; group: AvailableGroup }) {
 function Card({ libs, lib }: { libs: Libraries; lib: InstallableLibrary }) {
   const key = installKey(lib.uri);
   const busy = libs.isBusy(key);
-  const href = lib.website || lib.uri;
+  const href = lib.website;
   return (
     <div className="sb-wb-lib-card">
       <div className="sb-wb-lib-card-head">

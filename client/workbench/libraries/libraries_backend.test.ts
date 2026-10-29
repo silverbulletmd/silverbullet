@@ -3,6 +3,7 @@ import {
   addRepository,
   checkUpdates,
   installLibrary,
+  listLibraries,
   updateAllRepositories,
   updateByName,
   updateLibrary,
@@ -47,6 +48,44 @@ function stubLua(result: Record<string, unknown>) {
   handlers["system.loadPlug"] = () => {};
   return expressions;
 }
+
+describe("available library links", () => {
+  test("uses a configured website or expands the source URI to a browser URL", async () => {
+    handlers["index.queryLuaObjects"] = (tag: string) =>
+      tag === "meta/library/remote"
+        ? [
+            {
+              name: "Custom",
+              uri: "github:acme/tools@main/Custom.md",
+              website: "https://example.com/custom",
+            },
+            { name: "Source", uri: "github:acme/tools@dev/Source.md" },
+            { name: "HTTPS", uri: "https://example.com/Library.md" },
+            { name: "Local", uri: "local:Library.md" },
+          ]
+        : [];
+    handlers["space.listPlugs"] = () => [];
+    handlers["lua.evalExpression"] = (expression: string) => {
+      switch (expression) {
+        case 'share.webUrl("github:acme/tools@dev/Source.md")':
+          return "https://github.com/acme/tools/blob/dev/Source.md";
+        case 'share.webUrl("https://example.com/Library.md")':
+          return "https://example.com/Library.md";
+        case 'share.webUrl("local:Library.md")':
+          return null;
+        default:
+          throw new Error(`Unexpected Lua expression: ${expression}`);
+      }
+    };
+    const { installable } = await listLibraries();
+    expect(installable.map((lib) => [lib.name, lib.website])).toEqual([
+      ["Custom", "https://example.com/custom"],
+      ["Source", "https://github.com/acme/tools/blob/dev/Source.md"],
+      ["HTTPS", "https://example.com/Library.md"],
+      ["Local", undefined],
+    ]);
+  });
+});
 
 describe("installing and updating", () => {
   test("install pulls through share.install, then writes its files beside the page", async () => {

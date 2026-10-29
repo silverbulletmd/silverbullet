@@ -93,15 +93,20 @@ export async function listLibraries(): Promise<LibrariesViewModel> {
     installed.map((l) => l.uri).filter((u): u is string => !!u),
   );
 
-  const installable: InstallableLibrary[] = installableRaw
-    .filter((lib: any) => lib.uri && !installedUris.has(lib.uri))
-    .map((lib: any) => ({
-      name: lib.name,
-      uri: lib.uri,
-      description: lib.description,
-      website: lib.website,
-      repositoryPage: lib.page,
-    }));
+  const installable: InstallableLibrary[] = await Promise.all(
+    installableRaw
+      .filter((lib: any) => lib.uri && !installedUris.has(lib.uri))
+      .map(async (lib: any) => ({
+        name: lib.name,
+        uri: lib.uri,
+        description: lib.description,
+        website:
+          lib.website ||
+          ((await lua.evalExpression(`share.webUrl(${luaString(lib.uri)})`)) ??
+            undefined),
+        repositoryPage: lib.page,
+      })),
+  );
 
   const repositories: RepositoryInfo[] = repositoriesRaw.map((r: any) => ({
     name: r.name,
