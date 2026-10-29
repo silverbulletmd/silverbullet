@@ -725,3 +725,25 @@ test.each(["x <a>y</a> z", "<div><a>y</a></div>", "x <img> z"])(
     expect(html).toContain(md.includes("img") ? "<img" : "<a>y</a>");
   },
 );
+
+test("Blank table header cells render as empty cells (#178)", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "| | b |\n|---|---|\n| 1 | 2 |\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<table><thead><tr><td></td><td>b</td></tr></thead><tr><td>1</td><td>2</td></tr></table>",
+  );
+});
+
+test("Blank middle and trailing table header cells render as empty cells", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "| a | | |\n|---|---|---|\n| 1 | 2 | 3 |\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<table><thead><tr><td>a</td><td></td><td></td></tr></thead><tr><td>1</td><td>2</td><td>3</td></tr></table>",
+  );
+});
