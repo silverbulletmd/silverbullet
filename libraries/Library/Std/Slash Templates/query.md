@@ -4,9 +4,9 @@ tags: meta/template/slash
 exceptContexts:
 - "FencedCode:space-lua"
 - "LuaDirective"
-raw: true
+# raw: true
 ---
-${query[[
+${"$"}{query[[
   from p = index.contentPages(|^|)
   select templates.pageItem(p)
 ]]}
