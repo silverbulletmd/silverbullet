@@ -1,4 +1,3 @@
-import { isBuiltinTag } from "@silverbulletmd/silverbullet/lib/tags";
 import YAML from "js-yaml";
 import {
   collectNodesOfType,
@@ -13,7 +12,13 @@ import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { isValidAnchorName } from "./anchor.ts";
+import {
+  dataBlockTag,
+  dataObjectRef,
+  splitYamlDocuments,
+} from "./data_block.ts";
+
+export { shadowsBuiltinTag, splitYamlDocuments } from "./data_block.ts";
 
 type DataObject = ObjectValue<
   {
@@ -30,30 +35,17 @@ export type DataBlock = {
   tag: string;
 };
 
-/**
- * Whether a ```#name fence names a built-in tag other than `data`: its objects
- * would pass for real tasks, pages, … so such a block is not indexed (lint flags it)
- */
-export function shadowsBuiltinTag(fenceType: string): boolean {
-  return (
-    fenceType.startsWith("#") &&
-    fenceType !== "#data" &&
-    isBuiltinTag(fenceType.slice(1))
-  );
-}
-
 /** The fence as a data block, if it is a ```data or ```#tag one */
 export function asDataBlock(fence: ParseTree): DataBlock | undefined {
   const info = findNodeOfType(fence, "CodeInfo");
   if (!info) return undefined;
-  const type = info.children![0].text!;
-  if (type !== "data" && !type.startsWith("#")) return undefined;
-  if (shadowsBuiltinTag(type)) return undefined;
+  const tag = dataBlockTag(info.children![0].text!);
+  if (!tag) return undefined;
   return {
     fence,
     info,
     code: findNodeOfType(fence, "CodeText") ?? undefined,
-    tag: type === "data" ? "data" : type.slice(1),
+    tag,
   };
 }
 
@@ -63,17 +55,6 @@ export function dataBlocks(tree: ParseTree): DataBlock[] {
     const block = asDataBlock(fence);
     return block ? [block] : [];
   });
-}
-
-/** A data object's ref: its `$ref` anchor when valid, else its position */
-function dataObjectRef(pageName: string, docStart: number, doc: unknown) {
-  const anchor =
-    doc && typeof doc === "object"
-      ? (doc as Record<string, unknown>).$ref
-      : undefined;
-  return typeof anchor === "string" && isValidAnchorName(anchor)
-    ? anchor
-    : `${pageName}@${docStart}`;
 }
 
 /** The range and ref of each YAML document in a data block, as indexData assigns them */
@@ -97,19 +78,6 @@ export function dataDocuments(
       ref: dataObjectRef(pageName, from, doc),
     };
   });
-}
-
-export function splitYamlDocuments(
-  text: string,
-): { text: string; offset: number }[] {
-  const docs: { text: string; offset: number }[] = [];
-  let start = 0;
-  for (const m of text.matchAll(/^---[ \t]*$/gm)) {
-    docs.push({ text: text.slice(start, m.index), offset: start });
-    start = m.index + m[0].length;
-  }
-  docs.push({ text: text.slice(start), offset: start });
-  return docs;
 }
 
 export function indexData(
