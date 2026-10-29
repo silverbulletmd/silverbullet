@@ -87,8 +87,12 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     if (this.deferredFetchFileList && this.operationCount === 0) {
       this.deferredFetchFileList = false;
       // Schedule on next tick to avoid reentrancy
+      // Nobody awaits this listing, so a failure (e.g. while offline) must not
+      // surface as an unhandled rejection; the next listing retries anyway.
       setTimeout(() => {
-        void this.fetchFileList();
+        this.fetchFileList().catch((e) => {
+          console.warn("Deferred file listing failed:", e.message);
+        });
       });
     }
   }
