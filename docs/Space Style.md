@@ -42,7 +42,7 @@ query[[from index.objects("space-style") order by _.priority desc]]
 ```
 
 # Tone colours
-SilverBullet defines six tones as CSS variables, with values for the light and the dark theme: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). The status widgets (`widgets.chip`, `widgets.bars`, `widgets.stat`) use them, and your own styles can too, so they stay readable in both themes:
+SilverBullet defines six tones as CSS variables, with values for the light and the dark theme: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). Your own styles can use them to stay readable in both themes:
 
 ```css
 .overdue {
