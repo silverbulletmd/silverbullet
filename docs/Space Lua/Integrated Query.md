@@ -254,10 +254,12 @@ A comparator must satisfy **strict weak ordering** (SWO) — if comparing A with
 
 The query engine validates this at runtime. If comparing two values in both directions both return `true`, the query fails with a clear error:
 
-${query [[
+```lua
+query [[
   from n = {5, 1, 3, 2, 3}
   order by n using function(a, b) return a <= b end
-]]}
+]]
+```
 
 The query engine uses a *stable merge sort* algorithm with guaranteed performance. Items that compare as equal preserve their original order and an invalid comparator cannot cause an infinite loop or crash — the violation is detected and reported as an error.
 

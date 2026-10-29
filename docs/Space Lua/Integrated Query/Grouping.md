@@ -231,7 +231,7 @@ ${query [[
 Top 5 tags with 2+ uses, showing name and count:
 ${query [[
   from
-    index.tags()
+    p = index.tags()
   group by
     p.name
   having
@@ -247,7 +247,7 @@ Full pipeline with `p =` binding and two group keys:
 
 ${query [[
   from
-    index.tags()
+    p = index.tags()
   where
     p.parent == 'page'
   group by
