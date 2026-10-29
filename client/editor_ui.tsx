@@ -2,6 +2,7 @@ import { closeSearchPanel } from "@codemirror/search";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { getNameFromPath } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
+  FilterBoxOptions,
   FilterOption,
   NotificationAction,
   NotificationType,
@@ -260,6 +261,7 @@ export class MainUI {
     options: FilterOption[],
     helpText = "",
     placeHolder = "",
+    opts: FilterBoxOptions = {},
   ): Promise<FilterOption | undefined> {
     return new Promise((resolve) => {
       this.viewDispatch({
@@ -268,6 +270,8 @@ export class MainUI {
         options,
         placeHolder,
         helpText,
+        allowNew: opts.allowNew,
+        newHint: opts.newHint,
         onSelect: (option: any) => {
           this.viewDispatch({ type: "hide-filterbox" });
           this.client.focus();
@@ -541,7 +545,8 @@ export class MainUI {
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
             darkMode={viewState.uiOptions.darkMode}
-            allowNew={false}
+            allowNew={viewState.filterBoxAllowNew ?? false}
+            newHint={viewState.filterBoxNewHint}
             helpText={viewState.filterBoxHelpText}
             onSelect={viewState.filterBoxOnSelect}
           />

@@ -1,6 +1,7 @@
 import type {
   DocumentCapability,
   DocumentCapabilityDescriptor,
+  FilterBoxOptions,
   FilterOption,
   NotificationType,
   UploadFile,
@@ -238,8 +239,16 @@ export function filterBox(
   options: FilterOption[],
   helpText = "",
   placeHolder = "",
+  opts: FilterBoxOptions = {},
 ): Promise<FilterOption | undefined> {
-  return syscall("editor.filterBox", label, options, helpText, placeHolder);
+  return syscall(
+    "editor.filterBox",
+    label,
+    options,
+    helpText,
+    placeHolder,
+    opts,
+  );
 }
 
 export function showPanel(

@@ -61,6 +61,8 @@ export type AppViewState = {
   filterBoxPlaceHolder: string;
   filterBoxOptions: FilterOption[];
   filterBoxHelpText: string;
+  filterBoxAllowNew?: boolean;
+  filterBoxNewHint?: string;
   filterBoxOnSelect: (option: FilterOption | undefined) => void;
 
   showPrompt: boolean;
@@ -154,6 +156,8 @@ export type Action =
       placeHolder: string;
       helpText: string;
       label: string;
+      allowNew?: boolean;
+      newHint?: string;
       onSelect: (option: FilterOption | undefined) => void;
     }
   | { type: "hide-filterbox" }

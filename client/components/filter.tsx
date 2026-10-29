@@ -10,6 +10,28 @@ import { shouldFocusModalFilter } from "../lib/mobile.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";
 import { AlwaysShownModal } from "./basic_modals.tsx";
 
+/** An option for typed text that isn't in the list; `isNew` tells it apart */
+export function newEntry(name: string, hint?: string): FilterOption {
+  return hint === undefined
+    ? { name, isNew: true }
+    : { name, hint, isNew: true };
+}
+
+/**
+ * Offers `phrase` as the second option when no option has exactly that name,
+ * so Enter still picks the best match and ArrowDown, Enter creates.
+ */
+export function offerNewEntry(
+  results: FilterOption[],
+  phrase: string,
+  hint?: string,
+): FilterOption[] {
+  if (phrase && !results.some((result) => result.name === phrase)) {
+    results.splice(1, 0, newEntry(phrase, hint));
+  }
+  return results;
+}
+
 export function FilterList({
   placeholder,
   options,
@@ -66,15 +88,7 @@ export function FilterList({
       originalPhrase = phrasePreprocessor(originalPhrase);
     }
     const results = fuzzySearchAndSort(prefilteredOptions, originalPhrase);
-    const foundExactMatch = !!results.find(
-      (result) => result.name === originalPhrase,
-    );
-    if (allowNew && !foundExactMatch && originalPhrase) {
-      results.splice(1, 0, {
-        name: originalPhrase,
-        hint: newHint,
-      });
-    }
+    if (allowNew) offerNewEntry(results, originalPhrase, newHint);
 
     if (!deepEqual(matchingOptions, results)) {
       setMatchingOptions(results);
@@ -140,8 +154,8 @@ export function FilterList({
                 if (e.key === "Enter") {
                   e.preventDefault();
                   onSelect(
-                    e.shiftKey && allowNew
-                      ? { name: text, type: "page" }
+                    e.shiftKey && allowNew && text
+                      ? newEntry(text)
                       : matchingOptions[selectedOption],
                   );
                   return;

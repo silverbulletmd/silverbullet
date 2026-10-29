@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { h } from "preact";
 import { renderToString } from "preact-render-to-string";
-import { FilterList } from "./filter.tsx";
+import { FilterList, newEntry, offerNewEntry } from "./filter.tsx";
 
 function render(props: Partial<Parameters<typeof FilterList>[0]> = {}) {
   return renderToString(
@@ -48,4 +48,33 @@ test("filter box shows help text in the navigator help row only when given", () 
   expect(render({ helpText: "Select <b>one</b>" })).toContain(
     '<div class="sb-nav-help">Select <b>one</b></div>',
   );
+});
+
+test("a typed name that matches no option is offered second, marked new", () => {
+  const results = offerNewEntry(
+    [{ name: "aliases" }, { name: "authors" }],
+    "rating",
+    "Add",
+  );
+  expect(results).toEqual([
+    { name: "aliases" },
+    { name: "rating", hint: "Add", isNew: true },
+    { name: "authors" },
+  ]);
+  expect(offerNewEntry([], "rating", "Add")).toEqual([
+    { name: "rating", hint: "Add", isNew: true },
+  ]);
+});
+
+test("an exact match or an empty phrase offers no new entry", () => {
+  expect(offerNewEntry([{ name: "rating" }], "rating", "Add")).toEqual([
+    { name: "rating" },
+  ]);
+  expect(offerNewEntry([{ name: "rating" }], "", "Add")).toEqual([
+    { name: "rating" },
+  ]);
+});
+
+test("Shift-Enter's entry is marked new and claims no type", () => {
+  expect(newEntry("rating")).toEqual({ name: "rating", isNew: true });
 });

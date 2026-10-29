@@ -273,7 +273,7 @@ Downloads a space file using its current contents.
 
 ## editor.filterBox
 
-`editor.filterBox(label, options, helpText?, placeHolder?)`
+`editor.filterBox(label, options, helpText?, placeHolder?, opts?)`
 
 Shows a filterable option picker similar to the page picker.
 
@@ -283,18 +283,27 @@ Shows a filterable option picker similar to the page picker.
 - `options` (`FilterOption[]`) — The available options.
 - `helpText?` (`string`) — Help text shown below the picker.
 - `placeHolder?` (`string`) — Placeholder text for the filter input.
+- `opts?` (`table`) — `allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter; `newHint`: the hint on that option (e.g. "Add"). The returned option then has `isNew = true` and the typed text as `name`.
 
 **Returns:**
 
 - `FilterOption | undefined` — The selected option, or undefined if dismissed.
 
-**Example:**
+**Examples:**
 
 ```lua
 local result = editor.filterBox("Select:", {
   {name = "Option 1", value = "1"},
   {name = "Option 2", value = "2", description = "More details"}
 })
+```
+
+```lua
+local picked = editor.filterBox("Fruit", {{name = "Apple"}, {name = "Pear"}},
+  "Pick one, or type a new one", "", {allowNew = true, newHint = "Add"})
+if picked and picked.isNew then
+  editor.flashNotification("New fruit: " .. picked.name)
+end
 ```
 
 ## editor.flashNotification

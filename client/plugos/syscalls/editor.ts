@@ -71,6 +71,7 @@ import {
 import type {
   DocumentCapability,
   DocumentCapabilityDescriptor,
+  FilterBoxOptions,
   FilterOption,
   NotificationAction,
   NotificationType,
@@ -700,8 +701,15 @@ export function editorSyscalls(client: Client): SysCallMapping {
         options: FilterOption[],
         helpText = "",
         placeHolder = "",
+        opts: FilterBoxOptions = {},
       ): Promise<FilterOption | undefined> => {
-        return client.ui.filterBox(label, options, helpText, placeHolder);
+        return client.ui.filterBox(
+          label,
+          options,
+          helpText,
+          placeHolder,
+          opts ?? {},
+        );
       },
       description:
         "Shows a filterable option picker similar to the page picker.",
@@ -728,6 +736,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
           description: "Placeholder text for the filter input.",
           optional: true,
         },
+        {
+          name: "opts",
+          type: "table",
+          description:
+            '`allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter; `newHint`: the hint on that option (e.g. "Add"). The returned option then has `isNew = true` and the typed text as `name`.',
+          optional: true,
+        },
       ],
       returns: [
         {
@@ -738,6 +753,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
       examples: [
         {
           code: 'local result = editor.filterBox("Select:", {\n  {name = "Option 1", value = "1"},\n  {name = "Option 2", value = "2", description = "More details"}\n})',
+        },
+        {
+          code: 'local picked = editor.filterBox("Fruit", {{name = "Apple"}, {name = "Pear"}},\n  "Pick one, or type a new one", "", {allowNew = true, newHint = "Add"})\nif picked and picked.isNew then\n  editor.flashNotification("New fruit: " .. picked.name)\nend',
         },
       ],
     },

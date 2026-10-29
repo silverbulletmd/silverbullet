@@ -14,6 +14,14 @@ export type FilterOption = {
   prefix?: string;
 } & Record<string, any>;
 
+/** Options of `editor.filterBox` */
+export type FilterBoxOptions = {
+  /** Offer typed text that matches no option as a new entry (`isNew = true`) */
+  allowNew?: boolean;
+  /** The hint shown on that entry, e.g. "Add" */
+  newHint?: string;
+};
+
 export type NotificationType = "info" | "error" | "warning";
 
 export const notificationDismissTimeouts: Record<NotificationType, number> = {

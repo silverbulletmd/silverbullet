@@ -144,6 +144,8 @@ export default function reducer(
         filterBoxOptions: action.options,
         filterBoxLabel: action.label,
         filterBoxHelpText: action.helpText,
+        filterBoxAllowNew: action.allowNew,
+        filterBoxNewHint: action.newHint,
       };
     case "hide-filterbox":
       return {
