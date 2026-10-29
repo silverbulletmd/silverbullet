@@ -8,7 +8,7 @@ import {
   traverseTree,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
+import { config, index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   LintDiagnostic,
   LintEvent,
@@ -19,6 +19,11 @@ import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { shadowsBuiltinTag, splitYamlDocuments } from "./data.ts";
 import { allIndexers } from "./indexer.ts";
+import { isPositionRef } from "./object_edit.ts";
+import {
+  type YamlSourceEntry,
+  yamlTopLevelEntries,
+} from "../../plug-api/lib/yaml_source.ts";
 
 /**
  * Lint YAML syntax in frontmatter and fenced code blocks
@@ -479,4 +484,146 @@ export async function lintAnchors({
   }
 
   return withSource("anchors", diagnostics);
+}
+
+type RefSlot = { tag?: string; list: boolean };
+
+function refSlot(prop: any): RefSlot | undefined {
+  // schema.nullable(...) wraps the type as anyOf { typ, { type = "null" } }
+  if (Array.isArray(prop?.anyOf)) {
+    const branches = prop.anyOf.filter((b: any) => b?.type !== "null");
+    if (branches.length !== 1) {
+      return undefined;
+    }
+    prop = branches[0];
+  }
+  if (prop?.format === "ref") {
+    return { tag: prop.tag, list: false };
+  }
+  if (prop?.type === "array" && prop.items?.format === "ref") {
+    return { tag: prop.items.tag, list: true };
+  }
+}
+
+/**
+ * A ref target is valid when an object in the tag (default: any page or
+ * anchor) has `ref == target` and is a page or an anchored object. Returns
+ * undefined when the target does not exist at all, which other lint reports.
+ */
+async function refTargetMatchesTag(
+  target: string,
+  tagName: string | undefined,
+  where: Awaited<ReturnType<typeof lua.parseExpression>>,
+): Promise<boolean | undefined> {
+  const isAnchor = target.startsWith("$");
+  const name = isAnchor ? target.slice(1) : target;
+  const exists =
+    (
+      await index.queryLuaObjects(
+        isAnchor ? "anchor" : "page",
+        { objectVariable: "_", where },
+        { name },
+      )
+    ).length > 0;
+  if (!exists) {
+    return undefined;
+  }
+  if (!tagName) {
+    return true;
+  }
+  const hits = await index.queryLuaObjects<any>(
+    tagName,
+    { objectVariable: "_", where },
+    { name },
+  );
+  return hits.some((o) => o.tag === "page" || !isPositionRef(o.ref));
+}
+
+/**
+ * Warn when a frontmatter ref points at an object outside the tag its schema
+ * declares for that property.
+ */
+export async function lintRefTags({
+  tree,
+  pageMeta: meta,
+}: LintEvent): Promise<LintDiagnostic[]> {
+  const fmNode = findNodeOfType(tree, "FrontMatterCode");
+  if (!fmNode) {
+    return [];
+  }
+  const frontmatter = extractFrontMatter(tree);
+  const tags = new Set<string>([
+    ...(frontmatter.tags ?? []),
+    ...(meta?.tags ?? []),
+  ]);
+  const slots = new Map<string, RefSlot>();
+  for (const t of tags) {
+    const schema = await config.get<any>(["tags", t, "schema"], undefined);
+    for (const [key, prop] of Object.entries(schema?.properties ?? {})) {
+      const slot = refSlot(prop);
+      if (slot && !slots.has(key)) {
+        slots.set(key, slot);
+      }
+    }
+  }
+  if (slots.size === 0) {
+    return [];
+  }
+
+  const yamlText = renderToText(fmNode);
+  let entries: YamlSourceEntry[];
+  try {
+    entries = yamlTopLevelEntries(yamlText);
+  } catch {
+    return []; // lintYAML reports the syntax error
+  }
+  type Candidate = { from: number; to: number; target: string; tag?: string };
+  const candidates: Candidate[] = [];
+  for (const { key, valueNode } of entries) {
+    const slot = slots.get(key);
+    if (!slot) {
+      continue;
+    }
+    const nodes =
+      slot.list && valueNode.kind === "sequence"
+        ? valueNode.children
+        : [valueNode];
+    for (const node of nodes) {
+      const v = node.value;
+      const link =
+        typeof v === "string" ? /^\[\[([^\]|]+)(\|[^\]]*)?\]\]$/.exec(v) : null;
+      if (!link) {
+        continue;
+      }
+      // Past an opening quote
+      const at = node.from + yamlText.slice(node.from, node.to).indexOf("[[");
+      candidates.push({
+        from: fmNode.from! + at,
+        to: fmNode.from! + at + link[0].length,
+        target: link[1],
+        tag: slot.tag,
+      });
+    }
+  }
+
+  const where = await lua.parseExpression("_.ref == name");
+  const lookups = new Map<string, Promise<boolean | undefined>>();
+  for (const c of candidates) {
+    const key = `${c.tag ?? ""}\0${c.target}`;
+    if (!lookups.has(key)) {
+      lookups.set(key, refTargetMatchesTag(c.target, c.tag, where));
+    }
+  }
+  const diagnostics: LintDiagnostic[] = [];
+  for (const c of candidates) {
+    if ((await lookups.get(`${c.tag ?? ""}\0${c.target}`)) === false) {
+      diagnostics.push({
+        from: c.from,
+        to: c.to,
+        severity: "warning",
+        message: `[[${c.target}]] is not a #${c.tag}`,
+      });
+    }
+  }
+  return withSource("ref-tags", diagnostics);
 }

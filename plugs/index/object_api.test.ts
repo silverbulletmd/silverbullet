@@ -1,4 +1,13 @@
 import { beforeEach, expect, test } from "vitest";
+import { evalStatement } from "../../client/space_lua/eval.ts";
+import { parseBlock } from "../../client/space_lua/parse.ts";
+import {
+  LuaEnv,
+  LuaNativeJSFunction,
+  LuaStackFrame,
+  LuaTable,
+} from "../../client/space_lua/runtime.ts";
+import { luaBuildStandardEnv } from "../../client/space_lua/stdlib.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import {
   appendObject,
@@ -52,6 +61,48 @@ test("update and delete a page", async () => {
   );
   await deleteObject(page);
   await expect(read("Contacts/Pete")).rejects.toThrow();
+});
+
+test("update reorders page and data block keys", async () => {
+  const page = { page: "Contacts/Pete", ref: "Contacts/Pete", tag: "page" };
+  await write(
+    "Contacts/Pete",
+    "---\ntags: contact\nrole: lead\nage: 55\n---\nHi\n",
+  );
+  await updateObject(page, {}, { order: ["tags", "age", "role"] });
+  expect(await read("Contacts/Pete")).toBe(
+    "---\ntags: contact\nage: 55\nrole: lead\n---\nHi\n",
+  );
+
+  await write("D", "```#c\nname: Ada\nage: 36\n---\nname: Bob\nage: 40\n```\n");
+  const [, bob] = (await objectsOf(await read("D"), "D")).filter(
+    (o) => o.tag === "c",
+  );
+  await updateObject(bob as any, {}, { order: ["age", "name"] });
+  expect(await read("D")).toBe(
+    "```#c\nname: Ada\nage: 36\n---\nage: 40\nname: Bob\n```\n",
+  );
+});
+
+test("reordering a data document leaves no blank line before the fence", async () => {
+  await write("D", "```#c\nname: Ada\n\nage: 36\n```\n");
+  const [ada] = (await objectsOf(await read("D"), "D")).filter(
+    (o) => o.tag === "c",
+  );
+  await updateObject(ada as any, {}, { order: ["age", "name"] });
+  expect(await read("D")).toBe("```#c\nage: 36\nname: Ada\n```\n");
+});
+
+test("order is refused for objects that aren't YAML", async () => {
+  await write("Notes", "* [ ] A #x\n");
+  const [a] = await tasksOf("Notes");
+  await expect(updateObject(a as any, {}, { order: ["done"] })).rejects.toThrow(
+    "object.update: order only applies to pages and data block objects, not a task",
+  );
+  await expect(
+    updateObject(a as any, {}, { order: "done" as any }),
+  ).rejects.toThrow("order must be a list of attribute names");
+  expect(await read("Notes")).toBe("* [ ] A #x\n");
 });
 
 test("delete removes an anchored item wherever it moved", async () => {
@@ -109,6 +160,39 @@ test("schema validation blocks invalid writes", async () => {
     "object.update:",
   );
   expect(await read("Trip")).toBe("```#expense\nwhat: Tram\namount: 2\n```\n");
+});
+
+const personSchema = {
+  person: {
+    schema: {
+      type: "object",
+      properties: {
+        role: { type: "string", enum: ["Designer", "Engineer"] },
+      },
+    },
+  },
+};
+
+test("a page that already fails its schema still accepts an unrelated edit", async () => {
+  mock.config.set("tags", personSchema);
+  const page = { page: "Person/Bob", ref: "Person/Bob", tag: "page" };
+  await write("Person/Bob", "---\ntags: person\nrole: Intern\n---\nBob\n");
+  await updateObject(page, { email: "bob@example.com" });
+  expect(await read("Person/Bob")).toBe(
+    "---\ntags: person\nrole: Intern\nemail: bob@example.com\n---\nBob\n",
+  );
+});
+
+test("a valid page still refuses an edit that breaks its schema", async () => {
+  mock.config.set("tags", personSchema);
+  const page = { page: "Person/Bob", ref: "Person/Bob", tag: "page" };
+  await write("Person/Bob", "---\ntags: person\nrole: Engineer\n---\nBob\n");
+  await expect(updateObject(page, { role: "Intern" })).rejects.toThrow(
+    "object.update: role:",
+  );
+  expect(await read("Person/Bob")).toBe(
+    "---\ntags: person\nrole: Engineer\n---\nBob\n",
+  );
 });
 
 test("createPage refuses an existing page", async () => {
@@ -183,7 +267,7 @@ test("C3: replacing block-list frontmatter tags keeps the page parseable", async
   const page = { page: "F", ref: "F", tag: "page" };
   await write("F", "---\ntags:\n- a\n- b\n---\nBody\n");
   await updateObject(page, { tags: ["c"] });
-  expect(await read("F")).toBe("---\ntags:\n  - c\n---\nBody\n");
+  expect(await read("F")).toBe("---\ntags:\n- c\n---\nBody\n");
 });
 
 test("C4: data values keep their type", async () => {
@@ -262,6 +346,148 @@ test("I8: two documents in one block can be updated in one batch, and deleted", 
   );
   await deleteObject(only as any);
   expect(await read("D")).toBe("");
+});
+
+test("concurrent updates to the open page both land and keep the page intact", async () => {
+  let text = "---\ntags: project\nstatus: active\n---\n# Apollo\nBody\n";
+  await write("Projects/Apollo", text);
+  mock.system.registerSyscalls([], {
+    "editor.getCurrentPage": { callback: () => "Projects/Apollo" },
+    "editor.getText": { callback: () => text },
+    "editor.dispatch": {
+      callback: (_ctx: any, spec: any) => {
+        for (const c of [...spec.changes].sort(
+          (a: any, b: any) => b.from - a.from,
+        )) {
+          text = text.slice(0, c.from) + c.insert + text.slice(c.to);
+        }
+      },
+    },
+    "editor.save": { callback: () => {} },
+  } as any);
+  const page = { page: "Projects/Apollo", ref: "Projects/Apollo", tag: "page" };
+  await Promise.all([
+    updateObject(page, { status: "done" }),
+    updateObject(page, { budget: 20000 }),
+  ]);
+  expect(text).toBe(
+    "---\ntags: project\nstatus: done\nbudget: 20000\n---\n# Apollo\nBody\n",
+  );
+});
+
+test("an edit waiting its turn while the user navigates lands on its own page", async () => {
+  await write("Projects/Apollo", "---\nstatus: active\n---\nBody\n");
+  await write("Projects/Zeus", "---\nstatus: planned\n---\nZeus\n");
+  let current = "Projects/Apollo";
+  let text = await read(current);
+  let entered!: () => void;
+  const dispatching = new Promise<void>((r) => (entered = r));
+  let proceed!: () => void;
+  const gate = new Promise<void>((r) => (proceed = r));
+  const dispatched: string[] = [];
+  mock.system.registerSyscalls([], {
+    "editor.getCurrentPage": { callback: () => current },
+    "editor.getText": { callback: () => text },
+    "editor.dispatch": {
+      callback: async (_ctx: any, spec: any) => {
+        dispatched.push(current);
+        for (const c of [...spec.changes].sort(
+          (a: any, b: any) => b.from - a.from,
+        )) {
+          text = text.slice(0, c.from) + c.insert + text.slice(c.to);
+        }
+        entered();
+        await gate;
+      },
+    },
+    "editor.save": { callback: () => write(current, text) },
+  } as any);
+  const apollo = {
+    page: "Projects/Apollo",
+    ref: "Projects/Apollo",
+    tag: "page",
+  };
+  const first = updateObject(apollo, { status: "done" });
+  await dispatching;
+  // Queues behind the first edit, which holds the open page's turn
+  const second = updateObject(apollo, { budget: 20000 });
+  await new Promise((r) => setTimeout(r, 20));
+  // The user navigates to another page meanwhile
+  await write(current, text);
+  current = "Projects/Zeus";
+  text = await read(current);
+  proceed();
+  await withinTwoSeconds(Promise.all([first, second]));
+  expect(dispatched).toEqual(["Projects/Apollo"]);
+  expect(await read("Projects/Apollo")).toBe(
+    "---\nstatus: done\nbudget: 20000\n---\nBody\n",
+  );
+  expect(await read("Projects/Zeus")).toBe("---\nstatus: planned\n---\nZeus\n");
+  expect(text).toBe("---\nstatus: planned\n---\nZeus\n");
+});
+
+function withinTwoSeconds<T>(work: Promise<T>): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("timed out: edits deadlocked")), 2000),
+    ),
+  ]);
+}
+
+test("a page:saved listener can edit the page it was told about", async () => {
+  await write("Projects/Apollo", "---\nstatus: active\n---\nBody\n");
+  await mock.spacePrimitives.enable();
+  let nested: Promise<void> | undefined;
+  mock.eventHook.addLocalListener("page:saved", async (name: string) => {
+    if (name !== "Projects/Apollo" || nested) return;
+    nested = updateObject(
+      { page: "Projects/Apollo", ref: "Projects/Apollo", tag: "page" },
+      { reviewed: true },
+    );
+    await nested;
+  });
+  await withinTwoSeconds(
+    updateObject(
+      { page: "Projects/Apollo", ref: "Projects/Apollo", tag: "page" },
+      { status: "done" },
+    ),
+  );
+  await withinTwoSeconds(nested!);
+  expect(await read("Projects/Apollo")).toBe(
+    "---\nstatus: done\nreviewed: true\n---\nBody\n",
+  );
+});
+
+test("an editor:pageSaved listener can edit the open page", async () => {
+  let text = "---\nstatus: active\n---\nBody\n";
+  await write("Projects/Apollo", text);
+  const page = { page: "Projects/Apollo", ref: "Projects/Apollo", tag: "page" };
+  let nested: Promise<void> | undefined;
+  mock.system.registerSyscalls([], {
+    "editor.getCurrentPage": { callback: () => "Projects/Apollo" },
+    "editor.getText": { callback: () => text },
+    "editor.dispatch": {
+      callback: (_ctx: any, spec: any) => {
+        for (const c of [...spec.changes].sort(
+          (a: any, b: any) => b.from - a.from,
+        )) {
+          text = text.slice(0, c.from) + c.insert + text.slice(c.to);
+        }
+      },
+    },
+    // Saving waits for editor:pageSaved listeners, one of which edits again
+    "editor.save": {
+      callback: async () => {
+        if (nested) return;
+        nested = updateObject(page, { reviewed: true });
+        await nested;
+      },
+    },
+  } as any);
+  await withinTwoSeconds(updateObject(page, { status: "done" }));
+  await withinTwoSeconds(nested!);
+  expect(text).toBe("---\nstatus: done\nreviewed: true\n---\nBody\n");
 });
 
 test("I9: on the open page, edits are planned against the text at dispatch time", async () => {
@@ -386,4 +612,35 @@ test("a page object from a query can be updated and deleted", async () => {
   expect(await read("Tagged")).toBe("---\nbla: zef\n---\n#the-tag\n\nHello\n");
   await deleteObject(page as any);
   await expect(read("Tagged")).rejects.toThrow();
+});
+
+test("a Date made in Space Lua reaches object.update as a Date and is written as a bare date", async () => {
+  await write("Projects/Apollo", "---\ndue: 2026-12-01\n---\nBody\n");
+  const received: unknown[][] = [];
+  // Wired like exposeSyscalls; structuredClone stands in for the
+  // postMessage to the plug worker
+  const G = luaBuildStandardEnv();
+  G.set(
+    "object",
+    new LuaTable({
+      update: new LuaNativeJSFunction((...args) => {
+        const cloned = structuredClone(args);
+        received.push(cloned);
+        return updateObject(cloned[0], cloned[1], cloned[2]);
+      }),
+    }),
+  );
+  const ast = parseBlock(
+    `object.update({ page = "Projects/Apollo", ref = "Projects/Apollo" }, { due = js.new(js.window.Date, "2026-12-15") })`,
+  );
+  await evalStatement(
+    ast,
+    new LuaEnv(G),
+    LuaStackFrame.createWithGlobalEnv(G, ast.ctx),
+    false,
+  );
+  expect((received[0][1] as { due: unknown }).due).toBeInstanceOf(Date);
+  expect(await read("Projects/Apollo")).toBe(
+    "---\ndue: 2026-12-15\n---\nBody\n",
+  );
 });

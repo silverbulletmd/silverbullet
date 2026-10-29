@@ -1,3 +1,4 @@
+import { yamlAllEntries } from "../../plug-api/lib/yaml_source.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   getNameFromPath,
@@ -454,23 +455,17 @@ export async function indexRelations(
         const codeText = codeTextNode.children![0].text!;
         const docs = dataDocuments(pageMeta.name, block);
 
-        const lineKeyRegex = /^(\s*)([\w$][\w$\- ]*)\s*:\s*(.*)$/;
-        let cursor = 0;
-        for (const line of codeText.split("\n")) {
-          const m = lineKeyRegex.exec(line);
-          const lineStart = codeTextNode.from! + cursor;
+        for (const { key, text, offset } of scanYamlValues(codeText)) {
+          const valueStart = codeTextNode.from! + offset;
           const doc = docs.find(
-            (d) => lineStart >= d.from && lineStart <= d.to,
+            (d) => valueStart >= d.from && valueStart <= d.to,
           );
-          if (m && doc) {
-            const valueOffset = m[0].length - m[3].length;
-            emitWikiLinksInRange(ctx, m[3], lineStart + valueOffset, {
-              kind: m[2].trim(),
+          if (doc)
+            emitWikiLinksInRange(ctx, text, valueStart, {
+              kind: key,
               from: doc.ref,
               fromTag: block.tag,
             });
-          }
-          cursor += line.length + 1;
         }
         return true;
       }
@@ -494,47 +489,34 @@ export async function indexRelations(
       }
 
       if (n.type === "FrontMatter") {
-        for (const { key, valueNode } of frontmatterStringEntries(n)) {
+        const edge = (kind: string) => ({
+          kind,
+          from: pageFrom,
+          fromTag: pageFromTag,
+        });
+        const fm = pageText.slice(n.from!, n.to!);
+        for (const { key, text, offset, depth } of scanYamlValues(fm)) {
           // `authors:` credits a name; a wikilink there isn't a name, and
           // unlike `recipients:` it has no page-relation fallback to resolve
           // to — it's simply not a valid author entry, so it's dropped.
           if (key === "authors") continue;
-          const text = valueNode.children![0].text!;
+          // Top-level values and their list items: every link in the text,
+          // quoted or plain (`note: see [[A]] and [[B|bee]]`)
+          if (depth === 0) {
+            emitWikiLinksInRange(ctx, text, n.from! + offset, edge(key));
+            continue;
+          }
+          // Nested keys: only a value that is exactly one link, as before
           const trimmed = text.replace(/^["'\s]*/, "").replace(/["'\s]*$/, "");
           wikiLinkRegex.lastIndex = 0;
           const match = wikiLinkRegex.exec(text);
-          if (!match?.groups || match[0] !== trimmed) continue;
-          const { stringRef, alias } = match.groups as {
-            stringRef: string;
-            alias?: string;
-          };
-          const ref = parseToRef(stringRef);
-          if (!ref) continue;
-          const start = valueNode.from! + match.index!;
-          const range: [number, number] = [start, start + match[0].length];
-          const base = {
-            kind: key,
-            from: pageFrom,
-            fromTag: pageFromTag,
-            range,
-            alias,
-          };
-          if (ref.path === "") {
-            if (ref.details?.type === "anchor") {
-              emitTextualEdge(ctx, {
-                ...base,
-                to: ref.details.name,
-                toTag: ANCHOR_TARGET_TAG,
-              });
-            }
-            continue;
-          }
-          const isPage = isMarkdownPath(ref.path);
-          emitTextualEdge(ctx, {
-            ...base,
-            to: isPage ? getNameFromPath(ref.path) : ref.path,
-            toTag: isPage ? "page" : "document",
-          });
+          if (!match || match[0] !== trimmed) continue;
+          emitWikiLinksInRange(
+            ctx,
+            match[0],
+            n.from! + offset + match.index!,
+            edge(key),
+          );
         }
         return true;
       }
@@ -917,18 +899,29 @@ export async function getTextualBackRelations(
   );
 }
 
-function* frontmatterStringEntries(
-  fmNode: ParseTree,
-): Generator<{ key: string; valueNode: ParseTree }> {
-  const docs = collectNodesOfType(fmNode, "Document");
-  for (const doc of docs) {
-    let lastKey: string | undefined;
-    for (const child of doc.children ?? []) {
-      if (child.type === "atom") {
-        lastKey = child.children?.[0]?.text?.trim();
-      } else if (child.type === "string" && lastKey) {
-        yield { key: lastKey, valueNode: child };
-      }
-    }
+/**
+ * The text of each mapping value that is a scalar, and of each scalar list
+ * item under a key, with its offset in `text` and its key's depth (0: top level).
+ */
+export function scanYamlValues(
+  text: string,
+): { key: string; text: string; offset: number; depth: number }[] {
+  try {
+    return yamlAllEntries(text).flatMap(({ key, valueNode, depth }) => {
+      const values =
+        valueNode.kind === "sequence"
+          ? valueNode.children.filter((node) => node.kind === "scalar")
+          : valueNode.kind === "scalar"
+            ? [valueNode]
+            : [];
+      return values.map((node) => ({
+        key,
+        text: text.slice(node.from, node.to),
+        offset: node.from,
+        depth,
+      }));
+    });
+  } catch {
+    return [];
   }
 }

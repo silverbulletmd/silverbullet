@@ -16,6 +16,9 @@ object.update(t, { done = true, owner = "Ada" })
 -- Remove an attribute (Lua tables can't hold nil, hence the option)
 object.update(t, {}, { remove = { "owner" } })
 
+-- Reorder a page's frontmatter keys: the listed keys first, the rest after
+object.update({ page = "Projects/Harbor", ref = "Projects/Harbor" }, {}, { order = { "status", "owner" } })
+
 -- Add an expense to a data block and change it later
 local e = object.append("Trips/Lisbon", { tag = "expense", what = "Tram", amount = 2 }, { anchor = true })
 object.update(e, { amount = 3 })
@@ -32,6 +35,8 @@ object.createPage("Contacts/Ada", { tags = "contact", company = "Acme" })
 | paragraph | `text`, `tags`, `[key: value]` attributes | the paragraph |
 | data block document | top-level YAML keys | the document (the block, if it was the last) |
 | table row | cells, by column name (lowercased, other characters as `_`) | the row |
+
+`order` (pages and data block documents only) lists top-level keys in the order you want; keys you don't list follow in their current order. Each key moves with its nested lines and the comment lines directly above it, unchanged. For other objects, `order` fails.
 
 When the object's tag has a schema, a change that would make it invalid fails and nothing is written. On the open page each call is one undoable edit, saved right away.
 
@@ -88,5 +93,5 @@ Changes attributes of an object (or a list of objects) where it is written in it
 
 - `object` (`table`) — An object from a query, a list of them, or { page = …, ref = … }.
 - `patch` (`table`) — Attributes to set. For tasks: done, state, name, tags. For paragraphs: text.
-- `options?` (`table`) — remove: list of attribute names to delete.
+- `options?` (`table`) — remove: list of attribute names to delete; order: list of top-level keys to put first, in that order (pages and data block documents).
 <!--/lua-->

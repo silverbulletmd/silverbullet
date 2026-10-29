@@ -3,6 +3,7 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { describe, expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
+import { extractFrontMatter } from "./frontmatter.ts";
 import { indexMarkdown } from "./indexer.ts";
 const { lintAnchors } = await import("./lint.ts");
 
@@ -219,6 +220,13 @@ describe("lintYAML on data blocks", () => {
     });
   }
 
+  test("an empty tags: in frontmatter lints clean and indexes as no tags", async () => {
+    const md = "---\ntags:\n---\nBody\n";
+    expect(await lintYamlFor(md)).toEqual([]);
+    // What the page's schema sees: an empty list, which schema.tags() accepts
+    expect(extractFrontMatter(parseMarkdown(md)).tags).toEqual([]);
+  });
+
   test("multi-document data blocks lint clean", async () => {
     const md = ["```#person", "name: Pete", "---  ", "name: Hank", "```"].join(
       "\n",
@@ -296,5 +304,183 @@ describe("lintLua on page-lua blocks", () => {
     const diagnostics = await lintLuaFor("```page-lua\nfunction (\n```\n");
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].severity).toBe("error");
+  });
+});
+
+describe("lintRefTags", () => {
+  const personRef = { type: "string", format: "ref", tag: "person" };
+
+  async function lintRefs(
+    text: string,
+    schemaProps: Record<string, any>,
+    otherPages: Record<string, string> = {},
+  ) {
+    const { config } = createMockSystem();
+    config.set(["tags", "project", "schema"], {
+      type: "object",
+      properties: schemaProps,
+    });
+    for (const [pageName, pageText] of Object.entries(otherPages)) {
+      const pm: PageMeta = {
+        ref: pageName,
+        name: pageName,
+        tag: "page",
+        created: "",
+        lastModified: "",
+        perm: "rw",
+      };
+      pm.tags = extractFrontMatter(parseMarkdown(pageText)).tags;
+      const objects = [pm, ...(await indexMarkdown(pageText, pm))];
+      await (globalThis as any).syscall(
+        "index.indexObjects",
+        pageName,
+        objects,
+      );
+    }
+    const { lintRefTags } = await import("./lint.ts");
+    return lintRefTags({
+      tree: parseMarkdown(text),
+      name: defaultPageMeta.name,
+      pageMeta: defaultPageMeta,
+      text,
+    });
+  }
+
+  const header = (body: string) => `---\ntags: project\n${body}\n---\nbody\n`;
+
+  test("warns when a page target is not tagged with the schema tag", async () => {
+    const text = header(`owner: "[[Person/Zed]]"`);
+    const diags = await lintRefs(
+      text,
+      { owner: personRef },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toHaveLength(1);
+    expect(diags[0].severity).toBe("warning");
+    expect(diags[0].message).toBe("[[Person/Zed]] is not a #person");
+    expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
+  });
+
+  test("points at the top-level value, not a nested key of the same name", async () => {
+    const text = header(
+      `meta:\n  owner: "[[Person/Zed]]"\nowner: '[[Person/Zed]]'`,
+    );
+    const diags = await lintRefs(
+      text,
+      { owner: personRef },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toHaveLength(1);
+    expect(diags[0].from).toBe(text.indexOf("[[Person/Zed]]'"));
+    expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
+  });
+
+  test("accepts a tagged page", async () => {
+    const diags = await lintRefs(
+      header(`owner: "[[Person/Alice]]"`),
+      { owner: personRef },
+      { "Person/Alice": "---\ntags: person\n---\nHi" },
+    );
+    expect(diags).toEqual([]);
+  });
+
+  test("accepts an anchored object carrying the tag", async () => {
+    const diags = await lintRefs(
+      header(`owner: "[[$t1]]"`),
+      { owner: personRef },
+      { Other: "* [ ] Task $t1 #person" },
+    );
+    expect(diags).toEqual([]);
+  });
+
+  test("flags an anchored object without the tag", async () => {
+    const text = header(`owner: "[[$t1]]"`);
+    const diags = await lintRefs(
+      text,
+      { owner: personRef },
+      { Other: "* [ ] Task $t1" },
+    );
+    expect(diags).toHaveLength(1);
+    expect(diags[0].message).toBe("[[$t1]] is not a #person");
+  });
+
+  test("flags only the offending item of a ref list", async () => {
+    const text = header(
+      `members:\n  - "[[Person/Alice]]"\n  - "[[Person/Zed]]"`,
+    );
+    const diags = await lintRefs(
+      text,
+      { members: { type: "array", items: personRef } },
+      {
+        "Person/Alice": "---\ntags: person\n---\nHi",
+        "Person/Zed": "Just a page",
+      },
+    );
+    expect(diags).toHaveLength(1);
+    expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
+    expect(diags[0].from).toBeGreaterThan(text.indexOf("Person/Alice") + 20);
+  });
+
+  test("ignores a missing target", async () => {
+    const diags = await lintRefs(header(`owner: "[[Person/Nobody]]"`), {
+      owner: personRef,
+    });
+    expect(diags).toEqual([]);
+  });
+
+  test("locates the range under a quoted key", async () => {
+    const text = header(`"owner": "[[Person/Zed]]"`);
+    const diags = await lintRefs(
+      text,
+      { owner: personRef },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toHaveLength(1);
+    expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
+  });
+
+  test("same link under two keys flags only the offending key", async () => {
+    const text = header(`reviewer: "[[Person/Zed]]"\nowner: "[[Person/Zed]]"`);
+    const diags = await lintRefs(
+      text,
+      { reviewer: { type: "string", format: "ref" }, owner: personRef },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toHaveLength(1);
+    expect(diags[0].from).toBe(text.lastIndexOf("[[Person/Zed]]"));
+  });
+
+  test("a nullable ref is checked like a plain one", async () => {
+    const text = header(`owner: "[[Person/Zed]]"`);
+    const diags = await lintRefs(
+      text,
+      { owner: { anyOf: [personRef, { type: "null" }] } },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toHaveLength(1);
+    expect(diags[0].message).toBe("[[Person/Zed]] is not a #person");
+  });
+
+  test("a nullable ref list is checked like a plain one", async () => {
+    const text = header(`members:\n  - "[[Person/Zed]]"`);
+    const diags = await lintRefs(
+      text,
+      {
+        members: {
+          anyOf: [{ type: "array", items: personRef }, { type: "null" }],
+        },
+      },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toHaveLength(1);
+  });
+
+  test("a ref without a tag accepts any existing page", async () => {
+    const diags = await lintRefs(
+      header(`owner: "[[Person/Zed]]"`),
+      { owner: { type: "string", format: "ref" } },
+      { "Person/Zed": "Just a page" },
+    );
+    expect(diags).toEqual([]);
   });
 });

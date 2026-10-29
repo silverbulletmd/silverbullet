@@ -29,6 +29,16 @@ test("update adds frontmatter to a page without it, and drops it when empty", ()
   );
 });
 
+test("frontmatter created on a page without it leaves the body byte-identical, in one edit", () => {
+  for (const body of ["# Heading\nText\n", "\n\nAfter blank lines\n", ""]) {
+    const edits = planPageUpdate(planCtx(body), { status: "draft" }, []);
+    expect(edits).toHaveLength(1);
+    const after = applyEdits(body, edits);
+    expect(after).toBe(`---\nstatus: draft\n---\n${body}`);
+    expect(after.endsWith(body)).toBe(true);
+  }
+});
+
 test("an unchanged value produces no edit", () => {
   const text = "---\nstage: lead\n---\nBody\n";
   expect(planPageUpdate(planCtx(text), { stage: "lead" }, [])).toEqual([]);

@@ -23,6 +23,7 @@ import {
 } from "@silverbulletmd/silverbullet/syscalls";
 import { findRenameConflict, shouldDeleteOldPath } from "./refactor_case.ts";
 import { spliceReference } from "./refactor_splice.ts";
+import { applySplices, type Splice, yamlRegions } from "./refactor_yaml.ts";
 import {
   getTextualBackRelations,
   isWikiLinkAt,
@@ -249,20 +250,25 @@ async function renamePage(oldName: string, newName: string) {
       linksToUpdate.push(rel);
     }
 
-    // Sort backwards by position so earlier splices don't shift later ones.
-    linksToUpdate.sort((a, b) => b.range[0] - a.range[0]);
-
+    const splices: Splice[] = [];
     for (const rel of linksToUpdate) {
       const movedDocument = documentsToMove.get(rel.to);
       if (isWikiLinkAt(text, rel.range) && !movedDocument) continue;
-
-      text = spliceReference({
-        text,
+      splices.push({
         range: rel.range,
-        oldName: rel.to,
-        newName: movedDocument ?? rel.to,
-        pageToEdit: newName,
+        apply: (text) =>
+          spliceReference({
+            text,
+            range: rel.range,
+            oldName: rel.to,
+            newName: movedDocument ?? rel.to,
+            pageToEdit: newName,
+          }),
       });
+    }
+    if (splices.length > 0) {
+      const regions = yamlRegions(await markdown.parseMarkdown(text));
+      text = applySplices(text, splices, regions).text;
     }
   }
 
@@ -502,25 +508,31 @@ export async function updateBacklinks(
     }
     let text = original;
 
-    // Apply in descending range order so earlier splices don't shift
-    // later positions.
-    recsInPage.sort((a, b) => (b.range?.[0] ?? 0) - (a.range?.[0] ?? 0));
-
+    const splices: Splice[] = [];
     for (const rec of recsInPage) {
-      if (!rec.range) continue;
-      if (wikiLinksOnly && !isWikiLinkAt(text, rec.range)) {
+      const range = rec.range;
+      if (!range) continue;
+      if (wikiLinksOnly && !isWikiLinkAt(text, range)) {
         continue;
       }
-      const before = text;
-      text = spliceReference({
-        text,
-        range: rec.range,
-        oldName,
-        newName,
-        newWikiName,
-        pageToEdit,
+      splices.push({
+        range,
+        apply: (text) =>
+          spliceReference({
+            text,
+            range,
+            oldName,
+            newName,
+            newWikiName,
+            pageToEdit,
+          }),
       });
-      if (text !== before) updatedReferences++;
+    }
+    if (splices.length > 0) {
+      const regions = yamlRegions(await markdown.parseMarkdown(text));
+      const applied = applySplices(text, splices, regions);
+      text = applied.text;
+      updatedReferences += applied.changed;
     }
     // Nothing changed (every splice was a no-op): don't churn the file's
     // mtime with a byte-identical write.

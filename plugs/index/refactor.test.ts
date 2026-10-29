@@ -1,9 +1,11 @@
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import { expect, test } from "vitest";
+import YAML from "js-yaml";
+import { describe, expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { indexPage } from "./indexer.ts";
 import { batchRenameFiles } from "./refactor.ts";
+import { applySplices, type Splice, yamlRegions } from "./refactor_yaml.ts";
 
 async function indexPageForTest(name: string, text: string) {
   const meta: PageMeta = {
@@ -149,4 +151,159 @@ test("renaming a recipient page never touches pages that only @mention it", asyn
   const { text: newText } = await space.readPage("Notes");
   expect(newText).toBe(text);
   expect(writes).not.toContain("Notes");
+});
+
+test("renaming a page rewrites links inside frontmatter text", async () => {
+  const { space, system } = createMockSystem();
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+
+  await space.writePage("Person/Alice", "Alice");
+  await indexPageForTest("Person/Alice", "Alice");
+  const notes =
+    '---\nnote: "ask [[Person/Alice]] and [[Person/Alice|her]] first"\nrefs:\n- "via [[Person/Alice]]"\n- plain [[Person/Alice]]\nsummary: plain [[Person/Alice]] too\n---\nBody\n';
+  await space.writePage("Notes", notes);
+  await indexPageForTest("Notes", notes);
+
+  const ok = await batchRenameFiles([["Person/Alice.md", "People/Alice.md"]]);
+  expect(ok).toBe(true);
+
+  const { text } = await space.readPage("Notes");
+  expect(text).toBe(
+    '---\nnote: "ask [[People/Alice]] and [[People/Alice|her]] first"\nrefs:\n- "via [[People/Alice]]"\n- plain [[People/Alice]]\nsummary: plain [[People/Alice]] too\n---\nBody\n',
+  );
+});
+
+async function renameAliceIn(page: string, newName: string): Promise<string> {
+  const { space, system } = createMockSystem();
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+  await space.writePage("Person/Alice", "Alice");
+  await indexPageForTest("Person/Alice", "Alice");
+  await space.writePage("Notes", page);
+  await indexPageForTest("Notes", page);
+  expect(await batchRenameFiles([["Person/Alice.md", `${newName}.md`]])).toBe(
+    true,
+  );
+  return (await space.readPage("Notes")).text;
+}
+
+test("rename keeps a single-quoted frontmatter value valid when the new name has an apostrophe", async () => {
+  const text = await renameAliceIn(
+    "---\nnote: 'see [[Person/Alice]] first'\nref: '[[Person/Alice]]'\n---\nBody\n",
+    "People/Alice's Notes",
+  );
+  expect(text).toBe(
+    "---\nnote: 'see [[People/Alice''s Notes]] first'\nref: '[[People/Alice''s Notes]]'\n---\nBody\n",
+  );
+});
+
+test("rename re-quotes a plain frontmatter value that the new name would break", async () => {
+  const text = await renameAliceIn(
+    "---\nsummary: plain [[Person/Alice]] and [[Person/Alice|her]] too\n---\nBody\n",
+    "People/Meeting: Q3",
+  );
+  expect(text).toBe(
+    '---\nsummary: "plain [[People/Meeting: Q3]] and [[People/Meeting: Q3|her]] too"\n---\nBody\n',
+  );
+});
+
+test("rename keeps frontmatter list items valid", async () => {
+  const text = await renameAliceIn(
+    "---\nrefs:\n- 'via [[Person/Alice]]'\n- plain [[Person/Alice]]\n---\nBody\n",
+    "People/Bob's Meeting: Q3",
+  );
+  expect(text).toBe(
+    "---\nrefs:\n- 'via [[People/Bob''s Meeting: Q3]]'\n- \"plain [[People/Bob's Meeting: Q3]]\"\n---\nBody\n",
+  );
+});
+
+test("rename leaves frontmatter values that stay valid byte-identical apart from the link", async () => {
+  const text = await renameAliceIn(
+    '---\nnote: "see [[Person/Alice]]"  # keep\nplain: x [[Person/Alice]]\nref: "[[Person/Alice]]"\n---\nBody\n',
+    "People/Alice's Notes",
+  );
+  expect(text).toBe(
+    '---\nnote: "see [[People/Alice\'s Notes]]"  # keep\nplain: x [[People/Alice\'s Notes]]\nref: "[[People/Alice\'s Notes]]"\n---\nBody\n',
+  );
+});
+
+test("rename keeps a trailing comment when it re-quotes a value", async () => {
+  const text = await renameAliceIn(
+    "---\nplain: x [[Person/Alice]] # why\nsingle: 'see [[Person/Alice]]'   # keep\ndouble: \"[[Person/Alice]]\" # same\nlist:\n- plain [[Person/Alice]]  # item\n---\nBody\n",
+    "People/Bob's Meeting: Q3",
+  );
+  expect(text).toBe(
+    "---\nplain: \"x [[People/Bob's Meeting: Q3]]\" # why\nsingle: 'see [[People/Bob''s Meeting: Q3]]'   # keep\ndouble: \"[[People/Bob's Meeting: Q3]]\" # same\nlist:\n- \"plain [[People/Bob's Meeting: Q3]]\"  # item\n---\nBody\n",
+  );
+});
+
+describe("rename never corrupts a YAML block", () => {
+  const body = "\nBody [[Person/Alice]]\n";
+  const cases: [string, string][] = [
+    ["a flow sequence", "refs: ['[[Person/Alice]]', 'x']"],
+    ["a multi-line quoted scalar", "note: 'see [[Person/Alice]]\n  more'"],
+    [
+      "a plain scalar with a continuation line",
+      "note: see [[Person/Alice]]\n  and more",
+    ],
+  ];
+  for (const [name, yaml] of cases) {
+    test(`${name} stays valid`, async () => {
+      const text = await renameAliceIn(
+        `---\n${yaml}\n---${body}`,
+        "People/Bob's Meeting: Q3",
+      );
+      const m = /^---\n([\s\S]*)\n---/.exec(text)!;
+      expect(YAML.load(m[1])).toEqual(YAML.load(yaml));
+      // The rest of the page is still renamed
+      expect(text.endsWith("Body [[People/Bob's Meeting: Q3]]\n")).toBe(true);
+    });
+  }
+
+  test("a normal value is still renamed", async () => {
+    const text = await renameAliceIn(
+      `---\nref: '[[Person/Alice]]'\n---${body}`,
+      "People/Bob's Meeting: Q3",
+    );
+    expect(text).toBe(
+      "---\nref: '[[People/Bob''s Meeting: Q3]]'\n---\nBody [[People/Bob's Meeting: Q3]]\n",
+    );
+  });
+});
+
+test("rename keeps data block values valid and leaves body text alone", async () => {
+  const text = await renameAliceIn(
+    "```#contact\nname: Bob\nnote: 'met [[Person/Alice]]'\n```\nnote: 'see [[Person/Alice]]'\n",
+    "People/Alice's Notes",
+  );
+  expect(text).toBe(
+    "```#contact\nname: Bob\nnote: 'met [[People/Alice''s Notes]]'\n```\nnote: 'see [[People/Alice's Notes]]'\n",
+  );
+});
+
+test("applySplices counts only the splices it kept", () => {
+  const text = "---\nrefs: ['[[A]]', 'x']\n---\nBody [[A]]\n";
+  const splice = (at: number): Splice => ({
+    range: [at, at + "[[A]]".length],
+    apply: (t) => `${t.slice(0, at)}[[B's: C]]${t.slice(at + "[[A]]".length)}`,
+  });
+  const result = applySplices(
+    text,
+    [splice(text.indexOf("[[A]]")), splice(text.lastIndexOf("[[A]]"))],
+    yamlRegions(parseMarkdown(text)),
+  );
+  // The flow sequence can't hold the new name, so its splice is dropped
+  expect(result.text).toBe("---\nrefs: ['[[A]]', 'x']\n---\nBody [[B's: C]]\n");
+  expect(result.changed).toBe(1);
 });

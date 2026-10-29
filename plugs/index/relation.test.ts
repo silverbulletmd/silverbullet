@@ -5,7 +5,7 @@ import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { indexData } from "./data.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { indexMarkdown } from "./indexer.ts";
-import { indexRelations } from "./relation.ts";
+import { indexRelations, scanYamlValues } from "./relation.ts";
 
 function pageMeta(name = "Test"): PageMeta {
   return {
@@ -112,6 +112,76 @@ Body.`;
   expect(r!.from).toEqual("Linda");
   expect(r!.range).toBeDefined();
   expect(text.substring(r!.range![0], r!.range![0] + 2)).toEqual("[[");
+});
+
+test("links inside frontmatter text are relations too", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("A", "");
+  await space.writePage("B", "");
+  await space.writePage("C", "");
+
+  const text = `---
+note: "see [[A]] and [[B|bee]]"
+refs:
+- "read [[C]] first"
+- plain text
+todo: "check [[$t1]] today"
+---
+Body.`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
+  const rel = (kind: string) =>
+    objects.filter((o) => o.tag === "relation" && o.kind === kind);
+
+  const notes = rel("note");
+  expect(notes.map((r) => [r.to, r.alias ?? null])).toEqual([
+    ["A", null],
+    ["B", "bee"],
+  ]);
+  expect(notes.map((r) => text.substring(r.range![0], r.range![1]))).toEqual([
+    "[[A]]",
+    "[[B|bee]]",
+  ]);
+
+  const refs = rel("refs");
+  expect(refs.map((r) => r.to)).toEqual(["C"]);
+  expect(text.substring(refs[0].range![0], refs[0].range![1])).toBe("[[C]]");
+
+  const todo = rel("todo");
+  expect(todo.map((r) => [r.to, r.toTag])).toEqual([["t1", "anchor"]]);
+  expect(text.substring(todo[0].range![0], todo[0].range![1])).toBe("[[$t1]]");
+});
+
+test("links in plain and escaped frontmatter text are relations, nested keys only as exact links", async () => {
+  const { space } = createMockSystem();
+  for (const p of ["A", "B", "C", "D", "E"]) await space.writePage(p, "");
+
+  const text = `---
+summary: plain words [[A]]
+refs:
+  - First [[B]]
+quote: "say \\"hi\\" to [[C]]"
+meta:
+  author: see [[D]]
+  editor: "[[E]]"
+---
+Body.`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
+  const rels = objects.filter((o) => o.tag === "relation");
+  const pick = (kind: string) =>
+    rels
+      .filter((r) => r.kind === kind)
+      .map((r) => [r.to, text.substring(r.range![0], r.range![1])]);
+
+  expect(pick("summary")).toEqual([["A", "[[A]]"]]);
+  expect(pick("refs")).toEqual([["B", "[[B]]"]]);
+  expect(pick("quote")).toEqual([["C", "[[C]]"]]);
+  // A nested key keeps the old rule: only a value that is exactly one link
+  expect(pick("author")).toEqual([]);
+  expect(pick("editor")).toEqual([["E", "[[E]]"]]);
 });
 
 test("frontmatter list of wikilinks emits one relation per entry", async () => {
@@ -934,4 +1004,67 @@ test("recipients: and authors: do not collide on ref", async () => {
     "---\nrecipients: zef\nauthors: zef\n---\n\nProse.\n",
   );
   expect(new Set(relations.map((r) => r.ref)).size).toBe(2);
+});
+
+test("frontmatter list of wikilinks emits one relation per item", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("Person/Bob", "");
+  await space.writePage("Person/Carol", "");
+
+  for (const body of [
+    `members:\n- "[[Person/Bob]]"\n- "[[Person/Carol]]"`,
+    `members: ["[[Person/Bob]]", "[[Person/Carol]]"]`,
+  ]) {
+    const text = `---\n${body}\n---\n`;
+    const tree = parseMarkdown(text);
+    const fm = extractFrontMatter(tree);
+    const objects = await indexRelations(pageMeta("Team"), fm, tree, text);
+    const members = objects.filter(
+      (o) => o.tag === "relation" && o.kind === "members",
+    );
+    expect(members.map((r) => r.to).sort(), `for: ${body}`).toEqual([
+      "Person/Bob",
+      "Person/Carol",
+    ]);
+    for (const r of members) {
+      expect(text.substring(r.range![0], r.range![1])).toEqual(`[[${r.to}]]`);
+    }
+  }
+});
+
+test("frontmatter list of anchor links is handled like scalar anchors", async () => {
+  createMockSystem();
+  const text = `---\nmembers:\n- "[[$t1]]"\n---\n`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Team"), fm, tree, text);
+  const scalarText = `---\nmembers: "[[$t1]]"\n---\n`;
+  const sTree = parseMarkdown(scalarText);
+  const scalar = await indexRelations(
+    pageMeta("Team"),
+    extractFrontMatter(sTree),
+    sTree,
+    scalarText,
+  );
+  const pick = (os: typeof objects) =>
+    os
+      .filter((o) => o.tag === "relation" && o.kind === "members")
+      .map((o) => [o.to, o.toTag]);
+  expect(pick(objects)).toEqual(pick(scalar));
+  expect(pick(objects).length).toEqual(1);
+});
+
+test("YAML relation keys use parser-decoded identity and exact value spans", () => {
+  const text = String.raw`"key\u0020name": "[[Target]]" # keep
+'it''s': plain [[Other]]`;
+  const values = scanYamlValues(text);
+  expect(values.map(({ key, text, depth }) => [key, text, depth])).toEqual([
+    ["key name", '"[[Target]]"', 0],
+    ["it's", "plain [[Other]]", 0],
+  ]);
+  for (const value of values) {
+    expect(text.slice(value.offset, value.offset + value.text.length)).toBe(
+      value.text,
+    );
+  }
 });

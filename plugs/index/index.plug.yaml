@@ -53,7 +53,7 @@ functions:
       parameters:
         - { name: object, type: table, description: "An object from a query or object.append, a list of them, or { page = …, ref = … } for an anchored object." }
         - { name: patch, type: table, description: "Attributes to set. For tasks: done, state, name, tags. For paragraphs: text." }
-        - { name: options, type: table, optional: true, description: "remove: list of attribute names to delete." }
+        - { name: options, type: table, optional: true, description: "remove: list of attribute names to delete; order: list of top-level keys to put first, in that order (pages and data block documents)." }
       see: API/object
   objectDelete:
     path: object_api.ts:deleteObject
@@ -231,6 +231,11 @@ functions:
 
   lintObjects:
     path: lint.ts:lintObjects
+    events:
+      - editor:lint
+
+  lintRefTags:
+    path: lint.ts:lintRefTags
     events:
       - editor:lint
 

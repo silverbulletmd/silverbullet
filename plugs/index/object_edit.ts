@@ -1,9 +1,14 @@
-import YAML from "js-yaml";
+import { cleanStringDate } from "@silverbulletmd/silverbullet/lib/json";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import YAML from "js-yaml";
+import {
+  type YamlSourceNode,
+  yamlTopLevelEntries,
+} from "../../plug-api/lib/yaml_source.ts";
 
 export type TextEdit = { from: number; to: number; insert: string };
 
@@ -27,6 +32,8 @@ export type ObjectHandler = {
     found: ObjectValue<any>,
     patch: Record<string, unknown>,
     remove: string[],
+    /** Top-level key order; only handlers whose objects are YAML take it */
+    order?: string[],
   ): TextEdit[];
   delete(ctx: PlanContext, found: ObjectValue<any>): TextEdit[];
 };
@@ -129,52 +136,217 @@ export function inlineYaml(value: unknown): string {
   return escapeBrackets(JSON.stringify(value));
 }
 
-function topLevelKey(line: string): string | null {
-  const m = /^(?:"([^"]*)"|'([^']*)'|([^\s#'"?:-][^:]*?))\s*:(?:\s|$)/.exec(
-    line,
+const lineStart = (text: string, pos: number) =>
+  text.lastIndexOf("\n", pos - 1) + 1;
+
+const lineEnd = (text: string, pos: number) => {
+  const end = text.indexOf("\n", pos);
+  return end < 0 ? text.length : end;
+};
+
+/** Where the blank lines at the end of `text` start */
+const trailingBlankStart = (text: string) =>
+  /(?:\n[ \t\r]*)*$/.exec(text)!.index;
+
+/**
+ * A top-level key and its whole value, as whole lines, with the comment
+ * lines directly above it.
+ */
+type KeyBlock = {
+  key: string;
+  /** The key's line up to and including its colon, as written */
+  prefix: string;
+  /** Start of the comment lines directly above the key */
+  head: number;
+  /** Start of the key's line */
+  start: number;
+  /** End of the value's last line, before its line break */
+  end: number;
+  value: YamlSourceNode;
+};
+
+function keyBlocks(yaml: string): KeyBlock[] {
+  return yamlTopLevelEntries(yaml).map(({ key, keyNode, valueNode }) => {
+    const start = lineStart(yaml, keyNode.from);
+    if (yaml.slice(start, keyNode.from).trim() !== "") {
+      throw new ObjectEditError("flow mappings must be edited in source");
+    }
+    const colon = yaml.indexOf(":", keyNode.to);
+    // Edits are by line, so the key and its colon must share one
+    if (
+      keyNode.kind !== "scalar" ||
+      yaml.slice(keyNode.from, colon).includes("\n")
+    ) {
+      throw new ObjectEditError("explicit YAML keys must be edited in source");
+    }
+    let head = start;
+    while (head > 0 && yaml[lineStart(yaml, head - 1)] === "#") {
+      head = lineStart(yaml, head - 1);
+    }
+    return {
+      key,
+      prefix: yaml.slice(start, colon + 1),
+      head,
+      start,
+      end: lineEnd(yaml, Math.max(keyNode.to, valueNode.to - 1)),
+      value: valueNode,
+    };
+  });
+}
+
+export type Quote = "double" | "single" | "plain";
+
+/** How an existing value is written, so a rewrite looks the same. */
+type ValueStyle = { quote: Quote; itemQuote: Quote; itemIndent: string };
+
+const NEW_VALUE_STYLE: ValueStyle = {
+  quote: "plain",
+  itemQuote: "plain",
+  itemIndent: "  ",
+};
+
+export function quoteOf(text: string | undefined): Quote {
+  if (text?.startsWith('"')) return "double";
+  if (text?.startsWith("'")) return "single";
+  return "plain";
+}
+
+function styleOf(yaml: string, { value }: KeyBlock): ValueStyle {
+  const source = (node: YamlSourceNode) => yaml.slice(node.from, node.to);
+  if (value.kind === "sequence" && yaml[value.from] === "-") {
+    return {
+      quote: "plain",
+      itemQuote: quoteOf(value.children[0] && source(value.children[0])),
+      itemIndent: yaml.slice(lineStart(yaml, value.from), value.from),
+    };
+  }
+  return { ...NEW_VALUE_STYLE, quote: quoteOf(source(value)) };
+}
+
+/** A scalar as YAML in the given quote style, or null if it isn't one. */
+export function scalarYaml(value: unknown, quote: Quote): string | null {
+  if (value instanceof Date) return cleanStringDate(value);
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "number" || typeof value === "boolean") {
+    return YAML.dump(value).trimEnd();
+  }
+  if (typeof value !== "string") return null;
+  if (quote === "single" && !/[\n\r]/.test(value)) {
+    return `'${value.replace(/'/g, "''")}'`;
+  }
+  // A string YAML would read as another type (or can't write plain) is quoted
+  if (
+    quote === "plain" &&
+    YAML.dump(value, { lineWidth: -1 }).trimEnd() === value
+  ) {
+    return value;
+  }
+  return JSON.stringify(value);
+}
+
+function entryYaml(
+  key: string,
+  keyText: string,
+  value: unknown,
+  style: ValueStyle,
+): string[] {
+  const scalar = scalarYaml(value, style.quote);
+  if (scalar !== null) return [`${keyText} ${scalar}`];
+  if (Array.isArray(value)) {
+    if (value.length === 0) return [`${keyText} []`];
+    const items = value.map((v) => scalarYaml(v, style.itemQuote));
+    if (items.every((i) => i !== null)) {
+      return [keyText, ...items.map((i) => `${style.itemIndent}- ${i}`)];
+    }
+  }
+  return YAML.dump({ [key]: value }, { lineWidth: -1 })
+    .trimEnd()
+    .split("\n");
+}
+
+/**
+ * Moves top-level key blocks so the keys in `order` come first, in that
+ * order; the other keys follow in their current order. A block is a key, its
+ * value and the comment lines directly above it, and it moves as is.
+ */
+export function reorderKeys(yaml: string, order: string[]): string {
+  const blocks = keyBlocks(yaml);
+  if (blocks.length === 0) return yaml;
+  const contentEnd = trailingBlankStart(yaml);
+  // A block runs up to the next one, so blank lines travel with the block above
+  const texts = new Map(
+    blocks.map((block, i) => [
+      block,
+      yaml
+        .slice(block.head, blocks[i + 1]?.head ?? contentEnd)
+        .replace(/\n$/, ""),
+    ]),
   );
-  return m ? (m[1] ?? m[2] ?? m[3]) : null;
+  const ordered = new Set(
+    order.flatMap((key) => blocks.filter((b) => b.key === key)),
+  );
+  for (const block of blocks) ordered.add(block);
+  const body = [...ordered].map((block) => texts.get(block)).join("\n");
+  // Blank lines that moved to the end would dangle; keep the text's own
+  return (
+    yaml.slice(0, blocks[0].head) +
+    body.slice(0, trailingBlankStart(body)) +
+    yaml.slice(contentEnd)
+  );
 }
 
 /**
  * Sets and removes top-level keys in YAML text. A key's whole value is
- * replaced, nested lines included; other lines are left as they are.
+ * replaced, nested lines included, written in the style of the value it
+ * replaces; other lines are left as they are.
  */
 export function patchYaml(
   yaml: string,
   patch: Record<string, unknown>,
   remove: string[],
+  order?: string[],
 ): string {
-  const lines = yaml === "" ? [] : yaml.split("\n");
-  const extent = (start: number) => {
-    let end = start + 1;
-    while (
-      end < lines.length &&
-      (lines[end] === "" || /^[\s-]/.test(lines[end]))
-    ) {
-      end++;
-    }
-    while (end > start + 1 && lines[end - 1].trim() === "") end--;
-    return end;
-  };
-  const replace = (key: string, replacement: string[]) => {
-    const start = lines.findIndex((l) => topLevelKey(l) === key);
-    if (start >= 0) {
-      lines.splice(start, extent(start) - start, ...replacement);
-    } else {
-      lines.push(...replacement);
-    }
-  };
+  const blocks = new Map(keyBlocks(yaml).map((block) => [block.key, block]));
+  const edits: TextEdit[] = [];
+  const added: string[] = [];
   for (const [key, value] of Object.entries(patch)) {
-    replace(
-      key,
-      YAML.dump({ [key]: value }, { lineWidth: -1 })
+    if (remove.includes(key)) continue;
+    const block = blocks.get(key);
+    if (!block) {
+      const keyText = YAML.dump({ [key]: 0 })
         .trimEnd()
-        .split("\n"),
+        .slice(0, -" 0".length);
+      added.push(...entryYaml(key, keyText, value, NEW_VALUE_STYLE));
+      continue;
+    }
+    // Emptying a key keeps it, with no value (`tags:`)
+    const lines =
+      value === null || value === undefined
+        ? [block.prefix.trimEnd()]
+        : entryYaml(key, block.prefix, value, styleOf(yaml, block));
+    edits.push({ from: block.start, to: block.end, insert: lines.join("\n") });
+  }
+  for (const key of new Set(remove)) {
+    const block = blocks.get(key);
+    if (!block) continue;
+    // Its comments go with it, as they move with it in reorderKeys; so does
+    // one line break, the one before it when it's last
+    edits.push(
+      block.end < yaml.length
+        ? { from: block.head, to: block.end + 1, insert: "" }
+        : { from: Math.max(0, block.head - 1), to: block.end, insert: "" },
     );
   }
-  for (const key of remove) replace(key, []);
-  const out = lines.join("\n");
+  if (added.length > 0) {
+    const at = trailingBlankStart(yaml);
+    edits.push({
+      from: at,
+      to: at,
+      insert: (at > 0 ? "\n" : "") + added.join("\n"),
+    });
+  }
+  const patched = applyEdits(yaml, edits);
+  const out = order ? reorderKeys(patched, order) : patched;
   try {
     YAML.load(out);
   } catch (e: any) {

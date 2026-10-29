@@ -23,9 +23,10 @@ export function planPageUpdate(
   ctx: PlanContext,
   patch: Record<string, unknown>,
   remove: string[],
+  order?: string[],
 ): TextEdit[] {
   const after = patchFrontmatterText(ctx.text, ctx.tree, (yaml) =>
-    patchYaml(yaml.replace(/\n$/, ""), patch, remove),
+    patchYaml(yaml.replace(/\n$/, ""), patch, remove, order),
   );
   return minimalEdit(ctx.text, after);
 }

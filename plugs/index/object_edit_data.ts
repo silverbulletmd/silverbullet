@@ -37,13 +37,14 @@ export function planDataUpdate(
   found: ObjectValue<any>,
   patch: Record<string, unknown>,
   remove: string[],
+  order?: string[],
 ): TextEdit[] {
   const { docs, index } = locate(ctx, found);
   const doc = docs[index];
   const lead = doc.text.startsWith("\n") ? "\n" : "";
   const trail =
     doc.text.length > lead.length && doc.text.endsWith("\n") ? "\n" : "";
-  const yaml = patchYaml(trimDocument(doc.text), patch, remove);
+  const yaml = patchYaml(trimDocument(doc.text), patch, remove, order);
   return [
     {
       from: doc.from,

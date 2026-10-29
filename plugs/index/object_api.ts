@@ -1,3 +1,4 @@
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   editor,
   index,
@@ -5,7 +6,6 @@ import {
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { isValidAnchorName } from "./anchor.ts";
 import { extractFrontmatter } from "./api.ts";
@@ -17,12 +17,12 @@ import {
   findTarget,
   isPageTarget,
   kindOf,
-  type ObjectHandler,
   ObjectEditError,
+  type ObjectHandler,
   type ObjectKind,
   type ObjectTarget,
-  pageMetaFor,
   type PlanContext,
+  pageMetaFor,
   type TextEdit,
 } from "./object_edit.ts";
 import { dataHandler, planDataAppend } from "./object_edit_data.ts";
@@ -44,7 +44,11 @@ const HANDLERS: Record<ObjectKind, ObjectHandler> = {
 
 type Attributes = Record<string, unknown>;
 type Planner = (ctx: PlanContext) => Promise<TextEdit[]>;
-type Validator = (updated: string, edits: TextEdit[]) => Promise<void>;
+type Validator = (
+  updated: string,
+  edits: TextEdit[],
+  original: string,
+) => Promise<void>;
 
 async function freshObjects(
   text: string,
@@ -104,19 +108,52 @@ type Prepared = {
   text: string;
   updated: string;
   edits: TextEdit[];
+  /** Ends this edit's turn on the open page; safe to call more than once. */
+  release: () => void;
 };
+
+// Edits to the open page take turns from reading its text to changing it.
+// Checking the text is unchanged and then dispatching takes several awaits, so
+// two edits at once could both pass the check and the second would land on
+// text it wasn't planned for. Saving happens after the turn ends, because a
+// save listener may edit the page again.
+let editorTurn: Promise<void> = Promise.resolve();
+
+async function takeEditorTurn(): Promise<() => void> {
+  let release!: () => void;
+  const done = new Promise<void>((resolve) => (release = resolve));
+  const previous = editorTurn;
+  editorTurn = previous.then(() => done);
+  await previous;
+  return release;
+}
 
 /** Plans and validates edits against the page's current text, writing nothing. */
 async function preparePage(job: Job): Promise<Prepared> {
   const { page, plan, validate } = job;
   await checkWritablePage(page);
-  const open = (await openPage()) === page;
-  const text = open ? await editor.getText() : await space.readPage(page);
-  const tree: ParseTree = await markdown.parseMarkdown(text);
-  const edits = await plan({ text, tree });
-  const updated = applyEdits(text, edits);
-  if (edits.length > 0 && validate) await validate(updated, edits);
-  return { job, open, text, updated, edits };
+  let open = (await openPage()) === page;
+  let release = () => {};
+  if (open) {
+    release = await takeEditorTurn();
+    // The user may have navigated away while this edit waited its turn
+    if ((await openPage()) !== page) {
+      release();
+      release = () => {};
+      open = false;
+    }
+  }
+  try {
+    const text = open ? await editor.getText() : await space.readPage(page);
+    const tree: ParseTree = await markdown.parseMarkdown(text);
+    const edits = await plan({ text, tree });
+    const updated = applyEdits(text, edits);
+    if (edits.length > 0 && validate) await validate(updated, edits, text);
+    return { job, open, text, updated, edits, release };
+  } catch (e) {
+    release();
+    throw e;
+  }
 }
 
 /**
@@ -125,15 +162,23 @@ async function preparePage(job: Job): Promise<Prepared> {
  * nothing, when the page changed since it was prepared.
  */
 async function applyPrepared(p: Prepared): Promise<boolean> {
-  if (p.edits.length === 0) return true;
   if (p.open) {
-    // Planning took several round trips; typing in between would shift
-    // every position
-    if ((await editor.getText()) !== p.text) return false;
-    await editor.dispatch({ changes: p.edits });
+    try {
+      if (p.edits.length === 0) return true;
+      // Navigating away since then would put the editor on another page
+      if ((await openPage()) !== p.job.page) return false;
+      // Typing since the text was read would shift every position
+      if ((await editor.getText()) !== p.text) return false;
+      // Its own undo step: history doesn't merge it with typing or with the
+      // previous edit
+      await editor.dispatch({ changes: p.edits, userEvent: "object.update" });
+    } finally {
+      p.release();
+    }
     await editor.save();
     return true;
   }
+  if (p.edits.length === 0) return true;
   if ((await space.readPage(p.job.page)) !== p.text) return false;
   await space.writePage(p.job.page, p.updated);
   return true;
@@ -148,11 +193,18 @@ async function editPages(jobs: Job[]): Promise<Prepared[]> {
     // its objects have changed, so they would no longer match.
     const pending = jobs.filter((job) => !written.has(job));
     const prepared: Prepared[] = [];
-    for (const job of pending) prepared.push(await preparePage(job));
-    for (const p of prepared) {
-      // A page changed while we worked; try the rest again
-      if (!(await applyPrepared(p))) break;
-      written.set(p.job, p);
+    try {
+      for (const job of pending) prepared.push(await preparePage(job));
+      // The open page goes first, so its turn ends before any other page is
+      // written: a page:saved listener may edit the open page
+      prepared.sort((a, b) => Number(b.open) - Number(a.open));
+      for (const p of prepared) {
+        // A page changed while we worked; try the rest again
+        if (!(await applyPrepared(p))) break;
+        written.set(p.job, p);
+      }
+    } finally {
+      for (const p of prepared) p.release();
     }
     if (written.size === jobs.length) return jobs.map((j) => written.get(j)!);
   }
@@ -184,6 +236,16 @@ function objectValidator(page: string): Validator {
     const result = await index.validateObjects(page, [...touched]);
     if (result) throw new ObjectEditError(result.error);
   };
+}
+
+async function pageTextValid(page: string, text: string) {
+  return validatePageText(page, text).then(
+    () => true,
+    (e) => {
+      if (e instanceof ObjectEditError) return false;
+      throw e;
+    },
+  );
 }
 
 async function validatePageText(page: string, text: string) {
@@ -226,25 +288,38 @@ function planUpdate(
   target: ObjectTarget,
   patch: Attributes,
   remove: string[],
+  order?: string[],
 ): TextEdit[] {
   const keys = [...Object.keys(patch), ...remove];
   if (isPageTarget(target)) {
     checkWritable("page", PAGE_READ_ONLY, keys);
-    return planPageUpdate(ctx, patch, remove);
+    return planPageUpdate(ctx, patch, remove, order);
   }
   const found = findTarget(fresh, target);
   const kind = kindOf(found)!;
+  if (order && kind !== "data") {
+    throw new ObjectEditError(
+      `order only applies to pages and data block objects, not a ${kind}`,
+    );
+  }
   checkWritable(kind, HANDLERS[kind].readOnly, keys);
-  return HANDLERS[kind].update(ctx, found, patch, remove);
+  return HANDLERS[kind].update(ctx, found, patch, remove, order);
 }
 
 export function updateObject(
   target: ObjectTarget | ObjectTarget[],
   patch: Attributes = {},
-  options: { remove?: string[] } = {},
+  options: { remove?: string[]; order?: string[] } = {},
 ): Promise<void> {
   return prefixErrors("object.update", async () => {
     const remove = options.remove ?? [];
+    const order = options.order;
+    if (
+      order !== undefined &&
+      !(Array.isArray(order) && order.every((k) => typeof k === "string"))
+    ) {
+      throw new ObjectEditError("order must be a list of attribute names");
+    }
     const targets = (Array.isArray(target) ? target : [target]).map(
       checkTarget,
     );
@@ -268,12 +343,21 @@ export function updateObject(
               ? []
               : await freshObjects(ctx.text, page);
             return group.flatMap((t) =>
-              planUpdate(ctx, fresh, t, patch, remove),
+              planUpdate(ctx, fresh, t, patch, remove, order),
             );
           },
-          validate: async (updated: string, edits: TextEdit[]) => {
-            await validateObjects(updated, edits);
-            if (group.some(isPageTarget)) {
+          validate: async (
+            updated: string,
+            edits: TextEdit[],
+            original: string,
+          ) => {
+            await validateObjects(updated, edits, original);
+            // A page that already broke its schema can still be edited, or
+            // its other attributes couldn't change until it's fixed by hand
+            if (
+              group.some(isPageTarget) &&
+              (await pageTextValid(page, original))
+            ) {
               await validatePageText(page, updated);
             }
           },
