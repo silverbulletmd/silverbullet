@@ -328,6 +328,11 @@ tag.define {
       ref = readOnlyType("string"),
       tag = readOnlyType("string"),
       tags = schema.tags(),
+      -- An anchor name: the object's ref, so [[$name]] links to it
+      ["$ref"] = {
+        type = "string",
+        description = "Anchor name, so [[$name]] links to this object",
+      },
       itags = {
         type = "array",
         items = schema.string(),

@@ -579,6 +579,8 @@ test("attributeSuggestions for a data object offers its tag's and the data tag's
     options.map((o: any) => [o.name, o.description, o.hint ?? ""]),
   ).toEqual([
     ["role", "enum", "#contact"],
+    // Sorted by name: $ sorts first
+    ["$ref", "string", "data"],
     ["tags", "tag[]", "data"],
   ]);
 });
