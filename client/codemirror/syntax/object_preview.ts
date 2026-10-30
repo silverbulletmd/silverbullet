@@ -1,7 +1,13 @@
 import { redo, undo } from "@codemirror/commands";
-import type { EditorState } from "@codemirror/state";
+import {
+  type EditorState,
+  MapMode,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
+import { patchYaml } from "../../../plugs/index/object_edit.ts";
 import {
   yamlTopLevelEntries,
   yamlTopLevelKeys,
@@ -45,6 +51,8 @@ export type ObjectContext = YamlContext & {
   remove: (key: string) => Promise<void>;
   /** Moves a top-level key `delta` places (-1 up, 1 down) in the YAML */
   move: (key: string, delta: number) => Promise<void>;
+  /** Adds an empty item after this one; only the last, non-empty data item */
+  addItem?: () => Promise<void>;
 };
 
 export type ObjectRenderer = (
@@ -61,7 +69,33 @@ export type PreviewObject = {
 };
 
 /** Where one object's YAML is in the current document */
-export type LiveDocument = { from: number; text: string };
+export type LiveDocument = {
+  from: number;
+  text: string;
+  /** An item added with "+ add item": not in the page until its first value */
+  added?: boolean;
+};
+
+/** Shows an unwritten item in the preview starting here; null hides it */
+export const setAddedItem = StateEffect.define<number | null>();
+
+/**
+ * Where the preview with an unwritten added item starts, if any. Nothing is
+ * written for it until its first value (see `fill`), so an item left empty
+ * leaves nothing behind.
+ */
+export const addedItemField = StateField.define<number | null>({
+  create: () => null,
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setAddedItem)) return effect.value;
+    }
+    // Gone with its block when that is deleted
+    return value === null
+      ? null
+      : tr.changes.mapPos(value, 1, MapMode.TrackDel);
+  },
+});
 
 /**
  * What a preview's widget needs to know about its kind. Positions shift while
@@ -77,11 +111,25 @@ export type ObjectPreviewHost = {
   cornerLabel?: string;
   /** The YAML of each shown object, for the widget at `from` */
   documents: (state: EditorState, from: number) => LiveDocument[] | undefined;
-  /** What deleting the widget at `from` removes, for kinds that offer it */
+  /**
+   * Whether "+ add item" applies: the widget holds several items, and lists an
+   * added one (`addedItemField`) as its last document
+   */
+  addsItems?: boolean;
+  /**
+   * What deleting object `index` of the widget at `from` removes, for kinds
+   * that offer it: text, or an object for `object.delete` to remove from its
+   * page. Undefined when there's nothing in the page to remove.
+   */
   removal?: (
     state: EditorState,
     from: number,
-  ) => { from: number; to: number } | undefined;
+    index: number,
+    page: string,
+  ) =>
+    | { from: number; to: number }
+    | { object: Record<string, unknown> }
+    | undefined;
   /** The `object.update` target for object `index` of the widget at `from` */
   target: (
     state: EditorState,
@@ -106,14 +154,19 @@ export type ObjectPreview = {
 
 /**
  * A decorator field replacing the source of each preview with its widget.
- * After an undo or redo the previews rebuild, even a focused one.
+ * After an undo or redo, or showing or hiding an added item, the previews
+ * rebuild, even a focused one.
  */
 export function objectPreviewField(
   client: Client,
   previewsFor: (state: EditorState) => ObjectPreview[],
 ) {
   return decoratorStateField((state, tr) => {
-    const rebuild = !!tr && (tr.isUserEvent("undo") || tr.isUserEvent("redo"));
+    const rebuild =
+      !!tr &&
+      (tr.isUserEvent("undo") ||
+        tr.isUserEvent("redo") ||
+        tr.effects.some((effect) => effect.is(setAddedItem)));
     return Decoration.set(
       previewsFor(state).map((preview) =>
         Decoration.replace({
@@ -341,6 +394,46 @@ export function movedKeyOrder(
   return keys;
 }
 
+/** The range `from`–`to`, with the line break after it when there is one */
+export function withLineBreak(
+  state: EditorState,
+  from: number,
+  to: number,
+): { from: number; to: number } {
+  return { from, to: state.sliceDoc(to, to + 1) === "\n" ? to + 1 : to };
+}
+
+/** A YAML document with nothing in it yet */
+export function isBlank(text: string): boolean {
+  return text.trim() === "";
+}
+
+/**
+ * Focuses the first `selector` match in the preview at `from` once it has
+ * rendered (asynchronously), giving up after a few seconds.
+ */
+export function focusWhenShown(
+  view: EditorView,
+  from: number,
+  selector: string,
+  deadline = Date.now() + 3000,
+): void {
+  for (const preview of view.dom.querySelectorAll(".sb-object-preview")) {
+    let at: number | undefined;
+    try {
+      at = view.posAtDOM(preview, 0);
+    } catch {}
+    const target = at === from && preview.querySelector<HTMLElement>(selector);
+    if (target) {
+      target.focus();
+      return;
+    }
+  }
+  if (Date.now() < deadline) {
+    setTimeout(() => focusWhenShown(view, from, selector, deadline), 30);
+  }
+}
+
 /**
  * Whether a rendered widget asked to keep its DOM though focus left it: it
  * opened a picker (`editor.filterBox`) and will add to its DOM once that
@@ -376,8 +469,8 @@ let nextMountId = 0;
  * Re-decorates the page. A preview whose DOM no longer matches its source
  * (`renderedSource`) then rebuilds, unless updateDOM keeps it.
  */
-function rerender(view: EditorView) {
-  view.dispatch({});
+function rerender(view: EditorView, effects: StateEffect<unknown>[] = []) {
+  view.dispatch({ effects });
 }
 
 export class ObjectPreviewWidget extends WidgetType {
@@ -456,6 +549,11 @@ export class ObjectPreviewWidget extends WidgetType {
     change: Change,
   ): Promise<void> {
     const from = this.livePosition(view, dom);
+    const doc =
+      from === undefined
+        ? undefined
+        : this.preview.host.documents(view.state, from)?.[index];
+    if (doc && isBlank(doc.text)) return this.fill(view, doc, change.patch);
     const target =
       from === undefined
         ? undefined
@@ -467,7 +565,6 @@ export class ObjectPreviewWidget extends WidgetType {
       remove: change.remove ?? [],
     };
     if (change.move) {
-      const doc = this.preview.host.documents(view.state, from)?.[index];
       const order = doc && movedKeyOrder(doc.text, change.move);
       if (!order) return;
       options.order = order;
@@ -479,17 +576,94 @@ export class ObjectPreviewWidget extends WidgetType {
     ]);
   }
 
-  /** Deletes the whole object, one undo step, once pending writes landed */
-  private async remove(view: EditorView, dom: HTMLElement): Promise<void> {
+  /**
+   * Writes the first attributes of a blank document as text: there is no
+   * object yet for `object.update` to find (nor a schema to check against).
+   */
+  private fill(
+    view: EditorView,
+    doc: LiveDocument,
+    patch: Record<string, unknown> | undefined,
+  ) {
+    if (!patch || Object.keys(patch).length === 0) return;
+    const from = doc.from;
+    // An added item goes in with the line that separates it
+    const to = doc.from + doc.text.length;
+    // The YAML gets lines of its own: a blank item after a `---` starts on
+    // that line, and the closing fence must stay on its own line
+    const isBreak = (pos: number) =>
+      pos < 0 ||
+      pos >= view.state.doc.length ||
+      view.state.sliceDoc(pos, pos + 1) === "\n";
+    view.dispatch({
+      changes: {
+        from,
+        to,
+        insert:
+          (isBreak(from - 1) ? "" : "\n") +
+          (doc.added ? "---\n" : "") +
+          patchYaml("", patch, []) +
+          (isBreak(to) ? "" : "\n"),
+      },
+      effects: doc.added ? setAddedItem.of(null) : [],
+      userEvent: "object.update",
+    });
+  }
+
+  /** Shows an empty item and moves focus to its "+ add attribute" */
+  private async addItem(view: EditorView, dom: HTMLElement): Promise<void> {
     await writeQueues.get(view);
     if (this.readOnly(view)) return;
     const from = this.livePosition(view, dom);
-    const range =
-      from === undefined
-        ? undefined
-        : this.preview.host.removal?.(view.state, from);
-    if (!range) return;
-    view.dispatch({ changes: { ...range, insert: "" }, userEvent: "delete" });
+    if (from === undefined) return;
+    const index = this.preview.host.documents(view.state, from)?.length ?? 0;
+    view.dispatch({ effects: setAddedItem.of(from) });
+    focusWhenShown(
+      view,
+      from,
+      `[data-object-index="${index}"] .sb-fm-add-attr`,
+    );
+  }
+
+  /**
+   * Deletes object `index`, one undo step, once pending writes landed. An
+   * unwritten added item has nothing in the page: deleting just drops it.
+   */
+  private async remove(
+    view: EditorView,
+    dom: HTMLElement,
+    index: number,
+  ): Promise<void> {
+    await writeQueues.get(view);
+    if (this.readOnly(view)) return;
+    const from = this.livePosition(view, dom);
+    if (from === undefined) return;
+    const removal = this.preview.host.removal?.(
+      view.state,
+      from,
+      index,
+      this.preview.page,
+    );
+    const effects =
+      view.state.field(addedItemField, false) === from
+        ? [setAddedItem.of(null)]
+        : [];
+    try {
+      if (removal && "object" in removal) {
+        view.dispatch({ effects });
+        await this.client.clientSystem.localSyscall("object.delete", [
+          removal.object,
+        ]);
+      } else {
+        view.dispatch({
+          changes: removal && { ...removal, insert: "" },
+          effects,
+          userEvent: "delete",
+        });
+      }
+    } catch (e: any) {
+      this.client.ui.flashNotification(e?.message ?? String(e), "error");
+    }
     view.focus();
   }
 
@@ -513,7 +687,14 @@ export class ObjectPreviewWidget extends WidgetType {
     // Re-render once focus leaves, picking up edits made while it was kept
     const rerenderUnlessFocused = () =>
       setTimeout(() => {
-        if (!container.contains(document.activeElement)) rerender(view);
+        if (container.contains(document.activeElement)) return;
+        // Leaving drops an added item with nothing written yet, unless a
+        // picker the form opened has focus
+        const dropAdded =
+          !isKept(container) &&
+          view.state.field(addedItemField, false) ===
+            this.livePosition(view, container);
+        rerender(view, dropAdded ? [setAddedItem.of(null)] : []);
       });
     container.addEventListener("focusout", (event) => {
       const next = event.relatedTarget;
@@ -664,6 +845,12 @@ export class ObjectPreviewWidget extends WidgetType {
                 move: { key, delta },
               });
             },
+            addItem:
+              host.addsItems &&
+              shown === this.preview.objects.at(-1) &&
+              shown.context.keys.length > 0
+                ? () => this.addItem(view, container)
+                : undefined,
           };
           try {
             const result = await callWithTracking(
@@ -693,7 +880,7 @@ export class ObjectPreviewWidget extends WidgetType {
           kind: "object",
           editPos: () => contentStart(this.liveDocument(view, container, i)),
           definitionRef,
-          remove: host.removal && (() => this.remove(view, container)),
+          remove: host.removal && (() => this.remove(view, container, i)),
         },
       });
       shownState.contents.push(content);

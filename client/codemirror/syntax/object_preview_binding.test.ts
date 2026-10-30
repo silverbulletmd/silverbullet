@@ -346,3 +346,144 @@ test("a blur commit retains its mount until the queued write lands", async () =>
     vi.useRealTimers();
   }
 });
+
+test("the first value of an empty item is written as YAML text", async () => {
+  const localSyscall = vi.fn(async (..._args: unknown[]) => {});
+  const { contexts, mount } = harness(localSyscall);
+  vi.useFakeTimers();
+  const view = mount("```#contact\n\n```\nOutro");
+  try {
+    await vi.runAllTimersAsync();
+    expect(contexts[0].keys).toEqual([]);
+    await contexts[0].set("name", "Ann");
+    expect(view.state.doc.toString()).toBe(
+      "```#contact\nname: Ann\n```\nOutro",
+    );
+    // There was no object to update yet
+    expect(localSyscall).not.toHaveBeenCalled();
+  } finally {
+    view.destroy();
+    vi.useRealTimers();
+  }
+});
+
+test("only the last item can add one; nothing is written until its first value", async () => {
+  const { contexts, mount } = harness(vi.fn(async () => {}));
+  vi.useFakeTimers();
+  const view = mount(doc);
+  try {
+    await vi.runAllTimersAsync();
+    expect(contexts.map((ctx) => typeof ctx.addItem)).toEqual([
+      "undefined",
+      "function",
+    ]);
+    await contexts[1].addItem();
+    await vi.runAllTimersAsync();
+    // An empty item shows, but the page is unchanged
+    expect(view.state.doc.toString()).toBe(doc);
+    const added = contexts.at(-1);
+    expect(added.keys).toEqual([]);
+    expect(added.addItem).toBeUndefined();
+    // Its first value goes in with the --- line, on lines of their own
+    await added.set("$ref", "zef");
+    expect(view.state.doc.toString()).toBe(
+      doc.replace("name: Bob\n```", "name: Bob\n---\n$ref: zef\n```"),
+    );
+  } finally {
+    view.destroy();
+    vi.useRealTimers();
+  }
+});
+
+test("leaving an added item with nothing written drops it", async () => {
+  const { mount, contexts } = harness(vi.fn(async () => {}));
+  vi.useFakeTimers();
+  const view = mount(doc);
+  const outside = document.createElement("input");
+  document.body.appendChild(outside);
+  try {
+    await vi.runAllTimersAsync();
+    await contexts[1].addItem();
+    await vi.runAllTimersAsync();
+    const items = () =>
+      view.dom.querySelectorAll(".sb-object-preview-item").length;
+    expect(items()).toBe(3);
+    const container = view.dom.querySelector(".sb-object-preview")!;
+    const field = document.createElement("input");
+    container.appendChild(field);
+    field.focus();
+    outside.focus();
+    container.dispatchEvent(
+      new FocusEvent("focusout", { bubbles: true, relatedTarget: outside }),
+    );
+    await vi.runAllTimersAsync();
+    expect(items()).toBe(2);
+    expect(view.state.doc.toString()).toBe(doc);
+  } finally {
+    view.destroy();
+    outside.remove();
+    vi.useRealTimers();
+  }
+});
+
+const removeItem = (index: number) =>
+  (created[index] as any).options.host.remove() as Promise<void>;
+
+test("Delete on a data item asks object.delete for that item", async () => {
+  const localSyscall = vi.fn(async (..._args: unknown[]) => {});
+  const { mount } = harness(localSyscall);
+  vi.useFakeTimers();
+  const view = mount(doc);
+  try {
+    await vi.runAllTimersAsync();
+    await removeItem(1);
+    expect(localSyscall).toHaveBeenCalledWith("object.delete", [
+      expect.objectContaining({
+        ref: `${PAGE}@${doc.indexOf("\nname: Bob")}`,
+        name: "Bob",
+      }),
+    ]);
+  } finally {
+    view.destroy();
+    vi.useRealTimers();
+  }
+});
+
+test("Delete on the only, empty item removes the block", async () => {
+  const localSyscall = vi.fn(async (..._args: unknown[]) => {});
+  const { mount } = harness(localSyscall);
+  vi.useFakeTimers();
+  const view = mount("```#contact\n\n```\nOutro");
+  try {
+    await vi.runAllTimersAsync();
+    await removeItem(0);
+    expect(view.state.doc.toString()).toBe("Outro");
+    expect(localSyscall).not.toHaveBeenCalled();
+  } finally {
+    view.destroy();
+    vi.useRealTimers();
+  }
+});
+
+test("Delete on an unwritten added item just drops it", async () => {
+  const localSyscall = vi.fn(async (..._args: unknown[]) => {});
+  const { contexts, mount } = harness(localSyscall);
+  vi.useFakeTimers();
+  const view = mount(doc);
+  try {
+    await vi.runAllTimersAsync();
+    await contexts[1].addItem();
+    await vi.runAllTimersAsync();
+    const items = () =>
+      view.dom.querySelectorAll(".sb-object-preview-item").length;
+    expect(items()).toBe(3);
+    await removeItem(created.length - 1);
+    await vi.runAllTimersAsync();
+    expect(items()).toBe(2);
+    expect(view.state.doc.toString()).toBe(doc);
+    expect(localSyscall).not.toHaveBeenCalled();
+  } finally {
+    view.destroy();
+    vi.useRealTimers();
+  }
+});

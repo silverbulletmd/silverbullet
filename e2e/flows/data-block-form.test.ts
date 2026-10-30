@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { navFrame, navInput } from "../fixtures/actions.ts";
 import {
   expect,
   gotoSilverBulletPage,
@@ -39,6 +40,7 @@ const spaceFiles = {
   "index.md": "Welcome",
   "CONFIG.md": tagsConfig,
   "Contacts.md": contacts,
+  "Empty.md": "```#contact\n\n```\nAfter.\n",
 };
 
 function docText(page: Page): Promise<string> {
@@ -62,6 +64,134 @@ async function openContacts(page: Page, sbServer: SBServer) {
 
 test.describe("data block form", () => {
   test.use({ spaceFiles });
+
+  test("/data inserts an empty data block with the cursor at its tag", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await openContacts(sbPage, sbServer);
+    await sbPage
+      .locator(".cm-line", { hasText: "Contacts body text." })
+      .click();
+    await sbPage.keyboard.press("End");
+    await sbPage.keyboard.press("Enter");
+    // The Std library's slash templates are defined once its pages are indexed
+    await expect
+      .poll(() =>
+        sbPage.evaluate(() =>
+          (
+            globalThis as any
+          ).client.clientSystem.slashCommandHook.slashCommands.some(
+            (c: { name: string }) => c.name === "data",
+          ),
+        ),
+      )
+      .toBe(true);
+    await sbPage.keyboard.type("/data");
+    await sbPage
+      .locator(".cm-tooltip-autocomplete li", {
+        hasText: "Insert a data block",
+      })
+      .click();
+    // The template inserts asynchronously
+    await expect
+      .poll(() => docText(sbPage))
+      .toContain("Contacts body text.\n```#\n\n```");
+    await sbPage.keyboard.type("contact");
+    await expect
+      .poll(() => docText(sbPage))
+      .toContain("Contacts body text.\n```#contact\n\n```");
+  });
+
+  test("an empty block is a form; + add item adds the next one", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Empty");
+    // The page opens with the cursor in the block, which shows its source
+    await sbPage.locator(".cm-line", { hasText: "After." }).click();
+    await expect(forms(sbPage)).toHaveCount(1);
+    // The tag's schema rows, nothing written yet, and no item to add yet
+    await expect(row(sbPage, 0, "email").locator("textarea")).toHaveValue("");
+    await expect(forms(sbPage).locator(".sb-fm-add-item")).toHaveCount(0);
+    await row(sbPage, 0, "email").locator("textarea").fill("ann@example.com");
+    await sbPage.keyboard.press("Enter");
+    await expect
+      .poll(() => docText(sbPage))
+      .toBe("```#contact\nemail: ann@example.com\n```\nAfter.\n");
+
+    const written = "```#contact\nemail: ann@example.com\n```\nAfter.\n";
+    await sbPage.locator(".cm-line", { hasText: "After." }).click();
+    await forms(sbPage).nth(0).locator(".sb-fm-add-item").click();
+    await expect(forms(sbPage)).toHaveCount(2);
+    // Only the last item offers another, and only once it has something
+    await expect(forms(sbPage).locator(".sb-fm-add-item")).toHaveCount(0);
+    await expect(forms(sbPage).nth(1).locator(".sb-fm-add-attr")).toBeFocused();
+    // Nothing is written for it yet; leaving it empty drops it
+    expect(await docText(sbPage)).toBe(written);
+    await sbPage.locator(".cm-line", { hasText: "After." }).click();
+    await expect(forms(sbPage)).toHaveCount(1);
+    expect(await docText(sbPage)).toBe(written);
+
+    // A picked attribute's value goes in with the --- line
+    await forms(sbPage).nth(0).locator(".sb-fm-add-item").click();
+    await forms(sbPage).nth(1).locator(".sb-fm-add-attr").click();
+    await expect(navInput(sbPage)).toBeVisible();
+    await navInput(sbPage).fill("$ref");
+    await expect(
+      navFrame(sbPage).locator(".sb-nav-row .sb-nav-primary").first(),
+    ).toHaveText("$ref");
+    await sbPage.keyboard.press("Enter");
+    await sbPage.keyboard.type("zef");
+    await sbPage.keyboard.press("Enter");
+    await expect
+      .poll(() => docText(sbPage))
+      .toBe(
+        "```#contact\nemail: ann@example.com\n---\n$ref: zef\n```\nAfter.\n",
+      );
+  });
+
+  test("Delete in an item's menu removes it, and the block with its last item", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await openContacts(sbPage, sbServer);
+    const deleteItem = async (index: number) => {
+      const item = sbPage
+        .locator(".sb-data-block-preview .sb-object-preview-item")
+        .nth(index);
+      await item.hover();
+      await item.locator('button[data-button="menu"]').click();
+      await sbPage.getByRole("menuitem", { name: "Delete" }).click();
+    };
+    await deleteItem(1);
+    await expect
+      .poll(() => docText(sbPage))
+      .toBe(contacts.replace("---\nname: Bob\nemail: bob@example.com\n", ""));
+    await expect(forms(sbPage)).toHaveCount(1);
+    await deleteItem(0);
+    await expect
+      .poll(() => docText(sbPage))
+      .toBe("# Contacts\n\n\nContacts body text.\n");
+    await expect(forms(sbPage)).toHaveCount(0);
+  });
+
+  test("+ add attribute offers $ref", async ({ sbPage, sbServer }) => {
+    await openContacts(sbPage, sbServer);
+    await forms(sbPage)
+      .nth(1)
+      .locator(".sb-fm-add-attr", { hasText: "add attribute" })
+      .click();
+    await expect(navInput(sbPage)).toBeVisible();
+    await navInput(sbPage).fill("$ref");
+    await expect(
+      navFrame(sbPage).locator(".sb-nav-row .sb-nav-primary").first(),
+    ).toHaveText("$ref");
+    await sbPage.keyboard.press("Enter");
+    await sbPage.keyboard.type("bob");
+    await sbPage.keyboard.press("Enter");
+    await expect.poll(() => docText(sbPage)).toContain("$ref: bob\n```");
+  });
 
   test("renders one form per document, with the tag's schema", async ({
     sbPage,

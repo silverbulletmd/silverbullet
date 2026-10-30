@@ -119,7 +119,7 @@ export type WidgetHost =
       kind: "object";
       editPos: () => number | undefined;
       definitionRef: Ref | null;
-      /** Deletes the whole object from the page; only frontmatter has it */
+      /** Deletes the object from the page (frontmatter, a data item) */
       remove?: () => Promise<void>;
     }
   // Legacy hooks:renderTopWidgets/BottomWidgets: a captured result

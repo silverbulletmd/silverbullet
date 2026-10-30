@@ -3,7 +3,11 @@ import type { EditorState, Extension } from "@codemirror/state";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
 import type { Client } from "../../client.ts";
 import { findFrontmatterBlock } from "./frontmatter_block.ts";
-import { hookLookup, previewsEnabled } from "./object_preview.ts";
+import {
+  focusWhenShown,
+  hookLookup,
+  previewsEnabled,
+} from "./object_preview.ts";
 
 /** What the ghost line inserts: frontmatter with an empty `tags` */
 export const NEW_FRONTMATTER = "---\ntags:\n---\n";
@@ -37,17 +41,6 @@ export function insertFrontmatter(view: EditorView): void {
     selection: view.state.selection.map(changes, 1),
     userEvent: "input",
   });
-}
-
-// The form renders asynchronously; focus its tags field once it's there
-function focusNewTags(view: EditorView, deadline = Date.now() + 3000) {
-  const input = view.dom.querySelector<HTMLElement>(
-    '.sb-frontmatter-preview .sb-fm-row[data-key="tags"] input, .sb-frontmatter-preview .sb-fm-row[data-key="tags"] textarea',
-  );
-  if (input) return input.focus();
-  if (Date.now() < deadline) {
-    setTimeout(() => focusNewTags(view, deadline), 30);
-  }
 }
 
 /**
@@ -190,7 +183,11 @@ export function frontmatterGhostPlugin(client: Client): Extension {
       insertFrontmatter(view);
       hovered = false;
       show();
-      focusNewTags(view);
+      focusWhenShown(
+        view,
+        0,
+        '.sb-fm-row[data-key="tags"] input, .sb-fm-row[data-key="tags"] textarea',
+      );
     };
     ghost.addEventListener("click", activate);
     // The editor would otherwise take Enter and Space as typing: the button

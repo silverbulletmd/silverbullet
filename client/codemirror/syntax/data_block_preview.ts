@@ -8,7 +8,10 @@ import {
 } from "../../../plugs/index/data_block.ts";
 import type { Client } from "../../client.ts";
 import {
+  addedItemField,
   hookLookup,
+  isBlank,
+  withLineBreak,
   type LiveDocument,
   normalizeTags,
   type ObjectPreview,
@@ -31,6 +34,8 @@ export type DataBlockSource = {
   tag: string;
   /** Each YAML document, split on `---` lines as the indexer does */
   documents: LiveDocument[];
+  /** Start of the closing fence's line */
+  closeFrom: number;
 };
 
 /** A closed ```data or ```#tag block that fills whole lines */
@@ -53,12 +58,17 @@ function dataBlockSource(
     return;
   }
   const code = node.node.getChild("CodeText");
-  const documents = code
+  const closeFrom = marks[marks.length - 1].from;
+  // A block with no lines at all still has one (empty) document to fill
+  const documents: LiveDocument[] = code
     ? splitYamlDocuments(state.sliceDoc(code.from, code.to)).map((part) => ({
         from: code.from + part.offset,
         text: part.text,
       }))
-    : [];
+    : [{ from: closeFrom, text: "" }];
+  if (state.field(addedItemField, false) === node.from) {
+    documents.push({ from: closeFrom, text: "", added: true });
+  }
   return {
     from: node.from,
     to: node.to,
@@ -66,6 +76,7 @@ function dataBlockSource(
     lang,
     tag,
     documents,
+    closeFrom,
   };
 }
 
@@ -117,9 +128,10 @@ function isMapping(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * One preview object per non-empty YAML document, shaped like the indexed
- * data object. Undefined when a document isn't a YAML mapping: the source
- * shows then, where the problem can be fixed.
+ * One preview object per YAML document, shaped like the indexed data object.
+ * A blank last document is an item being added: an object with no attributes
+ * yet. Undefined when a document isn't a YAML mapping: the source shows then,
+ * where the problem can be fixed.
  */
 export function dataBlockObjects(
   block: DataBlockSource,
@@ -127,7 +139,8 @@ export function dataBlockObjects(
 ): PreviewObject[] | undefined {
   const objects: PreviewObject[] = [];
   for (const [index, doc] of block.documents.entries()) {
-    const loaded = loadDocument(doc.text);
+    const adding = index === block.documents.length - 1 && isBlank(doc.text);
+    const loaded = adding ? {} : loadDocument(doc.text);
     if (loaded === INVALID) return;
     // An empty document is no object, as in the index
     if (loaded === null || loaded === undefined) continue;
@@ -186,6 +199,21 @@ const dataBlockHost: ObjectPreviewHost = {
   className: "sb-data-block-preview",
   label: "Data block preview",
   documents: (state, from) => dataBlockAt(state, from)?.documents,
+  addsItems: true,
+  // The item and its --- line, or the whole block for its only item, as
+  // object.delete does; an empty item has no object, an added one no text
+  removal: (state, from, index, page) => {
+    const block = dataBlockAt(state, from);
+    const doc = block?.documents[index];
+    if (!block || !doc || doc.added) return;
+    if (isBlank(doc.text)) {
+      return block.documents.length === 1
+        ? withLineBreak(state, block.from, block.to)
+        : undefined;
+    }
+    const object = dataBlockHost.target(state, from, index, page);
+    return object && { object };
+  },
   target: (state, from, index, page) => {
     const block = dataBlockAt(state, from);
     const doc = block?.documents[index];
@@ -218,7 +246,11 @@ function blockPreview(
     page,
     from: block.from,
     to: block.to,
-    source: block.source,
+    // An added item shows as the `---` it will be written with, so the
+    // widget no longer equals one rendered without it
+    source: block.documents.at(-1)?.added
+      ? `${block.source}\n---`
+      : block.source,
     objects,
     render,
   };
@@ -247,7 +279,10 @@ export function dataBlockPreviewShows(
 }
 
 export function dataBlockPreviewPlugin(client: Client): Extension {
-  return objectPreviewField(client, (state) =>
-    dataBlockPreviewsForState(state, client),
-  );
+  return [
+    addedItemField,
+    objectPreviewField(client, (state) =>
+      dataBlockPreviewsForState(state, client),
+    ),
+  ];
 }

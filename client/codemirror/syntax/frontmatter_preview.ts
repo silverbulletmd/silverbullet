@@ -13,6 +13,7 @@ import {
   type RendererLookup,
   selectionShowsSource,
   selectRenderer,
+  withLineBreak,
   type YamlContext,
   yamlContext,
 } from "./object_preview.ts";
@@ -91,10 +92,7 @@ const frontmatterHost: ObjectPreviewHost = {
   // The frontmatter with the line break after it
   removal: (state) => {
     const block = findFrontmatterBlock(state);
-    if (!block) return;
-    const to =
-      state.sliceDoc(block.to, block.to + 1) === "\n" ? block.to + 1 : block.to;
-    return { from: block.from, to };
+    return block && withLineBreak(state, block.from, block.to);
   },
   target: (_state, _from, _index, page) => ({ page, ref: page }),
 };

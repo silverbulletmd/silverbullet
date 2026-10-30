@@ -723,7 +723,7 @@ end
 
 --- Renders an object's YAML attributes as an editable, schema-driven form.
 --- @param object table the object's values (a page's frontmatter plus name, or a data object)
---- @param ctx? table the render context { kind: "page"|"data", values: table, types: table, keys: table, readOnly: boolean, set: function(key, value), remove: function(key), move: function(key, delta) }; without it the form is read-only
+--- @param ctx? table the render context { kind: "page"|"data", values: table, types: table, keys: table, readOnly: boolean, set: function(key, value), remove: function(key), move: function(key, delta), addItem?: function() }; without it the form is read-only
 --- @return table a block widget
 --- @see Live Edit
 function objectForm.render(object, ctx)
@@ -839,12 +839,23 @@ function objectForm.render(object, ctx)
     if not ok then error(err) end
   end
 
+  local function addItem()
+    local ok, err = pcall(ctx.addItem)
+    if not ok then editor.flashNotification(tostring(err), "error") end
+  end
+
   addLine = dom.div {
     class = "sb-fm-add-row",
     not readOnly and dom.button {
       class = "sb-fm-add-attr",
       onclick = addAttribute,
       dom.text("+ add attribute"),
+    },
+    -- Only the last item of a data block has addItem; keep it last here
+    not readOnly and ctx.addItem and dom.button {
+      class = "sb-fm-add-attr sb-fm-add-item",
+      onclick = addItem,
+      dom.text("+ add item"),
     },
   }
   form = dom.div { class = "sb-fm-form", nodes, addLine }
@@ -904,6 +915,7 @@ tag.define { name = "data", renderDataBlock = objectForm.render }
   cursor: pointer;
 }
 .sb-fm-add-attr:hover { color: var(--root-color); }
+.sb-fm-add-item { margin-left: 16px; }
 /* The same background as the YAML it replaces */
 .sb-frontmatter-preview .sb-fm-form { background-color: var(--editor-frontmatter-background-color); }
 .sb-data-block-preview .sb-fm-form { background-color: var(--editor-code-background-color); }

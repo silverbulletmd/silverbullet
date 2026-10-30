@@ -311,7 +311,10 @@ describe("frontmatter preview policy", () => {
     });
     const { host } = frontmatterPreviewForState(editor, client() as never)!;
     const removed = (state: EditorState) => {
-      const range = host.removal!(state, 0)!;
+      const range = host.removal!(state, 0, 0, "Teams/Example") as {
+        from: number;
+        to: number;
+      };
       return state.sliceDoc(0, range.from) + state.sliceDoc(range.to);
     };
     expect(removed(editor)).toBe("Body");

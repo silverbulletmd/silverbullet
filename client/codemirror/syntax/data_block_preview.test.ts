@@ -170,9 +170,26 @@ describe("data block detection", () => {
       findDataBlocks(state(`\`\`\`#contact\n${body}\n\`\`\``))[0];
     const withEmpty = dataBlockObjects(blockOf("---\nname: A"), PAGE)!;
     expect(withEmpty.map((o) => o.index)).toEqual([1]);
+    // A blank last document is an item being added
+    const adding = dataBlockObjects(blockOf("name: A\n---\n"), PAGE)!;
+    expect(adding.map((o) => [o.index, o.context.keys])).toEqual([
+      [0, ["name"]],
+      [1, []],
+    ]);
     expect(dataBlockObjects(blockOf('name: "open'), PAGE)).toBeUndefined();
     expect(dataBlockObjects(blockOf("- a\n- b"), PAGE)).toBeUndefined();
   });
+});
+
+test("an empty block is one empty item, with or without a blank line", () => {
+  for (const block of ["```#contact\n\n```", "```#contact\n```"]) {
+    const [found] = findDataBlocks(state(block));
+    expect(
+      dataBlockObjects(found, PAGE)!.map((o) => [o.index, o.object.tag]),
+    ).toEqual([[0, "contact"]]);
+    // A new item goes before the closing fence
+    expect(found.closeFrom).toBe(block.lastIndexOf("```"));
+  }
 });
 
 describe("data block preview policy", () => {
