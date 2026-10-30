@@ -36,7 +36,7 @@ The rules:
 
 The scope is wiki links only, including documents (`![[image.png]]`) and [[Transclusions]]. The `[[^` meta-page link syntax is not included here (it always will continue to use absolute paths). Markdown links keep their existing folder-relative semantics. The [[ADR/003 Indexed Object Graph|index]] keeps storing resolved absolute paths, so queries, backlinks and the graph never see write format.
 
-There is now a “Link write format” configuration option in the [[Configuration Manager]] that allows you to choose either: `shortest`, `shortest-suffix`, or `full-path`. See [[Link#Link write format]] for details.
+There is now a “Link write format” configuration option in the [[Workbench/Configuration|Configuration tab]] that allows you to choose either: `shortest`, `shortest-suffix`, or `full-path`. See [[Link#Link write format]] for details.
 
 # Consequences
 ## Positive

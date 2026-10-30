@@ -54,7 +54,7 @@ tag.define {
 }
 ```
 
-To turn the form off, use the `liveEdit.frontmatter` and `liveEdit.dataBlocks` settings ("Edit frontmatter as a form" and "Edit data blocks as a form" in the Configuration Manager). They only turn off this default form; a tag's own renderer still applies.
+To turn the form off, use the `liveEdit.frontmatter` and `liveEdit.dataBlocks` settings ("Edit frontmatter as a form" and "Edit data blocks as a form" in the Workbench Configuration tab). They only turn off this default form; a tag's own renderer still applies.
 
 # API
 

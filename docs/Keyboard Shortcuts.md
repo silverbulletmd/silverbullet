@@ -1,13 +1,13 @@
 ---
 tags: customization
 references:
-- plugs/configuration-manager/ui/components/shortcuts_tab.tsx
+- client/workbench/configuration/key_bindings_section.tsx
 - plugs/editor/editor.ts
 ---
 
 SilverBullet uses [CodeMirror](https://codemirror.net) under the hood, which does the majority of the keyboard handling. In addition, it allows to for customization of (most) keys on a per-command basis. When you open the [[Command Palette]], you will see the currently assigned keyboard shortcut(s).
 
-It is by far the easiest to configure your keyboard shortcuts using the [[Configuration Manager]].
+It is by far the easiest to configure your keyboard shortcuts in the Key bindings section of [[Workbench/Configuration]].
 
 # Modifier keys
 Your keyboard shortcut will typically consist of a combination of modifier keys as well as a letter or (special) character or number. The following modifier keys are supported:

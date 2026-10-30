@@ -20,7 +20,7 @@ The meta space contains an ordinary `CONFIG` page and any other page. When the m
 
 # Setting it up
 1. Create a new space, for example one called `META`.
-2. Open it and set it up like any other space: tweak your configuration via the [[Configuration Manager]] or by editing a `CONFIG.md` manually. Install libraries as you see fit as well.
+2. Open it and set it up like any other space: tweak your configuration via the [[Workbench/Configuration|Configuration tab]] or by editing a `CONFIG.md` manually. Install libraries as you see fit as well.
 3. Open the SilverBullet Desktop dashboard and go to the **Pro** tab.
 4. Under **Meta space**, pick `META` from the dropdown.
 

@@ -158,7 +158,7 @@ How it behaves:
 * Explicit Markdown syntax mode shows the source.
 
 ### Frontmatter live previews
-When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag's renderer is the default form; the `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Configuration Manager]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag's own `renderFrontmatter` applies either way.
+When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag's renderer is the default form; the `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag's own `renderFrontmatter` applies either way.
 
 ### Data block previews
 A ` ```#name ` block shows one widget per YAML document (documents are separated by `---` lines), stacked in place of the block. A plain ` ```data ` block works the same, with the root `data` tag. For a ` ```#name ` block, the first match wins:
@@ -167,7 +167,7 @@ A ` ```#name ` block shows one widget per YAML document (documents are separated
 3. the `data` tag's `renderDataBlock`, which is the form;
 4. none: the YAML shows as a code block.
 
-A block whose YAML doesn't parse, or isn't a key/value mapping, shows its source. Step 3 is the default form; the `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Configuration Manager]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
+A block whose YAML doesn't parse, or isn't a key/value mapping, shows its source. Step 3 is the default form; the `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
 
 ```lua
 tag.define {

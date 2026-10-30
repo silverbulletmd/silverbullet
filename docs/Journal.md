@@ -6,7 +6,7 @@ references:
 ---
 SilverBullet ships with basic support for (daily) journaling. Each day you get a fresh journal page (by running the `Journal: Today` command). On this page you can capture what’s happening throughout the day, typically as a bulleted list. By linking to (topic) pages from journal entries, those entries automatically appear on the topic page via [[Linked Mention|Linked Mentions]], building a timeline of activity for every topic you care about. You can freely mix this with a more [[Guide/Knowledge Base]] approach as you see fit.
 
-As with anything in SilverBullet, this is a feature that’s fully optional to use. You can disable it wholesale in the [[Configuration Manager]].
+As with anything in SilverBullet, this is a feature that’s fully optional to use. You can disable it wholesale in the [[Workbench/Configuration|Configuration tab]].
 
 # Journal pages
 Press `Ctrl-q j` (default keyboard shortcut), or run `Journal: Today`. You will land on today’s journal page (by default `Journal/YYYY-MM-DD`) with a bullet list ready to go. Run it again later in the day and you’ll come back to the same page. The default space template will contain a button to navigate to this page quickly.
@@ -40,7 +40,7 @@ Over time, each topic page accumulates a reverse-chronological log of every jour
 This works for any kind of page: people, projects, concepts, books. Your journal becomes the connective tissue between all your topics.
 
 # Customization
-The easiest way to customize the Journaling feature is by configuring its various options via the [[Configuration Manager]] in the “Journal” category.
+The easiest way to customize the Journaling feature is by configuring its various options via the [[Workbench/Configuration|Configuration tab]] in the “Journal” category.
 
 ## Enable/disable
 This option will enable the feature (specifically its commands) wholesale.
