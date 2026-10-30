@@ -3,6 +3,7 @@ import { Decoration } from "@codemirror/view";
 import {
   isLocalURL,
   resolveMarkdownLink,
+  unwrapLinkDestination,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { Client } from "../../client.ts";
 import { mdLinkRegex } from "../../markdown_parser/constants.ts";
@@ -18,10 +19,11 @@ export function linkPlugin(client: Client) {
     const widgets: any[] = [];
 
     syntaxTree(state).iterate({
-      enter: ({ type, from, to }) => {
-        if (type.name !== "Link") {
+      enter: (node) => {
+        if (node.name !== "Link") {
           return;
         }
+        const { from, to } = node;
         if (isCursorInRange(state, [from, to])) {
           return;
         }
@@ -41,7 +43,12 @@ export function linkPlugin(client: Client) {
           return;
         }
 
-        let url = groups.url;
+        // The regex capture runs through a following title (`"…"`). The URL
+        // node is the destination itself, including any `<...>` delimiters.
+        const urlChild = node.node.getChild("URL");
+        let url = unwrapLinkDestination(
+          urlChild ? state.sliceDoc(urlChild.from, urlChild.to) : groups.url,
+        );
 
         if (isLocalURL(url)) {
           url = resolveMarkdownLink(client.currentName(), decodeURI(url));

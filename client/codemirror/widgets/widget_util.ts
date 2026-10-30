@@ -2,6 +2,7 @@ import { type Path, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   isLocalURL,
   resolveMarkdownLink,
+  unwrapLinkDestination,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   resolveTransclusionUrl,
@@ -29,10 +30,11 @@ export function buildResolveTransclusion(
 
 export function buildTranslateUrls(client: Client): (url: string) => string {
   return (url: string) => {
-    if (isLocalURL(url)) {
-      return resolveMarkdownLink(client.currentName(), decodeURI(url));
+    const destination = unwrapLinkDestination(url);
+    if (isLocalURL(destination)) {
+      return resolveMarkdownLink(client.currentName(), decodeURI(destination));
     }
-    return url;
+    return destination;
   };
 }
 

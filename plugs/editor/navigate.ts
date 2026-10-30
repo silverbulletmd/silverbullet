@@ -11,6 +11,7 @@ import {
   folderName,
   isLocalURL,
   resolveMarkdownLink,
+  unwrapLinkDestination,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
@@ -126,10 +127,11 @@ async function actionClickOrActionEnter(
       if (!urlNode) {
         return;
       }
-      const url = urlNode.children![0].text!;
+      let url = urlNode.children![0].text!;
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
+      url = unwrapLinkDestination(url);
       if (isLocalURL(url)) {
         const link = resolveMarkdownLink(currentPage, decodeURI(url));
         // Parse the ref explicitly to throw a nice error message
