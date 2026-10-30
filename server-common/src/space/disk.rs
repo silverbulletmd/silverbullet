@@ -330,14 +330,22 @@ impl SpacePrimitives for DiskSpacePrimitives {
 
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
         let local_path = self.safe_path(path)?;
-        let metadata = fs::metadata(&local_path).map_err(|e| {
+        let mut file = fs::File::open(&local_path).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound || is_syntax_error(&e) {
                 SpaceError::NotFound
             } else {
                 SpaceError::Io(e)
             }
         })?;
-        let data = fs::read(&local_path).map_err(|e| {
+        let metadata = file.metadata().map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                SpaceError::NotFound
+            } else {
+                SpaceError::Io(e)
+            }
+        })?;
+        let mut data = Vec::with_capacity(usize::try_from(metadata.len()).unwrap_or(0));
+        file.read_to_end(&mut data).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
                 SpaceError::NotFound
             } else {
@@ -536,6 +544,7 @@ mod plan_tests {
         let (data, meta) = sp.read_file("notes/a.md").unwrap();
         assert_eq!(data, b"hello");
         assert_eq!(meta.name, "notes/a.md");
+        assert_eq!(meta.size, 5);
 
         let list = sp.fetch_file_list().unwrap();
         assert!(list.iter().any(|m| m.name == "notes/a.md"));
