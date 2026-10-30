@@ -22,6 +22,7 @@ The hook returns a widget. When the user changes something in it, the widget cal
 * `ctx.set(key, value)`: sets one top-level attribute, adding it at the end if it's new.
 * `ctx.remove(key)`: removes one top-level attribute.
 * `ctx.move(key, delta)`: moves a top-level attribute `delta` places (`-1` up, `1` down).
+* `ctx.addItem()`: only on the last item of a data block, once it has an attribute: adds an empty item after it (a `---` line). The built-in form shows it as **+ add item**.
 
 The first argument holds the same values as the [[Object Index]] would have them (for a page also `name` and `tags`, for a data object also `ref`, `tag`, `tags` and `page`). Use `ctx.values` and `ctx.types` when you need what is literally in the YAML, e.g. to tell a date from a string.
 
@@ -29,9 +30,10 @@ What you can rely on:
 * `set`, `remove` and `move` find the object where it is in the page when they're called, so they keep working after edits above it.
 * Each call is one undo step, and Cmd-Z/Ctrl-Z inside the widget undoes it.
 * They raise an error when the object can't be found or the change would break its tag's [[Schema|schema]]. Wrap them in `pcall` to report it.
+* An empty data block, or a blank last item in one, shows as an item with no attributes yet. There is no object to update then, so its first `ctx.set` writes the YAML as text, without a schema check.
 * While focus is inside the widget, it keeps showing what the user typed; it re-renders with the new YAML once focus leaves. A widget that opens a picker (`editor.filterBox`) and adds to its own DOM after it returns sets a `data-sb-keep` attribute on one of its elements while the picker is open, and removes it afterwards; until then it isn't re-rendered.
 * To get to the YAML, the user presses Esc in an input (the cursor goes to the attribute of the nearest element with a `data-key` attribute) or picks **Edit source** from the ⋯ menu.
-* The ⋯ menu of frontmatter also has **Delete**, which removes the whole frontmatter (one undo step).
+* The ⋯ menu also has **Delete** (one undo step): on frontmatter it removes the whole frontmatter; on a data block item it removes that item with its `---` line, or the whole block when it is the only item.
 
 ## Example
 A compact card for ` ```#contact ` data blocks, with an editable email and a checkbox:

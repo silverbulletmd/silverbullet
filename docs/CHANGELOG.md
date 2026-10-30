@@ -13,7 +13,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Health]]: checks the “health” of your space: broken links, conflicts, other things.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
-* [[Live Object Edit]]: user-friendly editors for [[Frontmatter]] and [[Tag/data]] objects.
+* [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
 * [[Share]] refresh:
   * New [[Shared Pages]] view (`Navigate: Shared Pages`): lists your shared pages, libraries and repositories with their status, checks their remotes, and shares, opens, copies links to or updates them.

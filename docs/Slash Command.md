@@ -27,6 +27,7 @@ Most slash commands are implemented as [[Slash Templates]] — pages tagged with
 * `/query` — insert a SLIQ query block
 * `/lua-query` — insert a Lua query expression
 * `/code` — insert a fenced code block
+* `/data` — insert a [[Tag/data|data block]], with the cursor where its tag goes
 * `/table` — insert a Markdown table
 * `/hr` — insert a horizontal rule
 * `/note-admonition`, `/warning-admonition`, `/success-admonition`, `/danger-admonition` — insert admonition blocks

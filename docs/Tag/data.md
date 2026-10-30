@@ -30,6 +30,8 @@ name: Linda
 name: Jack
 ```
 
+The `/data` [[Slash Command]] inserts an empty data block, with the cursor where its tag goes. Once you leave the block it shows as an empty form; **+ add item** below the last item adds another one, and **Delete** in an item's ⋯ menu removes it (with the whole block when it is the last one).
+
 ## Editing as a form
 In the editor, each object of a data block shows as a form. To edit data blocks as plain YAML instead, switch off **Edit data blocks as a form** in the [[Configuration Manager]]  or put this in your [[CONFIG]]:
 
