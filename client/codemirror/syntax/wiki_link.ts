@@ -3,7 +3,7 @@ import { Decoration } from "@codemirror/view";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { Client } from "../../client.ts";
 import { wikiLinkRegex } from "../../markdown_parser/constants.ts";
-import { decoratorStateField } from "../util.ts";
+import { decoratorStateField, revealSource } from "../util.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
 /**
@@ -46,11 +46,11 @@ export function cleanWikiLinkPlugin(client: Client) {
           state,
           callback: (e) => {
             if (e.altKey) {
-              client.editorView.dispatch({
-                selection: {
-                  anchor: from + wikiLinkMatch.leadingTrivia.length,
-                },
-              });
+              revealSource(
+                client.editorView,
+                { anchor: from + wikiLinkMatch.leadingTrivia.length },
+                { from, to },
+              );
               client.focus();
               return;
             }

@@ -10,6 +10,7 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
+  isReadOnlyCursorAt,
 } from "../util.ts";
 
 export function linkPlugin(client: Client) {
@@ -50,7 +51,9 @@ export function linkPlugin(client: Client) {
         widgets.push(
           Decoration.mark({
             tagName: "a",
-            class: "sb-link",
+            class: isReadOnlyCursorAt(state, from, to)
+              ? "sb-link sb-link-cursor"
+              : "sb-link",
             attributes: {
               href: url,
               title: `Click to visit ${url}`,

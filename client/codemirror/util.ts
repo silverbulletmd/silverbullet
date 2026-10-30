@@ -3,7 +3,9 @@
 // License: Apache License 2.0.
 import {
   type EditorState,
+  type EditorSelection,
   type Range,
+  StateEffect,
   StateField,
   type Transaction,
 } from "@codemirror/state";
@@ -83,7 +85,8 @@ export class LinkWidget extends WidgetType {
       this.options.text === other.options.text &&
       this.options.icon === other.options.icon &&
       this.options.href === other.options.href &&
-      this.options.title === other.options.title
+      this.options.title === other.options.title &&
+      this.options.cssClass === other.options.cssClass
     );
   }
 }
@@ -211,13 +214,83 @@ export const readOnlyCursorActive = StateField.define<boolean>({
 });
 
 /**
+ * A read-only editor never gets DOM focus, so CodeMirror's theme hides its
+ * cursor. Flag the editor once the user has moved the cursor so the stylesheet
+ * can show it anyway.
+ */
+export const readOnlyCursorVisible = EditorView.editorAttributes.compute(
+  [readOnlyCursorActive],
+  (state) => ({
+    class: state.field(readOnlyCursorActive) ? "sb-readonly-cursor" : "",
+  }),
+);
+
+type SourceRange = { from: number; to: number };
+
+/** Marks a selection change as an explicit request to show the source (Alt-click) */
+export const revealSourceEffect = StateEffect.define<SourceRange>({
+  map: (range, changes) => ({
+    from: changes.mapPos(range.from, -1),
+    to: changes.mapPos(range.to, 1),
+  }),
+});
+
+/**
+ * In read-only mode the source only shows after an explicit request
+ * (Alt-click), not just because the cursor moved there. The field holds the
+ * revealed source range. It stays shown while the selection overlaps or
+ * touches that range (so it can be selected and copied), and is cleared for
+ * good once the selection lies entirely outside it. A new page gets a new
+ * state, which resets it too.
+ */
+export const readOnlyReveal = StateField.define<SourceRange | null>({
+  create: () => null,
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(revealSourceEffect)) {
+        return effect.value;
+      }
+    }
+    if (!value) {
+      return null;
+    }
+    const from = tr.changes.mapPos(value.from, -1);
+    const to = tr.changes.mapPos(value.to, 1);
+    const { main } = tr.newSelection;
+    return main.from <= to && main.to >= from ? { from, to } : null;
+  },
+});
+
+function sourceRevealed(state: EditorState) {
+  return state.readOnly && !!state.field(readOnlyReveal, false);
+}
+
+/**
+ * Move the cursor to show the Markdown source of a rendered element
+ * (Alt-click), given the range that source occupies. Read-only editors only
+ * reveal it while the selection stays in that range.
+ */
+export function revealSource(
+  view: EditorView,
+  selection: { anchor: number } | EditorSelection,
+  range: SourceRange,
+) {
+  view.dispatch({ selection, effects: revealSourceEffect.of(range) });
+}
+
+/**
  * Check if any of the editor cursors is in the given range
+ *
+ * Read-only mode never reveals the underlying Markdown source just because
+ * the cursor moved there, so rendered links, query results and widgets stay
+ * visible while navigating with the keyboard. Only an Alt-click does
+ * (see `revealSource`).
  * @param state - Editor state
  * @param range - Range to check
  * @returns True if the cursor is in the range
  */
 export function isCursorInRange(state: EditorState, range: [number, number]) {
-  if (state.readOnly && !state.field(readOnlyCursorActive, false)) {
+  if (state.readOnly && !sourceRevealed(state)) {
     return false;
   }
   return state.selection.ranges.some((selection) =>
@@ -281,6 +354,61 @@ export function hideBlockSource(
   } else {
     widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   }
+}
+
+/**
+ * Read-only mode never reveals source, so the cursor would otherwise walk
+ * through characters hidden behind replaced ranges (link targets, markup,
+ * widgets) and lines hidden by hideBlockSource, without visibly moving.
+ * Make those ranges atomic so each takes a single cursor step.
+ */
+export const readOnlyAtomicRanges = EditorView.atomicRanges.of((view) => {
+  // Revealed source is walked character by character
+  if (sourceRevealed(view.state)) return Decoration.none;
+  const { doc } = view.state;
+  const { from, to } = view.viewport;
+  const ranges: Range<Decoration>[] = [];
+  for (const source of view.state.facet(EditorView.decorations)) {
+    const set = typeof source === "function" ? source(view) : source;
+    set.between(from, to, (rangeFrom, rangeTo, value) => {
+      if (value === hiddenLineDecoration) {
+        // Include both surrounding line breaks so the cursor can only stop
+        // on the neighbouring (visible) lines, never inside the hidden one.
+        const line = doc.lineAt(rangeFrom);
+        ranges.push(
+          invisibleDecoration.range(
+            Math.max(line.from - 1, 0),
+            Math.min(line.to + 1, doc.length),
+          ),
+        );
+      } else if (value.point && rangeTo > rangeFrom) {
+        ranges.push(invisibleDecoration.range(rangeFrom, rangeTo));
+      }
+    });
+  }
+  return Decoration.set(ranges, true);
+});
+
+/**
+ * Whether the read-only cursor sits on the rendered element starting at
+ * `from`, i.e. the one "Navigate: To This Page" would follow.
+ */
+export function isReadOnlyCursorAt(
+  state: EditorState,
+  from: number,
+  to: number,
+) {
+  if (
+    !state.readOnly ||
+    !state.field(readOnlyCursorActive, false) ||
+    sourceRevealed(state)
+  ) {
+    return false;
+  }
+  return state.selection.ranges.some(
+    (selection) =>
+      selection.empty && selection.head >= from && selection.head < to,
+  );
 }
 
 export type WidgetRenderMode = "ready" | "loading" | "disabled";

@@ -9,6 +9,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { identityId } from "../../../plugs/index/identity_id.ts";
 import type { Client } from "../../client.ts";
+import { revealSource } from "../util.ts";
 
 /**
  * Gives widget renderers the same wiki-link resolution the editor's own link
@@ -44,6 +45,7 @@ export function moveCursorToWidgetStart(
   const pos = view.posAtDOM(widgetDom, 0);
 
   let anchor = pos;
+  let end = view.state.doc.lineAt(pos).to;
   if (widgetText) {
     // The widget decoration may be placed at the end of the source range
     // (node.to). Search near posAtDOM for the actual text to find its start.
@@ -52,10 +54,12 @@ export function moveCursorToWidgetStart(
     const idx = region.lastIndexOf(widgetText);
     if (idx !== -1) {
       anchor = searchFrom + idx;
+      end = anchor + widgetText.length;
     }
   }
 
-  view.dispatch({ selection: { anchor } });
+  // Without the widget text, its source is taken to be the rest of the line
+  revealSource(view, { anchor }, { from: anchor, to: end });
   client.focus();
 }
 

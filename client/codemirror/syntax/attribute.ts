@@ -2,7 +2,7 @@ import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../../client.ts";
 import { wikiLinkRegex } from "../../markdown_parser/constants.ts";
-import { decoratorStateField, isCursorInRange } from "../util.ts";
+import { decoratorStateField, isCursorInRange, revealSource } from "../util.ts";
 import { InlineMarkdownWidget } from "../widgets/inline_markdown_widget.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
@@ -79,11 +79,11 @@ export function attributePlugin(client: Client) {
               state,
               callback: (event, ref) => {
                 if (event.altKey) {
-                  client.editorView.dispatch({
-                    selection: {
-                      anchor: from + wikiLinkMatch.leadingTrivia.length,
-                    },
-                  });
+                  revealSource(
+                    client.editorView,
+                    { anchor: from + wikiLinkMatch.leadingTrivia.length },
+                    { from, to },
+                  );
                   client.focus();
                   return;
                 }

@@ -8,7 +8,12 @@ import {
   frontmatterUrlRegex,
   frontmatterWikiLinkRegex,
 } from "../../markdown_parser/constants.ts";
-import { decoratorStateField, isCursorInRange, LinkWidget } from "../util.ts";
+import {
+  decoratorStateField,
+  isCursorInRange,
+  LinkWidget,
+  revealSource,
+} from "../util.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
 /** "frontmatter", in the top-right corner of frontmatter shown as YAML */
@@ -105,9 +110,11 @@ export function frontmatterPlugin(client: Client) {
                     from: mFrom,
                     callback: (e) => {
                       if (e.altKey) {
-                        client.editorView.dispatch({
-                          selection: { anchor: mFrom },
-                        });
+                        revealSource(
+                          client.editorView,
+                          { anchor: mFrom },
+                          { from: mFrom, to: mTo },
+                        );
                         client.focus();
                         return;
                       }
@@ -156,11 +163,11 @@ export function frontmatterPlugin(client: Client) {
                 state,
                 callback: (e, ref) => {
                   if (e.altKey) {
-                    client.editorView.dispatch({
-                      selection: {
-                        anchor: mFrom + wikiLinkMatch.leadingTrivia.length,
-                      },
-                    });
+                    revealSource(
+                      client.editorView,
+                      { anchor: mFrom + wikiLinkMatch.leadingTrivia.length },
+                      { from: mFrom, to: mTo },
+                    );
                     client.focus();
                     return;
                   }
@@ -198,9 +205,11 @@ export function frontmatterPlugin(client: Client) {
                     from: mFrom,
                     callback: (e) => {
                       if (e.altKey) {
-                        client.editorView.dispatch({
-                          selection: { anchor: mFrom },
-                        });
+                        revealSource(
+                          client.editorView,
+                          { anchor: mFrom },
+                          { from: mFrom, to: mTo },
+                        );
                         client.focus();
                         return;
                       }

@@ -67,11 +67,16 @@ import { customEnterCommand } from "./editing/markdown_enter.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
+import { readOnlyWidgetLinks } from "./readonly_widget_links.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
 import { lineWrapper } from "./syntax/line_wrapper.ts";
-import { readOnlyCursorActive } from "./util.ts";
+import {
+  readOnlyCursorActive,
+  readOnlyCursorVisible,
+  readOnlyReveal,
+} from "./util.ts";
 import { postScriptPrefacePlugin } from "./widgets/top_bottom_panels.ts";
 
 export type EditorMode =
@@ -156,6 +161,9 @@ export function buildSharedEditorExtensions(
           EditorView.editable.of(false),
           EditorState.readOnly.of(true),
           readOnlyCursorActive,
+          readOnlyCursorVisible,
+          readOnlyReveal,
+          readOnlyWidgetLinks,
         ]
       : [];
 

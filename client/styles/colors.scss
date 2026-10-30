@@ -9,6 +9,19 @@
   border-left: 1.2px solid var(--editor-caret-color) !important;
 }
 
+.cm-editor.sb-readonly-cursor .cm-cursor-primary {
+  display: block;
+}
+
+.sb-link-cursor {
+  outline: 1.2px solid var(--editor-caret-color);
+  outline-offset: 1px;
+}
+
+.cm-editor:has(.sb-widget-link-cursor) .cm-cursor-primary {
+  display: none;
+}
+
 #sb-top {
   color: var(--top-color);
   background-color: var(--top-background-color);
