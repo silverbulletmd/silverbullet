@@ -1,12 +1,11 @@
 import {
-  editor,
   index,
   lua,
-  mq,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { base64Decode } from "../../../plug-api/lib/crypto.ts";
+import { reloadConfig } from "../../config_management/reload.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import { luaString } from "../shared/lua_string.ts";
 
@@ -166,12 +165,6 @@ function stringsOf(value: unknown): string[] {
     : [];
 }
 
-/** Lets the index catch up, then picks up new scripts, commands and config. */
-async function reloadEverything(): Promise<void> {
-  await mq.awaitEmptyQueue("indexQueue");
-  await editor.reloadConfigAndCommands();
-}
-
 async function hotLoadPlugs(plugPaths: string[]): Promise<void> {
   for (const p of plugPaths) {
     try {
@@ -217,7 +210,7 @@ async function pullLibrary(
 
 export async function installLibrary(uri: string): Promise<{ page: string }> {
   const { page } = await pullLibrary(uri, {});
-  await reloadEverything();
+  await reloadConfig();
   return { page };
 }
 
@@ -233,7 +226,7 @@ export async function updateLibrary(
     installed: lib.name,
     force,
   });
-  if (changed) await reloadEverything();
+  if (changed) await reloadConfig();
   return { changed };
 }
 
@@ -257,7 +250,7 @@ export async function removeLibrary(name: string): Promise<void> {
     }),
   );
   await space.deletePage(name);
-  await reloadEverything();
+  await reloadConfig();
 }
 
 export async function installPlug(uri: string, path: string): Promise<void> {
@@ -266,18 +259,18 @@ export async function installPlug(uri: string, path: string): Promise<void> {
   }
   await space.writeFile(path, await readUriAsBytes(uri));
   await hotLoadPlugs([path]);
-  await reloadEverything();
+  await reloadConfig();
 }
 
 export async function removePlug(path: string): Promise<void> {
   await unloadPlug(path);
   await space.deleteFile(path);
-  await reloadEverything();
+  await reloadConfig();
 }
 
 export async function addRepository(uri: string, page: string): Promise<void> {
   await shareInstall(uri, { page });
-  await reloadEverything();
+  await reloadConfig();
 }
 
 export async function updateRepository(
@@ -286,7 +279,7 @@ export async function updateRepository(
   const changed = !!(await lua.evalExpression(
     `share.sharePage(${luaString(name)})`,
   ));
-  if (changed) await reloadEverything();
+  if (changed) await reloadConfig();
   return { changed };
 }
 
@@ -330,13 +323,13 @@ export async function updateAllRepositories(): Promise<{
     if (r?.ok && r.result) updated.push(name);
     else if (r && !r.ok) errors.push(`${name}: ${r.error}`);
   }
-  await reloadEverything();
+  await reloadConfig();
   return { updated, errors };
 }
 
 export async function removeRepository(name: string): Promise<void> {
   await space.deletePage(name);
-  await reloadEverything();
+  await reloadConfig();
 }
 
 // Remote reads for Check for updates that run side by side

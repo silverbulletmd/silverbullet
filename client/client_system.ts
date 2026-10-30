@@ -37,7 +37,10 @@ import { captureSyscalls } from "./plugos/syscalls/capture.ts";
 import { clientCodeWidgetSyscalls } from "./plugos/syscalls/client_code_widget.ts";
 import { clientStoreSyscalls } from "./plugos/syscalls/clientStore.ts";
 import { codeWidgetSyscalls } from "./plugos/syscalls/code_widget.ts";
-import { configSyscalls } from "./plugos/syscalls/config.ts";
+import {
+  configSyscalls,
+  configWriteSyscalls,
+} from "./plugos/syscalls/config.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
@@ -330,6 +333,7 @@ export class ClientSystem {
 
     if (!this.readOnlyMode) {
       this.system.registerSyscalls([], spaceWriteSyscalls(this.client));
+      this.system.registerSyscalls([], configWriteSyscalls());
       this.system.registerSyscalls(
         ["fetch"],
         sandboxFetchSyscalls(this.client),

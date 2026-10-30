@@ -262,8 +262,10 @@ export class ShareWorld {
           string: () => ({ type: "string" }),
           func: () => ({}),
         },
-        system: {
-          invokeFunction: (_fn: string, path: string, value: unknown) => {
+        config: {
+          define: () => undefined,
+          get: (key: string, def?: unknown) => this.cfg[key] ?? def ?? null,
+          persist: (path: string, value: unknown) => {
             this.configWrites.push({ path, value });
           },
         },

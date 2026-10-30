@@ -41,9 +41,11 @@ describe("SilverBullet Share.md", () => {
     loadStdPages(
       PAGES,
       {
-        system: {
-          invokeFunction: (fn: string, path: string, value: unknown) => {
-            configWrites.push({ fn, path, value });
+        config: {
+          define: () => undefined,
+          get: (key: string, def?: unknown) => cfg[key] ?? def ?? null,
+          persist: (path: string, value: unknown) => {
+            configWrites.push({ fn: "config.persist", path, value });
           },
         },
         editor: {
@@ -341,7 +343,7 @@ describe("SilverBullet Share.md", () => {
     expect(result).toEqual({ uri: "https://h/a/Shared/Page", mode: "push" });
     expect(configWrites).toEqual([
       {
-        fn: "configuration-manager.setConfigValue",
+        fn: "config.persist",
         path: "share.silverbullet.spaces",
         value: ["https://h/a", "https://h/b"],
       },

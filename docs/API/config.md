@@ -4,10 +4,11 @@ references:
 - plug-api/syscalls/config.ts
 - client/plugos/syscalls/config.ts
 - client/config.ts
-- plugs/configuration-manager/configuration.ts
+- client/plugos/syscalls/config_persist.ts
+- client/workbench/configuration/config_page.ts
 ---
 
-The Config API provides functions for managing configuration values, defining their JSON schemas, and exposing them in the [[Configuration Manager]] UI.
+The Config API provides functions for managing configuration values, defining their JSON schemas, and exposing them in the [[Workbench/Configuration|Configuration tab]] UI.
 
 <!--#lua spacelua.renderApiDocumentation("config") -->
 ## config.define
@@ -19,7 +20,7 @@ Defines a JSON schema for a configuration key.
 **Parameters:**
 
 - `key` (`string`) — Configuration key.
-- `schema` (`table`) — JSON Schema definition; default applies a missing value and ui annotations expose it in the Configuration Manager.
+- `schema` (`table`) — JSON Schema definition; default applies a missing value and ui annotations expose it in the Configuration tab of the Workbench.
 
 **Example:**
 
@@ -36,7 +37,7 @@ config.define("shortWikiLinks", {
 
 `config.defineCategory(definition)`
 
-Defines or updates a Configuration Manager UI category.
+Defines or updates a category of the Workbench Configuration tab.
 
 **Parameters:**
 
@@ -77,7 +78,7 @@ local theme = config.get("theme", "light")
 
 `config.getCategories()`
 
-Gets all Configuration Manager UI categories.
+Gets all categories of the Workbench Configuration tab.
 
 **Returns:**
 
@@ -149,6 +150,23 @@ config.merge({"commands", "Say hello"}, {key = "Ctrl-Alt-h"})
 config.merge({"commands", "Say hello"}, {key = config.unset})
 ```
 
+## config.persist
+
+`config.persist(path, value)`
+
+Persists one configuration value: writes or replaces its `config.set` line in the managed block of CONFIG, then reloads configuration.
+
+**Parameters:**
+
+- `path` (`string`) — Configuration path.
+- `value` — Value to persist.
+
+**Examples:**
+
+```lua
+config.persist("share.silverbullet.spaces", {"https://example.com/notes"})
+```
+
 ## config.set
 
 `config.set(path, value)`
@@ -184,16 +202,16 @@ Sets configuration while preserving the supplied Lua value representation.
 - `value?` — Lua value to preserve.
 <!--/lua-->
 
-## Configuration Manager guide
+## Configuration tab guide
 
 Schemas registered through `config.define` support two extensions on top of plain JSON Schema:
 
 * `default`: when present, the value is automatically applied if the key is not already set.
-* `ui`: optional annotations that expose the field in the [[Configuration Manager]].
+* `ui`: optional annotations that expose the field in the [[Workbench/Configuration|Configuration tab]].
 
 ### `ui` annotations
 
-Only fields that have a `ui` attribute appear in the [[Configuration Manager]]. Recognized properties:
+Only fields that have a `ui` attribute appear in the [[Workbench/Configuration|Configuration tab]]. Recognized properties:
 
 * `category` (required): name of the category (tab) the field appears under. It should match a `config.defineCategory` name; otherwise the category appears at the bottom in alphabetical order.
 * `label`: human-readable label shown next to the control.
@@ -235,10 +253,10 @@ command.define {
 
 ## Writing the CONFIG page
 
-`config.set` only changes the running configuration. To persist a value, call `configuration-manager.setConfigValue` through `system.invokeFunction`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page and leaves everything else untouched.
+`config.set` only changes the running configuration. To persist a value, use `config.persist(path, value)`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page, leaves everything else untouched, and reloads configuration. If CONFIG doesn't exist yet, it is created.
 
 ```lua
-system.invokeFunction("configuration-manager.setConfigValue", "share.silverbullet.spaces", {"https://example.com/notes"})
+config.persist("share.silverbullet.spaces", {"https://example.com/notes"})
 ```
 
 `value` may be a string, number, boolean, or a table of those.

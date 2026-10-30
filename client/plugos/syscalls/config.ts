@@ -1,6 +1,7 @@
-import type { SysCallMapping } from "../system.ts";
 import type { Config } from "../../config.ts";
+import { persistConfigValue } from "../../config_management/config_page.ts";
 import { LuaStackFrame, luaValueToJS } from "../../space_lua/runtime.ts";
+import type { SysCallMapping } from "../system.ts";
 import { stripFunctions } from "../util.ts";
 
 export function configSyscalls(config: Config): SysCallMapping {
@@ -129,7 +130,7 @@ export function configSyscalls(config: Config): SysCallMapping {
           name: "schema",
           type: "table",
           description:
-            "JSON Schema definition; default applies a missing value and ui annotations expose it in the Configuration Manager.",
+            "JSON Schema definition; default applies a missing value and ui annotations expose it in the Configuration tab of the Workbench.",
         },
       ],
       examples: [
@@ -142,7 +143,8 @@ export function configSyscalls(config: Config): SysCallMapping {
       callback: (_ctx, definition: any) => {
         config.defineCategory(definition);
       },
-      description: "Defines or updates a Configuration Manager UI category.",
+      description:
+        "Defines or updates a category of the Workbench Configuration tab.",
       parameters: [
         {
           name: "definition",
@@ -179,9 +181,31 @@ export function configSyscalls(config: Config): SysCallMapping {
       callback: () => {
         return { ...config.categories };
       },
-      description: "Gets all Configuration Manager UI categories.",
+      description: "Gets all categories of the Workbench Configuration tab.",
       returns: [
         { type: "table", description: "Category definitions keyed by name." },
+      ],
+    },
+  };
+}
+
+/** Config syscalls that write the space: registered only when it's writable. */
+export function configWriteSyscalls(): SysCallMapping {
+  return {
+    "config.persist": {
+      callback: (_ctx, path: string, value: any) => {
+        return persistConfigValue(path, value);
+      },
+      description:
+        "Persists one configuration value: writes or replaces its `config.set` line in the managed block of CONFIG, then reloads configuration.",
+      parameters: [
+        { name: "path", type: "string", description: "Configuration path." },
+        { name: "value", description: "Value to persist." },
+      ],
+      examples: [
+        {
+          code: 'config.persist("share.silverbullet.spaces", {"https://example.com/notes"})',
+        },
       ],
     },
   };

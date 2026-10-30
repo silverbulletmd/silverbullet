@@ -297,8 +297,7 @@ local function rememberSpace(root)
     end
   end
   if table.concat(list, "\n") != table.concat(current, "\n") then
-    system.invokeFunction("configuration-manager.setConfigValue",
-      "share.silverbullet.spaces", list)
+    config.persist("share.silverbullet.spaces", list)
   end
 end
 
