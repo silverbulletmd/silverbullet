@@ -57,11 +57,14 @@ class WidgetLinkNavigator {
       }
     }
     this.setActive(null);
-    // The cursor can't move past the first or last line, so step straight
-    // into the panels rendered there (e.g. Linked Mentions)
+    // Enter boundary panels only once the cursor reaches the document edge.
+    // Text on the first/last line (including wrapped lines) must remain
+    // navigable before stepping into a panel such as Linked Mentions.
     const { doc, selection } = this.view.state;
-    const line = doc.lineAt(selection.main.head).number;
-    if (direction > 0 ? line === doc.lines : line === 1) {
+    if (
+      selection.main.empty &&
+      selection.main.head === (direction > 0 ? doc.length : 0)
+    ) {
       const links = widgetLinksAt(this.view, direction > 0 ? doc.length : 0);
       // Nothing lies beyond such a panel: stay on its last link
       const target =
