@@ -2,6 +2,7 @@ import {
   encodePageURI,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { unwrapLinkDestination } from "@silverbulletmd/silverbullet/lib/resolve";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   parseTransclusion,
@@ -329,7 +330,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       return {
         name: "a",
         attrs: {
-          href: urlNode.children![0].text!,
+          href: unwrapLinkDestination(urlNode.children![0].text!),
           target: "_blank",
         },
         body: cleanTags(mapRender(linkTextChildren)),

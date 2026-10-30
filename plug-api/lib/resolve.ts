@@ -5,6 +5,18 @@ export function isLocalURL(url: string): boolean {
 }
 
 /**
+ * CommonMark link destinations may be wrapped in `<...>`. The brackets are
+ * delimiters, not part of the destination, but the markdown parser includes
+ * them in the URL text.
+ */
+export function unwrapLinkDestination(destination: string): string {
+  if (destination.startsWith("<") && destination.endsWith(">")) {
+    return destination.slice(1, -1);
+  }
+  return destination;
+}
+
+/**
  * Extracts the folder name from a page or document name or a path
  */
 export function folderName(name: string | Path): string {
@@ -35,10 +47,7 @@ export function resolveMarkdownLink(
   absolute: string,
   relative: string,
 ): string {
-  // These are part of the commonmark spec for urls with spaces inbetween.
-  if (relative.startsWith("<") && relative.endsWith(">")) {
-    relative = relative.slice(1, -1);
-  }
+  relative = unwrapLinkDestination(relative);
 
   if (relative.startsWith("/")) {
     return relative.slice(1);

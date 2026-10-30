@@ -8,6 +8,7 @@ import {
   parseToRef,
   type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { unwrapLinkDestination } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   type PathIndex,
   resolvePath,
@@ -84,6 +85,7 @@ export function parseTransclusion(text: string): Transclusion | null {
   let match: RegExpMatchArray | null = null;
   if ((match = mdLinkRegex.exec(text)) && match.groups) {
     ({ url, title: alias } = match.groups);
+    url = unwrapLinkDestination(url);
 
     linktype = "markdownlink";
   } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {

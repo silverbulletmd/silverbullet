@@ -46,6 +46,21 @@ test("link text keeps its link", () => {
   expect(local.attrs?.["data-ref"]).toBe("Other");
 });
 
+test("angle-bracket link destinations are unwrapped", () => {
+  const [ext] = wrappersFor(
+    "[${1}](<https://github.com/silverbulletmd/silverbullet>)",
+  );
+  expect(ext.attrs?.href).toBe(
+    "https://github.com/silverbulletmd/silverbullet",
+  );
+  const [scheme] = wrappersFor("[${1}](<zotero://select/library/items/ABC>)");
+  expect(scheme.attrs?.href).toBe("zotero://select/library/items/ABC");
+  const [local] = wrappersFor("[${1}](<Other Page>)");
+  expect(local.attrs?.["data-ref"]).toBe("Other Page");
+  const [titled] = wrappersFor('[${1}](<https://example.com/a> "docs")');
+  expect(titled.attrs?.href).toBe("https://example.com/a");
+});
+
 test("wrapInline nests outermost first", () => {
   const span = document.createElement("span");
   span.textContent = "2";
