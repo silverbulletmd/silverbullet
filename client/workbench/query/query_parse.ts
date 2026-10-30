@@ -20,9 +20,9 @@ import { parseExpressionString } from "../../space_lua/parse.ts";
 import type { AttributeInfo } from "./query_attributes.ts";
 import { type QuerySource, sourceFromCall } from "./query_from.ts";
 import {
-  emptyModel,
   attributeAccess,
   attributeType,
+  emptyModel,
   type GroupColumn,
   newId,
   type QueryModel,

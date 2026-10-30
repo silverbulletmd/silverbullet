@@ -1,7 +1,7 @@
-import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { config, editor, index } from "@silverbulletmd/silverbullet/syscalls";
 import { open } from "../navigator.ts";
-import { baseMeta, type BuiltinView } from "./types.ts";
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
+import { type BuiltinView, baseMeta } from "./types.ts";
 
 /** The row this view actually exposes: a tag name and how many things carry
  * it, aggregated from the index's own (genuinely `ObjectValue`) `"tag"`

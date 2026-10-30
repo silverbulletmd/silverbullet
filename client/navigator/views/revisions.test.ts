@@ -1,5 +1,5 @@
-import { beforeEach, expect, test, vi } from "vitest";
 import type { SpaceLog } from "@silverbulletmd/silverbullet/type/revisions";
+import { beforeEach, expect, test, vi } from "vitest";
 
 const editor = {
   downloadFile: vi.fn(async () => {}),

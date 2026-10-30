@@ -1,6 +1,6 @@
-import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { editor, index } from "@silverbulletmd/silverbullet/syscalls";
-import { baseMeta, type BuiltinView } from "./types.ts";
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
+import { type BuiltinView, baseMeta } from "./types.ts";
 
 const MAX_ANCHOR_DESCRIPTION = 100;
 

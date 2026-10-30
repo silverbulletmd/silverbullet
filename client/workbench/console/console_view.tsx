@@ -7,13 +7,13 @@ import {
   useState,
 } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
+import { copyValue } from "../../codemirror/widgets/directive_actions.ts";
 import { openPopupMenu } from "../../components/popup_menu.ts";
 import { expandRefreshTriggers } from "../../navigator/refresh_triggers.ts";
-import type { ConsoleContext } from "./console_session.ts";
-import { copyValue } from "../../codemirror/widgets/directive_actions.ts";
 import { copyText, openRef } from "../shared/action.ts";
 import type { TabProps } from "../tab.ts";
 import { consoleLog, type LogEntry } from "./console_log.ts";
+import type { ConsoleContext } from "./console_session.ts";
 import { frameThrottle } from "./frame_throttle.ts";
 import { filterEntries, type SourceFilter } from "./log_filter.ts";
 import { LogView, type RowContext } from "./log_view.tsx";

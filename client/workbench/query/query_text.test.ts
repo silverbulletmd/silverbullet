@@ -9,17 +9,17 @@ import {
   luaValueToJS,
 } from "../../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../../space_lua/stdlib.ts";
-import { addGroupKey, removeGroupKey } from "./query_edits.ts";
 import {
   type AttributeInfo,
   inferAttributes,
   tableKey,
 } from "./query_attributes.ts";
+import { addGroupKey, removeGroupKey } from "./query_edits.ts";
 import { sourceFor } from "./query_from.ts";
 import {
+  attributeAccess,
   bindingVar,
   emptyModel,
-  attributeAccess,
   type QueryModel,
 } from "./query_model.ts";
 import type { AttributeFilter } from "./query_ops.ts";

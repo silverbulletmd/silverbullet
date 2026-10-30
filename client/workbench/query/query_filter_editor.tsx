@@ -1,9 +1,9 @@
 import { Button } from "@silverbulletmd/silverbullet/ui";
 import type { Client } from "../../client.ts";
 import { LuaLineInput } from "../shared/lua_line_input.tsx";
+import type { AttributeType } from "./query_attributes.ts";
 import type { QueryBuilder } from "./query_builder.ts";
 import { changeOperator, newAttributeFilter } from "./query_edits.ts";
-import type { AttributeType } from "./query_attributes.ts";
 import { attributeChoices } from "./query_model.ts";
 import {
   type Filter,

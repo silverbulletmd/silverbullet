@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { inferAttributes } from "./query_attributes.ts";
 import {
   addGroupKey,
   changeColumnKind,
@@ -15,7 +16,6 @@ import {
   removeGroupKey,
   setAttributeType,
 } from "./query_edits.ts";
-import { inferAttributes } from "./query_attributes.ts";
 import { sourceFor } from "./query_from.ts";
 import { emptyModel, type QueryModel } from "./query_model.ts";
 import type { AttributeFilter } from "./query_ops.ts";

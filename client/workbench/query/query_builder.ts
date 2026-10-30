@@ -4,7 +4,7 @@
  */
 import type { AttributeInfo } from "./query_attributes.ts";
 import type { QuerySource } from "./query_from.ts";
-import { emptyModel, attributeType, type QueryModel } from "./query_model.ts";
+import { attributeType, emptyModel, type QueryModel } from "./query_model.ts";
 import type { OperatorType } from "./query_ops.ts";
 
 /**

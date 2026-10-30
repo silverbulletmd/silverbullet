@@ -1,11 +1,10 @@
 import { expect, test } from "vitest";
+import { PageScopes } from "../../space_lua/page_scope.ts";
 import {
   LuaEnv,
   LuaNativeJSFunction,
   LuaRuntimeError,
 } from "../../space_lua/runtime.ts";
-import { PageScopes } from "../../space_lua/page_scope.ts";
-import { entryActions } from "./entry_actions.ts";
 import { luaBuildStandardEnv } from "../../space_lua/stdlib.ts";
 import { ConsoleLog, type LogEntry } from "./console_log.ts";
 import {
@@ -13,6 +12,7 @@ import {
   isExpressionInput,
   isIncompleteInput,
 } from "./console_session.ts";
+import { entryActions } from "./entry_actions.ts";
 
 // The first value or argument an entry carries, whatever its kind
 function value(e: LogEntry): unknown {

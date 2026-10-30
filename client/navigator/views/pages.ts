@@ -1,10 +1,9 @@
-import { expandRefreshTriggers } from "../refresh_triggers.ts";
-import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   isMarkdownPath,
   isValidName,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   editor,
   index,
@@ -17,6 +16,7 @@ import type {
   ObjectValue,
 } from "@silverbulletmd/silverbullet/type/index";
 import { parsePageMetaLastModified } from "../../lib/page_meta.ts";
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import type { Decoration } from "../types.ts";
 import { type BuiltinView, baseMeta } from "./types.ts";
 

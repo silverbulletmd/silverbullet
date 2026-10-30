@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
-import { QueryBuilder } from "./query_builder.ts";
 import { inferAttributes } from "./query_attributes.ts";
+import { QueryBuilder } from "./query_builder.ts";
 import { sourceFor } from "./query_from.ts";
 
 const taskAttributes = inferAttributes(

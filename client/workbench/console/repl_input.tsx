@@ -1,8 +1,8 @@
 import {
   autocompletion,
   closeBrackets,
-  closeCompletion,
   closeBracketsKeymap,
+  closeCompletion,
   completionStatus,
 } from "@codemirror/autocomplete";
 import {

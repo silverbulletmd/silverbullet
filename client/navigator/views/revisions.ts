@@ -1,19 +1,21 @@
-import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { base64EncodedDataUrl } from "@silverbulletmd/silverbullet/lib/crypto";
 import { relativeTime } from "@silverbulletmd/silverbullet/lib/dates";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
-import type {
-  FileStatus,
-  GitConflict,
-  GitConflictAction,
-  SyncState,
-} from "@silverbulletmd/silverbullet/type/revisions";
 import {
   editor,
   events,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
+import type {
+  FileStatus,
+  GitConflict,
+  GitConflictAction,
+  SyncState,
+} from "@silverbulletmd/silverbullet/type/revisions";
+import { loadGitSyncStatus } from "../../git_sync_status.ts";
+import { syncStatusText } from "../../sync_notification.ts";
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { type DiffLine, openPreview, parseDiff } from "./revision_preview.ts";
 import {
   type BuiltinView,
@@ -22,9 +24,6 @@ import {
   EXPAND_ROW,
   type SourceCtx,
 } from "./types.ts";
-
-import { loadGitSyncStatus } from "../../git_sync_status.ts";
-import { syncStatusText } from "../../sync_notification.ts";
 
 const STATUS_ICONS: Record<FileStatus, string> = {
   added: "file-plus",

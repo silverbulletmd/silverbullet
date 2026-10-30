@@ -1,15 +1,15 @@
-import { expandRefreshTriggers } from "../refresh_triggers.ts";
+import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
 import {
   config,
   editor,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { isHiddenPage, isMetaPage, spaceContents } from "./pages.ts";
-import { baseMeta, type BuiltinView, type Segment } from "./types.ts";
+import { type BuiltinView, baseMeta, type Segment } from "./types.ts";
 
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
   name: string;

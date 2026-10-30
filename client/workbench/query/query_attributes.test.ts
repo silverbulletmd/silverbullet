@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
+  type AttributeInfo,
   declaredAttributesFromSchema,
   effectiveType,
-  type AttributeInfo,
   inferAttributes,
   tagDefineSnippet,
   valueType,

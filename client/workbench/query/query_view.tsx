@@ -3,6 +3,7 @@ import { Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import type { TabProps } from "../tab.ts";
+import { AttributesPanel } from "./query_attributes_panel.tsx";
 import { QueryBar } from "./query_bar.tsx";
 import {
   GroupByRow,
@@ -10,7 +11,6 @@ import {
   OrderByRow,
   WhereRow,
 } from "./query_clauses.tsx";
-import { AttributesPanel } from "./query_attributes_panel.tsx";
 import {
   canNarrow,
   dataRootSource,

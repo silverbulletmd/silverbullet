@@ -1,5 +1,10 @@
 import type { Client } from "../../client.ts";
 import { copyText } from "../shared/action.ts";
+import {
+  type AttributeInfo,
+  type AttributeType,
+  tagDefineSnippet,
+} from "./query_attributes.ts";
 import type { QueryBuilder } from "./query_builder.ts";
 import {
   type Dropped,
@@ -7,11 +12,6 @@ import {
   dropSystemAttributeUses,
   setAttributeType,
 } from "./query_edits.ts";
-import {
-  type AttributeInfo,
-  type AttributeType,
-  tagDefineSnippet,
-} from "./query_attributes.ts";
 import { TYPE_LABEL } from "./query_filter_editor.tsx";
 import { schemaTag } from "./query_from.ts";
 import type { QueryModel } from "./query_model.ts";

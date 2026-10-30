@@ -3,9 +3,9 @@
  * is generated (`query_text.ts`).
  */
 import {
-  effectiveType,
   type AttributeInfo,
   type AttributeType,
+  effectiveType,
   isLuaName,
 } from "./query_attributes.ts";
 import { type QuerySource, sourceType } from "./query_from.ts";

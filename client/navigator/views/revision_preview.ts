@@ -1,6 +1,6 @@
-import { useEffect, useState } from "preact/hooks";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
+import { useEffect, useState } from "preact/hooks";
 
 export type DiffLine = { text: string; cssClass?: string };
 

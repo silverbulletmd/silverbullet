@@ -1,6 +1,6 @@
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { hide } from "../navigator.ts";
-import { baseMeta, type BuiltinView } from "./types.ts";
+import { type BuiltinView, baseMeta } from "./types.ts";
 
 /** A row here is a registered command, not an indexed object -- no
  * `ref`/`tag` of its own -- exactly `system.listPaletteCommands()`'s own

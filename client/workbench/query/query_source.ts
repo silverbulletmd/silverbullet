@@ -19,8 +19,8 @@ import { parseExpressionString } from "../../space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame } from "../../space_lua/runtime.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import {
-  declaredAttributesFromSchema,
   type AttributeInfo,
+  declaredAttributesFromSchema,
   inferAttributes,
 } from "./query_attributes.ts";
 import {
