@@ -5,7 +5,6 @@ export const builtinPlugNames = [
   "sync",
   "emoji",
   "image-viewer",
-  "configuration-manager",
   "object-graph",
 ];
 

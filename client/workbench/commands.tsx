@@ -7,10 +7,14 @@ import {
   WORKBENCH_VIEW,
 } from "../navigator/views/workbench.ts";
 import type { CommandHook } from "../plugos/hooks/command.ts";
-import { LuaEnv } from "../space_lua/runtime.ts";
 import { lintPages } from "../space_lint.ts";
 import { spaceLintDeps } from "../space_lint_deps.ts";
+import { LuaEnv } from "../space_lua/runtime.ts";
 import type { SlashCommand } from "../types/command.ts";
+import {
+  configurationModel,
+  registerConfigurationCommands,
+} from "./configuration/configuration_commands.ts";
 import { consoleLog } from "./console/console_log.ts";
 import { ConsoleSession } from "./console/console_session.ts";
 import { DeepCheck } from "./health/deep_check.ts";
@@ -58,12 +62,14 @@ export function registerWorkbenchCommands(
     healthWatch(client),
     new DeepCheck((opts) => lintPages(spaceLintDeps(client), undefined, opts)),
   );
+  const configuration = configurationModel(client);
   registerNativeView(WORKBENCH_VIEW, (props) => (
     <WorkbenchView
       {...props}
       session={session}
       builder={builder}
       health={health}
+      configuration={configuration}
     />
   ));
   hook.registerCommand({
@@ -90,6 +96,7 @@ export function registerWorkbenchCommands(
       },
     });
   }
+  registerConfigurationCommands(hook, configuration);
   for (const { name, focus, requireMode, menu, menuMac } of LIBRARY_COMMANDS) {
     hook.registerCommand({
       name,

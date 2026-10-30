@@ -1,6 +1,16 @@
-import type { CommandOverride, PendingShortcuts } from "./types.ts";
+import type { CommandOverride } from "../../config_management/managed_lua.ts";
 
-export type { PendingShortcuts } from "./types.ts";
+export type PendingShortcuts = Record<string, CommandOverride>;
+
+/** A command as the Key bindings section shows it. */
+export type CommandInfo = {
+  name: string;
+  key?: string | string[];
+  mac?: string | string[];
+  hide?: boolean;
+};
+
+export type Commands = Record<string, CommandInfo>;
 
 export function keyEventToNotation(
   e: KeyboardEvent,
@@ -52,21 +62,29 @@ export function keyEventToNotation(
   return parts.join("-");
 }
 
-function pickPlatformRaw(src: { key?: any; mac?: any }, isMac: boolean): any {
-  return isMac ? (src.mac ?? src.key) : src.key;
+function pickPlatformRaw(
+  src: CommandOverride,
+  isMac: boolean,
+): string | string[] | undefined {
+  // `mac = ""` clears a macOS binding without shadowing `key`: the editor
+  // treats an empty mac the same as an omitted one
+  if (isMac && src.mac != null && src.mac !== "") return src.mac;
+  return src.key;
 }
 
-function toList(raw: any): string[] {
+function toList(raw: string | string[]): string[] {
   if (Array.isArray(raw)) return raw.slice();
   return [raw];
 }
 
 export function manifestBindings(
   name: string,
-  commands: Record<string, any>,
+  commands: Commands,
   isMac: boolean,
 ): string[] {
-  const raw = pickPlatformRaw(commands[name], isMac);
+  const command = commands[name];
+  if (!command) return [];
+  const raw = pickPlatformRaw(command, isMac);
   if (raw == null || raw === "") return [];
   return toList(raw);
 }
@@ -109,11 +127,24 @@ export function tokenHasRealModifier(token: string): boolean {
 export function resolvedBindings(
   name: string,
   pendingShortcuts: PendingShortcuts,
-  commands: Record<string, any>,
+  commands: Commands,
   isMac: boolean,
 ): string[] {
   const override = overrideBindings(pendingShortcuts[name], isMac);
   return override ?? manifestBindings(name, commands, isMac);
+}
+
+/**
+ * Repairs an override saved before portable `key`s cleared `mac`: a portable
+ * or empty `key` without `mac` never overrode the command's macOS binding.
+ */
+export function normalizeLoadedOverride(
+  override: CommandOverride,
+): CommandOverride {
+  if (override.mac !== undefined || override.key === undefined) return override;
+  const list = Array.isArray(override.key) ? override.key : [override.key];
+  if (!list.every(isPortableChord)) return override;
+  return { ...override, mac: "" };
 }
 
 export function collapseBindings(list: string[]): string | string[] {
@@ -137,9 +168,33 @@ export function isPrefixOf(a: string[], b: string[]): boolean {
 
 export type BindingEntry = { name: string; slot: number; binding: string };
 
+const MODIFIER_ORDER = ["Mod", "Ctrl", "Meta", "Alt", "Shift"];
+
+/**
+ * One stroke as the key it fires on this platform: `Cmd-k` on a Mac and
+ * `Ctrl-k` elsewhere are both `Mod-k`, so bindings written either way compare
+ * equal to what the recorder produces.
+ */
+export function canonicalToken(token: string, isMac: boolean): string {
+  const parts = token.split("-");
+  let key = parts[parts.length - 1];
+  // "Mod--" binds the minus key itself
+  if (key === "" && parts.length > 1) key = "-";
+  if (key.length === 1) key = key.toLowerCase();
+  const modifiers = new Set(
+    parts.slice(0, -1).map((m) => {
+      if (isMac && (m === "Cmd" || m === "Meta")) return "Mod";
+      if (!isMac && m === "Ctrl") return "Mod";
+      return m;
+    }),
+  );
+  const ordered = MODIFIER_ORDER.filter((m) => modifiers.has(m));
+  return [...ordered, key].join("-");
+}
+
 export function allActiveBindings(
   pendingShortcuts: PendingShortcuts,
-  commands: Record<string, any>,
+  commands: Commands,
   isMac: boolean,
 ): BindingEntry[] {
   const out: BindingEntry[] = [];
@@ -163,10 +218,12 @@ export type Conflicts = {
 // `otherIsPrefix`: another binding is a strict prefix of the candidate — hard
 // block (unreachable). `duplicate`: exact match.
 export function findConflicts(
-  candidateTokens: string[],
+  candidate: string[],
   all: BindingEntry[],
   skip: { name: string; slot: number },
+  isMac = false,
 ): Conflicts {
+  const candidateTokens = candidate.map((t) => canonicalToken(t, isMac));
   const out: Conflicts = {
     prefixOfOther: [],
     otherIsPrefix: [],
@@ -175,7 +232,7 @@ export function findConflicts(
   if (candidateTokens.length === 0) return out;
   for (const entry of all) {
     if (entry.name === skip.name && entry.slot === skip.slot) continue;
-    const other = tokenize(entry.binding);
+    const other = tokenize(entry.binding).map((t) => canonicalToken(t, isMac));
     if (
       other.length === candidateTokens.length &&
       other.every((t, i) => t === candidateTokens[i])
@@ -198,44 +255,23 @@ export function hasAnyConflict(c: Conflicts): boolean {
   );
 }
 
-// Write `list` as the command's bindings. If every chord is portable we
-// collapse to `key` and drop any `mac`. Otherwise write to the native field
-// for the current platform.
-export function writeBindings(
-  pendingShortcuts: PendingShortcuts,
-  name: string,
+/**
+ * `override` with `list` as the command's bindings. Portable chords (and
+ * clearing every chord) go in `key` and explicitly clear `mac`:
+ * `command.update` merges, so leaving `mac` out keeps a built-in macOS
+ * binding, which wins over `key` on macOS. Other chords go in the current
+ * platform's field.
+ */
+export function withBindings(
+  override: CommandOverride | undefined,
   list: string[],
   isMac: boolean,
-): PendingShortcuts {
-  const next: PendingShortcuts = { ...pendingShortcuts };
-  const entry: CommandOverride = { ...(next[name] || {}) };
-  const allPortable = list.every(isPortableChord);
-  if (allPortable) {
-    entry.key = collapseBindings(list);
-    delete entry.mac;
-  } else if (isMac) {
-    entry.mac = collapseBindings(list);
-  } else {
-    entry.key = collapseBindings(list);
+): CommandOverride {
+  const bindings = collapseBindings(list);
+  if (list.every(isPortableChord)) {
+    return { ...override, key: bindings, mac: "" };
   }
-  next[name] = entry;
-  return next;
-}
-
-// Seed pendingShortcuts[name] from the manifest on first edit so subsequent
-// edits apply on top of the command's existing bindings.
-export function seedOverrideFromManifest(
-  pendingShortcuts: PendingShortcuts,
-  name: string,
-  commands: Record<string, any>,
-  isMac: boolean,
-): PendingShortcuts {
-  if (pendingShortcuts[name]) return pendingShortcuts;
-  const next = { ...pendingShortcuts, [name]: {} };
-  return writeBindings(
-    next,
-    name,
-    manifestBindings(name, commands, isMac),
-    isMac,
-  );
+  return isMac
+    ? { ...override, mac: bindings }
+    : { ...override, key: bindings };
 }

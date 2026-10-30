@@ -9,6 +9,8 @@ import {
   WORKBENCH_TABS,
   type WorkbenchTab,
 } from "../navigator/views/workbench.ts";
+import type { ConfigurationModel } from "./configuration/configuration_model.ts";
+import { ConfigurationView } from "./configuration/configuration_view.tsx";
 import type { ConsoleSession } from "./console/console_session.ts";
 import { ConsoleView } from "./console/console_view.tsx";
 import type { HealthMonitor } from "./health/health_sources.ts";
@@ -28,6 +30,7 @@ const BODIES: Record<WorkbenchTab, FunctionComponent<TabProps>> = {
   Scripts: ScriptsView,
   Styles: StylesView,
   Libraries: LibrariesView,
+  Configuration: ConfigurationView,
   Query: QueryView,
 };
 
@@ -44,10 +47,12 @@ export function WorkbenchView({
   session,
   builder,
   health,
+  configuration,
 }: NativeViewProps & {
   session: ConsoleSession;
   builder: QueryBuilder;
   health: HealthMonitor;
+  configuration: ConfigurationModel;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const shown = useRef(segmentIndex);
@@ -87,6 +92,7 @@ export function WorkbenchView({
               session={session}
               builder={builder}
               health={health}
+              configuration={configuration}
               focusTarget={showing ? focusTarget : noFocus}
               showing={showing}
             />

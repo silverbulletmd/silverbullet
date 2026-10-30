@@ -1,0 +1,287 @@
+@use "workbench_rows" as rows;
+
+// The Configuration tab: a sidebar of sections beside a toolbar, rows and
+// footer of the section showing
+.sb-workbench.sb-wb-configuration {
+  font-family: var(--ui-font);
+
+  .sb-wb-cfg-layout {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .sb-wb-cfg-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .sb-workbench-body {
+    font-family: var(--ui-font);
+  }
+
+  .sb-wb-toolbar .sb-button {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  // Narrow: the sidebar becomes a select above the section
+  .sb-wb-cfg-layout:has(> .sb-wb-sidebar-compact) {
+    flex-direction: column;
+  }
+
+  .sb-wb-cfg-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-height: 26px;
+    padding: 2px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+    background-color: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wb-cfg-title {
+    margin: 0;
+    font-size: inherit;
+    font-weight: 600;
+  }
+
+  .sb-wb-cfg-row {
+    @include rows.list-row(5px 10px);
+    grid-template-columns: 8px minmax(0, 1fr) auto 20px;
+    gap: 10px;
+  }
+
+  // A narrow row puts its control under the label rather than squeeze it
+  @container (max-width: 480px) {
+    .sb-wb-cfg-row {
+      grid-template-columns: 8px minmax(0, 1fr) 20px;
+    }
+
+    .sb-wb-cfg-control {
+      grid-column: 2;
+      grid-row: 2;
+    }
+  }
+
+  .sb-wb-cfg-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  .sb-wb-cfg-modified {
+    background-color: var(--ui-accent-color);
+  }
+
+  .sb-wb-cfg-label {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  // Set apart from the label by size, weight, colour and a gap; a short
+  // measure keeps long explanations readable in a wide panel
+  .sb-wb-cfg-description {
+    max-width: 72ch;
+    margin-top: 2px;
+    color: var(--subtle-color);
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1.45;
+  }
+
+  .sb-wb-cfg-control {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    .sb-input {
+      width: 14rem;
+      max-width: 100%;
+    }
+  }
+
+  .sb-wb-cfg-binding .sb-wb-cfg-row {
+    grid-template-columns: 8px minmax(0, 1fr) auto 20px;
+  }
+
+  .sb-wb-cfg-chords {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .sb-wb-cfg-chord,
+  .sb-wb-cfg-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 4px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--ui-surface-border-color);
+      background-color: var(--ui-surface-hover-background-color);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .sb-wb-cfg-add {
+    color: var(--subtle-color);
+  }
+
+  .sb-wb-cfg-key {
+    padding: 0 5px;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 4px;
+    background-color: var(--ui-surface-section-background-color);
+    font-family: var(--editor-font), monospace;
+    font-size: 11px;
+  }
+
+  .sb-wb-cfg-chord-sep {
+    color: var(--subtle-color);
+    font-size: 11px;
+  }
+
+  .sb-wb-cfg-recording {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border: 1px solid var(--ui-accent-color);
+    border-radius: 5px;
+    color: var(--ui-accent-text-color);
+  }
+
+  .sb-wb-cfg-caret {
+    animation: sb-wb-cfg-blink 1s steps(1) infinite;
+  }
+
+  .sb-wb-cfg-notice {
+    margin: 0 10px 6px 28px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+  }
+
+  .sb-wb-cfg-notice-hint {
+    color: var(--subtle-color);
+  }
+
+  .sb-wb-cfg-notice-warn {
+    background-color: var(--alert-warning-background-color);
+    color: var(--alert-warning-color);
+  }
+
+  .sb-wb-cfg-notice-error {
+    background-color: var(--alert-error-background-color);
+    color: var(--alert-error-color);
+  }
+
+  .sb-wb-cfg-error {
+    flex: none;
+    margin: 6px 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: var(--alert-error-background-color);
+    color: var(--alert-error-color);
+    font-size: 12px;
+  }
+
+  .sb-wb-footer {
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+
+  .sb-wb-cfg-saved-to {
+    margin-left: auto;
+
+    a {
+      color: inherit;
+    }
+  }
+}
+
+.sb-wb-cfg-main {
+  container-type: inline-size;
+}
+
+// The section sidebar of a Workbench tab (`shared/section_sidebar.tsx`)
+.sb-workbench {
+  .sb-wb-sidebar {
+    display: flex;
+    flex: 0 0 11rem;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    overflow-y: auto;
+    border-right: 1px solid var(--ui-surface-border-color);
+    background-color: var(--ui-surface-section-background-color);
+  }
+
+  .sb-wb-sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .sb-wb-sidebar-item,
+  .sb-wb-sidebar-child {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--ui-surface-hover-background-color);
+    }
+  }
+
+  .sb-wb-sidebar-item[aria-current="page"] {
+    background-color: var(--modal-selected-option-background-color);
+    color: var(--modal-selected-option-color);
+  }
+
+  .sb-wb-sidebar-child {
+    padding-left: 18px;
+    color: var(--subtle-color);
+    font-size: 12px;
+  }
+
+  .sb-wb-sidebar-count {
+    @include rows.count;
+  }
+
+  .sb-wb-sidebar-compact {
+    flex: none;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+  }
+}
+
+@keyframes sb-wb-cfg-blink {
+  50% {
+    opacity: 0;
+  }
+}

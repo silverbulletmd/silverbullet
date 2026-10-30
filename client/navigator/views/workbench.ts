@@ -5,6 +5,7 @@ export const WORKBENCH_VIEW = "std.workbench";
 /** The Workbench's tabs, in order; each swaps the whole body (`client/workbench/workbench.tsx`). */
 export const WORKBENCH_TABS = [
   "Overview",
+  "Configuration",
   "Query",
   "Console",
   "Scripts",

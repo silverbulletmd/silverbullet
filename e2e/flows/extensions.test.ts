@@ -286,42 +286,6 @@ test.describe("merged define calls", () => {
   });
 });
 
-test.describe("configuration extension", () => {
-  test.use({ spaceFiles: { "index.md": "Workspace text" } });
-
-  test("configuration tabs work inside the iframe without replacing the editor", async ({
-    sbPage,
-  }) => {
-    const before = await sbPage.evaluate(() =>
-      (globalThis as any).client.editorView.state.doc.toString(),
-    );
-    await runCommandViaPalette(sbPage, "Configuration: Open");
-
-    const frame = sbPage.frameLocator(".sb-modal iframe");
-    const configuration = frame.getByRole("tab", {
-      name: "Configuration",
-      exact: true,
-    });
-    await expect(configuration).toBeVisible();
-    await configuration.focus();
-    await sbPage.keyboard.press("ArrowRight");
-    const shortcuts = frame.getByRole("tab", {
-      name: "Keyboard Shortcuts",
-      exact: true,
-    });
-    await expect(shortcuts).toBeFocused();
-    await expect(shortcuts).toHaveAttribute("aria-selected", "true");
-    await sbPage.keyboard.press("Home");
-    await expect(configuration).toHaveAttribute("aria-selected", "true");
-
-    expect(
-      await sbPage.evaluate(() =>
-        (globalThis as any).client.editorView.state.doc.toString(),
-      ),
-    ).toBe(before);
-  });
-});
-
 const inlineViewConfig = `# Inline views
 \`\`\`space-lua
 function workshopTree()

@@ -1,13 +1,18 @@
-import { diffOverrides, type OverrideChanges } from "../overrides.ts";
-import type { ConfigurationViewModel } from "./types.ts";
+/** What the schema index is built from: the live configuration. */
+export type SchemaSource = {
+  schemas: Record<string, any>;
+  values: Record<string, any>;
+  categories: Record<
+    string,
+    { name: string; description?: string; priority?: number }
+  >;
+};
 
 export type UiSchema = { path: string; schema: any };
 
 export type SchemaIndex = {
   categoryMap: Record<string, UiSchema[]>;
   sortedCategoryNames: string[];
-  initialConfig: Record<string, any>;
-  initialModifiedPaths: Set<string>;
 };
 
 export function getValueAtPath(obj: any, path: string): any {
@@ -24,7 +29,7 @@ export function getSchemaAtPath(schemas: any, path: string): any {
   const parts = path.split(".");
   let current: any = schemas;
   for (const part of parts) {
-    if (!current || !current.properties || !current.properties[part]) {
+    if (!current?.properties?.[part]) {
       return undefined;
     }
     current = current.properties[part];
@@ -33,7 +38,7 @@ export function getSchemaAtPath(schemas: any, path: string): any {
 }
 
 function collectUiSchemas(schemaNode: any, path: string, results: UiSchema[]) {
-  if (!schemaNode || !schemaNode.properties) return;
+  if (!schemaNode?.properties) return;
   for (const [key, prop] of Object.entries<any>(schemaNode.properties)) {
     const fullPath = path ? `${path}.${key}` : key;
     if (prop.ui) results.push({ path: fullPath, schema: prop });
@@ -43,11 +48,11 @@ function collectUiSchemas(schemaNode: any, path: string, results: UiSchema[]) {
   }
 }
 
-export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
+/** The fields that have a `ui`, grouped by category, in display order. */
+export function buildSchemaIndex(cfg: SchemaSource): SchemaIndex {
   const items: UiSchema[] = [];
   collectUiSchemas(cfg.schemas, "", items);
 
-  const initialConfig: Record<string, any> = {};
   const categoryMap: Record<string, UiSchema[]> = {};
   for (const item of items) {
     // Parent objects whose children also have `ui` are skipped — children
@@ -60,12 +65,6 @@ export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
     }
     const cat = item.schema.ui.category;
     (categoryMap[cat] ||= []).push(item);
-    initialConfig[item.path] = Object.hasOwn(
-      cfg.configOverrides || {},
-      item.path,
-    )
-      ? cfg.configOverrides[item.path]
-      : getValueAtPath(cfg.values, item.path);
   }
   for (const fields of Object.values(categoryMap)) {
     fields.sort(
@@ -81,27 +80,5 @@ export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
     return a.localeCompare(b);
   });
 
-  return {
-    categoryMap,
-    sortedCategoryNames,
-    initialConfig,
-    initialModifiedPaths: new Set(Object.keys(cfg.configOverrides || {})),
-  };
-}
-
-/**
- * What saving writes: the modified paths whose value changed since the panel
- * opened, and the overrides that were reset. An override without a field
- * (e.g. share.silverbullet.spaces, set by Share) has no pending value and is
- * left alone.
- */
-export function configChanges(
-  initialOverrides: Record<string, any>,
-  modifiedPaths: Set<string>,
-  pendingConfig: Record<string, any>,
-): OverrideChanges<unknown> {
-  return diffOverrides(
-    initialOverrides,
-    Object.fromEntries([...modifiedPaths].map((p) => [p, pendingConfig[p]])),
-  );
+  return { categoryMap, sortedCategoryNames };
 }

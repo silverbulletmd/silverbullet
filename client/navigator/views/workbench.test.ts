@@ -4,6 +4,7 @@ import { WORKBENCH_TABS, workbenchView } from "./workbench.ts";
 test("Overview is the first tab, and the Workbench opens on it", () => {
   expect([...WORKBENCH_TABS]).toEqual([
     "Overview",
+    "Configuration",
     "Query",
     "Console",
     "Scripts",
