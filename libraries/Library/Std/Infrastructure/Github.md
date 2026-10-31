@@ -651,7 +651,9 @@ service.define {
     description = "Share this page as a gist"
   },
   run = function(data)
-    local filename = editor.prompt("File name", "content.md")
+    local split = string.split(editor.getCurrentPath(), "/")
+    local currentFile = split[#split]
+    local filename = editor.prompt("File name", currentFile)
     if not filename then
       return
     end
