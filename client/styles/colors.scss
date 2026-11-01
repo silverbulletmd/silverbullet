@@ -19,7 +19,8 @@
   outline-offset: 1px;
 }
 
-.cm-editor:has(.sb-widget-link-cursor) .cm-cursor-primary {
+.cm-editor:has(.sb-widget-link-cursor) .cm-cursor-primary,
+.cm-editor:has(.sb-checkbox-cursor) .cm-cursor-primary {
   display: none;
 }
 
