@@ -3,7 +3,10 @@
 // 1. When a list item ends with ":", create an indented child item
 // 2. Never insert extra blank lines for non-tight list continuation
 
-import { markdownLanguage } from "@codemirror/lang-markdown";
+import {
+  deleteMarkupBackward,
+  markdownLanguage,
+} from "@codemirror/lang-markdown";
 import { ensureSyntaxTree, indentUnit } from "@codemirror/language";
 import type { EditorState, Text } from "@codemirror/state";
 import {
@@ -266,6 +269,8 @@ function normalizeIndent(content: string, state: EditorState): string {
 }
 
 export const customEnterCommand: StateCommand = ({ state, dispatch }) => {
+  // This runs from a keymap, which doesn't check EditorState.readOnly
+  if (state.readOnly) return false;
   const { doc } = state;
   // A freshly created state (e.g. after rebuildEditorState) is only partially
   // parsed; without list nodes at the cursor we'd fall through to a plain newline.
@@ -415,3 +420,7 @@ export const customEnterCommand: StateCommand = ({ state, dispatch }) => {
   dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
   return true;
 };
+
+// lang-markdown's deleteMarkupBackward, but a no-op in a read-only editor
+export const customDeleteMarkupBackward: StateCommand = (target) =>
+  !target.state.readOnly && deleteMarkupBackward(target);

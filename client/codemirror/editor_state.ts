@@ -11,7 +11,7 @@ import {
   indentWithTab,
   insertNewlineAndIndent,
 } from "@codemirror/commands";
-import { deleteMarkupBackward, markdown } from "@codemirror/lang-markdown";
+import { markdown } from "@codemirror/lang-markdown";
 import {
   codeFolding,
   foldEffect,
@@ -63,7 +63,10 @@ import {
 import { iosCompletionTapHandling } from "./editing/ios_completion.ts";
 import { androidInputSelection } from "./editing/android_input.ts";
 import { iosEnterHandling } from "./editing/ios_enter.ts";
-import { customEnterCommand } from "./editing/markdown_enter.ts";
+import {
+  customDeleteMarkupBackward,
+  customEnterCommand,
+} from "./editing/markdown_enter.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
@@ -639,7 +642,7 @@ export function buildMarkdownLanguageExtension(client: Client): Extension[] {
           key: "Enter",
           run: customEnterCommand,
         },
-        { key: "Backspace", run: deleteMarkupBackward },
+        { key: "Backspace", run: customDeleteMarkupBackward },
       ]),
     ),
     client.ui.viewState.uiOptions.vimMode ? [] : iosEnterHandling(),

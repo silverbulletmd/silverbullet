@@ -605,3 +605,32 @@ test.describe("read-only keyboard navigation", () => {
     await expect.poll(() => selectionLine(page)).toBe(1);
   });
 });
+
+test.describe("read-only list editing keys", () => {
+  test.use({
+    serverEnv: { SB_READ_ONLY: "1" },
+    spaceFiles: {
+      "index.md": "# Welcome\n\n- first item\n- second item\n",
+    },
+  });
+
+  test("Enter and Backspace in a list item don't change the page", async ({
+    sbPage: page,
+  }) => {
+    const docText = () =>
+      page.evaluate(() =>
+        (globalThis as any).client.editorView.state.doc.toString(),
+      );
+    const original = await docText();
+    await page.evaluate(() => {
+      const view = (globalThis as any).client.editorView;
+      const text = view.state.doc.toString();
+      view.dispatch({
+        selection: { anchor: text.indexOf("first item") + "first".length },
+      });
+    });
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Backspace");
+    expect(await docText()).toBe(original);
+  });
+});
