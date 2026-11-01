@@ -5,6 +5,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
+import type { Client } from "../client.ts";
 import { readOnlyAtomicRanges } from "./util.ts";
 
 // sb-widget-link-cursor also hides the caret, as the link is now the cursor
@@ -157,6 +158,32 @@ const navigate = (direction: 1 | -1) => (view: EditorView) =>
 const follow = (view: EditorView) =>
   view.plugin(widgetLinkNavigator)?.follow() ?? false;
 
+/**
+ * Plain Enter in read-only mode does what a click on the highlighted element
+ * does, for the elements the read-only cursor outlines in the page text. The
+ * outline classes are the cursor's own signal (see `isReadOnlyCursorAt`), so
+ * Enter can't act on anything that isn't highlighted. Enter elsewhere is left
+ * alone.
+ */
+const followCursor = (client: Client) => (view: EditorView) => {
+  const checkbox = view.contentDOM.querySelector<HTMLElement>(
+    ".sb-checkbox.sb-link-cursor input",
+  );
+  if (checkbox) {
+    // The widget resolves its position and calls onCheckboxClick, as for a
+    // mouse click
+    checkbox.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    return true;
+  }
+  if (view.contentDOM.querySelector(".sb-link-cursor")) {
+    // The same command Ctrl/Cmd-Enter runs: it resolves the link under the
+    // cursor, whatever its kind
+    void client.runCommandByName("Navigate: To This Page");
+    return true;
+  }
+  return false;
+};
+
 export const readOnlyWidgetLinks = [
   readOnlyAtomicRanges,
   widgetLinkNavigator,
@@ -171,3 +198,9 @@ export const readOnlyWidgetLinks = [
     ]),
   ),
 ];
+
+/**
+ * Registered after `readOnlyWidgetLinks`, so widget links keep priority.
+ */
+export const readOnlyFollowCursor = (client: Client) =>
+  Prec.highest(keymap.of([{ key: "Enter", run: followCursor(client) }]));
