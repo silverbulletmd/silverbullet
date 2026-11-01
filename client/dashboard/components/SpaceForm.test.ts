@@ -61,10 +61,10 @@ test("the hostname field renders distinct known hosts and disables occupied root
   );
   expect(html).toContain("Primary hostname — primary.test:8443");
   expect(html).toContain("New hostname");
-  expect(html).toContain("team.test — /wiki, /work");
+  expect(html).toContain("team.test</option>");
   expect(html.match(/value="host:team.test"/g)).toHaveLength(1);
   expect(html).toMatch(
-    /<option[^>]*value="host:root.test"[^>]*disabled[^>]*>root.test — \/<\/option>/,
+    /<option[^>]*value="host:root.test"[^>]*disabled[^>]*>root.test<\/option>/,
   );
 });
 
@@ -80,7 +80,7 @@ test("the path editor does not repeat its composed URL below the field", () => {
   expect(html).not.toContain("<output>");
 });
 
-test("Primary hostname shows effective occupied paths without a duplicate custom option", () => {
+test("Primary hostname omits occupied paths without a duplicate custom option", () => {
   (globalThis as any).location = location;
   const html = render(
     h(BindingFields, {
@@ -103,7 +103,7 @@ test("Primary hostname shows effective occupied paths without a duplicate custom
       onInput: () => {},
     }),
   );
-  expect(html).toContain("Primary hostname — primary.test — /, /notes");
+  expect(html).toContain("Primary hostname — primary.test</option>");
   expect(html).toMatch(
     /<option[^>]*value="primary"[^>]*disabled[^>]*>Primary hostname/,
   );
@@ -159,10 +159,10 @@ test("a grandfathered prefixed participant can retain its current host while oth
     }),
   );
   expect(html).toMatch(
-    /<option(?=[^>]*value="host:team.test")(?=[^>]*selected)(?![^>]*disabled)[^>]*>team.test — \/, \/wiki<\/option>/,
+    /<option(?=[^>]*value="host:team.test")(?=[^>]*selected)(?![^>]*disabled)[^>]*>team.test<\/option>/,
   );
   expect(html).toMatch(
-    /<option[^>]*value="host:root.test"[^>]*disabled[^>]*>root.test — \/<\/option>/,
+    /<option[^>]*value="host:root.test"[^>]*disabled[^>]*>root.test<\/option>/,
   );
 });
 

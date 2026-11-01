@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::sync::RwLock;
 
 use crate::reconcile::{ReconcileRequest, ReconcileResponse};
@@ -253,21 +254,42 @@ impl HttpSpacePrimitives {
             .and_then(hash_from_etag)
     }
 
-    /// Check a response status code and return the appropriate error.
-    fn check_response_status(status: reqwest::StatusCode, context: &str) -> Result<(), SpaceError> {
+    fn check_response(
+        response: &mut reqwest::blocking::Response,
+        operation: &str,
+        path: &str,
+    ) -> Result<(), SpaceError> {
+        let status = response.status();
         if status.is_success() {
             return Ok(());
         }
+        let mut body = Vec::new();
+        let read = response.take(4097).read_to_end(&mut body);
+        let truncated = body.len() > 4096;
+        body.truncate(4096);
+        let text = String::from_utf8_lossy(&body);
+        let detail = text.trim();
+        let mut message = format!("{operation} {path:?} failed: {status}");
+        if !detail.is_empty() {
+            message.push_str(": ");
+            message.extend(detail.chars().map(|c| if c.is_control() { ' ' } else { c }));
+        }
+        if truncated {
+            message.push_str(" [response truncated]");
+        }
+        if read.is_err() {
+            message.push_str(" [could not read complete server response]");
+        }
         match status {
-            reqwest::StatusCode::UNAUTHORIZED => Err(SpaceError::Unauthorized),
-            reqwest::StatusCode::FORBIDDEN => {
-                Err(SpaceError::ReadOnly(format!("{context} refused: {status}")))
+            // Keep these variants for reauthentication, missing-file and conflict handling.
+            reqwest::StatusCode::UNAUTHORIZED => {
+                tracing::warn!("{message}");
+                Err(SpaceError::Unauthorized)
             }
             reqwest::StatusCode::NOT_FOUND => Err(SpaceError::NotFound),
             reqwest::StatusCode::PRECONDITION_FAILED => Err(SpaceError::PreconditionFailed),
-            _ => Err(SpaceError::WriteError(format!(
-                "{context} failed: {status}"
-            ))),
+            reqwest::StatusCode::FORBIDDEN => Err(SpaceError::ReadOnly(message)),
+            _ => Err(SpaceError::WriteError(message)),
         }
     }
 
@@ -376,17 +398,17 @@ pub fn encode_page_uri(path: &str) -> String {
 
 impl SpacePrimitives for HttpSpacePrimitives {
     fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
-        let resp = self
+        let mut resp = self
             .request(reqwest::Method::GET, "")
             .send()
             .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "fetch_file_list") {
+        if let Err(e) = Self::check_response(&mut resp, "fetch_file_list", "/") {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = self
+                let mut resp = self
                     .request(reqwest::Method::GET, "")
                     .send()
                     .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "fetch_file_list")?;
+                Self::check_response(&mut resp, "fetch_file_list", "/")?;
                 let files: Vec<FileMeta> = resp
                     .json()
                     .map_err(|e| SpaceError::WriteError(e.to_string()))?;
@@ -401,19 +423,19 @@ impl SpacePrimitives for HttpSpacePrimitives {
     }
 
     fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
-        let resp = self
+        let mut resp = self
             .request(reqwest::Method::GET, path)
             .header("X-Get-Meta", "true")
             .send()
             .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "get_file_meta") {
+        if let Err(e) = Self::check_response(&mut resp, "get_file_meta", path) {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = self
+                let mut resp = self
                     .request(reqwest::Method::GET, path)
                     .header("X-Get-Meta", "true")
                     .send()
                     .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "get_file_meta")?;
+                Self::check_response(&mut resp, "get_file_meta", path)?;
                 return Ok(Self::parse_file_meta(path, resp.headers()));
             }
             return Err(e);
@@ -449,7 +471,7 @@ impl SpacePrimitives for HttpSpacePrimitives {
             resp = send(self)?;
         }
         if resp.status() != reqwest::StatusCode::PARTIAL_CONTENT {
-            Self::check_response_status(resp.status(), "read_file_range")?;
+            Self::check_response(&mut resp, "read_file_range", path)?;
             return Err(SpaceError::WriteError(format!(
                 "read_file_range failed: expected 206, got {}",
                 resp.status()
@@ -508,17 +530,17 @@ impl ConditionalSpacePrimitives for HttpSpacePrimitives {
                 None => req,
             }
         };
-        let resp = build_req(self)
+        let mut resp = build_req(self)
             .body(data.to_vec())
             .send()
             .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "write_file_conditional") {
+        if let Err(e) = Self::check_response(&mut resp, "write_file_conditional", path) {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = build_req(self)
+                let mut resp = build_req(self)
                     .body(data.to_vec())
                     .send()
                     .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "write_file_conditional")?;
+                Self::check_response(&mut resp, "write_file_conditional", path)?;
                 let hash = Self::hash_from_response(resp.headers());
                 return Ok((Self::parse_file_meta(path, resp.headers()), hash));
             }
@@ -540,11 +562,11 @@ impl ConditionalSpacePrimitives for HttpSpacePrimitives {
                 None => req,
             }
         };
-        let resp = build_req(self).send().map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "delete_file_conditional") {
+        let mut resp = build_req(self).send().map_err(Self::map_error)?;
+        if let Err(e) = Self::check_response(&mut resp, "delete_file_conditional", path) {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = build_req(self).send().map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "delete_file_conditional")?;
+                let mut resp = build_req(self).send().map_err(Self::map_error)?;
+                Self::check_response(&mut resp, "delete_file_conditional", path)?;
                 return Ok(());
             }
             return Err(e);
@@ -556,19 +578,19 @@ impl ConditionalSpacePrimitives for HttpSpacePrimitives {
         &self,
         path: &str,
     ) -> Result<(Vec<u8>, FileMeta, Option<String>), SpaceError> {
-        let resp = self
+        let mut resp = self
             .request(reqwest::Method::GET, path)
             .header("Accept", "application/octet-stream")
             .send()
             .map_err(Self::map_error)?;
-        if let Err(e) = Self::check_response_status(resp.status(), "read_file_with_hash") {
+        if let Err(e) = Self::check_response(&mut resp, "read_file_with_hash", path) {
             if matches!(e, SpaceError::Unauthorized) && self.try_reauth() {
-                let resp = self
+                let mut resp = self
                     .request(reqwest::Method::GET, path)
                     .header("Accept", "application/octet-stream")
                     .send()
                     .map_err(Self::map_error)?;
-                Self::check_response_status(resp.status(), "read_file_with_hash")?;
+                Self::check_response(&mut resp, "read_file_with_hash", path)?;
                 let meta = Self::parse_file_meta(path, resp.headers());
                 let hash = Self::hash_from_response(resp.headers());
                 let data = resp
@@ -608,15 +630,16 @@ impl ConditionalSpacePrimitives for HttpSpacePrimitives {
         let status = resp.status();
         if status == reqwest::StatusCode::UNAUTHORIZED && self.try_reauth() {
             let resp = build_req(self).body(body).send().map_err(Self::map_error)?;
-            return Self::parse_reconcile_response(resp);
+            return Self::parse_reconcile_response(resp, path);
         }
-        Self::parse_reconcile_response(resp)
+        Self::parse_reconcile_response(resp, path)
     }
 }
 
 impl HttpSpacePrimitives {
     fn parse_reconcile_response(
-        resp: reqwest::blocking::Response,
+        mut resp: reqwest::blocking::Response,
+        path: &str,
     ) -> Result<Option<ReconcileResponse>, SpaceError> {
         match resp.status() {
             reqwest::StatusCode::OK => {
@@ -633,7 +656,7 @@ impl HttpSpacePrimitives {
             // Only 404/405 mean "no reconciliation endpoint here"; an
             // unexpected 2xx is an error so the caller falls back this once
             // instead of latching reconciliation off for the session.
-            status => match Self::check_response_status(status, "reconcile") {
+            status => match Self::check_response(&mut resp, "reconcile", path) {
                 Err(e) => Err(e),
                 Ok(()) => Err(SpaceError::WriteError(format!(
                     "reconcile returned unexpected status: {status}"

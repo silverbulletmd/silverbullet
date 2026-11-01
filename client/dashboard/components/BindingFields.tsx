@@ -92,9 +92,7 @@ export function BindingFields({
       ? customHostOrigin(binding.host, publicOrigin)
       : publicOrigin.origin;
   const primaryHost = publicOrigin.host;
-  const primaryLabel = grouped.primary.prefixes.length
-    ? `Primary hostname — ${primaryHost} — ${grouped.primary.prefixes.join(", ")}`
-    : `Primary hostname — ${primaryHost}`;
+  const primaryLabel = `Primary hostname — ${primaryHost}`;
 
   return (
     <>
