@@ -614,23 +614,35 @@ test.describe("read-only list editing keys", () => {
     },
   });
 
-  test("Enter and Backspace in a list item don't change the page", async ({
-    sbPage: page,
-  }) => {
-    const docText = () =>
-      page.evaluate(() =>
-        (globalThis as any).client.editorView.state.doc.toString(),
-      );
-    const original = await docText();
-    await page.evaluate(() => {
+  // Put the cursor at `pos` in the source, press `key`, return the document
+  async function pressAt(page: Page, pos: string, key: string) {
+    await page.evaluate((pos) => {
       const view = (globalThis as any).client.editorView;
+      const [before, after] = pos.split("|");
       const text = view.state.doc.toString();
       view.dispatch({
-        selection: { anchor: text.indexOf("first item") + "first".length },
+        selection: { anchor: text.indexOf(before + after) + before.length },
       });
-    });
-    await page.keyboard.press("Enter");
-    await page.keyboard.press("Backspace");
-    expect(await docText()).toBe(original);
+    }, pos);
+    await page.keyboard.press(key);
+    return page.evaluate(() =>
+      (globalThis as any).client.editorView.state.doc.toString(),
+    );
+  }
+
+  test("Enter in a list item doesn't change the page", async ({
+    sbPage: page,
+  }) => {
+    expect(await pressAt(page, "- first| item", "Enter")).toBe(
+      "# Welcome\n\n- first item\n- second item\n",
+    );
+  });
+
+  test("Backspace after a list marker doesn't change the page", async ({
+    sbPage: page,
+  }) => {
+    expect(await pressAt(page, "- |second item", "Backspace")).toBe(
+      "# Welcome\n\n- first item\n- second item\n",
+    );
   });
 });
