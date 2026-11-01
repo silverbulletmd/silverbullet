@@ -660,7 +660,7 @@ test.describe("read-only keyboard navigation", () => {
     await gotoSilverBulletPage(page, sbServer, "Tasks");
     const checkbox = page.locator(".sb-checkbox").first();
     await expect(checkbox).toBeVisible();
-    await expect(page.locator(".sb-checkbox.sb-link-cursor")).toHaveCount(0);
+    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
     // Record the click events the editor dispatches
     await page.evaluate(() => {
       const client = (globalThis as any).client;
@@ -678,7 +678,7 @@ test.describe("read-only keyboard navigation", () => {
       .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
       .toHaveLength(1);
     await placeCursor(page, "[ ]");
-    await expect(page.locator(".sb-checkbox.sb-link-cursor")).toHaveCount(1);
+    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(1);
     await page.keyboard.press("Enter");
     await expect
       .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
@@ -689,6 +689,6 @@ test.describe("read-only keyboard navigation", () => {
     expect(byEnter).toBe(byClick);
     // Moving the cursor away removes the highlight
     await placeCursor(page, "Intro");
-    await expect(page.locator(".sb-checkbox.sb-link-cursor")).toHaveCount(0);
+    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
   });
 });

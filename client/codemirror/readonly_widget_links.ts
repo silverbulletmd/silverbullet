@@ -167,7 +167,7 @@ const follow = (view: EditorView) =>
  */
 const followCursor = (client: Client) => (view: EditorView) => {
   const checkbox = view.contentDOM.querySelector<HTMLElement>(
-    ".sb-checkbox.sb-link-cursor input",
+    ".sb-checkbox-cursor input",
   );
   if (checkbox) {
     // The widget resolves its position and calls onCheckboxClick, as for a

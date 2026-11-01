@@ -13,7 +13,8 @@
   display: block;
 }
 
-.sb-link-cursor {
+.sb-link-cursor,
+.sb-checkbox-cursor input[type="checkbox"] {
   outline: 1.2px solid var(--editor-caret-color);
   outline-offset: 1px;
 }

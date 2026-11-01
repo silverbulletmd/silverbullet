@@ -32,7 +32,7 @@ class CheckboxWidget extends WidgetType {
   toDOM(): HTMLElement {
     const wrap = document.createElement("span");
     wrap.classList.add("sb-checkbox");
-    if (this.cursor) wrap.classList.add("sb-link-cursor");
+    if (this.cursor) wrap.classList.add("sb-checkbox-cursor");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = this.checked;
