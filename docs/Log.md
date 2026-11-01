@@ -1,6 +1,6 @@
 To better understand what SilverBullet is doing, especially when [[Troubleshooting]], it is good to know where and how to look at SilverBullet logs.
 
-Most valuable logs are likely going to be in your browser’s logs, so especially if you’re a power user, get comfortable opening your JavaScript console.
+Start with [[Workbench/Console]] for the combined Lua, JavaScript, plug and service-worker log. For lower-level diagnostics, open your browser’s JavaScript console.
 
 * Client logs: Check your browser’s JavaScript console. Usually these are part of “(Web) Developer Tools” buried somewhere in a Tools or Developer menu.
 * Service worker logs (especially useful when debugging [[Sync]] issues):

@@ -6,7 +6,7 @@ references:
 While most of SilverBullet’s configuration happens through the [[Dashboard]] these days, a few options remain configurable via environment variables.
 
 # Network
-* `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local setup, defaults to `0.0.0.0` for docker)
+* `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.1`, set to `0.0.0.0` to accept outside connections for the local setup, defaults to `0.0.0.0` for docker)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
 
 # Docker
@@ -35,7 +35,7 @@ The environment variables below configure a **single-space** server. A fresh ins
 ## General configuration
 * `SB_FOLDER`: The data folder to serve, e.g. `SB_FOLDER=/home/user/silverbullet`. In single-space mode this folder is your space, in multi-space mode it holds the server configuration and (by default) the spaces, see [[Dashboard]].
 * `SB_INDEX_PAGE` *(legacy)*: Sets the default page to load, defaults to `index`. Prefer the per-space **Index page** setting in the [[Dashboard]] (**Space settings → General**).
-* `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder's actual `.gitignore` file is not read.
+* `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder’s actual `.gitignore` file is not read.
 * `SB_SEARCH_DIR`: A writable folder outside the space where search keeps its full-text index (so it is not rebuilt at every start) and, with `SB_SEARCH_MODEL`, the model and the semantic index. The space folder may stay read-only. Unset (the default), the index is kept in memory. Use one folder per server. See [[Search]].
 * `SB_SEARCH_MODEL`: Adds semantic search with this model: `granite-embedding-97m-multilingual-r2` (recommended, about 220 MB) or `multilingual-e5-small` (about 488 MB); needs `SB_SEARCH_DIR`. The model is downloaded on first start. See [[Search]].
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
@@ -49,11 +49,11 @@ The environment variables below configure a **single-space** server. A fresh ins
 * `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
 
 ## Authentication
-* `SB_USER` (single-space only): Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
-* `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Dashboard#API tokens|API tokens]].
+* `SB_USER` (single-space only): Sets single-user credentials, in `username:password` form. Use a long password and protect the process configuration.
+* `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Authentication#API|API tokens]].
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
-* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days. Sessions where "Remember me" was left unchecked always last one week.
+* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when “Remember me” is checked during login, defaults to 7 days. Sessions where “Remember me” was left unchecked always last one week.
 
 ## Run mode
 * `SB_READ_ONLY` *(legacy)*: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled. Prefer the per-space settings in the [[Dashboard]]: give the public read access to publish a space (see [[Publishing]]), or **Freeze this space** to stop all writes.

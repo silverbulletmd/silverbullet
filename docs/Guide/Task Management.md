@@ -1,101 +1,99 @@
-#guide
-
-This guide walks you through a project and task management workflow. You'll learn how tasks, frontmatter, linked tasks, and queries combine into a lightweight project tracker — no extra tools needed.
+---
+tags: guide
+---
+Keep tasks where they arise, link them to their subject, and use focused lists to see what remains.
 
 # 1. Create a project page
-Make a page called "Website Redesign" with structured [[Frontmatter]]:
+Use `Photo Walk` from [[Guide/Your First Markdown Page]], or create it in your practice space. Describe the plan in prose and add tasks:
 
-```yaml
+```markdown
+* [ ] Charge camera battery
+* [ ] Pack binoculars
+* [x] Check the weather
+```
+
+Type the checkbox syntax directly or use `/task` on a line. Click a checkbox to complete it. [[Task]] explains task states and editing commands.
+
+If you need a project-level category, add frontmatter at the very beginning:
+
+```markdown
 ---
-tags: project
-status: active
-priority: high
+tags: outing
+status: planned
+date: "2026-06-14"
 ---
 ```
 
-Below the frontmatter, write a brief description of the project and its goals.
+The page’s status is separate from task completion. SilverBullet does not automatically mark the outing complete when its tasks are done.
 
-# 2. Add tasks
-Type `/task` to insert a task (or just type `* [ ] ` directly). Add a few tasks on the project page:
-
-```markdown
-* [ ] Write the project proposal
-* [ ] Create wireframes
-* [ ] Set up staging environment
-```
-
-Click a checkbox to mark a task as done. All tasks are automatically indexed and queryable.
-
-# 3. Annotate tasks with attributes
-Add metadata to tasks using [[Attribute]] syntax:
+# 2. Annotate tasks with attributes
+Add a due date or a category to the individual task that needs it:
 
 ```markdown
-* [ ] Write the proposal [deadline: "2026-03-15"] [priority: high]
-* [ ] Review design mockups [assignee: Alice]
+* [ ] Charge camera battery #packing [due: "2026-06-13"]
+* [ ] Pack binoculars #packing
 ```
 
-Optionally hashtags on tasks to categorize them:
+The `packing` tag and `due` attribute attach to those tasks. Every task already has the built-in `task` tag. Page tags and attributes describe the page; they are not a substitute for task-level fields. See [[Attribute]], [[Markdown/Hashtags#Scope rules]] and [[Tag/task]] for the exact fields.
+
+# 3. Scatter tasks across pages
+Sam’s friend Jo helps organize the photo-club activities. On a practice page named `Meetup Notes`, write:
 
 ```markdown
-* [ ] Get client approval #waiting
+Jo will confirm the route for the photo club.
+
+* [ ] Send Jo the meeting point for [[Photo Walk]]
 ```
 
-This task is now tagged both `task` and `waiting`, so you can query either tag.
+The page link connects the task to the outing without moving it out of the meeting notes.
 
-# 4. Scatter tasks across pages
-Real tasks don’t all live in one place — they come up in meetings, while reading, or during other work. Create a page like "Meeting Notes/2026-03-04" and write tasks that link back to the project:
+# 4. See linked tasks automatically
+Open `Photo Walk`. The **Linked Tasks** view, normally above the page, collects incomplete tasks from other pages that link to it, including the meeting-point task. It does not duplicate tasks already on the current page. Run `Navigate: Linked Tasks` if you need to show the view.
+
+Check a linked task to complete its original on `Meetup Notes`. [[Linked Tasks]] explains inherited links and the view’s exact behavior. [[Linked Mention|Linked Mentions]] provides the broader list of page references.
+
+# 5. Build a dashboard
+Create `Walk Dashboard`, put the cursor below a heading and run `Workbench: Query`. Choose `task`, filter `done` **is false**, order by `name` **A–Z**, select **List → templates.taskItem**, and limit to `10`. Use **Insert at cursor**. [[Guide/Build Your First Query]] walks through every step, including editing the result later.
+
+The corresponding source, for readers ready to adapt it, is:
 
 ```markdown
-* [ ] Send updated mockups to client [[Website Redesign]]
-* [ ] Schedule review meeting [[Website Redesign]]
-```
-
-The `[[Website Redesign]]` link connects these tasks to the project.
-
-# 5. See linked tasks automatically
-Navigate to your "Website Redesign" page. At the top, the **[[Linked Tasks]]** widget shows all incomplete tasks from _other_ pages that link to this page — including the ones from your meeting notes.
-
-You can check off a linked task from either page; the state change propagates. No manual copying or moving of tasks needed.
-
-# 6. Build a dashboard
-Create a "Dashboard" page that pulls everything together using [[Space Lua/Integrated Query]]:
-
-```lua
-# Active projects
-${query[[from p = index.pages("project") where p.status == "active"]]}
-```
-
-Add a section for (recently) open tasks (maximum 10):
-
-```lua
-# Open tasks
 ${query[[
   from t = index.tasks()
   where not t.done
-  order by t.lastModified desc
+  order by t.name
   limit 10
   select templates.taskItem(t)
 ]]}
 ```
 
-And a section for tasks with deadlines:
+To show only dated tasks, add a `due` **exists** filter and sort by `due` **earliest first**:
 
-```lua
-# Due soon
+```markdown
 ${query[[
   from t = index.tasks()
-  where not t.done and t.deadline
-  order by t.deadline
+  where not t.done and t.due ~= nil
+  order by t.due
   limit 10
   select templates.taskItem(t)
 ]]}
 ```
 
-Each section updates live as you add, complete, or modify tasks across your space.
+This lists dated work; it does not mean that every listed task is currently due. If your space already uses `deadline` rather than `due`, select that field consistently in both the task annotations and query.
 
-# What's next?
-You now have a project tracking system: project pages with frontmatter, tasks scattered naturally across pages, linked tasks that connect everything, and a dashboard for the big picture.
+For an outing overview, choose `page`, **Content** scope and the `outing` tag, filter `status` **is** `planned`, and choose the page-list template:
 
-* [[Journal]] — set up a daily journal
-* [[Guide/Knowledge Base]] — build a knowledge base
-* [[SilverBullet|The documentation]] — every section of the manual, from writing to customizing
+```markdown
+${query[[
+  from p = index.contentPages("outing")
+  where p.status == "planned"
+  select templates.pageItem(p)
+]]}
+```
+
+Live lists update after notes are saved and indexed. [[Guide/When Results Update]] describes timing and why baked snapshots differ.
+
+# What’s next?
+* [[Journal]] — optionally capture daily work.
+* [[Guide/Query Recipes]] — filter and group tasks in other ways.
+* [[Guide/Knowledge Base]] — link tasks to useful background notes.

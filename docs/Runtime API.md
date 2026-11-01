@@ -77,10 +77,8 @@ return pages' \
 
 Captures the runtime client as a PNG image, after fonts have loaded and pending rendering has settled.
 
-| Query parameter | Description |
-|---|---|
-| `selector` | Optional CSS selector. The first matching element is scrolled into view and the image is clipped to it. |
-| `fullPage` | `1` or `true` captures the whole page instead of the viewport: the editor is scrolled one screen at a time, each screen is rendered and captured, and the screens are stitched into one PNG. The scroll position is restored afterwards. Cannot be combined with `selector` (400, code `invalid_request`). |
+* `selector`: Optional CSS selector. The first matching element is scrolled into view and the image is clipped to it.
+* `fullPage`: `1` or `true` captures the whole page instead of the viewport: the editor is scrolled one screen at a time, each screen is rendered and captured, and the screens are stitched into one PNG. The scroll position is restored afterwards. Cannot be combined with `selector` (400, code `invalid_request`).
 
 ```bash
 curl -o page.png http://localhost:3000/.runtime/screenshot
@@ -90,17 +88,15 @@ curl -o full.png 'http://localhost:3000/.runtime/screenshot?fullPage=1'
 
 A full-page image stops at about 12000 CSS pixels. When the page is longer, the response carries `X-Screenshot-Truncated: true`. A long page can take several seconds to capture, so raise `X-Timeout` if needed.
 
-Navigate first with the Lua endpoint, e.g. `editor.navigate("Projects")`. On SilverBullet Desktop, the runtime is the space's visible editor window: the screenshot shows what the user sees, and fails while that window is minimized or hidden.
+Navigate first with the Lua endpoint, e.g. `editor.navigate("Projects")`. On SilverBullet Desktop, the runtime is the space’s visible editor window: the screenshot shows what the user sees, and fails while that window is minimized or hidden.
 
 ## Console logs
 `GET /.runtime/logs`
 
 Returns recent console log entries from the headless browser.
 
-| Query parameter | Description |
-|---|---|
-| `limit` | Maximum number of entries to return (default: 100, server retains up to 1000) |
-| `since` | Unix millisecond timestamp — only return entries newer than this |
+* `limit`: Maximum number of entries to return (default: 100, server retains up to 1000)
+* `since`: Unix millisecond timestamp — only return entries newer than this
 
 ```bash
 curl http://localhost:3000/.runtime/logs?limit=5
@@ -133,18 +129,16 @@ curl -H "X-Timeout: 60" \
 # Results
 The `result` of `/.runtime/lua` and `/.runtime/lua_script` (and the output of `sb eval`, `sb script` and `sb query`) is always plain JSON:
 
-| Lua / JS value | JSON |
-|---|---|
-| `nil`, a missing query column | `null`. Keys are kept, so a row lacking `rating` reads `"rating": null`. |
-| `-0` | `0` |
-| `NaN`, `Infinity`, `-Infinity` | the strings `"NaN"`, `"Infinity"`, `"-Infinity"` |
-| Big integer | a number if it is a safe integer, else a decimal string |
-| Table with only keys `1..n` | array |
-| Any other table (including mixed tables) | object; sequence keys become `"1"`, `"2"`, … |
-| Date | ISO 8601 string |
-| Map / Set | object / array |
-| Query collection, such as `index.pages("book")` or `index.tags()` | array of all its rows, also when nested in a table. At most 1000 rows: a larger collection ends with one extra string, `"<truncated: N more rows; use sb query with where/limit>"`. |
-| Promise | awaited, also when nested |
+* `nil`, a missing query column: `null`. Keys are kept, so a row lacking `rating` reads `"rating": null`.
+* `-0`: `0`
+* `NaN`, `Infinity`, `-Infinity`: the strings `"NaN"`, `"Infinity"`, `"-Infinity"`
+* Big integer: a number if it is a safe integer, else a decimal string
+* Table with only keys `1..n`: array
+* Any other table (including mixed tables): object; sequence keys become `"1"`, `"2"`, …
+* Date: ISO 8601 string
+* Map / Set: object / array
+* Query collection, such as `index.pages("book")` or `index.tags()`: array of all its rows, also when nested in a table. At most 1000 rows: a larger collection ends with one extra string, `"<truncated: N more rows; use sb query with where/limit>"`.
+* Promise: awaited, also when nested
 
 Values with no JSON form appear as string markers: `"<function>"`, `"<symbol>"`, `"<binary: N bytes>"`, `"<cycle>"` for a self-reference, `"<max depth>"` beyond 200 levels, `"<error: message>"`, and `"<ClassName>"` for other class instances.
 
@@ -179,4 +173,4 @@ Set `SB_CHROME_SHOW=1` to run Chrome with a visible window — useful for watchi
 Headless Chrome spawns several processes (browser, network, storage, and renderer) for each active user and space pair. Additional runtimes therefore cost a whole browser, not just a tab. Browsers start lazily so unused runtime permissions consume no Chrome processes.
 
 ## Managing runtimes
-Server administrators can open **Admin → Runtimes** to see each instantiated runtime's space, user, status, CPU, estimated memory, and profile disk usage. The list refreshes while visible and includes stopped runtimes with retained profiles. Viewing it does not start Chrome.
+Server administrators can open **Admin → Runtimes** to see each instantiated runtime’s space, user, status, CPU, estimated memory, and profile disk usage. The list refreshes while visible and includes stopped runtimes with retained profiles. Viewing it does not start Chrome.

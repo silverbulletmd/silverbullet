@@ -39,7 +39,7 @@ Encodes a string or byte buffer as Base64.
 
 `encoding.urlDecode(encoded)`
 
-Decodes a percent-encoded string, like JavaScript's decodeURIComponent. Malformed input is returned unchanged.
+Decodes a percent-encoded string, like JavaScript’s decodeURIComponent. Malformed input is returned unchanged.
 
 **Parameters:**
 
@@ -53,7 +53,7 @@ Decodes a percent-encoded string, like JavaScript's decodeURIComponent. Malforme
 
 `encoding.urlEncode(value)`
 
-Percent-encodes a string as UTF-8, like JavaScript's encodeURIComponent.
+Percent-encodes a string as UTF-8, like JavaScript’s encodeURIComponent.
 
 **Parameters:**
 

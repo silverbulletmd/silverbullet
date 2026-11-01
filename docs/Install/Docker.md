@@ -24,7 +24,7 @@ The default image includes Chromium and enables the [[Runtime API]]. For the sma
 * The container binds to port `3000`, so be sure to port-map that, e.g. via `-p 3000:3000` (note: the first `3000` is the external port)
 * The container uses whatever is volume-mapped to `/data` as the data root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/silverbullet:/data`
 * SilverBullet will detect the UNIX owner (UID and GID) of the folder mapped into `/data` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables (see [[Install/Configuration]] for details).
-* The Docker image is based on [Alpine](https://alpinelinux.org/). If you'd like to install additional packages into it, see [[#Installing additional packages]] below.
+* The Docker image is based on [Alpine](https://alpinelinux.org/). If you’d like to install additional packages into it, see [[#Installing additional packages]] below.
 
 > **note** Note
 > The same docker images are both available from [GHCR](https://github.com/silverbulletmd/silverbullet/pkgs/container/silverbullet) and [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet), use whichever you prefer.

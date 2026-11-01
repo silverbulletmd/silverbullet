@@ -8,7 +8,7 @@ references:
 Every `@name` [[At-Mention|mention]] in your space produces an `identity` record for that [[Identity]] on the page where it is mentioned. Identities are names, not pages: there is never a page behind one, and an at-mention is recorded as a [[Tag/relation|relation]] with `kind: "at-mention"` and `toTag: "identity"`.
 
 ## Attributes
-* `ref`: the name's namespaced `@name` identifier, the same value at-mention relations use as `to`.
+* `ref`: the name’s namespaced `@name` identifier, the same value at-mention relations use as `to`.
 * `name`: the name as written, without the `@`.
 * `page`: the page the name is mentioned on.
 

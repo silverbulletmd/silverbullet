@@ -118,7 +118,9 @@ mq.subscribe { queue = "tasks", batchSize = 1, run = function(messages) print(me
 
 ## Example
 
-```space-lua
+In your own space, install this subscriber in a `space-lua` block and reload definitions:
+
+```lua
 mq.subscribe {
   queue = "testqueue",
   batchSize = 1,
@@ -130,7 +132,13 @@ mq.subscribe {
 }
 ```
 
+Then copy this Markdown into a page in that space:
+
+```markdown
 ${widgets.button("Send message on queue", function()
   mq.send("testqueue", "Hello world")
 end)}
+```
+
+Clicking the button queues `Hello world`; the subscriber displays “Received message: Hello world”. This example is inert here so reading the reference neither registers a subscriber nor writes queue state.
 

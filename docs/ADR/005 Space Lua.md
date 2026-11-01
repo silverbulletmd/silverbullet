@@ -15,7 +15,7 @@ references:
 # Context
 SilverBullet lets users put dynamic content: live queries, computed views, templated rendering, and custom logic directly in their pages. In v1 this was spread across **three separate mechanisms**, each with its own syntax:
 
-* a custom **query language** for live queries (originally HTML-comment "directives");
+* a custom **query language** for live queries (originally HTML-comment “directives”);
 * **Handlebars-style templates** (Live Templates, Live Template Widgets, Page Templates) for rendering;
 * **Space Script**, a **JavaScript** layer, for custom functions and logic.
 
@@ -41,7 +41,7 @@ Writing our own interpreter (for partly historical reasons) bought a very smooth
 
 ## Negative / trade-offs
 * **A custom Lua dialect to maintain.** Space Lua is its own implementation, with ongoing work to track Lua 5.4 semantics.
-* **Less familiar than JavaScript.** Most web developers know JS, not Lua — a higher initial learning curve (offset by Lua's small surface).
+* **Less familiar than JavaScript.** Most web developers know JS, not Lua — a higher initial learning curve (offset by Lua’s small surface).
 * **Migration cost.** This shift was a hard breaking change transitioning from v1 to v2, and spaces using directives / Handlebars / Space Script had to be ported. We likely lost users over this, see [[Migrate from v1]].
 
 # Alternatives considered

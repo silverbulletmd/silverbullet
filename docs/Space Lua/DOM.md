@@ -72,7 +72,7 @@ local rows = {}
 for page in query[[ from index.pages() limit 5 ]] do
   table.insert(rows, dom.tr {
     dom.td { "[[" .. page.name .. "]]" },
-    dom.td { os.date("%Y-%m-%d", page.lastModified) }
+    dom.td { page.lastModified:sub(1, 10) }
   })
 end
 

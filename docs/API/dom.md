@@ -44,7 +44,7 @@ Renders a HTML DOM.
 * `style` can also be a table of CSS properties, custom properties included: `style = { width = "40%", ["--accent"] = "teal" }`.
 * `on*` keys (`onclick = function() ... end`) add event listeners.
 * Plain text elements such as `"Hello **world**"` are parsed and rendered as markdown translated to HTML.
-* `dom.text(s)` adds `s` as literal text: no markdown, no HTML. Use it for anything you didn't write yourself (page names, titles, user input).
+* `dom.text(s)` adds `s` as literal text: no markdown, no HTML. Use it for anything you didn’t write yourself (page names, titles, user input).
 * DOM elements (for instance those resulting from additional `dom.*` calls) are injected in place.
 * [[API/widget|widgets]] are rendered in place.
 * A list of children is added in order, and `nil`/`false` children are skipped, so loops and conditions need no special handling:

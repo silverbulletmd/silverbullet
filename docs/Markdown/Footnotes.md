@@ -24,7 +24,7 @@ The definition can appear anywhere in the page (top, bottom, or interleaved). It
 # Inline footnotes
 Inline footnotes use `^[content]` and place the body right at the call site:
 
-This claim has an inline footnote.^[Inline footnotes don't need a separate definition.]
+This claim has an inline footnote.^[Inline footnotes don’t need a separate definition.]
 
 The content is parsed as inline markdown.
 

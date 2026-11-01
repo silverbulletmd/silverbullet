@@ -6,23 +6,26 @@ references:
 - client/codemirror/syntax/frontmatter_preview.ts
 - plugs/index/frontmatter.ts
 ---
-Frontmatter is a common format to attach additional metadata (data about data) to markdown documents. Many tools support it as a markdown [[Markdown/Extensions|extension]].
+Frontmatter stores page attributes such as tags, status and dates. Edit them using the form at the top of a page, or edit their YAML source directly.
 
-In SilverBullet, there are multiple ways to attach [[Metadata]] to a page, frontmatter is the most popular one.
+# Start with the visual editor
+On a page without frontmatter, hover over the first line and click the **add tag** icon to its left. Type a tag and press Enter. The form opens at the top of the page; **+ add attribute** lets you add more attributes and choose their types.
 
-You create frontmatter by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document. This very page contains some frontmatter, click on it to see the underlying code. On a page without frontmatter, hover the first line and click the tag icon left of it to create it (see [[Live Object Edit]]).
+[[Guide/Organize with Tags and Attributes]] walks through this with screenshots, starting from an ordinary Markdown page. [[Live Object Edit]] covers the form’s editing controls. In read-only documentation, you can inspect existing attributes but cannot add or change them.
 
-Here is another example:
+# The source format
+Choose **Edit source** from the form’s ⋯ menu to see what it stores. Frontmatter is a [[YAML]] block at the beginning of the file, between two lines containing `---`. The page body follows the closing line:
 
-    ---
-    status: Draft
-    tags:
-    - tag1
-    - tag2
-    seeAlso: "[[YAML]]"
-    ---
-    ## This is a section
-    This is content
+```markdown
+---
+status: planned
+tags: outing
+date: "2026-06-14"
+---
+Notes for the photo walk.
+```
+
+Move the cursor outside the block to return to its form. Many other Markdown tools recognize this [[Markdown/Extensions|extension]], so these attributes stay with your file.
 
 For convenience, you may use the `attribute.subAttribute` notation, which internally will expand:
 
@@ -40,7 +43,7 @@ attribute:
 # Special attributes
 While SilverBullet allows arbitrary metadata to be added to pages, there are a few attributes with special meaning:
 
-* `name` (==DISALLOWED==): is an attribute used for page names, _you should not set it_.
+* `name`: the indexed page name comes from its filename. Do not use frontmatter to rename an ordinary page. Some specialized formats, such as [[Library/Development|library manifests]], use a `name` key as installation metadata; follow that format’s instructions.
 * `displayName` (`string`): very similar in effect as `aliases` but will use this name for the page in certain contexts.
 * `aliases` (`array of strings`): allow you to specify a list of alternative names for this page, which can be used to navigate or link to this page
 * `tags` (`array of strings` or `string`): an alternative (and perhaps preferred) way to assign [[Tag]] to a page. There are various ways to define these:

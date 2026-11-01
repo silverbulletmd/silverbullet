@@ -16,7 +16,7 @@ struct PageHead {
     noindex: bool,
 }
 use crate::router::run_blocking;
-use crate::ssr::{convert_wiki_links, render_markdown, SpaceLinks};
+use crate::ssr::{render_page_markdown, SpaceLinks};
 use crate::state::ServerState;
 
 #[derive(Clone)]
@@ -296,7 +296,7 @@ async fn server_side_content(
                     state.host_url_prefix
                 ));
             }
-            render_markdown(&convert_wiki_links(parsed.body, &md_path, links.as_ref()))
+            render_page_markdown(parsed.body, &md_path, links.as_ref())
         }
         Err(silverbullet_server_common::SpaceError::NotFound) => {
             return (title, String::new(), StatusCode::NOT_FOUND, head);

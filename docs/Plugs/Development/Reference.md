@@ -18,12 +18,10 @@ A plug is described by a single YAML file, conventionally named `{plugname}.plug
 ## Function definitions
 Each entry under `functions:` is one exported plug function. Fields:
 
-| Field | Description |
-|-------|-------------|
-| `path` | `"file.ts:exportedFunction"` — the TypeScript source to bundle. |
-| `redirect` | `"otherPlug.function"` — alias to another plug’s function (no local code). |
-| `syscall` | `"myplug.foo"` — expose this function as a syscall callable from other plugs and from [[Space Lua]]. |
-| _hook fields_ | Zero or more of `command`, `slashCommand`, `events`, `mqSubscriptions`, `codeWidget`, `editor`, `pageNamespace` — each wires this function into an editor event. See [[#Hooks]] below. |
+* `path`: `"file.ts:exportedFunction"` — the TypeScript source to bundle.
+* `redirect`: `"otherPlug.function"` — alias to another plug’s function (no local code).
+* `syscall`: `"myplug.foo"` — expose this function as a syscall callable from other plugs and from [[Space Lua]].
+* _hook fields_: Zero or more of `command`, `slashCommand`, `events`, `mqSubscriptions`, `codeWidget`, `editor`, `pageNamespace` — each wires this function into an editor event. See [[#Hooks]] below.
 
 A function with only a `syscall` field (no other hooks) is a pure library function; a function with one or more hook fields is triggered when the corresponding event fires.
 
@@ -209,7 +207,7 @@ openMap:
     name: "Map: Open"
 ```
 
-The function gets the tab showing, the open page and the dock, and returns the panel's `html` and `script` (the same pair `editor.showPanel` takes), or an `error` to show in its place:
+The function gets the tab showing, the open page and the dock, and returns the panel’s `html` and `script` (the same pair `editor.showPanel` takes), or an `error` to show in its place:
 
 ```typescript
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
@@ -228,7 +226,7 @@ export async function openMap() {
 }
 ```
 
-The panel is built again whenever its tab or dock changes, and, when it follows the editor, when another page opens while it's docked. From inside the panel, `editor.hidePanel(ctx.dock)` closes it. The [[Object Graph]] is a panel view.
+The panel is built again whenever its tab or dock changes, and, when it follows the editor, when another page opens while it’s docked. From inside the panel, `editor.hidePanel(ctx.dock)` closes it. The [[Graph View]] is a panel view.
 
 ## `syscall`
 Exposes the function as a syscall, callable from other plugs and from Space Lua. Combines with `path:` to provide an implementation. There is no separate TS sketch here — your function is a normal TypeScript function; whatever it returns is the syscall return value.

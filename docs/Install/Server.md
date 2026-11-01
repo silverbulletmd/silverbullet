@@ -1,0 +1,50 @@
+#getting-started
+
+SilverBullet Server runs on your own computer, a machine on your network or a hosted server. [[Guide/Server Setup]] walks through installation, access, configuration and maintenance. This page covers deployment choices and filesystem requirements.
+
+# Run Server on this computer
+Run Server locally to access a space through a browser on this computer. If you want the native application instead, use [[Install/Desktop]].
+
+Steps:
+1. Install SilverBullet following the instructions of one of these options:
+   * [[Install/Server Binary]] — a single self-contained binary
+   * [[Install/Docker]] — a docker container
+2. Follow [[Getting Started]] to learn the basics
+
+A local installation is sufficient for use on this computer. Deploy Server somewhere reachable when you need browser access from other devices, including a phone.
+
+# Self-hosted server
+You can self host SilverBullet on essentially any Intel-compatible 64-bit or ARM 64-bit machine you have terminal access to. The server needs very limited resources (a few hundred megabytes of RAM is sufficient), so even a Raspberry Pi works.
+
+There are three things to take care of, in this order:
+
+1. Install SilverBullet:
+   * [[Install/Server Binary]] — a single self-contained binary
+   * [[Install/Docker]] — a docker container
+2. Deploy a [[TLS]] layer in front of SilverBullet for encrypted connections and the full feature set. Plain LAN `http://` also works (mostly) but only in online-only mode, see [[TLS#LAN HTTP (no TLS)]] for limitations.
+3. Follow [[Getting Started]] to learn the basics of using SilverBullet itself.
+
+# Cloud
+If you’d rather not run a server yourself, a hosting provider can run SilverBullet Server for you. See [Hosted SilverBullet](https://silverbullet.md/hosting) for the options.
+
+# Filesystems
+## Case insensitive file systems (Mac and Windows)
+It is _highly discouraged_ to run SilverBullet (in real use) on a _case insensitive_ file system. SilverBullet assumes your file system is _case sensitive_ and acts accordingly.
+
+> **note** Note
+> This only applies to where the SilverBullet _server_ runs, **not** the clients you connect to it (via your browser).
+
+While SilverBullet will run on a case insensitive file system, and everything may _generally_ seem fine, issues start to arise when:
+* You edit pages via page names that do not match (case-wise) with their file names on disk.
+* When you try to create or edit pages that already exist on disk with different casing.
+
+If you’re deploying **Linux**, you’re likely using a file system that is case sensitive. This is the recommended deployment operating system.
+
+**macOS**’s default file system (APFS) is _case insensitive_ by default as well. However, if you insist on running SilverBullet on macOS, you can create a new APFS Volume for which you enable case sensitivity. You can then use this new volume with SilverBullet.
+
+**Windows**’ native NTFS file system is _case insensitive_ by default, [however there are apparently ways to mark specific folders as case sensitive](https://www.howtogeek.com/354220/how-to-enable-case-sensitive-folders-on-windows-10/). Still, this makes deploying SilverBullet on Windows _not recommended_.
+
+## NAS, sync engines, experimental file systems
+While using a NAS to store your space files should be fine, if you encounter issues (unreliable saving, sync issues) it is worth switching to a local file system to see if this resolves those issues. The same goes for synchronizing your files from your server elsewhere, e.g. using tools like SyncThing. They _should_ work fine, but if you run into [[Sync]] issues, disable everything, switch to a local file system and see if the issues persist to [[Troubleshooting]].
+
+SilverBullet’s sync engine relies on reliably persisting **last modified timestamps** for your files, and those timestamps only being touched when actual changes to those file occur. If your file system (or NAS) does not persist these consistently, or you have some external sync process that updates them — this may lead to problems.

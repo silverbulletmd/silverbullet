@@ -4,15 +4,17 @@ tags: glossary
 references:
 - client/markdown_renderer/markdown_render.ts
 ---
-SilverBullet uses a “live preview” markdown editor. This mechanism is heavily inspired by [Obsidian's live preview mode](https://obsidian.md/help/edit-and-read#Live+Preview).
+SilverBullet uses a “live preview” markdown editor. This mechanism is heavily inspired by [Obsidian’s live preview mode](https://obsidian.md/help/edit-and-read#Live+Preview).
 
-It reduces visual noise by not constantly showing [[Markdown]] formatting codes such as `[SilverBullet website](https://silverbullet.md)`, only showing the underlying Markdown formatting when the cursor is placed inside.
+The editor displays [[Markdown]] as formatted text. For example, `[SilverBullet website](https://silverbullet.md)` appears as a clickable link until you reveal its source.
 
 # Revealing the source
-In SilverBullet, you can always see the underlying format by moving your cursor “inside” any formatted element with the keyboard, or by **Alt-clicking** (or Option-clicking on Mac) on any piece of “previewing” text.
+On an editable page, moving the cursor inside a formatted element reveals its source. **Alt-click** (or **Option-click** on Mac) explicitly reveals source in both editable and read-only pages.
+
+In a read-only page, ordinary keyboard navigation keeps links and widgets rendered. Alt/Option-click to reveal source, then select and copy it. The source stays visible while the selection touches its range; moving entirely outside it hides the source again. Read-only access does not allow you to change the page.
 
 # Toggling live preview
 If you prefer to see the raw markdown at all times, run the ${widgets.commandButton("Editor: Toggle Markdown Syntax Rendering")} command. This switches between live preview mode and raw markdown mode.
 
 # Widget rendering
-[[Space Lua#Expressions]] (`${...}`) are rendered inline in place. The underlying code is hidden until you move your cursor into the expression. This is what makes SilverBullet pages feel dynamic — queries, templates, and widgets all render seamlessly within the document. An expression re-runs when something it read changes; see [[API/widget#When expressions update]]. Use the ⋯ menu on a block widget to reload, copy or bake it.
+[[Space Lua#Expressions]] (`${...}`) are rendered inline in place. The underlying code follows the source-reveal rules above. Queries, templates and widgets display their results within the document. An expression re-runs when something it read changes; see [[API/widget#When expressions update]]. Use the ⋯ menu on a block widget to reload, copy or bake it.

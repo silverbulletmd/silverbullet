@@ -40,4 +40,4 @@ The bar at the bottom shows the query (at least part of it).
 * **Run in Console** runs it in the [[Workbench/Console|Console]], where you can look at its result as Lua values.
 
 # Editing a query on a page
-To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. This is “best effort” not every query can be reverse-engineered to a query editable in the Query Workbench.
+To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. This is best effort: not every handwritten query can be represented by the visual builder. Editing and inserting queries requires a writable page. For a complete exercise in your own space, follow [[Guide/Build Your First Query]].

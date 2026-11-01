@@ -33,7 +33,7 @@ Here are some things that a library may provide:
 # Can I change libraries locally?
 Libraries you manually installed can be freely changed. Do note that when you attempt to update them, your local changes may be overwritten.
 
-The [[^Library/Std]] library comes “baked in” with SilverBullet and is read only. You cannot change it. However, for most things there are ways to override or disable standard behavior, check [[Space Lua#Load order]] for some hints.
+The [[^Library/Std]] library comes “baked in” with SilverBullet and is read only. You cannot change it. However, for most things there are ways to override or disable standard behavior, check [[Space Lua#Definition loading]] for some hints.
 
 # How do I develop my own library?
 See [[Library/Development]]

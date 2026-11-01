@@ -224,22 +224,22 @@ The control shown depends on the schema `type`:
 * `string` with `enum`: dropdown
 * `string`: text input, or password input when `ui.inputType` is `"password"`
 * `number`: number input
-* Anything else: a "Configure manually in CONFIG" hint; the user must edit the [[CONFIG]] page directly
+* Anything else: a “Configure manually in CONFIG” hint; the user must edit the [[CONFIG]] page directly
 
-The field's `description` is shown as helper text below the label.
+The field’s `description` is shown as helper text below the label.
 
-Nested schemas can carry their own `ui` annotations. When a parent object's children all have `ui` set, the parent itself is skipped and each child appears as an individual field. This is how related options such as `smartQuotes.double.left` and `smartQuotes.double.right` become separate rows in the same category.
+Nested schemas can carry their own `ui` annotations. When a parent object’s children all have `ui` set, the parent itself is skipped and each child appears as an individual field. This is how related options such as `smartQuotes.double.left` and `smartQuotes.double.right` become separate rows in the same category.
 
 ### Categories
 
-Registered categories appear in descending `priority`, with higher values first. A category's optional `description` appears at the top of the category. Categories referenced by a schema but never registered appear after registered categories in alphabetical order.
+Registered categories appear in descending `priority`, with higher values first. A category’s optional `description` appears at the top of the category. Categories referenced by a schema but never registered appear after registered categories in alphabetical order.
 
 
 ## Merging and removing values
 
 `config.merge(path, values)` shallow-merges a table into the table at `path`: fields in `values` replace existing ones, and all other existing fields are kept. This is what the `*.define` APIs (`command.define`, `tag.define`, `taskState.define` etc.) use, so calling them again with the same name adds to or overrides an earlier definition rather than replacing it.
 
-Lua tables can't hold `nil`, so to remove a field set it to the special `config.unset` value:
+Lua tables can’t hold `nil`, so to remove a field set it to the special `config.unset` value:
 
 ```lua
 -- Removes the key binding from an earlier definition, keeps everything else
@@ -253,7 +253,7 @@ command.define {
 
 ## Writing the CONFIG page
 
-`config.set` only changes the running configuration. To persist a value, use `config.persist(path, value)`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page, leaves everything else untouched, and reloads configuration. If CONFIG doesn't exist yet, it is created.
+`config.set` only changes the running configuration. To persist a value, use `config.persist(path, value)`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page, leaves everything else untouched, and reloads configuration. If CONFIG doesn’t exist yet, it is created.
 
 ```lua
 config.persist("share.silverbullet.spaces", {"https://example.com/notes"})

@@ -1,34 +1,37 @@
 #getting-started
 
-Running into trouble? Sorry to hear it. Let's figure this out.
+Start with the section for the application you use. If you ask the [community for help](https://community.silverbullet.md/), include whether you use Desktop or a browser connected to Server, the version, what you expected and what happened.
 
-Here are some things you can try when things don't work. If you're still stuck — ask the [community for help](https://community.silverbullet.md/).
+# Desktop
+For an error inside an open space, inspect the log in [[Workbench/Console]]. If it started after adding a script, style or library, review that change through the relevant Workbench tab.
 
-The starting point is always [[Log|Logs]] to see if you see anything suspicious.
+If the local page is correct but another device has an older version, check the space’s **Sync** settings in the Desktop dashboard and confirm that the external Server is reachable. [[Desktop Sync]] explains the connection setup. If you do not use an external Server, there is no Desktop–Server sync to diagnose.
 
-# Disable features
-Depending on the situation you may (temporarily) disable various client features by appending any of the following to any SilverBullet URL (e.g. `http://localhost:3000/?disableSpaceLua=1`):
+Check [[Desktop Updates]] for an available update. Before changing or replacing files to recover a space, preserve a copy and follow [[Guide/Storage and Recovery]]. Desktop stores the space in a local folder; the browser cache reset below does not repair those files.
 
-* `?disableSync=1` disables synchronization with the server
-* `?disableSpaceLua=1` disables loading of all [[Space Lua]] scripts
-* `?disableSpaceStyle=1` disables loading of all [[Space Style]]
-* `?disablePlugs=1` disables loading of all non built-in [[Plugs]]
+# Server
+If the Server cannot be reached, check that its process is running, then inspect its logs and any reverse-proxy logs; see [[Log]]. Verify the listening address and port in [[Install/Configuration]] and the setup in [[Install/Network and Internet]]. If the Server responds but access is denied, check the account and space access settings in the [[Dashboard]].
 
-These can be combined: `?disableSpaceLua=1&disableSpaceStyle=1`
+For errors after the editor opens, inspect [[Workbench/Console]] and the browser’s JavaScript console. The following browser options help isolate scripts, styles, plugs and offline-cache problems.
 
-# Client reset
-If all else fails, you can perform a full client reset by adding `?resetClient=1` to any SilverBullet URL.
+## Disable client features
+Temporarily disable a feature by appending one of these options to the space URL, for example `http://localhost:3000/?disableSpaceLua=1`:
 
-This will:
-1. Confirm you want to perform a full client reset
-2. Wipe all data stored locally in your browser (IndexedDB, unregister the service worker)
-3. Reload the client, initiating a full resync
+* `?disableSync=1` disables browser offline synchronization with the Server.
+* `?disableSpaceLua=1` disables loading [[Space Lua]] scripts.
+* `?disableSpaceStyle=1` disables loading [[Space Style]].
+* `?disablePlugs=1` disables loading non-built-in [[Plugs]].
 
-> **warning** Warning
-> A client reset wipes your local cache. Any unsynced local changes will be lost. Make sure your server is accessible before resetting, so the client can resync.
+Combine options with `&`, for example `?disableSpaceLua=1&disableSpaceStyle=1`. Remove the options when you finish diagnosing the problem.
 
-# Server-side debugging
-* `SB_HTTP_LOGGING`: Set this environment variable to enable HTTP request logging
-* `SB_LOG_PUSH`: Set this to ask clients to push their logs to the server
+## Reset a browser client
+If the problem is in the browser’s local cache, adding `?resetClient=1` to the space URL offers a full client reset. After confirmation, it clears browser storage, unregisters the service worker and reloads the client to synchronize again.
 
-See [[Install/Configuration]] for all configuration options.
+> **warning** Unsynchronized edits will be lost
+> Check that the Server is accessible and preserve any edits that have not reached it before resetting the browser. This clears the browser’s copy, not the Server’s files.
+
+## Server-side debugging
+* `SB_HTTP_LOGGING`: enable HTTP request logging.
+* `SB_LOG_PUSH`: ask clients to push their logs to the Server.
+
+See [[Install/Configuration]] for configuration options and [[Guide/Storage and Recovery]] for restoring files or revision history.

@@ -22,5 +22,5 @@ In this query, `t.name` is the link **target** (the page that does not yet exist
 
 Triage guidance:
 - **Real typo**: fix the link on the source page.
-- **Intentional placeholder**: you mean to write the page eventually, then leave it. Aspiring pages double as a "to-write" backlog and appear in the page picker as a reminder.
+- **Intentional placeholder**: you mean to write the page eventually, then leave it. Aspiring pages double as a “to-write” backlog and appear in the page picker as a reminder.
 - **Library/meta target**: not yours to fix, those links are maintained by the library.

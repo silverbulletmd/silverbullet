@@ -13,7 +13,7 @@ The `icon` API renders icons as SVG markup, for [[Widget|widget]] HTML and other
 
 `icon.feather(name)`
 
-Renders a Feather icon to SVG markup by name, or nil when the name isn't a Feather icon. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
+Renders a Feather icon to SVG markup by name, or nil when the name isn’t a Feather icon. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
 
 **Parameters:**
 
@@ -21,7 +21,7 @@ Renders a Feather icon to SVG markup by name, or nil when the name isn't a Feath
 
 **Returns:**
 
-- `string` — The icon's SVG markup, or nil when unknown.
+- `string` — The icon’s SVG markup, or nil when unknown.
 
 **Example:**
 
@@ -44,6 +44,6 @@ Renders a batch of Feather icons to SVG markup in one round trip, so panels can 
 - `table` — Map of icon name to SVG markup.
 <!--/lua-->
 
-Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel's content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/view|view]] icons use internally — don't call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the view resolves them, lazily and in one batch per view refresh. See [[API/widget#Presentation]].
+Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel’s content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/view|view]] icons use internally — don’t call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the view resolves them, lazily and in one batch per view refresh. See [[API/widget#Presentation]].
 
 [Feathericons.com](https://feathericons.com) lists the available names. The namespace is the point, not the implementation: `icon.feather`/`icon.resolveFeather` are the first of what could eventually be more than one icon set, each reached the same way (`icon.<set>...`) if and when a second one arrives — `icon.lucide`, say.

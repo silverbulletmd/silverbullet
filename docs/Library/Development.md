@@ -51,7 +51,7 @@ For the purposes of this example, let’s use Github. Create a [[^Library/Std/In
 
 [Create a new github repo](https://github.com/new), you can name it something like `silverbullet-libraries`.
 
-In your library to be shared, run the ${widgets.commandButton "Share: Page"} command, then select “Github file”. This will ask for a few things:
+In your own writable space, open the library page and run the `Share: Page` command, then select “Github file”. This will ask for a few things:
 1. The repo name: enter your `user/repo` here
 2. The branch name: you can keep this as `main`
 3. The file name: while this defaults to using your full page, remove that and just name it e.g. `My Library.md`
@@ -59,11 +59,11 @@ In your library to be shared, run the ${widgets.commandButton "Share: Page"} com
 
 If all went well, an initial version of your page should now be uploaded to github, check your repo page.
 
-You’ll notice that a few [[Share]] related frontmatter keys were set in your local copy. You can now make further changes to your library and run the ${widgets.commandButton "Share: Page"} command again. After entering another commit message your page will be pushed again. This is how you publish new versions of your library for other people to use.
+You’ll notice that a few [[Share]] related frontmatter keys were set in your local copy. You can now make further changes to your library and run the `Share: Page` command again. After entering another commit message your page will be pushed again. This is how you publish new versions of your library for other people to use.
 
 If you used `files` to include additional assets, you have to commit those to the repository through other means.
 
-Your library is now ready to install, you can test this by running ${widgets.commandButton "Library: Install"} in a fresh space. As URI use the value of what is generated under `share.uri` in your library’s frontmatter.
+Your library is now ready to install, you can test this by running `Library: Install` in a fresh space. As URI use the value of what is generated under `share.uri` in your library’s frontmatter.
 
 You can now [broadcast that your library is ready to install](https://community.silverbullet.md/c/plugs-libraries/14)!
 
@@ -72,7 +72,7 @@ If you develop a few libraries, it may be good to make them more discoverable. T
 
 For this, create another page in your space, this time under `Repository/`, e.g. `Repository/myuser` and tag it with `#meta/repository`.
 
-In the page body, put a list of all your libraries, encoded as [[Object#data|data objects]] as follows:
+In the page body, put a list of all your libraries, encoded as [[Tag/data|data objects]] as follows:
 
     ---
     tags: meta/repository
@@ -102,4 +102,4 @@ Additional recommended keys are:
 
 Now share this repo page using [[Share]] to the same github repo (or any other, it doesn’t really matter), and call it `REPO.md` (by convention).
 
-Then announce to the [community](https://community.silverbullet.md/c/plugs-libraries/14) that your repo is open for business and they can add it via the ${widgets.commandButton "Library: Add Repository"} command (using the same `share.uri` set in your frontmatter).
+Then announce to the [community](https://community.silverbullet.md/c/plugs-libraries/14) that your repo is open for business and they can add it via the `Library: Add Repository` command (using the same `share.uri` set in your frontmatter).

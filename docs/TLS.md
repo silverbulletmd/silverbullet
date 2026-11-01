@@ -12,7 +12,7 @@ The limitations are:
 * The server must remain reachable. Offline startup, cached file access, and offline synchronization are unavailable. If saving fails, keep the editor open until it can save.
 * Local data encryption and OIDC/SSO sign-in are disabled. Use a local account with a password. The local index is stored unencrypted in the browser.
 * Browser-based CLI authorization still requires HTTPS or loopback.
-* Text copy buttons use the browser's legacy copying support. Normal keyboard copy/paste remains available. Programmatic image/binary copying requires HTTPS or localhost.
+* Text copy buttons use the browser’s legacy copying support. Normal keyboard copy/paste remains available. Programmatic image/binary copying requires HTTPS or localhost.
 
 And obviously, HTTP does not encrypt or authenticate network traffic: credentials, notes, and application code can be intercepted or modified by someone with access to the connection.
 
@@ -61,7 +61,7 @@ Replace `silverbullet.mydomain.com` with any domain that you have configured to 
 Restart Caddy and access SilverBullet via `https://silverbullet.mydomain.com`. On first load, Caddy will work with Let’s Encrypt to issue a TLS certificate and install (and update) it automatically, this may take a minute, so be patient.
 
 ## Enable HTTP/2 on your reverse proxy
-Whichever reverse proxy you use, make sure it serves SilverBullet over HTTP/2. Over HTTP/1.1, browsers allow only six simultaneous connections per host, and SilverBullet's service worker and sync engine can use all of them. When that happens, every request stalls: the client reports "Could not reach remote server, we're offline or the server is down", requests to `/.ping` time out, and pages load slowly from the local copy, even though the server itself is up.
+Whichever reverse proxy you use, make sure it serves SilverBullet over HTTP/2. Over HTTP/1.1, browsers allow only six simultaneous connections per host, and SilverBullet’s service worker and sync engine can use all of them. When that happens, every request stalls: the client reports “Could not reach remote server, we’re offline or the server is down”, requests to `/.ping` time out, and pages load slowly from the local copy, even though the server itself is up.
 
 * **Caddy** enables HTTP/2 by default, so the configuration above needs no changes.
 * **nginx**: add `http2 on;` to the `server` block (nginx 1.25.1 and later), or use `listen 443 ssl http2;` on older versions.
@@ -73,10 +73,10 @@ To check, run the following, which should print `2`:
 curl -s -o /dev/null -w '%{http_version}\n' https://silverbullet.mydomain.com/.ping
 ```
 
-## Don't buffer the event stream
+## Don’t buffer the event stream
 SilverBullet keeps a server-sent events stream open at `/.events` for live updates. The server sends a ping on it every 30 seconds. If your reverse proxy buffers or compresses this stream, those pings never reach the browser. Live updates then fall back to polling, and stale streams can pile up in the browser and hold connections open.
 
-* **Caddy** passes event streams through unbuffered, so the configuration above needs no changes. If you added an `encode` directive, make sure it doesn't apply to `text/event-stream`.
+* **Caddy** passes event streams through unbuffered, so the configuration above needs no changes. If you added an `encode` directive, make sure it doesn’t apply to `text/event-stream`.
 * **nginx**: add a location for `/.events` next to your existing one, with buffering and compression turned off:
 
   ```
@@ -92,7 +92,7 @@ SilverBullet keeps a server-sent events stream open at `/.events` for live updat
   }
   ```
 
-* **Nginx Proxy Manager**: edit the proxy host, open the _Advanced_ tab and paste the same block, with `proxy_pass $forward_scheme://$server:$port;` so it uses the host's forward settings.
+* **Nginx Proxy Manager**: edit the proxy host, open the _Advanced_ tab and paste the same block, with `proxy_pass $forward_scheme://$server:$port;` so it uses the host’s forward settings.
 
 ## Community guides
 For end-to-end walkthroughs of specific setups, the community has written several [guides](https://community.silverbullet.md/c/guides/6):

@@ -5,9 +5,9 @@ tags: glossary
 While SilverBullet is aimed primarily at text-based content, documents let a space contain source files, images, PDFs, audio, video, and other attachments. Documents, like [[Page|pages]], are ultimately just files on disk. Installed plugs can provide specialized editors, while built-in fallbacks edit UTF-8 text and display browser-supported media.
 
 # Uploading
-To create a document, you have a few options:
+Upload files in your own writable space. The published documentation cannot store an upload for you. You have a few options:
 
-* Use the ${widgets.commandButton("Upload: File")} command (especially useful on mobile devices)
+* Use the `Upload: File` command (especially useful on mobile devices)
 * Drag & drop files or images onto a page
 * Copy & paste files or images onto a page
 
@@ -26,10 +26,10 @@ The built-in text editor accepts valid UTF-8 documents up to 5 MiB, with syntax 
 # Linking
 Documents can be linked to in two ways:
 * Via the regular link syntax: `[link text](document.pdf)`. URLs here are relative to the page, so on a page named `MyFolder/Hello`, `[link text](document.pdf)` would refer to a document stored in `MyFolder/document.pdf`.
-* Via the wiki link syntax: `[[document.pdf]]`. These paths are absolute and relative to your space’s root, just like regular page links. That is: on a page `MyFolder/Hello` a document link `[[document.pdf]]` would link to the file `document.pdf` in the space’s root folder.
+* Via the wiki link syntax: `[[document.pdf]]`. An exact path from the space root wins. If no exact path exists, SilverBullet looks for a matching name elsewhere in the space, just as it does for page links. For example, from `MyFolder/Hello`, `[[document.pdf]]` first looks for `document.pdf` at the space root. See [[Link#Link resolution]] for fallback matching and ambiguity.
 
 # Embedding
-Media can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`. Images, video, audio, and PDFs are supported using the browser's native media elements and range-capable file responses.
+Media can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`. Images, video, audio, and PDFs are supported using the browser’s native media elements and range-capable file responses.
 
 * `![alternate text](image.png)`
 * `![[image.png]]`
@@ -44,4 +44,4 @@ In addition, media can be _sized_ using the following syntax:
 * Specifying a percentage width: `![Alt text|30%](image.png)` or `![[image.png|30%]]`
 * Combining a percentage width with a pixel height: `![Alt text|30%x200](image.png)` or `![[image.png|30%x200]]`
 
-Numeric dimensions are in pixels. Percentage widths are relative to the containing content area and resize with it, rather than being a percentage of the image's original size. Decimal percentages such as `12.5%` are supported. Specifying only a width preserves the image's proportions; specifying both dimensions can stretch it. Height must be in pixels; percentage heights are not supported.
+Numeric dimensions are in pixels. Percentage widths are relative to the containing content area and resize with it, rather than being a percentage of the image’s original size. Decimal percentages such as `12.5%` are supported. Specifying only a width preserves the image’s proportions; specifying both dimensions can stretch it. Height must be in pixels; percentage heights are not supported.

@@ -26,7 +26,7 @@ tag.define {
 }
 ```
 
-Pages or objects tagged with `#contact` will be validated against this schema — if a field has the wrong type, you'll see a lint warning in the editor.
+Pages or objects tagged with `#contact` will be validated against this schema — if a field has the wrong type, you’ll see a lint warning in the editor.
 
 ## Configuration definitions
 The `config.define` function uses schemas to validate configuration values:

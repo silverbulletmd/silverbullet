@@ -6,12 +6,12 @@ references:
 - plugs/editor/page.ts
 ---
 
-Virtual pages are read-only pages that don't exist as files in your space. Instead, they are generated dynamically when you navigate to them. This is useful for building pages whose content is computed on-the-fly — for example, pages that show all objects with a particular tag.
+Virtual pages are read-only pages that don’t exist as files in your space. Instead, they are generated dynamically when you navigate to them. This is useful for building pages whose content is computed on-the-fly — for example, pages that show all objects with a particular tag.
 
 # How it works
 You define a virtual page by calling `virtualPage.define` with a Lua pattern and a function. When someone navigates to a page name matching the pattern, SilverBullet calls your function instead of loading a file from disk.
 
-The function receives the captured groups from the pattern as arguments, and returns the markdown content to display.
+The current standard-library dispatcher passes the first captured value from the pattern to the function. The function returns the Markdown content to display. Put definitions in a `space-lua` block in your own space, then run `System: Reload`.
 
 ```lua
 virtualPage.define {
@@ -22,7 +22,7 @@ virtualPage.define {
 }
 ```
 
-Navigating to `greeting:World` renders a page with the heading "Hello, World!" — but no file is created.
+Navigating to `greeting:World` renders a page with the heading “Hello, World!” — but no file is created.
 
 Virtual pages are always **read-only**. The editor disables editing controls automatically.
 
@@ -37,7 +37,7 @@ Tag pages are defined in the standard library and work out of the box. You can o
 Navigating to a page named `uri:https://example.com/page` fetches and displays the content from that URL. This is useful for pulling in external markdown content.
 
 # Defining your own virtual pages
-Here's a more complete example that queries the object index:
+Here’s a more complete example that queries the object index:
 
 ```lua
 virtualPage.define {
@@ -61,18 +61,20 @@ virtualPage.define {
 Navigate to `recent:10` to see the 10 most recently modified pages.
 
 # Multiple capture groups
-Patterns can capture multiple groups, each passed as a separate argument:
+The current dispatcher passes only the first match value to `run`. If you need several values, capture the complete suffix and parse it inside the callback:
 
 ```lua
 virtualPage.define {
-  pattern = "lookup:(.+):(.+)",
-  run = function(type, id)
-    return "# " .. type .. "\nLooking up: " .. id
+  pattern = "lookup:(.+)",
+  run = function(suffix)
+    local kind, id = suffix:match("([^:]+):(.+)")
+    if not kind then return "Use lookup:kind:id" end
+    return "# " .. kind .. "\nLooking up: " .. id
   end
 }
 ```
 
 # How it works under the hood
-Virtual page definitions are stored in the config system under the `virtualPages` key. When a page is being created, SilverBullet fires the `editor:pageCreating` event. The standard library's event listener checks all registered patterns against the page name. If a match is found, the corresponding `run` function is called, and its return value becomes the page content with read-only permissions.
+Virtual page definitions are stored in the config system under the `virtualPages` key. When a page is being created, SilverBullet fires the `editor:pageCreating` event. The standard library’s event listener checks all registered patterns against the page name. If a match is found, the corresponding `run` function is called, and its return value becomes the page content with read-only permissions.
 
 See also: [[API/event]], [[API/config]]

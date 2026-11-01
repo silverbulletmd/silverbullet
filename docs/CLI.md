@@ -50,7 +50,7 @@ This interactive wizard will prompt for:
 2. The **URL** of your SilverBullet server
 3. **Authentication** method ([[Install/Configuration#Authentication|token]], username/password, or none)
 
-The name defaults to the URL's last path segment, or else the first part of its host: both `https://sb.example.com/notes` and `https://notes.example.com` become `notes`. To skip the prompts, pass the URL and flags:
+The name defaults to the URL’s last path segment, or else the first part of its host: both `https://sb.example.com/notes` and `https://notes.example.com` become `notes`. To skip the prompts, pass the URL and flags:
 ```bash
 sb space add https://notes.example.com --name work --auth browser --no-browser
 echo "$TOKEN" | sb space add https://notes.example.com --auth token
@@ -68,9 +68,9 @@ sb open ./notes                  # the same, for a given file or folder
 ```
 New spaces start with the shell off and managed revisions, like spaces created in SilverBullet Desktop. The name defaults to the folder name; pass `--name` to choose one. Names are trimmed, cannot be empty or contain control characters, and must be unique. `sb space add` needs an existing folder; use `sb space create` for a new one. Space commands print JSON when their output is piped or with `--json`, and text on a terminal or with `--text`.
 
-Inside a registered folder, commands pick that space automatically (the most specific folder wins), so `--space` is optional. Commands that need the space's runtime (`eval`, `script`, `query`, `logs`, `screenshot`) start SilverBullet Desktop and wait for the space when it is not open yet.
+Inside a registered folder, commands pick that space automatically (the most specific folder wins), so `--space` is optional. Commands that need the space’s runtime (`eval`, `script`, `query`, `logs`, `screenshot`) start SilverBullet Desktop and wait for the space when it is not open yet.
 
-Folder spaces are served by SilverBullet Desktop. Without it installed, file commands (`fs`), runtime commands, and creating, adding, renaming, moving or relocating a folder space all fail with an error saying Desktop is required. `sb space list` and `sb space remove` still work, so entries left by an uninstalled Desktop can be cleaned up. Remote spaces don't need Desktop.
+Folder spaces are served by SilverBullet Desktop. Without it installed, file commands (`fs`), runtime commands, and creating, adding, renaming, moving or relocating a folder space all fail with an error saying Desktop is required. `sb space list` and `sb space remove` still work, so entries left by an uninstalled Desktop can be cleaned up. Remote spaces don’t need Desktop.
 
 ## Managing spaces
 ```bash
@@ -85,12 +85,10 @@ Single-file spaces opened in Desktop are hidden from the list; add `--all` to sh
 # Global flags
 These flags are available on all commands that connect to a space:
 
-| Flag | Description |
-|---|---|
-| `-s, --space <name>` | Select a space by name (auto-selected if only one is configured) |
-| `--url <url>` | Connect directly to a URL (bypasses space config) |
-| `--token <token>` | Authentication token (use with `--url`) |
-| `-t, --timeout <seconds>` | Request timeout (default: 30) |
+* `-s, --space <name>`: Select a space by name (auto-selected if only one is configured)
+* `--url <url>`: Connect directly to a URL (bypasses space config)
+* `--token <token>`: Authentication token (use with `--url`)
+* `-t, --timeout <seconds>`: Request timeout (default: 30)
 
 # Discovering commands
 
@@ -107,14 +105,12 @@ Runtime commands may take a few seconds on first use while the [[Runtime API]] s
 
 List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`; quote paths containing spaces and use `/` between directories. Patch input, recursive deletion, copy, and move are not supported. To search page content, use [[#`search <text>`|`sb search`]].
 
-| Command | Behavior |
-|---|---|
-| `sb fs ls [path]` | Immediate children; `list` is an alias. Use `--recursive`, repeatable `--glob`, and optional `--limit`. |
-| `sb fs read <path>` | Exact bytes on stdout, including binary attachments when redirected. |
-| `sb fs stat <path>` | File metadata and revision. |
-| `sb fs write <path>` | Write stdin or `--file <local-path>`; requires an explicit write policy. |
-| `sb fs edit <path>` | Exact text replacement; supports JSON batches, `--all`, and `--dry-run`. |
-| `sb fs rm <path>` | Delete one file; `delete` is an alias. |
+* `sb fs ls [path]`: Immediate children; `list` is an alias. Use `--recursive`, repeatable `--glob`, and optional `--limit`.
+* `sb fs read <path>`: Exact bytes on stdout, including binary attachments when redirected.
+* `sb fs stat <path>`: File metadata and revision.
+* `sb fs write <path>`: Write stdin or `--file <local-path>`; requires an explicit write policy.
+* `sb fs edit <path>`: Exact text replacement; supports JSON batches, `--all`, and `--dry-run`.
+* `sb fs rm <path>`: Delete one file; `delete` is an alias.
 
 ```bash
 sb fs ls Projects --recursive --glob '*.md' --glob '!Projects/Archive/**'
@@ -172,7 +168,7 @@ sb eval 'system.reboot()'   # pick up edited Space Lua, styles and config
 sb eval 'space.lint("Page")'   # problems on a page; space.lint() checks every page
 ```
 
-To check a page without opening it in the editor, call [[API/space#space.lint]]: it runs the editor's linters (frontmatter and data block YAML, `space-lua` syntax, objects checked against tag schemas, anchors) and renders every `${…}` directive and Lua code widget, returning a list of `{page, line, column, severity, message, source}` for the ones that fail. An empty list means no problems. Widgets render with the Space Lua currently loaded, so after editing `space-lua` blocks run `sb eval 'system.reboot()'` first.
+To check a page without opening it in the editor, call [[API/space#space.lint]]: it runs the editor’s linters (frontmatter and data block YAML, `space-lua` syntax, objects checked against tag schemas, anchors) and renders every `${…}` directive and Lua code widget, returning a list of `{page, line, column, severity, message, source}` for the ones that fail. An empty list means no problems. Widgets render with the Space Lua currently loaded, so after editing `space-lua` blocks run `sb eval 'system.reboot()'` first.
 
 ## `script [code]`
 Execute Lua from inline code, `--file`, or stdin when neither is supplied. Inline code and `--file` are mutually exclusive. The older `lua-script [file]` form remains available for compatibility.
@@ -186,7 +182,7 @@ echo 'local x = 40; return x + 2' | sb script
 
 ## `query <expression>`
 
-Run a SLIQ query with `sb query 'from tags.page select name' --json`. See [[#Exploring your space]] for listing the space's tags and reading the query syntax reference. Requires the Runtime API.
+Run a SLIQ query with `sb query 'from tags.page select name' --json`. See [[#Exploring your space]] for listing the space’s tags and reading the query syntax reference. Requires the Runtime API.
 
 Quote the query in single quotes and use double quotes inside it. If the query itself contains a single quote, pass it through a quoted heredoc:
 
@@ -203,7 +199,7 @@ Query errors carry hints where the cause is a common mistake. Using `=` where `=
 `eval`, `script`, and `query` return plain JSON (or the other `-o` formats rendered from it). A missing value, such as a query column absent on some rows, is `null` and the key stays: `{"name":"Books/Beta","rating":null}`. A query collection such as `index.pages("book")` returns its rows as an array, capped at 1000 rows; a longer one ends with a `"<truncated: N more rows; use sb query with where/limit>"` entry, so filter it with `sb query` instead. Values with no JSON form appear as string markers such as `"<function>"`. See [[Runtime API#Results]] for the full mapping.
 
 ## `search <text>`
-Search the pages of the space (see [[Search]]) through the server's [[HTTP API#Search|search API]], so no Lua runtime or headless browser is needed. Prints one line per page, `Page:line  excerpt`, best match first; with `--json`, the server's response (`items`, `total`, `partial`, `notice`). Notices, such as a semantic search falling back to word matching, and a truncated result go to stderr.
+Search the pages of the space (see [[Search]]) through the server’s [[HTTP API#Search|search API]], so no Lua runtime or headless browser is needed. Prints one line per page, `Page:line  excerpt`, best match first; with `--json`, the server’s response (`items`, `total`, `partial`, `notice`). Notices, such as a semantic search falling back to word matching, and a truncated result go to stderr.
 
 ```bash
 sb search 'garden irrigation'
@@ -211,13 +207,11 @@ sb search 'garden irrigation' --mode phrase --limit 5 --json
 sb search --status
 ```
 
-| Flag | Description |
-|---|---|
-| `--mode <words\|phrase\|semantic>` | How to match, like the modes of the search box: all words, exact phrase, or by meaning. Without it, the space's default: semantic where the space has semantic search, words otherwise |
-| `-n, --limit <int>` | Maximum number of pages (the server caps it at 50) |
-| `--status` | Show the state of the search index and which modes the space offers, instead of searching. A flag, so `sb search status` searches for the word "status" |
+* `--mode <words|phrase|semantic>`: How to match, like the modes of the search box: all words, exact phrase, or by meaning. Without it, the space’s default: semantic where the space has semantic search, words otherwise
+* `-n, --limit <int>`: Maximum number of pages (the server caps it at 50)
+* `--status`: Show the state of the search index and which modes the space offers, instead of searching. A flag, so `sb search status` searches for the word “status”
 
-A public visitor's connection only gets the modes the server allows visitors: no semantic search until its index is ready.
+A public visitor’s connection only gets the modes the server allows visitors: no semantic search until its index is ready.
 
 ## `related <page>`
 List the pages most similar in meaning to a page, in the same format as `search`. Pass the page name without `.md`. It needs semantic search, so it fails on a space without it (`sb search --status` shows whether the space has it), and it is not available to public visitors.
@@ -236,10 +230,8 @@ sb logs -n 20        # last 20 entries
 sb logs -f           # follow (tail) mode
 ```
 
-| Flag | Description |
-|---|---|
-| `-n, --lines <int>` | Number of entries (default: 100) |
-| `-f, --follow` | Continuously stream new log entries |
+* `-n, --lines <int>`: Number of entries (default: 100)
+* `-f, --follow`: Continuously stream new log entries
 
 ## `screenshot [file]`
 Save a PNG of the runtime client to `file` (default `screenshot.png`), or write it to stdout with `-`. With `--json`, prints the path and image dimensions. Requires the Runtime API. Navigate first, then wait with [[API/editor#editor.awaitRender]] until widgets, `${…}` expressions and queries have finished rendering.
@@ -252,14 +244,12 @@ sb screenshot projects-full.png --full-page
 sb screenshot widget.png --selector '#sb-main .sb-page-slot-page-top'
 ```
 
-| Flag | Description |
-|---|---|
-| `--selector <css>` | Capture the first matching element instead of the viewport |
-| `--full-page` | Capture the whole page, not just the first screen. Cannot be combined with `--selector` |
+* `--selector <css>`: Capture the first matching element instead of the viewport
+* `--full-page`: Capture the whole page, not just the first screen. Cannot be combined with `--selector`
 
 A plain screenshot only shows what fits in the window (800×600 for the headless client). `--full-page` scrolls the editor from the top one screen at a time, waits for the lines, widgets and queries scrolled into view to render, and stitches the screens into one PNG with the top bar once at the top. Afterwards the editor is scrolled back to where it was. Pages taller than about 12000 pixels are cut off there, and `sb` prints a note on stderr.
 
-On SilverBullet Desktop this captures the space's visible editor window.
+On SilverBullet Desktop this captures the space’s visible editor window.
 
 ## `version`
 Print the installed CLI version.
@@ -304,7 +294,7 @@ sb fs read 'Library/Std/Docs/SLIQ Reference.md'
 # Authentication
 The CLI supports three authentication methods, configured per-space during `space add`:
 
-* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on a [[Dashboard#Single-space mode|single-space]] server, or with a per-account [[Dashboard#API tokens|API token]] on an accounts-based server.
+* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on a [[Install/Server Modes#Single-space mode|single-space]] server, or with a per-account [[Authentication#API|API token]] on an accounts-based server.
 * **Password** — authenticates via `POST /.auth` (username/password), then uses the returned session cookie. Use this with `SB_USER` on a single-space server, or with an account username/password on a space you’re a member of.
 * **None** — no authentication (for local or trusted-network setups, or public spaces).
 

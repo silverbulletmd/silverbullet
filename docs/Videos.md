@@ -1,7 +1,7 @@
 ---
 description: "A collection of videos introducing SilverBullet."
 ---
-Are you a visual learning? Give these videos a watch:
+Prefer video? These introductions show SilverBullet workflows. Some recordings use older versions, so use the current written guides for exact commands and UI:
 
 ${embed.youtube "https://youtu.be/bb1USz_cEBY"}
 ${embed.youtube "https://youtu.be/7hyLvEfw34w"}

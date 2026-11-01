@@ -140,7 +140,7 @@ tag.define {
 ```space-lua
 config.set("view.defaults", {
   -- The curated Navigate tree (see [[^Library/Website]]) is this site's navigation
-  ["docs.navigate"] = { open = true, width = 260 },
+  ["docs.navigate"] = { open = true, width = 360 },
 })
 ```
 

@@ -1,7 +1,8 @@
-How pages connect in SilverBullet, and how to explore those connections: links and backlinks, tags, transclusions, the file tree and the Object Graph.
+Connect pages with [[Link|page links]] and find the places that refer back to them through [[Linked Mention|linked mentions]]. Follow [[Guide/Find and Connect Pages]] for a first example.
 
-${query[[
-  from e = docsNav.pages
-  where e.name:match "^Linking & Exploring/[^/]+$"
-  select templates.docsPage(e)
-]]}
+* [[Guide/Find Pages]] compares search, pickers and the file tree.
+* [[Graph View]] visualizes connections.
+* [[Transclusions]] embeds content from another page.
+* [[Linked Tasks]] collects tasks that link to a page.
+* [[Aspiring Pages]] explains links to pages you have not written yet.
+* [[Names]] explains how links resolve when names overlap.

@@ -32,7 +32,7 @@ There’s also a [[Guide/Working Together|guide on working together]].
 # Auto-merging concurrent edits
 When two edits land on the same file around the same time, the server reconciles them with a three-way merge (each side’s edit against the last version they agreed on) rather than just letting the last write win.
 
-Merging is line- and word-aware: if you and someone else edit *different words* in the same line or paragraph, both edits should land cleanly with no conflict. Edits that touch the same words collide — and so, occasionally, can edits that don't, when a slow or flaky connection leaves one side merging against an older version of the page than it has already received.
+Merging is line- and word-aware: if you and someone else edit *different words* in the same line or paragraph, both edits should land cleanly with no conflict. Edits that touch the same words collide — and so, occasionally, can edits that don’t, when a slow or flaky connection leaves one side merging against an older version of the page than it has already received.
 
 Propagation is near-realtime: a change made elsewhere typically shows up wherever else the file is open within a couple of seconds.
 
@@ -46,4 +46,6 @@ Images, PDFs and other binaries (and text files over the 1 MB merge limit) can�
 Changes written to a page you have open are applied to your open editor within moments, as small, cursor-preserving edits rather than a full page reload. They land in the undo history like any other edit, so `Cmd/Ctrl-z` reverts an external change too. The inserted text is briefly highlighted, fading out after a few seconds. When the server can verify who made the change, the highlight carries a small label with that account’s display name. This attribution is best-effort.
 
 # Offline and flaky networks
-SilverBullet remains local-first (see [[Sync]]): edits you make offline (or while [[Sync]] is struggling with a flaky connection) accumulate locally and reconcile with the server once you’re back online, following the same merge and conflict rules as above. A deletion never silently wins over a concurrent edit — if you edited a page that someone else deleted (or vice versa) while you were offline, the edit survives and the deletion is suppressed, surfaced to you as a notification rather than quietly discarding your work.
+With browser offline access enabled (see [[Sync]]), edits you make offline (or while [[Sync]] is struggling with a flaky connection) accumulate locally and reconcile with the server once you’re back online, following the same merge and conflict rules as above. A deletion never silently wins over a concurrent edit — if you edited a page that someone else deleted (or vice versa) while you were offline, the edit survives and the deletion is suppressed, surfaced to you as a notification rather than quietly discarding your work.
+
+Desktop edits its local folder without browser-style synchronization to its embedded server. Its optional external Server connection is [[Desktop Sync]]. Use [[Guide/Mentions and Replies]] for requests and replies alongside these concurrent-edit mechanics.

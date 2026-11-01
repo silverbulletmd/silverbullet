@@ -4,9 +4,11 @@ references:
 - plugs/index/object_api.ts
 - plugs/index/object_edit.ts
 ---
-Change, delete and create [[Object|objects]] where they are written: page frontmatter, [[Task|tasks]] and list items, paragraphs, [[Tag/data|data blocks]] and [[Tag/table|table rows]]. Use these from buttons and other widgets to build small apps on top of your pages. They edit the page's Markdown, so the change shows up in the page, its history and every query.
+Change, delete and create [[Object|objects]] where they are written: page frontmatter, [[Task|tasks]] and list items, paragraphs, [[Tag/data|data blocks]] and [[Tag/table|table rows]]. Use these from buttons and other widgets to build small apps on top of your pages. They edit the page’s Markdown, so the change shows up in the page, its history and every query.
 
-Each function takes an object as a query (or `object.append`) returns it. An object without an anchor is found by its position and checked against what you queried, so if its page changed since, the call fails with "object moved" instead of changing the wrong object; query again. Objects with a `$anchor` are found wherever they moved, and can also be passed as `{ page = "…", ref = "anchor-name" }`.
+Try these write examples in a disposable page in your own writable space. Create the named source pages and a task first; the examples assume those objects exist.
+
+Each function takes an object as a query (or `object.append`) returns it. An object without an anchor is found by its position and checked against what you queried, so if its page changed since, the call fails with “object moved” instead of changing the wrong object; query again. Objects with a `$anchor` are found wherever they moved, and can also be passed as `{ page = "…", ref = "anchor-name" }`.
 
 ```lua
 -- Mark a task done and set an attribute
@@ -28,17 +30,15 @@ object.delete(e)
 object.createPage("Contacts/Ada", { tags = "contact", company = "Acme" })
 ```
 
-| Object | What `object.update` changes | What `object.delete` removes |
-| --- | --- | --- |
-| page | frontmatter keys | the page |
-| task, item | `name` (the text), `done`/`state` (tasks), `tags`, `[key: value]` attributes | the item and its sub-items |
-| paragraph | `text`, `tags`, `[key: value]` attributes | the paragraph |
-| data block document | top-level YAML keys | the document (the block, if it was the last) |
-| table row | cells, by column name (lowercased, other characters as `_`) | the row |
+* **page**: `object.update` changes frontmatter keys; `object.delete` removes the page.
+* **task, item**: `object.update` changes `name` (the text), `done`/`state` (tasks), `tags`, `[key: value]` attributes; `object.delete` removes the item and its sub-items.
+* **paragraph**: `object.update` changes `text`, `tags`, `[key: value]` attributes; `object.delete` removes the paragraph.
+* **data block document**: `object.update` changes top-level YAML keys; `object.delete` removes the document (the block, if it was the last).
+* **table row**: `object.update` changes cells, by column name (lowercased, other characters as `_`); `object.delete` removes the row.
 
-`order` (pages and data block documents only) lists top-level keys in the order you want; keys you don't list follow in their current order. Each key moves with its nested lines and the comment lines directly above it, unchanged. For other objects, `order` fails.
+`order` (pages and data block documents only) lists top-level keys in the order you want; keys you don’t list follow in their current order. Each key moves with its nested lines and the comment lines directly above it, unchanged. For other objects, `order` fails.
 
-When the object's tag has a schema, a change that would make it invalid fails and nothing is written. On the open page each call is one undoable edit, saved right away.
+When the object’s tag has a schema, a change that would make it invalid fails and nothing is written. On the open page each call is one undoable edit, saved right away.
 
 <!--#lua spacelua.renderApiDocumentation("object") -->
 ## object.append
@@ -50,7 +50,7 @@ Adds a task, list item, table row or data block document to a page and returns i
 **Parameters:**
 
 - `page` (`string`) — Page to add to.
-- `record` (`table`) — tag = "task", "item", "table" or a data tag, plus its attributes.
+- `record` (`table`) — tag = “task”, “item”, “table” or a data tag, plus its attributes.
 - `options?` (`table`) — anchor: true or a name to add a $anchor; under: header to add a task or item under; table: tableref of the table to add a row to.
 
 **Returns:**

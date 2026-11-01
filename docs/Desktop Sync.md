@@ -2,9 +2,9 @@
 
 SilverBullet [[Desktop]] keeps your space on your computer, and can sync it with a SilverBullet Server so you can reach it from other devices and browsers.
 
-By default, your space files never leave your machine. That’s great to get started, but chances are you’d also like to access your space from _other_ devices. Perhaps other desktops running SilverBullet Desktop, or perhaps on devices where only a web browser client is available (like mobile devices).
+An external Server connection is optional. Without one, Desktop reads and writes the local space folder directly through its embedded server. Configure sync when you want another Desktop installation or a browser on another device to reach the same content. Your own libraries and external tools may also send content to other services independently of this setting.
 
-Luckily, the SilverBullet ecosystem got you covered. Here are your options.
+Choose a Server you control or a hosted instance, then connect the local space below. For other mechanisms, see [[Guide/Devices and Publishing]].
 
 # SilverBullet server
 ## Self-Hosted
@@ -17,7 +17,7 @@ A hosting provider can run SilverBullet Server for you, see [Hosted SilverBullet
 
 ## Setup
 * In your SilverBullet Desktop dashboard, hover over the space you want to set up for sync and click the gear icon.
-* Scroll down to the “Sync” section. There simply enter your SilverBullet instance’s URL and select how you want to authenticate (either via username/password or a token)
+* Scroll down to the “Sync” section. Enter the external space’s URL and choose username/password or token authentication. Use an account or token permitted to write that space, then inspect the connection status before relying on another device.
 
 # Dropbox, Syncthing, Git
 Ultimately a space is a folder of plain text markdown files on a disk. You can sync it with other devices however you want. If you have multiple machines (e.g. a laptop and desktop, or a private and work laptop) you can use whatever file sync solution you like.

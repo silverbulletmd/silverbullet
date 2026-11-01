@@ -6,7 +6,7 @@ references:
 - plug-api/types/event.ts
 - plug-api/syscalls/event.ts
 ---
-SilverBullet has its own event bus that allows different parts of the system to communicate. Events are the foundation for much of SilverBullet's extensibility — features like [[Service]], [[Virtual Pages]], widgets, and custom indexing are all built on top of events.
+SilverBullet has its own event bus that allows different parts of the system to communicate. Events are the foundation for much of SilverBullet’s extensibility — features like [[Service]], [[Virtual Pages]], widgets, and custom indexing are all built on top of events.
 
 # Subscribing to events
 Use `event.listen` to subscribe to an event:
@@ -32,7 +32,7 @@ event.dispatch("my-custom-event", {message = "Hello!"})
 Other scripts can then listen for `my-custom-event`.
 
 # Built-in events
-Here is a list of built-in events triggered by SilverBullet's core:
+Here is a list of built-in events triggered by SilverBullet’s core:
 
 ## Editor events
 * `editor:init`: Editor has initialized

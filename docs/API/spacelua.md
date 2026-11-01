@@ -13,7 +13,7 @@ The Space Lua API provides functions for working with Lua expressions and templa
 
 `spacelua.baseUrl()`
 
-Returns the SilverBullet instance's base URL, or `nil` when run on the server.
+Returns the SilverBullet instance’s base URL, or `nil` when run on the server.
 
 **Returns:**
 

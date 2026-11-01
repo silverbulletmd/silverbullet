@@ -1,54 +1,47 @@
 ---
-description: "Recommended ways to structure your space, from page names to folders."
+description: "Practical conventions for page names, links, tags and live collections."
+tags: guide
 ---
-#guide
-
-Let’s be clear upfront: your space is your own, you can structure it however you like. That said, over the years a few “best practices” of how to structure your space have emerged.
-
-If you don’t have strong preferences coming in, consider following them.
+Choose conventions that make your notes easier to write and find, and add structure when it solves a problem you actually have.
 
 # Flat name space
-While SilverBullet will dynamically create [[Folder|Folders]] when you use slashes (`/`) in your page names, the typical SilverBullet user tends to use this feature lightly.
+Starting with top-level pages such as `Photo Walk` and `Reading List` keeps the initial filing decision small. [[Link|Links]] connect related subjects, and tags can place the same page in several categories. You can use [[Folder|folders]] when a hierarchy is useful: `Trips/Photo Walk` appears under `Trips/` in the [[File Tree]]. Run `Navigate: Tree` to open it.
 
-Organization is achieved through incrementally adding [[Frontmatter]] and [[Markdown/Hashtags]], rather than investing in a very structured folder structure upfront. This is also why, by default, SilverBullet does not ship with the classic file tree — it would be very boring to look at.
-
-The advantage of this approach is multi-fold:
-
-1. Reduces “decision fatigue”: you create a new page, where should you put it? Answer: top level.
-2. Whereas a page can only ever live in a single folder, it can be tagged with an unlimited number of hashtags. This gives more flexibility.
-
-As a result, this means that most content pages tend to live at the “top level” (see this space as an example).
-
-A few exceptions:
-* `Inbox/` for quick notes
-* `Journal/` for journal entries
-* `Library/` for [[Library|libraries and customizations]]
-
-These make sense to split out, and keep contained in their own folders, away from other areas of your space.
+Common folder conventions include `Inbox/` for quick notes, `Journal/` for dated entries and `Library/` for installed [[Library|libraries and customizations]]. These are useful patterns, not prerequisites for taking notes. [[Guide/Find Pages]] compares the navigation options.
 
 # Frontmatter and tags
-When adding a [[Frontmatter]] section to a page, it becomes cleaner to move any [[Markdown/Hashtags]] you previously put in your page to the `tags` attribute:
+Use a standalone hashtag paragraph for a simple page category. When you need more attributes, put them together in [[Frontmatter]] at the beginning of the page:
 
-```yaml
+```markdown
 ---
-role: Data analyst
-tags: sometag anothertag
+tags: outing photography
+status: planned
+date: "2026-06-14"
 ---
+A plan for a morning photo walk.
 ```
 
+If every page of a kind uses the same tag, you can query them together even when their other fields differ. A tag on a task categorizes that task; it does not tag the page. [[Guide/Organize with Tags and Attributes]] teaches those scopes, and [[Markdown/Hashtags]] and [[Attribute]] retain the precise rules.
+
 # Page conventions
-* **Title-Case page names**: name a page as you’d write its title in prose: `Customer Persona`, not `customer-persona`. See [[Names]] for additional rules and hard constraints.
-* **No top-of-page H1**: the page name is already the title, don’t restate it as an `# H1`.
-* **First line is a one-sentence summary**: the opening body line defines or summarises the page, this is what link previews and catalogs quote.
-* **Absolute wiki links**: links are paths from the space root: `[[Folder/Page]]`. This way, links stay valid no matter where the linking page lives or moves. See [[Link]].
+* Use readable titles such as `Reading List`. [[Names]] lists naming constraints.
+* Let the filename supply the page title; start the body with a useful summary rather than repeating it as an H1.
+* Make the opening paragraph meaningful by itself; previews and catalogs can quote it.
+* Write wiki links from the space root: `[[Trips/Photo Walk]]`. The path does not depend on where the linking page lives. See [[Link]].
+* Keep the source Markdown readable outside SilverBullet. Explain what a computed collection means in ordinary prose too.
 
 # Querying your space
-SilverBullet's [[Object Index]] is the engine behind every live query:
+Begin in [[Workbench/Query]] to inspect records and build filters. [[Guide/Build Your First Query]] teaches this without handwritten syntax. When you adapt the source:
 
-* Prefer `index.contentPages()` over `tags.page` for page lists and lint sweeps — it filters out [[Meta Page|Meta Pages]] (pages tagged `meta` or `meta/*`) so Library and configuration pages do not pollute your results. See [[Object Index]].
-* The index is **asynchronous** — after editing a page, expect a few seconds before queries reflect the change. Re-run before drawing conclusions. See [[Object Index]].
-* For cross-cutting collections (all open questions, all ADRs), use the **aggregator page + `tagPage`** pattern instead of hand-maintained lists. See [[Guide/Aggregator Pages]].
-* Find broken or forward-references via the `aspiring-page` tag. See [[Aspiring Pages]].
+* Prefer `index.contentPages()` for ordinary page lists; it excludes [[Meta Page|meta pages]] such as library and configuration pages. Use `index.pages()` when you want those included.
+* Choose the right kind: `index.tasks("packing")` reads packing-tagged tasks; `index.contentPages("packing")` reads packing-tagged pages.
+* Allow asynchronous indexing to catch up after an edit. Live results reevaluate when their dependencies change; they can briefly lag the Markdown. See [[Guide/When Results Update]].
+* Use the [[Guide/Aggregator Pages|aggregator pattern]] for collections that would otherwise need a second membership list.
+* Inspect [[Aspiring Pages]] to find forward references that have not acquired content yet; not every such link is a mistake.
+
+[[Object Index]] owns the index helpers and user-visible behavior. [[Guide/Query Recipes]] offers small examples you can copy and adapt.
 
 # Authoring Space Lua
-When developing on a `space-lua` based feature, follow the edit, reload, check (browser) logs, verify loop: edit a script, run `System: Reload` (Ctrl-Alt-r) to re-execute all definitions, then **check the console logs**. A successful reload does not mean the script is healthy, Lua errors surface in logs, not always as a visible reload failure. `System: Reload` runs [[API/system#system.reboot]], which first merges any external edit to the open page and waits for indexing to finish; call it directly for a programmatic “reboot to ready”.
+Reusable `space-lua` definitions are optional. Use [[Workbench/Console]] for small experiments before installing space-wide code. When you change a definition, run `System: Reload`, then inspect **Scripts** and **Console** for errors. Reload completing does not establish that all scripts loaded correctly.
+
+`System: Reload` calls [[API/system#system.reboot]], which incorporates external changes to the open page and waits for indexing. Call it directly when a script needs that same readiness behavior. Put index-affecting tag definitions in [[CONFIG]], and reindex existing content after changing a transform. Ordinary Markdown edits do not need this reload loop. [[Space Lua]] and [[Guide/When Results Update]] explain the distinct lifecycles.

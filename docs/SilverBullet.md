@@ -1,25 +1,18 @@
-SilverBullet is a programmable, open source [[Knowledge Management System]] that keeps your notes, your team’s knowledge and your product’s documentation as Markdown files you own.
+SilverBullet keeps your pages as Markdown files you own. Write and connect ideas, organize project information, and build useful views of your data when you need them.
 
-# Choose your journey
-* **On this computer**: [[Desktop|SilverBullet Desktop]] keeps each space in a folder on your machine, and is free for personal and education use. Start with [[Install/Desktop]].
-* **On my server**: [[Install|SilverBullet Server]] is a self-hosted web app you use from any browser, it keeps working offline as an installable [[PWA]]. Start with [[Install/Docker]] or [[Install/Server Binary]].
-* **Hosted for me**: a provider runs SilverBullet Server for you, see [[Install#Cloud]].
+# Find your way
+* [[Getting Started|Start here]] — learn Markdown, connect pages, add attributes and try queries in Workbench. Each guide stands on its own; programming is optional.
+* [[Guides]] — practical tasks and use cases for personal knowledge, team collaboration and docs as code.
+* [[Administration|Setup and administration]] — install and operate Desktop or Server, and back up your space.
+* [[Reference]] — look up feature behavior, syntax and APIs.
+* [[Development|Contributing]] — help develop SilverBullet, its documentation and extensions.
 
-Desktop can sync with any Server, see [[Desktop Sync]]. Once you’re set up, follow [[Getting Started]].
+These docs run inside a read-only instance of SilverBullet. [[Guide/Reading These Docs]] explains how to inspect examples and try them in your own writable space.
 
-# Sections
-${query[[
-  from s = docsNav.sections
-  where s.name ~= "Start"
-  select templates.docsSection(s)
-]]}
-
-# Start here
-${query[[
-  from e = docsNav.pages
-  where e.name:match "^Start/[^/]+$"
-  select templates.docsPage(e)
-]]}
+# Choose your setup
+* [[Desktop|SilverBullet Desktop]] keeps a space in a folder on your computer. An external Server connection is optional. Start with [[Install/Desktop]].
+* [[Install|SilverBullet Server]] is a self-hosted web app you use from a browser. Start with [[Install/Docker]] or [[Install/Server Binary]].
+* For hosting providers, see [[Install#Cloud]].
 
 # Community
-Ask questions and share what you built on the [community forum](https://community.silverbullet.md/), follow the [No SilverBullet](https://no.silverbullet.md/) newsletter and blog, and find the code of the MIT-licensed [[Install|SilverBullet Server]] on [GitHub](https://github.com/silverbulletmd/silverbullet).
+Ask questions on the [community forum](https://community.silverbullet.md/), read the [No SilverBullet](https://no.silverbullet.md/) newsletter and blog, or explore the [Server source code](https://github.com/silverbulletmd/silverbullet).

@@ -17,9 +17,9 @@ Slash commands are quick ways to perform repetitive tasks. You trigger them by t
 * `/space-lua` — insert a `space-lua` fenced code block
 
 **Dates**
-* `/today` — insert today's date (e.g. `2026-03-04`)
-* `/yesterday` — insert yesterday's date
-* `/tomorrow` — insert tomorrow's date
+* `/today` — insert today’s date (e.g. `2026-03-04`)
+* `/yesterday` — insert yesterday’s date
+* `/tomorrow` — insert tomorrow’s date
 
 # Slash templates
 Most slash commands are implemented as [[Slash Templates]] — pages tagged with `#meta/template/slash` whose content is inserted at the cursor. The standard library includes slash templates for:
@@ -40,4 +40,4 @@ Most slash commands are implemented as [[Slash Templates]] — pages tagged with
 There are two ways to create custom slash commands:
 
 1. **Slash templates** (recommended): Create a page tagged `#meta/template/slash`. See [[Slash Templates]] for details.
-2. **`slashCommand.define`**: For slash commands that need logic beyond simple text insertion. See [[API/command#slashCommand.define(spec)]].
+2. **`slashCommand.define`**: For slash commands that need logic beyond simple text insertion. See [[API/slashCommand#slashCommand.define(spec)]].

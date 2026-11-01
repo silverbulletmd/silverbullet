@@ -24,3 +24,12 @@ Additional attributes:
 
 Example query showing all attributes of items on this page:
 ${query[[from index.items() where _.page == editor.getCurrentPage()]]}
+
+
+## Field reference
+* `name`: item content with tags, inline attributes and its anchor removed.
+* `text`: item content before that cleanup.
+* `page`, `pageLastModified`: containing page and its last-modified timestamp.
+* `range`: `[start, end]` source range. `pos` and `toPos` are older start/end fields; prefer `range` for new code.
+* `ref`, `tag`, `tags`, `itags`: shared [[Object#Object representation|object fields]]. Ordinary items have root tag `item`; checkbox items have root tag `task`.
+* Inline attributes become additional fields. The `parent`, `links` and `ilinks` fields described above are optional and appear only when applicable.

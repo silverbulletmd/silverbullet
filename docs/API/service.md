@@ -83,11 +83,11 @@ Services are built on top of [[Event|Events]]. When a service is defined, it reg
 1. `discover:<<selector>>` for service discovery
 2. `service:<<guid>>` for invocation
 
-Discovery broadcasts on the event bus and collects all matches, sorted by priority. Invocation calls the specific service's `run` callback.
+Discovery broadcasts on the event bus and collects all matches, sorted by priority. Invocation calls the specific service’s `run` callback.
 
 # Example
 
-```space-lua
+```lua
 service.define {
   selector = "greeter-service",
   match = {},
@@ -111,5 +111,5 @@ service.define {
 }
 ```
 
-To invoke: ${service.invokeBestMatch("greeter-service", "Pete")} and ${service.invokeBestMatch("greeter-service", "Hank")}
+Install the definitions in a `space-lua` block in your space, then evaluate `service.invokeBestMatch("greeter-service", "Pete")` in [[Workbench/Console]] to get `Hello Pete, so happy to see you!`. Passing `"Hank"` returns `Hello Hank`.
 

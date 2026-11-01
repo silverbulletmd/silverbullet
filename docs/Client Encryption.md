@@ -23,12 +23,12 @@ This safety does come at a cost:
 # Details
 Some technical details on how client encryption works.
 
-Note that this is _client_ encryption only, not end-to-end encryption. Data on the server is only encrypted if your space folder is kept on some encrypted volume on the server side. _Transfer_ of data from the client to server is always encrypted via TLS, whether you use client encryption or not.
+Note that this is _client_ encryption only, not end-to-end encryption. Data on the server is only encrypted if your space folder is kept on some encrypted volume on the server side. Use [[TLS|HTTPS]] to encrypt data in transit. A plain HTTP connection does not encrypt traffic, whether or not local client storage is encrypted.
 
 On the client, all of SilverBullet’s local data storage is built on a small key-value based [abstract interface](https://github.com/silverbulletmd/silverbullet/blob/main/client/data/kv_primitives.ts). By default this interface is implemented to [directly](https://github.com/silverbulletmd/silverbullet/blob/main/client/data/indexeddb_kv_primitives.ts) communicate with your browser’s [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API). On top of this we build the sync engine and all our database indexing features. When you enable client encryption, we put a layer in-between: the encryption layer, which based on a cryptographic key will encrypt and decrypt both keys and values on the fly.
 
 A strong 256-bit cryptographic key is derived (using _PBKDF2_) on the client from your username/password combo entered upon login. This key is kept in the service worker for SilverBullet clients to obtain so that the user is not required to constant log in when refreshing a tab, or opening new SilverBullet tabs and windows.
 
-On an account-managed multi-space server, every prefix uses the server's shared encryption salt. Prefixes have separate service-worker scopes, so a newly opened space asks the server's other same-origin SilverBullet workers for the in-memory key. As long as another unlocked space remains open, moving between spaces does not require entering the password again; once every worker has discarded the key, the login page is required to unlock client storage again even if the server session cookie is still valid.
+On an account-managed multi-space server, every prefix uses the server’s shared encryption salt. Prefixes have separate service-worker scopes, so a newly opened space asks the server’s other same-origin SilverBullet workers for the in-memory key. As long as another unlocked space remains open, moving between spaces does not require entering the password again; once every worker has discarded the key, the login page is required to unlock client storage again even if the server session cookie is still valid.
 
 Since we need deterministic and stable encryption for data store keys, we use _AES-CTR_ with a fixed counter. For values we use _AES-GCM_ with randomized ivs.

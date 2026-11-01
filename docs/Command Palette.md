@@ -9,6 +9,5 @@ The Command Palette is used to explore SilverBullet’s numerous [[Command]] as 
 The UI and its operation is largely the same as the [[Page Picker]]‘s, with a few differences:
 
 * If a keyboard shortcut is configured for the given command, it is listed along the command name to the right.
-* The ordering is decided based on two factors:
-  * The last time the command was invoked via the [[Command Palette]] in this client session.
-  * The `priority` configured for the command (in the plug, or via [[^Library/Std/Config]] under `shortcuts`).
+* With an empty filter, commands you have run on this client come first, most recently run first. Other commands are ordered by their configured `priority`, then by name.
+* Only commands available in the current context and mode appear. For keyboard shortcuts, use [[Workbench/Configuration|Configuration → Key bindings]]; for command definitions and priority overrides, see [[^Library/Std/APIs/Command]].

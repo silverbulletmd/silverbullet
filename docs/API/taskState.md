@@ -12,12 +12,13 @@ APIs to define [[Task#Custom states]].
 ## taskState.define(def)
 Defines a custom task state. Options:
 * `name`: name of the state
-* `done`: whether or not the state should be considered "done" or not, used by the `Task: Remove Completed` command
+* `done`: whether or not the state should be considered “done” or not, used by the `Task: Remove Completed` command
 
 Primarily used to offer code completion for custom task states for now.
 
 ## Example
-```space-lua
+Install these definitions in a `space-lua` block in your own space and reload them:
+```lua
 taskState.define {
   name = "TO DO"
 }

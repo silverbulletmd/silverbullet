@@ -15,16 +15,16 @@ In SilverBullet, you can create links to pages or documents inside your space as
 
 # External links
 - _Markdown links_, using the `[title](URL)` syntax, for instance: [SilverBullet community](https://community.silverbullet.md). If the URL contains a space or closing parenthesis, you can enclose the URL in angled brackets.
-* _"[AutoLinks](https://spec.commonmark.org/current/#autolinks)"_, like <https://community.silverbullet.md>
-* _“Naked” URL links_ (AKA _"Bare URLs"_), like https://community.silverbullet.md
+* _“[AutoLinks](https://spec.commonmark.org/current/#autolinks)”_, like <https://community.silverbullet.md>
+* _“Naked” URL links_ (AKA _“Bare URLs”_), like https://community.silverbullet.md
 
 # Link syntax (String refs)
 The link or “string refs” has to follow some specific formatting:
 * A string ref starting with `^` links to a meta page, see [[#Caret page links|caret page links]]
-* The "core" (After a possible `^` and before a `@` or `#`) of a string ref is a [[Names|name]] or [[Paths|path]].
+* The “core” (After a possible `^` and before a `@` or `#`) of a string ref is a [[Names|name]] or [[Paths|path]].
   * The core of a  string ref can also be empty, an empty path points to the current page for links, and to the index page for `editor.navigate`
 * A string ref can end three ways:
-  * `#` followed by a string (which can also contain `#`). This will point to the header equal to that string. (Notably you can't link to every possible header, because e.g. `]]` will restrict you inside a wikilink for example.), e.g. [[SilverBullet#Introduction]]
+  * `#` followed by a string (which can also contain `#`). This will point to the header equal to that string. (Notably you can’t link to every possible header, because e.g. `]]` will restrict you inside a wikilink for example.), e.g. [[SilverBullet#Start learning]]
   - `@` followed by an upper or lowercase `L` followed by a number, optionally followed by an upper or lowercase `C` followed by a number (e.g. `@l12c13`). This will point to the corresponding line and column inside a page (both 1-based), e.g. [[CHANGELOG@L12C42]]
   - `@` followed by a number _n_. This will point to the _nth_ character in the page (0-based), e.g. [[CHANGELOG@123]]
 
@@ -77,4 +77,4 @@ config.set("linkWriteFormat", "shortest")
 # Caret page links
 [[Meta Page]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[Library/Std]]` — it resolves exactly the same way. The only difference is that auto complete will _only_ complete meta pages.
 
-Caret links are always written as **full paths**, whatever `linkWriteFormat` says: auto complete inserts the whole path, and renames rewrite them to the whole path. A meta page's folder is what identifies it — shortening `[[^Library/Std/APIs/Tag]]` to `[[^Tag]]` would point at the ordinary `Tag` page instead.
+Caret links are always written as **full paths**, whatever `linkWriteFormat` says: auto complete inserts the whole path, and renames rewrite them to the whole path. A meta page’s folder is what identifies it — shortening `[[^Library/Std/APIs/Tag]]` to `[[^Tag]]` would point at the ordinary `Tag` page instead.

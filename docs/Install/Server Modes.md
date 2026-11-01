@@ -1,41 +1,25 @@
 ---
-description: "SilverBullet Server runs in multi-space mode (the default) or in the legacy single-space mode."
+description: "SilverBullet Server runs in multi-space mode (the default) or in legacy single-space mode."
 ---
-SilverBullet can run in two modes:
-
-1. Single-Space mode (legacy)
-2. Multi-Space mode (default)
-
-If you installed SilverBullet fresh anywhere since 2.10 — you’re in multi-space mode. Don’t worry about any of this, we’re good.
+A fresh data folder starts Server’s multi-space setup. An existing folder of pages can still run as a legacy single-space installation. The mode changes administration and access, rather than the Markdown format.
 
 # Single-space mode
-If you installed a version of SilverBullet that’s older than 2.10, you will have installed it in what is now called “single-space mode”. A mode in which SilverBullet only serves a single space. In addition, it has more restrictions:
+Single-space mode serves one folder with one optional login configured through `SB_USER`.
 
-1. No support for multiple accounts (just a single one configured via the `SB_USER` environment variable)
-2. No support for per-space permissions (everything is write accessible the the configured single user)
-3. Limited support for [[Revisions]], specifically [[Revisions#Syncing with a remote]].
-4. No support for [[Single Sign-On]] (obviously)
-5. Limited support for [[At-Mention]]
-6. Likely many future updates will not be configurable in this environment.
+* It has no multiple-account management or per-member space roles.
+* [[Revisions]] has limited configuration, including remote Git setup.
+* [[Single Sign-On]] is unavailable.
+* Mentions still support ad-hoc and API-defined identities; account-based completion is unavailable.
 
-Anyway, the short version of it is: migrate to multi-space when you can.
+Use [[Install/Configuration]] for legacy environment variables. Without authentication, anyone who can reach the server can access the space. Migrate to multi-space mode for account-managed sharing.
 
 # Multi-space mode
-This is the promised land:
-
-1. You can create **multiple spaces** on a single server (hence the name).
-2. You can create **multiple accounts** and even authenticate them with [[Single Sign-On]] if you like.
-3. You have the ability to set (basic) permissions per user, per space
-4. You have [[Revisions]] with git sync, if you like
-5. [[At-Mention]] auto complete for user accounts
-
-Of course, you can still decide to just configure a single space and a single user. That’s fine, but it gives you options down the line.
-
-Use multi-space mode.
+The default mode supports multiple spaces, local or SSO accounts, public access settings, per-member read/write roles and managed [[Revisions]] with optional Git sync. Manage these through the [[Dashboard]]. A single space with one account is also a valid configuration.
 
 # Migrating from single-space to multi-space
-1. Spin up a fresh SilverBullet instance next to your existing one, pointing your data folder at a fresh folder.
-2. Run through the setup flow via the web UI and set up a fresh new space, noting where the space will be stored physically (e.g. `spaces/notes`).
-3. Move (or to be safer: copy) all your space files from your old SB instance into this `spaces/notes` (or whatever) folder mounted into the new container.
-4. Open the space via the new instance to make sure everything is there.
-5. Profit.
+1. Back up your old space, including its revision repository if needed. Keep the original installation available until you have verified the copy.
+2. Start a separate Server instance with a fresh data folder.
+3. Complete the web setup and create a space. Note its physical folder, such as `spaces/notes` inside the data folder.
+4. Copy your old space files into that space folder. Do not replace the new server’s account and administration files with space content.
+5. Open the new space, verify pages, attachments and libraries, and configure access and revisions in the Dashboard.
+6. Reconnect clients to the new URL only after verification. See [[Guide/Storage and Recovery]] for backup and recovery boundaries.

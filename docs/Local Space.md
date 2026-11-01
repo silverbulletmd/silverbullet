@@ -15,3 +15,6 @@ The `sb` command opens files and folders in Desktop, evaluates [[Space Lua]] aga
 
 # Sharing configuration between spaces
 To make configuration and libraries available in every local space, use a [[Meta Space]].
+
+# Recovery
+A local folder works without an external Server. Keep a separate backup and review [[Revisions]] settings before relying on automatic history; see [[Guide/Storage and Recovery]].

@@ -6,7 +6,7 @@ references:
 - libraries/Library/Std/APIs/Identity.md
 - server/src/handlers/accounts.rs
 ---
-An **identity** is anyone or anything addressable with `@name`, or an “at mention.” Identities are used in two contexts:
+An **identity** is anyone or anything addressable with `@name`, or an “at mention.” An identity does not grant access: [[Account|accounts]] and space roles do that. A page link such as `[[Sam]]` points to a page rather than addressing the `sam` identity. Try [[Guide/Mentions and Replies]] for the workflow. Identities are used in two contexts:
 
 1. [[Recipient]]
 2. [[Authorship]]

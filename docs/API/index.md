@@ -6,7 +6,7 @@ references:
 - client/data/object_index.ts
 ---
 
-The `index` API provides functions for interacting with SilverBullet's [[Object Index]], including query collections used by [[Space Lua/Integrated Query]], schema introspection, ad-hoc Markdown indexing, and direct object-index operations.
+The `index` API provides functions for interacting with SilverBullet’s [[Object Index]], including query collections used by [[Space Lua/Integrated Query]], schema introspection, ad-hoc Markdown indexing, and direct object-index operations.
 
 The main query API is `index.objects`; the other collection functions are mostly convenient filters over the same index.
 
@@ -282,13 +282,11 @@ API/capture
 API/clientStore
 <!--/lua-->
 
-Render three incomplete tasks:
+Render three incomplete tasks by putting this expression on a page in your own space. The results depend on the tasks in that space; in a writable space, toggling a result writes back to its source task.
 
-<!--#lua query[[from t = index.tasks() where not t.done limit 3 select templates.taskItem(t)]] -->
-* [ ] [[Attribute@1611]] Task with an attribute, I’m so cool
-* [ ] [[Markdown/Basics@1679]] This is a task
-* [ ] [[Markdown/Basics@1700]] And this is another
-<!--/lua-->
+```markdown
+${query[[from t = index.tasks() where not t.done limit 3 select templates.taskItem(t)]]}
+```
 
 Ad-hoc index a Markdown fragment and select its list items:
 

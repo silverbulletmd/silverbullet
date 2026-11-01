@@ -20,10 +20,10 @@ C -->|Two| E[Result 2]
 ```
 
 > **note** Note
-> By default diagrams load Mermaid from [esm.sh](https://esm.sh) (a CDN) — nothing is built or shipped with this library, and installing this single page is enough to start drawing. If you'd rather not depend on the CDN (e.g. for offline use or a fully self-hosted space), run the `Mermaid: Download bundle for offline use` command: it downloads the esm.sh bundle plus a tiny `process` shim into your space and, once present, the renderer uses that local copy automatically instead of the CDN.
+> By default diagrams load Mermaid from [esm.sh](https://esm.sh) (a CDN) — nothing is built or shipped with this library, and installing this single page is enough to start drawing. If you’d rather not depend on the CDN (e.g. for offline use or a fully self-hosted space), run the `Mermaid: Download bundle for offline use` command: it downloads the esm.sh bundle plus a tiny `process` shim into your space and, once present, the renderer uses that local copy automatically instead of the CDN.
 
 # Installation
-This is a SilverBullet library (hence the `meta/library` tag). It's a single page — there is no release or asset to fetch. Install it through SilverBullet's built-in **Library Manager**:
+This is a SilverBullet library (hence the `meta/library` tag). It’s a single page — there is no release or asset to fetch. Install it through SilverBullet’s built-in **Library Manager**:
 
 1. Run the **`Library: Install`** command (or open the **Libraries** manager via the app menu / **`Libraries: Manager`** command and click **Install**).
 2. When prompted for a library URI, paste: `github:silverbulletmd/silverbullet-diagram/Mermaid.md`
@@ -57,7 +57,7 @@ ${mermaid.diagram(mermaid.relationGraph{
 # API
 ## Core
 ### mermaid.diagram(input, opts)
-Renders a mermaid widget. `input` is a raw Mermaid string *or* a diagram **IR** table (see below). The widget has a Copy button (copies the generated source) and clickable nodes (each `click` element navigates to the named page). `opts` *(optional)* may contain `width`, `height`, `maxWidth` — CSS lengths (e.g. `"600px"`, `"50%"`) merged into the rendered `<svg>`'s inline style to scale it; the viewBox preserves aspect ratio. When `input` is an IR table, its own `width`/`height`/`maxWidth` fields are used as defaults, and `opts` overrides them.
+Renders a mermaid widget. `input` is a raw Mermaid string *or* a diagram **IR** table (see below). The widget has a Copy button (copies the generated source) and clickable nodes (each `click` element navigates to the named page). `opts` *(optional)* may contain `width`, `height`, `maxWidth` — CSS lengths (e.g. `"600px"`, `"50%"`) merged into the rendered `<svg>`’s inline style to scale it; the viewBox preserves aspect ratio. When `input` is an IR table, its own `width`/`height`/`maxWidth` fields are used as defaults, and `opts` overrides them.
 
 ## mermaid.toSource(input)
 Renders the Mermaid source string from this library’s IR format — useful for debugging or freezing a dynamic diagram into a static block. It delegates to `mermaid.serialize`, a **pure Lua** function defined in this library.
@@ -66,15 +66,15 @@ Renders the Mermaid source string from this library’s IR format — useful for
 The three `mermaid.*` builders all take a **`pages`** list — a page-object list, typically produced by a `query[[…]]` expression such as `query[[from index.pages("adr")]]` . Each returns a diagram IR you pass to `mermaid.diagram`. Each builder spec also accepts optional `width`, `height`, `maxWidth` (CSS lengths) that are threaded onto the returned IR and applied at render time; an `opts` table passed to `mermaid.diagram` overrides them.
 
 ### mermaid.relationGraph(spec)
-A flowchart. Node labels use the page's last path segment; clicking still navigates to the full page.
+A flowchart. Node labels use the page’s last path segment; clicking still navigates to the full page.
 
 Spec keys:
  * `pages` — the page list to graph, e.g. `query[[from index.pages("adr")]]`.
  * `relations` *(optional)* — frontmatter fields holding `[[page]]` links to draw as edges, e.g. `{"dependsOn", "related"}`. A `supersededBy` relation is drawn dotted. **When omitted, all relations are auto-detected** — every frontmatter field whose value(s) are `[[links]]` to other pages in the set becomes an edge (labeled by the field name; the `groupBy` field is excluded, since it drives subgraph nesting). Pass an explicit `relations` list to restrict edges to specific fields.
- * `groupBy` *(optional)* — a frontmatter field naming a **container** page; members nest inside that container's **subgraph**. (The `Architecture` page uses `groupBy = "partOf"` to draw the Client / Service Worker / Server layers.)
+ * `groupBy` *(optional)* — a frontmatter field naming a **container** page; members nest inside that container’s **subgraph**. (The `Architecture` page uses `groupBy = "partOf"` to draw the Client / Service Worker / Server layers.)
  * `direction` *(optional)* — `"LR"` (default), `"TD"`, etc.
  * `color` *(optional)* — a frontmatter field whose value becomes a Mermaid CSS class on each node (e.g. `"status"`). Supply matching `classDef`s to style them; without them the nodes render unstyled. *Auto-`classDef` from observed values is a planned enhancement.)*
- * `max` *(optional, default 60)* — node cap; a "showing N of M" note is added when exceeded.
+ * `max` *(optional, default 60)* — node cap; a “showing N of M” note is added when exceeded.
 
 ### mermaid.timeline(spec)
 A mermaid `timeline`: pages laid out chronologically by a date field. (Mermaid timelines have no node click-through, so these entries are not clickable.)
@@ -83,9 +83,9 @@ Spec keys:
  * `pages` — the page list to lay out, e.g. `query[[from index.pages("journal")]]`.
  * `dateField` *(default `"date"`)* — frontmatter field holding the date (`YYYY-MM-DD…`); pages without a parseable date are skipped.
  * `groupBy` *(default `"year"`)* — `"year"` groups events under their year; `"none"` emits one entry per date.
- * `labelField` *(optional)* — frontmatter field to use as the event label (defaults to the page's last path segment).
+ * `labelField` *(optional)* — frontmatter field to use as the event label (defaults to the page’s last path segment).
  * `title` *(optional)* — diagram title.
- * `max` *(optional, default 100)* — event cap; a "showing N of M" note is added when exceeded.
+ * `max` *(optional, default 100)* — event cap; a “showing N of M” note is added when exceeded.
 
 ### mermaid.distribution(spec)
 A pie counting the given pages by a categorical frontmatter field (slices sorted count-descending).
@@ -98,7 +98,7 @@ Spec keys:
  * `showData` *(optional)* — when truthy, renders the raw counts next to each slice (`pie showData`).
 
 ## Diagram IR — build any diagram
-For full control, pass a table instead of a string. It's a generic *element-stream*: a `type` plus an ordered list of `elements`. Because a `raw` element passes a literal Mermaid line through untouched, **any** diagram Mermaid supports is expressible, structured element kinds are just sugar for the common graph cases.
+For full control, pass a table instead of a string. It’s a generic *element-stream*: a `type` plus an ordered list of `elements`. Because a `raw` element passes a literal Mermaid line through untouched, **any** diagram Mermaid supports is expressible, structured element kinds are just sugar for the common graph cases.
 
 ${mermaid.diagram{
   type = "flowchart",
@@ -114,14 +114,12 @@ ${mermaid.diagram{
 
 Element kinds:
 
-| kind       | fields                                                                                            |
-|------------|---------------------------------------------------------------------------------------------------|
-| `node`     | `id`, `label?`, `shape?` (`rect`\|`rounded`\|`stadium`\|`circle`\|`diamond`\|`hexagon`), `class?` |
-| `edge`     | `from`, `to`, `label?`, `style?` (`solid`\|`dotted`\|`thick`), `arrow?`                           |
-| `subgraph` | `id`, `label?`, `elements`                                                                        |
-| `classDef` | `name`, `style` (table of CSS props)                                                              |
-| `click`    | `id`, `target` (page to navigate to)                                                              |
-| `raw`      | `text` (literal Mermaid line — the escape hatch)                                                  |
+* `node`: `id`, optional `label`, optional `shape` (`rect`, `rounded`, `stadium`, `circle`, `diamond` or `hexagon`), and optional `class`.
+* `edge`: `from`, `to`, optional `label`, optional `style` (`solid`, `dotted` or `thick`), and optional `arrow`.
+* `subgraph`: `id`, optional `label`, and `elements`.
+* `classDef`: `name` and `style` (a table of CSS properties).
+* `click`: `id` and `target` (the page to navigate to).
+* `raw`: `text` (a literal Mermaid line).
 
 Top level: `type` (e.g. `"flowchart"` — any Mermaid type), `direction?` (`"LR"`/`"TD"`/…), `title?`, `elements`.
 
@@ -131,7 +129,7 @@ Top level: `type` (e.g. `"flowchart"` — any Mermaid type), `direction?` (`"LR"
 3. It calls `mermaid.render` to render it as a SVG.
 4. Node clicks are handled for navigation.
 
-Static ` ```mermaid ` fenced blocks go through the very same path: at the end of this library's Space Lua block, `codeWidget.define{ language = "mermaid", render = ... }` registers a Core code widget whose `render` simply calls `mermaid.diagram(body)`. So static and dynamic diagrams share one renderer.
+Static ` ```mermaid ` fenced blocks go through the very same path: at the end of this library’s Space Lua block, `codeWidget.define{ language = "mermaid", render = ... }` registers a Core code widget whose `render` simply calls `mermaid.diagram(body)`. So static and dynamic diagrams share one renderer.
 
 # Configuration
 Everything works out of the box, but you can override the defaults via Space Lua config:

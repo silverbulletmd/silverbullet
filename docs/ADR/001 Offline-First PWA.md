@@ -19,7 +19,7 @@ SilverBullet aims to be **offline-first**: it should keep working with no networ
 # Decision
 The client is a **Progressive Web App built around a service worker**. The service worker:
 
-* keeps a full local copy of the space's files in **IndexedDB**;
+* keeps a full local copy of the space’s files in **IndexedDB**;
 * hosts the [[Object Index|index]] and the [[Sync|sync engine]];
 * **intercepts the HTTP API** and serves it locally, so the app behaves the same whether or not the server is reachable;
 * caches and serves the client code itself.

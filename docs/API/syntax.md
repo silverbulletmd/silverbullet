@@ -30,9 +30,9 @@ Registers a custom syntax extension. The extension will be active after the next
 Within the body of an inline syntax extension, backslash (`\`) acts as an escape character. Use `\` before the end marker to include it literally in the body. The render callback receives the **raw** body text with escape sequences intact; the renderer is responsible for unescaping if needed.
 
 # Example
-Define an inline LaTeX syntax using `$` delimiters:
+Install the following in a `space-lua` block in your own space, then reload definitions. This illustrative renderer styles the body in italics; it does not typeset LaTeX.
 
-```space-lua
+```lua
 syntax.define {
   name = "LatexInline",
   startMarker = "\\$(?!\\{)",
@@ -51,14 +51,14 @@ syntax.define {
 }
 ```
 
-This will recognize `$E=mc^2$` in your text and render the body using the provided callback (in this case it just makes it italic): $E=mc^2$.
+This will recognize `$E=mc^2$` in your text and render the body using the provided callback (in this case it just makes it italic): `E=mc^2`.
 
 > **note** Note
 > The `(?!\{)` negative lookahead prevents `$` from clashing with the `${expr}` Lua expression syntax. Without it, `$math ${expr} more$` would prematurely close at the `$` in `${expr}`.
 
-A block-level variant using `$$` fences:
+A block-level variant using `||` fences:
 
-```space-lua
+```lua
 syntax.define {
   name = "LatexBlock",
   startMarker = "^\\|\\|$",
@@ -76,11 +76,13 @@ syntax.define {
 }
 ```
 
-This recognizes fenced blocks:
+After installing it, this Markdown displays scrolling text:
 
+```markdown
 ||
 E = mc^2
 ||
+```
 
 You can style these with [[Space Style]]:
 ```space-style

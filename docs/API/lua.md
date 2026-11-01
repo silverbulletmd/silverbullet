@@ -39,7 +39,7 @@ Inspects a value in the live Space Lua environment and returns serializable type
 **Parameters:**
 
 - `path?` (`table`) — Sequence of property names from the global environment; omit to inspect globals.
-- `page?` (`string`) — Inspect from this page's scope, so its page variables are included.
+- `page?` (`string`) — Inspect from this page’s scope, so its page variables are included.
 
 **Returns:**
 

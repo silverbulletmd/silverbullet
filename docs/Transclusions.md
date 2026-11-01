@@ -13,7 +13,7 @@ The general syntax is `![[path]]`. Two types of transclusions are currently supp
 # Media
 Syntax: `![[path/to/image.jpg]]`; see [[Document#Embedding]] for more details.
 
-Transclusions already support images, audio, video, and PDFs using the browser's corresponding media elements. Local media is served through range-capable `/.fs` responses, so playback seeking and incremental PDF loading use the same server and service-worker behavior as full-document media viewing.
+Transclusions already support images, audio, video, and PDFs using the browser’s corresponding media elements. Local media is served through range-capable `/.fs` responses, so playback seeking and incremental PDF loading use the same server and service-worker behavior as full-document media viewing.
 
 Media resizing is also supported:
 ![[Document#Media resizing]]

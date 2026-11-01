@@ -5,6 +5,8 @@ references:
 - client/codemirror/syntax/attribute.ts
 - plugs/index/attribute.ts
 ---
+Start with [[Guide/Organize with Tags and Attributes]] for a practical introduction.
+
 Attribute syntax can contribute additional [[Metadata]] to various [[Object|Objects]], including:
 
 * Pages (although the preferred way is [[Frontmatter]])
@@ -63,7 +65,7 @@ ${query[[
 
 This attaches an attribute to a task:
 
-* [ ] Task with an attribute, I’m so cool [taskAttribute: hello]
+* [ ] Charge camera battery [taskAttribute: hello]
 
 Example query:
 

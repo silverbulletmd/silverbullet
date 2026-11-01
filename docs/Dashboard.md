@@ -31,20 +31,16 @@ The setup wizard, **Create space**, and **Space settings → General** use the s
 ## Access
 Access to a space can be configured to one of three levels:
 
-| Level | Meaning |
-| --- | --- |
-| `none` | Not visible, no access. |
-| `read` | May read content. May not modify anything, and may not reach any capability endpoint (shell, proxy, runtime API). |
-| `write` | Full access to the space’s content and capabilities. |
+* **`none`:** Not visible, no access.
+* **`read`:** May read content. May not modify anything, and may not reach any capability endpoint (shell, proxy, runtime API).
+* **`write`:** Full access to the space’s content and capabilities.
 
 `write` carries real trust — see [[Security#What `write` really means]].
 
 The effective level for a request is the **maximum** of three independent sources:
 
-| Source | Values |
-| --- | --- |
-| `access` — what a visitor with no session gets | `none` (default), `read`, `write` |
-| `username.role` — what one account gets | absent (no access), `read`, `write` |
-| admin | always `write` on every space |
+* **`access` — what a visitor with no session gets:** `none` (default), `read`, `write`.
+* **`username.role` — what one account gets:** absent (no access), `read`, `write`.
+* **admin:** always `write` on every space.
 # Dashboard access
 When no space is bound to the server root (`/`), opening `/` redirects to `/.dashboard` instead of opening a space. Any account can log in there. Ordinary accounts see spaces with anonymous [[#Access|access]] and spaces where they are members, administrators see every space, plus the admin screens.

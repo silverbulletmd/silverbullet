@@ -7,7 +7,11 @@ references:
 - plugs/sync/sync.ts
 ---
 
-SilverBullet is an offline-first web application. Therefore it keeps a copy of your space locally in your browser. It implements a sync engine to continuously keep this local copy in sync with the server (for technical details, see [[Architecture]]).
+This page describes **browser offline access**: synchronization between a SilverBullet Server space and browser storage. After an online load and initial sync, cached pages can be read and edited without a connection; edits reconcile when the Server is reachable again. Documents have separate caching settings below.
+
+[[Desktop]] reads its local space through an embedded server without this browser sync layer. Its optional connection to an external Server is [[Desktop Sync]]. For Git history, page sharing and publication, start with [[Guide/Devices and Publishing]].
+
+Browser offline access needs a service worker in a secure context (HTTPS or localhost). Plain LAN HTTP is online-only, and `SB_DISABLE_SERVICE_WORKER` also disables this cache. Server-backed search and network services still require a connection; see [[PWA]] and [[TLS]].
 
 Sync happens:
 * For the entire space: roughly every 20 seconds
@@ -31,7 +35,7 @@ By default all your pages are synced, but [[Document]] are not. They are fetched
 
     config.set("sync.documents", true)
 
-In addition, you can fine-tune what files you do _not_ want to sync using [gitignore](https://git-scm.com/docs/gitignore) pattern syntax assigned to the `sync.ignore` option, which accepts either a single string, or a list of strings. The space folder's actual `.gitignore` file is not read:
+In addition, you can fine-tune what files you do _not_ want to sync using [gitignore](https://git-scm.com/docs/gitignore) pattern syntax assigned to the `sync.ignore` option, which accepts either a single string, or a list of strings. The space folder’s actual `.gitignore` file is not read:
 
     config.set("sync.ignore", {
       -- Don't sync PDFs and MP4 files

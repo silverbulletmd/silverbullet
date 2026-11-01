@@ -11,7 +11,7 @@ references:
 - client/service_worker.ts
 ---
 # Context
-SilverBullet's [[Plugs]] runtime was originally designed so that plugs could run **either on the server or in the client**. Through “v1” this surfaced as two switchable modes:
+SilverBullet’s [[Plugs]] runtime was originally designed so that plugs could run **either on the server or in the client**. Through “v1” this surfaced as two switchable modes:
 
 * **Server mode** — indexing and plug execution ran on the server, the client delegated a lot of logic to the server.
 * **Sync mode** — the space is *also* synced to the browser and indexing + plug execution ran client-side as well; you could switch between the two.
@@ -39,5 +39,5 @@ v2 **eliminates the server-side PlugOS runtime**: plug execution, indexing, the 
 * **Make *server mode* the only mode** (thin client; the server does everything). Rejected: defeats offline-first and the run-anywhere goal, and keeps the product tied to an always-available, more capable backend.
 
 # References
-* [[Architecture]] — "all indexing, querying etc. happens in the client. The server effectively acts as a file store."
+* [[Architecture]] — “all indexing, querying etc. happens in the client. The server effectively acts as a file store.”
 * [SilverBullet v2 released](https://community.silverbullet.md/t/silverbullet-v2-released/3100) (2025-08-29)

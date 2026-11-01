@@ -6,12 +6,15 @@ references:
 - libraries/Library/Std/Page Templates/Page Template.md
 ---
 
-Page templates can be used to automate or simplify the creation of pages based on a template.
+Page templates create saved page content from a reusable blueprint. Expressions in the template run when the page is created; the inserted text does not stay linked to the template. To insert a section into an existing page instead, use [[Slash Templates]].
+
+Follow the creation steps in your own writable space. The published documentation cannot create pages for you.
 
 # Creating a page template
 1. Run the `Page: From Template` command
 2. Select “Page Template”
-3. Pick a name, the last component of the page name will be used as the template name.
+3. Pick a name; the last component of the page name will be used as the template name.
+4. Edit its body and frontmatter, then run `System: Reload` to register any command or shortcut.
 
 ## Cursor placement
 In the template’s body text, you can optionally use `|^|` as a placeholder for where the cursor should be after creating the page.
@@ -20,16 +23,13 @@ In the template’s body text, you can optionally use `|^|` as a placeholder for
 Optional keys you can set in the page’s frontmatter:
 
 * `suggestedName`: the proposed name for the new page, can use embedded Lua expressions, like `Daily/${date.today()}`.
-* `confirmName`: Confirm the suggested page name before creating it (defaults to `true`).
+* `confirmName`: For the template’s own command or shortcut, confirm the suggested page name before creating it (defaults to `true`). `Page: From Template` always asks for a name.
 * `openIfExists`: If a page with the `suggestedName` already exists, open it rather than attempting to create it anew.
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
-* `frontmatter`: Frontmatter to set in the resulting page. Use a YAML literal block scalar (`frontmatter: |`) so that the value is passed as a string and `${...}` Lua interpolation
-  works. A nested YAML mapping is also accepted (and serialized verbatim), but interpolation
-  will be skipped in that case.
-* `priority`: Similar to how space lua scripts are loaded, this controls the order in which page template _commands_ are
-  created (see "overriding page templates" below)
+* `frontmatter`: Frontmatter to set in the resulting page. Use a YAML literal block scalar (`frontmatter: |`) so that the value is passed as a string and `${...}` Lua interpolation works. A nested YAML mapping is also accepted (and serialized verbatim), but interpolation will be skipped in that case.
+* `priority`: Controls the order in which page template commands are created, highest first (see “Overriding page templates” below).
 
 ## Example: Daily note
 The following creates a page template that can be run using the `Journal: Daily Note` command, it automatically creates `Daily/today’s date` if it does not already exist with a bulleted list, putting the cursor at the first bullet. If the page already exists, it navigates there.
@@ -52,7 +52,7 @@ ${query[[
 ]]}
 
 # Instantiating page templates
-You can create a page based on a page template via the ${widgets.commandButton("Page: From Template")} command, or via the command name that you defined in your template’s frontmatter.
+You can create a page based on a page template via the `Page: From Template` command, or via the command name that you defined in your template’s frontmatter.
 
 # Overriding page templates
 If you would like to override an existing page template (for instance the Quick Note) template with your own, you can take advantage of the load order determined by the `priority` frontmatter. Built in page templates will have a priority set that is higher than the default. Therefore, their commands and keybindings will be set early. Therefore, by simply defining your own version of the page template _with the same command name_ will let that version override the versions that are built in.

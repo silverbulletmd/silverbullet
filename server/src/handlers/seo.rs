@@ -114,7 +114,7 @@ mod tests {
     use crate::{build_router, state::ServerState, test_support::test_state};
     use axum::{
         body::{to_bytes, Body},
-        http::Request,
+        http::{Request, StatusCode},
     };
     use std::sync::Arc;
     use tower::ServiceExt;
@@ -283,6 +283,212 @@ mod tests {
         }
         for path in ["/%FF", "/Notes%ZZ", "/Notes%2"] {
             assert_eq!(request(public_state_with_shell(), path).await.0, 400);
+        }
+    }
+
+    #[tokio::test]
+    async fn initial_html_links_resolve_meta_and_positions_without_linking_lua_or_code() {
+        let state = public_state_with_shell();
+        for (name, text) in [
+            ("Library/Config.md", "#meta/config\nConfiguration"),
+            ("Café & Tea.md", "A page with a reserved character"),
+            ("Field Notes.md", "# **Bold**\nHeading content"),
+            (
+                "index.md",
+                r#"[[^Library/Config|Configuration]]
+[[Field Notes@123|Position]]
+[[Field Notes@L12C42|Line and column]]
+[[Café & Tea|Unicode]]
+[[Field Notes#**Bold**|Formatted heading]]
+`${query[[from index.pages() limit 1]]}`
+${query[[from index.pages() limit 1]]}
+```lua
+local example = "[[Field Notes]]"
+```
+"#,
+            ),
+        ] {
+            state.space.write_file(name, text.as_bytes(), None).unwrap();
+        }
+        let router = build_router(Arc::new(state));
+        let response = router
+            .clone()
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap()
+                .to_vec(),
+        )
+        .unwrap();
+        let anchors: Vec<String> = regex::Regex::new(r#"<a\b[^>]*href="([^"]+)""#)
+            .unwrap()
+            .captures_iter(&body)
+            .map(|capture| capture[1].replace("&amp;", "&"))
+            .collect();
+        assert_eq!(anchors.len(), 5, "{body}");
+        assert!(
+            anchors.contains(&"/wiki/Library/Config".into()),
+            "{anchors:?}"
+        );
+        assert_eq!(
+            anchors
+                .iter()
+                .filter(|url| *url == "/wiki/Field%20Notes")
+                .count(),
+            2,
+            "{anchors:?}"
+        );
+        assert!(anchors.contains(&"/wiki/Field%20Notes#%2A%2ABold%2A%2A".into()));
+        for url in anchors {
+            let path = url
+                .strip_prefix("/wiki")
+                .unwrap()
+                .split('#')
+                .next()
+                .unwrap();
+            let response = router
+                .clone()
+                .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{url}");
+            if url.contains('#') {
+                let html = String::from_utf8(
+                    to_bytes(response.into_body(), usize::MAX)
+                        .await
+                        .unwrap()
+                        .to_vec(),
+                )
+                .unwrap();
+                assert!(html.contains("id=\"**Bold**\""), "{html}");
+            }
+        }
+        for sync in [false, true] {
+            let mut request = Request::builder().uri("/.fs/index.md");
+            if sync {
+                request = request.header("X-Sync-Mode", "true");
+            }
+            let response = router
+                .clone()
+                .oneshot(request.body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            let raw = String::from_utf8(
+                to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap()
+                    .to_vec(),
+            )
+            .unwrap();
+            assert!(
+                raw.starts_with("[[^Library/Config|Configuration]]"),
+                "{raw}"
+            );
+            assert!(raw.contains("${query[[from index.pages() limit 1]]}"));
+            assert!(!raw.contains("<html"));
+        }
+        let unknown = router
+            .oneshot(
+                Request::builder()
+                    .uri("/Actually%20Missing")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(unknown.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn documentation_catalogs_publish_crawlable_links_in_initial_html() {
+        fn load_pages(folder: &std::path::Path, root: &std::path::Path, state: &ServerState) {
+            for entry in std::fs::read_dir(folder).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    load_pages(&path, root, state);
+                } else if path.extension().is_some_and(|extension| extension == "md") {
+                    let name = path
+                        .strip_prefix(root)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace('\\', "/");
+                    state
+                        .space
+                        .write_file(&name, &std::fs::read(&path).unwrap(), None)
+                        .unwrap();
+                }
+            }
+        }
+        let state = public_state_with_shell();
+        let docs = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../docs");
+        load_pages(&docs, &docs, &state);
+        let router = build_router(Arc::new(state));
+        let pattern = regex::Regex::new(r#"<a\b[^>]*href="([^"]+)""#).unwrap();
+        for (hub, expected) in [
+            (
+                "API",
+                vec!["/wiki/API/editor", "/wiki/API/global", "/wiki/API/js"],
+            ),
+            ("ADR", vec!["/wiki/ADR/005%20Space%20Lua"]),
+            (
+                "Architecture",
+                vec![
+                    "/wiki/Architecture/Client%20Bundle%20Cache",
+                    "/wiki/Architecture/Server",
+                ],
+            ),
+            (
+                "Development",
+                vec!["/wiki/Library/Development", "/wiki/Plugs/Development"],
+            ),
+        ] {
+            let response = router
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri(format!("/{hub}"))
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{hub}");
+            let body = String::from_utf8(
+                to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap()
+                    .to_vec(),
+            )
+            .unwrap();
+            let links: Vec<String> = pattern
+                .captures_iter(&body)
+                .map(|capture| capture[1].replace("&amp;", "&"))
+                .collect();
+            for expected in expected {
+                assert!(
+                    links.contains(&expected.to_string()),
+                    "{hub} lacks {expected}: {links:?}"
+                );
+            }
+            for link in links.iter().filter(|link| link.starts_with("/wiki/")) {
+                let path = link
+                    .strip_prefix("/wiki")
+                    .unwrap()
+                    .split('#')
+                    .next()
+                    .unwrap();
+                let response = router
+                    .clone()
+                    .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), StatusCode::OK, "{hub} -> {link}");
+            }
         }
     }
 }

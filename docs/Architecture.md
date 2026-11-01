@@ -1,6 +1,6 @@
 #development
 
-This page describes the big-picture view of SilverBullet, assembled from its [[#Components]]. Each component has its own page describing how it relates to the others, the diagram below is generated on-the-fly from the meta data in those pages.
+SilverBullet has a browser client, a service worker and a server. The diagram is generated from the metadata on the [[#Components|component pages]], which describe each part and its connections.
 
 # Top-level Architecture
 ${mermaid.diagram(mermaid.relationGraph{
@@ -10,16 +10,27 @@ ${mermaid.diagram(mermaid.relationGraph{
 })}
 
 # The three layers
-* [[Architecture/Client]]: one instance per browser tab; runs 90%+ of the logic ([[Architecture/Editor|editor]], [[Architecture/Space Lua|Space Lua]], [[Architecture/Plugs|plugs]], [[Architecture/Syscalls|syscalls]], [[Architecture/Datastore|datastore]]).
+* [[Architecture/Client]]: one instance per browser tab; runs editing, structured indexing, queries and extensions ([[Architecture/Editor|editor]], [[Architecture/Space Lua|Space Lua]], [[Architecture/Plugs|plugs]], [[Architecture/Syscalls|syscalls]], [[Architecture/Datastore|datastore]]).
 * [[Architecture/Service Worker]]: one instance per browser; offline cache + [[Sync]].
-* [[Architecture/Server]]: — authentication, serving the client, and the file [[HTTP API]], otherwise a dumb file store.
+* [[Architecture/Server]]: authentication, file access and reconciliation, server-backed search, revisions and optional runtime services.
+
+The browser’s Object Index supports structured queries; the Server’s search index supports full-text and semantic search. They are separate systems. Desktop runs the shared client and a local embedded server against its local space; it does not need browser-style file synchronization between them. [[Desktop Sync]] optionally connects that folder to an external Server.
 
 # Components
 Every box in the diagram is a page tagged `component`:
 
-${query[[
-  from p = index.pages("component")
-  order by p.name
-  select templates.pageItem(p)
-]]}
-
+* [[Architecture/Client|Client]]
+* [[Architecture/Client Bundle Cache|Client Bundle Cache]]
+* [[Architecture/Datastore|Datastore]]
+* [[Architecture/Editor|Editor]]
+* [[Architecture/Events|Events]]
+* [[Architecture/File System API|File System API]]
+* [[Architecture/Plugs|Plugs]]
+* [[Architecture/Runtime Manager|Runtime Manager]]
+* [[Architecture/Server|Server]]
+* [[Architecture/Service Worker|Service Worker]]
+* [[Architecture/Services|Services]]
+* [[Architecture/Space Files|Space Files]]
+* [[Architecture/Space Lua|Space Lua]]
+* [[Architecture/Synced Files|Synced Files]]
+* [[Architecture/Syscalls|Syscalls]]

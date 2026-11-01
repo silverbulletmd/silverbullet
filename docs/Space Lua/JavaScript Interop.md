@@ -3,12 +3,12 @@ references:
 - client/space_lua/stdlib/js.ts
 - client/space_lua/runtime.ts
 ---
-Space Lua runs in the browser and has direct access to JavaScript APIs through the `js` module. This enables you to use the browser's native capabilities and import external JavaScript libraries. Use this functionality with caution. With great power comes comes great responsibility.
+Space Lua runs in the browser and has direct access to JavaScript APIs through the `js` module. This enables you to use the browser’s native capabilities and import external JavaScript libraries. Imported code runs with the same browser access as your Space Lua.
 
 The full API reference is at [[API/js]].
 
 # Accessing browser APIs
-Use `js.window` to access the browser's `window` object:
+Use `js.window` to access the browser’s `window` object:
 
 ```lua
 -- Get the current URL
@@ -30,7 +30,7 @@ print(js.stringify(chunks))  -- [[1,2],[3,4],[5,6]]
 ```
 
 # Converting between Lua and JavaScript values
-Lua tables and JavaScript objects/arrays are different types. Space Lua tries its best to map between them the best in can, but sometimes you may need finer grained control:
+Lua tables and JavaScript objects/arrays are different types. Space Lua converts between them automatically where possible. Use these functions when you need an explicit conversion:
 
 * `js.tojs(luaValue)` — converts a Lua value to its JavaScript equivalent
 * `js.tolua(jsValue)` — converts a JavaScript value to its Lua equivalent
@@ -43,7 +43,7 @@ local obj = js.new(SomeConstructor, arg1, arg2)
 ```
 
 # Async transparency
-Space Lua handles JavaScript promises transparently. When a JavaScript function returns a Promise, Space Lua automatically awaits it — you don't need to write any special async/await code:
+Space Lua handles JavaScript promises transparently. When a JavaScript function returns a Promise, Space Lua automatically awaits it — you don’t need to write any special async/await code:
 
 ```lua
 -- This just works, even though fetch() returns a Promise
@@ -60,7 +60,7 @@ end
 ```
 
 # Logging
-Use `js.log` to write to the browser's developer console:
+Use `js.log` to write to the browser’s developer console:
 
 ```lua
 js.log("Debug:", {name = "test", count = 42})

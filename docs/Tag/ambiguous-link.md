@@ -5,7 +5,7 @@ references:
 - plugs/index/relation.ts
 - plug-api/lib/resolve_path.ts
 ---
-An `ambiguous-link` object records a [[Link|link]] whose name lookup matches more than one page in the space — a bare name carried by several pages, or a path-qualified link that is the suffix of several paths — with no exact match among them. The link still resolves — see [[Link#Ambiguous links]] for the ranking that picks the winner — but which page it means depends on where it is written, so each occurrence is indexed for you to find and disambiguate. A link that matches a page exactly is never recorded here: its text is already that page's full path.
+An `ambiguous-link` object records a [[Link|link]] whose name lookup matches more than one page in the space — a bare name carried by several pages, or a path-qualified link that is the suffix of several paths — with no exact match among them. The link still resolves — see [[Link#Ambiguous links]] for the ranking that picks the winner — but which page it means depends on where it is written, so each occurrence is indexed for you to find and disambiguate. A link that matches a page exactly is never recorded here: its text is already that page’s full path.
 
 Like [[Tag/aspiring-page|aspiring pages]], these records are produced by the relation indexer and are recomputed whenever the page is re-indexed, so an ambiguity disappears from the index as soon as it is fixed (by qualifying the link, or by renaming one of the colliding pages).
 

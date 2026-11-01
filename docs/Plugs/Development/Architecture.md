@@ -13,7 +13,7 @@ At load time, each plug runs in its own **Web Worker sandbox** in the browser. O
 
 Two kinds of messages flow between the sandbox and the main thread:
 
-* **Invoke** (main → worker): "run function `foo` with args X". Dispatched whenever a hook (command, event, slash command, MQ, code widget, document editor, syscall) fires for that plug.
+* **Invoke** (main → worker): “run function `foo` with args X”. Dispatched whenever a hook (command, event, slash command, MQ, code widget, document editor, syscall) fires for that plug.
 * **Syscall** (worker → main): the plug calls `globalThis.syscall(name, ...args)` to reach editor APIs, storage, and so on. Plug authors don’t call this directly — importing from `@silverbulletmd/silverbullet/syscalls` generates these calls for you.
 
 # Permissions

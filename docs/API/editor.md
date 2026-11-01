@@ -283,7 +283,7 @@ Shows a filterable option picker similar to the page picker.
 - `options` (`FilterOption[]`) — The available options.
 - `helpText?` (`string`) — Help text shown below the picker.
 - `placeHolder?` (`string`) — Placeholder text for the filter input.
-- `opts?` (`table`) — `allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter; `newHint`: the hint on that option (e.g. "Add"). The returned option then has `isNew = true` and the typed text as `name`.
+- `opts?` (`table`) — `allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter; `newHint`: the hint on that option (e.g. “Add”). The returned option then has `isNew = true` and the typed text as `name`.
 
 **Returns:**
 
@@ -315,7 +315,7 @@ Shows a flash notification in the editor UI.
 **Parameters:**
 
 - `message` (`string`) — The message to display.
-- `type?` (`NotificationType`) — The notification severity: "info", "error", or "warning".
+- `type?` (`NotificationType`) — The notification severity: “info”, “error”, or “warning”.
 - `options?` (`{ timeout?: number; actions?: NotificationAction[] }`) — Optional timeout and action buttons. A timeout of 0 keeps the notification visible until dismissed.
 
 **Example:**
@@ -368,7 +368,7 @@ Returns the name of the currently active editor implementation.
 
 `editor.getCurrentLine()`
 
-Returns the current line's range and text, including a `|^|` cursor marker variant.
+Returns the current line’s range and text, including a `|^|` cursor marker variant.
 
 **Returns:**
 
@@ -436,7 +436,7 @@ Returns the slot of the panel whose iframe currently holds focus, or undefined i
 
 **Returns:**
 
-- `"lhs" | "rhs" | "bhs" | "modal" | undefined` — The focused panel's slot, or undefined if no panel iframe has focus.
+- `"lhs" | "rhs" | "bhs" | "modal" | undefined` — The focused panel’s slot, or undefined if no panel iframe has focus.
 
 ## editor.getLastOpenedMap
 
@@ -682,11 +682,11 @@ Opens the command palette.
 
 `editor.openNavigator(name, opts?)`
 
-Opens a view, returning whether it opened. False means the view isn't there to open -- typically because it's defined in Space Lua that hasn't been indexed yet -- so a caller can fall back to something else.
+Opens a view, returning whether it opened. False means the view isn’t there to open -- typically because it’s defined in Space Lua that hasn’t been indexed yet -- so a caller can fall back to something else.
 
 **Parameters:**
 
-- `name` (`string`) — The view's name.
+- `name` (`string`) — The view’s name.
 - `opts?` (`table`) — Optional `segment` (segment label), `phrase`, `dropdown` (dropdown value to select), and `focus` (`false` opens without taking focus). See [[API/view#view.open(name, opts?)]] for the full option semantics.
 
 **Returns:**
@@ -707,7 +707,7 @@ Opens the page picker in the requested browsing mode. Each mode maps to a segmen
 
 `editor.openSearchPanel()`
 
-Opens the editor's native search panel.
+Opens the editor’s native search panel.
 
 ## editor.openUrl
 
@@ -728,7 +728,7 @@ Shows a checklist, every item unchecked, and lets the user tick any number of th
 
 **Parameters:**
 
-- `options` (`{ title: string; message?: string; items: { id: string; label: string }[]; confirmLabel?: string }`) — The dialog title, an optional message, the items to offer and the confirm button label (default "OK").
+- `options` (`{ title: string; message?: string; items: { id: string; label: string }[]; confirmLabel?: string }`) — The dialog title, an optional message, the items to offer and the confirm button label (default “OK”).
 
 **Returns:**
 
@@ -1009,7 +1009,7 @@ Re-evaluates every baked section on the current page and replaces each body with
 
 `editor.uploadFile(accept?, capture?)`
 
-Opens the browser's native file picker and returns the selected file's bytes and metadata.
+Opens the browser’s native file picker and returns the selected file’s bytes and metadata.
 
 **Parameters:**
 
@@ -1018,7 +1018,7 @@ Opens the browser's native file picker and returns the selected file's bytes and
 
 **Returns:**
 
-- `UploadFile` — The selected file's name, content type, and bytes.
+- `UploadFile` — The selected file’s name, content type, and bytes.
 
 **Example:**
 

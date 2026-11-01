@@ -16,16 +16,16 @@ The `search` API searches the space with its active search backend and exposes S
 
 `search.find(query, options?)`
 
-Searches the space with its active search backend. A newer search from the same tab cancels an older one that is still running. Queries shorter than the server's minimum return no results.
+Searches the space with its active search backend. A newer search from the same tab cancels an older one that is still running. Queries shorter than the server’s minimum return no results.
 
 **Parameters:**
 
 - `query` (`string`) — What to search for.
-- `options?` (`table`) — `mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments: meta pages are tagged `meta`, `meta/…` or `template`; defaults to `all`), `include`/`exclude` (exact page names; they narrow `scope` further; without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).
+- `options?` (`table`) — `mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker’s segments: meta pages are tagged `meta`, `meta/…` or `template`; defaults to `all`), `include`/`exclude` (exact page names; they narrow `scope` further; without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).
 
 **Returns:**
 
-- `table` — `{items, total, partial, notice}`. Each item is `{page, pos, line, heading, excerpt, highlights}`; `heading` is set when the backend knows it, `pos` is the match's position in the page, `highlights` is a list of `[start, end]` pairs (UTF-16 offsets into `excerpt`, end exclusive).
+- `table` — `{items, total, partial, notice}`. Each item is `{page, pos, line, heading, excerpt, highlights}`; `heading` is set when the backend knows it, `pos` is the match’s position in the page, `highlights` is a list of `[start, end]` pairs (UTF-16 offsets into `excerpt`, end exclusive).
 
 **Example:**
 
@@ -54,7 +54,7 @@ Fuzzy-ranks objects against a phrase, best match first. The same ranker view pan
 
 `search.related(page, options?)`
 
-Finds pages related to a page, leaving out pages hidden by a page decoration. Raises an error while `search.status().capabilities.related` is false (no semantic search, or its index is still building) or when the page isn't in the semantic index yet.
+Finds pages related to a page, leaving out pages hidden by a page decoration. Raises an error while `search.status().capabilities.related` is false (no semantic search, or its index is still building) or when the page isn’t in the semantic index yet.
 
 **Parameters:**
 
@@ -69,7 +69,7 @@ Finds pages related to a page, leaving out pages hidden by a page decoration. Ra
 
 `search.status()`
 
-Reports the space's search backend: its name, the query modes it supports (the first is the default), whether it can find related pages, and whether it is ready.
+Reports the space’s search backend: its name, the query modes it supports (the first is the default), whether it can find related pages, and whether it is ready.
 
 **Returns:**
 

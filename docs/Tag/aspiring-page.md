@@ -9,6 +9,14 @@ references:
 
 Internally SilverBullet uses these in the [[Workbench/Health]] tab (as broken links), page complete and the page picker (to hint at pages to still be created).
 
-Example query (lists all aspiring pages in this space, which should just be the one created at the top of this page):
+Example query (lists all aspiring pages in this space, the results depend on the other unresolved links in your space):
 
 ${query[[from index.aspiringPages()]]}
+
+## Attributes
+* `name`: unresolved page name.
+* `page`: source page containing the link.
+* `pos`: start of the unresolved link.
+* `ref`: reference identifying that occurrence.
+
+Records are rebuilt when the source page is indexed; creating the target page removes its aspiring-page entries.

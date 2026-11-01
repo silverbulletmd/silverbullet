@@ -1,4 +1,4 @@
-You can publish a space as a website by giving the public read access to it: visitors can browse it without an account, while you and your team keep editing the same space.
+Publishing grants public read access to a **whole space**. For a selected set of pages at another destination, use [[Guide/Publish a Collection]] instead. You can publish a space as a website by giving the public read access to it: visitors can browse it without an account, while you and your team keep editing the same space.
 
 # Make a space public
 In the [[Dashboard]], open the space’s **Space settings → Access**. Under **Who has access**, set **Public (not signed in)** to **Read**. Anyone can now read the space without signing in; page history and [[Revisions]] stay members-only.
@@ -15,3 +15,6 @@ This documentation is a SilverBullet space published for public reading, built f
 
 # Styling
 A published space is styled like any other: use [[Space Style]] for CSS and [[Page Decorations]] for icons and prefixes.
+
+# Reading source
+Public readers can reveal formatted source with Alt/Option-click and select it for copying; revealing source does not grant editing access. Examples that change files or configuration belong in a separate writable practice space. See [[Live Preview]].

@@ -32,8 +32,6 @@ Defines a tag explicitly.
 
 When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback. To remove a field set by an earlier call, set it to `config.unset` (e.g. `tag.define { name = "person", transform = config.unset }`).
 
-This is a very powerful API, with a wide range of potential use cases.
-
 # Use cases
 ## Schema validation
 To define a [[Schema]] for validating an object (e.g. a page) tagged with `#person` ensuring that the `age` attribute is always a number, you can do the following:
@@ -56,7 +54,7 @@ If you set `mustValidate` to `true`, schema validation will happen during the in
 ## Index augmentation
 Based on your page’s markdown, an indexer produces a list of objects to be indexed. If you define a `transform` callback function for a tag, this function will be invoked for each object with that tag, when the indexer encounters one. `transform` can inspect the object and do a few things:
 
-* Make changes to the object in place and return it: this is the most common scenario. It allows you to attach additional attributes to the object before it's persisted to the database.
+* Make changes to the object in place and return it: this is the most common scenario. It allows you to attach additional attributes to the object before it’s persisted to the database.
 * Return an empty table (`{}`): in this case the object will not be indexed at all.
 * Return `nil` in which case indexing proceeds as usual.
 * Return a list of objects that should be indexed _instead_: this may include the original object or a modification of it. This allows you to generate a set of custom objects, e.g. based on further parsing of the data in the object. A use case here could be to extract additional attributes from an existing attribute.
@@ -69,7 +67,7 @@ Based on your page’s markdown, an indexer produces a list of objects to be ind
 > `transform` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `transform` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.
 
 ### Example: adding [[Page Decorations]] dynamically
-The following dynamically adds a Feather icon [[Page Decorations|page decoration]] to all pages tagged with `#person`, such as [[Person/John]] or [[Zef Hemel]].
+The following dynamically adds a Feather icon [[Page Decorations|page decoration]] to all pages tagged with `#person`, such as a page named `People/Sam Rivera`.
 
 ```lua
 tag.define {
@@ -134,11 +132,11 @@ The result is the following:
 <!--/lua-->
 
 ## Rendering objects
-A tag can replace the YAML of its objects with a custom widget in the editor, e.g. a header card or a form. Each kind of object has its own hook: `renderFrontmatter` for a page's [[Frontmatter]], `renderDataBlock` for the documents of a [[Tag/data|data block]]. Both are called as `render(object, ctx)` and return a widget, typically built with `widget.htmlBlock` and the [[API/dom|dom]] API. By default, both render the form from [[^Library/Std/Widgets/Object Form]] (`objectForm.render`).
+A tag can replace the YAML of its objects with a custom widget in the editor, e.g. a header card or a form. Each kind of object has its own hook: `renderFrontmatter` for a page’s [[Frontmatter]], `renderDataBlock` for the documents of a [[Tag/data|data block]]. Both are called as `render(object, ctx)` and return a widget, typically built with `widget.htmlBlock` and the [[API/dom|dom]] API. By default, both render the form from [[^Library/Std/Widgets/Object Form]] (`objectForm.render`).
 
 `object` is the object with its current, possibly unsaved values: for a page, its frontmatter plus `name` (the page name) and `tags`; for a data object, its YAML plus `ref`, `tag`, `tags` and `page`, as the [[Object Index]] would have it.
 
-`ctx` is the [[Live Object Edit#The render context|render context]]: the raw YAML (`ctx.values`, `ctx.types`, `ctx.keys`), `ctx.kind`, `ctx.readOnly`, and `ctx.set`, `ctx.remove` and `ctx.move` to change it. See [[Live Object Edit]] for the full reference and an editable example.
+`ctx` is the [[#Render context|render context]]: the raw YAML (`ctx.values`, `ctx.types`, `ctx.keys`), `ctx.kind`, `ctx.readOnly`, and `ctx.set`, `ctx.remove` and `ctx.move` to change it. See [[#Render context]] for the field contracts and an editable card example.
 
 ```lua
 tag.define {
@@ -158,16 +156,16 @@ How it behaves:
 * Explicit Markdown syntax mode shows the source.
 
 ### Frontmatter live previews
-When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag's renderer is the default form; the `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag's own `renderFrontmatter` applies either way.
+When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag’s renderer is the default form; the `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag’s own `renderFrontmatter` applies either way.
 
 ### Data block previews
 A ` ```#name ` block shows one widget per YAML document (documents are separated by `---` lines), stacked in place of the block. A plain ` ```data ` block works the same, with the root `data` tag. For a ` ```#name ` block, the first match wins:
-1. the `name` tag's `renderDataBlock`;
+1. the `name` tag’s `renderDataBlock`;
 2. a [[API/codeWidget|code widget]] for the language `#name`, so existing code widgets keep working;
-3. the `data` tag's `renderDataBlock`, which is the form;
+3. the `data` tag’s `renderDataBlock`, which is the form;
 4. none: the YAML shows as a code block.
 
-A block whose YAML doesn't parse, or isn't a key/value mapping, shows its source. Step 3 is the default form; the `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
+A block whose YAML doesn’t parse, or isn’t a key/value mapping, shows its source. Step 3 is the default form; the `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
 
 ```lua
 tag.define {
@@ -194,3 +192,80 @@ a[data-tag-name="my-red-tag"] {
   background-color: red;
 }
 ```
+
+# Render context
+An object’s YAML is shown by a render hook from the object’s [[API/tag|tag]]:
+* `renderFrontmatter(pageMeta, ctx)` for a page’s frontmatter
+* `renderDataBlock(object, ctx)` for each document of a data block.
+
+The hook returns a widget. When the user changes something in it, the widget calls `ctx.set`, which writes a minimal edit to the YAML. The default hook for both is the [[^Library/Std/Widgets/Object Form|object form]], built from the [[API/widgets]]. You can write your own hook to show an object differently.
+
+## Context fields
+`ctx`, the second argument of a render hook, is the widget’s handle on the object’s YAML:
+
+* `ctx.kind`: `"page"` (frontmatter) or `"data"` (a data block document).
+* `ctx.values`: the parsed YAML values. Date-only timestamps are `YYYY-MM-DD` strings and timestamps with a time are ISO strings (both typed `date`); tags are not normalized.
+* `ctx.types`: each key’s YAML type: `string`, `number`, `boolean`, `date`, `null`, `array` or `object`.
+* `ctx.keys`: the top-level keys, in YAML order.
+* `ctx.readOnly`: `true` when the page can’t be edited; don’t offer edits then. The built-in form then also leaves out the schema properties the YAML doesn’t have.
+* `ctx.set(key, value)`: sets one top-level attribute, adding it at the end if it’s new.
+* `ctx.remove(key)`: removes one top-level attribute.
+* `ctx.move(key, delta)`: moves a top-level attribute `delta` places (`-1` up, `1` down).
+* `ctx.addItem()`: only on the last item of a data block, once it has an attribute: adds an empty item after it (a `---` line). The built-in form shows it as **+ add item**.
+
+The first argument holds the same values as the [[Object Index]] would have them (for a page also `name` and `tags`, for a data object also `ref`, `tag`, `tags` and `page`). Use `ctx.values` and `ctx.types` when you need what is literally in the YAML, e.g. to tell a date from a string.
+
+What you can rely on:
+* `set`, `remove` and `move` find the object where it is in the page when they’re called, so they keep working after edits above it.
+* Each call is one undo step, and Cmd-Z/Ctrl-Z inside the widget undoes it.
+* They raise an error when the object can’t be found or the change would break its tag’s [[Schema|schema]]. Wrap them in `pcall` to report it.
+* An empty data block, or a blank last item in one, shows as an item with no attributes yet. There is no object to update then, so its first `ctx.set` writes the YAML as text, without a schema check.
+* While focus is inside the widget, it keeps showing what the user typed; it re-renders with the new YAML once focus leaves. A widget that opens a picker (`editor.filterBox`) and adds to its own DOM after it returns sets a `data-sb-keep` attribute on one of its elements while the picker is open, and removes it afterwards; until then it isn’t re-rendered.
+* To get to the YAML, the user presses Esc in an input (the cursor goes to the attribute of the nearest element with a `data-key` attribute) or picks **Edit source** from the ⋯ menu.
+* The ⋯ menu also has **Delete** (one undo step): on frontmatter it removes the whole frontmatter; on a data block item it removes that item with its `---` line, or the whole block when it is the only item.
+
+## Editable card example
+A compact card for ` ```#contact ` data blocks, with an editable email and a checkbox:
+
+```lua
+tag.define {
+  name = "contact",
+  renderDataBlock = function(contact, ctx)
+    local function save(key, value)
+      local ok, err = pcall(ctx.set, key, value)
+      if not ok then
+        editor.flashNotification(tostring(err), "error")
+      end
+    end
+    return widget.htmlBlock(dom.div {
+      class = "contact-card",
+      dom.strong { contact.name or "Unnamed" },
+      dom.div {
+        ["data-key"] = "email",
+        widgets.textInput {
+          value = ctx.values.email,
+          placeholder = "email",
+          readOnly = ctx.readOnly,
+          onChange = function(text)
+            save("email", text)
+          end,
+        },
+      },
+      dom.label {
+        ["data-key"] = "active",
+        widgets.booleanInput {
+          value = ctx.values.active == true,
+          readOnly = ctx.readOnly,
+          onChange = function(checked)
+            save("active", checked)
+          end,
+        },
+        " active",
+      },
+    })
+  end,
+}
+```
+
+## Editing outside a render hook
+`ctx` only exists inside a render hook. Anywhere else (a command, a button, a query result) use [[API/object#object.update|object.update]], which `ctx` is built on: `object.update(object, { status = "done" })` changes attributes of an object from a query where it is written, with the same minimal edits, and its `remove` and `order` options do what `ctx.remove` and `ctx.move` do.

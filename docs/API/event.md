@@ -6,7 +6,7 @@ references:
 - client/plugos/event.ts
 ---
 
-The Event API provides functions for working with SilverBullet's event bus system, allowing communication between different parts of the application.
+The Event API provides functions for working with SilverBullet’s event bus system, allowing communication between different parts of the application.
 
 <!--#lua spacelua.renderApiDocumentation("event") -->
 ## event.dispatch

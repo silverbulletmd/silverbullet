@@ -53,14 +53,14 @@ auth.fetch("github", "https://api.github.com/gists/" .. id)
 ```
 
 ## auth.headers(key)
-Returns the HTTP headers for a key. It signs in when there is no credential (showing whatever the provider's `connect` shows), renews an expired credential and signs in again if renewing fails, and stores the result. Errors from `connect` are passed on and nothing is stored.
+Returns the HTTP headers for a key. It signs in when there is no credential (showing whatever the provider’s `connect` shows), renews an expired credential and signs in again if renewing fails, and stores the result. Errors from `connect` are passed on and nothing is stored.
 
 ```lua
 net.proxyFetch("https://api.example.com/me", {headers = auth.headers("example:https://api.example.com")})
 ```
 
 ## auth.optionalHeaders(key)
-Like `auth.headers`, but never signs in: returns the headers of the stored credential (renewed first if it expired), or nil when there is none or it can't be renewed. Use it for requests that work without signing in, such as reads of public content.
+Like `auth.headers`, but never signs in: returns the headers of the stored credential (renewed first if it expired), or nil when there is none or it can’t be renewed. Use it for requests that work without signing in, such as reads of public content.
 
 ## auth.getCredential(key)
 Returns the stored credential table, or nil. Besides what the provider returned it has `provider` and `createdAt` (milliseconds).

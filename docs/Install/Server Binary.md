@@ -33,16 +33,16 @@ Run the server, pointing it at that folder:
 ./silverbullet data
 ```
 
-Since `sb-data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Dashboard]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
+Since `data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Dashboard]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
 
 The server listens on `http://localhost:3000` by default. To pick a different port, use `-p`:
 ```bash
-./silverbullet -p 3001 sb-data
+./silverbullet -p 3001 data
 ```
 
 And to bind on an address other than `127.0.0.1` (e.g. to make it reachable on your LAN), use `-L`:
 ```bash
-./silverbullet -L 0.0.0.0 sb-data
+./silverbullet -L 0.0.0.0 data
 ```
 
 Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Dashboard]], once that’s all done, head to [[Getting Started]] to learn the basics.
@@ -64,4 +64,3 @@ To upgrade your client, be sure to refresh your page _twice_ somewhat slowly.
 
 # Version
 To check which version of SilverBullet you’re running, run the ${widgets.commandButton("Client: Version")} command.
-

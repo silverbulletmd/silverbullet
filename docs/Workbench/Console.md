@@ -19,11 +19,11 @@ The log keeps the most recent 1000 entries. Use the filter field to search them 
 Lua errors show their message, a hint when there is one, and the offending line with the failing part marked. **Stack** lists where the error passed through.
 
 # The REPL
-Type Lua at the bottom prompt at the bottom and press Enter to run it.
+Type Lua at the bottom prompt and press Enter to run it. For a first experiment, enter `1 + 2`; the result is `3`. Console code can change your space when you call a write API, so use your own writable space for mutation examples.
 
 The REPL can operate in two “contexts”:
-* Space context: in which only “space wide” (so technically, [[Space Lua]] variables are availbel).
-* Page context: in which in addition to to space-wide, you also have access to [[Space Lua/Page Lua]] variables and functions declared in `page-lua` blocks.
+* **Space context:** access to space-wide [[Space Lua]] variables and functions.
+* **Page context:** also includes the current page’s variables and functions declared in [[Space Lua/Page Lua|page-lua blocks]].
 
 What you can enter in the REPL:
 * **Expressions** show their value: `1 + 2` shows `3`, and `"a", "b"` shows both values. A statement, like an assignment or a loop, shows nothing unless it ends with `return`.

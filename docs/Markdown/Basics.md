@@ -31,7 +31,7 @@ SilverBullet also supports a variant of the unordered list item to define task. 
 * [ ] This is a task
 * [ ] And this is another
 
-When you click the checkbox, it will toggle its state and replace the ` ` inside the box with `x`. SilverBullet also supports custom task statuses by putting text in between `[` and `]`. When you click on such custom task states, it will cycle through all the task states it’s seen in your space:
+When you click the checkbox, it will toggle its state and replace the ` ` inside the box with `x`. SilverBullet also supports custom task statuses by putting text in between `[` and `]`. When you click on such custom task states, it cycles through the states configured in your space using [[API/taskState]]. See [[Task#Custom states]]:
 
 * [IN PROGRESS] This task is in progress
 * [DONE] This task is done

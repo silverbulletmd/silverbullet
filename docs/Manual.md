@@ -1,10 +1,3 @@
----
-description: "The SilverBullet manual is organized into sections; this page points you to them."
----
-The manual is organized into sections. Start at the [[SilverBullet|documentation home]], or jump straight to one:
+The [[SilverBullet|documentation home]] links to [[Getting Started|Start here]], [[Guides]], [[Administration|Setup and administration]], [[Reference]] and [[Development|Contributing]].
 
-${query[[
-  from s = docsNav.sections
-  where s.name ~= "Start"
-  select templates.docsSection(s)
-]]}
+Use Start here for independent introductions, Guides for practical tasks and use cases, and Reference for complete feature behavior and syntax.

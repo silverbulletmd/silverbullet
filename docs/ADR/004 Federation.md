@@ -25,4 +25,4 @@ Add **federation**: a space can link to a remote space via a federated URL prefi
 **Deprecated and removed (2025).** Federation was taken out: the maintenance cost outweighed its limited use, and shared content is better served by other mechanisms ([[Library]], copying, or publishing). It has no direct replacement.
 
 # References
-* Federation removed: [commit dbfc5995](https://github.com/silverbulletmd/silverbullet/commit/dbfc5995) — "More thorough removal of federation".
+* Federation removed: [commit dbfc5995](https://github.com/silverbulletmd/silverbullet/commit/dbfc5995) — “More thorough removal of federation”.

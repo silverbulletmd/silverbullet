@@ -5,12 +5,12 @@ references:
 - libraries/Library/Std/Infrastructure/Slash Templates.md
 - libraries/Library/Std/Slash Templates/tpl.md
 ---
-Slash templates are a quick way to define [[Slash Command|slash commands]] that insert templated content at the cursor position. They are defined as pages tagged with `#meta/template/slash`.
+Slash templates are a quick way to define [[Slash Command|slash commands]] that insert templated content at the cursor position. They are defined as pages tagged with `#meta/template/slash`. The inserted text is saved in the destination page; later edits to the template do not change earlier insertions. Try the steps below in your own writable space.
 
 # Creating a slash template
 1. Run the `Page: From Template` command
 2. Select “Slash Template”
-3. Pick a name, the last component of the page name (after the `/` if any) will be used as the slash command's name. For example, a page named `Library/Slash Template/action-items` creates a `/action-items` slash command.
+3. Pick a name, the last component of the page name (after the `/` if any) will be used as the slash command’s name. For example, a page named `Library/Slash Template/action-items` creates a `/action-items` slash command.
 4. Put the template content in the page body. Lua directives (`${...}`) are supported and will be evaluated when the template is inserted.
 
 Run the `System: Reload` command to activate the slash template.
@@ -27,7 +27,7 @@ description: Insert a standard action items section
 * [ ] |^|
 ~~~
 
-This a `/action-items` slash command that inserts an action items section.
+This creates a `/action-items` slash command that inserts an action items section.
 
 # Configuration
 You can configure these optional [[Frontmatter]] keys:

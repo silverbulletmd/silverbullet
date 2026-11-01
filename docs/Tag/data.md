@@ -8,7 +8,7 @@ references:
 You can embed YAML data in a page with a [[Markdown/Fenced Code Block|fenced code block]]. Each block becomes one or more queryable objects.
 
 ## Defining your own root tags
-Use a hashtag as the block's language, and every object in it gets that name as its [[Tag#Root tags|root tag]]. This is how you define a new kind of object in plain Markdown:
+Use a hashtag as the block’s language, and every object in it gets that name as its [[Tag#Root tags|root tag]]. This is how you define a new kind of object in plain Markdown:
 
 ```#contact
 $ref: pete-contact
@@ -30,7 +30,7 @@ name: Linda
 name: Jack
 ```
 
-The `/data` [[Slash Command]] inserts an empty data block, with the cursor where its tag goes. Once you leave the block it shows as an empty form; **+ add item** below the last item adds another one, and **Delete** in an item's ⋯ menu removes it (with the whole block when it is the last one).
+The `/data` [[Slash Command]] inserts an empty data block, with the cursor where its tag goes. Once you leave the block it shows as an empty form; **+ add item** below the last item adds another one, and **Delete** in an item’s ⋯ menu removes it (with the whole block when it is the last one).
 
 ## Editing as a form
 In the editor, each object of a data block shows as a form. To edit data blocks as plain YAML instead, switch off **Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]] or put this in your [[CONFIG]]:

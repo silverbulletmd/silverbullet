@@ -9,7 +9,7 @@ Once your plug works locally, you probably want to ship it to other people. This
 # Distribution: ship your plug in a Library
 Plugs are distributed as part of a [[Library]] — the unit of distribution for all SilverBullet extensions. You don’t publish the `.plug.js` on its own; you publish a library page that carries it.
 
-The recipe mirrors [[Library/Development]]:
+Follow this recipe in your own writable space. Publishing also requires a configured destination. The recipe mirrors [[Library/Development]]:
 
 1. Create a [[Meta Page]] under `Library/yourname/Your Thing` with frontmatter that lists the plug file:
 
@@ -24,8 +24,8 @@ The recipe mirrors [[Library/Development]]:
    ```
 
 2. Drop the compiled `yourthing.plug.js` next to the library page — e.g. `Library/yourname/yourthing.plug.js`. The `files:` list tells the library system to ship the plug along with the page when somebody installs it.
-3. Publish the library page with the ${widgets.commandButton "Share: Page"} command (GitHub file, Gist, etc.), which gives the page a public [[URI]].
-4. End users install it with ${widgets.commandButton "Library: Install"} using that URI, or discover it through a [[Repository]].
+3. Publish the library page with the `Share: Page` command (GitHub file, Gist, etc.), which gives the page a public [[URI]].
+4. End users install it with `Library: Install` using that URI, or discover it through a [[Repository]].
 5. Updates: push new versions of the library page via `Share: Page`.
 
 See [[Library]], [[Library/Development]], [[Share]], [[Repository]], and [[Workbench/Libraries]] for the broader library system.

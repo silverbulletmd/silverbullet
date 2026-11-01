@@ -13,13 +13,13 @@ If `stripIndent` is set to true or omitted, the function will try to remove inde
 
 Example:
 
-```space-lua
+```lua
 examples = examples or {}
 
 examples.sayHello = template.new[==[Hello ${name}!]==]
 ```
 
-And its use: ${examples.sayHello {name="Pete"}}
+Install the definition in a `space-lua` block, then use `${examples.sayHello {name="Sam"}}` in a page to display `Hello Sam!`.
 
 ## template.each(collection, template)
 Iterates over a collection and renders a template for each item.

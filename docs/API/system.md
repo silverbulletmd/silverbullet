@@ -47,7 +47,7 @@ Returns rw for read-write mode or ro for read-only mode.
 
 `system.getProfile()`
 
-The current user's identity. `username` is "me" when the server has no account for this session.
+The current user’s identity. `username` is “me” when the server has no account for this session.
 
 ## system.getSpaceConfig
 
@@ -165,7 +165,7 @@ Reloads every plug available to the client.
 
 `system.runPaletteCommand(name)`
 
-Runs a command as if it had been picked from the command palette: records it as the most recently run, then invokes it and returns its result. A command that throws is reported to the user and answered as false, which in this protocol means "do not move focus on my behalf".
+Runs a command as if it had been picked from the command palette: records it as the most recently run, then invokes it and returns its result. A command that throws is reported to the user and answered as false, which in this protocol means “do not move focus on my behalf”.
 
 **Parameters:**
 

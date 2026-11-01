@@ -6,6 +6,8 @@ references:
 - client/space_lua/query_env.ts
 - client/space_lua/parse.ts
 ---
+For a first query, follow [[Guide/Build Your First Query]] to use the visual builder. This page is the syntax reference.
+
 Space Lua Integrated Query (SLIQ) is a SilverBullet specific Lua extension. It adds a convenient query syntax to the language in a backwards compatible way. It does so by overloading Lua’s default function call + single argument syntax when using `query` as the function call. As a result, Lua programs using SLIQ are still syntactically valid Lua.
 
 The syntax for SLIQ is `query[[my query]]`. In regular Lua `[[my query]]` is just another way of writing `"my query"` (it is an alternative string syntax). Function calls that only take a string argument can omit parentheses, therefore `query[[my query]]` is equivalent to `query("my query")`.
@@ -60,7 +62,7 @@ SLIQ operates on any Lua collection.
 For instance, to sort a list of numbers in descending order:
 ${query[[from n = {1, 2, 3} order by n desc]]}
 
-However, in most cases you’ll use it in conjunction with [[API/index#index.objects(tag)]] (or one of its convenience wrappers like `index.pages()`). Here’s an example querying the 3 pages that were last modified:
+However, in most cases you’ll use it in conjunction with [[API/index#index.objects]] (or one of its convenience wrappers like `index.pages()`). Here’s an example querying the 3 pages that were last modified:
 
 ${query[[
   from p = index.pages()
@@ -69,7 +71,7 @@ ${query[[
   limit 3
 ]]}
 
-Note that the query returns a regular Lua table, so it can be part of a bigger expression:
+A query result can be used in a larger Lua expression:
 
 ${some(query[[
   from p = index.pages()
@@ -95,7 +97,7 @@ However, there is also the more concise:
 implicitly binding each item to the variable `_` as well as making all attributes directly available as variables. The latter, while shorter, is less performant and will block future optimizations, so the variable-binding variant is preferred.
 
 > **warning** Warning
-> When you use a `from` clause without explicit variable binding (so without the `v in` syntax), note that any attribute of the object you’re iterating over will shadow global variables. For instance, if you have an object with a `table` attribute, regular `table` APIs will become inaccessible within the query.
+> When you use a `from` clause without explicit variable binding (so without the `v =` syntax), note that any attribute of the object you’re iterating over will shadow global variables. For instance, if you have an object with a `table` attribute, regular `table` APIs will become inaccessible within the query.
 >
 > **Recommendation:** Use the explicit variable binding syntax
 
@@ -306,7 +308,7 @@ Some examples:
 Double each number:
 ${query[[from n = {1, 2, 3} select n * 2]]}
 
-It is convenient to combine it with the [[API/table#table.select(table, keys...)]] API:
+It is convenient to combine it with the [[API/table#table.select]] API:
 ${query[[
   from p = index.pages()
   select table.select(p, "name", "lastModified")
@@ -314,7 +316,7 @@ ${query[[
 ]]}
 
 # Rendering the output
-To render the output as a template, you can rely on the fact that queries return Lua tables. For example, to apply a template to render every page as a link:
+To render the output as a template, apply a template to each selected row. For example, to apply a template to render every page as a link:
 
 ${query[[
   from p = index.pages()

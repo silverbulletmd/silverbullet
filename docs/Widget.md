@@ -50,7 +50,7 @@ These are [[View|view]]s showing widgets, not automatic page decorations. Each s
 * **Linked mentions** — pages that link to the current page, docked at the bottom
 * **Linked tasks** — incomplete tasks that mention the current page, docked at the top
 
-The table of contents is no longer rendered on every page either: it's the `Navigate: Table of Contents` view, which you call up when you want it and dock wherever you like.
+The table of contents is no longer rendered on every page either: it’s the `Navigate: Table of Contents` view, which you call up when you want it and dock wherever you like.
 
 None of the three has an `enabled` config key: each remembers its own dock and open/closed state, so closing or moving one is what decides whether it appears from then on. The one setting left is in your [[^Library/Std/Config]] page:
 
@@ -67,7 +67,7 @@ The `embed` namespace provides widgets for embedding external content:
 * `embed.vimeo(url)` — embeds a Vimeo video
 
 # Showing a widget above or below every page
-Define a view docked at the top or bottom of the page. With `frame = "minimal"` it renders as plain page content, with its buttons appearing on hover:
+Put the following definition in a `space-lua` block in your own space, then run `System: Reload`. Define a view docked at the top or bottom of the page. With `frame = "minimal"` it renders as plain page content, with its buttons appearing on hover:
 
 ```lua
 view.define {
@@ -84,6 +84,6 @@ view.define {
 
 Return `nil` from `content` on pages where nothing should show.
 
-**Deprecated:** listening to `hooks:renderTopWidgets` or `hooks:renderBottomWidgets` still works, but those widgets can't be moved, closed or configured. Use a view instead.
+**Deprecated:** listening to `hooks:renderTopWidgets` or `hooks:renderBottomWidgets` still works, but those widgets can’t be moved, closed or configured. Use a view instead.
 
 See also: [[Space Lua/DOM]], [[API/widget]], [[API/dom]]

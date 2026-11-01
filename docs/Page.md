@@ -2,7 +2,9 @@
 description: A single Markdown document in your space.
 tags: glossary
 ---
-The primary thing you’ll be doing in SilverBullet (hopefully) is creating and editing pages. Pages are written in [[Markdown]], can contain [[Metadata]] and are kept on the server as text files.
+A page is a [[Markdown]] file in your [[Space]]. Write notes, add links and tasks, and optionally add [[Metadata]]. A page named `Photo Walk` is stored as `Photo Walk.md` in the space folder, whether you use Desktop locally or connect to a Server.
+
+Start with [[Guide/Your First Markdown Page]] for a writing exercise.
 
 Page _names_ are relatively free-form, but have to adhere to a few [[Names#Rules]].
 
@@ -10,4 +12,4 @@ Page _names_ are relatively free-form, but have to adhere to a few [[Names#Rules
 Your [[Space]] will contain two types of pages:
 
 * **Content pages:** this is the core of your space — your notes. You navigate between these using the [[Page Picker]].
-* [[Meta Page]] these are pages that contain implementation details _about_ your space (they are “meta”). A lot of these will be part of [[Library]]. You navigate between these using the [[Meta Picker]].
+* **[[Meta Page|Meta pages]]:** these are pages that contain implementation details _about_ your space (they are “meta”). A lot of these will be part of [[Library]]. You navigate between these using the [[Meta Picker]].

@@ -7,22 +7,6 @@ references:
 
 These functions are defined in the global namespace. Alongside standard Lua functions, Space Lua provides the `each` and `some` convenience functions.
 
-<!--#lua spacelua.renderApiDocumentation() -->
-## adder
-
-`adder(a, b)`
-
-Adds two numbers.
-
-**Parameters:**
-
-- `a` (`number`) — First number.
-- `b` (`number`) — Second number.
-
-**Returns:**
-
-- `number` — sum
-
 ## assert
 
 `assert(value, message?)`
@@ -41,10 +25,6 @@ assert(user ~= nil, "user is required")
 ```
 
 **See:** [[API/global]]
-
-## clock
-
-`clock()`
 
 ## dofile
 
@@ -94,19 +74,11 @@ Raises a Lua runtime error with the supplied message.
 
 **See:** [[API/global]]
 
-## formatMarkdownTable
-
-`formatMarkdownTable(tree)`
-
-**Parameters:**
-
-- `tree`
-
 ## getmetatable
 
 `getmetatable(table)`
 
-Returns a table's metatable, or `nil` when none is set.
+Returns a table’s metatable, or `nil` when none is set.
 
 **Parameters:**
 
@@ -117,14 +89,6 @@ Returns a table's metatable, or `nil` when none is set.
 - `table|nil`
 
 **See:** [[API/global]]
-
-## helloWorld
-
-`helloWorld(name)`
-
-**Parameters:**
-
-- `name`
 
 ## ipairs
 
@@ -167,14 +131,6 @@ Compiles Lua source into a callable chunk without executing it.
 
 **See:** [[API/global]]
 
-## marquee
-
-`marquee(text)`
-
-**Parameters:**
-
-- `text`
-
 ## next
 
 `next(table, index?)`
@@ -192,16 +148,6 @@ Returns the next table key and value after a given key, or the first pair when t
 - Value — Value at the next key.
 
 **See:** [[API/global]]
-
-## nodeParentOfType
-
-`nodeParentOfType(tree, position, nodeType)`
-
-**Parameters:**
-
-- `tree`
-- `position`
-- `nodeType`
 
 ## pairs
 
@@ -366,7 +312,7 @@ Returns the count of extra arguments or all arguments from a selected position o
 
 `setmetatable(table, metatable)`
 
-Sets a table's metatable and returns the table.
+Sets a table’s metatable and returns the table.
 
 **Parameters:**
 
@@ -402,10 +348,6 @@ print(some(0))
 ```
 
 **See:** [[API/global]]
-
-## toggleReadOnlyMode
-
-`toggleReadOnlyMode()`
 
 ## tonumber
 
@@ -489,5 +431,3 @@ end)
 ```
 
 **See:** [[API/global]]
-<!--/lua-->
-

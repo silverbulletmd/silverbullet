@@ -15,10 +15,8 @@ A **view** is *where* it’s shown. `view.define` places a widget in a dock — 
 
 The same widget can appear in a `${…}` expression inside a page *or* be docked by a view. Rule of thumb: if it belongs to the page text, write a `${…}` expression; if it belongs to your space and readers should be able to move it or turn it off, define a view.
 
-| Placement | Placed by | Has a name | Readers can move or close it |
-|---|---|---|---|
-| `${…}`, fenced code, frontmatter preview | the page text | no — its position is its handle | only by editing the text |
-| `view.define` dock | your space or a library | yes | yes, and the choice is remembered |
+* `${…}`, fenced code, frontmatter preview: placed by the page text; has no name — its position is its handle. Readers can move or close it only by editing the text.
+* `view.define` dock: placed by your space or a library; has a name. Readers can move or close it, and the choice is remembered.
 
 # Built-in views
 * [[Page Picker]]: `Cmd-k`/`Ctrl-k`. The whole space as a modal list, most recently opened first.
@@ -27,8 +25,8 @@ The same widget can appear in a `${…}` expression inside a page *or* be docked
 * **Tag picker** — `Ctrl-Alt-t`, or `#` from the page picker. Every tag, with how many things carry it. Opens as a modal by default; it can move to either sidebar or the bottom panel.
 * ${widgets.commandButton("Navigate: Tree")}: `Cmd-o`/`Ctrl-o`, or `Cmd-Shift-o`/`Ctrl-Shift-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel.
 * ${widgets.commandButton("Navigate: Table of Contents")}: the current page’s headers as a tree, fully expanded and live as you type. Opens in the right sidebar by default; use its dock menu (see [[#The dock menu]]) to move it to the top or bottom of the page, another panel, or a modal -- the choice is remembered from then on.
-* ${widgets.commandButton("Navigate: Linked Mentions")}: every other page that links to the one you're on, with a snippet of surrounding context. Docks at the bottom of the page by default, open. See [[Linked Mention]].
-* ${widgets.commandButton("Navigate: Linked Tasks")}: incomplete tasks on *other* pages that link to the one you're on. Docks at the top of the page by default, open. Tick a task's checkbox right in the widget and the new state is written back to the page the task lives on. See [[Linked Tasks]].
+* ${widgets.commandButton("Navigate: Linked Mentions")}: every other page that links to the one you’re on, with a snippet of surrounding context. Docks at the bottom of the page by default, open. See [[Linked Mention]].
+* ${widgets.commandButton("Navigate: Linked Tasks")}: incomplete tasks whose inherited links include the page you’re on, including tasks on that same page. Docks at the top of the page by default, open. In a writable space, tick a task’s checkbox right in the widget and the new state is written back to the page the task lives on. See [[Linked Tasks]].
 
 # Inline views
 Use a live `widget.new` (one with a `source`) inside a `${...}` expression to render a list, tree or table in a page:
@@ -45,7 +43,7 @@ ${widget.new {
 }}
 ```
 
-Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget's ⋯ menu has Edit source, Reload for this widget only, and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
+Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget’s ⋯ menu has Edit source, Reload for this widget only, and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
 
 Use `presentation = { mode = "table" }` to display source objects in a table with automatic columns and Markdown cells. Explicit column definitions let you choose attributes, labels, types, and display callbacks. Tables support the same selection and action callbacks as other views.
 
@@ -67,7 +65,7 @@ For examples with actions and the full option reference, see [[API/widget#Lists,
 In a tree that supports it: drag a row onto a folder to move it (renaming through SilverBullet’s own machinery, so backlinks follow).
 
 # Custom views
-Register a view with `view.define` to give it a name, a command, and a dock. This example adds a task-list modal:
+In your own space, put the following definition in a `space-lua` block, then run `System: Reload`. Register a view with `view.define` to give it a name, a command, and a dock. This example adds a task-list modal:
 ```lua
 view.define {
   name = "tasks",
@@ -104,11 +102,11 @@ To reuse a widget as a panel, pass it as `widget` to `view.define`. See [[API/vi
 * `"modal"` (the default) is a centered overlay. It clears its phrase on open and dismisses when you pick something.
 * `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar holds one view at a time -- docking a second view there displaces whichever one was already showing, which comes back on its own once the newcomer moves away.
 * `"bhs"` is a persistent bottom panel below the editor. It is resizable by its top edge, the height is remembered per view, and it otherwise behaves like the sidebars.
-* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view's own body. With `frame = "minimal"` even those go: the body reads as page content and its buttons appear on hover. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
+* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view’s own body. With `frame = "minimal"` even those go: the body reads as page content and its buttons appear on hover. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
 
-A view's body is a list, a tree, or — for a [[API/widget#Content functions|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
+A view’s body is a list, a tree, or — for a [[API/widget#Content functions|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 
 # The dock menu
 Any view whose `supportedDocks` lists more than one place gets a **dock menu**: a button in its header (sidebar/modal title bar, or page-widget bar) whose icon shows the current dock, opening a list of the places it can move to.
 
-See [[API/view#Position target|the API reference]] for the full field list (`dock`, `supportedDocks`, `defaultOpen`, `openOnStart`), the persisted state keys, and the `view.defaults` space-config defaults.
+See [[API/view#view.define(spec)|the API reference]] for the full field list (`dock`, `supportedDocks`, `defaultOpen`, `openOnStart`), the persisted state keys, and the `view.defaults` space-config defaults.

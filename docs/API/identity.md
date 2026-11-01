@@ -5,7 +5,7 @@ references:
 - plugs/index/identity.ts
 ---
 
-APIs to define [[Identity|identities]] — the names you can address with `@name`, whether you're addressing them (see [[Recipient]]) or crediting them (see [[Authorship]]).
+APIs to define [[Identity|identities]] — the names you can address with `@name`, whether you’re addressing them (see [[Recipient]]) or crediting them (see [[Authorship]]).
 
 # API
 ## identity.define(def)
@@ -13,7 +13,7 @@ Defines an identity. Options:
 * `name` _(required)_: the name it is addressed by, without the `@`. Matched case-insensitively.
 * `description`: shown beside the name in autocomplete.
 
-Accounts with access to the space are identities already and need no definition. Use this for teams, projects, agents — anything addressable that is not an account.
+Accounts with access to the space are identities already and need no definition. Use this for teams and projects — anything addressable that is not an account.
 
 ## identity.mentions(recipient?, options?)
 Returns the same open mentions and page-level recipients used by the [[Recipient#The Mention Inbox|Mention Inbox]]. Pass a name with or without `@` to filter case-insensitively; omit it to include all recipients. Completed tasks are excluded.
@@ -33,7 +33,8 @@ sb --space notes eval 'identity.mentions("helper", {limit=100})' --json
 ```
 
 ## Example
-```space-lua
+Install these definitions in a `space-lua` block in your own space and reload them:
+```lua
 identity.define {
   name = "sales",
   description = "Sales team",

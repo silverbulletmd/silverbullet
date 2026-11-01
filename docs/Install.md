@@ -1,57 +1,18 @@
 #getting-started
 
-Excited to use SilverBullet? Here are a few ways for you to deploy it.
+Choose Desktop to open a local folder in the native app, or Server to access spaces through a browser and manage shared access. Both use the same editor and Markdown files.
 
-# localhost (desktop, laptop)
-If you just want to test out SilverBullet, you can install it on your local machine first before proceeding to a “proper” server deployment. Alternatively, you may be interested in the [[Install/Desktop]] version.
+# Desktop
+[[Install/Desktop|Download and install Desktop]] for macOS, Windows or Linux. Create a space from an empty folder or open an existing folder of Markdown files. An external Server is optional; you can add [[Desktop Sync]] later to use the same content on other devices.
 
-Steps:
-1. Install SilverBullet following the instructions of one of these options:
-   * [[Install/Server Binary]] — a single self-contained binary
-   * [[Install/Docker]] — a docker container
-2. Follow [[Getting Started]] to learn the basics
+[[Guide/Desktop Setup]] covers local spaces, updates and optional synchronization.
 
-Is that working out for you? Great, then proceed to deploy SilverBullet _properly_ on a server so you can also access it from other devices (like your phone).
+# Server
+Run Server when you want browser access, a shared team space or a synchronization point for Desktop installations. Install it with [[Install/Docker|Docker]] or the [[Install/Server Binary|standalone binary]]. You can start on this computer and make it reachable from other devices when needed.
 
-# Self-hosted server
-You can self host SilverBullet on essentially any Intel-compatible 64-bit or ARM 64-bit machine you have terminal access to. The server needs very limited resources (a few hundred megabytes of RAM is sufficient), so even a Raspberry Pi works.
-
-There are three things to take care of, in this order:
-
-1. Install SilverBullet:
-   * [[Install/Server Binary]] — a single self-contained binary
-   * [[Install/Docker]] — a docker container
-2. Deploy a [[TLS]] layer in front of SilverBullet for encrypted connections and the full feature set. Plain LAN `http://` also works (mostly) but only in online-only mode, see [[TLS#LAN HTTP (no TLS)]] for limitations.
-3. Follow [[Getting Started]] to learn the basics of using SilverBullet itself.
+[[Guide/Server Setup]] covers setup and administration. [[Install/Server]] describes deployment choices and filesystem requirements.
 
 # Cloud
-If you’d rather not run a server yourself, a hosting provider can run SilverBullet Server for you. See [Hosted SilverBullet](https://silverbullet.md/hosting) for the options.
+If you want Server access without operating it yourself, see [Hosted SilverBullet](https://silverbullet.md/hosting). A hosting provider runs the Server; you can use it in a browser or connect Desktop through [[Desktop Sync]].
 
-# Notes on file systems
-## Case insensitive file systems (Mac and Windows)
-It is _highly discouraged_ to run SilverBullet (in real use) on a _case insensitive_ file system. SilverBullet assumes your file system is _case sensitive_ and acts accordingly.
-
-> **note** Note
-> This only applies to where the SilverBullet _server_ runs, **not** the clients you connect to it (via your browser).
-
-While SilverBullet will run on a case insensitive file system, and everything may _generally_ seem fine, issues start to arise when:
-* You edit pages via page names that do not match (case-wise) with their file names on disk.
-* When you try to create or edit pages that already exist on disk with different casing.
-
-If you’re deploying **Linux**, you’re likely using a file system that is case sensitive. This is the recommended deployment operating system.
-
-**macOS**’s default file system (APFS) is _case insensitive_ by default as well. However, if you insist on running SilverBullet on macOS, you can create a new APFS Volume for which you enable case sensitivity. You can then use this new volume with SilverBullet.
-
-**Windows**’ native NTFS file system is _case insensitive_ by default, [however there are apparently ways to mark specific folders as case sensitive](https://www.howtogeek.com/354220/how-to-enable-case-sensitive-folders-on-windows-10/). Still, this makes deploying SilverBullet on Windows _not recommended_.
-
-## NAS, sync engines, experimental file systems
-While using a NAS to store your space files should be fine, if you encounter issues (unreliable saving, sync issues) it is worth switching to a local file system to see if this resolves those issues. The same goes for synchronizing your files from your server elsewhere, e.g. using tools like SyncThing. They _should_ work fine, but if you run into [[Sync]] issues, disable everything, switch to a local file system and see if the issues persist to [[Troubleshooting]].
-
-SilverBullet’s sync engine relies on reliably persisting **last modified timestamps** for your files, and those timestamps only being touched when actual changes to those file occur. If your file system (or NAS) does not persist these consistently, or you have some external sync process that updates them — this may lead to problems.
-
-# In this section
-${query[[
-  from e = docsNav.pages
-  where e.name:match "^Server/[^/]+$"
-  select templates.docsPage(e)
-]]}
+Once you have a space open, [[Getting Started]] introduces writing, linking and exploring pages.

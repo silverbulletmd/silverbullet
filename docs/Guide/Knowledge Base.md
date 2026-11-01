@@ -1,76 +1,68 @@
-#guide
-
-This guide walks you through building a knowledge base with SilverBullet. You’ll learn how pages, links, tags, queries, and transclusions work together to create an interconnected web of knowledge.
-
-> **note** Note
-> This workflow works well with [[Journal]], where you link out to knowledge base topic pages from your journal pages.
+---
+tags: guide
+---
+Build a knowledge base from useful topic pages and links, then add categories and live overviews as the collection grows.
 
 # Create your first topic pages
-Start with 3–4 “topic pages” on topics you know well: a programming language, a recipe, a book you've read. Open the [[Page Picker]] (`Cmd-k` / `Ctrl-k`), type a name, and press Enter.
+Start with a few subjects you want to return to. In the [[Page Picker]] (Cmd-k / Ctrl-k), type a title and press Shift-Enter to open that exact name. Write a paragraph or two. [[Guide/Your First Markdown Page]] uses `Photo Walk`; [[Guide/Find and Connect Pages]] adds `Reading List`.
 
-Keep each page focused on one topic. A page about “Rust” covers Rust. A page about “Ownership” covers ownership. This topic page approach makes pages easy to link and reuse.
-
-Write freely — a paragraph or two is enough to get started.
+Keep a page focused enough that its name is useful in a sentence. You can start at the top level and add folders later. [[Guide/Best Practices]] describes the tradeoffs rather than prescribing one hierarchy.
 
 # Link as you write
-As you write on one page, naturally reference another. Type `[[` and SilverBullet autocompletes page names:
+On `Reading List`, write a connection in ordinary Markdown:
 
 ```markdown
-Rust's [[Ownership]] model prevents data races at compile time.
+These books may inspire [[Photo Walk]].
 ```
 
-Don’t worry about organizing pages into a folder structure, just put everything at the top level (see [[Guide/Best Practices]]). Just write and link. Structure emerges from connections.
+Open `Photo Walk` and look at **Linked Mentions**, normally below the page. It shows the reading-list reference with context. Links you add while writing build discoverable reverse connections without another catalog to maintain. [[Linked Mention]] owns the backlink behavior.
 
-# Discover connections via backlinks
-Navigate to one of your linked pages (click a `[[link]]` or use the Page Picker). Scroll to the bottom and look for the [[Linked Mention]] section.
+A [[Journal]] is an optional place to capture those connections over time: link daily observations to their subject pages. Topic pages work equally well without a journal.
 
-This shows every page that links _to_ the current page — connections you didn't have to manually create. For example, your “Ownership” page will show that your “Rust” page mentions it.
-
-This is how a knowledge base builds itself: write naturally, link as you go, and let linked mentions surface the connections.
+# Keep source material with your notes
+Attach a PDF or other source file using [[Document]], then keep its citation, summary and useful quotations in a page linked to that file. [[Search]] indexes your Markdown notes, not the contents of attachments. Use [[Guide/Find Pages#Give an important passage a stable destination|anchors]] to link to a particular passage in your notes.
 
 # Add structure when useful
-When you want to categorize or query pages, add some structure.
+When you need categories, use page tags. A paragraph consisting only of `#book` tags the page. If you also need an author or reading status, put frontmatter at the very beginning of each book page:
 
-[[Markdown/Hashtags]] on an empty line tag the page (see [[Markdown/Hashtags#Scope rules]]):
 ```markdown
-#concept
-```
-
-**[[Frontmatter]]** at the top of a page adds structured data and also be used as an alternative way to attach tags to a page:
-```yaml
 ---
 tags: book
-author: Italo Calvino
+author: Rob Walker
 status: reading
 ---
+Notes on The Art of Noticing.
 ```
 
-Now this page is tagged `book` and has queryable `author` and `status` attributes. You can add tags to a page either with the `#book` syntax, or via a [[Frontmatter]] attribute.
+Create that as a separate page named `The Art of Noticing` in your practice space. A `Reading List` bullet naming a book is still a bullet, not a book page. Consistent page tags make similar records easy to find; attributes supply the values you want to compare. [[Frontmatter]], [[Attribute]] and [[Markdown/Hashtags]] retain the detailed syntax and scope rules.
 
 # Query your knowledge
-[[Space Lua/Integrated Query]] lets you pull live data from your pages. Create a “Currently Reading” page with a query:
+Open `Workbench: Query`, choose `page` with **Content** scope, narrow it to the `book` tag, and filter `status` **is** `reading`. Order by `lastModified` with the latest first. Choose **Select → List → templates.pageItem**. Create a `Currently Reading` page, place your cursor in its body, and use **Insert at cursor**.
 
-```lua
+The generated query is equivalent to this complete example:
+
+```markdown
 ${query[[
-  from b = index.pages("book")
+  from b = index.contentPages("book")
   where b.status == "reading"
   order by b.lastModified desc
   select templates.pageItem(b)
 ]]}
 ```
 
-See [[Template]] for more rendering options.
+The live result links to the book page. Changing its reading status changes its membership after indexing. See [[Guide/Build Your First Query]] for the full builder workflow, [[Guide/Query Recipes]] for variations, and [[Template]] for rendering options.
 
 # Embed content across pages
-Use [[Transclusions]] to pull content from one page into another. For instance on your [[Index Page]], transclude your “Currently Reading” page:
+On another page, such as your [[Index Page]], insert:
 
 ```markdown
 ![[Currently Reading]]
 ```
 
-# What's next?
-You now have the core pattern: create pages, link them, add structure with tags and frontmatter, and query across your space.
+A [[Transclusions|transclusion]] displays the other page’s content without making a separate maintained copy. The query remains defined on `Currently Reading`. A live result and a transclusion render in SilverBullet; [[Baked Sections]] explains how to store computed output when you need portable Markdown.
 
-* [[Journal]] — set up a daily journal
-* [[Guide/Task Management]] — track projects and tasks
-* [[SilverBullet|The documentation]] — every section of the manual, from writing to customizing
+# What’s next?
+* [[Guide/Aggregator Pages]] — build an overview for a whole category.
+* [[Guide/Task Management]] — connect action items to their subjects.
+* [[Guide/Find Pages]] — navigate a growing space.
+* [[Guide/When Results Update]] — understand live versus stored output.

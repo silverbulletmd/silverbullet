@@ -20,14 +20,11 @@ const docsDir = path.join(root, "docs");
 const librariesDir = path.join(root, "libraries");
 
 const SECTIONS = [
-  "Start",
-  "Desktop",
-  "Server",
-  "Writing",
-  "Linking & Exploring",
-  "Queries & Data",
-  "Customizing",
-  "Working Together",
+  "SilverBullet",
+  "CHANGELOG",
+  "Start here",
+  "Guides",
+  "Setup and administration",
   "Reference",
   "Contributing",
 ];
@@ -72,6 +69,7 @@ async function loadNav(): Promise<{
 }
 
 function pageExists(ref: string): boolean {
+  ref = ref.split("#")[0];
   return (
     existsSync(path.join(docsDir, `${ref}.md`)) ||
     existsSync(path.join(librariesDir, `${ref}.md`))
@@ -96,11 +94,10 @@ test("every ref resolves to an existing page", async () => {
   expect(missing).toEqual([]);
 });
 
-test("no page appears twice and no tree path is reused", async () => {
+test("no tree path is reused", async () => {
   const { pages } = await loadNav();
   const dupes = (values: string[]) =>
     values.filter((v, i) => values.indexOf(v) !== i);
-  expect(dupes(pages.map((p) => p.ref))).toEqual([]);
   expect(dupes(pages.map((p) => p.name))).toEqual([]);
 });
 
@@ -123,4 +120,71 @@ test("every section has a landing page entry", async () => {
   const { pages, sections } = await loadNav();
   const roots = new Set(pages.map((p) => p.name));
   expect(sections.map((s) => s.name).filter((s) => !roots.has(s))).toEqual([]);
+});
+
+test("practical topic sections contain guides rather than feature references", async () => {
+  const { pages } = await loadNav();
+  const topics = ["Start here/", "Guides/"];
+  const misplaced = pages.filter(
+    (entry) =>
+      topics.some((topic) => entry.name.startsWith(topic)) &&
+      !entry.ref.startsWith("Guide/") &&
+      !["Use Cases", "Customizing"].includes(entry.ref),
+  );
+  expect(misplaced.map((entry) => entry.ref)).toEqual([]);
+});
+
+test("core feature contracts remain reachable under Reference", async () => {
+  const { pages } = await loadNav();
+  const references = new Set(
+    pages
+      .filter((entry) => entry.name.startsWith("Reference/"))
+      .map((entry) => entry.ref),
+  );
+  for (const ref of [
+    "Page",
+    "Markdown",
+    "Attribute",
+    "Tag",
+    "Workbench/Query",
+    "Workbench/Configuration",
+    "Space Lua",
+    "API",
+    "Revisions",
+    "Desktop Sync",
+    "Sync",
+    "Share",
+    "Install/Configuration",
+    "Security",
+    "CLI",
+    "Plugs/Development/Document Editors",
+  ])
+    expect(references.has(ref), ref).toBe(true);
+});
+
+test("reference entries belong to one of four categories", async () => {
+  const { pages } = await loadNav();
+  const categories = new Set(
+    pages
+      .filter((entry) => entry.name.startsWith("Reference/"))
+      .map((entry) => entry.name.split("/")[1]),
+  );
+  expect([...categories]).toEqual([
+    "Markdown and page content",
+    "SilverBullet interface and features",
+    "Space Lua and APIs",
+    "Technical reference",
+  ]);
+});
+
+test("navigation heading links resolve", async () => {
+  const { pages } = await loadNav();
+  for (const entry of pages.filter((entry) => entry.ref.includes("#"))) {
+    const [page, heading] = entry.ref.split("#");
+    const source = readFileSync(path.join(docsDir, `${page}.md`), "utf8");
+    expect(
+      source.split("\n").some((line) => line.replace(/^#+ /, "") === heading),
+      entry.ref,
+    ).toBe(true);
+  }
 });

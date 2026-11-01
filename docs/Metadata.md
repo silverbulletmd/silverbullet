@@ -4,8 +4,12 @@ references:
 - plugs/index/frontmatter.ts
 - plugs/index/attribute.ts
 ---
-Metadata is data about data. Most [[Object|objects]] have a set of default attributes that can be augmented in a few additional ways:
+Metadata describes a page or another [[Object|object]]. An **attribute** is one named field, such as a task’s `done` value or a page’s `status`.
 
-* [[Tag]]: to tag the object (and add to the `tags` attribute directly)
-* [[Frontmatter]]: at the top of a [[Page]], a [[YAML]] encoded block defines additional attributes
-* [[Attribute]] syntax: inline key-value pairs within your content
+SilverBullet supplies fields such as page names and modification times. You can add your own:
+
+* [[Frontmatter]] sets page attributes in a YAML block at the beginning of the page.
+* [[Attribute|Inline attributes]] attach values to a task, list item or paragraph.
+* [[Markdown/Hashtags|Hashtags]] classify content; [[Tag]] explains their scope and indexed fields.
+
+For a worked example, follow [[Guide/Organize with Tags and Attributes]]. For the fields SilverBullet supplies, start at [[Object]] and the individual [[Tag|tag references]].

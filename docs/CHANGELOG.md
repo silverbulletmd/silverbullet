@@ -28,24 +28,25 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * More consistent [[Tag]] terminology: every object has exactly one root tag (`page`, `task`, `data`, ...), plus any number of user tags. Every built-in tag now has its own page under `Tag/` (formerly `Object/`), grouped into root, system, edge and index tags.
   * New `index.data(tag?)` returns the objects of every data block.
   * Hashtags in headers and table rows are now recorded as tags, and every tag records the root tag it is used on as its `parent` (hashtags in paragraphs used to say `page`). Headers and table rows now get `itags` like other objects.
-  * [[Tag/data]] block keys can no longer overwrite `ref`, `tag` or `itags`, and relations from data blocks now point at the object they're written in. A data block named after a built-in tag (` ```#task `) is no longer indexed; lint flags it.
+  * [[Tag/data]] block keys can no longer overwrite `ref`, `tag` or `itags`, and relations from data blocks now point at the object they’re written in. A data block named after a built-in tag (` ```#task `) is no longer indexed; lint flags it.
 * The [[Object Graph]] is now a view with **Local** and **Global** tabs (`Graph: Explore`, `Graph: Global Page Map`) that can dock in a sidebar or the bottom panel, where the local graph follows the page you open.
 * New context menus for widgets and views.
 * Plugs can declare dockable panel views in their manifest ([[Plugs/Development/Reference#`view` (panel view)|`view`]]): a sandboxed HTML panel that can show in the modal window, a sidebar or the bottom panel, with tabs, and optionally rebuilt for each page opened.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
 * Lua:
-  * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don't depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
+  * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don’t depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
   * Eligible queries with a `limit` stop reading once enough rows are collected, and Workbench query previews avoid loading unnecessary rows.
   * New APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]), and `config.persist` writes one configuration value to the managed block of [[CONFIG]] (see [[API/config]]).
   * `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
-  * `net.proxyFetch` now sets `ok` from the remote server's status (2xx), as its `status` already was; it used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing; publishing still authenticates. See [[API/net]].
+  * `net.proxyFetch` now sets `ok` from the remote server’s status (2xx), as its `status` already was; it used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing; publishing still authenticates. See [[API/net]].
   * `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
   * **Potentially breaking:** `command.define`, `slashCommand.define`, `identity.define`, `taskState.define`, `codeWidget.define`, `virtualPage.define` and `syntax.define` now _merge_ repeated definitions with the same name, like `tag.define` already did, so you can e.g. define a tag’s schema in one place and add a `transform` elsewhere. Previously, each call replaced the whole definition.
 * Fix: Git sync errors caused by unrelated histories now offer a recovery action to check and combine both histories. Automatic revisions created during the connection check no longer invalidate it.
-* Fix: key bindings changed in the Configuration tab now take effect on macOS. A cross-platform (`Mod-…`) shortcut or a removed one used to leave the command's built-in macOS binding in place ([#2178](https://github.com/silverbulletmd/silverbullet/issues/2178)); bindings saved that way are repaired the next time you save.
+* Fix: key bindings changed in the Configuration tab now take effect on macOS. A cross-platform (`Mod-…`) shortcut or a removed one used to leave the command’s built-in macOS binding in place ([#2178](https://github.com/silverbulletmd/silverbullet/issues/2178)); bindings saved that way are repaired the next time you save.
 * Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
 * Fix: sandboxed widgets and document editors (such as the image viewer) no longer leak memory each time they render or open, which made long sessions gradually slower.
+* Fix: public read-only pages render usable links to metadata pages, headings and editor positions in their initial HTML, while keeping code examples and Lua query strings out of the link graph.
 
 ## 2.12.1
 * Security: the filesystem API refuses access to dot-prefixed files and directories, consistent with space listings.
@@ -60,13 +61,13 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 ## 2.12.0 
 * Mobile improvements:
   * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/keyboardBar]].
-  * On mobile (narrow screens) left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the "x" button) removes its button.
+  * On mobile (narrow screens) left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the “x” button) removes its button.
   * Android PWA web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome.
   * Fix: pickers, prompts, and confirmations on narrow screens open below the top bar, keeping their controls accessible.
   * Fix (iOS): `File: Upload` opens the file picker on iPhone, iPad, and desktop, and dropping files into the Space tree uploads them on desktop Safari.
   * Fix (iOS): pressing Return in a list reliably continues it, instead of sometimes inserting extra blank lines or editing the wrong line, especially right after opening a page.
 * Performance improvements:
-  * Large spaces (tens of thousands of pages) are much faster: the first sync no longer slows down as it progresses, opening a page no longer re-reads the whole index after unrelated edits, and the space tree only renders the rows near what's on screen, so a flat folder with thousands of pages opens and follows the editor without lag. The server also keeps the space's file list in memory, kept current by its file watcher, instead of re-scanning the whole folder for every client every few seconds, which mattered most on network drives, Docker volumes, and Windows.
+  * Large spaces (tens of thousands of pages) are much faster: the first sync no longer slows down as it progresses, opening a page no longer re-reads the whole index after unrelated edits, and the space tree only renders the rows near what’s on screen, so a flat folder with thousands of pages opens and follows the editor without lag. The server also keeps the space’s file list in memory, kept current by its file watcher, instead of re-scanning the whole folder for every client every few seconds, which mattered most on network drives, Docker volumes, and Windows.
 * More iteration on [[API/view]] and [[API/widget]] APIs, still WIP.
   * **Breaking:** `view.new` is gone, build live list, tree, table and content widgets with `widget.new { source = … }` or `widget.new { content = … }`, and pass them to `view.define` as `widget = …` (previously `view = …`). See [[View#Widgets and views]].
   * Content views can show HTML and DOM widgets, not just Markdown, in every dock.
@@ -76,15 +77,15 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Top and bottom page widgets and page-docked views now have a Go to definition button (`</>`) that jumps to the Space Lua defining them.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported.
 * The [[Runtime API]] and [[CLI]] can capture screenshots again: `sb screenshot` saves a PNG of the runtime client, optionally clipped to one element with `--selector`.
-* Git sync connections can target a chosen remote branch, including when it differs from the space's local branch. The connection overview shows both branches, and unrelated-history errors offer a recovery action to check and combine both histories. Automatic commits during the connection check no longer invalidate it, and a checked merge tolerates new commits on either side before its first sync.
+* Git sync connections can target a chosen remote branch, including when it differs from the space’s local branch. The connection overview shows both branches, and unrelated-history errors offer a recovery action to check and combine both histories. Automatic commits during the connection check no longer invalidate it, and a checked merge tolerates new commits on either side before its first sync.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
-* Fix: text you type right after another user's newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
+* Fix: text you type right after another user’s newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
 
 ## 2.11.1
 * Fix (Windows): Git operations for revision history no longer open a terminal window and steal focus.
 * Fix: HTML, CSS, and JavaScript files in a space open directly again, restoring print preview libraries that serve generated HTML from `/.fs/`.
 * Fix: X-Ray and lint tooltips remain readable when dark mode follows the system setting, including when that setting changes while SilverBullet is open.
-* Git connection checks now allow more time for large repositories and detect an existing remote's default branch when a new space connects.
+* Git connection checks now allow more time for large repositories and detect an existing remote’s default branch when a new space connects.
 * `identity.mentions(recipient, options)` exposes the Mention Inbox data to Space Lua and the CLI.
 * More non-Markdown files can now be edited with syntax highlighting in the editor. Supported supported audio, video, and PDF documents open in native in-editor viewers with efficient seeking. Do not ask for fancy code editing features, SB will not devolve in to a general purpose code editor! (famous last words)
 * Files and folders can be dragged into the file tree to upload them.
@@ -109,13 +110,13 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Significant steps towards a more [[Collaboration|Collaborative Future]]:
   * **Near real-time sync**: changes made to pages are now synced (and will appear in other clients) within ~2-3s.
   * **Near real-time content updates**: if multiple clients/process edit the same page, SilverBullet will do its best to reconcile those changes with local ones. In cases of unresolvable conflicts a new _conflict widget_ will show helping you to resolve the conflict.
-  * **At-mentions and Identities** ([[At-Mention]], [[Identity]]): mention people, teams, or anything else with `@name`. Each name resolves to an [[Identity]] — an account, something registered with `identity.define`, or simply a name you've mentioned — addressed by the `@<name:lower>` id, so `@Ada` and `@ada` converge on the same identity. `identity.own()` returns the identity the current user is. An identity is addressed as a [[Recipient]] (→ Mention Inbox) or credited as an author (see [[Authorship]]). (Note: upgrading triggers a full space reindex, since mention identifiers moved to the `@name` form.)
-    * **[[Authorship]]**: a trailing `-- @name` (also `— @name`/`– @name`) signs a block instead of addressing it, crediting who wrote it without putting them in anyone's Mention Inbox. `authors:` frontmatter does the page-level equivalent of `recipients:`. Sign the current block with the `Mention: Sign` command or the `/sign` slash command.
+  * **At-mentions and Identities** ([[At-Mention]], [[Identity]]): mention people, teams, or anything else with `@name`. Each name resolves to an [[Identity]] — an account, something registered with `identity.define`, or simply a name you’ve mentioned — addressed by the `@<name:lower>` id, so `@Ada` and `@ada` converge on the same identity. `identity.own()` returns the identity the current user is. An identity is addressed as a [[Recipient]] (→ Mention Inbox) or credited as an author (see [[Authorship]]). (Note: upgrading triggers a full space reindex, since mention identifiers moved to the `@name` form.)
+    * **[[Authorship]]**: a trailing `-- @name` (also `— @name`/`– @name`) signs a block instead of addressing it, crediting who wrote it without putting them in anyone’s Mention Inbox. `authors:` frontmatter does the page-level equivalent of `recipients:`. Sign the current block with the `Mention: Sign` command or the `/sign` slash command.
   * **HTML comments are now parsed as markdown** ([[Markdown/Comment]]): the body of a `<!-- ... -->` block is now parsed and rendered as ordinary markdown. This enables a communication channel (likely using [[Recipient|recipients]]) to communicate between team members.
   * [[Revisions]]: In three modes: **Managed** (SilverBullet commits your changes for you), **Unmanaged** (an existing git repository’s history is read, but SilverBullet never commits to it) or **Disabled**.
   * Accounts now carry a full name and email, used to attribute revision commits and shown as the presence label for concurrent edits.
   * Every user gets a **Profile** page ([[Authentication#Accounts]]) to set their own full name and email.
-  * The editor learns who the space's people are from a new `/.accounts` endpoint, which replaces `/.profile`: it reports every account with access to the space, with the current user marked, and never an email address.
+  * The editor learns who the space’s people are from a new `/.accounts` endpoint, which replaces `/.profile`: it reports every account with access to the space, with the current user marked, and never an email address.
   * The `revisions.authorEmailDomain` config option is gone: synthesized commit author emails now always use the `silverbullet.local` domain. (The old implementation depended on the [[Runtime API]] and silently fell back to the default anyway when that was unavailable.)
 * **Completely revamped [[View]] and dockable panel UX (includes a file tree!):** one configurable navigation UI that presents any object collection as a fuzzy-filterable list or tree, as a modal, sidebar or even inline in a page. A lot of views have been rebuilt on this. What it supports today:
   * **Docked views:** every `view.define`d view has a single, consistent notion of where it lives: `"modal"`, `"lhs"`/`"rhs"` sidebar, `"bhs"` resizable bottom panel, or `"page-top"`/`"page-bottom"` (rendered as an in-document widget). You can move them, and those docking positions and panel sizes persist between reloads.
@@ -130,18 +131,18 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * **[[Link|Wiki links]] now resolve by page name, not just by full path (think: Obsidian compatibility).** A `[[Note]]` link resolves to `some/folder/Note` when that name is unique in the space, matching how Obsidian resolves links, so an Obsidian-authored space works in SilverBullet without rewriting every link. See [[ADR/011 Link Resolution by Name]] for reasoning. The `linkWriteFormat` option decides how SilverBullet writes the links it generates (auto complete, rename backlink rewriting), it defaults to `full-path`, so generated links keep spelling out the whole path.
 * Links to [[Virtual Pages]] now appear as valid links and no longer count as aspiring pages when their names match a registered pattern.
 * **LAN HTTP support:** open SilverBullet via a LAN IP or hostname without TLS in online-only mode, with compatible hashing and text copying. Failed loads now preserve the current editor and page list instead of presenting empty content, direct requests update the connection indicator, and the browser warns before leaving an unsaved editor. See [[TLS]] for limitations.
-* Fix: a linked-mention snippet that contained a `![[transclusion]]` inlined the entire target page into the Linked Mentions widget -- frontmatter first, rendered as garbage. Snippets now show such a mention as a plain link, and a transcluded page's frontmatter no longer leaks into rendered widget content. (Triggers a full space reindex on upgrade.)
+* Fix: a linked-mention snippet that contained a `![[transclusion]]` inlined the entire target page into the Linked Mentions widget -- frontmatter first, rendered as garbage. Snippets now show such a mention as a plain link, and a transcluded page’s frontmatter no longer leaks into rendered widget content. (Triggers a full space reindex on upgrade.)
 * Fix: better blockquote rendering:
   * Nested blockquotes now draw one accent bar per level, with real per-level indentation. Previously every level shared a single bar and the indent was an accident of the whitespace left behind by hidden quote markers.
-  * A heading inside a blockquote or a list item no longer jumps sideways when you put the cursor in it: its `#` markers hang back into the margin the way a top-level heading's always have, instead of shoving the whole line right.
-  * A quoted heading's accent bar now runs the full height of its line, instead of stopping short of the heading's breathing room at both ends and breaking the bar into dashes.
-* [[Dashboard|Multi-space]] mode: an **account menu** in the editor's top bar.
+  * A heading inside a blockquote or a list item no longer jumps sideways when you put the cursor in it: its `#` markers hang back into the margin the way a top-level heading’s always have, instead of shoving the whole line right.
+  * A quoted heading’s accent bar now runs the full height of its line, instead of stopping short of the heading’s breathing room at both ends and breaking the bar into dashes.
+* [[Dashboard|Multi-space]] mode: an **account menu** in the editor’s top bar.
 * Fix: the first-run **setup wizard** and the [[Dashboard]] are usable on a phone.
 * A batch of mobile (iOS) fixes:
   * Pickers no longer show keyboard shortcuts on touch devices, where they cannot be pressed and only crowd out the page names.
-  * Filter boxes no longer autocapitalize or autocorrect: command and page names are identifiers, and the phone's corrections only fought the fuzzy match.
+  * Filter boxes no longer autocapitalize or autocorrect: command and page names are identifiers, and the phone’s corrections only fought the fuzzy match.
   * Fix: the hamburger menu on a narrow screen stayed grey when the rest of the top bar turned yellow to signal a lost connection.
-  * Fix: on iOS 27, a home-screen install drew its page title and top-bar buttons underneath the system's new blurred top edge, leaving them smeared. The top bar now leaves that band clear.
+  * Fix: on iOS 27, a home-screen install drew its page title and top-bar buttons underneath the system’s new blurred top edge, leaving them smeared. The top bar now leaves that band clear.
 * [[Space Lua]]: scripts that runs too long no longer freeze the editor: after a couple of seconds it offers to stop the script, while the rest of the app stays responsive.
 * Fix: Space Lua patterns no longer mistake some non-ASCII characters for ASCII punctuation, which could corrupt page names in `string.gsub` or produce false matches.
 * Fix: releasing a drag-selection on top of a link no longer navigates to it — only a real click (pointer down and up in the same spot) follows a link.
@@ -176,24 +177,24 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * This means the project is now all TypeScript + Rust.
 * [[Frontmatter]] in the editor now has configurable folding: by default long frontmatter blocks fold automatically, and `frontmatterFolding` options let  you disable auto-folding, always fold frontmatter, or change the line threshold. A subtle right-side marker folds or unfolds the whole block, and folded frontmatter previews any `tags` value as tag chips. This is configurable via the [[Configuration Manager]] as well.
 * [[Page Picker]]: type `$` to switch to [[Markdown/Anchor|anchor]] navigation
-* Pulling the "this was experimental card" for the CLI: removed the `sb get` command and the `/.runtime/objects/*` REST API, including their dedicated client-side query bridge. Use `sb query`, `sb eval`, or `sb script` for indexed-object access. This added too much complexity and another query language.
+* Pulling the “this was experimental card” for the CLI: removed the `sb get` command and the `/.runtime/objects/*` REST API, including their dedicated client-side query bridge. Use `sb query`, `sb eval`, or `sb script` for indexed-object access. This added too much complexity and another query language.
 * Fix: `SB_SHELL_BACKEND=local` disabled shell command execution instead of enabling it.
 * Fix: a `range` (or `pos`) attribute in your own content could overwrite the source offsets an indexed object uses to point back at its place in the page.
 * Fix: only the first entry of a frontmatter list of wiki links formed a [[Tag/relation|relation]] (e.g. an `authors:` list of `[[...]]` items), so every entry after the first was missing from [[Object Graph]], linked mentions and rename refactoring.
 * Fix: writing to a read-only path (anything served from the bundled library, a `SB_READ_ONLY` server) returned a 500, which clients could not tell apart from a temporary server fault — so a syncing client retried it forever. Read-only refusals now return 403, and the sync engine records the path and stops re-attempting it until the local file changes. This most often bit spaces holding a stale copy of a `Library/Std` page that a later release had dropped from the bundle.
 * Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
-* Fix: the service worker precached client assets *through* the browser's HTTP cache, so a stale client could be copied into its cache and then served as though it were the current build — leaving a "A new version of SilverBullet client is available." notification that no reload could clear (only a hard reload, which bypasses the service worker, showed the real client; the next normal reload brought the notification back). Precaching now bypasses the HTTP cache.
+* Fix: the service worker precached client assets *through* the browser’s HTTP cache, so a stale client could be copied into its cache and then served as though it were the current build — leaving a “A new version of SilverBullet client is available.” notification that no reload could clear (only a hard reload, which bypasses the service worker, showed the real client; the next normal reload brought the notification back). Precaching now bypasses the HTTP cache.
 * The server now sets `Cache-Control` on client assets, which matters if you run SilverBullet behind a CDN.
 * Lua: Space Lua comments are now parsed and retained in the AST instead of being stripped before parsing  (part of the enabler for code complete with documentation).
-* Fix: first-ever load of an authenticated space no longer shows a spurious "Could not process config and no cached copy, please connect to the Internet" alert before redirecting to the login page (the login redirect aborted the remaining boot requests, which were misread as being offline).
-* Fix: frontmatter link live preview now follows the editor's regular markdown preview behavior: raw YAML syntax stays visible when markdown syntax rendering is enabled, and only the link currently being edited is revealed in clean mode.
+* Fix: first-ever load of an authenticated space no longer shows a spurious “Could not process config and no cached copy, please connect to the Internet” alert before redirecting to the login page (the login redirect aborted the remaining boot requests, which were misread as being offline).
+* Fix: frontmatter link live preview now follows the editor’s regular markdown preview behavior: raw YAML syntax stays visible when markdown syntax rendering is enabled, and only the link currently being edited is revealed in clean mode.
 * Fix: write-mode commands (those requiring read-write, e.g. the baking commands) are now hidden in the command palette and their keybindings disabled on **per-page** read-only pages (`perm: ro`), not just in fully read-only spaces.
-* Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page‘s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
+* Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page’s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
 * New [[API/codeWidget]] Lua API: register a renderer for a fenced code block language from Lua (e.g. ` ```mermaid `), previously only possible with plugs. A `render(body)` function receives the code block contents and returns a widget (or markdown/HTML).
 * HTML comments (both inline `<!-- ... -->` and block comments, including the baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a subtle gray and slightly smaller font in the editor, like code comments.
 * Fix: Space Lua now correctly truncates a parenthesized expression to a single value (Lua 5.4 semantics). Previously `(string.gsub(...))` and other parenthesized multi-return calls leaked their extra return values into `return`, call-argument, and assignment positions (e.g. `table.insert(t, (string.gsub(...)))` inserted two elements). Parentheses now yield exactly one value.
 * Fix: Lua pattern matching lost capture groups, because `ipairs` dropped `nil` values from the result table (by [henrikx](https://github.com/henrikx)).
-* Fix: `lintObjects` threw when a page's `pageMeta` was undefined (by [josh-j](https://github.com/josh-j)).
+* Fix: `lintObjects` threw when a page’s `pageMeta` was undefined (by [josh-j](https://github.com/josh-j)).
 * Fix: `mq.poll` materialized the entire queue on every poll (by [josh-j](https://github.com/josh-j)).
 * Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
 * Navigating to a page via a link now always opens it fresh (at the top, or at an explicit `#header`/`@pos` pointer in the link) instead of restoring your previous cursor and scroll position. Returning to a page via browser Back/Forward or the [[Page Picker]] still restores where you were. Plugs/Lua can opt into restoring with the new `editor.open` syscall (see [[API/editor]]).
@@ -223,7 +224,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: forced space reindex handling
 * Fix: with two windows/tabs open on the same space, a full reindex (e.g. after an index-version bump) could deadlock IndexedDB.
 * Fix: an interrupted full reindex (e.g. the window closed mid-reindex) no longer leaves the space permanently un-indexed.
-* Fix: Clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
+* Fix: Clicking a wiki link to a page now places the cursor just after the page’s frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
 * Fix: `$`-anchor refs now resolve through the index from every navigation path
 * Fix: Ctrl/Cmd-clicking a link inside rendered widgets (query/template results) now navigates in a new window via the normal navigation path
 * Fix: tag autocomplete no longer triggers while typing markdown header prefixes (`##`, `###`, etc.)
@@ -241,7 +242,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * New built-in [[Journal]] library.
 * Runtime API: Expose objects (with filter) `/.runtime/objects/*` for external integrations and the [[CLI]], see [[Runtime API]].
 * New `SB_DISABLE_SERVICE_WORKER` : server-side switch to disable the client service worker for all clients, this will disable sync (all loads and saves will go directly to the server) and disable any offline support.
-* UX: now showing spinners instead of underlying (Lua) code in states where widgets aren't ready to render yet (e.g. before an initial index hasn't completed)
+* UX: now showing spinners instead of underlying (Lua) code in states where widgets aren’t ready to render yet (e.g. before an initial index hasn’t completed)
 * Fix: indexed `range` for `data` blocks (and `#tag` data blocks) now points at the YAML content instead of the surrounding fence markers; multi-document blocks now compute per-doc ranges correctly.
 * `sb` CLI changed how it encrypts secrets, so if you used token or password-based auth you need to re-add your space.
 * Fix: indexed `range` for `space-lua` and `space-style` blocks now points at the inner code, not the ` ``` ` fences.
@@ -263,7 +264,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * a new `describe` command that describes SLIQ and lists tags with defined schemas.
 * New (experimental) [[Markdown/Anchor]] syntax (`$name`): a stable, space-globally unique name for (almost) any [[Object]], referenced from links via `[[$name]]`.
 * Rebrand: “Lua Integrated Query” (LIQ) is now called [[Space Lua/Integrated Query|Space Lua Integrated Query]] (_SLIQ!_) (as coined by Matouš Jan Fialka)
-* API extensions for [[API/config]]: `config.define` now propagates schema `default` values. New `config.defineCategory` / `config.getCategories` APIs, plus UI annotations for the configuration manager. The `ui.order` schema annotation and `config.defineCategory`'s `order` field have been renamed to `priority` and now sort *descending* (higher = appears earlier), matching the rest of SilverBullet's `priority` conventions.
+* API extensions for [[API/config]]: `config.define` now propagates schema `default` values. New `config.defineCategory` / `config.getCategories` APIs, plus UI annotations for the configuration manager. The `ui.order` schema annotation and `config.defineCategory`’s `order` field have been renamed to `priority` and now sort *descending* (higher = appears earlier), matching the rest of SilverBullet’s `priority` conventions.
 * Server no longer generates a default `CONFIG.md` in empty spaces, this page is now auto created by the configuration manager when required.
 * The legacy `plug-manager` has now been removed (superseded by the Library manager part of the Configuration Manager UI)
 * [[Plugs/Development]] (now with new docs!) gains an optional `build:` section in manifests, running `esbuild`, `sass`, or `copy` transforms before asset bundling — enables plugs to ship bundled TSX/SCSS UIs.
@@ -282,7 +283,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Potentially **breaking** CSS change for theme authors: `.sb-notifications` has moved in the DOM (notifications now portal to `document.body`).
 * New [[API/system]] syscalls `system.loadPlug` / `system.unloadPlug` for per-path plug (re)loading.
 * New [[API/editor]] syscall `editor.focus` for explicitly focusing the editor.
-* Configuration Manager: Key Bindings tab now says "Filter commands" instead of "Search commands".
+* Configuration Manager: Key Bindings tab now says “Filter commands” instead of “Search commands”.
 * More sensible fallback values for config options before the initial index has populated defaults.
 * Lint: the `name` attribute uniqueness check is now limited to `#meta/library` pages.
 * [[Runtime API]] uses less browser memory by disabling unused Chrome address-bar renderers and tuning V8 for memory usage. Headless shell is now detected across platforms and included in the runtime Docker image, with per-user storage isolation preserved.
@@ -318,7 +319,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * `offset` clause support
   * Intra-aggregate `order by` support
   * [13 new aggregate functions](https://github.com/silverbulletmd/silverbullet/pull/1891) (`product`, `string_agg`, `yaml_agg`, `json_agg`, `bit_and`, `bit_or`, `bit_xor`, `bool_and`, `bool_or`, `stddev_pop`, `stddev_samp`, `var_pop`, `var_samp`), `aggregate.alias` API for custom aliases, and `index.aggregates` queryable collection
-* Client upgrade notification: if the server is updated but the client version doesn't match, a notification will appear instructing the user to reload.
+* Client upgrade notification: if the server is updated but the client version doesn’t match, a notification will appear instructing the user to reload.
 * The [[^Library/Std/Widgets/Widgets#Table of contents]] widget is now **collapsible**, defaults to open (by [Dobli](https://github.com/Dobli)).
 * [Improved Lua widget rendering](https://github.com/silverbulletmd/silverbullet/pull/1876) (by [Matouš Jan Fialka](https://github.com/mjf)): `${...}` expressions now render scalars, arrays, records, and arrays-of-tables with better HTML and markdown output.
 * [[Task]] `Task: Clean Completed` now handles more scenarios, and leaves a cleaner outline.
@@ -329,11 +330,11 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: document file opening with URL prefix.
 * Fix: autofocus on authentication page.
 * Fix: mini editor regressions.
-* Mobile: "lock" button to toggle read-only, useful for navigating without accidentally editing.
+* Mobile: “lock” button to toggle read-only, useful for navigating without accidentally editing.
 * Action Button enhancements:
   * `standalone` option: only show certain action buttons in standalone/PWA mode (e.g. forward/back navigation buttons)
   * Support for opting out action buttons from the mobile dropdown menu
-* Fix: "No such header #boot" errors in PWA mode.
+* Fix: “No such header #boot” errors in PWA mode.
 * Fix: Edit buttons now work correctly for Lua expressions and code widgets whose bodies appear multiple times in the same page.
 * Fix: [attribute rendering](https://github.com/silverbulletmd/silverbullet/pull/1880).
 * Fix: [Markdown table rendering](https://github.com/silverbulletmd/silverbullet/pull/1879) and removal of deprecated command button remnants.
@@ -432,7 +433,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Indexer rework (note: upgrading will start a full space reindex automatically):
   * Performance: up to 2x faster
   * Internal refactor, actually adding at least (rudimentary) unit tests now (imagine!)
-  * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the "Linked Tasks" widget now to rely on `ilinks`.
+  * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the “Linked Tasks” widget now to rely on `ilinks`.
   * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
   * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it.
   * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
@@ -464,7 +465,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [SLIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
   * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems
   * Support for `<const>` in Lua (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1715))
-* Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
+* Production builds now include sourcemaps for easier debugging in browser DevTools. If you don’t want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
 * Should now **deal better with authentication layers** (Cloudflare Zero Trust, Authelia, Pangolin)
 * [Sync errors](https://github.com/silverbulletmd/silverbullet/issues/1720) now propagate better to the UI
 * Document editors now fixed in Safari (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1710))

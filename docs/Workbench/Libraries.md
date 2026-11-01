@@ -3,7 +3,7 @@ description: "Install, update and remove libraries, plugs and repositories."
 references:
 - client/workbench/libraries/**
 ---
-The Libraries tab manages the [[Library|libraries]] in your space. In a read-only space it only shows what's there: installing, updating, removing and checking for updates are hidden, with a note saying why (a read-only server doesn't reach other servers, so there is nothing to check against). It reloads every time you show the tab, so what you see matches your space.
+The Libraries tab manages the [[Library|libraries]] in your space. In a read-only space it only shows what’s there: installing, updating, removing and checking for updates are hidden, with a note saying why (a read-only server doesn’t reach other servers, so there is nothing to check against). It reloads every time you show the tab, so what you see matches your space.
 
 ${widgets.commandButton("Workbench: Libraries")} opens this tab in the [[Workbench]].
 

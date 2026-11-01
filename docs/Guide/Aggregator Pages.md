@@ -1,55 +1,49 @@
-#guide
-
-An aggregator page is a thin page whose body is primarily drived through queries that collects items from across your space.
-
-Instead of hand-maintaining a list of all open questions, all ADRs, or all team members, you tag each item on its natural home page and let a single query page assemble the collection automatically. Add an item anywhere in your space, tag it, and the aggregator picks it up automatically.
+---
+tags: guide
+---
+An aggregator page collects a category of notes or tasks through a live query, so the source material stays in its natural place.
 
 # The pattern
-Three moving parts combine to make an aggregator:
+Pick a category, apply it to the things you want to collect, and create a page containing a query over that category. A collection of outing pages could live on `Outings`; packing tasks could live on `Packing List`. The source kind matters: page queries collect pages, task queries collect tasks.
 
-**1. A tag** you apply to items on their natural home page, for example, `#open-question` on any page that tracks an open question.
+Start with the `Photo Walk` example from [[Getting Started]]. Its frontmatter tags the page `outing`, while `#packing` on the two task lines tags those tasks. Putting `#outing` in an ordinary paragraph would tag the paragraph, not the page.
 
-**2. An aggregator page** whose body is a single [[Space Lua/Integrated Query|SLIQ]] query that pulls everything carrying that tag:
+# Recipe
+1. Create an `Outings` page in your writable practice space. Add a short introduction so the page makes sense even outside SilverBullet.
+2. Run `Workbench: Query`. Choose `page` with **Content** scope, narrow it to `outing`, and sort by `name` **A–Z**.
+3. Under **Select**, choose **List** and `templates.pageItem`. Put the cursor below the introduction and click **Insert at cursor**.
+4. Link to `[[Outings]]` from your index or another place where you would look for the collection.
 
-```lua
+The complete source is:
+
+```markdown
 ${query[[
-  from t = index.contentPages("open-question")
-  order by t.name
-  select templates.pageItem(t)
+  from p = index.contentPages("outing")
+  order by p.name
+  select templates.pageItem(p)
 ]]}
 ```
 
-The query lives inside `${...}` and renders in place in [[Live Preview]]. Because the prose body explains the pattern, the page retains value even outside SilverBullet.
+Add another page tagged `outing` and it joins the collection after saving and indexing. Removing a page’s tag removes it from the result. The list reflects the current indexed data; it can briefly lag an edit. This avoids separately maintaining the same membership in several places.
 
-**3. A `tagPage` mapping** in [[CONFIG]] so clicking the tag in the editor jumps straight to the aggregator overview:
+For a task collection instead, choose `task`, narrow to `packing`, and select `templates.taskItem`. Use `index.tasks("packing")` in source. `index.contentPages("packing")` would look for packing-tagged pages, not the packing tasks. [[Guide/Query Recipes]] provides complete task examples.
+
+# Optional tag navigation
+An aggregator works without configuration. If you also want clicking the tag to open its overview, define a `tagPage` mapping in [[CONFIG]]. Copy the following into a `space-lua` fenced block there; it is displayed here as inert `lua` source:
 
 ```lua
 tag.define {
-  name = "open-question",
-  tagPage = "Open Questions",
+  name = "outing",
+  tagPage = "Outings",
 }
 ```
 
-See [[API/tag#tag.define(spec)]] for the full list of options `tag.define` accepts.
+Run `System: Reload` to load the definition. Keep `tag.define` calls in `CONFIG` so definitions that affect indexing are available before pages are indexed. If you later add a transform, existing content needs reindexing; see [[Guide/When Results Update]] and [[API/tag#tag.define(spec)]].
 
-# Why aggregators beat hand-maintained lists
-- **Zero maintenance** — to add an item, tag it on its home page; the aggregator updates itself on the next index cycle.
-- **No drift** — the list is always exactly what the index says it is; typos or deletions surface instantly.
-- **Single source of truth** — the item's data lives once, on the item's own page; the aggregator is just a view.
-
-# Recipe
-To set up a new collection:
-
-1. **Pick a tag** — choose a short, lowercase, hyphenated name (`meeting-note`, `open-question`, `decision`).
-2. **Write the aggregator page** — create a page (e.g. `Open Questions`) whose body is the SLIQ query above, substituting your tag. Use `index.contentPages("tag")` to filter out [[Meta Page|Meta Pages]]; use `index.objects("tag")` if you also want items from meta pages.
-3. **Register `tagPage` in [[CONFIG]]** — add a `tag.define` block so clicking the tag navigates to your aggregator. Place `tag.define` calls in `CONFIG` so they run during the index phase.
-4. **Link the overview from your index or catalog page** — add a `[[Open Questions]]` link wherever people would naturally look for the collection.
+# Choosing the source
+`index.contentPages("outing")` excludes [[Meta Page|meta pages]], which usually keeps configuration and library notes out of ordinary collections. `index.pages("outing")` includes matching meta pages too. `index.objects("outing")` can return every object kind carrying that tag; do not use it as a synonym for pages. [[Object Index]] describes these helpers.
 
 # Examples in this manual
-This docs space already uses the pattern for two collections:
+The documentation uses the same pattern for [[ADR]] (pages tagged `adr`) and [[Architecture]] (pages tagged `component`), with tag navigation registered in [[CONFIG]]. [[Glossary]] is another category overview. Their content belongs to this documentation space; copy the pattern into your own space and choose your own category.
 
-* [[Glossary]] —— glossary overview page
-- **[[ADR]]** — aggregates all pages tagged `adr`; the `tag.define` in [[CONFIG]] maps `tagPage = "ADR"`.
-- **[[Architecture]]** — aggregates all pages tagged `component`; mapped via `tagPage = "Architecture"` in [[CONFIG]].
-
-Open either page to see a live query-driven aggregator with no hand-maintained list.
+The query renders live in SilverBullet. For a stored portable version, use [[Baked Sections]] and update it explicitly when the source changes.

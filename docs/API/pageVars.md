@@ -5,16 +5,22 @@ APIs to read and set [[Space Lua/Page Lua|page variables]]: the values a page de
 
 Each function takes an optional page name as its last argument. Without it they use the page the running code is on: the page a `${…}`, code widget or button belongs to (for a button inside a transclusion, the transcluded page), or else the open page.
 
+Copy this complete Markdown example into a writable page. The button saves the incremented value back to that page; it is shown as source here because the published documentation is read-only.
+
+```markdown
 Example: ${counter = 1}
 Counter * pi: ${math.pi * counter}
 
 ${widgets.button("Add one", function()
   pageVars.set("counter", counter + 1)
 end)}
+```
+
+Initially the counter is 1; after one click it is 2, and the multiplication result updates.
 
 # API
 ## pageVars.get(name, page?)
-Returns one of a page's variables. A name the page doesn't define is an error; a variable holding `nil` returns `nil`.
+Returns one of a page’s variables. A name the page doesn’t define is an error; a variable holding `nil` returns `nil`.
 
 ```lua
 pageVars.get("salary", "Budget")
@@ -22,7 +28,7 @@ pageVars.get("rate")
 ```
 
 ## pageVars.all(page?)
-Returns a read-only table of all of a page's variables, which you can print or iterate.
+Returns a read-only table of all of a page’s variables, which you can print or iterate.
 
 ```lua
 pageVars.all("Budget")
@@ -40,8 +46,6 @@ pageVars.set("salary", 600, "Budget")
 ```
 
 * `value` must be a number, string, boolean, `nil`, or a table of these (tables may nest). A function, a table with a metatable, or a table that contains itself is an error.
-* The page must define `name` with exactly one `${name = …}` holding a plain value or a table literal of plain values. A formula such as `${total = a + b}`, a variable assigned only in a `page-lua` block, or a name the page doesn't define is an error.
-* A table is written back pretty printed: list items first, one per line, then named fields. Continuation lines follow the cell's indentation.
+* The page must define `name` with exactly one `${name = …}` holding a plain value or a table literal of plain values. A formula such as `${total = a + b}`, a variable assigned only in a `page-lua` block, or a name the page doesn’t define is an error.
 * On the open page, the change is a single undoable edit and the page is saved right away.
-* Setting a variable to the value it already has changes nothing.
 * A read-only space, or a read-only target page, is an error.

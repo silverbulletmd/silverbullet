@@ -2,12 +2,12 @@
 
 A Meta Space is one of your [[Local Space|local spaces]] that SilverBullet Desktop underlays into all the others, so its configuration, libraries and templates are available everywhere.
 
-SilverBullet Desktop supports unlimited spaces. That's great for keeping contexts separate. The downside: anything you want available _everywhere_ — a shared snippet of `CONFIG.md`, a [[Space Lua]] library you wrote once and want to reuse — has to be copied into every space, and kept in sync. Not great.
+SilverBullet Desktop supports unlimited spaces. That’s great for keeping contexts separate. The downside: anything you want available _everywhere_ — a shared snippet of `CONFIG.md`, a [[Space Lua]] library you wrote once and want to reuse — has to be copied into every space, and kept in sync. Not great.
 
-The **Meta Space** is the way out. It's a SilverBullet+ feature available with [Desktop Pro](https://silverbullet.md/pricing) that lets you nominate one of your spaces as a shared underlay for all the others. Anything you put in your meta space (config, libraries, custom commands, templates) automatically becomes available in every other space. The dashboard currently labels it a beta feature.
+The **Meta Space** is the way out. It’s a SilverBullet+ feature available with [Desktop Pro](https://silverbullet.md/pricing) that lets you nominate one of your spaces as a shared underlay for all the others. Anything you put in your meta space (config, libraries, custom commands, templates) automatically becomes available in every other space. The dashboard currently labels it a beta feature.
 
 # How it works
-Conceptually, every space in SilverBullet is a stack of layers. At the top is your folder on disk, which you can read and write freely. Underneath sits a bundle of built-in libraries and plugs that implement a lot of SilverBullet core functionality. The meta space slots in between: your own folder on top, your meta space's files in the middle, the built-ins underneath.
+Conceptually, every space in SilverBullet is a stack of layers. At the top is your folder on disk, which you can read and write freely. Underneath sits a bundle of built-in libraries and plugs that implement a lot of SilverBullet core functionality. The meta space slots in between: your own folder on top, your meta space’s files in the middle, the built-ins underneath.
 
 When you open a space that has the meta space underlaid:
 
@@ -16,7 +16,7 @@ When you open a space that has the meta space underlaid:
 * If a file in your own space has the same name as a meta-space file, your own version wins. The meta space is a fallback, not an override.
 
 # CONFIG.md and METACONFIG.md
-The meta space contains an ordinary `CONFIG` page and any other page. When the meta space is underlaid into another space, the space files are merged (where the meta space's `CONFIG` page is renamed to `METACONFIG` to avoid clashes with local `CONFIG` changes). Since SilverBullet will load `space-lua` from anywhere in the space, both will be activated.
+The meta space contains an ordinary `CONFIG` page and any other page. When the meta space is underlaid into another space, the space files are merged (where the meta space’s `CONFIG` page is renamed to `METACONFIG` to avoid clashes with local `CONFIG` changes). Since SilverBullet will load `space-lua` from anywhere in the space, both will be activated.
 
 # Setting it up
 1. Create a new space, for example one called `META`.

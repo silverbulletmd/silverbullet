@@ -94,19 +94,19 @@ Returns metadata for a page.
 
 `space.getRevision(path, rev, parent?)`
 
-Reads the text of a file as it was at a given revision, or at that revision's parent.
+Reads the text of a file as it was at a given revision, or at that revision’s parent.
 
 ## space.getRevisionDiff
 
 `space.getRevisionDiff(path, rev?)`
 
-Reads a unified diff of a revision's own change (vs its parent), or of the uncommitted change when no revision is given.
+Reads a unified diff of a revision’s own change (vs its parent), or of the uncommitted change when no revision is given.
 
 ## space.getSpaceLog
 
 `space.getSpaceLog(before?, q?)`
 
-Lists the space-wide commit log. Each commit's `files` — and the `uncommitted` list — are tables of `{path, status}`, where `status` is `added`, `modified`, `deleted` or `renamed`.
+Lists the space-wide commit log. Each commit’s `files` — and the `uncommitted` list — are tables of `{path, status}`, where `status` is `added`, `modified`, `deleted` or `renamed`.
 
 ## space.getActivity
 
@@ -137,7 +137,7 @@ Lints pages the way the editor does — frontmatter and data block YAML, `space-
 
 **Returns:**
 
-- `table` — A list of `{page, line, column, severity, message, source}`, ordered by page then position. `line` and `column` are 1-based; `severity` is `error`, `warning`, `info` or `hint`; `source` names what reported it: the linter's own name (`yaml`, `lua`, `objects` and `anchors` for the built-in ones) or else its `editor:lint` listener, `widget` (a failing directive or code widget), or `page` (the page could not be read). `hint` diagnostics, such as the X-Ray lens, are left out.
+- `table` — A list of `{page, line, column, severity, message, source}`, ordered by page then position. `line` and `column` are 1-based; `severity` is `error`, `warning`, `info` or `hint`; `source` names what reported it: the linter’s own name (`yaml`, `lua`, `objects` and `anchors` for the built-in ones) or else its `editor:lint` listener, `widget` (a failing directive or code widget), or `page` (the page could not be read). `hint` diagnostics, such as the X-Ray lens, are left out.
 
 **Examples:**
 
@@ -199,7 +199,7 @@ Looks up, for each path, whether it exists exactly and which files share its bas
 
 `space.mergeText(base, local, remote)`
 
-Three-way merges `local` and `remote` against their common `base` on the server, without writing anything. Overlapping changes are kept as conflict markers. Returns nil when the texts can't be merged (one already contains conflict markers, or is too large).
+Three-way merges `local` and `remote` against their common `base` on the server, without writing anything. Overlapping changes are kept as conflict markers. Returns nil when the texts can’t be merged (one already contains conflict markers, or is too large).
 
 **Parameters:**
 
@@ -209,7 +209,7 @@ Three-way merges `local` and `remote` against their common `base` on the server,
 
 **Returns:**
 
-- Value — Table with `status` ("clean" or "conflicted") and the merged `text`, or nil when not mergeable.
+- Value — Table with `status` (“clean” or “conflicted”) and the merged `text`, or nil when not mergeable.
 
 **Example:**
 

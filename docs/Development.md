@@ -53,7 +53,7 @@ SilverBullet has two halves you rebuild **independently** — knowing which one 
 * The **server** (Rust: `server/`, `server-common/`, `server-runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
 * The **client** (TypeScript: `client/`) is built by ESBuild into `client_bundle/`, which the server serves.
 
-Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it). Use `SB_DISABLE_SERVICE_WORKER=1` so the service worker doesn't cache stale assets:
+Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it). Use `SB_DISABLE_SERVICE_WORKER=1` so the service worker doesn’t cache stale assets:
 
 ```shell
 SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- <PATH-TO-YOUR-DATA-FOLDER>
@@ -114,8 +114,6 @@ docker run -p 3000:3000 -v <PATH-TO-YOUR-DATA-FOLDER>:/data zefhemel/silverbulle
 These are built by `.github/workflows/ci.yml`, which cross-compiles the binary natively (`cargo build --target` with installed musl cross-toolchains) and copies it into a small Alpine image.
 
 # In this section
-${query[[
-  from e = docsNav.pages
-  where e.name:match "^Contributing/[^/]+$"
-  select templates.docsPage(e)
-]]}
+* [[Library/Development|Develop a library]]
+* [[Plugs/Development|Develop a plug]]
+* [[Plugs/Development/Distribution and Testing|Distribution and Testing]]

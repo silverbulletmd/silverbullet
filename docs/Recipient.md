@@ -7,7 +7,7 @@ references:
 - plugs/editor/navigate.ts
 - libraries/Library/Std/Editor/Mention Inbox.md
 ---
-A **recipient** is an [[Identity]] you address. When mentioned with `@name`, it is indexed to be queried, and clicking it in the editor will open the "Mentions Inbox". -- @zef
+A **recipient** is an [[Identity]] you address. When mentioned with `@name`, it is indexed to be queried, and clicking it in the editor will open the “Mentions Inbox”.
 
 See [[At-Mention]] for the `@name` syntax, and [[Identity]] for where names come from (accounts, `identity.define`, or simply being mentioned).
 
@@ -23,7 +23,7 @@ Pages can also declare recipients declaratively in frontmatter — useful when a
 
 ```yaml
 ---
-recipients: ["petesmith", "sales"]
+recipients: ["pete", "sales"]
 ---
 ```
 
@@ -31,7 +31,7 @@ Like `tags`, the value can also be written as a plain string, cut on whitespace:
 
 ```yaml
 ---
-recipients: petesmith sales
+recipients: pete sales
 ---
 ```
 
@@ -39,12 +39,14 @@ recipients: petesmith sales
 A mention only ever means one thing: *this is for you*. Marking text as *written by* someone instead uses a slightly different syntax, see [[Authorship]].
 
 # Querying mentions
-At-mentions are indexed like any other [[Object Index|relation]], with `kind == "at-mention"`. `to` is always the `@name` identifier (`toTag == "identity"`) and `alias` holds the name as typed. Build your own view over them with SLIQ, for example @pete.smith:
+At-mentions are indexed like any other [[Object Index|relation]], with `kind == "at-mention"`. `to` is always the `@name` identifier (`toTag == "identity"`) and `alias` holds the name as typed. Build your own view over them with SLIQ, for example @sam.rivera:
 
 ${query[[
   from index.relations "at-mention"
-  where _.to == "@pete.smith"
+  where _.to == "@sam.rivera"
   select { page = _.page, snippet = _.snippet }
 ]]}
 
 Frontmatter declarations are relations too, with `kind == "recipients"`.
+
+For a complete request, reply and resolution workflow, see [[Guide/Mentions and Replies]].

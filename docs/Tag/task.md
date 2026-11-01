@@ -9,16 +9,14 @@ Every task in your space is tagged with the `task` tag by default. You tag it wi
 
 * [ ] My task #upnext
 
-And can then be queried via either `task` or `upnext`.
-
-The following query shows all attributes available for tasks:
+Query all tasks with `index.tasks()`, or only those tagged `upnext` with `index.tasks("upnext")`. This query shows matching records and their fields:
 ${query[[from index.tasks("upnext")]]}
 
-Although you may want to render it using a template instead:
+To display the same results as checkboxes:
 ${query[[from index.tasks("upnext") select templates.taskItem(_)]]}
 
 Specific attributes:
-* `done`: set to true of the state of the task is “checked”
-* `state`: the text of the state (useful for custom states), see [[^Library/Std/APIs/Task State]]
+* `done`: `true` for `x`, `X`, or a custom state registered with `done = true`; otherwise `false`.
+* `state`: checkbox text between `[` and `]`, including a single space for an unchecked task; see [[API/taskState]] for custom states.
 
 Additionally, tasks inherit all attributes of [[Tag/item]].

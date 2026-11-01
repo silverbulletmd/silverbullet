@@ -71,7 +71,7 @@ ${query[[
 ]]}
 
 ## Filter groups by key value
-Only show the group where `name` is "meta":
+Only show the group where `name` is “meta”:
 
 ${query[[
   from
@@ -236,6 +236,9 @@ ${query [[
     p.name
   having
     #group > 1
+  order by
+    #group desc
+  limit 5
   select {
     tag = name,
     count = #group

@@ -8,42 +8,21 @@ references:
 ---
 The Object Index stores [[Object|Objects]] found in your [[Space]].
 
-You interact with it in a few ways:
-* Indirectly via various other SilverBullet features such as [[Page Picker]], [[Meta Picker]], [[Linked Mention]] etc.
-* Via the [[API/index]] API directly
+The [[Page Picker]], [[Meta Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Query]], or read them through [[API/index]].
 
 # Indexing
 ## Initial indexing process
-When you launch a fresh client for the first time, the object index will be built from scratch. Depending on the size of your space this can take anything between a few seconds and minutes. If the process takes longer than a few seconds, you will see progress with a blue status circle. Until this initial indexing process finishes, you will notice that things like [[API/widget|Widgets]] and [[Space Lua/Integrated Query]] are not yet rendered, this is to avoid errors and invalid data.
+The first time you open a space in a client, SilverBullet builds its index from scratch. This can take seconds or minutes, depending on the space’s size. A blue status circle shows progress if it takes more than a few seconds. [[API/widget|Widgets]] and [[Space Lua/Integrated Query|queries]] wait for indexing to finish before rendering.
 
-After the initial index process, the index will be kept up-to-date incrementally.
+After that, SilverBullet updates the index incrementally as files change.
 
 > **note** Asynchronous indexing lag
 > After saving a page (or external tools making updates to pages in your space) the index updates in the background and can lag a few seconds. A query run immediately after an edit _may_ return stale results for a bit. When this happens, wait briefly and re-run before drawing conclusions.
 
-To forcefully reindex your entire space, run the `Space: Reindex` command. Depending on the size of your space, this can take anywhere from a second to minutes or longer.
+Run `Space: Reindex` to rebuild the entire index. This can take several minutes in a large space.
 
-## Indexing process
-Objects are stored in your browser’s IndexedDB, implemented as a thin abstraction layer on top of [[API/datastore]]. Objects are always attached to a particular page.
-
-When SilverBullet detects a page change (either via the editor or based on watching the file system for changes), it will queue reindexing the page.
-
-This process follows the following steps:
-1. Remove all existing page-connected objects from the database.
-2. Parse the markdown, and broadcast it via the `page:index` event.
-3. Various indexers do their magic, resulting in a list of found objects.
-4. These objects are stored via the [[API/index#index.indexObjects(page, objects)]] API.
-
-The indexObject API looks at the root `tag` and user `tags` of each found object, and for each of these tags:
-
-* Looks up the tag spec (see [[API/tag#tag.define(spec)]])
-* If the tag spec defines a `schema` and `mustValidate` is set to true, it will validate the object against the schema and only index the object if it passes. If `mustValidate` is not set (the default for performance reasons), no validation will happen at the indexing stage.
-* If the tag spec defines a `transform` callback, it is invoked, see [[API/tag#Index augmentation]] for details.
-* Stores the resulting objects with for the given tag
-
-Pages are indexed **concurrently**, so an indexer must never resolve one page's markup against another page's index entry: whether that entry exists yet depends on queue order, and two pages could end up disagreeing. Such joins belong at query time instead. [[At-Mention|At-mentions]] work this way: the mention records the nickname, and the page claiming it is joined when mentions are read.
-
-[[Authorship|Signatures]] add a second relation kind alongside `at-mention`: `authored`. A block-ending `-- @name` signature emits one `authored` edge per name it credits, carrying a `range` into the signature text; an `authors:` frontmatter declaration emits the same kind with no `range`, crediting the whole page — the same shape a declared `recipients:` entry has. A signature also stamps `by` — the identity ids it credits — onto every `at-mention` relation inside the block it claims, so a query can join "who wrote this" onto "who it was addressed to" without a second pass.
+## Indexer development
+For page invalidation, extraction, validation, transforms and relation construction, see [[Reference/Indexing Internals]].
 
 # Query
 The Object Index is generally queried using [[Space Lua/Integrated Query]].
@@ -58,7 +37,7 @@ Entry points are:
 If a `metatable` is defined for a particular tag with [[API/tag#tag.define(spec)]], the metatable is set for each object for the tag.
 
 ## Common patterns
-A few idiomatic recipes to get started — see [[Space Lua/Integrated Query]] for the full clause reference:
+Copy these expressions into a page to display the results. See [[Space Lua/Integrated Query]] for the full clause reference:
 
 **Content pages by last modified** (most recently touched first):
 ```lua

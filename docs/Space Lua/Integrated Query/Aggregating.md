@@ -71,7 +71,7 @@ ${query[[
 See [[^Library/Std/APIs/Aggregate|Aggregate API]] for how to define custom aggregates and aliases.
 
 # Examples
-All example queries operate on `tags.page`, but will work with any query collection. As always, to see the underlying query, hover over the result table and click the _Edit_ button to see the underlying query.
+All example queries operate on `tags.page`, but will work with any query collection. In published read-only documentation, Alt-click (Option-click on Mac) a result to reveal its source for selection and copying. Try edited queries in your own writable space.
 
 ## Counting with and without binding
 Grouping pages by their first tag, and computing the count and aggregate statistics:
