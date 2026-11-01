@@ -43,7 +43,15 @@ test("the object graph opens on the page, switches tabs, docks and follows the e
     .click();
   const docked = page.locator(".sb-nav-root-rhs");
   await expect(docked.locator(".sb-nav-title")).toHaveText("Graph");
-  await navigateViaPagePicker(page, "People/Sam Ortiz");
+  await page.getByRole("button", { name: /^Open page/ }).click();
+  const picker = page.locator(".sb-nav-root-modal");
+  await picker.locator("input.sb-nav-input").fill("People/Sam Ortiz");
+  await picker
+    .locator(".sb-nav-row .sb-nav-primary", { hasText: "People/Sam Ortiz" })
+    .click();
+  await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
+    "People/Sam Ortiz",
+  );
   const dockedGraph = docked.frameLocator(".sb-panel-view iframe");
   // A narrow dock starts with the filters (and the selected object) closed
   await dockedGraph.getByRole("button", { name: "Filters" }).click();

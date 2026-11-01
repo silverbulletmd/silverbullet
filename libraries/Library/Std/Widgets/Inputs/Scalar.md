@@ -118,7 +118,11 @@ local function textArea(opts)
       if list then suggest() end
     end,
     onfocus = function() autogrow(ta) end,
-    onblur = function() if list then list.hide() end end,
+    onblur = function()
+      if list then list.hide() end
+      -- WebKit may not emit change after a completion assigns the value.
+      commit()
+    end,
     -- The caret left the `[[…` (arrows, Home/End, a click): no completion
     onkeyup = function() if list and list.open and not prefix() then list.hide() end end,
     onclick = function() if list and list.open and not prefix() then list.hide() end end,
