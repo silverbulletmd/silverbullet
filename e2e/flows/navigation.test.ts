@@ -584,6 +584,8 @@ test.describe("read-only keyboard navigation", () => {
     spaceFiles: {
       "index.md": "# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n",
       "Destination.md": "# Destination\n\nFirst line.\n\nBack to [[index]].\n",
+      "MdLink.md": "Intro\n\nSee [dest](Destination) here.\n",
+      "Tasks.md": "Intro\n\n* [ ] Do it\n* [x] Done\n",
     },
   });
 
@@ -603,5 +605,90 @@ test.describe("read-only keyboard navigation", () => {
     await page.keyboard.press(`${mod}+Enter`);
     await expect(currentPage(page)).toHaveValue("Destination");
     await expect.poll(() => selectionLine(page)).toBe(1);
+  });
+
+  const placeCursor = (page: Page, needle: string, offset = 0) =>
+    page.evaluate(
+      ([needle, offset]) => {
+        const view = (globalThis as any).client.editorView;
+        view.dispatch({
+          selection: {
+            anchor: view.state.doc.toString().indexOf(needle) + offset,
+          },
+        });
+      },
+      [needle, offset] as const,
+    );
+
+  test("plain Enter on a wiki link opens the page", async ({
+    sbPage: page,
+  }) => {
+    await placeCursor(page, "[[");
+    await expect(page.locator(".sb-link-cursor")).toHaveText("Destination");
+    await page.keyboard.press("Enter");
+    await expect(currentPage(page)).toHaveValue("Destination");
+  });
+
+  test("plain Enter on a Markdown link opens the page", async ({
+    sbPage: page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "MdLink");
+    await placeCursor(page, "[dest]");
+    await expect(page.locator(".sb-link-cursor")).toHaveText("dest");
+    await page.keyboard.press("Enter");
+    await expect(currentPage(page)).toHaveValue("Destination");
+  });
+
+  test("plain Enter on text does not change or leave the page", async ({
+    sbPage: page,
+  }) => {
+    await placeCursor(page, "Intro", 2);
+    await page.keyboard.press("Enter");
+    await expect(currentPage(page)).toHaveValue("index");
+    expect(
+      await page.evaluate(() =>
+        (globalThis as any).client.editorView.state.doc.toString(),
+      ),
+    ).toBe("# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n");
+  });
+
+  test("a task checkbox is highlighted under the cursor and Enter clicks it", async ({
+    sbPage: page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "Tasks");
+    const checkbox = page.locator(".sb-checkbox").first();
+    await expect(checkbox).toBeVisible();
+    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
+    // Record the click events the editor dispatches
+    await page.evaluate(() => {
+      const client = (globalThis as any).client;
+      const calls: number[] = [];
+      (globalThis as any).__checkboxClicks = calls;
+      const original = client.dispatchClickEvent.bind(client);
+      client.dispatchClickEvent = (event: any) => {
+        calls.push(event.pos);
+        return original(event);
+      };
+    });
+    // A real click is the reference
+    await checkbox.locator("input").click();
+    await expect
+      .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
+      .toHaveLength(1);
+    await placeCursor(page, "[ ]");
+    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(1);
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
+      .toHaveLength(2);
+    const [byClick, byEnter] = await page.evaluate(
+      () => (globalThis as any).__checkboxClicks,
+    );
+    expect(byEnter).toBe(byClick);
+    // Moving the cursor away removes the highlight
+    await placeCursor(page, "Intro");
+    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
   });
 });

@@ -13,12 +13,14 @@
   display: block;
 }
 
-.sb-link-cursor {
+.sb-link-cursor,
+.sb-checkbox-cursor input[type="checkbox"] {
   outline: 1.2px solid var(--editor-caret-color);
   outline-offset: 1px;
 }
 
-.cm-editor:has(.sb-widget-link-cursor) .cm-cursor-primary {
+.cm-editor:has(.sb-widget-link-cursor) .cm-cursor-primary,
+.cm-editor:has(.sb-checkbox-cursor) .cm-cursor-primary {
   display: none;
 }
 
