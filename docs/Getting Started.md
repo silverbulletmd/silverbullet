@@ -16,7 +16,7 @@ Likely you’ll discover workflows that will work for you over time, but to not 
 # Quick notes
 The idea of the quick note is to serve as a modern replacement for the old-fashioned “I just need to jot something down, gimme a piece of paper, _quick!_”
 
-When such an occasion arrises, you have a few options:
+When such an occasion arises, you have a few options:
 1. On your index page click the “Create quick note” button
 2. Hit the `Ctrl-q` shortcut followed by another `q` (or `Ctrl-q`), so `Ctrl-q Ctrl-q` — quick, _quick_!
 
