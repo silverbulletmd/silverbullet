@@ -34,6 +34,8 @@ describe("Github.md", () => {
       PAGES,
       {
         editor: {
+          getCurrentPath: () => "notes/page.md",
+          filterBox: (_title: string, options: unknown[]) => options[0],
           prompt: (message: string, def?: string) => {
             const answers: Record<string, string> = {
               "Github repo (user/repo):": "me/repo",
