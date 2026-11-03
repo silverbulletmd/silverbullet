@@ -91,7 +91,9 @@ hostnameTest(
     const primaryOption = page
       .getByLabel("Hostname", { exact: true })
       .locator('option[value="primary"]');
-    await expect(primaryOption).toHaveText(/Primary hostname .* — \/$/);
+    await expect(primaryOption).toHaveText(
+      `Primary hostname — ${new URL(sbServer.url).host}`,
+    );
     await expect(primaryOption).toBeDisabled();
     await expect(
       page
@@ -128,11 +130,9 @@ hostnameTest(
     const knownHost = page
       .getByLabel("Hostname", { exact: true })
       .locator("option", {
-        hasText: `team.localhost:${sbServer.port} — /work`,
+        hasText: `team.localhost:${sbServer.port}`,
       });
-    await expect(knownHost).toHaveText(
-      `team.localhost:${sbServer.port} — /work`,
-    );
+    await expect(knownHost).toHaveText(`team.localhost:${sbServer.port}`);
     await expect(knownHost).toBeEnabled();
     await page
       .getByLabel("Hostname", { exact: true })

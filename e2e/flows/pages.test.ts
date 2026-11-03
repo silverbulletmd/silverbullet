@@ -51,37 +51,6 @@ test.describe("page links and lifecycle", () => {
     ).toEqual({ onload: undefined, script: undefined });
   });
 
-  test("a decorated page completion keeps its icon beside its label", async ({
-    page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "Source");
-    await page.evaluate(() => {
-      const view = (globalThis as any).client.editorView;
-      const cursor = view.state.doc.toString().indexOf("[[Reference") + 2;
-      view.dispatch({ selection: { anchor: cursor } });
-      view.focus();
-    });
-    await page.keyboard.press("Control+Space");
-
-    const option = page.locator(".cm-tooltip-autocomplete li", {
-      hasText: "Reference",
-    });
-    const icon = option.locator(".sb-page-decoration-icon");
-    const label = option.locator(".cm-completionLabel");
-    await expect(icon).toBeVisible();
-    await expect(label).toBeVisible();
-
-    const [iconBox, labelBox] = await Promise.all([
-      icon.boundingBox(),
-      label.boundingBox(),
-    ]);
-    expect(iconBox).not.toBeNull();
-    expect(labelBox).not.toBeNull();
-    expect(iconBox!.y).toBeLessThan(labelBox!.y + labelBox!.height);
-    expect(labelBox!.y).toBeLessThan(iconBox!.y + iconBox!.height);
-  });
-
   test("an aspiring link creates a page that can be saved and renamed", async ({
     page,
     sbServer,

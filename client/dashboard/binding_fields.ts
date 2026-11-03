@@ -193,9 +193,7 @@ function makeHostOption(
     displayHost,
     prefixes: sorted,
     rootOccupied: sorted.includes("/"),
-    label: sorted.length
-      ? `${displayHost} — ${sorted.join(", ")}`
-      : displayHost,
+    label: displayHost,
   };
 }
 

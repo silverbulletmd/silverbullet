@@ -183,7 +183,7 @@ test("hostOptions combines equivalent host spellings with deduplicated sorted oc
       displayHost: "Team.Example.com",
       prefixes: ["/", "/wiki", "/work"],
       rootOccupied: true,
-      label: "Team.Example.com — /, /wiki, /work",
+      label: "Team.Example.com",
     },
   ]);
 });
@@ -220,7 +220,7 @@ test("hostOptions excludes the edited space from occupancy", () => {
       displayHost: "team.test",
       prefixes: ["/work"],
       rootOccupied: false,
-      label: "team.test — /work",
+      label: "team.test",
     },
   ]);
 });
@@ -232,7 +232,7 @@ test("hostOptions marks a hostname with an occupied root as unavailable for anot
       displayHost: "team.test",
       prefixes: ["/"],
       rootOccupied: true,
-      label: "team.test — /",
+      label: "team.test",
     },
   ]);
 });
@@ -249,14 +249,14 @@ test("hostOptions keeps identical paths on distinct hosts separate", () => {
       displayHost: "other.test",
       prefixes: ["/work"],
       rootOccupied: false,
-      label: "other.test — /work",
+      label: "other.test",
     },
     {
       host: "team.test",
       displayHost: "team.test",
       prefixes: ["/work"],
       rootOccupied: false,
-      label: "team.test — /work",
+      label: "team.test",
     },
   ]);
 });
