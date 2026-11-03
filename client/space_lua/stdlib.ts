@@ -133,7 +133,9 @@ const pairsFunction = new LuaBuiltinFunction({
     }
 
     let i = 0;
-    const iter = async () => {
+    // Generic for passes the entire table as state on every iteration. Keep
+    // the iterator Lua-native so that state is not deep-converted to JS.
+    const iter = new LuaBuiltinFunction(async () => {
       if (i >= keys.length) {
         return;
       }
@@ -141,7 +143,7 @@ const pairsFunction = new LuaBuiltinFunction({
       i++;
       const value = await luaGet(t, key, sf.astCtx ?? null, sf);
       return new LuaMultiRes([key, value]);
-    };
+    });
 
     // Must return (iter, state, control) for generic for
     return new LuaMultiRes([iter, t, null]);
