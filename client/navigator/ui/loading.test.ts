@@ -3,7 +3,7 @@ import { LoadingState } from "./loading.ts";
 
 afterEach(() => vi.useRealTimers());
 
-test("delays visible loading and clears it when the current request settles", () => {
+test("waits one second before showing loading and clears it when the current request settles", () => {
   vi.useFakeTimers();
   const state = new LoadingState();
   const changed = vi.fn();
@@ -11,7 +11,7 @@ test("delays visible loading and clears it when the current request settles", ()
   const request = state.begin();
   expect(state.pending).toBe(true);
   expect(state.visible).toBe(false);
-  vi.advanceTimersByTime(149);
+  vi.advanceTimersByTime(999);
   expect(state.visible).toBe(false);
   vi.advanceTimersByTime(1);
   expect(state.visible).toBe(true);
@@ -30,7 +30,7 @@ test("only the latest request controls loading, even if an older request remains
   first.finish();
   expect(state.pending).toBe(true);
   expect(first.isCurrent()).toBe(false);
-  vi.advanceTimersByTime(150);
+  vi.advanceTimersByTime(1000);
   expect(state.visible).toBe(true);
   const third = state.begin();
   third.finish();
@@ -42,13 +42,16 @@ test("only the latest request controls loading, even if an older request remains
 test("fast requests and cancellation never leave a delayed spinner behind", () => {
   vi.useFakeTimers();
   const state = new LoadingState();
-  state.begin().finish();
-  vi.advanceTimersByTime(200);
+  const fast = state.begin();
+  vi.advanceTimersByTime(500);
+  expect(state.visible).toBe(false);
+  fast.finish();
+  vi.advanceTimersByTime(1000);
   expect(state.visible).toBe(false);
   const request = state.begin();
   state.cancel();
   expect(request.isCurrent()).toBe(false);
-  vi.advanceTimersByTime(200);
+  vi.advanceTimersByTime(1000);
   expect(state.pending).toBe(false);
   expect(state.visible).toBe(false);
 });

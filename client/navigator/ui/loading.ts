@@ -17,7 +17,7 @@ export class LoadingState {
       this.timer = setTimeout(() => {
         this.visible = true;
         this.notify();
-      }, 150);
+      }, 1000);
       this.notify();
     }
     return {
