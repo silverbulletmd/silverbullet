@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { MemoryKvPrimitives } from "../data/memory_kv_primitives.ts";
 import { DataStoreSpacePrimitives } from "../spaces/datastore_space_primitives.ts";
 import type { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
+import { SpaceSync, SyncSnapshot } from "../spaces/sync.ts";
 import { SyncEngine } from "./sync_engine.ts";
 
 const encode = (s: string) => new TextEncoder().encode(s);
@@ -154,4 +155,91 @@ describe("SyncEngine dirty queue", () => {
     expect(new TextDecoder().decode(data)).toBe("a");
     engine.stop();
   });
+});
+
+describe("SyncEngine bundled library conflicts", () => {
+  test.each(["Library/Std.md", "Library/Std/Config.md"])(
+    "%s converges to the read-only server version without recreating conflict copies",
+    async (path) => {
+      const { engine, local, remote } = setup();
+      const snapshot = new SyncSnapshot();
+      const sync = new SpaceSync(local, remote, {
+        conflictResolver: engine.stdLibAwareConflictResolver.bind(engine),
+        isSyncCandidate: () => true,
+      });
+      await local.writeFile(path, encode("old bundled page"));
+      const meta = await remote.writeFile(path, encode("new bundled page"));
+      await remote.writeFile(path, encode("new bundled page"), {
+        ...meta,
+        perm: "ro",
+      });
+      const copy = `${path.slice(0, -3)}.conflicted-${(await hashSHA256(encode("new bundled page"))).slice(0, 8)}.md`;
+      const localCopy = await local.writeFile(copy, encode("new bundled page"));
+      const remoteCopy = await remote.writeFile(
+        copy,
+        encode("new bundled page"),
+      );
+      snapshot.files.set(copy, [
+        localCopy.lastModified,
+        remoteCopy.lastModified,
+      ]);
+      const write = remote.writeFile.bind(remote);
+      const writes = vi
+        .spyOn(remote, "writeFile")
+        .mockImplementation(async (name, data, suggestedMeta) => {
+          if (name === path) throw new Error("Cannot write file: read-only");
+          return write(name, data, suggestedMeta);
+        });
+
+      await local.deleteFile(copy);
+      await sync.syncSingleFile(copy, snapshot);
+      await expect(sync.syncSingleFile(path, snapshot)).resolves.toBe(1);
+      expect((await local.readFile(path)).data).toEqual(
+        encode("new bundled page"),
+      );
+      expect((await local.getFileMeta(path)).perm).toBe("ro");
+      expect(writes).not.toHaveBeenCalled();
+      expect(await sync.syncFiles(snapshot)).toBe(0);
+      expect((await local.fetchFileList()).map((file) => file.name)).toEqual([
+        path,
+      ]);
+      expect((await remote.fetchFileList()).map((file) => file.name)).toEqual([
+        path,
+      ]);
+    },
+  );
+
+  test.each([
+    "Repositories/Std.md",
+    "Library/StdCustom.md",
+    "Library/Std.conflicted-example.md",
+  ])(
+    "%s preserves editable local content and does not resurrect a deleted conflict copy",
+    async (path) => {
+      const { engine, local, remote } = setup();
+      const snapshot = new SyncSnapshot();
+      const sync = new SpaceSync(local, remote, {
+        conflictResolver: engine.stdLibAwareConflictResolver.bind(engine),
+        isSyncCandidate: () => true,
+      });
+      await local.writeFile(path, encode("local configuration"));
+      await remote.writeFile(path, encode("remote configuration"));
+      await sync.syncSingleFile(path, snapshot);
+      expect((await remote.readFile(path)).data).toEqual(
+        encode("local configuration"),
+      );
+      const copy = (await local.fetchFileList()).find(
+        (file) => file.name !== path,
+      )!;
+      expect((await local.readFile(copy.name)).data).toEqual(
+        encode("remote configuration"),
+      );
+      await local.deleteFile(copy.name);
+      await sync.syncSingleFile(copy.name, snapshot);
+      expect(await sync.syncFiles(snapshot)).toBe(0);
+      expect((await remote.fetchFileList()).map((file) => file.name)).toEqual([
+        path,
+      ]);
+    },
+  );
 });
