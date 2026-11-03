@@ -722,6 +722,19 @@ export class ObjectIndex {
 
   private async flushChangedTags(): Promise<void> {
     clearTimeout(this.flushTimer);
+    // An idle pause or another worker's drain can occur between clearing a
+    // page's old objects and writing its replacements.
+    if (!(await this.mq.isQueueEmpty("indexQueue"))) {
+      // The final failed job can be dropped without another drain event.
+      clearTimeout(this.flushTimer);
+      if (this.changedTags.size > 0) {
+        this.flushTimer = setTimeout(
+          () => void this.flushChangedTags(),
+          ObjectIndex.TAG_FLUSH_IDLE_MS,
+        );
+      }
+      return;
+    }
     const tags = [...this.changedTags];
     this.changedTags.clear();
     for (const tag of tags) {
