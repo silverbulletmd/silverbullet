@@ -130,7 +130,7 @@ export function configSyscalls(config: Config): SysCallMapping {
           name: "schema",
           type: "table",
           description:
-            "JSON Schema definition; default applies a missing value and ui annotations expose it in the Configuration tab of the Workbench.",
+            "JSON Schema definition. `default` supplies missing values, and `ui` annotations expose the field in Workbench's Configuration tab.",
         },
       ],
       examples: [

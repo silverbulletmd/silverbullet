@@ -159,7 +159,7 @@ export function openNavigator(
  * Waits until the current page has finished rendering (widgets, `${…}`
  * expressions, queries and transclusions), e.g. before taking a screenshot.
  * @param timeout - Maximum time to wait in milliseconds (default 10000)
- * @returns true once rendering settled; false if the timeout passed first
+ * @returns true once rendering settled, false if the timeout passed first
  */
 export function awaitRender(timeout?: number): Promise<boolean> {
   return syscall("editor.awaitRender", timeout);

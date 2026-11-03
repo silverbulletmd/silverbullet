@@ -151,7 +151,6 @@ test("core feature contracts remain reachable under Reference", async () => {
     "Space Lua",
     "API",
     "Revisions",
-    "Desktop Sync",
     "Sync",
     "Share",
     "Install/Configuration",
@@ -162,7 +161,7 @@ test("core feature contracts remain reachable under Reference", async () => {
     expect(references.has(ref), ref).toBe(true);
 });
 
-test("reference entries belong to one of four categories", async () => {
+test("reference entries belong to one of five categories", async () => {
   const { pages } = await loadNav();
   const categories = new Set(
     pages
@@ -170,8 +169,9 @@ test("reference entries belong to one of four categories", async () => {
       .map((entry) => entry.name.split("/")[1]),
   );
   expect([...categories]).toEqual([
-    "Markdown and page content",
-    "SilverBullet interface and features",
+    "Concepts",
+    "Markdown",
+    "SilverBullet Features",
     "Space Lua and APIs",
     "Technical reference",
   ]);

@@ -152,7 +152,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
         {
           name: "pages",
           description:
-            "A page name or a list of page names; omit to lint all pages.",
+            "A page name or a list of page names. Omit to lint all pages.",
           optional: true,
         },
       ],
@@ -160,7 +160,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
         {
           type: "table",
           description:
-            "A list of `{page, line, column, severity, message, source}`, ordered by page then position. `line` and `column` are 1-based; `severity` is `error`, `warning`, `info` or `hint`; `source` names what reported it: the linter's own name (`yaml`, `lua`, `objects` and `anchors` for the built-in ones) or else its `editor:lint` listener, `widget` (a failing directive or code widget), or `page` (the page could not be read). `hint` diagnostics, such as the X-Ray lens, are left out.",
+            "A list of `{page, line, column, severity, message, source}`, ordered by page then position. `line` and `column` are 1-based. `severity` is `error`, `warning`, `info` or `hint`. `source` names what reported it: the linter's own name (`yaml`, `lua`, `objects` and `anchors` for the built-in ones) or else its `editor:lint` listener, `widget` (a failing directive or code widget), or `page` (the page could not be read). `hint` diagnostics, such as the X-Ray lens, are left out.",
         },
       ],
       examples: [
@@ -439,7 +439,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
         );
       },
       description:
-        "Summarizes revision activity: the timestamps of commits since a point in time, and the most frequently changed files. Arguments are unix seconds; omitted ones use the server defaults.",
+        "Summarizes revision activity: the timestamps of commits since a point in time, and the most frequently changed files. Arguments are unix seconds. Omitted ones use the server defaults.",
       signatures: ["space.getActivity(since?, filesSince?, top?)"],
     },
     "space.mergeText": {

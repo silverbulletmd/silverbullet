@@ -65,7 +65,7 @@ const assertFunction = new LuaBuiltinFunction({
     }
   },
   description:
-    "Raises an error when a value is falsy; otherwise completes successfully.",
+    "Raises an error when a value is falsy. Otherwise completes successfully.",
   parameters: [
     { name: "value", description: "Condition to test." },
     {
@@ -649,7 +649,7 @@ const someFunction = new LuaBuiltinFunction({
     {
       name: "value",
       description:
-        "Value to normalize; blank strings, empty tables, infinities, and NaN are empty.",
+        "Value to normalize. Blank strings, empty tables, infinities, and NaN are empty.",
     },
   ],
   returns: [{ description: "Original value or `nil`." }],

@@ -189,7 +189,7 @@ export function systemSyscalls(
       },
       description: "Deprecated no-op that returns the current configuration.",
       deprecated:
-        "Configuration reloads automatically; use system.reboot when needed.",
+        "Configuration reloads automatically. Use system.reboot when needed.",
     },
     "system.loadSpaceScripts": {
       callback: async () => {

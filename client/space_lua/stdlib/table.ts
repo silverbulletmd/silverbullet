@@ -248,7 +248,7 @@ export const tableApi = new LuaTable({
       {
         name: "pos",
         type: "integer",
-        description: "Position; defaults to the last element.",
+        description: "Position. Defaults to the last element.",
         optional: true,
       },
     ],
@@ -311,7 +311,7 @@ export const tableApi = new LuaTable({
       {
         name: "a2",
         type: "table",
-        description: "Destination table; defaults to `a1`.",
+        description: "Destination table. Defaults to `a1`.",
         optional: true,
       },
     ],

@@ -53,7 +53,7 @@ functions:
       parameters:
         - { name: object, type: table, description: "An object from a query or object.append, a list of them, or { page = …, ref = … } for an anchored object." }
         - { name: patch, type: table, description: "Attributes to set. For tasks: done, state, name, tags. For paragraphs: text." }
-        - { name: options, type: table, optional: true, description: "remove: list of attribute names to delete; order: list of top-level keys to put first, in that order (pages and data block documents)." }
+        - { name: options, type: table, optional: true, description: "remove: list of attribute names to delete, order: list of top-level keys to put first, in that order (pages and data block documents)." }
       see: API/object
   objectDelete:
     path: object_api.ts:deleteObject
@@ -71,7 +71,7 @@ functions:
       parameters:
         - { name: page, type: string, description: Page to add to. }
         - { name: record, type: table, description: "tag = \"task\", \"item\", \"table\" or a data tag, plus its attributes." }
-        - { name: options, type: table, optional: true, description: "anchor: true or a name to add a $anchor; under: header to add a task or item under; table: tableref of the table to add a row to." }
+        - { name: options, type: table, optional: true, description: "anchor: true or a name to add a $anchor, under: header to add a task or item under, table: tableref of the table to add a row to." }
       returns:
         - { type: table, description: "The new object; { page, ref } when it has an anchor." }
       see: API/object

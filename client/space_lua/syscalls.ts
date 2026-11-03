@@ -253,7 +253,7 @@ export function luaSyscalls(
           name: "path",
           type: "table",
           description:
-            "Sequence of property names from the global environment; omit to inspect globals.",
+            "Sequence of property names from the global environment. Omit to inspect globals.",
           optional: true,
         },
         {

@@ -301,7 +301,7 @@ export const spaceluaApi = new LuaTable({
       {
         name: "namespace",
         type: "table|string",
-        description: "Namespace table or dotted name; omit for globals.",
+        description: "Namespace table or dotted name. Omit for globals.",
         optional: true,
       },
     ],
@@ -328,7 +328,7 @@ export const spaceluaApi = new LuaTable({
         name: "target",
         type: "function|table|string",
         description:
-          "Function value, namespace table, or dotted API name to document; omit for globals.",
+          "Function value, namespace table, or dotted API name to document. Omit for globals.",
         optional: true,
       },
     ],

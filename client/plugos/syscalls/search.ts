@@ -53,7 +53,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
         {
           type: "table",
           description:
-            "`{backend, model, capabilities = {modes, related}, ready, progress, reason}`. `backend` is nil when search is unavailable; `reason` says why. `reason` can also carry a warning while `ready` is true (for example a space with more pages than semantic search is tuned for).",
+            "`{backend, model, capabilities = {modes, related}, ready, progress, reason}`. `backend` is nil when search is unavailable. `reason` says why. `reason` can also carry a warning while `ready` is true (for example a space with more pages than semantic search is tuned for).",
         },
       ],
     },
@@ -68,7 +68,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "`mode` (one of `search.status().capabilities.modes`; defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments: meta pages are tagged `meta`, `meta/…` or `template`; defaults to `all`), `include`/`exclude` (exact page names; they narrow `scope` further; without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).",
+            "`mode` (one of `search.status().capabilities.modes`, defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments: meta pages are tagged `meta`, `meta/…` or `template`, defaults to `all`), `include`/`exclude` (exact page names, they narrow `scope` further, without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).",
           optional: true,
         },
       ],
@@ -76,7 +76,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
         {
           type: "table",
           description:
-            "`{items, total, partial, notice}`. Each item is `{page, pos, line, heading, excerpt, highlights}`; `heading` is set when the backend knows it, `pos` is the match's position in the page, `highlights` is a list of `[start, end]` pairs (UTF-16 offsets into `excerpt`, end exclusive).",
+            "`{items, total, partial, notice}`. Each item is `{page, pos, line, heading, excerpt, highlights}`. `heading` is set when the backend knows it, `pos` is the match's position in the page, `highlights` is a list of `[start, end]` pairs (UTF-16 offsets into `excerpt`, end exclusive).",
         },
       ],
       examples: [
@@ -96,7 +96,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "`limit` (maximum number of pages), `scope` (`pages`, `meta` or `all`, as in `search.find`; defaults to `all`).",
+            "`limit` (maximum number of pages), `scope` (`pages`, `meta` or `all`, as in `search.find`, defaults to `all`).",
           optional: true,
         },
       ],

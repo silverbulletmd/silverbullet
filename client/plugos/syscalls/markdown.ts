@@ -110,7 +110,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks; all default to true. pageName: the page the text comes from, which directives run as (default: the open page).",
+            "Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks. All default to true. pageName: the page the text comes from, which directives run as (default: the open page).",
           optional: true,
         },
       ],
@@ -198,7 +198,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "HTML rendering options; `expand = true` first expands transclusions and Lua directives, as `markdown.expandMarkdown` does.",
+            "HTML rendering options. `expand = true` first expands transclusions and Lua directives, as `markdown.expandMarkdown` does.",
           optional: true,
         },
       ],
@@ -214,7 +214,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         return bakeSectionsInText(client, text, pageName);
       },
       description:
-        "Re-evaluates all baked Lua sections in Markdown text; sections that error or only render as HTML are left unchanged.",
+        "Re-evaluates all baked Lua sections in Markdown text. Sections that error or only render as HTML are left unchanged.",
       parameters: [
         {
           name: "text",

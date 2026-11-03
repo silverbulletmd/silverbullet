@@ -395,7 +395,7 @@ export const osApi = new LuaTable({
       {
         name: "timestamp",
         type: "number",
-        description: "Unix timestamp; defaults to the current time.",
+        description: "Unix timestamp. Defaults to the current time.",
         optional: true,
       },
     ],

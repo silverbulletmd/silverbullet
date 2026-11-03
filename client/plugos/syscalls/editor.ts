@@ -186,7 +186,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           ),
         ];
       },
-      description: `Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included; use \`editor.getDocumentCapabilities\` to determine whether the client can open particular documents.`,
+      description: `Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included. Use \`editor.getDocumentCapabilities\` to determine whether the client can open particular documents.`,
       returns: [
         {
           type: "string[]",
@@ -220,7 +220,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         {
           type: "DocumentCapability[]",
           description:
-            "One `plug`, `text`, `media`, or `external` capability per input document. Plug results may include `editor`; text and external results may include `reason`.",
+            "One `plug`, `text`, `media`, or `external` capability per input document. Plug results may include `editor`. Text and external results may include `reason`.",
         },
       ],
     },
@@ -407,7 +407,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         {
           type: "boolean",
           description:
-            "true once rendering settled; false if the timeout passed first.",
+            "true once rendering settled, false if the timeout passed first.",
         },
       ],
       examples: [{ code: 'editor.navigate("index")\neditor.awaitRender()' }],
@@ -514,7 +514,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "delta",
           type: "number",
           description:
-            "The relative history offset; negative moves backward and positive moves forward.",
+            "The relative history offset. Negative moves backward and positive moves forward.",
         },
       ],
     },
@@ -741,7 +741,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           name: "opts",
           type: "table",
           description:
-            '`allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter; `newHint`: the hint on that option (e.g. "Add"). The returned option then has `isNew = true` and the typed text as `name`.',
+            '`allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter. `newHint`: the hint on that option (e.g. "Add"). The returned option then has `isNew = true` and the typed text as `name`.',
           optional: true,
         },
       ],
@@ -1750,7 +1750,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         }
       },
       description:
-        "Copies text or binary Blob data to the system clipboard. Binary clipboard access requires HTTPS or localhost; text copying also works over HTTP when supported by the browser.",
+        "Copies text or binary Blob data to the system clipboard. Binary clipboard access requires HTTPS or localhost. Text copying also works over HTTP when supported by the browser.",
       parameters: [
         {
           name: "data",

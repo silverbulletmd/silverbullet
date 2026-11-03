@@ -22,7 +22,7 @@ export function mqSyscalls(mq: DataStoreMQ): SysCallMapping {
           name: "spec",
           type: "table",
           description:
-            "Subscription with queue, optional batchSize and pollInterval, autoAck (default true), and a run(messages) callback; each message has queue, id, and body fields.",
+            "Subscription with queue, optional batchSize and pollInterval, autoAck (default true), and a run(messages) callback. Each message has queue, id, and body fields.",
         },
       ],
       examples: [
