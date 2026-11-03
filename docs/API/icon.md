@@ -5,12 +5,10 @@ references:
 - client/plugos/syscalls/icon.ts
 - client/lib/feather_icons.ts
 ---
-
-The `icon` API renders icons as SVG markup, for [[Widget|widget]] HTML and other custom panel content that wants one without bundling an icon set of its own.
+Render icons as SVG markup for [[Widget|widgets]] and custom panels.
 
 <!--#lua spacelua.renderApiDocumentation("icon") -->
 ## icon.feather
-
 `icon.feather(name)`
 
 Renders a Feather icon to SVG markup by name, or nil when the name isn’t a Feather icon. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
@@ -30,7 +28,6 @@ local lock = icon.feather("lock")
 ```
 
 ## icon.resolveFeather
-
 `icon.resolveFeather(names)`
 
 Renders a batch of Feather icons to SVG markup in one round trip, so panels can show icons without bundling the icon set themselves. Unknown names are omitted from the result. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.

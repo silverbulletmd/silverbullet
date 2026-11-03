@@ -6,12 +6,10 @@ references:
 - plugs/editor/editor.ts
 - plugs/editor/navigate.ts
 ---
-
-The Editor API provides functions for interacting with the editor interface.
+Read and change editor content, navigate pages and open dialogs.
 
 <!--#lua spacelua.renderApiDocumentation("editor") -->
 ## editor.acceptCompletion
-
 `editor.acceptCompletion()`
 
 Accepts the currently selected completion when the completion popup is active.
@@ -21,7 +19,6 @@ Accepts the currently selected completion when the completion popup is active.
 - `boolean` — Whether an active completion was accepted.
 
 ## editor.alert
-
 `editor.alert(message)`
 
 Shows a browser alert dialog.
@@ -31,7 +28,6 @@ Shows a browser alert dialog.
 - `message` (`string`) — The alert message.
 
 ## editor.awaitRender
-
 `editor.awaitRender(timeout?)`
 
 Waits until the current page has finished rendering: widgets, `${…}` expressions, queries and transclusions are drawn and nothing is still loading. Call it after editor.navigate, e.g. before taking a screenshot.
@@ -42,7 +38,7 @@ Waits until the current page has finished rendering: widgets, `${…}` expressio
 
 **Returns:**
 
-- `boolean` — true once rendering settled; false if the timeout passed first.
+- `boolean` — true once rendering settled, false if the timeout passed first.
 
 **Example:**
 
@@ -52,7 +48,6 @@ editor.awaitRender()
 ```
 
 ## editor.chooseVersion
-
 `editor.chooseVersion(options)`
 
 Shows a line diff of two versions of a text and lets the user pick one of the given choices.
@@ -66,19 +61,16 @@ Shows a line diff of two versions of a text and lets the user pick one of the gi
 - `string | undefined` — The id of the clicked choice, or undefined if dismissed.
 
 ## editor.closeCompletion
-
 `editor.closeCompletion()`
 
 Closes the active editor completion popup.
 
 ## editor.configureVimMode
-
 `editor.configureVimMode()`
 
 Configures CodeMirror Vim mode from the current SilverBullet Vim settings.
 
 ## editor.confirm
-
 `editor.confirm(message, options?)`
 
 Prompts the user to confirm or cancel an action.
@@ -93,10 +85,9 @@ Prompts the user to confirm or cancel an action.
 - `boolean` — Whether the user confirmed.
 
 ## editor.copyToClipboard
-
 `editor.copyToClipboard(data)`
 
-Copies text or binary Blob data to the system clipboard. Binary clipboard access requires HTTPS or localhost; text copying also works over HTTP when supported by the browser.
+Copies text or binary Blob data to the system clipboard. Binary clipboard access requires HTTPS or localhost. Text copying also works over HTTP when supported by the browser.
 
 **Parameters:**
 
@@ -109,133 +100,111 @@ editor.copyToClipboard("Copied text")
 ```
 
 ## editor.cursorCharLeft
-
 `editor.cursorCharLeft()`
 
 Moves the cursor one character left, respecting bidirectional text.
 
 ## editor.cursorCharRight
-
 `editor.cursorCharRight()`
 
 Moves the cursor one character right, respecting bidirectional text.
 
 ## editor.cursorDocEnd
-
 `editor.cursorDocEnd()`
 
 Moves the cursor to the end of the document.
 
 ## editor.cursorDocStart
-
 `editor.cursorDocStart()`
 
 Moves the cursor to the start of the document.
 
 ## editor.cursorGroupLeft
-
 `editor.cursorGroupLeft()`
 
 Moves the cursor left by one character group or word.
 
 ## editor.cursorGroupRight
-
 `editor.cursorGroupRight()`
 
 Moves the cursor right by one character group or word.
 
 ## editor.cursorLineBoundaryLeft
-
 `editor.cursorLineBoundaryLeft()`
 
 Moves the cursor to the left visual boundary of the current line.
 
 ## editor.cursorLineBoundaryRight
-
 `editor.cursorLineBoundaryRight()`
 
 Moves the cursor to the right visual boundary of the current line.
 
 ## editor.cursorLineDown
-
 `editor.cursorLineDown()`
 
 Moves completion selection down when open, otherwise moves the cursor down one visual line.
 
 ## editor.cursorLineEnd
-
 `editor.cursorLineEnd()`
 
 Moves the cursor to the end of the current logical line.
 
 ## editor.cursorLineStart
-
 `editor.cursorLineStart()`
 
 Moves the cursor to the start of the current logical line.
 
 ## editor.cursorLineUp
-
 `editor.cursorLineUp()`
 
 Moves completion selection up when open, otherwise moves the cursor up one visual line.
 
 ## editor.cursorPageDown
-
 `editor.cursorPageDown()`
 
 Moves completion selection down one page when open, otherwise moves the cursor down one viewport page.
 
 ## editor.cursorPageUp
-
 `editor.cursorPageUp()`
 
 Moves completion selection up one page when open, otherwise moves the cursor up one viewport page.
 
 ## editor.deleteCharBackward
-
 `editor.deleteCharBackward()`
 
 Deletes the selection or the character before the cursor.
 
 ## editor.deleteCharForward
-
 `editor.deleteCharForward()`
 
 Deletes the selection or the character after the cursor.
 
 ## editor.deleteGroupBackward
-
 `editor.deleteGroupBackward()`
 
 Deletes the selection or the character group before the cursor.
 
 ## editor.deleteGroupForward
-
 `editor.deleteGroupForward()`
 
 Deletes the selection or the character group after the cursor.
 
 ## editor.deleteLine
-
 `editor.deleteLine()`
 
 Deletes the current line or the lines touched by the selection.
 
 ## editor.deleteLineBoundaryBackward
-
 `editor.deleteLineBoundaryBackward()`
 
 Deletes the selection or text back to the current line boundary.
 
 ## editor.deleteLineBoundaryForward
-
 `editor.deleteLineBoundaryForward()`
 
 Deletes the selection or text forward to the current line boundary.
 
 ## editor.dispatch
-
 `editor.dispatch(change)`
 
 Dispatches a CodeMirror transaction to the editor view.
@@ -245,7 +214,6 @@ Dispatches a CodeMirror transaction to the editor view.
 - `change` (`Transaction`) — The CodeMirror transaction to dispatch.
 
 ## editor.downloadFile
-
 `editor.downloadFile(filename, dataUrl)`
 
 Triggers a browser download of a data URL under the given filename.
@@ -262,7 +230,6 @@ editor.downloadFile("test.txt", "data:text/plain;base64,SGVsbG8=")
 ```
 
 ## editor.downloadSpaceFile
-
 `editor.downloadSpaceFile(name)`
 
 Downloads a space file using its current contents.
@@ -272,7 +239,6 @@ Downloads a space file using its current contents.
 - `name` (`string`) — Space file path.
 
 ## editor.filterBox
-
 `editor.filterBox(label, options, helpText?, placeHolder?, opts?)`
 
 Shows a filterable option picker similar to the page picker.
@@ -283,7 +249,7 @@ Shows a filterable option picker similar to the page picker.
 - `options` (`FilterOption[]`) — The available options.
 - `helpText?` (`string`) — Help text shown below the picker.
 - `placeHolder?` (`string`) — Placeholder text for the filter input.
-- `opts?` (`table`) — `allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter; `newHint`: the hint on that option (e.g. “Add”). The returned option then has `isNew = true` and the typed text as `name`.
+- `opts?` (`table`) — `allowNew`: offer typed text that matches no option as the second option, and accept it any time with Shift-Enter. `newHint`: the hint on that option (e.g. “Add”). The returned option then has `isNew = true` and the typed text as `name`.
 
 **Returns:**
 
@@ -307,7 +273,6 @@ end
 ```
 
 ## editor.flashNotification
-
 `editor.flashNotification(message, type?, options?)`
 
 Shows a flash notification in the editor UI.
@@ -331,31 +296,26 @@ editor.flashNotification("Update available", "warning", {
 ```
 
 ## editor.focus
-
 `editor.focus()`
 
 Returns focus to the main editor.
 
 ## editor.fold
-
 `editor.fold()`
 
 Folds the code or markup region at the cursor.
 
 ## editor.foldAll
-
 `editor.foldAll()`
 
 Folds all foldable regions in the editor.
 
 ## editor.forceLint
-
 `editor.forceLint()`
 
 Forces editor linting to run, including when the content has not changed.
 
 ## editor.getCurrentEditor
-
 `editor.getCurrentEditor()`
 
 Returns the name of the currently active editor implementation.
@@ -365,7 +325,6 @@ Returns the name of the currently active editor implementation.
 - `string` — The editor name, or `page` for the page editor.
 
 ## editor.getCurrentLine
-
 `editor.getCurrentLine()`
 
 Returns the current line’s range and text, including a `|^|` cursor marker variant.
@@ -375,7 +334,6 @@ Returns the current line’s range and text, including a `|^|` cursor marker var
 - `{ from: number; to: number; text: string; textWithCursor: string }` — The line containing the main selection head.
 
 ## editor.getCurrentPage
-
 `editor.getCurrentPage()`
 
 Returns the name of the page or document currently open in the editor.
@@ -385,7 +343,6 @@ Returns the name of the page or document currently open in the editor.
 - `string` — The current page name.
 
 ## editor.getCurrentPageMeta
-
 `editor.getCurrentPageMeta()`
 
 Returns metadata for the page or document currently open in the editor.
@@ -395,7 +352,6 @@ Returns metadata for the page or document currently open in the editor.
 - `PageMeta | undefined` — The current page metadata, if indexed.
 
 ## editor.getCurrentPath
-
 `editor.getCurrentPath()`
 
 Returns the path of the page or document currently open in the editor.
@@ -405,7 +361,6 @@ Returns the path of the page or document currently open in the editor.
 - `string` — The current page path.
 
 ## editor.getCursor
-
 `editor.getCursor()`
 
 Returns the cursor position as a character offset from the start of the document.
@@ -415,7 +370,6 @@ Returns the cursor position as a character offset from the start of the document
 - `number` — The cursor offset.
 
 ## editor.getDocumentCapabilities
-
 `editor.getDocumentCapabilities(documents)`
 
 Resolves the editor capability available for each document from metadata only. Results retain the input order. A `text` result with reason `probe-required` means navigation will read the document and validate it as UTF-8 before opening the text editor.
@@ -426,10 +380,9 @@ Resolves the editor capability available for each document from metadata only. R
 
 **Returns:**
 
-- `DocumentCapability[]` — One `plug`, `text`, `media`, or `external` capability per input document. Plug results may include `editor`; text and external results may include `reason`.
+- `DocumentCapability[]` — One `plug`, `text`, `media`, or `external` capability per input document. Plug results may include `editor`. Text and external results may include `reason`.
 
 ## editor.getFocusedPanelSlot
-
 `editor.getFocusedPanelSlot()`
 
 Returns the slot of the panel whose iframe currently holds focus, or undefined if none does.
@@ -439,7 +392,6 @@ Returns the slot of the panel whose iframe currently holds focus, or undefined i
 - `"lhs" | "rhs" | "bhs" | "modal" | undefined` — The focused panel’s slot, or undefined if no panel iframe has focus.
 
 ## editor.getLastOpenedMap
-
 `editor.getLastOpenedMap()`
 
 Returns a map of page name to the time it was last opened (epoch milliseconds), for the pages that have ever been opened on this client. This lives outside the object index.
@@ -449,7 +401,6 @@ Returns a map of page name to the time it was last opened (epoch milliseconds), 
 - `Record<string, number>` — Page name to last-opened timestamp.
 
 ## editor.getRecentlyOpenedPages
-
 `editor.getRecentlyOpenedPages()`
 
 Returns page metadata ordered from most to least recently opened.
@@ -459,7 +410,6 @@ Returns page metadata ordered from most to least recently opened.
 - `PageMeta[]` — Recently opened pages.
 
 ## editor.getSelection
-
 `editor.getSelection()`
 
 Returns the current selection range and selected text.
@@ -469,7 +419,6 @@ Returns the current selection range and selected text.
 - `{ from: number; to: number; text: string }` — The main editor selection.
 
 ## editor.getText
-
 `editor.getText()`
 
 Returns the full text of the currently open page or document.
@@ -479,7 +428,6 @@ Returns the full text of the currently open page or document.
 - `string` — The editor contents.
 
 ## editor.getUiOption
-
 `editor.getUiOption(key)`
 
 Returns the current value of an editor UI option.
@@ -493,27 +441,24 @@ Returns the current value of an editor UI option.
 - `any` — The option value.
 
 ## editor.getViewableExtensions
-
 `editor.getViewableExtensions()`
 
-Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included; use `editor.getDocumentCapabilities` to determine whether the client can open particular documents.
+Returns the file extensions claimed by explicitly registered document editors. Extensions carry no leading dot. Built-in text and media fallbacks are not included. Use `editor.getDocumentCapabilities` to determine whether the client can open particular documents.
 
 **Returns:**
 
 - `string[]` — Extensions with a registered document editor.
 
 ## editor.goHistory
-
 `editor.goHistory(delta)`
 
 Moves backward or forward through browser history.
 
 **Parameters:**
 
-- `delta` (`number`) — The relative history offset; negative moves backward and positive moves forward.
+- `delta` (`number`) — The relative history offset. Negative moves backward and positive moves forward.
 
 ## editor.hidePanel
-
 `editor.hidePanel(id)`
 
 Hides the panel at a specified editor UI location.
@@ -523,19 +468,16 @@ Hides the panel at a specified editor UI location.
 - `id` (`string`) — The panel location identifier.
 
 ## editor.indentLess
-
 `editor.indentLess()`
 
 Decreases indentation for the current line or selection.
 
 ## editor.indentMore
-
 `editor.indentMore()`
 
 Increases indentation for the current line or selection.
 
 ## editor.insertAtCursor
-
 `editor.insertAtCursor(text, scrollIntoView?, cursorPlaceHolder?)`
 
 Inserts text at the cursor and moves the cursor after it or to an optional `|^|` marker.
@@ -547,7 +489,6 @@ Inserts text at the cursor and moves the cursor after it or to an optional `|^|`
 - `cursorPlaceHolder?` (`boolean`) — Whether to remove `|^|` and move the cursor to its position.
 
 ## editor.insertAtPos
-
 `editor.insertAtPos(text, pos, cursorPlaceHolder?)`
 
 Inserts text at a character offset, optionally placing the cursor at a `|^|` marker.
@@ -559,13 +500,11 @@ Inserts text at a character offset, optionally placing the cursor at a `|^|` mar
 - `cursorPlaceHolder?` (`boolean`) — Whether to remove `|^|` and move the cursor to its position.
 
 ## editor.insertNewline
-
 `editor.insertNewline()`
 
 Accepts the active completion, or inserts a newline with appropriate indentation.
 
 ## editor.invokeCommand
-
 `editor.invokeCommand(name, args?)`
 
 Invokes a client command by name.
@@ -576,7 +515,6 @@ Invokes a client command by name.
 - `args?` (`string[]`) — Arguments passed to the command.
 
 ## editor.isMobile
-
 `editor.isMobile()`
 
 Checks whether the current device lacks a fine pointer and should be treated as mobile.
@@ -586,7 +524,6 @@ Checks whether the current device lacks a fine pointer and should be treated as 
 - `boolean` — Whether the editor is running in a mobile-style pointer environment.
 
 ## editor.isNarrowScreen
-
 `editor.isNarrowScreen()`
 
 Checks whether the client is currently laid out for a narrow screen, i.e. below the breakpoint where sidebar panels become full-width drawers.
@@ -596,7 +533,6 @@ Checks whether the client is currently laid out for a narrow screen, i.e. below 
 - `boolean` — Whether the narrow-screen layout is in effect.
 
 ## editor.moveCursor
-
 `editor.moveCursor(pos, center?)`
 
 Moves and focuses the cursor at a character offset, scrolling it into view.
@@ -607,7 +543,6 @@ Moves and focuses the cursor at a character offset, scrolling it into view.
 - `center?` (`boolean`) — Whether to vertically center the cursor.
 
 ## editor.moveCursorToLine
-
 `editor.moveCursorToLine(line, column?, center?)`
 
 Moves the cursor to a one-based line and column, clamping the column to the line length.
@@ -619,19 +554,16 @@ Moves the cursor to a one-based line and column, clamping the column to the line
 - `center?` (`boolean`) — Whether to vertically center the cursor.
 
 ## editor.moveLineDown
-
 `editor.moveLineDown()`
 
 Moves the current line or selected lines downward.
 
 ## editor.moveLineUp
-
 `editor.moveLineUp()`
 
 Moves the current line or selected lines upward.
 
 ## editor.navigate
-
 `editor.navigate(ref, replaceState?, newWindow?)`
 
 Navigates to a page reference without restoring its remembered cursor and scroll position.
@@ -649,13 +581,11 @@ editor.navigate("CHANGELOG@123")
 ```
 
 ## editor.newWindow
-
 `editor.newWindow()`
 
 Opens the current SilverBullet URL in a new browser window.
 
 ## editor.open
-
 `editor.open(ref, replaceState?, newWindow?)`
 
 Opens a page reference and restores its remembered cursor and scroll position when possible.
@@ -673,13 +603,11 @@ editor.open("CHANGELOG")
 ```
 
 ## editor.openCommandPalette
-
 `editor.openCommandPalette()`
 
 Opens the command palette.
 
 ## editor.openNavigator
-
 `editor.openNavigator(name, opts?)`
 
 Opens a view, returning whether it opened. False means the view isn’t there to open -- typically because it’s defined in Space Lua that hasn’t been indexed yet -- so a caller can fall back to something else.
@@ -694,7 +622,6 @@ Opens a view, returning whether it opened. False means the view isn’t there to
 - `boolean` — Whether a view opened.
 
 ## editor.openPageNavigator
-
 `editor.openPageNavigator(mode?)`
 
 Opens the page picker in the requested browsing mode. Each mode maps to a segment of the `std.pages` view.
@@ -704,13 +631,11 @@ Opens the page picker in the requested browsing mode. Each mode maps to a segmen
 - `mode?` (`page | meta | document | all`) — The picker mode.
 
 ## editor.openSearchPanel
-
 `editor.openSearchPanel()`
 
 Opens the editor’s native search panel.
 
 ## editor.openUrl
-
 `editor.openUrl(url, existingWindow?)`
 
 Opens a URL in the browser.
@@ -721,7 +646,6 @@ Opens a URL in the browser.
 - `existingWindow?` (`boolean`) — Whether to reuse an existing window.
 
 ## editor.pickMany
-
 `editor.pickMany(options)`
 
 Shows a checklist, every item unchecked, and lets the user tick any number of them.
@@ -735,7 +659,6 @@ Shows a checklist, every item unchecked, and lets the user tick any number of th
 - `string[] | undefined` — The ids of the ticked items (possibly none), or undefined if dismissed.
 
 ## editor.prompt
-
 `editor.prompt(message, defaultValue?, options?)`
 
 Prompts the user for text input.
@@ -751,37 +674,31 @@ Prompts the user for text input.
 - `string | undefined` — The entered text, or undefined if dismissed.
 
 ## editor.rebuildEditorState
-
 `editor.rebuildEditorState()`
 
 Rebuilds the CodeMirror editor state from the current client configuration.
 
 ## editor.redo
-
 `editor.redo()`
 
 Redoes the most recently undone editor change.
 
 ## editor.reloadConfigAndCommands
-
 `editor.reloadConfigAndCommands()`
 
 Reloads space scripts and styles, then rebuilds the editor state.
 
 ## editor.reloadPage
-
 `editor.reloadPage()`
 
 Force reloads the current page in the editor.
 
 ## editor.reloadUI
-
 `editor.reloadUI()`
 
 Force reloads the browser UI.
 
 ## editor.replaceRange
-
 `editor.replaceRange(from, to, text, cursorPlaceHolder?)`
 
 Replaces a text range, optionally placing the cursor at a `|^|` marker in the replacement.
@@ -794,103 +711,86 @@ Replaces a text range, optionally placing the cursor at a `|^|` marker in the re
 - `cursorPlaceHolder?` (`boolean`) — Whether to remove `|^|` and move the cursor to its position.
 
 ## editor.save
-
 `editor.save()`
 
 Forces the current page or document to be saved.
 
 ## editor.selectAll
-
 `editor.selectAll()`
 
 Selects the entire editor document.
 
 ## editor.selectCharLeft
-
 `editor.selectCharLeft()`
 
 Extends the selection one character left, respecting bidirectional text.
 
 ## editor.selectCharRight
-
 `editor.selectCharRight()`
 
 Extends the selection one character right, respecting bidirectional text.
 
 ## editor.selectDocEnd
-
 `editor.selectDocEnd()`
 
 Extends the selection to the end of the document.
 
 ## editor.selectDocStart
-
 `editor.selectDocStart()`
 
 Extends the selection to the start of the document.
 
 ## editor.selectGroupLeft
-
 `editor.selectGroupLeft()`
 
 Extends the selection left by one character group or word.
 
 ## editor.selectGroupRight
-
 `editor.selectGroupRight()`
 
 Extends the selection right by one character group or word.
 
 ## editor.selectLineBoundaryLeft
-
 `editor.selectLineBoundaryLeft()`
 
 Extends the selection to the left visual boundary of the current line.
 
 ## editor.selectLineBoundaryRight
-
 `editor.selectLineBoundaryRight()`
 
 Extends the selection to the right visual boundary of the current line.
 
 ## editor.selectLineDown
-
 `editor.selectLineDown()`
 
 Extends the selection downward by one visual line.
 
 ## editor.selectLineEnd
-
 `editor.selectLineEnd()`
 
 Extends the selection to the end of the current logical line.
 
 ## editor.selectLineStart
-
 `editor.selectLineStart()`
 
 Extends the selection to the start of the current logical line.
 
 ## editor.selectLineUp
-
 `editor.selectLineUp()`
 
 Extends the selection upward by one visual line.
 
 ## editor.selectPageDown
-
 `editor.selectPageDown()`
 
 Extends the selection downward by one viewport page.
 
 ## editor.selectPageUp
-
 `editor.selectPageUp()`
 
 Extends the selection upward by one viewport page.
 
 ## editor.sendMessage
-
 `editor.sendMessage(type, data?)`
 
 Sends a public message to the active document editor, if one is open.
@@ -901,7 +801,6 @@ Sends a public message to the active document editor, if one is open.
 - `data?` (`any`) — Data attached to the message.
 
 ## editor.setSelection
-
 `editor.setSelection(from, to)`
 
 Sets the main editor selection to a character range.
@@ -912,7 +811,6 @@ Sets the main editor selection to a character range.
 - `to` (`number`) — The selection head offset.
 
 ## editor.setText
-
 `editor.setText(newText, shouldIsolateHistory?)`
 
 Updates the editor text with a minimal diff while preserving the cursor when possible.
@@ -923,7 +821,6 @@ Updates the editor text with a minimal diff while preserving the cursor when pos
 - `shouldIsolateHistory?` (`boolean`) — Whether to isolate the change in undo history.
 
 ## editor.setUiOption
-
 `editor.setUiOption(key, value)`
 
 Sets an editor UI option and reloads the editor.
@@ -934,7 +831,6 @@ Sets an editor UI option and reloads the editor.
 - `value` (`any`) — The option value.
 
 ## editor.showPanel
-
 `editor.showPanel(id, mode, html, script)`
 
 Shows an HTML panel in a specified editor UI location.
@@ -947,7 +843,6 @@ Shows an HTML panel in a specified editor UI location.
 - `script` (`string`) — A script associated with the panel content.
 
 ## editor.showProgress
-
 `editor.showProgress(progressType, progressPercentage?)`
 
 Shows, updates, or hides a sync or indexing progress indicator.
@@ -958,55 +853,46 @@ Shows, updates, or hides a sync or indexing progress indicator.
 - `progressPercentage?` (`number`) — Completion percentage, or undefined to hide the indicator.
 
 ## editor.startCompletion
-
 `editor.startCompletion()`
 
 Explicitly starts editor completion at the cursor.
 
 ## editor.toggleComment
-
 `editor.toggleComment()`
 
 Comments or uncomments the current line or selection.
 
 ## editor.toggleFold
-
 `editor.toggleFold()`
 
 Toggles folding for the region at the cursor.
 
 ## editor.transposeChars
-
 `editor.transposeChars()`
 
 Transposes the characters around the cursor.
 
 ## editor.undo
-
 `editor.undo()`
 
 Undoes the most recent editor change.
 
 ## editor.unfold
-
 `editor.unfold()`
 
 Unfolds the folded region at the cursor.
 
 ## editor.unfoldAll
-
 `editor.unfoldAll()`
 
 Unfolds all folded regions in the editor.
 
 ## editor.updateBakedSections
-
 `editor.updateBakedSections()`
 
 Re-evaluates every baked section on the current page and replaces each body with its latest output.
 
 ## editor.uploadFile
-
 `editor.uploadFile(accept?, capture?)`
 
 Opens the browser’s native file picker and returns the selected file’s bytes and metadata.
@@ -1028,7 +914,6 @@ print(file.name)
 ```
 
 ## editor.vimEx
-
 `editor.vimEx(exCommand)`
 
 Executes a Vim Ex command in the active Vim-mode editor.

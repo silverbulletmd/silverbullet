@@ -5,5 +5,4 @@ references:
 - client/plugos/hooks/command.ts
 - plugs/index/command.ts
 ---
-
 See [[^Library/Std/APIs/Command]]

@@ -4,7 +4,6 @@ references:
 - client/workbench/libraries/libraries_backend.ts
 - libraries/Library/Std/Infrastructure/Share.md
 ---
-
 Repositories are a collection of _pointers_ to [[Library|Libraries]] to install. Their purpose is to offer a curated list of libraries to install.
 
 By default, SilverBullet ships with two repositories: [[^Repositories/Std]] with a curated selection of community libraries, and [[^Repositories/SilverBulletMD]] with optional libraries maintained by the SilverBullet project. More can be installed via the [[Workbench/Libraries|Library Manager]].

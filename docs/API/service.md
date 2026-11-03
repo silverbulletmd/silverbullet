@@ -4,12 +4,10 @@ references:
 - client/service_registry.ts
 - client/plugos/syscalls/service_registry.ts
 ---
-
-The Service API exposes a simple service registry leveraged by various parts of SilverBullet. See [[Service]].
+Register and invoke [[Service|services]].
 
 <!--#lua spacelua.renderApiDocumentation("service") -->
 ## service.define
-
 `service.define(spec)`
 
 Defines a service that can be discovered by selector.
@@ -25,7 +23,6 @@ service.define { selector = "greeter", match = {}, run = function(name) return "
 ```
 
 ## service.discover
-
 `service.discover(selector, data)`
 
 Discovers matching services sorted by descending priority.
@@ -40,7 +37,6 @@ Discovers matching services sorted by descending priority.
 - `table` — Matching service descriptors.
 
 ## service.invoke
-
 `service.invoke(match, data)`
 
 Invokes a previously discovered service match.
@@ -55,7 +51,6 @@ Invokes a previously discovered service match.
 - Value — Service result.
 
 ## service.invokeBestMatch
-
 `service.invokeBestMatch(selector, data)`
 
 Discovers and invokes the highest-priority matching service.
@@ -77,7 +72,6 @@ local greeting = service.invokeBestMatch("greeter", "Pete")
 <!--/lua-->
 
 # Architecture
-
 Services are built on top of [[Event|Events]]. When a service is defined, it registers two event listeners:
 
 1. `discover:<<selector>>` for service discovery
@@ -86,7 +80,6 @@ Services are built on top of [[Event|Events]]. When a service is defined, it reg
 Discovery broadcasts on the event bus and collects all matches, sorted by priority. Invocation calls the specific service’s `run` callback.
 
 # Example
-
 ```lua
 service.define {
   selector = "greeter-service",

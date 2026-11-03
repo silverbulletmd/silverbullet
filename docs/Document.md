@@ -1,11 +1,11 @@
 ---
-description: A non-page file (such as an image, PDF, or other attachment) stored in your space.
+description: "A file other than a Markdown page, such as an image, PDF or source file."
 tags: glossary
 ---
-While SilverBullet is aimed primarily at text-based content, documents let a space contain source files, images, PDFs, audio, video, and other attachments. Documents, like [[Page|pages]], are ultimately just files on disk. Installed plugs can provide specialized editors, while built-in fallbacks edit UTF-8 text and display browser-supported media.
+While SilverBullet is aimed primarily at text-based content, documents let a space contain source files, images, PDFs, audio, video, and other attachments. Documents, like [[Page|pages]], are ultimately just files on disk. Installed libraries can provide specialized editors, where possible, SilverBullet will make an effort to view/preview the content in the editor itself.
 
 # Uploading
-Upload files in your own writable space. The published documentation cannot store an upload for you. You have a few options:
+To upload documents you have a few options:
 
 * Use the `Upload: File` command (especially useful on mobile devices)
 * Drag & drop files or images onto a page
@@ -19,9 +19,9 @@ config.set("maximumDocumentSize", 100)
 ```
 
 # Management
-Using ${widgets.commandButton("Navigate: Document Picker")} you can open the document picker, which displays all documents in your SilverBullet space. A blue extension indicates that an installed plug, the built-in text editor, or a browser media viewer can handle the document; gray indicates that the file opens externally. Unknown small files may still require a UTF-8 check when opened.
+The `Navigate: Document Picker` command displays all documents in your SilverBullet space. A blue extension indicates that an installed plug, the built-in text editor, or a browser media viewer can handle the document.
 
-The built-in text editor accepts valid UTF-8 documents up to 5 MiB, with syntax highlighting for known source formats and plain text for other formats. In the host fallback, HTML, SVG, XML, JavaScript, and similar active content is edited as source rather than executed; the specialized image-viewer plug claims SVG first. Browser-supported images, audio, video, and PDFs can be viewed in the editor; media that the current browser cannot display opens externally.
+Alternatively the [[File Tree]] also has a segment for documents, from which you can open, rename and delete documents.
 
 # Linking
 Documents can be linked to in two ways:
@@ -44,4 +44,4 @@ In addition, media can be _sized_ using the following syntax:
 * Specifying a percentage width: `![Alt text|30%](image.png)` or `![[image.png|30%]]`
 * Combining a percentage width with a pixel height: `![Alt text|30%x200](image.png)` or `![[image.png|30%x200]]`
 
-Numeric dimensions are in pixels. Percentage widths are relative to the containing content area and resize with it, rather than being a percentage of the image’s original size. Decimal percentages such as `12.5%` are supported. Specifying only a width preserves the image’s proportions; specifying both dimensions can stretch it. Height must be in pixels; percentage heights are not supported.
+Numeric dimensions are in pixels. Percentage widths are relative to the containing content area and resize with it, rather than being a percentage of the image’s original size. Decimal percentages such as `12.5%` are supported. Specifying only a width preserves the image’s proportions. Specifying both dimensions can stretch it. Height must be in pixels. Percentage heights are not supported.

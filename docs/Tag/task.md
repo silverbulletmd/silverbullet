@@ -1,5 +1,5 @@
 ---
-description: List items with a checkbox; builds on item.
+description: "Checkbox list items, including their completion state."
 tagKind: root
 references:
 - plugs/index/task.ts
@@ -16,7 +16,7 @@ To display the same results as checkboxes:
 ${query[[from index.tasks("upnext") select templates.taskItem(_)]]}
 
 Specific attributes:
-* `done`: `true` for `x`, `X`, or a custom state registered with `done = true`; otherwise `false`.
-* `state`: checkbox text between `[` and `]`, including a single space for an unchecked task; see [[API/taskState]] for custom states.
+* `done`: `true` for `x`, `X`, or a custom state registered with `done = true`, otherwise `false`.
+* `state`: checkbox text between `[` and `]`, including a single space for an unchecked task. See [[API/taskState]] for custom states.
 
 Additionally, tasks inherit all attributes of [[Tag/item]].

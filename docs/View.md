@@ -1,5 +1,5 @@
 ---
-description: Reusable lists, trees, tables, and Markdown content, displayed inline or in dockable panels.
+description: "Display widgets in panels, modals or above and below a page."
 tags: maturity/beta
 references:
 - client/navigator/*
@@ -13,18 +13,18 @@ A [[Widget]] is *what* gets shown: a value describing something renderable — M
 
 A **view** is *where* it’s shown. `view.define` places a widget in a dock — a modal, a sidebar, the bottom panel, or above or below the page — gives it a name, and lets readers move, close or fold it, remembering their choice.
 
-The same widget can appear in a `${…}` expression inside a page *or* be docked by a view. Rule of thumb: if it belongs to the page text, write a `${…}` expression; if it belongs to your space and readers should be able to move it or turn it off, define a view.
+The same widget can appear in a `${…}` expression inside a page *or* be docked by a view. Rule of thumb: if it belongs to the page text, write a `${…}` expression. If it belongs to your space and readers should be able to move it or turn it off, define a view.
 
-* `${…}`, fenced code, frontmatter preview: placed by the page text; has no name — its position is its handle. Readers can move or close it only by editing the text.
-* `view.define` dock: placed by your space or a library; has a name. Readers can move or close it, and the choice is remembered.
+* `${…}`, fenced code, frontmatter preview: placed by the page text, with position as its handle. Readers can move or close it only by editing the text.
+* `view.define` dock: a named view placed by your space or a library. Readers can move or close it, and the choice is remembered.
 
 # Built-in views
 * [[Page Picker]]: `Cmd-k`/`Ctrl-k`. The whole space as a modal list, most recently opened first.
 * [[Command Palette]]: `Cmd-/`/`Ctrl-/`. What you ran most recently first, each row showing its key binding.
 * **Anchor picker**: type `$` into the page picker. Every [[Markdown/Anchor]] in the space, with the line it sits on.
-* **Tag picker** — `Ctrl-Alt-t`, or `#` from the page picker. Every tag, with how many things carry it. Opens as a modal by default; it can move to either sidebar or the bottom panel.
+* **Tag picker** — `Ctrl-Alt-t`, or `#` from the page picker. Every tag, with how many things carry it. Opens as a modal by default. It can move to either sidebar or the bottom panel.
 * ${widgets.commandButton("Navigate: Tree")}: `Cmd-o`/`Ctrl-o`, or `Cmd-Shift-o`/`Ctrl-Shift-o`. The space as a tree in the left sidebar, following the editor as you navigate. Drag rows to move pages, hover or select a row for rename/delete/new-page buttons, `Space` to peek at a row without leaving the panel.
-* ${widgets.commandButton("Navigate: Table of Contents")}: the current page’s headers as a tree, fully expanded and live as you type. Opens in the right sidebar by default; use its dock menu (see [[#The dock menu]]) to move it to the top or bottom of the page, another panel, or a modal -- the choice is remembered from then on.
+* ${widgets.commandButton("Navigate: Table of Contents")}: the current page’s headers as a tree, fully expanded and live as you type. Opens in the right sidebar by default. Use its dock menu (see [[#The dock menu]]) to move it to the top or bottom of the page, another panel, or a modal -- the choice is remembered from then on.
 * ${widgets.commandButton("Navigate: Linked Mentions")}: every other page that links to the one you’re on, with a snippet of surrounding context. Docks at the bottom of the page by default, open. See [[Linked Mention]].
 * ${widgets.commandButton("Navigate: Linked Tasks")}: incomplete tasks whose inherited links include the page you’re on, including tasks on that same page. Docks at the top of the page by default, open. In a writable space, tick a task’s checkbox right in the widget and the new state is written back to the page the task lives on. See [[Linked Tasks]].
 
@@ -43,18 +43,18 @@ ${widget.new {
 }}
 ```
 
-Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive; trees can expand without one. The widget’s ⋯ menu has Edit source, Reload for this widget only, and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
+Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive. Trees can expand without one. The widget’s ⋯ menu has Edit source, Reload for this widget only, and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
 
 Use `presentation = { mode = "table" }` to display source objects in a table with automatic columns and Markdown cells. Explicit column definitions let you choose attributes, labels, types, and display callbacks. Tables support the same selection and action callbacks as other views.
 
-For examples with actions and the full option reference, see [[API/widget#Lists, trees and tables]]. Inline views can opt into a filter input; segments and docking controls belong to panels.
+For examples with actions and the full option reference, see [[API/widget#Lists, trees and tables]]. Inline views can opt into a filter input. Segments and docking controls belong to panels.
 
 # Using a panel
 * `Up` / `Down` (or `Ctrl-p` / `Ctrl-n`) move the selection, `PageUp` / `PageDown` by five, `Home` / `End` to the ends.
 * `Enter` opens the selected row. `Escape` closes the panel, whether or not you have typed anything.
 * Typing ranks rows fuzzily, highlighting the matched characters in each row’s name, list or tree alike.
 * In a tree, `Right` expands (or steps into) a folder and `Left` collapses it (or steps out to its parent). `Enter` on a plain folder expands it, on a folder that is *also* a page it opens the page.
-* `Tab` / `Shift-Tab` step through the segments in lists and trees. In tables they move keyboard focus between controls; use `Ctrl-Left` / `Ctrl-Right` in the filter input to switch segments.
+* `Tab` / `Shift-Tab` step through the segments in lists and trees. In tables they move keyboard focus between controls. Use `Ctrl-Left` / `Ctrl-Right` in the filter input to switch segments.
 * `Shift-Enter` creates whatever you typed, in views that allow it. A create row also appears on its own: second in a list, pinned below the tree in a tree.
 * The **first character typed into an empty box can route**:
   * `^` narrows the page picker to [[Meta Page|meta pages]].
@@ -92,7 +92,7 @@ view.define {
 }
 ```
 
-In this flat row definition, `name`, `source` and `onSelect` are required; `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`.
+In this flat row definition, `name`, `source` and `onSelect` are required. `command` registers a [[Command]] that opens the view, and `key`/`mac` define a key binding for it. Open one from anywhere Lua runs with `view.open("tasks")`.
 
 To reuse a widget as a panel, pass it as `widget` to `view.define`. See [[API/view#view.define(spec)]].
 
@@ -102,7 +102,7 @@ To reuse a widget as a panel, pass it as `widget` to `view.define`. See [[API/vi
 * `"modal"` (the default) is a centered overlay. It clears its phrase on open and dismisses when you pick something.
 * `"lhs"` / `"rhs"` are sidebars that persist. They are resizable by their inner edge, the width is remembered per view, and they keep their filter phrase across a re-focus. A sidebar holds one view at a time -- docking a second view there displaces whichever one was already showing, which comes back on its own once the newcomer moves away.
 * `"bhs"` is a persistent bottom panel below the editor. It is resizable by its top edge, the height is remembered per view, and it otherwise behaves like the sidebars.
-* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view’s own body. With `frame = "minimal"` even those go: the body reads as page content and its buttons appear on hover. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock; [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
+* `"page-top"` / `"page-bottom"` render as widgets built into the document itself, above and below the page content -- no filter box, just a title, a dock menu, a close button, and the view’s own body. With `frame = "minimal"` even those go: the body reads as page content and its buttons appear on hover. [[Linked Mention|Linked Mentions]] and [[Linked Tasks|Linked Tasks]] default to a page dock. [[#Built-in views|Table of Contents]] can be moved to one from its right-sidebar default.
 
 A view’s body is a list, a tree, or — for a [[API/widget#Content functions|content view]] like Linked Mentions and Linked Tasks — a rendered markdown document. A **content view** renders identically in all six docks: only the frame around it changes. A **row** view is deliberately leaner in a page dock, where it is document content rather than a picker.
 

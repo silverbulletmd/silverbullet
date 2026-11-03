@@ -1,5 +1,5 @@
 ---
-description: How SilverBullet merges concurrent edits from other users, devices, agents and scripts, and what happens when they can't be merged automatically.
+description: "How concurrent edits are merged and conflicts are resolved."
 tags: glossary maturity/experimental
 references:
 - server-common/src/space/disk.rs
@@ -48,4 +48,4 @@ Changes written to a page you have open are applied to your open editor within m
 # Offline and flaky networks
 With browser offline access enabled (see [[Sync]]), edits you make offline (or while [[Sync]] is struggling with a flaky connection) accumulate locally and reconcile with the server once you’re back online, following the same merge and conflict rules as above. A deletion never silently wins over a concurrent edit — if you edited a page that someone else deleted (or vice versa) while you were offline, the edit survives and the deletion is suppressed, surfaced to you as a notification rather than quietly discarding your work.
 
-Desktop edits its local folder without browser-style synchronization to its embedded server. Its optional external Server connection is [[Desktop Sync]]. Use [[Guide/Mentions and Replies]] for requests and replies alongside these concurrent-edit mechanics.
+Desktop edits its local folder without browser-style synchronization to its embedded server. Its optional external Server connection is [[Desktop Sync]]. Use [[Guide/Comments, Mentions and Replies]] for requests and replies alongside these concurrent-edit mechanics.

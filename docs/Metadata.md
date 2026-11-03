@@ -1,5 +1,5 @@
 ---
-description: "Objects carry default attributes, which you can extend with tags, frontmatter, attributes and other metadata."
+description: "Attributes and tags that describe pages and other objects."
 references:
 - plugs/index/frontmatter.ts
 - plugs/index/attribute.ts
@@ -10,6 +10,6 @@ SilverBullet supplies fields such as page names and modification times. You can 
 
 * [[Frontmatter]] sets page attributes in a YAML block at the beginning of the page.
 * [[Attribute|Inline attributes]] attach values to a task, list item or paragraph.
-* [[Markdown/Hashtags|Hashtags]] classify content; [[Tag]] explains their scope and indexed fields.
+* [[Markdown/Hashtags|Hashtags]] classify content. [[Tag]] explains their scope and indexed fields.
 
-For a worked example, follow [[Guide/Organize with Tags and Attributes]]. For the fields SilverBullet supplies, start at [[Object]] and the individual [[Tag|tag references]].
+For a worked example, follow [[Guide/Add Structure and Query]]. For the fields SilverBullet supplies, start at [[Object]] and the individual [[Tag|tag references]].

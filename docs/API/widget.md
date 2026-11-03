@@ -7,7 +7,6 @@ references:
 - client/navigator/view_value.ts
 lastReviewed: "2026-06-29"
 ---
-
 A widget is a value that describes what to render. Three questions decide how it behaves: what value you return, where you place it, and when it re-runs. Widgets render wherever they’re placed, often through [[Space Lua#Expressions]] — see [[View#Widgets and views]].
 
 # What a plain `${...}` renders
@@ -19,7 +18,7 @@ You don’t need a widget for most things. An expression renders whatever value 
 * A widget renders as that widget, and `..`, `table.concat` and templates can embed widgets (see [[#Combining widgets with text]]).
 * A bare DOM node renders like `widget.html(node)`.
 
-Expressions automatically re-run when a tracked dependency changes; see [[#When expressions update]] for the rule and exceptions. Reach for a widget when you need one of the following:
+Expressions automatically re-run when a tracked dependency changes. See [[#When expressions update]] for the rule and exceptions. Reach for a widget when you need one of the following:
 
 * Render as a block, or add CSS classes: `widget.new { markdown = ..., display = "block", cssClasses = {...} }`
 * Show text without running `${...}` or transclusions inside it: `evaluate = false`
@@ -33,7 +32,7 @@ Expressions automatically re-run when a tracked dependency changes; see [[#When 
 ## Markdown widgets
 When setting a `markdown` key, or using the `widget.markdown` API, a markdown-based widget can be created.
 
-Install these example definitions in `space-lua` blocks in your own space; the `lua` fences here are inert.
+Install these example definitions in `space-lua` blocks in your own space. The `lua` fences here are inert.
 
 ```lua
 function helloWorld(name)
@@ -87,7 +86,7 @@ This can be used as follows:
 ${marquee "Scrolling text"}
 ```
 
-After installing the definition, this displays scrolling text; clicking it shows a notification.
+After installing the definition, this displays scrolling text. Clicking it shows a notification.
 
 ## Combining widgets with text
 Concatenating a widget with text (`..`), joining a list that contains widgets (`table.concat`), or interpolating a widget in a [[Template|template]] produces a *fragment*: Markdown with the widgets embedded. A fragment renders anywhere a widget does, keeping each embedded widget interactive:
@@ -163,35 +162,34 @@ ${widget.new {
 `onSelect` makes rows selectable. To reuse the widget, return `widget.new { ... }` from a function and call that function in the expression.
 
 ### Data and refresh
-
 * `source(ctx)`: Returns the objects to display. Each object is passed unchanged to callbacks.
 * `content(ctx)`: Returns any value `${...}` accepts, or `nil` to display nothing. See [[#Content functions]]. Content widgets have no rows or filter input.
-* `refreshOn`: Events that reload the source or content, on top of anything the source or content read (see [[#When expressions update]]). Use the trigger names `"index"` (the space index changed), `"navigate"` (another page or document opened) and `"edit"` (the open page was edited); any other entry is an event name.
+* `refreshOn`: Events that reload the source or content, on top of anything the source or content read (see [[#When expressions update]]). Use the trigger names `"index"` (the space index changed), `"navigate"` (another page or document opened) and `"edit"` (the open page was edited). Any other entry is an event name.
 * `stateKey`: Saves an inline tree’s expansion state locally, scoped to the containing page and this key. Without it, expansion is transient.
 * `title`: Adds a panel-style heading to an inline view. A registration can override it for its panel.
 * `label`, `placeholder`, `helpText`: Configure panel text: a short picker verb, filter placeholder, and help below the input. A segment can override the last two.
 
-`source` receives a table with `phrase`, `segment` and `dock` keys: the current filter phrase, active segment label (or `nil`), and rendering location. `content` receives the same context; an inline view has `dock = "inline"`. The source can use `ctx.dock` to return different objects for a panel and an embedded view.
+`source` receives a table with `phrase`, `segment` and `dock` keys: the current filter phrase, active segment label (or `nil`), and rendering location. `content` receives the same context. An inline view has `dock = "inline"`. The source can use `ctx.dock` to return different objects for a panel and an embedded view.
 
 ### Presentation
 `presentation.mode` supports `"list"` (the default), `"tree"` for hierarchical paths, or `"table"` for columns. A widget with `content` does not use a presentation mode.
 
 * `row`: List/tree row display: `primary`, `label`, `description`, `decorations`, `cssClass`, and `icon`.
-* `limit`: Maximum displayed rows; defaults to 200. Inline and page-docked trees are uncapped.
-* `hierarchy`: Tree path field and separator; defaults to `{ field = "name", separator = "/" }`. Duplicate paths merge into one node.
-* `foldersFirst`: Group tree folders first; defaults to `true`.
+* `limit`: Maximum displayed rows. Defaults to 200. Inline and page-docked trees are uncapped.
+* `hierarchy`: Tree path field and separator. Defaults to `{ field = "name", separator = "/" }`. Duplicate paths merge into one node.
+* `foldersFirst`: Group tree folders first. Defaults to `true`.
 * `expandAll`: Start all tree folders open and remember those closed.
 * `expansionScope`: Registered tree expansion scope: `"view"` (default, persisted) or `"page"` (transient while on the page). Inline trees use `stateKey`.
-* `uploadFiles`: Let a panel tree accept dropped files and folders. Tree paths must be Space folder paths; upload asks the user to confirm the destination.
+* `uploadFiles`: Let a panel tree accept dropped files and folders. Tree paths must be Space folder paths. Upload asks the user to confirm the destination.
 * `createIcon`: Icon for a panel’s create row.
-* `columns`: Explicit table columns; omit to derive them from the source objects.
+* `columns`: Explicit table columns. Omit to derive them from the source objects.
 
-`presentation.row.primary` supplies list text; `label` overrides a tree path segment. `primary`, `label`, `description`, and `cssClass` each accept an object attribute name or a function of the object. `row.icon` accepts an icon string or a function returning one. An icon may be a Feather name such as `"lock"`, `"feather:lock"`, or literal `<svg...>` markup; action, segment, and create-row icons use the same forms.
+`presentation.row.primary` supplies list text. `label` overrides a tree path segment. `primary`, `label`, `description`, and `cssClass` each accept an object attribute name or a function of the object. `row.icon` accepts an icon string or a function returning one. An icon may be a Feather name such as `"lock"`, `"feather:lock"`, or literal `<svg...>` markup. Action, segment, and create-row icons use the same forms.
 
-A string `row.description` appears inline and supports Markdown in document lists. For an excerpt below the primary text, return `{ text = "...", label = "...", highlights = { { start, end } } }`. The text and optional label are plain text; highlights use zero-based UTF-16 offsets with exclusive ends. `row.decorations(obj)` returns chips with `text`, `icon`, `cssClass`, `position` (`"left"` or `"right"`), and `title`. The `sb-hashtag` class gives a tag pill; `sb-nav-chip-hint` right-aligns a hint.
+A string `row.description` appears inline and supports Markdown in document lists. For an excerpt below the primary text, return `{ text = "...", label = "...", highlights = { { start, end } } }`. The text and optional label are plain text. Highlights use zero-based UTF-16 offsets with exclusive ends. `row.decorations(obj)` returns chips with `text`, `icon`, `cssClass`, `position` (`"left"` or `"right"`), and `title`. The `sb-hashtag` class gives a tag pill. `sb-nav-chip-hint` right-aligns a hint.
 
 ### Table columns
-`presentation = { mode = "table" }` derives columns from the union of attributes in the loaded objects. It keeps the first object’s attribute order and appends new attributes in the order they first appear in later objects. Filtering and `presentation.limit` do not change those columns in client search mode. Source order is also the row order; table headers do not sort rows, so sort the source before returning it if needed.
+`presentation = { mode = "table" }` derives columns from the union of attributes in the loaded objects. It keeps the first object’s attribute order and appends new attributes in the order they first appear in later objects. Filtering and `presentation.limit` do not change those columns in client search mode. Source order is also the row order. Table headers do not sort rows, so sort the source before returning it if needed.
 
 This inline table needs no column definitions:
 Inline, it looks like a plain query table with left-aligned headers.
@@ -218,7 +216,7 @@ source = function()
 end,
 ```
 
-Declare `presentation.columns` to choose the displayed attributes, order, labels, or rendering types. A column needs `attribute` or `value(obj)`; a computed column can omit `attribute`. The callback result still passes through the declared type’s renderer.
+Declare `presentation.columns` to choose the displayed attributes, order, labels, or rendering types. A column needs `attribute` or `value(obj)`. A computed column can omit `attribute`. The callback result still passes through the declared type’s renderer.
 
 ${widget.new {
   title = "Projects",
@@ -247,56 +245,56 @@ ${widget.new {
 In each:
 
 * `attribute`: Literal source-object key to display when `value` is absent.
-* `label`: Header text; defaults to the attribute name, or an empty header for a computed column.
+* `label`: Header text. Defaults to the attribute name, or an empty header for a computed column.
 * `value(obj)`: Computes the displayed value from the original object.
 * `type`: Selects a renderer: `ref`, `number`, `boolean`, `url`, `text`, or `markdown`.
 
 Supported `type`s:
 
-* `ref`: Clickable SilverBullet reference from a bare reference or a complete `[[wiki link]]`; preserves aliases, headers, anchors, and positions.
-* `number`: Locale-formatted, right-aligned finite number; also accepts a nonempty numeric string without locale separators.
-* `boolean`: Disabled checkbox with the standard checkbox styling; accepts booleans and the strings `true` and `false`, ignoring case and surrounding whitespace.
+* `ref`: Clickable SilverBullet reference from a bare reference or a complete `[[wiki link]]`. Preserves aliases, headers, anchors, and positions.
+* `number`: Locale-formatted, right-aligned finite number. Also accepts a nonempty numeric string without locale separators.
+* `boolean`: Disabled checkbox with the standard checkbox styling. Accepts booleans and the strings `true` and `false`, ignoring case and surrounding whitespace.
 * `url`: Clickable absolute URL, subject to SilverBullet’s URL safety policy.
 * `text`: Literal text, including any Markdown syntax.
 * `markdown`: Rendered Markdown.
 
-Without a type, strings—including `value(obj)` results—render as Markdown. Numbers and booleans display as text, arrays as comma-separated values, nested objects as compact JSON, and missing values as empty cells. With a type, array elements use that renderer; invalid typed values remain visible as literal text. Tables scroll horizontally when needed.
+Without a type, strings—including `value(obj)` results—render as Markdown. Numbers and booleans display as text, arrays as comma-separated values, nested objects as compact JSON, and missing values as empty cells. With a type, array elements use that renderer. Invalid typed values remain visible as literal text. Tables scroll horizontally when needed.
 
-Without `onSelect`, table rows have no selection styling or row focus stop. Links and actions remain interactive. With `onSelect`, activating a row passes its original object; links and actions do not activate the row. Actions appear in an unlabeled trailing column, on hover or keyboard focus and continuously on touch devices. Running an action refreshes the table. In table panels, `Tab` follows the normal focus order so links and actions are reachable.
+Without `onSelect`, table rows have no selection styling or row focus stop. Links and actions remain interactive. With `onSelect`, activating a row passes its original object. Links and actions do not activate the row. Actions appear in an unlabeled trailing column, on hover or keyboard focus and continuously on touch devices. Running an action refreshes the table. In table panels, `Tab` follows the normal focus order so links and actions are reachable.
 
 ### Filtering and search
-Panels have a filter input by default. An embedded list, tree, or table gets one only with `filter = { inline = true }`; it appears in the view’s heading when `title` is set. Each embedded view keeps its own phrase. `filter = false` hides the input and disables phrase filtering while leaving navigation keys and keymaps available.
+Panels have a filter input by default. An embedded list, tree, or table gets one only with `filter = { inline = true }`. It appears in the view’s heading when `title` is set. Each embedded view keeps its own phrase. `filter = false` hides the input and disables phrase filtering while leaving navigation keys and keymaps available.
 
 * `search = "client"`: Default: load rows once, apply segment predicates, then fuzzy-rank matches.
-* `search = "source"`: Rerun `source(ctx)` as the phrase or segment changes; the source controls filtering and row order. Requests are debounced and stale results discarded. Segment `where` predicates are ignored.
+* `search = "source"`: Rerun `source(ctx)` as the phrase or segment changes. The source controls filtering and row order. Requests are debounced and stale results discarded. Segment `where` predicates are ignored.
 * `filter.fields`: Map source-object attribute names to [[API/search|search weights]]. Computed table `value(obj)` results are not searched unless also present in the source object.
-* `filter.pathCompletion`: On an empty phrase, `Space` inserts the current folder (or root page name); `Alt-Space` completes one path segment from the best match.
+* `filter.pathCompletion`: On an empty phrase, `Space` inserts the current folder (or root page name). `Alt-Space` completes one path segment from the best match.
 * `filter.hashtagFilter`: Interpret `#meet` as a prefix match against row `tags`, then rank using the remaining phrase.
 * `filter.stripPrefix`: Remove a leading character before ranking.
 
-Inline filtering runs before `presentation.limit`. With `search = "source"`, the inline input passes its phrase to `source(ctx)`; with `search = "client"`, the view ranks the loaded rows. Segment, dropdown, and phrase filters compose in panels.
+Inline filtering runs before `presentation.limit`. With `search = "source"`, the inline input passes its phrase to `source(ctx)`. With `search = "client"`, the view ranks the loaded rows. Segment, dropdown, and phrase filters compose in panels.
 
 ### Selection and panel interactions
-`onSelect(obj, ctx)` runs when a selectable row is activated. `ctx.from` identifies a view that routed here through a prefix, when applicable. Return `false` to keep a panel open. `onSelect` and `actions` work in inline views and panels; the other options in this section are panel features.
+`onSelect(obj, ctx)` runs when a selectable row is activated. `ctx.from` identifies a view that routed here through a prefix, when applicable. Return `false` to keep a panel open. `onSelect` and `actions` work in inline views and panels. The other options in this section are panel features.
 
 * `actions`: Row buttons. Each entry has `label`, `run(obj)`, optional `icon`, optional `when(obj)`, and optional `requireMode = "rw"` to hide it in read-only mode. Actions run independently of `onSelect`, disable while running, and refresh the view afterward.
 * `onCreate(phrase)`: Adds a create row for a nonempty phrase with no exact match. Activate it with `Enter` or use `Shift-Enter` anywhere in the list.
 * `keymap`: Maps browser `KeyboardEvent.key` names to callbacks receiving the selected object. Built-in navigation keys are reserved.
-* `segments`: Named panel subsets; each entry has a unique `label`, optional `where(obj)`, `icon`, `default`, single-character `prefix`, `placeholder`, and `helpText`.
+* `segments`: Named panel subsets. Each entry has a unique `label`, optional `where(obj)`, `icon`, `default`, single-character `prefix`, `placeholder`, and `helpText`.
 * `dropdown`: Choice filter with `options`, `key(obj)` or `where(obj, value)`, and optional labels and default.
 * `prefixViews`: Maps a character typed into an empty phrase to another registered view, for example `{ ["#"] = "std.tags" }`.
 * `onMove(obj, newName)`: Handles a desktop tree-row drop onto a folder or root. See [[API/view#view.moveByRename]].
 
-An action’s `label` is its tooltip and accessible name; `run(obj)` performs it. Tree folders reach callbacks as `{ name = <path>, isFolder = true }`; a page with children keeps its own attributes and gains `isFolder`. Ask for confirmation inside `run` when an action needs it.
+An action’s `label` is its tooltip and accessible name. `run(obj)` performs it. Tree folders reach callbacks as `{ name = <path>, isFolder = true }`. A page with children keeps its own attributes and gains `isFolder`. Ask for confirmation inside `run` when an action needs it.
 
 In client search mode, `segments[i].where(obj)` filters before fuzzy ranking. In source search mode, use `ctx.segment` instead. The active segment is remembered per view. A segment’s empty `helpText` hides the panel help for that segment. `Ctrl-Left` and `Ctrl-Right` switch segments from a table panel’s filter input.
 
-`dropdown.options` is a list of `{ label, value }` entries or a function called on each source load or refresh. `dropdown.key(obj)` supplies a row’s value; `where(obj, value)` is an alternative predicate, and `key` wins if both are present. `placeholder` labels the selector; `allLabel` labels its always-available unfiltered choice. `default` is an initial value or a function evaluated with the options. Saved selection takes precedence; an unavailable choice falls back to the default and then to All.
+`dropdown.options` is a list of `{ label, value }` entries or a function called on each source load or refresh. `dropdown.key(obj)` supplies a row’s value. `where(obj, value)` is an alternative predicate, and `key` wins if both are present. `placeholder` labels the selector. `allLabel` labels its always-available unfiltered choice. `default` is an initial value or a function evaluated with the options. Saved selection takes precedence. An unavailable choice falls back to the default and then to All.
 
-`onMove` receives the target folder plus the dragged row’s last path segment as `newName`. Hovering a collapsed tree folder opens it; duplicate destinations abort with an error. `presentation.uploadFiles` and `onMove` apply to panel trees, not inline views.
+`onMove` receives the target folder plus the dragged row’s last path segment as `newName`. Hovering a collapsed tree folder opens it. Duplicate destinations abort with an error. `presentation.uploadFiles` and `onMove` apply to panel trees, not inline views.
 
 ## Content functions
-For content instead of rows, pass `content(ctx)` to `widget.new`. It returns any value a `${...}` expression accepts: Markdown, a table or query result, a number, a fragment, a sandbox, a DOM node, or a nested list, tree or table widget. It re-runs when what it read changes; add `refreshOn` for anything else.
+For content instead of rows, pass `content(ctx)` to `widget.new`. It returns any value a `${...}` expression accepts: Markdown, a table or query result, a number, a fragment, a sandbox, a DOM node, or a nested list, tree or table widget. It re-runs when what it read changes. Add `refreshOn` for anything else.
 
 ```lua
 widget.new {
@@ -316,7 +314,7 @@ widget.new {
 }
 ```
 
-A page-docked content view runs its `content` once per page load. Content views don’t support row options. `stateKey` saves expansion only; focus and selection are not persisted.
+A page-docked content view runs its `content` once per page load. Content views don’t support row options. `stateKey` saves expansion only. Focus and selection are not persisted.
 
 # Widget menu and commands
 A block widget has one ⋯ menu inside its top-right corner: it appears on hover on desktop and is always visible on touch devices. Entries appear only when they apply:
@@ -324,10 +322,10 @@ A block widget has one ⋯ menu inside its top-right corner: it appears on hover
 * **Go to definition** and **Open**: jump to the Space Lua that defines the widget, or open what it shows.
 * **Edit source**: moves the cursor into the `${...}`.
 * **Reload**: re-runs this widget only, not the page.
-* **Copy as Markdown**: list, tree and table widgets copy their rows; a view with `content` has nothing to copy.
+* **Copy as Markdown**: list, tree and table widgets copy their rows. A view with `content` has nothing to copy.
 * **Bake into page**: replaces the expression with its current Markdown (the same text as Copy). Views stay live and can’t be baked.
 
-Views docked above or below the page have the same ⋯ menu in their title bar (on hover, for a minimal frame), with **Go to definition** and **Copy as Markdown** where they apply; in a sidebar, the bottom panel or the modal, a content view’s header has it for **Copy as Markdown**. The dock menu and × stay beside it.
+Views docked above or below the page have the same ⋯ menu in their title bar (on hover, for a minimal frame), with **Go to definition** and **Copy as Markdown** where they apply. In a sidebar, the bottom panel or the modal, a content view’s header has it for **Copy as Markdown**. The dock menu and × stay beside it.
 
 HTML-only widgets have no Markdown, so they have neither Copy nor Bake. Bake is hidden in read-only mode. *Baked Sections: Update* re-bakes fragments the same way.
 
@@ -343,7 +341,7 @@ To render a widget, call `widget.new` with a `spec` table setting any of the fol
 * `script`: JavaScript to run inside the sandbox iframe. Only runs when `sandbox = true`.
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`).
 * `cssClasses`: A list of CSS class names to set on the widget’s wrapper element.
-* `source` or `content`: Builds a [[#Lists, trees and tables|list, tree or table]] or a [[#Content functions|content function]] instead. It re-runs when what it read changes; add `refreshOn` for other events. Can’t be combined with `markdown` or `html`.
+* `source` or `content`: Builds a [[#Lists, trees and tables|list, tree or table]] or a [[#Content functions|content function]] instead. It re-runs when what it read changes. Add `refreshOn` for other events. Can’t be combined with `markdown` or `html`.
 
 ## widget.markdown(text)
 Shortcut for `widget.new { markdown = text }`
@@ -377,7 +375,7 @@ Keys:
 * `display` (defaults to `block`)
 
 # Legacy
-These still work but can’t be moved, closed or configured; use a [[View|view]] instead.
+These still work but can’t be moved, closed or configured. Use a [[View|view]] instead.
 
 * `hooks:renderTopWidgets` and `hooks:renderBottomWidgets` events return widgets shown above or below every page. Use `view.define` with `dock = "page-top"` or `"page-bottom"` and `frame = "minimal"`.
 * Plug code widgets render in an iframe.

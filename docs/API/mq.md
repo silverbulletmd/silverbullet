@@ -5,12 +5,10 @@ references:
 - client/plugos/syscalls/mq.ts
 - client/data/mq.datastore.ts
 ---
-
-The Message Queue API provides functions for implementing a simple message queue system.
+Queue messages for asynchronous processing.
 
 <!--#lua spacelua.renderApiDocumentation("mq") -->
 ## mq.ack
-
 `mq.ack(queue, id)`
 
 Acknowledges one queue message as processed.
@@ -21,7 +19,6 @@ Acknowledges one queue message as processed.
 - `id` (`string`) — Message ID.
 
 ## mq.awaitEmptyQueue
-
 `mq.awaitEmptyQueue(queue)`
 
 Waits until a queue has no pending or processing messages.
@@ -31,7 +28,6 @@ Waits until a queue has no pending or processing messages.
 - `queue` (`string`) — Queue name.
 
 ## mq.batchAck
-
 `mq.batchAck(queue, ids)`
 
 Acknowledges multiple queue messages as processed.
@@ -42,7 +38,6 @@ Acknowledges multiple queue messages as processed.
 - `ids` (`table`) — Message IDs.
 
 ## mq.batchSend
-
 `mq.batchSend(queue, bodies)`
 
 Sends multiple messages to a queue in one operation.
@@ -53,13 +48,11 @@ Sends multiple messages to a queue in one operation.
 - `bodies` (`table`) — Message bodies.
 
 ## mq.flushAllQueues
-
 `mq.flushAllQueues()`
 
 Removes all messages from every queue.
 
 ## mq.flushQueue
-
 `mq.flushQueue(queue)`
 
 Removes all messages from a queue.
@@ -69,7 +62,6 @@ Removes all messages from a queue.
 - `queue` (`string`) — Queue name.
 
 ## mq.getQueueStats
-
 `mq.getQueueStats(queue?)`
 
 Gets queued, processing, and dead-letter counts for a queue.
@@ -83,7 +75,6 @@ Gets queued, processing, and dead-letter counts for a queue.
 - `table` — Queue statistics.
 
 ## mq.send
-
 `mq.send(queue, body)`
 
 Sends a message to a queue.
@@ -100,14 +91,13 @@ mq.send("tasks", "my task")
 ```
 
 ## mq.subscribe
-
 `mq.subscribe(spec)`
 
 Subscribes a Space Lua callback to a message queue.
 
 **Parameters:**
 
-- `spec` (`table`) — Subscription with queue, optional batchSize and pollInterval, autoAck (default true), and a run(messages) callback; each message has queue, id, and body fields.
+- `spec` (`table`) — Subscription with queue, optional batchSize and pollInterval, autoAck (default true), and a run(messages) callback. Each message has queue, id, and body fields.
 
 **Example:**
 
@@ -117,7 +107,6 @@ mq.subscribe { queue = "tasks", batchSize = 1, run = function(messages) print(me
 <!--/lua-->
 
 ## Example
-
 In your own space, install this subscriber in a `space-lua` block and reload definitions:
 
 ```lua
@@ -140,5 +129,5 @@ ${widgets.button("Send message on queue", function()
 end)}
 ```
 
-Clicking the button queues `Hello world`; the subscriber displays “Received message: Hello world”. This example is inert here so reading the reference neither registers a subscriber nor writes queue state.
+Clicking the button queues `Hello world`. The subscriber displays “Received message: Hello world”. This example is inert here so reading the reference neither registers a subscriber nor writes queue state.
 

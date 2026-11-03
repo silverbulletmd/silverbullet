@@ -21,5 +21,5 @@ ${query[[from index.paragraphs("paragraph-tag")]]}
 * `text`: paragraph Markdown. When the paragraph carries an anchor, its anchor, tags and inline attributes are removed from this text.
 * `page`: containing page name.
 * `pos`, `range`: start position and `[start, end]` source range.
-* `ref`, `tag`, `tags`, `itags`: shared [[Object#Object representation|object fields]]; `tag` is `paragraph`.
+* `ref`, `tag`, `tags`, `itags`: shared [[Object#Object representation|object fields]]. `tag` is `paragraph`.
 * Inline attributes become additional fields. An anchor also causes a paragraph to be indexed even without a hashtag. A paragraph containing only hashtags tags its page instead of producing a paragraph object.

@@ -1,7 +1,8 @@
-Look up definitions, feature behavior, syntax and API contracts. Each category also expands in the Navigate sidebar.
+Look up definitions, feature behavior, syntax and API contracts.
 
-* [[Reference/Markdown and Page Content]] — Markdown syntax and the content stored in a page.
-* [[Reference/SilverBullet Interface and Features]] — the editing interface, visual tools and feature behavior.
+* [[Reference/Concepts]] — pages, files, links, tasks and templates.
+* [[Markdown]] — writing syntax, formatting and extensions.
+* [[Reference/SilverBullet Features]] — the editing interface, visual tools and feature behavior.
 * [[Reference/Space Lua and APIs]] — language syntax, extension mechanisms and callable APIs.
 * [[Reference/Technical Reference]] — interfaces and internals for integrations, deployments and development.
 

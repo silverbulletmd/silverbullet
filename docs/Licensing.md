@@ -1,4 +1,4 @@
-SilverBullet Desktop is free for personal and education use; using it at work requires a Pro license. Tiers, prices and seats are explained on the [pricing page](https://silverbullet.md/pricing) and in the [FAQ](https://silverbullet.md/faq).
+SilverBullet Desktop is free for personal and education use. Using it at work requires a Pro license. Tiers, prices and seats are explained on the [pricing page](https://silverbullet.md/pricing) and in the [FAQ](https://silverbullet.md/faq).
 
 # Activating a license
 Open the Desktop dashboard, go to the **Pro** tab, paste your license key (it looks like `SBPLS-XXXXX-XXXXX-XXXXX-XXXXX`) and click **Activate**. A Pro license belongs to one user, who can activate it on as many of their own devices as they like.

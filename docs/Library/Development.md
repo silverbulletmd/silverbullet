@@ -1,11 +1,10 @@
 ---
-description: "The steps for building your own SilverBullet library, starting with frontmatter on a page under Library/."
+description: "Build and publish a SilverBullet library."
 tags: development
 references:
 - client/workbench/libraries/libraries_backend.ts
 - libraries/Library/Std/Infrastructure/Github.md
 ---
-
 To develop your own SilverBullet library follow these steps:
 
 # Decorate your library with frontmatter

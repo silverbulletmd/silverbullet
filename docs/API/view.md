@@ -6,10 +6,10 @@ references:
 - client/navigator/view_spec.ts
 - client/navigator/view_value.ts
 ---
-Views place widgets: `view.define` registers a named, dockable view, `view.pick` asks the user to choose a row, and `view.open`/`view.focus` act on open views. What a view shows is a [[API/widget#Lists, trees and tables|widget]] (a list, tree, table or content function); see [[View#Widgets and views]].
+Views place widgets: `view.define` registers a named, dockable view, `view.pick` asks the user to choose a row, and `view.open`/`view.focus` act on open views. What a view shows is a [[API/widget#Lists, trees and tables|widget]] (a list, tree, table or content function). See [[View#Widgets and views]].
 
 ## view.define(spec)
-Registers a named view and optionally a [[Command]] to open it. Pass a live `widget.new` value as `widget`, or put the content options directly in the definition. A flat row definition requires `onSelect`. A flat `content` function may return Markdown, `widget.new { markdown | html | cssClasses }`, `widget.html(…)`, or a DOM node; it can’t return a live or sandboxed widget.
+Registers a named view and optionally a [[Command]] to open it. Pass a live `widget.new` value as `widget`, or put the content options directly in the definition. A flat row definition requires `onSelect`. A flat `content` function may return Markdown, `widget.new { markdown | html | cssClasses }`, `widget.html(…)`, or a DOM node. It can’t return a live or sandboxed widget.
 
 ```lua
 function projectView()
@@ -38,22 +38,22 @@ The same function can render an inline `${projectView()}` expression. With `widg
 * `name`: Unique view identifier. Redefining it replaces the registration, except for reserved built-in names and the `__pick:` prefix.
 * `title`: Panel title.
 * `command`: Command that opens the view.
-* `key`, `mac`: Key bindings; require `command`.
+* `key`, `mac`: Key bindings. Require `command`.
 * `menu`, `menuMac`, `menuWindows`, `menuLinux`: Native-menu placement in SilverBullet Desktop.
 * `hide`: Hide the command from the command palette.
 * `dock`: Initial location: `"modal"` (default), `"lhs"`, `"rhs"`, `"bhs"`, `"page-top"`, or `"page-bottom"`.
-* `supportedDocks`: Allowed locations; defaults to `{ dock }` and must include the initial dock.
-* `defaultOpen`: Initial open state for a page dock; defaults to `false` (`true` with `frame = "minimal"`).
-* `frame`: `"full"` (default) or `"minimal"`. A minimal page-docked view has no title bar, fold or close; its ⋯ menu and dock-menu buttons appear on hover. Applies to `page-top` and `page-bottom` only.
+* `supportedDocks`: Allowed locations. Defaults to `{ dock }` and must include the initial dock.
+* `defaultOpen`: Initial open state for a page dock. Defaults to `false` (`true` with `frame = "minimal"`).
+* `frame`: `"full"` (default) or `"minimal"`. A minimal page-docked view has no title bar, fold or close. Its ⋯ menu and dock-menu buttons appear on hover. Applies to `page-top` and `page-bottom` only.
 * `widget`: A `widget.new` value to show (usually with `source` or `content`). Can’t be combined with flat content fields.
-* `openOnStart`: Open on every boot regardless of saved state; only for `lhs`, `rhs`, or `bhs`.
-* `refreshOnOpen`: Reload when an already-open panel is activated; does not apply to inline or page-docked views.
+* `openOnStart`: Open on every boot regardless of saved state. Only for `lhs`, `rhs`, or `bhs`.
+* `refreshOnOpen`: Reload when an already-open panel is activated. Does not apply to inline or page-docked views.
 * `rememberPhrase`: Reuse the modal’s last search in this browser tab unless `phrase` is supplied. Resets on reload. Intended for `search = "source"`.
 * `followEditor`: Make a registered sidebar follow the page you navigate to.
 
-`lhs` and `rhs` are resizable sidebars; `bhs` is a resizable bottom panel. They remember open state and size; sidebars also remember the filter phrase across re-focus. A page dock displays a widget above or below the document, has no filter input, and hides itself when empty. A modal is a transient picker: it clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. Page-docked lists honor `presentation.limit`; page-docked trees are uncapped.
+`lhs` and `rhs` are resizable sidebars. `bhs` is a resizable bottom panel. They remember open state and size. Sidebars also remember the filter phrase across re-focus. A page dock displays a widget above or below the document, has no filter input, and hides itself when empty. A modal is a transient picker: it clears its phrase on open and dismisses on selection unless `onSelect` returns `false`. Page-docked lists honor `presentation.limit`. Page-docked trees are uncapped.
 
-Each sidebar or bottom slot holds one view. Opening another temporarily displaces the previous one, which returns when the newcomer leaves (one level deep). Below 600px, sidebars become full-width drawers and dismiss on selection; they have no resize handle and skip boot restoration and `openOnStart`. The bottom panel likewise takes the full height, leaving a strip of the editor, and has no resize handle.
+Each sidebar or bottom slot holds one view. Opening another temporarily displaces the previous one, which returns when the newcomer leaves (one level deep). Below 600px, sidebars become full-width drawers and dismiss on selection. They have no resize handle and skip boot restoration and `openOnStart`. The bottom panel likewise takes the full height, leaving a strip of the editor, and has no resize handle.
 
 ### Saved dock state
 Registered views save their dock, open, collapsed, width and height settings locally. Valid saved values override `view.defaults`, which override the definition. A space can supply defaults:
@@ -64,7 +64,7 @@ config.set("view.defaults", {
 })
 ```
 
-`dock` must be in `supportedDocks`. `open` applies except for modals; `collapsed` applies to page docks; `width` applies to sidebars, from 160 to 600 pixels; `height` applies to the bottom panel, from 160 pixels up to the window height minus 200 pixels, which stay free for the editor. `Navigate: Reset All Views` clears saved choices. When two or more docks are supported, a dock menu moves the view immediately; closing it preserves that preference. Page widgets also remember their folded state.
+`dock` must be in `supportedDocks`. `open` applies except for modals. `collapsed` applies to page docks. `width` applies to sidebars, from 160 to 600 pixels. `height` applies to the bottom panel, from 160 pixels up to the window height minus 200 pixels, which stay free for the editor. `Navigate: Reset All Views` clears saved choices. When two or more docks are supported, a dock menu moves the view immediately. Closing it preserves that preference. Page widgets also remember their folded state.
 
 Opening a closed panel reloads its source. Reactivating an open panel or revisiting a cached sibling reuses its rows unless `refreshOnOpen = true`. `refreshOn` events refresh loaded views. Views also refresh when anything their `source` or `content` read changes.
 
@@ -85,14 +85,14 @@ local project = view.pick {
 if project then editor.navigate(project.name) end
 ```
 
-The picker accepts row presentation, filtering, segments, dropdown, actions, keymaps, and creation options. It does not accept `content`, a registered name, command, docking options, or refresh options. Optional `onSelect(obj, ctx)` runs before resolving: returning `false` keeps the picker open; otherwise it resolves with the selected object.
+The picker accepts row presentation, filtering, segments, dropdown, actions, keymaps, and creation options. It does not accept `content`, a registered name, command, docking options, or refresh options. Optional `onSelect(obj, ctx)` runs before resolving: returning `false` keeps the picker open. Otherwise it resolves with the selected object.
 
 ## view.open(name, opts?)
 Opens or focuses a registered view and returns a boolean indicating whether it opened. `name` is the name passed to `view.define`.
 
 * `segment`: Active segment label for this opening, overriding the default or remembered segment.
 * `phrase`: Initial filter text.
-* `dropdown`: Selected dropdown value for this opening; does not replace saved preferences. An unavailable value leaves rows unfiltered until a refresh supplies it.
+* `dropdown`: Selected dropdown value for this opening. Does not replace saved preferences. An unavailable value leaves rows unfiltered until a refresh supplies it.
 * `focus = false`: Keep editor focus. The view still refreshes or resets as on a normal open, but reactivation does not toggle it closed.
 * `quiet = true`: Suppress the notification if the named view does not exist.
 

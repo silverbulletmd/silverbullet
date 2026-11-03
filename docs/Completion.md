@@ -26,7 +26,7 @@ Inside `space-lua` fenced code blocks, SilverBullet provides code completion for
 * Global functions and variables
 * API namespaces (`editor.`, `space.`, `index.`, etc.)
 * Table fields and methods
-* Function signatures and one-line documentation when the API provides metadata; selecting a documented function reveals its complete source-backed API documentation in an adjacent information panel
+* Function signatures and one-line documentation when the API provides metadata. Selecting a documented function reveals its complete source-backed API documentation in an adjacent information panel.
 
 Ctrl-click or Cmd-click a Lua-defined function to navigate to its definition.
 

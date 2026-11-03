@@ -23,7 +23,7 @@ Each entry under `functions:` is one exported plug function. Fields:
 * `syscall`: `"myplug.foo"` — expose this function as a syscall callable from other plugs and from [[Space Lua]].
 * _hook fields_: Zero or more of `command`, `slashCommand`, `events`, `mqSubscriptions`, `codeWidget`, `editor`, `pageNamespace` — each wires this function into an editor event. See [[#Hooks]] below.
 
-A function with only a `syscall` field (no other hooks) is a pure library function; a function with one or more hook fields is triggered when the corresponding event fires.
+A function with only a `syscall` field (no other hooks) is a pure library function. A function with one or more hook fields is triggered when the corresponding event fires.
 
 ## Examples
 A minimal, events-only manifest:
@@ -229,7 +229,7 @@ export async function openMap() {
 The panel is built again whenever its tab or dock changes, and, when it follows the editor, when another page opens while it’s docked. From inside the panel, `editor.hidePanel(ctx.dock)` closes it. The [[Graph View]] is a panel view.
 
 ## `syscall`
-Exposes the function as a syscall, callable from other plugs and from Space Lua. Combines with `path:` to provide an implementation. There is no separate TS sketch here — your function is a normal TypeScript function; whatever it returns is the syscall return value.
+Exposes the function as a syscall, callable from other plugs and from Space Lua. Combines with `path:` to provide an implementation. There is no separate TS sketch here — your function is a normal TypeScript function. Whatever it returns is the syscall return value.
 
 ```yaml
 myAdd:

@@ -1,5 +1,5 @@
 ---
-description: A backlink reference showing everywhere a page is linked from.
+description: "A backlink showing where another page links to the current page."
 tags: glossary
 references:
 - plugs/index/relation.ts

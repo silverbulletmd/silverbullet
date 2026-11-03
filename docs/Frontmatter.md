@@ -1,5 +1,5 @@
 ---
-description: A YAML block at the top of a page that sets page-level attributes.
+description: "Page attributes edited through a form and stored as YAML at the top of the page."
 tags: glossary
 references:
 - client/codemirror/syntax/frontmatter.ts
@@ -9,9 +9,9 @@ references:
 Frontmatter stores page attributes such as tags, status and dates. Edit them using the form at the top of a page, or edit their YAML source directly.
 
 # Start with the visual editor
-On a page without frontmatter, hover over the first line and click the **add tag** icon to its left. Type a tag and press Enter. The form opens at the top of the page; **+ add attribute** lets you add more attributes and choose their types.
+On a page without frontmatter, hover over the first line and click the **add tag** icon to its left. Type a tag and press Enter. The form opens at the top of the page. **+ add attribute** lets you add more attributes and choose their types.
 
-[[Guide/Organize with Tags and Attributes]] walks through this with screenshots, starting from an ordinary Markdown page. [[Live Object Edit]] covers the form’s editing controls. In read-only documentation, you can inspect existing attributes but cannot add or change them.
+[[Guide/Add Structure and Query]] walks through this with screenshots, starting from an ordinary Markdown page. [[Live Object Edit]] covers the form’s editing controls. In read-only documentation, you can inspect existing attributes but cannot add or change them.
 
 # The source format
 Choose **Edit source** from the form’s ⋯ menu to see what it stores. Frontmatter is a [[YAML]] block at the beginning of the file, between two lines containing `---`. The page body follows the closing line:
@@ -43,7 +43,7 @@ attribute:
 # Special attributes
 While SilverBullet allows arbitrary metadata to be added to pages, there are a few attributes with special meaning:
 
-* `name`: the indexed page name comes from its filename. Do not use frontmatter to rename an ordinary page. Some specialized formats, such as [[Library/Development|library manifests]], use a `name` key as installation metadata; follow that format’s instructions.
+* `name`: the indexed page name comes from its filename. Do not use frontmatter to rename an ordinary page. Some specialized formats, such as [[Library/Development|library manifests]], use a `name` key as installation metadata. Follow that format’s instructions.
 * `displayName` (`string`): very similar in effect as `aliases` but will use this name for the page in certain contexts.
 * `aliases` (`array of strings`): allow you to specify a list of alternative names for this page, which can be used to navigate or link to this page
 * `tags` (`array of strings` or `string`): an alternative (and perhaps preferred) way to assign [[Tag]] to a page. There are various ways to define these:

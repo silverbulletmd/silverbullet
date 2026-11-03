@@ -1,5 +1,5 @@
 ---
-description: Visual customization (icons, prefixes, CSS) applied to pages matching certain criteria.
+description: "Icons, prefixes, CSS classes and navigation rules for pages."
 tags: maturity/beta glossary
 pageDecoration:
   icon: gift

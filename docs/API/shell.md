@@ -4,12 +4,10 @@ references:
 - plug-api/syscalls/shell.ts
 - client/plugos/syscalls/shell.ts
 ---
-
-The Shell API provides functions for running shell commands and interacting with processes.
+Run shell commands and manage processes.
 
 <!--#lua spacelua.renderApiDocumentation("shell") -->
 ## shell.run
-
 `shell.run(command, arguments, stdin?)`
 
 Runs a shell command on the server and returns its output.

@@ -4,7 +4,6 @@ references:
 - client/space_lua/aggregates.ts
 - client/space_lua/query_collection.ts
 ---
-
 The `group by` and `having` clauses of [[Space Lua/Integrated Query]] support aggregate functions for grouped analysis, following SQL-style semantics.
 
 After `group by`, each result row contains:
@@ -49,7 +48,6 @@ ${query [[
 > Without `group by`, the query always returns at most one row. If `having` rejects the implicit group, the result is empty.
 
 # Available aggregates
-
 All registered aggregate functions — built-in, user-defined, and aliases — can be listed via `index.aggregates()`:
 
 ${query[[
@@ -167,7 +165,6 @@ For commutative aggregates like `sum`, `count`, `min`, `max`, and `avg`, the int
 Ordered-set aggregates such as `quantile`, `percentile_cont`, and `percentile_disc` require an intra-aggregate `order by` clause to produce correct results, as they depend on the iteration order of input values. Without `order by`, results are undefined.
 
 ### Basic example
-
 Collect page names sorted alphabetically within each group:
 
 ${query [[

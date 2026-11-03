@@ -5,11 +5,10 @@ references:
 - bin/sb/src/commands/mod.rs
 - bin/sb/src/main.rs
 ---
-
 > **note** This is **not** the server
 > `sb` is the optional **CLI client**, it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Server Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.
 
-The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server over HTTP. File commands use the [[HTTP API]] directly; Lua expressions, scripts, and logs use the [[Runtime API]].
+The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server over HTTP. File commands use the [[HTTP API]] directly. Lua expressions, scripts, and logs use the [[Runtime API]].
 
 # Installation
 On macOS, Linux and FreeBSD:
@@ -66,7 +65,7 @@ sb space add ./notes             # register a folder that already holds a space
 sb .                             # open the current folder in SilverBullet Desktop
 sb open ./notes                  # the same, for a given file or folder
 ```
-New spaces start with the shell off and managed revisions, like spaces created in SilverBullet Desktop. The name defaults to the folder name; pass `--name` to choose one. Names are trimmed, cannot be empty or contain control characters, and must be unique. `sb space add` needs an existing folder; use `sb space create` for a new one. Space commands print JSON when their output is piped or with `--json`, and text on a terminal or with `--text`.
+New spaces start with the shell off and managed revisions, like spaces created in SilverBullet Desktop. The name defaults to the folder name. Pass `--name` to choose one. Names are trimmed, cannot be empty or contain control characters, and must be unique. `sb space add` needs an existing folder. Use `sb space create` for a new one. Space commands print JSON when their output is piped or with `--json`, and text on a terminal or with `--text`.
 
 Inside a registered folder, commands pick that space automatically (the most specific folder wins), so `--space` is optional. Commands that need the space’s runtime (`eval`, `script`, `query`, `logs`, `screenshot`) start SilverBullet Desktop and wait for the space when it is not open yet.
 
@@ -80,7 +79,7 @@ sb space mv <name> <new-folder> [--dry-run]     # alias move: move a folder spac
 sb space relocate <name> <folder> [--force] [--dry-run]   # alias set-path: the folder was already moved
 sb space remove <name>            # alias rm
 ```
-Single-file spaces opened in Desktop are hidden from the list; add `--all` to show them. A folder space cannot be moved or removed while SilverBullet Desktop has it open. `mv` renames the folder, so the new folder must not exist and must be on the same disk; for another disk, copy the folder yourself and run `relocate`. `relocate` only updates the saved path and needs `--force` while the old folder still exists; use it for the same folder moved intact. For a space that syncs, after restoring from a backup or older copy, turn sync off and on again in SilverBullet Desktop so the first sync compares both sides. Both refuse targets that overlap another space, and `--dry-run` reports what would change without changing anything. A space that syncs with a remote can be moved once SilverBullet Desktop has been updated to a version that stores sync state by space id. Removing a space never deletes its files.
+Single-file spaces opened in Desktop are hidden from the list. Add `--all` to show them. A folder space cannot be moved or removed while SilverBullet Desktop has it open. `mv` renames the folder, so the new folder must not exist and must be on the same disk. For another disk, copy the folder yourself and run `relocate`. `relocate` only updates the saved path and needs `--force` while the old folder still exists. Use it for the same folder moved intact. For a space that syncs, after restoring from a backup or older copy, turn sync off and on again in SilverBullet Desktop so the first sync compares both sides. Both refuse targets that overlap another space, and `--dry-run` reports what would change without changing anything. A space that syncs with a remote can be moved once SilverBullet Desktop has been updated to a version that stores sync state by space id. Removing a space never deletes its files.
 
 # Global flags
 These flags are available on all commands that connect to a space:
@@ -91,26 +90,24 @@ These flags are available on all commands that connect to a space:
 * `-t, --timeout <seconds>`: Request timeout (default: 30)
 
 # Discovering commands
-
-Use `sb -h` for a compact command list and `sb --help` for a command guide and starting examples. Every command accepts `--help` without contacting a server; for example, `sb fs edit --help` includes the batch JSON format and revision rules. Connection and output flags are grouped separately from command options. Flags can appear before or after the command.
+Use `sb -h` for a compact command list and `sb --help` for a command guide and starting examples. Every command accepts `--help` without contacting a server. For example, `sb fs edit --help` includes the batch JSON format and revision rules. Connection and output flags are grouped separately from command options. Flags can appear before or after the command.
 
 `sb --help` also lists the calls for [[#Exploring your space|exploring your space]]: its tags, Lua API, and commands.
 
-Output selectors are mutually exclusive: choose `--json`, `--text`, or `-o <format>`. Unknown format names are rejected before connecting. `eval`, `script`, and `query` accept `auto`, `text`, `table`, `json`, `jsonl`, and `yaml`; file commands accept `auto`, `text`, `json`, and `jsonl`. Auto selects text on a terminal and JSON when piped, except `fs read`, which emits exact bytes by default. Logs, connection management, version, and upgrade commands print their own text output.
+Output selectors are mutually exclusive: choose `--json`, `--text`, or `-o <format>`. Unknown format names are rejected before connecting. `eval`, `script`, and `query` accept `auto`, `text`, `table`, `json`, `jsonl`, and `yaml`. File commands accept `auto`, `text`, `json`, and `jsonl`. Auto selects text on a terminal and JSON when piped, except `fs read`, which emits exact bytes by default. Logs, connection management, version, and upgrade commands print their own text output.
 
 # Commands
 Runtime commands may take a few seconds on first use while the [[Runtime API]] starts its headless client. `sb fs`, `sb search` and `sb related` work without the Runtime API or Chromium.
 
 ## `fs`: remote files
+List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`. Quote paths containing spaces and use `/` between directories. Patch input, recursive deletion, copy, and move are not supported. To search page content, use [[#`search <text>`|`sb search`]].
 
-List, read, create, edit, and delete files in a remote space using its existing HTTP filesystem API. Select a connection with the usual `--space`, `--url`, and `--token` flags. Paths are space-relative filenames, including `.md`; quote paths containing spaces and use `/` between directories. Patch input, recursive deletion, copy, and move are not supported. To search page content, use [[#`search <text>`|`sb search`]].
-
-* `sb fs ls [path]`: Immediate children; `list` is an alias. Use `--recursive`, repeatable `--glob`, and optional `--limit`.
+* `sb fs ls [path]`: List immediate children. `list` is an alias. Use `--recursive`, repeatable `--glob`, and optional `--limit`.
 * `sb fs read <path>`: Exact bytes on stdout, including binary attachments when redirected.
 * `sb fs stat <path>`: File metadata and revision.
-* `sb fs write <path>`: Write stdin or `--file <local-path>`; requires an explicit write policy.
-* `sb fs edit <path>`: Exact text replacement; supports JSON batches, `--all`, and `--dry-run`.
-* `sb fs rm <path>`: Delete one file; `delete` is an alias.
+* `sb fs write <path>`: Write stdin or `--file <local-path>` with an explicit write policy.
+* `sb fs edit <path>`: Replace exact text, with JSON batches, `--all`, and `--dry-run` support.
+* `sb fs rm <path>`: Delete one file. `delete` is an alias.
 
 ```bash
 sb fs ls Projects --recursive --glob '*.md' --glob '!Projects/Archive/**'
@@ -121,18 +118,16 @@ sb fs edit 'Projects/Idea.md' --old 'Status: draft' --new 'Status: ready'
 sb fs rm 'Projects/Idea.md'
 ```
 
-`--glob` patterns without `/` match basenames at any depth; patterns containing `/` match full space-relative paths. Positive patterns are ORed; `!` patterns exclude matches. `*` does not cross directories; `**` does. Globs and sorting are case-sensitive. The full inventory is downloaded before filtering. A limit that cuts off entries is reported explicitly and exits with code 7; an empty listing succeeds.
+`--glob` patterns without `/` match basenames at any depth. Patterns containing `/` match full space-relative paths. Positive patterns are ORed. `!` patterns exclude matches. `*` does not cross directories. `**` does. Globs and sorting are case-sensitive. The full inventory is downloaded before filtering. A limit that cuts off entries is reported explicitly and exits with code 7. An empty listing succeeds.
 
 ### Writing and revisions
-
-Filesystem responses carry the content revision in `X-SilverBullet-Revision`, which remains usable when a reverse proxy weakens or replaces `ETag`. The CLI falls back to strong ETags from older servers. A weak ETag alone allows reads but produces a null revision; conditional edits require a usable revision.
+Filesystem responses carry the content revision in `X-SilverBullet-Revision`, which remains usable when a reverse proxy weakens or replaces `ETag`. The CLI falls back to strong ETags from older servers. A weak ETag alone allows reads but produces a null revision. Conditional edits require a usable revision.
 
 Choose exactly one policy for `write`: `--create` creates only when absent, `--if-match <revision>` replaces the revision you inspected, and `--overwrite` explicitly allows unconditional creation or replacement. `--file -` reads stdin, as does an omitted `--file` when stdin is redirected. No input prompt is opened automatically.
 
-`read --json` and `stat --json` include the opaque, quoted `revision` returned by the server. Preserve that string unchanged when passing it to `--if-match`. `edit` always uses a conditional write against its own initial read. Supplying `--if-match` additionally checks that the file still matches your earlier inspection. `rm --if-match` conditionally deletes; plain `rm` is unconditional. Conflicts fail without retry or automatic merging. A lost connection during a mutation can leave its outcome uncertain: inspect the remote file before retrying.
+`read --json` and `stat --json` include the opaque, quoted `revision` returned by the server. Preserve that string unchanged when passing it to `--if-match`. `edit` always uses a conditional write against its own initial read. Supplying `--if-match` additionally checks that the file still matches your earlier inspection. `rm --if-match` conditionally deletes. Plain `rm` is unconditional. Conflicts fail without retry or automatic merging. A lost connection during a mutation can leave its outcome uncertain: inspect the remote file before retrying.
 
 ### Batch edits
-
 ```bash
 sb fs edit 'Projects/Launch.md' --file - <<'JSON'
 {
@@ -144,13 +139,12 @@ sb fs edit 'Projects/Launch.md' --file - <<'JSON'
 JSON
 ```
 
-Each `old` must match exactly once in the original file, including whitespace and line endings. All batch ranges must be disjoint. Validation completes before one conditional write; a late failure leaves the whole file untouched. Empty `new` deletes a block; empty `old` is invalid. For a single `--old`/`--new` edit, `--all` replaces every non-overlapping occurrence. `--dry-run` shows a unified diff without writing. Unchanged bytes, including CRLF and BOMs, are preserved. Editing requires UTF-8 without NUL and limits both original and resulting files to 8 MiB.
+Each `old` must match exactly once in the original file, including whitespace and line endings. All batch ranges must be disjoint. Validation completes before one conditional write. A late failure leaves the whole file untouched. Empty `new` deletes a block. Empty `old` is invalid. For a single `--old`/`--new` edit, `--all` replaces every non-overlapping occurrence. `--dry-run` shows a unified diff without writing. Unchanged bytes, including CRLF and BOMs, are preserved. Editing requires UTF-8 without NUL and limits both original and resulting files to 8 MiB.
 
 ### Output and limits
+`read` defaults to exact bytes even when piped, with no added newline. `--lines START:END` selects a one-based inclusive range. `--number` adds original line numbers and cannot be combined with JSON. A range still downloads the entire file. Other commands default to text on a terminal and JSON when redirected. Explicit `--text`, `--json`/`-o json`, and `-o jsonl` select output. Other modes and conflicting selectors are rejected for `fs`. JSON reads contain UTF-8 content and full-file metadata/revision. Binary content requires raw redirected output. JSONL listings emit entry records followed by a summary record. Other commands emit one JSON record.
 
-`read` defaults to exact bytes even when piped, with no added newline. `--lines START:END` selects a one-based inclusive range; `--number` adds original line numbers and cannot be combined with JSON. A range still downloads the entire file. Other commands default to text on a terminal and JSON when redirected. Explicit `--text`, `--json`/`-o json`, and `-o jsonl` select output; other modes and conflicting selectors are rejected for `fs`. JSON reads contain UTF-8 content and full-file metadata/revision. Binary content requires raw redirected output. JSONL listings emit entry records followed by a summary record; other commands emit one JSON record.
-
-Reads and writes have a default CLI transfer cap of 16 MiB. `--max-bytes N` changes it; `--max-bytes 0` removes the CLI cap, while server request limits still apply. Oversized reads fail without emitting partial content. File operations use server-stored bytes, not unsaved editor buffers, and do not decrypt client-encrypted spaces.
+Reads and writes have a default CLI transfer cap of 16 MiB. `--max-bytes N` changes it. `--max-bytes 0` removes the CLI cap, while server request limits still apply. Oversized reads fail without emitting partial content. File operations use server-stored bytes, not unsaved editor buffers, and do not decrypt client-encrypted spaces.
 
 Errors go to stderr as text or a JSON `error` object with a stable `code` and `message`, plus path/revision details when available. Exit codes are 0 for success, 2 for invalid arguments or edit input, 3 for a missing target, 4 for authentication/access denial, 5 for revision conflict or an existing create-only target, 6 for edit mismatch/ambiguity/overlap, 7 for a truncated listing, and 8 for operational failures. Code 1 is unassigned for `fs`.
 
@@ -181,7 +175,6 @@ echo 'local x = 40; return x + 2' | sb script
 ```
 
 ## `query <expression>`
-
 Run a SLIQ query with `sb query 'from tags.page select name' --json`. See [[#Exploring your space]] for listing the space’s tags and reading the query syntax reference. Requires the Runtime API.
 
 Quote the query in single quotes and use double quotes inside it. If the query itself contains a single quote, pass it through a quoted heredoc:
@@ -196,10 +189,10 @@ EOF
 Query errors carry hints where the cause is a common mistake. Using `=` where `==` was meant (such as `where p.name = "x"`) gives `hint: use == to compare`. Calling an undefined name inside a query, such as a function that exists nowhere or a misspelled row variable, names it and says what the query binds instead. Errors about nil values name the global, local, field or method involved, and common habits from other languages get a suggestion: a missing string method such as `contains`, `{name: value}` in a table constructor, and SQL operators such as `like`, `in` and `is null`.
 
 ## Results
-`eval`, `script`, and `query` return plain JSON (or the other `-o` formats rendered from it). A missing value, such as a query column absent on some rows, is `null` and the key stays: `{"name":"Books/Beta","rating":null}`. A query collection such as `index.pages("book")` returns its rows as an array, capped at 1000 rows; a longer one ends with a `"<truncated: N more rows; use sb query with where/limit>"` entry, so filter it with `sb query` instead. Values with no JSON form appear as string markers such as `"<function>"`. See [[Runtime API#Results]] for the full mapping.
+`eval`, `script`, and `query` return plain JSON (or the other `-o` formats rendered from it). A missing value, such as a query column absent on some rows, is `null` and the key stays: `{"name":"Books/Beta","rating":null}`. A query collection such as `index.pages("book")` returns its rows as an array, capped at 1000 rows. A longer one ends with a `"<truncated: N more rows; use sb query with where/limit>"` entry, so filter it with `sb query` instead. Values with no JSON form appear as string markers such as `"<function>"`. See [[Runtime API#Results]] for the full mapping.
 
 ## `search <text>`
-Search the pages of the space (see [[Search]]) through the server’s [[HTTP API#Search|search API]], so no Lua runtime or headless browser is needed. Prints one line per page, `Page:line  excerpt`, best match first; with `--json`, the server’s response (`items`, `total`, `partial`, `notice`). Notices, such as a semantic search falling back to word matching, and a truncated result go to stderr.
+Search the pages of the space (see [[Search]]) through the server’s [[HTTP API#Search|search API]], so no Lua runtime or headless browser is needed. Prints one line per page, `Page:line  excerpt`, best match first. With `--json`, it prints the server’s response (`items`, `total`, `partial`, `notice`). Notices, such as a semantic search falling back to word matching, and a truncated result go to stderr.
 
 ```bash
 sb search 'garden irrigation'
@@ -301,7 +294,6 @@ The CLI supports three authentication methods, configured per-space during `spac
 Credentials are encrypted at rest using AES-256-GCM with PBKDF2 key derivation.
 
 # Examples
-
 Query your space for recent pages:
 ```bash
 sb eval 'query[[from tags.page order by lastModified desc limit 5 select name]]'

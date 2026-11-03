@@ -1,5 +1,5 @@
 ---
-description: The `@name` span in text, refers to an identity and points either way — addressed or credited.
+description: "An @name reference that addresses or credits an identity."
 tags: glossary maturity/experimental
 references:
 - client/markdown_parser/parser.ts
@@ -15,4 +15,4 @@ A name may contain dots, so dotted usernames carry whole: @pete.smith and @sam.r
 
 **Any name is a valid mention.** Nothing needs declaring up front: mentioning @sales makes `sales` a known identity. See [[Identity]] for more info.
 
-For a complete request, reply and resolution workflow, see [[Guide/Mentions and Replies]].
+For a complete request, reply and resolution workflow, see [[Guide/Comments, Mentions and Replies]].

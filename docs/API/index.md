@@ -5,80 +5,67 @@ references:
 - client/plugos/syscalls/index.ts
 - client/data/object_index.ts
 ---
+Query and manage the [[Object Index]], inspect schemas and index Markdown.
 
-The `index` API provides functions for interacting with SilverBullet’s [[Object Index]], including query collections used by [[Space Lua/Integrated Query]], schema introspection, ad-hoc Markdown indexing, and direct object-index operations.
-
-The main query API is `index.objects`; the other collection functions are mostly convenient filters over the same index.
+The main query API is `index.objects`. The other collection functions are mostly convenient filters over the same index.
 
 <!--#lua spacelua.renderApiDocumentation("index") -->
 ## index.aggregates
-
 `index.aggregates()`
 
 Returns stored aggregate records as a query collection.
 
 ## index.ambiguousLinks
-
 `index.ambiguousLinks()`
 
 Returns links whose page name matches more than one page as a query collection.
 
 ## index.aspiringPages
-
 `index.aspiringPages()`
 
 Returns linked but not yet created pages as a query collection.
 
 ## index.clearFileIndex
-
 `index.clearFileIndex(path)`
 
 Drops every indexed object belonging to a file, so a re-index replaces them rather than merging on top.
 
 ## index.contentPages
-
 `index.contentPages(tagName?)`
 
 Returns non-meta pages, optionally filtered by a user tag, as a query collection.
 
 ## index.data
-
 `index.data(tagName?)`
 
 Returns objects from fenced data blocks (` ```data ` and ` ```#name `), optionally filtered by a tag, as a query collection. See [[Tag/data]].
 
 ## index.defineTag
-
 `index.defineTag(tagDefinition)`
 
 Defines or updates a tag and its Lua metatable.
 
 ## index.deleteObject
-
 `index.deleteObject(page, tag, ref)`
 
-Removes an object from the index without changing its page; it comes back the next time the page is indexed. To delete an object from its page, use [[API/object|object.delete]].
+Removes an object from the index without changing its page. It comes back the next time the page is indexed. To delete an object from its page, use [[API/object|object.delete]].
 
 ## index.describeSchema
-
 `index.describeSchema()`
 
 Returns raw JSON Schemas for every configured tag that declares one.
 
 ## index.documents
-
 `index.documents()`
 
 Returns all indexed documents as a query collection.
 
 ## index.ensureFullIndex
-
 `index.ensureFullIndex()`
 
 Ensures the complete object index is available and current.
 
 ## index.extractFrontmatter
-
 `index.extractFrontmatter(text, options?)`
 
 Extracts and optionally transforms frontmatter and top-level tags in Markdown text.
@@ -93,25 +80,21 @@ Extracts and optionally transforms frontmatter and top-level tags in Markdown te
 - `table` — Parsed frontmatter and the optionally transformed text.
 
 ## index.getObjectByRef
-
 `index.getObjectByRef(page, tag, ref)`
 
 Returns an indexed object identified by page, tag, and reference.
 
 ## index.headers
-
 `index.headers(tagName?)`
 
 Returns all headers, optionally filtered by a user tag, as a query collection.
 
 ## index.indexObjects
-
 `index.indexObjects(page, objects)`
 
 Indexes a collection of objects for a page.
 
 ## index.isAvailable
-
 `index.isAvailable()`
 
 Whether a full indexing pass has ever completed for this space. False on a fresh client, and for as long as the first index takes on a large one: every object query answers with whatever has been indexed so far, which is nothing to begin with. Code that must work in that window reads the space directly instead.
@@ -121,19 +104,16 @@ Whether a full indexing pass has ever completed for this space. False on a fresh
 - `boolean` — Whether the index can be trusted.
 
 ## index.items
-
 `index.items(tagName?)`
 
 Returns all list items, optionally filtered by a user tag, as a query collection.
 
 ## index.links
-
 `index.links()`
 
 **Deprecated:** returns all indexed links, a view over relations, as a query collection. Use [[#index.relations]] instead (see [[Tag/relation#Deprecated: the `link` view]]).
 
 ## index.markdown
-
 `index.markdown(text, pageMeta?)`
 
 Indexes Markdown text in memory and returns the objects extracted from it.
@@ -148,31 +128,26 @@ Indexes Markdown text in memory and returns the objects extracted from it.
 - `table` — Objects extracted from the Markdown text.
 
 ## index.metaPages
-
 `index.metaPages(tagName?)`
 
 Returns meta pages, optionally filtered by a user tag, as a query collection.
 
 ## index.objects
-
 `index.objects(tagName)`
 
 Returns objects carrying a tag as a query collection.
 
 ## index.pages
-
 `index.pages(tagName?)`
 
 Returns all pages, optionally filtered by a user tag, as a query collection.
 
 ## index.paragraphs
-
 `index.paragraphs(tagName?)`
 
 Returns indexed paragraphs, optionally filtered by a user tag, as a query collection.
 
 ## index.patchFrontmatter
-
 `index.patchFrontmatter(text, patch)`
 
 Applies a table of updates to the frontmatter in Markdown text.
@@ -187,31 +162,26 @@ Applies a table of updates to the frontmatter in Markdown text.
 - `string` — Markdown text with updated frontmatter.
 
 ## index.previewProcessedObjects
-
 `index.previewProcessedObjects(page, objects)`
 
 Runs the indexing pipeline without writing and returns processed tag/object pairs.
 
 ## index.queryLuaObjects
-
 `index.queryLuaObjects(tag, query, scopedVariables?)`
 
 Executes a structured Lua collection query against indexed objects.
 
 ## index.reindexSpace
-
 `index.reindexSpace()`
 
 Rebuilds the object index for the entire space.
 
 ## index.relations
-
 `index.relations(kind?)`
 
 Returns all indexed relations, optionally filtered by kind, as a query collection.
 
 ## index.resolveAnchor
-
 `index.resolveAnchor(name, page?)`
 
 Resolves a named anchor to its host page, tag, and source range.
@@ -226,50 +196,42 @@ Resolves a named anchor to its host page, tag, and source range.
 - `table` — Resolution result including success or missing/duplicate reason.
 
 ## index.subPages
-
 `index.subPages(pageName)`
 
 Returns pages nested below a page name as a query collection.
 
 ## index.tables
-
 `index.tables(tagName?)`
 
 Returns indexed table rows, optionally filtered by a user tag, as a query collection.
 
 ## index.tag
-
 `index.tag(tagName)`
 
 Returns objects carrying a tag as a query collection.
 
 ## index.tagSchema
-
 `index.tagSchema(tagName)`
 
 Returns the raw JSON Schema for a tag, or nil when none is declared.
 
 ## index.tags
-
 `index.tags()`
 
 Returns all indexed tag objects as a query collection.
 
 ## index.tasks
-
 `index.tasks(tagName?)`
 
 Returns all tasks, optionally filtered by a user tag, as a query collection.
 
 ## index.validateObjects
-
 `index.validateObjects(page, objects)`
 
 Validates objects for a page and returns the first validation error, if any.
 <!--/lua-->
 
 ## Integrated Query examples
-
 Query one page:
 
 ${query[[from index.pages() limit 1]]}
@@ -282,7 +244,7 @@ API/capture
 API/clientStore
 <!--/lua-->
 
-Render three incomplete tasks by putting this expression on a page in your own space. The results depend on the tasks in that space; in a writable space, toggling a result writes back to its source task.
+Render three incomplete tasks by putting this expression on a page in your own space. The results depend on the tasks in that space. In a writable space, toggling a result writes back to its source task.
 
 ```markdown
 ${query[[from t = index.tasks() where not t.done limit 3 select templates.taskItem(t)]]}

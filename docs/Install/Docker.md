@@ -16,7 +16,7 @@ Conveniently, SilverBullet is published as a [docker image on GHCR](https://gith
 Every release version of SilverBullet is tagged with its version number, but there are two release channels you can use:
 
 * `:latest` always points to the latest _release_.
-* `:edge` always points to the latest _edge build_ (the last commit to `main`). (The legacy `:v2` tag points to the same image.)
+* `:edge` always points to the latest _edge build_ (the last commit to `main`).
 
 The default image includes Chromium and enables the [[Runtime API]]. For the smaller image without Chromium, use `:edge-slim` instead of `:edge` or legacy `:v2`, `:latest-slim` instead of `:latest`, or append `-slim` to a version such as `:2.11.0-slim`.
 

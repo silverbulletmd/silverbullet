@@ -1,11 +1,10 @@
 ---
-description: A triple-backtick block that can render widgets, queries, or syntax-highlighted code.
+description: "A fenced block for source code, widgets or executable Space Lua."
 tags: glossary
 references:
 - client/codemirror/syntax/fenced_code.ts
 - client/markdown_parser/parser.ts
 ---
-
 Blocks use the fenced code block notation of [[Markdown]], and assign special behavior to it.
 
 The general syntax is:

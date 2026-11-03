@@ -5,12 +5,10 @@ references:
 - client/plugos/syscalls/asset.ts
 - client/asset_bundle/bundle.ts
 ---
-
-The Asset API provides functions for reading and managing assets embedded in plugs.
+Read and manage assets embedded in plugs.
 
 <!--#lua spacelua.renderApiDocumentation("asset") -->
 ## asset.getFileMeta
-
 `asset.getFileMeta(plugName, name)`
 
 Gets metadata for an asset embedded in a plug.
@@ -32,7 +30,6 @@ print(meta.lastModified)
 ```
 
 ## asset.listFiles
-
 `asset.listFiles(plugName)`
 
 Lists the assets embedded in a plug.
@@ -54,7 +51,6 @@ end
 ```
 
 ## asset.readAsset
-
 `asset.readAsset(plugName, name)`
 
 Reads an asset embedded in a plug as a data URL.

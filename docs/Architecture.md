@@ -10,11 +10,11 @@ ${mermaid.diagram(mermaid.relationGraph{
 })}
 
 # The three layers
-* [[Architecture/Client]]: one instance per browser tab; runs editing, structured indexing, queries and extensions ([[Architecture/Editor|editor]], [[Architecture/Space Lua|Space Lua]], [[Architecture/Plugs|plugs]], [[Architecture/Syscalls|syscalls]], [[Architecture/Datastore|datastore]]).
-* [[Architecture/Service Worker]]: one instance per browser; offline cache + [[Sync]].
+* [[Architecture/Client]]: one instance per browser tab, running editing, structured indexing, queries and extensions ([[Architecture/Editor|editor]], [[Architecture/Space Lua|Space Lua]], [[Architecture/Plugs|plugs]], [[Architecture/Syscalls|syscalls]], [[Architecture/Datastore|datastore]]).
+* [[Architecture/Service Worker]]: one instance per browser, providing an offline cache and [[Sync]].
 * [[Architecture/Server]]: authentication, file access and reconciliation, server-backed search, revisions and optional runtime services.
 
-The browser’s Object Index supports structured queries; the Server’s search index supports full-text and semantic search. They are separate systems. Desktop runs the shared client and a local embedded server against its local space; it does not need browser-style file synchronization between them. [[Desktop Sync]] optionally connects that folder to an external Server.
+The browser’s Object Index supports structured queries. The Server’s search index supports full-text and semantic search. They are separate systems. Desktop runs the shared client and a local embedded server against its local space. It does not need browser-style file synchronization between them. [[Desktop Sync]] optionally connects that folder to an external Server.
 
 # Components
 Every box in the diagram is a page tagged `component`:

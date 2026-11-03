@@ -1,5 +1,5 @@
 ---
-description: A wiki-link or Markdown link connecting pages in your space.
+description: "Wiki links and Markdown links to pages, documents and external resources."
 tags: glossary
 references:
 - client/codemirror/syntax/wiki_link.ts
@@ -32,7 +32,7 @@ The link or “string refs” has to follow some specific formatting:
 A wiki link target is resolved against the space in two steps:
 
 1. **Exact path match**: if the ref matches a page or document path from the space root, that file is the target. An exact match always wins.
-2. **Name lookup**: if no file exists at the literal path, SilverBullet looks for files matching the ref _anywhere_ in the space, comparing case-insensitively. A bare name (no `/`) matches any file carrying that name; a ref containing `/` matches any file whose path _ends_ in it (on folder boundaries, so `[[api/Auth]]` matches `docs/api/Auth` but not `webapi/Auth`). Candidates spelled with the exact same case are preferred; if exactly one remains, that is the target.
+2. **Name lookup**: if no file exists at the literal path, SilverBullet looks for files matching the ref _anywhere_ in the space, comparing case-insensitively. A bare name (no `/`) matches any file carrying that name. A ref containing `/` matches any file whose path _ends_ in it (on folder boundaries, so `[[api/Auth]]` matches `docs/api/Auth` but not `webapi/Auth`). Candidates spelled with the exact same case are preferred. If exactly one remains, that is the target.
 
 So `[[Note]]` finds `some/folder/Note` when that is the only page named `Note`, `[[note]]` finds `Note` when nothing is spelled `note` exactly, and `[[api/Auth]]` finds `docs/api/Auth` when no other path ends in `api/Auth`.
 
@@ -54,12 +54,7 @@ Candidates are ranked relative to the page the link is written on:
 2. **Shallowest path**, which lets a root-level page win once proximity ties.
 3. **Alphabetical order**, as the final tie-break.
 
-Every ambiguous link to a page is indexed as an [[Tag/ambiguous-link|ambiguous-link]] object, so you can find them all (this is used in the [[Workbench/Health]] tab):
-
-${query[[
-  from a = index.objects("ambiguous-link")
-  select { link = a.name, page = a.page, resolvesTo = a.resolvesTo }
-]]}
+Every ambiguous link to a page is indexed as an [[Tag/ambiguous-link|ambiguous-link]] object.
 
 # Link write format
 The `linkWriteFormat` option in your [[CONFIG]] controls how SilverBullet writes wiki links _it_ generates (through auto complete, and the backlink rewriting that happens when you rename a page). It has no effect on [[#Link resolution|resolution]]: all formats resolve identically, so a space mixing them works fine.
@@ -78,3 +73,5 @@ config.set("linkWriteFormat", "shortest")
 [[Meta Page]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[Library/Std]]` — it resolves exactly the same way. The only difference is that auto complete will _only_ complete meta pages.
 
 Caret links are always written as **full paths**, whatever `linkWriteFormat` says: auto complete inserts the whole path, and renames rewrite them to the whole path. A meta page’s folder is what identifies it — shortening `[[^Library/Std/APIs/Tag]]` to `[[^Tag]]` would point at the ordinary `Tag` page instead.
+
+See [[URI]] for resource addresses and supported schemes.

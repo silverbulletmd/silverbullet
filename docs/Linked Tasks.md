@@ -5,7 +5,6 @@ references:
 - plugs/index/task.ts
 - plugs/index/relation.ts
 ---
-
 It is a common SilverBullet pattern to give people, groups of people and places dedicated pages so you can easily reference them. It then becomes very convenient to mention these pages elsewhere in your space, and using [[Linked Mention]] you can easily find what _pages_ link back to that page.
 
 The equivalent of this idea in the context of [[Task]] is Linked Tasks. These are tasks that _mention_ a particular page.

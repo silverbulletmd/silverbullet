@@ -1,5 +1,5 @@
 ---
-description: "A quick-reference list of SilverBullet-specific terms, generated from the pages tagged glossary."
+description: "Definitions of SilverBullet terms."
 ---
 A quick-reference guide to SilverBullet-specific terminology:
 ${query[[

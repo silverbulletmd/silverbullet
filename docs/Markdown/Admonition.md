@@ -5,7 +5,6 @@ references:
 - client/markdown_parser/custom_syntax.ts
 - client/markdown_renderer/markdown_render.ts
 ---
-
 Silverbullet supports [admonitions](https://github.com/community/community/discussions/16925) using GitHub syntax (`note` and `warning`).
 
 > **note** This is a

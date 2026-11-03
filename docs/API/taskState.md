@@ -5,7 +5,6 @@ references:
 - plugs/index/task.ts
 - plugs/index/item.ts
 ---
-
 APIs to define [[Task#Custom states]].
 
 # API

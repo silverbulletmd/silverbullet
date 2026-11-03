@@ -13,10 +13,10 @@ ${query[[from index.pages() where name == _CTX.currentPage.name]]}
 
 
 ## Field reference
-* `name`: full page name, without `.md`; normally also its `ref` unless a page anchor overrides it.
+* `name`: full page name, without `.md`. Also used as `ref` unless a page anchor overrides it.
 * `created`, `lastModified`: timestamp strings from file metadata.
 * `perm`: `ro` or `rw` for the page’s access mode.
-* `tags`: tags explicitly assigned in frontmatter or a standalone hashtag paragraph; `itags` also includes the root `page` tag.
-* Frontmatter keys become additional attributes. Built-in file metadata takes precedence over frontmatter values with the same name. Optional `pageDecoration` controls the page’s appearance; see [[Page Decorations]].
+* `tags`: tags explicitly assigned in frontmatter or a standalone hashtag paragraph. `itags` also includes the root `page` tag.
+* Frontmatter keys become additional attributes. Built-in file metadata takes precedence over frontmatter values with the same name. Optional `pageDecoration` controls the page’s appearance. See [[Page Decorations]].
 
 See [[Object#Object representation]] for shared fields. The query above shows the values on this page, rather than defining which fields every page must have.

@@ -4,7 +4,6 @@ references:
 - client/space_lua/stdlib/net.ts
 - plug-api/lib/native_fetch.ts
 ---
-
 HTTP APIs
 
 > **warning** Warning
@@ -12,7 +11,6 @@ HTTP APIs
 
 <!--#lua spacelua.renderApiDocumentation("http") -->
 ## http.request
-
 `http.request(url, options?)`
 
 > **Deprecated:** Use net.proxyFetch instead.

@@ -1,49 +1,31 @@
 ---
 tags: guide
 ---
-An aggregator page collects a category of notes or tasks through a live query, so the source material stays in its natural place.
+An aggregator page collects related pages or tasks through a live query. Write the content where it belongs and use the aggregator to find it in one place.
 
-# The pattern
-Pick a category, apply it to the things you want to collect, and create a page containing a query over that category. A collection of outing pages could live on `Outings`; packing tasks could live on `Packing List`. The source kind matters: page queries collect pages, task queries collect tasks.
+# Choose what to collect
+Choose a category and give its members a shared tag. Use the visual frontmatter editor to tag whole pages. Put a tag on a task line to categorize that task. A tag in an ordinary paragraph applies to the paragraph, not the page.
 
-Start with the `Photo Walk` example from [[Getting Started]]. Its frontmatter tags the page `outing`, while `#packing` on the two task lines tags those tasks. Putting `#outing` in an ordinary paragraph would tag the paragraph, not the page.
+Decide whether the overview should collect pages or tasks before building the query. The same tag can appear on different kinds of objects. See [[Markdown/Hashtags]] for tag scope.
 
-# Recipe
-1. Create an `Outings` page in your writable practice space. Add a short introduction so the page makes sense even outside SilverBullet.
-2. Run `Workbench: Query`. Choose `page` with **Content** scope, narrow it to `outing`, and sort by `name` **A–Z**.
-3. Under **Select**, choose **List** and `templates.pageItem`. Put the cursor below the introduction and click **Insert at cursor**.
-4. Link to `[[Outings]]` from your index or another place where you would look for the collection.
+# Build the overview
+1. Create a page for the overview and add a short introduction explaining what it collects.
+2. Run **Workbench: Query**. Choose `page` or `task` under **Root** and select the tag under **From**. For ordinary pages, use **Content** scope to exclude configuration and library pages.
+3. Add filters and an order if needed. Check the preview before narrowing the results further.
+4. Choose a list or table under **Select**. For a list, use `templates.pageItem` for pages or `templates.taskItem` for tasks.
+5. Put the cursor below the introduction and choose **Insert at cursor**.
 
-The complete source is:
+Link to the overview from wherever you need it. To adjust its query later, open the result’s ⋯ menu and choose **Edit in query builder**, then use **Update page**.
 
-```markdown
-${query[[
-  from p = index.contentPages("outing")
-  order by p.name
-  select templates.pageItem(p)
-]]}
-```
+# Keep the collection current
+Adding a matching page or task brings it into the collection after saving and indexing. Removing its tag or changing an attribute used by a filter may remove it. The aggregator does not keep a separate copy of the source content.
 
-Add another page tagged `outing` and it joins the collection after saving and indexing. Removing a page’s tag removes it from the result. The list reflects the current indexed data; it can briefly lag an edit. This avoids separately maintaining the same membership in several places.
+If something is missing, check its tag scope and the query’s root, filters and content scope. [[Guide/When Results Update]] explains refresh behavior.
 
-For a task collection instead, choose `task`, narrow to `packing`, and select `templates.taskItem`. Use `index.tasks("packing")` in source. `index.contentPages("packing")` would look for packing-tagged pages, not the packing tasks. [[Guide/Query Recipes]] provides complete task examples.
+# Open an overview from a tag
+You can make a tag open your overview by defining a `tagPage` mapping with [[API/tag#tag.define(spec)]]. Put the definition in [[CONFIG]] and run **System: Reload**. This is optional. The aggregator works without a custom tag page.
 
-# Optional tag navigation
-An aggregator works without configuration. If you also want clicking the tag to open its overview, define a `tagPage` mapping in [[CONFIG]]. Copy the following into a `space-lua` fenced block there; it is displayed here as inert `lua` source:
+# Keep a portable copy
+Live queries render in SilverBullet. Use [[Baked Sections]] if you also need stored Markdown that other tools can display. Update the baked section when you want to refresh that snapshot.
 
-```lua
-tag.define {
-  name = "outing",
-  tagPage = "Outings",
-}
-```
-
-Run `System: Reload` to load the definition. Keep `tag.define` calls in `CONFIG` so definitions that affect indexing are available before pages are indexed. If you later add a transform, existing content needs reindexing; see [[Guide/When Results Update]] and [[API/tag#tag.define(spec)]].
-
-# Choosing the source
-`index.contentPages("outing")` excludes [[Meta Page|meta pages]], which usually keeps configuration and library notes out of ordinary collections. `index.pages("outing")` includes matching meta pages too. `index.objects("outing")` can return every object kind carrying that tag; do not use it as a synonym for pages. [[Object Index]] describes these helpers.
-
-# Examples in this manual
-The documentation uses the same pattern for [[ADR]] (pages tagged `adr`) and [[Architecture]] (pages tagged `component`), with tag navigation registered in [[CONFIG]]. [[Glossary]] is another category overview. Their content belongs to this documentation space; copy the pattern into your own space and choose your own category.
-
-The query renders live in SilverBullet. For a stored portable version, use [[Baked Sections]] and update it explicitly when the source changes.
+[[Workbench/Query]] documents the builder controls. [[Object Index]] explains the available query sources.

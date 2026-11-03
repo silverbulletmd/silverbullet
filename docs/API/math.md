@@ -3,12 +3,10 @@ tags: api/lua
 references:
 - client/space_lua/stdlib/math.ts
 ---
-
 The `math` namespace contains Lua-compatible numeric functions plus Space Lua’s `cosineSimilarity` helper.
 
 <!--#lua spacelua.renderApiDocumentation("math") -->
 ## math.abs
-
 `math.abs(x)`
 
 Returns the absolute value of `x`.
@@ -22,7 +20,6 @@ Returns the absolute value of `x`.
 - `number`
 
 ## math.acos
-
 `math.acos(x)`
 
 Returns the arc cosine of `x` in radians.
@@ -36,7 +33,6 @@ Returns the arc cosine of `x` in radians.
 - `number`
 
 ## math.asin
-
 `math.asin(x)`
 
 Returns the arc sine of `x` in radians.
@@ -50,7 +46,6 @@ Returns the arc sine of `x` in radians.
 - `number`
 
 ## math.atan
-
 `math.atan(y, x?)`
 
 Returns the arc tangent of `y/x` in radians, using `1` for omitted `x`.
@@ -65,7 +60,6 @@ Returns the arc tangent of `y/x` in radians, using `1` for omitted `x`.
 - `number`
 
 ## math.ceil
-
 `math.ceil(x)`
 
 Returns the smallest integer greater than or equal to `x`.
@@ -79,7 +73,6 @@ Returns the smallest integer greater than or equal to `x`.
 - `integer`
 
 ## math.cos
-
 `math.cos(x)`
 
 Returns the cosine of `x` radians.
@@ -93,7 +86,6 @@ Returns the cosine of `x` radians.
 - `number`
 
 ## math.cosh
-
 `math.cosh(x)`
 
 > **Deprecated:** Retained for compatibility with older Lua versions.
@@ -109,7 +101,6 @@ Returns the hyperbolic cosine of `x`.
 - `number`
 
 ## math.cosineSimilarity
-
 `math.cosineSimilarity(vecA, vecB)`
 
 Returns the cosine similarity between two equal-length numeric vectors.
@@ -130,7 +121,6 @@ print(math.cosineSimilarity({1, 2, 3}, {4, 5, 6}))
 ```
 
 ## math.deg
-
 `math.deg(x)`
 
 Converts an angle from radians to degrees.
@@ -150,7 +140,6 @@ print(math.deg(math.pi)) -- 180
 ```
 
 ## math.exp
-
 `math.exp(x)`
 
 Returns `e` raised to `x`.
@@ -164,7 +153,6 @@ Returns `e` raised to `x`.
 - `number`
 
 ## math.floor
-
 `math.floor(x)`
 
 Returns the largest integer less than or equal to `x`.
@@ -178,7 +166,6 @@ Returns the largest integer less than or equal to `x`.
 - `integer`
 
 ## math.fmod
-
 `math.fmod(x, y)`
 
 Returns the remainder of `x / y` with the quotient rounded toward zero.
@@ -193,7 +180,6 @@ Returns the remainder of `x / y` with the quotient rounded toward zero.
 - `number`
 
 ## math.frexp
-
 `math.frexp(x)`
 
 Decomposes `x` into a normalized fraction and a power-of-two exponent.
@@ -208,7 +194,6 @@ Decomposes `x` into a normalized fraction and a power-of-two exponent.
 - `integer` — Exponent.
 
 ## math.ldexp
-
 `math.ldexp(m, e)`
 
 Returns `m * 2^e`, the inverse of `math.frexp`.
@@ -223,7 +208,6 @@ Returns `m * 2^e`, the inverse of `math.frexp`.
 - `number`
 
 ## math.log
-
 `math.log(x, base?)`
 
 Returns the logarithm of `x`, using the natural base unless another base is supplied.
@@ -244,7 +228,6 @@ print(math.log(100, 10)) -- 2
 ```
 
 ## math.max
-
 `math.max(x, ...): number`
 
 Returns the greatest of its arguments.
@@ -254,7 +237,6 @@ Returns the greatest of its arguments.
 - `number`
 
 ## math.min
-
 `math.min(x, ...): number`
 
 Returns the least of its arguments.
@@ -264,7 +246,6 @@ Returns the least of its arguments.
 - `number`
 
 ## math.modf
-
 `math.modf(x)`
 
 Splits `x` into its integral and fractional parts.
@@ -285,7 +266,6 @@ local integer, fraction = math.modf(3.14)
 ```
 
 ## math.pow
-
 `math.pow(x, y)`
 
 > **Deprecated:** Use the `^` operator instead.
@@ -302,7 +282,6 @@ Returns `x` raised to the power `y`.
 - `number`
 
 ## math.rad
-
 `math.rad(x)`
 
 Converts an angle from degrees to radians.
@@ -316,7 +295,6 @@ Converts an angle from degrees to radians.
 - `number`
 
 ## math.random
-
 `math.random(): number`
 `math.random(n): integer`
 `math.random(m, n): integer`
@@ -341,7 +319,6 @@ print(math.random(5, 10))
 ```
 
 ## math.randomseed
-
 `math.randomseed(): integer, integer`
 `math.randomseed(x, y): integer, integer`
 
@@ -358,7 +335,6 @@ Seeds the pseudo-random generator and returns the two seeds used.
 - `integer` — Second seed.
 
 ## math.sin
-
 `math.sin(x)`
 
 Returns the sine of `x` radians.
@@ -372,7 +348,6 @@ Returns the sine of `x` radians.
 - `number`
 
 ## math.sinh
-
 `math.sinh(x)`
 
 > **Deprecated:** Retained for compatibility with older Lua versions.
@@ -388,7 +363,6 @@ Returns the hyperbolic sine of `x`.
 - `number`
 
 ## math.sqrt
-
 `math.sqrt(x)`
 
 Returns the square root of `x`.
@@ -402,7 +376,6 @@ Returns the square root of `x`.
 - `number`
 
 ## math.tan
-
 `math.tan(x)`
 
 Returns the tangent of `x` radians.
@@ -416,7 +389,6 @@ Returns the tangent of `x` radians.
 - `number`
 
 ## math.tanh
-
 `math.tanh(x)`
 
 > **Deprecated:** Retained for compatibility with older Lua versions.
@@ -432,7 +404,6 @@ Returns the hyperbolic tangent of `x`.
 - `number`
 
 ## math.tointeger
-
 `math.tointeger(x)`
 
 Converts a value to an integer when it has an exact finite integral representation.
@@ -446,7 +417,6 @@ Converts a value to an integer when it has an exact finite integral representati
 - `integer|nil` — Converted integer or `nil`.
 
 ## math.type
-
 `math.type(x)`
 
 Returns `integer` or `float` for a number, or `nil` for other values.
@@ -460,7 +430,6 @@ Returns `integer` or `float` for a number, or `nil` for other values.
 - `string|nil` — Numeric subtype or `nil`.
 
 ## math.ult
-
 `math.ult(m, n)`
 
 Compares two integers as unsigned 32-bit values.

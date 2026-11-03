@@ -19,7 +19,7 @@ The host object itself (paragraph, task, header, item, or any user-defined `#tag
 
 `snippet` and `pageLastModified` were added after anchors first shipped, without bumping the index’s `desiredIndexVersion` — deliberately, to avoid forcing every space through a full reindex just for two display fields. That’s why both are optional: anchor records written before this change have neither, and will keep lacking them until their page is re-indexed (which happens automatically on the next edit to that page, or all at once via ${widgets.commandButton("Space: Reindex")}). Until then, pickers fall back to showing `hostTag on page` for that anchor instead of a snippet.
 
-Position and range are not stored on the anchor record itself. The resolver looks the host up via `getObjectByRef(page, hostTag, ref)` and reads `range` from the host, which avoids drift between the two records on edits; `snippet` is derived from that same host `range` at index time.
+Position and range are not stored on the anchor record itself. The resolver looks the host up via `getObjectByRef(page, hostTag, ref)` and reads `range` from the host, which avoids drift between the two records on edits. `snippet` is derived from that same host `range` at index time.
 
 # All anchors in this space
 ${query[[from index.objects("anchor")]]}

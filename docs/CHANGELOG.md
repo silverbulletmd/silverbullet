@@ -18,31 +18,33 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
 * [[Share]] refresh:
   * New [[Shared Pages]] view (`Navigate: Shared Pages`): lists your shared pages, libraries and repositories with their status, checks their remotes, and shares, opens, copies links to or updates them.
-  * [[Share#Collections|Collections]]: publish a _set_ of pages.
+  * [[Share/Collection|Collections]]: publish a _set_ of pages.
   * Sharing no longer changes the source page or stores `share.hash` in its frontmatter.
   * Support for publishing to other SilverBullet spaces (see [[^Library/Std/Infrastructure/SilverBullet Share]])
-  * Sign in to GitHub with a device code instead of configuring a personal access token. Credentials stay on the current device and are never synced; `Credentials: List` and `Credentials: Clear` let you inspect and remove them. Sharing individual pages with another SilverBullet space now supports push, pull and sync with device-code sign-in. See [[API/auth]] and [[API/github]].
+  * Sign in to GitHub with a device code instead of configuring a personal access token. Credentials stay on the current device and are never synced. `Credentials: List` and `Credentials: Clear` let you inspect and remove them. Sharing individual pages with another SilverBullet space now supports push, pull and sync with device-code sign-in. See [[API/auth]] and [[API/github]].
 * [[CLI]] unification. There is now a single `sb` CLI (installation instructions in [[CLI#Installation]]) that can be used both remotely with Server, and locally with [[Desktop]].
 * Dashboard widgets (`widgets.chip`, `widgets.stat`, `widgets.bars` and `widgets.grid`) have moved out of core to the optional [Dashboard library](https://github.com/silverbulletmd/silverbullet-libraries/blob/main/Library/silverbulletmd/Dashboard.md). Install it through [[Workbench/Libraries]] to keep using them.
 * New [[API/object]] API to change, delete and create objects where they are written, for building small apps on your pages: `object.update` (frontmatter, task state and text, tags, inline attributes, data block keys, table cells), `object.delete`, `object.append` (tasks, items, table rows, data block documents) and `object.createPage`.
 * More consistent [[Tag]] terminology: every object has exactly one root tag (`page`, `task`, `data`, ...), plus any number of user tags. Every built-in tag now has its own page under `Tag/` (formerly `Object/`), grouped into root, system, edge and index tags.
   * New `index.data(tag?)` returns the objects of every data block.
   * Hashtags in headers and table rows are now recorded as tags, and every tag records the root tag it is used on as its `parent` (hashtags in paragraphs used to say `page`). Headers and table rows now get `itags` like other objects.
-  * [[Tag/data]] block keys can no longer overwrite `ref`, `tag` or `itags`, and relations from data blocks now point at the object they’re written in. A data block named after a built-in tag (` ```#task `) is no longer indexed; lint flags it.
+  * [[Tag/data]] block keys can no longer overwrite `ref`, `tag` or `itags`, and relations from data blocks now point at the object they’re written in. A data block named after a built-in tag (` ```#task `) is no longer indexed. Lint flags it.
 * The [[Object Graph]] is now a view with **Local** and **Global** tabs (`Graph: Explore`, `Graph: Global Page Map`) that can dock in a sidebar or the bottom panel, where the local graph follows the page you open.
 * New context menus for widgets and views.
 * Plugs can declare dockable panel views in their manifest ([[Plugs/Development/Reference#`view` (panel view)|`view`]]): a sandboxed HTML panel that can show in the modal window, a sidebar or the bottom panel, with tabs, and optionally rebuilt for each page opened.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
 * Lua:
+  * Performance: `pairs()` no longer copies the whole table on each iteration, reducing pauses in views that loop over many pages.
   * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don’t depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
   * Eligible queries with a `limit` stop reading once enough rows are collected, and Workbench query previews avoid loading unnecessary rows.
   * New APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]), and `config.persist` writes one configuration value to the managed block of [[CONFIG]] (see [[API/config]]).
   * `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
-  * `net.proxyFetch` now sets `ok` from the remote server’s status (2xx), as its `status` already was; it used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing; publishing still authenticates. See [[API/net]].
+  * `net.proxyFetch` now sets `ok` from the remote server’s status (2xx), as its `status` already was. It used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing. Publishing still authenticates. See [[API/net]].
   * `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
   * **Potentially breaking:** `command.define`, `slashCommand.define`, `identity.define`, `taskState.define`, `codeWidget.define`, `virtualPage.define` and `syntax.define` now _merge_ repeated definitions with the same name, like `tag.define` already did, so you can e.g. define a tag’s schema in one place and add a `transform` elsewhere. Previously, each call replaced the whole definition.
+* Fix: index-backed views no longer refresh halfway through a queued reindex, which could temporarily hide the page being edited.
 * Fix: Git sync errors caused by unrelated histories now offer a recovery action to check and combine both histories. Automatic revisions created during the connection check no longer invalidate it.
-* Fix: key bindings changed in the Configuration tab now take effect on macOS. A cross-platform (`Mod-…`) shortcut or a removed one used to leave the command’s built-in macOS binding in place ([#2178](https://github.com/silverbulletmd/silverbullet/issues/2178)); bindings saved that way are repaired the next time you save.
+* Fix: key bindings changed in the Configuration tab now take effect on macOS. A cross-platform (`Mod-…`) shortcut or a removed one used to leave the command’s built-in macOS binding in place ([#2178](https://github.com/silverbulletmd/silverbullet/issues/2178)). Bindings saved that way are repaired the next time you save.
 * Fix: stale Android keyboard cursor updates no longer move typed characters to the wrong position during rapid editing.
 * Fix: [[Single Sign-On|SSO]] administrators can be the sole administrator, allowing removal of the initial local account. The last enabled administrator remains protected from deletion, demotion and disabling.
 * Fix: sandboxed widgets and document editors (such as the image viewer) no longer leak memory each time they render or open, which made long sessions gradually slower.
@@ -51,11 +53,11 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 ## 2.12.1
 * Security: the filesystem API refuses access to dot-prefixed files and directories, consistent with space listings.
 * Fix: HTTP file validators respect `If-None-Match` precedence, and file reads and conditional writes tolerate proxies that weaken or transform ETags.
-* Fix: YAML data blocks split only on standalone `---` lines; X-Ray includes attributes added during indexing.
+* Fix: YAML data blocks split only on standalone `---` lines. X-Ray includes attributes added during indexing.
 * Fix: `system.reboot()` preserves external edits and clears cached widgets. Reopening a page restores a remembered scroll position of zero.
 * Fix: the [[Runtime API]] returns JSON for query rows, null values, dates and other Lua values without serialization crashes, and remains usable after the client reloads its UI.
 * SLIQ errors offer more specific explanations for common mistakes.
-* Public spaces expose `robots.txt` and a sitemap of content pages, with canonical URLs and descriptions in the initial HTML. Metadata pages are excluded from the sitemap and marked `noindex`; encoded page names render correctly, frontmatter is hidden, and missing pages return HTTP 404. Read-only spaces show a “Page not found” view with a link home.
+* Public spaces expose `robots.txt` and a sitemap of content pages, with canonical URLs and descriptions in the initial HTML. Metadata pages are excluded from the sitemap and marked `noindex`. Encoded page names render correctly, frontmatter is hidden, and missing pages return HTTP 404. Read-only spaces show a “Page not found” view with a link home.
 * Client builds remove stale bundle chunks and omit source maps from release binaries.
 
 ## 2.12.0 
@@ -155,7 +157,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: the docker image ignored `PUID`/`PGID` and space folder ownership, running as `root` and creating root-owned files
 * Fix: the FreeBSD **server** binary is being built and released again
 * Fix: [[Dashboard|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Install/Configuration]] documents.
-* The [[Runtime API]] now uses a separate Chrome process and temporary profile for each user and space, isolating cookies, browser storage, and logs. Runtime requests carry the user’s identity; revoking access stops the affected browser. Chrome detection is reported at startup.
+* The [[Runtime API]] now uses a separate Chrome process and temporary profile for each user and space, isolating cookies, browser storage, and logs. Runtime requests carry the user’s identity. Revoking access stops the affected browser. Chrome detection is reported at startup.
 * Fix: the Runtime API failed to start when authentication was enabled.
 * **[[CLI|CLI]] remote file operations:** `sb fs` lists, reads, creates, edits, and deletes space files without the Runtime API. Exact text replacements support batches and revision checks to detect concurrent changes.
 * Removed the experimental `sb repl` command and its dedicated runtime support. Use `sb lua`, `sb lua-script`, and `sb logs` for terminal access.
@@ -183,7 +185,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: only the first entry of a frontmatter list of wiki links formed a [[Tag/relation|relation]] (e.g. an `authors:` list of `[[...]]` items), so every entry after the first was missing from [[Object Graph]], linked mentions and rename refactoring.
 * Fix: writing to a read-only path (anything served from the bundled library, a `SB_READ_ONLY` server) returned a 500, which clients could not tell apart from a temporary server fault — so a syncing client retried it forever. Read-only refusals now return 403, and the sync engine records the path and stops re-attempting it until the local file changes. This most often bit spaces holding a stale copy of a `Library/Std` page that a later release had dropped from the bundle.
 * Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
-* Fix: the service worker precached client assets *through* the browser’s HTTP cache, so a stale client could be copied into its cache and then served as though it were the current build — leaving a “A new version of SilverBullet client is available.” notification that no reload could clear (only a hard reload, which bypasses the service worker, showed the real client; the next normal reload brought the notification back). Precaching now bypasses the HTTP cache.
+* Fix: the service worker precached client assets *through* the browser’s HTTP cache, so a stale client could be copied into its cache and then served as though it were the current build — leaving a “A new version of SilverBullet client is available.” notification that no reload could clear (only a hard reload, which bypasses the service worker, showed the real client, but the next normal reload brought the notification back). Precaching now bypasses the HTTP cache.
 * The server now sets `Cache-Control` on client assets, which matters if you run SilverBullet behind a CDN.
 * Lua: Space Lua comments are now parsed and retained in the AST instead of being stripped before parsing  (part of the enabler for code complete with documentation).
 * Fix: first-ever load of an authenticated space no longer shows a spurious “Could not process config and no cached copy, please connect to the Internet” alert before redirecting to the login page (the login redirect aborted the remaining boot requests, which were misread as being offline).
@@ -196,7 +198,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: Lua pattern matching lost capture groups, because `ipairs` dropped `nil` values from the result table (by [henrikx](https://github.com/henrikx)).
 * Fix: `lintObjects` threw when a page’s `pageMeta` was undefined (by [josh-j](https://github.com/josh-j)).
 * Fix: `mq.poll` materialized the entire queue on every poll (by [josh-j](https://github.com/josh-j)).
-* Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
+* Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position. The editor now re-syncs it after a paste.
 * Navigating to a page via a link now always opens it fresh (at the top, or at an explicit `#header`/`@pos` pointer in the link) instead of restoring your previous cursor and scroll position. Returning to a page via browser Back/Forward or the [[Page Picker]] still restores where you were. Plugs/Lua can opt into restoring with the new `editor.open` syscall (see [[API/editor]]).
 * Fix: modals now set `box-sizing`, so their padding no longer pushes content past the intended width (by [Federico Scodelaro](https://github.com/pudymody)).
 * Favicon definitions cleaned up and documented following current best practices (by [Jorge Marin](https://github.com/chipironcin)).
@@ -239,11 +241,11 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 ## 2.8.0
 * [[X-Ray]]: an editor lens (run `Editor: Toggle X-Ray`) to inspect indexed objects inline.
-* New built-in [[Journal]] library.
+* New built-in [[Guide/Journal|Journal]] library.
 * Runtime API: Expose objects (with filter) `/.runtime/objects/*` for external integrations and the [[CLI]], see [[Runtime API]].
 * New `SB_DISABLE_SERVICE_WORKER` : server-side switch to disable the client service worker for all clients, this will disable sync (all loads and saves will go directly to the server) and disable any offline support.
 * UX: now showing spinners instead of underlying (Lua) code in states where widgets aren’t ready to render yet (e.g. before an initial index hasn’t completed)
-* Fix: indexed `range` for `data` blocks (and `#tag` data blocks) now points at the YAML content instead of the surrounding fence markers; multi-document blocks now compute per-doc ranges correctly.
+* Fix: indexed `range` for `data` blocks (and `#tag` data blocks) now points at the YAML content instead of the surrounding fence markers. Multi-document blocks now compute per-doc ranges correctly.
 * `sb` CLI changed how it encrypts secrets, so if you used token or password-based auth you need to re-add your space.
 * Fix: indexed `range` for `space-lua` and `space-style` blocks now points at the inner code, not the ` ``` ` fences.
 * Fix: [[Page Template]]s are now fixed (required specifying of `suggestedName` before), now also supports objects as frontmatter
@@ -271,7 +273,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Keyboard shortcut for `Navigate: Home` changed to `Ctrl-Shift-h`/`Cmd-Shift-h`
 * Action buttons: new `command` attribute for `actionButton.define`. When using this instead of a `run` callback, keyboard bindings will appear in the tooltip.
 * Docker: removed `VOLUME` declaration from the Dockerfile (it gave a false sense of persistence `/space` must be explicitly mounted, as documented). This also fixed the silverbullet-website repo.
-* Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503; previously synced spaces serve locally immediately after a service worker restart.
+* Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503. Previously synced spaces serve locally immediately after a service worker restart.
 * Fix: navigation no longer blocks while the initial index is still running.
 * Fix: rich text paste only worked on the second try
 * Fix: indexing blew up with malformed bullet list items
@@ -279,7 +281,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: auto complete of meta pages was broken
 * Fix: page rename failed when the page contains external URL links.
 * Fix: too-tall mini editor in various pickers on Safari.
-* Security fix: auth cookies now set stricter security flags (HttpOnly, Secure, SameSite); auth config file corruption no longer fails silently.
+* Security fix: auth cookies now set stricter security flags (HttpOnly, Secure, SameSite). Auth config file corruption no longer fails silently.
 * Potentially **breaking** CSS change for theme authors: `.sb-notifications` has moved in the DOM (notifications now portal to `document.body`).
 * New [[API/system]] syscalls `system.loadPlug` / `system.unloadPlug` for per-path plug (re)loading.
 * New [[API/editor]] syscall `editor.focus` for explicitly focusing the editor.
@@ -350,7 +352,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: unwrap multi-return values in PropertyAccess and method calls (by [Brett Anthoine](https://github.com/banthoine)).
 * Fix: allow colons in `SB_USER` password (by [Joshua Brunner](https://github.com/joshuabrunner)).
 * Fix: mobile tasks caret jumping and empty widgets on navigation.
-* Mobile: home button moved outside of the dropdown menu; hamburger menu style tweaks.
+* Mobile: home button moved outside of the dropdown menu. Hamburger menu style tweaks.
 * Fix: extended task state widget click behavior and rendering in widgets.
 * Fix: safer handling of default template files in non-empty spaces.
 * Frontmatter `tags:` key now has autocomplete support.
@@ -398,11 +400,11 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [Improved numeric type semantics](https://github.com/silverbulletmd/silverbullet/pull/1803)
   * Implement `string.pack`, `string.unpack` and `string.packsize`
   * Implement `math.random`, `math.randomseed`, `math.tointeger`, `math.frexp` and `math.ldexp`
-  * Implement `table.move`; align `table.pack` and `table.unpack` with Lua semantics
+  * Implement `table.move`. Align `table.pack` and `table.unpack` with Lua semantics
   * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Integrated Query]] `select` clauses, see example in docs.
   * [Extend `os` module](https://github.com/silverbulletmd/silverbullet/pull/1836)
   * Add `_VERSION` environment variable
-  * `tostring()` now respects `__tostring` metamethod; `#` operator now respects `__len` metamethod
+  * `tostring()` now respects `__tostring` metamethod. `#` operator now respects `__len` metamethod
   * Fix: `table.sort` comparator, `string.gsub` table replacement, `math.modf` return types, number formatting in `..` and `table.concat`
   * **Load order** of scripts is now well defined: `order by (script.priority or 0) desc, script.ref`
 * New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:

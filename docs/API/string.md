@@ -4,18 +4,16 @@ references:
 - client/space_lua/stdlib/string.ts
 - client/space_lua/stdlib/string_pack.ts
 ---
-
 The `string` module contains Lua string operations and Space Lua extensions.
 
 > **note** Note
 > Since string values use `string` as their metatable, these APIs can also be called as methods. For example, `someString:startsWith("h")` is equivalent to `string.startsWith(someString, "h")`.
 
 ## Lua pattern matching
-
 Lua patterns are not regular expressions. Space Lua translates Lua patterns to JavaScript regular expressions and has a few compatibility differences:
 
 1. Magic characters `^$()%.[]*+-?` must be escaped to represent literal characters. Standard Lua does not require escaping a magic character when it is not contextually magic, so patterns such as `%d--` can behave differently in Space Lua.
-2. Space Lua allows repetition characters (`?`, `*`, `+`, and `-`) to apply to captures; standard Lua does not.
+2. Space Lua allows repetition characters (`?`, `*`, `+`, and `-`) to apply to captures. Standard Lua does not.
 3. The *n*th captured string (`%n`), balanced match (`%bxy`), and frontier pattern (`%f[set]`) forms from the [Lua 5.4 pattern manual](https://www.lua.org/manual/5.4/manual.html#6.4.1) may not be supported.
 
 The `string.matchRegex` and `string.matchRegexAll` extensions use JavaScript regular expressions instead of Lua patterns.
@@ -38,7 +36,6 @@ print(string.match("2024-03-14", "%d+-(%d+)-%d+"))
 
 <!--#lua spacelua.renderApiDocumentation("string") -->
 ## string.byte
-
 `string.byte(s, i?, j?)`
 
 Returns the numeric character codes in the inclusive range from `i` to `j`.
@@ -54,7 +51,6 @@ Returns the numeric character codes in the inclusive range from `i` to `j`.
 - `integer` — One result per character.
 
 ## string.char
-
 `string.char(...): string`
 
 Creates a string from numeric character codes.
@@ -64,7 +60,6 @@ Creates a string from numeric character codes.
 - `string`
 
 ## string.endsWith
-
 `string.endsWith(s, suffix)`
 
 Returns whether a string ends with a literal suffix.
@@ -79,7 +74,6 @@ Returns whether a string ends with a literal suffix.
 - `boolean`
 
 ## string.find
-
 `string.find(s, pattern, init?, plain?)`
 
 Finds the first Lua-pattern match and returns its bounds followed by captures.
@@ -97,7 +91,6 @@ Finds the first Lua-pattern match and returns its bounds followed by captures.
 - `integer` — End index.
 
 ## string.format
-
 `string.format(format, ...): string`
 
 Formats values according to a C-style format string.
@@ -118,7 +111,6 @@ print(string.format("Name: %s, score: %.1f", "Ada", 9.5))
 ```
 
 ## string.gmatch
-
 `string.gmatch(s, pattern, init?)`
 
 Returns an iterator over successive Lua-pattern matches and captures.
@@ -142,7 +134,6 @@ end
 ```
 
 ## string.gsub
-
 `string.gsub(s, pattern, replacement, n?)`
 
 Replaces Lua-pattern matches using a string, table, or function replacement.
@@ -167,7 +158,6 @@ print(result, count) -- hi hello  1
 ```
 
 ## string.len
-
 `string.len(s)`
 
 Returns the length of a string.
@@ -181,7 +171,6 @@ Returns the length of a string.
 - `integer`
 
 ## string.lower
-
 `string.lower(s)`
 
 Returns a copy of a string converted to lowercase.
@@ -195,7 +184,6 @@ Returns a copy of a string converted to lowercase.
 - `string`
 
 ## string.match
-
 `string.match(s, pattern, init?)`
 
 Returns captures from the first Lua-pattern match, or `nil` when none is found.
@@ -217,7 +205,6 @@ local year, month = string.match("2024-03", "(%d+)%-(%d+)")
 ```
 
 ## string.matchRegex
-
 `string.matchRegex(s, pattern)`
 
 Matches a string with a JavaScript regular expression and returns the match array.
@@ -239,7 +226,6 @@ print(match[1], match[2], match[3])
 ```
 
 ## string.matchRegexAll
-
 `string.matchRegexAll(s, pattern)`
 
 Returns an iterator over all JavaScript regular-expression matches.
@@ -262,7 +248,6 @@ end
 ```
 
 ## string.pack
-
 `string.pack(format, ...): string`
 
 Packs values into a binary string according to a Lua 5.4 format string.
@@ -277,7 +262,6 @@ Packs values into a binary string according to a Lua 5.4 format string.
 - `string` — Packed binary string.
 
 ## string.packsize
-
 `string.packsize(format)`
 
 Returns the byte size of a fixed-length Lua 5.4 packing format.
@@ -291,7 +275,6 @@ Returns the byte size of a fixed-length Lua 5.4 packing format.
 - `integer` — Packed byte count.
 
 ## string.rep
-
 `string.rep(s, n, sep?)`
 
 Returns `n` copies of a string joined by an optional separator.
@@ -307,7 +290,6 @@ Returns `n` copies of a string joined by an optional separator.
 - `string`
 
 ## string.reverse
-
 `string.reverse(s)`
 
 Returns a string with its characters in reverse order.
@@ -321,7 +303,6 @@ Returns a string with its characters in reverse order.
 - `string`
 
 ## string.split
-
 `string.split(s, sep)`
 
 Splits a string on a literal separator and returns the substrings.
@@ -344,7 +325,6 @@ end
 ```
 
 ## string.startsWith
-
 `string.startsWith(s, prefix)`
 
 Returns whether a string starts with a literal prefix.
@@ -359,7 +339,6 @@ Returns whether a string starts with a literal prefix.
 - `boolean`
 
 ## string.sub
-
 `string.sub(s, i, j?)`
 
 Returns the substring from inclusive index `i` through `j`, supporting negative indices.
@@ -375,7 +354,6 @@ Returns the substring from inclusive index `i` through `j`, supporting negative 
 - `string`
 
 ## string.trim
-
 `string.trim(s)`
 
 Removes whitespace from both ends of a string.
@@ -389,7 +367,6 @@ Removes whitespace from both ends of a string.
 - `string`
 
 ## string.trimEnd
-
 `string.trimEnd(s)`
 
 Removes whitespace from the end of a string.
@@ -403,7 +380,6 @@ Removes whitespace from the end of a string.
 - `string`
 
 ## string.trimStart
-
 `string.trimStart(s)`
 
 Removes whitespace from the beginning of a string.
@@ -417,7 +393,6 @@ Removes whitespace from the beginning of a string.
 - `string`
 
 ## string.unpack
-
 `string.unpack(format, data, init?)`
 
 Unpacks values from a binary string according to a Lua 5.4 format string.
@@ -433,7 +408,6 @@ Unpacks values from a binary string according to a Lua 5.4 format string.
 - Value — Unpacked values followed by the next unread position.
 
 ## string.upper
-
 `string.upper(s)`
 
 Returns a copy of a string converted to uppercase.

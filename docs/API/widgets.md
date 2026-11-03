@@ -16,7 +16,7 @@ ${widgets.button("Say hi", function()
 end)}
 
 ## widgets.commandButton(commandName) / widgets.commandButton(text, commandName, args?)
-A button that runs a [[Command|command]]. With one argument, the command name is also the label; `args` is a list of arguments passed to the command.
+A button that runs a [[Command|command]]. With one argument, the command name is also the label. `args` is a list of arguments passed to the command.
 
 ${widgets.commandButton("Reload", "System: Reload")}
 
@@ -24,4 +24,4 @@ ${widgets.commandButton("Reload", "System: Reload")}
 A list of the pages below `pageName` (default: the current page).
 
 ## Input widgets
-`widgets.textInput`, `numberInput`, `booleanInput`, `dateInput`, `selectInput`, `listInput`, `chipsInput`, `tagsInput`, `identitiesInput`, `refInput`, `refListInput`, `schemaInput`, `menu` and `openMenu` (opens a `menu` node from the keyboard) are form controls for your own widgets and forms; `widgets.inputFormats` registers inputs for custom formats. They are documented in [[^Library/Std/Widgets/Inputs]].
+`widgets.textInput`, `numberInput`, `booleanInput`, `dateInput`, `selectInput`, `listInput`, `chipsInput`, `tagsInput`, `identitiesInput`, `refInput`, `refListInput`, `schemaInput`, `menu` and `openMenu` (opens a `menu` node from the keyboard) are form controls for your own widgets and forms. `widgets.inputFormats` registers inputs for custom formats. They are documented in [[^Library/Std/Widgets/Inputs]].

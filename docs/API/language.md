@@ -4,12 +4,10 @@ references:
 - plug-api/syscalls/language.ts
 - client/plugos/syscalls/language.ts
 ---
-
-The Language API provides functions for parsing code in various programming languages and listing supported languages.
+Parse source code and list supported programming languages.
 
 <!--#lua spacelua.renderApiDocumentation("language") -->
 ## language.listLanguages
-
 `language.listLanguages()`
 
 Lists all supported fenced-code-block languages.
@@ -25,7 +23,6 @@ local languages = language.listLanguages()
 ```
 
 ## language.parseLanguage
-
 `language.parseLanguage(language, code)`
 
 Parses code using a supported fenced-code-block language.

@@ -21,7 +21,7 @@ The tab has three parts:
 * **Group By:** one result per distinct value of an attribute (or combination of attributes). The **Select** row then shows group columns: each is a group key or an aggregate of an attribute, like `count` or `avg`, including your own [[Space Lua/Integrated Query/Aggregating|aggregates]].
 * **Order By:** the order, with directions named for the attribute’s type (*earliest first*, *A–Z*, *high to low*). Click an order to flip it. While grouping, you order by a group key or an aggregate column.
 * **Select:** what each result shows.
-  * **Table** (the default): a column per attribute the objects have. Remove, rename and reorder columns, or *Clear all* to start from none; a *Page link* column makes an attribute a link, and an *Expression* column computes its value.
+  * **Table** (the default): a column per attribute the objects have. Remove, rename and reorder columns, or *Clear all* to start from none. A *Page link* column makes an attribute a link, and an *Expression* column computes its value.
   * **List:** one line per result, from a template your space defines under `templates.*` (such as tasks with their checkbox), or a *Custom template…* you write with the attributes as `${name}`.
 * **Limit:** how many results you’d like to show.
 
@@ -40,4 +40,4 @@ The bar at the bottom shows the query (at least part of it).
 * **Run in Console** runs it in the [[Workbench/Console|Console]], where you can look at its result as Lua values.
 
 # Editing a query on a page
-To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. This is best effort: not every handwritten query can be represented by the visual builder. Editing and inserting queries requires a writable page. For a complete exercise in your own space, follow [[Guide/Build Your First Query]].
+To change a `${query[[…]]}` already on a page, choose *Edit in query builder* from its widget’s menu, or put the cursor in it and run ${widgets.commandButton("Workbench: Edit Query")}. This is best effort: not every handwritten query can be represented by the visual builder. Editing and inserting queries requires a writable page. For a complete exercise in your own space, follow [[Guide/Add Structure and Query]].

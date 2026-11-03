@@ -3,11 +3,9 @@ tags: api/lua
 references:
 - client/space_lua/stdlib/os.ts
 ---
-
 The `os` namespace provides date, time, and clock functions.
 
 ## Date formats
-
 `os.date` accepts ISO C `strftime`-style format strings. Prefix the format with `!` to use UTC, or use `*t` (and `!*t` for UTC) to return a table of date fields.
 
 - `%Y`: full year
@@ -29,7 +27,6 @@ The `os` namespace provides date, time, and clock functions.
 
 <!--#lua spacelua.renderApiDocumentation("os") -->
 ## os.clock
-
 `os.clock()`
 
 Returns a high-resolution elapsed time value in seconds.
@@ -39,7 +36,6 @@ Returns a high-resolution elapsed time value in seconds.
 - `number` — Browser performance timer in seconds.
 
 ## os.date
-
 `os.date(format?, timestamp?)`
 
 Formats a timestamp as a date string or date table, optionally in UTC.
@@ -47,7 +43,7 @@ Formats a timestamp as a date string or date table, optionally in UTC.
 **Parameters:**
 
 - `format?` (`string`) — `strftime`-style format, `*t` for a table, and optional leading `!` for UTC.
-- `timestamp?` (`number`) — Unix timestamp; defaults to the current time.
+- `timestamp?` (`number`) — Unix timestamp. Defaults to the current time.
 
 **Returns:**
 
@@ -61,7 +57,6 @@ local utc = os.date("!*t")
 ```
 
 ## os.difftime
-
 `os.difftime(t2, t1)`
 
 Returns the difference in seconds from timestamp `t1` to `t2`.
@@ -76,7 +71,6 @@ Returns the difference in seconds from timestamp `t1` to `t2`.
 - `number` — The value `t2 - t1` in seconds.
 
 ## os.time
-
 `os.time(): integer`
 `os.time(dateTable): integer`
 

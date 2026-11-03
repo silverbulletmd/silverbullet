@@ -1,5 +1,5 @@
 ---
-description: "A collection of videos introducing SilverBullet."
+description: "Video introductions to SilverBullet."
 ---
 Prefer video? These introductions show SilverBullet workflows. Some recordings use older versions, so use the current written guides for exact commands and UI:
 

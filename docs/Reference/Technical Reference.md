@@ -1,8 +1,8 @@
 Interfaces and internals for integrations, deployments and development.
 
 # External interfaces
+* [[URI]] — addresses for resources and supported URI schemes.
 * [[CLI]], [[HTTP API]] and [[Runtime API]] — command-line and external program interfaces.
-
 
 # Architecture and project history
 * [[Architecture]] — how the system fits together.

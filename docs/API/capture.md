@@ -15,7 +15,7 @@ Both `match` and `run` receive the draft as a table with:
 * `title`, `text`, `url`: shared values (empty strings when absent)
 * `files`: list of shared files, each with a `handle`, `name`, `type` (MIME type) and `size` (in bytes)
 
-`match` returns `nil` to hide the action for this draft, or a table with `name`, `description` and optional `priority`. `run` receives the draft as edited by the user. If `run` fails, the draft stays pending so it can be retried; when it succeeds, the draft is removed.
+`match` returns `nil` to hide the action for this draft, or a table with `name`, `description` and optional `priority`. `run` receives the draft as edited by the user. If `run` fails, the draft stays pending so it can be retried. When it succeeds, the draft is removed.
 
 The functions below read the shared files. They only work inside the `run` function of the capture action that is running. `capture.saveFile` raises an error for an invalid path, a file larger than `maximumDocumentSize`, or an existing file with different content.
 
@@ -41,7 +41,6 @@ service.define {
 # API
 <!--#lua spacelua.renderApiDocumentation("capture") -->
 ## capture.readFile
-
 `capture.readFile(handle)`
 
 Reads a staged file belonging to the current capture action.
@@ -61,7 +60,6 @@ local bytes = capture.readFile(data.files[1].handle)
 ```
 
 ## capture.saveFile
-
 `capture.saveFile(handle, path)`
 
 Saves a staged file without overwriting different bytes. Returns true when newly created and false when identical content already exists.

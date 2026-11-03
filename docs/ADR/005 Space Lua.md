@@ -15,8 +15,8 @@ references:
 # Context
 SilverBullet lets users put dynamic content: live queries, computed views, templated rendering, and custom logic directly in their pages. In v1 this was spread across **three separate mechanisms**, each with its own syntax:
 
-* a custom **query language** for live queries (originally HTML-comment “directives”);
-* **Handlebars-style templates** (Live Templates, Live Template Widgets, Page Templates) for rendering;
+* a custom **query language** for live queries (originally HTML-comment “directives”).
+* **Handlebars-style templates** (Live Templates, Live Template Widgets, Page Templates) for rendering.
 * **Space Script**, a **JavaScript** layer, for custom functions and logic.
 
 Three languages to learn and maintain, with awkward seams between them (a query feeding a Handlebars template feeding a JS function).
@@ -24,9 +24,9 @@ Three languages to learn and maintain, with awkward seams between them (a query 
 # Decision
 Adopt **Lua** as a single embedded language ([[Space Lua]]) that unifies scripting, templating, and querying:
 
-* `space-lua` code blocks define space-wide functions and config;
-* `${...}` expressions render inline via [[Live Preview]], replacing Handlebars templates;
-* **Space Lua Integrated Query (SLIQ)** — `${query[[ from ... select ... ]]}` replaces the old query language; because the body after `from` is a Lua expression, it can query the [[Object Index|object index]] *or* any Lua table.
+* `space-lua` code blocks define space-wide functions and config.
+* `${...}` expressions render inline via [[Live Preview]], replacing Handlebars templates.
+* **Space Lua Integrated Query (SLIQ)** — `${query[[ from ... select ... ]]}` replaces the old query language. Because the body after `from` is a Lua expression, it can query the [[Object Index|object index]] *or* any Lua table.
 
 [[Space Lua]] is a **custom, from-scratch implementation** — not the official [Lua](https://www.lua.org) or [LuaJIT](https://luajit.org), nor a WebAssembly build of them — largely Lua-5.4-compatible with a few non-standard additions. It replaced Space Script (JS) and the v1 template/query mechanisms.
 

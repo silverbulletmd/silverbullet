@@ -2,9 +2,9 @@
 
 SilverBullet [[Desktop]] keeps your space on your computer, and can sync it with a SilverBullet Server so you can reach it from other devices and browsers.
 
-An external Server connection is optional. Without one, Desktop reads and writes the local space folder directly through its embedded server. Configure sync when you want another Desktop installation or a browser on another device to reach the same content. Your own libraries and external tools may also send content to other services independently of this setting.
+An external Server connection is optional. Without one, Desktop reads and writes the local space folder directly. Configure sync when you want another Desktop installation or a browser on another device to reach the same content.
 
-Choose a Server you control or a hosted instance, then connect the local space below. For other mechanisms, see [[Guide/Devices and Publishing]].
+Choose a Server you control or a hosted instance, then connect the local space below.
 
 # SilverBullet server
 ## Self-Hosted

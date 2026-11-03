@@ -2,9 +2,9 @@
 description: A single Markdown document in your space.
 tags: glossary
 ---
-A page is a [[Markdown]] file in your [[Space]]. Write notes, add links and tasks, and optionally add [[Metadata]]. A page named `Photo Walk` is stored as `Photo Walk.md` in the space folder, whether you use Desktop locally or connect to a Server.
+A page is a [[Markdown]] file in your [[Space]]. Write notes, add links and tasks, and optionally add [[Metadata]]. A page named `Photo Walk` is stored as `Photo Walk.md` in the space folder.
 
-Start with [[Guide/Your First Markdown Page]] for a writing exercise.
+Start with [[Guide/My First Markdown Page]] for a writing exercise.
 
 Page _names_ are relatively free-form, but have to adhere to a few [[Names#Rules]].
 

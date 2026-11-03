@@ -5,12 +5,10 @@ references:
 - client/plugos/syscalls/event.ts
 - client/plugos/event.ts
 ---
-
-The Event API provides functions for working with SilverBullet’s event bus system, allowing communication between different parts of the application.
+Send events and register listeners on SilverBullet’s event bus.
 
 <!--#lua spacelua.renderApiDocumentation("event") -->
 ## event.dispatch
-
 `event.dispatch(eventName, data)`
 
 Dispatches an event and collects responses from its listeners.
@@ -31,7 +29,6 @@ local responses = event.dispatch("data.request", {id = 123})
 ```
 
 ## event.listEvents
-
 `event.listEvents()`
 
 Lists all event names that currently have listeners.
@@ -41,7 +38,6 @@ Lists all event names that currently have listeners.
 - `table` — Registered event names.
 
 ## event.listen
-
 `event.listen(listener)`
 
 Registers a Space Lua listener on the event bus.

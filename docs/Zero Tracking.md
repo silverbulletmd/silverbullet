@@ -1,5 +1,5 @@
 ---
-description: SilverBullet Server contains no trackers or telemetry, and never sends your data anywhere.
+description: "SilverBullet Server has no trackers or telemetry."
 ---
 SilverBullet Server does not include any trackers or telemetry. The server and its web client never send usage data or content to SilverBullet (or anyone else’s) servers. The only outgoing requests are the ones you set up yourself, such as installing or updating a [[Library]] from a [[Repository]], calling an external API from [[Space Lua]], or running `silverbullet upgrade`.
 

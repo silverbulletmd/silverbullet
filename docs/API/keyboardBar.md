@@ -5,12 +5,11 @@ references:
 - libraries/Library/Std/Config.md
 - client/components/keyboard_bar.tsx
 ---
-
 APIs to add buttons to the keyboard bar.
 
 On phones and tablets, the keyboard bar shows editing shortcuts above the on-screen keyboard (or along the bottom of the screen with a hardware keyboard). Its buttons come from the `keyboardBar` option in [[^Library/Std/Config]]: replace the whole list with `config.set`, or add to it with `keyboardBar.define`. Buttons can be limited to where the cursor is, so e.g. the indent and outdent buttons only appear inside outlines.
 
-The bar is on by default. **Editor: Toggle Keyboard Bar** turns it off or on again; the choice is remembered per device. Setting `keyboardBar` to an empty list hides it everywhere.
+The bar is on by default. **Editor: Toggle Keyboard Bar** turns it off or on again. The choice is remembered per device. Setting `keyboardBar` to an empty list hides it everywhere.
 
 > **success** Success
 > Put your `keyboardBar.define` calls in your [[CONFIG]] page.

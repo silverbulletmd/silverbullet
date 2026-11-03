@@ -19,8 +19,8 @@ Because the client keeps a full local copy of the space ([[ADR/001 Offline-First
 # Decision
 Sync is **file-level, bidirectional, and poll-based**, running in the service worker (see [[Sync]]):
 
-* the whole space syncs roughly every 20 seconds, the currently open file every 4–5 seconds;
-* it reconciles **whole files** by comparing local and remote state, not character-level diffs;
+* the whole space syncs roughly every 20 seconds, the currently open file every 4–5 seconds.
+* it reconciles **whole files** by comparing local and remote state, not character-level diffs.
 * on a **conflict** (the same file changed in two places) it does **not merge** — it writes a **conflicting copy** and notifies you.
 
 At the time of this decision, more more modern approaches like CRDTs were not yet very mature and integrating them was deemed too complex. At various stages such integration was attempted, but later removed because of too many edge cases.
@@ -29,7 +29,7 @@ At the time of this decision, more more modern approaches like CRDTs were not ye
 ## Positive
 * **Simple.** Whole-file sync with conflict-copies is easy to reason about and hard to corrupt.
 * **Keeps the server dumb.** File-level sync needs only list/read/write/delete, so the server stays a thin file store ([[ADR/010 Rust Backend]]) and the runtime stays swappable.
-* **Offline-friendly.** Edits made offline reconcile on the next poll; no central coordinator required.
+ * **Offline-friendly.** Edits made offline reconcile on the next poll without a central coordinator.
 
 ## Negative / trade-offs
 * **No real-time collaboration.** Two people editing one file at once get a conflicting copy, not a live merged document.
@@ -46,7 +46,7 @@ The move to a Rust backend ([[ADR/010 Rust Backend]]) shifts that calculus — t
 
 # Alternatives considered
 * **CRDT-based sync (e.g. Yjs).** Deferred — see above.
-* **Last-writer-wins (silently overwrite on conflict).** Rejected: risks silent data loss; a conflicting copy is safer.
+* **Last-writer-wins (silently overwrite on conflict).** Rejected: risks silent data loss. A conflicting copy is safer.
 * **Server-side merge or locking.** Rejected: makes the server authoritative and stateful, breaking the thin-server model ([[ADR/007 Core Application Logic on the Client]], [[ADR/010 Rust Backend]]).
 
 # References

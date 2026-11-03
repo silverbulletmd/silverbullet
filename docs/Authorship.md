@@ -1,5 +1,5 @@
 ---
-description: Sign a block or a page to credit who wrote it, distinct from who it addresses.
+description: "Sign a page or block to credit its author."
 tags: glossary maturity/experimental
 references:
 - client/markdown_parser/parser.ts
@@ -43,4 +43,4 @@ Nothing checks a signature against who is actually editing. Anyone with write ac
 
 A signature is documentary, not a credential — useful for finding and querying who a piece of prose is by, but nothing security- or access-relevant should ever be decided based on one.
 
-For a complete request, reply and resolution workflow, see [[Guide/Mentions and Replies]].
+For a complete request, reply and resolution workflow, see [[Guide/Comments, Mentions and Replies]].

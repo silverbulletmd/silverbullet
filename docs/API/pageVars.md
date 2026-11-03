@@ -5,7 +5,7 @@ APIs to read and set [[Space Lua/Page Lua|page variables]]: the values a page de
 
 Each function takes an optional page name as its last argument. Without it they use the page the running code is on: the page a `${…}`, code widget or button belongs to (for a button inside a transclusion, the transcluded page), or else the open page.
 
-Copy this complete Markdown example into a writable page. The button saves the incremented value back to that page; it is shown as source here because the published documentation is read-only.
+Copy this complete Markdown example into a writable page. The button saves the incremented value back to that page. It is shown as source here because the published documentation is read-only.
 
 ```markdown
 Example: ${counter = 1}
@@ -16,11 +16,11 @@ ${widgets.button("Add one", function()
 end)}
 ```
 
-Initially the counter is 1; after one click it is 2, and the multiplication result updates.
+Initially the counter is 1. After one click it is 2, and the multiplication result updates.
 
 # API
 ## pageVars.get(name, page?)
-Returns one of a page’s variables. A name the page doesn’t define is an error; a variable holding `nil` returns `nil`.
+Returns one of a page’s variables. A name the page doesn’t define is an error. A variable holding `nil` returns `nil`.
 
 ```lua
 pageVars.get("salary", "Budget")

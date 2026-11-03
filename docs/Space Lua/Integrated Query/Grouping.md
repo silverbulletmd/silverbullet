@@ -4,7 +4,6 @@ references:
 - client/space_lua/query_collection.ts
 - client/space_lua/parse.ts
 ---
-
 The `group by` and `having` clauses extend [[Space Lua/Integrated Query]] with SQL-style grouping and aggregate filtering.
 
 After `group by`, each result row has two fields:
@@ -18,7 +17,6 @@ The field names used in `group by` are also available as bare variables in `havi
 > `having` can only reference group key fields, `key`, `group`, aggregate expressions like `#group`, and aggregate functions like `count()`. To filter individual rows, use `where`.
 
 # Examples
-
 All examples below use `tags.tag`.
 
 ## Group by single key
@@ -92,7 +90,6 @@ ${query[[
 ]]}
 
 ## Multi-key having
-
 Groups by `name` and `parent`, keep only page-level tags with more than 1 entry:
 
 ${query [[
@@ -107,7 +104,6 @@ ${query [[
 ]]}
 
 ## `where` before `group by`
-
 Filter to page parents first, then group by `name`:
 
 ${query [[
@@ -120,7 +116,6 @@ ${query [[
 ]]}
 
 ## `where`, `group by` and `having` combined
-
 Filter to page parents, group by `name`, keep groups with 2+ items:
 ${query [[
   from
@@ -134,7 +129,6 @@ ${query [[
 ]]}
 
 ## `select` name and count
-
 Project each group into a table with `name` and `count`:
 ${query [[
   from
@@ -148,7 +142,6 @@ ${query [[
 ]]}
 
 ## `select` with multi-key
-
 Project both key parts and count:
 
 ${query [[
@@ -165,7 +158,6 @@ ${query [[
 ]]}
 
 ## Full pipeline: `where`, `group by`, `having` and `select`
-
 Filter, group, filter groups, then project:
 
 ${query [[
@@ -185,7 +177,6 @@ ${query [[
 ]]}
 
 ## Order groups by count
-
 Sort groups by size, largest first:
 
 ${query [[
@@ -198,7 +189,6 @@ ${query [[
 ]]}
 
 ## Top tags with `having`, `order by`, and `select`
-
 Tags with 2+ occurrences, sorted by count, projected:
 ${query [[
   from
@@ -268,7 +258,6 @@ ${query [[
 ]]}
 
 ## Access `key` directly
-
 For single-key grouping, `key` holds the value directly:
 ${query [[
   from
@@ -280,7 +269,6 @@ ${query [[
 ]]}
 
 ## Access `key` table for multi-key
-
 For multi-key grouping, `key` is a table indexed from 1:
 ${query [[
   from

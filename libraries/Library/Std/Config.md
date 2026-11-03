@@ -2,7 +2,6 @@
 description: Defines the schemas and built-in values of built-in configuration options
 tags: meta
 ---
-
 SilverBullet uses the [config APIs](https://docs.silverbullet.md/API/config) to manage its runtime configuration. You can set most of these anywhere in your space, but the convention is to use your `CONFIG` page for this purpose.
 
 This meta page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your CONFIG page (use `space-lua` instead of `lua` in your actual page):

@@ -23,14 +23,14 @@ The server has been, in turn: Node.js (earliest prototypes), then **Deno** for y
 # Decision
 The server is written in **Rust** (as of v2.10.0). The progression was **Node.js -> Deno -> Go -> Rust**:
 
-* Deno: a modern, secure-by-default TypeScript runtime; a sensible fit while the server still ran [[Plugs|plug]] logic and sandboxing mattered (pre-[[ADR/007 Core Application Logic on the Client|v2]]).
+* Deno: a modern, secure-by-default TypeScript runtime, a sensible fit while the server still ran [[Plugs|plug]] logic and sandboxing mattered (pre-[[ADR/007 Core Application Logic on the Client|v2]]).
 * Go (2025): once the server was just a file store, it was rewritten in Go: “significantly less memory and significantly smaller in size.”
 * Rust (2026): the Go server was replaced by an adaptation of the Rust backend used elsewhere in the project, converging the whole codebase on **TypeScript + Rust**.
 
 # Consequences
 ## Positive
 * **Fewer languages.** The stack converged from TypeScript + Go + Rust to just **TypeScript + Rust**: less to master and one backend to maintain.
-* **Leaner runtime.** Rust has no garbage collector and produces a small, single statically-compiled binary; memory use drops again.
+* **Leaner runtime.** Rust has no garbage collector and produces a small, single statically-compiled binary. Memory use drops again.
 * **Opens new doors.** A Rust backend makes a future CRDT-based sync engine / real-time collaboration feasible where the Go ecosystem made it impractical — see [[ADR/002 Sync Engine]].
 
 ## Negative / trade-offs

@@ -1,5 +1,5 @@
 ---
-description: "SilverBullet highlights code in many programming languages inside fenced code blocks."
+description: "Language-specific highlighting in fenced code blocks."
 references:
 - client/codemirror/syntax/fenced_code.ts
 - client/languages.ts

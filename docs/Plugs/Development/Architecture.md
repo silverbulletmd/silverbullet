@@ -9,7 +9,7 @@ This page explains how plugs are loaded, executed, and isolated within SilverBul
 # Runtime model
 At a “behind the scenes” level, a plug is a JavaScript bundle (`*.plug.js`) that exports `{manifest, functionMapping}`. It is compiled from a `*.plug.yaml` manifest plus the TypeScript files it references, it can also bundle additional asset files that can be loaded from inside the plug.
 
-At load time, each plug runs in its own **Web Worker sandbox** in the browser. One worker per plug; each is fully isolated from the main thread and from other plugs. The plug never touches the DOM directly — all interaction with the editor, space, and storage goes through _syscalls_.
+At load time, each plug runs in its own **Web Worker sandbox**, isolated from the main thread and other plugs. The plug never touches the DOM directly. All interaction with the editor, space, and storage goes through _syscalls_.
 
 Two kinds of messages flow between the sandbox and the main thread:
 

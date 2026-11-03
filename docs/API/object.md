@@ -6,9 +6,9 @@ references:
 ---
 Change, delete and create [[Object|objects]] where they are written: page frontmatter, [[Task|tasks]] and list items, paragraphs, [[Tag/data|data blocks]] and [[Tag/table|table rows]]. Use these from buttons and other widgets to build small apps on top of your pages. They edit the page’s Markdown, so the change shows up in the page, its history and every query.
 
-Try these write examples in a disposable page in your own writable space. Create the named source pages and a task first; the examples assume those objects exist.
+Try these write examples in a disposable page in your own writable space. Create the named source pages and a task first. The examples assume those objects exist.
 
-Each function takes an object as a query (or `object.append`) returns it. An object without an anchor is found by its position and checked against what you queried, so if its page changed since, the call fails with “object moved” instead of changing the wrong object; query again. Objects with a `$anchor` are found wherever they moved, and can also be passed as `{ page = "…", ref = "anchor-name" }`.
+Each function takes an object as a query (or `object.append`) returns it. An object without an anchor is found by its position and checked against what you queried, so if its page changed since, the call fails with “object moved” instead of changing the wrong object. Query again. Objects with a `$anchor` are found wherever they moved, and can also be passed as `{ page = "…", ref = "anchor-name" }`.
 
 ```lua
 -- Mark a task done and set an attribute
@@ -30,19 +30,18 @@ object.delete(e)
 object.createPage("Contacts/Ada", { tags = "contact", company = "Acme" })
 ```
 
-* **page**: `object.update` changes frontmatter keys; `object.delete` removes the page.
-* **task, item**: `object.update` changes `name` (the text), `done`/`state` (tasks), `tags`, `[key: value]` attributes; `object.delete` removes the item and its sub-items.
-* **paragraph**: `object.update` changes `text`, `tags`, `[key: value]` attributes; `object.delete` removes the paragraph.
-* **data block document**: `object.update` changes top-level YAML keys; `object.delete` removes the document (the block, if it was the last).
-* **table row**: `object.update` changes cells, by column name (lowercased, other characters as `_`); `object.delete` removes the row.
+* **page**: `object.update` changes frontmatter keys. `object.delete` removes the page.
+* **task, item**: `object.update` changes `name` (the text), `done`/`state` (tasks), `tags`, `[key: value]` attributes. `object.delete` removes the item and its sub-items.
+* **paragraph**: `object.update` changes `text`, `tags`, `[key: value]` attributes. `object.delete` removes the paragraph.
+* **data block document**: `object.update` changes top-level YAML keys. `object.delete` removes the document (the block, if it was the last).
+* **table row**: `object.update` changes cells, by column name (lowercased, other characters as `_`). `object.delete` removes the row.
 
-`order` (pages and data block documents only) lists top-level keys in the order you want; keys you don’t list follow in their current order. Each key moves with its nested lines and the comment lines directly above it, unchanged. For other objects, `order` fails.
+`order` (pages and data block documents only) lists top-level keys in the order you want. Keys you don’t list follow in their current order. Each key moves with its nested lines and the comment lines directly above it, unchanged. For other objects, `order` fails.
 
 When the object’s tag has a schema, a change that would make it invalid fails and nothing is written. On the open page each call is one undoable edit, saved right away.
 
 <!--#lua spacelua.renderApiDocumentation("object") -->
 ## object.append
-
 `object.append(page, record, options?)`
 
 Adds a task, list item, table row or data block document to a page and returns its { page, ref }.
@@ -51,14 +50,13 @@ Adds a task, list item, table row or data block document to a page and returns i
 
 - `page` (`string`) — Page to add to.
 - `record` (`table`) — tag = “task”, “item”, “table” or a data tag, plus its attributes.
-- `options?` (`table`) — anchor: true or a name to add a $anchor; under: header to add a task or item under; table: tableref of the table to add a row to.
+- `options?` (`table`) — anchor: true or a name to add a $anchor, under: header to add a task or item under, table: tableref of the table to add a row to.
 
 **Returns:**
 
 - `table` — { page, ref } of the new object.
 
 ## object.createPage
-
 `object.createPage(name, attributes?, body?)`
 
 Creates a page with the given frontmatter attributes and body. Fails if the page exists.
@@ -74,7 +72,6 @@ Creates a page with the given frontmatter attributes and body. Fails if the page
 - `table` — { page, ref } of the new page.
 
 ## object.delete
-
 `object.delete(object)`
 
 Removes an object from its page (a list item with its sub-items, a paragraph, a data block document, a table row), or deletes the page for a page object.
@@ -84,7 +81,6 @@ Removes an object from its page (a list item with its sub-items, a paragraph, a 
 - `object` (`table`) — An object from a query, or { page = …, ref = … }.
 
 ## object.update
-
 `object.update(object, patch, options?)`
 
 Changes attributes of an object (or a list of objects) where it is written in its page: frontmatter for pages, inline [key: value] attributes, hashtags, state and text for tasks and items, YAML keys for data blocks, cells for table rows. Fails if the object moved since it was queried.
@@ -93,5 +89,5 @@ Changes attributes of an object (or a list of objects) where it is written in it
 
 - `object` (`table`) — An object from a query, a list of them, or { page = …, ref = … }.
 - `patch` (`table`) — Attributes to set. For tasks: done, state, name, tags. For paragraphs: text.
-- `options?` (`table`) — remove: list of attribute names to delete; order: list of top-level keys to put first, in that order (pages and data block documents).
+- `options?` (`table`) — remove: list of attribute names to delete, order: list of top-level keys to put first, in that order (pages and data block documents).
 <!--/lua-->

@@ -5,7 +5,6 @@ references:
 - plugs/index/task.ts
 - client/codemirror/syntax/task.ts
 ---
-
 The task notation syntax is a [[Markdown]] extension to write down tasks.
 
 Its most basic form is:
@@ -33,4 +32,4 @@ Restrictions:
 To define custom states explicitly (and get code completion for them), use the [[API/taskState]] API.
 
 # Find tasks across pages
-Tasks are [[Tag/task|indexed]] so you can collect them in a query. Start with [[Guide/Build Your First Query]] to build a list in Workbench; [[Space Lua/Integrated Query]] documents the query language.
+Tasks are [[Tag/task|indexed]] so you can collect them in a query. Use [[Guide/Task Management]] to build a list in Workbench. [[Space Lua/Integrated Query]] documents the query language.

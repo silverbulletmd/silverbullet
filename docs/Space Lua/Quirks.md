@@ -14,7 +14,6 @@ Space Lua is intended to be a more or less complete implementation of [Lua 5.4](
 
 
 # Conversion of Strings to Numbers
-
 Space Lua converts strings to numbers like standard Lua.
 
 Syntax:

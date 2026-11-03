@@ -22,12 +22,12 @@ Continuously maintain an **[[Object Index]]**: a structured, queryable graph aut
 
 Two principles hold it together:
 
-* **Markdown is the source of truth.** Every indexed object has a representation in the markdown; the index is derived, can be flushed, and rebuilt from the files at any time (`Space: Reindex`). It is a cache, not the canonical store.
+* **Markdown is the source of truth.** Every indexed object has a representation in the markdown. The index is derived, can be flushed, and rebuilt from the files at any time (`Space: Reindex`). It is a cache, not the canonical store.
 * **The index lives in the client.** It is built into IndexedDB in the browser ([[ADR/007 Core Application Logic on the Client]], [[ADR/001 Offline-First PWA]]) and maintained incrementally.
 
 # Consequences
 ## Positive
-* **Plain markdown stays plain, yet queryable.** Structure is derived, so files remain portable and human-editable; nothing is locked in a database.
+* **Plain markdown stays plain, yet queryable.** Structure is derived, so files remain portable and human-editable. Nothing is locked in a database.
 * **Rebuildable and disposable.** The index is a cache. Corruption or schema changes are fixed through a reindex.
 * **One uniform model.** Pages, tasks, tags, and relations are all just objects with attributes enabling one query language over everything.
 * **A real graph for free.** Generalized relations turn backlinks and frontmatter links into uniform edges, enabling [[Linked Mention|backlinks]], the [[Graph View]], renames, and semantic frontmatter (like ADR `dependsOn`/`related`).

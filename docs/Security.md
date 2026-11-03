@@ -8,7 +8,7 @@ references:
 ---
 SilverBullet [[Space|spaces]] are scriptable environments. This is where a lot of SilverBullet’s power and flexibility comes from. This page lays out the trust model that follows from that, so you can configure a deployment that matches who you’re sharing it with. For a more basic walk-through of concrete setups, see [[Security Profiles]].
 
-**TL;DR:** you need to trust people with `write` access. Anyone who can write to a space can author content — [[Space Lua]], and dynamic content generally — that runs in the browser of anyone who later opens that space.
+You need to trust people with `write` access. Anyone who can write to a space can author [[Space Lua]] and other dynamic content that runs in the browser of anyone who later opens that space.
 
 # Access levels
 Each space resolves to one of three [[Dashboard#Access|access levels]] for a given visitor, plus a separate admin flag:

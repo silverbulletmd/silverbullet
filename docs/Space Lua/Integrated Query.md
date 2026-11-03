@@ -6,9 +6,7 @@ references:
 - client/space_lua/query_env.ts
 - client/space_lua/parse.ts
 ---
-For a first query, follow [[Guide/Build Your First Query]] to use the visual builder. This page is the syntax reference.
-
-Space Lua Integrated Query (SLIQ) is a SilverBullet specific Lua extension. It adds a convenient query syntax to the language in a backwards compatible way. It does so by overloading Lua’s default function call + single argument syntax when using `query` as the function call. As a result, Lua programs using SLIQ are still syntactically valid Lua.
+Space Lua Integrated Query (SLIQ, pronounced “slick!”) is a SilverBullet specific Lua extension. It adds a convenient query syntax to the language in a backwards compatible way. It does so by overloading Lua’s default function call + single argument syntax when using `query` as the function call. As a result, Lua programs using SLIQ are still syntactically valid Lua.
 
 The syntax for SLIQ is `query[[my query]]`. In regular Lua `[[my query]]` is just another way of writing `"my query"` (it is an alternative string syntax). Function calls that only take a string argument can omit parentheses, therefore `query[[my query]]` is equivalent to `query("my query")`.
 

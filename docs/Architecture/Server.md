@@ -14,6 +14,6 @@ The Server owns file access and exposes the [[HTTP API]]. It serves the browser 
 * Multi-space deployments manage accounts, space membership and administration through the [[Dashboard]].
 
 # Client responsibilities
-The [[Architecture/Client]] builds the [[Object Index]] used by structured queries, runs Space Lua and plugs, and renders the editor. Browser [[Sync]] maintains configured content in local storage for offline work. This structured index is distinct from the Server’s search index; “indexing” does not all happen in one place.
+The [[Architecture/Client]] builds the [[Object Index]] used by structured queries, runs Space Lua and plugs, and renders the editor. Browser [[Sync]] maintains configured content in local storage for offline work. This structured index is distinct from the Server’s search index.
 
-Desktop embeds the shared server alongside its editor, working against a local folder. Its optional external Server connection is described in [[Desktop Sync]]. See [[Guide/Storage and Recovery]] for the storage boundaries.
+Desktop embeds the shared server alongside its editor, working against a local folder. Its optional external Server connection is described in [[Desktop Sync]].

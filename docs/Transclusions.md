@@ -1,17 +1,16 @@
 ---
-description: Inline embedding of one page's content inside another.
+description: "Embed page content or media inside another page."
 tags: glossary
 references:
 - plug-api/lib/transclusion.ts
 - client/markdown_renderer/markdown_render.ts
 ---
-
 Transclusions are an extension of the [[Markdown]] syntax enabling inline embedding of content.
 
 The general syntax is `![[path]]`. Two types of transclusions are currently supported:
 
 # Media
-Syntax: `![[path/to/image.jpg]]`; see [[Document#Embedding]] for more details.
+Syntax: `![[path/to/image.jpg]]`. See [[Document#Embedding]] for more details.
 
 Transclusions already support images, audio, video, and PDFs using the browser’s corresponding media elements. Local media is served through range-capable `/.fs` responses, so playback seeking and incremental PDF loading use the same server and service-worker behavior as full-document media viewing.
 

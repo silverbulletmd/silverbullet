@@ -5,12 +5,10 @@ references:
 - plug-api/lib/yaml.ts
 - plugs/index/yaml.ts
 ---
-
-The YAML API provides functions for parsing and stringifying YAML content.
+Parse YAML text and serialize values as YAML.
 
 <!--#lua spacelua.renderApiDocumentation("yaml") -->
 ## yaml.parse
-
 `yaml.parse(text)`
 
 Parses a YAML string into a Lua value.
@@ -24,7 +22,6 @@ Parses a YAML string into a Lua value.
 - Value — Parsed YAML value.
 
 ## yaml.stringify
-
 `yaml.stringify(value)`
 
 Serializes a Lua value as YAML text.

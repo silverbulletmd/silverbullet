@@ -1,5 +1,5 @@
 ---
-description: Block-level HTML comments, whose body is ordinary markdown.
+description: "Block-level HTML comments containing Markdown."
 references:
 - client/markdown_parser/html_block.ts
 - client/codemirror/syntax/comment_region.ts

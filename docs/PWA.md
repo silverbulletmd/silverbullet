@@ -1,5 +1,5 @@
 ---
-description: "SilverBullet's installable web-app mode for offline access and native-like experience."
+description: "SilverBullet Server’s installable web client with offline access."
 tags: glossary
 references:
 - client/service_worker.ts
@@ -20,13 +20,13 @@ SilverBullet Server’s browser client is a [Progressive Web App](https://web.de
 Once installed, SilverBullet appears in your app launcher / dock / home screen like any other app.
 
 # How offline works
-SilverBullet’s [[Sync]] engine keeps configured space content in the browser’s IndexedDB. Pages are synchronized by default; documents and ignored paths have different rules. When online, changes are continuously synced between the browser and the server. When offline, you work against the local copy. On reconnection, the sync engine reconciles any changes.
+SilverBullet’s [[Sync]] engine keeps configured space content in the browser’s IndexedDB. Pages are synchronized by default. Documents and ignored paths have different rules. When online, changes are continuously synced between the browser and the server. When offline, you work against the local copy. On reconnection, the sync engine reconciles any changes.
 
 A service worker caches the application code itself, so even the SilverBullet UI loads without a network connection.
 
 See also: [[Sync]], [[Collaboration]] (what happens to your offline edits when you reconnect), [[Architecture]]
 
 # Limits
-Offline startup requires a secure context (HTTPS or localhost), a working service worker and previously cached application code. Plain LAN HTTP runs online-only; see [[TLS#LAN HTTP (no TLS)]]. Installing the PWA does not change these requirements.
+Offline startup requires a secure context (HTTPS or localhost), a working service worker and previously cached application code. Plain LAN HTTP runs online-only. See [[TLS#LAN HTTP (no TLS)]]. Installing the PWA does not change these requirements.
 
-Server-backed [[Search]], shell execution, remote sharing and external network APIs require a connection. Local page navigation, editing and queries over the client Object Index can work with cached data. Let the initial sync finish and test the pages and attachments you need before relying on offline access. Browser storage is not a backup; see [[Guide/Storage and Recovery]].
+Server-backed [[Search]], shell execution, remote sharing and external network APIs require a connection. Local page navigation, editing and queries over the client Object Index can work with cached data. Let the initial sync finish and test the pages and attachments you need before relying on offline access. Browser storage is not a backup.

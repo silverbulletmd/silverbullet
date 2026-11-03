@@ -1,5 +1,5 @@
 ---
-description: Inline and block-level HTML tags inside markdown.
+description: "Inline and block-level HTML in Markdown."
 tags: level/intermediate glossary
 references:
 - client/markdown_parser/html_block.ts
@@ -17,7 +17,6 @@ This text is <u>underlined</u> and this is <mark>highlighted</mark>.
 Inline HTML also works in headings and table cells:
 
 ## Heading with <u>underlined</u> bit
-
 | Tag | Example |
 |-----|---------|
 | `<kbd>` | <kbd>Esc</kbd> |

@@ -5,7 +5,6 @@ references:
 - client/markdown_parser/custom_syntax.ts
 - client/codemirror/widgets/custom_syntax_widget.ts
 ---
-
 Enables defining simple custom syntax extensions to [[Markdown]]. Custom syntax lets you define new delimiter-based regions (both inline and block) that are recognized by the parser and can be styled or rendered as [[Widget|Widgets]].
 
 # API
@@ -27,10 +26,10 @@ Registers a custom syntax extension. The extension will be active after the next
 * `renderHtml`: Callback `function(body, pageName)` returning an HTML string or `HTMLElement` (e.g. via `dom.*`) for use when rendering to HTML.
 
 # Escaping
-Within the body of an inline syntax extension, backslash (`\`) acts as an escape character. Use `\` before the end marker to include it literally in the body. The render callback receives the **raw** body text with escape sequences intact; the renderer is responsible for unescaping if needed.
+Within the body of an inline syntax extension, backslash (`\`) acts as an escape character. Use `\` before the end marker to include it literally in the body. The render callback receives the **raw** body text with escape sequences intact. The renderer is responsible for unescaping if needed.
 
 # Example
-Install the following in a `space-lua` block in your own space, then reload definitions. This illustrative renderer styles the body in italics; it does not typeset LaTeX.
+Install the following in a `space-lua` block in your own space, then reload definitions. This illustrative renderer styles the body in italics. It does not typeset LaTeX.
 
 ```lua
 syntax.define {

@@ -1,9 +1,9 @@
 #desktop
 
-A local space is a folder on your computer that SilverBullet Desktop opens as a [[Space]]; Desktop can manage any number of them.
+A local space is a folder on your computer that SilverBullet Desktop opens as a [[Space]]. Desktop can manage any number of them.
 
 # Managing spaces
-Each space is a separate folder on disk with its own configuration, sync settings and environment. The Desktop dashboard lists your spaces; switch between them instantly, open several in their own windows, and Desktop restores their state between sessions.
+Each space is a separate folder on disk with its own configuration, sync settings and environment. The Desktop dashboard lists your spaces. Switch between them instantly, open several in their own windows, and Desktop restores their state between sessions.
 
 Because a space is a plain folder of Markdown files, you can also open it with other tools, keep it in [[Git]], or sync it with a file sync service (see [[Desktop Sync]]).
 
@@ -17,4 +17,4 @@ The `sb` command opens files and folders in Desktop, evaluates [[Space Lua]] aga
 To make configuration and libraries available in every local space, use a [[Meta Space]].
 
 # Recovery
-A local folder works without an external Server. Keep a separate backup and review [[Revisions]] settings before relying on automatic history; see [[Guide/Storage and Recovery]].
+A local folder works without an external Server. Keep a separate backup and review [[Revisions]] settings before relying on automatic history.

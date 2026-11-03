@@ -5,7 +5,6 @@ references:
 - client/data/indexeddb_kv_primitives.ts
 - client/data/kv_primitives.ts
 ---
-
 By default SilverBullet keeps a copy of all your files as well as the index, unencrypted in your browser’s IndexedDB. As long as you control your device and other people do not have access to it, this should be perfectly safe. Browsers do not allow access to these databases from other websites and domains.
 
 However, if you are accessing SilverBullet from an “untrusted” device, such as a public computer, this is not a great option, because even after closing your browser all content remains stored on the device unencrypted. You can use commands like `Client: Wipe` and `Client: Logout` to remove data locally, but there’s a chance you will forget at some point.
@@ -29,6 +28,6 @@ On the client, all of SilverBullet’s local data storage is built on a small ke
 
 A strong 256-bit cryptographic key is derived (using _PBKDF2_) on the client from your username/password combo entered upon login. This key is kept in the service worker for SilverBullet clients to obtain so that the user is not required to constant log in when refreshing a tab, or opening new SilverBullet tabs and windows.
 
-On an account-managed multi-space server, every prefix uses the server’s shared encryption salt. Prefixes have separate service-worker scopes, so a newly opened space asks the server’s other same-origin SilverBullet workers for the in-memory key. As long as another unlocked space remains open, moving between spaces does not require entering the password again; once every worker has discarded the key, the login page is required to unlock client storage again even if the server session cookie is still valid.
+On an account-managed multi-space server, every prefix uses the server’s shared encryption salt. Prefixes have separate service-worker scopes, so a newly opened space asks the server’s other same-origin SilverBullet workers for the in-memory key. As long as another unlocked space remains open, moving between spaces does not require entering the password again. Once every worker has discarded the key, the login page is required to unlock client storage again even if the server session cookie is still valid.
 
 Since we need deterministic and stable encryption for data store keys, we use _AES-CTR_ with a fixed counter. For values we use _AES-GCM_ with randomized ivs.

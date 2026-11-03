@@ -5,7 +5,6 @@ references:
 - plugs/index/tags.ts
 - client/data/object_index.ts
 ---
-
 Enables customization of [[Tag|tags]] and its [[Object|objects]] in a few ways:
 
 * Restrict and validates [[Metadata]] against a [[Schema]]
@@ -134,7 +133,7 @@ The result is the following:
 ## Rendering objects
 A tag can replace the YAML of its objects with a custom widget in the editor, e.g. a header card or a form. Each kind of object has its own hook: `renderFrontmatter` for a page’s [[Frontmatter]], `renderDataBlock` for the documents of a [[Tag/data|data block]]. Both are called as `render(object, ctx)` and return a widget, typically built with `widget.htmlBlock` and the [[API/dom|dom]] API. By default, both render the form from [[^Library/Std/Widgets/Object Form]] (`objectForm.render`).
 
-`object` is the object with its current, possibly unsaved values: for a page, its frontmatter plus `name` (the page name) and `tags`; for a data object, its YAML plus `ref`, `tag`, `tags` and `page`, as the [[Object Index]] would have it.
+`object` is the object with its current, possibly unsaved values: for a page, its frontmatter plus `name` (the page name) and `tags`. For a data object, its YAML plus `ref`, `tag`, `tags` and `page`, as the [[Object Index]] would have it.
 
 `ctx` is the [[#Render context|render context]]: the raw YAML (`ctx.values`, `ctx.types`, `ctx.keys`), `ctx.kind`, `ctx.readOnly`, and `ctx.set`, `ctx.remove` and `ctx.move` to change it. See [[#Render context]] for the field contracts and an editable card example.
 
@@ -156,16 +155,16 @@ How it behaves:
 * Explicit Markdown syntax mode shows the source.
 
 ### Frontmatter live previews
-When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag’s renderer is the default form; the `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag’s own `renderFrontmatter` applies either way.
+When multiple tags in a page’s `tags` field define `renderFrontmatter`, the first one wins. Pages without such a tag fall back to the renderer of the `page` tag, which every page carries. The `page` tag’s renderer is the default form. The `liveEdit.frontmatter` setting (**Edit frontmatter as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "page", renderFrontmatter = config.unset }`. Without any renderer, frontmatter shows as plain YAML. A tag’s own `renderFrontmatter` applies either way.
 
 ### Data block previews
 A ` ```#name ` block shows one widget per YAML document (documents are separated by `---` lines), stacked in place of the block. A plain ` ```data ` block works the same, with the root `data` tag. For a ` ```#name ` block, the first match wins:
-1. the `name` tag’s `renderDataBlock`;
-2. a [[API/codeWidget|code widget]] for the language `#name`, so existing code widgets keep working;
-3. the `data` tag’s `renderDataBlock`, which is the form;
+1. the `name` tag’s `renderDataBlock`.
+2. a [[API/codeWidget|code widget]] for the language `#name`, so existing code widgets keep working.
+3. the `data` tag’s `renderDataBlock`, which is the form.
 4. none: the YAML shows as a code block.
 
-A block whose YAML doesn’t parse, or isn’t a key/value mapping, shows its source. Step 3 is the default form; the `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
+A block whose YAML doesn’t parse, or isn’t a key/value mapping, shows its source. Step 3 is the default form. The `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
 
 ```lua
 tag.define {
@@ -204,10 +203,10 @@ The hook returns a widget. When the user changes something in it, the widget cal
 `ctx`, the second argument of a render hook, is the widget’s handle on the object’s YAML:
 
 * `ctx.kind`: `"page"` (frontmatter) or `"data"` (a data block document).
-* `ctx.values`: the parsed YAML values. Date-only timestamps are `YYYY-MM-DD` strings and timestamps with a time are ISO strings (both typed `date`); tags are not normalized.
+* `ctx.values`: the parsed YAML values. Date-only timestamps are `YYYY-MM-DD` strings and timestamps with a time are ISO strings (both typed `date`). Tags are not normalized.
 * `ctx.types`: each key’s YAML type: `string`, `number`, `boolean`, `date`, `null`, `array` or `object`.
 * `ctx.keys`: the top-level keys, in YAML order.
-* `ctx.readOnly`: `true` when the page can’t be edited; don’t offer edits then. The built-in form then also leaves out the schema properties the YAML doesn’t have.
+* `ctx.readOnly`: `true` when the page can’t be edited. Don’t offer edits then. The built-in form then also leaves out the schema properties the YAML doesn’t have.
 * `ctx.set(key, value)`: sets one top-level attribute, adding it at the end if it’s new.
 * `ctx.remove(key)`: removes one top-level attribute.
 * `ctx.move(key, delta)`: moves a top-level attribute `delta` places (`-1` up, `1` down).
@@ -220,9 +219,9 @@ What you can rely on:
 * Each call is one undo step, and Cmd-Z/Ctrl-Z inside the widget undoes it.
 * They raise an error when the object can’t be found or the change would break its tag’s [[Schema|schema]]. Wrap them in `pcall` to report it.
 * An empty data block, or a blank last item in one, shows as an item with no attributes yet. There is no object to update then, so its first `ctx.set` writes the YAML as text, without a schema check.
-* While focus is inside the widget, it keeps showing what the user typed; it re-renders with the new YAML once focus leaves. A widget that opens a picker (`editor.filterBox`) and adds to its own DOM after it returns sets a `data-sb-keep` attribute on one of its elements while the picker is open, and removes it afterwards; until then it isn’t re-rendered.
+* While focus is inside the widget, it keeps showing what the user typed. It re-renders with the new YAML once focus leaves. A widget that opens a picker (`editor.filterBox`) and adds to its own DOM after it returns sets a `data-sb-keep` attribute on one of its elements while the picker is open, and removes it afterwards. Until then it isn’t re-rendered.
 * To get to the YAML, the user presses Esc in an input (the cursor goes to the attribute of the nearest element with a `data-key` attribute) or picks **Edit source** from the ⋯ menu.
-* The ⋯ menu also has **Delete** (one undo step): on frontmatter it removes the whole frontmatter; on a data block item it removes that item with its `---` line, or the whole block when it is the only item.
+* The ⋯ menu also has **Delete** (one undo step): on frontmatter it removes the whole frontmatter. On a data block item it removes that item with its `---` line, or the whole block when it is the only item.
 
 ## Editable card example
 A compact card for ` ```#contact ` data blocks, with an editable email and a checkbox:

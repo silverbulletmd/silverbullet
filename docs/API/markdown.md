@@ -6,15 +6,13 @@ references:
 - client/markdown_renderer/markdown_render.ts
 - client/markdown_parser/parser.ts
 ---
-
-The Markdown API provides functions for parsing and rendering Markdown content.
+Parse, expand and render Markdown.
 
 <!--#lua spacelua.renderApiDocumentation("markdown") -->
 ## markdown.bakeSections
-
 `markdown.bakeSections(text, pageName?)`
 
-Re-evaluates all baked Lua sections in Markdown text; sections that error or only render as HTML are left unchanged.
+Re-evaluates all baked Lua sections in Markdown text. Sections that error or only render as HTML are left unchanged.
 
 **Parameters:**
 
@@ -33,7 +31,6 @@ print(markdown.bakeSections(text))
 ```
 
 ## markdown.expandMarkdown
-
 `markdown.expandMarkdown(text, options?)`
 `markdown.expandMarkdown(tree, options?)`
 
@@ -42,7 +39,7 @@ Expands Markdown transclusions, Lua directives, and task references. Directive r
 **Parameters:**
 
 - `textOrTree` — Markdown text or parsed tree.
-- `options?` (`table`) — Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks; all default to true. pageName: the page the text comes from, which directives run as (default: the open page).
+- `options?` (`table`) — Expansion switches: expandTransclusions, expandLuaDirectives, and rewriteTasks. All default to true. pageName: the page the text comes from, which directives run as (default: the open page).
 
 **Returns:**
 
@@ -55,7 +52,6 @@ local expanded = markdown.expandMarkdown("This is some Lua: ${1 + 2}")
 ```
 
 ## markdown.markdownToHtml
-
 `markdown.markdownToHtml(text, options?)`
 
 Renders Markdown text to HTML.
@@ -63,7 +59,7 @@ Renders Markdown text to HTML.
 **Parameters:**
 
 - `text` (`string`) — Markdown source.
-- `options?` (`table`) — HTML rendering options; `expand = true` first expands transclusions and Lua directives, as `markdown.expandMarkdown` does.
+- `options?` (`table`) — HTML rendering options. `expand = true` first expands transclusions and Lua directives, as `markdown.expandMarkdown` does.
 
 **Returns:**
 
@@ -76,7 +72,6 @@ local html = markdown.markdownToHtml("# Title")
 ```
 
 ## markdown.objectsToTable
-
 `markdown.objectsToTable(data, options?)`
 
 Formats a list of objects as a Markdown table.
@@ -97,7 +92,6 @@ local tableText = markdown.objectsToTable({{name = "Pete", age = 20}})
 ```
 
 ## markdown.parseMarkdown
-
 `markdown.parseMarkdown(text)`
 
 Parses Markdown text into a syntax tree.
@@ -117,7 +111,6 @@ local tree = markdown.parseMarkdown("# Title")
 ```
 
 ## markdown.renderParseTree
-
 `markdown.renderParseTree(tree)`
 
 Renders a Markdown syntax tree back to source text.
@@ -138,7 +131,6 @@ print(markdown.renderParseTree(tree))
 ```
 
 ## markdown.renderToDom
-
 `markdown.renderToDom(value)`
 
 Renders a Markdown string or a widget to a live DOM node (Space Lua only).

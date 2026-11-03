@@ -1,11 +1,10 @@
 ---
-description: "An inline $anchor that gives an object a space-globally unique name."
+description: "An inline $anchor that gives an object a unique name within the space."
 tags: glossary maturity/experimental
 references:
 - plugs/index/anchor.ts
 - client/markdown_parser/constants.ts
 ---
-
 Anchor syntax (`$my-anchor`) gives the containing [[Object]] a stable, (potentially) meaningful, space-globally unique name. That name becomes the object’s `ref`, and it can be linked to from any page using `[[$my-anchor]]`.
 
 Anchors are an alternative to position-based refs (`Page@123`) and header refs (`Page#Section`): they survive edits to the page (positions shift, anchors do not), and unlike header refs they don’t collide when two sections share a title.
@@ -26,7 +25,6 @@ A paragraph with an anchor $para-anchor here.
 * [ ] Task with anchor $first-task
 
 # Header with anchor $sec1
-
 ```#person
 name: Pete
 $ref: pete
@@ -56,6 +54,6 @@ Anchor names can contain letters, digits, dashes, underscores, slashes, and colo
 * Must **not** contain whitespace, periods, or other punctuation. Periods are excluded so a sentence-ending period after an anchor (`The $tsk1.`) is not consumed into the name.
 
 The grammar is `$` followed by `[A-Za-z_][A-Za-z0-9_/:-]*`.
-
+ˇ
 # Uniqueness
 Anchor names must be **globally unique** within your [[Space]]. Editor-based linting will highlight broken links, and multiple anchors in the same object. The contract is enforced by lint, not by the indexer — when duplicates briefly exist (for instance, while you are renaming one), both stay indexed and lint surfaces the issue at edit time.

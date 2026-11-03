@@ -64,10 +64,10 @@ Present when [[Revisions]] are enabled for the space: every endpoint below answe
 * `GET /.revisions/<path>?format=diff`: With no `rev`, the *uncommitted* change instead — HEAD versus what is on disk, as `text/plain`. A file that has never been committed reads as wholly added. `404` when it matches HEAD after all.
 
 # Search
-The server answers [[Search]] itself, so these work without the [[Runtime API]]; the [[CLI]]’s `sb search` and `sb related` use them. They need Read access; public visitors only get the modes the server allows them, and no related pages. Bodies are JSON; errors are 4xx JSON with an `error` code and a `message`.
+The server answers [[Search]] itself, so these work without the [[Runtime API]]. The [[CLI]]’s `sb search` and `sb related` use them. They need Read access. Public visitors only get the modes the server allows them, and no related pages. Bodies are JSON. Errors are 4xx JSON with an `error` code and a `message`.
 
 * `GET /.search/status`: What search can do right now: `backend` (`null` when unavailable), `model`, `capabilities` (`modes`, the first being the default, and whether `related` is available), `ready`, `progress` (`{"done", "total"}` while building) and `reason`.
-* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`; only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `meta` or `all`, `limit` is at most 50. Returns `items` (matches, best page first; each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching).
+* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`. Only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `meta` or `all`, `limit` is at most 50. Returns `items` (matches, best page first, each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching).
 * `POST /.search/related`: Body `{"page", "limit", "exclude", "scope"}`: pages related in meaning to `page`, in the same shape as a query’s result. Needs semantic search.
 
 # RPC
@@ -78,13 +78,13 @@ Some functionality is exposed as RPC-style calls
 * `POST /.logs`: Accepts a JSON array of log entry objects with fields `source`, `level`, `message`, and `timestamp`. The server logs these with the client’s IP. Returns `OK`.
 * `* /.proxy/<host[:port]>/path`: Proxy an HTTP request to avoid CORS issues.
   * Blocked in read-only mode (returns 405).
-  * The URI does not include a scheme — it is auto-detected: `http://` is used for `localhost`, `127.0.0.1`, bare IP addresses, and `host.docker.internal`; `https://` is used for everything else.
+  * The URI does not include a scheme — it is auto-detected: `http://` is used for `localhost`, `127.0.0.1`, bare IP addresses, and `host.docker.internal`. `https://` is used for everything else.
   * Request headers prefixed with `X-Proxy-Header-` have the prefix stripped and are forwarded to the upstream server.
   * Upstream response headers are returned with an `x-proxy-header-` prefix.
-  * The `x-proxy-status-code` header contains the actual upstream HTTP status code; the proxy response itself always returns 200 to avoid interference.
+  * The `x-proxy-status-code` header contains the actual upstream HTTP status code. The proxy response itself always returns 200 to avoid interference.
 
 ## Runtime API
-Enabled when Chrome/Chromium is available and runtime access is permitted. In single-space mode, `SB_RUNTIME_API=0` disables it; in multi-space mode, use the administrator’s Runtimes controls and per-writer Runtime API permission. See [[Runtime API]] for full documentation, setup instructions, and examples.
+Enabled when Chrome/Chromium is available and runtime access is permitted. In single-space mode, `SB_RUNTIME_API=0` disables it. In multi-space mode, use the administrator’s Runtimes controls and per-writer Runtime API permission. See [[Runtime API]] for full documentation, setup instructions, and examples.
 
 # Client
 * `GET /.config`: Retrieve client configuration, JSON with the following keys:

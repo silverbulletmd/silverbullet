@@ -5,7 +5,6 @@ references:
 - client/codemirror/syntax/hashtag.ts
 - plugs/index/tags.ts
 ---
-
 Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Tag]] to an [[Object]]. The tag becomes one of the object’s [[Tag#User tags|user tags]], stored in its `tags` attribute, next to its root tag.
 
 # Scope rules
@@ -18,7 +17,6 @@ Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Tag]] to an [[Ob
 * If you create a [[Markdown/Fenced Code Block]] with a hashtag as language, it doesn’t attach a user tag: the hashtag becomes the [[Tag#Root tags|root tag]] of the [[Tag/data|data objects]] in the block.
 
 ## Examples
-
 Paragraph #paragraph-tag-example
 
 * Item #item-tag-example

@@ -1,5 +1,5 @@
 ---
-description: A collection of reusable Space Lua scripts, templates, and pages that can be imported into your space.
+description: "Reusable Space Lua scripts, templates and pages you can install in your space."
 tags: maturity/beta glossary
 references:
 - client/workbench/libraries/libraries_backend.ts

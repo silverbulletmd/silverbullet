@@ -1,11 +1,10 @@
 ---
-description: Custom CSS applied across your space via a special page.
+description: "Custom CSS for the editor, defined in space-style code blocks."
 tags: customization glossary
 references:
 - plugs/index/space_style.ts
 - client/style.ts
 ---
-
 Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]].
 
 This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way.

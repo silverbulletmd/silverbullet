@@ -1,5 +1,5 @@
 ---
-description: "SilverBullet's embedded Lua scripting environment for extending functionality."
+description: "SilverBullet’s embedded Lua language for queries, scripts and extensions."
 tags: glossary
 references:
 - client/space_lua.ts
@@ -16,7 +16,7 @@ In essence, Space Lua adds a few features to SilverBullet’s [[Markdown]] langu
 Have a look at [[Space Lua/Conventions]] for best practices around code style.
 
 > **note** Note
-> A `lua` fence displays inert source. Use [[Workbench/Console]] for one-off expressions; put reusable definitions in a `space-lua` fence in your own space and reload them. A `markdown` fence shows text to copy into a page, including its `${...}` expressions. Follow each example’s placement instructions.
+> A `lua` fence displays inert source. Use [[Workbench/Console]] for one-off expressions. Put reusable definitions in a `space-lua` fence in your own space and reload them. A `markdown` fence shows text to copy into a page, including its `${...}` expressions. Follow each example’s placement instructions.
 
 # Definitions
 Space Lua definitions are defined in fenced code blocks with the `space-lua` language. These blocks are active **across your entire space** (hence _Space_ Lua), not just on the page they appear on.
@@ -33,7 +33,7 @@ function adder(a, b)
 end
 ```
 
-Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous documentation comments immediately before a function are parsed into structured runtime metadata. Supported annotations are `@param`, `@return`, `@deprecated`, and `@see`; inspect the result from Lua with [[API/spacelua#spacelua.describe|spacelua.describe]]. Regular `--` comments remain ordinary comments.
+Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous documentation comments immediately before a function are parsed into structured runtime metadata. Supported annotations are `@param`, `@return`, `@deprecated`, and `@see`. Inspect the result from Lua with [[API/spacelua#spacelua.describe|spacelua.describe]]. Regular `--` comments remain ordinary comments.
 
 Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Space|space]]. This means that the `adder` function defined, can be called from anywhere in your space.
 

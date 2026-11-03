@@ -1,1 +1,1 @@
-This page is now [[Guide/Find Pages]].
+This page is now [[Guide/Finding Content]].

@@ -1,11 +1,10 @@
 ---
-description: "SilverBullet has a basic Vim mode with ex commands, key mappings and custom command definitions in CONFIG."
+description: "Vim editing mode with configurable key mappings and ex commands."
 tags: customization
 references:
 - plugs/editor/vim.ts
 - client/vim_loader.ts
 ---
-
 SilverBullet has a basic Vim mode. You can toggle it using the ${widgets.commandButton("Editor: Toggle Vim Mode")} command.
 
 In addition, it supports various ex commands that you can run as you would expect, for instance: `:imap jj <Esc>`.

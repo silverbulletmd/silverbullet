@@ -5,7 +5,7 @@ references:
 - client/codemirror/syntax/attribute.ts
 - plugs/index/attribute.ts
 ---
-Start with [[Guide/Organize with Tags and Attributes]] for a practical introduction.
+Start with [[Guide/Add Structure and Query]] for a practical introduction.
 
 Attribute syntax can contribute additional [[Metadata]] to various [[Object|Objects]], including:
 

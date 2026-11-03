@@ -14,4 +14,4 @@ Desktop opens on its dashboard, which lists your spaces:
 Once a space is open, follow [[Getting Started]].
 
 # Updates
-Desktop keeps itself up to date, see [[Desktop Updates]]. For using Desktop at work, see [[Licensing]].
+Desktop keeps itself up to date. Flatpak installations update through Flatpak instead. For using Desktop at work, see [[Licensing]].

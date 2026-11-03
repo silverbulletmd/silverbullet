@@ -5,7 +5,6 @@ references:
 - build/build_client.ts
 - build/build_plugs.ts
 ---
-
 SilverBullet development can happen at various level.
 
 At its most basic level, you can do a lot using [[Space Lua]]. If this does not give enough power, you can upgrade to [[Plugs]]. If _that_ doesn’t suffice, you can contribute to SilverBullet’s core (see below).
@@ -47,7 +46,6 @@ make setup
 ```
 
 ## Server vs. client
-
 SilverBullet has two halves you rebuild **independently** — knowing which one you changed saves time:
 
 * The **server** (Rust: `server/`, `server-common/`, `server-runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
@@ -73,7 +71,7 @@ SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- -L 0.0.0.0 <PATH-TO-YOU
 npm run build:client   # rebuild only the client; then reload the page
 ```
 
-(For plugs, use `npm run build:plugs`; `npm run build` does both.)
+(For plugs, use `npm run build:plugs`. `npm run build` builds both.)
 
 To build a self-contained **release** binary (with the client bundle embedded) and run it:
 
@@ -83,7 +81,6 @@ make build-rs          # -> target/release/silverbullet
 ```
 
 ### Useful development tasks
-
 ```shell
 # Clean all generated files
 make clean
@@ -96,12 +93,12 @@ make test
 ```
 
 ### Docker
-Multi-arch (amd64 + arm64 + arm/v7) Docker images are published to Docker Hub and the GitHub Container Registry. The **edge** channel is rebuilt on every push to `main`; **stable** images come from git tags:
+Multi-arch (amd64 + arm64 + arm/v7) Docker images are published to Docker Hub and the GitHub Container Registry. The **edge** channel is rebuilt on every push to `main`. **Stable** images come from git tags:
 
 * `zefhemel/silverbullet:edge` (also `:v2`) / `:latest` + `:X.Y.Z` — the server with Chromium for the server-side Lua runtime (`/.runtime/*`). The old `-runtime-api` tags remain as compatibility aliases.
 * `…:edge-slim` / `:latest-slim` + `:X.Y.Z-slim` — the smaller server image without Chromium or the runtime API.
 
-There is no `:v2-slim` alias; deployments moving from the legacy `:v2` image to slim should use `:edge-slim`.
+There is no `:v2-slim` alias. Deployments moving from the legacy `:v2` image to slim should use `:edge-slim`.
 
 Both images are mirrored to `ghcr.io/silverbulletmd/silverbullet` under the same tags.
 

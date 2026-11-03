@@ -17,8 +17,8 @@ Configuration only relevant to docker deployments:
 
 # Runtime API
 * `SB_CHROME_PATH`: Optional explicit path to the Chrome, Chromium, or headless-shell binary. Falls back to the `CHROMIUM_PATH` environment variable (pre-set in the default Docker image), then auto-detection, which prefers headless shell on `PATH`.
-* `SB_CHROME_SHOW`: Set to any non-empty value to run Chrome with a visible window instead of headless (useful for debugging). Requires full Chrome/Chromium; auto-detection skips headless shell in this mode.
-* `SB_CHROME_LOG_CONSOLE`: Forward the headless Chrome page’s `console.*` output to the server log (so you can see what the runtime is doing). Enabled by default; set to `0` to disable. The same log is also available via `/.runtime/logs` (e.g. `sb logs`).
+* `SB_CHROME_SHOW`: Set to any non-empty value to run Chrome with a visible window instead of headless (useful for debugging). Requires full Chrome/Chromium. Auto-detection skips headless shell in this mode.
+* `SB_CHROME_LOG_CONSOLE`: Forward the headless Chrome page’s `console.*` output to the server log. Enabled by default. Set to `0` to disable. The same log is also available via `/.runtime/logs` (e.g. `sb logs`).
 
 # Metrics
 SilverBullet offers a few basic Prometheus metrics, these can be configured with the following environment variables:
@@ -37,12 +37,12 @@ The environment variables below configure a **single-space** server. A fresh ins
 * `SB_INDEX_PAGE` *(legacy)*: Sets the default page to load, defaults to `index`. Prefer the per-space **Index page** setting in the [[Dashboard]] (**Space settings → General**).
 * `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder’s actual `.gitignore` file is not read.
 * `SB_SEARCH_DIR`: A writable folder outside the space where search keeps its full-text index (so it is not rebuilt at every start) and, with `SB_SEARCH_MODEL`, the model and the semantic index. The space folder may stay read-only. Unset (the default), the index is kept in memory. Use one folder per server. See [[Search]].
-* `SB_SEARCH_MODEL`: Adds semantic search with this model: `granite-embedding-97m-multilingual-r2` (recommended, about 220 MB) or `multilingual-e5-small` (about 488 MB); needs `SB_SEARCH_DIR`. The model is downloaded on first start. See [[Search]].
+* `SB_SEARCH_MODEL`: Adds semantic search with this model: `granite-embedding-97m-multilingual-r2` (recommended, about 220 MB) or `multilingual-e5-small` (about 488 MB). Requires `SB_SEARCH_DIR`. The model is downloaded on first start. See [[Search]].
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
 * `SB_LOG_PUSH`: Set to any value to ask clients to push their logs to the server (for debugging purposes)
 * `SB_DISABLE_SERVICE_WORKER`: Set to any value to disable the client-side service worker for all clients. In this mode, [[Sync]] is disabled (so your space is not copied into the browser) and the app will not function when offline. All loads and saves will go directly to the server.
 * `SB_FS_WATCH`: Controls how the server detects files changed on disk by other programs, for the whole server instance. `auto` (default) watches the space folder natively and pushes changes to open clients, so an externally edited page updates in the editor within moments. `poll` scans for changes instead — use it when the space lives on a network mount (NFS/SMB) where writes from *other* machines produce no native file-system events. `off` disables watching entirely: clients fall back to checking for changes periodically, as they did before this existed.
-* `SB_FS_POLL_INTERVAL`: How often `SB_FS_WATCH=poll` scans, in whole seconds (default `30`). Only consulted in poll mode. Each scan re-checks every file in the space, so a short interval is expensive on a large space or a network mount; lower it only if you need external edits picked up faster than the default. Values that are not a positive whole number are ignored with a warning.
+* `SB_FS_POLL_INTERVAL`: How often `SB_FS_WATCH=poll` scans, in whole seconds (default `30`). Only consulted in poll mode. Each scan re-checks every file in the space, so a short interval is expensive on a large space or a network mount. Lower it only if you need external edits picked up faster than the default. Values that are not a positive whole number are ignored with a warning.
 
 ## Network
 * `SB_UNIX_SOCKET`: Instead of listening to a TCP port, listen to a Unix socket at the specified path, e.g. `SB_UNIX_SOCKET=/tmp/silverbullet.sock`. Note: when this is set, `SB_HOSTNAME` and `SB_PORT` are ignored.

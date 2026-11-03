@@ -26,3 +26,5 @@ This entails that paths have to conform to the same [[Names#Rules|rules]] names 
 - “.foo”
 - “foo@bar”
 - “foo.md.md”
+
+See [[URI]] for resource addresses and supported schemes.

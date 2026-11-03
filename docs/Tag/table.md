@@ -22,5 +22,5 @@ Table headers will be normalized by converting them to lowercase and replacing a
 * Each normalized column heading becomes a field holding the cell’s Markdown text, with hashtags removed. Cell values are strings, rather than automatically parsed numbers or YAML.
 * `tableref`: reference to the containing table’s start, as `page@pos`.
 * `page`, `pos`, `range`: containing page, row start and row source range.
-* `ref`, `tag`, `tags`, `itags`: shared [[Object#Object representation|object fields]]; `tag` is `table`. A row anchor replaces its position-based `ref`.
+* `ref`, `tag`, `tags`, `itags`: shared [[Object#Object representation|object fields]]. `tag` is `table`. A row anchor replaces its position-based `ref`.
 * Reserved object-field names cannot be overwritten by table columns.

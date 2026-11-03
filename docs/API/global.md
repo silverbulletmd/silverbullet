@@ -4,14 +4,12 @@ references:
 - client/space_lua/stdlib.ts
 - client/space_lua/runtime.ts
 ---
-
-These functions are defined in the global namespace. Alongside standard Lua functions, Space Lua provides the `each` and `some` convenience functions.
+Functions available directly in Space Lua, including standard Lua functions and the `each` and `some` helpers.
 
 ## assert
-
 `assert(value, message?)`
 
-Raises an error when a value is falsy; otherwise completes successfully.
+Raises an error when a value is falsy. Otherwise completes successfully.
 
 **Parameters:**
 
@@ -27,7 +25,6 @@ assert(user ~= nil, "user is required")
 **See:** [[API/global]]
 
 ## dofile
-
 `dofile(path)`
 
 Reads and executes a Lua source file from the current space.
@@ -39,7 +36,6 @@ Reads and executes a Lua source file from the current space.
 **See:** [[API/global]]
 
 ## each
-
 `each(table)`
 
 Returns a Space Lua iterator over array-like values without yielding indices.
@@ -63,7 +59,6 @@ end
 **See:** [[API/global]]
 
 ## error
-
 `error(message)`
 
 Raises a Lua runtime error with the supplied message.
@@ -75,7 +70,6 @@ Raises a Lua runtime error with the supplied message.
 **See:** [[API/global]]
 
 ## getmetatable
-
 `getmetatable(table)`
 
 Returns a table’s metatable, or `nil` when none is set.
@@ -91,7 +85,6 @@ Returns a table’s metatable, or `nil` when none is set.
 **See:** [[API/global]]
 
 ## ipairs
-
 `ipairs(table)`
 
 Returns an iterator over consecutive integer keys starting at 1 and stopping at the first `nil`.
@@ -115,7 +108,6 @@ end
 **See:** [[API/global]]
 
 ## load
-
 `load(chunk)`
 
 Compiles Lua source into a callable chunk without executing it.
@@ -132,7 +124,6 @@ Compiles Lua source into a callable chunk without executing it.
 **See:** [[API/global]]
 
 ## next
-
 `next(table, index?)`
 
 Returns the next table key and value after a given key, or the first pair when the key is omitted.
@@ -150,7 +141,6 @@ Returns the next table key and value after a given key, or the first pair when t
 **See:** [[API/global]]
 
 ## pairs
-
 `pairs(table)`
 
 Returns an iterator over all table key-value pairs, respecting `__pairs`.
@@ -174,7 +164,6 @@ end
 **See:** [[API/global]]
 
 ## pcall
-
 `pcall(function, ...): boolean, ...`
 
 Calls a function in protected mode and returns a success flag followed by results or an error message.
@@ -198,7 +187,6 @@ local ok, result = pcall(function() return mightFail() end)
 **See:** [[API/global]]
 
 ## print
-
 `print(...)`
 
 Prints string representations of its arguments to the runtime log.
@@ -216,7 +204,6 @@ print("Hello, world!")
 **See:** [[API/global]]
 
 ## rawequal
-
 `rawequal(a, b)`
 
 Tests two values for equality without invoking `__eq`.
@@ -233,7 +220,6 @@ Tests two values for equality without invoking `__eq`.
 **See:** [[API/global]]
 
 ## rawget
-
 `rawget(table, key)`
 
 Reads a table key without invoking `__index`.
@@ -250,7 +236,6 @@ Reads a table key without invoking `__index`.
 **See:** [[API/global]]
 
 ## rawlen
-
 `rawlen(value)`
 
 Returns a string or table length without invoking `__len`.
@@ -266,7 +251,6 @@ Returns a string or table length without invoking `__len`.
 **See:** [[API/global]]
 
 ## rawset
-
 `rawset(table, key, value)`
 
 Sets a table key without invoking `__newindex` and returns the table.
@@ -291,7 +275,6 @@ rawset(t, "name", "Ada")
 **See:** [[API/global]]
 
 ## select
-
 `select("#", ...): integer`
 `select(index, ...): ...`
 
@@ -309,7 +292,6 @@ Returns the count of extra arguments or all arguments from a selected position o
 **See:** [[API/global]]
 
 ## setmetatable
-
 `setmetatable(table, metatable)`
 
 Sets a table’s metatable and returns the table.
@@ -326,14 +308,13 @@ Sets a table’s metatable and returns the table.
 **See:** [[API/global]]
 
 ## some
-
 `some(value)`
 
 Returns `nil` for empty Space Lua values and otherwise returns the value unchanged.
 
 **Parameters:**
 
-- `value` — Value to normalize; blank strings, empty tables, infinities, and NaN are empty.
+- `value` — Value to normalize. Blank strings, empty tables, infinities, and NaN are empty.
 
 **Returns:**
 
@@ -350,7 +331,6 @@ print(some(0))
 **See:** [[API/global]]
 
 ## tonumber
-
 `tonumber(value): number|nil`
 `tonumber(value, base): integer|nil`
 
@@ -374,7 +354,6 @@ print(tonumber("2a", 16)) -- 42
 **See:** [[API/global]]
 
 ## tostring
-
 `tostring(value)`
 
 Converts a value to a string, respecting its `__tostring` metamethod.
@@ -390,7 +369,6 @@ Converts a value to a string, respecting its `__tostring` metamethod.
 **See:** [[API/global]]
 
 ## type
-
 `type(value)`
 
 Returns the Lua type name of a value.
@@ -406,7 +384,6 @@ Returns the Lua type name of a value.
 **See:** [[API/global]]
 
 ## xpcall
-
 `xpcall(function, errorHandler, ...): boolean, ...`
 
 Calls a function in protected mode and transforms any error with an error handler.

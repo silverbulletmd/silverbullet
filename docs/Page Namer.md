@@ -1,5 +1,5 @@
 ---
-description: "The page name at the top of each page: it shows whether the page is saved and lets you rename the page."
+description: "The page name field, used to rename a page and see its save status."
 references:
 - plugs/editor/page.ts
 - plug-api/lib/ref.ts

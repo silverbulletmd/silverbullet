@@ -4,12 +4,12 @@ references:
 - libraries/Library/Std/Infrastructure/Auth.md
 - client/plugos/syscalls/oauth.ts
 ---
-APIs to store credentials for remote services and to turn them into HTTP headers, see [[^Library/Std/Infrastructure/Auth]] for the page that implements them.
+Store credentials for remote services and use them in HTTP requests. See [[^Library/Std/Infrastructure/Auth]] for the implementation.
 
 Credentials live in the client-side store of the current device. They are never synced to the server or to other devices, and are stored encrypted when client encryption is enabled.
 
 # Keys
-A credential is stored under a key, either `provider` or `provider:target`, for example `github` or `sb:https://example.com/notes`. The part before the first colon names the provider that signs in and builds headers; the rest identifies what it signs in to.
+A credential is stored under a key, either `provider` or `provider:target`, for example `github` or `sb:https://example.com/notes`. The part before the first colon names the provider that signs in and builds headers. The rest identifies what it signs in to.
 
 # API
 ## auth.defineProvider(provider)
@@ -43,7 +43,7 @@ auth.defineProvider {
 * With `signIn` true it signs in when there is no credential, like `auth.headers`. A 401 for a stored credential (revoked or expired on the server) drops it, signs in again and repeats the request, once.
 * Without, it never signs in, like `auth.optionalHeaders`. A 401 drops the stored credential and repeats the request once without credentials, so public content stays readable.
 
-A configured credential that gets a 401 is not replaced by signing in, since only the user can fix it; without `signIn` the request is still repeated without it.
+A configured credential that gets a 401 is not replaced by signing in, since only the user can fix it. Without `signIn` the request is still repeated without it.
 
 ```lua
 -- A write: signs in when needed

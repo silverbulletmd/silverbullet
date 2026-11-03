@@ -3,12 +3,10 @@ tags: api/space-lua
 references:
 - client/space_lua/stdlib/encoding.ts
 ---
-
 The `encoding` namespace converts between strings, byte buffers, Base64, URL percent-encoding, and UTF-8.
 
 <!--#lua spacelua.renderApiDocumentation("encoding") -->
 ## encoding.base64Decode
-
 `encoding.base64Decode(encoded)`
 
 Decodes a Base64 string into a byte buffer.
@@ -22,7 +20,6 @@ Decodes a Base64 string into a byte buffer.
 - `bytes` — Decoded bytes.
 
 ## encoding.base64Encode
-
 `encoding.base64Encode(data)`
 
 Encodes a string or byte buffer as Base64.
@@ -36,7 +33,6 @@ Encodes a string or byte buffer as Base64.
 - `string` — Base64-encoded data.
 
 ## encoding.urlDecode
-
 `encoding.urlDecode(encoded)`
 
 Decodes a percent-encoded string, like JavaScript’s decodeURIComponent. Malformed input is returned unchanged.
@@ -50,7 +46,6 @@ Decodes a percent-encoded string, like JavaScript’s decodeURIComponent. Malfor
 - `string` — Decoded string.
 
 ## encoding.urlEncode
-
 `encoding.urlEncode(value)`
 
 Percent-encodes a string as UTF-8, like JavaScript’s encodeURIComponent.
@@ -64,7 +59,6 @@ Percent-encodes a string as UTF-8, like JavaScript’s encodeURIComponent.
 - `string` — URL-encoded string.
 
 ## encoding.utf8Decode
-
 `encoding.utf8Decode(data)`
 
 Decodes a UTF-8 byte buffer into a string.
@@ -78,7 +72,6 @@ Decodes a UTF-8 byte buffer into a string.
 - `string` — Decoded text.
 
 ## encoding.utf8Encode
-
 `encoding.utf8Encode(value)`
 
 Encodes a UTF-8 string into a byte buffer.

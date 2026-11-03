@@ -19,7 +19,7 @@ The log keeps the most recent 1000 entries. Use the filter field to search them 
 Lua errors show their message, a hint when there is one, and the offending line with the failing part marked. **Stack** lists where the error passed through.
 
 # The REPL
-Type Lua at the bottom prompt and press Enter to run it. For a first experiment, enter `1 + 2`; the result is `3`. Console code can change your space when you call a write API, so use your own writable space for mutation examples.
+Type Lua at the bottom prompt and press Enter to run it. For a first experiment, enter `1 + 2`. The result is `3`. Console code can change your space when you call a write API, so use your own writable space for mutation examples.
 
 The REPL can operate in two “contexts”:
 * **Space context:** access to space-wide [[Space Lua]] variables and functions.

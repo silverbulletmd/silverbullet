@@ -1,5 +1,5 @@
 ---
-description: A structured, queryable unit of data extracted from your pages (e.g. tasks, items, paragraphs).
+description: "A queryable record extracted from your space, such as a page, task or relation."
 tags: glossary
 references:
 - client/data/object_index.ts
@@ -19,7 +19,7 @@ To see objects in context, use:
 * A [[Tag]] groups objects for queries, much like a database table. Every object has exactly one root tag saying what it is, and can have user tags attached, usually through [[Markdown/Hashtags]]. See [[Tag]] for every built-in tag.
 
 # Principles
-**Space files are the source of truth**: page content produces objects such as tasks and links; non-Markdown documents produce [[Tag/document|document objects]] from file metadata.
+**Space files are the source of truth**: page content produces objects such as tasks and links. Non-Markdown documents produce [[Tag/document|document objects]] from file metadata.
 
 The [[Object Index]] can be rebuilt from those files with the `Space: Reindex` command.
 

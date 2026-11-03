@@ -1,11 +1,11 @@
 ---
-description: A rendered UI component (markdown or HTML).
+description: "A value describing content to render, such as Markdown, HTML, a list or a table."
 tags: glossary
 references:
 - client/space_lua/render_widget.ts
 - client/codemirror/widgets/lua_widget.ts
 ---
-A widget is a value describing what to render; where it appears is up to the page text or a [[View]]. See [[View#Widgets and views]].
+A widget is a value describing what to render. Where it appears is up to the page text or a [[View]]. See [[View#Widgets and views]].
 
 The `${lua expression}` syntax renders whatever the expression returns: a string as Markdown, a table as a table, or a widget. Use `widget.new` when you need more control. The full reference, including when expressions update, is in [[API/widget]].
 

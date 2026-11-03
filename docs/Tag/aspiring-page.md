@@ -1,5 +1,5 @@
 ---
-description: Pages that are linked to but don't exist yet.
+description: "Pages that are linked to but do not exist yet."
 tagKind: index
 references:
 - plugs/index/relation.ts
@@ -19,4 +19,4 @@ ${query[[from index.aspiringPages()]]}
 * `pos`: start of the unresolved link.
 * `ref`: reference identifying that occurrence.
 
-Records are rebuilt when the source page is indexed; creating the target page removes its aspiring-page entries.
+Records are rebuilt when the source page is indexed. Creating the target page removes its aspiring-page entries.

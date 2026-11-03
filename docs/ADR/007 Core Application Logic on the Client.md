@@ -14,7 +14,7 @@ references:
 SilverBullet’s [[Plugs]] runtime was originally designed so that plugs could run **either on the server or in the client**. Through “v1” this surfaced as two switchable modes:
 
 * **Server mode** — indexing and plug execution ran on the server, the client delegated a lot of logic to the server.
-* **Sync mode** — the space is *also* synced to the browser and indexing + plug execution ran client-side as well; you could switch between the two.
+* **Sync mode** — the space is *also* synced to the browser and indexing + plug execution ran client-side as well. You could switch between the two.
 
 This was flexible and genuinely powerful, but maintaining **two runtime environments** for PlugOS was a persistent burden: every capability had to work and the dual model produced subtle, hard-to-diagnose issues. The goal for v2 was to be genuinely **offline-first** without that complexity.
 
@@ -32,11 +32,11 @@ v2 **eliminates the server-side PlugOS runtime**: plug execution, indexing, the 
 ## Negative / trade-offs
 * **Every client builds and holds its own copy.** Each browser/device must sync all files locally and (re)create its own [[Object Index|object index]] from scratch — duplicated storage and a cold-start indexing cost on every new client, instead of indexing once on the server. Partly mitigated by selective sync (e.g. [[Document|documents]] are fetched on demand) — see [[Sync]].
 * **No thin-client / server-only option.** Large spaces or constrained, low-power devices that could previously lean on server mode no longer can — there is no mode where the heavy lifting stays on the server.
-* **Server-authoritative features are harder.** Anything needing a central source of truth at edit time — notably real-time collaboration / CRDT merging — does not fall out naturally; concurrent edits are resolved by writing a conflicting copy rather than merging. See [[ADR/002 Sync Engine]].
+* **Server-authoritative features are harder.** Anything needing a central source of truth at edit time — notably real-time collaboration / CRDT merging — does not fall out naturally. Concurrent edits are resolved by writing a conflicting copy rather than merging. See [[ADR/002 Sync Engine]].
 
 # Alternatives considered
 * **Keep the dual-mode (server + sync) architecture.** Rejected: maintaining two PlugOS runtimes in parity was the core pain — an ongoing maintenance burden and a source of subtle bugs. It was also confusing for plug developers.
-* **Make *server mode* the only mode** (thin client; the server does everything). Rejected: defeats offline-first and the run-anywhere goal, and keeps the product tied to an always-available, more capable backend.
+* **Make *server mode* the only mode** (thin client, the server does everything). Rejected: defeats offline-first and the run-anywhere goal, and keeps the product tied to an always-available, more capable backend.
 
 # References
 * [[Architecture]] — “all indexing, querying etc. happens in the client. The server effectively acts as a file store.”

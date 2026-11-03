@@ -11,6 +11,6 @@ Every `space-lua` block across your space is indexed with the `space-lua` tag. U
 * `ref`: containing page and block position as `page@pos`.
 * `script`: Lua source inside the fence.
 * `range`: `[start, end]` range of the code inside the fence.
-* `priority` (optional): number from the block’s `-- priority: <number>` comment. Higher priorities load first; see [[Space Lua#Definition loading]].
+* `priority` (optional): number from the block’s `-- priority: <number>` comment. Higher priorities load first. See [[Space Lua#Definition loading]].
 
 Blocks inside [[Markdown/Comment|comments]] are excluded so they do not load.

@@ -1,5 +1,5 @@
 ---
-description: "Run SilverBullet behind an authentication proxy such as Authelia, Authentik, Cloudflare Zero Trust or Pangolin."
+description: "Run SilverBullet Server behind an authentication proxy."
 ---
 In case you would like to run SilverBullet behind an authentication proxy (such as Authelia, Authentik or the ones integrated with Cloudflare Zero Trust or Pangolin) there is one key configuration tweak you need to make:
 

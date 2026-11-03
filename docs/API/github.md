@@ -3,7 +3,6 @@ tags: api/space-lua
 references:
 - libraries/Library/Std/Infrastructure/Github.md
 ---
-
 APIs and configuration of the [[^Library/Std/Infrastructure/Github]] integration, which reads and writes Github repository files and gists for [[Share]].
 
 Signing in uses the `github` provider of [[API/auth|auth]], which runs the device flow of [[API/oauth|oauth.deviceFlow]]. The token is stored on the device only.
@@ -18,7 +17,7 @@ config.set("github.token", "your token")
 config.set("github.clientId", "your client id")
 ```
 
-The provider supplies `Authorization`; API requests add `Accept` themselves.
+The provider supplies `Authorization`. API requests add `Accept` themselves.
 
 # API
 ## github.request(url, method, body?)

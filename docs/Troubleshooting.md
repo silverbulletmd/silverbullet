@@ -7,10 +7,10 @@ For an error inside an open space, inspect the log in [[Workbench/Console]]. If 
 
 If the local page is correct but another device has an older version, check the space’s **Sync** settings in the Desktop dashboard and confirm that the external Server is reachable. [[Desktop Sync]] explains the connection setup. If you do not use an external Server, there is no Desktop–Server sync to diagnose.
 
-Check [[Desktop Updates]] for an available update. Before changing or replacing files to recover a space, preserve a copy and follow [[Guide/Storage and Recovery]]. Desktop stores the space in a local folder; the browser cache reset below does not repair those files.
+Check the dashboard’s **Updates** tab for an available update. For Flatpak installations, check through Flatpak instead. Before changing or replacing files to recover a space, preserve a copy. Desktop stores the space in a local folder. The browser cache reset below does not repair those files.
 
 # Server
-If the Server cannot be reached, check that its process is running, then inspect its logs and any reverse-proxy logs; see [[Log]]. Verify the listening address and port in [[Install/Configuration]] and the setup in [[Install/Network and Internet]]. If the Server responds but access is denied, check the account and space access settings in the [[Dashboard]].
+If the Server cannot be reached, check that its process is running, then inspect its logs and any reverse-proxy logs. See [[Log]]. Verify the listening address and port in [[Install/Configuration]] and the setup in [[Install/Network and Internet]]. If the Server responds but access is denied, check the account and space access settings in the [[Dashboard]].
 
 For errors after the editor opens, inspect [[Workbench/Console]] and the browser’s JavaScript console. The following browser options help isolate scripts, styles, plugs and offline-cache problems.
 
@@ -34,4 +34,4 @@ If the problem is in the browser’s local cache, adding `?resetClient=1` to the
 * `SB_HTTP_LOGGING`: enable HTTP request logging.
 * `SB_LOG_PUSH`: ask clients to push their logs to the Server.
 
-See [[Install/Configuration]] for configuration options and [[Guide/Storage and Recovery]] for restoring files or revision history.
+See [[Install/Configuration]] for configuration options and [[Revisions]] for restoring earlier page versions.

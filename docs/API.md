@@ -1,5 +1,5 @@
 ---
-description: "The APIs available in Space Lua, with the standard library and syscalls."
+description: "Lua standard library, Space Lua APIs and SilverBullet syscalls."
 references:
 - client/space_lua/stdlib.ts
 - client/plugos/syscalls/index.ts
@@ -8,13 +8,24 @@ references:
 This describes the APIs available in [[Space Lua]]:
 
 # Lua Standard Library
+<!--#lua query[[
+  from p = index.contentPages("api/lua")
+  order by p.name
+  select template.new[==[* [[${name}|${name:match("[^/]+$")}]]]==](p)
+]] -->
 * [[API/global|global]]
 * [[API/math|math]]
 * [[API/os|os]]
 * [[API/string|string]]
 * [[API/table|table]]
+<!--/lua-->
 
 # Space Lua APIs
+<!--#lua query[[
+  from p = index.contentPages("api/space-lua")
+  order by p.name
+  select template.new[==[* [[${name}|${name:match("[^/]+$")}]]]==](p)
+]] -->
 * [[API/auth|auth]]
 * [[API/command|command]]
 * [[API/crypto|crypto]]
@@ -40,8 +51,14 @@ This describes the APIs available in [[Space Lua]]:
 * [[API/view|view]]
 * [[API/widget|widget]]
 * [[API/widgets|widgets]]
+<!--/lua-->
 
 # Syscall APIs
+<!--#lua query[[
+  from p = index.contentPages("api/syscall")
+  order by p.name
+  select template.new[==[* [[${name}|${name:match("[^/]+$")}]]]==](p)
+]] -->
 * [[API/asset|asset]]
 * [[API/capture|capture]]
 * [[API/clientStore|clientStore]]
@@ -64,3 +81,4 @@ This describes the APIs available in [[Space Lua]]:
 * [[API/sync|sync]]
 * [[API/system|system]]
 * [[API/yaml|yaml]]
+<!--/lua-->

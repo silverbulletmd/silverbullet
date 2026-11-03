@@ -5,7 +5,7 @@ Edit [[Frontmatter]] and [[Tag/data|data blocks]] as forms. Changes are written 
 2. Change a value in its field. Use the form’s attribute controls to add, remove or reorder attributes.
 3. Choose **Edit source** from the ⋯ menu to edit YAML directly, or press Esc in an input to reveal its attribute. Move the cursor outside the YAML to return to the form.
 
-On a page without frontmatter, hover over the first line to reveal the faint **add tag** icon. Clicking it opens the form with an empty tags field. Type a tag and press Enter, then use **+ add attribute** to add more attributes. [[Guide/Organize with Tags and Attributes]] shows the workflow. Undo removes your changes.
+On a page without frontmatter, hover over the first line to reveal the faint **add tag** icon. Clicking it opens the form with an empty tags field. Type a tag and press Enter, then use **+ add attribute** to add more attributes. [[Guide/Add Structure and Query]] shows the workflow. Undo removes your changes.
 
 A data block can contain several objects, separated by `---`. **+ add item** appears beneath the last item once it has an attribute. **Delete** in the ⋯ menu removes one item, or the whole block if it is the only item. On frontmatter, **Delete** removes the entire frontmatter. These changes are undoable.
 

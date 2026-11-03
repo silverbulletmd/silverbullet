@@ -29,8 +29,8 @@ The client build toolchain moved from **Deno to Node.js** (npm + ESBuild, with [
 * **Off a moving target.** No longer tracking Deno’s shifting package-management story.
 
 ## Negative / trade-offs
-* **More moving parts.** Deno bundled fmt/lint/test out of the box; on Node these are assembled from separate packages (biome, vitest), a slightly larger dependency surface.
-* **Left the “better” runtime.** Deno is arguably the nicer JS runtime; the move trades that for familiarity and ecosystem reach.
+* **More moving parts.** Deno bundled fmt/lint/test out of the box. On Node these are assembled from separate packages (biome, vitest), a slightly larger dependency surface.
+* **Left the “better” runtime.** Deno is arguably the nicer JS runtime. The move trades that for familiarity and ecosystem reach.
 
 # Alternatives considered
 * **Stay on Deno.** Rejected: with only the client left to build, Deno’s specific benefits no longer justify the unfamiliarity and thinner ecosystem.

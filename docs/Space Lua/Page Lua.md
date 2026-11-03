@@ -34,7 +34,7 @@ My raise calculated with `raise`: ${raise(salary, increase)}
 For instance referencing a variable defined [[Examples/Budget]]: ${pageVars.get("marketingBudget", "Examples/Budget") - 100}
 
 # Setting values
-`pageVars.set(name, value)` changes a value by rewriting its `${name = …}` in the page text, so the page shows and saves the new value and everything that uses it updates. Without a page argument it sets the variable on the page the code is on; pass a page name as the third argument to set another page’s.
+`pageVars.set(name, value)` changes a value by rewriting its `${name = …}` in the page text, so the page shows and saves the new value and everything that uses it updates. Without a page argument it sets the variable on the page the code is on. Pass a page name as the third argument to set another page’s.
 
 Copy this complete Markdown example into a writable page:
 
@@ -48,7 +48,7 @@ ${widgets.button("Give me a raise", function() pageVars.set("increase", 10) end)
 
 The new salary starts at 1050 USD. Clicking the button saves `increase = 10` and displays 1100 USD. This write-back example is inert in the read-only documentation.
 
-Only a `${name = …}` holding a plain value (a number, string, `true`, `false` or `nil`) or a table literal of plain values (such as `${tags = {"a", "b"}}` or a list of records) can be set; a formula such as `${total = a + b}`, or a name the page doesn’t define that way, is an error. See [[API/pageVars]].
+Only a `${name = …}` holding a plain value (a number, string, `true`, `false` or `nil`) or a table literal of plain values (such as `${tags = {"a", "b"}}` or a list of records) can be set. A formula such as `${total = a + b}`, or a name the page doesn’t define that way, is an error. See [[API/pageVars]].
 
 # Examples
 ## Numeric values

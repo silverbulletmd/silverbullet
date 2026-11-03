@@ -18,6 +18,3 @@ Like [[Tag/aspiring-page|aspiring pages]], these records are produced by the rel
 * `range`: `[start, end]` byte offsets of the link syntax within `page`.
 
 Ranking is relative to `page`, so two pages linking `[[Config]]` can legitimately have different `resolvesTo` values for the same `name`.
-
-# All ambiguous links in this space
-${query[[from index.objects("ambiguous-link")]]}

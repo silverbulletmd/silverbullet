@@ -1,8 +1,7 @@
 ---
-description: A plug or library that adds functionality to SilverBullet.
+description: "Extend SilverBullet with libraries, Space Lua or plugs."
 tags: glossary
 ---
-
 Install a library for ready-made commands and templates, write Space Lua for your own behavior, or develop a plug for integrations that need TypeScript.
 
 # Libraries

@@ -1,5 +1,5 @@
 ---
-description: A recipient is an identity you address with @name — collected in the Mention Inbox and queryable as `@name` relations.
+description: "An identity addressed with @name, whose mentions appear in the Mention Inbox."
 tags: glossary maturity/experimental
 references:
 - plugs/index/relation.ts
@@ -16,7 +16,7 @@ The Mention Inbox is a [[View|view]] listing open `@mention`s, grouped by page. 
 
 # The `recipients` attribute
 Every mention also sets a `recipients` attribute onto the object that hosts it, holding the `@name` identifier of each name mentioned.
-* a mention inside a task or list item stamps that task or item;
+* a mention inside a task or list item stamps that task or item.
 * a mention in a plain paragraph or header stamps the **page** object instead.
 
 Pages can also declare recipients declaratively in frontmatter — useful when a whole page is “for” someone without inline mentions:
@@ -49,4 +49,4 @@ ${query[[
 
 Frontmatter declarations are relations too, with `kind == "recipients"`.
 
-For a complete request, reply and resolution workflow, see [[Guide/Mentions and Replies]].
+For a complete request, reply and resolution workflow, see [[Guide/Comments, Mentions and Replies]].

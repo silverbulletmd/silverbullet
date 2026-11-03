@@ -5,11 +5,9 @@ references:
 - client/plugos/hooks/slash_command.ts
 - plug-api/types/manifest.ts
 ---
-
-APIs to create [[Slash Command]]. For simple cases it is recommended to use [[^Library/Std/Infrastructure/Slash Templates]] instead.
+Define [[Slash Command|slash commands]]. For reusable text snippets, use [[Slash Templates]] instead.
 
 ## slashCommand.define(spec)
-
 Define a custom slash command.
 
 Supported keys in the spec:

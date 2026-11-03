@@ -1,5 +1,5 @@
 ---
-description: The quick-open dialog for navigating to any page.
+description: "Find pages by name or create a new page."
 tags: glossary
 references:
 - client/navigator/builtins.ts
@@ -47,8 +47,8 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `PageUp`/`PageDown`: move up and down 5 entries in the page list in one go
 * `Home`: moves to the start of the list
 * `End`: moves to the end of the list
-* `Escape`: clears the filter phrase; on an empty phrase it closes the page picker
-* Typing `^` when the filter phrase is empty switches to the **Meta** segment ([[Meta Picker]]); `Tab`/`Shift-Tab` step through all four segments
+* `Escape`: clears the filter phrase. On an empty phrase it closes the page picker
+* Typing `^` when the filter phrase is empty switches to the **Meta** segment ([[Meta Picker]]). `Tab`/`Shift-Tab` step through all four segments
 
 # Mouse/touch operation
 You can scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.

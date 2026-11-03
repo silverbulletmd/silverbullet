@@ -7,7 +7,7 @@ references:
 Once your plug works locally, you probably want to ship it to other people. This page covers both.
 
 # Distribution: ship your plug in a Library
-Plugs are distributed as part of a [[Library]] — the unit of distribution for all SilverBullet extensions. You don’t publish the `.plug.js` on its own; you publish a library page that carries it.
+Plugs are distributed as part of a [[Library]] — the unit of distribution for all SilverBullet extensions. You don’t publish the `.plug.js` on its own. You publish a library page that carries it.
 
 Follow this recipe in your own writable space. Publishing also requires a configured destination. The recipe mirrors [[Library/Development]]:
 

@@ -21,7 +21,7 @@ Sharing may be desirable in different directions:
 * _Pull_: pull in content from an external location and import it into your space and be able to keep pulling in new versions on demand. Use cases:
   * [[Library]] that you install
 * _Sync_: For bi-directional push and pull. Example use cases:
-  * Collaborate on a page with other SilverBullet users
+  * Collaborate on a page with other SilverBullet users across servers
 
 # Operation
 SilverBullet has [[^Library/Std/Infrastructure/Share|infrastructural support]] to solve this problem in a general way. It leverages [[Frontmatter]], specifically the following keys:
@@ -42,10 +42,10 @@ For the current page, these commands exist:
 * ${widgets.commandButton "Share: Copy Link"}: copies that web address.
 * `Share: Unshare`: stops sharing the page, removing its `share.*` keys. The shared copy stays where it is.
 
-`Share: All Changed` shares every _sync_ page you changed since its last share (as its `share.hash` tells), every _push_ page whose remote differs from it or is missing (it reads each push page’s remote to find out), and every [[#Collections|collection]] with such a page. _Pull_ pages are left alone. To see all your shared pages and collections and their status, open [[Shared Pages]].
+`Share: All Changed` shares every _sync_ page you changed since its last share (as its `share.hash` tells), every _push_ page whose remote differs from it or is missing (it reads each push page’s remote to find out), and every [[Share/Collection|collection]] with such a page. _Pull_ pages are left alone. To see all your shared pages and collections and their status, open [[Shared Pages]].
 
 # Collections
-Collections push a set of pages together under a target root and rewrite links between members. Configuration, providers, change detection and removal behavior are documented in [[Guide/Publish a Collection]].
+See [[Share/Collection]] for publishing a set of pages together.
 
 # What gets published
 In _push_ mode the page is not sent as it is. Its `share.*` keys are always removed (the rest of its frontmatter is published as it is), and these steps run first, switched on or off depending on where it goes:

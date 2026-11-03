@@ -5,12 +5,10 @@ references:
 - client/space_lua_api.ts
 - client/space_lua/runtime.ts
 ---
-
 The Space Lua API provides functions for working with Lua expressions and templates.
 
 <!--#lua spacelua.renderApiDocumentation("spacelua") -->
 ## spacelua.baseUrl
-
 `spacelua.baseUrl()`
 
 Returns the SilverBullet instance’s base URL, or `nil` when run on the server.
@@ -27,7 +25,6 @@ print(url)
 ```
 
 ## spacelua.describe
-
 `spacelua.describe(functionOrName)`
 
 Returns structured documentation for a Lua function value or dotted API name.
@@ -50,7 +47,6 @@ local sameInfo = spacelua.describe("editor.getText")
 ```
 
 ## spacelua.evalExpression
-
 `spacelua.evalExpression(parsedExpr, envAugmentation?)`
 
 Evaluates a parsed Lua expression, optionally with additional environment values.
@@ -73,7 +69,6 @@ print(result)
 ```
 
 ## spacelua.interpolate
-
 `spacelua.interpolate(template, envAugmentation?)`
 
 Interpolates `${...}` Lua expressions in a string, optionally with additional environment values.
@@ -95,14 +90,13 @@ print(greeting)
 ```
 
 ## spacelua.listFunctions
-
 `spacelua.listFunctions(namespace?)`
 
 Lists documented functions in the global environment or an API namespace.
 
 **Parameters:**
 
-- `namespace?` (`table|string`) — Namespace table or dotted name; omit for globals.
+- `namespace?` (`table|string`) — Namespace table or dotted name. Omit for globals.
 
 **Returns:**
 
@@ -117,7 +111,6 @@ end
 ```
 
 ## spacelua.parseBlock
-
 `spacelua.parseBlock(code)`
 
 Parses a Lua chunk and returns its AST. Blocks retain comments in source order with their exact text, kind, and source range.
@@ -137,7 +130,6 @@ local parsed = spacelua.parseBlock("local x = 1\nreturn x + 2")
 ```
 
 ## spacelua.parseExpression
-
 `spacelua.parseExpression(luaExpression)`
 
 Parses a Lua expression and returns its AST.
@@ -157,7 +149,6 @@ local parsed = spacelua.parseExpression("1 + 1")
 ```
 
 ## spacelua.prettyPrintBlock
-
 `spacelua.prettyPrintBlock(block, options?)`
 
 Pretty-prints a parsed Lua block AST. Comments are preserved while their placement and indentation are normalized.
@@ -179,7 +170,6 @@ print(formatted)
 ```
 
 ## spacelua.prettyPrintExpression
-
 `spacelua.prettyPrintExpression(parsedExpr, options?)`
 
 Pretty-prints a parsed Lua expression AST.
@@ -201,14 +191,13 @@ print(spacelua.prettyPrintExpression(parsed))
 ```
 
 ## spacelua.renderApiDocumentation
-
 `spacelua.renderApiDocumentation(target?)`
 
 Renders API documentation for a function, namespace, or the global environment as Markdown.
 
 **Parameters:**
 
-- `target?` (`function|table|string`) — Function value, namespace table, or dotted API name to document; omit for globals.
+- `target?` (`function|table|string`) — Function value, namespace table, or dotted API name to document. Omit for globals.
 
 **Returns:**
 

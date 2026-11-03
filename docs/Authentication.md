@@ -1,5 +1,5 @@
 ---
-description: "How you authenticate depends on the server mode: accounts in multi-space mode, environment-variable credentials in single-space mode, or none."
+description: "Accounts and login options for SilverBullet Server."
 tags: administration
 references:
 - bin/silverbullet/src/config.rs
@@ -49,6 +49,6 @@ Replace the example password before running the command. This configures one log
 For programmatic access via the [[HTTP API]], you can use bearer token authentication. In single-space mode, this token is configured with an environment variable, see [[Install/Configuration]]. In multi-space mode, new API tokens can be issued via the [[Dashboard]] UI.
 
 # Authentication proxies
-Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy’s built-in auth). This is common in more complex self-hosted setups. In accounts mode, pair a proxy with **public** spaces so the proxy owns identity; in single-space mode, put the proxy in front of an open server.
+Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy’s built-in auth). This is common in more complex self-hosted setups. In accounts mode, pair a proxy with **public** spaces so the proxy owns identity. In single-space mode, put the proxy in front of an open server.
 
 For all authentication-related configuration options, see [[Install/Configuration#Authentication]].

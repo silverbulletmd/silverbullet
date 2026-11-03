@@ -39,12 +39,11 @@ services:
       - "3000:3000"
 ```
 
-The image stores isolated temporary Chrome profiles under `/data/.chrome-data`. A new runtime receives a fresh profile and rebuilds its client index; profiles are removed on Reset, permission revocation, or server shutdown. Administrative Stop retains the profile for reuse within the current server lifetime.
+The image stores isolated temporary Chrome profiles under `/data/.chrome-data`. A new runtime receives a fresh profile and rebuilds its client index. Profiles are removed on Reset, permission revocation, or server shutdown. Administrative Stop retains the profile for reuse within the current server lifetime.
 
 Use a `-slim` tag such as `latest-slim` if you do not need the Runtime API and want a smaller image without Chromium. The old `-runtime-api` tags remain available as compatibility aliases for the default image.
 
 # Endpoints
-
 ## Evaluate a Lua expression
 `POST /.runtime/lua`
 
@@ -134,7 +133,7 @@ The `result` of `/.runtime/lua` and `/.runtime/lua_script` (and the output of `s
 * `NaN`, `Infinity`, `-Infinity`: the strings `"NaN"`, `"Infinity"`, `"-Infinity"`
 * Big integer: a number if it is a safe integer, else a decimal string
 * Table with only keys `1..n`: array
-* Any other table (including mixed tables): object; sequence keys become `"1"`, `"2"`, …
+* Any other table (including mixed tables): object, with sequence keys converted to `"1"`, `"2"`, …
 * Date: ISO 8601 string
 * Map / Set: object / array
 * Query collection, such as `index.pages("book")` or `index.tags()`: array of all its rows, also when nested in a table. At most 1000 rows: a larger collection ends with one extra string, `"<truncated: N more rows; use sb query with where/limit>"`.
@@ -155,7 +154,7 @@ Status codes used across the Runtime API:
 * **403** — The caller lacks Write or Runtime API permission.
 * **400** — Empty request body: `{"error": "Request body is required"}`. Invalid screenshot selector syntax: `{"error": "...", "code": "invalid_selector"}`.
 * **404** — No visible element matches the screenshot selector: `{"error": "...", "code": "selector_not_found"}`.
-* **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error): `{"error": "<error message>", "code": "script_error"}`. The message is the concise client error (e.g. `attempt to call a nil value`); the full stack is available in the runtime console log.
+* **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error): `{"error": "<error message>", "code": "script_error"}`. The message is the concise client error (e.g. `attempt to call a nil value`). The full stack is available in the runtime console log.
 * **503** — Runtime API not enabled or no headless browser running: `{"error": "Runtime API is not enabled"}` or `{"error": "...", "code": "bridge_unavailable"}`.
 * **504** — Timeout exceeded: `{"error": "...", "code": "timeout"}`.
 

@@ -4,12 +4,10 @@ references:
 - plug-api/syscalls/jsonschema.ts
 - client/plugos/syscalls/jsonschema.ts
 ---
-
-The JSON Schema API provides functions for validating JSON objects against JSON schemas.
+Validate values against JSON schemas.
 
 <!--#lua spacelua.renderApiDocumentation("jsonschema") -->
 ## jsonschema.inferFromObject
-
 `jsonschema.inferFromObject(object)`
 
 Infers a best-effort draft 2020-12 JSON Schema from a sample value.
@@ -29,7 +27,6 @@ local schema = jsonschema.inferFromObject({name = "Widget", count = 3})
 ```
 
 ## jsonschema.validateObject
-
 `jsonschema.validateObject(schema, object)`
 
 Validates a value against a JSON Schema.
@@ -51,7 +48,6 @@ local err = jsonschema.validateObject(schema, {name = "John"})
 ```
 
 ## jsonschema.validateSchema
-
 `jsonschema.validateSchema(schema)`
 
 Checks whether a JSON Schema has a supported top-level shape.

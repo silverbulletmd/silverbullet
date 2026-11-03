@@ -3,14 +3,12 @@ tags: api/space-lua
 references:
 - client/space_lua/stdlib/js.ts
 ---
-
-The `js` namespace provides JavaScript interoperability, including dynamic module imports, Lua/JavaScript value conversion, and asynchronous iterable support.
+Import JavaScript modules, convert values between Lua and JavaScript, and consume asynchronous iterables.
 
 `js.importFromSpace` resolves a space-relative file path to the current space’s same-origin `/.fs` URL. This lets a library import a JavaScript module shipped as a [[Library/Development#Decorate your library with frontmatter|library asset]] asset without constructing a deployment-specific base URL. A leading slash is optional, and a sole `default` export is unwrapped like `js.import`.
 
 <!--#lua spacelua.renderApiDocumentation("js") -->
 ## js.eachIterable
-
 `js.eachIterable(iterable)`
 
 Creates a Lua iterator over a JavaScript async iterable.
@@ -32,7 +30,6 @@ end
 ```
 
 ## js.import
-
 `js.import(url)`
 
 Dynamically imports a JavaScript module from a URL.
@@ -52,7 +49,6 @@ local lib = js.import("https://esm.sh/lodash@4.17.21")
 ```
 
 ## js.importFromSpace
-
 `js.importFromSpace(path)`
 
 Imports a JavaScript module from a file in the current space.
@@ -72,7 +68,6 @@ local acme = js.importFromSpace("Library/acme/acme.js")
 ```
 
 ## js.log
-
 `js.log(...)`
 
 Logs values to the JavaScript console.
@@ -88,7 +83,6 @@ js.log("User data:", {name = "Ada"})
 ```
 
 ## js.new
-
 `js.new(constructor, ...): userdata`
 
 Creates an instance of a JavaScript class.
@@ -109,7 +103,6 @@ local value = js.new(js.window.Date, "2024-03-14")
 ```
 
 ## js.stringify
-
 `js.stringify(value)`
 
 Serializes a value as JSON using JavaScript semantics.
@@ -129,7 +122,6 @@ print(js.stringify({1, 2, 3})) -- [1,2,3]
 ```
 
 ## js.tojs
-
 `js.tojs(value)`
 
 Converts a Lua value to its JavaScript representation.
@@ -149,7 +141,6 @@ local jsArray = js.tojs({1, 2, 3})
 ```
 
 ## js.tolua
-
 `js.tolua(value)`
 
 Converts a JavaScript value to its Lua representation.

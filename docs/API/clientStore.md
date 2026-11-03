@@ -4,12 +4,10 @@ references:
 - plug-api/syscalls/client_store.ts
 - client/plugos/syscalls/clientStore.ts
 ---
-
-The Client Store API provides a simple key-value store for client-specific states and preferences.
+Store device-specific state and preferences as key-value pairs.
 
 <!--#lua spacelua.renderApiDocumentation("clientStore") -->
 ## clientStore.delete
-
 `clientStore.delete(key)`
 
 Deletes a client-specific value from the local key-value store.
@@ -25,7 +23,6 @@ clientStore.delete("theme")
 ```
 
 ## clientStore.get
-
 `clientStore.get(key)`
 
 Gets a client-specific value from the local key-value store.
@@ -45,7 +42,6 @@ local theme = clientStore.get("theme")
 ```
 
 ## clientStore.set
-
 `clientStore.set(key, value)`
 
 Stores a client-specific value in the local key-value store.

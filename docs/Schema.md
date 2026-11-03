@@ -1,5 +1,5 @@
 ---
-description: A definition that validates and constrains the shape of object attributes.
+description: "Rules for the types and values of object attributes."
 tags: glossary
 references:
 - plug-api/syscalls/jsonschema.ts

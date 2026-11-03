@@ -1,5 +1,5 @@
 ---
-description: "Edit your space's configuration options and key bindings, saved to CONFIG."
+description: "Edit your space’s configuration and key bindings in CONFIG."
 references:
 - client/workbench/configuration/**
 - client/workbench/shared/section_sidebar.tsx
@@ -10,7 +10,7 @@ ${widgets.commandButton("Workbench: Configuration")} opens this tab in the [[Wor
 
 A sidebar on the left lists two sections. In a narrow panel it becomes a drop-down above the list.
 
-* **Configuration**: every option registered with [[API/config#config.define(key, schema)]] that has a `ui` annotation, grouped by category. The categories are listed under the section in the sidebar; click one to jump to it. Each option shows its label, description and a control that fits its schema: a checkbox, a drop-down, a text, password or number field. Options the tab can’t edit say so; change those in [[CONFIG]] directly.
+* **Configuration**: every option registered with [[API/config#config.define(key, schema)]] that has a `ui` annotation, grouped by category. The categories are listed under the section in the sidebar. Click one to jump to it. Each option shows its label, description and a control that fits its schema: a checkbox, a drop-down, a text, password or number field. Options the tab can’t edit say so. Change those in [[CONFIG]] directly.
 * **Key bindings**: every [[Command]] with its keyboard shortcuts. Click a shortcut, then press the keys you want: chords of several strokes, like `Ctrl-q q`, work too. Enter keeps it, Esc cancels and Backspace undoes the last key. `+` adds an alternate shortcut. A shortcut that’s already taken, or that another shortcut would make unreachable, is refused, with the reason shown under the row.
 
 The filter in the toolbar narrows the section showing: options by label, description and path, key bindings by command name.

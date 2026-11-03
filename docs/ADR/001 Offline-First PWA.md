@@ -19,9 +19,9 @@ SilverBullet aims to be **offline-first**: it should keep working with no networ
 # Decision
 The client is a **Progressive Web App built around a service worker**. The service worker:
 
-* keeps a full local copy of the space’s files in **IndexedDB**;
-* hosts the [[Object Index|index]] and the [[Sync|sync engine]];
-* **intercepts the HTTP API** and serves it locally, so the app behaves the same whether or not the server is reachable;
+* keeps a full local copy of the space’s files in **IndexedDB**.
+* hosts the [[Object Index|index]] and the [[Sync|sync engine]].
+* **intercepts the HTTP API** and serves it locally, so the app behaves the same whether or not the server is reachable.
 * caches and serves the client code itself.
 
 See [[Architecture#Service Worker]].
@@ -38,7 +38,7 @@ See [[Architecture#Service Worker]].
 
 # Alternatives considered
 * **Online-only (no service worker).** Rejected: no offline support and a network round-trip on every operation — defeats the offline-first goal. (Still available deliberately via `SB_DISABLE_SERVICE_WORKER`.)
-* **Bundle a native runtime for offline.** Rejected: heavier and platform-specific; a PWA delivers offline on every platform from one codebase.
+* **Bundle a native runtime for offline.** Rejected: heavier and platform-specific. A PWA delivers offline on every platform from one codebase.
 
 # References
 * [[Architecture#Service Worker]] and [[Sync]].

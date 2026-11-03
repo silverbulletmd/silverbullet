@@ -57,35 +57,35 @@ ${mermaid.diagram(mermaid.relationGraph{
 # API
 ## Core
 ### mermaid.diagram(input, opts)
-Renders a mermaid widget. `input` is a raw Mermaid string *or* a diagram **IR** table (see below). The widget has a Copy button (copies the generated source) and clickable nodes (each `click` element navigates to the named page). `opts` *(optional)* may contain `width`, `height`, `maxWidth` — CSS lengths (e.g. `"600px"`, `"50%"`) merged into the rendered `<svg>`’s inline style to scale it; the viewBox preserves aspect ratio. When `input` is an IR table, its own `width`/`height`/`maxWidth` fields are used as defaults, and `opts` overrides them.
+Renders a mermaid widget. `input` is a raw Mermaid string *or* a diagram **IR** table (see below). The widget has a Copy button (copies the generated source) and clickable nodes (each `click` element navigates to the named page). `opts` *(optional)* may contain `width`, `height`, `maxWidth` — CSS lengths (e.g. `"600px"`, `"50%"`) merged into the rendered `<svg>`’s inline style to scale it. The viewBox preserves aspect ratio. When `input` is an IR table, its own `width`/`height`/`maxWidth` fields are used as defaults, and `opts` overrides them.
 
 ## mermaid.toSource(input)
 Renders the Mermaid source string from this library’s IR format — useful for debugging or freezing a dynamic diagram into a static block. It delegates to `mermaid.serialize`, a **pure Lua** function defined in this library.
 
 ## Views
-The three `mermaid.*` builders all take a **`pages`** list — a page-object list, typically produced by a `query[[…]]` expression such as `query[[from index.pages("adr")]]` . Each returns a diagram IR you pass to `mermaid.diagram`. Each builder spec also accepts optional `width`, `height`, `maxWidth` (CSS lengths) that are threaded onto the returned IR and applied at render time; an `opts` table passed to `mermaid.diagram` overrides them.
+The three `mermaid.*` builders all take a **`pages`** list — a page-object list, typically produced by a `query[[…]]` expression such as `query[[from index.pages("adr")]]` . Each returns a diagram IR you pass to `mermaid.diagram`. Each builder spec also accepts optional `width`, `height`, `maxWidth` (CSS lengths) that are threaded onto the returned IR and applied at render time. An `opts` table passed to `mermaid.diagram` overrides them.
 
 ### mermaid.relationGraph(spec)
-A flowchart. Node labels use the page’s last path segment; clicking still navigates to the full page.
+A flowchart. Node labels use the page’s last path segment. Clicking still navigates to the full page.
 
 Spec keys:
  * `pages` — the page list to graph, e.g. `query[[from index.pages("adr")]]`.
- * `relations` *(optional)* — frontmatter fields holding `[[page]]` links to draw as edges, e.g. `{"dependsOn", "related"}`. A `supersededBy` relation is drawn dotted. **When omitted, all relations are auto-detected** — every frontmatter field whose value(s) are `[[links]]` to other pages in the set becomes an edge (labeled by the field name; the `groupBy` field is excluded, since it drives subgraph nesting). Pass an explicit `relations` list to restrict edges to specific fields.
- * `groupBy` *(optional)* — a frontmatter field naming a **container** page; members nest inside that container’s **subgraph**. (The `Architecture` page uses `groupBy = "partOf"` to draw the Client / Service Worker / Server layers.)
+ * `relations` *(optional)* — frontmatter fields holding `[[page]]` links to draw as edges, e.g. `{"dependsOn", "related"}`. A `supersededBy` relation is drawn dotted. **When omitted, all relations are auto-detected** — every frontmatter field whose value(s) are `[[links]]` to other pages in the set becomes an edge (labeled by the field name, excluding `groupBy`, which drives subgraph nesting). Pass an explicit `relations` list to restrict edges to specific fields.
+ * `groupBy` *(optional)* — a frontmatter field naming a **container** page. Members nest inside that container’s **subgraph**. (The `Architecture` page uses `groupBy = "partOf"` to draw the Client / Service Worker / Server layers.)
  * `direction` *(optional)* — `"LR"` (default), `"TD"`, etc.
- * `color` *(optional)* — a frontmatter field whose value becomes a Mermaid CSS class on each node (e.g. `"status"`). Supply matching `classDef`s to style them; without them the nodes render unstyled. *Auto-`classDef` from observed values is a planned enhancement.)*
- * `max` *(optional, default 60)* — node cap; a “showing N of M” note is added when exceeded.
+ * `color` *(optional)* — a frontmatter field whose value becomes a Mermaid CSS class on each node (e.g. `"status"`). Supply matching `classDef`s to style them. Without them the nodes render unstyled. *Auto-`classDef` from observed values is a planned enhancement.)*
+ * `max` *(optional, default 60)* — node cap. A “showing N of M” note is added when exceeded.
 
 ### mermaid.timeline(spec)
 A mermaid `timeline`: pages laid out chronologically by a date field. (Mermaid timelines have no node click-through, so these entries are not clickable.)
 
 Spec keys:
  * `pages` — the page list to lay out, e.g. `query[[from index.pages("journal")]]`.
- * `dateField` *(default `"date"`)* — frontmatter field holding the date (`YYYY-MM-DD…`); pages without a parseable date are skipped.
- * `groupBy` *(default `"year"`)* — `"year"` groups events under their year; `"none"` emits one entry per date.
+ * `dateField` *(default `"date"`)* — frontmatter field holding the date (`YYYY-MM-DD…`). Pages without a parseable date are skipped.
+ * `groupBy` *(default `"year"`)* — `"year"` groups events under their year. `"none"` emits one entry per date.
  * `labelField` *(optional)* — frontmatter field to use as the event label (defaults to the page’s last path segment).
  * `title` *(optional)* — diagram title.
- * `max` *(optional, default 100)* — event cap; a “showing N of M” note is added when exceeded.
+ * `max` *(optional, default 100)* — event cap. A “showing N of M” note is added when exceeded.
 
 ### mermaid.distribution(spec)
 A pie counting the given pages by a categorical frontmatter field (slices sorted count-descending).
@@ -93,7 +93,7 @@ A pie counting the given pages by a categorical frontmatter field (slices sorted
 Spec keys:
  * `pages` — the page list to count.
  * `by` *(required)* — the frontmatter field to count by, e.g. `"status"`.
- * `emptyLabel` *(optional)* — bucket label for pages missing/blank on `by`; omit to exclude them.
+ * `emptyLabel` *(optional)* — bucket label for pages missing/blank on `by`. Omit to exclude them.
  * `title` *(optional)* — chart title.
  * `showData` *(optional)* — when truthy, renders the raw counts next to each slice (`pie showData`).
 
@@ -144,10 +144,9 @@ config.set("mermaid", {
 })
 ```
 
-All keys are optional. By default diagrams load from `cdnUrl`; once a bundle exists at `bundlePath` (e.g. after running **`Mermaid: Download bundle for offline use`**), the local copy is used automatically.
+All keys are optional. By default diagrams load from `cdnUrl`. Once a bundle exists at `bundlePath` (e.g. after running **`Mermaid: Download bundle for offline use`**), the local copy is used automatically.
 
 # Implementation
-
 ```space-lua
 mermaid = mermaid or {}
 

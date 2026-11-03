@@ -1,19 +1,16 @@
 ---
-description: A template used to pre-populate new pages.
+description: "Reusable content for creating new pages."
 tags: glossary
 references:
 - libraries/Library/Std/Infrastructure/Page Templates.md
 - libraries/Library/Std/Page Templates/Page Template.md
 ---
-
-Page templates create saved page content from a reusable blueprint. Expressions in the template run when the page is created; the inserted text does not stay linked to the template. To insert a section into an existing page instead, use [[Slash Templates]].
-
-Follow the creation steps in your own writable space. The published documentation cannot create pages for you.
+Page templates create pages from a reusable blueprint. Expressions in the template run when the page is created. To insert a section into an existing page instead, use [[Slash Templates]].
 
 # Creating a page template
 1. Run the `Page: From Template` command
 2. Select “Page Template”
-3. Pick a name; the last component of the page name will be used as the template name.
+3. Pick a name. The last component of the page name will be used as the template name.
 4. Edit its body and frontmatter, then run `System: Reload` to register any command or shortcut.
 
 ## Cursor placement

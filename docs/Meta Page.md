@@ -1,5 +1,5 @@
 ---
-description: "A page tagged with #meta that serves as tooling (configuration, extensions, templates) rather than regular content."
+description: "A page tagged #meta for configuration, extensions or templates."
 tags: glossary
 references:
 - plugs/index/page.ts

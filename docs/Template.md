@@ -1,11 +1,11 @@
 ---
-description: Reusable content with placeholder expressions, used for page creation, slash commands, and more.
+description: "Reusable text with Lua expressions that supply values when it runs."
 tags: glossary
 references:
 - libraries/Library/Std/APIs/Template.md
 - client/space_lua/stdlib.ts
 ---
-A template in SilverBullet is a string that contains `${expression}` placeholders, which get evaluated using [[Space Lua]]. When a template runs, its placeholders are evaluated. Page and slash templates insert the resulting text into a page; that text stays saved until you edit it. A template called from a page expression renders a live result instead. See [[Guide/When Results Update]] for update behavior.
+A template in SilverBullet is a string that contains `${expression}` placeholders, which get evaluated using [[Space Lua]]. When a template runs, its placeholders are evaluated. Page and slash templates insert the resulting text into a page. That text stays saved until you edit it. A template called from a page expression renders a live result instead. See [[Guide/When Results Update]] for update behavior.
 
 They are often used in [[Slash Templates]] and [[Page Template]].
 
