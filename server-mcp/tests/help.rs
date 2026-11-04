@@ -154,9 +154,14 @@ impl Env {
                 .call(&caller, "help", json!({"space": self.alpha}))
                 .await;
             let t = text(&help).to_owned();
-            if done(&t) || started.elapsed() > std::time::Duration::from_secs(5) {
+            if done(&t) {
                 return t;
             }
+            // Generous: a loaded CI runner indexes far slower than a laptop.
+            assert!(
+                started.elapsed() < std::time::Duration::from_secs(30),
+                "help never reached the expected state:\n{t}"
+            );
             tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         }
     }

@@ -99,7 +99,8 @@ test("an MCP client is connected to the ticked spaces only, then revoked", async
   const code = returned.searchParams.get("code");
   expect(code).toBeTruthy();
   expect(returned.searchParams.get("state")).toBe(state);
-  expect(returned.searchParams.get("iss")).toBe(origin);
+  // No RFC 9207 `iss`: Claude.ai rejects callbacks that carry it.
+  expect(returned.searchParams.has("iss")).toBe(false);
 
   const exchange = await fetch(`${origin}/.auth/mcp/token`, {
     method: "POST",
