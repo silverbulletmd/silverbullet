@@ -65,6 +65,12 @@ pub(crate) fn required_level(method: &Method, path: &str) -> AccessLevel {
     AccessLevel::Read
 }
 
+/// Routes a public space's anonymous visitors may not use even though they
+/// can read its files: history, and the help meant for signed-in assistants.
+fn requires_account(path: &str) -> bool {
+    path.starts_with("/.revisions") || path == "/.help"
+}
+
 /// A cookie whose name starts with this prefix is a SilverBullet session cookie
 /// (`auth_<host>` / `auth_<host><prefix>`), so its presence marks a browser
 /// session request — the only requests subject to the confused-deputy.
@@ -164,7 +170,7 @@ async fn require_authorization(
     let level = grant.unwrap_or_else(|| state.access_policy.level_for(username.as_deref()));
     let is_account = username.is_some() || grant.is_some();
 
-    if req.uri().path().starts_with("/.revisions") && !is_account {
+    if requires_account(req.uri().path()) && !is_account {
         return refuse(&state, false);
     }
 
@@ -280,6 +286,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             get(fs::handle_fs_list).layer(CompressionLayer::new()),
         )
         .merge(fs_files)
+        .route("/.help", get(crate::handlers::help::handle_help))
         .route(
             "/.merge",
             post(merge::handle_merge).layer(DefaultBodyLimit::max(merge::MERGE_BODY_LIMIT)),

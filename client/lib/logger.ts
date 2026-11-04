@@ -6,6 +6,8 @@ export type LogEntry = {
   message: string;
 };
 
+const RECENT_ENTRIES_SIZE = 200;
+
 export class Logger {
   private originalConsole: {
     log: typeof console.log;
@@ -15,6 +17,9 @@ export class Logger {
     debug: typeof console.debug;
   };
   public logBuffer: LogEntry[] = [];
+  // Unlike logBuffer, postToServer never drains this, so it stays readable
+  // while log push is flushing the buffer
+  public recentEntries: LogEntry[] = [];
   private forward?: (entry: LogEntry) => void;
   // Forwarding can itself log (a failed postMessage); that must not forward again
   private forwarding = false;
@@ -74,6 +79,10 @@ export class Logger {
     };
 
     this.logBuffer.push(entry);
+    this.recentEntries.push(entry);
+    if (this.recentEntries.length > RECENT_ENTRIES_SIZE) {
+      this.recentEntries.shift();
+    }
     if (this.forward && !this.forwarding) {
       this.forwarding = true;
       try {
@@ -126,5 +135,9 @@ let globalLogger: Logger | undefined;
 
 export function initLogger(prefix: string = ""): Logger {
   globalLogger = new Logger(prefix);
+  return globalLogger;
+}
+
+export function getLogger(): Logger | undefined {
   return globalLogger;
 }

@@ -60,6 +60,18 @@ Returns raw JSON Schemas for every configured tag that declares one.
 
 Returns all indexed documents as a query collection.
 
+## index.awaitPendingChanges
+
+`index.awaitPendingChanges()`
+
+Detects files changed outside this client, such as through the HTTP API, and waits until they are indexed. Use it before querying pages you just wrote another way.
+
+Example:
+```lua
+index.awaitPendingChanges()
+return query[[from p = index.pages() where p.name == "Inbox" select p.name]]
+```
+
 ## index.ensureFullIndex
 `index.ensureFullIndex()`
 

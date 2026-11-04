@@ -1,0 +1,24 @@
+[package]
+name = "silverbullet-space-tools"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "space_tools"
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+http = "1"
+percent-encoding = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+similar = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }

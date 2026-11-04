@@ -5,7 +5,7 @@ import { ServerSettingsView } from "./ServerSettingsView.tsx";
 import { AuthenticationView } from "./AuthenticationView.tsx";
 import { SearchSettings } from "./SearchSettings.tsx";
 
-import { RuntimesView } from "./RuntimesView.tsx";
+import { ApisView } from "./ApisView.tsx";
 
 export function AdminView({
   section,
@@ -40,8 +40,8 @@ export function AdminView({
             <ServerSettingsView onUnauthorized={onUnauthorized} />
           ) : section === "search" ? (
             <SearchSettings onUnauthorized={onUnauthorized} />
-          ) : section === "runtimes" ? (
-            <RuntimesView onUnauthorized={onUnauthorized} />
+          ) : section === "apis" ? (
+            <ApisView onUnauthorized={onUnauthorized} />
           ) : (
             <AuthenticationView onUnauthorized={onUnauthorized} />
           )}

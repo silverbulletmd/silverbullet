@@ -4,12 +4,18 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use silverbullet_server::auth::mcp::cimd::CimdFetcher;
+use silverbullet_server::auth::mcp::clients::ClientRegistry;
+use silverbullet_server::auth::mcp::grants::GrantStore;
+use silverbullet_server::auth::mcp::{wall_clock, McpOAuthState};
+use silverbullet_server::auth::oauth::CodeStore;
 use silverbullet_server::auth::{
     Authenticator, BrowserSessions, LoginManager, MULTI_AUTH_FILE_NAME,
 };
+use silverbullet_server::handlers::mcp_oauth::{self, SessionConsent};
 use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::access::SessionPolicy;
-use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState};
+use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState, McpAvailability};
 use silverbullet_server::multi::dashboard::{build_dashboard_router, DashboardState};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{
@@ -19,6 +25,8 @@ use silverbullet_server::multi::manager::MultiManager;
 use silverbullet_server::multi::users::UserStore;
 use silverbullet_server::runtime::RuntimeAvailability;
 use silverbullet_server_common::space::BUNDLED_COPY_ON_WRITE;
+use silverbullet_server_common::SpacePrimitives;
+use silverbullet_server_mcp::{MultiHost, Tools};
 
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
@@ -91,6 +99,21 @@ pub async fn build_multi_stack(
         elapsed_ms = started.elapsed().as_millis(),
         "multi-space authentication loaded"
     );
+    let mcp_env_enabled = !env_off("SB_MCP");
+    if !mcp_env_enabled {
+        tracing::info!("MCP disabled by SB_MCP=0");
+    }
+    let mcp_stores = load_mcp_stores(&root);
+    let mcp_availability = if !mcp_env_enabled {
+        McpAvailability::DisabledByEnv
+    } else if let Err(message) = &mcp_stores {
+        McpAvailability::Failed {
+            message: message.clone(),
+        }
+    } else {
+        McpAvailability::Available
+    };
+    let mcp_stores = mcp_stores.ok();
 
     // Server-wide session policy: sessions minted here are valid across every
     // space, so the remember-me window and lockout thresholds come from the
@@ -115,6 +138,9 @@ pub async fn build_multi_stack(
             }),
         },
         runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+        runtime_availability: runtime_availability.clone(),
+        // Set from server.json when the manager boots.
+        runtime_idle_timeout: Default::default(),
         runtime,
         metrics: metrics.clone(),
         auth: InstanceAuth::Accounts {
@@ -190,16 +216,20 @@ pub async fn build_multi_stack(
     let providers = Arc::new(silverbullet_server::auth::oidc::store::ProviderStore::open(
         &root,
     )?);
-    let admin_state = Arc::new(
-        AdminState::new(
-            manager.clone(),
-            store.clone(),
-            authenticator.clone(),
-            runtime_availability,
-        )
-        .with_provider_store(providers.clone()),
-    );
+    let mut admin_state = AdminState::new(
+        manager.clone(),
+        store.clone(),
+        authenticator.clone(),
+        runtime_availability,
+    )
+    .with_provider_store(providers.clone());
+    admin_state = match &mcp_stores {
+        Some((_, grants)) => admin_state.with_mcp(grants.clone(), mcp_availability),
+        None => admin_state.with_mcp_availability(mcp_availability),
+    };
+    let admin_state = Arc::new(admin_state);
     let version_store = store.clone();
+    let users = store.clone();
     let central_login = Arc::new(
         LoginManager::new(
             authenticator.clone(),
@@ -225,7 +255,7 @@ pub async fn build_multi_stack(
             providers.clone(),
             authenticator.clone(),
             store.clone(),
-            central_login,
+            central_login.clone(),
             Box::new(EmbeddedSpace::<ClientAssets>::new()),
             Arc::new(move |url| {
                 let table = routing_manager.registry().current();
@@ -256,14 +286,26 @@ pub async fn build_multi_stack(
         .with_primary_url(Arc::new(move || primary_manager.primary_url()))
         .with_server_name(Arc::new(move || name_manager.server_name())),
     );
-    let dashboard_state = Arc::new(DashboardState::new(
+    let mut dashboard_state = DashboardState::new(
         manager.clone(),
         store,
-        authenticator,
+        authenticator.clone(),
         session,
         Box::new(EmbeddedSpace::<ClientAssets>::new()),
-    ));
-    let router = build_main_router(
+    );
+    if let Some((_, grants)) = &mcp_stores {
+        dashboard_state = dashboard_state.with_mcp_grants(grants.clone());
+    }
+    let dashboard_state = Arc::new(dashboard_state);
+    let mcp_stores_loaded = mcp_stores.is_some();
+    let gate = manager.clone();
+    let mcp_enabled: Arc<dyn Fn() -> bool + Send + Sync> =
+        Arc::new(move || mcp_env_enabled && mcp_stores_loaded && gate.mcp_enabled());
+    let oauth = mcp_stores
+        .as_ref()
+        .map(|(_, grants)| (authenticator.clone(), grants.clone()));
+    let (mcp, mcp_host) = mcp_router(&manager, &users, oauth, mcp_enabled.clone());
+    let mut router = build_main_router(
         manager,
         Some(build_dashboard_router(
             dashboard_state,
@@ -271,12 +313,103 @@ pub async fn build_multi_stack(
         )),
         crate::VERSION.to_string(),
     )
-    .merge(silverbullet_server::handlers::central_auth::router(central));
+    .merge(silverbullet_server::handlers::central_auth::router(central))
+    .merge(mcp);
+    if let Some((clients, grants)) = mcp_stores {
+        spawn_client_gc(clients.clone(), grants.clone());
+        let state = Arc::new(McpOAuthState {
+            authenticator,
+            accounts: mcp_host,
+            clients,
+            cimd: Arc::new(CimdFetcher::new()),
+            grants,
+            codes: CodeStore::new(),
+            consent: Arc::new(SessionConsent {
+                csrf: central_login,
+                bundle: Box::new(EmbeddedSpace::<ClientAssets>::new()),
+            }),
+            now: wall_clock(),
+        });
+        router = router.merge(mcp_oauth::router(state, mcp_enabled));
+    }
     let log = format!(
         "SilverBullet multi-space server running: {} (Dashboard at /.dashboard)",
         crate::server::startup_url(&config.bind_host, config.port)
     );
     Ok((router, log))
+}
+
+/// `0` or `false` turns an `SB_MCP*` switch off; anything else leaves it on.
+fn env_off(key: &str) -> bool {
+    matches!(std::env::var(key).as_deref(), Ok("0") | Ok("false"))
+}
+
+/// The embedded `Library/Std` pages, the skills `help` lists for a space
+/// whose runtime cannot answer.
+fn bundled_std_pages() -> Vec<(String, Vec<u8>)> {
+    let base = EmbeddedSpace::<BaseFsAssets>::new();
+    base.fetch_file_list()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|meta| meta.name.starts_with("Library/Std/") && meta.name.ends_with(".md"))
+        .filter_map(|meta| {
+            let (bytes, _) = base.read_file(&meta.name).ok()?;
+            Some((meta.name, bytes))
+        })
+        .collect()
+}
+
+/// `/.mcp` for multi-space mode. `enabled` covers the admin toggle
+/// (`server.json`, applied without a restart) and `SB_MCP=0`; when false the
+/// endpoint answers 404. The host is also the authorization server's
+/// account host.
+fn mcp_router(
+    manager: &Arc<MultiManager>,
+    users: &Arc<UserStore>,
+    oauth: Option<(Arc<Authenticator>, Arc<GrantStore>)>,
+    enabled: Arc<dyn Fn() -> bool + Send + Sync>,
+) -> (axum::Router, Arc<MultiHost>) {
+    let mut host = MultiHost::new(manager.clone(), users.clone());
+    if let Some((authenticator, grants)) = oauth {
+        host = host.with_oauth(authenticator, grants);
+    }
+    let host = Arc::new(host);
+    let tools =
+        Arc::new(Tools::new(host.clone(), crate::VERSION).with_bundled_pages(bundled_std_pages()));
+    let router = silverbullet_server_mcp::mcp_router_gated(tools, host.clone(), enabled);
+    (router, host)
+}
+
+/// The MCP grant and client stores. A corrupt or unwritable file turns MCP
+/// off (OAuth routes and `/.mcp`) instead of stopping the server.
+fn load_mcp_stores(
+    root: &std::path::Path,
+) -> Result<(Arc<ClientRegistry>, Arc<GrantStore>), String> {
+    let clients = ClientRegistry::load(root).map_err(|e| {
+        tracing::error!("MCP is off: could not load MCP client registrations: {e}");
+        format!("could not load MCP client registrations: {e}")
+    })?;
+    let grants = GrantStore::load(root).map_err(|e| {
+        tracing::error!("MCP is off: could not load MCP grants: {e}");
+        format!("could not load MCP grants: {e}")
+    })?;
+    Ok((Arc::new(clients), Arc::new(grants)))
+}
+
+/// Drops stale client registrations now and once a day.
+fn spawn_client_gc(clients: Arc<ClientRegistry>, grants: Arc<GrantStore>) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(24 * 3600));
+        loop {
+            interval.tick().await;
+            let now = (wall_clock())();
+            let (clients, grants) = (clients.clone(), grants.clone());
+            let _ = tokio::task::spawn_blocking(move || {
+                clients.gc(now, &|id| grants.has_live_grant_for_client(id, now))
+            })
+            .await;
+        }
+    });
 }
 
 pub(crate) async fn run_multi(
@@ -290,6 +423,9 @@ pub(crate) async fn run_multi(
         if value.is_some() {
             tracing::warn!("{var} applies to single-space mode only and is ignored; a multi-space server keeps search under search/ in its data folder and names its model in server.json");
         }
+    }
+    if config.runtime_idle_timeout.is_some() {
+        tracing::warn!("SB_RUNTIME_IDLE_TIMEOUT applies to single-space mode only and is ignored; a multi-space server sets runtimeIdleTimeout in server.json (Admin → APIs)");
     }
     let (router, log) = build_multi_stack(&config, Some(shutdown.rx.clone())).await?;
     let addr = format!("{}:{}", config.bind_host, config.port);
@@ -335,6 +471,7 @@ pub(crate) fn space_runtime_factory(
             (None, RuntimeAvailability::NoChrome)
         }
     };
+    let profile_root = std::fs::canonicalize(server_root).unwrap_or_else(|_| server_root.into());
     let factory: RuntimeFactory = Arc::new(move |req: &RuntimeRequest| {
         let pool = pool.as_ref()?;
         if req.read_only {
@@ -344,6 +481,11 @@ pub(crate) fn space_runtime_factory(
             server_url: req.server_url.clone(),
             headless_token: req.headless_token.to_string(),
             cookie_name: silverbullet_server::auth::headless_cookie_name(req.space_id),
+            profile: silverbullet_server_runtime_chrome::profile_dir_name(
+                &profile_root,
+                req.space_id,
+                req.username,
+            ),
         };
         let logs = silverbullet_server::runtime::LogBuffer::new();
         let transport = pool.transport_for(page, logs.clone());

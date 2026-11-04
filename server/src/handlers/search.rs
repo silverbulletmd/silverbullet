@@ -2,11 +2,12 @@
 //! because the client treats any 5xx as being offline.
 
 use std::sync::Arc;
+use std::time::Instant;
 
 use axum::body::Bytes;
 use axum::extract::{DefaultBodyLimit, Extension, FromRequest, Request, State};
-use axum::http::{HeaderMap, StatusCode};
-use axum::middleware;
+use axum::http::{HeaderMap, HeaderValue, StatusCode};
+use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -15,7 +16,11 @@ use silverbullet_server_search::{
     RequestCx, SearchBackend, SearchError, StatusResponse,
 };
 
+use space_tools::ops::{IndexStatus, INDEX_STATUS_HEADER};
+
 use crate::auth::{AccessLevel, Actor};
+use crate::handlers::runtime::{awaits_index, parse_timeout, CATCH_UP_LIMIT};
+use crate::search::index_status;
 use crate::state::ServerState;
 
 /// The search endpoints, with their body limit and rejection counting.
@@ -23,7 +28,10 @@ use crate::state::ServerState;
 pub fn routes(state: &Arc<ServerState>) -> Router<Arc<ServerState>> {
     Router::new()
         .route("/.search/status", get(handle_status))
-        .route("/.search/query", post(handle_query))
+        .route(
+            "/.search/query",
+            post(handle_query).route_layer(middleware::from_fn(index_status_header)),
+        )
         .route("/.search/related", post(handle_related))
         .layer(DefaultBodyLimit::max(2 * 1024 * 1024))
         .layer(middleware::map_response_with_state(
@@ -37,6 +45,26 @@ async fn count_rejections(State(state): State<Arc<ServerState>>, response: Respo
         if let Some(m) = state.metrics.as_ref() {
             m.search_rejections.inc();
         }
+    }
+    response
+}
+
+/// With `X-Await-Index`, says in `X-Index-Status` how far the index had
+/// caught up when the query ran ([`handle_query`] leaves it in the
+/// response's extensions); `unknown` when it answered before catching up.
+async fn index_status_header(request: Request, next: Next) -> Response {
+    let asked = awaits_index(request.headers());
+    let mut response = next.run(request).await;
+    if asked {
+        let status = response
+            .extensions()
+            .get::<IndexStatus>()
+            .copied()
+            .unwrap_or(IndexStatus::Unknown);
+        response.headers_mut().insert(
+            INDEX_STATUS_HEADER,
+            HeaderValue::from_static(status.as_str()),
+        );
     }
     response
 }
@@ -239,12 +267,15 @@ pub async fn handle_status(
     Json(Audience::of(&state, &actor).status(state.search.as_ref()))
 }
 
+/// With `X-Await-Index`, a member's query first lets the index catch up with
+/// the space's file changes, as runtime calls do: once the request is known
+/// to be valid, before it takes an admission slot.
 pub async fn handle_query(
     State(state): State<Arc<ServerState>>,
     Extension(actor): Extension<Actor>,
     headers: HeaderMap,
     SearchJson(mut req): SearchJson<QueryRequest>,
-) -> Result<Json<QueryResult>, SearchFailure> {
+) -> Result<Response, SearchFailure> {
     let audience = Audience::of(&state, &actor);
     // Resolved once, so the mode checked here is the mode the backend runs.
     let mode = req
@@ -253,7 +284,30 @@ pub async fn handle_query(
     req.mode = Some(mode);
     let op = Op::Query(mode);
     audience.allows(op)?;
-    let cx = admit(&state, &actor, &headers, op)?;
+    let index = match audience {
+        Audience::Member if awaits_index(&headers) => {
+            let deadline = Instant::now() + parse_timeout(&headers).min(CATCH_UP_LIMIT);
+            Some(index_status(&state.fs_guard, state.search.as_ref(), deadline).await)
+        }
+        _ => None,
+    };
+    let mut response = run_query(&state, &actor, &headers, req, op)
+        .await
+        .into_response();
+    if let Some(index) = index {
+        response.extensions_mut().insert(index);
+    }
+    Ok(response)
+}
+
+async fn run_query(
+    state: &ServerState,
+    actor: &Actor,
+    headers: &HeaderMap,
+    req: QueryRequest,
+    op: Op,
+) -> Result<Json<QueryResult>, SearchFailure> {
+    let cx = admit(state, actor, headers, op)?;
     if let Some(m) = state.metrics.as_ref() {
         m.search_queries.inc();
     }

@@ -1758,19 +1758,22 @@ describe("Three-way reconciliation", () => {
     expect(entry.data).toEqual(encode("local edit"));
   });
 
-  test("std-lib paths are never reconciled", async () => {
-    const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();
+  test.each(["Library/Std.md", "Library/Std/doc.md"])(
+    "std-lib path %s is never reconciled",
+    async (path) => {
+      const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();
 
-    await primary.writeFile("Library/Std/doc.md", encode("base content"));
-    await doSync(sync, snapshot);
+      await primary.writeFile(path, encode("base content"));
+      await doSync(sync, snapshot);
 
-    await primary.writeFile("Library/Std/doc.md", encode("local edit"));
-    secondary.failNextWrite = true;
+      await primary.writeFile(path, encode("local edit"));
+      secondary.failNextWrite = true;
 
-    await doSync(sync, snapshot);
+      await doSync(sync, snapshot);
 
-    expect(secondary.reconcileCalls.length).toBe(0);
-  });
+      expect(secondary.reconcileCalls.length).toBe(0);
+    },
+  );
 
   test("ineligible (409/413) reconcile response falls back to legacy resolver without latching unsupported", async () => {
     const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();

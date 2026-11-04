@@ -37,6 +37,11 @@ pub trait ClientTransport: Send + Sync {
     }
     fn ensure_started(&self) {}
     fn shutdown(&self) {}
+    /// Like `shutdown`, but keeps the browser profile (and so the client's
+    /// index) for the next runtime of the same space and user.
+    fn shutdown_keep_profile(&self) {
+        self.shutdown()
+    }
     fn snapshot(&self) -> Option<super::RuntimeSnapshot> {
         None
     }
@@ -78,6 +83,9 @@ impl ClientTransport for Box<dyn ClientTransport> {
     }
     fn shutdown(&self) {
         (**self).shutdown()
+    }
+    fn shutdown_keep_profile(&self) {
+        (**self).shutdown_keep_profile()
     }
     fn snapshot(&self) -> Option<super::RuntimeSnapshot> {
         (**self).snapshot()

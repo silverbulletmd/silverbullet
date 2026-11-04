@@ -12,8 +12,16 @@ pub struct ServerConfig {
     pub primary_url: Option<String>,
     #[serde(default = "default_server_name")]
     pub server_name: String,
-    #[serde(default = "default_runtime_api")]
+    #[serde(default = "default_true")]
     pub runtime_api: bool,
+    /// Minutes without a Runtime API request before a runtime is stopped
+    /// (keeping its index); `0` never stops it.
+    #[serde(default = "default_runtime_idle_timeout")]
+    pub runtime_idle_timeout: u64,
+    /// Whether the MCP endpoint (`/.mcp`) is served. Off until an admin turns
+    /// it on, so a `server.json` without the key keeps it off.
+    #[serde(default)]
+    pub mcp: bool,
     /// Omitted on save when unset, so saving never writes the defaults into `server.json`.
     #[serde(default, skip_serializing_if = "SearchConfig::is_default")]
     pub search: SearchConfig,
@@ -41,8 +49,16 @@ impl SearchConfig {
     }
 }
 
-fn default_runtime_api() -> bool {
+fn default_true() -> bool {
     true
+}
+
+pub const DEFAULT_RUNTIME_IDLE_TIMEOUT: u64 = 30;
+/// One week, in minutes.
+pub const MAX_RUNTIME_IDLE_TIMEOUT: u64 = 7 * 24 * 60;
+
+fn default_runtime_idle_timeout() -> u64 {
+    DEFAULT_RUNTIME_IDLE_TIMEOUT
 }
 
 pub fn default_server_name() -> String {
@@ -55,6 +71,8 @@ impl Default for ServerConfig {
             primary_url: None,
             server_name: default_server_name(),
             runtime_api: true,
+            runtime_idle_timeout: DEFAULT_RUNTIME_IDLE_TIMEOUT,
+            mcp: false,
             search: SearchConfig::default(),
             extra: BTreeMap::new(),
         }
@@ -174,6 +192,17 @@ mod tests {
         assert_eq!(serde_json::to_value(config).unwrap()["runtimeApi"], true);
         let config: ServerConfig = serde_json::from_str(r#"{"runtimeApi":false}"#).unwrap();
         assert_eq!(serde_json::to_value(config).unwrap()["runtimeApi"], false);
+    }
+
+    #[test]
+    fn server_config_mcp_defaults_false_and_roundtrips() {
+        let config: ServerConfig = serde_json::from_str("{}").unwrap();
+        assert!(!config.mcp);
+        assert!(!ServerConfig::default().mcp);
+        assert_eq!(serde_json::to_value(config).unwrap()["mcp"], false);
+        let config: ServerConfig = serde_json::from_str(r#"{"mcp":true}"#).unwrap();
+        assert!(config.mcp);
+        assert_eq!(serde_json::to_value(config).unwrap()["mcp"], true);
     }
 
     #[test]

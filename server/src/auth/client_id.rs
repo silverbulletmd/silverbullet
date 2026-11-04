@@ -1,29 +1,32 @@
-//! OAuth client identifiers. Any well-formed id is accepted: the id only
-//! partitions refresh credentials, is bound to each device attempt and
-//! authorization code, and names the client on the consent page.
+//! OAuth client identifiers for the per-space flows (`/.auth/authorize`,
+//! `/.auth/token`, device). Only SilverBullet's own clients are accepted: the
+//! id partitions refresh credentials, is bound to each device attempt and
+//! authorization code, and names the client on the consent page. Third-party
+//! clients (URL or registered ids) belong to the separate MCP authorization
+//! surface and are refused here.
 
 use super::oauth::OAuthError;
 
 /// The desktop app. Its refresh tokens keep the legacy bare `"refresh"` use.
 pub const APP: &str = "silverbullet-app";
 
+/// The only client ids the legacy flows accept.
+pub const LEGACY_CLIENTS: &[&str] = &["silverbullet-app", "silverbullet-cli", "silverbullet-share"];
+
 /// Names shown on the consent page for SilverBullet's own clients
 const KNOWN: &[(&str, &str)] = &[
     (APP, "SilverBullet Desktop"),
     ("silverbullet-cli", "SilverBullet CLI"),
+    ("silverbullet-share", "SilverBullet Share"),
 ];
 
-/// A well-formed client id: 1-64 characters of `[A-Za-z0-9._-]`.
+/// One of `LEGACY_CLIENTS`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClientId(String);
 
 impl ClientId {
     pub fn parse(id: &str) -> Result<Self, OAuthError> {
-        let valid = (1..=64).contains(&id.len())
-            && id
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'));
-        if valid {
+        if LEGACY_CLIENTS.contains(&id) {
             Ok(Self(id.to_string()))
         } else {
             Err(OAuthError::UnauthorizedClient)
@@ -58,9 +61,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_accepts_simple_ids() {
-        for id in ["silverbullet-share", "silverbullet-cli", "my.app_1"] {
-            assert_eq!(ClientId::parse(id).unwrap().as_str(), id);
+    fn parse_accepts_only_own_labels() {
+        for id in LEGACY_CLIENTS {
+            assert_eq!(ClientId::parse(id).unwrap().as_str(), *id);
+        }
+        for id in ["my.app_1", "https://client.example/meta.json", "sbdcr_00ff"] {
+            assert!(
+                matches!(ClientId::parse(id), Err(OAuthError::UnauthorizedClient)),
+                "{id}"
+            );
         }
     }
 
@@ -90,6 +99,6 @@ mod tests {
         let name = |id| ClientId::parse(id).unwrap().display_name();
         assert_eq!(name("silverbullet-cli"), Some("SilverBullet CLI"));
         assert_eq!(name("silverbullet-app"), Some("SilverBullet Desktop"));
-        assert_eq!(name("silverbullet-share"), None);
+        assert_eq!(name("silverbullet-share"), Some("SilverBullet Share"));
     }
 }

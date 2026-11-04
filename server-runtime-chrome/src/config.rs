@@ -26,7 +26,7 @@ fn chrome_path_from(
         .ok_or(RuntimeUnavailable::NoChrome)
 }
 
-/// Browser launch settings; `user_data_dir` is the parent of temporary profiles.
+/// Browser launch settings; `user_data_dir` is the parent of the runtime profiles.
 #[derive(Debug, Clone)]
 pub struct ChromeConfig {
     pub chrome_path: String,
@@ -116,6 +116,31 @@ pub struct SpacePage {
     pub headless_token: String,
     /// This space's cookie name (`silverbullet_headless_<space_id>`).
     pub cookie_name: String,
+    /// Directory name of this runtime's browser profile under
+    /// `ChromeConfig::user_data_dir` (see `profile_dir_name`).
+    pub profile: String,
+}
+
+/// The profile directory name for one user of one space. It is stable, so a
+/// runtime started after a stop or a server restart reuses the client index
+/// instead of rebuilding it. Hashed because space ids and usernames are not
+/// safe path components; the server root is included so servers sharing one
+/// `SB_CHROME_DATA_DIR` never share a profile.
+pub fn profile_dir_name(server_root: &Path, space_id: &str, username: Option<&str>) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    for part in [
+        server_root.to_string_lossy().as_bytes(),
+        space_id.as_bytes(),
+        username.unwrap_or("").as_bytes(),
+    ] {
+        hasher.update((part.len() as u64).to_le_bytes());
+        hasher.update(part);
+    }
+    hasher.update([username.is_some() as u8]);
+    let digest = hasher.finalize();
+    let hex: String = digest[..16].iter().map(|b| format!("{b:02x}")).collect();
+    format!("profile-{hex}")
 }
 
 impl SpacePage {
@@ -443,6 +468,7 @@ mod tests {
             server_url: "http://127.0.0.1:3000/notes".into(),
             headless_token: "secret".into(),
             cookie_name: "silverbullet_headless_a".into(),
+            profile: "profile-a".into(),
         };
         assert_eq!(page.page_url(), "http://127.0.0.1:3000/notes/?headless=1");
         assert!(!page.page_url().contains("secret"));
@@ -454,10 +480,33 @@ mod tests {
             server_url: url.into(),
             headless_token: "secret".into(),
             cookie_name: "silverbullet_headless_a".into(),
+            profile: "profile-a".into(),
         };
         assert_eq!(page("http://127.0.0.1:3000/notes").cookie_path(), "/notes");
         assert_eq!(page("http://127.0.0.1:3000").cookie_path(), "/");
         assert_eq!(page("http://127.0.0.1:3000/").cookie_path(), "/");
         assert_eq!(page("http://127.0.0.1:3000/a/b").cookie_path(), "/a/b");
+    }
+
+    #[test]
+    fn profile_names_are_stable_and_distinct_per_server_space_and_user() {
+        let root = Path::new("/srv/sb");
+        let name = profile_dir_name(root, "notes", Some("ada"));
+        assert_eq!(name, profile_dir_name(root, "notes", Some("ada")));
+        assert!(name.starts_with("profile-") && name.len() == "profile-".len() + 32);
+        for other in [
+            profile_dir_name(root, "notes", Some("bob")),
+            profile_dir_name(root, "notes", None),
+            profile_dir_name(root, "notes", Some("")),
+            profile_dir_name(root, "work", Some("ada")),
+            profile_dir_name(root, "notesada", None),
+            profile_dir_name(Path::new("/srv/other"), "notes", Some("ada")),
+        ] {
+            assert_ne!(name, other);
+        }
+        assert_ne!(
+            profile_dir_name(root, "notes", None),
+            profile_dir_name(root, "notes", Some(""))
+        );
     }
 }

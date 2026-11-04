@@ -2,6 +2,7 @@ import {
   findNodeOfType,
   type ParseTree,
   renderToText,
+  traverseTree,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
@@ -121,6 +122,39 @@ async function widgetDiagnostics(
   return found;
 }
 
+/** Nodes whose text is not page prose, so a `${` there is no directive. */
+const notProse = new Set([
+  "LuaDirective",
+  "FencedCode",
+  "CodeBlock",
+  "InlineCode",
+  "FrontMatter",
+  "CommentBlock",
+]);
+
+/**
+ * Offsets of `${` that start no directive: one whose brackets never
+ * balance is plain text to the parser, so it would not render or fail.
+ */
+export function unclosedDirectives(tree: ParseTree, text: string): number[] {
+  const covered: [number, number][] = [];
+  traverseTree(tree, (node) => {
+    if (node.type && notProse.has(node.type)) {
+      covered.push([node.from!, node.to!]);
+      return true;
+    }
+    return false;
+  });
+  const found: number[] = [];
+  for (const match of text.matchAll(/\$\{/g)) {
+    const at = match.index;
+    if (text[at - 1] === "\\") continue;
+    if (covered.some(([from, to]) => at >= from && at < to)) continue;
+    found.push(at);
+  }
+  return found;
+}
+
 async function lintPage(
   deps: LintPagesDeps,
   name: string,
@@ -180,6 +214,15 @@ async function lintPage(
   // their own errors, so only space.lint renders them to find failures.
   for (const w of await widgetDiagnostics(deps, tree, meta)) {
     raw.push({ ...w, severity: "error", source: "widget" });
+  }
+  for (const from of unclosedDirectives(tree, text)) {
+    raw.push({
+      from,
+      severity: "error",
+      message:
+        "This ${...} expression never closes, so it is shown as plain text: check that its brackets, braces and quotes balance",
+      source: "lua",
+    });
   }
   return raw.map(({ from, ...rest }) => ({
     from,

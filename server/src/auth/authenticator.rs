@@ -19,6 +19,9 @@ pub struct Claims {
     pub token_use: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub space: Option<String>,
+    /// Present only on audience-bound (MCP) tokens, which no space surface accepts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aud: Option<serde_json::Value>,
     /// Expiry, Unix seconds (validated automatically).
     pub exp: usize,
 }
@@ -128,6 +131,7 @@ impl Authenticator {
             session_id: Some(session_id.into()),
             token_use: None,
             space: None,
+            aud: None,
             exp: expires_at.min(now_secs().saturating_add(expiry_secs)) as usize,
         };
         encode(
@@ -154,6 +158,15 @@ impl Authenticator {
             }
         }
         Ok(())
+    }
+
+    /// The server-wide HS256 keys, for token kinds that decode their own
+    /// claims (MCP OAuth) instead of going through `verify_jwt`.
+    pub(crate) fn hs256_keys(&self) -> (EncodingKey, DecodingKey) {
+        (
+            EncodingKey::from_secret(&self.secret),
+            DecodingKey::from_secret(&self.secret),
+        )
     }
 
     /// The base64 encryption salt handed to the login page.
@@ -205,6 +218,7 @@ impl Authenticator {
             credential_version,
             token_use: None,
             space: None,
+            aud: None,
             exp,
         };
         encode(
@@ -228,6 +242,7 @@ impl Authenticator {
             credential_version,
             token_use: token_use.map(str::to_string),
             space: space.map(str::to_string),
+            aud: None,
             exp: now_secs().saturating_add(expiry_secs) as usize,
         };
         encode(
@@ -260,6 +275,15 @@ impl Authenticator {
             &DecodingKey::from_secret(&self.secret),
             &Validation::new(Algorithm::HS256),
         )?;
+        if data.claims.aud.is_some()
+            || data
+                .claims
+                .token_use
+                .as_deref()
+                .is_some_and(|u| u.starts_with("mcp_"))
+        {
+            return Err(jsonwebtoken::errors::ErrorKind::InvalidToken.into());
+        }
         if let Some(id) = &data.claims.session_id {
             if !self
                 .browser_sessions
@@ -534,6 +558,35 @@ mod tests {
         let a3 = Authenticator::load_or_init_with_stamp(dir.path(), "stamp2").unwrap();
         assert!(a3.verify_jwt(&jwt).is_err());
         assert_eq!(a2.salt(), a3.salt());
+    }
+
+    fn raw_token(a: &Authenticator, claims: serde_json::Value) -> String {
+        let (encoding, _) = a.hs256_keys();
+        encode(&Header::new(Algorithm::HS256), &claims, &encoding).unwrap()
+    }
+
+    #[test]
+    fn verify_jwt_rejects_audience_bound_token_even_with_username() {
+        let a = fresh();
+        let exp = now_secs() + 600;
+        let with_aud = raw_token(
+            &a,
+            serde_json::json!({
+                "username": "alice",
+                "exp": exp,
+                "aud": "https://notes.example.test/.mcp",
+            }),
+        );
+        assert!(a.verify_jwt(&with_aud).is_err());
+        assert!(a.verify_browser_jwt(&with_aud).is_err());
+        for token_use in ["mcp_access", "mcp_refresh"] {
+            let token = raw_token(
+                &a,
+                serde_json::json!({"username": "alice", "exp": exp, "token_use": token_use}),
+            );
+            assert!(a.verify_jwt(&token).is_err(), "{token_use}");
+            assert!(a.verify_browser_jwt(&token).is_err(), "{token_use}");
+        }
     }
 
     #[test]

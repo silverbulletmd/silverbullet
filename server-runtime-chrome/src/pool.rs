@@ -1,6 +1,7 @@
 //! Isolated browser transports sharing one execution runtime.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
@@ -22,11 +23,70 @@ struct Registration {
 
 type BrowserSlot<B> = Mutex<Option<(u64, Arc<B>)>>;
 
+/// One lock per profile directory. A runtime holds its profile's lock from
+/// launch until its profile is released, so a new runtime for the same space
+/// and user waits for the previous one's cleanup instead of sharing or
+/// deleting its directory.
+type ProfileLocks = Arc<StdMutex<HashMap<PathBuf, Arc<Mutex<()>>>>>;
+
 pub struct ChromePool {
     rt: Option<Runtime>,
     config: ChromeConfig,
     spaces: StdMutex<HashMap<u64, Registration>>,
     next_id: AtomicU64,
+    profile_locks: ProfileLocks,
+}
+
+pub(crate) struct Profile {
+    path: PathBuf,
+    _lock: tokio::sync::OwnedMutexGuard<()>,
+}
+
+impl Profile {
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// Deletes the directory, then releases the lock.
+    fn remove(self) -> std::io::Result<()> {
+        match std::fs::remove_dir_all(&self.path) {
+            Err(error) if error.kind() != std::io::ErrorKind::NotFound => Err(error),
+            _ => Ok(()),
+        }
+    }
+}
+
+/// Chrome's own single-instance markers. A browser that was killed (or ran in
+/// a container that has since been replaced) leaves them behind, and Chrome
+/// then refuses the profile. The profile lock already guarantees no other
+/// browser of ours is using it.
+fn clear_singleton_markers(profile: &Path) {
+    for name in ["SingletonLock", "SingletonSocket", "SingletonCookie"] {
+        let _ = std::fs::remove_file(profile.join(name));
+    }
+}
+
+/// Earlier versions gave every runtime a random `runtime-*` profile and never
+/// reused it, so the ones left behind are unreachable.
+fn remove_legacy_profiles(user_data_dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(user_data_dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        if entry.file_name().to_string_lossy().starts_with("runtime-")
+            && entry.file_type().is_ok_and(|kind| kind.is_dir())
+        {
+            match std::fs::remove_dir_all(entry.path()) {
+                Ok(()) => {
+                    tracing::info!("removed unused runtime profile {}", entry.path().display())
+                }
+                Err(error) => tracing::warn!(
+                    "could not remove unused runtime profile {}: {error}",
+                    entry.path().display()
+                ),
+            }
+        }
+    }
 }
 
 pub(crate) struct BrowserOwner<B = OwnedBrowser> {
@@ -35,7 +95,9 @@ pub(crate) struct BrowserOwner<B = OwnedBrowser> {
     launch_lock: Mutex<()>,
     next_generation: AtomicU64,
     stopped: watch::Sender<bool>,
-    profile: Mutex<Option<tempfile::TempDir>>,
+    profile_path: PathBuf,
+    profile_locks: ProfileLocks,
+    profile: Mutex<Option<Profile>>,
     metrics: StdMutex<crate::metrics::Metrics>,
     status: AtomicU8,
     restartable: AtomicBool,
@@ -54,13 +116,15 @@ fn clear_if_generation<T>(slot: &mut Option<(u64, T)>, generation: u64) -> bool 
 }
 
 impl<B> BrowserOwner<B> {
-    fn new(config: ChromeConfig) -> Arc<Self> {
+    fn new(config: ChromeConfig, profile_path: PathBuf, profile_locks: ProfileLocks) -> Arc<Self> {
         Arc::new(Self {
             config,
             browser: Mutex::new(None),
             launch_lock: Mutex::new(()),
             next_generation: AtomicU64::new(0),
             stopped: watch::channel(false).0,
+            profile_path,
+            profile_locks,
             profile: Mutex::new(None),
             metrics: StdMutex::new(crate::metrics::Metrics::default()),
             status: AtomicU8::new(0),
@@ -81,6 +145,23 @@ impl<B> BrowserOwner<B> {
 
     pub(crate) fn config(&self) -> &ChromeConfig {
         &self.config
+    }
+
+    async fn acquire_profile(&self) -> Result<Profile, String> {
+        let lock = self
+            .profile_locks
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry(self.profile_path.clone())
+            .or_default()
+            .clone();
+        let guard = lock.lock_owned().await;
+        std::fs::create_dir_all(&self.profile_path).map_err(|e| e.to_string())?;
+        clear_singleton_markers(&self.profile_path);
+        Ok(Profile {
+            path: self.profile_path.clone(),
+            _lock: guard,
+        })
     }
 
     pub(crate) async fn discard_browser(&self, generation: u64) {
@@ -104,8 +185,7 @@ impl BrowserOwner {
                 tracing::info!("runtime API used; launching isolated headless Chrome ({})", self.config.chrome_path);
                 let mut profile = self.profile.lock().await;
                 if profile.is_none() {
-                    std::fs::create_dir_all(&self.config.user_data_dir).map_err(|e| e.to_string())?;
-                    *profile = Some(tempfile::Builder::new().prefix("runtime-").tempdir_in(&self.config.user_data_dir).map_err(|e| e.to_string())?);
+                    *profile = Some(self.acquire_profile().await?);
                 }
                 let profile_path = profile.as_ref().unwrap().path().to_path_buf();
                 drop(profile);
@@ -128,11 +208,13 @@ impl ChromePool {
             .enable_all()
             .build()
             .map_err(|e| RuntimeError::Transport(format!("tokio runtime: {e}")))?;
+        remove_legacy_profiles(Path::new(&config.user_data_dir));
         Ok(Arc::new(Self {
             rt: Some(rt),
             config,
             spaces: StdMutex::new(HashMap::new()),
             next_id: AtomicU64::new(0),
+            profile_locks: ProfileLocks::default(),
         }))
     }
 
@@ -153,7 +235,16 @@ impl ChromePool {
         page: SpacePage,
         logs: LogBuffer,
     ) -> SharedChromeTransport {
-        self.transport_with_owner(page, logs, BrowserOwner::new(self.config.clone()))
+        let owner = self.owner_for(&page);
+        self.transport_with_owner(page, logs, owner)
+    }
+
+    fn owner_for(&self, page: &SpacePage) -> Arc<BrowserOwner> {
+        BrowserOwner::new(
+            self.config.clone(),
+            Path::new(&self.config.user_data_dir).join(&page.profile),
+            self.profile_locks.clone(),
+        )
     }
 
     fn transport_with_owner(
@@ -364,13 +455,11 @@ impl ClientTransport for SharedChromeTransport {
                 }
             }
             if !retain_profile {
-                let mut profile = self.owner.profile.lock().await;
-                if let Some(owned) = profile.as_ref() {
-                    std::fs::remove_dir_all(owned.path()).map_err(|e| {
+                if let Some(profile) = self.owner.profile.lock().await.take() {
+                    profile.remove().map_err(|e| {
                         RuntimeError::Transport(format!("remove browser profile: {e}"))
                     })?;
                 }
-                profile.take();
             }
             Ok(())
         });
@@ -400,17 +489,32 @@ impl ClientTransport for SharedChromeTransport {
             ));
         }
         self.owner.transferred.store(true, Ordering::Release);
-        let owner = BrowserOwner::new(self.pool.config.clone());
-        *owner.profile.blocking_lock() = self.owner.profile.blocking_lock().take();
         let mut page = self.page.clone();
         page.headless_token = token.into();
+        let owner = self.pool.owner_for(&page);
+        *owner.profile.blocking_lock() = self.owner.profile.blocking_lock().take();
         Ok(Some(Box::new(
             self.pool.transport_with_owner(page, logs, owner),
         )))
     }
 
     fn shutdown(&self) {
-        self.owner.terminal.store(true, Ordering::Release);
+        self.shutdown_with(false);
+    }
+
+    fn shutdown_keep_profile(&self) {
+        self.shutdown_with(true);
+    }
+}
+
+impl SharedChromeTransport {
+    /// Terminal: stops the browser and, unless `retain_profile`, deletes the
+    /// profile. Only the first call acts, so a later `shutdown` (say, from
+    /// `Drop`) cannot delete a profile an earlier call chose to keep.
+    fn shutdown_with(&self, retain_profile: bool) {
+        if self.owner.terminal.swap(true, Ordering::AcqRel) {
+            return;
+        }
         self.owner.restartable.store(false, Ordering::Release);
         self.owner.status.store(1, Ordering::Release);
         self.owner.stopped.send_replace(true);
@@ -433,17 +537,21 @@ impl ClientTransport for SharedChromeTransport {
             let _guard = owner.launch_lock.lock().await;
             if let Some((_, browser)) = owner.browser.lock().await.take() {
                 if let Ok(mut browser) = Arc::try_unwrap(browser) {
-                    if let Err(error) = browser.shutdown(false).await {
+                    if let Err(error) = browser.shutdown(retain_profile).await {
                         owner.status.store(3, Ordering::Release);
                         tracing::error!("{error}");
-                        if let Some(profile) = owner.profile.lock().await.take() {
-                            let _ = profile.keep();
-                        }
+                        owner.profile.lock().await.take();
                         return;
                     }
                 }
             }
-            owner.profile.lock().await.take();
+            if let Some(profile) = owner.profile.lock().await.take() {
+                if !retain_profile {
+                    if let Err(error) = profile.remove() {
+                        tracing::warn!("could not remove runtime profile: {error}");
+                    }
+                }
+            }
             owner.status.store(2, Ordering::Release);
             drop(pool);
         });
@@ -474,7 +582,89 @@ mod tests {
             server_url: url.into(),
             headless_token: "secret".into(),
             cookie_name: format!("silverbullet_headless_{name}"),
+            profile: format!("profile-{name}"),
         }
+    }
+
+    fn owner<B>() -> Arc<BrowserOwner<B>> {
+        BrowserOwner::new(
+            config(),
+            PathBuf::from("/tmp/sb-pool-test/profile-a"),
+            ProfileLocks::default(),
+        )
+    }
+
+    #[test]
+    fn startup_removes_legacy_profiles_only() {
+        let root = tempfile::tempdir().unwrap();
+        for dir in ["runtime-Ab12Cd", "profile-0123", "other"] {
+            std::fs::create_dir(root.path().join(dir)).unwrap();
+        }
+        std::fs::write(root.path().join("runtime-file"), "").unwrap();
+        let mut config = config();
+        config.user_data_dir = root.path().to_string_lossy().into_owned();
+        let _pool = ChromePool::new(config).unwrap();
+        let mut left: Vec<_> = std::fs::read_dir(root.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        left.sort();
+        assert_eq!(left, ["other", "profile-0123", "runtime-file"]);
+    }
+
+    #[tokio::test]
+    async fn a_profile_is_reused_and_waits_for_its_previous_owner() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("profile-a");
+        let locks = ProfileLocks::default();
+        let first = BrowserOwner::<()>::new(config(), path.clone(), locks.clone());
+        let profile = first.acquire_profile().await.unwrap();
+        std::fs::write(path.join("index"), "kept").unwrap();
+        std::fs::write(path.join("SingletonLock"), "stale").unwrap();
+        let second = BrowserOwner::<()>::new(config(), path.clone(), locks);
+        let waiting = tokio::spawn(async move { second.acquire_profile().await });
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert!(
+            !waiting.is_finished(),
+            "two owners must never share a profile"
+        );
+        drop(profile);
+        let reused = waiting.await.unwrap().unwrap();
+        assert_eq!(reused.path(), path);
+        assert_eq!(std::fs::read_to_string(path.join("index")).unwrap(), "kept");
+        assert!(!path.join("SingletonLock").exists());
+        reused.remove().unwrap();
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn shutdown_keep_profile_survives_a_later_shutdown() {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = config();
+        config.user_data_dir = root.path().to_string_lossy().into_owned();
+        let pool = ChromePool::new(config).unwrap();
+        let transport = pool.transport_for(page("a", "http://127.0.0.1:3000"), LogBuffer::new());
+        let profile = pool
+            .rt()
+            .block_on(transport.owner.acquire_profile())
+            .unwrap();
+        *transport.owner.profile.blocking_lock() = Some(profile);
+        let path = root.path().join("profile-a");
+        transport.shutdown_keep_profile();
+        transport.shutdown();
+        drop(transport);
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            // The lock is free once the first transport's cleanup has finished.
+            let locks = pool.profile_locks.lock().unwrap();
+            if locks[&path].try_lock().is_ok() {
+                break;
+            }
+            drop(locks);
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(path.exists());
     }
 
     #[test]
@@ -733,7 +923,7 @@ mod tests {
         let logs_a = LogBuffer::new();
         let logs_b = LogBuffer::new();
         let a = Arc::new(pool.transport_for(page("a", &url), logs_a.clone()));
-        let b = pool.transport_for(page("a", &url), logs_b.clone());
+        let b = pool.transport_for(page("b", &url), logs_b.clone());
         pool.rt().block_on(async {
             let (first, second) = tokio::join!(a.owner.ensure_browser(), a.owner.ensure_browser());
             let first = first.unwrap();
@@ -854,7 +1044,8 @@ mod tests {
             .success());
         let replacement = pool.transport_for(page("a", &url), LogBuffer::new());
         replacement.wait_ready(Duration::from_secs(30)).unwrap();
-        assert_ne!(process_and_profile(&replacement).1, profile_a);
+        // Same (space, user), so the same directory, but recreated empty.
+        assert_eq!(process_and_profile(&replacement).1, profile_a);
         assert_eq!(
             replacement
                 .eval_js(
@@ -1008,7 +1199,7 @@ mod tests {
 
     #[tokio::test]
     async fn discard_browser_retires_only_the_generation_it_was_given() {
-        let owner = BrowserOwner::<&'static str>::new(config());
+        let owner = owner::<&'static str>();
         *owner.browser.lock().await = Some((1, Arc::new("browser-1")));
 
         // A supervisor that watched generation 0 die, arriving after somebody
@@ -1035,7 +1226,7 @@ mod tests {
 
     #[test]
     fn generations_are_monotonic() {
-        let owner = BrowserOwner::<&'static str>::new(config());
+        let owner = owner::<&'static str>();
         let first = owner.next_generation.fetch_add(1, Ordering::Relaxed);
         let second = owner.next_generation.fetch_add(1, Ordering::Relaxed);
         assert_eq!((first, second), (0, 1));
@@ -1043,7 +1234,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_failed_launch_leaves_the_slot_empty() {
-        let owner = BrowserOwner::new(config());
+        let owner = owner::<OwnedBrowser>();
         assert!(owner.ensure_browser().await.is_err());
         assert!(owner.browser.lock().await.is_none());
     }

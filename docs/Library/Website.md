@@ -244,6 +244,7 @@ docsNav.sections = {
     { ref = "Reference/Technical Reference", label = "Technical reference",
       { label = "External interfaces",
         { ref = "CLI" },
+        { ref = "MCP" },
         { ref = "HTTP API" },
         { ref = "Runtime API" },
         { ref = "URI" },

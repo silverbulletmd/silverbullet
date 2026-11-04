@@ -8,6 +8,8 @@ use serde_json::Value;
 use crate::conn::SpaceConnection;
 use crate::output::{self, OutputMode};
 
+use super::lua::write_index_note;
+
 /// The API calls semantic search `natural`; the UI and the CLI say semantic.
 fn api_mode(mode: &str) -> &str {
     if mode == "semantic" {
@@ -183,6 +185,8 @@ pub fn status(conn: &SpaceConnection, mode: OutputMode, out: &mut dyn Write) -> 
     }
 }
 
+/// Searches after the index caught up with file changes; the note when it
+/// had not goes to `err`, as for the runtime commands.
 pub fn search(
     conn: &SpaceConnection,
     text: &str,
@@ -190,9 +194,11 @@ pub fn search(
     limit: Option<usize>,
     mode: OutputMode,
     out: &mut dyn Write,
+    err: &mut dyn Write,
 ) -> Result<(), String> {
-    let result = conn.search_query(text, search_mode.map(api_mode), limit)?;
-    write_result(&result, mode, out, &mut std::io::stderr())
+    let (result, index) = conn.search_query(text, search_mode.map(api_mode), limit)?;
+    write_index_note(index, err)?;
+    write_result(&result, mode, out, err)
 }
 
 pub fn related(
@@ -258,6 +264,42 @@ mod tests {
         assert_eq!(err, "");
         let (out, _) = render(&sample(), OutputMode::Jsonl);
         assert_eq!(out.lines().count(), 3, "every match, not one per page");
+    }
+
+    #[test]
+    fn search_awaits_the_index_and_notes_when_it_is_behind() {
+        use crate::conn::Auth;
+        use crate::space_api::test_server::{connection, json, serve};
+
+        let body = r#"{"items":[{"page":"Notes/Garden","line":3,"excerpt":"basil"}],"total":1}"#;
+        for (status, note) in [
+            ("behind", Some("still being indexed")),
+            ("polling", Some("polls for file changes")),
+            ("caught-up", None),
+        ] {
+            let (base, handle) = serve(vec![json("200 OK", &[("X-Index-Status", status)], body)]);
+            let conn = connection(&base, Auth::None);
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            search(
+                &conn,
+                "basil",
+                None,
+                None,
+                OutputMode::Text,
+                &mut out,
+                &mut err,
+            )
+            .unwrap();
+            let requests = handle.join().unwrap();
+            assert_eq!(requests[0].path, "/.search/query");
+            assert_eq!(requests[0].header("x-await-index"), Some("1"));
+            assert_eq!(String::from_utf8(out).unwrap(), "Notes/Garden:3  basil\n");
+            let err = String::from_utf8(err).unwrap();
+            match note {
+                Some(note) => assert!(err.contains(note), "{status}: {err}"),
+                None => assert_eq!(err, "", "{status}"),
+            }
+        }
     }
 
     #[test]

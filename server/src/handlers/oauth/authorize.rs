@@ -167,6 +167,7 @@ mod tests {
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
 
+    use super::super::enc;
     use super::super::test_support::*;
 
     /// The App's pre-flight probe (`browser_auth.rs::run_flow`) tells "no auth
@@ -233,6 +234,37 @@ mod tests {
             .replace("silverbullet-app", "silverbullet-share");
         let resp = get(state, &uri, Some(&cookie)).await;
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+
+    async fn assert_refused(uri: String) {
+        let (state, cookie) = login_state();
+        let resp = get(state, &uri, Some(&cookie)).await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        assert!(resp.headers().get("location").is_none());
+    }
+
+    #[tokio::test]
+    async fn legacy_authorize_refuses_url_client_id() {
+        let uri =
+            authorize_url(CB).replace("silverbullet-app", &enc("https://client.example/meta.json"));
+        assert_refused(uri).await;
+    }
+
+    #[tokio::test]
+    async fn legacy_authorize_refuses_dcr_client_id() {
+        let uri =
+            authorize_url(CB).replace("silverbullet-app", "sbdcr_00ff00ff00ff00ff00ff00ff00ff00ff");
+        assert_refused(uri).await;
+    }
+
+    #[tokio::test]
+    async fn legacy_authorize_refuses_https_redirect_for_own_client() {
+        assert_refused(authorize_url("https://127.0.0.1:51234/cb")).await;
+    }
+
+    #[tokio::test]
+    async fn legacy_authorize_refuses_localhost_redirect() {
+        assert_refused(authorize_url("http://localhost:51234/cb")).await;
     }
 
     #[tokio::test]

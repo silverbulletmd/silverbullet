@@ -21,6 +21,20 @@ pub enum OAuthError {
     SlowDown,
     ExpiredToken,
     AccessDenied,
+    /// RFC 8707: `resource` missing or not this server's MCP endpoint.
+    InvalidTarget,
+    InvalidScope,
+    /// RFC 7591 §3.2.2
+    InvalidClientMetadata(&'static str),
+    InvalidRedirectUri(&'static str),
+    /// RFC 6749 §4.1.2.1: the server is refusing new work for now (rate or
+    /// storage limit); the HTTP layer answers 429.
+    TemporarilyUnavailable,
+    /// RFC 6749 §5.2: an unknown client that tried to authenticate with an
+    /// `Authorization` header; the HTTP layer answers 401.
+    InvalidClient,
+    /// A write the outcome depends on failed; the HTTP layer answers 500.
+    ServerError(&'static str),
 }
 
 impl OAuthError {
@@ -34,18 +48,35 @@ impl OAuthError {
             Self::SlowDown => "slow_down",
             Self::ExpiredToken => "expired_token",
             Self::AccessDenied => "access_denied",
+            Self::InvalidTarget => "invalid_target",
+            Self::InvalidScope => "invalid_scope",
+            Self::InvalidClientMetadata(_) => "invalid_client_metadata",
+            Self::InvalidRedirectUri(_) => "invalid_redirect_uri",
+            Self::TemporarilyUnavailable => "temporarily_unavailable",
+            Self::InvalidClient => "invalid_client",
+            Self::ServerError(_) => "server_error",
         }
     }
 
     pub fn description(&self) -> &'static str {
         match self {
-            Self::InvalidRequest(d) | Self::InvalidGrant(d) => d,
+            Self::InvalidRequest(d)
+            | Self::InvalidGrant(d)
+            | Self::InvalidClientMetadata(d)
+            | Self::InvalidRedirectUri(d)
+            | Self::ServerError(d) => d,
             Self::UnauthorizedClient => "invalid client_id, or not the one the grant was issued to",
             Self::UnsupportedGrantType => "unsupported grant_type",
             Self::AuthorizationPending => "the user has not approved the request yet",
             Self::SlowDown => "too many requests, slow down",
             Self::ExpiredToken => "the device code expired",
             Self::AccessDenied => "the user denied the request",
+            Self::InvalidTarget => "resource must be this server's MCP endpoint",
+            Self::InvalidScope => "the only supported scope is mcp",
+            Self::TemporarilyUnavailable => {
+                "the server cannot take new registrations right now, try again later"
+            }
+            Self::InvalidClient => "unknown client",
         }
     }
 }
@@ -93,28 +124,37 @@ pub struct CodeGrant {
     pub client_id: ClientId,
 }
 
-struct StoredGrant {
-    grant: CodeGrant,
+struct StoredGrant<G> {
+    grant: G,
     issued_at: u64,
 }
 
 /// Short-lived authorization codes. In memory only: a code outlives neither the
 /// process nor its 60-second TTL, so there is nothing worth persisting.
-#[derive(Default)]
-pub struct AuthCodeStore {
-    entries: Mutex<HashMap<String, StoredGrant>>,
+pub struct CodeStore<G> {
+    entries: Mutex<HashMap<String, StoredGrant<G>>>,
 }
 
-impl AuthCodeStore {
+pub type AuthCodeStore = CodeStore<CodeGrant>;
+
+impl<G> Default for CodeStore<G> {
+    fn default() -> Self {
+        Self {
+            entries: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl<G> CodeStore<G> {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn issue(&self, grant: CodeGrant) -> String {
+    pub fn issue(&self, grant: G) -> String {
         self.issue_at(grant, now_secs())
     }
 
-    pub fn issue_at(&self, grant: CodeGrant, now: u64) -> String {
+    pub fn issue_at(&self, grant: G, now: u64) -> String {
         let mut bytes = [0u8; 32];
         getrandom::fill(&mut bytes).expect("OS RNG must be available");
         let code: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
@@ -130,6 +170,34 @@ impl AuthCodeStore {
         code
     }
 
+    /// The grant behind a live code, left in place: for checks (client
+    /// authentication) whose failure should not use the code up.
+    pub fn peek_at(&self, code: &str, now: u64) -> Option<G>
+    where
+        G: Clone,
+    {
+        let entries = self.entries.lock().unwrap();
+        let stored = entries.get(code)?;
+        (now.saturating_sub(stored.issued_at) <= CODE_TTL_SECS).then(|| stored.grant.clone())
+    }
+
+    /// Removes the code before checking its age, so it is single use even
+    /// when the caller's later checks (client, PKCE) fail.
+    pub fn take_at(&self, code: &str, now: u64) -> Result<G, OAuthError> {
+        let stored = self
+            .entries
+            .lock()
+            .unwrap()
+            .remove(code)
+            .ok_or(OAuthError::InvalidGrant("unknown or already-used code"))?;
+        if now.saturating_sub(stored.issued_at) > CODE_TTL_SECS {
+            return Err(OAuthError::InvalidGrant("code expired"));
+        }
+        Ok(stored.grant)
+    }
+}
+
+impl CodeStore<CodeGrant> {
     pub fn consume(
         &self,
         code: &str,
@@ -150,25 +218,17 @@ impl AuthCodeStore {
     ) -> Result<String, OAuthError> {
         // Removed before it is validated: a code that fails PKCE has been
         // guessed or replayed, and must not survive for a second attempt.
-        let stored = self
-            .entries
-            .lock()
-            .unwrap()
-            .remove(code)
-            .ok_or(OAuthError::InvalidGrant("unknown or already-used code"))?;
-        if now.saturating_sub(stored.issued_at) > CODE_TTL_SECS {
-            return Err(OAuthError::InvalidGrant("code expired"));
-        }
-        if &stored.grant.client_id != client_id {
+        let grant = self.take_at(code, now)?;
+        if &grant.client_id != client_id {
             return Err(OAuthError::UnauthorizedClient);
         }
-        if stored.grant.redirect_uri != redirect_uri {
+        if grant.redirect_uri != redirect_uri {
             return Err(OAuthError::InvalidGrant("redirect_uri mismatch"));
         }
-        if !verify_pkce(&stored.grant.code_challenge, verifier) {
+        if !verify_pkce(&grant.code_challenge, verifier) {
             return Err(OAuthError::InvalidGrant("PKCE verification failed"));
         }
-        Ok(stored.grant.username)
+        Ok(grant.username)
     }
 }
 
@@ -253,7 +313,7 @@ mod tests {
                 &c3,
                 "verifier-abc",
                 "http://127.0.0.1:51234/cb",
-                &ClientId::parse("someone-else").unwrap()
+                &ClientId::parse("silverbullet-cli").unwrap()
             )
             .is_err());
     }

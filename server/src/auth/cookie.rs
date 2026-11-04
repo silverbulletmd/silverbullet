@@ -58,6 +58,20 @@ pub fn is_secure_request(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
+/// `<scheme>://<Host>` as the client addressed this server, with the scheme
+/// from `X-Forwarded-Proto` (see [`is_secure_request`]).
+pub fn request_origin(headers: &HeaderMap) -> String {
+    format!(
+        "{}://{}",
+        if is_secure_request(headers) {
+            "https"
+        } else {
+            "http"
+        },
+        request_host(headers)
+    )
+}
+
 /// Attributes for a `Set-Cookie` header value.
 pub struct CookieOptions {
     pub path: String,
@@ -129,6 +143,15 @@ mod tests {
         assert!(is_secure_request(&h));
         h.insert("x-forwarded-proto", HeaderValue::from_static("http"));
         assert!(!is_secure_request(&h));
+    }
+
+    #[test]
+    fn request_origin_uses_forwarded_scheme_and_host() {
+        let mut h = HeaderMap::new();
+        h.insert("host", HeaderValue::from_static("notes.example.test:3000"));
+        assert_eq!(request_origin(&h), "http://notes.example.test:3000");
+        h.insert("x-forwarded-proto", HeaderValue::from_static("https"));
+        assert_eq!(request_origin(&h), "https://notes.example.test:3000");
     }
 
     #[test]

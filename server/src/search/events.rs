@@ -5,26 +5,57 @@
 use std::sync::Arc;
 
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
-use silverbullet_server_search::{ChangeFeed, FeedEvent};
+use silverbullet_server_search::{ChangeFeed, FeedEvent, SearchBackend};
+use space_tools::ops::IndexStatus;
 use tokio::sync::broadcast::{self, error::RecvError};
 use tokio::sync::mpsc;
 
+use crate::forwarding;
+use crate::fs_guard::FsGuard;
 use crate::watcher::{FsAction, FsEvent};
 
-/// The storage an instance serves and the events that keep its index
-/// current: with a watcher, `space` itself and the watcher's events; without
-/// one (`SB_FS_WATCH=off`, an ephemeral Desktop space), `space` wrapped in
-/// [`WriteEvents`], whose own successful writes and deletes are the events.
+/// The storage an instance serves and the sender of the events that keep its
+/// indexes current: with a watcher, `space` itself and the watcher's sender;
+/// without one (`SB_FS_WATCH=off`, an ephemeral Desktop space), `space`
+/// wrapped in [`WriteEvents`], whose own successful writes and deletes are
+/// the events.
 pub fn change_events(
     space: Arc<dyn SpacePrimitives>,
     watcher: Option<&broadcast::Sender<FsEvent>>,
-) -> (Arc<dyn SpacePrimitives>, broadcast::Receiver<FsEvent>) {
+) -> (Arc<dyn SpacePrimitives>, broadcast::Sender<FsEvent>) {
     match watcher {
-        Some(tx) => (space, tx.subscribe()),
+        Some(tx) => (space, tx.clone()),
         None => {
             let (space, tx) = WriteEvents::wrap(space);
-            (Arc::new(space), tx.subscribe())
+            (Arc::new(space), tx)
         }
+    }
+}
+
+/// How far `search` got with the changes made to the space before the
+/// call, by `deadline`: first the watcher's part
+/// ([`ForwardTracker::caught_up`](crate::forwarding::ForwardTracker::caught_up)),
+/// then the index's ([`SearchBackend::caught_up`]). `guard` is the space's,
+/// the one its watcher started with. A polling watcher can't confirm that
+/// edits made on disk were seen, which is `polling` once the index applied
+/// what it did receive; that includes a polling watcher that had not yet
+/// reported the server's own writes by `deadline`, as the runtime catch-up
+/// reports it too.
+pub async fn index_status(
+    guard: &FsGuard,
+    search: &dyn SearchBackend,
+    deadline: std::time::Instant,
+) -> IndexStatus {
+    let forwarding = guard.forwarding();
+    let forwarded = forwarding::caught_up(forwarding, deadline).await;
+    if !search.caught_up(deadline).await {
+        IndexStatus::Behind
+    } else if forwarded {
+        IndexStatus::CaughtUp
+    } else if forwarding::polls(forwarding) {
+        IndexStatus::Polling
+    } else {
+        IndexStatus::Behind
     }
 }
 

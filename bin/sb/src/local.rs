@@ -26,6 +26,8 @@ pub struct DesktopHost {
     pub runtime: PathBuf,
     pub launch: Vec<String>,
     pub open: String,
+    /// Opens a space without any editor window; absent in older Desktop builds.
+    pub start: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -35,6 +37,8 @@ struct HostFile {
     runtime: PathBuf,
     launch: Vec<String>,
     open: String,
+    #[serde(default)]
+    start: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -76,6 +80,7 @@ pub fn desktop_host(dir: &Path) -> Result<DesktopHost, ConnectionError> {
         runtime: file.runtime,
         launch: file.launch,
         open: file.open,
+        start: file.start.filter(|template| !template.is_empty()),
     })
 }
 
@@ -130,7 +135,21 @@ pub fn deep_link(template: &str, path: &Path) -> Result<String, String> {
 
 /// Start Desktop, optionally opening `path`. Returns once the process is spawned.
 pub fn launch(host: &DesktopHost, path: Option<&Path>) -> Result<(), String> {
-    let link = path.map(|p| deep_link(&host.open, p)).transpose()?;
+    launch_with(host, path, &host.open)
+}
+
+/// Start Desktop with `path`'s space running but no editor window. Older
+/// Desktop builds have no `start` link and get the `open` one.
+pub fn launch_headless(host: &DesktopHost, path: &Path) -> Result<(), String> {
+    launch_with(
+        host,
+        Some(path),
+        host.start.as_deref().unwrap_or(&host.open),
+    )
+}
+
+fn launch_with(host: &DesktopHost, path: Option<&Path>, template: &str) -> Result<(), String> {
+    let link = path.map(|p| deep_link(template, p)).transpose()?;
     let (program, args) = host.launch.split_first().ok_or(REQUIRES_DESKTOP)?;
     let mut command = Command::new(program);
     command.args(args);
@@ -227,9 +246,19 @@ pub fn runtime_ready(port: u16, token: &str) -> bool {
         .is_ok_and(|r| r.status().as_u16() == 200)
 }
 
-/// Point `g` at the local runtime when the selected space is a folder space.
-/// Remote spaces and explicit `--url` are left to the normal connection logic.
-pub fn prepare(g: &mut GlobalFlags, needs_runtime: bool) -> Result<(), ConnectionError> {
+/// What a command needs from a folder space's local server.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Need {
+    /// The server answering `/.ping` (files, search, help).
+    Server,
+    /// The Lua runtime ready as well.
+    Runtime,
+}
+
+/// Point `g` at the local server when the selected space is a folder space,
+/// starting the space headlessly when it is not running. Remote spaces and
+/// explicit `--url` are left to the normal connection logic.
+pub fn prepare(g: &mut GlobalFlags, need: Need) -> Result<(), ConnectionError> {
     if g.url.is_some() {
         return Ok(());
     }
@@ -245,18 +274,18 @@ pub fn prepare(g: &mut GlobalFlags, needs_runtime: bool) -> Result<(), Connectio
     let host = desktop_host(&config::config_dir())?;
     let id = space.id.clone();
     let folder = PathBuf::from(&space.folder_path);
-    let (origin, token) = if needs_runtime {
-        wait_for_runtime(
-            Duration::from_secs(g.timeout),
-            Duration::from_secs(2),
-            || runtime_connection(&host, &id),
-            || launch(&host, Some(&folder)),
-            runtime_ready,
-            ping_port,
-        )
-    } else {
-        runtime_connection(&host, &id)
-    }
+    let ready = match need {
+        Need::Server => ping_port,
+        Need::Runtime => runtime_ready,
+    };
+    let (origin, token) = wait_for_runtime(
+        Duration::from_secs(g.timeout),
+        Duration::from_secs(2),
+        || runtime_connection(&host, &id),
+        || launch_headless(&host, &folder),
+        ready,
+        ping_port,
+    )
     .map_err(ConnectionError::operational)?;
     g.url = Some(origin);
     g.token = Some(token);
@@ -325,6 +354,55 @@ mod tests {
         assert_eq!(host.launch, vec![exe.to_string_lossy().to_string()]);
     }
 
+    #[cfg(unix)]
+    fn recording_host(dir: &Path, start: Option<&str>) -> (DesktopHost, PathBuf) {
+        let out = dir.join("link");
+        let host = DesktopHost {
+            runtime: PathBuf::from("/unused"),
+            launch: vec![
+                "sh".into(),
+                "-c".into(),
+                format!("printf '%s' \"$1\" > '{}'", out.display()),
+                "sh".into(),
+            ],
+            open: "silverbullet-desktop://open?path={path}".into(),
+            start: start.map(String::from),
+        };
+        (host, out)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runtime_commands_launch_with_start_link() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (host, out) =
+            recording_host(tmp.path(), Some("silverbullet-desktop://start?path={path}"));
+        launch_headless(&host, tmp.path()).unwrap();
+        let link = std::fs::read_to_string(out).unwrap();
+        assert!(
+            link.starts_with("silverbullet-desktop://start?path=%2F"),
+            "{link}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn older_host_file_falls_back_to_open_link() {
+        let tmp = tempfile::tempdir().unwrap();
+        let exe = tmp.path().join("silverbullet");
+        std::fs::write(&exe, "").unwrap();
+        host_file(tmp.path(), &exe.to_string_lossy());
+        let mut host = desktop_host(tmp.path()).unwrap();
+        assert_eq!(host.start, None);
+        host.launch = recording_host(tmp.path(), None).0.launch;
+        launch_headless(&host, tmp.path()).unwrap();
+        let link = std::fs::read_to_string(tmp.path().join("link")).unwrap();
+        assert!(
+            link.starts_with("silverbullet-desktop://open?path=%2F"),
+            "{link}"
+        );
+    }
+
     fn host_with_runtime(spaces: serde_json::Value) -> (tempfile::TempDir, DesktopHost) {
         let tmp = tempfile::tempdir().unwrap();
         let runtime = tmp.path().join("runtime.json");
@@ -333,6 +411,7 @@ mod tests {
             runtime,
             launch: vec!["flatpak".into()],
             open: String::new(),
+            start: None,
         };
         (tmp, host)
     }
@@ -383,6 +462,7 @@ mod tests {
             runtime: PathBuf::from("/unused"),
             launch: vec!["sh".into(), "-c".into(), script.into()],
             open: String::new(),
+            start: None,
         };
         assert_eq!(launch(&host("exit 3"), None).unwrap_err(), REQUIRES_DESKTOP);
         assert!(launch(&host("exit 0"), None).is_ok());

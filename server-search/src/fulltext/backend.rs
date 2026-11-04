@@ -29,6 +29,9 @@ const MODES: [QueryMode; 2] = [QueryMode::Words, QueryMode::Phrase];
 /// Status `reason` while storage can't list the space.
 const UNLISTED_REASON: &str = "Can't list the space's files; the search index may be out of date";
 
+/// How often [`SearchBackend::caught_up`] checks whether the store opened.
+const STARTUP_POLL: std::time::Duration = std::time::Duration::from_millis(50);
+
 /// Query notice while the index works but the worker can't commit changes.
 const STALE_NOTICE: &str = "Search results may be out of date";
 /// Status `reason` while the worker can't commit changes.
@@ -338,6 +341,26 @@ impl SearchBackend for FullTextBackend {
 
     fn indexes(&self) -> Vec<IndexReport> {
         vec![self.report()]
+    }
+
+    /// The worker's [`SyncWorker::caught_up`]. Until the store is open the
+    /// feed only queues, so this first waits for the worker to start; a store
+    /// that never opens has nothing to catch up (queries say search is off).
+    fn caught_up<'a>(&'a self, deadline: std::time::Instant) -> BoxFut<'a, bool> {
+        Box::pin(async move {
+            loop {
+                if let Some(running) = self.running.get() {
+                    return running.worker.caught_up(deadline).await;
+                }
+                if self.startup.is_finished() {
+                    return true;
+                }
+                if std::time::Instant::now() >= deadline {
+                    return false;
+                }
+                tokio::time::sleep(STARTUP_POLL).await;
+            }
+        })
     }
 
     fn rebuild(&self) -> Result<(), SearchError> {

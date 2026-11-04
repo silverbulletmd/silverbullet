@@ -22,7 +22,7 @@ If Chrome is not auto-detected, for some reason, set the path explicitly:
 SB_CHROME_PATH=/usr/bin/chromium
 ```
 
-In single-instance mode, set `SB_RUNTIME_API=0` to disable the Runtime API. In multi-space mode this variable is ignored: use the **Enable runtime API** toggle in the administrator’s **Runtimes** tab. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
+In single-instance mode, set `SB_RUNTIME_API=0` to disable the Runtime API, and `SB_RUNTIME_IDLE_TIMEOUT` to change when an idle runtime stops (see [[#Idle stop]]). In multi-space mode these variables are ignored: use the **Enable runtime API** toggle in the administrator’s **APIs** tab. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
 
 # Docker setup
 The default Docker image includes Chromium headless shell, so no special image variant is required:
@@ -39,7 +39,7 @@ services:
       - "3000:3000"
 ```
 
-The image stores isolated temporary Chrome profiles under `/data/.chrome-data`. A new runtime receives a fresh profile and rebuilds its client index. Profiles are removed on Reset, permission revocation, or server shutdown. Administrative Stop retains the profile for reuse within the current server lifetime.
+The image stores Chrome profiles under `/data/.chrome-data`: one per user of each space. See [[#Profiles]].
 
 Use a `-slim` tag such as `latest-slim` if you do not need the Runtime API and want a smaller image without Chromium. The old `-runtime-api` tags remain available as compatibility aliases for the default image.
 
@@ -65,7 +65,7 @@ curl -d 'editor.getCurrentPage()' http://localhost:3000/.runtime/lua
 The request body is a raw Lua script as plain text. This allows multi-statement scripts with explicit `return` statements.
 
 ```bash
-curl -d 'local pages = query[[from tags.page limit 3 select table.select(_, "name")]]
+curl -d 'local pages = query[[from p = index.pages() limit 3 select {name = p.name}]]
 return pages' \
      http://localhost:3000/.runtime/lua_script
 # => {"result":[{"name":"index"},{"name":"Projects"},{"name":"TODO"}]}
@@ -125,8 +125,26 @@ curl -H "X-Timeout: 60" \
      http://localhost:3000/.runtime/lua
 ```
 
+# Waiting for the index
+The Lua endpoints and `/.runtime/screenshot` can first wait until the space’s index has caught up with recent file changes (edits made through the [[HTTP API]], a script or another device), so a query sees a page written a moment ago. Send `X-Await-Index: 1` (`true` and `yes` also count). The server waits for its file watcher to pass changes on, then for the client’s index queue to empty, for at most the smaller of 5 seconds and `X-Timeout`. The request then runs with its full `X-Timeout`.
+
+`POST /.search/query` (see [[HTTP API#Search]]) honours the same header: a signed-in member’s query first waits, for at most the smaller of 5 seconds and `X-Timeout`, until the search index has caught up with recent file changes. Public visitors’ queries do not wait and get `X-Index-Status: unknown`.
+
+The response carries `X-Index-Status`, only when the request had `X-Await-Index`:
+
+* `caught-up`: the index reflects every change the server knows of.
+* `behind`: changes were still being indexed when the wait ended, so results may miss the latest edits.
+* `polling`: the space polls for file changes instead of watching, so edits made outside SilverBullet since the last poll may not be indexed yet.
+* `unknown`: the server could not tell, for example without a runtime.
+
+```bash
+curl -i -H "X-Await-Index: 1" -d 'index.pages()' http://localhost:3000/.runtime/lua
+```
+
+The [[CLI]] (`sb lua`, `sb query`, `sb screenshot`, `sb fs read --rendered` and `sb search`) and the [[MCP]] (`lua`, `screenshot`, `read` with `rendered`, and `search`) send it on every call and report `behind` and `polling` as a note.
+
 # Results
-The `result` of `/.runtime/lua` and `/.runtime/lua_script` (and the output of `sb eval`, `sb script` and `sb query`) is always plain JSON:
+The `result` of `/.runtime/lua` and `/.runtime/lua_script` (and the output of `sb lua` and `sb query`) is always plain JSON:
 
 * `nil`, a missing query column: `null`. Keys are kept, so a row lacking `rating` reads `"rating": null`.
 * `-0`: `0`
@@ -155,21 +173,37 @@ Status codes used across the Runtime API:
 * **400** — Empty request body: `{"error": "Request body is required"}`. Invalid screenshot selector syntax: `{"error": "...", "code": "invalid_selector"}`.
 * **404** — No visible element matches the screenshot selector: `{"error": "...", "code": "selector_not_found"}`.
 * **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error): `{"error": "<error message>", "code": "script_error"}`. The message is the concise client error (e.g. `attempt to call a nil value`). The full stack is available in the runtime console log.
-* **503** — Runtime API not enabled or no headless browser running: `{"error": "Runtime API is not enabled"}` or `{"error": "...", "code": "bridge_unavailable"}`.
+* **503** — Runtime API not enabled: `{"error": "Runtime API is not enabled"}`. This also holds when it is switched off for the running server (by an administrator or `SB_RUNTIME_API=0`), Chrome is missing, or the runtime pool failed to start. A headless browser that is not ready yet answers `{"error": "...", "code": "bridge_unavailable"}`; retry shortly.
 * **504** — Timeout exceeded: `{"error": "...", "code": "timeout"}`.
 
 # How it works
 As documented in [[Architecture]], the vast majority of SilverBullet’s power is implemented in the client. However, there are use cases for programmatically accessing your space with all of SilverBullet (client’s) power.
 
-When the Runtime API is enabled, the first request to an `/.runtime/` endpoint starts a separate headless Chrome process for that user and space. Each runtime has its own temporary profile, cookies, browser storage, and console log. It loads the full SilverBullet client with the originating user’s identity and permissions. Removing Write or runtime access, disabling the account, or switching runtime off stops the affected browser and invalidates its credentials.
+When the Runtime API is enabled, the first request to an `/.runtime/` endpoint starts a separate headless Chrome process for that user and space. Each runtime has its own profile, cookies, browser storage, and console log. It loads the full SilverBullet client with the originating user’s identity and permissions. Removing Write or runtime access, disabling the account, or switching runtime off stops the affected browser and invalidates its credentials.
 
 Once ready, the server communicates with the browser directly via Chrome DevTools Protocol (CDP). Because Lua code runs inside a real SilverBullet client, it has access to the full API surface — `editor.*`, `space.*`, queries, and everything else available to in-page scripts and widgets. The results reflect live client state.
 
+## Idle stop
+A runtime that has received no requests for 30 minutes is stopped: its Chrome exits and it uses no memory or CPU. The next request starts it again on the same profile, so the client picks up where it left off instead of rebuilding its index. That takes about a second, plus the time to index pages that changed in the meantime.
+
+While a runtime is stopped, nothing runs in its client, including Space Lua event listeners such as `cron:secondPassed`.
+
+To change the timeout, in minutes (`0` keeps runtimes running):
+* In single-space mode, set `SB_RUNTIME_IDLE_TIMEOUT`, for example `SB_RUNTIME_IDLE_TIMEOUT=120`.
+* In multi-space mode, use **Stop idle runtimes after** in the administrator's **APIs** tab, stored as `runtimeIdleTimeout` in `server.json`.
+
+## Profiles
+Each user of a space has one Chrome profile, holding the client's index and browser storage. It is kept when the runtime stops (whether idle, by an administrator's **Stop**, or at server shutdown) and reused next time.
+
+A profile is deleted on **Reset**, when the user loses Write or runtime access or their credentials change, when the Runtime API is switched off, and when the space is deleted.
+
+Profiles live under `.chrome-data` in the server's data folder, or under `SB_CHROME_DATA_DIR` when set. Their directory names are hashes of the server folder, space and user.
+
 ## Debugging
-Set `SB_CHROME_SHOW=1` to run Chrome with a visible window — useful for watching what the headless client is doing. Set `SB_CHROME_DATA_DIR` to choose the parent directory for isolated temporary profiles. Startup logs report the detected Chrome executable or that Chrome is unavailable.
+Set `SB_CHROME_SHOW=1` to run Chrome with a visible window — useful for watching what the headless client is doing. Set `SB_CHROME_DATA_DIR` to choose the directory that holds the runtime profiles. Startup logs report the detected Chrome executable or that Chrome is unavailable.
 
 ## Resource usage
-Headless Chrome spawns several processes (browser, network, storage, and renderer) for each active user and space pair. Additional runtimes therefore cost a whole browser, not just a tab. Browsers start lazily so unused runtime permissions consume no Chrome processes.
+Headless Chrome spawns several processes (browser, network, storage, and renderer) for each active user and space pair. Additional runtimes therefore cost a whole browser, not just a tab. Browsers start lazily so unused runtime permissions consume no Chrome processes, and stop again after a period without requests (see [[#Idle stop]]).
 
 ## Managing runtimes
-Server administrators can open **Admin → Runtimes** to see each instantiated runtime’s space, user, status, CPU, estimated memory, and profile disk usage. The list refreshes while visible and includes stopped runtimes with retained profiles. Viewing it does not start Chrome.
+Server administrators can open **Admin → APIs** to see each instantiated runtime's space, user, status, CPU, estimated memory, and profile disk usage. The list refreshes while visible and includes stopped runtimes with retained profiles. Viewing it does not start Chrome.

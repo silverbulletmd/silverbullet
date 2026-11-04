@@ -29,18 +29,22 @@ test.describe("runtime administration", () => {
     },
   });
 
-  test("runtime setting lives on Runtimes and survives saving Server settings", async ({
+  test("runtime setting lives on APIs and survives saving Server settings", async ({
     adminPage: page,
     sbServer,
   }) => {
     await page.goto(`${sbServer.url}/.dashboard/admin?section=server`);
     await expect(page.getByLabel("Enable runtime API")).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Runtimes" }).click();
+    await page.getByRole("link", { name: "APIs" }).click();
     const toggle = page.getByLabel("Enable runtime API");
     await expect(toggle).toBeEnabled();
     await toggle.uncheck();
-    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page
+      .locator("form")
+      .filter({ has: toggle })
+      .getByRole("button", { name: "Save", exact: true })
+      .click();
     await expect
       .poll(
         async () =>

@@ -399,3 +399,62 @@ async fn primary_origin_enables_local_central_login_and_restricts_central_routes
         .unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
 }
+
+#[tokio::test]
+async fn central_start_accepts_mcp_authorize_destination() {
+    let dir = tempfile::tempdir().unwrap();
+    let users = UserStore::create_empty(dir.path()).unwrap();
+    let auth = Arc::new(Authenticator::from_secret_bytes(vec![7; 32], "test".into()));
+    let login = Arc::new(LoginManager::new(
+        auth.clone(),
+        Arc::new(AnyUserAuth {
+            store: users.clone(),
+        }),
+        168,
+        LockoutTimer::from_config(10, 10),
+        String::new(),
+    ));
+    let app = router(Arc::new(
+        CentralAuth::new(
+            Arc::new(ProviderStore::open(dir.path()).unwrap()),
+            auth,
+            users,
+            login,
+            Box::new(silverbullet_server_common::space::memory::MemorySpacePrimitives::new()),
+            Arc::new(|_| None),
+        )
+        .unwrap()
+        .with_primary_url(Arc::new(|| Some("https://manager.example.com".into()))),
+    ));
+    let start = |destination: &str| {
+        request(
+            "GET",
+            "manager.example.com",
+            &format!(
+                "/.auth/central/start?destination={}",
+                percent_encoding::utf8_percent_encode(
+                    destination,
+                    percent_encoding::NON_ALPHANUMERIC
+                )
+            ),
+            "",
+            None,
+        )
+    };
+    let response = app
+        .clone()
+        .oneshot(start(
+            "https://manager.example.com/.auth/mcp/authorize?client_id=sbdcr_00&state=x%26y",
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    for refused in [
+        "https://manager.example.com/.auth/authorize?client_id=x",
+        "https://manager.example.com/.auth/mcp/authorize/extra",
+        "https://manager.example.com/.auth/mcp/token",
+    ] {
+        let response = app.clone().oneshot(start(refused)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{refused}");
+    }
+}

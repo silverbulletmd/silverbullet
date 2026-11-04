@@ -801,6 +801,7 @@ mod tests {
             server_url: server_url.to_string(),
             headless_token: "secret".to_string(),
             cookie_name: "silverbullet_headless_a".to_string(),
+            profile: "profile-a".to_string(),
         }
     }
 

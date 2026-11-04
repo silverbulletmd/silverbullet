@@ -1,14 +1,15 @@
-//! Runtime HTTP calls against a SilverBullet Rust server.
+//! Blocking HTTP calls against a SilverBullet Rust server: console logs,
+//! config and reachability. Lua and screenshots go through
+//! [`crate::space_api`] and the shared space operations.
 //!
-//! All methods live on [`crate::conn::SpaceConnection`].  The Rust server
-//! wraps eval responses in a `{ "result": <value> }` / `{ "error": <msg> }`
-//! envelope (see `docs/Runtime API.md`) — see the per-method docs for exact
-//! response shapes.
+//! All methods live on [`crate::conn::SpaceConnection`].
 
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::Read;
+
+use space_tools::lua_text::runtime_failure;
 
 use crate::conn::{self, SpaceConnection};
 
@@ -20,9 +21,7 @@ pub struct LogEntry {
     pub timestamp: i64,
 }
 
-const MAX_EVAL_RESPONSE_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_LOG_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
-const MAX_SCREENSHOT_RESPONSE_BYTES: u64 = 64 * 1024 * 1024;
 
 pub(crate) fn read_response(
     response: reqwest::blocking::Response,
@@ -40,61 +39,28 @@ pub(crate) fn read_response(
     Ok(bytes)
 }
 
+pub const AUTHENTICATION_REQUIRED: &str = "authentication required; run `sb space login <name>` for a saved browser connection, or provide --token.";
+
+/// What still works when the runtime does not, for the runtime's error hints.
+pub const STILL_USABLE_CLI: &str = "you can still use sb fs and sb search";
+
 pub(crate) fn runtime_error(status: StatusCode, body: &[u8]) -> String {
     if status == StatusCode::UNAUTHORIZED || status.is_redirection() {
-        return "authentication required; run `sb space login <name>` for a saved browser connection, or provide --token.".into();
+        return AUTHENTICATION_REQUIRED.into();
     }
-    if let Ok(text) = std::str::from_utf8(body) {
-        if let Ok(v) = serde_json::from_str::<Value>(text) {
-            if let Some(msg) = v.get("error").and_then(|e| e.as_str()) {
-                return msg.to_string();
-            }
-        }
-        return format!("server returned {}: {text}", status.as_u16());
+    if serde_json::from_slice::<Value>(body).is_ok_and(|v| v.get("error").is_some()) {
+        // The timeout only shows in the "timeout" error, which only Lua calls
+        // return, and those go through the shared operations with their real
+        // timeout; logs, config and search never produce it, so 0 is unused.
+        return runtime_failure(status, body, 0, STILL_USABLE_CLI);
     }
-    format!("server returned {}", status.as_u16())
+    match std::str::from_utf8(body) {
+        Ok(text) => format!("server returned {}: {text}", status.as_u16()),
+        Err(_) => format!("server returned {}", status.as_u16()),
+    }
 }
 
 impl SpaceConnection {
-    fn post_runtime(&self, path: &str, body: &str) -> Result<Value, String> {
-        let url = format!("{}{path}", self.base_url);
-        let req = self
-            .client
-            .post(&url)
-            .header("Content-Type", "text/plain")
-            .header("X-Timeout", self.timeout.as_secs().to_string())
-            .body(body.to_string());
-        let req = self.apply_auth(req);
-        let resp = req.send().map_err(|e| format!("request failed: {e}"))?;
-
-        let status = resp.status();
-        let bytes = read_response(resp, MAX_EVAL_RESPONSE_BYTES, "runtime response")?;
-
-        if status.is_success() {
-            // On 200, the body is the `{ "result": <value> }` envelope (Server's
-            // runtime handlers wrap eval results; see `docs/Runtime API.md`).
-            // A Lua-level failure arrives as `{ "error": <msg> }`.
-            let v: Value = serde_json::from_slice(&bytes)
-                .map_err(|e| format!("parsing response JSON: {e}"))?;
-            if let Some(err) = v.get("error").and_then(|e| e.as_str()) {
-                return Err(err.to_string());
-            }
-            Ok(v.get("result").cloned().unwrap_or(Value::Null))
-        } else {
-            Err(runtime_error(status, &bytes))
-        }
-    }
-
-    /// Evaluate a Lua expression via `POST /.runtime/lua`.
-    pub fn eval_lua(&self, expr: &str) -> Result<Value, String> {
-        self.post_runtime("/.runtime/lua", expr)
-    }
-
-    /// Execute a Lua script via `POST /.runtime/lua_script`.
-    pub fn eval_lua_script(&self, code: &str) -> Result<Value, String> {
-        self.post_runtime("/.runtime/lua_script", code)
-    }
-
     /// Fetch console logs via `GET /.runtime/logs`.
     pub fn logs(&self, limit: usize, since: Option<i64>) -> Result<Vec<LogEntry>, String> {
         let url = format!("{}/.runtime/logs", self.base_url);
@@ -131,44 +97,6 @@ impl SpaceConnection {
         let data: LogsResponse =
             serde_json::from_slice(&bytes).map_err(|e| format!("parsing logs response: {e}"))?;
         Ok(data.logs)
-    }
-
-    /// Capture a PNG via `GET /.runtime/screenshot`.
-    pub fn screenshot(&self, selector: Option<&str>) -> Result<Vec<u8>, String> {
-        let query: Vec<(&str, &str)> = selector.map(|s| ("selector", s)).into_iter().collect();
-        self.screenshot_request(&query).map(|(png, _)| png)
-    }
-
-    /// Capture the whole current page as one stitched PNG via
-    /// `GET /.runtime/screenshot?fullPage=1`. The flag is true when the page
-    /// was longer than the server's cap and the image stops early.
-    pub fn screenshot_full_page(&self) -> Result<(Vec<u8>, bool), String> {
-        self.screenshot_request(&[("fullPage", "1")])
-    }
-
-    fn screenshot_request(&self, query: &[(&str, &str)]) -> Result<(Vec<u8>, bool), String> {
-        let url = format!("{}/.runtime/screenshot", self.base_url);
-        let mut req = self
-            .client
-            .get(&url)
-            .header("X-Timeout", self.timeout.as_secs().to_string());
-        if !query.is_empty() {
-            req = req.query(query);
-        }
-        let resp = self
-            .apply_auth(req)
-            .send()
-            .map_err(|e| format!("request failed: {e}"))?;
-        let status = resp.status();
-        let truncated = resp
-            .headers()
-            .get("X-Screenshot-Truncated")
-            .is_some_and(|v| v.as_bytes() == b"true");
-        let bytes = read_response(resp, MAX_SCREENSHOT_RESPONSE_BYTES, "screenshot response")?;
-        if !status.is_success() {
-            return Err(runtime_error(status, &bytes));
-        }
-        Ok((bytes, truncated))
     }
 
     /// GET `/.config` and return the parsed JSON body on 200.
@@ -234,291 +162,42 @@ impl SpaceConnection {
 
 #[cfg(test)]
 mod tests {
+    use crate::conn::Auth;
+    use crate::space_api::test_server::{connection, json, serve};
+
     #[test]
     fn revoked_authentication_points_to_login_without_replaying() {
         let error = super::runtime_error(reqwest::StatusCode::UNAUTHORIZED, b"unauthorized");
         assert!(error.contains("sb space login"));
     }
 
-    use crate::conn::{Auth, SpaceConnection};
-    use reqwest::blocking::Client;
-    use std::{
-        io::{BufRead, BufReader, Write},
-        net::TcpListener,
-        thread,
-        time::Duration,
-    };
-
-    #[derive(Debug)]
-    struct RecordedRequest {
-        _method: String,
-        path: String,
-        headers: Vec<(String, String)>,
-        _body: Vec<u8>,
-    }
-
-    impl RecordedRequest {
-        fn header(&self, name: &str) -> Option<&str> {
-            let lower = name.to_lowercase();
-            self.headers
-                .iter()
-                .find(|(k, _)| k.to_lowercase() == lower)
-                .map(|(_, v)| v.as_str())
-        }
-    }
-
-    fn mock_server(response: &'static str) -> (String, thread::JoinHandle<RecordedRequest>) {
-        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
-        let port = listener.local_addr().unwrap().port();
-        let base_url = format!("http://127.0.0.1:{port}");
-
-        let handle = thread::spawn(move || {
-            let (stream, _) = listener.accept().expect("accept");
-            let mut reader = BufReader::new(stream.try_clone().expect("clone"));
-            let mut writer = stream;
-
-            let mut req_line = String::new();
-            reader.read_line(&mut req_line).unwrap();
-            let mut parts = req_line.trim().splitn(3, ' ');
-            let method = parts.next().unwrap_or("").to_string();
-            let path = parts.next().unwrap_or("").to_string();
-
-            let mut headers = Vec::new();
-            let mut content_length: usize = 0;
-            loop {
-                let mut line = String::new();
-                reader.read_line(&mut line).unwrap();
-                let trimmed = line.trim();
-                if trimmed.is_empty() {
-                    break;
-                }
-                if let Some(colon) = trimmed.find(':') {
-                    let name = trimmed[..colon].trim().to_string();
-                    let value = trimmed[colon + 1..].trim().to_string();
-                    if name.to_lowercase() == "content-length" {
-                        content_length = value.parse().unwrap_or(0);
-                    }
-                    headers.push((name, value));
-                }
-            }
-
-            let mut body = vec![0u8; content_length];
-            if content_length > 0 {
-                use std::io::Read;
-                reader.read_exact(&mut body).unwrap();
-            }
-
-            writer.write_all(response.as_bytes()).unwrap();
-
-            RecordedRequest {
-                _method: method,
-                path,
-                headers,
-                _body: body,
-            }
-        });
-
-        (base_url, handle)
-    }
-
-    fn bearer_conn(base_url: &str, token: &str) -> SpaceConnection {
-        SpaceConnection {
-            client: Client::builder()
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .unwrap(),
-            base_url: base_url.trim_end_matches('/').to_string(),
-            auth: Auth::Bearer(token.to_string()),
-            timeout: Duration::from_secs(30),
-        }
-    }
-
     #[test]
-    fn eval_lua_200_returns_value() {
-        let response = concat!(
-            "HTTP/1.1 200 OK\r\n",
-            "Content-Type: application/json\r\n",
-            "Content-Length: 12\r\n",
-            "\r\n",
-            r#"{"result":2}"#,
-        );
-        let (base_url, handle) = mock_server(response);
-        let conn = bearer_conn(&base_url, "mytoken");
-
-        let result = conn.eval_lua("1+1").unwrap();
-        assert_eq!(result, serde_json::json!(2));
-
-        let req = handle.join().unwrap();
-        assert_eq!(
-            req.header("content-type").unwrap_or(""),
-            "text/plain",
-            "must send Content-Type: text/plain"
-        );
-        assert!(
-            req.header("x-timeout").is_some(),
-            "must send X-Timeout header"
+    fn disabled_runtime_says_what_still_works() {
+        let error = super::runtime_error(
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            br#"{"error":"Runtime API is not enabled"}"#,
         );
         assert_eq!(
-            req.header("authorization").unwrap_or(""),
-            "Bearer mytoken",
-            "must send Authorization: Bearer <token>"
-        );
-    }
-
-    #[test]
-    fn eval_lua_503_runtime_not_enabled() {
-        let body = r#"{"error":"Runtime API is not enabled"}"#;
-        let response = format!(
-            "HTTP/1.1 503 Service Unavailable\r\nContent-Length: {}\r\n\r\n{}",
-            body.len(),
-            body
-        );
-        // We need a 'static response — use Box::leak for the test.
-        let response: &'static str = Box::leak(response.into_boxed_str());
-        let (base_url, handle) = mock_server(response);
-        let conn = bearer_conn(&base_url, "tok");
-
-        let err = conn.eval_lua("x").unwrap_err();
-        let _ = handle.join();
-        assert!(
-            err.contains("not enabled"),
-            "expected 'not enabled' in: {err}"
-        );
-    }
-
-    #[test]
-    fn eval_lua_401_auth_required() {
-        let response = concat!(
-            "HTTP/1.1 401 Unauthorized\r\n",
-            "Content-Length: 0\r\n",
-            "\r\n",
-        );
-        let (base_url, handle) = mock_server(response);
-        let conn = bearer_conn(&base_url, "bad");
-
-        let err = conn.eval_lua("x").unwrap_err();
-        let _ = handle.join();
-        assert!(
-            err.contains("authentication required"),
-            "expected auth error in: {err}"
+            error,
+            "The runtime API is disabled for this space; you can still use sb fs and sb search."
         );
     }
 
     #[test]
     fn logs_200_parses_entries() {
-        let body = r#"{"logs":[{"level":"log","text":"hi","timestamp":5}]}"#;
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-            body.len(),
-            body
-        );
-        let response: &'static str = Box::leak(response.into_boxed_str());
-        let (base_url, handle) = mock_server(response);
-        let conn = bearer_conn(&base_url, "tok");
-
-        let entries = conn.logs(10, None).unwrap();
-        let _ = handle.join();
+        let (base, handle) = serve(vec![json(
+            "200 OK",
+            &[],
+            r#"{"logs":[{"level":"log","text":"hi","timestamp":5}]}"#,
+        )]);
+        let entries = connection(&base, Auth::Bearer("tok".into()))
+            .logs(10, None)
+            .unwrap();
+        let requests = handle.join().unwrap();
+        assert_eq!(requests[0].header("authorization"), Some("Bearer tok"));
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].level, "log");
         assert_eq!(entries[0].text, "hi");
         assert_eq!(entries[0].timestamp, 5);
-    }
-
-    #[test]
-    fn cookie_auth_sends_cookie_header() {
-        let response = concat!(
-            "HTTP/1.1 200 OK\r\n",
-            "Content-Length: 4\r\n",
-            "\r\n",
-            "null",
-        );
-        let (base_url, handle) = mock_server(response);
-        let conn = SpaceConnection {
-            client: Client::builder()
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .unwrap(),
-            base_url: base_url.clone(),
-            auth: Auth::Cookie {
-                name: "auth_x".to_string(),
-                value: "jwt".to_string(),
-            },
-            timeout: Duration::from_secs(30),
-        };
-
-        let _ = conn.eval_lua("nil").unwrap();
-        let req = handle.join().unwrap();
-        assert_eq!(
-            req.header("cookie").unwrap_or(""),
-            "auth_x=jwt",
-            "must send Cookie: auth_x=jwt"
-        );
-    }
-
-    #[test]
-    fn screenshot_sends_selector_and_timeout_and_returns_bytes() {
-        let response = concat!(
-            "HTTP/1.1 200 OK\r\n",
-            "Content-Type: image/png\r\n",
-            "Content-Length: 7\r\n",
-            "Connection: close\r\n\r\n",
-            "PNGDATA"
-        );
-        let (base, handle) = mock_server(response);
-        let conn = bearer_conn(&base, "tok");
-        let bytes = conn.screenshot(Some("#sb-top")).unwrap();
-        let req = handle.join().unwrap();
-        assert_eq!(bytes, b"PNGDATA");
-        assert_eq!(req.path, "/.runtime/screenshot?selector=%23sb-top");
-        assert_eq!(req.header("X-Timeout"), Some("30"));
-    }
-
-    #[test]
-    fn full_page_screenshot_sends_flag_and_reads_truncation() {
-        let response = concat!(
-            "HTTP/1.1 200 OK\r\n",
-            "Content-Type: image/png\r\n",
-            "X-Screenshot-Truncated: true\r\n",
-            "Content-Length: 7\r\n",
-            "Connection: close\r\n\r\n",
-            "PNGDATA"
-        );
-        let (base, handle) = mock_server(response);
-        let (bytes, truncated) = bearer_conn(&base, "tok").screenshot_full_page().unwrap();
-        let req = handle.join().unwrap();
-        assert_eq!(bytes, b"PNGDATA");
-        assert!(truncated);
-        assert_eq!(req.path, "/.runtime/screenshot?fullPage=1");
-    }
-
-    #[test]
-    fn plain_screenshot_sends_no_query() {
-        let response = concat!(
-            "HTTP/1.1 200 OK\r\n",
-            "Content-Type: image/png\r\n",
-            "Content-Length: 7\r\n",
-            "Connection: close\r\n\r\n",
-            "PNGDATA"
-        );
-        let (base, handle) = mock_server(response);
-        bearer_conn(&base, "tok").screenshot(None).unwrap();
-        assert_eq!(handle.join().unwrap().path, "/.runtime/screenshot");
-    }
-
-    #[test]
-    fn screenshot_error_surfaces_server_message() {
-        let response = concat!(
-            "HTTP/1.1 404 Not Found\r\n",
-            "Content-Type: application/json\r\n",
-            "Content-Length: 79\r\n",
-            "Connection: close\r\n\r\n",
-            r#"{"error":"no visible element matches the selector","code":"selector_not_found"}"#
-        );
-        let (base, handle) = mock_server(response);
-        let err = bearer_conn(&base, "tok")
-            .screenshot(Some(".x"))
-            .unwrap_err();
-        handle.join().unwrap();
-        assert!(err.contains("no visible element"), "{err}");
     }
 }

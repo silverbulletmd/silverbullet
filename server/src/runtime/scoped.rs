@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
     Arc, Mutex,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::{LogEntry, RuntimeBackend, RuntimeError, RuntimeInstance};
 use crate::auth::{AccessLevel, AccessPolicy, Actor, AuthContext, AuthOutcome, RequestAuthorizer};
@@ -19,6 +19,9 @@ pub struct ScopedRuntime {
     policy: Arc<dyn AccessPolicy>,
     users: Option<Arc<UserStore>>,
     enabled: Arc<AtomicBool>,
+    /// Seconds without a request after which a runtime is stopped, keeping
+    /// its profile; `0` never stops it.
+    idle_timeout: Arc<AtomicU64>,
     stopped: AtomicBool,
     entries: Mutex<HashMap<Option<String>, Arc<RuntimeLease>>>,
 }
@@ -35,10 +38,39 @@ struct RuntimeLease {
     users: Option<Arc<UserStore>>,
     enabled: Arc<AtomicBool>,
     active: AtomicBool,
+    last_used: Mutex<Instant>,
+    in_flight: AtomicUsize,
     backend: Arc<dyn RuntimeBackend>,
 }
 
+/// Marks a request in progress on a lease, so idle stop leaves it alone.
+struct InFlight<'a>(&'a RuntimeLease);
+
+impl Drop for InFlight<'_> {
+    fn drop(&mut self) {
+        self.0.touch();
+        self.0.in_flight.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 impl RuntimeLease {
+    fn touch(&self) {
+        *self.last_used.lock().unwrap() = Instant::now();
+    }
+
+    fn begin(&self) -> InFlight<'_> {
+        self.in_flight.fetch_add(1, Ordering::SeqCst);
+        self.touch();
+        InFlight(self)
+    }
+
+    fn idle_for(&self, timeout: Duration) -> bool {
+        self.active.load(Ordering::SeqCst)
+            && !self.reset_pending.load(Ordering::SeqCst)
+            && self.in_flight.load(Ordering::SeqCst) == 0
+            && self.last_used.lock().unwrap().elapsed() >= timeout
+    }
+
     fn permitted(&self) -> bool {
         let valid = !self.terminated.load(Ordering::SeqCst)
             && self.enabled.load(Ordering::SeqCst)
@@ -67,6 +99,7 @@ impl RuntimeBackend for RuntimeLease {
         arg: &str,
         timeout: Duration,
     ) -> Result<serde_json::Value, RuntimeError> {
+        let _in_flight = self.begin();
         if !self.valid() {
             return Err(RuntimeError::Forbidden);
         }
@@ -77,6 +110,7 @@ impl RuntimeBackend for RuntimeLease {
         selector: Option<&str>,
         timeout: Duration,
     ) -> Result<Vec<u8>, RuntimeError> {
+        let _in_flight = self.begin();
         if !self.valid() {
             return Err(RuntimeError::Forbidden);
         }
@@ -86,12 +120,14 @@ impl RuntimeBackend for RuntimeLease {
         &self,
         timeout: Duration,
     ) -> Result<super::fullpage::FullPageShot, RuntimeError> {
+        let _in_flight = self.begin();
         if !self.valid() {
             return Err(RuntimeError::Forbidden);
         }
         self.backend.screenshot_full_page(timeout)
     }
     fn logs(&self, limit: usize, since: Option<i64>) -> Vec<LogEntry> {
+        let _in_flight = self.begin();
         if !self.valid() {
             return vec![];
         }
@@ -106,6 +142,12 @@ impl RuntimeBackend for RuntimeLease {
             self.backend.shutdown();
         }
     }
+    fn shutdown_keep_profile(&self) {
+        self.active.store(false, Ordering::SeqCst);
+        if !self.terminated.swap(true, Ordering::SeqCst) {
+            self.backend.shutdown_keep_profile();
+        }
+    }
 }
 
 impl ScopedRuntime {
@@ -116,6 +158,7 @@ impl ScopedRuntime {
         policy: Arc<dyn AccessPolicy>,
         users: Option<Arc<UserStore>>,
         enabled: Arc<AtomicBool>,
+        idle_timeout: Arc<AtomicU64>,
     ) -> Arc<Self> {
         let runtime = Arc::new(Self {
             space_id,
@@ -124,6 +167,7 @@ impl ScopedRuntime {
             policy,
             users,
             enabled,
+            idle_timeout,
             stopped: AtomicBool::new(false),
             entries: Mutex::new(HashMap::new()),
         });
@@ -143,10 +187,82 @@ impl ScopedRuntime {
                         .lock()
                         .unwrap()
                         .retain(|_, entry| entry.permitted());
+                    let timeout = runtime.idle_timeout.load(Ordering::SeqCst);
+                    if timeout == 0 {
+                        continue;
+                    }
+                    let timeout = Duration::from_secs(timeout);
+                    let idle = runtime.idle_entries(timeout);
+                    if !idle.is_empty() {
+                        tokio::task::spawn_blocking(move || {
+                            for entry in idle {
+                                runtime.stop_if_idle(&entry, timeout);
+                            }
+                        });
+                    }
                 }
             });
         }
         runtime
+    }
+
+    fn idle_entries(&self, timeout: Duration) -> Vec<Arc<RuntimeLease>> {
+        self.entries
+            .lock()
+            .unwrap()
+            .values()
+            .filter(|entry| entry.idle_for(timeout))
+            .cloned()
+            .collect()
+    }
+
+    /// Stops `entry` like the administrator's Stop, keeping its profile, if it
+    /// is still the current lease and still idle once no request can start on
+    /// it: `for_actor` marks a lease used under the same operation lock.
+    fn stop_if_idle(&self, entry: &Arc<RuntimeLease>, timeout: Duration) -> bool {
+        let _operation = entry.operation.lock().unwrap();
+        {
+            let entries = self.entries.lock().unwrap();
+            if !entries
+                .get(&entry.username)
+                .is_some_and(|current| Arc::ptr_eq(current, entry))
+                || !entry.idle_for(timeout)
+            {
+                return false;
+            }
+            entry.active.store(false, Ordering::SeqCst);
+        }
+        match entry.backend.stop(true) {
+            Ok(()) => {
+                tracing::info!(
+                    space_id = self.space_id.as_str(),
+                    user = entry.username.as_deref().unwrap_or("-"),
+                    "stopped runtime after {} idle minutes",
+                    timeout.as_secs() / 60
+                );
+                true
+            }
+            Err(error) => {
+                // A failed stop cannot be resumed; unlike the administrator's
+                // Stop nobody is watching to press Reset, so drop the lease and
+                // let the next request start a fresh one on the same profile.
+                tracing::warn!(
+                    space_id = self.space_id.as_str(),
+                    "could not stop idle runtime, shutting it down: {error}"
+                );
+                {
+                    let mut entries = self.entries.lock().unwrap();
+                    if entries
+                        .get(&entry.username)
+                        .is_some_and(|current| Arc::ptr_eq(current, entry))
+                    {
+                        entries.remove(&entry.username);
+                    }
+                }
+                entry.shutdown_keep_profile();
+                false
+            }
+        }
     }
 
     fn authorize(&self, token: &str) -> Option<AuthOutcome> {
@@ -213,6 +329,7 @@ impl RuntimeBackend for ScopedRuntime {
                     return Err(RuntimeError::NotReady);
                 }
                 if entry.valid() {
+                    entry.touch();
                     return Ok(Some(entry.clone()));
                 }
             }
@@ -226,6 +343,7 @@ impl RuntimeBackend for ScopedRuntime {
                 None => Arc::from(
                     (self.factory)(&RuntimeRequest {
                         space_id: &self.space_id,
+                        username: actor.username.as_deref(),
                         server_url: self.server_url.clone(),
                         headless_token: &token,
                         read_only: false,
@@ -245,6 +363,8 @@ impl RuntimeBackend for ScopedRuntime {
                 users: self.users.clone(),
                 enabled: self.enabled.clone(),
                 active: AtomicBool::new(true),
+                last_used: Mutex::new(Instant::now()),
+                in_flight: AtomicUsize::new(0),
                 backend,
             });
             if !entry.valid() {
@@ -326,6 +446,9 @@ impl RuntimeBackend for ScopedRuntime {
     fn ready(&self) -> bool {
         false
     }
+    fn enabled(&self) -> bool {
+        self.enabled.load(Ordering::SeqCst)
+    }
     fn reset(&self) {
         for entry in self.entries.lock().unwrap().drain().map(|(_, entry)| entry) {
             entry.shutdown();
@@ -336,9 +459,12 @@ impl RuntimeBackend for ScopedRuntime {
             entry.shutdown();
         }
     }
+    /// Server shutdown or instance rebuild: profiles stay for the next start.
     fn shutdown(&self) {
         self.stopped.store(true, Ordering::SeqCst);
-        self.reset();
+        for entry in self.entries.lock().unwrap().drain().map(|(_, entry)| entry) {
+            entry.shutdown_keep_profile();
+        }
     }
 }
 
@@ -377,6 +503,7 @@ mod tests {
         stopped: AtomicBool,
         deleted: AtomicBool,
         fail_reset: AtomicBool,
+        fail_stop: AtomicBool,
     }
     impl RuntimeBackend for Backend {
         fn eval_global(
@@ -397,6 +524,9 @@ mod tests {
             self.stopped.store(true, Ordering::SeqCst);
             self.deleted.store(true, Ordering::SeqCst);
         }
+        fn shutdown_keep_profile(&self) {
+            self.stopped.store(true, Ordering::SeqCst);
+        }
         fn snapshot(&self) -> Option<super::super::RuntimeSnapshot> {
             Some(super::super::RuntimeSnapshot {
                 status: if self.stopped.load(Ordering::SeqCst) {
@@ -411,6 +541,9 @@ mod tests {
             })
         }
         fn stop(&self, retain_profile: bool) -> Result<(), RuntimeError> {
+            if self.fail_stop.load(Ordering::SeqCst) {
+                return Err(RuntimeError::Transport("browser still in use".into()));
+            }
             self.stopped.store(true, Ordering::SeqCst);
             if !retain_profile && self.fail_reset.swap(false, Ordering::SeqCst) {
                 return Err(RuntimeError::Transport("profile deletion failed".into()));
@@ -427,6 +560,7 @@ mod tests {
                 stopped: AtomicBool::new(false),
                 deleted: AtomicBool::new(false),
                 fail_reset: AtomicBool::new(false),
+                fail_stop: AtomicBool::new(false),
             })))
         }
     }
@@ -448,11 +582,13 @@ mod tests {
                     stopped: AtomicBool::new(false),
                     deleted: AtomicBool::new(false),
                     fail_reset: AtomicBool::new(false),
+                    fail_stop: AtomicBool::new(false),
                 }))
             }),
             Arc::new(AuthorizedPolicy),
             None,
             enabled,
+            Arc::new(AtomicU64::new(0)),
         )
     }
     #[test]
@@ -492,6 +628,85 @@ mod tests {
     }
 
     #[test]
+    fn idle_runtime_stops_keeping_its_profile_and_resumes_on_next_request() {
+        let runtime = runtime(Arc::new(AtomicBool::new(true)));
+        let lease = runtime.for_actor(&actor("writer-one")).unwrap().unwrap();
+        let hour = Duration::from_secs(3600);
+        assert!(runtime.idle_entries(hour).is_empty());
+        let idle = runtime.idle_entries(Duration::ZERO);
+        assert_eq!(idle.len(), 1);
+        assert!(runtime.stop_if_idle(&idle[0], Duration::ZERO));
+        assert_eq!(runtime.runtime_instances()[0].snapshot.status, "stopped");
+        assert!(runtime.idle_entries(Duration::ZERO).is_empty());
+        assert!(lease.eval_global("f", "", Duration::ZERO).is_err());
+        let resumed = runtime.for_actor(&actor("writer-one")).unwrap().unwrap();
+        assert_eq!(
+            resumed.eval_global("f", "", Duration::ZERO).unwrap(),
+            serde_json::json!(0),
+            "the next request resumes on the retained profile"
+        );
+        assert_eq!(runtime.runtime_instances()[0].snapshot.status, "running");
+    }
+
+    #[test]
+    fn idle_stop_spares_a_runtime_in_use_or_used_since() {
+        let runtime = runtime(Arc::new(AtomicBool::new(true)));
+        runtime.for_actor(&actor("writer-one")).unwrap();
+        let entry = runtime.entries.lock().unwrap()[&Some("writer-one".into())].clone();
+        let busy = entry.begin();
+        assert!(runtime.idle_entries(Duration::ZERO).is_empty());
+        assert!(!runtime.stop_if_idle(&entry, Duration::ZERO));
+        drop(busy);
+        assert!(!runtime.stop_if_idle(&entry, Duration::from_secs(3600)));
+        assert_eq!(runtime.runtime_instances()[0].snapshot.status, "running");
+    }
+
+    #[test]
+    fn a_failed_idle_stop_hands_the_next_request_a_fresh_runtime() {
+        let mut runtime = runtime(Arc::new(AtomicBool::new(true)));
+        let next = Arc::new(AtomicUsize::new(0));
+        let ids = next.clone();
+        Arc::get_mut(&mut runtime).unwrap().factory = Arc::new(move |_| {
+            Some(Box::new(Backend {
+                id: ids.fetch_add(1, Ordering::SeqCst),
+                stopped: AtomicBool::new(false),
+                deleted: AtomicBool::new(false),
+                fail_reset: AtomicBool::new(false),
+                fail_stop: AtomicBool::new(true),
+            }))
+        });
+        runtime.for_actor(&actor("writer-one")).unwrap();
+        let entry = runtime.entries.lock().unwrap()[&Some("writer-one".into())].clone();
+        assert!(!runtime.stop_if_idle(&entry, Duration::ZERO));
+        assert!(runtime.runtime_instances().is_empty());
+        assert!(
+            entry.backend.restart("probe").is_ok(),
+            "shut down keeping the profile"
+        );
+        let fresh = runtime.for_actor(&actor("writer-one")).unwrap().unwrap();
+        assert_eq!(
+            fresh.eval_global("f", "", Duration::ZERO).unwrap(),
+            serde_json::json!(1)
+        );
+    }
+
+    #[test]
+    fn server_shutdown_keeps_profiles_and_reset_deletes_them() {
+        let runtime = runtime(Arc::new(AtomicBool::new(true)));
+        runtime.for_actor(&actor("writer-one")).unwrap();
+        let entry = runtime.entries.lock().unwrap()[&Some("writer-one".into())].clone();
+        runtime.shutdown();
+        assert!(!entry.backend.ready());
+        assert!(entry.backend.restart("next").is_ok(), "profile kept");
+
+        let runtime = super::tests::runtime(Arc::new(AtomicBool::new(true)));
+        runtime.for_actor(&actor("writer-one")).unwrap();
+        let entry = runtime.entries.lock().unwrap()[&Some("writer-one".into())].clone();
+        runtime.reset();
+        assert!(entry.backend.restart("next").is_err(), "profile deleted");
+    }
+
+    #[test]
     fn failed_reset_cannot_resume_partially_deleted_profile() {
         let mut runtime = runtime(Arc::new(AtomicBool::new(true)));
         Arc::get_mut(&mut runtime).unwrap().factory = Arc::new(|_| {
@@ -500,6 +715,7 @@ mod tests {
                 stopped: AtomicBool::new(false),
                 deleted: AtomicBool::new(false),
                 fail_reset: AtomicBool::new(true),
+                fail_stop: AtomicBool::new(false),
             }))
         });
         runtime.for_actor(&actor("writer-one")).unwrap();

@@ -130,6 +130,7 @@ mod tests {
             runtime: None,
             runtime_authorizer: None,
             search: None,
+            pages: None,
             last_pages: None,
         })
     }

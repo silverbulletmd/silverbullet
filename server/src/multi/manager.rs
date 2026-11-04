@@ -139,6 +139,10 @@ impl MultiManager {
             server_config.runtime_api,
             std::sync::atomic::Ordering::SeqCst,
         );
+        deps.runtime_idle_timeout.store(
+            server_config.runtime_idle_timeout.saturating_mul(60),
+            std::sync::atomic::Ordering::SeqCst,
+        );
         // Before any instance opens its index (see `search_policy::boot`).
         let deps = InstanceDeps {
             search: search_policy::boot(deps.search, &server_config, &config, config_exists),
@@ -220,6 +224,42 @@ impl MultiManager {
             .load(std::sync::atomic::Ordering::SeqCst)
     }
 
+    /// Minutes, as stored in `server.json`.
+    pub fn runtime_idle_timeout(&self) -> u64 {
+        self.state
+            .lock()
+            .unwrap()
+            .server_config
+            .runtime_idle_timeout
+    }
+
+    pub fn set_runtime_idle_timeout(&self, minutes: u64) -> Result<(), ApiError> {
+        if minutes > super::server_config::MAX_RUNTIME_IDLE_TIMEOUT {
+            return Err(ApiError::Validation(vec![FieldError {
+                field: "runtimeIdleTimeout".into(),
+                message: format!(
+                    "runtimeIdleTimeout must be at most {} minutes",
+                    super::server_config::MAX_RUNTIME_IDLE_TIMEOUT
+                ),
+            }]));
+        }
+        let mut inner = self.state.lock().unwrap();
+        let mut config = inner.server_config.clone();
+        config.runtime_idle_timeout = minutes;
+        config
+            .save(&self.root.join("server.json"))
+            .map_err(ApiError::Internal)?;
+        self.deps
+            .runtime_idle_timeout
+            .store(minutes * 60, std::sync::atomic::Ordering::SeqCst);
+        inner.server_config = config;
+        Ok(())
+    }
+
+    pub fn mcp_enabled(&self) -> bool {
+        self.state.lock().unwrap().server_config.mcp
+    }
+
     pub fn server_name(&self) -> String {
         self.state.lock().unwrap().server_config.server_name.clone()
     }
@@ -230,7 +270,7 @@ impl MultiManager {
     }
 
     pub fn set_primary_url(&self, value: &str) -> Result<(), ApiError> {
-        self.set_server_config(Some(value), None, None)
+        self.set_server_config(Some(value), None, None, None)
     }
 
     pub fn set_server_config(
@@ -238,6 +278,7 @@ impl MultiManager {
         primary_url: Option<&str>,
         server_name: Option<&str>,
         runtime_api: Option<bool>,
+        mcp: Option<bool>,
     ) -> Result<(), ApiError> {
         let mut inner = self.state.lock().unwrap();
         let mut config = inner.server_config.clone();
@@ -249,6 +290,9 @@ impl MultiManager {
         }
         if let Some(value) = runtime_api {
             config.runtime_api = value;
+        }
+        if let Some(value) = mcp {
+            config.mcp = value;
         }
         config
             .validate(&inner.config)
@@ -497,6 +541,12 @@ impl MultiManager {
             .map_err(ApiError::Internal)?;
         for (id, instance) in &inner.instances {
             if new_config.spaces.get(id) != Some(&instance.config) {
+                // A deleted space's runtime profiles would never be used again.
+                if !new_config.spaces.contains_key(id) {
+                    if let Some(runtime) = &instance.runtime {
+                        runtime.reset();
+                    }
+                }
                 install::retire_services(instance);
             }
         }
@@ -825,6 +875,8 @@ mod tests {
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),
             },
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            runtime_availability: crate::runtime::RuntimeAvailability::Available,
+            runtime_idle_timeout: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Single(Some(
@@ -1093,14 +1145,14 @@ mod tests {
         )
         .unwrap();
         let m = boot(dir.path());
-        m.set_server_config(None, Some("  Notebook Server  "), None)
+        m.set_server_config(None, Some("  Notebook Server  "), None, None)
             .unwrap();
         assert_eq!(m.server_name(), "Notebook Server");
         m.set_primary_url("https://other.example.test").unwrap();
         assert_eq!(m.server_name(), "Notebook Server");
-        assert!(m.set_server_config(None, Some("  "), None).is_err());
+        assert!(m.set_server_config(None, Some("  "), None, None).is_err());
         assert!(m
-            .set_server_config(None, Some(&"x".repeat(101)), None)
+            .set_server_config(None, Some(&"x".repeat(101)), None, None)
             .is_err());
         drop(m);
         let m = boot(dir.path());

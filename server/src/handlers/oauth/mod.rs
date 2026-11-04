@@ -27,15 +27,28 @@ fn enc(v: &str) -> String {
 /// The JSON error response of RFC 6749 §5.2
 impl IntoResponse for OAuthError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::BAD_REQUEST,
+        let status = match self {
+            OAuthError::TemporarilyUnavailable => StatusCode::TOO_MANY_REQUESTS,
+            OAuthError::InvalidClient => StatusCode::UNAUTHORIZED,
+            OAuthError::ServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::BAD_REQUEST,
+        };
+        let mut response = (
+            status,
             [(axum::http::header::CACHE_CONTROL, "no-store")],
             axum::Json(serde_json::json!({
                 "error": self.code(),
                 "error_description": self.description(),
             })),
         )
-            .into_response()
+            .into_response();
+        if self == OAuthError::InvalidClient {
+            response.headers_mut().insert(
+                axum::http::header::WWW_AUTHENTICATE,
+                axum::http::HeaderValue::from_static("Basic"),
+            );
+        }
+        response
     }
 }
 

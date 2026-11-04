@@ -129,8 +129,12 @@ impl CentralAuth {
         {
             return None;
         }
+        // The MCP consent page signs in on the way, then picks up every
+        // authorization parameter where it left off.
         if url.origin() == central.origin()
-            && (url.path() == "/.dashboard" || url.path().starts_with("/.dashboard/"))
+            && (url.path() == "/.dashboard"
+                || url.path().starts_with("/.dashboard/")
+                || url.path() == "/.auth/mcp/authorize")
         {
             return Some("/".into());
         }
@@ -203,12 +207,7 @@ impl CentralAuth {
     }
 
     fn current_user(&self, headers: &HeaderMap) -> Option<String> {
-        let cookie = crate::auth::scoped_auth_cookie_name(&crate::auth::request_host(headers), "");
-        let token = crate::auth::cookie_value(headers, &cookie)?;
-        let claims = self.authenticator.verify_browser_jwt(&token).ok()?;
-        self.users
-            .session_is_current(&claims.username, claims.credential_version.as_deref())
-            .then_some(claims.username)
+        crate::multi::access::signed_in_user(&self.authenticator, &self.users, headers)
     }
     fn admin(&self, headers: &HeaderMap) -> Result<String, (StatusCode, &'static str)> {
         let user = self
@@ -487,15 +486,7 @@ async fn asset(State(state): State<Arc<CentralAuth>>, Path(file): Path<String>) 
 }
 
 fn origin(headers: &HeaderMap) -> String {
-    format!(
-        "{}://{}",
-        if crate::auth::is_secure_request(headers) {
-            "https"
-        } else {
-            "http"
-        },
-        crate::auth::request_host(headers)
-    )
+    crate::auth::cookie::request_origin(headers)
 }
 fn cookie(response: &mut Response, headers: &HeaderMap, name: &str, value: &str, seconds: u64) {
     let options = crate::auth::CookieOptions {

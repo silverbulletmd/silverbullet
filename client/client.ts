@@ -63,7 +63,10 @@ import {
 } from "./logout.ts";
 import { waitForLogout } from "./logout_state.ts";
 import { isSafeUrl } from "./markdown_renderer/sanitize_html.ts";
-import { open as openNavigatorView } from "./navigator/navigator.ts";
+import {
+  isModalOpen,
+  open as openNavigatorView,
+} from "./navigator/navigator.ts";
 import {
   REVISIONS_CHANGED_EVENT,
   SYNC_CONFLICT,
@@ -1160,6 +1163,9 @@ export class Client {
   }
 
   focus() {
+    // Nobody types into the headless runtime, and a focused editor keeps
+    // repainting its blinking cursor: about four times the idle CPU.
+    if (globalThis.sbRuntime?.headless) return;
     const viewState = this.ui.viewState;
     if (
       [
@@ -1167,6 +1173,9 @@ export class Client {
         viewState.showConfirm,
         viewState.showPrompt,
       ].some(Boolean) ||
+      // A palette or picker opened while the client was still loading keeps
+      // its focus: the load's own focus call comes after it.
+      isModalOpen() ||
       document.querySelector(".sb-anchored-menu")
     ) {
       return;

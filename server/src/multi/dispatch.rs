@@ -329,6 +329,8 @@ mod tests {
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),
             },
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            runtime_availability: crate::runtime::RuntimeAvailability::Available,
+            runtime_idle_timeout: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Single(None),

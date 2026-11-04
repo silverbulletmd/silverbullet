@@ -212,6 +212,23 @@ describe("lintPages", () => {
     ]);
   });
 
+  test("a ${...} whose brackets never balance is reported, not silently shown as text", async () => {
+    const deps = fakeDeps({
+      Broken: "# Standings\n\n${query[[\n  select {Name = d.name\n]]}",
+      Fine: "${1 + 1} and `${not code}` and \\${escaped}\n```\n${in fence\n```",
+    });
+    const found = await lintPages(deps, ["Broken", "Fine"]);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({
+      page: "Broken",
+      line: 3,
+      column: 1,
+      severity: "error",
+      source: "lua",
+    });
+    expect(found[0].message).toContain("never closes");
+  });
+
   test("timeouts and errors from Lua code widgets are reported too", async () => {
     const text = "# Title\n```chart\ndata\n```\n```other\nx\n```\n";
     const calls: string[] = [];

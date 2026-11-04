@@ -1,22 +1,82 @@
-<!doctype html>
+{% set assets = asset_base | default(host_prefix ~ "/.client") %}<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport" />
-    <link rel="icon" type="image/png" href="{{ host_prefix | safe }}/.client/favicon-96x96.png" sizes="96x96" />
-    <link rel="stylesheet" href="{{ host_prefix | safe }}/.client/app.css" />
-    <title>Authorize access — {{ space_name }}</title>
+    <link rel="icon" type="image/png" href="{{ assets | safe }}/favicon-96x96.png" sizes="96x96" />
+    <link rel="stylesheet" href="{{ assets | safe }}/app.css" />
+    <title>{% if mcp %}Connect an app{% else %}Authorize access{% endif %} — {{ space_name }}</title>
+    {% if mcp %}
+    <style>
+      .sb-consent-heading { display: flex; align-items: center; gap: 0.75rem; }
+      .sb-consent-heading img { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 8px; object-fit: contain; }
+      .sb-consent-spaces { list-style: none; padding: 0; margin: 0.5rem 0; }
+      .sb-consent-spaces li { margin-block: 0.4rem; }
+      .sb-consent-spaces .sb-badge { display: inline; margin-left: 0.4rem; }
+      .sb-consent-fieldset { border: 0; padding: 0; margin: 0; }
+      .sb-consent-fieldset legend { padding: 0; font-weight: 600; }
+    </style>
+    {% endif %}
   </head>
   <body class="sb-standalone">
     <header class="sb-auth-header">
       <div class="sb-auth-brand">
-        <img src="{{ host_prefix | safe }}/.client/logo.png" alt="" />
+        <img src="{{ assets | safe }}/logo.png" alt="" />
         <span>SilverBullet</span>
       </div>
       <span class="sb-auth-host">{{ space_name }}</span>
     </header>
     <div class="center">
       <main class="floating-island flow">
+        {% if error %}
+        <h1>This app cannot connect</h1>
+        <p>{{ error }}</p>
+        {% elif mcp %}
+        <div class="sb-consent-heading">
+          {% if logo_uri %}<img src="{{ logo_uri }}" alt="" referrerpolicy="no-referrer" />{% endif %}
+          <h1>{{ client_name }} wants to use SilverBullet as {{ username }}</h1>
+        </div>
+        {% if verified_host %}
+        <p>Verified by <strong>{{ verified_host }}</strong></p>
+        {% else %}
+        <p>
+          Self-registered app.
+          <span class="sb-help-text">Its name was supplied by the app and has not been verified.</span>
+        </p>
+        <p>It will return to <strong>{{ redirect_host }}</strong></p>
+        {% endif %}
+        <form method="post" action="{{ host_prefix }}/.auth/mcp/authorize">
+          {% for field in fields %}
+          <input type="hidden" name="{{ field[0] }}" value="{{ field[1] }}" />
+          {% endfor %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          {% if spaces %}
+          <fieldset class="sb-consent-fieldset">
+            <legend>Spaces it can read and change</legend>
+            <ul class="sb-consent-spaces">
+              {% for space in spaces %}
+              <li>
+                <label class="sb-checkbox-field-line">
+                  <input class="sb-checkbox" type="checkbox" name="space" value="{{ space.id }}" checked />
+                  <span>{{ space.name }}{% if space.shared %}<span class="sb-badge sb-consent-shared">shared</span>{% endif %}</span>
+                </label>
+              </li>
+              {% endfor %}
+            </ul>
+          </fieldset>
+          <p class="sb-help-text">
+            Pages in shared spaces can steer the app: anyone who can edit them can write instructions it may follow, including skill pages tagged <code>meta/skill</code>.
+          </p>
+          {% else %}
+          <p>You cannot change any space on this server, so the app will have no space to use.</p>
+          {% endif %}
+          <p class="sb-help-text">Only allow this if you just started connecting an app you trust.</p>
+          <div class="row">
+            <button type="submit" name="decision" value="approve" class="sb-button-primary">Allow</button>
+            <button type="submit" name="decision" value="deny" class="sb-button">Cancel</button>
+          </div>
+        </form>
+        {% else %}
         <h1>Authorize access</h1>
         {% if device_flow and not user_code %}
         <form method="get" action="{{ host_prefix }}/.auth/device">
@@ -67,6 +127,7 @@
             </button>
           </div>
         </form>
+        {% endif %}
         {% endif %}
       </main>
     </div>

@@ -17,6 +17,7 @@ import {
   getAggregateSpec,
   getBuiltinAggregateEntries,
 } from "../space_lua/aggregates.ts";
+import { macrotaskYield, YIELD_EVERY_MS } from "../space_lua/budget.ts";
 import { tagChangedEvent } from "../space_lua/dependencies.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import {
@@ -700,6 +701,14 @@ export class ObjectIndex {
     }
   }
 
+  /**
+   * Drops every memoized scan, so the next query also sees what another
+   * window sharing the IndexedDB indexed within the TTL.
+   */
+  forgetScans(): void {
+    this.invalidateScanMemo();
+  }
+
   /** Invalidates on both sides of the write: a scan starting while it is in
    * flight may or may not see it. */
   private async writeInvalidating(
@@ -775,6 +784,9 @@ export class ObjectIndex {
     });
   }
 
+  /** How long a memoized scan runs before it lets input and rendering in. */
+  scanYieldEveryMs = YIELD_EVERY_MS;
+
   private static readonly LEADING_ROWS_MAX = 10_000;
 
   /**
@@ -841,7 +853,14 @@ export class ObjectIndex {
       return enricher ? enricher(key, item) : item;
     };
     const results: any[] = [];
+    // Each `where` resolves as a microtask, so a scan over tens of thousands
+    // of rows would otherwise hold the main thread until it is done
+    let lastYield = performance.now();
     for (const { key, value } of rawRows) {
+      if (performance.now() - lastYield >= this.scanYieldEveryMs) {
+        await macrotaskYield();
+        lastYield = performance.now();
+      }
       if (query.where) {
         const probe = enricher ? enricher(key, value) : value;
         if (probe === undefined) continue;

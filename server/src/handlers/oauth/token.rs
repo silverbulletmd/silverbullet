@@ -99,6 +99,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn legacy_token_refuses_url_client_id() {
+        let (state, _) = login_state();
+        let response = device_post(
+            state,
+            "/.auth/token",
+            format!(
+                "grant_type=refresh_token&refresh_token=x&client_id={}",
+                enc("https://client.example/meta.json")
+            ),
+            None,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let bytes = axum::body::to_bytes(response.into_body(), 65536)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["error"], "unauthorized_client");
+    }
+
+    #[tokio::test]
     async fn token_endpoint_issues_tokens_for_share_client_via_device_grant() {
         let (state, _) = login_state();
         let response = device_post(

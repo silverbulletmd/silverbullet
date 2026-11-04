@@ -219,6 +219,15 @@ fn parse_poll_interval(raw: Option<&str>) -> Duration {
 }
 
 const DEBOUNCE: Duration = Duration::from_millis(75);
+/// How often the debounce loop checks for quiet paths while some are pending.
+const PENDING_TICK: Duration = Duration::from_millis(25);
+/// The OS's notification and the loop's stat and hash of a path.
+const PIPELINE_MARGIN: Duration = Duration::from_millis(50);
+/// How long a native watcher takes at most, normally, to send the event for
+/// a file just changed on disk.
+pub(crate) const PIPELINE_WINDOW: Duration = DEBOUNCE
+    .saturating_add(PENDING_TICK)
+    .saturating_add(PIPELINE_MARGIN);
 const FLOOD_THRESHOLD: usize = 20;
 const DEFAULT_POLL_INTERVAL: Duration = Duration::from_secs(30);
 const CHANNEL_CAPACITY: usize = 256;
@@ -327,6 +336,7 @@ pub fn start_watcher(
     };
 
     let weak_out = broadcast_tx.downgrade();
+    let thread_guard = fs_guard.clone();
     std::thread::Builder::new()
         .name("sb-fs-watcher".into())
         .spawn(move || {
@@ -337,16 +347,18 @@ pub fn start_watcher(
                 &validator,
                 raw_rx,
                 weak_out,
-                &fs_guard,
+                &thread_guard,
                 ABANDONMENT_CHECK_INTERVAL,
             );
         })
         .ok()?;
+    // Only once the thread runs: without it no write would ever be forwarded.
+    fs_guard.watched(mode);
 
     Some(broadcast_tx)
 }
 
-fn debounce_loop(
+pub(crate) fn debounce_loop(
     root: &Path,
     validator: &DiskSpacePrimitives,
     rx: mpsc::Receiver<PathBuf>,
@@ -362,7 +374,7 @@ fn debounce_loop(
         let timeout = if pending.is_empty() {
             abandonment_check
         } else {
-            Duration::from_millis(25)
+            PENDING_TICK
         };
         match rx.recv_timeout(timeout) {
             Ok(abs) => {
@@ -385,7 +397,7 @@ fn debounce_loop(
         let gitignore = validator.gitignore_matcher();
 
         let mut resolved: Vec<(FsEvent, Option<FileMeta>)> = Vec::new();
-        for name in ready {
+        for name in ready.iter().cloned() {
             pending.remove(&name);
             if gitignore.is_ignored(&name, false) {
                 continue;
@@ -404,11 +416,16 @@ fn debounce_loop(
         }
         if resolved.len() > FLOOD_THRESHOLD {
             let _ = sender.send(FsEvent::resync());
-            continue;
+        } else {
+            for (event, meta) in resolved {
+                let event = enrich_event(event, meta.as_ref(), guard, validator);
+                let _ = sender.send(event);
+            }
         }
-        for (event, meta) in resolved {
-            let event = enrich_event(event, meta.as_ref(), guard, validator);
-            let _ = sender.send(event);
+        if let Some(forwarding) = guard.forwarding() {
+            for name in &ready {
+                forwarding.forwarded(name);
+            }
         }
     }
 }

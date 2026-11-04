@@ -142,6 +142,34 @@ test("safeDashboardDestination rejects the login page itself", async () => {
   expect(safeDashboardDestination("/.dashboard/login")).toBe(undefined);
 });
 
+test("safeDashboardDestination keeps the MCP consent page", async () => {
+  // Signing in on the way to connecting an app must land back on the consent
+  // page with every parameter intact.
+  const { safeDashboardDestination } = await load("/.dashboard/login");
+  expect(safeDashboardDestination("/.auth/mcp/authorize?client_id=x")).toBe(
+    "/.auth/mcp/authorize?client_id=x",
+  );
+  expect(
+    safeDashboardDestination(
+      "http://localhost:3000/.auth/mcp/authorize?client_id=x&state=a%26b",
+    ),
+  ).toBe("/.auth/mcp/authorize?client_id=x&state=a%26b");
+});
+
+test("safeDashboardDestination rejects other auth pages and foreign MCP consent", async () => {
+  const { safeDashboardDestination } = await load("/.dashboard/login");
+  expect(safeDashboardDestination("/.auth/authorize?x")).toBe(undefined);
+  expect(safeDashboardDestination("/.auth/mcp/authorize/extra")).toBe(
+    undefined,
+  );
+  expect(
+    safeDashboardDestination("https://evil.example/.auth/mcp/authorize"),
+  ).toBe(undefined);
+  expect(
+    safeDashboardDestination("//evil.example/.auth/mcp/authorize?client_id=x"),
+  ).toBe(undefined);
+});
+
 test("safeDashboardDestination rejects empty and null", async () => {
   const { safeDashboardDestination } = await load("/.dashboard/login");
   expect(safeDashboardDestination(null)).toBe(undefined);
@@ -236,6 +264,8 @@ test("Admin defaults to Server and supports section links", async () => {
     ["", "server"],
     ["?section=invalid", "server"],
     ["?section=authentication", "authentication"],
+    ["?section=apis", "apis"],
+    ["?section=runtimes", "apis"],
   ]) {
     expect(
       (await load("/.dashboard/admin", query)).parseDashboardRoute(),
@@ -244,4 +274,10 @@ test("Admin defaults to Server and supports section links", async () => {
       section,
     });
   }
+});
+
+test("ADMIN_SECTIONS has an APIs tab and no Runtimes tab", async () => {
+  const { ADMIN_SECTIONS } = await load("/.dashboard/admin");
+  expect(ADMIN_SECTIONS.apis).toBe("APIs");
+  expect(Object.hasOwn(ADMIN_SECTIONS, "runtimes")).toBe(false);
 });

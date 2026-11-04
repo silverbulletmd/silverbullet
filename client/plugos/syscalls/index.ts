@@ -212,6 +212,21 @@ export function indexSyscalls(
       description:
         "Ensures the complete object index is available and current.",
     },
+    "index.awaitPendingChanges": {
+      callback: async (): Promise<void> => {
+        // Pull remote changes into the local copy first (a no-op without a
+        // service worker), then list files once nothing else is in flight so
+        // every change is queued, then wait for the queue to drain
+        await client.clientSystem.localSyscall("sync.performSpaceSync", []);
+        await client.eventedSpacePrimitives.fetchFileListWhenIdle();
+        await client.mq.awaitEmptyQueue("indexQueue");
+        // Another window on the same space may have indexed the change, which
+        // this client's memoized scans would not show until they expire
+        objectIndex.forgetScans();
+      },
+      description:
+        "Detects files changed outside this client, such as through the HTTP API, and waits until they are indexed.",
+    },
     "index.reindexSpace": {
       callback: () => {
         return objectIndex.reindexSpace(client.space);

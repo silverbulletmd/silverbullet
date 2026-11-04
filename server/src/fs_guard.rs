@@ -1,11 +1,13 @@
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::time::{Duration, Instant};
 
 use silverbullet_server_common::revision::sha256_hex;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 
 use crate::auth::Actor;
+use crate::forwarding::ForwardTracker;
+use crate::watcher::WatchMode;
 
 /// Sweep unused path locks above this threshold to bound growth in busy spaces.
 const LOCK_SWEEP_THRESHOLD: usize = 10_000;
@@ -55,6 +57,9 @@ pub struct FsGuard {
     cache: RwLock<HashCache>,
     locks: Mutex<HashMap<String, Arc<Mutex<()>>>>,
     expected_writes: Mutex<HashMap<(String, String), ExpectedWrite>>,
+    /// Set once a watcher started over this guard. Kept here because every
+    /// write site already reports its writes to `record_expected_write`.
+    forwarding: OnceLock<ForwardTracker>,
     #[cfg(test)]
     hash_for_calls: std::sync::atomic::AtomicUsize,
 }
@@ -194,6 +199,9 @@ impl FsGuard {
         last_modified: Option<i64>,
         now: Instant,
     ) {
+        if let Some(forwarding) = self.forwarding.get() {
+            forwarding.track(path, now);
+        }
         let mut map = self.expected_writes.lock().unwrap();
         if map.len() > EXPECTED_WRITE_SWEEP_THRESHOLD {
             map.retain(|_, v| now.duration_since(v.recorded_at) < EXPECTED_WRITE_TTL);
@@ -209,6 +217,21 @@ impl FsGuard {
                 recorded_at: now,
             },
         );
+    }
+
+    /// Notes that the watcher started over this guard, in `mode`: from now
+    /// on, recorded writes are tracked until it forwards them.
+    pub(crate) fn watched(&self, mode: WatchMode) {
+        // One watcher per guard; should a second start, the first one's mode
+        // stays.
+        let _ = self.forwarding.set(ForwardTracker::new(mode));
+    }
+
+    /// What the space's watcher has forwarded; `None` without a watcher,
+    /// when the index is fed by the space's own writes (see
+    /// `search::WriteEvents`) and there is nothing to wait for.
+    pub fn forwarding(&self) -> Option<&ForwardTracker> {
+        self.forwarding.get()
     }
 
     /// The expected-write entry for an exact `(path, hash)`, if any and not

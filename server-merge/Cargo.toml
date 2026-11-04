@@ -5,7 +5,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
-similar = "3"
+similar = { workspace = true }
 sha2 = { workspace = true }
 
 [lints]

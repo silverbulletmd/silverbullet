@@ -12,11 +12,11 @@ pub mod conn;
 pub mod device_auth;
 pub mod fs_api;
 pub mod fs_cli;
-pub mod fs_edit;
 mod fs_listing;
 pub mod local;
 pub mod output;
 pub mod run;
 mod search_api;
+pub mod space_api;
 
 pub use silverbullet_server_common::crypto;

@@ -22,6 +22,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use space_tools::spaces::{ambiguous_message, not_available_message, SpaceLookupError, SpaceRef};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -421,6 +422,42 @@ pub fn folder_contains(folder: &str, path: &str, windows: bool) -> bool {
             .is_some_and(|rest| rest.starts_with(separator))
 }
 
+/// The space `wanted` names. An exact saved name wins (hidden spaces match
+/// only this way, or by exact id), then an id, then a name ignoring case that
+/// only one visible space has.
+pub fn find_space<'a>(cfg: &'a Config, wanted: &str) -> Result<&'a SpaceConfig, String> {
+    if let Some(space) = cfg
+        .spaces
+        .iter()
+        .find(|s| s.name == wanted && !is_hidden(s))
+        .or_else(|| cfg.spaces.iter().find(|s| s.name == wanted))
+        .or_else(|| cfg.spaces.iter().find(|s| s.id == wanted))
+    {
+        return Ok(space);
+    }
+    let visible: Vec<SpaceRef> = cfg
+        .spaces
+        .iter()
+        .filter(|s| !is_hidden(s))
+        .map(|s| SpaceRef {
+            id: s.id.clone(),
+            name: s.name.clone(),
+        })
+        .collect();
+    match space_tools::spaces::resolve_space(&visible, wanted) {
+        Ok(id) => cfg
+            .spaces
+            .iter()
+            .find(|s| s.id == id && !is_hidden(s) && s.name.to_lowercase() == wanted.to_lowercase())
+            .ok_or_else(|| not_available_message(wanted, &visible)),
+        Err(SpaceLookupError::NotFound) if visible.is_empty() => Err(format!(
+            "space \"{wanted}\" is not available: no spaces are configured. Add one with 'sb space add <url or folder>'."
+        )),
+        Err(SpaceLookupError::NotFound) => Err(not_available_message(wanted, &visible)),
+        Err(SpaceLookupError::Ambiguous(several)) => Err(ambiguous_message(wanted, &several)),
+    }
+}
+
 /// Like [`resolve_space`], but without a name the folder space containing `cwd`
 /// is chosen first (the most specific folder wins).
 pub fn resolve_space_at<'a>(
@@ -446,11 +483,7 @@ pub fn resolve_space_at<'a>(
         }
     }
     if let Some(n) = name {
-        cfg.spaces
-            .iter()
-            .find(|s| s.name == n && !is_hidden(s))
-            .or_else(|| cfg.spaces.iter().find(|s| s.name == n))
-            .ok_or_else(|| format!("space \"{n}\" not found"))
+        find_space(cfg, n)
     } else {
         let visible: Vec<&SpaceConfig> = cfg.spaces.iter().filter(|s| !is_hidden(s)).collect();
         match visible.len() {
@@ -522,6 +555,63 @@ fn write_private(path: &Path, data: &[u8]) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn spaces_cfg(spaces: &[(&str, &str)]) -> Config {
+        Config {
+            spaces: spaces
+                .iter()
+                .map(|(id, name)| SpaceConfig {
+                    id: (*id).into(),
+                    name: (*name).into(),
+                    url: "https://x".into(),
+                    ..Default::default()
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn space_selected_by_id() {
+        let cfg = spaces_cfg(&[("id-1", "Notes"), ("id-2", "Recipes")]);
+        assert_eq!(find_space(&cfg, "id-2").unwrap().name, "Recipes");
+    }
+
+    #[test]
+    fn name_selected_ignoring_case_when_unique() {
+        let cfg = spaces_cfg(&[("id-1", "Notes"), ("id-2", "Recipes")]);
+        assert_eq!(find_space(&cfg, "notes").unwrap().id, "id-1");
+    }
+
+    #[test]
+    fn name_equal_to_another_id_selects_the_named_space() {
+        let cfg = spaces_cfg(&[("id-1", "id-2"), ("id-2", "Recipes")]);
+        assert_eq!(find_space(&cfg, "id-2").unwrap().id, "id-1");
+    }
+
+    #[test]
+    fn case_insensitive_name_matching_two_spaces_is_ambiguous() {
+        let cfg = spaces_cfg(&[("id-1", "Notes"), ("id-2", "NOTES")]);
+        let err = find_space(&cfg, "notes").unwrap_err();
+        assert!(err.contains("id-1") && err.contains("id-2"), "{err}");
+        assert!(err.contains("Pass the id instead."), "{err}");
+    }
+
+    #[test]
+    fn unknown_space_with_no_spaces_says_how_to_add_one() {
+        let err = find_space(&spaces_cfg(&[]), "notes").unwrap_err();
+        assert!(
+            err.contains("no spaces are configured") && err.contains("sb space add"),
+            "{err}"
+        );
+        assert!(!err.contains("write to"), "{err}");
+    }
+
+    #[test]
+    fn unknown_space_lists_available_names_and_ids() {
+        let cfg = spaces_cfg(&[("id-1", "Notes")]);
+        let err = find_space(&cfg, "nope").unwrap_err();
+        assert!(err.contains("Notes") && err.contains("id-1"), "{err}");
+    }
 
     #[test]
     fn sync_marker_is_read_from_top_level() {
@@ -1033,7 +1123,7 @@ mod tests {
             }],
         };
         let err = resolve_space(&cfg, Some("nonexistent")).unwrap_err();
-        assert!(err.contains("not found"), "error was: {err}");
+        assert!(err.contains("is not available"), "error was: {err}");
     }
 
     #[test]

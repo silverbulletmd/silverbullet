@@ -10,6 +10,8 @@ use silverbullet_server_search::{
 use std::sync::Arc;
 use tower::ServiceExt;
 
+mod await_index;
+
 struct Grant(Option<AccessLevel>, Option<&'static str>);
 impl RequestAuthorizer for Grant {
     fn authorize(&self, _ctx: &AuthContext) -> Option<AuthOutcome> {

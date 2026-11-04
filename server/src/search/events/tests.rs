@@ -73,7 +73,8 @@ async fn change_events_come_from_the_watcher_or_from_the_spaces_own_writes() {
     use silverbullet_server_common::space::MemorySpacePrimitives;
     let (watcher, _) = broadcast::channel(4);
     let space: Arc<dyn SpacePrimitives> = Arc::new(MemorySpacePrimitives::new());
-    let (served, mut rx) = change_events(space, Some(&watcher));
+    let (served, tx) = change_events(space, Some(&watcher));
+    let mut rx = tx.subscribe();
     served.write_file("Notes/Plan.md", b"# Plan", None).unwrap();
     assert!(
         rx.try_recv().is_err(),
@@ -84,7 +85,8 @@ async fn change_events_come_from_the_watcher_or_from_the_spaces_own_writes() {
         .unwrap();
     assert_eq!(rx.try_recv().unwrap().name, "Notes/Plan.md");
 
-    let (served, mut rx) = change_events(Arc::new(MemorySpacePrimitives::new()), None);
+    let (served, tx) = change_events(Arc::new(MemorySpacePrimitives::new()), None);
+    let mut rx = tx.subscribe();
     served.write_file("Notes/Plan.md", b"# Plan", None).unwrap();
     served.delete_file("Notes/Plan.md").unwrap();
     let change = rx.try_recv().unwrap();
@@ -115,3 +117,5 @@ async fn the_forwarder_stops_when_the_index_does() {
         "a sender that is gone ends the feed"
     );
 }
+
+mod catch_up;

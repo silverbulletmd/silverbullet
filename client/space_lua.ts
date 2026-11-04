@@ -109,14 +109,15 @@ export class SpaceLuaEnvironment {
     for (const fn of this.loadListeners) fn(load);
   }
 
-  /** Runs one script in the space env, logging a failure the way script loading always has. */
+  /** Runs one script in `env`, logging a failure the way script loading always has. */
   private async runScript(
     script: SpaceLuaObject,
+    env: LuaEnv,
     tl: LuaEnv,
   ): Promise<ScriptOutcome> {
     try {
       const ast = parseBlock(script.script, { ref: script.ref });
-      const scriptEnv = new LuaEnv(this.env);
+      const scriptEnv = new LuaEnv(env);
       const budget = makeLuaBudget({
         busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
         onLimit: (b) => this.offerStop(script, b),
@@ -179,10 +180,13 @@ export class SpaceLuaEnvironment {
     reconcileQuarantine(allScripts.map((script) => script.ref));
     const records: ScriptRecord[] = [];
     const totalStart = performance.now();
+    // Scripts load into a new environment while everything else keeps using
+    // the current one, so a widget rendering mid-reload never sees a
+    // half-loaded space; the new one takes over once every script has run.
+    const env = buildLuaEnv(this.system);
     try {
-      this.env = buildLuaEnv(this.system);
       const tl = new LuaEnv();
-      tl.setLocal("_GLOBAL", this.env);
+      tl.setLocal("_GLOBAL", env);
       for (const script of allScripts) {
         const base = {
           ref: script.ref,
@@ -194,7 +198,7 @@ export class SpaceLuaEnvironment {
           continue;
         }
         const scriptStart = performance.now();
-        const outcome = await this.runScript(script, tl);
+        const outcome = await this.runScript(script, env, tl);
         const ms = performance.now() - scriptStart;
         recordMeasure(
           `sb:lua-script:${script.ref}`,
@@ -219,6 +223,7 @@ export class SpaceLuaEnvironment {
     } catch (e: any) {
       console.error("Error reloading Lua scripts:", e.message);
     }
+    this.env = env;
     this.publish({
       scripts: records,
       loadedAt: Date.now(),

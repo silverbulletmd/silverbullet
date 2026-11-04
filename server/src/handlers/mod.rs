@@ -5,6 +5,8 @@ pub mod byte_range;
 pub mod control;
 pub mod events;
 pub mod fs;
+pub mod help;
+pub mod mcp_oauth;
 pub mod merge;
 pub mod oauth;
 pub mod proxy;

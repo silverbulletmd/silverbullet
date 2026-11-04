@@ -1,7 +1,14 @@
-import { Alert, Button, CheckboxField } from "@silverbulletmd/silverbullet/ui";
+import {
+  Alert,
+  Button,
+  CheckboxField,
+  Field,
+  Input,
+} from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { adminApi, formatApiError, getServerInfo } from "../api.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
+import { McpSection } from "./McpSection.tsx";
 import { runtimeApiUnavailableReason } from "../runtime_availability.ts";
 
 type RuntimeInfo = {
@@ -26,13 +33,10 @@ function bytes(value: number | null): string {
   return `${Number(value.toFixed(1))} ${units[unit]}`;
 }
 
-export function RuntimesView({
-  onUnauthorized,
-}: {
-  onUnauthorized: () => void;
-}) {
+function RuntimeApiSection({ onUnauthorized }: { onUnauthorized: () => void }) {
   const [rows, setRows] = useState<RuntimeInfo[] | null>(null);
   const [runtimeApi, setRuntimeApi] = useState<boolean | null>(null);
+  const [idleTimeout, setIdleTimeout] = useState("");
   const [runtimeReason, setRuntimeReason] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -52,7 +56,10 @@ export function RuntimesView({
         else setError(formatApiError(error));
       });
     void adminApi("GET", "server-config")
-      .then((config) => setRuntimeApi(config.runtimeApi))
+      .then((config) => {
+        setRuntimeApi(config.runtimeApi);
+        setIdleTimeout(String(config.runtimeIdleTimeout));
+      })
       .catch((error) => {
         if (error.unauthorized) onUnauthorized();
         else setError(formatApiError(error));
@@ -65,9 +72,13 @@ export function RuntimesView({
     setError("");
     notify("");
     try {
-      const config = await adminApi("PUT", "server-config", { runtimeApi });
+      const config = await adminApi("PUT", "server-config", {
+        runtimeApi,
+        runtimeIdleTimeout: Number(idleTimeout),
+      });
       setRuntimeApi(config.runtimeApi);
-      notify("Runtime API setting saved.");
+      setIdleTimeout(String(config.runtimeIdleTimeout));
+      notify("Runtime API settings saved.");
     } catch (error: any) {
       if (error.unauthorized) onUnauthorized();
       else setError(formatApiError(error));
@@ -142,7 +153,8 @@ export function RuntimesView({
     };
   }, []);
   return (
-    <div>
+    <section>
+      <h2>Runtime API</h2>
       {error && <Alert variant="error">{error}</Alert>}
       {runtimeApi === null && !error && <p>Loading settings…</p>}
       {runtimeApi !== null && (
@@ -160,6 +172,22 @@ export function RuntimesView({
             onChange={(event) => setRuntimeApi(event.currentTarget.checked)}
           />
           {runtimeReason && <p class="sb-help-text">{runtimeReason}</p>}
+          <Field
+            label="Stop idle runtimes after (minutes)"
+            hint="A runtime with no requests for this long is stopped and keeps its index; the next request starts it again. 0 keeps runtimes running."
+          >
+            <Input
+              id="runtime-idle-timeout"
+              type="number"
+              min={0}
+              max={7 * 24 * 60}
+              step={1}
+              required
+              value={idleTimeout}
+              disabled={runtimeReason !== null}
+              onInput={(event) => setIdleTimeout(event.currentTarget.value)}
+            />
+          </Field>
           <Button
             type="submit"
             variant="primary"
@@ -236,6 +264,15 @@ export function RuntimesView({
           </p>
         </div>
       )}
+    </section>
+  );
+}
+
+export function ApisView({ onUnauthorized }: { onUnauthorized: () => void }) {
+  return (
+    <div>
+      <RuntimeApiSection onUnauthorized={onUnauthorized} />
+      <McpSection onUnauthorized={onUnauthorized} />
     </div>
   );
 }

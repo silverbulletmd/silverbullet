@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { runtimeApiUnavailableReason } from "./runtime_availability.ts";
+import {
+  mcpUnavailableReason,
+  runtimeApiUnavailableReason,
+} from "./runtime_availability.ts";
 
 test("an available runtime has nothing to explain", () => {
   expect(runtimeApiUnavailableReason({ status: "available" })).toBeNull();
@@ -27,4 +30,15 @@ test("a pool failure surfaces the server's own message", () => {
   expect(
     runtimeApiUnavailableReason({ status: "failed", message: "boom" }),
   ).toBe("Unavailable: boom");
+});
+
+test("MCP has nothing to explain unless the env disabled it", () => {
+  expect(mcpUnavailableReason({ status: "available" })).toBeNull();
+  expect(mcpUnavailableReason(null)).toBeNull();
+  expect(mcpUnavailableReason({ status: "disabled_by_env" })).toBe(
+    "Disabled server-wide by SB_MCP=0.",
+  );
+  expect(mcpUnavailableReason({ status: "failed", message: "bad file" })).toBe(
+    "Unavailable: bad file",
+  );
 });

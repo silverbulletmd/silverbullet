@@ -50,6 +50,7 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
         }
         return Err(message.into());
     }
+    let need = cli.command.as_ref().and_then(need_of);
     match cli.command {
         None => match cli.open_path {
             Some(path) if !std::path::Path::new(&path).exists() => Err(format!(
@@ -70,6 +71,12 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             }
         },
         Some(Command::Open { path }) => open(path.as_deref()),
+        Some(Command::Help { topic }) => commands::help::run(
+            &g,
+            &topic,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr(),
+        ),
         Some(Command::Version) => {
             let v = if crate::VERSION.is_empty() {
                 "dev"
@@ -147,8 +154,9 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             Ok(ExitCode::SUCCESS)
         }
         Some(Command::Core(CoreCommand::Fs(cmd))) => {
+            let need = need.unwrap_or(local::Need::Server);
             let prepared = commands::fs::validate(&g, &cmd).and_then(|()| {
-                local::prepare(&mut g, false).map_err(|error| {
+                local::prepare(&mut g, need).map_err(|error| {
                     crate::fs_api::FsError::new(
                         if error.authentication {
                             "authentication_required"
@@ -166,11 +174,30 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             Ok(commands::fs::run(&g, cmd))
         }
         Some(Command::Core(cmd)) => {
-            if cmd.needs_connection() {
-                local::prepare(&mut g, true).map_err(|error| error.message)?;
+            if let Some(need) = need {
+                local::prepare(&mut g, need).map_err(|error| error.message)?;
             }
             run_core_command(&g, cmd)
         }
+    }
+}
+
+fn fs_need(cmd: &crate::fs_cli::FsCommand) -> local::Need {
+    if commands::fs::needs_runtime(cmd) {
+        local::Need::Runtime
+    } else {
+        local::Need::Server
+    }
+}
+
+/// What `command` needs from a folder space's server, `None` when it never
+/// connects. `help` prepares its own connection, and tolerates failure.
+pub fn need_of(command: &Command) -> Option<local::Need> {
+    match command {
+        Command::Core(CoreCommand::Fs(cmd)) => Some(fs_need(cmd)),
+        Command::Core(cmd) if cmd.needs_connection() => Some(local::Need::Runtime),
+        Command::Help { .. } => Some(commands::help::NEED),
+        _ => None,
     }
 }
 
@@ -200,31 +227,29 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
             let mode = resolve_out(g);
             let mut out = std::io::stdout().lock();
             match cmd {
-                CoreCommand::Eval { expression } | CoreCommand::Lua { expression } => {
-                    commands::eval::run(&conn, &expression, mode, &mut out)?
-                }
-                CoreCommand::Script { code, file } => {
-                    let script = if let Some(f) = file {
-                        read_file(&f)?
-                    } else if let Some(c) = code {
-                        c
-                    } else {
-                        read_stdin()?
+                CoreCommand::Lua { code, file } => {
+                    let code = match (file, code) {
+                        (Some(f), _) => read_file(&f)?,
+                        (None, Some(c)) => c,
+                        (None, None) => read_stdin()?,
                     };
-                    commands::script::run(&conn, &script, mode, &mut out)?
+                    commands::lua::run(&conn, &code, mode, &mut out, &mut std::io::stderr())?
                 }
                 CoreCommand::LuaScript { file } => {
                     // This alias interprets its positional argument as a file path.
-                    let script = if let Some(f) = file {
-                        read_file(&f)?
-                    } else {
-                        read_stdin()?
+                    let code = match file {
+                        Some(f) => read_file(&f)?,
+                        None => read_stdin()?,
                     };
-                    commands::script::run(&conn, &script, mode, &mut out)?
+                    commands::lua::run(&conn, &code, mode, &mut out, &mut std::io::stderr())?
                 }
-                CoreCommand::Query { expression } => {
-                    commands::query::run(&conn, &expression, mode, &mut out)?
-                }
+                CoreCommand::Query { expression } => commands::lua::run_query(
+                    &conn,
+                    &expression,
+                    mode,
+                    &mut out,
+                    &mut std::io::stderr(),
+                )?,
                 CoreCommand::Search {
                     query,
                     mode: search_mode,
@@ -238,6 +263,7 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                         limit.map(|l| l as usize),
                         mode,
                         &mut out,
+                        &mut std::io::stderr(),
                     )?,
                     _ => commands::search::status(&conn, mode, &mut out)?,
                 },
@@ -255,19 +281,19 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                     file,
                     selector,
                     full_page,
-                } => {
-                    if full_page {
-                        commands::screenshot::run_full_page(&conn, &file, mode, &mut out)?
-                    } else {
-                        commands::screenshot::run(
-                            &conn,
-                            &file,
-                            selector.as_deref(),
-                            mode,
-                            &mut out,
-                        )?
-                    }
-                }
+                    page,
+                } => commands::screenshot::run(
+                    &conn,
+                    &commands::screenshot::Shot {
+                        file: &file,
+                        selector: selector.as_deref(),
+                        full_page,
+                        page: page.as_deref(),
+                    },
+                    mode,
+                    &mut out,
+                    &mut std::io::stderr(),
+                )?,
                 CoreCommand::Fs(_) | CoreCommand::Upgrade | CoreCommand::UpgradeEdge => {
                     unreachable!("handled above")
                 }
@@ -362,6 +388,26 @@ mod tests {
             dispatch(cli).unwrap_err(),
             "An open path cannot be combined with a subcommand"
         );
+    }
+
+    #[test]
+    fn commands_ask_for_the_server_or_the_runtime() {
+        use clap::Parser;
+        let need = |args: &[&str]| need_of(&Cli::try_parse_from(args).unwrap().command.unwrap());
+        assert_eq!(
+            need(&["sb", "fs", "read", "a.md", "--rendered"]),
+            Some(local::Need::Runtime)
+        );
+        assert_eq!(
+            need(&["sb", "fs", "read", "a.md"]),
+            Some(local::Need::Server)
+        );
+        assert_eq!(need(&["sb", "fs", "ls"]), Some(local::Need::Server));
+        assert_eq!(need(&["sb", "help"]), Some(local::Need::Server));
+        assert_eq!(need(&["sb", "lua", "1"]), Some(local::Need::Runtime));
+        assert_eq!(need(&["sb", "query", "x"]), Some(local::Need::Runtime));
+        assert_eq!(need(&["sb", "upgrade"]), None);
+        assert_eq!(need(&["sb", "version"]), None);
     }
 
     /// resolve_conn with --url set should NOT try to load config.json

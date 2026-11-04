@@ -6,6 +6,7 @@ references:
 - server/src/handlers/search.rs
 - server/src/multi/dashboard.rs
 - server/src/multi/admin_api.rs
+- server-mcp/src/protocol.rs
 ---
 The server API is relatively small. The client primarily communicates with the server for file “CRUD” (Create, Read, Update, Delete) style operations.
 
@@ -67,8 +68,11 @@ Present when [[Revisions]] are enabled for the space: every endpoint below answe
 The server answers [[Search]] itself, so these work without the [[Runtime API]]. The [[CLI]]’s `sb search` and `sb related` use them. They need Read access. Public visitors only get the modes the server allows them, and no related pages. Bodies are JSON. Errors are 4xx JSON with an `error` code and a `message`.
 
 * `GET /.search/status`: What search can do right now: `backend` (`null` when unavailable), `model`, `capabilities` (`modes`, the first being the default, and whether `related` is available), `ready`, `progress` (`{"done", "total"}` while building) and `reason`.
-* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`. Only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `meta` or `all`, `limit` is at most 50. Returns `items` (matches, best page first, each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching).
+* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`. Only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `meta` or `all`, `limit` is at most 50. Returns `items` (matches, best page first, each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching). With `X-Await-Index: 1`, a member’s query first lets the index catch up with recent file changes and the response carries `X-Index-Status`, as described in [[Runtime API#Waiting for the index]].
 * `POST /.search/related`: Body `{"page", "limit", "exclude", "scope"}`: pages related in meaning to `page`, in the same shape as a query’s result. Needs semantic search.
+
+# Help
+`GET /.help`: What an assistant needs to start working in the space, as JSON with `"version": 1`: the skills available (pages tagged `meta/skill`: the built-in `Library/Std` ones, those of installed libraries and the space’s own, each with its page, description and source), an `outline` of the space (`folders` with page counts, a capped list of top-level `pages` with `pageCount`, whether an `AGENTS` page exists, and the `tags` and attributes used in page frontmatter), and `runtime`, whether the [[Runtime API]] is available to the caller. The [[CLI]]’s `sb help` and the [[MCP]]’s `help` tool render it. It needs a signed-in account or an API token, even on a public space: anonymous visitors get `401` (or the sign-in redirect), although they can read `/.fs`. While the space’s first scan is still running, `scanning` is true and only the built-in skills are listed.
 
 # RPC
 Some functionality is exposed as RPC-style calls
@@ -84,7 +88,20 @@ Some functionality is exposed as RPC-style calls
   * The `x-proxy-status-code` header contains the actual upstream HTTP status code. The proxy response itself always returns 200 to avoid interference.
 
 ## Runtime API
-Enabled when Chrome/Chromium is available and runtime access is permitted. In single-space mode, `SB_RUNTIME_API=0` disables it. In multi-space mode, use the administrator’s Runtimes controls and per-writer Runtime API permission. See [[Runtime API]] for full documentation, setup instructions, and examples.
+Enabled when Chrome/Chromium is available and runtime access is permitted. In single-space mode, `SB_RUNTIME_API=0` disables it. In multi-space mode, use the administrator’s APIs controls and per-writer Runtime API permission. See [[Runtime API]] for full documentation, setup instructions, and examples.
+
+## MCP
+In [[Dashboard|multi-space mode]], `POST /.mcp` is a stateless [[MCP]] (Model Context Protocol) endpoint that authenticates with an OAuth access token (`Authorization: Bearer <token>`, issued to a connected app); API tokens are refused with `401` and a `WWW-Authenticate` challenge pointing at the resource metadata. These endpoints are served on the main router only in multi-space mode, answer `404` unless an admin has turned MCP on (it is off by default) and when `SB_MCP=0` (except `/.auth/revoke`), and are not served in single-space mode:
+
+* `GET /.well-known/oauth-protected-resource/.mcp` (also at `/.well-known/oauth-protected-resource`): RFC 9728 resource metadata.
+* `GET /.well-known/oauth-authorization-server`: RFC 8414 authorization server metadata.
+* `POST /.auth/register`: RFC 7591 dynamic client registration, answers `201`. Registered clients are public (`token_endpoint_auth_method` `none`).
+* `GET /.auth/mcp/authorize`: authorization endpoint (PKCE). Signed-out requests redirect to the Dashboard login; the consent page lists the spaces to grant.
+* `POST /.auth/mcp/authorize`: the consent form's submission (Allow or Cancel). It re-checks every authorization parameter and the CSRF token bound to the signed-in session, then redirects back to the app with a code or `access_denied`.
+* `POST /.auth/mcp/token`: authorization code and refresh token grants (refresh tokens rotate). Public clients authenticate with PKCE only. A client whose metadata document registers `private_key_jwt` must also send `client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer` and an RFC 7523 `client_assertion` on both grants: signed (RS256, PS256 or ES256) with a key from its `jwks_uri` or `jwks`, `iss` and `sub` its client ID, `aud` the token endpoint or issuer URL, valid for at most 5 minutes, with a `jti` not used before. Failures answer `401` `invalid_client`.
+* `POST /.auth/revoke`: RFC 7009 revocation, always `200`.
+
+See [[MCP]].
 
 # Client
 * `GET /.config`: Retrieve client configuration, JSON with the following keys:

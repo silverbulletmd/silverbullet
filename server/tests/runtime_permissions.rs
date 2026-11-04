@@ -137,6 +137,8 @@ impl Fixture {
                 Some(Box::new(Backend(child)))
             }),
             runtime_enabled: Arc::new(AtomicBool::new(true)),
+            runtime_availability: silverbullet_server::runtime::RuntimeAvailability::Available,
+            runtime_idle_timeout: Default::default(),
             metrics: None,
             auth: InstanceAuth::Accounts {
                 users: users.clone(),
@@ -524,7 +526,7 @@ async fn server_disable_revokes_all_spaces_and_reenable_creates_fresh_credential
     let a = f.child(f.evaluate(&routers[0], "writer-one", "first").await);
     let b = f.child(f.evaluate(&routers[1], "writer-two", "second").await);
     f.manager
-        .set_server_config(None, None, Some(false))
+        .set_server_config(None, None, Some(false), None)
         .unwrap();
     for (router, child, name) in [
         (&routers[0], &a, "writer-one"),
@@ -545,7 +547,9 @@ async fn server_disable_revokes_all_spaces_and_reenable_creates_fresh_credential
             StatusCode::SERVICE_UNAVAILABLE
         );
     }
-    f.manager.set_server_config(None, None, Some(true)).unwrap();
+    f.manager
+        .set_server_config(None, None, Some(true), None)
+        .unwrap();
     let fresh = f.child(f.evaluate(&routers[0], "writer-one", "new lease").await);
     assert_ne!(fresh.id, a.id);
     assert_ne!(fresh.cookie, a.cookie);
@@ -1042,7 +1046,7 @@ async fn host_bound_runtime_uses_a_private_local_origin() {
         StatusCode::NOT_FOUND
     );
     f.manager
-        .set_server_config(None, None, Some(false))
+        .set_server_config(None, None, Some(false), None)
         .unwrap();
     assert_eq!(
         request_at(
@@ -1057,7 +1061,9 @@ async fn host_bound_runtime_uses_a_private_local_origin() {
         .0,
         StatusCode::FORBIDDEN
     );
-    f.manager.set_server_config(None, None, Some(true)).unwrap();
+    f.manager
+        .set_server_config(None, None, Some(true), None)
+        .unwrap();
     let fresh = f.child(f.evaluate(&f.router(&id), "writer-one", "reenabled").await);
     assert_eq!(
         request_at(

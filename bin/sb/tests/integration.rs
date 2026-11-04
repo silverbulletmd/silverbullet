@@ -43,6 +43,11 @@ fn server_bin() -> Option<PathBuf> {
 mod common;
 use common::free_port;
 
+#[path = "integration/space.rs"]
+mod space;
+#[path = "integration/writes.rs"]
+mod writes;
+
 struct Output {
     code: i32,
     stdout: Vec<u8>,
@@ -114,34 +119,6 @@ fn version_prints_without_a_server() {
     );
 }
 
-#[test]
-fn space_ls_empty_config() {
-    let cfg = tempfile::tempdir().unwrap();
-    assert_eq!(
-        run_sb(&["space", "ls"], cfg.path()).stdout_text().trim(),
-        "[]"
-    );
-    let out = run_sb(&["space", "ls", "--text"], cfg.path());
-    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
-    assert!(
-        out.stdout_text().contains("No spaces configured"),
-        "got stdout: {:?}",
-        out.stdout
-    );
-}
-
-#[test]
-fn space_rm_missing_errors() {
-    let cfg = tempfile::tempdir().unwrap();
-    let out = run_sb(&["space", "rm", "does-not-exist"], cfg.path());
-    assert_ne!(out.code, 0, "expected non-zero exit");
-    assert!(
-        out.stderr.contains("not found"),
-        "got stderr: {:?}",
-        out.stderr
-    );
-}
-
 /// Spawn the server against a fresh temp space (runtime disabled) and wait for
 /// `/.ping`. Returns the managed server + base URL, or `None` if the server binary
 /// isn't built (caller skips).
@@ -172,7 +149,7 @@ fn start_server_with_env(
     let base = format!("http://127.0.0.1:{port}");
 
     let client = reqwest::blocking::Client::new();
-    for _ in 0..100 {
+    for _ in 0..300 {
         if client
             .get(format!("{base}/.ping"))
             .send()
@@ -342,6 +319,30 @@ fn fs_text_journey_uses_listing_revisions_atomic_edit_and_conditional_delete() {
     assert_eq!(missing.code, 3, "stderr: {}", missing.stderr);
     assert!(missing.stdout.is_empty());
     assert!(!space.path().join("Projects/Launch.md").exists());
+}
+
+#[test]
+fn fs_edit_with_lf_text_keeps_a_crlf_page_crlf() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    let created = create_file(&base, cfg.path(), "Lines.md", b"one\r\ntwo\r\nthree\r\n");
+    assert_eq!(created.code, 0, "stderr: {}", created.stderr);
+
+    let edited = run_sb(
+        &[
+            "--url", &base, "--json", "fs", "edit", "Lines.md", "--old", "one\ntwo", "--new",
+            "1\n2",
+        ],
+        cfg.path(),
+    );
+    assert_eq!(edited.code, 0, "stderr: {}", edited.stderr);
+    assert_eq!(
+        std::fs::read(space.path().join("Lines.md")).unwrap(),
+        b"1\r\n2\r\nthree\r\n"
+    );
 }
 
 #[test]
@@ -583,223 +584,6 @@ fn eval_against_server_without_runtime_reports_not_enabled() {
     );
 }
 
-/// Make `sb` see an installed (not running) SilverBullet Desktop: folder-space
-/// management requires one. The launch program only has to exist.
-fn install_desktop_stub(config_home: &std::path::Path) {
-    let dir = config_home.join("silverbullet");
-    std::fs::create_dir_all(&dir).unwrap();
-    let host = serde_json::json!({
-        "version": 1,
-        "runtime": dir.join("runtime.json"),
-        "launch": [std::env::current_exe().unwrap()],
-        "open": "silverbullet://open?path={path}",
-    });
-    std::fs::write(dir.join("desktop-host.json"), host.to_string()).unwrap();
-}
-
-#[test]
-fn folder_space_management_requires_desktop_but_listing_and_removal_do_not() {
-    let cfg = tempfile::tempdir().unwrap();
-    let spaces = tempfile::tempdir().unwrap();
-    let folder = spaces.path().join("harbor");
-    std::fs::create_dir(&folder).unwrap();
-    for args in [
-        vec![
-            "space",
-            "create",
-            spaces.path().join("atlas").to_str().unwrap(),
-        ],
-        vec!["space", "add", folder.to_str().unwrap()],
-    ] {
-        let out = run_sb(&args, cfg.path());
-        assert_ne!(out.code, 0, "{args:?}");
-        assert!(
-            out.stderr.contains("requires SilverBullet Desktop"),
-            "{}",
-            out.stderr
-        );
-    }
-    assert!(
-        !spaces.path().join("atlas").exists(),
-        "nothing created without Desktop"
-    );
-
-    // Entries left behind by an uninstalled Desktop.
-    let dir = cfg.path().join("silverbullet");
-    std::fs::create_dir_all(&dir).unwrap();
-    let folder_path = std::fs::canonicalize(&folder).unwrap();
-    std::fs::write(
-        dir.join("config.json"),
-        serde_json::json!({"spaces": [
-            {"id": "id-harbor", "name": "harbor", "folderPath": folder_path, "auth": {"method": "none"}},
-            {"id": "id-web", "name": "web", "url": "https://notes.example.com", "auth": {"method": "none"}},
-        ]})
-        .to_string(),
-    )
-    .unwrap();
-    let moved = spaces.path().join("harbor-moved");
-    for args in [
-        vec!["space", "rename", "harbor", "harbor-2"],
-        vec!["space", "mv", "harbor", moved.to_str().unwrap()],
-        vec![
-            "space",
-            "relocate",
-            "harbor",
-            spaces.path().to_str().unwrap(),
-            "--force",
-        ],
-    ] {
-        let out = run_sb(&args, cfg.path());
-        assert_ne!(out.code, 0, "{args:?}");
-        assert!(
-            out.stderr.contains("requires SilverBullet Desktop"),
-            "{}",
-            out.stderr
-        );
-    }
-    assert!(
-        folder.is_dir() && !moved.exists(),
-        "nothing moved without Desktop"
-    );
-
-    let list: serde_json::Value =
-        serde_json::from_slice(&run_sb(&["space", "ls"], cfg.path()).stdout).unwrap();
-    assert_eq!(list.as_array().unwrap().len(), 2);
-    assert_eq!(
-        run_sb(&["space", "rename", "web", "web-2"], cfg.path()).code,
-        0
-    );
-    let out = run_sb(&["space", "rm", "harbor"], cfg.path());
-    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
-    assert!(folder.is_dir(), "removing never deletes files");
-}
-
-#[test]
-fn space_create_then_add_round_trip() {
-    let cfg = tempfile::tempdir().unwrap();
-    install_desktop_stub(cfg.path());
-    let spaces = tempfile::tempdir().unwrap();
-    let new = spaces.path().join("harbor");
-    let out = run_sb(
-        &["space", "create", new.to_str().unwrap(), "--json"],
-        cfg.path(),
-    );
-    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
-    let created: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(created["name"], "harbor");
-    assert!(new.is_dir());
-
-    let missing = spaces.path().join("missing");
-    let out = run_sb(&["space", "add", missing.to_str().unwrap()], cfg.path());
-    assert_ne!(out.code, 0);
-    assert!(out.stderr.contains("sb space create"), "{}", out.stderr);
-    assert!(!missing.exists());
-
-    let registry: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(cfg.path().join("silverbullet/config.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(registry["spaces"][0]["env"]["shellBackend"], "off");
-    assert_eq!(registry["spaces"][0]["env"]["revisions"], "managed");
-}
-
-#[test]
-fn space_ls_json_lists_entries() {
-    let cfg = tempfile::tempdir().unwrap();
-    install_desktop_stub(cfg.path());
-    let out = run_sb(&["space", "ls", "--json"], cfg.path());
-    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
-    assert_eq!(out.stdout_text().trim(), "[]");
-    let spaces = tempfile::tempdir().unwrap();
-    let folder = spaces.path().join("harbor");
-    assert_eq!(
-        run_sb(&["space", "create", folder.to_str().unwrap()], cfg.path()).code,
-        0
-    );
-    assert_eq!(
-        run_sb(&["space", "rename", "harbor", "atlas"], cfg.path()).code,
-        0
-    );
-    let out = run_sb(&["space", "ls", "--json"], cfg.path());
-    let list: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(list[0]["name"], "atlas");
-    assert_eq!(list[0]["syncEnabled"], false);
-    assert!(list[0]["id"].as_str().unwrap().len() == 36);
-}
-
-#[test]
-fn space_mv_moves_files_and_updates_registry() {
-    let cfg = tempfile::tempdir().unwrap();
-    install_desktop_stub(cfg.path());
-    let spaces = tempfile::tempdir().unwrap();
-    let from = spaces.path().join("harbor");
-    assert_eq!(
-        run_sb(&["space", "create", from.to_str().unwrap()], cfg.path()).code,
-        0
-    );
-    std::fs::write(from.join("index.md"), "# Harbor\n").unwrap();
-    let to = spaces.path().join("harbor-moved");
-
-    let dry = run_sb(
-        &[
-            "space",
-            "mv",
-            "harbor",
-            to.to_str().unwrap(),
-            "--dry-run",
-            "--json",
-        ],
-        cfg.path(),
-    );
-    assert_eq!(dry.code, 0, "stderr: {}", dry.stderr);
-    assert!(
-        from.join("index.md").exists() && !to.exists(),
-        "dry run must not move"
-    );
-
-    let out = run_sb(
-        &["space", "mv", "harbor", to.to_str().unwrap(), "--json"],
-        cfg.path(),
-    );
-    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
-    assert_eq!(
-        std::fs::read_to_string(to.join("index.md")).unwrap(),
-        "# Harbor\n"
-    );
-    assert!(!from.exists());
-    let list: serde_json::Value =
-        serde_json::from_slice(&run_sb(&["space", "ls", "--json"], cfg.path()).stdout).unwrap();
-    assert_eq!(
-        list[0]["folderPath"].as_str().unwrap(),
-        std::fs::canonicalize(&to).unwrap().to_string_lossy()
-    );
-}
-
-#[test]
-fn space_relocate_points_at_already_moved_folder() {
-    let cfg = tempfile::tempdir().unwrap();
-    install_desktop_stub(cfg.path());
-    let spaces = tempfile::tempdir().unwrap();
-    let from = spaces.path().join("atlas");
-    assert_eq!(
-        run_sb(&["space", "create", from.to_str().unwrap()], cfg.path()).code,
-        0
-    );
-    let to = spaces.path().join("atlas-elsewhere");
-    std::fs::rename(&from, &to).unwrap();
-    let out = run_sb(
-        &["space", "set-path", "atlas", to.to_str().unwrap()],
-        cfg.path(),
-    );
-    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
-    let list: serde_json::Value =
-        serde_json::from_slice(&run_sb(&["space", "ls", "--json"], cfg.path()).stdout).unwrap();
-    assert_eq!(
-        list[0]["folderPath"].as_str().unwrap(),
-        std::fs::canonicalize(&to).unwrap().to_string_lossy()
-    );
-}
-
 /// `sb search` retries while the server's first index build runs.
 fn search_until_found(base: &str, cfg: &std::path::Path, args: &[&str]) -> Output {
     let mut out = run_sb(args, cfg);
@@ -892,4 +676,188 @@ fn search_status_search_and_related_use_the_native_endpoints() {
         "full-text-only servers have no related pages"
     );
     assert!(!related.stderr.is_empty());
+}
+
+#[test]
+fn eval_reports_runtime_disabled_hint() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    let out = run_sb(&["--url", &base, "eval", "1 + 1"], cfg.path());
+    assert_eq!(out.code, 1, "stderr: {}", out.stderr);
+    assert!(out.stdout.is_empty(), "{:?}", out.stdout_text());
+    assert_eq!(
+        out.stderr,
+        "Error: The runtime API is disabled for this space; you can still use sb fs and sb search.\n"
+    );
+}
+
+#[test]
+fn several_paths_print_sections_with_revisions() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    assert_eq!(
+        create_file(&base, cfg.path(), "One.md", b"# One\nfirst\n").code,
+        0
+    );
+    assert_eq!(create_file(&base, cfg.path(), "Two.md", b"second").code, 0);
+    let out = run_sb(
+        &["--url", &base, "fs", "read", "One.md", "Two.md"],
+        cfg.path(),
+    );
+    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
+    let text = out.stdout_text();
+    assert!(text.starts_with("=== One.md (revision "), "{text}");
+    assert!(
+        text.contains(") ===\n# One\nfirst\n\n=== Two.md (revision "),
+        "{text}"
+    );
+    assert!(text.ends_with(") ===\nsecond\n"), "{text}");
+
+    let outline = run_sb(
+        &["--url", &base, "fs", "read", "One.md", "--outline"],
+        cfg.path(),
+    );
+    assert_eq!(outline.code, 0, "stderr: {}", outline.stderr);
+    assert_eq!(
+        outline.stdout_text(),
+        "    1\t# One\n\n2 lines in all; read a part with --offset and --limit.\n"
+    );
+    let part = run_sb(
+        &[
+            "--url", &base, "fs", "read", "One.md", "--offset", "2", "--limit", "1",
+        ],
+        cfg.path(),
+    );
+    assert_eq!(part.stdout_text(), "    2\tfirst\n");
+}
+
+#[test]
+fn several_paths_json_reports_missing_file_inline_and_exits_3() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    assert_eq!(create_file(&base, cfg.path(), "One.md", b"first").code, 0);
+    let out = run_sb(
+        &["--url", &base, "--json", "fs", "read", "One.md", "Gone.md"],
+        cfg.path(),
+    );
+    assert_eq!(out.code, 3, "stderr: {}", out.stderr);
+    let files = out.json()["files"].as_array().unwrap().clone();
+    assert_eq!(files.len(), 2);
+    assert_eq!(files[0]["content"], "first");
+    assert_eq!(files[1]["path"], "Gone.md");
+    assert_eq!(files[1]["error"]["code"], "not_found");
+}
+
+#[test]
+fn rendered_read_without_runtime_reports_the_hint() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    assert_eq!(create_file(&base, cfg.path(), "One.md", b"first").code, 0);
+    let out = run_sb(
+        &["--url", &base, "fs", "read", "One.md", "--rendered"],
+        cfg.path(),
+    );
+    assert_eq!(out.code, 8, "stderr: {}", out.stderr);
+    assert!(out.stdout.is_empty(), "{:?}", out.stdout_text());
+    // Piped stderr is structured, like every fs error.
+    let error: serde_json::Value = serde_json::from_str(&out.stderr).unwrap();
+    assert_eq!(error["error"]["code"], "operation_failed");
+    let message = error["error"]["message"].as_str().unwrap();
+    assert!(
+        message.contains("you can still use sb fs and sb search")
+            || message.contains("starting or unavailable"),
+        "{message}"
+    );
+}
+
+#[test]
+fn rendered_read_of_a_missing_page_exits_3() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    let out = run_sb(
+        &["--url", &base, "fs", "read", "Gone.md", "--rendered"],
+        cfg.path(),
+    );
+    assert_eq!(out.code, 3, "stderr: {}", out.stderr);
+    let error: serde_json::Value = serde_json::from_str(&out.stderr).unwrap();
+    assert_eq!(error["error"]["code"], "not_found");
+}
+
+#[test]
+fn help_shows_space_skills_and_outline() {
+    let space = tempfile::tempdir().unwrap();
+    let Some((_server, base)) = require_server(space.path()) else {
+        return;
+    };
+    let cfg = tempfile::tempdir().unwrap();
+    let page = b"---\ntags: meta/skill\ndescription: House rules for notes. Use when filing a note in this space.\n---\nFile every note under Inbox first.\n";
+    assert_eq!(
+        create_file(&base, cfg.path(), "Guides/Filing.md", page).code,
+        0
+    );
+
+    // The space's catalog picks the new page up from the watcher.
+    let mut out = run_sb(&["--url", &base, "help"], cfg.path());
+    for _ in 0..50 {
+        if out.stdout_text().contains("**Filing**") {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        out = run_sb(&["--url", &base, "help"], cfg.path());
+    }
+    let text = out.stdout_text();
+    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
+    assert!(text.contains(&format!("## In {base}")), "{text}");
+    assert!(
+        text.contains("- **Filing**: Use when filing a note in this space."),
+        "{text}"
+    );
+    assert!(text.contains("## Built in"), "{text}");
+    assert!(text.contains("- **Querying**"), "{text}");
+    assert!(text.contains("Folders: Guides/ (1)"), "{text}");
+    assert!(text.contains("# Operations"), "{text}");
+
+    let out = run_sb(&["--url", &base, "help", "Filing"], cfg.path());
+    let text = out.stdout_text();
+    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
+    assert!(text.starts_with("Source: Guides/Filing — "), "{text}");
+    assert!(
+        text.contains("File every note under Inbox first."),
+        "{text}"
+    );
+
+    let out = run_sb(&["--url", &base, "help", "--json"], cfg.path());
+    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
+    assert_eq!(out.json()["help"]["version"], 1);
+}
+
+#[test]
+fn help_without_a_space_lists_built_in_skills() {
+    let cfg = tempfile::tempdir().unwrap();
+    let out = run_sb(&["help"], cfg.path());
+    let text = out.stdout_text();
+    assert_eq!(out.code, 0, "stderr: {}", out.stderr);
+    assert!(text.contains("## Built in"), "{text}");
+    assert!(
+        text.contains("Add a space with `sb space add <url or folder>`"),
+        "{text}"
+    );
+    let out = run_sb(&["help", "fs"], cfg.path());
+    assert_eq!(out.code, 1);
+    assert!(out.stderr.contains("run `sb fs --help`"), "{}", out.stderr);
 }

@@ -1,13 +1,23 @@
 use std::io::{self, IsTerminal, Read, Write};
 use std::process::ExitCode;
 
-use serde::Deserialize;
 use serde_json::{json, Value};
+use space_tools::edit::{self, unified_diff, Edit, EditOpts};
 
 use crate::cli::GlobalFlags;
-use crate::fs_api::{normalize_path, validate_revision, FsError, WritePolicy};
+use crate::conn::SpaceConnection;
+use crate::fs_api::{conflict_text, normalize_path, validate_revision, FsError, WritePolicy};
 use crate::fs_cli::{FsCommand, EDIT_LIMIT};
-use crate::{fs_edit, fs_listing};
+use crate::fs_listing;
+
+mod read;
+mod write;
+
+use read::{offset_output, outline_output, read_output, read_rendered_page, read_several};
+use write::{
+    edit_error, edit_line, previous_text, reload_into, report_reload, revision, write_line,
+    EditDocument,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
@@ -16,6 +26,8 @@ enum Mode {
     Json,
     Jsonl,
 }
+
+const MAX_READ_PATHS: usize = 20;
 
 fn invalid(message: impl Into<String>) -> FsError {
     FsError::new("invalid_arguments", message, 2)
@@ -75,33 +87,69 @@ pub fn validate(g: &GlobalFlags, cmd: &FsCommand) -> Result<(), FsError> {
             (path, true)
         }
         FsCommand::Read {
-            path,
+            paths,
             lines,
             number,
+            offset,
+            limit,
+            rendered,
+            outline,
             ..
         } => {
+            if paths.len() > MAX_READ_PATHS {
+                return Err(invalid(format!(
+                    "Read at most {MAX_READ_PATHS} paths per call"
+                )));
+            }
+            if paths.len() > 1 {
+                let combined = [
+                    ("--lines", lines.is_some()),
+                    ("--offset", offset.is_some()),
+                    ("--limit", limit.is_some()),
+                    ("--number", *number),
+                    ("--rendered", *rendered),
+                    ("--outline", *outline),
+                ];
+                if let Some((flag, _)) = combined.iter().find(|(_, set)| *set) {
+                    return Err(invalid(format!(
+                        "Several paths cannot be combined with {flag}; read one path at a time"
+                    )));
+                }
+            }
             if let Some(lines) = lines {
                 range(lines)?;
+            }
+            if *offset == Some(0) {
+                return Err(invalid("--offset starts at 1"));
+            }
+            if *limit == Some(0) {
+                return Err(invalid("--limit must be at least 1"));
             }
             if *number && matches!(output, Mode::Json | Mode::Jsonl) {
                 return Err(invalid(
                     "--number cannot be combined with structured output",
                 ));
             }
-            (path, false)
+            for path in &paths[1..] {
+                normalize_path(path, false)?;
+            }
+            if *rendered && !paths[0].ends_with(".md") {
+                return Err(invalid("--rendered needs a page: pass a .md path"));
+            }
+            (&paths[0], false)
         }
         FsCommand::Write {
             path,
             create,
-            if_match,
+            revision,
             overwrite,
             ..
         } => {
-            if usize::from(*create) + usize::from(if_match.is_some()) + usize::from(*overwrite) != 1
+            if usize::from(*create) + usize::from(revision.is_some()) + usize::from(*overwrite) != 1
             {
-                return Err(invalid("Choose --create, --if-match <revision>, or --overwrite; e.g. sb fs write Draft.md --create --file draft.md"));
+                return Err(invalid("Choose --create, --revision <revision>, or --overwrite; e.g. sb fs write Draft.md --create --file draft.md"));
             }
-            if let Some(revision) = if_match {
+            if let Some(revision) = revision {
                 validate_revision(revision)?;
             }
             (path, false)
@@ -112,7 +160,7 @@ pub fn validate(g: &GlobalFlags, cmd: &FsCommand) -> Result<(), FsError> {
             new,
             file,
             all,
-            if_match,
+            revision,
             ..
         } => {
             if old.is_some() != new.is_some() {
@@ -133,13 +181,13 @@ pub fn validate(g: &GlobalFlags, cmd: &FsCommand) -> Result<(), FsError> {
                     "Old text must be nonempty; edit text cannot contain NUL",
                 ));
             }
-            if let Some(revision) = if_match {
+            if let Some(revision) = revision {
                 validate_revision(revision)?;
             }
             (path, false)
         }
-        FsCommand::Rm { path, if_match } => {
-            if let Some(revision) = if_match {
+        FsCommand::Rm { path, revision } => {
+            if let Some(revision) = revision {
                 validate_revision(revision)?;
             }
             (path, false)
@@ -148,6 +196,12 @@ pub fn validate(g: &GlobalFlags, cmd: &FsCommand) -> Result<(), FsError> {
     };
     normalize_path(path, directory)?;
     Ok(())
+}
+
+/// Whether `cmd` needs the space's Lua runtime, not just its files. A write
+/// reloads scripts only after it succeeded, and connects to the runtime then.
+pub fn needs_runtime(cmd: &FsCommand) -> bool {
+    matches!(cmd, FsCommand::Read { rendered: true, .. })
 }
 
 pub fn report_error(g: &GlobalFlags, error: FsError) -> ExitCode {
@@ -207,7 +261,7 @@ fn input(file: Option<&str>, max_bytes: u64) -> Result<Vec<u8>, FsError> {
     Ok(bytes)
 }
 
-fn connection(g: &GlobalFlags) -> Result<crate::conn::SpaceConnection, FsError> {
+fn connection(g: &GlobalFlags) -> Result<SpaceConnection, FsError> {
     let cfg = if g.url.is_some() {
         crate::config::Config::default()
     } else {
@@ -239,64 +293,6 @@ fn text(bytes: &[u8]) -> Result<&str, FsError> {
     }
     std::str::from_utf8(bytes)
         .map_err(|_| invalid("Content is not UTF-8; use a raw read redirected to a file"))
-}
-
-fn read_output(
-    mut file: crate::fs_api::FsFile,
-    lines: Option<&str>,
-    number: bool,
-    mode: Mode,
-    terminal: bool,
-    out: &mut dyn Write,
-) -> Result<(), FsError> {
-    if mode == Mode::Raw && lines.is_none() && !number {
-        if terminal {
-            text(&file.bytes)?;
-        }
-        return out.write_all(&file.bytes).map_err(operational);
-    }
-    let content = text(&file.bytes)?;
-    let chunks: Vec<_> = content.split_inclusive('\n').collect();
-    let (start, end) = lines.map(range).transpose()?.unwrap_or((1, chunks.len()));
-    let selection: Vec<_> = chunks
-        .iter()
-        .enumerate()
-        .skip(start - 1)
-        .take(end.saturating_sub(start).saturating_add(1))
-        .collect();
-    let selected: String = selection.iter().map(|(_, line)| **line).collect();
-    if matches!(mode, Mode::Json | Mode::Jsonl) {
-        file.metadata["content"] = json!(selected);
-        if lines.is_some() {
-            file.metadata["startLine"] = json!(start);
-            file.metadata["endLine"] = selection.last().map_or(Value::Null, |(i, _)| json!(i + 1));
-            file.metadata["totalLines"] = json!(chunks.len());
-        }
-        emit(out, &file.metadata, "", mode)
-    } else if number {
-        for (index, line) in selection {
-            write!(out, "{}\t{}", index + 1, line).map_err(operational)?;
-        }
-        Ok(())
-    } else {
-        out.write_all(selected.as_bytes()).map_err(operational)
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct EditDocument {
-    edits: Vec<fs_edit::Edit>,
-}
-
-fn revision(metadata: &Value) -> Result<&str, FsError> {
-    metadata["revision"].as_str().ok_or_else(|| {
-        FsError::new(
-            "unsupported_feature",
-            "The server did not supply a revision; conditional editing requires ETags",
-            8,
-        )
-    })
 }
 
 fn execute(g: &GlobalFlags, cmd: FsCommand) -> Result<u8, FsError> {
@@ -344,14 +340,31 @@ fn execute(g: &GlobalFlags, cmd: FsCommand) -> Result<u8, FsError> {
             }
         }
         FsCommand::Read {
-            path,
+            paths,
             lines,
             number,
             max_bytes,
+            offset,
+            limit,
+            rendered,
+            outline,
         } => {
-            let path = normalize_path(&path, false)?;
+            if paths.len() > 1 {
+                return read_several(g, &paths, max_bytes, output, &mut out);
+            }
+            let path = normalize_path(&paths[0], false)?;
+            if rendered {
+                let offset = offset.or(number.then_some(1));
+                return read_rendered_page(g, &path, offset, limit, output, &mut out).map(|()| 0);
+            }
             let file = connection(g)?.fs_read(&path, max_bytes)?;
-            read_output(file, lines.as_deref(), number, output, terminal, &mut out)?;
+            if outline {
+                outline_output(file, &path, output, &mut out)?;
+            } else if offset.is_some() || limit.is_some() {
+                offset_output(file, offset, limit, output, &mut out)?;
+            } else {
+                read_output(file, lines.as_deref(), number, output, terminal, &mut out)?;
+            }
         }
         FsCommand::Stat { path } => {
             let path = normalize_path(&path, false)?;
@@ -363,26 +376,38 @@ fn execute(g: &GlobalFlags, cmd: FsCommand) -> Result<u8, FsError> {
             path,
             file,
             create,
-            if_match,
+            revision,
             max_bytes,
+            no_reload,
             ..
         } => {
             let path = normalize_path(&path, false)?;
             let bytes = input(file.as_deref(), max_bytes)?;
             let policy = if create {
                 WritePolicy::Create
-            } else if let Some(rev) = &if_match {
+            } else if let Some(rev) = &revision {
                 WritePolicy::Match(rev)
             } else {
                 WritePolicy::Overwrite
             };
-            let mut result = connection(g)?.fs_write(&path, bytes, policy)?;
+            let conn = connection(g)?;
+            let old = if create {
+                None
+            } else {
+                previous_text(&conn, &path, no_reload)
+            };
+            let new = String::from_utf8_lossy(&bytes).into_owned();
+            let mut result = conn.fs_write(&path, bytes, policy)?;
             result["operation"] = json!("write");
-            emit(&mut out, &result, &format!("Wrote {path}\n"), output)?;
+            let report = reload_into(g, &path, no_reload, old.as_deref(), &new, &mut result);
+            emit(&mut out, &result, &write_line(&path, &result), output)?;
+            if let Some(report) = report {
+                return report_reload(&path, &report, output, &mut io::stderr());
+            }
         }
-        FsCommand::Rm { path, if_match } => {
+        FsCommand::Rm { path, revision } => {
             let path = normalize_path(&path, false)?;
-            connection(g)?.fs_delete(&path, if_match.as_deref())?;
+            connection(g)?.fs_delete(&path, revision.as_deref())?;
             emit(
                 &mut out,
                 &json!({"path": path, "operation": "delete"}),
@@ -396,12 +421,13 @@ fn execute(g: &GlobalFlags, cmd: FsCommand) -> Result<u8, FsError> {
             new,
             file,
             all,
-            if_match,
+            revision: expected,
             dry_run,
+            no_reload,
         } => {
             let path = normalize_path(&path, false)?;
             let edits = if let (Some(old), Some(new)) = (old, new) {
-                vec![fs_edit::Edit { old, new }]
+                vec![Edit { old, new }]
             } else {
                 let bytes = input(file.as_deref(), EDIT_LIMIT)?;
                 let document: EditDocument = serde_json::from_slice(&bytes)
@@ -421,47 +447,61 @@ fn execute(g: &GlobalFlags, cmd: FsCommand) -> Result<u8, FsError> {
             let original = conn.fs_read(&path, EDIT_LIMIT)?;
             let base_revision = revision(&original.metadata)?;
             validate_revision(base_revision)?;
-            if if_match
+            if expected
                 .as_deref()
                 .is_some_and(|expected| expected != base_revision)
             {
                 let mut error = FsError::new(
                     "revision_conflict",
-                    "File changed; read it again before retrying",
+                    conflict_text(&path, expected.as_deref(), Some(base_revision)),
                     5,
                 )
                 .with_path(&path);
-                error.expected_revision = if_match;
+                error.expected_revision = expected;
                 error.current_revision = Some(base_revision.into());
                 return Err(error);
             }
             let old = text(&original.bytes)?;
-            let result = fs_edit::apply(old, &edits, all)
-                .map_err(|e| FsError::new(e.code, e.message, e.exit_code).with_path(&path))?;
+            let opts = EditOpts {
+                all,
+                old_text: "old text",
+            };
+            let result =
+                edit::apply(old, &edits, opts).map_err(|e| edit_error(e).with_path(&path))?;
             let changed = old != result.content;
             let mut response = json!({"path": path, "operation": "edit", "replacements": result.replacements, "changed": changed, "dryRun": dry_run, "baseRevision": base_revision});
+            let mut report = None;
             let message = if dry_run {
-                let diff = fs_edit::diff(&path, old, &result.content);
+                let diff = unified_diff(old, &result.content, &path, &path);
                 response["diff"] = json!(diff);
                 diff
             } else {
                 let current = if changed {
                     conn.fs_write(
                         &path,
-                        result.content.into_bytes(),
+                        result.content.clone().into_bytes(),
                         WritePolicy::Match(base_revision),
                     )?
                 } else {
-                    original.metadata
+                    original.metadata.clone()
                 };
                 response["revision"] = current["revision"].clone();
-                format!(
-                    "{} replacement(s) in {path}{}\n",
-                    result.replacements,
-                    if changed { "" } else { " (unchanged)" }
-                )
+                if changed {
+                    report = reload_into(
+                        g,
+                        &path,
+                        no_reload,
+                        Some(old),
+                        &result.content,
+                        &mut response,
+                    );
+                }
+                edit_line(&path, result.replacements, changed, &response["revision"])
             };
             emit(&mut out, &response, &message, output)?;
+            if let Some(report) = report {
+                return report_reload(&path, &report, output, &mut io::stderr());
+            }
         }
     }
     Ok(0)
@@ -472,39 +512,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ranged_reads_preserve_crlf_and_original_line_numbers() {
-        let file = crate::fs_api::FsFile {
-            bytes: b"one\r\ntwo\r\nthree".to_vec(),
-            metadata: json!({"revision": "\"abc\""}),
+    fn only_rendered_reads_need_the_runtime() {
+        let read = |rendered| FsCommand::Read {
+            paths: vec!["A.md".into()],
+            lines: None,
+            number: false,
+            max_bytes: 0,
+            offset: None,
+            limit: None,
+            rendered,
+            outline: false,
         };
-        let mut out = Vec::new();
-        read_output(file, Some("2:3"), true, Mode::Raw, false, &mut out).unwrap();
-        assert_eq!(out, b"2\ttwo\r\n3\tthree");
-    }
-
-    #[test]
-    fn raw_reads_preserve_binary_without_final_newline() {
-        let file = crate::fs_api::FsFile {
-            bytes: vec![0, 255, 2],
-            metadata: json!({}),
-        };
-        let mut out = Vec::new();
-        read_output(file, None, false, Mode::Raw, false, &mut out).unwrap();
-        assert_eq!(out, [0, 255, 2]);
-    }
-
-    #[test]
-    fn past_eof_read_retains_full_revision_and_has_no_end_line() {
-        let file = crate::fs_api::FsFile {
-            bytes: b"one\n".to_vec(),
-            metadata: json!({"revision": "\"abc\"", "size": 4}),
-        };
-        let mut out = Vec::new();
-        read_output(file, Some("2:3"), false, Mode::Json, false, &mut out).unwrap();
-        let value: Value = serde_json::from_slice(&out).unwrap();
-        assert_eq!(
-            value,
-            json!({"revision": "\"abc\"", "size": 4, "content": "", "startLine": 2, "endLine": null, "totalLines": 1})
-        );
+        assert!(needs_runtime(&read(true)));
+        assert!(!needs_runtime(&read(false)));
     }
 }

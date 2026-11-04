@@ -1,0 +1,248 @@
+{
+  "tools": [
+    {
+      "name": "help",
+      "title": "Spaces and skills",
+      "description": "Start here. Lists the spaces you can use and the skills available (pages that say when to read them); with `space`, also an outline of that space. With `topic`, returns that skill or page. `space` defaults to your only space when you have one; without a space, `topic` finds built-in skills only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Skill or page name; a close match is enough."
+          },
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "read",
+      "title": "Read a page",
+      "description": "Read a page's Markdown and revision. `offset`/`limit` read a numbered slice; `outline` maps a long page first; `rendered` shows it as displayed, with lint problems (needs the runtime); `pages` reads several; a name ending in \"/\" lists the pages under it. Output is capped.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          },
+          "page": {
+            "type": "string",
+            "description": "Page name, e.g. \"Projects/Garden Plan\". The .md extension is optional, except for a name ending in a dot and letters or digits (\"Notes v1.2\"), which otherwise names a document."
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 20,
+            "description": "Several whole pages, instead of `page`."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "First line to return (1-based)."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum number of lines."
+          },
+          "rendered": {
+            "type": "boolean",
+            "description": "Evaluate the page as it displays, and list lint problems."
+          },
+          "outline": {
+            "type": "boolean",
+            "description": "Headings, code blocks and Lua functions with line numbers, instead of the text."
+          }
+        },
+        "required": ["space"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "write",
+      "title": "Write a page",
+      "description": "Create a page or replace it entirely with the given content. To change part of an existing page use `edit` instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          },
+          "page": {
+            "type": "string",
+            "description": "Page name, e.g. \"Projects/Garden Plan\". The .md extension is optional, except for a name ending in a dot and letters or digits (\"Notes v1.2\"), which otherwise names a document."
+          },
+          "content": {
+            "type": "string",
+            "description": "Full Markdown content of the page."
+          },
+          "ifRevision": {
+            "type": "string",
+            "description": "Revision from a previous read; the call fails instead of overwriting a newer change."
+          }
+        },
+        "required": ["space", "page", "content"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      }
+    },
+    {
+      "name": "edit",
+      "title": "Edit a page",
+      "description": "Replace exact text in a page. Each edit's oldText must match exactly once in the page as read (line endings are normalised), and edits must not overlap; all apply or none does. With dryRun the unified diff is returned and nothing is written.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          },
+          "page": {
+            "type": "string",
+            "description": "Page name, e.g. \"Projects/Garden Plan\". The .md extension is optional, except for a name ending in a dot and letters or digits (\"Notes v1.2\"), which otherwise names a document."
+          },
+          "edits": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "oldText": {
+                  "type": "string"
+                },
+                "newText": {
+                  "type": "string"
+                }
+              },
+              "required": ["oldText", "newText"],
+              "additionalProperties": false
+            }
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Return the diff without writing."
+          },
+          "ifRevision": {
+            "type": "string",
+            "description": "Revision from a previous read; the call fails instead of overwriting a newer change."
+          }
+        },
+        "required": ["space", "page", "edits"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false
+      }
+    },
+    {
+      "name": "search",
+      "title": "Search pages",
+      "description": "Full-text search over a space's pages. Modes: \"words\" (default; all words, any order), \"phrase\" (exact phrase) and \"semantic\" (by meaning, where the space has it). Returns matching passages with their page, line and heading.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          },
+          "text": {
+            "type": "string",
+            "description": "What to search for."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["words", "phrase", "semantic"]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Maximum number of pages (default 20)."
+          }
+        },
+        "required": ["space", "text"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "lua",
+      "title": "Run Space Lua",
+      "description": "Run Space Lua in the space's runtime and return the JSON result. An expression (`1 + 1`, a `query[[...]]`) returns its value; statements run as a script (use `return` for a value). Console output from the call is appended. Calls can change the space; keep queries narrow and add a limit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          },
+          "code": {
+            "type": "string",
+            "description": "Space Lua code."
+          }
+        },
+        "required": ["space", "code"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false
+      }
+    },
+    {
+      "name": "screenshot",
+      "title": "Screenshot the editor",
+      "description": "Take a PNG screenshot of the space's editor in its runtime. With `page`, navigate there first. `selector` (CSS) captures one element; `fullPage` stitches the whole page and cannot be combined with `selector`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "description": "Space name or id, as listed by `help`."
+          },
+          "page": {
+            "type": "string",
+            "description": "Page to open before capturing."
+          },
+          "selector": {
+            "type": "string",
+            "description": "CSS selector of one element."
+          },
+          "fullPage": {
+            "type": "boolean",
+            "description": "Capture the whole page, not just the viewport."
+          }
+        },
+        "required": ["space"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    }
+  ]
+}

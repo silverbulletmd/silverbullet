@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["server-common", "server", "server-search", "server-runtime-chrome", "server-merge", "bin/silverbullet", "bin/sb"]
+members = ["server-common", "server", "server-mcp", "space-tools", "server-search", "server-runtime-chrome", "server-merge", "bin/silverbullet", "bin/sb"]
 # Make bare `cargo run` / `cargo build` target the silverbullet server binary.
 # CI's quality gates (clippy/test) pass `--workspace` explicitly, so they still
 # cover every member regardless of this default.
@@ -34,12 +34,14 @@ filetime = "0.2"
 # Revisit only once the full cross-compile/release matrix is in place.
 reqwest = { version = "0.12", features = ["rustls-tls", "json", "blocking", "stream"], default-features = false }
 base64 = "0.23"
+similar = "3"
 percent-encoding = "2"
 regex = "1"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 minijinja = "2"
 prometheus = { version = "0.14", default-features = false }
 tracing = "0.1"
+async-trait = "0.1"
 tower-http = "0.7"
 axum = "0.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }

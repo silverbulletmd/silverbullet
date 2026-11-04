@@ -9,7 +9,7 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import mime from "mime";
 import { EventEmitter } from "../plugos/event.ts";
 import type { BaseStore } from "./base_store.ts";
-import { stdLibPrefix } from "./constants.ts";
+import { isStdLibFile } from "./constants.ts";
 import {
   PreconditionFailedError,
   type ReconcileRequest,
@@ -1221,7 +1221,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     if (!baseStore || this.reconcileUnsupported) {
       return null;
     }
-    if (path.startsWith(stdLibPrefix)) {
+    if (isStdLibFile(path)) {
       return null;
     }
     const secondaryAny = this.secondary as any;

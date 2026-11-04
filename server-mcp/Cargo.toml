@@ -1,0 +1,31 @@
+[package]
+name = "silverbullet-server-mcp"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+silverbullet-server = { path = "../server" }
+silverbullet-server-search = { path = "../server-search" }
+silverbullet-space-tools = { path = "../space-tools" }
+axum = { workspace = true }
+schemars = "1.2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_path_to_error = "0.1"
+serde_yaml = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+percent-encoding = { workspace = true }
+similar = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
+tower = { version = "0.5", features = ["util"] }
+
+[dev-dependencies]
+silverbullet-server-common = { path = "../server-common", features = ["testing"] }
+silverbullet-server-search = { path = "../server-search", features = ["test-model"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
+tempfile = { workspace = true }

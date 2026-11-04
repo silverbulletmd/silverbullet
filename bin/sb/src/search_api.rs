@@ -3,6 +3,7 @@
 
 use reqwest::StatusCode;
 use serde_json::{json, Value};
+use space_tools::ops::{IndexStatus, AWAIT_INDEX_HEADER};
 
 use crate::api::{read_response, runtime_error};
 use crate::conn::SpaceConnection;
@@ -23,32 +24,41 @@ fn search_error(status: StatusCode, body: &[u8]) -> String {
 }
 
 impl SpaceConnection {
-    fn search_request(&self, request: reqwest::blocking::RequestBuilder) -> Result<Value, String> {
+    /// The response and the index status the server reported with it.
+    fn search_request(
+        &self,
+        request: reqwest::blocking::RequestBuilder,
+    ) -> Result<(Value, IndexStatus), String> {
         let resp = self
             .apply_auth(request)
             .send()
             .map_err(|e| format!("request failed: {e}"))?;
         let status = resp.status();
+        let index = IndexStatus::from_headers(resp.headers());
         let bytes = read_response(resp, MAX_SEARCH_RESPONSE_BYTES, "search response")?;
         if !status.is_success() {
             return Err(search_error(status, &bytes));
         }
-        serde_json::from_slice(&bytes).map_err(|e| format!("parsing search response: {e}"))
+        let value =
+            serde_json::from_slice(&bytes).map_err(|e| format!("parsing search response: {e}"))?;
+        Ok((value, index))
     }
 
     /// `GET /.search/status`.
     pub fn search_status(&self) -> Result<Value, String> {
         self.search_request(self.client.get(format!("{}/.search/status", self.base_url)))
+            .map(|(status, _)| status)
     }
 
-    /// `POST /.search/query`. A missing `mode` is the server's default mode
-    /// (what the search box starts in); `limit` is clamped by the server.
+    /// `POST /.search/query`, letting the index catch up with file changes
+    /// first. A missing `mode` is the server's default mode (what the search
+    /// box starts in); `limit` is clamped by the server.
     pub fn search_query(
         &self,
         query: &str,
         mode: Option<&str>,
         limit: Option<usize>,
-    ) -> Result<Value, String> {
+    ) -> Result<(Value, IndexStatus), String> {
         let mut body = json!({ "query": query });
         if let Some(mode) = mode {
             body["mode"] = json!(mode);
@@ -59,6 +69,7 @@ impl SpaceConnection {
         self.search_request(
             self.client
                 .post(format!("{}/.search/query", self.base_url))
+                .header(AWAIT_INDEX_HEADER, "1")
                 .json(&body),
         )
     }
@@ -74,6 +85,7 @@ impl SpaceConnection {
                 .post(format!("{}/.search/related", self.base_url))
                 .json(&body),
         )
+        .map(|(related, _)| related)
     }
 }
 

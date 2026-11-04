@@ -5,12 +5,14 @@
 //! additional routes on top of it.
 
 pub mod auth;
+pub mod forwarding;
 pub mod fs_guard;
 pub mod handlers;
 pub mod link_resolve;
 pub mod listing_cache;
 pub mod metrics;
 pub mod multi;
+pub mod page_watch;
 pub mod revisions;
 pub mod router;
 pub mod runtime;
@@ -80,6 +82,7 @@ mod test_support {
             fs_guard: Default::default(),
             revisions: None,
             identity: crate::auth::username_only(),
+            page_watch: std::sync::Arc::new(crate::page_watch::PageWatch::none()),
         }
     }
 }

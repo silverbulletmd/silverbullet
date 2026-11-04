@@ -165,8 +165,8 @@ export function syntaxHint(
     prev.length === 1
   ) {
     return word === "return"
-      ? "an expression is expected here and is returned already; drop the 'return', or run statements as a script (sb script)"
-      : `an expression is expected here, but '${word}' starts a statement; run statements as a script (sb script)`;
+      ? "an expression is expected here and is returned already; drop the 'return', or run statements as a script instead"
+      : `an expression is expected here, but '${word}' starts a statement; run statements as a script instead`;
   }
 
   if (

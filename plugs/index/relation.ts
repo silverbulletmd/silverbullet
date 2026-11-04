@@ -900,6 +900,28 @@ export async function getTextualBackRelations(
 }
 
 /**
+ * `getTextualBackRelations` for many targets in a single relation scan: one
+ * scan per target made a burst of new files cost minutes of main-thread time.
+ */
+export async function getTextualBackRelationsToAny(
+  targets: Iterable<string>,
+): Promise<RelationObject[]> {
+  const wanted: Record<string, true> = {};
+  for (const target of targets) wanted[target] = true;
+  if (Object.keys(wanted).length === 0) return [];
+  return await index.queryLuaObjects<RelationObject>(
+    "relation",
+    {
+      objectVariable: "_",
+      where: await lua.parseExpression(
+        `targets[_.to] and _.kind ~= "co-mention" and _.kind ~= "at-mention" and _.toTag ~= "url"`,
+      ),
+    },
+    { targets: wanted },
+  );
+}
+
+/**
  * The text of each mapping value that is a scalar, and of each scalar list
  * item under a key, with its offset in `text` and its key's depth (0: top level).
  */

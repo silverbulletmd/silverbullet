@@ -34,6 +34,9 @@ impl Drop for Server {
 mod common;
 use common::free_port;
 
+#[path = "multi_space/mcp.rs"]
+mod mcp;
+
 /// Provision `root` the same way an operator scripting a deployment would:
 /// by running the real `silverbullet setup` subcommand as a subprocess
 /// (writing `users.json` with a single admin account and `spaces.json`,

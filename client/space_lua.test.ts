@@ -81,3 +81,30 @@ test("reload records each script's outcome in load order", async () => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+
+test("while scripts reload, the previous environment stays in use until all have run", async () => {
+  const memory = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (k: string) => memory.get(k) ?? null,
+    setItem: (k: string, v: string) => memory.set(k, v),
+  });
+  let scripts = [{ ref: "Defs@0", script: "late = 1" }];
+  const objectIndex = { queryLuaObjects: async () => scripts };
+  const sle = new SpaceLuaEnvironment(new System(), objectIndex as any);
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  await sle.reload();
+  expect(sle.env.get("late")).toBe(1);
+
+  // A failing script logs mid-reload: look at what a render would see then
+  const seen: unknown[] = [];
+  vi.spyOn(console, "error").mockImplementation(() => {
+    seen.push(sle.env.get("late"));
+  });
+  scripts = [
+    { ref: "Broken@0", script: "nil_value.y = 2", priority: 10 } as any,
+    { ref: "Defs@0", script: "late = 2" },
+  ];
+  await sle.reload();
+  expect(seen).toEqual([1]);
+  expect(sle.env.get("late")).toBe(2);
+});

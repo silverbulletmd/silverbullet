@@ -145,4 +145,6 @@ pub struct ServerState {
     pub search: Arc<dyn silverbullet_server_search::SearchBackend>,
     /// Admits search requests; shared by every space a server hosts.
     pub search_gate: Arc<silverbullet_server_search::Gate>,
+    /// The space's own pages followed for `GET /.help`.
+    pub page_watch: Arc<crate::page_watch::PageWatch>,
 }

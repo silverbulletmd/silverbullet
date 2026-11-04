@@ -153,14 +153,15 @@ pub async fn handle_fs_get(
     if let Some(inm) = &if_none_match {
         let state_inner = state.clone();
         let path_inner = path.clone();
-        if let Ok(Some(hash)) = run_blocking(move || {
+        if let Ok((meta, Some(hash))) = run_blocking(move || {
             let meta = state_inner.space.get_file_meta(&path_inner)?;
-            Ok::<_, SpaceError>(state_inner.fs_guard.cached_hash(&path_inner, &meta))
+            let hash = state_inner.fs_guard.cached_hash(&path_inner, &meta);
+            Ok::<_, SpaceError>((meta, hash))
         })
         .await
         {
             if etag_list_matches(inm, &hash) {
-                return not_modified_by_etag(&hash);
+                return not_modified_by_etag(&hash, &meta);
             }
         }
     }
@@ -178,12 +179,14 @@ pub async fn handle_fs_get(
         if let Ok(meta) = run_blocking(move || state_inner.space.get_file_meta(&path_inner)).await {
             let last_modified = http_date(meta.last_modified);
             if !last_modified.is_empty() && ims == last_modified {
-                return Response::builder()
-                    .status(StatusCode::NOT_MODIFIED)
-                    .header(axum::http::header::LAST_MODIFIED, &last_modified)
-                    .header(axum::http::header::VARY, "Accept")
-                    .body(Body::empty())
-                    .unwrap();
+                return set_revalidated_meta_headers(
+                    Response::builder().status(StatusCode::NOT_MODIFIED),
+                    &meta,
+                )
+                .header(axum::http::header::LAST_MODIFIED, &last_modified)
+                .header(axum::http::header::VARY, "Accept")
+                .body(Body::empty())
+                .unwrap();
             }
         }
     }
@@ -220,12 +223,12 @@ pub async fn handle_fs_get(
     })
     .await
     {
-        Ok((_, _, hash))
+        Ok((_, meta, hash))
             if if_none_match
                 .as_deref()
                 .is_some_and(|inm| etag_list_matches(inm, &hash)) =>
         {
-            not_modified_by_etag(&hash)
+            not_modified_by_etag(&hash, &meta)
         }
         Ok((data, mut meta, hash)) => {
             let real_content_type = meta.content_type.clone();
@@ -256,9 +259,8 @@ fn etag_list_matches(if_none_match: &str, hash: &str) -> bool {
         .any(|tag| tag == "*" || tag.strip_prefix("W/").unwrap_or(tag) == current)
 }
 
-fn not_modified_by_etag(hash: &str) -> Response {
-    Response::builder()
-        .status(StatusCode::NOT_MODIFIED)
+fn not_modified_by_etag(hash: &str, meta: &FileMeta) -> Response {
+    set_revalidated_meta_headers(Response::builder().status(StatusCode::NOT_MODIFIED), meta)
         .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
         .header(axum::http::header::ETAG, etag_for_hash(hash))
         .header(axum::http::header::VARY, "Accept")
@@ -495,8 +497,19 @@ pub(crate) fn set_file_meta_headers(
     builder: axum::http::response::Builder,
     meta: &FileMeta,
 ) -> axum::http::response::Builder {
+    set_revalidated_meta_headers(builder.header("Content-Type", &meta.content_type), meta)
+}
+
+/// The `X-*` metadata headers for a 304. A browser serves a revalidated read
+/// from its cache with the stored headers updated from the 304, so a 304
+/// without them hands the client the metadata of the first download, e.g. a
+/// stale lastModified after a content-preserving mtime change. Content-Type is
+/// left out: it would overwrite the cached `application/octet-stream`.
+fn set_revalidated_meta_headers(
+    builder: axum::http::response::Builder,
+    meta: &FileMeta,
+) -> axum::http::response::Builder {
     builder
-        .header("Content-Type", &meta.content_type)
         .header("X-Created", meta.created.to_string())
         .header("X-Last-Modified", meta.last_modified.to_string())
         .header("X-Content-Length", meta.size.to_string())
@@ -2181,6 +2194,95 @@ mod tests {
             .await
             .unwrap();
         assert!(body.is_empty());
+    }
+
+    #[tokio::test]
+    async fn not_modified_refreshes_cached_file_meta_headers() {
+        // A browser answers a revalidated read from its cached response, with
+        // the stored headers updated from the 304. When only the mtime moves
+        // (a rebuilt bundle, a `touch`), the ETag still matches; without fresh
+        // X-* headers the client sees the old lastModified forever and re-indexes
+        // the file on every listing.
+        let state = Arc::new(test_state());
+        let meta_at = |ms: i64| FileMeta {
+            name: "x.md".to_string(),
+            created: ms,
+            last_modified: ms,
+            content_type: "text/markdown".to_string(),
+            size: 0,
+            perm: "rw".to_string(),
+        };
+        state
+            .space
+            .write_file("x.md", b"same", Some(&meta_at(1_700_000_000_000)))
+            .unwrap();
+        let get = |headers: Vec<(&'static str, String)>| {
+            let mut req = Request::builder()
+                .uri("/.fs/x.md")
+                .header("accept", "application/octet-stream");
+            for (name, value) in headers {
+                req = req.header(name, value);
+            }
+            crate::build_router(state.clone()).oneshot(req.body(Body::empty()).unwrap())
+        };
+        let r1 = get(vec![]).await.unwrap();
+        let etag = r1
+            .headers()
+            .get("etag")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        state
+            .space
+            .write_file("x.md", b"same", Some(&meta_at(1_700_000_005_000)))
+            .unwrap();
+        let fresh = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/x.md")
+                    .header("X-Get-Meta", "true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let fresh_header = |name: &str| {
+            fresh
+                .headers()
+                .get(name)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string()
+        };
+
+        for revalidation in [
+            vec![("if-none-match", etag.clone())],
+            vec![(
+                "if-modified-since",
+                crate::handlers::http_date(1_700_000_005_000),
+            )],
+        ] {
+            let r = get(revalidation).await.unwrap();
+            assert_eq!(r.status(), StatusCode::NOT_MODIFIED);
+            for name in [
+                "x-last-modified",
+                "x-created",
+                "x-content-length",
+                "x-permission",
+            ] {
+                assert_eq!(
+                    r.headers()
+                        .get(name)
+                        .map(|v| v.to_str().unwrap().to_string()),
+                    Some(fresh_header(name)),
+                    "{name}"
+                );
+            }
+            assert!(r.headers().get("content-type").is_none());
+        }
     }
 
     #[tokio::test]

@@ -101,5 +101,14 @@ pub trait RuntimeBackend: Send + Sync {
 
     /// Whether the client runtime is ready to evaluate.
     fn ready(&self) -> bool;
+    /// False while the runtime API is switched off (the admin toggle): the
+    /// endpoints then answer "not enabled".
+    fn enabled(&self) -> bool {
+        true
+    }
     fn shutdown(&self) {}
+    /// Like `shutdown`, but keeps the browser profile for the next runtime.
+    fn shutdown_keep_profile(&self) {
+        self.shutdown()
+    }
 }

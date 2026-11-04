@@ -84,11 +84,20 @@ fn is_single_file(space: &SpaceConfig) -> bool {
     space.extra.get("ephemeral").is_some_and(|v| !v.is_null())
 }
 
-/// Index of the space named `name` (or registered at folder path `name`).
+/// Index of the space `name` selects: a name, an id, or a registered folder path.
 pub fn find_space_index(cfg: &Config, name: &str) -> Result<usize, String> {
+    if let Some(idx) = cfg
+        .spaces
+        .iter()
+        .position(|s| !s.folder_path.is_empty() && s.folder_path == name)
+        .filter(|_| !cfg.spaces.iter().any(|s| s.name == name))
+    {
+        return Ok(idx);
+    }
+    let found = crate::config::find_space(cfg, name)?;
     cfg.spaces
         .iter()
-        .position(|s| s.name == name || (!s.folder_path.is_empty() && s.folder_path == name))
+        .position(|s| std::ptr::eq(s, found))
         .ok_or_else(|| format!("space {name:?} not found"))
 }
 
@@ -917,7 +926,7 @@ mod tests {
             }],
         };
         let err = remove_space(&mut cfg, "nonexistent", &|_| false).unwrap_err();
-        assert!(err.contains("not found"), "error was: {err}");
+        assert!(err.contains("is not available"), "error was: {err}");
     }
 
     #[test]
@@ -1217,7 +1226,7 @@ mod tests {
         assert!(rename_space(&mut cfg, "harbor", "  ").is_err());
         assert!(rename_space(&mut cfg, "nope", "x")
             .unwrap_err()
-            .contains("not found"));
+            .contains("is not available"));
         rename_space(&mut cfg, "harbor", "harbor-old").unwrap();
         assert_eq!(cfg.spaces[0].id, "1");
         assert_eq!(cfg.spaces[0].name, "harbor-old");

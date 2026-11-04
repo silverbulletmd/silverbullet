@@ -42,7 +42,7 @@ mod index_root;
 pub mod policy;
 pub mod report;
 
-pub use events::{change_events, WriteEvents};
+pub use events::{change_events, index_status, WriteEvents};
 pub use index_root::RemovalGuard;
 pub use policy::{folder_pages, RemoveModelError, SemanticChoice, SemanticSpaceState, SpaceToOpen};
 pub use report::{
@@ -102,6 +102,27 @@ pub(crate) fn engine(
     ));
     let space = service.attach(id, name, location, view.clone(), semantic_feed);
     Arc::new(SemanticBackend::new(fulltext, space, view))
+}
+
+/// A space's own pages as its indexes read them (no bundled fallback, the
+/// space's ignore rules applied) and the events that change them, for other
+/// readers that keep something derived from pages current.
+#[derive(Clone)]
+pub struct PageSource {
+    pub view: Arc<dyn SpaceView>,
+    events: broadcast::Sender<FsEvent>,
+}
+
+impl PageSource {
+    pub fn new(view: Arc<dyn SpaceView>, events: broadcast::Sender<FsEvent>) -> Self {
+        Self { view, events }
+    }
+
+    /// The changes from now on, with [`silverbullet_server_search::FeedEvent::Rescan`]
+    /// when some were missed. Must be called inside a tokio runtime.
+    pub fn feed(&self) -> silverbullet_server_search::ChangeFeed {
+        change_feed(self.events.subscribe())
+    }
 }
 
 /// Full-text search over a space that isn't one of a [`SpaceSearch`]'s

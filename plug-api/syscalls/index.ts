@@ -189,6 +189,13 @@ export function ensureFullIndex(): Promise<void> {
   return syscall("index.ensureFullIndex");
 }
 
+/**
+ * Detects files changed outside this client and waits until they are indexed
+ */
+export function awaitPendingChanges(): Promise<void> {
+  return syscall("index.awaitPendingChanges");
+}
+
 export function reindexSpace(): Promise<void> {
   return syscall("index.reindexSpace");
 }

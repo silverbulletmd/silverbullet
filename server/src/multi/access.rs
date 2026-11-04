@@ -5,7 +5,11 @@ use std::sync::Arc;
 use crate::auth::config::{
     DEFAULT_LOCKOUT_LIMIT, DEFAULT_LOCKOUT_TIME_SECS, DEFAULT_REMEMBER_ME_HOURS,
 };
-use crate::auth::{AuthContext, AuthOutcome, Credentials, LockoutTimer, RequestAuthorizer};
+use axum::http::HeaderMap;
+
+use crate::auth::{
+    AuthContext, AuthOutcome, Authenticator, Credentials, LockoutTimer, RequestAuthorizer,
+};
 use crate::multi::users::UserStore;
 
 /// Session policy shared by the `users.json`-backed surfaces
@@ -83,6 +87,22 @@ impl Credentials for SpaceUsersAuth {
     fn record_login(&self, username: &str) -> Result<(), String> {
         self.store.record_login(username)
     }
+}
+
+/// The account signed in through the server-wide browser cookie for the
+/// request's host, if its session is still current (user enabled, password
+/// unchanged, session not revoked).
+pub fn signed_in_user(
+    authenticator: &Authenticator,
+    users: &UserStore,
+    headers: &HeaderMap,
+) -> Option<String> {
+    let cookie = crate::auth::scoped_auth_cookie_name(&crate::auth::request_host(headers), "");
+    let token = crate::auth::cookie_value(headers, &cookie)?;
+    let claims = authenticator.verify_browser_jwt(&token).ok()?;
+    users
+        .session_is_current(&claims.username, claims.credential_version.as_deref())
+        .then_some(claims.username)
 }
 
 /// Account credentials without an authorization check. Used by the unified

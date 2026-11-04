@@ -1,19 +1,21 @@
 use clap::{Args, Parser, Subcommand};
 
 pub const OVERVIEW: &str = r#"Command guide:
+  Help: help — spaces, skills and how to use them; help <topic> reads a skill.
   Files: fs ls, read, stat, write, edit, rm — work on the space's files directly.
-  Lua and queries: eval, script, query, logs, screenshot — run inside the connected space.
+  Lua and queries: lua, query, logs, screenshot — run inside the connected space.
   Search: search, related — full-text and semantic search over the space's pages.
   Connections: space add, login, ls, rm.
   SilverBullet Desktop: open, or sb <path> — open a local folder or file.
   CLI maintenance: version, upgrade, upgrade-edge.
 
 Getting started:
+  sb help                                              # spaces, skills and how to use them
   sb space add
   sb space add https://notes.example.com --auth browser --no-browser   # no prompts
   sb --space notes fs ls
   sb fs read 'Projects/Launch.md'
-  sb query 'from tags.page select name' --json
+  sb query 'from p = index.pages() select p.name limit 10' --json
   sb search 'garden irrigation' --limit 5
 
 Select a saved connection with --space (optional when only one exists), or use
@@ -29,19 +31,19 @@ Explore your space:
 
   Tags and their fields
     sb query 'from t = index.tags() select t.name'
-    sb eval 'index.tagSchema("page")'
+    sb lua 'index.tagSchema("page")'
   Lua API
-    sb eval 'table.keys(_G)'                           # global names, namespaces included
-    sb eval 'spacelua.listFunctions()'                 # documented global functions
-    sb eval 'spacelua.listFunctions("editor")'         # functions in a namespace
-    sb eval 'spacelua.describe("editor.getText")'      # one function's signature and docs
-    sb eval 'spacelua.renderApiDocumentation("index")' --text   # Markdown; --text prints it as is
-    sb eval 'system.reboot()'                          # pick up edited Space Lua, styles and config
+    sb lua 'table.keys(_G)'                            # global names, namespaces included
+    sb lua 'spacelua.listFunctions()'                  # documented global functions
+    sb lua 'spacelua.listFunctions("editor")'          # functions in a namespace
+    sb lua 'spacelua.describe("editor.getText")'       # one function's signature and docs
+    sb lua 'spacelua.renderApiDocumentation("index")' --text   # Markdown; --text prints it as is
+    sb lua 'system.reboot()'                           # after changing files outside sb
   Checking pages
-    sb eval 'space.lint("Page")'                       # YAML, Lua and widget errors on a page
-    sb eval 'space.lint()'                             # the same for every page
+    sb lua 'space.lint("Page")'                        # YAML, Lua and widget errors on a page
+    sb lua 'space.lint()'                              # the same for every page
   Commands
-    sb eval 'system.listCommands()'
+    sb lua 'system.listCommands()'
   Query syntax
     sb fs read 'Library/Std/Docs/SLIQ Reference.md'"#;
 
@@ -50,7 +52,7 @@ pub const COMPACT_HINT: &str =
     "Run sb --help to see how to explore your space's tags, Lua API and commands.";
 
 #[derive(Parser)]
-#[command(name = "sb", version = crate::VERSION, about = "SilverBullet CLI — work with your spaces", long_about = "SilverBullet CLI — read and edit remote files, run Lua, and query your space.", after_help = COMPACT_HINT, after_long_help = OVERVIEW)]
+#[command(name = "sb", version = crate::VERSION, disable_help_subcommand = true, about = "SilverBullet CLI — work with your spaces", long_about = "SilverBullet CLI — read and edit remote files, run Lua, and query your space.", after_help = COMPACT_HINT, after_long_help = OVERVIEW)]
 pub struct Cli {
     #[command(flatten)]
     pub global: GlobalFlags,
@@ -115,6 +117,14 @@ pub enum Command {
         after_long_help = "Examples:\n  sb space add\n  sb space add ./notes\n  sb space add https://notes.example.com\n  sb space add https://notes.example.com --name work --auth token < token.txt\n  sb space ls\n  sb space login notes\n  sb space rm notes\n\nRemoving a saved connection does not delete its files."
     )]
     Space(SpaceCmd),
+    /// List spaces, skills and the selected space's outline, or read a skill.
+    #[command(
+        after_long_help = "Without a topic, lists your saved spaces, how the operations skills name map to sb commands, the selected space's skills (its own, its libraries' and the built-in ones) and an outline of its folders, pages and frontmatter data. Without a selected space, lists the built-in skills.\n\nWith a topic, prints that skill: a skill of the selected space (by page name, or the last part of it), otherwise a page of that name, otherwise a skill whose page name contains the topic. Topic words are joined with spaces, so no quotes are needed. Without a selected space, only the built-in skills are searched.\n\nWorks without the Lua runtime. For a folder space, sb starts its server when needed. When the space cannot be reached, or its server is older than this sb, the built-in skills are listed instead, with a note. --json prints the data instead of text.\n\nThis is not flag help: run sb <command> --help for a command's flags.\n\nExamples:\n  sb help\n  sb --space notes help\n  sb help Querying\n  sb help Space Lua"
+    )]
+    Help {
+        /// Skill or page name; several words are joined with spaces.
+        topic: Vec<String>,
+    },
     /// Print the version.
     #[command(
         after_long_help = "Prints the installed CLI version without connecting to a space.\n\nExample: sb version"
@@ -129,23 +139,13 @@ pub enum CoreCommand {
     /// Read and modify remote space files directly.
     #[command(subcommand, after_long_help = crate::fs_cli::OVERVIEW)]
     Fs(crate::fs_cli::FsCommand),
-    /// Evaluate a Lua expression.
+    /// Run Space Lua: an expression or a script (from arg, --file, or stdin).
     #[command(
-        after_long_help = "Runs in the connected space and prints the expression result.\n\nExamples:\n  sb eval '1 + 1'\n  sb eval 'space.readPage(\"index\")' --json\n  sb eval 'system.reboot()'   # pick up edited Space Lua, styles and config\n\nExplore the Lua API and commands:\n  sb eval 'table.keys(_G)'\n  sb eval 'spacelua.listFunctions()'\n  sb eval 'spacelua.listFunctions(\"editor\")'\n  sb eval 'spacelua.describe(\"editor.getText\")'\n  sb eval 'spacelua.renderApiDocumentation(\"index\")' --text\n  sb eval 'system.listCommands()'"
+        visible_aliases = ["eval", "script"],
+        after_long_help = "Runs in the connected space and prints the result. Supply inline code or --file; omit both to read stdin.\n\nCode that starts with a statement keyword (return, local, for, if, while, repeat, function, do, goto, break) runs as a script; return a value to print it. Anything else is evaluated as an expression first, and runs as a script only when it does not parse as one, so code never runs twice. When both fail, both errors are shown.\n\nBefore running, the space catches its index up with recent file changes; when that is not certain, a note goes to stderr. Console output logged during the call also goes to stderr, so stdout holds only the result.\n\nExamples:\n  sb lua '1 + 1'\n  sb lua 'space.readPage(\"index\")' --json\n  sb lua 'return 40 + 2'\n  sb lua --file sample.lua\n  printf 'return 42\\n' | sb lua\n  sb lua 'system.reboot()'   # after changing files outside sb\n\nExplore the Lua API and commands:\n  sb lua 'table.keys(_G)'\n  sb lua 'spacelua.listFunctions()'\n  sb lua 'spacelua.listFunctions(\"editor\")'\n  sb lua 'spacelua.describe(\"editor.getText\")'\n  sb lua 'spacelua.renderApiDocumentation(\"index\")' --text\n  sb lua 'system.listCommands()'"
     )]
-    Eval {
-        /// Lua expression to evaluate (quote it for your shell).
-        expression: String,
-    },
-    /// (hidden) alias of eval.
-    #[command(hide = true)]
-    Lua { expression: String },
-    /// Run a Lua script (from arg, --file, or stdin).
-    #[command(
-        after_long_help = "Runs in the connected space. Supply inline code or --file; omit both to read stdin. Return a value to print a result.\n\nExamples:\n  sb script 'return 40 + 2'\n  sb script --file sample.lua\n  printf 'return 42\\n' | sb script"
-    )]
-    Script {
-        /// Inline Lua code; omit to read stdin.
+    Lua {
+        /// Inline Lua code (quote it for your shell); omit to read stdin.
         code: Option<String>,
         /// Local Lua source file (not a remote space path).
         #[arg(short = 'f', long, conflicts_with = "code")]
@@ -156,7 +156,7 @@ pub enum CoreCommand {
     LuaScript { file: Option<String> },
     /// Run a SLIQ query.
     #[command(
-        after_long_help = "Runs in the connected space.\n\nExample:\n  sb query 'from tags.page select name' --json\n\nQuoting: wrap the query in single quotes and use double quotes inside it:\n  sb query 'from p = index.pages(\"book\") where p.status == \"reading\" select {name=p.name}'\nIf the query itself contains a single quote, pass it through a quoted heredoc:\n  sb query \"$(cat <<'EOF'\nfrom p = index.pages() where p.name == \"Bob's Notes\" select p.name\nEOF\n)\"\n\nExplore tags, their fields and the query syntax:\n  sb query 'from t = index.tags() select t.name'\n  sb eval 'index.tagSchema(\"page\")'\n  sb fs read 'Library/Std/Docs/SLIQ Reference.md'"
+        after_long_help = "Runs in the connected space, after its index catches up with recent file changes, like sb lua.\n\nExample:\n  sb query 'from p = index.pages() select p.name limit 10' --json\n\nQuoting: wrap the query in single quotes and use double quotes inside it:\n  sb query 'from p = index.pages(\"book\") where p.status == \"reading\" select {name=p.name}'\nIf the query itself contains a single quote, pass it through a quoted heredoc:\n  sb query \"$(cat <<'EOF'\nfrom p = index.pages() where p.name == \"Bob's Notes\" select p.name\nEOF\n)\"\n\nExplore tags, their fields and the query syntax:\n  sb query 'from t = index.tags() select t.name'\n  sb lua 'index.tagSchema(\"page\")'\n  sb fs read 'Library/Std/Docs/SLIQ Reference.md'"
     )]
     Query {
         /// SLIQ query expression, quoted for your shell.
@@ -205,7 +205,7 @@ pub enum CoreCommand {
     },
     /// Capture a PNG screenshot of the runtime client.
     #[command(
-        after_long_help = "Captures the connected space's current client viewport, or one element with --selector. --full-page captures the whole current page, not just the first screen: it scrolls the editor one screen at a time, waits for each screen to render, and stitches the screens into one PNG (the top bar appears once, at the top). Very long pages stop after about 12000 pixels and print a note on stderr. Navigate first with eval, then wait until the page has finished rendering its widgets and queries. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb eval 'editor.navigate(\"index\")'\n  sb eval 'editor.awaitRender()'\n  sb screenshot\n  sb screenshot page.png --full-page\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
+        after_long_help = "Captures the connected space's current client viewport, or one element with --selector. --full-page captures the whole current page, not just the first screen: it scrolls the editor one screen at a time, waits for each screen to render, and stitches the screens into one PNG (the top bar appears once, at the top). Very long pages stop after about 12000 pixels and print a note on stderr. --page opens a page first and waits until the editor shows it. For a page whose widgets and queries take long to render, navigate and wait with sb lua instead, as below. Like sb lua, it first lets the index catch up with recent file changes. On SilverBullet Desktop this captures the space's visible editor window.\n\nExamples:\n  sb screenshot --page index\n  sb lua 'editor.navigate(\"index\")'\n  sb lua 'editor.awaitRender()'\n  sb screenshot\n  sb screenshot page.png --full-page\n  sb screenshot widget.png --selector '#sb-main .sb-lua-top-widget'\n  sb screenshot - > page.png"
     )]
     Screenshot {
         /// Output PNG path, or - for stdout.
@@ -217,6 +217,9 @@ pub enum CoreCommand {
         /// Capture the whole page by scrolling, stitched into one PNG.
         #[arg(long)]
         full_page: bool,
+        /// Page to open before capturing.
+        #[arg(long)]
+        page: Option<String>,
     },
     /// Upgrade to the latest release.
     #[command(
@@ -411,14 +414,26 @@ mod tests {
             ],
             vec!["sb", "fs", "edit", "Draft.md", "--file", "-"],
             vec!["sb", "fs", "rm", "Draft.md"],
+            vec!["sb", "lua", "return 40 + 2"],
+            vec!["sb", "lua", "--file", "sample.lua"],
             vec!["sb", "eval", "1 + 1"],
             vec!["sb", "script", "--file", "sample.lua"],
-            vec!["sb", "query", "from tags.page select name", "--json"],
+            vec![
+                "sb",
+                "query",
+                "from p = index.pages() select p.name limit 10",
+                "--json",
+            ],
+            vec!["sb", "screenshot", "--page", "index"],
             vec!["sb", "logs", "--follow"],
             vec!["sb", "search", "garden irrigation", "--mode", "phrase"],
             vec!["sb", "search", "garden", "--limit", "5", "--json"],
             vec!["sb", "search", "--status", "--json"],
             vec!["sb", "related", "Projects/Launch", "--limit", "5"],
+            vec!["sb", "help"],
+            vec!["sb", "--space", "notes", "help"],
+            vec!["sb", "help", "Querying"],
+            vec!["sb", "help", "Space", "Lua"],
         ] {
             assert!(Cli::try_parse_from(&args).is_ok(), "{args:?}");
         }
@@ -595,7 +610,7 @@ mod tests {
     fn lua_and_logs_remain_supported() {
         assert!(matches!(
             Cli::try_parse_from(["sb", "lua", "1 + 1"]).unwrap().command,
-            Some(Command::Core(CoreCommand::Lua { .. }))
+            Some(Command::Core(CoreCommand::Lua { code: Some(ref c), file: None })) if c == "1 + 1"
         ));
         assert!(matches!(
             Cli::try_parse_from(["sb", "logs", "--follow"])
@@ -606,11 +621,75 @@ mod tests {
     }
 
     #[test]
+    fn lua_eval_and_script_parse_to_one_command() {
+        let parsed = |args: &[&str]| match Cli::try_parse_from(args).unwrap().command {
+            Some(Command::Core(CoreCommand::Lua { code, file })) => (code, file),
+            _ => panic!("{args:?} is not sb lua"),
+        };
+        assert_eq!(
+            parsed(&["sb", "lua", "return 1"]),
+            (Some("return 1".to_owned()), None)
+        );
+        assert_eq!(
+            parsed(&["sb", "eval", "1 + 1"]),
+            (Some("1 + 1".to_owned()), None)
+        );
+        assert_eq!(
+            parsed(&["sb", "script", "--file", "sample.lua"]),
+            (None, Some("sample.lua".to_owned()))
+        );
+        assert_eq!(parsed(&["sb", "script"]), (None, None));
+        assert_eq!(
+            parsed(&["sb", "lua", "-f", "sample.lua"]),
+            (None, Some("sample.lua".to_owned()))
+        );
+        assert!(Cli::try_parse_from(["sb", "lua", "1", "--file", "sample.lua"]).is_err());
+        let help = Cli::try_parse_from(["sb", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(
+            help.contains("lua") && help.contains("[aliases: eval, script]"),
+            "{help}"
+        );
+    }
+
+    #[test]
+    fn lua_script_hidden_alias_still_takes_a_file() {
+        assert!(matches!(
+            Cli::try_parse_from(["sb", "lua-script", "sample.lua"]).unwrap().command,
+            Some(Command::Core(CoreCommand::LuaScript { file: Some(ref f) })) if f == "sample.lua"
+        ));
+        let help = Cli::try_parse_from(["sb", "--help"])
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(!help.contains("lua-script"), "{help}");
+    }
+
+    #[test]
+    fn screenshot_takes_a_page() {
+        let cli = Cli::try_parse_from([
+            "sb",
+            "screenshot",
+            "--page",
+            "Projects/Launch",
+            "--full-page",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Core(CoreCommand::Screenshot { page: Some(ref p), full_page: true, .. }))
+                if p == "Projects/Launch"
+        ));
+    }
+
+    #[test]
     fn screenshot_defaults_file_and_accepts_selector() {
         let cli = Cli::try_parse_from(["sb", "screenshot", "--selector", "#sb-top"]).unwrap();
         assert!(matches!(
             cli.command,
-            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s), full_page: false }))
+            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: Some(ref s), full_page: false, page: None }))
                 if file == "screenshot.png" && s == "#sb-top"
         ));
     }
@@ -620,7 +699,7 @@ mod tests {
         let cli = Cli::try_parse_from(["sb", "screenshot", "out.png", "--full-page"]).unwrap();
         assert!(matches!(
             cli.command,
-            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: None, full_page: true }))
+            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: None, full_page: true, page: None }))
                 if file == "out.png"
         ));
     }
@@ -668,25 +747,52 @@ mod tests {
         assert!(!root.contains("sb describe"), "{root}");
         assert!(!root.contains("Runtime API"), "{root}");
         assert!(!root.contains(COMPACT_HINT), "{root}");
+        assert!(!root.contains("tags."), "{root}");
+        assert!(!root.contains("sb eval"), "{root}");
+        assert!(root.contains("sb help "), "{root}");
+        assert!(
+            root.contains("sb query 'from p = index.pages() select p.name limit 10'"),
+            "{root}"
+        );
+    }
+
+    #[test]
+    fn help_is_a_command_and_dash_help_is_flags() {
+        assert!(matches!(
+            Cli::try_parse_from(["sb", "help"]).unwrap().command,
+            Some(Command::Help { ref topic }) if topic.is_empty()
+        ));
+        let err = Cli::try_parse_from(["sb", "--help"]).err().unwrap();
+        assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp);
+        let err = Cli::try_parse_from(["sb", "fs", "--help"]).err().unwrap();
+        assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp);
+    }
+
+    #[test]
+    fn help_joins_topic_words() {
+        match Cli::try_parse_from(["sb", "help", "Space", "Lua"])
+            .unwrap()
+            .command
+        {
+            Some(Command::Help { topic }) => assert_eq!(topic, ["Space", "Lua"]),
+            _ => panic!("not sb help"),
+        }
     }
 
     #[test]
     fn help_shows_reboot_after_editing_lua_styles_and_config() {
-        let line = "sb eval 'system.reboot()'";
+        let line = "sb lua 'system.reboot()'";
         let root = Cli::try_parse_from(["sb", "--help"])
             .err()
             .unwrap()
             .to_string();
         assert!(root.contains(line), "{root}");
-        assert!(
-            root.contains("# pick up edited Space Lua, styles and config"),
-            "{root}"
-        );
-        let eval = Cli::try_parse_from(["sb", "eval", "--help"])
+        assert!(root.contains("# after changing files outside sb"), "{root}");
+        let lua = Cli::try_parse_from(["sb", "eval", "--help"])
             .err()
             .unwrap()
             .to_string();
-        assert!(eval.contains(line), "{eval}");
+        assert!(lua.contains("sb lua 'system.reboot()'"), "{lua}");
     }
 
     #[test]
@@ -756,7 +862,7 @@ mod tests {
             .err()
             .unwrap()
             .to_string();
-        assert!(root.contains("sb eval 'space.lint(\"Page\")'"), "{root}");
-        assert!(root.contains("sb eval 'space.lint()'"), "{root}");
+        assert!(root.contains("sb lua 'space.lint(\"Page\")'"), "{root}");
+        assert!(root.contains("sb lua 'space.lint()'"), "{root}");
     }
 }

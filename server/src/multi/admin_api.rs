@@ -15,6 +15,7 @@ use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::auth::mcp::grants::GrantStore;
 use crate::auth::oidc::store::ProviderStore;
 use crate::auth::{Authenticator, JwtAuthorizer, RequestAuthorizer};
 use crate::multi::access::UserTokenAuthorizer;
@@ -36,6 +37,22 @@ pub struct AdminState {
     /// Server-wide, resolved at startup — see `RuntimeAvailability`.
     pub runtime_availability: crate::runtime::RuntimeAvailability,
     pub provider_store: Option<Arc<ProviderStore>>,
+    pub mcp_grants: Option<Arc<GrantStore>>,
+    pub mcp_availability: McpAvailability,
+}
+
+/// Whether MCP can run at all on this server, independent of the admin
+/// toggle. Serialized like `RuntimeAvailability`: `{"status": "available"}`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum McpAvailability {
+    Available,
+    /// Turned off server-wide with `SB_MCP=0`.
+    DisabledByEnv,
+    /// The grant or client store could not be loaded, so MCP is off.
+    Failed {
+        message: String,
+    },
 }
 
 impl AdminState {
@@ -95,7 +112,20 @@ impl AdminState {
             users,
             runtime_availability,
             provider_store: None,
+            mcp_grants: None,
+            mcp_availability: McpAvailability::Available,
         }
+    }
+
+    pub fn with_mcp_availability(mut self, availability: McpAvailability) -> Self {
+        self.mcp_availability = availability;
+        self
+    }
+
+    pub fn with_mcp(mut self, grants: Arc<GrantStore>, availability: McpAvailability) -> Self {
+        self.mcp_grants = Some(grants);
+        self.mcp_availability = availability;
+        self
     }
 
     pub fn with_provider_store(mut self, provider_store: Arc<ProviderStore>) -> Self {
@@ -176,7 +206,7 @@ async fn manage_runtime(state: Arc<AdminState>, id: String, reset: bool) -> Resp
 }
 
 async fn handle_server_config(State(state): State<Arc<AdminState>>) -> Response {
-    Json(json!({ "primaryUrl": state.manager.primary_url(), "serverName": state.manager.server_name(), "runtimeApi": state.manager.runtime_enabled() })).into_response()
+    Json(json!({ "primaryUrl": state.manager.primary_url(), "serverName": state.manager.server_name(), "runtimeApi": state.manager.runtime_enabled(), "runtimeIdleTimeout": state.manager.runtime_idle_timeout(), "mcp": state.manager.mcp_enabled() })).into_response()
 }
 
 async fn handle_set_server_config(
@@ -219,10 +249,48 @@ async fn handle_set_server_config(
             }
         },
     };
-    match state
+    let mcp = match value.get("mcp") {
+        None => None,
+        Some(value) => match value.as_bool() {
+            Some(enabled) => Some(enabled),
+            None => {
+                return api_error(ApiError::Validation(vec![
+                    crate::multi::validate::FieldError {
+                        field: "mcp".into(),
+                        message: "mcp must be a boolean".into(),
+                    },
+                ]))
+            }
+        },
+    };
+    let runtime_idle_timeout = match value.get("runtimeIdleTimeout") {
+        None => None,
+        // Checked before anything is saved, so a bad value changes nothing.
+        Some(value) => match value.as_u64() {
+            Some(minutes) if minutes <= crate::multi::server_config::MAX_RUNTIME_IDLE_TIMEOUT => {
+                Some(minutes)
+            }
+            _ => {
+                return api_error(ApiError::Validation(vec![
+                    crate::multi::validate::FieldError {
+                        field: "runtimeIdleTimeout".into(),
+                        message: format!(
+                            "runtimeIdleTimeout must be a whole number of minutes from 0 to {}",
+                            crate::multi::server_config::MAX_RUNTIME_IDLE_TIMEOUT
+                        ),
+                    },
+                ]))
+            }
+        },
+    };
+    let result = state
         .manager
-        .set_server_config(fields[0], fields[1], runtime_api)
-    {
+        .set_server_config(fields[0], fields[1], runtime_api, mcp)
+        .and_then(|()| match runtime_idle_timeout {
+            Some(minutes) => state.manager.set_runtime_idle_timeout(minutes),
+            None => Ok(()),
+        });
+    match result {
         Ok(()) => handle_server_config(State(state)).await,
         Err(error) => api_error(error),
     }
@@ -768,16 +836,33 @@ async fn handle_delete_user(
     state.manager.revoke_user_runtime(&name);
     let manager = state.manager.clone();
     let users_for_sweep = state.users.clone();
+    let name_for_revoke = name.clone();
     let name_for_sweep = name;
-    match run_blocking(move || {
+    let swept = run_blocking(move || {
         let new_known_users = users_for_sweep.usernames();
         Ok(manager.remove_member_everywhere(&name_for_sweep, new_known_users))
     })
-    .await
-    {
+    .await;
+    revoke_mcp_grants(&state, name_for_revoke).await;
+    match swept {
         Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+/// Drops `name`'s MCP grants after a change that already invalidates them
+/// (deletion, new password, sign-out everywhere, disabling), so Connected
+/// apps and the grant caps stop counting them. They are refused on use
+/// either way, so a store that cannot revoke must not fail the change.
+async fn revoke_mcp_grants(state: &AdminState, name: String) {
+    let Some(grants) = state.mcp_grants.clone() else {
+        return;
+    };
+    match run_blocking(move || Ok(grants.revoke_for_user(&name))).await {
+        Ok(Ok(_)) => {}
+        Ok(Err(e)) => tracing::error!("could not revoke MCP grants: {e}"),
+        Err(_) => tracing::error!("MCP grant revocation task failed"),
     }
 }
 
@@ -798,6 +883,7 @@ async fn handle_set_user_password(
         Ok(Ok(())) => {
             state.manager.revoke_user_runtime(&runtime_user);
             state.manager.set_known_users(state.users.usernames());
+            revoke_mcp_grants(&state, runtime_user).await;
             Json(json!({ "status": "ok" })).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
@@ -817,6 +903,7 @@ async fn handle_delete_sessions(
     match result {
         Ok(Ok(())) => {
             state.manager.revoke_user_runtime(&runtime_user);
+            revoke_mcp_grants(&state, runtime_user).await;
             Json(json!({ "status": "ok" })).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
@@ -863,6 +950,9 @@ async fn handle_set_disabled(
     match run_blocking(move || Ok(users.set_disabled(&name, body.disabled))).await {
         Ok(Ok(())) => {
             state.manager.revoke_user_runtime(&runtime_user);
+            if body.disabled {
+                revoke_mcp_grants(&state, runtime_user).await;
+            }
             Json(json!({ "status": "ok" })).into_response()
         }
         Ok(Err(e)) => user_store_error(e),
@@ -926,6 +1016,40 @@ async fn handle_fs_dirs(
     }
 }
 
+async fn handle_list_mcp_grants(State(state): State<Arc<AdminState>>) -> Response {
+    let Some(grants) = state.mcp_grants.clone() else {
+        return Json(json!([])).into_response();
+    };
+    let manager = state.manager.clone();
+    match run_blocking(move || Ok(super::dashboard::grants_json(&manager, grants.list_all()))).await
+    {
+        Ok(list) => Json(list).into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+async fn handle_revoke_mcp_grant(
+    State(state): State<Arc<AdminState>>,
+    headers: axum::http::HeaderMap,
+    AxumPath(id): AxumPath<String>,
+) -> Response {
+    if !crate::auth::browser_sessions::logout_allowed(&headers) {
+        return (StatusCode::FORBIDDEN, "Cross-origin request refused").into_response();
+    }
+    let Some(grants) = state.mcp_grants.clone() else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    match run_blocking(move || Ok(grants.revoke(&id))).await {
+        Ok(Ok(true)) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(false)) => StatusCode::NOT_FOUND.into_response(),
+        Ok(Err(e)) => {
+            tracing::error!("could not revoke MCP grant: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Could not revoke grant").into_response()
+        }
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
     let search_model = state
         .manager
@@ -935,6 +1059,8 @@ async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
     Json(json!({
         "runtimeApi": state.runtime_availability,
         "runtimeApiEnabled": state.manager.runtime_enabled(),
+        "mcp": state.mcp_availability.clone(),
+        "mcpEnabled": state.manager.mcp_enabled(),
         "primaryUrl": state.manager.primary_url(),
         "searchModel": search_model,
     }))
@@ -1023,6 +1149,11 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
         )
         .merge(super::git_connection::routes())
         .merge(super::search_admin::routes())
+        .route("/mcp/grants", get(handle_list_mcp_grants))
+        .route(
+            "/mcp/grants/{id}",
+            axum::routing::delete(handle_revoke_mcp_grant),
+        )
         .route("/spaces/{id}/git", get(handle_git_status))
         .route(
             "/spaces/{id}/git/remote",
@@ -1090,6 +1221,7 @@ pub(crate) mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
 
+    mod mcp_grants;
     mod semantic_size;
     mod server_config;
 
@@ -1109,6 +1241,8 @@ pub(crate) mod tests {
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),
             },
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            runtime_availability: crate::runtime::RuntimeAvailability::Available,
+            runtime_idle_timeout: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Accounts {

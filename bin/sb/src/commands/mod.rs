@@ -1,9 +1,9 @@
-pub mod eval;
 pub mod fs;
+pub mod help;
 pub mod logs;
+pub mod lua;
 pub mod query;
 pub mod screenshot;
-pub mod script;
 pub mod search;
 pub mod space;
 pub mod space_move;

@@ -11,7 +11,9 @@ workspace = true
 silverbullet-server-common = { path = "../server-common" }
 silverbullet-server-merge = { path = "../server-merge" }
 silverbullet-server-search = { path = "../server-search" }
+silverbullet-space-tools = { path = "../space-tools" }
 axum = { workspace = true }
+async-trait = { workspace = true }
 tower-http = { workspace = true, features = ["compression-gzip", "compression-br"] }
 tokio = { workspace = true, features = ["time"] }
 serde_json = { workspace = true }
@@ -25,6 +27,7 @@ reqwest = { workspace = true }
 regex = { workspace = true }
 chrono = { workspace = true }
 percent-encoding = { workspace = true }
+form_urlencoded = "1"
 pulldown-cmark = { workspace = true }
 minijinja = { workspace = true }
 prometheus = { workspace = true }

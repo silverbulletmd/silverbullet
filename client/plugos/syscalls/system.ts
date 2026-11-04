@@ -3,6 +3,7 @@ import type { Client } from "../../client.ts";
 import { version as publicVersion } from "../../../version.json";
 import type { CommandDef } from "@silverbulletmd/silverbullet/type/manifest";
 import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
+import { getLogger, type LogEntry } from "../../lib/logger.ts";
 import { loadAccounts, loadProfile } from "../../accounts.ts";
 import type {
   Account,
@@ -147,6 +148,25 @@ export function systemSyscalls(
       },
       description:
         "Lists registered syscalls with permissions, argument counts, and documentation metadata.",
+    },
+    "system.recentLogs": {
+      callback: (_ctx, limit?: number): LogEntry[] => {
+        const requested = Number(limit ?? 50);
+        const count = Number.isNaN(requested) ? 50 : requested;
+        const entries = getLogger()?.recentEntries ?? [];
+        return count > 0 ? entries.slice(-count) : [];
+      },
+      description:
+        "Returns the most recent client console entries, oldest first, as `{level, message, timestamp}` (timestamp in epoch milliseconds). `limit` defaults to 50.",
+      parameters: [
+        {
+          name: "limit",
+          type: "number",
+          description: "Maximum number of entries to return (default 50).",
+        },
+      ],
+      returns: [{ description: "Log entries in chronological order." }],
+      signatures: ["system.recentLogs(limit?)"],
     },
     "system.reloadPlugs": {
       callback: () => {

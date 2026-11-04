@@ -247,3 +247,70 @@ describe("EventedSpacePrimitives file:changed ownWrite flag", () => {
     ]);
   });
 });
+
+// The realtime stream probes each changed file; a probe that overlaps another
+// operation (say the indexer reading the previous file) skips its events.
+describe("EventedSpacePrimitives overlapping probes", () => {
+  test("a change seen by an overlapping probe is picked up by a deferred listing", async () => {
+    const { sp, events } = setup();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let listings = 0;
+    (sp as unknown as { wrapped: SpacePrimitives }).wrapped = {
+      readFile: async (path: string) => {
+        await gate;
+        return { data: new Uint8Array(), meta: meta(path, 1000) };
+      },
+      getFileMeta: async (path: string) => meta(path, 2000),
+      fetchFileList: async () => {
+        listings++;
+        return [meta("a.md", 1000), meta("b.md", 2000)];
+      },
+    } as unknown as SpacePrimitives;
+    await sp.enable();
+
+    const read = sp.readFile("a.md");
+    await sp.getFileMeta("b.md");
+    expect(fileChanged(events).map((e) => e.args[0])).not.toContain("b.md");
+
+    release();
+    await read;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(listings).toBe(1);
+    expect(fileChanged(events).map((e) => e.args[0])).toContain("b.md");
+  });
+
+  test("an overlapping probe of an unchanged file defers nothing", async () => {
+    const { sp } = setup();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let listings = 0;
+    (sp as unknown as { wrapped: SpacePrimitives }).wrapped = {
+      readFile: async (path: string) => {
+        await gate;
+        return { data: new Uint8Array(), meta: meta(path, 1000) };
+      },
+      getFileMeta: async (path: string) => meta(path, 2000),
+      fetchFileList: async () => {
+        listings++;
+        return [];
+      },
+    } as unknown as SpacePrimitives;
+    await sp.enable();
+    await sp.getFileMeta("b.md");
+
+    const read = sp.readFile("a.md");
+    await sp.getFileMeta("b.md");
+    release();
+    await read;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(listings).toBe(0);
+  });
+});

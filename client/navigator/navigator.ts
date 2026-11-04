@@ -294,6 +294,11 @@ export async function setViewCollapsed(
   await dockState.setCollapsed(name, collapsed);
 }
 
+/** Whether a view (the command palette, a picker) is open in the modal slot. */
+export function isModalOpen(): boolean {
+  return !!lifecycle.current("modal");
+}
+
 export function focusPanel(slot?: string): boolean {
   const selector = slot
     ? `.sb-nav-root[data-slot="${CSS.escape(slot)}"]`

@@ -222,7 +222,7 @@ mod tests {
             .issue(client("silverbullet-cli"), "Workshop".into(), 100)
             .unwrap();
         assert_eq!(
-            code(store.poll(&a.device_code, &client("other"), 100)),
+            code(store.poll(&a.device_code, &client("silverbullet-app"), 100)),
             "unauthorized_client"
         );
         assert_eq!(

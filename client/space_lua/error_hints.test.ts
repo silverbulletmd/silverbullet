@@ -318,7 +318,7 @@ test("a statement passed as an expression points at scripts", () => {
   // `sb eval` wraps its argument like this.
   const ev = (expr: string) => `return ${expr}`;
   expect(parseError(ev(`return #ops.services()`))).toBe(
-    "unexpected symbol near 'r'; hint: an expression is expected here and is returned already; drop the 'return', or run statements as a script (sb script)",
+    "unexpected symbol near 'r'; hint: an expression is expected here and is returned already; drop the 'return', or run statements as a script instead",
   );
   expect(
     parseError(
@@ -327,7 +327,7 @@ test("a statement passed as an expression points at scripts", () => {
       ),
     ),
   ).toBe(
-    "unexpected symbol near 'l'; hint: an expression is expected here, but 'local' starts a statement; run statements as a script (sb script)",
+    "unexpected symbol near 'l'; hint: an expression is expected here, but 'local' starts a statement; run statements as a script instead",
   );
 });
 

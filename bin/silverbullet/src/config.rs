@@ -30,7 +30,13 @@ pub struct Config {
     /// `SB_SEARCH_MODEL`: the catalog id of the model for semantic search;
     /// needs `search_dir`.
     pub search_model: Option<String>,
+    /// `SB_RUNTIME_IDLE_TIMEOUT`: minutes without a Runtime API request before
+    /// single-space mode stops the runtime; `0` never does.
+    pub runtime_idle_timeout: Option<u64>,
 }
+
+/// Minutes of inactivity after which a runtime stops, unless configured.
+pub const DEFAULT_RUNTIME_IDLE_MINUTES: u64 = 30;
 
 /// An env var read as a non-empty string.
 fn env_nonempty(key: &str) -> Option<String> {
@@ -118,6 +124,12 @@ impl Config {
             },
             search_dir: env_nonempty("SB_SEARCH_DIR"),
             search_model: env_nonempty("SB_SEARCH_MODEL"),
+            runtime_idle_timeout: match env_nonempty("SB_RUNTIME_IDLE_TIMEOUT") {
+                Some(value) => Some(value.trim().parse().map_err(|_| {
+                    format!("SB_RUNTIME_IDLE_TIMEOUT is not a number of minutes: {value}")
+                })?),
+                None => None,
+            },
         })
     }
 }

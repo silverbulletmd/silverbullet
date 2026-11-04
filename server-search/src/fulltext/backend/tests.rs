@@ -718,3 +718,29 @@ async fn a_rebuild_before_the_store_opens_is_unavailable() {
     ));
     assert_eq!(backend.report(), IndexReport::starting(IndexKind::FullText));
 }
+
+/// Events sent before the store opens only queue; `caught_up` waits for the
+/// worker to start and apply them.
+#[tokio::test(flavor = "multi_thread")]
+async fn caught_up_waits_for_the_store_and_then_the_feed() {
+    let view = TestView::with(GARDEN);
+    let (feed, rx) = mpsc::unbounded_channel();
+    let backend = FullTextBackend::new("test", Location::Memory, view.clone(), rx);
+    view.write("Kitchen/Pesto.md", "# Pesto\nPine nuts and parmesan.");
+    feed.send(FeedEvent::Changed("Kitchen/Pesto.md".into()))
+        .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    assert!(SearchBackend::caught_up(&backend, deadline).await);
+    let r = backend.query(req("parmesan", None), cx()).await.unwrap();
+    assert_eq!(r.total, 1);
+}
+
+#[tokio::test]
+async fn caught_up_of_a_store_that_never_opened_is_immediate() {
+    let backend = FullTextBackend::unopened(Arc::new(TestView::default()));
+    until("startup ended", || backend.startup.is_finished()).await;
+    let started = std::time::Instant::now();
+    let deadline = started + Duration::from_secs(5);
+    assert!(SearchBackend::caught_up(&backend, deadline).await);
+    assert!(started.elapsed() < Duration::from_secs(1));
+}

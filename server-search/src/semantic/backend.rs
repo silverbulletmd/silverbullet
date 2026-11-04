@@ -543,6 +543,12 @@ impl SearchBackend for SemanticBackend {
         vec![self.fulltext.report(), self.space.report()]
     }
 
+    /// The full-text index's only: embedding a change takes longer than a
+    /// caller should wait before a query.
+    fn caught_up<'a>(&'a self, deadline: std::time::Instant) -> BoxFut<'a, bool> {
+        self.fulltext.caught_up(deadline)
+    }
+
     /// The full-text index keeps answering from its old documents; the
     /// semantic index starts from no vectors, so Natural answers from Words
     /// and Related is unavailable until it is built again.

@@ -73,11 +73,11 @@ Open **Settings → Advanced** and choose a model under **Semantic search**. The
 # Space Lua and the command line
 The same search is available from [[Space Lua]] as `search.status()` and `search.find()`. See [[API/search]].
 
-From the command line, run it with `sb eval` (see [[CLI]]):
+From the command line, run it with `sb lua` (see [[CLI]]):
 
 ```bash
-sb eval 'search.find("garden plan")'
-sb eval 'search.find("flat tire", {mode = "phrase", limit = 10})'
+sb lua 'search.find("garden plan")'
+sb lua 'search.find("flat tire", {mode = "phrase", limit = 10})'
 ```
 
 The result is JSON with `items` (each with `page`, `line`, `excerpt` and more) and `total`.

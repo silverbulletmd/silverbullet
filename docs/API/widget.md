@@ -18,7 +18,7 @@ You don’t need a widget for most things. An expression renders whatever value 
 * A widget renders as that widget, and `..`, `table.concat` and templates can embed widgets (see [[#Combining widgets with text]]).
 * A bare DOM node renders like `widget.html(node)`.
 
-Expressions automatically re-run when a tracked dependency changes. See [[#When expressions update]] for the rule and exceptions. Reach for a widget when you need one of the following:
+A plain expression runs when the page opens, and again whenever something it read changes (see [[#When expressions update]]). Reach for a widget when you need one of the following:
 
 * Render as a block, or add CSS classes: `widget.new { markdown = ..., display = "block", cssClasses = {...} }`
 * Show text without running `${...}` or transclusions inside it: `evaluate = false`

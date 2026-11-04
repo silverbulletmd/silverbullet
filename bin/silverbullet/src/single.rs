@@ -114,6 +114,7 @@ pub(crate) async fn run_single(
 
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
 
+    let (runtime, runtime_availability) = crate::multi::space_runtime_factory(&root, true);
     let deps = InstanceDeps {
         root: root.clone(),
         assets: AssetFactories {
@@ -125,7 +126,14 @@ pub(crate) async fn run_single(
             }),
         },
         runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
-        runtime: crate::multi::space_runtime_factory(&root, true).0,
+        runtime_availability,
+        runtime_idle_timeout: Arc::new(std::sync::atomic::AtomicU64::new(
+            config
+                .runtime_idle_timeout
+                .unwrap_or(crate::config::DEFAULT_RUNTIME_IDLE_MINUTES)
+                .saturating_mul(60),
+        )),
+        runtime,
         metrics: metrics.clone(),
         auth: InstanceAuth::Single(auth),
         version: crate::VERSION.to_string(),
@@ -177,6 +185,24 @@ pub(crate) async fn run_single(
         Some(single_dashboard_info_router()),
         crate::VERSION.to_string(),
     );
+    // MCP and its OAuth surface are multi-space only; without this the space's
+    // SPA fallback would answer.
+    let router = [
+        "/.mcp",
+        "/.well-known/oauth-protected-resource",
+        "/.well-known/oauth-protected-resource/{*rest}",
+        "/.well-known/oauth-authorization-server",
+        "/.auth/mcp/{*rest}",
+        "/.auth/register",
+        "/.auth/revoke",
+    ]
+    .into_iter()
+    .fold(router, |router, path| {
+        router.route(
+            path,
+            axum::routing::any(|| async { axum::http::StatusCode::NOT_FOUND }),
+        )
+    });
     let router = if config.http_logging {
         router.layer(
             TraceLayer::new_for_http()
@@ -228,6 +254,7 @@ mod tests {
             revisions: silverbullet_server_common::RevisionsMode::Unmanaged,
             search_dir: None,
             search_model: None,
+            runtime_idle_timeout: None,
         }
     }
 

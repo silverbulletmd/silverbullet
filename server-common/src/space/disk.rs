@@ -13,7 +13,7 @@ use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
 /// A snapshot of a space's gitignore-style ignore rules, for checking whether
 /// paths are visible without rebuilding the matcher on every call. See
 /// [`DiskSpacePrimitives::gitignore_matcher`]. `Default` ignores nothing.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GitignoreMatcher(Option<ignore::gitignore::Gitignore>);
 
 impl GitignoreMatcher {

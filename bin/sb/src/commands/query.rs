@@ -1,25 +1,8 @@
-use std::io::Write;
-
-use crate::conn::SpaceConnection;
-use crate::output::OutputMode;
-
-use super::script;
+//! `sb query`: SLIQ wrapped as Space Lua; [`super::lua::run_query`] runs it.
 
 /// Wrap a SLIQ expression in `return query[[...]]`.
 pub fn wrap_query(sliq: &str) -> String {
     format!("return query[[{sliq}]]")
-}
-
-/// `query <sliq-expression>` — run a Space Lua Integrated Query.
-///
-/// Wraps `sliq` in `return query[[...]]` and delegates to [`script::run`].
-pub fn run(
-    conn: &SpaceConnection,
-    sliq: &str,
-    mode: OutputMode,
-    out: &mut dyn Write,
-) -> Result<(), String> {
-    script::run(conn, &wrap_query(sliq), mode, out)
 }
 
 #[cfg(test)]

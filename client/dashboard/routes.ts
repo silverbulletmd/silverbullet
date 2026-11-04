@@ -8,7 +8,7 @@ export const ADMIN_SECTIONS = {
   server: "Server",
   authentication: "Authentication",
   search: "Search",
-  runtimes: "Runtimes",
+  apis: "APIs",
 } as const;
 export type AdminSection = keyof typeof ADMIN_SECTIONS;
 
@@ -63,7 +63,9 @@ export function parseDashboardRoute(): DashboardRoute {
     ["admin", "authentication"].includes(segments[0]) &&
     segments.length === 1
   ) {
-    const section = new URLSearchParams(location.search).get("section");
+    const raw = new URLSearchParams(location.search).get("section");
+    // Old links used the tab's former name.
+    const section = raw === "runtimes" ? "apis" : raw;
     return {
       screen: "admin",
       section:
@@ -110,6 +112,10 @@ export function safeDashboardDestination(
   try {
     const url = new URL(value, location.origin);
     if (url.origin !== location.origin) return undefined;
+    // Signing in on the way to connecting an MCP app returns to its consent page.
+    if (url.pathname === "/.auth/mcp/authorize") {
+      return `${url.pathname}${url.search}`;
+    }
     if (!url.pathname.startsWith(`${DASHBOARD_BASE}/`)) return undefined;
     if (url.pathname === dashboardUrl("/login")) return undefined;
     return `${url.pathname}${url.search}${url.hash}`;

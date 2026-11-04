@@ -3,7 +3,10 @@ import type {
   SearchOverview,
   SpaceSearchInfo,
 } from "@silverbulletmd/silverbullet/type/search_admin";
-import type { RuntimeAvailability } from "./runtime_availability.ts";
+import type {
+  McpAvailability,
+  RuntimeAvailability,
+} from "./runtime_availability.ts";
 import type {
   AuthenticationStatus,
   FieldError,
@@ -89,6 +92,8 @@ export function apiErrorText(
 export function getServerInfo(): Promise<{
   runtimeApi: RuntimeAvailability;
   runtimeApiEnabled: boolean;
+  mcp: McpAvailability;
+  mcpEnabled: boolean;
   primaryUrl?: string | null;
   searchModel: Pick<CatalogModel, "id" | "displayName"> | null;
 }> {
@@ -299,4 +304,33 @@ export function disconnectGit(spaceId: string): Promise<void> {
 
 export function syncGitNow(spaceId: string): Promise<void> {
   return adminApi("POST", `spaces/${encodeURIComponent(spaceId)}/git/sync`, {});
+}
+
+export type McpGrant = {
+  id: string;
+  username: string;
+  clientName: string;
+  clientKind: "cimd" | "dcr";
+  verifiedHost: string | null;
+  redirectHost: string | null;
+  spaces: { id: string; name: string }[];
+  scope: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
+export function listMyGrants(): Promise<McpGrant[]> {
+  return api("GET", "api/mcp/grants");
+}
+
+export async function revokeMyGrant(id: string): Promise<void> {
+  await api("DELETE", `api/mcp/grants/${encodeURIComponent(id)}`);
+}
+
+export function listAllGrants(): Promise<McpGrant[]> {
+  return adminApi("GET", "mcp/grants");
+}
+
+export async function revokeGrant(id: string): Promise<void> {
+  await adminApi("DELETE", `mcp/grants/${encodeURIComponent(id)}`);
 }

@@ -136,24 +136,22 @@ fn run_sb(args: &[&str], config_home: &std::path::Path) -> (i32, String, String)
     )
 }
 
-#[test]
-fn runtime_api_serves_two_spaces_from_isolated_chrome() {
-    let Some(chrome) = test_chrome_or_skip("runtime_multi_e2e") else {
-        return;
-    };
-    let Some(server) = server_bin_or_skip() else {
-        return;
-    };
-
-    let root = tempfile::tempdir().unwrap();
-    let sb_config = tempfile::tempdir().unwrap();
-    let chrome_data = root.path().join(".chrome-data");
+/// A multi-space server under `root`, with the runtime API enabled for each
+/// of `spaces` (name, URL prefix, folder): the server, its base URL and an
+/// admin token.
+fn boot_multi(
+    server: &std::path::Path,
+    chrome: &str,
+    root: &std::path::Path,
+    spaces: &[(&str, &str, &str)],
+) -> (Server, String, String) {
+    let chrome_data = root.join(".chrome-data");
 
     // Provision the root through the real `setup` subcommand: admin account +
-    // spaces.json, no first space (both spaces are created over the admin API).
-    let out = Command::new(&server)
+    // spaces.json, no first space (the spaces are created over the admin API).
+    let out = Command::new(server)
         .arg("setup")
-        .arg(root.path())
+        .arg(root)
         .arg("--admin")
         .arg(format!("{ADMIN_USER}:{ADMIN_PASSWORD}"))
         .output()
@@ -165,15 +163,15 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
     );
 
     let port = free_port();
-    let mut cmd = Command::new(&server);
-    cmd.arg(root.path())
+    let mut cmd = Command::new(server);
+    cmd.arg(root)
         .args(["-p", &port.to_string(), "-L", "127.0.0.1"])
         .env_remove("SB_MULTI_SPACE")
         .env_remove("SB_USER")
         .env("SB_RUNTIME_API", "0")
         .env("RUST_LOG", "info")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
-        .env("SB_CHROME_PATH", &chrome)
+        .env("SB_CHROME_PATH", chrome)
         .env("SB_CHROME_DATA_DIR", &chrome_data);
     let server_proc = Server::spawn(cmd);
 
@@ -211,10 +209,7 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         });
     assert!(r.status().is_success(), "admin login failed");
 
-    for (name, prefix, folder) in [
-        ("Root", "/root", "spaceRoot"),
-        ("Notes", "/notes", "spaceNotes"),
-    ] {
+    for (name, prefix, folder) in spaces {
         let r = admin
             .post(format!("{base}/.dashboard/api/admin/spaces"))
             .json(&serde_json::json!({
@@ -232,19 +227,6 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         );
     }
 
-    // A distinguishing page per space, written before any runtime call so the
-    // headless client picks it up on its initial sync.
-    std::fs::write(
-        root.path().join("spaceRoot").join("Marker.md"),
-        "marker-from-root-space\n",
-    )
-    .unwrap();
-    std::fs::write(
-        root.path().join("spaceNotes").join("Marker.md"),
-        "marker-from-notes-space\n",
-    )
-    .unwrap();
-
     let r = admin
         .post(format!(
             "{base}/.dashboard/api/admin/users/{ADMIN_USER}/tokens"
@@ -257,6 +239,44 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
         .as_str()
         .expect("token in response")
         .to_string();
+
+    (server_proc, base, token)
+}
+
+#[test]
+fn runtime_api_serves_two_spaces_from_isolated_chrome() {
+    let Some(chrome) = test_chrome_or_skip("runtime_multi_e2e") else {
+        return;
+    };
+    let Some(server) = server_bin_or_skip() else {
+        return;
+    };
+
+    let root = tempfile::tempdir().unwrap();
+    let sb_config = tempfile::tempdir().unwrap();
+    let chrome_data = root.path().join(".chrome-data");
+    let (server_proc, base, token) = boot_multi(
+        &server,
+        &chrome,
+        root.path(),
+        &[
+            ("Root", "/root", "spaceRoot"),
+            ("Notes", "/notes", "spaceNotes"),
+        ],
+    );
+
+    // A distinguishing page per space, written before any runtime call so the
+    // headless client picks it up on its initial sync.
+    std::fs::write(
+        root.path().join("spaceRoot").join("Marker.md"),
+        "marker-from-root-space\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("spaceNotes").join("Marker.md"),
+        "marker-from-notes-space\n",
+    )
+    .unwrap();
 
     let root_url = format!("{base}/root");
     let (code, _, stderr) = run_sb(&["--url", &root_url, "eval", "1 + 1"], sb_config.path());
@@ -322,5 +342,137 @@ fn runtime_api_serves_two_spaces_from_isolated_chrome() {
     assert_eq!(
         launches, 2,
         "expected one isolated Chrome launch per space, saw {launches}\n--- server log ---\n{log}"
+    );
+}
+
+/// Runs `sb` against `url` with `token` until `sb lua` answers, which pays for
+/// the browser launch and the client's first sync.
+fn wait_for_runtime(url: &str, token: &str, config_home: &std::path::Path) {
+    // Above the pool's LAUNCH_TIMEOUT (120s in server-runtime-chrome/src/pool.rs).
+    let deadline = Instant::now() + Duration::from_secs(180);
+    loop {
+        let (code, stdout, stderr) = run_sb(
+            &["--url", url, "--token", token, "lua", "1 + 1"],
+            config_home,
+        );
+        if code == 0 && stdout.trim() == "2" {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "runtime at {url} never answered: code={code} stdout={stdout:?} stderr={stderr:?}"
+        );
+        std::thread::sleep(Duration::from_secs(1));
+    }
+}
+
+/// Runs `sb fs write <path> --create` with `content` on stdin.
+fn write_page(
+    url: &str,
+    token: &str,
+    path: &str,
+    content: &str,
+    config_home: &std::path::Path,
+) -> (i32, String, String) {
+    let mut child = Command::new(sb_bin())
+        .args([
+            "--url",
+            url,
+            "--token",
+            token,
+            "--timeout",
+            "60",
+            "--text",
+            "fs",
+            "write",
+            path,
+            "--create",
+            "--file",
+            "-",
+        ])
+        .env("XDG_CONFIG_HOME", config_home)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn sb");
+    std::io::Write::write_all(&mut child.stdin.take().unwrap(), content.as_bytes()).unwrap();
+    let out = child.wait_with_output().expect("wait for sb");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+#[test]
+fn script_write_reports_its_load_error() {
+    let Some(chrome) = test_chrome_or_skip("runtime_multi_e2e") else {
+        return;
+    };
+    let Some(server) = server_bin_or_skip() else {
+        return;
+    };
+    let root = tempfile::tempdir().unwrap();
+    let sb_config = tempfile::tempdir().unwrap();
+    let chrome_data = root.path().join(".chrome-data");
+    let (server_proc, base, token) = boot_multi(
+        &server,
+        &chrome,
+        root.path(),
+        &[("Notes", "/notes", "spaceNotes")],
+    );
+    let url = format!("{base}/notes");
+    wait_for_runtime(&url, &token, sb_config.path());
+
+    let (code, stdout, stderr) = write_page(
+        &url,
+        &token,
+        "Tools.md",
+        "# Tools\n```space-lua\nfunction tools_ping() return 1 end\n```\n",
+        sb_config.path(),
+    );
+    let clean = (code, stdout, stderr);
+
+    let (code, stdout, stderr) = write_page(
+        &url,
+        &token,
+        "Broken.md",
+        "# Broken\n```space-lua\nlocal x = = 1\n```\n",
+        sb_config.path(),
+    );
+    let (_, log) = server_proc.finish(&chrome_data);
+
+    assert_eq!(
+        clean.0, 0,
+        "clean write: {clean:?}\n--- server log ---\n{log}"
+    );
+    assert!(
+        clean.1.starts_with("Wrote Tools.md (revision "),
+        "{clean:?}"
+    );
+    assert_eq!(
+        clean.2, "Its Space Lua and Space Style were reloaded without errors.\n",
+        "{clean:?}\n--- server log ---\n{log}"
+    );
+
+    assert_eq!(
+        code, 9,
+        "stdout={stdout:?} stderr={stderr:?}\n--- server log ---\n{log}"
+    );
+    assert!(stdout.starts_with("Wrote Broken.md (revision "), "{stdout}");
+    assert!(
+        stderr.contains("reloaded, but have problems") && stderr.contains("Load errors:"),
+        "{stderr}\n--- server log ---\n{log}"
+    );
+    assert!(
+        stderr.ends_with(
+            "Exit code 9: Broken.md was written, but its Space Lua/Style has problems.\n"
+        ),
+        "{stderr}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("spaceNotes").join("Broken.md")).unwrap(),
+        "# Broken\n```space-lua\nlocal x = = 1\n```\n"
     );
 }

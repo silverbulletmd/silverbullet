@@ -73,6 +73,17 @@ export function listSyscalls(): Promise<SyscallMeta[]> {
 }
 
 /**
+ * Returns the most recent client console entries, oldest first.
+ * Note: only available on the client
+ * @param limit maximum number of entries to return (default 50)
+ */
+export function recentLogs(
+  limit?: number,
+): Promise<{ level: string; message: string; timestamp: number }[]> {
+  return syscall("system.recentLogs", limit);
+}
+
+/**
  * Trigger a reload of all plugs
  * @returns
  */

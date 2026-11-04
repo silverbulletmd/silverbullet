@@ -201,6 +201,22 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn legacy_device_code_refuses_url_client_id() {
+        let (state, _) = login_state();
+        let response = device_post(
+            state,
+            "/.auth/device/code",
+            format!(
+                "client_id={}&device_name=Workshop",
+                enc("https://client.example/meta.json")
+            ),
+            None,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
     async fn device_browser_approval_tokens_refresh_and_replay() {
         let (state, cookie) = login_state();
         let attempt = state
@@ -429,7 +445,7 @@ mod tests {
         let resp = get(state, &uri, Some(&cookie)).await;
         assert_eq!(resp.status(), StatusCode::OK);
         let body = body_text(resp).await;
-        assert!(body.contains("silverbullet-share"), "{body}");
+        assert!(body.contains("SilverBullet Share is asking"), "{body}");
         assert!(!body.contains("SilverBullet CLI"), "{body}");
     }
 

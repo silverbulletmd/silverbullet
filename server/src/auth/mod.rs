@@ -17,6 +17,7 @@ pub mod identity;
 pub mod jwt_authorizer;
 pub mod lockout;
 pub mod login;
+pub mod mcp;
 pub mod oauth;
 pub mod oidc;
 pub mod password;
@@ -27,15 +28,15 @@ pub use authorizer::{Actor, AuthContext, AuthOutcome, RequestAuthorizer};
 pub use browser_sessions::BrowserSessions;
 pub use config::AuthConfig;
 pub use cookie::{
-    auth_cookie_name, cookie_value, is_secure_request, request_host, scoped_auth_cookie_name,
-    CookieOptions,
+    auth_cookie_name, cookie_value, is_secure_request, request_host, request_origin,
+    scoped_auth_cookie_name, CookieOptions,
 };
 pub use headless_token::{headless_cookie_name, HeadlessTokenAuthorizer};
 pub use identity::{clean_email, clean_full_name, username_only, IdentityResolver, UserProfile};
 pub use jwt_authorizer::JwtAuthorizer;
 pub use lockout::LockoutTimer;
 pub use login::LoginManager;
-pub use oauth::{AuthCodeStore, CodeGrant, OAuthError};
+pub use oauth::{AuthCodeStore, CodeGrant, CodeStore, OAuthError};
 
 /// Verifies a username/password pair against some backing credential store.
 /// Lets `LoginManager` drive either the legacy single-user `AuthConfig` or a

@@ -42,6 +42,94 @@ async fn runtime_server_toggle_persists_and_preserves_other_settings() {
 }
 
 #[tokio::test]
+async fn runtime_idle_timeout_persists_and_rejects_bad_values_without_saving() {
+    let dir = tempfile::tempdir().unwrap();
+    let (router, manager, users) = admin_router(&dir);
+    let cookie = session_cookie(&users, "admin");
+    assert_eq!(manager.runtime_idle_timeout(), 30);
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"runtimeIdleTimeout":5}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(body_json(response).await["runtimeIdleTimeout"], 5);
+    let stored =
+        crate::multi::server_config::ServerConfig::load(&dir.path().join("server.json")).unwrap();
+    assert_eq!(stored.runtime_idle_timeout, 5);
+    for bad in [r#"-1"#, r#"1.5"#, r#""10""#, r#"10081"#] {
+        let response = authed(
+            &router,
+            "PUT",
+            "/api/server-config",
+            &format!(r#"{{"serverName":"Changed","runtimeIdleTimeout":{bad}}}"#),
+            &cookie,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{bad}");
+    }
+    assert_eq!(manager.runtime_idle_timeout(), 5);
+    assert_eq!(manager.server_name(), "SilverBullet", "nothing saved");
+}
+
+#[tokio::test]
+async fn mcp_is_off_by_default_and_the_toggle_persists_and_round_trips() {
+    let dir = tempfile::tempdir().unwrap();
+    let (router, manager, users) = admin_router(&dir);
+    let cookie = session_cookie(&users, "admin");
+    assert!(!manager.mcp_enabled(), "a fresh config leaves MCP off");
+    let response = authed(&router, "GET", "/api/server-config", "", &cookie).await;
+    assert_eq!(body_json(response).await["mcp"], false);
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"mcp":true}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = body_json(response).await;
+    assert_eq!(body["mcp"], true);
+    assert_eq!(body["runtimeApi"], true);
+    assert!(manager.mcp_enabled());
+    let stored =
+        crate::multi::server_config::ServerConfig::load(&dir.path().join("server.json")).unwrap();
+    assert!(stored.mcp);
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"serverName":"Notebook"}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(body_json(response).await["mcp"], true);
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"mcp":"yes"}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"mcp":false}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(body_json(response).await["mcp"], false);
+    assert!(!manager.mcp_enabled());
+}
+
+#[tokio::test]
 async fn server_config_is_admin_gated_and_reports_validation_errors() {
     let dir = tempfile::tempdir().unwrap();
     let (router, manager, users) = admin_router(&dir);
@@ -53,7 +141,7 @@ async fn server_config_is_admin_gated_and_reports_validation_errors() {
     let response = authed(&router, "GET", "/api/server-config", "", &cookie).await;
     assert_eq!(
         body_json(response).await,
-        json!({ "primaryUrl": null, "serverName": "SilverBullet", "runtimeApi": true })
+        json!({ "primaryUrl": null, "serverName": "SilverBullet", "runtimeApi": true, "runtimeIdleTimeout": 30, "mcp": false })
     );
     let response = authed(
         &router,
@@ -106,7 +194,7 @@ async fn server_name_updates_preserve_primary_url_and_omitted_name() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         body_json(response).await,
-        json!({"primaryUrl":"https://manager.example.test", "serverName":"Notebook Server", "runtimeApi":true})
+        json!({"primaryUrl":"https://manager.example.test", "serverName":"Notebook Server", "runtimeApi":true, "runtimeIdleTimeout":30, "mcp":false})
     );
     let response = authed(
         &router,
@@ -153,7 +241,7 @@ async fn server_info_reports_runtime_availability_and_is_admin_gated() {
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(
         body_json(resp).await,
-        serde_json::json!({ "runtimeApi": { "status": "no_chrome" }, "runtimeApiEnabled": true, "primaryUrl": null, "searchModel": null }),
+        serde_json::json!({ "runtimeApi": { "status": "no_chrome" }, "runtimeApiEnabled": true, "mcp": { "status": "available" }, "mcpEnabled": false, "primaryUrl": null, "searchModel": null }),
     );
 }
 

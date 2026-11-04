@@ -76,3 +76,32 @@ test("an unrelated file event re-indexes nothing", async () => {
   const pages = await collectPagesToReindex(["Elsewhere/Unrelated.md"]);
   expect(pages.size).toBe(0);
 });
+
+test("a burst of file events scans the relations once", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("Home", "See [[docs/A0]] and [[docs/A7]]");
+  await indexPage("Home", "See [[docs/A0]] and [[docs/A7]]");
+
+  // An eval run or a sync drops hundreds of files at once: one scan of every
+  // relation per target froze the client for minutes.
+  const paths: string[] = [];
+  for (let i = 0; i < 50; i++) {
+    await space.writePage(`docs/A${i}`, "");
+    paths.push(`docs/A${i}.md`);
+  }
+  const syscall = (globalThis as any).syscall;
+  let relationQueries = 0;
+  (globalThis as any).syscall = (name: string, ...args: any[]) => {
+    if (name === "index.queryLuaObjects" && args[0] === "relation") {
+      relationQueries++;
+    }
+    return syscall(name, ...args);
+  };
+  try {
+    const pages = await collectPagesToReindex(paths);
+    expect(pages).toEqual(new Set(["Home"]));
+    expect(relationQueries).toBe(1);
+  } finally {
+    (globalThis as any).syscall = syscall;
+  }
+});

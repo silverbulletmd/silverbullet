@@ -10,6 +10,7 @@
 //! deletes anything.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -26,6 +27,9 @@ use crate::index::{
 use crate::limits::MAX_FILE_BYTES;
 use crate::stats::{pages, IndexStats};
 use crate::{IndexKind, IndexReport, IndexState, Progress};
+
+mod feed;
+use feed::Feed;
 
 /// How long change events are collected after the first one before they are
 /// applied. A fixed window (not reset by later events), so steady autosaves
@@ -168,6 +172,7 @@ pub(super) struct Idle {
 
 pub struct SyncWorker {
     handle: JoinHandle<()>,
+    feed: Arc<Feed>,
     cancel: CancellationToken,
     sink: Arc<dyn IndexSink>,
     status: watch::Receiver<WorkerStatus>,
@@ -226,6 +231,7 @@ impl SyncWorker {
             waiting: false,
         });
         let control = status_tx.clone();
+        let feed = Arc::new(Feed::new(feed));
         #[cfg(test)]
         let (idle_tx, idle) = watch::channel(Idle::default());
         let worker = Worker {
@@ -240,6 +246,7 @@ impl SyncWorker {
             idle: idle_tx,
             #[cfg(test)]
             counts: Idle::default(),
+            feed: feed.clone(),
             indexed: HashSet::new(),
             pending: BTreeSet::new(),
             rescan: false,
@@ -250,11 +257,12 @@ impl SyncWorker {
         let handle = tokio::spawn(async move {
             tokio::select! {
                 _ = token.cancelled() => {}
-                _ = worker.run(feed) => {}
+                _ = worker.run() => {}
             }
         });
         SyncWorker {
             handle,
+            feed,
             cancel,
             sink,
             status,
@@ -280,6 +288,15 @@ impl SyncWorker {
             memory: self.sink.is_memory(),
             build_secs: status.last_build.map(|d| d.as_secs_f64()),
         }
+    }
+
+    /// Resolves `true` once every feed event received before this call is
+    /// applied (the worker went idle after taking it), `false` at `deadline`
+    /// or as soon as the worker is stopped. An apply that gave up counts as
+    /// applied: its pages are then reconciled later, and queries say the
+    /// index may be out of date.
+    pub fn caught_up(&self, deadline: std::time::Instant) -> impl Future<Output = bool> + 'static {
+        self.feed.clone().caught_up(deadline, self.cancel.clone())
     }
 
     /// Re-reads and re-applies every page, after [`IndexSink::reset`]: a
@@ -377,6 +394,7 @@ struct Worker {
     idle: watch::Sender<Idle>,
     #[cfg(test)]
     counts: Idle,
+    feed: Arc<Feed>,
     /// Paths this worker believes are in the index: refreshed from the sink
     /// on every reconcile, updated on every commit. Only used to skip deletes
     /// of paths that were never indexed.
@@ -392,7 +410,7 @@ struct Worker {
 }
 
 impl Worker {
-    async fn run(mut self, mut feed: ChangeFeed) {
+    async fn run(mut self) {
         // Wakes the worker for a rebuild asked for while it is idle.
         let mut requests = self.status.subscribe();
         let mut feed_open = true;
@@ -448,13 +466,15 @@ impl Worker {
             if self.start_rebuild().await {
                 continue;
             }
+            self.feed.set_applied(self.feed.taken());
             #[cfg(test)]
             self.idle.send_replace(self.counts);
+            let feed = self.feed.clone();
             tokio::select! {
                 msg = feed.recv(), if feed_open => match msg {
                     Some(msg) => {
                         self.take(msg);
-                        feed_open = self.debounce(&mut feed).await;
+                        feed_open = self.debounce().await;
                     }
                     None => feed_open = false,
                 },
@@ -514,8 +534,9 @@ impl Worker {
 
     /// Collects events for [`DEBOUNCE`] after the first one. Returns whether
     /// the feed is still open.
-    async fn debounce(&mut self, feed: &mut ChangeFeed) -> bool {
+    async fn debounce(&mut self) -> bool {
         let until = Instant::now() + DEBOUNCE;
+        let feed = self.feed.clone();
         loop {
             tokio::select! {
                 biased;

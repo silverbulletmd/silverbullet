@@ -27,3 +27,23 @@ export function runtimeApiUnavailableReason(
       return null;
   }
 }
+
+/** What `GET api/admin/server-info` reports under `mcp`. */
+export type McpAvailability =
+  | { status: "available" }
+  | { status: "disabled_by_env" }
+  | { status: "failed"; message: string };
+
+/** The note shown beside a locked "Enable MCP" checkbox, or `null`. */
+export function mcpUnavailableReason(
+  availability: McpAvailability | null,
+): string | null {
+  switch (availability?.status) {
+    case "disabled_by_env":
+      return "Disabled server-wide by SB_MCP=0.";
+    case "failed":
+      return `Unavailable: ${availability.message}`;
+    default:
+      return null;
+  }
+}

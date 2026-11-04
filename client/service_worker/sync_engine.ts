@@ -3,7 +3,7 @@ import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 import { EventEmitter } from "../plugos/event.ts";
 import { BaseStore } from "../spaces/base_store.ts";
-import { stdLibPrefix } from "../spaces/constants.ts";
+import { isStdLibFile } from "../spaces/constants.ts";
 import type { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import {
@@ -351,16 +351,13 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     console.log("Done wiping");
   }
 
-  /**
-   * Delegates to the standard primary conflict resolver, but in case of any conflicts in plugs, it will always take the version from the secondary.
-   */
   async stdLibAwareConflictResolver(
     name: string,
     snapshot: SyncSnapshot,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
-    if (!name.startsWith(stdLibPrefix)) {
+    if (!isStdLibFile(name)) {
       const operations = await SpaceSync.primaryConflictResolver(
         name,
         snapshot,
@@ -376,7 +373,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     }
     console.log(
       "[sync]",
-      "Conflict in plug",
+      "Conflict in bundled library",
       name,
       "will pick the version from secondary and be done with it.",
     );

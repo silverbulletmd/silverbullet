@@ -17,6 +17,8 @@ path = "src/main.rs"
 
 [dependencies]
 silverbullet-server-common = { path = "../../server-common" }
+silverbullet-space-tools = { path = "../../space-tools" }
+async-trait = { workspace = true }
 clap = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
@@ -28,6 +30,7 @@ open = "5"
 tempfile = { workspace = true }
 globset = "0.4"
 similar = "3"
+tokio = { workspace = true, features = ["rt", "time"] }
 
 [build-dependencies]
 serde_json = { workspace = true }

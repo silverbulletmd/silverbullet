@@ -97,6 +97,17 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
   }
 
+  /**
+   * An overlapping read or probe skips event triggering, so a change it saw
+   * would otherwise wait for the next periodic listing (a minute while the
+   * realtime stream is healthy); a deferred listing picks it up once idle.
+   */
+  private deferIfChanged(path: string, lastModified: number) {
+    if (this.spaceSnapshot[path] !== lastModified) {
+      this.deferredFetchFileList = true;
+    }
+  }
+
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
     if (!this.enabled) {
       return Promise.resolve([]);
@@ -203,6 +214,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const data = await this.wrapped.readFile(path);
       if (this.operationCount === 1) {
         await this.triggerEventsAndCache(path, data.meta.lastModified);
+      } else {
+        this.deferIfChanged(path, data.meta.lastModified);
       }
       return data;
     } finally {
@@ -280,6 +293,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const newMeta = await this.wrapped.getFileMeta(path, observing, mode);
       if (this.operationCount === 1) {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
+      } else {
+        this.deferIfChanged(path, newMeta.lastModified);
       }
       return newMeta;
     } finally {

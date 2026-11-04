@@ -16,6 +16,7 @@ use serde_json::json;
 use silverbullet_server_common::SpacePrimitives;
 
 use crate::auth::cookie::set_cookie_value;
+use crate::auth::mcp::grants::{Grant, GrantStore};
 use crate::auth::{
     cookie_value, is_secure_request, request_host, scoped_auth_cookie_name, Authenticator,
     CookieOptions, LoginManager,
@@ -33,9 +34,15 @@ pub struct DashboardState {
     authenticator: Arc<Authenticator>,
     users: Arc<UserStore>,
     client_bundle: Box<dyn SpacePrimitives>,
+    mcp_grants: Option<Arc<GrantStore>>,
 }
 
 impl DashboardState {
+    pub fn with_mcp_grants(mut self, grants: Arc<GrantStore>) -> Self {
+        self.mcp_grants = Some(grants);
+        self
+    }
+
     pub fn new(
         manager: Arc<MultiManager>,
         users: Arc<UserStore>,
@@ -70,6 +77,7 @@ impl DashboardState {
             authenticator,
             users,
             client_bundle,
+            mcp_grants: None,
         }
     }
 }
@@ -234,6 +242,96 @@ async fn handle_list(State(state): State<Arc<DashboardState>>, headers: HeaderMa
     Json(state.manager.list_accessible(&username, admin)).into_response()
 }
 
+fn rfc3339(secs: u64) -> String {
+    chrono::DateTime::from_timestamp(secs as i64, 0)
+        .map(|at| at.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
+        .unwrap_or_default()
+}
+
+/// The grant list the connected-apps screens read. Space names are resolved
+/// live; ids of spaces that no longer exist are omitted.
+pub(crate) fn grants_json(manager: &MultiManager, grants: Vec<Grant>) -> serde_json::Value {
+    let names: std::collections::HashMap<String, String> = manager
+        .list_accessible("", true)
+        .into_iter()
+        .map(|space| (space.id, space.name))
+        .collect();
+    let list: Vec<_> = grants
+        .into_iter()
+        .map(|grant| {
+            let spaces: Vec<_> = grant
+                .spaces
+                .iter()
+                .filter_map(|id| names.get(id).map(|name| json!({ "id": id, "name": name })))
+                .collect();
+            json!({
+                "id": grant.id,
+                "username": grant.username,
+                "clientName": grant.client_name,
+                "clientKind": grant.client_kind,
+                "verifiedHost": grant.verified_host,
+                "redirectHost": grant.redirect_host,
+                "spaces": spaces,
+                "scope": grant.scope,
+                "createdAt": rfc3339(grant.created_at),
+                "lastUsedAt": (grant.last_used_at > 0).then(|| rfc3339(grant.last_used_at)),
+            })
+        })
+        .collect();
+    serde_json::Value::Array(list)
+}
+
+async fn handle_list_grants(
+    State(state): State<Arc<DashboardState>>,
+    headers: HeaderMap,
+) -> Response {
+    let Some(username) = current_username(&state, &headers) else {
+        return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
+    };
+    let Some(grants) = state.mcp_grants.clone() else {
+        return Json(json!([])).into_response();
+    };
+    let manager = state.manager.clone();
+    match run_blocking(move || Ok(grants_json(&manager, grants.list_for_user(&username)))).await {
+        Ok(list) => Json(list).into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+/// A grant that belongs to someone else answers 404, the same as one that
+/// does not exist, so ids cannot be probed.
+async fn handle_revoke_grant(
+    State(state): State<Arc<DashboardState>>,
+    headers: HeaderMap,
+    AxumPath(id): AxumPath<String>,
+) -> Response {
+    if !crate::auth::browser_sessions::logout_allowed(&headers) {
+        return (StatusCode::FORBIDDEN, "Cross-origin request refused").into_response();
+    }
+    let Some(username) = current_username(&state, &headers) else {
+        return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
+    };
+    let Some(grants) = state.mcp_grants.clone() else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let result = run_blocking(move || {
+        if !grants.list_for_user(&username).iter().any(|g| g.id == id) {
+            return Ok(Ok(false));
+        }
+        Ok(grants.revoke(&id))
+    })
+    .await;
+    match result {
+        Ok(Ok(true)) => Json(json!({ "status": "ok" })).into_response(),
+        Ok(Ok(false)) => StatusCode::NOT_FOUND.into_response(),
+        Ok(Err(e)) => {
+            tracing::error!("could not revoke MCP grant: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Could not revoke grant").into_response()
+        }
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 async fn handle_shell(State(state): State<Arc<DashboardState>>) -> Response {
     let bundle = state.clone();
     match run_blocking(move || bundle.client_bundle.read_file(".client/dashboard.html")).await {
@@ -297,6 +395,11 @@ pub fn build_dashboard_router(state: Arc<DashboardState>, admin_api: Router) -> 
         .route("/api/spaces", get(handle_list))
         .route("/api/login", post(handle_login))
         .route("/api/logout", get(handle_logout))
+        .route("/api/mcp/grants", get(handle_list_grants))
+        .route(
+            "/api/mcp/grants/{id}",
+            axum::routing::delete(handle_revoke_grant),
+        )
         .layer(axum::extract::DefaultBodyLimit::max(1024 * 1024))
         .with_state(state)
         .nest("/api/admin", admin_api)
@@ -335,6 +438,11 @@ mod tests {
     }
 
     fn setup_with(session: SessionPolicy) -> (tempfile::TempDir, Router) {
+        let (dir, router, _grants) = setup_with_grants(session);
+        (dir, router)
+    }
+
+    fn setup_with_grants(session: SessionPolicy) -> (tempfile::TempDir, Router, Arc<GrantStore>) {
         let dir = tempfile::tempdir().unwrap();
         let users = UserStore::create_empty(dir.path()).unwrap();
         users
@@ -358,6 +466,8 @@ mod tests {
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),
             },
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            runtime_availability: crate::runtime::RuntimeAvailability::Available,
+            runtime_idle_timeout: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Accounts {
@@ -394,25 +504,30 @@ mod tests {
         bundle
             .write_file(".client/admin.css", b"/* styles */", None)
             .unwrap();
-        let admin_state = Arc::new(crate::multi::admin_api::AdminState::new(
-            manager.clone(),
-            users.clone(),
-            authenticator.clone(),
-            crate::runtime::RuntimeAvailability::Available,
-        ));
-        let state = Arc::new(DashboardState::new(
-            manager,
-            users,
-            authenticator,
-            session,
-            Box::new(bundle),
-        ));
+        let grants = Arc::new(GrantStore::load(dir.path()).unwrap());
+        let admin_state = Arc::new(
+            crate::multi::admin_api::AdminState::new(
+                manager.clone(),
+                users.clone(),
+                authenticator.clone(),
+                crate::runtime::RuntimeAvailability::Available,
+            )
+            .with_mcp(
+                grants.clone(),
+                crate::multi::admin_api::McpAvailability::Available,
+            ),
+        );
+        let state = Arc::new(
+            DashboardState::new(manager, users, authenticator, session, Box::new(bundle))
+                .with_mcp_grants(grants.clone()),
+        );
         (
             dir,
             build_dashboard_router(
                 state,
                 crate::multi::admin_api::build_admin_api_router(admin_state),
             ),
+            grants,
         )
     }
 
@@ -1059,5 +1174,153 @@ mod tests {
         .await;
         assert_eq!(response.status(), StatusCode::FORBIDDEN);
         assert_eq!(list(&router, Some(&cookie)).await.status(), StatusCode::OK);
+    }
+
+    async fn space_id(router: &Router, cookie: &str, name: &str) -> String {
+        let body = json_body(list(router, Some(cookie)).await).await;
+        body.as_array()
+            .unwrap()
+            .iter()
+            .find(|space| space["name"] == name)
+            .unwrap()["id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
+
+    fn now() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    }
+
+    fn grant_for(grants: &GrantStore, username: &str, spaces: Vec<String>) -> String {
+        use crate::auth::mcp::grants::{ClientKind, NewGrant};
+        grants
+            .create(
+                NewGrant {
+                    username: username.into(),
+                    client_id: "https://client.example.test/meta.json".into(),
+                    client_name: "Example client".into(),
+                    client_kind: ClientKind::Cimd,
+                    verified_host: Some("client.example.test".into()),
+                    redirect_host: "client.example.test".into(),
+                    resource: "http://localhost/.mcp".into(),
+                    spaces,
+                    scope: "mcp".into(),
+                    access: "write".into(),
+                    credential_version: None,
+                },
+                now(),
+            )
+            .unwrap()
+            .id
+    }
+
+    async fn grants_request(
+        router: &Router,
+        method: &str,
+        uri: &str,
+        cookie: &str,
+        extra: Option<(&str, &str)>,
+    ) -> Response {
+        let mut request = Request::builder()
+            .method(method)
+            .uri(uri)
+            .header("host", "localhost")
+            .header("cookie", cookie);
+        if let Some((name, value)) = extra {
+            request = request.header(name, value);
+        }
+        send(router, request.body(Body::empty()).unwrap()).await
+    }
+
+    #[tokio::test]
+    async fn user_lists_only_own_grants() {
+        let (_dir, router, grants) = setup_with_grants(SessionPolicy::default());
+        let alice = login(&router, "alice", "alicepw").await;
+        let space = space_id(&router, &alice, "Alice").await;
+        grant_for(&grants, "alice", vec![space.clone(), "gone".into()]);
+        grant_for(&grants, "bob", vec![space]);
+        let response = grants_request(&router, "GET", "/api/mcp/grants", &alice, None).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json_body(response).await;
+        let list = body.as_array().unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0]["username"], "alice");
+        assert_eq!(list[0]["clientName"], "Example client");
+        assert_eq!(list[0]["clientKind"], "cimd");
+        assert_eq!(list[0]["verifiedHost"], "client.example.test");
+        assert_eq!(list[0]["spaces"].as_array().unwrap().len(), 1);
+        assert_eq!(list[0]["spaces"][0]["name"], "Alice");
+        assert_eq!(list[0]["scope"], "mcp");
+        assert!(list[0]["createdAt"].as_str().unwrap().starts_with("20"));
+        assert!(list[0]["lastUsedAt"].is_null());
+        let anonymous = send(
+            &router,
+            Request::builder()
+                .uri("/api/mcp/grants")
+                .header("host", "localhost")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+        assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn user_cannot_revoke_others_grant() {
+        let (_dir, router, grants) = setup_with_grants(SessionPolicy::default());
+        let alice = login(&router, "alice", "alicepw").await;
+        let id = grant_for(&grants, "bob", vec![]);
+        let uri = format!("/api/mcp/grants/{id}");
+        let response = grants_request(&router, "DELETE", &uri, &alice, None).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(grants.list_for_user("bob").len(), 1);
+        let missing = grants_request(&router, "DELETE", "/api/mcp/grants/nope", &alice, None).await;
+        assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn user_revoke_own_grant() {
+        let (_dir, router, grants) = setup_with_grants(SessionPolicy::default());
+        let alice = login(&router, "alice", "alicepw").await;
+        let id = grant_for(&grants, "alice", vec![]);
+        let uri = format!("/api/mcp/grants/{id}");
+        let response = grants_request(&router, "DELETE", &uri, &alice, None).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(grants.list_for_user("alice").is_empty());
+    }
+
+    #[tokio::test]
+    async fn cross_origin_revoke_is_refused() {
+        let (_dir, router, grants) = setup_with_grants(SessionPolicy::default());
+        let alice = login(&router, "alice", "alicepw").await;
+        let admin = login(&router, "admin", "adminpw").await;
+        let id = grant_for(&grants, "alice", vec![]);
+        let user_uri = format!("/api/mcp/grants/{id}");
+        let admin_uri = format!("/api/admin/mcp/grants/{id}");
+        for (uri, cookie) in [(&user_uri, &alice), (&admin_uri, &admin)] {
+            let response = grants_request(
+                &router,
+                "DELETE",
+                uri,
+                cookie,
+                Some(("sec-fetch-site", "cross-site")),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::FORBIDDEN);
+            let response = grants_request(
+                &router,
+                "DELETE",
+                uri,
+                cookie,
+                Some(("origin", "https://evil.example.test")),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        }
+        assert_eq!(grants.list_for_user("alice").len(), 1);
     }
 }

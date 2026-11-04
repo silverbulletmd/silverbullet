@@ -35,6 +35,8 @@ pub struct AssetFactories {
 /// Everything the runtime factory needs to (maybe) build a backend for a space.
 pub struct RuntimeRequest<'a> {
     pub space_id: &'a str,
+    /// The user the runtime runs as; `None` for an accountless space.
+    pub username: Option<&'a str>,
     pub server_url: String,
     pub headless_token: &'a str,
     pub read_only: bool,
@@ -50,6 +52,12 @@ pub struct InstanceDeps {
     pub assets: AssetFactories,
     pub runtime: RuntimeFactory,
     pub runtime_enabled: Arc<std::sync::atomic::AtomicBool>,
+    /// Whether this server can run runtimes at all. When it cannot, spaces get
+    /// no runtime, so `/.runtime/*` answers "not enabled" and `/.help`
+    /// reports none, rather than every call failing to start one.
+    pub runtime_availability: crate::runtime::RuntimeAvailability,
+    /// Seconds without a request before a runtime is stopped; `0` never.
+    pub runtime_idle_timeout: Arc<std::sync::atomic::AtomicU64>,
     pub metrics: Option<Arc<crate::metrics::Metrics>>,
     /// Authentication source for every instance built by this manager.
     pub auth: InstanceAuth,
@@ -164,6 +172,9 @@ pub struct SpaceInstance {
     pub(crate) runtime_authorizer: Option<Arc<dyn RequestAuthorizer>>,
     /// `None` when errored. The size policy reads `SpaceInstance::pages`.
     pub(super) search: Option<Arc<dyn crate::search::SearchBackend>>,
+    /// The space's own pages and their change events, for readers outside
+    /// the router (the MCP skill list). `None` when errored.
+    pub pages: Option<crate::search::PageSource>,
     pub(super) last_pages: Option<u64>,
 }
 
@@ -262,14 +273,14 @@ fn any_account_filter(store: Arc<UserStore>) -> Box<dyn Fn(&str) -> bool + Send 
 pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> SpaceInstance {
     let prefix = normalize_prefix(config.binding.prefix());
     let started = std::time::Instant::now();
-    let result = try_build_state(id, config, &prefix, deps);
+    let result = try_build_parts(id, config, &prefix, deps);
     tracing::debug!(
         space_id = id,
         elapsed_ms = started.elapsed().as_millis(),
         "space state built"
     );
     match result {
-        Ok(state) => SpaceInstance {
+        Ok((state, pages)) => SpaceInstance {
             id: id.to_string(),
             config: config.clone(),
             prefix,
@@ -279,6 +290,7 @@ pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> Sp
             revisions: state.revisions.clone(),
             runtime: state.runtime.clone(),
             search: Some(state.search.clone()),
+            pages: Some(pages),
             last_pages: None,
             router: Some(crate::build_router(Arc::new(state))),
         },
@@ -295,18 +307,29 @@ pub fn build_instance(id: &str, config: &SpaceConfig, deps: &InstanceDeps) -> Sp
                 runtime: None,
                 runtime_authorizer: None,
                 search: None,
+                pages: None,
                 last_pages: None,
             }
         }
     }
 }
 
+#[cfg(test)]
 fn try_build_state(
     id: &str,
     config: &SpaceConfig,
     prefix: &str,
     deps: &InstanceDeps,
 ) -> Result<ServerState, String> {
+    try_build_parts(id, config, prefix, deps).map(|(state, _)| state)
+}
+
+fn try_build_parts(
+    id: &str,
+    config: &SpaceConfig,
+    prefix: &str,
+    deps: &InstanceDeps,
+) -> Result<(ServerState, crate::search::PageSource), String> {
     if let Some(reason) = folder_conflict(&deps.root, id, &config.folder) {
         return Err(reason);
     }
@@ -424,7 +447,9 @@ fn try_build_state(
         }
     };
 
-    let runtime = if !config.read_only {
+    let runtime = if !config.read_only
+        && deps.runtime_availability == crate::runtime::RuntimeAvailability::Available
+    {
         let server_url = match &config.binding {
             Binding::Prefix { .. } => format!("http://127.0.0.1:{}{prefix}", deps.main_port),
             Binding::Host { .. } => format!(
@@ -443,6 +468,7 @@ fn try_build_state(
                 _ => None,
             },
             deps.runtime_enabled.clone(),
+            deps.runtime_idle_timeout.clone(),
         ))
     } else {
         None
@@ -550,6 +576,13 @@ fn try_build_state(
     );
 
     let (space, search_events) = crate::search::change_events(space, fs_events.as_ref());
+    let pages = crate::search::PageSource::new(
+        Arc::new(crate::search::SpaceSearchView::new(
+            search_space.clone(),
+            search_ignore.clone(),
+        )),
+        search_events.clone(),
+    );
     let search = super::search_policy::open(
         deps,
         id,
@@ -557,9 +590,9 @@ fn try_build_state(
         &folder,
         search_space,
         search_ignore,
-        search_events,
+        search_events.subscribe(),
     );
-    Ok(ServerState {
+    let state = ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
         boot_config: BootConfig {
@@ -607,7 +640,12 @@ fn try_build_state(
         },
         search,
         search_gate: deps.search.gate.clone(),
-    })
+        page_watch: Arc::new(
+            crate::page_watch::PageWatch::new(Some(pages.clone()))
+                .with_base(Arc::from((deps.assets.base_fs)())),
+        ),
+    };
+    Ok((state, pages))
 }
 
 #[cfg(test)]
@@ -630,6 +668,8 @@ mod tests {
             },
             runtime: Arc::new(|_req| None),
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            runtime_availability: crate::runtime::RuntimeAvailability::Available,
+            runtime_idle_timeout: Default::default(),
             metrics: None,
             auth: InstanceAuth::Single(Some(
                 crate::auth::AuthConfig::try_parse(Some("admin:pw"), None, None, None, None)
@@ -687,6 +727,211 @@ mod tests {
         );
         assert_eq!(inst.prefix, "/work");
         assert!(inst.router.is_some());
+    }
+
+    /// An open single-space server built with `availability`, and the status
+    /// and body of `method uri` on it.
+    async fn ask_open_space(
+        availability: crate::runtime::RuntimeAvailability,
+        method: &str,
+        uri: &str,
+    ) -> (StatusCode, serde_json::Value) {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let deps = InstanceDeps {
+            auth: InstanceAuth::Single(None),
+            runtime_availability: availability,
+            ..test_deps(dir.path())
+        };
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.access = None;
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        let body = if method == "POST" {
+            Body::from("1 + 1")
+        } else {
+            Body::empty()
+        };
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(uri)
+                    .body(body)
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&bytes).unwrap())
+    }
+
+    #[tokio::test]
+    async fn a_server_without_runtimes_answers_runtime_calls_not_enabled() {
+        use crate::runtime::RuntimeAvailability;
+        for availability in [
+            RuntimeAvailability::DisabledByEnv,
+            RuntimeAvailability::NoChrome,
+            RuntimeAvailability::Failed {
+                message: "no pool".into(),
+            },
+        ] {
+            let (status, body) = ask_open_space(availability, "POST", "/.runtime/lua").await;
+            assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+            assert_eq!(
+                body,
+                serde_json::json!({ "error": "Runtime API is not enabled" })
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn help_reports_the_servers_runtime_availability() {
+        use crate::runtime::RuntimeAvailability;
+        let (status, body) =
+            ask_open_space(RuntimeAvailability::DisabledByEnv, "GET", "/.help").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["runtime"], false);
+        let (status, body) = ask_open_space(RuntimeAvailability::NoChrome, "GET", "/.help").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["runtime"], false);
+        let (status, body) = ask_open_space(RuntimeAvailability::Available, "GET", "/.help").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["runtime"], true);
+    }
+
+    /// A space that already has its own copy of a bundled skill when the
+    /// server starts: the first `/.help` still knows the bundled original.
+    #[tokio::test]
+    async fn help_marks_an_override_present_at_boot() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let base = dir.path().join("base");
+        std::fs::create_dir_all(base.join("Library/Std/Docs")).unwrap();
+        std::fs::write(
+            base.join("Library/Std/Docs/Querying.md"),
+            "---\ntags: meta/skill\ndescription: Read before querying.\n---\nBundled",
+        )
+        .unwrap();
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(folder.join("Library/Std/Docs")).unwrap();
+        std::fs::write(
+            folder.join("Library/Std/Docs/Querying.md"),
+            "---\ntags: meta/skill\ndescription: Mine.\n---\nOwn",
+        )
+        .unwrap();
+        let base_dir = base.clone();
+        let deps = InstanceDeps {
+            auth: InstanceAuth::Single(None),
+            assets: AssetFactories {
+                client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
+                base_fs: Box::new(move || {
+                    Box::new(
+                        silverbullet_server_common::space::ReadOnlyDirSpacePrimitives::new(
+                            &base_dir,
+                        )
+                        .unwrap(),
+                    )
+                }),
+            },
+            ..test_deps(dir.path())
+        };
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.access = None;
+        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.help")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let data: space_tools::help::HelpData = serde_json::from_slice(&bytes).unwrap();
+        let querying = data
+            .skills
+            .iter()
+            .find(|s| s.page == "Library/Std/Docs/Querying")
+            .unwrap();
+        assert!(querying.overrides_bundled, "{querying:?}");
+        assert_eq!(querying.description.as_deref(), Some("Mine."));
+    }
+
+    #[tokio::test]
+    async fn turning_the_runtime_api_off_live_disables_the_space_runtime() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let deps = InstanceDeps {
+            auth: InstanceAuth::Single(None),
+            ..test_deps(dir.path())
+        };
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.access = None;
+        let router = crate::build_router(Arc::new(
+            try_build_state("x", &cfg, "/work", &deps).unwrap(),
+        ));
+        let ask = |method: &str, uri: &str| {
+            let router = router.clone();
+            let request = Request::builder()
+                .method(method)
+                .uri(uri)
+                .body(if method == "POST" {
+                    Body::from("1 + 1")
+                } else {
+                    Body::empty()
+                })
+                .unwrap();
+            async move {
+                let response = router.oneshot(request).await.unwrap();
+                let status = response.status();
+                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+                (status, body)
+            }
+        };
+        assert_eq!(ask("GET", "/.help").await.1["runtime"], true);
+
+        deps.runtime_enabled
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(ask("GET", "/.help").await.1["runtime"], false);
+        let (status, body) = ask("POST", "/.runtime/lua").await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(
+            body,
+            serde_json::json!({ "error": "Runtime API is not enabled" })
+        );
+
+        deps.runtime_enabled
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(ask("GET", "/.help").await.1["runtime"], true);
     }
 
     #[tokio::test]

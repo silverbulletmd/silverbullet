@@ -1,9 +1,10 @@
 //! `/.runtime/{lua,lua_script,logs,screenshot}` — bridge HTTP to the Lua `RuntimeBackend`.
 //! When no backend is configured the runtime API is "not enabled" and every
-//! endpoint returns 503.
+//! endpoint returns 503. With `X-Await-Index`, the evaluating endpoints first
+//! let the index catch up with file changes (see [`catch_up`]).
 
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::auth::Actor;
 use axum::body::Bytes;
@@ -12,11 +13,16 @@ use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
 use serde_json::json;
+use space_tools::ops::{IndexStatus, AWAIT_INDEX_HEADER, INDEX_STATUS_HEADER};
 
-use crate::runtime::RuntimeError;
+use crate::forwarding;
+use crate::runtime::{RuntimeBackend, RuntimeError};
 use crate::state::ServerState;
 
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
+/// The most a request waits for the index before it runs.
+pub(crate) const CATCH_UP_LIMIT: Duration = Duration::from_secs(5);
+const AWAIT_CODE: &str = "index.awaitPendingChanges()";
 
 /// X-Timeout is a whole number of seconds, defaulting to 30.
 pub(crate) fn parse_timeout(headers: &HeaderMap) -> Duration {
@@ -27,6 +33,105 @@ pub(crate) fn parse_timeout(headers: &HeaderMap) -> Duration {
         .filter(|s| *s > 0)
         .map(Duration::from_secs)
         .unwrap_or(Duration::from_secs(DEFAULT_TIMEOUT_SECS))
+}
+
+/// The space's runtime, unless there is none or the runtime API is switched
+/// off; either way the endpoints answer "not enabled".
+fn usable_runtime(state: &ServerState) -> Option<&Arc<dyn RuntimeBackend>> {
+    state.runtime.as_ref().filter(|runtime| runtime.enabled())
+}
+
+/// Lets the runtime's index catch up with the space's file changes, within
+/// `budget`, and says how far it got:
+/// - `unknown` when nothing follows the space's pages;
+/// - `caught-up` without asking the runtime when nothing changed since the
+///   last catch-up and the watcher has forwarded everything;
+/// - otherwise after `index.awaitPendingChanges()` succeeds, `caught-up`, or
+///   `polling` when the watcher polls (disk edits may wait for its next poll);
+/// - `unknown` when the runtime refuses the caller (the request fails too);
+/// - `behind` when that fails or runs out of budget.
+pub(crate) async fn catch_up(state: &ServerState, actor: &Actor, budget: Duration) -> IndexStatus {
+    let (Some(changes), Some(runtime)) =
+        (state.page_watch.changes(), usable_runtime(state).cloned())
+    else {
+        return IndexStatus::Unknown;
+    };
+    let deadline = Instant::now() + budget;
+    let forwarding = state.fs_guard.forwarding();
+    let forwarded = forwarding::caught_up(forwarding, deadline).await;
+    let seen = match changes.dirty() {
+        Some(seen) => seen,
+        None if forwarded => return IndexStatus::CaughtUp,
+        None => changes.seen(),
+    };
+    if Instant::now() >= deadline {
+        return IndexStatus::Behind;
+    }
+    let actor = actor.clone();
+    let settled = tokio::task::spawn_blocking(move || {
+        let selected = runtime.for_actor(&actor)?;
+        // Measured after `for_actor`, which may start a runtime, so the eval
+        // never outlives the deadline.
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(RuntimeError::Timeout);
+        }
+        selected.as_ref().unwrap_or(&runtime).eval_global(
+            "sbRuntime.evalLua",
+            AWAIT_CODE,
+            remaining,
+        )
+    });
+    match tokio::time::timeout_at(deadline.into(), settled).await {
+        Ok(Ok(Ok(_))) => {
+            changes.settle(seen);
+            if forwarding::polls(forwarding) {
+                IndexStatus::Polling
+            } else {
+                IndexStatus::CaughtUp
+            }
+        }
+        Ok(Ok(Err(RuntimeError::Forbidden))) => IndexStatus::Unknown,
+        _ => IndexStatus::Behind,
+    }
+}
+
+pub(crate) fn awaits_index(headers: &HeaderMap) -> bool {
+    is_truthy(
+        headers
+            .get(AWAIT_INDEX_HEADER)
+            .and_then(|v| v.to_str().ok()),
+    )
+}
+
+/// The catch-up's status, when the request asked for one; the request then
+/// runs with its own full timeout.
+async fn index_status(
+    state: &ServerState,
+    actor: &Actor,
+    headers: &HeaderMap,
+    timeout: Duration,
+) -> Option<IndexStatus> {
+    if !awaits_index(headers) {
+        return None;
+    }
+    Some(catch_up(state, actor, timeout.min(CATCH_UP_LIMIT)).await)
+}
+
+/// Adds `X-Index-Status` when the request carried `X-Await-Index`, as
+/// `unknown` when it was answered before any catch-up.
+fn with_index_status(
+    mut response: Response,
+    headers: &HeaderMap,
+    status: Option<IndexStatus>,
+) -> Response {
+    if awaits_index(headers) {
+        let value = status.unwrap_or(IndexStatus::Unknown).as_str();
+        response
+            .headers_mut()
+            .insert(INDEX_STATUS_HEADER, header::HeaderValue::from_static(value));
+    }
+    response
 }
 
 fn not_enabled() -> Response {
@@ -88,21 +193,34 @@ async fn runtime_eval(
     body: Bytes,
     kind: EvalKind,
 ) -> Response {
+    let (response, index) = evaluate(state, actor, &headers, body, kind).await;
+    with_index_status(response, &headers, index)
+}
+
+async fn evaluate(
+    state: Arc<ServerState>,
+    actor: Actor,
+    headers: &HeaderMap,
+    body: Bytes,
+    kind: EvalKind,
+) -> (Response, Option<IndexStatus>) {
     if let Some(metrics) = state.metrics.as_ref() {
         metrics.runtime_api_requests.inc();
     }
-    if state.runtime.is_none() {
-        return not_enabled();
+    if usable_runtime(&state).is_none() {
+        return (not_enabled(), None);
     }
     let code = String::from_utf8_lossy(&body).trim().to_string();
     if code.is_empty() {
-        return (
+        let response = (
             StatusCode::BAD_REQUEST,
             Json(json!({ "error": "Request body is required" })),
         )
             .into_response();
+        return (response, None);
     }
-    let timeout = parse_timeout(&headers);
+    let timeout = parse_timeout(headers);
+    let index = index_status(&state, &actor, headers, timeout).await;
     let fn_name = match kind {
         EvalKind::Lua => "sbRuntime.evalLua",
         EvalKind::Script => "sbRuntime.evalLuaScript",
@@ -121,7 +239,7 @@ async fn runtime_eval(
     })
     .await;
 
-    match result {
+    let response = match result {
         Ok(Ok(value)) => (StatusCode::OK, Json(json!({ "result": value }))).into_response(),
         Ok(Err(e)) => runtime_error_response(e),
         Err(join) => (
@@ -129,7 +247,8 @@ async fn runtime_eval(
             Json(json!({ "error": format!("runtime task failed: {join}") })),
         )
             .into_response(),
-    }
+    };
+    (response, index)
 }
 
 #[derive(serde::Deserialize, Default)]
@@ -143,7 +262,7 @@ pub async fn handle_runtime_logs(
     Extension(actor): Extension<Actor>,
     Query(params): Query<LogsQuery>,
 ) -> Response {
-    let Some(rt) = state.runtime.as_ref() else {
+    let Some(rt) = usable_runtime(&state) else {
         return not_enabled();
     };
     let runtime = rt.clone();
@@ -203,15 +322,25 @@ pub async fn handle_runtime_screenshot(
     headers: HeaderMap,
     Query(params): Query<ScreenshotQuery>,
 ) -> Response {
-    let Some(rt) = state.runtime.as_ref() else {
-        return not_enabled();
+    let (response, index) = screenshot(state, actor, &headers, params).await;
+    with_index_status(response, &headers, index)
+}
+
+async fn screenshot(
+    state: Arc<ServerState>,
+    actor: Actor,
+    headers: &HeaderMap,
+    params: ScreenshotQuery,
+) -> (Response, Option<IndexStatus>) {
+    let Some(rt) = usable_runtime(&state) else {
+        return (not_enabled(), None);
     };
     let runtime = rt.clone();
-    let timeout = parse_timeout(&headers);
+    let timeout = parse_timeout(headers);
     let selector = params.selector.filter(|s| !s.trim().is_empty());
     let full_page = is_truthy(params.full_page.as_deref());
     if full_page && selector.is_some() {
-        return (
+        let response = (
             StatusCode::BAD_REQUEST,
             Json(json!({
                 "error": "fullPage and selector cannot be combined",
@@ -219,7 +348,9 @@ pub async fn handle_runtime_screenshot(
             })),
         )
             .into_response();
+        return (response, None);
     }
+    let index = index_status(&state, &actor, headers, timeout).await;
     let result = tokio::task::spawn_blocking(move || {
         let selected = runtime.for_actor(&actor)?;
         let backend = selected.as_ref().unwrap_or(&runtime);
@@ -234,7 +365,7 @@ pub async fn handle_runtime_screenshot(
         }
     })
     .await;
-    match result {
+    let response = match result {
         Ok(Ok((png, truncated))) => png_response(png, truncated),
         Ok(Err(e)) => runtime_error_response(e),
         Err(join) => (
@@ -242,414 +373,9 @@ pub async fn handle_runtime_screenshot(
             Json(json!({ "error": format!("runtime task failed: {join}") })),
         )
             .into_response(),
-    }
+    };
+    (response, index)
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::runtime::{LogEntry, RuntimeBackend, RuntimeError};
-    use crate::state::ServerState;
-    use crate::test_support::test_state;
-    use axum::body::Body;
-    use axum::http::{Request, StatusCode};
-    use std::sync::{Arc, Mutex};
-    use std::time::Duration;
-    use tower::ServiceExt;
-
-    /// A `RuntimeBackend` we drive directly (no transport) for handler tests.
-    struct FakeBackend {
-        eval: Result<serde_json::Value, RuntimeErrorKind>,
-        logs: Vec<LogEntry>,
-        calls: Arc<Mutex<Vec<(String, String)>>>,
-        shot: Result<Vec<u8>, ShotError>,
-        truncated: bool,
-    }
-    #[derive(Clone)]
-    enum ShotError {
-        Missing,
-        Invalid,
-        Timeout,
-    }
-    /// A `Clone`-able error description (RuntimeError isn't Clone).
-    #[derive(Clone)]
-    enum RuntimeErrorKind {
-        NotReady,
-        Timeout,
-        Eval,
-    }
-    impl FakeBackend {
-        fn returning(value: serde_json::Value) -> Self {
-            Self {
-                eval: Ok(value),
-                logs: vec![],
-                calls: Arc::new(Mutex::new(vec![])),
-                shot: Ok(b"\x89PNG\r\n\x1a\nrest".to_vec()),
-                truncated: false,
-            }
-        }
-        fn failing(kind: RuntimeErrorKind) -> Self {
-            Self {
-                eval: Err(kind),
-                logs: vec![],
-                calls: Arc::new(Mutex::new(vec![])),
-                shot: Ok(b"\x89PNG\r\n\x1a\nrest".to_vec()),
-                truncated: false,
-            }
-        }
-        fn err(&self) -> RuntimeError {
-            match self.eval.as_ref().err().unwrap() {
-                RuntimeErrorKind::NotReady => RuntimeError::NotReady,
-                RuntimeErrorKind::Timeout => RuntimeError::Timeout,
-                RuntimeErrorKind::Eval => RuntimeError::Eval("attempt to call a nil value".into()),
-            }
-        }
-    }
-    impl RuntimeBackend for FakeBackend {
-        fn eval_global(
-            &self,
-            fn_name: &str,
-            arg: &str,
-            _t: Duration,
-        ) -> Result<serde_json::Value, RuntimeError> {
-            self.calls
-                .lock()
-                .unwrap()
-                .push((fn_name.to_string(), arg.to_string()));
-            self.eval.clone().map_err(|_| self.err())
-        }
-        fn screenshot(
-            &self,
-            selector: Option<&str>,
-            _t: Duration,
-        ) -> Result<Vec<u8>, RuntimeError> {
-            self.calls
-                .lock()
-                .unwrap()
-                .push(("screenshot".into(), selector.unwrap_or("").into()));
-            self.shot.clone().map_err(|e| match e {
-                ShotError::Missing => RuntimeError::SelectorNotFound("no match".into()),
-                ShotError::Invalid => RuntimeError::InvalidSelector("invalid selector: bad".into()),
-                ShotError::Timeout => RuntimeError::Timeout,
-            })
-        }
-        fn screenshot_full_page(
-            &self,
-            _t: Duration,
-        ) -> Result<crate::runtime::fullpage::FullPageShot, RuntimeError> {
-            self.calls
-                .lock()
-                .unwrap()
-                .push(("screenshot_full_page".into(), String::new()));
-            Ok(crate::runtime::fullpage::FullPageShot {
-                png: b"\x89PNG\r\n\x1a\nfull".to_vec(),
-                truncated: self.truncated,
-            })
-        }
-        fn logs(&self, _limit: usize, _since: Option<i64>) -> Vec<LogEntry> {
-            self.logs.clone()
-        }
-        fn ready(&self) -> bool {
-            true
-        }
-    }
-
-    fn state_with_runtime(backend: Option<Box<dyn RuntimeBackend>>) -> Arc<ServerState> {
-        let mut s = test_state();
-        s.runtime = backend.map(Arc::from);
-        Arc::new(s)
-    }
-
-    async fn post_lua(state: Arc<ServerState>, body: &str) -> (StatusCode, String) {
-        let resp = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.runtime/lua")
-                    .body(Body::from(body.to_string()))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        let status = resp.status();
-        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        (status, String::from_utf8_lossy(&bytes).into_owned())
-    }
-
-    #[tokio::test]
-    async fn no_backend_returns_503_not_enabled() {
-        let (status, body) = post_lua(state_with_runtime(None), "1 + 1").await;
-        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-        assert!(body.contains("not enabled"), "{body}");
-    }
-
-    #[tokio::test]
-    async fn eval_success_returns_envelope_200() {
-        let backend = FakeBackend::returning(serde_json::json!(2));
-        let calls = backend.calls.clone();
-        let (status, body) = post_lua(state_with_runtime(Some(Box::new(backend))), "1 + 1").await;
-        assert_eq!(status, StatusCode::OK);
-        assert_eq!(body, r#"{"result":2}"#);
-        assert_eq!(
-            calls.lock().unwrap().as_slice(),
-            &[("sbRuntime.evalLua".into(), "1 + 1".into())]
-        );
-    }
-
-    #[tokio::test]
-    async fn script_endpoint_uses_script_evaluator() {
-        let backend = FakeBackend::returning(serde_json::json!(null));
-        let calls = backend.calls.clone();
-        let state = state_with_runtime(Some(Box::new(backend)));
-        let resp = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.runtime/lua_script")
-                    .body(Body::from("value = 1"))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(
-            calls.lock().unwrap().as_slice(),
-            &[("sbRuntime.evalLuaScript".into(), "value = 1".into())]
-        );
-    }
-
-    #[tokio::test]
-    async fn empty_body_is_400() {
-        let backend = Box::new(FakeBackend::returning(serde_json::json!(null)));
-        let (status, _) = post_lua(state_with_runtime(Some(backend)), "   ").await;
-        assert_eq!(status, StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn not_ready_maps_to_503_bridge_unavailable() {
-        let backend = Box::new(FakeBackend::failing(RuntimeErrorKind::NotReady));
-        let (status, body) = post_lua(state_with_runtime(Some(backend)), "x").await;
-        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-        assert!(body.contains("bridge_unavailable"), "{body}");
-    }
-
-    #[tokio::test]
-    async fn eval_error_maps_to_500_with_clean_message() {
-        let backend = Box::new(FakeBackend::failing(RuntimeErrorKind::Eval));
-        let (status, body) = post_lua(state_with_runtime(Some(backend)), "editor.reload()").await;
-        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
-        assert!(body.contains("script_error"), "{body}");
-        assert!(
-            body.contains(r#""error":"attempt to call a nil value""#),
-            "{body}"
-        );
-    }
-
-    #[tokio::test]
-    async fn timeout_maps_to_504() {
-        let backend = Box::new(FakeBackend::failing(RuntimeErrorKind::Timeout));
-        let (status, body) = post_lua(state_with_runtime(Some(backend)), "x").await;
-        assert_eq!(status, StatusCode::GATEWAY_TIMEOUT);
-        assert!(body.contains("timeout"), "{body}");
-    }
-
-    #[tokio::test]
-    async fn logs_endpoint_wraps_entries() {
-        let mut backend = FakeBackend::returning(serde_json::json!(null));
-        backend.logs = vec![LogEntry {
-            level: "log".into(),
-            text: "hi".into(),
-            timestamp: 1,
-        }];
-        let state = state_with_runtime(Some(Box::new(backend)));
-        let resp = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/.runtime/logs?limit=10")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(
-            body,
-            serde_json::json!({"logs": [{"level": "log", "text": "hi", "timestamp": 1}]})
-        );
-    }
-
-    #[tokio::test]
-    async fn logs_without_backend_is_503() {
-        let state = state_with_runtime(None);
-        let resp = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/.runtime/logs")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
-    }
-
-    async fn get_screenshot(
-        state: Arc<ServerState>,
-        query: &str,
-    ) -> (StatusCode, Option<String>, Vec<u8>) {
-        let resp = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri(format!("/.runtime/screenshot{query}"))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        let status = resp.status();
-        let content_type = resp
-            .headers()
-            .get("content-type")
-            .map(|v| v.to_str().unwrap().to_string());
-        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap()
-            .to_vec();
-        (status, content_type, bytes)
-    }
-
-    #[tokio::test]
-    async fn screenshot_returns_png_and_passes_selector() {
-        let backend = FakeBackend::returning(serde_json::json!(null));
-        let calls = backend.calls.clone();
-        let (status, ct, body) = get_screenshot(
-            state_with_runtime(Some(Box::new(backend))),
-            "?selector=%23sb-top",
-        )
-        .await;
-        assert_eq!(status, StatusCode::OK);
-        assert_eq!(ct.as_deref(), Some("image/png"));
-        assert!(body.starts_with(b"\x89PNG"));
-        assert_eq!(
-            calls.lock().unwrap()[0],
-            ("screenshot".to_string(), "#sb-top".to_string())
-        );
-    }
-
-    #[tokio::test]
-    async fn screenshot_empty_selector_means_viewport() {
-        let backend = FakeBackend::returning(serde_json::json!(null));
-        let calls = backend.calls.clone();
-        let (status, _, _) =
-            get_screenshot(state_with_runtime(Some(Box::new(backend))), "?selector=").await;
-        assert_eq!(status, StatusCode::OK);
-        assert_eq!(calls.lock().unwrap()[0].1, "");
-    }
-
-    #[tokio::test]
-    async fn screenshot_errors_map_to_status_and_code() {
-        for (error, status, code) in [
-            (
-                ShotError::Missing,
-                StatusCode::NOT_FOUND,
-                "selector_not_found",
-            ),
-            (
-                ShotError::Invalid,
-                StatusCode::BAD_REQUEST,
-                "invalid_selector",
-            ),
-            (ShotError::Timeout, StatusCode::GATEWAY_TIMEOUT, "timeout"),
-        ] {
-            let mut backend = FakeBackend::returning(serde_json::json!(null));
-            backend.shot = Err(error);
-            let (got, ct, body) =
-                get_screenshot(state_with_runtime(Some(Box::new(backend))), "?selector=x").await;
-            assert_eq!(got, status);
-            assert_eq!(ct.as_deref(), Some("application/json"));
-            let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
-            assert_eq!(v["code"], code);
-        }
-    }
-
-    async fn get_full_page(
-        backend: FakeBackend,
-        query: &str,
-    ) -> (StatusCode, Option<String>, Vec<u8>) {
-        let resp = crate::build_router(state_with_runtime(Some(Box::new(backend))))
-            .oneshot(
-                Request::builder()
-                    .uri(format!("/.runtime/screenshot{query}"))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        let status = resp.status();
-        let truncated = resp
-            .headers()
-            .get(super::TRUNCATED_HEADER)
-            .map(|v| v.to_str().unwrap().to_string());
-        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap()
-            .to_vec();
-        (status, truncated, bytes)
-    }
-
-    #[tokio::test]
-    async fn full_page_query_calls_the_full_page_capture() {
-        for query in ["?fullPage=1", "?fullPage=true"] {
-            let backend = FakeBackend::returning(serde_json::json!(null));
-            let calls = backend.calls.clone();
-            let (status, truncated, body) = get_full_page(backend, query).await;
-            assert_eq!(status, StatusCode::OK);
-            assert_eq!(truncated, None);
-            assert!(body.ends_with(b"full"));
-            assert_eq!(calls.lock().unwrap()[0].0, "screenshot_full_page");
-        }
-    }
-
-    #[tokio::test]
-    async fn full_page_off_values_take_a_plain_screenshot() {
-        for query in ["?fullPage=0", "?fullPage=", "?fullPage=false"] {
-            let backend = FakeBackend::returning(serde_json::json!(null));
-            let calls = backend.calls.clone();
-            let (status, _, _) = get_full_page(backend, query).await;
-            assert_eq!(status, StatusCode::OK);
-            assert_eq!(calls.lock().unwrap()[0].0, "screenshot");
-        }
-    }
-
-    #[tokio::test]
-    async fn truncated_full_page_sets_the_header() {
-        let mut backend = FakeBackend::returning(serde_json::json!(null));
-        backend.truncated = true;
-        let (status, truncated, _) = get_full_page(backend, "?fullPage=1").await;
-        assert_eq!(status, StatusCode::OK);
-        assert_eq!(truncated.as_deref(), Some("true"));
-    }
-
-    #[tokio::test]
-    async fn full_page_with_selector_is_rejected() {
-        let backend = FakeBackend::returning(serde_json::json!(null));
-        let calls = backend.calls.clone();
-        let (status, _, body) = get_full_page(backend, "?fullPage=1&selector=%23sb-top").await;
-        assert_eq!(status, StatusCode::BAD_REQUEST);
-        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(v["code"], "invalid_request");
-        assert!(calls.lock().unwrap().is_empty());
-    }
-
-    #[tokio::test]
-    async fn screenshot_without_backend_is_503() {
-        let (status, _, _) = get_screenshot(state_with_runtime(None), "").await;
-        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-    }
-}
+mod tests;

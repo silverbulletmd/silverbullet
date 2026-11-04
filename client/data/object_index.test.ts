@@ -182,6 +182,24 @@ describe("ObjectIndex scan memoization", () => {
     ]);
   });
 
+  test("a long where scan yields to other tasks", async () => {
+    const { objectIndex } = makeCountingObjectIndex();
+    for (let i = 0; i < 20; i++) {
+      await objectIndex.indexObjects(`Page${i}`, [pageObject(`p${i}`)]);
+    }
+    await queryPages(objectIndex);
+    objectIndex.scanYieldEveryMs = 0;
+    let timerRan = false;
+    setTimeout(() => {
+      timerRan = true;
+    }, 0);
+    let timerRanBeforeDone = false;
+    await queryWhere(objectIndex, "page", `_.name == "none"`).then(() => {
+      timerRanBeforeDone = timerRan;
+    });
+    expect(timerRanBeforeDone).toBe(true);
+  });
+
   test("where sees a tag's metatable, and results keep it", async () => {
     const { objectIndex, config } = makeCountingObjectIndex();
     const index = new LuaTable();
@@ -219,6 +237,23 @@ describe("ObjectIndex scan memoization", () => {
       LuaStackFrame.lostFrame,
     );
     expect(results.map((p: any) => p.name)).toEqual(["Folder/A"]);
+  });
+
+  test("forgetScans shows what another window sharing the store indexed", async () => {
+    const ds = new DataStore(new MemoryKvPrimitives());
+    const open = () => {
+      const eventHook = new EventHook();
+      const mq = new DataStoreMQ(ds, eventHook);
+      return new ObjectIndex(ds, new Config(), eventHook, mq);
+    };
+    const headless = open();
+    const editor = open();
+    await headless.indexObjects("TestPage", [pageObject("a")]);
+    expect((await queryPages(headless)).length).toBe(1);
+    await editor.indexObjects("OtherPage", [pageObject("b")]);
+    expect((await queryPages(headless)).length).toBe(1);
+    headless.forgetScans();
+    expect((await queryPages(headless)).length).toBe(2);
   });
 
   test("the memo expires after its TTL", async () => {

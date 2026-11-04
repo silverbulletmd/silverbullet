@@ -974,5 +974,6 @@ async fn a_second_worker_over_a_built_sink_recovers_at_the_next_commit() {
     assert_eq!(second.status().sync, SyncState::Ready);
 }
 
+mod catch_up;
 mod progress;
 mod rebuild;

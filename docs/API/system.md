@@ -125,6 +125,20 @@ Reloads custom Space Style definitions.
 
 Saves the current editor buffer, detects on-disk changes, waits for indexing, and reloads configuration, scripts, styles, and client state. An external edit to the currently open page is never overwritten: an unmodified buffer reloads it, and unsaved edits are merged with it first.
 
+## system.recentLogs
+
+`system.recentLogs(limit?)`
+
+Returns the most recent client console entries, oldest first, as `{level, message, timestamp}` (timestamp in epoch milliseconds). `limit` defaults to 50.
+
+**Parameters:**
+
+- `limit` (`number`) — Maximum number of entries to return (default 50).
+
+**Returns:**
+
+- Value — Log entries in chronological order.
+
 ## system.reloadConfig
 `system.reloadConfig()`
 

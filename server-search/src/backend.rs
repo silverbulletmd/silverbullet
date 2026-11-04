@@ -49,6 +49,12 @@ pub trait SearchBackend: Send + Sync {
     ) -> BoxFut<'a, Result<QueryResult, SearchError>> {
         Box::pin(async { Err(SearchError::Unsupported("related pages")) })
     }
+    /// Resolves `true` once every file change this backend received before
+    /// the call is in its index, `false` at `deadline`. For callers that want
+    /// a query to see a write they just made. Default: `true` at once.
+    fn caught_up<'a>(&'a self, _deadline: std::time::Instant) -> BoxFut<'a, bool> {
+        Box::pin(async { true })
+    }
     /// Each index this backend keeps, for the dashboard. Default: none.
     fn indexes(&self) -> Vec<IndexReport> {
         Vec::new()

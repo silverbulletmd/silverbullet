@@ -19,6 +19,7 @@ path = "src/main.rs"
 silverbullet-server-common = { path = "../../server-common" }
 silverbullet-server = { path = "../../server" }
 silverbullet-server-search = { path = "../../server-search" }
+silverbullet-server-mcp = { path = "../../server-mcp" }
 silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }
 getrandom = { workspace = true }
 axum = { workspace = true }
