@@ -129,6 +129,8 @@ jobs:
         with:
           key: test-rust
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A finished compile is worth keeping when the tests then fail.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: npm ci
@@ -162,8 +164,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: e2e-debug
+          # Shared with the extended browser runs, which build the same
+          # (`make build-e2e`).
+          shared-key: e2e-debug
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A finished compile is worth keeping when the tests then fail.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: npm ci
@@ -212,6 +218,8 @@ jobs:
         with:
           key: e2e-release
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A finished compile is worth keeping when the tests then fail.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: npm ci
