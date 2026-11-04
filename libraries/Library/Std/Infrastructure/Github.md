@@ -651,12 +651,22 @@ service.define {
     description = "Share this page as a gist"
   },
   run = function(data)
-    local filename = editor.prompt("File name", "content.md")
+    local split = string.split(editor.getCurrentPath(), "/")
+    local currentFile = split[#split]
+    local filename = editor.prompt("File name", currentFile)
     if not filename then
       return
     end
+    local public = editor.filterBox(
+      "Gist visibility",
+      {
+        { name = "Public", description = "This Gist will be visible publicly on your profile", value = true },
+        { name = "Private", description = "This Gist is only visible to anyone with the direct link", value = false },
+      },
+      "Select whether you want to share this page publicly or as a secret Gist."
+    )
     local resp = github.request("https://api.github.com/gists", "POST", {
-      public = true,
+      public = public.value,
       files = {
         [filename] = {
           content = data.content

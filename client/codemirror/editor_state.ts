@@ -67,7 +67,10 @@ import { customEnterCommand } from "./editing/markdown_enter.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
-import { readOnlyWidgetLinks } from "./readonly_widget_links.ts";
+import {
+  readOnlyFollowCursor,
+  readOnlyWidgetLinks,
+} from "./readonly_widget_links.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
@@ -164,6 +167,7 @@ export function buildSharedEditorExtensions(
           readOnlyCursorVisible,
           readOnlyReveal,
           readOnlyWidgetLinks,
+          readOnlyFollowCursor(client),
         ]
       : [];
 

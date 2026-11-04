@@ -128,6 +128,10 @@ function template.createPageFromTemplate(templatePage, pageName, openIfExists)
       return
     end
   end
+  if system.getMode() ~= "rw" then
+    editor.flashNotification("Cannot instantiate template '" .. templatePage .. "', you do not have write permission.", "error")
+    return
+  end
   local tpl, fm = template.fromPage(templatePage)
   local initialText = ""
   if fm.frontmatter then
@@ -159,6 +163,7 @@ for pt in query[[
     name = pt.command,
     key = pt.key,
     mac = pt.mac,
+    requireMode = "rw",
     run = function()
       local pageName
       if pt.suggestedName then
@@ -227,6 +232,7 @@ navigator.define {
 command.define {
   name = "Page: From Template",
   key = "Ctrl-q t",
+  requireMode = "rw",
   run = function()
     if editor.openNavigator("std.pageTemplates") then
       -- The panel focuses its own filter input.

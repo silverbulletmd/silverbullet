@@ -66,6 +66,10 @@ function journal.openOrCreate(dateStr)
     editor.navigate(pageName)
     return
   end
+  if system.getMode() ~= "rw" then
+    editor.flashNotification("No journal page for today.", "error")
+    return
+  end
   local templatePage = config.get("journal.template")
   template.createPageFromTemplate(templatePage, pageName, true)
 end
