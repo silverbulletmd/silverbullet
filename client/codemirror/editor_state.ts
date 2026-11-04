@@ -198,7 +198,11 @@ export function buildSharedEditorExtensions(
     dropCursor(),
     indentUnits,
     indentOnInput(),
-    drawSelection(),
+    // Nobody types into the headless runtime, and a blinking cursor keeps
+    // repainting it: about four times the idle CPU.
+    drawSelection(
+      globalThis.sbRuntime?.headless ? { cursorBlinkRate: 0 } : undefined,
+    ),
     regularKeyBindings,
     closeBrackets(),
     keyboardAwareTooltips,
