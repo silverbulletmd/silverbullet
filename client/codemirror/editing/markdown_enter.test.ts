@@ -2,7 +2,10 @@ import { markdown } from "@codemirror/lang-markdown";
 import { ensureSyntaxTree } from "@codemirror/language";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { describe, expect, test } from "vitest";
-import { customEnterCommand } from "./markdown_enter.ts";
+import {
+  customDeleteMarkupBackward,
+  customEnterCommand,
+} from "./markdown_enter.ts";
 
 const CURSOR = "|^|";
 
@@ -214,5 +217,40 @@ describe("Enter before the background parse reaches the cursor", () => {
     expect(
       (newState as EditorState | null)?.doc.sliceString(filler.length),
     ).toBe("- [ ] first task\n- [ ] second task\n- [ ] ");
+  });
+});
+
+describe("read-only editor", () => {
+  function runReadOnly(
+    command: typeof customEnterCommand,
+    doc: string,
+    pos: number,
+  ): { result: boolean; dispatched: boolean } {
+    const state = EditorState.create({
+      doc,
+      selection: EditorSelection.cursor(pos),
+      extensions: [markdown(), EditorState.readOnly.of(true)],
+    });
+    ensureSyntaxTree(state, state.doc.length);
+    let dispatched = false;
+    const result = command({
+      state,
+      dispatch: () => {
+        dispatched = true;
+      },
+    });
+    return { result, dispatched };
+  }
+
+  test("Enter in a list item doesn't change the document", () => {
+    expect(
+      runReadOnly(customEnterCommand, "- item one\n- item two", 4),
+    ).toEqual({ result: false, dispatched: false });
+  });
+
+  test("Backspace after list markup doesn't change the document", () => {
+    expect(
+      runReadOnly(customDeleteMarkupBackward, "- item one\n- ", 13),
+    ).toEqual({ result: false, dispatched: false });
   });
 });

@@ -692,3 +692,44 @@ test.describe("read-only keyboard navigation", () => {
     await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
   });
 });
+
+test.describe("read-only list editing keys", () => {
+  test.use({
+    serverEnv: { SB_READ_ONLY: "1" },
+    spaceFiles: {
+      "index.md": "# Welcome\n\n- first item\n- second item\n",
+    },
+  });
+
+  // Put the cursor at `pos` in the source, press `key`, return the document
+  async function pressAt(page: Page, pos: string, key: string) {
+    await page.evaluate((pos) => {
+      const view = (globalThis as any).client.editorView;
+      const [before, after] = pos.split("|");
+      const text = view.state.doc.toString();
+      view.dispatch({
+        selection: { anchor: text.indexOf(before + after) + before.length },
+      });
+    }, pos);
+    await page.keyboard.press(key);
+    return page.evaluate(() =>
+      (globalThis as any).client.editorView.state.doc.toString(),
+    );
+  }
+
+  test("Enter in a list item doesn't change the page", async ({
+    sbPage: page,
+  }) => {
+    expect(await pressAt(page, "- first| item", "Enter")).toBe(
+      "# Welcome\n\n- first item\n- second item\n",
+    );
+  });
+
+  test("Backspace after a list marker doesn't change the page", async ({
+    sbPage: page,
+  }) => {
+    expect(await pressAt(page, "- |second item", "Backspace")).toBe(
+      "# Welcome\n\n- first item\n- second item\n",
+    );
+  });
+});
