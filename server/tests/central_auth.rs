@@ -39,7 +39,8 @@ async fn provider_configuration_is_admin_only() {
             Box::new(silverbullet_server_common::space::memory::MemorySpacePrimitives::new()),
             Arc::new(|_| None),
         )
-        .unwrap(),
+        .unwrap()
+        .with_default_font(Arc::new(|| Some("inter".to_owned()))),
     ));
     let config = app
         .clone()
@@ -52,7 +53,10 @@ async fn provider_configuration_is_admin_only() {
         ))
         .await
         .unwrap();
-    assert_eq!(body(config).await["serverName"], "SilverBullet");
+    let config = body(config).await;
+    assert_eq!(config["serverName"], "SilverBullet");
+    // Pages with no space (dashboard, login) read the default font from here.
+    assert_eq!(config["defaultFont"], "inter");
     let insecure = app
         .clone()
         .oneshot(

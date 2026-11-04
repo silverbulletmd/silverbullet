@@ -98,6 +98,20 @@
     align-items: center;
     justify-content: flex-end;
 
+    // A font picker stacks its custom CSS field under the dropdown.
+    .sb-wb-cfg-font {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .sb-wb-cfg-font-hint {
+      max-width: 14rem;
+      font-size: 0.8em;
+      text-align: right;
+    }
+
     .sb-input {
       width: 14rem;
       max-width: 100%;
@@ -148,7 +162,7 @@
     border: 1px solid var(--ui-surface-border-color);
     border-radius: 4px;
     background-color: var(--ui-surface-section-background-color);
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 11px;
   }
 

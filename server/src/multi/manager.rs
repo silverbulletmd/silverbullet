@@ -13,7 +13,7 @@ use crate::multi::instance::{
 };
 use crate::multi::registry::{Registry, RoutingTable};
 use crate::multi::search_policy;
-use crate::multi::server_config::ServerConfig;
+use crate::multi::server_config::{ServerConfig, ServerConfigPatch};
 #[cfg(test)]
 use crate::multi::validate::root_prefix_conflict_warnings;
 use crate::multi::validate::{
@@ -143,6 +143,7 @@ impl MultiManager {
             server_config.runtime_idle_timeout.saturating_mul(60),
             std::sync::atomic::Ordering::SeqCst,
         );
+        *deps.default_font.write().unwrap() = server_config.default_font.clone();
         // Before any instance opens its index (see `search_policy::boot`).
         let deps = InstanceDeps {
             search: search_policy::boot(deps.search, &server_config, &config, config_exists),
@@ -233,27 +234,13 @@ impl MultiManager {
             .runtime_idle_timeout
     }
 
-    pub fn set_runtime_idle_timeout(&self, minutes: u64) -> Result<(), ApiError> {
-        if minutes > super::server_config::MAX_RUNTIME_IDLE_TIMEOUT {
-            return Err(ApiError::Validation(vec![FieldError {
-                field: "runtimeIdleTimeout".into(),
-                message: format!(
-                    "runtimeIdleTimeout must be at most {} minutes",
-                    super::server_config::MAX_RUNTIME_IDLE_TIMEOUT
-                ),
-            }]));
-        }
-        let mut inner = self.state.lock().unwrap();
-        let mut config = inner.server_config.clone();
-        config.runtime_idle_timeout = minutes;
-        config
-            .save(&self.root.join("server.json"))
-            .map_err(ApiError::Internal)?;
-        self.deps
-            .runtime_idle_timeout
-            .store(minutes * 60, std::sync::atomic::Ordering::SeqCst);
-        inner.server_config = config;
-        Ok(())
+    pub fn default_font(&self) -> Option<String> {
+        self.state
+            .lock()
+            .unwrap()
+            .server_config
+            .default_font
+            .clone()
     }
 
     pub fn mcp_enabled(&self) -> bool {
@@ -270,29 +257,43 @@ impl MultiManager {
     }
 
     pub fn set_primary_url(&self, value: &str) -> Result<(), ApiError> {
-        self.set_server_config(Some(value), None, None, None)
+        self.set_server_config(ServerConfigPatch {
+            primary_url: Some(value.into()),
+            ..Default::default()
+        })
     }
 
-    pub fn set_server_config(
-        &self,
-        primary_url: Option<&str>,
-        server_name: Option<&str>,
-        runtime_api: Option<bool>,
-        mcp: Option<bool>,
-    ) -> Result<(), ApiError> {
+    /// Applies every field of `patch` together: all of it is checked before
+    /// `server.json` is saved once, so a rejected field changes nothing.
+    pub fn set_server_config(&self, patch: ServerConfigPatch) -> Result<(), ApiError> {
         let mut inner = self.state.lock().unwrap();
         let mut config = inner.server_config.clone();
-        if let Some(value) = primary_url {
-            config.primary_url = Some(value.into());
+        if let Some(value) = patch.primary_url {
+            config.primary_url = Some(value);
         }
-        if let Some(value) = server_name {
-            config.server_name = value.into();
+        if let Some(value) = patch.server_name {
+            config.server_name = value;
         }
-        if let Some(value) = runtime_api {
+        if let Some(value) = patch.runtime_api {
             config.runtime_api = value;
         }
-        if let Some(value) = mcp {
+        if let Some(value) = patch.mcp {
             config.mcp = value;
+        }
+        if let Some(minutes) = patch.runtime_idle_timeout {
+            if minutes > super::server_config::MAX_RUNTIME_IDLE_TIMEOUT {
+                return Err(ApiError::Validation(vec![FieldError {
+                    field: "runtimeIdleTimeout".into(),
+                    message: format!(
+                        "runtimeIdleTimeout must be at most {} minutes",
+                        super::server_config::MAX_RUNTIME_IDLE_TIMEOUT
+                    ),
+                }]));
+            }
+            config.runtime_idle_timeout = minutes;
+        }
+        if let Some(value) = patch.default_font {
+            config.default_font = value;
         }
         config
             .validate(&inner.config)
@@ -324,6 +325,11 @@ impl MultiManager {
         self.deps
             .runtime_enabled
             .store(config.runtime_api, std::sync::atomic::Ordering::SeqCst);
+        self.deps.runtime_idle_timeout.store(
+            config.runtime_idle_timeout * 60,
+            std::sync::atomic::Ordering::SeqCst,
+        );
+        *self.deps.default_font.write().unwrap() = config.default_font.clone();
         if !config.runtime_api {
             for instance in inner.instances.values() {
                 if let Some(runtime) = &instance.runtime {
@@ -877,6 +883,7 @@ mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Single(Some(
@@ -1145,14 +1152,25 @@ mod tests {
         )
         .unwrap();
         let m = boot(dir.path());
-        m.set_server_config(None, Some("  Notebook Server  "), None, None)
-            .unwrap();
+        m.set_server_config(ServerConfigPatch {
+            server_name: Some("  Notebook Server  ".into()),
+            ..Default::default()
+        })
+        .unwrap();
         assert_eq!(m.server_name(), "Notebook Server");
         m.set_primary_url("https://other.example.test").unwrap();
         assert_eq!(m.server_name(), "Notebook Server");
-        assert!(m.set_server_config(None, Some("  "), None, None).is_err());
         assert!(m
-            .set_server_config(None, Some(&"x".repeat(101)), None, None)
+            .set_server_config(ServerConfigPatch {
+                server_name: Some("  ".into()),
+                ..Default::default()
+            })
+            .is_err());
+        assert!(m
+            .set_server_config(ServerConfigPatch {
+                server_name: Some("x".repeat(101)),
+                ..Default::default()
+            })
             .is_err());
         drop(m);
         let m = boot(dir.path());

@@ -20,7 +20,7 @@ function lineColumnsFor(doc: string): [number, number][] {
   });
   const columns = (style: string, name: string) => {
     const found = new RegExp(
-      `${name}:calc\\((\\d+) \\* var\\(--editor-column\\)\\)`,
+      `${name}:calc\\(\\(?(\\d+)(?: \\+ var\\(--sb-list-pad, 0\\)\\))? \\* var\\(--editor-column\\)\\)`,
     ).exec(style);
     if (!found) throw new Error(`${name} missing from ${style}`);
     return Number(found[1]);
@@ -63,6 +63,12 @@ test("a quote nested in a list reserves only its own markers", () => {
   // reserves; counting them here too would over-indent the wrapped rows. They
   // do count as bar offset, because the `>` starts two columns in.
   expect(lineColumnsFor("* a\n  > q\n\nafter\n")).toEqual([[2, 2]]);
+});
+
+test("a quote opened after a list marker gets no lazy-continuation spacer", () => {
+  // `* > quoted` writes its `>` after the bullet, not at the line start; it is
+  // not a continuation missing its marker.
+  expect(lineColumnsFor("* > quoted\n")).toEqual([[2, 2]]);
 });
 
 test("a list nested in a quote puts the bar at the line start", () => {

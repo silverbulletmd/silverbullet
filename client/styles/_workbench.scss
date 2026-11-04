@@ -112,10 +112,12 @@
     overflow: auto;
     background-color: var(--root-background-color);
     color: var(--root-color);
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-font);
   }
 
+  // Console log output is code: timings, JSON, stack traces.
   .sb-wb-row {
+    font-family: var(--editor-monospace-font, monospace);
     display: flex;
     align-items: flex-start;
     gap: 8px;
@@ -371,7 +373,7 @@
       flex: none;
       padding-top: 4px;
       color: var(--subtle-color);
-      font-family: var(--editor-font), monospace;
+      font-family: var(--editor-monospace-font, monospace);
       font-size: 13px;
       line-height: 1.4;
     }
@@ -391,7 +393,7 @@
     }
 
     .cm-content {
-      font-family: var(--editor-font), monospace;
+      font-family: var(--editor-monospace-font, monospace);
     }
   }
 
@@ -600,7 +602,7 @@
 
   .sb-wbh-source {
     color: var(--subtle-color);
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 11px;
   }
 

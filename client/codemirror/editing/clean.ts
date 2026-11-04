@@ -1,4 +1,4 @@
-import type { Extension } from "@codemirror/state";
+import { type Extension, Prec } from "@codemirror/state";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { Client } from "../../client.ts";
 import { admonitionPlugin } from "../syntax/admonition.ts";
@@ -82,7 +82,10 @@ export function cleanModePlugins(client: Client) {
       })(),
     }),
     listBulletPlugin(),
-    listIndentPlugin(),
+    // Lowest precedence makes its column slots the outermost mark elements,
+    // so bullet, checkbox and highlight marks nest inside instead of
+    // splitting a slot in two.
+    Prec.lowest(listIndentPlugin()),
     htmlInlinePlugin(client),
     htmlBlockPlugin(client),
     tablePlugin(client),

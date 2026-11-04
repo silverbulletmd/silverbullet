@@ -25,7 +25,7 @@ pub mod watcher;
 pub use fs_guard::FsGuard;
 pub use listing_cache::ListingCachedSpace;
 pub use router::{build_router, metrics_router};
-pub use state::{ServerState, ServerVersion};
+pub use state::{DefaultFont, ServerState, ServerVersion};
 pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};
 
 #[cfg(test)]
@@ -60,6 +60,7 @@ mod test_support {
                 revisions: RevisionsMode::Disabled,
             },
             space_prefixes: Default::default(),
+            default_font: Default::default(),
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
             host_url_prefix: String::new(),

@@ -298,6 +298,7 @@ impl Fixture {
             runtime_enabled: Arc::new(AtomicBool::new(true)),
             runtime_availability: silverbullet_server::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             metrics: None,
             auth: InstanceAuth::Accounts {
                 users: users.clone(),
@@ -320,7 +321,12 @@ impl Fixture {
         .unwrap();
         // Off by default on a real server; the fixtures exercise the endpoint.
         manager
-            .set_server_config(None, None, None, Some(true))
+            .set_server_config(
+                silverbullet_server::multi::server_config::ServerConfigPatch {
+                    mcp: Some(true),
+                    ..Default::default()
+                },
+            )
             .unwrap();
         let host = Arc::new(
             MultiHost::new(manager.clone(), users.clone())

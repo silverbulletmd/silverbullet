@@ -26,3 +26,33 @@
   font-style: italic;
 }
 
+
+// Inter, the bundled proportional face (SIL OFL 1.1, no Reserved Font Name;
+// see fonts/LICENSE-Inter.txt). Faces load only when text uses them.
+@font-face {
+  font-family: "Inter";
+  src: url("Inter-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("Inter-Bold.woff2") format("woff2");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("Inter-Italic.woff2") format("woff2");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("Inter-BoldItalic.woff2") format("woff2");
+  font-weight: bold;
+  font-style: italic;
+}

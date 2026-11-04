@@ -277,6 +277,7 @@ export function buildPageExtensions(
       { selector: "BulletList", class: "sb-line-ul" },
       { selector: "OrderedList", class: "sb-line-ol" },
       { selector: "TableHeader", class: "sb-line-tbl-header" },
+      { selector: "Table", class: "sb-line-tbl" },
       {
         selector: "FrontMatter",
         class: "sb-frontmatter",

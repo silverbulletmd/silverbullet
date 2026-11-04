@@ -23,6 +23,8 @@ import { LoadingWidget } from "./loading_widget.ts";
 import { type InlineWrapper, LuaWidget, OccurrenceKeys } from "./lua_widget.ts";
 import { PageLuaErrorWidget } from "./page_lua_error_widget.ts";
 
+const sourceMark = Decoration.mark({ class: "sb-lua-directive-source" });
+
 function isPageLuaBlock(node: SyntaxNode, state: EditorState): boolean {
   const info = node.getChild("CodeInfo");
   return !!info && state.sliceDoc(info.from, info.to).trim() === "page-lua";
@@ -164,12 +166,21 @@ export function luaDirectivePlugin(client: Client) {
           return;
         }
 
+        // Shown source is code: it keeps the monospace face when the prose
+        // font is proportional.
+        const markSource = () =>
+          widgets.push(sourceMark.range(node.from, node.to));
+
         if (isCursorInRange(state, [node.from, node.to])) {
+          markSource();
           return;
         }
 
         const hideSource = () => {
-          if (client.ui.viewState.uiOptions.markdownSyntaxRendering) return;
+          if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+            markSource();
+            return;
+          }
           hideBlockSource(widgets, state, node.from, node.to, "start");
         };
 

@@ -53,7 +53,12 @@ async fn mcp_404_when_server_config_off() {
     let (token, _) = fixture.grant_caller_for("writer-one", &[], "http://localhost/.mcp");
     fixture
         .manager
-        .set_server_config(None, None, None, Some(false))
+        .set_server_config(
+            silverbullet_server::multi::server_config::ServerConfigPatch {
+                mcp: Some(false),
+                ..Default::default()
+            },
+        )
         .unwrap();
     assert_eq!(
         initialize(&app, "localhost", &token).await.0,
@@ -61,7 +66,12 @@ async fn mcp_404_when_server_config_off() {
     );
     fixture
         .manager
-        .set_server_config(None, None, None, Some(true))
+        .set_server_config(
+            silverbullet_server::multi::server_config::ServerConfigPatch {
+                mcp: Some(true),
+                ..Default::default()
+            },
+        )
         .unwrap();
     assert_eq!(
         initialize(&app, "localhost", &token).await.0,

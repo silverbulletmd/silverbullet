@@ -55,7 +55,7 @@
     border: 0;
     background: none;
     color: inherit;
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 12.5px;
     text-align: left;
     cursor: pointer;
@@ -137,7 +137,7 @@
     border-radius: 6px;
     background-color: var(--ui-surface-section-background-color);
     color: var(--editor-link-color);
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 12.5px;
   }
 
@@ -214,7 +214,7 @@
     color: var(--subtle-color);
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 11.5px;
   }
 
@@ -277,7 +277,7 @@
   .sb-wbq-attribute,
   .sb-wbq-expr,
   .sb-wbq-value {
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     overflow-wrap: anywhere;
   }
 
@@ -363,7 +363,7 @@
 
   .sb-wbq-wide {
     width: 100%;
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
   }
 
   .sb-wbq-lua {
@@ -379,6 +379,7 @@
 
     .cm-content {
       padding: 2px 4px;
+      font-family: var(--editor-monospace-font, monospace);
     }
   }
 
@@ -395,7 +396,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-family: var(--editor-font), monospace;
+      font-family: var(--editor-monospace-font, monospace);
     }
   }
 
@@ -519,7 +520,7 @@
     min-height: 0;
     padding: 0 14px 12px;
     overflow: auto;
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-font);
     // A result table keeps whole words; it scrolls sideways instead
     th,
     td {
@@ -560,7 +561,7 @@
     min-width: 0;
     overflow: hidden;
     color: var(--subtle-color);
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -599,7 +600,7 @@
     border: 1px solid var(--ui-surface-border-color);
     border-radius: 6px;
     background-color: var(--root-background-color);
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 12px;
     white-space: pre-wrap;
   }

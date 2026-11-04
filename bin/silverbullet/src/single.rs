@@ -133,6 +133,7 @@ pub(crate) async fn run_single(
                 .unwrap_or(crate::config::DEFAULT_RUNTIME_IDLE_MINUTES)
                 .saturating_mul(60),
         )),
+        default_font: Default::default(),
         runtime,
         metrics: metrics.clone(),
         auth: InstanceAuth::Single(auth),

@@ -5,6 +5,7 @@ import { type Action, copyText } from "../shared/action.ts";
 import { ActionMenu } from "../shared/action_menu.tsx";
 import { BlockNote } from "../shared/block_ui.tsx";
 import type { ConfigurationModel } from "./configuration_model.ts";
+import { FontSelect, useFontPreview } from "./font_select.tsx";
 import type { UiSchema } from "./schema.ts";
 
 type FieldDeps = { client: Client; model: ConfigurationModel; path: string };
@@ -35,6 +36,7 @@ export function OptionsSection(props: {
   phrase: string;
 }) {
   const { client, model } = props;
+  useFontPreview(client, (path) => model.valueOf(path));
   const categories = visibleCategories(model, props.phrase);
   if (categories.length === 0) {
     return <BlockNote>No options match.</BlockNote>;
@@ -116,6 +118,7 @@ function OptionRow(props: {
       </div>
       <div className="sb-wb-cfg-control">
         <Control
+          client={client}
           model={model}
           path={path}
           schema={schema}
@@ -129,6 +132,7 @@ function OptionRow(props: {
 }
 
 function Control(props: {
+  client: Client;
   model: ConfigurationModel;
   path: string;
   schema: any;
@@ -138,6 +142,18 @@ function Control(props: {
   const { model, path, schema, label, disabled } = props;
   const value = model.valueOf(path) as any;
   const set = (v: unknown) => model.setField(path, v);
+  if (schema.type === "string" && schema.ui?.font) {
+    return (
+      <FontSelect
+        client={props.client}
+        value={value}
+        kind={schema.ui.font === "mono" ? "mono" : "any"}
+        label={label}
+        disabled={disabled}
+        onChange={set}
+      />
+    );
+  }
   if (schema.type === "boolean") {
     return (
       <Checkbox

@@ -141,7 +141,7 @@ async fn server_config_is_admin_gated_and_reports_validation_errors() {
     let response = authed(&router, "GET", "/api/server-config", "", &cookie).await;
     assert_eq!(
         body_json(response).await,
-        json!({ "primaryUrl": null, "serverName": "SilverBullet", "runtimeApi": true, "runtimeIdleTimeout": 30, "mcp": false })
+        json!({ "primaryUrl": null, "serverName": "SilverBullet", "runtimeApi": true, "runtimeIdleTimeout": 30, "mcp": false, "defaultFont": null })
     );
     let response = authed(
         &router,
@@ -194,7 +194,7 @@ async fn server_name_updates_preserve_primary_url_and_omitted_name() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         body_json(response).await,
-        json!({"primaryUrl":"https://manager.example.test", "serverName":"Notebook Server", "runtimeApi":true, "runtimeIdleTimeout":30, "mcp":false})
+        json!({"primaryUrl":"https://manager.example.test", "serverName":"Notebook Server", "runtimeApi":true, "runtimeIdleTimeout":30, "mcp":false, "defaultFont":null})
     );
     let response = authed(
         &router,
@@ -265,4 +265,69 @@ async fn server_info_names_the_search_model() {
         body_json(resp).await["searchModel"],
         serde_json::json!({ "id": "multilingual-e5-small", "displayName": "Multilingual E5 Small" })
     );
+}
+
+#[tokio::test]
+async fn default_font_persists_clears_and_rejects_unsafe_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let (router, manager, users) = admin_router(&dir);
+    let cookie = session_cookie(&users, "admin");
+    assert_eq!(manager.default_font(), None);
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"defaultFont":"inter"}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(body_json(response).await["defaultFont"], "inter");
+    let stored =
+        crate::multi::server_config::ServerConfig::load(&dir.path().join("server.json")).unwrap();
+    assert_eq!(stored.default_font.as_deref(), Some("inter"));
+
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"defaultFont":"x; } body {"}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(manager.default_font().as_deref(), Some("inter"));
+
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"defaultFont":null}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(body_json(response).await["defaultFont"].is_null());
+    assert_eq!(manager.default_font(), None);
+}
+
+#[tokio::test]
+async fn a_rejected_default_font_saves_nothing_else_from_the_same_request() {
+    let dir = tempfile::tempdir().unwrap();
+    let (router, manager, users) = admin_router(&dir);
+    let cookie = session_cookie(&users, "admin");
+    let response = authed(
+        &router,
+        "PUT",
+        "/api/server-config",
+        r#"{"serverName":"Garden","runtimeIdleTimeout":5,"defaultFont":"x; } body {"}"#,
+        &cookie,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(manager.server_name(), "SilverBullet");
+    assert_eq!(manager.runtime_idle_timeout(), 30);
+    let stored =
+        crate::multi::server_config::ServerConfig::load(&dir.path().join("server.json")).unwrap();
+    assert_eq!(stored.server_name, "SilverBullet");
 }

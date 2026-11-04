@@ -180,7 +180,12 @@ async fn as_metadata_issuer_is_request_origin() {
 
     fixture
         .manager
-        .set_server_config(Some("https://public.example.test"), None, None, None)
+        .set_server_config(
+            silverbullet_server::multi::server_config::ServerConfigPatch {
+                primary_url: Some("https://public.example.test".into()),
+                ..Default::default()
+            },
+        )
         .unwrap();
     let reply = send(&app, get("/.well-known/oauth-authorization-server")).await;
     assert_eq!(reply.body["issuer"], "https://public.example.test");
@@ -193,7 +198,12 @@ async fn well_known_and_auth_routes_404_when_mcp_disabled() {
     let set = |on: bool| {
         fixture
             .manager
-            .set_server_config(None, None, None, Some(on))
+            .set_server_config(
+                silverbullet_server::multi::server_config::ServerConfigPatch {
+                    mcp: Some(on),
+                    ..Default::default()
+                },
+            )
             .unwrap()
     };
     set(false);
@@ -243,7 +253,12 @@ async fn revoke_still_works_when_disabled() {
         .to_string();
     fixture
         .manager
-        .set_server_config(None, None, None, Some(false))
+        .set_server_config(
+            silverbullet_server::multi::server_config::ServerConfigPatch {
+                mcp: Some(false),
+                ..Default::default()
+            },
+        )
         .unwrap();
     let reply = post_form(
         &app,

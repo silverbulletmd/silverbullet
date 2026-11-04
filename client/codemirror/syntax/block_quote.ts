@@ -28,20 +28,14 @@ class QuoteMarkSpacer extends WidgetType {
   }
 }
 
-/**
- * The `>` run a line opens with, however the tree happens to model it. A
- * marker takes one space as padding and then up to three more as indent, and
- * overcounting is absorbed by the `missing <= 0` guard, so this errs generous.
- */
-function writtenMarkers(lineText: string): number {
-  return /^\s{0,3}(?:>\s{0,4})*/.exec(lineText)![0].split(">").length - 1;
-}
-
 function decorateBlockQuote(state: EditorState) {
   const widgets: Range<Decoration>[] = [];
   const depth = new Map<number, number>();
   const markupStart = new Map<number, number>();
   const markupEnd = new Map<number, number>();
+  // The markers the tree found on each line, wherever they sit: after a list
+  // marker (`* > quote`) as much as at the line start.
+  const markersOnLine = new Map<number, number>();
 
   syntaxTree(state).iterate({
     enter: ({ type, from, to }) => {
@@ -55,10 +49,11 @@ function decorateBlockQuote(state: EditorState) {
       }
       if (type.name !== "QuoteMark") return;
       // The trailing space belongs to the marker: hidden, the spacer replacing
-      // both is exactly as wide, revealed, the mark class pins it to the same
-      // two editor columns. Either way a line occupies the same width.
+      // both is exactly as wide, revealed, the column slot pins it to the
+      // same two editor columns. Either way a line occupies the same width.
       const end = state.doc.sliceString(to, to + 1) === " " ? to + 1 : to;
       const lineStart = state.doc.lineAt(from).from;
+      markersOnLine.set(lineStart, (markersOnLine.get(lineStart) ?? 0) + 1);
       markupStart.set(
         lineStart,
         Math.min(markupStart.get(lineStart) ?? from, from),
@@ -66,7 +61,10 @@ function decorateBlockQuote(state: EditorState) {
       markupEnd.set(lineStart, Math.max(markupEnd.get(lineStart) ?? 0, end));
       widgets.push(
         isCursorInRange(state, [from, to])
-          ? Decoration.mark({ class: "sb-quote-mark" }).range(from, end)
+          ? Decoration.mark({
+              class: "sb-quote-mark sb-col-slot",
+              attributes: { style: `--sb-slot-columns:${end - from}` },
+            }).range(from, end)
           : Decoration.replace({
               widget: new QuoteMarkSpacer(end - from),
             }).range(from, end),
@@ -77,7 +75,7 @@ function decorateBlockQuote(state: EditorState) {
   for (const [lineStart, levels] of depth) {
     // A lazy continuation writes no marker of its own; without a stand-in it
     // would start a marker-width left of the line it continues.
-    const missing = levels - writtenMarkers(state.doc.lineAt(lineStart).text);
+    const missing = levels - (markersOnLine.get(lineStart) ?? 0);
     if (missing > 0) {
       widgets.push(
         Decoration.widget({
@@ -107,7 +105,9 @@ function decorateBlockQuote(state: EditorState) {
           attributes: {
             style:
               `--sb-quote-indent:calc(${columns} * var(--editor-column));` +
-              `--sb-quote-bar-offset:calc(${offset} * var(--editor-column))`,
+              // --sb-list-pad: columns an enclosing ordered item was
+              // widened by (list_indent.ts), which move a nested quote too.
+              `--sb-quote-bar-offset:calc((${offset} + var(--sb-list-pad, 0)) * var(--editor-column))`,
           },
         }).range(lineStart),
       );

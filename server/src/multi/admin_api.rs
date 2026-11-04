@@ -206,91 +206,93 @@ async fn manage_runtime(state: Arc<AdminState>, id: String, reset: bool) -> Resp
 }
 
 async fn handle_server_config(State(state): State<Arc<AdminState>>) -> Response {
-    Json(json!({ "primaryUrl": state.manager.primary_url(), "serverName": state.manager.server_name(), "runtimeApi": state.manager.runtime_enabled(), "runtimeIdleTimeout": state.manager.runtime_idle_timeout(), "mcp": state.manager.mcp_enabled() })).into_response()
+    Json(json!({ "primaryUrl": state.manager.primary_url(), "serverName": state.manager.server_name(), "runtimeApi": state.manager.runtime_enabled(), "runtimeIdleTimeout": state.manager.runtime_idle_timeout(), "mcp": state.manager.mcp_enabled(), "defaultFont": state.manager.default_font() })).into_response()
 }
 
-async fn handle_set_server_config(
-    State(state): State<Arc<AdminState>>,
-    Json(value): Json<serde_json::Value>,
-) -> Response {
-    let mut fields = [None, None];
-    for (index, field) in ["primaryUrl", "serverName"].iter().enumerate() {
-        if let Some(value) = value.get(field) {
-            let Some(text) = value.as_str() else {
-                return api_error(ApiError::Validation(vec![
-                    crate::multi::validate::FieldError {
-                        field: (*field).into(),
-                        message: format!("{field} must be a string"),
-                    },
-                ]));
-            };
-            fields[index] = Some(text);
-        }
+/// One field of a server-config update: absent is `None`; present but not
+/// what `parse` accepts is a validation error naming the field.
+fn patch_field<T>(
+    body: &serde_json::Value,
+    field: &str,
+    parse: impl FnOnce(&serde_json::Value) -> Option<T>,
+    message: impl FnOnce() -> String,
+) -> Result<Option<T>, Response> {
+    match body.get(field) {
+        None => Ok(None),
+        Some(value) => parse(value).map(Some).ok_or_else(|| {
+            api_error(ApiError::Validation(vec![
+                crate::multi::validate::FieldError {
+                    field: field.into(),
+                    message: message(),
+                },
+            ]))
+        }),
     }
-    if !value.is_object() {
-        return api_error(ApiError::Validation(vec![
+}
+
+fn server_config_patch(
+    body: &serde_json::Value,
+) -> Result<crate::multi::server_config::ServerConfigPatch, Response> {
+    use crate::multi::server_config::{ServerConfigPatch, MAX_RUNTIME_IDLE_TIMEOUT};
+    if !body.is_object() {
+        return Err(api_error(ApiError::Validation(vec![
             crate::multi::validate::FieldError {
                 field: "serverName".into(),
                 message: "server configuration must be an object".into(),
             },
-        ]));
+        ])));
     }
-    let runtime_api = match value.get("runtimeApi") {
-        None => None,
-        Some(value) => match value.as_bool() {
-            Some(enabled) => Some(enabled),
-            None => {
-                return api_error(ApiError::Validation(vec![
-                    crate::multi::validate::FieldError {
-                        field: "runtimeApi".into(),
-                        message: "runtimeApi must be a boolean".into(),
-                    },
-                ]))
-            }
-        },
+    let string = |value: &serde_json::Value| value.as_str().map(str::to_owned);
+    Ok(ServerConfigPatch {
+        primary_url: patch_field(body, "primaryUrl", string, || {
+            "primaryUrl must be a string".into()
+        })?,
+        server_name: patch_field(body, "serverName", string, || {
+            "serverName must be a string".into()
+        })?,
+        runtime_api: patch_field(body, "runtimeApi", serde_json::Value::as_bool, || {
+            "runtimeApi must be a boolean".into()
+        })?,
+        mcp: patch_field(body, "mcp", serde_json::Value::as_bool, || {
+            "mcp must be a boolean".into()
+        })?,
+        runtime_idle_timeout: patch_field(
+            body,
+            "runtimeIdleTimeout",
+            |value| {
+                value
+                    .as_u64()
+                    .filter(|minutes| *minutes <= MAX_RUNTIME_IDLE_TIMEOUT)
+            },
+            || {
+                format!(
+                    "runtimeIdleTimeout must be a whole number of minutes from 0 to {MAX_RUNTIME_IDLE_TIMEOUT}"
+                )
+            },
+        )?,
+        // null clears it.
+        default_font: patch_field(
+            body,
+            "defaultFont",
+            |value| match value {
+                serde_json::Value::Null => Some(None),
+                serde_json::Value::String(font) => Some(Some(font.clone())),
+                _ => None,
+            },
+            || "defaultFont must be a string or null".into(),
+        )?,
+    })
+}
+
+async fn handle_set_server_config(
+    State(state): State<Arc<AdminState>>,
+    Json(body): Json<serde_json::Value>,
+) -> Response {
+    let patch = match server_config_patch(&body) {
+        Ok(patch) => patch,
+        Err(response) => return response,
     };
-    let mcp = match value.get("mcp") {
-        None => None,
-        Some(value) => match value.as_bool() {
-            Some(enabled) => Some(enabled),
-            None => {
-                return api_error(ApiError::Validation(vec![
-                    crate::multi::validate::FieldError {
-                        field: "mcp".into(),
-                        message: "mcp must be a boolean".into(),
-                    },
-                ]))
-            }
-        },
-    };
-    let runtime_idle_timeout = match value.get("runtimeIdleTimeout") {
-        None => None,
-        // Checked before anything is saved, so a bad value changes nothing.
-        Some(value) => match value.as_u64() {
-            Some(minutes) if minutes <= crate::multi::server_config::MAX_RUNTIME_IDLE_TIMEOUT => {
-                Some(minutes)
-            }
-            _ => {
-                return api_error(ApiError::Validation(vec![
-                    crate::multi::validate::FieldError {
-                        field: "runtimeIdleTimeout".into(),
-                        message: format!(
-                            "runtimeIdleTimeout must be a whole number of minutes from 0 to {}",
-                            crate::multi::server_config::MAX_RUNTIME_IDLE_TIMEOUT
-                        ),
-                    },
-                ]))
-            }
-        },
-    };
-    let result = state
-        .manager
-        .set_server_config(fields[0], fields[1], runtime_api, mcp)
-        .and_then(|()| match runtime_idle_timeout {
-            Some(minutes) => state.manager.set_runtime_idle_timeout(minutes),
-            None => Ok(()),
-        });
-    match result {
+    match state.manager.set_server_config(patch) {
         Ok(()) => handle_server_config(State(state)).await,
         Err(error) => api_error(error),
     }
@@ -1243,6 +1245,7 @@ pub(crate) mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Accounts {

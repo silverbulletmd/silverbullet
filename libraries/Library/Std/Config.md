@@ -19,6 +19,11 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 
 -- UI categories for the configuration manager, listed in display order.
 config.defineCategory {
+  name = "Appearance",
+  description = "Fonts for the interface, the editor and code.",
+  priority = 60,
+}
+config.defineCategory {
   name = "Editor",
   description = "Behavior of the page editor: brackets, wiki link rendering, emoji aliases, and similar editing affordances.",
   priority = 50,
@@ -104,6 +109,87 @@ config.define("index", {
     },
   },
   additionalProperties = true
+})
+
+-- Fonts are picked by key from fonts.available, which Std and font libraries
+-- extend with config.set("fonts.available.<key>", {...}). A value that is not
+-- a key is used as a CSS font-family stack. ui and editor have no default so
+-- a server- or app-wide default font can apply when a space sets none.
+local fontEntrySchema = {
+  type = "object",
+  properties = {
+    name = schema.string(),
+    family = schema.string(),
+    kind = { type = "string", enum = { "sans", "serif", "mono" } },
+    faces = {
+      type = "array",
+      items = {
+        type = "object",
+        properties = {
+          src = schema.string(),
+          weight = schema.nullable "number",
+          style = schema.nullable "string",
+        },
+        required = { "src" },
+      },
+    },
+    license = schema.nullable "string",
+  },
+  required = { "name", "family", "kind" },
+}
+
+config.define("fonts", {
+  type = "object",
+  properties = {
+    ui = {
+      type = "string",
+      description = "Font for menus, panels and the page title: a font from the list, or a CSS font-family",
+      ui = { category = "Appearance", label = "Interface font", priority = 4, font = "any" },
+    },
+    editor = {
+      type = "string",
+      description = "Font for page text in the editor: a font from the list, or a CSS font-family",
+      ui = { category = "Appearance", label = "Editor font", priority = 3, font = "any" },
+    },
+    editorSize = {
+      type = "number",
+      default = 18,
+      minimum = 10,
+      maximum = 48,
+      description = "Size of page text in the editor, in pixels; headings and code scale with it",
+      ui = { category = "Appearance", label = "Editor font size", priority = 2 },
+    },
+    code = {
+      type = "string",
+      default = "ia-writer-mono",
+      description = "Monospace font for code, frontmatter, tables being edited and Lua expressions",
+      ui = { category = "Appearance", label = "Code font", priority = 1, font = "mono" },
+    },
+    available = {
+      type = "object",
+      default = {},
+      description = "Fonts to choose from, by key. Font libraries add to this",
+      additionalProperties = fontEntrySchema,
+    },
+  },
+})
+
+-- Built in: bundled with the client or provided by the operating system, so
+-- none of these need faces.
+config.set("fonts.available.ia-writer-mono", {
+  name = "iA Writer Mono", family = "'iA-Mono', Menlo, monospace", kind = "mono", license = "OFL-1.1",
+})
+config.set("fonts.available.inter", {
+  name = "Inter", family = "Inter, system-ui, sans-serif", kind = "sans", license = "OFL-1.1",
+})
+config.set("fonts.available.system-sans", {
+  name = "System sans", family = "system-ui, sans-serif", kind = "sans",
+})
+config.set("fonts.available.system-serif", {
+  name = "System serif", family = "ui-serif, Georgia, serif", kind = "serif",
+})
+config.set("fonts.available.system-mono", {
+  name = "System mono", family = "ui-monospace, Menlo, monospace", kind = "mono",
 })
 
 config.define("autoCloseBrackets", {

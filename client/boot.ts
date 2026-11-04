@@ -6,6 +6,7 @@ import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
 import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
+import { applyCachedFonts } from "@silverbulletmd/silverbullet/lib/fonts";
 import { initLogger } from "./lib/logger.ts";
 import { logoutInProgress } from "./logout.ts";
 import { waitForLogout } from "./logout_state.ts";
@@ -70,6 +71,8 @@ async function findEncryptionKey(
 }
 
 safeRun(async () => {
+  // Before anything awaits, so the first paint already uses the last fonts.
+  applyCachedFonts();
   consoleLog.install({
     console,
     addEventListener: globalThis.addEventListener.bind(globalThis),

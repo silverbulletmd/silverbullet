@@ -128,6 +128,14 @@ class TaskDropdownWidget extends WidgetType {
   }
 }
 
+/**
+ * Whether a task state (`[ ]`, `[x]`, `[TODO]`, with its brackets) is a
+ * plain checkbox. Any other state is a custom one, shown with a ▾ dropdown.
+ */
+export function isCheckboxState(taskState: string): boolean {
+  return taskState === "[ ]" || taskState === "[x]" || taskState === "[X]";
+}
+
 export function taskListPlugin({
   onCheckboxClick,
   getView,
@@ -172,10 +180,8 @@ export function taskListPlugin({
           if (type.name !== "TaskState") return;
           taskStateEnd = from + nto;
           const checkbox = state.sliceDoc(from + nfrom, from + nto);
-          if (checkbox === "[x]" || checkbox === "[X]") {
-            checkboxStatus = true;
-          } else if (checkbox === "[ ]") {
-            checkboxStatus = false;
+          if (isCheckboxState(checkbox)) {
+            checkboxStatus = checkbox !== "[ ]";
           }
           if (checkboxStatus === undefined) {
             const stateText = checkbox.slice(1, -1);

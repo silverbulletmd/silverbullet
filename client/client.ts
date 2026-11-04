@@ -52,6 +52,8 @@ import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
+import { EventInterest } from "./event_interest.ts";
+import { applyFonts } from "@silverbulletmd/silverbullet/lib/fonts";
 import { setGitSyncStreamConnected } from "./git_sync_status.ts";
 import { isValidEditor } from "./lib/command_filters.ts";
 import { isMobileDevice } from "./lib/mobile.ts";
@@ -76,7 +78,6 @@ import {
 import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import type { EventResultWithSource } from "./plugos/hooks/event.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
-import { EventInterest } from "./event_interest.ts";
 import {
   fileListPollDue,
   REALTIME_HEALTH_TTL_MS,
@@ -94,6 +95,7 @@ import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
 import { toRuntimeJSON } from "./space_lua/runtime_json.ts";
 import { resolveASTReference } from "./space_lua.ts";
+import { SpaceStyles } from "./space_style.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { getOrCreateClientId } from "./spaces/client_id.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -110,7 +112,6 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
 import { syncMessageNotification } from "./types/ui.ts";
-import { SpaceStyles } from "./space_style.ts";
 import { WidgetCache } from "./widget_cache.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
@@ -1282,6 +1283,14 @@ export class Client {
   }
 
   loadCustomStyles(): Promise<void> {
+    try {
+      applyFonts(this.config.get("fonts", {}), this.bootConfig.defaultFont, {
+        indexReady: this.fullIndexCompleted,
+      });
+    } catch (e) {
+      // A broken font entry must not stop styles or the editor from loading.
+      console.error("Could not apply fonts", e);
+    }
     return this.spaceStyles.load();
   }
 

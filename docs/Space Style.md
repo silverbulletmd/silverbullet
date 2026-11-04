@@ -7,7 +7,7 @@ references:
 ---
 Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]].
 
-This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way.
+This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. To pick fonts, [[Fonts]] in Configuration is the easier route; a Space Style that sets a font variable wins over it.
 
 To apply the updated styles, either reload the client or run the ${widgets.commandButton("System: Reload")} command.
 
@@ -95,6 +95,8 @@ html[data-theme="dark"] {
 html {
   /* Uncomment the next line to set the editor font to Courier */
   /* --editor-font: "Courier" !important; */
+  /* Code, frontmatter and Lua expressions use their own font, see [[Fonts]] */
+  /* --editor-monospace-font: "Courier" !important; */
   /* Uncomment the next line to set the editor width to 1400px */
   /* --editor-width: 1400px !important; */
 }

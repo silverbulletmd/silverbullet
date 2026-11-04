@@ -227,6 +227,8 @@ export type BootConfig = {
   disableServiceWorker?: boolean;
   syncProtocolVersion?: number;
   revisions?: "managed" | "unmanaged" | "disabled";
+  /** Server- or app-wide default for the interface and editor fonts. */
+  defaultFont?: string;
   /** Every other space root on this origin, e.g. ["/private", "/work"]. */
   spacePrefixes?: string[];
 };

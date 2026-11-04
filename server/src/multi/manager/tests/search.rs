@@ -293,8 +293,11 @@ async fn boot_skips_a_space_whose_folder_overlaps_a_reserved_directory() {
     renamed.name = "Bracken 2".into();
     m.update("bracken", renamed).unwrap();
     assert_eq!(m.get("bracken").unwrap()["status"]["state"], "errored");
-    m.set_server_config(None, Some("Garden"), None, None)
-        .unwrap();
+    m.set_server_config(crate::multi::server_config::ServerConfigPatch {
+        server_name: Some("Garden".into()),
+        ..Default::default()
+    })
+    .unwrap();
     m.delete("lichen").unwrap();
     bracken.folder = "spaces/moss".into();
     m.update("bracken", bracken).unwrap();

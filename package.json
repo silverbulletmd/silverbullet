@@ -11,6 +11,7 @@
     "./syscalls": "./plug-api/syscalls.ts",
     "./constants": "./plug-api/constants.ts",
     "./ui": "./plug-api/ui/index.ts",
+    "./lib/fonts": "./plug-api/lib/fonts.ts",
     "./lib/json": "./plug-api/lib/json.ts",
     "./lib/tree": "./plug-api/lib/tree.ts",
     "./lib/ref": "./plug-api/lib/ref.ts",

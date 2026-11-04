@@ -24,6 +24,8 @@ struct ConfigResponse<'a> {
     #[serde(flatten)]
     boot_config: &'a silverbullet_server_common::BootConfig,
     space_prefixes: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default_font: Option<String>,
     share_owner_id: String,
 }
 
@@ -47,6 +49,7 @@ pub(crate) async fn handle_config(
         axum::Json(ConfigResponse {
             boot_config: &boot_config,
             space_prefixes: state.space_prefixes.current(),
+            default_font: state.default_font.current(),
             share_owner_id: silverbullet_server_common::revision::sha256_hex(
                 format!(
                     "{}\0{}",
@@ -246,6 +249,35 @@ mod tests {
             .await
             .unwrap();
         serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[tokio::test]
+    async fn config_reports_the_default_font_as_it_is_on_each_load() {
+        let font = Arc::new(std::sync::RwLock::new(None::<String>));
+        let current = font.clone();
+        let state = Arc::new(crate::ServerState {
+            default_font: crate::DefaultFont::from_fn(move || current.read().unwrap().clone()),
+            ..test_state()
+        });
+        let load = || {
+            let state = state.clone();
+            async move {
+                let resp = super::handle_config(
+                    axum::extract::State(state),
+                    axum::Extension(crate::auth::Actor::default()),
+                    None,
+                )
+                .await
+                .into_response();
+                let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+            }
+        };
+        assert!(load().await.get("defaultFont").is_none());
+        *font.write().unwrap() = Some("inter".into());
+        assert_eq!(load().await["defaultFont"], "inter");
     }
 
     #[tokio::test]

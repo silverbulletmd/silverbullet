@@ -468,6 +468,7 @@ mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Accounts {

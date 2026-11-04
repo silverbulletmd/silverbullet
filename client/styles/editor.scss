@@ -31,7 +31,7 @@ $comment-border: 1px;
 }
 
 #sb-main .cm-editor {
-  font-size: 18px;
+  font-size: var(--editor-font-size);
   height: 100%;
 
   .cm-content {
@@ -41,10 +41,13 @@ $comment-border: 1px;
     max-width: var(--#{"editor-width"});
     padding: 5px 20px;
 
-    --editor-column: 1ch;
+    // One source column of block markup (indent, list and quote markers).
+    // A proportional theme can widen it through --editor-column-width; the
+    // list, quote and comment indents all follow.
+    --editor-column: var(--editor-column-width, 1ch);
     --editor-base-font: 1em;
     --blockquote-bar: 2px;
-    --blockquote-step: 2ch;
+    --blockquote-step: calc(2 * var(--editor-column));
   }
 
   .cm-line {
@@ -197,6 +200,43 @@ $comment-border: 1px;
     --sb-inline-comment-indent: calc(3 * var(--editor-column));
   }
 
+  // A run of marker source held to a fixed number of editor columns (see
+  // list_indent.ts). min-width, not width: a custom task state such as
+  // `[IN PROGRESS]` may outgrow its columns and must push text rather than
+  // overlap it.
+  //
+  // Inside, every source character advances exactly one editor column: in a
+  // monospace face each glyph is 1ch, so letter-spacing tops it up to the
+  // column. Revealed `[ ]` then fills the checkbox's footprint, and a caret
+  // inside leading indentation lands on the same grid as the wrapped rows.
+  .sb-col-slot {
+    display: inline-block;
+    min-width: calc(var(--sb-slot-columns) * var(--editor-column));
+    text-indent: 0;
+    font-family: var(--editor-monospace-font, monospace);
+    letter-spacing: calc(var(--editor-column) - 1ch);
+  }
+
+  // The rendered glyph belongs to the prose, not to the source grid the
+  // slot around it lays out; the slot's min-width still holds the column.
+  // An ordered marker is never swapped for a widget, so it cannot shift on
+  // reveal in any font; it only needs the slot's width. Right-aligned like an
+  // `<ol>` marker, the number keeps a natural space before the text and
+  // leaves the slack on its left. `pre`, not the inherited `pre-wrap`: a
+  // trailing space that hangs would not hold the number off the text.
+  .sb-ordered-mark-slot {
+    font-family: var(--editor-font);
+    letter-spacing: normal;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: pre;
+  }
+
+  .sb-col-slot .cm-list-bullet {
+    font-family: var(--editor-font);
+    letter-spacing: normal;
+  }
+
   .cm-list-bullet {
     color: var(--editor-list-bullet-color, inherit);
     white-space: nowrap; // Prevent bullet from being a line-wrap opportunity (fixes #1829)
@@ -271,6 +311,12 @@ $comment-border: 1px;
     --sb-header-hang: 7ch;
   }
 
+  .sb-header-mark-slot {
+    display: inline-block;
+    min-width: var(--sb-header-hang);
+    text-indent: 0;
+  }
+
   // A dock can narrow the editor without narrowing the viewport, so use a
   // container query. With no gutter, keep heading markers inline and visible.
   // The threshold tracks the default --editor-width; query sizes cannot use vars.
@@ -290,7 +336,7 @@ $comment-border: 1px;
 
     display: inline-block;
     text-align: center;
-    width: 3ch;
+    width: calc(3 * var(--editor-column));
     // Stop the inherited negative text-indent on list-item lines from
     // dragging the inner <input> out of the checkbox's own box.
     text-indent: 0;
@@ -452,7 +498,13 @@ $comment-border: 1px;
     flex-direction: column;
   }
 
+  // One editor column, which list_indent.ts reserves for it, whatever the
+  // font makes of the glyph.
   .sb-task-dropdown {
+    display: inline-block;
+    width: var(--editor-column);
+    text-align: center;
+    letter-spacing: normal;
     cursor: pointer;
     opacity: 0.4;
     user-select: none;
@@ -597,6 +649,17 @@ $comment-border: 1px;
   .sb-code-copy-button>svg {
     height: 1rem;
     width: 1rem;
+  }
+
+  // Code keeps a fixed-width face when the prose font is proportional: its
+  // alignment carries meaning.
+  .sb-code,
+  .sb-lua-directive-source,
+  .sb-line-fenced-code,
+  .sb-line-code,
+  .sb-frontmatter,
+  .sb-line-tbl:not(:has(.sb-table-widget)) {
+    font-family: var(--editor-monospace-font, monospace);
   }
 
   .sb-line-fenced-code .sb-code {

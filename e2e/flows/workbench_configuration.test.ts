@@ -29,15 +29,48 @@ test.describe("configuration tab", () => {
     ).toBeVisible();
     await expect(shortWikiLinks(page)).toBeChecked();
     await shortWikiLinks(page).uncheck();
+    // A font choice previews at once, and is saved alongside the other edit.
+    const editorFont = () =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--editor-font",
+        ),
+      );
+    await tab(page)
+      .getByRole("combobox", { name: "Editor font" })
+      .selectOption("inter");
+    await expect.poll(editorFont).toContain("Inter");
+    // So does the editor's text size.
+    const editorSize = () =>
+      page.evaluate(
+        () =>
+          getComputedStyle(document.querySelector("#sb-editor .cm-editor")!)
+            .fontSize,
+      );
+    await tab(page)
+      .getByRole("spinbutton", { name: "Editor font size" })
+      .fill("22");
+    await expect.poll(editorSize).toBe("22px");
+    await expect.poll(editorFont).toContain("Inter");
     await tab(page).getByRole("button", { name: "Save and apply" }).click();
     await expect
       .poll(() =>
         readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => ""),
       )
       .toContain(`${MARKER}\nconfig.set("shortWikiLinks", false)`);
+    expect(
+      await readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8"),
+    ).toContain('config.set("fonts.editor", "inter")');
+    expect(
+      await readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8"),
+    ).toContain('config.set("fonts.editorSize", 22)');
     await expect(
       tab(page).getByRole("button", { name: "Save and apply" }),
     ).toHaveCount(0);
+
+    await page.reload();
+    await expect.poll(editorFont).toContain("Inter");
+    await expect.poll(editorSize).toBe("22px");
   });
 
   test("unsaved configuration edits survive closing the workbench", async ({
@@ -54,6 +87,34 @@ test.describe("configuration tab", () => {
     await expect(
       page.getByRole("radio", { name: "Configuration, •" }),
     ).toBeVisible();
+
+    // Discarding also takes back a font that was only being previewed.
+    const uiFont = () =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--ui-font",
+        ),
+      );
+    await tab(page)
+      .getByRole("combobox", { name: "Interface font" })
+      .selectOption("inter");
+    await expect.poll(uiFont).toContain("Inter");
+    await tab(page).getByRole("button", { name: "Discard" }).click();
+    await expect.poll(uiFont).not.toContain("Inter");
+
+    // A lone family name could be a missing font library's name, so it is
+    // not used as is; the field says how to write it instead.
+    await tab(page)
+      .getByRole("combobox", { name: "Editor font" })
+      .selectOption({ label: "Custom…" });
+    await tab(page)
+      .getByRole("textbox", { name: "Editor font, CSS font-family" })
+      .fill("Georgia");
+    await expect(tab(page).getByText("Add a fallback")).toBeVisible();
+    await tab(page)
+      .getByRole("textbox", { name: "Editor font, CSS font-family" })
+      .fill("Georgia, serif");
+    await expect(tab(page).getByText("Add a fallback")).toHaveCount(0);
   });
 
   const bindingRow = (page: Page, name: string) =>

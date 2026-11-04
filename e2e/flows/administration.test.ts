@@ -61,7 +61,21 @@ test.describe("runtime administration", () => {
 
     await page.getByRole("link", { name: "Server", exact: true }).click();
     await page.getByLabel("Server Name").fill("Example Server");
+    await page.getByLabel("Default font").selectOption("inter");
     await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect
+      .poll(
+        async () =>
+          (
+            await adminApi<{ defaultFont: string | null }>(
+              page,
+              sbServer,
+              "GET",
+              "server-config",
+            )
+          ).defaultFont,
+      )
+      .toBe("inter");
     const config = await adminApi<{
       runtimeApi: boolean;
       serverName: string;
@@ -70,6 +84,16 @@ test.describe("runtime administration", () => {
       runtimeApi: false,
       serverName: "Example Server",
     });
+    // The dashboard itself switches, and keeps it across a reload.
+    const uiFont = () =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--ui-font",
+        ),
+      );
+    await expect.poll(uiFont).toContain("Inter");
+    await page.reload();
+    await expect.poll(uiFont).toContain("Inter");
   });
 });
 

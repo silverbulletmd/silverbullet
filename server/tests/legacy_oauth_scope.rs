@@ -56,6 +56,7 @@ impl Fixture {
             runtime_enabled: Arc::new(AtomicBool::new(false)),
             runtime_availability: silverbullet_server::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             metrics: None,
             auth: InstanceAuth::Accounts {
                 users: users.clone(),

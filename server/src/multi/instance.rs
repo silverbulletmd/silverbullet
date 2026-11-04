@@ -58,6 +58,9 @@ pub struct InstanceDeps {
     pub runtime_availability: crate::runtime::RuntimeAvailability,
     /// Seconds without a request before a runtime is stopped; `0` never.
     pub runtime_idle_timeout: Arc<std::sync::atomic::AtomicU64>,
+    /// The server's default font, published by the manager like the runtime
+    /// settings above; every space reports it live at `/.config`.
+    pub default_font: Arc<std::sync::RwLock<Option<String>>>,
     pub metrics: Option<Arc<crate::metrics::Metrics>>,
     /// Authentication source for every instance built by this manager.
     pub auth: InstanceAuth,
@@ -613,6 +616,10 @@ fn try_build_parts(
             revisions: revisions_mode,
         },
         space_prefixes: Default::default(),
+        default_font: {
+            let font = deps.default_font.clone();
+            crate::DefaultFont::from_fn(move || font.read().unwrap().clone())
+        },
         space_folder_path: folder_str,
         version: ServerVersion::Static(deps.version.clone()),
         host_url_prefix: prefix.to_string(),
@@ -670,6 +677,7 @@ mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             metrics: None,
             auth: InstanceAuth::Single(Some(
                 crate::auth::AuthConfig::try_parse(Some("admin:pw"), None, None, None, None)

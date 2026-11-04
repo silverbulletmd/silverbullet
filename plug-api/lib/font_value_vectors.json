@@ -1,0 +1,24 @@
+{
+  "//": "Font values the client writes into a <style> element. client/fonts.ts and server/src/multi/server_config.rs both test against this list, so the two checks can't drift apart.",
+  "safe": [
+    "inter",
+    "Georgia, serif",
+    "'iA-Mono', Menlo, monospace",
+    "\"Crimson Pro\", serif",
+    "system_ui",
+    "Noto Serif JP, 游明朝, serif",
+    "Hoefler Text, Garamond, serif"
+  ],
+  "unsafe": [
+    "x; } body {",
+    "a{b}",
+    "'Broken, serif",
+    "\"Broken",
+    "url(x)",
+    "a/b",
+    "Georgia;",
+    "Georgia\tserif",
+    "Georgia\nserif",
+    ""
+  ]
+}

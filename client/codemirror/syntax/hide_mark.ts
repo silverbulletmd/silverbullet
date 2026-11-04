@@ -92,7 +92,19 @@ export function hideHeaderMarkPlugin() {
 
           return;
         }
+        const spacePos = line.indexOf(" ");
         if (isCursorInRange(state, [from, to])) {
+          // The revealed `## ` hangs into the gutter by --sb-header-hang;
+          // holding it to exactly that width keeps the title where the
+          // hidden marker left it, whatever the font's `#` and space widths.
+          if (spacePos !== -1) {
+            widgets.push(
+              Decoration.mark({ class: "sb-header-mark-slot" }).range(
+                from,
+                from + spacePos + 1,
+              ),
+            );
+          }
           // A line decoration anchored anywhere but a line start is discarded
           // in silence, and a heading inside a blockquote or a list item does
           // not start at one.
@@ -104,7 +116,6 @@ export function hideHeaderMarkPlugin() {
           return;
         }
 
-        const spacePos = line.indexOf(" ");
         if (spacePos === -1) {
           return;
         }

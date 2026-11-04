@@ -122,7 +122,7 @@
     min-width: 0;
     overflow: hidden;
     color: inherit;
-    font-family: var(--editor-font), monospace;
+    font-family: var(--editor-monospace-font, monospace);
     font-size: 11px;
     white-space: nowrap;
     text-overflow: ellipsis;

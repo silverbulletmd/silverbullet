@@ -331,6 +331,7 @@ mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
+            default_font: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Single(None),
@@ -762,6 +763,48 @@ mod tests {
             get(&r, "localhost", "/work/.config").await.status(),
             StatusCode::OK
         );
+    }
+
+    #[tokio::test]
+    async fn config_carries_the_live_server_default_font() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("spaces").join("root")).unwrap();
+        std::fs::write(
+            dir.path().join("spaces.json"),
+            serde_json::json!({
+                "root": payload("Root", Binding::Prefix { prefix: "/".into() }),
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        let r = build_main_router(m.clone(), None, "test".to_string());
+        let default_font = |body: &[u8]| -> serde_json::Value {
+            serde_json::from_slice::<serde_json::Value>(body).unwrap()["defaultFont"].clone()
+        };
+
+        let resp = get(&r, "localhost", "/.config").await;
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(default_font(&body).is_null());
+
+        // A running space picks up the change on its next load, no restart.
+        m.set_server_config(crate::multi::server_config::ServerConfigPatch {
+            default_font: Some(Some("inter".into())),
+            ..Default::default()
+        })
+        .unwrap();
+        let resp = get(&r, "localhost", "/.config").await;
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(default_font(&body), "inter");
     }
 
     #[tokio::test]
