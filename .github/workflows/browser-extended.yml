@@ -46,6 +46,11 @@ jobs:
         with:
           node-version-file: .nvmrc
       - uses: Swatinem/rust-cache@v2
+        with:
+          # CI's test-e2e cache: the same `make build-e2e` build.
+          shared-key: e2e-debug
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: make test-e2e-oidc
@@ -72,6 +77,11 @@ jobs:
         with:
           node-version-file: .nvmrc
       - uses: Swatinem/rust-cache@v2
+        with:
+          # CI's test-e2e cache: the same `make build-e2e` build.
+          shared-key: e2e-debug
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: make build-e2e

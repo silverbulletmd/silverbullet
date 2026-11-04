@@ -41,6 +41,12 @@ export const test = base.extend<{}, { dashboardJavascript: string }>({
       if (path.endsWith("/api/admin/users")) return route.fulfill({ json: {} });
       if (path.endsWith("/api/spaces") || path.endsWith("/api/admin/spaces"))
         return route.fulfill({ json: [] });
+      // No connected MCP apps, in the Profile or the admin APIs tab.
+      if (
+        path.endsWith("/api/mcp/grants") ||
+        path.endsWith("/api/admin/mcp/grants")
+      )
+        return route.fulfill({ json: [] });
       if (path.endsWith("/api/admin/server-info"))
         return route.fulfill({
           json: { runtimeApi: { available: false }, runtimeApiEnabled: false },

@@ -58,4 +58,11 @@ AR_x86_64_unknown_freebsd = "llvm-ar"
 # config.h doesn't declare `gettimeofday` for this cross target. Modern clang
 # makes implicit declarations a hard error by default (C99+), which broke the
 # whole FreeBSD build; the symbol exists in FreeBSD libc, so demoting it is safe.
-CFLAGS_x86_64_unknown_freebsd = "--target=x86_64-unknown-freebsd --sysroot=/opt/freebsd-sysroot -Wno-implicit-function-declaration"
+CFLAGS_x86_64_unknown_freebsd = "--target=x86_64-unknown-freebsd --sysroot=/opt/freebsd-sysroot -Wno-implicit-function-declaration -march=x86-64 -mtune=generic"
+# Pin C code (ring, lzma, …) to the baseline x86-64 ISA, matching Rust's own
+# target baseline. The CI runner's compiler emitted AVX for ring's portable C,
+# including the CPU-feature probe itself, so the first TLS handshake died with
+# SIGILL on CPUs without AVX (e.g. Pentium/Celeron). ring picks its AVX paths
+# at runtime; the C around them must not assume them.
+CFLAGS_x86_64_unknown_linux_musl = "-march=x86-64 -mtune=generic"
+CFLAGS_x86_64_pc_windows_gnu = "-march=x86-64 -mtune=generic"

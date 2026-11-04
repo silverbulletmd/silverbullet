@@ -407,7 +407,21 @@ pub(crate) fn debounce_loop(
                     let event = FsEvent::change(name, meta.last_modified);
                     resolved.push((event, Some(meta)));
                 }
-                Ok(None) => {} // directory, extensionless, or a stale casing: not a space file
+                // A directory: its files may have had no events of their own.
+                Ok(None) if root.join(&name).is_dir() => {
+                    let mut files = Vec::new();
+                    files_under(root, &root.join(&name), &mut files);
+                    for file in files {
+                        if gitignore.is_ignored(&file, false) {
+                            continue;
+                        }
+                        if let Ok(Some(meta)) = validator.get_file_meta_if_listable(&file) {
+                            let event = FsEvent::change(file, meta.last_modified);
+                            resolved.push((event, Some(meta)));
+                        }
+                    }
+                }
+                Ok(None) => {} // extensionless or a stale casing: not a space file
                 Err(SpaceError::NotFound) => {
                     resolved.push((FsEvent::delete(name), None));
                 }
@@ -425,6 +439,29 @@ pub(crate) fn debounce_loop(
         if let Some(forwarding) = guard.forwarding() {
             for name in &ready {
                 forwarding.forwarded(name);
+            }
+        }
+    }
+}
+
+/// The space paths of the files under `dir`, a directory that just appeared.
+/// inotify watches a new directory only once it has seen it created, so files
+/// written into it before then (a page in a new folder) or moved in with it
+/// produce no events of their own.
+fn files_under(root: &Path, dir: &Path, out: &mut Vec<String>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let Ok(kind) = entry.file_type() else {
+            continue;
+        };
+        let path = entry.path();
+        if kind.is_dir() {
+            files_under(root, &path, out);
+        } else if kind.is_file() {
+            if let Some(name) = to_space_path(root, &path) {
+                out.push(name);
             }
         }
     }
@@ -510,6 +547,49 @@ mod tests {
             done_rx.recv_timeout(Duration::from_secs(5)).is_ok(),
             "debounce_loop thread did not exit after its broadcast Sender was dropped"
         );
+    }
+
+    /// inotify may report only a new folder, not the page already written
+    /// into it: the folder's files are reported then.
+    #[test]
+    fn a_directory_event_reports_the_files_inside() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("Notes/Deep")).unwrap();
+        std::fs::write(dir.path().join("Notes/Querying.md"), b"x").unwrap();
+        std::fs::write(dir.path().join("Notes/Deep/Page.md"), b"y").unwrap();
+        std::fs::write(dir.path().join("Notes/.hidden.md"), b"z").unwrap();
+        let validator = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+        let root = dir.path().to_path_buf();
+        let (raw_tx, raw_rx) = mpsc::channel::<PathBuf>();
+        let (broadcast_tx, mut events) = broadcast::channel::<FsEvent>(16);
+        let weak_out = broadcast_tx.downgrade();
+        raw_tx.send(root.join("Notes")).unwrap();
+        let guard = FsGuard::default();
+        let thread_root = root.clone();
+        std::thread::spawn(move || {
+            let _keep_alive = raw_tx;
+            debounce_loop(
+                &thread_root,
+                &validator,
+                raw_rx,
+                weak_out,
+                &guard,
+                Duration::from_millis(50),
+            );
+        });
+        let mut names = Vec::new();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while names.len() < 2 && Instant::now() < deadline {
+            if let Ok(event) = events.try_recv() {
+                assert_eq!(event.action, FsAction::Change);
+                names.push(event.name);
+            } else {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+        names.sort();
+        assert_eq!(names, ["Notes/Deep/Page.md", "Notes/Querying.md"]);
+        drop(broadcast_tx);
     }
 
     #[tokio::test]

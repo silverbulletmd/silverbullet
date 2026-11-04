@@ -1164,9 +1164,6 @@ export class Client {
   }
 
   focus() {
-    // Nobody types into the headless runtime, and a focused editor keeps
-    // repainting its blinking cursor: about four times the idle CPU.
-    if (globalThis.sbRuntime?.headless) return;
     const viewState = this.ui.viewState;
     if (
       [

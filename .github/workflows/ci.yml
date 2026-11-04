@@ -129,6 +129,8 @@ jobs:
         with:
           key: test-rust
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A finished compile is worth keeping when the tests then fail.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: npm ci
@@ -162,8 +164,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: e2e-debug
+          # Shared with the extended browser runs, which build the same
+          # (`make build-e2e`).
+          shared-key: e2e-debug
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A finished compile is worth keeping when the tests then fail.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: npm ci
@@ -212,6 +218,8 @@ jobs:
         with:
           key: e2e-release
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A finished compile is worth keeping when the tests then fail.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: npm ci
@@ -334,6 +342,22 @@ jobs:
               echo "ERROR: $b is dynamically linked (needs a loader); expected static musl"; exit 1
             fi
           done
+
+      - name: Verify amd64 binary runs on baseline x86-64 (no AVX)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-user binutils
+          # ring's CPU probe runs before it knows what the CPU supports, so it
+          # must be baseline code; AVX there kills the first TLS handshake.
+          vex=$(objdump -d --no-show-raw-insn silverbullet-amd64 \
+            | awk '/<ring_core_[0-9_]*_OPENSSL_cpuid_setup>:/{f=1} f&&/^$/{exit} f' \
+            | grep -cE '\sv[a-z]' || true)
+          if [ "$vex" != "0" ]; then
+            echo "ERROR: ring's OPENSSL_cpuid_setup contains $vex AVX (VEX) instructions"; exit 1
+          fi
+          # Westmere: SSE4.2 + AES-NI, no AVX.
+          chmod +x silverbullet-amd64
+          qemu-x86_64 -cpu Westmere ./silverbullet-amd64 version
 
       - name: Set up QEMU for multi-arch builds with buildx
         uses: docker/setup-qemu-action@v3
