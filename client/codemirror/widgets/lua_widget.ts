@@ -1,3 +1,4 @@
+import { completionStatus } from "@codemirror/autocomplete";
 import { WidgetType } from "@codemirror/view";
 import { bindWidgetEvents, type WidgetObject } from "./widget_body.ts";
 
@@ -6,6 +7,7 @@ export type { EventPayLoad } from "./widget_body.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../../client.ts";
 import { openPopupMenu } from "../../components/popup_menu.ts";
+import { recordMeasure } from "../../lib/perf.ts";
 import { Disposers } from "../../lib/util.ts";
 import {
   disposeRendered,
@@ -32,12 +34,10 @@ import {
   type WidgetCaps,
   widgetMenuEntries,
 } from "./widget_menu.ts";
-
 import {
   attachWidgetEventHandlers,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
-import { recordMeasure } from "../../lib/perf.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -508,8 +508,13 @@ export class LuaWidget extends WidgetType {
         height: div.offsetHeight,
         block,
       });
-      // Skip during IME composition to avoid caret jumps
-      if (!client.editorView.composing) {
+      // Skip during IME composition to avoid caret jumps, and while a
+      // completion is open: setting the selection, even to where it is,
+      // closes it (a widget re-rendering after an autosave did just that)
+      if (
+        !client.editorView.composing &&
+        completionStatus(client.editorView.state) === null
+      ) {
         // Reposition the caret after the widget changes the DOM.
         client.editorView.dispatch({
           selection: client.editorView.state.selection,

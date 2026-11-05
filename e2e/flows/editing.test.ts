@@ -227,3 +227,46 @@ test.describe("extension-assisted editing", () => {
     expect(saved).not.toMatch(/<!--|-->/);
   });
 });
+
+test.describe("completion next to live widgets", () => {
+  // A made-up item and a live query over it: saving re-renders the query
+  test.use({
+    spaceFiles: {
+      "index.md": [
+        '* #contact $sam-ref Sam [manager: "[[Exa]]"]',
+        "",
+        "${query[[",
+        "  from r = index.relations()",
+        '  where r.from == "sam-ref"',
+        '  select table.select(r, "kind", "to")',
+        "]]}",
+      ].join("\n"),
+      "Examples/Example Page.md": "An example.",
+    },
+  });
+
+  test("a page link completion stays open while the page saves and its widgets re-render", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await expect
+      .poll(() =>
+        page.evaluate(() => (globalThis as any).client.fullIndexCompleted),
+      )
+      .toBe(true);
+    await expect(page.locator(".sb-lua-directive-block")).toBeVisible();
+    await page.evaluate(() => {
+      const view = (globalThis as any).client.editorView;
+      const at = view.state.doc.toString().indexOf("[[Exa") + "[[Exa".length;
+      view.dispatch({ selection: { anchor: at } });
+      view.focus();
+    });
+    await page.keyboard.type("m");
+    const tooltip = page.locator(".cm-tooltip-autocomplete");
+    await expect(tooltip).toBeVisible();
+    // Past the autosave and the widget re-render it brings
+    await page.waitForTimeout(2500);
+    await expect(tooltip).toBeVisible();
+  });
+});
