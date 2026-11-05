@@ -8,6 +8,38 @@ use tokio::sync::broadcast;
 use super::{FsEvent, WatchMode, ERROR_LOG_INTERVAL};
 use crate::FsGuard;
 
+// FSEvents registration and teardown both make synchronous daemon RPCs.
+// A burst of space starts must not flood that daemon with concurrent RPCs.
+static NATIVE_LIFECYCLE: Mutex<()> = Mutex::new(());
+
+struct NativeWatcher<W> {
+    watcher: Option<W>,
+    gate: &'static Mutex<()>,
+}
+
+impl<W> Drop for NativeWatcher<W> {
+    fn drop(&mut self) {
+        if self.watcher.is_some() {
+            let _gate = self.gate.lock().unwrap_or_else(|error| error.into_inner());
+            drop(self.watcher.take());
+        }
+    }
+}
+
+fn register_native<W>(
+    gate: &'static Mutex<()>,
+    out: &broadcast::WeakSender<FsEvent>,
+    create: impl FnOnce() -> notify::Result<W>,
+) -> notify::Result<NativeWatcher<W>> {
+    let _gate = gate.lock().unwrap_or_else(|error| error.into_inner());
+    let watcher = if out.upgrade().is_some() {
+        Some(create()?)
+    } else {
+        None
+    };
+    Ok(NativeWatcher { watcher, gate })
+}
+
 pub(super) fn start(
     root: PathBuf,
     mode: WatchMode,
@@ -18,16 +50,19 @@ pub(super) fn start(
 ) -> std::io::Result<impl Send> {
     let resync_root = root.clone();
     let resync_guard = guard.clone();
+    let registration_out = out.clone();
     start_with_native(
         root,
         mode,
         raw,
         out,
         guard,
-        |root, raw| {
-            let mut watcher = notify::recommended_watcher(event_handler(raw))?;
-            watcher.watch(root, RecursiveMode::Recursive)?;
-            Ok(watcher)
+        move |root, raw| {
+            register_native(&NATIVE_LIFECYCLE, &registration_out, || {
+                let mut watcher = notify::recommended_watcher(event_handler(raw))?;
+                watcher.watch(root, RecursiveMode::Recursive)?;
+                Ok(watcher)
+            })
         },
         move |sender| super::startup_resync(&resync_root, &validator, &resync_guard, sender),
     )
@@ -100,15 +135,15 @@ fn start_with_native<W: Send + 'static>(
                 let started = std::time::Instant::now();
                 match native(&root, raw) {
                     Ok(native) => {
+                        let Some(sender) = out.upgrade() else {
+                            return;
+                        };
                         if std::env::var_os("SB_TRACE_STARTUP").is_some() {
                             eprintln!(
                                 "[startup] native fs watcher registered in {}ms",
                                 started.elapsed().as_millis()
                             );
                         }
-                        let Some(sender) = out.upgrade() else {
-                            return;
-                        };
                         let mut watchers = registered.lock().unwrap();
                         watchers.native = Some(native);
                         watchers.poll = None;
@@ -385,5 +420,51 @@ mod tests {
         assert_eq!(event.action, FsAction::Resync);
         drop(out);
         drop(watcher);
+    }
+    #[test]
+    fn native_teardown_serializes_registration_and_closed_queued_spaces_are_skipped() {
+        static GATE: Mutex<()> = Mutex::new(());
+        struct OnDrop {
+            entered: mpsc::Sender<()>,
+            release: mpsc::Receiver<()>,
+        }
+        impl Drop for OnDrop {
+            fn drop(&mut self) {
+                self.entered.send(()).unwrap();
+                self.release.recv().unwrap();
+            }
+        }
+        let (out, _) = broadcast::channel(16);
+        let (drop_tx, drop_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let first = register_native(&GATE, &out.downgrade(), || {
+            Ok(OnDrop {
+                entered: drop_tx,
+                release: release_rx,
+            })
+        })
+        .unwrap();
+        let dropping = std::thread::spawn(move || drop(first));
+        drop_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        let (queued_out, _) = broadcast::channel(16);
+        let queued = queued_out.downgrade();
+        let (trying_tx, trying) = mpsc::channel();
+        let (created_tx, created) = mpsc::channel();
+        let registering = std::thread::spawn(move || {
+            trying_tx.send(()).unwrap();
+            register_native(&GATE, &queued, || {
+                created_tx.send(()).unwrap();
+                Ok(())
+            })
+            .unwrap()
+        });
+        trying.recv_timeout(Duration::from_secs(5)).unwrap();
+        let early = created.recv_timeout(Duration::from_millis(100));
+        drop(queued_out);
+        release_tx.send(()).unwrap();
+        dropping.join().unwrap();
+        let watcher = registering.join().unwrap();
+        assert!(early.is_err(), "registration overlapped native teardown");
+        assert!(watcher.watcher.is_none(), "closed space still registered");
     }
 }

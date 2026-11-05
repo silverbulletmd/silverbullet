@@ -333,9 +333,11 @@ pub(crate) fn debounce_loop(
 ) {
     let mut pending: HashMap<String, Instant> = HashMap::new();
     loop {
-        let Some(sender) = out.upgrade() else {
+        // Do not retain the feed while waiting: a queued registration must
+        // be able to see that its space has closed and skip the OS call.
+        if out.upgrade().is_none() {
             return;
-        };
+        }
         let timeout = if pending.is_empty() {
             abandonment_check
         } else {
@@ -350,6 +352,9 @@ pub(crate) fn debounce_loop(
             Err(mpsc::RecvTimeoutError::Timeout) => {}
             Err(mpsc::RecvTimeoutError::Disconnected) => return,
         }
+        let Some(sender) = out.upgrade() else {
+            return;
+        };
         let now = Instant::now();
         let ready: Vec<String> = pending
             .iter()

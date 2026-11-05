@@ -2,7 +2,10 @@ mod support;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use axum::{body::Body, http::Request};
+use tower::ServiceExt;
 
 use serde_json::{json, Value};
 use silverbullet_server::runtime::RuntimeError;
@@ -14,6 +17,7 @@ struct Env {
     script: Arc<Script>,
     tools: Tools,
     space: String,
+    ready: tokio::sync::OnceCell<()>,
 }
 
 fn env(script: Script) -> Env {
@@ -34,6 +38,7 @@ fn env(script: Script) -> Env {
         script,
         tools,
         space,
+        ready: tokio::sync::OnceCell::new(),
     }
 }
 
@@ -43,6 +48,51 @@ impl Env {
     }
 
     async fn call_as(&self, user: &str, tool: &str, mut args: Value) -> Value {
+        self.ready
+            .get_or_init(|| async {
+                let router = self
+                    .fixture
+                    .manager
+                    .instance(&self.space)
+                    .unwrap()
+                    .router
+                    .clone()
+                    .unwrap();
+                let deadline = Instant::now() + Duration::from_secs(30);
+                loop {
+                    let response = router
+                        .clone()
+                        .oneshot(
+                            Request::builder()
+                                .method("POST")
+                                .uri("/.search/query")
+                                .header(
+                                    "authorization",
+                                    format!("Bearer {}", self.fixture.tokens["keeper"]),
+                                )
+                                .header("content-type", "application/json")
+                                .header("x-await-index", "1")
+                                .body(Body::from(r#"{"query":"watcher-readiness-probe"}"#))
+                                .unwrap(),
+                        )
+                        .await
+                        .unwrap();
+                    assert!(response.status().is_success(), "{}", response.status());
+                    if response
+                        .headers()
+                        .get("x-index-status")
+                        .is_some_and(|value| value == "caught-up")
+                    {
+                        break;
+                    }
+                    assert!(
+                        Instant::now() < deadline,
+                        "native watcher did not become ready"
+                    );
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            })
+            .await;
         args["space"] = json!(self.space);
         self.tools.call(&self.caller(user), tool, args).await
     }
