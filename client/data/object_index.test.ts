@@ -756,3 +756,109 @@ describe("ObjectIndex content and meta pages", () => {
     ]);
   });
 });
+
+describe("ObjectIndex tag page decorations", () => {
+  function setup() {
+    const kv = new MemoryKvPrimitives();
+    const ds = new DataStore(kv);
+    const eventHook = new EventHook();
+    const mq = new DataStoreMQ(ds, eventHook);
+    const config = new Config();
+    const objectIndex = new ObjectIndex(ds, config, eventHook, mq);
+    const decorate = (tag: string, pageDecoration: any) =>
+      config.set(["tags", tag], {
+        ...config.get(["tags", tag], {}),
+        pageDecoration,
+      });
+    const page = async (name: string, extra: Record<string, any> = {}) => {
+      await objectIndex.indexObjects(name, [
+        { ref: name, tag: "page", name, ...extra } as ObjectValue<any>,
+      ]);
+      return objectIndex.getObjectByRef(name, "page", name) as Promise<any>;
+    };
+    const queued = async () => {
+      const messages = await mq.poll("indexQueue", 100);
+      await mq.batchAck(
+        "indexQueue",
+        messages.map((m) => m.id),
+      );
+      return messages.map((m) => m.body);
+    };
+    return { objectIndex, config, decorate, page, queued };
+  }
+
+  test("a page gets the decoration of a tag it carries", async () => {
+    const { decorate, page } = setup();
+    decorate("project", { icon: "briefcase" });
+    expect((await page("Alpha", { tags: ["project"] })).pageDecoration).toEqual(
+      {
+        icon: "briefcase",
+      },
+    );
+    expect((await page("Beta")).pageDecoration).toBeUndefined();
+  });
+
+  test("the page's own decoration wins, and css classes combine", async () => {
+    const { decorate, page } = setup();
+    decorate("project", {
+      icon: "briefcase",
+      prefix: "P ",
+      cssClasses: ["project"],
+    });
+    const alpha = await page("Alpha", {
+      tags: ["project"],
+      pageDecoration: { icon: "star", cssClasses: ["mine"] },
+    });
+    expect(alpha.pageDecoration).toEqual({
+      icon: "star",
+      prefix: "P ",
+      cssClasses: ["project", "mine"],
+    });
+  });
+
+  test("the first tag with a decoration wins", async () => {
+    const { decorate, page } = setup();
+    decorate("project", { icon: "briefcase" });
+    decorate("book", { icon: "book", cssClasses: ["book"] });
+    const alpha = await page("Alpha", { tags: ["book", "project"] });
+    expect(alpha.pageDecoration).toEqual({
+      icon: "book",
+      cssClasses: ["book"],
+    });
+  });
+
+  test("objects other than pages are left alone", async () => {
+    const { objectIndex, decorate } = setup();
+    decorate("project", { icon: "briefcase" });
+    await objectIndex.indexObjects("Alpha", [
+      { ...taskObject("Alpha@1", "Alpha"), tags: ["project"] },
+    ]);
+    const task: any = await objectIndex.getObjectByRef(
+      "Alpha",
+      "task",
+      "Alpha@1",
+    );
+    expect(task.pageDecoration).toBeUndefined();
+  });
+
+  test("changing a tag's decoration re-indexes only the pages with that tag", async () => {
+    const { objectIndex, decorate, page, queued } = setup();
+    await page("Alpha", { tags: ["project"] });
+    await page("Beta", { tags: ["book"] });
+    await page("Gamma");
+    await objectIndex.reindexChangedTagDecorations();
+    expect(await queued()).toEqual([]);
+
+    decorate("project", { icon: "briefcase" });
+    await objectIndex.reindexChangedTagDecorations();
+    expect(await queued()).toEqual([{ path: "Alpha.md" }]);
+
+    // Unchanged since the last check: nothing to do
+    await objectIndex.reindexChangedTagDecorations();
+    expect(await queued()).toEqual([]);
+
+    decorate("project", undefined);
+    await objectIndex.reindexChangedTagDecorations();
+    expect(await queued()).toEqual([{ path: "Alpha.md" }]);
+  });
+});

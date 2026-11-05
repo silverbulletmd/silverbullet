@@ -374,6 +374,10 @@ export class ClientSystem {
     clearScriptViews();
     try {
       await this.spaceLuaEnv.reload();
+      // Only after a complete reload: a partial config would look like removed decorations
+      this.objectIndex.reindexChangedTagDecorations().catch((e) => {
+        console.error("Could not re-index pages for tag decorations:", e);
+      });
     } catch (e: any) {
       console.error("Error loading Lua script:", e.message);
     }

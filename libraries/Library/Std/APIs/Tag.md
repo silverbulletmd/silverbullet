@@ -16,6 +16,7 @@ Defines a tag, or extends an existing definition. Put `tag.define` calls in your
 * `schema` (table): a [JSON Schema](https://silverbullet.md/Schema) the tag's objects are validated against. Build it with the [[^Library/Std/APIs/Schema|schema]] helpers. Validation failures show as lint warnings in the editor.
 * `mustValidate` (boolean): when `true`, objects that fail `schema` or `validate` are not indexed. Defaults to `false`.
 * `validate` (function `function(object)`): custom validation; returns `nil` when valid, or an error message.
+* `pageDecoration` (table): a [page decoration](https://silverbullet.md/Page%20Decorations) (`icon`, `prefix`, `cssClasses`, …) for every page with this tag. A page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` from all of them combine. Changing it re-indexes the pages with the tag.
 * `transform` (function `function(object)`): called for each indexed object with this tag. Change the object and return it, return `{}` to skip indexing it, return `nil` to index it unchanged, or return a list of objects to index instead (one of which must keep the original `ref`).
 * `metatable` (table): a Lua metatable set on the tag's objects, e.g. to add computed attributes via `__index`.
 * `renderFrontmatter` (function `function(pageMeta, ctx)`): renders the frontmatter of pages with this tag as a widget. See [[#Rendering objects]].
@@ -35,10 +36,7 @@ tag.define {
       manager = schema.ref("person"),
     },
   },
-  transform = function(o)
-    o.pageDecoration = { icon = "user" }
-    return o
-  end,
+  pageDecoration = { icon = "user" },
 }
 ```
 

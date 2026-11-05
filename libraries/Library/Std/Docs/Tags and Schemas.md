@@ -1,5 +1,5 @@
 ---
-description: Defining or changing a tag with tag.define, its schema and validation, transform (computed attributes, page decorations) and custom frontmatter or data-block rendering. Read before defining a tag or its schema. Not needed just to tag pages or query tagged objects (Markdown and Querying cover that).
+description: Defining or changing a tag with tag.define, its schema and validation, page decorations, transform (computed attributes) and custom frontmatter or data-block rendering. Read before defining a tag or its schema. Not needed just to tag pages or query tagged objects (Markdown and Querying cover that).
 tags: meta/skill
 ---
 Every object in the index (page, task, item, data object) carries tags. Tagging needs no definition: `tags: book` in frontmatter is enough to make `index.pages("book")` work. Define a tag with `tag.define` only to give it a schema, validation, computed attributes, a look, or a custom renderer.
@@ -14,6 +14,7 @@ All optional except `name`:
 * `schema`: a JSON Schema the tag's objects are checked against. Failures show as lint warnings in the editor.
 * `mustValidate`: when `true`, objects failing `schema` or `validate` are not indexed at all (errors go to the log). Default `false`.
 * `validate`: `function(o)` returning nil when valid, or an error message.
+* `pageDecoration`: a look for every page with the tag: `icon` (a Feather icon name), `prefix`, `cssClasses`, and the other page decoration fields. The page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` combine. Changing it re-indexes the pages with the tag automatically.
 * `transform`: `function(o)` called for each indexed object with the tag. Change `o` and return it; return `{}` to skip indexing it; return `nil` to index it unchanged; or return a list of objects to index instead, one of which keeps the original `ref`.
 * `metatable`: a Lua metatable for the tag's objects, e.g. computed attributes through `__index`.
 * `renderFrontmatter`: `function(pageMeta, ctx)` returning a widget that replaces the frontmatter of pages with this tag.
@@ -34,10 +35,7 @@ tag.define {
       series = schema.ref("series"),
     },
   },
-  transform = function(o)
-    o.pageDecoration = { icon = "book" }
-    return o
-  end,
+  pageDecoration = { icon = "book" },
 }
 ```
 
@@ -86,10 +84,7 @@ To give every page with a tag its own look, style the class instead of decoratin
 ```space-lua
 tag.define {
   name = "recipe",
-  transform = function(o)
-    o.pageDecoration = { icon = "coffee", cssClasses = { "recipe-page" } }
-    return o
-  end
+  pageDecoration = { icon = "coffee", cssClasses = { "recipe-page" } },
 }
 ```
 

@@ -216,31 +216,27 @@ fn patch_field<T>(
     field: &str,
     parse: impl FnOnce(&serde_json::Value) -> Option<T>,
     message: impl FnOnce() -> String,
-) -> Result<Option<T>, Response> {
+) -> Result<Option<T>, crate::multi::validate::FieldError> {
     match body.get(field) {
         None => Ok(None),
-        Some(value) => parse(value).map(Some).ok_or_else(|| {
-            api_error(ApiError::Validation(vec![
-                crate::multi::validate::FieldError {
-                    field: field.into(),
-                    message: message(),
-                },
-            ]))
-        }),
+        Some(value) => parse(value)
+            .map(Some)
+            .ok_or_else(|| crate::multi::validate::FieldError {
+                field: field.into(),
+                message: message(),
+            }),
     }
 }
 
 fn server_config_patch(
     body: &serde_json::Value,
-) -> Result<crate::multi::server_config::ServerConfigPatch, Response> {
+) -> Result<crate::multi::server_config::ServerConfigPatch, crate::multi::validate::FieldError> {
     use crate::multi::server_config::{ServerConfigPatch, MAX_RUNTIME_IDLE_TIMEOUT};
     if !body.is_object() {
-        return Err(api_error(ApiError::Validation(vec![
-            crate::multi::validate::FieldError {
-                field: "serverName".into(),
-                message: "server configuration must be an object".into(),
-            },
-        ])));
+        return Err(crate::multi::validate::FieldError {
+            field: "serverName".into(),
+            message: "server configuration must be an object".into(),
+        });
     }
     let string = |value: &serde_json::Value| value.as_str().map(str::to_owned);
     Ok(ServerConfigPatch {
@@ -290,7 +286,7 @@ async fn handle_set_server_config(
 ) -> Response {
     let patch = match server_config_patch(&body) {
         Ok(patch) => patch,
-        Err(response) => return response,
+        Err(error) => return api_error(ApiError::Validation(vec![error])),
     };
     match state.manager.set_server_config(patch) {
         Ok(()) => handle_server_config(State(state)).await,

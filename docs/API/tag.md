@@ -24,6 +24,7 @@ Defines a tag explicitly.
 * `metatable` to set a custom Lua metatable for objects with this tag.
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
 * `schema` [[Schema]] to validate against
+* `pageDecoration` [[Page Decorations|page decoration]] (`icon`, `prefix`, `cssClasses`, …) for every page with this tag. See [[Page Decorations#Apply to every page with a tag]].
 * `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
 * `renderFrontmatter` callback function `function(pageMeta, ctx)` that renders the [[Frontmatter]] of pages with this tag as a custom widget in the editor. See [[#Frontmatter live previews]].
@@ -65,14 +66,15 @@ Based on your page’s markdown, an indexer produces a list of objects to be ind
 > **note** Note
 > `transform` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `transform` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.
 
-### Example: adding [[Page Decorations]] dynamically
-The following dynamically adds a Feather icon [[Page Decorations|page decoration]] to all pages tagged with `#person`, such as a page named `People/Sam Rivera`.
+### Example: computing [[Page Decorations]]
+For a fixed decoration on every page with a tag, use the `pageDecoration` field instead. A `transform` can compute one from the page itself, here a status dot for pages tagged `#proposal`:
 
 ```lua
 tag.define {
-  name = "person",
+  name = "proposal",
   transform = function(o)
-    o.pageDecoration = { icon = "user" }
+    local dot = ({ accepted = "🟢", rejected = "🔴" })[o.status] or "🟡"
+    o.pageDecoration = { prefix = dot .. " " }
     return o
   end
 }

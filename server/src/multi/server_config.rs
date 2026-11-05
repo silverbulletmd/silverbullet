@@ -64,8 +64,8 @@ pub fn is_safe_font_value(value: &str) -> bool {
         && value
             .chars()
             .all(|c| c.is_alphanumeric() || matches!(c, ' ' | '_' | ',' | '\'' | '"' | '-'))
-        && value.matches('\'').count() % 2 == 0
-        && value.matches('"').count() % 2 == 0
+        && value.matches('\'').count().is_multiple_of(2)
+        && value.matches('"').count().is_multiple_of(2)
 }
 
 /// A default font setting as stored: trimmed, blank as unset, and only a
@@ -237,8 +237,10 @@ mod tests {
 
     #[test]
     fn the_font_value_check_agrees_with_the_client_value_for_value() {
-        let vectors: serde_json::Value =
-            serde_json::from_str(include_str!("../../../plug-api/lib/font_value_vectors.json")).unwrap();
+        let vectors: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../plug-api/lib/font_value_vectors.json"
+        ))
+        .unwrap();
         for (list, expected) in [("safe", true), ("unsafe", false)] {
             for value in vectors[list].as_array().unwrap() {
                 let value = value.as_str().unwrap();

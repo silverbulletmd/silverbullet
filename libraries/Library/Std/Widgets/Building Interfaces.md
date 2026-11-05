@@ -67,7 +67,7 @@ Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with C
 # Styling
 Put CSS in a `space-style` block and style classes you attach:
 
-* Tag-driven classes: `tag.define { name = "book", transform = function(o) o.pageDecoration = { cssClasses = { "book-page" } } return o end }` puts `book-page` on the page body and on links to those pages. Put it in the `CONFIG` page. Elsewhere, pages indexed before it loads stay undecorated until `Space: Reindex`.
+* Tag-driven classes: `tag.define { name = "book", pageDecoration = { cssClasses = { "book-page" } } }` puts `book-page` on the page body and on links to those pages.
 * Widget classes: give widget roots your own class and scope rules under it.
 * Editor rules need SilverBullet's specificity: `body.book-page #sb-main .cm-editor { ... }`.
 

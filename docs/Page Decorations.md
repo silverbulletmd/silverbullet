@@ -52,3 +52,15 @@ body.christmas-decoration #sb-top {
 ```
 
 Copy the frontmatter and style to your own space to adapt the decoration.
+
+# Apply to every page with a tag
+To decorate every page with a tag, give the tag a `pageDecoration` in [[API/tag|tag.define]] in your [[CONFIG]]:
+
+```lua
+tag.define {
+  name = "person",
+  pageDecoration = { icon = "user", cssClasses = { "person-page" } },
+}
+```
+
+A page’s own `pageDecoration` (from its frontmatter, or a `transform`) wins over the tag’s. When several of a page’s tags set the same field, the first tag in its `tags` wins. `cssClasses` from all of them are combined. Changing a tag’s decoration re-indexes the pages with that tag, so there is no need to run `Space: Reindex`.

@@ -1,7 +1,7 @@
 ---
 tags: guide
 ---
-Choose a guide for what you want to do: write pages, connect information, add attributes or build a query.
+Choose a guide for what you want to do: write pages, connect information, add attributes, build a query or customize your space.
 
 These guides assume you have a [[Space]] in [[Install/Desktop|SilverBullet Desktop]] or an [[Install|SilverBullet Server]] already.
 
@@ -17,6 +17,9 @@ That is enough to use SilverBullet for everyday writing. Folders, tags, queries 
 * [[Guide/Add Structure and Query|Add Structure and Query]] — tag pages, add attributes and build a live overview in Workbench.
 
 The guides reuse Sam Rivera’s fictional photo walk and woodland hike so the examples are familiar across topics. Each page supplies the content it needs. If you already created a sample page, check it against the local example instead of adding a second copy. Dates are fixed so results remain repeatable.
+
+# Make it your own
+* [[Guide/Make it your own]] — choose fonts, change shortcuts and discover libraries through Workbench.
 
 # Optional ways to capture notes
 Open the command palette with **Cmd-/** on macOS or **Ctrl-/** on Windows/Linux to run the commands below.

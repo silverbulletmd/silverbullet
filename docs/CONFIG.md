@@ -48,10 +48,7 @@ tag.define {
 
 tag.define {
   name = "person",
-  transform = function(o)
-    o.pageDecoration = { icon = "user" }
-    return o
-  end
+  pageDecoration = { icon = "user" },
 }
 
 -- Architecture Decision Records
@@ -105,10 +102,7 @@ tag.define {
 tag.define {
   name = "component",
   tagPage = "Architecture",
-  transform = function(o)
-    o.pageDecoration = { icon = "box" }
-    return o
-  end
+  pageDecoration = { icon = "box" },
 }
 
 local deadlinePattern = "📅%s*(%d%d%d%d%-%d%d%-%d%d)"

@@ -48,6 +48,9 @@ const indexVersionKey = ["$indexVersion"];
 // marker, an interrupted reindex left one behind.
 const reindexInProgressKey = ["$reindexInProgress"];
 
+// The tag page decorations the index was last built with, so a change re-indexes only the pages with that tag
+const tagDecorationsKey = ["$tagDecorations"];
+
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 14;
 
@@ -56,6 +59,8 @@ type TagDefinition = {
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
+  /** Defaults for the `pageDecoration` of every page carrying this tag */
+  pageDecoration?: Record<string, any>;
   validate?: (o: ObjectValue) => Promise<string | null | undefined>;
   transform?: (
     o: ObjectValue,
@@ -1146,6 +1151,7 @@ export class ObjectIndex {
           tagsToWrite.push(tag);
         }
       }
+      current = withTagDecorations(current, tagDefinitions);
       const refKey = this.cleanKey(current.ref, page);
       for (const tag of tagsToWrite) {
         kvs.push({
@@ -1157,9 +1163,91 @@ export class ObjectIndex {
     return kvs;
   }
 
+  /**
+   * Re-queues the pages carrying a tag whose `pageDecoration` changed since the
+   * last call (persisted, so changes made while closed count too), because the
+   * decoration is baked into indexed page objects.
+   */
+  async reindexChangedTagDecorations(): Promise<void> {
+    const current = tagDecorationsOf(
+      this.config.get<Record<string, TagDefinition>>("tags", {}),
+    );
+    const previous: Record<string, string> =
+      (await this.ds.get(tagDecorationsKey)) ?? {};
+    const changed = [
+      ...new Set([...Object.keys(current), ...Object.keys(previous)]),
+    ].filter((tag) => current[tag] !== previous[tag]);
+    if (changed.length === 0) return;
+    const pages = new Set<string>();
+    for (const tag of changed) {
+      for await (const { key, value } of this.ds.query({
+        prefix: [indexKey, tag],
+      })) {
+        if (value?.tag === "page") pages.add(String(key[3]));
+      }
+    }
+    if (pages.size > 0) {
+      await this.mq.batchSend(
+        "indexQueue",
+        [...pages].map((page): IndexQueueBody => ({ path: `${page}.md` })),
+      );
+    }
+    await this.ds.set(tagDecorationsKey, current);
+  }
+
   deleteObject(page: string, tag: string, ref: string): Promise<void> {
     return this.batchDelete(page, [[tag, this.cleanKey(ref, page)]]);
   }
+}
+
+function isRecord(v: unknown): v is Record<string, any> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Each tag's `pageDecoration`, serialized for comparison */
+function tagDecorationsOf(
+  tagDefinitions: Record<string, TagDefinition>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [tag, def] of Object.entries(tagDefinitions)) {
+    if (isRecord(def?.pageDecoration)) {
+      result[tag] = JSON.stringify(def.pageDecoration);
+    }
+  }
+  return result;
+}
+
+/**
+ * A page with the `pageDecoration` defaults of its tags filled in. The page's
+ * own decoration (frontmatter or a transform) wins, then the first tag that
+ * sets a field; CSS classes from all of them combine.
+ */
+export function withTagDecorations<T>(
+  obj: ObjectValue<T>,
+  tagDefinitions: Record<string, TagDefinition>,
+): ObjectValue<T> {
+  if (obj.tag !== "page") return obj;
+  const fromTags = [...(obj.tags ?? []), obj.tag]
+    .map((tag) => tagDefinitions[tag]?.pageDecoration)
+    .filter(isRecord);
+  if (fromTags.length === 0) return obj;
+  const own: Record<string, any> = isRecord((obj as any).pageDecoration)
+    ? (obj as any).pageDecoration
+    : {};
+  const merged: Record<string, any> = Object.assign(
+    {},
+    ...fromTags.toReversed(),
+    own,
+  );
+  const cssClasses = [
+    ...new Set(
+      [...fromTags, own].flatMap((d) =>
+        Array.isArray(d.cssClasses) ? d.cssClasses : [],
+      ),
+    ),
+  ];
+  if (cssClasses.length > 0) merged.cssClasses = cssClasses;
+  return { ...obj, pageDecoration: merged };
 }
 
 /** The tags a set of `[tag, ...]` index keys write to. */
