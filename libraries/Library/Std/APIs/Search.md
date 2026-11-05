@@ -152,6 +152,7 @@ if modes then
   -- are read again on every opening.
   command.define {
     name = "Space: Search",
+    menu = { location = "edit", group = "3_find", order = 2, label = "Search Space…" },
     key = "Ctrl-Shift-f",
     mac = "Cmd-Shift-f",
     run = function()

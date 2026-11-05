@@ -121,7 +121,7 @@ functions:
     path: "./command.ts:reindexCommand"
     command:
       name: "Space: Reindex"
-      menu: { location: space, group: "2_index", order: 1, label: "Reindex Space" }
+      menu: { location: maintenance, group: "2_index", order: 1, label: "Reindex Space" }
 
   processIndexQueue:
     path: ./queue.ts:processIndexQueue

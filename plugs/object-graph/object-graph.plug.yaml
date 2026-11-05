@@ -24,6 +24,7 @@ functions:
     path: ./src/object_graph.ts:showGraph
     command:
       name: "Graph: Explore"
+      menu: { location: view, group: "1_views", order: 6, label: "Object Graph" }
       key: "Ctrl-Shift-g"
       mac: "Cmd-Shift-g"
   showGlobalGraph:

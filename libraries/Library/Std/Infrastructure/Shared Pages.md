@@ -299,6 +299,7 @@ view.define {
   name = "std.sharedPages",
   title = "Shared Pages",
   command = "Navigate: Shared Pages",
+  menu = { location = "view", group = "1_views", order = 7, label = "Shared Pages" },
   dock = "rhs",
   supportedDocks = {"rhs", "lhs", "bhs", "modal"},
   refreshOnOpen = true,

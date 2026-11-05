@@ -10,7 +10,7 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
-      menu: { location: view, group: "1_toggle", order: 1, label: "Toggle Dark Mode" }
+      menu: { location: view, group: "2_appearance", order: 1, label: "Toggle Dark Mode" }
   toggleMarkdownSyntaxRendering:
     path: "./editor.ts:toggleMarkdownSyntaxRendering"
     command:
@@ -59,7 +59,7 @@ functions:
     command:
       name: "System: Reload"
       key: Ctrl-Alt-r
-      menu: { location: space, group: "4_system", order: 1, label: "System Reload" }
+      menu: { location: maintenance, group: "4_system", order: 1, label: "System Reload" }
 
   footnoteComplete:
     path: complete.ts:footnoteComplete
@@ -287,7 +287,7 @@ functions:
     command:
       name: "Editor: Toggle Vim Mode"
       requireEditor: page
-      menu: { location: view, group: "1_toggle", order: 3, label: "Toggle Vim Mode" }
+      menu: { location: view, group: "2_appearance", order: 3, label: "Toggle Vim Mode" }
   loadVimConfig:
     path: "./vim.ts:loadVimConfig"
     command:

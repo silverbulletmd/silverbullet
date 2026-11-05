@@ -18,7 +18,7 @@ export function registerNavigatorCommands(
     name: "Navigate: Tree",
     key: ["Ctrl-o", "Ctrl-Shift-o"],
     mac: ["Cmd-o", "Cmd-Shift-o"],
-    menu: { location: "view", group: "1_views", order: 4, label: "Tree" },
+    menu: { location: "view", group: "1_views", order: 0, label: "Space Tree" },
     run: openCommand("std.spaceTree"),
   });
   if (gitAvailable) {
@@ -41,7 +41,7 @@ export function registerNavigatorCommands(
       name: "Revision: Page History",
       requireEditor: "page",
       menu: {
-        location: "space",
+        location: "history",
         group: "1_revisions",
         order: 1,
         label: "Page History",
@@ -51,7 +51,7 @@ export function registerNavigatorCommands(
     hook.registerCommand({
       name: "Revision: Space History",
       menu: {
-        location: "space",
+        location: "history",
         group: "1_revisions",
         order: 2,
         label: "Space History",
@@ -62,7 +62,7 @@ export function registerNavigatorCommands(
       name: "Revision: Create snapshot",
       requireMode: "rw",
       menu: {
-        location: "space",
+        location: "history",
         group: "1_revisions",
         order: 3,
         label: "Create Snapshot",
@@ -72,6 +72,7 @@ export function registerNavigatorCommands(
   }
   hook.registerCommand({
     name: "Navigate: Reset All Views",
+    menu: { location: "view", group: "7_layout", label: "Reset Views…" },
     run: resetAllViews,
   });
 }

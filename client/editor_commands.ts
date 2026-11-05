@@ -627,7 +627,12 @@ export function registerEditorCommands(
     key: "Ctrl-f",
     mac: "Cmd-f",
     requireEditor: "page",
-    menu: { location: "edit", group: "3_find", label: "Find in Page..." },
+    menu: {
+      location: "edit",
+      group: "3_find",
+      order: 1,
+      label: "Find in Page...",
+    },
     run: async () => {
       openSearchPanel(view());
       return false; // keep focus on search panel, not the editor
