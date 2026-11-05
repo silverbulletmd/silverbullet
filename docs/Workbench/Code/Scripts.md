@@ -1,5 +1,7 @@
 ---
 description: "Inspect Space Lua scripts, their load order, errors and quarantine status."
+aliases:
+- Workbench/Scripts
 references:
 - client/workbench/scripts/**
 ---

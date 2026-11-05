@@ -22,7 +22,7 @@ Look up the editing interface, visual tools and feature behavior.
 # Workbench
 * [[Workbench]] — the tool tabs and their shared behavior.
 * [[Workbench/Overview]], [[Workbench/Data]] and [[Workbench/Configuration]] — inspecting the space, building queries and editing settings.
-* [[Workbench/Libraries]], [[Workbench/Console]], [[Workbench/Scripts]], [[Workbench/Styles]] and [[Workbench/Health]] — installed tools, expression results and diagnostics.
+* [[Workbench/Libraries]], [[Workbench/Console]], [[Workbench/Code/Scripts]], [[Workbench/Code/Styles]] and [[Workbench/Health]] — installed tools, expression results and diagnostics.
 
 # Collaboration and history
 * [[Revisions]] — recorded history and restoration behavior.

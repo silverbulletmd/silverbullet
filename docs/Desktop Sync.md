@@ -19,7 +19,5 @@ A hosting provider can run SilverBullet Server for you, see [Hosted SilverBullet
 * In your SilverBullet Desktop dashboard, hover over the space you want to set up for sync and click the gear icon.
 * Scroll down to the “Sync” section. Enter the external space’s URL and choose username/password or token authentication. Use an account or token permitted to write that space, then inspect the connection status before relying on another device.
 
-# Dropbox, Syncthing, Git
+# Dropbox, Syncthing
 Ultimately a space is a folder of plain text markdown files on a disk. You can sync it with other devices however you want. If you have multiple machines (e.g. a laptop and desktop, or a private and work laptop) you can use whatever file sync solution you like.
-
-For how sync works in the browser client, see [[Sync]].

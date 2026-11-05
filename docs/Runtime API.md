@@ -24,25 +24,6 @@ SB_CHROME_PATH=/usr/bin/chromium
 
 In single-instance mode, set `SB_RUNTIME_API=0` to disable the Runtime API, and `SB_RUNTIME_IDLE_TIMEOUT` to change when an idle runtime stops (see [[#Idle stop]]). In multi-space mode these variables are ignored: use the **Enable runtime API** toggle in the administrator’s **APIs** tab. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
 
-# Docker setup
-The default Docker image includes Chromium headless shell, so no special image variant is required:
-```yaml
-services:
-  silverbullet:
-    image: ghcr.io/silverbulletmd/silverbullet:latest
-    environment:
-      - SB_USER=me:secret        # optional
-      - SB_AUTH_TOKEN=mytoken    # optional, for API auth
-    volumes:
-      - ./data:/data
-    ports:
-      - "3000:3000"
-```
-
-The image stores Chrome profiles under `/data/.chrome-data`: one per user of each space. See [[#Profiles]].
-
-Use a `-slim` tag such as `latest-slim` if you do not need the Runtime API and want a smaller image without Chromium. The old `-runtime-api` tags remain available as compatibility aliases for the default image.
-
 # Endpoints
 ## Evaluate a Lua expression
 `POST /.runtime/lua`
