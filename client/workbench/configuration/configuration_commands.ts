@@ -54,32 +54,25 @@ export function registerConfigurationCommands(
     requireMode: "rw",
     menuMac: {
       location: "app",
-      group: "4_prefs",
+      group: "2_prefs",
       order: 1,
-      label: "Configuration...",
+      label: "Settings…",
     },
     menu: {
       location: "file",
       group: "2_prefs",
       order: 1,
-      label: "Configuration...",
+      label: "Settings…",
     },
     run: open("configuration"),
   });
   hook.registerCommand({
     name: "Configuration: Keyboard Shortcuts",
     requireMode: "rw",
-    menuMac: {
-      location: "app",
-      group: "4_prefs",
-      order: 2,
-      label: "Keyboard Shortcuts...",
-    },
     menu: {
-      location: "file",
-      group: "2_prefs",
-      order: 2,
-      label: "Keyboard Shortcuts...",
+      location: "edit",
+      group: "8_preferences",
+      label: "Keyboard Shortcuts…",
     },
     run: open("keyBindings"),
   });

@@ -325,3 +325,65 @@ test.describe("configuration tab", () => {
     });
   });
 });
+
+test.describe("data tab schemas", () => {
+  // Made-up meetings, tagged without a schema
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome\n",
+      "Meetings/Kickoff.md":
+        "---\ntags: meeting\ndate: 2026-10-02\nroom: Blue\n---\nAgenda.",
+      "Meetings/Retro.md":
+        "---\ntags: meeting\ndate: 2026-10-09\nroom: Green\n---\nNotes.",
+    },
+  });
+
+  const config = (sbServer: { spaceDir: string }) =>
+    readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => "");
+
+  test("creates a schema from inferred attributes, extends page, and keeps unsaved CONFIG edits", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Schema");
+    const tags = page.getByRole("navigation", { name: "Tags" });
+    await tags.getByRole("button", { name: /^meeting/ }).click();
+    await page.getByRole("checkbox", { name: "Declare room" }).uncheck();
+    await page.getByRole("button", { name: "Create schema" }).click();
+    await expect
+      .poll(() => config(sbServer))
+      .toContain("-- managed-by: workbench-schemas");
+    const text = await config(sbServer);
+    expect(text).toContain('name = "meeting"');
+    expect(text).toContain("date = schema.date()");
+    expect(text).not.toContain("room =");
+    await expect(
+      tags.locator(".sb-wbd-group", { hasText: /^Defined/ }),
+    ).toContainText("meeting");
+
+    // Extending a built-in schema writes a targeted change
+    await tags.getByRole("button", { name: /^page/ }).click();
+    await page.getByRole("textbox", { name: "New attribute" }).fill("category");
+    await page.getByRole("textbox", { name: "New attribute" }).press("Enter");
+    await page.getByRole("button", { name: "Save and apply" }).click();
+    await expect
+      .poll(() => config(sbServer))
+      .toMatch(
+        /config\.set\(\{\s*"tags",\s*"page",\s*"schema",\s*"properties",\s*"category",?\s*\}/,
+      );
+
+    // An unsaved edit in the open CONFIG survives a save from the Workbench
+    await gotoSilverBulletPage(page, sbServer, "CONFIG");
+    await page.locator("#sb-editor .cm-content").click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type("\nA note typed by hand.");
+    await runCommandViaPalette(page, "Workbench: Schema");
+    await tags.getByRole("button", { name: /^page/ }).click();
+    await page.getByRole("textbox", { name: "New attribute" }).fill("rating");
+    await page.getByRole("textbox", { name: "New attribute" }).press("Enter");
+    await page.getByRole("button", { name: "Save and apply" }).click();
+    await expect.poll(() => config(sbServer)).toContain('"rating"');
+    expect(await config(sbServer)).toContain("A note typed by hand.");
+  });
+});

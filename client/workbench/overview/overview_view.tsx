@@ -128,7 +128,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
         <div className="sb-wbo-grid">
           <Card
             label="Pages"
-            link={{ to: LINKS.pages, name: "Show pages in Query", whole: true }}
+            link={{ to: LINKS.pages, name: "Show pages in Data", whole: true }}
           >
             <Stat
               value={fmt(stats.pages)}
@@ -140,11 +140,11 @@ export function OverviewView({ client, builder, showing }: TabProps) {
               value={fmt(stats.tasksOpen + stats.tasksDone)}
               sub={
                 <>
-                  <Link to={LINKS.tasksOpen} name="Show open tasks in Query">
+                  <Link to={LINKS.tasksOpen} name="Show open tasks in Data">
                     {fmt(stats.tasksOpen)} open
                   </Link>
                   {" · "}
-                  <Link to={LINKS.tasksDone} name="Show done tasks in Query">
+                  <Link to={LINKS.tasksDone} name="Show done tasks in Data">
                     {fmt(stats.tasksDone)} done
                   </Link>
                 </>
@@ -153,7 +153,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
           </Card>
           <Card
             label="Links"
-            link={{ to: LINKS.links, name: "Show links in Query", whole: true }}
+            link={{ to: LINKS.links, name: "Show links in Data", whole: true }}
           >
             <Stat value={fmt(stats.relations)} sub="links and mentions" />
           </Card>
@@ -161,7 +161,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
             label="Documents"
             link={{
               to: LINKS.documents,
-              name: "Show documents in Query",
+              name: "Show documents in Data",
               whole: true,
             }}
           >
@@ -183,7 +183,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
                   #{t.name} <b>{fmt(t.count)}</b>
                 </button>
               ))}
-              <Link to={LINKS.allTags} name="Show all tags in Query">
+              <Link to={LINKS.allTags} name="Show all tags in Data">
                 {fmt(stats.tagTotal)} in use · all tags →
               </Link>
             </div>
@@ -294,7 +294,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
                 <dd>{runtime.version}</dd>
                 <dt>Scripts</dt>
                 <dd>
-                  <Link to={LINKS.scripts} name="Show Scripts tab">
+                  <Link to={LINKS.scripts} name="Show scripts in the Code tab">
                     {fmt(runtime.scripts)}
                     {runtime.scriptsFailed > 0 && (
                       <span className="sb-wbo-danger">
@@ -306,7 +306,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
                 </dd>
                 <dt>Styles</dt>
                 <dd>
-                  <Link to={LINKS.styles} name="Show Styles tab">
+                  <Link to={LINKS.styles} name="Show styles in the Code tab">
                     {fmt(runtime.styles)}
                     {runtime.stylesEmpty > 0 && (
                       <span className="sb-wbo-danger">

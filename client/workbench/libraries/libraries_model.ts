@@ -9,7 +9,6 @@ import {
   type LibrariesViewModel,
   type LibraryCheck,
 } from "./libraries_backend.ts";
-import type { LibrariesFocus } from "./libraries_focus.ts";
 import {
   BUNDLED_REPOSITORIES,
   REPOSITORY_PAGE_PREFIX,
@@ -17,6 +16,14 @@ import {
 } from "./library_names.ts";
 
 export type SectionKey = "installed" | "available" | "repositories";
+
+/** What a `Library: …` command asks the Libraries tab to do once it shows */
+export type LibrariesFocus =
+  | "manager"
+  | "install"
+  | "addRepository"
+  | "updateAll"
+  | "updateAllRepositories";
 
 export type UpdateProgress = {
   running: boolean;

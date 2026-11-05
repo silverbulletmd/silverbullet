@@ -22,7 +22,7 @@ If every page of a kind uses the same tag, you can query them together even when
 * Keep the source Markdown readable outside SilverBullet. Explain what a computed collection means in ordinary prose too.
 
 # Querying your space
-Begin in [[Workbench/Query]] to inspect records and build filters. [[Guide/Add Structure and Query]] teaches this without handwritten syntax. When you adapt the source:
+Begin in [[Workbench/Data]] to inspect records and build filters. [[Guide/Add Structure and Query]] teaches this without handwritten syntax. When you adapt the source:
 
 * Prefer `index.contentPages()` for ordinary page lists. It excludes [[Meta Page|meta pages]] such as library and configuration pages. Use `index.pages()` when you want those included.
 * Choose the right kind: `index.tasks()` reads tasks. `index.contentPages()` reads pages. Both can be narrowed to a tag.

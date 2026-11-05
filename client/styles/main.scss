@@ -12,11 +12,14 @@
 @use "revision_preview";
 @use "dock_menu";
 @use "page_widget";
+@use "widget_inputs";
 @use "view_content";
 @use "../capture/capture";
 @use "keyboard_bar";
 @use "workbench";
 @use "workbench_query";
+@use "workbench_data";
+@use "workbench_code";
 @use "workbench_overview";
 @use "workbench_libraries";
 @use "workbench_configuration";

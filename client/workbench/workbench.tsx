@@ -9,29 +9,29 @@ import {
   WORKBENCH_TABS,
   type WorkbenchTab,
 } from "../navigator/views/workbench.ts";
+import { CodeView } from "./code/code_view.tsx";
 import type { ConfigurationModel } from "./configuration/configuration_model.ts";
 import { ConfigurationView } from "./configuration/configuration_view.tsx";
 import type { ConsoleSession } from "./console/console_session.ts";
 import { ConsoleView } from "./console/console_view.tsx";
+import type { DataModel } from "./data/data_model.ts";
+import { DataView } from "./data/data_view.tsx";
+import type { SchemaDrafts } from "./data/schema/schema_drafts.ts";
 import type { HealthMonitor } from "./health/health_sources.ts";
 import { HealthView } from "./health/health_view.tsx";
 import { LibrariesView } from "./libraries/libraries_view.tsx";
 import { OverviewView } from "./overview/overview_view.tsx";
 import type { QueryBuilder } from "./query/query_builder.ts";
-import { QueryView } from "./query/query_view.tsx";
-import { ScriptsView } from "./scripts/scripts_view.tsx";
-import { StylesView } from "./styles/styles_view.tsx";
 import type { TabProps } from "./tab.ts";
 
 const BODIES: Record<WorkbenchTab, FunctionComponent<TabProps>> = {
   Overview: OverviewView,
   Health: HealthView,
   Console: ConsoleView,
-  Scripts: ScriptsView,
-  Styles: StylesView,
+  Code: CodeView,
   Libraries: LibrariesView,
   Configuration: ConfigurationView,
-  Query: QueryView,
+  Data: DataView,
 };
 
 /**
@@ -48,11 +48,15 @@ export function WorkbenchView({
   builder,
   health,
   configuration,
+  data,
+  schemas,
 }: NativeViewProps & {
   session: ConsoleSession;
   builder: QueryBuilder;
   health: HealthMonitor;
   configuration: ConfigurationModel;
+  data: DataModel;
+  schemas: SchemaDrafts;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const shown = useRef(segmentIndex);
@@ -93,6 +97,8 @@ export function WorkbenchView({
               builder={builder}
               health={health}
               configuration={configuration}
+              data={data}
+              schemas={schemas}
               focusTarget={showing ? focusTarget : noFocus}
               showing={showing}
             />

@@ -6,22 +6,19 @@ import { type Path, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import * as Constants from "../../../plugs/index/constants.ts";
 import type { Client } from "../../client.ts";
 import { showView } from "../../navigator/navigator.ts";
-import {
-  WORKBENCH_VIEW,
-  type WorkbenchTab,
-} from "../../navigator/views/workbench.ts";
 import type { QueryBuilder } from "../query/query_builder.ts";
 import { type QuerySource, sourceFor } from "../query/query_from.ts";
 import { withOperator } from "../query/query_ops.ts";
 import { parseQuery, querySource } from "../query/query_parse.ts";
 import { loadAttributes } from "../query/query_source.ts";
 import { openRef } from "../shared/action.ts";
+import { openWorkbench, type WorkbenchTarget } from "../workbench_target.ts";
 
 export type OverviewLink =
   | { kind: "query"; tag: string }
   | { kind: "tasks"; done: boolean }
   | { kind: "queryText"; expr: string }
-  | { kind: "tab"; tab: WorkbenchTab }
+  | { kind: "workbench"; target: WorkbenchTarget }
   | { kind: "view"; view: string }
   | { kind: "page"; page: string }
   | { kind: "tagPage"; tag: string };
@@ -43,10 +40,12 @@ export const LINKS = {
   allTags: { kind: "queryText", expr: ALL_TAGS_QUERY },
   spaceLog: { kind: "view", view: "std.spaceLog" },
   gitStatus: { kind: "view", view: "std.gitStatus" },
-  health: { kind: "tab", tab: "Health" },
-  scripts: { kind: "tab", tab: "Scripts" },
-  styles: { kind: "tab", tab: "Styles" },
+  health: { kind: "workbench", target: { tab: "Health" } },
+  scripts: { kind: "workbench", target: { tab: "Code", section: "lua" } },
+  styles: { kind: "workbench", target: { tab: "Code", section: "style" } },
 } satisfies Record<string, OverviewLink>;
+
+const SHOW_QUERY: WorkbenchTarget = { tab: "Data", view: "objects" };
 
 export async function followOverviewLink(
   client: Client,
@@ -54,8 +53,8 @@ export async function followOverviewLink(
   link: OverviewLink,
 ): Promise<void> {
   switch (link.kind) {
-    case "tab":
-      return showView(WORKBENCH_VIEW, { segment: link.tab });
+    case "workbench":
+      return openWorkbench(link.target);
     case "view":
       return showView(link.view);
     case "page":
@@ -77,11 +76,11 @@ export async function followOverviewLink(
       const parsed = parseQuery(link.expr, attributes);
       if (!parsed.ok) return;
       builder.openModel(parsed.model, attributes);
-      return showView(WORKBENCH_VIEW, { segment: "Query" });
+      return openWorkbench(SHOW_QUERY);
     }
     case "query":
       await browse(client, builder, sourceFor(link.tag));
-      return showView(WORKBENCH_VIEW, { segment: "Query" });
+      return openWorkbench(SHOW_QUERY);
     case "tasks": {
       await browse(client, builder, sourceFor("task"));
       const done = withOperator("done", "boolean", String(link.done), "");
@@ -90,7 +89,7 @@ export async function followOverviewLink(
         filters: [done],
         select: { mode: "list", list: { template: "templates.taskItem" } },
       }));
-      return showView(WORKBENCH_VIEW, { segment: "Query" });
+      return openWorkbench(SHOW_QUERY);
     }
   }
 }

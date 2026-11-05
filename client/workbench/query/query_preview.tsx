@@ -126,7 +126,7 @@ export function QueryPreview({
       );
   } else if (result.kind === "value" && slice) {
     const { count } = result;
-    header = resultsHeading(result, grouped);
+    header = resultsHeading(result, grouped, slice.shown);
     if (count === 0) {
       body = (
         <div className="sb-wbq-note">
@@ -136,24 +136,12 @@ export function QueryPreview({
         </div>
       );
     } else {
-      body = (
-        <>
-          {count === null ? (
-            <div className="sb-wbq-note">
-              Showing the first {slice.shown}, counting the rest…
-            </div>
-          ) : slice.shown < count ? (
-            <div className="sb-wbq-note">
-              Showing the first {slice.shown} of {count}
-            </div>
-          ) : null}
-          {view === 0 ? (
-            <RenderedValue client={client} value={slice.value} />
-          ) : (
-            <ValueTree client={client} value={slice.value} />
-          )}
-        </>
-      );
+      body =
+        view === 0 ? (
+          <RenderedValue client={client} value={slice.value} />
+        ) : (
+          <ValueTree client={client} value={slice.value} />
+        );
     }
   }
 

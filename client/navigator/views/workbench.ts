@@ -6,16 +6,18 @@ export const WORKBENCH_VIEW = "std.workbench";
 export const WORKBENCH_TABS = [
   "Overview",
   "Configuration",
-  "Query",
-  "Console",
-  "Scripts",
-  "Styles",
+  "Data",
+  "Code",
   "Libraries",
   "Health",
+  "Console",
 ] as const;
 export type WorkbenchTab = (typeof WORKBENCH_TABS)[number];
 
-/** Opens a page's `query[[…]]` in the Query tab's query editor (`client/workbench/query/query_open.ts`) */
+/** The tab holding the tag list, its objects (the query builder) and schemas */
+export const DATA_TAB = "Data";
+
+/** Opens a page's `query[[…]]` in the Data tab's query editor (`client/workbench/query/query_open.ts`) */
 export const EDIT_QUERY_COMMAND = "Workbench: Edit Query";
 
 /**

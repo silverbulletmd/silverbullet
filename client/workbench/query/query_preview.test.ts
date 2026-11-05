@@ -101,4 +101,16 @@ describe("preview counts", () => {
     expect(h(1, 1)).toBe("1 result");
     expect(h(3, 3, true)).toBe("3 groups");
   });
+
+  test("a partly shown result says so in the heading", () => {
+    expect(resultsHeading({ count: 290, matched: 290 }, false, 200)).toBe(
+      "Showing the first 200 of 290 results",
+    );
+    expect(resultsHeading({ count: null, matched: null }, false, 200)).toBe(
+      "Showing the first 200, counting the rest…",
+    );
+    expect(resultsHeading({ count: 3, matched: 3 }, false, 3)).toBe(
+      "3 results",
+    );
+  });
 });

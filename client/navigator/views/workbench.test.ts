@@ -5,12 +5,11 @@ test("Overview is the first tab, and the Workbench opens on it", () => {
   expect([...WORKBENCH_TABS]).toEqual([
     "Overview",
     "Configuration",
-    "Query",
-    "Console",
-    "Scripts",
-    "Styles",
+    "Data",
+    "Code",
     "Libraries",
     "Health",
+    "Console",
   ]);
   expect(workbenchView.segments?.find((s) => s.default)?.label).toBe(
     "Overview",

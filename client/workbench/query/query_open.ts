@@ -5,8 +5,7 @@
  */
 import type { Client } from "../../client.ts";
 import { directiveAt } from "../../codemirror/widgets/directive_at.ts";
-import { showView } from "../../navigator/navigator.ts";
-import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
+import { openWorkbench } from "../workbench_target.ts";
 import type { InsertTarget, QueryBuilder } from "./query_builder.ts";
 import { parseQuery, querySource } from "./query_parse.ts";
 import { loadAttributes } from "./query_source.ts";
@@ -21,7 +20,7 @@ export async function showQueryEditor(
   builder.setTarget(target);
   followTarget(client.editorView, builder);
   builder.setEditing(true);
-  await showView(WORKBENCH_VIEW, { segment: "Query" });
+  await openWorkbench({ tab: "Data", view: "objects" });
 }
 
 /** A `${…}` on the page: its whole span, and the expression inside */

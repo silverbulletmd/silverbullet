@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
 import { QueryBuilder } from "../query/query_builder.ts";
+import { takeWorkbenchTarget } from "../workbench_target.ts";
 import { followOverviewLink, LINKS } from "./overview_links.ts";
 
 const showView = vi.fn(async (..._args: unknown[]) => {});
@@ -22,13 +23,19 @@ describe("followOverviewLink", () => {
   });
   const client = { ui: { flashNotification: vi.fn() } } as never;
 
-  test("a tab link shows that Workbench tab", async () => {
-    await followOverviewLink(client, new QueryBuilder(), {
-      kind: "tab",
-      tab: "Scripts",
-    });
+  test("a Workbench link shows that tab", async () => {
+    await followOverviewLink(client, new QueryBuilder(), LINKS.health);
     expect(showView).toHaveBeenCalledWith(WORKBENCH_VIEW, {
-      segment: "Scripts",
+      segment: "Health",
+    });
+  });
+
+  test("a Workbench link to a section leaves it for the tab", async () => {
+    await followOverviewLink(client, new QueryBuilder(), LINKS.styles);
+    expect(showView).toHaveBeenCalledWith(WORKBENCH_VIEW, { segment: "Code" });
+    expect(takeWorkbenchTarget("Code")).toEqual({
+      tab: "Code",
+      section: "style",
     });
   });
 
@@ -40,7 +47,7 @@ describe("followOverviewLink", () => {
     expect(showView).toHaveBeenCalledWith("std.gitStatus");
   });
 
-  test("a query link picks the source, drops any old target and ends on Query", async () => {
+  test("a query link picks the source, drops any old target and ends on Data", async () => {
     const builder = new QueryBuilder();
     const setTarget = vi.spyOn(builder, "setTarget");
     await followOverviewLink(client, builder, { kind: "query", tag: "page" });
@@ -51,7 +58,7 @@ describe("followOverviewLink", () => {
     });
     expect(setTarget).toHaveBeenCalledWith(null);
     expect(showView).toHaveBeenLastCalledWith(WORKBENCH_VIEW, {
-      segment: "Query",
+      segment: "Data",
     });
   });
 
@@ -150,7 +157,7 @@ describe("followOverviewLink", () => {
       columns: [{ id: "c1", header: "name", kind: "attribute", value: "name" }],
     });
     expect(showView).toHaveBeenLastCalledWith(WORKBENCH_VIEW, {
-      segment: "Query",
+      segment: "Data",
     });
   });
 });

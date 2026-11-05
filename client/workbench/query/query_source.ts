@@ -1,12 +1,9 @@
 /**
- * What the query builder reads from the running client: tags, sampled
- * objects, declared schemas, aggregates, and the result of a query.
+ * What the query builder reads from the running client: sampled objects,
+ * declared schemas, aggregates, and the result of a query; and picking a
+ * source into the builder with the attributes it reads.
  */
-import {
-  builtinTagsOfKind,
-  isBuiltinTag,
-  type TagKind,
-} from "@silverbulletmd/silverbullet/lib/tags";
+import { isBuiltinTag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { Client } from "../../client.ts";
 import { tagSchema } from "../../plugos/syscalls/schema_introspection.ts";
 import { getBuiltinAggregateEntries } from "../../space_lua/aggregates.ts";
@@ -17,132 +14,25 @@ import {
 import { evalExpression } from "../../space_lua/eval.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame } from "../../space_lua/runtime.ts";
-import { stdLibPrefix } from "../../spaces/constants.ts";
 import {
   type AttributeInfo,
   declaredAttributesFromSchema,
   inferAttributes,
 } from "./query_attributes.ts";
+import type { QueryBuilder } from "./query_builder.ts";
 import {
   listedSource,
   type QuerySource,
+  sameSource,
   sampleQuery,
   schemaTag,
+  sourceLabel,
 } from "./query_from.ts";
-
-/**
- * The order the Query tab lists built-in tags in, one group per kind. System
- * tags (space-lua, space-style) are left out: they're configuration, not data
- * worth querying.
- */
-export const TAG_KIND_GROUPS: readonly { kind: TagKind; label: string }[] = [
-  { kind: "root", label: "Root" },
-  { kind: "edge", label: "Edges" },
-  { kind: "index", label: "Index" },
-];
-
-/** Every built-in tag the Query tab offers, in group order (the deprecated `link` view is left out) */
-export const BUILTIN_QUERY_TAGS: readonly string[] = TAG_KIND_GROUPS.flatMap(
-  (g) => builtinTagsOfKind(g.kind),
-);
 
 export const SAMPLE_LIMIT = 500;
 
-export type TagLists = {
-  builtIn: string[];
-  /** Root tags data blocks define (```#contact) */
-  dataRoots: string[];
-  user: string[];
-  /** For each user tag, the root tags it's used on */
-  usedOn: Record<string, string[]>;
-};
-
-export const NO_TAGS: TagLists = {
-  builtIn: [],
-  dataRoots: [],
-  user: [],
-  usedOn: {},
-};
-
-const byName = (a: string, b: string) => a.localeCompare(b);
-
-/** Sorts tag records (name, and the root tag it's used on) into the Query tab's lists */
-export function splitTags(
-  records: { name: string; parent?: string }[],
-): TagLists {
-  const seen = new Set<string>();
-  const dataRoots = new Set<string>();
-  const usedOn = new Map<string, Set<string>>();
-  for (const { name, parent } of records) {
-    seen.add(name);
-    if (isBuiltinTag(name)) continue;
-    if (parent === "data") {
-      dataRoots.add(name);
-      continue;
-    }
-    const roots = usedOn.get(name) ?? new Set<string>();
-    if (parent) roots.add(parent);
-    usedOn.set(name, roots);
-  }
-  return {
-    builtIn: BUILTIN_QUERY_TAGS.filter((n) => seen.has(n)),
-    dataRoots: [...dataRoots].sort(byName),
-    user: [...usedOn.keys()].sort(byName),
-    usedOn: Object.fromEntries(
-      [...usedOn].map(([name, roots]) => [
-        name,
-        BUILTIN_QUERY_TAGS.filter((r) => roots.has(r)),
-      ]),
-    ),
-  };
-}
-
-/** The tags whose name contains `phrase` (ignoring case and a leading `#`), best matches first */
-export function filterTags(tags: TagLists, phrase: string): TagLists {
-  const p = phrase.trim().replace(/^#/, "").toLowerCase();
-  if (!p) return tags;
-  const pick = (names: string[]) =>
-    names
-      .filter((n) => n.toLowerCase().includes(p))
-      .map((n, i) => [n, i] as const)
-      .sort(
-        ([a, i], [b, j]) =>
-          Number(!a.toLowerCase().startsWith(p)) -
-            Number(!b.toLowerCase().startsWith(p)) || i - j,
-      )
-      .map(([n]) => n);
-  return {
-    ...tags,
-    builtIn: pick(tags.builtIn),
-    dataRoots: pick(tags.dataRoots),
-    user: pick(tags.user),
-  };
-}
-
-/** The user tags used on a root tag's objects; for `data`, the root tags data blocks define */
-export function tagsUsedOn(tags: TagLists, root: string): string[] {
-  if (root === "data") return tags.dataRoots;
-  return tags.user.filter((t) => tags.usedOn[t]?.includes(root));
-}
-
 /** The tag the Query tab opens on */
 export const START_SOURCE: QuerySource = listedSource("page");
-
-/**
- * Tags in use outside the standard library (as on the Scripts tab), plus
- * every built-in tag
- */
-export async function listTags(client: Client): Promise<TagLists> {
-  const tags = await client.queryLuaObjects<{
-    name: string;
-    page?: string;
-    parent?: string;
-  }>("tag", {});
-  return splitTags([
-    ...tags.filter((t) => !t.page?.startsWith(stdLibPrefix)),
-    ...BUILTIN_QUERY_TAGS.map((name) => ({ name })),
-  ]);
-}
 
 /** The relation kinds in use (mention, spouse, …) */
 export async function listRelationKinds(client: Client): Promise<string[]> {
@@ -151,13 +41,22 @@ export async function listRelationKinds(client: Client): Promise<string[]> {
     select: parseExpressionString("r.kind"),
     distinct: true,
   });
-  return kinds.filter((k) => typeof k === "string").sort(byName);
+  return kinds
+    .filter((k) => typeof k === "string")
+    .sort((a, b) => a.localeCompare(b));
 }
 
 export async function loadAttributes(
   client: Client,
   source: QuerySource,
-): Promise<{ attributes: AttributeInfo[]; sampled: number }> {
+): Promise<{
+  attributes: AttributeInfo[];
+  sampled: number;
+  /** The sampled objects themselves */
+  samples: Record<string, unknown>[];
+  /** For a user tag, the root tag its sampled objects are */
+  root: string | null;
+}> {
   const { key, where } = sampleQuery(source);
   const samples = await client.queryLuaObjects<Record<string, unknown>>(key, {
     objectVariable: "o",
@@ -167,7 +66,9 @@ export async function loadAttributes(
   const tag = schemaTag(source);
   const tags = client.config.get(["tags"], {});
   const declared = declaredAttributesFromSchema(tagSchema(tags, tag));
-  if (!samples.length && !declared) return { attributes: [], sampled: 0 };
+  if (!samples.length && !declared) {
+    return { attributes: [], sampled: 0, samples, root: null };
+  }
   // A user tag on pages (or tasks, items…): the objects also carry their
   // root tag's own attributes, which say little about the user tag
   const base = samples[0]?.tag;
@@ -175,6 +76,8 @@ export async function loadAttributes(
     return {
       attributes: inferAttributes(samples, declared, isBuiltinTag(tag)),
       sampled: samples.length,
+      samples,
+      root: null,
     };
   }
   const baseAttributes =
@@ -199,7 +102,50 @@ export async function loadAttributes(
       .sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j)
       .map(([f]) => f),
     sampled: samples.length,
+    samples,
+    root: base,
   };
+}
+
+/** Starts the builder over on `source`, offering Undo when that drops an edited query */
+export async function pickSource(
+  client: Client,
+  builder: QueryBuilder,
+  source: QuerySource,
+): Promise<void> {
+  const old = builder.model?.source;
+  if (old && sameSource(source, old)) return;
+  const { attributes } = await loadAttributes(client, source);
+  if (builder.pickSource(source, attributes) && old) {
+    client.ui.flashNotification(
+      `Cleared the query for ${sourceLabel(old)}`,
+      "info",
+      { actions: [{ name: "Undo", run: () => void builder.undo() }] },
+    );
+  }
+}
+
+/** Narrows the picked root tag to a user tag (or kind), or a user tag to a root tag */
+export async function narrowSource(
+  client: Client,
+  builder: QueryBuilder,
+  source: QuerySource,
+): Promise<void> {
+  const { attributes } = await loadAttributes(client, source);
+  builder.narrow(source, attributes);
+}
+
+/** Loads the current source's attributes again, the space's scripts or index having changed */
+export async function refreshSource(
+  client: Client,
+  builder: QueryBuilder,
+): Promise<void> {
+  const source = builder.model?.source;
+  if (!source) return;
+  const { attributes } = await loadAttributes(client, source);
+  // Another tag picked meanwhile brought its own attributes
+  if (builder.model?.source !== source) return;
+  builder.refreshData(attributes);
 }
 
 export function aggregateChoices(

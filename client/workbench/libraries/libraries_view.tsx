@@ -13,12 +13,8 @@ import { copyText, openRef } from "../shared/action.ts";
 import { ActionMenu } from "../shared/action_menu.tsx";
 import { BlockNote } from "../shared/block_ui.tsx";
 import type { TabProps } from "../tab.ts";
+import { onWorkbenchTarget, takeWorkbenchTarget } from "../workbench_target.ts";
 import type { InstallableLibrary } from "./libraries_backend.ts";
-import {
-  type LibrariesFocus,
-  onLibrariesFocus,
-  takeLibrariesFocus,
-} from "./libraries_focus.ts";
 import {
   type AvailableGroup,
   BUSY,
@@ -26,6 +22,7 @@ import {
   installKey,
   isLoading,
   type Libraries,
+  type LibrariesFocus,
   type LibraryRow,
   libraryLists,
   plural,
@@ -127,9 +124,9 @@ export function LibrariesView({ client, focusTarget, showing }: TabProps) {
     if (!showing) return;
     return whileShowing({
       reload: () => latest.current.reload(),
-      take: takeLibrariesFocus,
+      take: () => takeWorkbenchTarget("Libraries")?.focus,
       run: (focus) => runFocus(latest.current, focus),
-      subscribe: onLibrariesFocus,
+      subscribe: onWorkbenchTarget,
     });
   }, [showing]);
 

@@ -11,6 +11,7 @@ import {
   type CommandOverride,
   parseManagedBlock,
 } from "../../config_management/managed_lua.ts";
+import { ReloadingStore } from "../shared/reloading_store.ts";
 import {
   allActiveBindings,
   type Commands,
@@ -79,7 +80,7 @@ const NO_OVERRIDES: Overrides = { config: {}, commands: {} };
  * load into the saved overrides; the user's edits are kept apart and laid
  * over them, so a CONFIG changed meanwhile shows through everywhere else.
  */
-export class ConfigurationModel {
+export class ConfigurationModel extends ReloadingStore<ConfigurationSource> {
   source?: ConfigurationSource;
   index: SchemaIndex = { categoryMap: {}, sortedCategoryNames: [] };
   managedBlockError?: string;
@@ -88,7 +89,6 @@ export class ConfigurationModel {
   pending: Overrides = NO_OVERRIDES;
   saving = false;
   saveError?: string;
-  loadError?: string;
 
   // As written in CONFIG; saving diffs against it
   private saved: Overrides = NO_OVERRIDES;
@@ -96,12 +96,10 @@ export class ConfigurationModel {
   private repaired: Overrides = NO_OVERRIDES;
   private edits: { config: Edits<unknown>; commands: Edits<CommandOverride> } =
     { config: new Map(), commands: new Map() };
-  private listeners = new Set<() => void>();
-  private stopReload?: () => void;
-  private loads = 0;
-  private wasDirty = false;
 
-  constructor(private deps: ConfigurationDeps) {}
+  constructor(private deps: ConfigurationDeps) {
+    super(deps);
+  }
 
   get ready(): boolean {
     return this.source !== undefined;
@@ -115,24 +113,8 @@ export class ConfigurationModel {
     );
   }
 
-  get dirty(): boolean {
+  override get dirty(): boolean {
     return this.unsavedCount > 0;
-  }
-
-  /** Loads on the first subscriber and follows config reloads while any remain. */
-  subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    if (this.listeners.size === 1) {
-      this.stopReload = this.deps.subscribeReload(() => void this.load());
-      void this.load();
-    }
-    return () => {
-      this.listeners.delete(listener);
-      if (this.listeners.size === 0) {
-        this.stopReload?.();
-        this.stopReload = undefined;
-      }
-    };
   }
 
   showSection(section: Section): void {
@@ -243,20 +225,11 @@ export class ConfigurationModel {
     this.update();
   }
 
-  private async load(): Promise<void> {
-    const n = ++this.loads;
-    let source: ConfigurationSource;
-    try {
-      source = await this.deps.load();
-    } catch (e: any) {
-      if (n !== this.loads) return;
-      this.loadError = `Couldn't read CONFIG: ${e?.message ?? e}`;
-      this.emit();
-      return;
-    }
-    // A later load started meanwhile: its result is the current one
-    if (n !== this.loads) return;
-    this.loadError = undefined;
+  protected override loadErrorMessage(e: any): string {
+    return `Couldn't read CONFIG: ${e?.message ?? e}`;
+  }
+
+  protected loaded(source: ConfigurationSource): void {
     this.source = source;
     this.index = buildSchemaIndex(source);
     this.managedBlockError = undefined;
@@ -321,14 +294,5 @@ export class ConfigurationModel {
       commands: this.source?.commands ?? {},
       isMac: this.source?.isMac ?? false,
     };
-  }
-
-  private emit(): void {
-    const dirty = this.dirty;
-    if (dirty !== this.wasDirty) {
-      this.wasDirty = dirty;
-      this.deps.onDirty(dirty);
-    }
-    for (const listener of this.listeners) listener();
   }
 }

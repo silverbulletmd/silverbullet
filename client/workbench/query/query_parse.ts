@@ -419,11 +419,15 @@ class Reader {
     if (path) return { id, header, kind: "attribute", value: path };
     const linked = this.firstPath(value);
     if (linked) {
-      const link = parseExpressionString(
-        `"[[" .. ${attributeAccess(this.v, linked)} .. "]]"`,
-      );
-      if (sameTree(link, value)) {
-        return { id, header, kind: "link", value: linked };
+      const access = attributeAccess(this.v, linked);
+      // The concatenation is how queries wrote links before markdown.link
+      for (const form of [
+        `markdown.link(${access})`,
+        `"[[" .. ${access} .. "]]"`,
+      ]) {
+        if (sameTree(parseExpressionString(form), value)) {
+          return { id, header, kind: "link", value: linked };
+        }
       }
     }
     return { id, header, kind: "expr", value: this.src(value) };

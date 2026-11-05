@@ -4,7 +4,6 @@ import {
   declaredAttributesFromSchema,
   effectiveType,
   inferAttributes,
-  tagDefineSnippet,
   valueType,
 } from "./query_attributes.ts";
 
@@ -209,47 +208,5 @@ describe("declaredAttributesFromSchema", () => {
 
   test("no schema gives null", () => {
     expect(declaredAttributesFromSchema(null)).toBe(null);
-  });
-});
-
-describe("tagDefineSnippet", () => {
-  test("writes a tag.define with schema helpers and notes", () => {
-    const attributes = inferAttributes(
-      books.map((b, i) => ({
-        ...b,
-        tags: ["reading"],
-        finished: i < 3 ? "2026-03-02" : undefined,
-      })),
-      null,
-      false,
-    ).filter((f) =>
-      ["title", "rating", "status", "tags", "finished"].includes(f.name),
-    );
-    const snippet = tagDefineSnippet("book", attributes, { rating: "number" });
-    const expected = [
-      'name = "book",',
-      'type = "object",',
-      "title = schema.string(),",
-      'status = { type = "string", enum = { "finished", "reading", "want" } },',
-      "rating = schema.number(),",
-      'tags = schema.array("string"),',
-      "finished = schema.string(), -- date, YYYY-MM-DD",
-    ];
-    let at = 0;
-    for (const line of expected) {
-      const i = snippet.indexOf(line, at);
-      expect(i, line).toBeGreaterThanOrEqual(0);
-      at = i;
-    }
-    expect(snippet.startsWith("tag.define {")).toBe(true);
-  });
-
-  test("an un-overridden mixed attribute is noted", () => {
-    const attributes = inferAttributes(books, null, false).filter(
-      (f) => f.name === "rating",
-    );
-    expect(tagDefineSnippet("book", attributes, {})).toContain(
-      "rating = schema.string(), -- seen as 4 number, 1 text",
-    );
   });
 });

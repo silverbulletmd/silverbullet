@@ -24,9 +24,9 @@ Use page tags to group related pages. Hover at the top of a page without frontma
 Use consistent tags and attribute names for similar pages. A link or list item naming something does not create a structured page for it. Open the linked page and add its attributes there. [[Frontmatter]], [[Attribute]] and [[Markdown/Hashtags]] explain the syntax and scope rules.
 
 # Create an overview
-Run **Workbench: Query** and choose `page` with **Content** scope. Narrow the source to a tag, then add filters and sorting for the attributes that matter to the collection. Choose **Select → List → templates.pageItem** for links, or a table to compare attributes.
+Run **Workbench: Data** and choose `page` with **Content** scope. Narrow the source to a tag, then add filters and sorting for the attributes that matter to the collection. Choose **Select → List → templates.pageItem** for links, or a table to compare attributes.
 
-Create a page for the overview, place the cursor in its body and use **Insert at cursor**. The results update after source pages are saved and indexed. See [[Guide/Aggregator Pages]] for maintaining an overview and [[Workbench/Query]] for the builder controls.
+Create a page for the overview, place the cursor in its body and use **Insert at cursor**. The results update after source pages are saved and indexed. See [[Guide/Aggregator Pages]] for maintaining an overview and [[Workbench/Data]] for the builder controls.
 
 # Reuse content across pages
 Insert a [[Transclusions|transclusion]] with `![[Page name]]` to display another page’s content without maintaining a separate copy. This also works for an overview containing a query.

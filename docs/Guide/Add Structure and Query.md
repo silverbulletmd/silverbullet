@@ -1,7 +1,7 @@
 ---
 tags: guide
 ---
-When patterns start to emerge in your note taking, you may start to add a sprinkle of [[Metadata]] through the use of [[Frontmatter]] and use that to [[Workbench/Query]] your space.
+When patterns start to emerge in your note taking, you may start to add a sprinkle of [[Metadata]] through the use of [[Frontmatter]] and use that to [[Workbench/Data]] your space.
 
 # Tag it
 We’ll continue our journey from [[Guide/Find and Connect Pages]].
@@ -51,7 +51,7 @@ date: "2026-06-14"
 The two `---` lines mark the block’s boundaries. Inside, [[YAML]] writes each attribute as `name: value`. Your original notes follow the closing `---`. Move the cursor out of the block to return to the form. You can use either editor. They change the same attributes.
 
 # Build an outing list
-You can use the same attributes to make a live overview of your outings. Open the command palette with **Cmd-/** (Mac) **Ctrl-/** (Linux/Windows) and run **Workbench: Query**.
+You can use the same attributes to make a live overview of your outings. Open the command palette with **Cmd-/** (Mac) **Ctrl-/** (Linux/Windows) and run **Workbench: Data**.
 
 1. Select `page` under **Root**. Beside **From**, choose `#outing` in the **tagged** dropdown.
 2. Keep **Table** under **Select**. Keep the `name`, `date` and `status` columns, removing the others. If one is missing, add it using **+ Column**. Set the `name` column’s kind to **Page link** so you can open pages from the results. Use the column arrows to put `date` before `status`.

@@ -83,7 +83,20 @@ export function leadingCounts(
   return { matched: null, count: limit !== null && limit < n ? limit : null };
 }
 
-export function resultsHeading(c: PreviewCounts, grouped: boolean): string {
+/** `shown`: how many rows the preview renders, when it renders only the first ones */
+export function resultsHeading(
+  c: PreviewCounts,
+  grouped: boolean,
+  shown?: number,
+): string {
+  if (shown !== undefined) {
+    if (c.count === null) {
+      return `Showing the first ${shown}, counting the rest…`;
+    }
+    if (shown < c.count) {
+      return `Showing the first ${shown} of ${resultsHeading(c, grouped)}`;
+    }
+  }
   if (c.count === null) return `${PREVIEW_ROWS}+ results`;
   if (grouped) return `${c.count} group${c.count === 1 ? "" : "s"}`;
   if (c.matched === null) return `${c.count} of ${PREVIEW_ROWS}+ results`;

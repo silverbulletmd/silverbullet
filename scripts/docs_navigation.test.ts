@@ -22,7 +22,7 @@ const librariesDir = path.join(root, "libraries");
 const SECTIONS = [
   "SilverBullet",
   "CHANGELOG",
-  "Start here",
+  "Getting Started",
   "Guides",
   "Setup and administration",
   "Reference",
@@ -124,7 +124,7 @@ test("every section has a landing page entry", async () => {
 
 test("practical topic sections contain guides rather than feature references", async () => {
   const { pages } = await loadNav();
-  const topics = ["Start here/", "Guides/"];
+  const topics = ["Getting Started/", "Guides/"];
   const misplaced = pages.filter(
     (entry) =>
       topics.some((topic) => entry.name.startsWith(topic)) &&
@@ -146,7 +146,7 @@ test("core feature contracts remain reachable under Reference", async () => {
     "Markdown",
     "Attribute",
     "Tag",
-    "Workbench/Query",
+    "Workbench/Data",
     "Workbench/Configuration",
     "Space Lua",
     "API",

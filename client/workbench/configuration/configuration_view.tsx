@@ -9,8 +9,9 @@ import {
   type SidebarItem,
   useNarrow,
 } from "../shared/section_sidebar.tsx";
+import { useModel } from "../shared/use_model.ts";
 import type { TabProps } from "../tab.ts";
-import type { ConfigurationModel, Section } from "./configuration_model.ts";
+import type { Section } from "./configuration_model.ts";
 import { KeyBindingsSection } from "./key_bindings_section.tsx";
 import { OptionsSection } from "./options_section.tsx";
 
@@ -24,11 +25,6 @@ const PLACEHOLDERS: Record<Section, string> = {
 
 function plural(n: number, one: string, many: string): string {
   return `${n.toLocaleString()} ${n === 1 ? one : many}`;
-}
-
-function useModel(model: ConfigurationModel) {
-  const [, setVersion] = useState(0);
-  useEffect(() => model.subscribe(() => setVersion((v) => v + 1)), [model]);
 }
 
 export function ConfigurationView({

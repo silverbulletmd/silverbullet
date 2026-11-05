@@ -17,12 +17,12 @@ import {
 } from "./configuration/configuration_commands.ts";
 import { consoleLog } from "./console/console_log.ts";
 import { ConsoleSession } from "./console/console_session.ts";
+import { dataModel, schemaDrafts } from "./data/data_commands.ts";
 import { DeepCheck } from "./health/deep_check.ts";
 import { HealthMonitor, healthWatch } from "./health/health_sources.ts";
 import { updateByName } from "./libraries/libraries_backend.ts";
 import {
   LIBRARY_COMMANDS,
-  runLibraryCommand,
   runLibraryUpdate,
 } from "./libraries/libraries_commands.ts";
 import { QueryBuilder } from "./query/query_builder.ts";
@@ -32,6 +32,7 @@ import {
   showQueryEditor,
 } from "./query/query_open.ts";
 import { WorkbenchView } from "./workbench.tsx";
+import { openWorkbench, type WorkbenchTarget } from "./workbench_target.ts";
 
 export function registerWorkbenchCommands(
   client: Client,
@@ -63,6 +64,8 @@ export function registerWorkbenchCommands(
     new DeepCheck((opts) => lintPages(spaceLintDeps(client), undefined, opts)),
   );
   const configuration = configurationModel(client);
+  const data = dataModel(client, builder);
+  const schemas = schemaDrafts(client);
   registerNativeView(WORKBENCH_VIEW, (props) => (
     <WorkbenchView
       {...props}
@@ -70,6 +73,8 @@ export function registerWorkbenchCommands(
       builder={builder}
       health={health}
       configuration={configuration}
+      data={data}
+      schemas={schemas}
     />
   ));
   hook.registerCommand({
@@ -90,8 +95,30 @@ export function registerWorkbenchCommands(
   for (const tab of WORKBENCH_TABS) {
     hook.registerCommand({
       name: `Workbench: ${tab}`,
+      menu: {
+        location: "workbench",
+        group: "1_tabs",
+        order: WORKBENCH_TABS.indexOf(tab),
+        label: tab,
+      },
       run: async () => {
         await showView(WORKBENCH_VIEW, { segment: tab });
+        return false;
+      },
+    });
+  }
+  // The Code tab's sections under the names of the tabs they replace, and the
+  // Data tab's Schema view
+  const targets: [string, WorkbenchTarget][] = [
+    ["Workbench: Scripts", { tab: "Code", section: "lua" }],
+    ["Workbench: Styles", { tab: "Code", section: "style" }],
+    ["Workbench: Schema", { tab: "Data", view: "schema" }],
+  ];
+  for (const [name, target] of targets) {
+    hook.registerCommand({
+      name,
+      run: async () => {
+        await openWorkbench(target);
         return false;
       },
     });
@@ -103,7 +130,11 @@ export function registerWorkbenchCommands(
       requireMode,
       menu,
       menuMac,
-      run: () => runLibraryCommand(focus, showView),
+      run: async () => {
+        await openWorkbench({ tab: "Libraries", focus });
+        // The panel took focus; `false` stops the palette handing it back to the editor
+        return false;
+      },
     });
   }
   // Called by the Shared Pages view; opens nothing

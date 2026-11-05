@@ -69,3 +69,16 @@ function renderVNode(value: any): string {
   const opening = attrs ? `<${value.type} ${attrs}>` : `<${value.type}>`;
   return `${opening}${renderVNode(props.children)}</${value.type}>`;
 }
+
+/** Every Feather icon, by the kebab-case name icon settings use */
+export function featherIconNames(): string[] {
+  return Object.keys(featherIcons)
+    .filter((k) => /^[A-Z]/.test(k))
+    .map((k) =>
+      k
+        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+        .replace(/([a-zA-Z])([0-9])/g, "$1-$2")
+        .toLowerCase(),
+    )
+    .sort();
+}

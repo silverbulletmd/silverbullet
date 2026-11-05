@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   navigateViaPagePicker,
@@ -16,9 +16,9 @@ test.use({
 
 type Page = import("@playwright/test").Page;
 
-/** Opens the Query tab on `tag` (when given); its query editor shows from the start */
+/** Opens the Data tab on `tag` (when given); its query editor shows from the start */
 async function editQuery(page: Page, tag?: RegExp) {
-  await runCommandViaPalette(page, "Workbench: Query");
+  await runCommandViaPalette(page, "Workbench: Data");
   if (tag) {
     await page
       .getByRole("navigation", { name: "Tags" })
@@ -80,9 +80,18 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
     "[Recipes]",
   );
 
-  // "Workbench: Scripts" switches the open panel to its Scripts tab and
-  // focuses it; switching back keeps the console
+  // "Workbench: Scripts" switches the open panel to the Code tab's Space Lua
+  // section and focuses it; switching back keeps the console
   await runCommandViaPalette(page, "Workbench: Scripts");
+  const sections = page.getByRole("navigation", { name: "Code sections" });
+  await expect(
+    page.getByRole("radiogroup", { name: "Tabs" }).getByRole("radio", {
+      name: /^Code/,
+    }),
+  ).toHaveAttribute("aria-checked", "true");
+  await expect(
+    sections.getByRole("button", { name: /^Space Lua/ }),
+  ).toHaveAttribute("aria-current", "page");
   const scripts = page.getByRole("table", { name: "Scripts" });
   await expect(
     page.getByRole("searchbox", { name: "Filter scripts" }),
@@ -95,9 +104,12 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
   await expect(scripts).not.toContainText("Library/Std/Config");
   await visibleTab.getByRole("radio", { name: /^All/ }).first().click();
   await expect(scripts).toContainText("Library/Std/Config");
-  // The Styles tab lists the space's styles with the rules each one parsed
-  // to, also starting on your own
+  // The Space Style section lists the space's styles with the rules each one
+  // parsed to, also starting on your own
   await runCommandViaPalette(page, "Workbench: Styles");
+  await expect(
+    sections.getByRole("button", { name: /^Space Style/ }),
+  ).toHaveAttribute("aria-current", "page");
   await expect(
     visibleTab.getByRole("radio", { name: /^Custom/ }),
   ).toHaveAttribute("aria-checked", "true");
@@ -179,15 +191,18 @@ test.describe("query builder", () => {
     sbServer,
   }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
-    await runCommandViaPalette(page, "Workbench: Query");
+    await runCommandViaPalette(page, "Workbench: Data");
     const tags = page.getByRole("navigation", { name: "Tags" });
     await expect(tags.getByRole("button", { name: /^page/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     const results = page.getByRole("region", { name: "Results" });
-    await expect(results).toContainText("Books/Piranesi");
-    await tags.getByRole("button", { name: /^#book/ }).click();
+    // Page names show as links to the pages
+    await expect(
+      results.getByRole("link", { name: "Piranesi" }).first(),
+    ).toBeVisible();
+    await tags.getByRole("button", { name: /^book/ }).click();
     await expect(results).toContainText("3 results");
     await expect(results.locator("table")).toContainText("author");
     await expect(results).toContainText("Susanna Clarke");
@@ -270,11 +285,12 @@ test.describe("query builder tag filter", () => {
     sbServer,
   }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
-    await runCommandViaPalette(page, "Workbench: Query");
+    await runCommandViaPalette(page, "Workbench: Data");
     const tags = page.getByRole("navigation", { name: "Tags" });
+    const rows = tags.locator("[aria-pressed]");
     const filter = page.getByRole("searchbox", { name: "Filter tags" });
     await filter.fill("boo");
-    await expect(tags.getByRole("button")).toHaveText([/^#book/]);
+    await expect(rows).toHaveText([/^book/]);
     await filter.press("Enter");
     await expect(page.getByRole("region", { name: "Results" })).toContainText(
       "Susanna Clarke",
@@ -283,15 +299,96 @@ test.describe("query builder tag filter", () => {
     await expect(tags).toContainText("No tags match");
     await filter.press("Escape");
     await expect(filter).toHaveValue("");
-    await expect(tags.getByRole("button", { name: /^#person/ })).toBeVisible();
-    // Built-in tags come first, grouped by kind, then your own tags
-    await expect(tags.locator(".sb-wbq-group")).toHaveText([
-      "Root",
-      "Edges",
-      "Index",
-      "User tags",
+    await expect(tags.getByRole("button", { name: /^person/ })).toBeVisible();
+    // Pinned page and task first, then your tags by schema, built-ins collapsed last
+    await expect(rows.nth(0)).toHaveText(/^page/);
+    await expect(rows.nth(1)).toHaveText(/^task/);
+    await expect(tags.locator(".sb-wbd-section")).toHaveText([
+      /^Defined/,
+      /^No schema/,
+      /^Built-in/,
     ]);
-    await expect(tags.getByRole("button").first()).toHaveText(/^page/);
+    const builtIn = tags.getByRole("button", { name: /^Built-in/ });
+    await expect(builtIn).toHaveAttribute("aria-expanded", "false");
+    await expect(tags.getByRole("button", { name: /^item/ })).toBeHidden();
+    await builtIn.click();
+    await expect(tags.getByRole("button", { name: /^item/ })).toBeVisible();
+  });
+
+  test("a tag added while the Data tab is open shows without a reload", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Data");
+    const tags = page.getByRole("navigation", { name: "Tags" });
+    await expect(tags.getByRole("button", { name: /^book/ })).toBeVisible();
+    await expect(tags.getByRole("button", { name: /^poem/ })).toBeHidden();
+    await writeFile(
+      join(sbServer.spaceDir, "Ozymandias.md"),
+      "---\ntags: poem\nauthor: Percy Shelley\n---\nTwo vast and trunkless legs.",
+    );
+    await expect(tags.getByRole("button", { name: /^poem/ })).toBeVisible();
+  });
+
+  test("Workbench: Schema opens the Data tab on the schema view", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Schema");
+    await expect(
+      page
+        .getByRole("radiogroup", { name: "View" })
+        .getByRole("radio", { name: "Schema" }),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("the header's schema state opens the Schema view", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Data");
+    const tags = page.getByRole("navigation", { name: "Tags" });
+    const schemaView = page
+      .getByRole("radiogroup", { name: "View" })
+      .getByRole("radio", { name: "Schema" });
+    await tags.getByRole("button", { name: /^book/ }).click();
+    await page.getByRole("button", { name: "no schema", exact: true }).click();
+    await expect(schemaView).toHaveAttribute("aria-checked", "true");
+    await page
+      .getByRole("radiogroup", { name: "View" })
+      .getByRole("radio", { name: "Objects" })
+      .click();
+    await tags.getByRole("button", { name: /^page/ }).click();
+    await page
+      .getByRole("button", { name: "built-in schema", exact: true })
+      .click();
+    await expect(schemaView).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("pinning a tag moves it to the top and survives a reload", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Data");
+    const tags = page.getByRole("navigation", { name: "Tags" });
+    await tags.getByRole("button", { name: /^book/ }).hover();
+    await tags.getByRole("button", { name: "Pin book" }).click();
+    const rows = tags.locator("[aria-pressed]");
+    await expect(rows.nth(2)).toHaveText(/^book/);
+    await expect
+      .poll(() =>
+        readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => ""),
+      )
+      .toMatch(
+        /config\.set\("workbench\.pinnedTags", \{\s*"page",\s*"task",\s*"book",?\s*\}\)/,
+      );
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Workbench: Data");
+    await expect(rows.nth(2)).toHaveText(/^book/);
   });
 });
 
@@ -493,44 +590,28 @@ test.describe("query builder attributes", () => {
     },
   });
 
-  test("attributes panel infers a schema for an untyped tag", async ({
+  test("from pages narrowed to a tag, Open #tag selects that tag", async ({
     page,
     sbServer,
   }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
-    await editQuery(page, /^#book/);
-    await page.getByRole("button", { name: "Schema", exact: true }).click();
-    const attributes = page.getByRole("table", { name: "Attributes" });
-    await expect(
-      attributes.getByLabel("Type of status").locator("option:checked"),
-    ).toHaveText("one of (2)");
-    await expect(attributes.getByRole("row", { name: /rating/ })).toContainText(
-      "mixed",
+    await editQuery(page, /^book/);
+    const view = page.getByRole("radiogroup", { name: "View" });
+    // From pages narrowed to #book, the tag itself is one click away
+    const tags = page.getByRole("navigation", { name: "Tags" });
+    await tags.getByRole("button", { name: /^page/ }).click();
+    await view.getByRole("radio", { name: "Objects" }).click();
+    await page.getByLabel("tagged").selectOption("book");
+    await page.getByRole("button", { name: "Open #book" }).click();
+    await expect(tags.getByRole("button", { name: /^book/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
-    await attributes.getByLabel("Type of rating").selectOption("number");
-    // Copied straight away, nothing else to click. The copy is caught on
-    // its way out: headless browsers don't share a clipboard to paste from.
-    await page.evaluate(() => {
-      navigator.clipboard.writeText = async (text: string) => {
-        (globalThis as any).copiedText = text;
-      };
-    });
-    await page.getByRole("button", { name: "Copy as tag.define" }).click();
-    await expect(page.getByText("Copied", { exact: true })).toBeVisible();
-    expect(
-      await page.evaluate(() => (globalThis as any).copiedText as string),
-    ).toContain("rating = schema.number(),");
-    await expect(page.getByRole("region", { name: "Query" })).not.toContainText(
-      "tag.define",
-    );
-    // The panel closes with its own ✕
-    await page.getByRole("button", { name: "Close schema" }).click();
-    await expect(attributes).toBeHidden();
   });
 
   test("switching tag offers undo", async ({ page, sbServer }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
-    await editQuery(page, /^#book/);
+    await editQuery(page, /^book/);
     const tags = page.getByRole("navigation", { name: "Tags" });
     const where = page.getByRole("group", { name: "Where" });
     await where.getByRole("button", { name: "+ Expression" }).click();
@@ -538,7 +619,7 @@ test.describe("query builder attributes", () => {
     await page.keyboard.type('b.status == "reading"');
     await where.getByRole("button", { name: "Add filter" }).click();
     // Picking the tag that's already picked changes nothing
-    await tags.getByRole("button", { name: /^#book/ }).click();
+    await tags.getByRole("button", { name: /^book/ }).click();
     await expect(where).toContainText('b.status == "reading"');
     await tags.getByRole("button", { name: /^page/ }).click();
     await expect(page.getByText("Cleared the query for #book")).toBeVisible();
@@ -790,9 +871,9 @@ test.describe("overview and health", () => {
     ).toHaveText("3");
 
     await visibleTab
-      .getByRole("button", { name: "Show open tasks in Query" })
+      .getByRole("button", { name: "Show open tasks in Data" })
       .click();
-    await expect(tabs.getByRole("radio", { name: /^Query/ })).toHaveAttribute(
+    await expect(tabs.getByRole("radio", { name: /^Data/ })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -807,7 +888,7 @@ test.describe("overview and health", () => {
     await tabs.getByRole("radio", { name: /^Overview/ }).click();
 
     // #idea is both a page tag and a task tag here: two tag objects, one row
-    await page.getByRole("button", { name: "Show all tags in Query" }).click();
+    await page.getByRole("button", { name: "Show all tags in Data" }).click();
     await expect(
       page.getByRole("region", { name: "Results" }).getByText("idea", {
         exact: true,

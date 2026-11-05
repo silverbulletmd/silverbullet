@@ -1,0 +1,21 @@
+// The Code tab: a section sidebar beside the Scripts or Styles list
+.sb-workbench.sb-wb-code {
+  .sb-wb-code-layout {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  // Narrow: the sidebar becomes a select above the section
+  .sb-wb-code-layout:has(> .sb-wb-sidebar-compact) {
+    flex-direction: column;
+  }
+
+  .sb-wb-code-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+}

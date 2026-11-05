@@ -133,9 +133,21 @@ export function attributeColumn(attribute: string): TableColumn {
 }
 
 export function tableColumns(attributes: AttributeInfo[]): TableColumn[] {
+  const pages = arePages(attributes);
   return attributes
     .filter((f) => !f.system)
-    .map((f) => attributeColumn(f.name));
+    .map((f) =>
+      // A page's name is almost always wanted as a link to it
+      pages && f.name === "name"
+        ? { ...attributeColumn(f.name), kind: "link" as const }
+        : attributeColumn(f.name),
+    );
+}
+
+/** Whether the sampled objects are pages: their root `tag` is `page` throughout */
+function arePages(attributes: AttributeInfo[]): boolean {
+  const tag = attributes.find((f) => f.name === "tag");
+  return !!tag?.values.length && tag.values.every(([v]) => v === "page");
 }
 
 export function emptyModel(

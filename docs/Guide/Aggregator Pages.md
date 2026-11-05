@@ -10,7 +10,7 @@ Decide whether the overview should collect pages or tasks before building the qu
 
 # Build the overview
 1. Create a page for the overview and add a short introduction explaining what it collects.
-2. Run **Workbench: Query**. Choose `page` or `task` under **Root** and select the tag under **From**. For ordinary pages, use **Content** scope to exclude configuration and library pages.
+2. Run **Workbench: Data**. Choose `page` or `task` under **Root** and select the tag under **From**. For ordinary pages, use **Content** scope to exclude configuration and library pages.
 3. Add filters and an order if needed. Check the preview before narrowing the results further.
 4. Choose a list or table under **Select**. For a list, use `templates.pageItem` for pages or `templates.taskItem` for tasks.
 5. Put the cursor below the introduction and choose **Insert at cursor**.
@@ -28,4 +28,4 @@ You can make a tag open your overview by defining a `tagPage` mapping with [[API
 # Keep a portable copy
 Live queries render in SilverBullet. Use [[Baked Sections]] if you also need stored Markdown that other tools can display. Update the baked section when you want to refresh that snapshot.
 
-[[Workbench/Query]] documents the builder controls. [[Object Index]] explains the available query sources.
+[[Workbench/Data]] documents the builder controls. [[Object Index]] explains the available query sources.

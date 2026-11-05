@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { kebabToPascal, resolveFeatherIcons } from "./feather_icons.ts";
+import {
+  featherIconNames,
+  kebabToPascal,
+  resolveFeatherIcons,
+} from "./feather_icons.ts";
 
 test("kebabToPascal keeps numbered icon names resolvable", () => {
   expect(kebabToPascal("trash-2")).toBe("Trash2");
@@ -16,4 +20,14 @@ test("resolveFeatherIcons returns standalone SVG without requiring a DOM", () =>
   expect(icons.user).toMatch(/^<svg[^>]*>/);
   expect(icons.user).toContain("<path");
   expect(icons["not-a-real-icon"]).toBeUndefined();
+});
+
+test("lists Feather icons by their kebab-case names", () => {
+  const names = featherIconNames();
+  expect(names).toContain("file-text");
+  expect(names).toContain("bar-chart-2");
+  expect(names).toContain("tag");
+  expect(names.every((n) => /^[a-z0-9-]+$/.test(n))).toBe(true);
+  for (const n of names.slice(0, 50))
+    expect(kebabToPascal(n)).toMatch(/^[A-Z]/);
 });

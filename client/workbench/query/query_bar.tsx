@@ -89,21 +89,16 @@ export function QueryBar({
   return (
     <section className="sb-wbq-bar" aria-label="Query">
       <div className="sb-wbq-bar-line">
-        <span className="sb-wbq-bar-label">Query</span>
-        {open ? (
-          <span className="sb-wbq-spacer" />
-        ) : (
-          <code className="sb-wbq-oneline">{text.replace(/\s+/g, " ")}</code>
-        )}
         {open ? null : (
           <button
             type="button"
             className="sb-wbq-link"
             onClick={() => setOpen(true)}
           >
-            Show
+            Show query
           </button>
         )}
+        <span className="sb-wbq-spacer" />
         <span className="sb-wbq-actions">
           <Button
             variant={target ? "primary" : "default"}

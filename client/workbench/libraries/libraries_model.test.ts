@@ -1,16 +1,17 @@
 import { describe, expect, test, vi } from "vitest";
-import type { LibrariesViewModel } from "./libraries_backend.ts";
 import {
-  onLibrariesFocus,
-  requestLibrariesFocus,
-  takeLibrariesFocus,
-} from "./libraries_focus.ts";
+  onWorkbenchTarget,
+  openWorkbench,
+  takeWorkbenchTarget,
+} from "../workbench_target.ts";
+import type { LibrariesViewModel } from "./libraries_backend.ts";
 import {
   confirmThen,
   EMPTY_LIBRARIES,
   initialLibrariesState,
   isLoading,
   type LibrariesEvent,
+  type LibrariesFocus,
   type LibrariesState,
   librariesReducer,
   libraryLists,
@@ -498,14 +499,18 @@ describe("confirming", () => {
   });
 });
 
+vi.mock("../../navigator/navigator.ts", () => ({ showView: vi.fn() }));
+
 describe("showing the tab", () => {
   const show = (reload: () => Promise<unknown>, run = vi.fn(async () => {})) =>
     whileShowing({
       reload,
-      take: takeLibrariesFocus,
+      take: () => takeWorkbenchTarget("Libraries")?.focus,
       run,
-      subscribe: onLibrariesFocus,
+      subscribe: onWorkbenchTarget,
     });
+  const request = (focus: LibrariesFocus) =>
+    void openWorkbench({ tab: "Libraries", focus }, async () => {});
 
   test("reloads every time it shows", () => {
     const reload = vi.fn(async () => {});
@@ -516,15 +521,15 @@ describe("showing the tab", () => {
 
   test("runs a pending request once, and new ones only while showing", () => {
     const run = vi.fn(async () => {});
-    requestLibrariesFocus("install");
+    request("install");
     const hide = show(async () => {}, run);
     expect(run).toHaveBeenCalledWith("install");
-    requestLibrariesFocus("updateAll");
+    request("updateAll");
     expect(run).toHaveBeenLastCalledWith("updateAll");
     hide();
-    requestLibrariesFocus("addRepository");
+    request("addRepository");
     expect(run).toHaveBeenCalledTimes(2);
-    takeLibrariesFocus();
+    takeWorkbenchTarget("Libraries");
   });
 });
 

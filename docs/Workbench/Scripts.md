@@ -3,9 +3,9 @@ description: "Inspect Space Lua scripts, their load order, errors and quarantine
 references:
 - client/workbench/scripts/**
 ---
-The Scripts tab lists every `space-lua` block in your space, in the order SilverBullet loads them: by priority, highest first (see [[Space Lua#Definition loading]]).
+The **Space Lua** section of the [[Workbench/Code|Code]] tab lists every `space-lua` block in your space, in the order SilverBullet loads them: by priority, highest first (see [[Space Lua#Definition loading]]).
 
-${widgets.commandButton("Workbench: Scripts")} opens this tab in the [[Workbench]].
+${widgets.commandButton("Workbench: Scripts")} opens the [[Workbench]] on this section.
 
 Each row shows:
 * **Status:** a green dot when the script loaded, red when it failed, and amber when it’s quarantined.

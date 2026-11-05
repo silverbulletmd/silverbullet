@@ -263,6 +263,19 @@ describe("round trip of generated queries", () => {
 });
 
 describe("hand-written queries", () => {
+  test("a link column reads back from markdown.link and from the older concatenation", () => {
+    for (const link of ["markdown.link(t.page)", '"[[" .. t.page .. "]]"']) {
+      const parsed = parseQuery(
+        `query[[from t = index.tasks() select { Page = ${link} }]]`,
+        taskAttributes,
+      );
+      if (!parsed.ok) throw new Error(parsed.reason);
+      expect(
+        parsed.model.select.mode === "table" && parsed.model.select.columns[0],
+      ).toMatchObject({ header: "Page", kind: "link", value: "page" });
+    }
+  });
+
   test("another variable name is kept", () => {
     const parsed = parseQuery(
       'query[[from x = index.tag "task" where not x.done order by x.due select { Task = x.name }]]',

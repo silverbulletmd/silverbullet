@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "vitest";
+import { wikiLink } from "../../lib/wiki_link.ts";
 import { evalExpression } from "../../space_lua/eval.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import {
@@ -220,6 +221,11 @@ async function run(text: string): Promise<any> {
   await index.set("objects", objects);
   await index.set("tasks", () => objects("task"));
   env.set("index", index);
+  const markdown = new LuaTable();
+  await markdown.set("link", (target: unknown, alias?: string) =>
+    wikiLink(luaValueToJS(target, LuaStackFrame.lostFrame), alias),
+  );
+  env.set("markdown", markdown);
   const expr = parseExpressionString(unwrap(text));
   const sf = LuaStackFrame.createWithGlobalEnv(env, expr.ctx);
   return luaValueToJS(await evalExpression(expr, env, sf), sf);
@@ -306,7 +312,7 @@ describe("generateQuery", () => {
         "  select {",
         "    Task = t.name,",
         '    ["Due date"] = t.due,',
-        '    Page = "[[" .. t.page .. "]]"',
+        "    Page = markdown.link(t.page)",
         "  }",
         "]]}",
       ].join("\n"),

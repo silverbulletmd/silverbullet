@@ -34,7 +34,7 @@ function columnLua(c: TableColumn, v: string): string {
     case "expr":
       return c.value || "nil";
     case "link":
-      return `"[[" .. ${attributeAccess(v, c.value)} .. "]]"`;
+      return `markdown.link(${attributeAccess(v, c.value)})`;
     default:
       return attributeAccess(v, c.value);
   }

@@ -1,10 +1,5 @@
 import type { MenuPlacement } from "@silverbulletmd/silverbullet/type/manifest";
-import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
-import {
-  type LibrariesFocus,
-  requestLibrariesFocus,
-  takeLibrariesFocus,
-} from "./libraries_focus.ts";
+import type { LibrariesFocus } from "./libraries_model.ts";
 
 export type LibraryCommand = {
   name: string;
@@ -19,18 +14,6 @@ export const LIBRARY_COMMANDS: LibraryCommand[] = [
   {
     name: "Libraries: Manager",
     focus: "manager",
-    menuMac: {
-      location: "app",
-      group: "4_prefs",
-      order: 3,
-      label: "Libraries...",
-    },
-    menu: {
-      location: "file",
-      group: "2_prefs",
-      order: 3,
-      label: "Libraries...",
-    },
   },
   { name: "Library: Manager", focus: "manager" },
   { name: "Library: Install", focus: "install", requireMode: "rw" },
@@ -46,26 +29,6 @@ export const LIBRARY_COMMANDS: LibraryCommand[] = [
     requireMode: "rw",
   },
 ];
-
-/**
- * The request goes first: the Workbench may be closed, and the Libraries tab
- * takes the pending request when it shows.
- */
-export async function runLibraryCommand(
-  focus: LibrariesFocus,
-  showView: (view: string, opts: { segment: string }) => Promise<unknown>,
-): Promise<false> {
-  requestLibrariesFocus(focus);
-  try {
-    await showView(WORKBENCH_VIEW, { segment: "Libraries" });
-  } catch (e) {
-    // Nothing will take it; don't let it run on some later show
-    takeLibrariesFocus();
-    throw e;
-  }
-  // The panel took focus; `false` stops the palette handing it back to the editor
-  return false;
-}
 
 /** Backs the hidden `Library: Update` command, called with `{ name }`. */
 export async function runLibraryUpdate(

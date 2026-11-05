@@ -19,7 +19,7 @@ Include a page link in a task when it concerns another page. The **Linked Tasks*
 Checking a linked task completes the original task on its source page. [[Linked Tasks]] explains inherited links and the view’s behavior. [[Linked Mention|Linked Mentions]] shows other references to the page as well.
 
 # Build a task overview
-Place the cursor where you want the list and run **Workbench: Query**.
+Place the cursor where you want the list and run **Workbench: Data**.
 
 1. Choose `task` as the source.
 2. Filter `done` **is false** to show unfinished tasks.
@@ -30,4 +30,4 @@ Place the cursor where you want the list and run **Workbench: Query**.
 
 To list tasks by a date attribute, filter that attribute with **exists** and sort it with the earliest date first. This includes future dates too. Add a date comparison if you only want overdue tasks. Use the same attribute name in your tasks and query.
 
-Open the result’s ⋯ menu and choose **Edit in query builder** to adjust the list. [[Workbench/Query]] describes the controls, and [[Guide/When Results Update]] explains when saved and indexed changes appear.
+Open the result’s ⋯ menu and choose **Edit in query builder** to adjust the list. [[Workbench/Data]] describes the controls, and [[Guide/When Results Update]] explains when saved and indexed changes appear.
