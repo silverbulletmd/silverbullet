@@ -59,7 +59,7 @@ You can use the same attributes to make a live overview of your outings. Open th
 
 The preview should show `Photo Walk` dated June 14, then `Woodland Hike` dated June 21, both with status `planned`. Other pages tagged `outing` in your space will appear too. If a page or attribute is missing, check its form and allow a moment for saving and indexing.
 
-![Workbench Query lists the two outing pages with their dates and status.](../Screenshots/outing-query-builder.png)
+![The Workbench Data tab lists the two outing pages with their dates and status.](../Screenshots/outing-query-builder.png)
 
 This is a query: a saved instruction to find matching objects and show selected attributes. Workbench writes it for you using SilverBullet’s query language.
 
