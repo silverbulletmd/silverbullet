@@ -31,7 +31,7 @@ Relation objects represent typed and untyped relationships between indexed [[Obj
 ## Examples
 Here’s a tagged item to use as an example:
 
-* #contact $pete-ref Pete [manager: "[[People/Sam Rivera]]"]
+* #contact $pete-ref Pete [manager: "[[Example/Person]]"]
 
 Show every relation related to [[$pete-ref]] (including this one 👈):
 
