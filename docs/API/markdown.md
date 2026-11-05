@@ -51,6 +51,30 @@ Expands Markdown transclusions, Lua directives, and task references. Directive r
 local expanded = markdown.expandMarkdown("This is some Lua: ${1 + 2}")
 ```
 
+## markdown.link
+`markdown.link(target, alias?)`
+
+Markdown for a wiki link: to a page, to an object by its ref, or to a page or ref given as a string. Nothing when there's nothing to link to, so a missing attribute leaves an empty table cell.
+
+**Parameters:**
+
+- `target` (`any`) — A page object (linked by its name), any other object (linked by its ref), or a page name or ref.
+- `alias?` (`string`) — Text to show instead of the target.
+
+**Returns:**
+
+- `string` — The link, or nil.
+
+**Example:**
+
+```lua
+markdown.link(p)
+```
+
+```lua
+markdown.link("Books/Dune", "Dune")
+```
+
 ## markdown.markdownToHtml
 `markdown.markdownToHtml(text, options?)`
 

@@ -38,10 +38,10 @@ For a question about the space's data (counts, totals, rankings, "which"), query
 In page Markdown, a query inside a dollar-brace expression renders as a table and updates by itself when the pages it reads change:
 
 ```markdown
-${query[[from p = index.pages("book") where p.status == "unread" order by p.name select {Book = "[[" .. p.name .. "]]", Author = p.author}]]}
+${query[[from p = index.pages("book") where p.status == "unread" order by p.name select {Book = markdown.link(p), Author = p.author}]]}
 ```
 
-The `"[[" .. p.name .. "]]"` column makes each name a link. Write this into the page with `write` or `edit`; it is Markdown, not a `space-lua` block. For a list instead of a table, select a template such as `templates.pageItem(p)` (see the Templates page). Reach for a widget only when the table needs a filter box, selection or actions (see Building Interfaces).
+The `markdown.link(p)` column makes each name a link to its page (for other objects it links by `ref`). Write this into the page with `write` or `edit`; it is Markdown, not a `space-lua` block. For a list instead of a table, select a template such as `templates.pageItem(p)` (see the Templates page). Reach for a widget only when the table needs a filter box, selection or actions (see Building Interfaces).
 
 Check your work: read the result of the `write`/`edit` (it reports script load errors), then `read` the page with `rendered: true` (evaluated output plus lint problems), then take a `screenshot` when the look matters.
 

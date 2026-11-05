@@ -36,3 +36,15 @@ export function expandMarkdown(tree: ParseTree): Promise<ParseTree> {
 export function markdownToHtml(markdownText: string): Promise<string> {
   return syscall("markdown.markdownToHtml", markdownText);
 }
+
+/**
+ * Markdown for a wiki link: a page object links by its name, any other
+ * object by its ref, and a string as is. Undefined when there's nothing to
+ * link to.
+ */
+export function link(
+  target: unknown,
+  alias?: string,
+): Promise<string | undefined> {
+  return syscall("markdown.link", target, alias);
+}

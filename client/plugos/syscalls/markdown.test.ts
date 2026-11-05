@@ -185,3 +185,21 @@ test("Lua-generated Markdown gets no task reference, even when asked for", async
   expect(text).not.toContain("[[Host@0]] Beta");
   expect(text.match(/\[\[/g)).toHaveLength(1);
 });
+
+test("link makes a wiki link to a page, an object or a name", async () => {
+  const s = await syscalls();
+  expect(s("markdown.link", "Books/Dune")).toBe("[[Books/Dune]]");
+  expect(
+    s("markdown.link", { tag: "page", name: "Books/Dune", ref: "Books/Dune" }),
+  ).toBe("[[Books/Dune]]");
+  expect(
+    s("markdown.link", { tag: "task", name: "Call Sam", ref: "Work@12" }),
+  ).toBe("[[Work@12]]");
+  expect(s("markdown.link", "Books/Dune", "Dune")).toBe("[[Books/Dune|Dune]]");
+});
+
+test("link of nothing is nothing, so a missing attribute leaves an empty cell", async () => {
+  const s = await syscalls();
+  expect(s("markdown.link", undefined)).toBeUndefined();
+  expect(s("markdown.link", "")).toBeUndefined();
+});

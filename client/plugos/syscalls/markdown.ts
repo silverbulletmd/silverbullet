@@ -28,6 +28,7 @@ import {
   renderMarkdownStatic,
   renderValue,
 } from "../../markdown_renderer/compose.ts";
+import { wikiLink } from "../../lib/wiki_link.ts";
 import { isWidgetValue } from "../../space_lua/fragment.ts";
 import {
   liveContextForClient,
@@ -238,6 +239,31 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         {
           code: 'local text = "Total: <!--#lua 1 + 2 -->\\nold\\n<!--/lua-->"\nprint(markdown.bakeSections(text))',
         },
+      ],
+    },
+    "markdown.link": {
+      callback: (_ctx, target: unknown, alias?: string) =>
+        wikiLink(target, alias),
+      description:
+        "Markdown for a wiki link: to a page, to an object by its ref, or to a page or ref given as a string. Nothing when there's nothing to link to, so a missing attribute leaves an empty table cell.",
+      parameters: [
+        {
+          name: "target",
+          type: "any",
+          description:
+            "A page object (linked by its name), any other object (linked by its ref), or a page name or ref.",
+        },
+        {
+          name: "alias",
+          type: "string",
+          description: "Text to show instead of the target.",
+          optional: true,
+        },
+      ],
+      returns: [{ type: "string", description: "The link, or nil." }],
+      examples: [
+        { code: "markdown.link(p)" },
+        { code: 'markdown.link("Books/Dune", "Dune")' },
       ],
     },
     "markdown.objectsToTable": {

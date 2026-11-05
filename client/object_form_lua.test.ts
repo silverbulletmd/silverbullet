@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { beforeAll, expect, test } from "vitest";
 import { extractSpaceLuaFromPageText } from "./boot_config.ts";
+import { wikiLink } from "./lib/wiki_link.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import { parseBlock } from "./space_lua/parse.ts";
 import {
@@ -62,6 +63,14 @@ beforeAll(async () => {
           return "must be number";
         }
       },
+    }),
+  );
+  // The markdown.link syscall, as the client provides it
+  env.set(
+    "markdown",
+    jsToLuaValue({
+      link: (target: unknown, alias?: string) =>
+        wikiLink(luaValueToJS(target, LuaStackFrame.lostFrame), alias),
     }),
   );
   await lua(await libraryCode("Std/APIs/Schema"));

@@ -162,10 +162,7 @@ service.define {
         if out == "" then
           return l.text
         end
-        if l.alias != nil then
-          out = out .. "|" .. l.alias
-        end
-        return "[[" .. out .. "]]"
+        return markdown.link(out, l.alias)
       end,
     }
   end,

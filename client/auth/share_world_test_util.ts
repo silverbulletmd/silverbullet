@@ -5,6 +5,7 @@ import {
   extractFrontMatter,
   patchFrontmatterText,
 } from "../../plugs/index/frontmatter.ts";
+import { wikiLink } from "../lib/wiki_link.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { ArrayQueryCollection } from "../space_lua/query_collection.ts";
 import { jsToLuaValue } from "../space_lua/runtime.ts";
@@ -290,6 +291,7 @@ export class ShareWorld {
             ),
         },
         markdown: {
+          link: (target: unknown, alias?: string) => wikiLink(target, alias),
           parseMarkdown: (text: string) => parseMarkdown(text),
           renderParseTree: (tree: Parameters<typeof renderToText>[0]) =>
             renderToText(tree),

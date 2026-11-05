@@ -71,7 +71,7 @@ A common pattern is building HTML tables from query results:
 local rows = {}
 for page in query[[ from index.pages() limit 5 ]] do
   table.insert(rows, dom.tr {
-    dom.td { "[[" .. page.name .. "]]" },
+    dom.td { markdown.link(page) },
     dom.td { page.lastModified:sub(1, 10) }
   })
 end

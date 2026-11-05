@@ -126,7 +126,7 @@ end
 -- A ref option for an indexed object, or nil when it can't be a ref target
 local function refOption(o)
   if o.tag == "page" then
-    return { name = o.name, link = "[[" .. o.name .. "]]" }
+    return { name = o.name, link = markdown.link(o) }
   end
   local anchor = o.ref
   if type(anchor) ~= "string" or not anchor:match("^[%a_][%w_/:%-]*$") then
