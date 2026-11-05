@@ -229,6 +229,15 @@ describe("lintPages", () => {
     expect(found[0].message).toContain("never closes");
   });
 
+  test("template text in a baked section's marker and a link alias aren't expressions", async () => {
+    const deps = fakeDeps({
+      Baked:
+        '<!--#lua query[[\n  from p = index.pages()\n  select template.new[==[* [[${name}|${name:match("[^/]+$")}]]]==](p)\n]] -->\n* x\n<!--/lua-->\n',
+      Linked: "Use a [[Space Lua#Expressions|`${...}` expression]] here.",
+    });
+    expect(await lintPages(deps, ["Baked", "Linked"])).toEqual([]);
+  });
+
   test("timeouts and errors from Lua code widgets are reported too", async () => {
     const text = "# Title\n```chart\ndata\n```\n```other\nx\n```\n";
     const calls: string[] = [];

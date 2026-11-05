@@ -130,6 +130,10 @@ const notProse = new Set([
   "InlineCode",
   "FrontMatter",
   "CommentBlock",
+  // A baked section's marker holds Lua (and template text) as a comment
+  "CommentMarkerBlock",
+  // An alias is shown as text, never evaluated
+  "WikiLinkAlias",
 ]);
 
 /**
