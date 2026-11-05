@@ -1,4 +1,9 @@
-import { Alert, Button, CheckboxField } from "@silverbulletmd/silverbullet/ui";
+import {
+  Alert,
+  Button,
+  CheckboxField,
+  CopyButton,
+} from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
 import { adminApi, apiErrorText, getServerInfo } from "../api.ts";
 import { mcpEndpointUrl, mcpSetupSnippets } from "../mcp.ts";
@@ -11,19 +16,18 @@ function CopyBlock({ label, text }: { label: string; text: string }) {
   return (
     <div>
       <h4>{label}</h4>
-      <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-        {text}
-      </pre>
-      <Button
-        onClick={() => {
-          void navigator.clipboard.writeText(text).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          });
-        }}
-      >
-        {copied ? "Copied" : "Copy"}
-      </Button>
+      <div class="sb-copy-field">
+        <pre>{text}</pre>
+        <CopyButton
+          copied={copied}
+          onClick={() => {
+            void navigator.clipboard.writeText(text).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            });
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -104,22 +108,29 @@ export function McpSection({ onUnauthorized }: { onUnauthorized: () => void }) {
               Save
             </Button>
           </form>
-          {(!runtimeApi || runtimeBlocked) && (
-            <Alert variant="warning">
-              The runtime API is off, so the <code>lua</code> and{" "}
-              <code>screenshot</code> tools are unavailable.
-            </Alert>
+          {mcp && (
+            <>
+              {(!runtimeApi || runtimeBlocked) && (
+                <Alert variant="warning">
+                  The runtime API is off, so the <code>lua</code> and{" "}
+                  <code>screenshot</code> tools are unavailable.
+                </Alert>
+              )}
+              <p class="sb-help-text">
+                Connect MCP clients through OAuth, using the client's "add
+                server" flow. API tokens do not work at this endpoint.
+              </p>
+              <CopyBlock label="Endpoint URL" text={url} />
+              <CopyBlock label="Codex" text={snippets.codex} />
+              <CopyBlock label="Claude Code" text={snippets.claudeCode} />
+              <CopyBlock
+                label="Claude.ai or ChatGPT"
+                text={snippets.connector}
+              />
+              <h3>Connected apps</h3>
+              <ConnectedApps mode="admin" onUnauthorized={onUnauthorized} />
+            </>
           )}
-          <p class="sb-help-text">
-            Connect MCP clients through OAuth, using the client's "add server"
-            flow. API tokens do not work at this endpoint.
-          </p>
-          <CopyBlock label="Endpoint URL" text={url} />
-          <CopyBlock label="Codex" text={snippets.codex} />
-          <CopyBlock label="Claude Code" text={snippets.claudeCode} />
-          <CopyBlock label="Claude.ai or ChatGPT" text={snippets.connector} />
-          <h3>Connected apps</h3>
-          <ConnectedApps mode="admin" onUnauthorized={onUnauthorized} />
         </>
       )}
     </section>

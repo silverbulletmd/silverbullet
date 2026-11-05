@@ -1,7 +1,4 @@
-import { inferColumns } from "../../table_model.ts";
-import { TableView } from "./table_view.tsx";
-import { useLoading } from "../hooks/use_loading.ts";
-import { LoadingIndicator } from "./loading_indicator.tsx";
+import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
 import {
   useCallback,
   useEffect,
@@ -10,6 +7,11 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
+import { MinusSquare, PlusSquare } from "preact-feather";
+import {
+  clampDockSize,
+  MIN_DOCK_SIZE,
+} from "../../../../plug-api/ui/dock_size.ts";
 import { ResizeHandle } from "../../../../plug-api/ui/resize_handle.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
@@ -18,37 +20,39 @@ import {
   nodeObject,
 } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
-import { MinusSquare, PlusSquare } from "preact-feather";
-import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
 import type { Client } from "../../../client.ts";
+import { CloseIcon } from "../../../components/chrome_icons.tsx";
 import { shouldFocusModalFilter } from "../../../lib/mobile.ts";
 import { resize } from "../../navigator.ts";
+import { inferColumns } from "../../table_model.ts";
 import { createCommands } from "../commands.ts";
 import { engineFor } from "../engine.ts";
-import { useDerived } from "../hooks/use_derived.ts";
-import { usePanelEvents } from "../hooks/use_panel_events.ts";
-import { useSourceQuery } from "../hooks/use_source_query.ts";
-import { handleKeyDown } from "../keyboard.ts";
-import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
-import { resolvePrefix } from "../prefix.ts";
-import { markSlotReady, type NavActivation } from "../slots.ts";
-import { CloseIcon } from "../../../components/chrome_icons.tsx";
-import { ContentNode, useRenderedValue } from "./content_view.tsx";
-import { CreateRow } from "./create_row.tsx";
-import { DockMenu } from "./dock_menu.tsx";
-import { ViewActionsMenu } from "./view_actions_menu.tsx";
+import { fileDragData } from "../file_drag_export.ts";
 import {
   collectDroppedFiles,
   uploadFiles,
   uploadPathExists,
 } from "../file_drop_upload.ts";
-import { ListView } from "./list_view.tsx";
-import { fileDragData } from "../file_drag_export.ts";
+import { useDerived } from "../hooks/use_derived.ts";
+import { useLoading } from "../hooks/use_loading.ts";
+import { usePanelEvents } from "../hooks/use_panel_events.ts";
+import { useSourceQuery } from "../hooks/use_source_query.ts";
+import { handleKeyDown } from "../keyboard.ts";
 import {
   nativeBody,
   setFocusTarget,
   useNativeBadges,
 } from "../native_views.ts";
+import type { ActiveView, PanelSetters, SharedRefs } from "../panel.ts";
+import { resolvePrefix } from "../prefix.ts";
+import { markSlotReady, type NavActivation } from "../slots.ts";
+import { ContentNode, useRenderedValue } from "./content_view.tsx";
+import { CreateRow } from "./create_row.tsx";
+import { DockMenu } from "./dock_menu.tsx";
+import { ListView } from "./list_view.tsx";
+import { LoadingIndicator } from "./loading_indicator.tsx";
+import { TableView } from "./table_view.tsx";
+import { ViewActionsMenu } from "./view_actions_menu.tsx";
 
 /**
  * The panel itself: the input state a view is browsed with, wired to the
@@ -721,14 +725,23 @@ export function NavRoot({
           and the handle would only sit over the first column of every row. */}
       {showResizer && (
         <ResizeHandle
-          slot={slot as "lhs" | "rhs" | "bhs"}
-          onResize={(size, commit) =>
+          className={`sb-resizer-${slot}`}
+          axis={slot === "bhs" ? "y" : "x"}
+          direction={slot === "lhs" ? 1 : -1}
+          size={(handle) => {
+            const rect = handle.parentElement?.getBoundingClientRect();
+            return (
+              (slot === "bhs" ? rect?.height : rect?.width) ?? MIN_DOCK_SIZE
+            );
+          }}
+          onResize={(px, commit) => {
+            const size = clampDockSize(slot, px);
             void resize(
               slot === "bhs"
                 ? { slot, height: size, commit }
                 : { slot, width: size, commit },
-            )
-          }
+            );
+          }}
         />
       )}
     </div>

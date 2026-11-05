@@ -10,6 +10,8 @@ export type { ButtonLinkProps, ButtonProps, ButtonVariant } from "./button.tsx";
 export { Button, ButtonLink } from "./button.tsx";
 export type { CheckboxProps } from "./checkbox.tsx";
 export { Checkbox } from "./checkbox.tsx";
+export type { CopyButtonProps } from "./copy_button.tsx";
+export { CopyButton } from "./copy_button.tsx";
 export { cx } from "./cx.ts";
 export type { DefaultFontSelectProps } from "./default_font_select.tsx";
 export { DefaultFontSelect } from "./default_font_select.tsx";

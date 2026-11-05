@@ -1,52 +1,59 @@
 import { useRef } from "preact/hooks";
 
-import { clampDockSize, type DockSlot, MIN_DOCK_SIZE } from "./dock_size.ts";
-
 export type ResizeHandleProps = {
-  slot: DockSlot;
+  /** "x" drags a width, "y" a height */
+  axis?: "x" | "y";
+  /** -1 when the panel grows as the pointer moves left (or up) */
+  direction?: 1 | -1;
+  /** The size a drag starts from */
+  size: (handle: HTMLElement) => number;
+  /** Called at most once a frame while dragging, then with `commit` on release */
   onResize: (sizePx: number, commit: boolean) => void;
+  onReset?: () => void;
+  className?: string;
+  label?: string;
 };
 
-export function resizedDockSize(
-  slot: ResizeHandleProps["slot"],
+export function draggedSize(
   startSize: number,
   startPointer: number,
   pointer: number,
-  viewportHeight?: number,
+  direction: 1 | -1 = 1,
 ): number {
-  const sign = slot === "lhs" ? 1 : -1;
-  return clampDockSize(
-    slot,
-    startSize + sign * (pointer - startPointer),
-    viewportHeight,
-  );
+  return startSize + direction * (pointer - startPointer);
 }
 
-/**
- * A window dock's draggable edge. Rendered as a child of the dock it resizes.
- */
-export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
+/** A panel's draggable edge; double-click resets it when `onReset` is given. */
+export function ResizeHandle({
+  axis = "x",
+  direction = 1,
+  size,
+  onResize,
+  onReset,
+  className,
+  label,
+}: ResizeHandleProps) {
   const dragging = useRef<{ startPointer: number; startSize: number } | null>(
     null,
   );
   const raf = useRef<number | undefined>(undefined);
-  const latestWidth = useRef<number | undefined>(undefined);
+  const latestSize = useRef<number | undefined>(undefined);
+  const pointerOf = (e: PointerEvent) => (axis === "y" ? e.clientY : e.clientX);
 
   function onPointerMove(e: PointerEvent) {
     const start = dragging.current;
     if (!start) return;
-    const size = resizedDockSize(
-      slot,
+    latestSize.current = draggedSize(
       start.startSize,
       start.startPointer,
-      slot === "bhs" ? e.clientY : e.clientX,
+      pointerOf(e),
+      direction,
     );
-    latestWidth.current = size;
     if (raf.current === undefined) {
       raf.current = requestAnimationFrame(() => {
         raf.current = undefined;
-        if (latestWidth.current !== undefined) {
-          onResize(latestWidth.current, false);
+        if (latestSize.current !== undefined) {
+          onResize(latestSize.current, false);
         }
       });
     }
@@ -63,15 +70,12 @@ export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
       cancelAnimationFrame(raf.current);
       raf.current = undefined;
     }
-    if (commit && latestWidth.current !== undefined) {
-      onResize(latestWidth.current, true);
+    if (commit && latestSize.current !== undefined) {
+      onResize(latestSize.current, true);
     }
     dragging.current = null;
-    latestWidth.current = undefined;
-  }
-
-  function onPointerUp(e: PointerEvent) {
-    endDrag(e, true);
+    latestSize.current = undefined;
+    document.body.classList.remove("sb-resizing", `sb-resizing-${axis}`);
   }
 
   function onPointerCancel(e: PointerEvent) {
@@ -82,24 +86,29 @@ export function ResizeHandle({ slot, onResize }: ResizeHandleProps) {
 
   function onPointerDown(e: PointerEvent) {
     if (e.button !== 0) return; // primary button (or touch) only
-    const dock = (e.currentTarget as HTMLElement).parentElement;
-    const rect = dock?.getBoundingClientRect();
-    dragging.current = {
-      startPointer: slot === "bhs" ? e.clientY : e.clientX,
-      startSize: (slot === "bhs" ? rect?.height : rect?.width) ?? MIN_DOCK_SIZE,
-    };
+    const handle = e.currentTarget as HTMLElement;
+    dragging.current = { startPointer: pointerOf(e), startSize: size(handle) };
     // Capture keeps delivering events after the drag leaves the narrow handle.
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    handle.setPointerCapture(e.pointerId);
+    // No text selection or cursor flicker while dragging over other panels
+    document.body.classList.add("sb-resizing", `sb-resizing-${axis}`);
     e.preventDefault();
   }
 
   return (
     <div
-      class={`sb-resizer sb-resizer-${slot}`}
+      class={className ? `sb-resizer ${className}` : "sb-resizer"}
+      role={label ? "separator" : undefined}
+      aria-orientation={
+        label ? (axis === "y" ? "horizontal" : "vertical") : undefined
+      }
+      aria-label={label}
+      title={onReset ? "Drag to resize, double-click to reset" : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+      onPointerUp={(e) => endDrag(e, true)}
       onPointerCancel={onPointerCancel}
+      onDblClick={onReset}
     />
   );
 }

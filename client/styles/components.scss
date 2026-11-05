@@ -391,6 +391,15 @@ textarea,
   height: 2px;
 }
 
+body.sb-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.sb-resizing-y {
+  cursor: row-resize;
+}
+
 .sb-row-actions {
   position: absolute;
   top: 0;
@@ -724,3 +733,35 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
   }
 }
 .sb-search-summary { margin-block: 0.5rem; font-size: 13px; }
+
+.sb-copy-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  > .sb-input, > pre {
+    flex: 1;
+    min-width: 0;
+  }
+
+  > pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+
+  > .sb-copy-button {
+    opacity: 0;
+  }
+
+  &:hover > .sb-copy-button, &:focus-within > .sb-copy-button {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .sb-copy-field > .sb-copy-button {
+    opacity: 1;
+  }
+}
