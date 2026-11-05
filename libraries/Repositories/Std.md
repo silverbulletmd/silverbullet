@@ -2,7 +2,7 @@
 share:
   uri: "github:silverbulletmd/silverbullet@main/libraries/Repositories/Std.md"
   mode: pull
-  hash: "214ff69a"
+  hash: "910e8fad"
 ---
 #meta/repository
 
@@ -42,10 +42,4 @@ author: Zef Hemel
 description: Reformats markdown in a "SilverBullet"-y style
 website: https://github.com/silverbulletmd/silverbullet-markdown-prettify
 uri: ghr:silverbulletmd/silverbullet-markdown-prettify/Prettify.md
----
-name: Basic Full-Text Search
-author: Zef Hemel
-description: Basic full-text search engine for SilverBullet (previously a built-in plug)
-website: https://github.com/silverbulletmd/basic-search
-uri: https://github.com/silverbulletmd/basic-search/blob/main/PLUG.md
 ```
