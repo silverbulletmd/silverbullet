@@ -157,7 +157,7 @@ local function toScalar(value, typeName)
     if s:find("[", 1, true) or s:find("]", 1, true) then
       return nil, "contains brackets"
     end
-    return "[[" .. s .. "]]"
+    return markdown.link(s)
   elseif typeName == "number" then
     if type(value) == "number" then return value end
     local n = type(value) == "string" and tonumber(value) or nil
@@ -867,79 +867,4 @@ tag.define { name = "data", renderDataBlock = objectForm.render }
 ```
 
 ## Styling
-```space-style
-.sb-fm-form {
-  display: grid;
-  grid-template-columns: fit-content(40%) minmax(0, 1fr) auto;
-  column-gap: 12px;
-  padding: 4px 10px;
-  border: 1px solid var(--ui-surface-border-color);
-  border-radius: 6px;
-  font-size: 0.9em;
-  line-height: 1.4;
-}
-.sb-fm-row { display: contents; }
-.sb-fm-key {
-  align-self: start;
-  padding: 4px 0;
-  color: var(--subtle-color);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-  cursor: text;
-}
-.sb-fm-missing .sb-fm-key { opacity: 0.55; }
-.sb-fm-value {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  min-height: 28px;
-}
-.sb-fm-value > .sb-in-text,
-.sb-fm-value > .sb-in-linkfield,
-.sb-fm-value > .sb-in-chips,
-.sb-fm-value > .sb-in-list,
-.sb-fm-value > .sb-in-plain { flex: 1 1 auto; }
-.sb-fm-aside {
-  display: flex;
-  align-items: start;
-  justify-content: flex-end;
-  gap: 4px;
-  padding-top: 4px;
-}
-.sb-fm-add-attr {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--subtle-color);
-  font: inherit;
-  cursor: pointer;
-}
-.sb-fm-add-attr:hover { color: var(--root-color); }
-.sb-fm-add-item { margin-left: 16px; }
-/* The same background as the YAML it replaces */
-.sb-frontmatter-preview .sb-fm-form { background-color: var(--editor-frontmatter-background-color); }
-.sb-data-block-preview .sb-fm-form { background-color: var(--editor-code-background-color); }
-.sb-fm-add-row { grid-column: 1 / -1; padding: 2px 0 4px; }
-.sb-fm-warning { display: inline-flex; color: var(--alert-warning-color); cursor: help; }
-.sb-fm-locked {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-  padding: 2px 6px;
-  color: var(--subtle-color);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.sb-fm-locked .sb-fm-icon { flex-shrink: 0; align-self: center; }
-.sb-fm-complex { padding: 2px 6px; color: var(--subtle-color); font-style: italic; }
-.sb-fm-icon { display: block; }
-/* Too narrow for three columns: each key goes above its full-width value,
-   with its warning and menu at the end of the key's line */
-@media (max-width: 600px) {
-  .sb-fm-form { grid-template-columns: minmax(0, 1fr) auto; grid-auto-flow: row dense; }
-  .sb-fm-key { grid-column: 1; padding: 6px 0 0; }
-  .sb-fm-aside { grid-column: 2; padding-top: 6px; }
-  .sb-fm-value { grid-column: 1 / -1; }
-}
-```
+The form's styles (the `sb-fm-*` classes, on top of the inputs' `sb-in-*` ones) ship with SilverBullet itself, so a form looks right before a new space is indexed. Override them from a `space-style` block.
