@@ -47,6 +47,7 @@ png = "0.18"
 test-model = ["silverbullet-server-search/test-model"]
 
 [dev-dependencies]
+jsonwebtoken = { workspace = true, features = ["use_pem"] }
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }
 silverbullet-server-search = { path = "../server-search", features = ["test-model"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }

@@ -45,7 +45,7 @@ async-trait = "0.1"
 tower-http = "0.7"
 axum = "0.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }
-jsonwebtoken = { version = "11", features = ["rust_crypto"] }
+jsonwebtoken = { version = "11", default-features = false, features = ["rust_crypto"] }
 sha2 = "0.10"
 getrandom = "0.4"
 clap = { version = "4", features = ["derive", "env"] }
@@ -55,7 +55,7 @@ serde_yaml = "0.9"
 uuid = { version = "1", features = ["v4"] }
 aes-gcm = "0.11"
 tempfile = "3"
-zip = { version = "8", default-features = false, features = ["deflate"] }
+zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 notify = "8"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 tokio-util = "0.7"
