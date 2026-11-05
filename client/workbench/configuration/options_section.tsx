@@ -4,6 +4,7 @@ import { toLua } from "../../config_management/managed_lua.ts";
 import { type Action, copyText } from "../shared/action.ts";
 import { ActionMenu } from "../shared/action_menu.tsx";
 import { BlockNote } from "../shared/block_ui.tsx";
+import { ChangedMark } from "./changed_mark.tsx";
 import type { ConfigurationModel } from "./configuration_model.ts";
 import { FontSelect, useFontPreview } from "./font_select.tsx";
 import type { UiSchema } from "./schema.ts";
@@ -104,14 +105,17 @@ function OptionRow(props: {
   ];
   return (
     <div className="sb-wb-cfg-row">
-      <span
-        className={
-          modified ? "sb-wb-cfg-dot sb-wb-cfg-modified" : "sb-wb-cfg-dot"
-        }
-        title={modified ? "Changed from the default" : undefined}
-      />
       <div className="sb-wb-cfg-info">
-        <div className="sb-wb-cfg-label">{label}</div>
+        <div className="sb-wb-cfg-label">
+          {label}
+          {modified && (
+            <ChangedMark
+              name={label}
+              writable={writable}
+              onReset={() => model.resetField(path)}
+            />
+          )}
+        </div>
         {schema.description && (
           <div className="sb-wb-cfg-description">{schema.description}</div>
         )}

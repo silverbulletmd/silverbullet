@@ -3,6 +3,7 @@ import type { Client } from "../../client.ts";
 import type { Action } from "../shared/action.ts";
 import { ActionMenu } from "../shared/action_menu.tsx";
 import { BlockNote } from "../shared/block_ui.tsx";
+import { ChangedMark } from "./changed_mark.tsx";
 import {
   ChordDisplay,
   chordNotice,
@@ -171,12 +172,16 @@ function BindingRow(props: {
       data-modified={modified || undefined}
     >
       <div className="sb-wb-cfg-row">
-        <span
-          className={
-            modified ? "sb-wb-cfg-dot sb-wb-cfg-modified" : "sb-wb-cfg-dot"
-          }
-        />
-        <div className="sb-wb-cfg-label">{name}</div>
+        <div className="sb-wb-cfg-label">
+          {name}
+          {modified && (
+            <ChangedMark
+              name={name}
+              writable={writable}
+              onReset={() => model.resetBinding(name)}
+            />
+          )}
+        </div>
         <div className="sb-wb-cfg-chords">
           {slots.map((binding, slot) =>
             recording?.slot === slot ? (

@@ -73,6 +73,23 @@ test.describe("configuration tab", () => {
     await expect.poll(editorSize).toBe("22px");
   });
 
+  test("a changed option says so, and its label resets it", async ({
+    page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "index");
+    await runCommandViaPalette(page, "Configuration: Open");
+    const reset = tab(page).getByRole("button", {
+      name: "Reset Short wiki links to its default",
+    });
+    await expect(reset).toHaveCount(0);
+    await shortWikiLinks(page).uncheck();
+    await expect(reset).toHaveText("Changed");
+    await reset.click();
+    await expect(shortWikiLinks(page)).toBeChecked();
+    await expect(reset).toHaveCount(0);
+  });
+
   test("unsaved configuration edits survive closing the workbench", async ({
     page,
     sbServer,
