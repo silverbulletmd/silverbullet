@@ -1,4 +1,34 @@
 export const MANAGED_MARKER = "-- managed-by: configuration-manager";
+export const SCHEMAS_MARKER = "-- managed-by: workbench-schemas";
+
+/** A kind of space-lua block in CONFIG that the Workbench maintains */
+export type ManagedBlockKind = {
+  /** First line of the block, which identifies it */
+  marker: string;
+  /** What a new block starts with */
+  header: string;
+  /** Names the block in messages */
+  label: string;
+  /** The block a new one is placed right after, when there is one */
+  after?: ManagedBlockKind;
+};
+
+export const CONFIG_BLOCK: ManagedBlockKind = {
+  marker: MANAGED_MARKER,
+  header: MANAGED_MARKER,
+  label: "configuration",
+};
+
+/**
+ * Tag schemas the Workbench's Data tab maintains. It runs at priority -10,
+ * after the built-in root tags (10) and ordinary scripts (0).
+ */
+export const SCHEMAS_BLOCK: ManagedBlockKind = {
+  marker: SCHEMAS_MARKER,
+  header: `${SCHEMAS_MARKER}\n-- priority: -10`,
+  label: "schemas",
+  after: CONFIG_BLOCK,
+};
 
 export type ManagedBlock = {
   /** Start index of the opening ``` fence line in the full text */
@@ -10,15 +40,18 @@ export type ManagedBlock = {
 };
 
 /**
- * Find the managed space-lua block in a CONFIG.md text.
- * Returns null if no managed block exists.
+ * Find the managed space-lua block of a kind in a CONFIG.md text.
+ * Returns null if no such block exists.
  */
-export function findManagedBlock(text: string): ManagedBlock | null {
+export function findManagedBlock(
+  text: string,
+  kind: ManagedBlockKind = CONFIG_BLOCK,
+): ManagedBlock | null {
   const fenceRegex = /^```space-lua[ \t]*\n([\s\S]*?)^```[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = fenceRegex.exec(text)) !== null) {
     const innerContent = match[1];
-    if (innerContent.trimStart().startsWith(MANAGED_MARKER)) {
+    if (innerContent.trimStart().startsWith(kind.marker)) {
       return {
         start: match.index,
         end: match.index + match[0].length,
@@ -30,11 +63,16 @@ export function findManagedBlock(text: string): ManagedBlock | null {
 }
 
 /**
- * Replace the managed block in CONFIG.md text, or append one if none exists.
- * If newContent is empty, the managed block is removed.
+ * Replace the managed block of a kind in CONFIG.md text, or add one if none
+ * exists: right after the `kind.after` block when there is one, else at
+ * the end. If newContent is empty, the block is removed.
  */
-export function replaceManagedBlock(text: string, newContent: string): string {
-  const existing = findManagedBlock(text);
+export function replaceManagedBlock(
+  text: string,
+  newContent: string,
+  kind: ManagedBlockKind = CONFIG_BLOCK,
+): string {
+  const existing = findManagedBlock(text, kind);
 
   if (existing) {
     if (!newContent) {
@@ -53,6 +91,12 @@ export function replaceManagedBlock(text: string, newContent: string): string {
 
   if (!newContent) return text;
 
+  const anchor = kind.after ? findManagedBlock(text, kind.after) : null;
+  if (anchor) {
+    const block = `\n\n\`\`\`space-lua\n${newContent}\n\`\`\``;
+    return text.slice(0, anchor.end) + block + text.slice(anchor.end);
+  }
+
   // Append new block at end
   const block = `\`\`\`space-lua\n${newContent}\n\`\`\`\n`;
   const separator = text.endsWith("\n") ? "\n" : "\n\n";
@@ -61,8 +105,11 @@ export function replaceManagedBlock(text: string, newContent: string): string {
 
 /**
  * Why a managed block that is not valid Lua can't be edited: its statements
- * can't be found, so saving could drop or duplicate the overrides it holds.
+ * can't be found, so saving could drop or duplicate what it holds.
  */
-export function invalidManagedBlockMessage(detail: string): string {
-  return `The managed configuration block in CONFIG is not valid Lua, fix it there first: ${detail}`;
+export function invalidManagedBlockMessage(
+  detail: string,
+  kind: ManagedBlockKind = CONFIG_BLOCK,
+): string {
+  return `The managed ${kind.label} block in CONFIG is not valid Lua, fix it there first: ${detail}`;
 }

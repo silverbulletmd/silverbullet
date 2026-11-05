@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { persistConfigValue, saveManagedChanges } from "./config_page.ts";
+import {
+  ConfigReloadError,
+  persistConfigValue,
+  saveManagedChanges,
+  saveSchemaChanges,
+} from "./config_page.ts";
 
 type Handler = (...args: any[]) => any;
 
@@ -22,6 +27,9 @@ beforeEach(() => {
     "mq.awaitEmptyQueue": () => {},
     "editor.reloadConfigAndCommands": () => {},
     "editor.rebuildEditorState": () => {},
+    "editor.getCurrentPage": () => "index",
+    "editor.save": () => {},
+    "editor.reloadPage": () => {},
   };
   (globalThis as any).syscall = async (name: string, ...args: any[]) => {
     calls.push(name);
@@ -112,5 +120,63 @@ describe("persistConfigValue", () => {
     expect(written[0]).toContain(
       `\`\`\`space-lua\n${MARKER}\nconfig.set("share.silverbullet.spaces", {"https://example.com"})\n\`\`\``,
     );
+  });
+});
+
+describe("saving with CONFIG open", () => {
+  test("an open CONFIG is saved before it is read", async () => {
+    configPage(`\`\`\`space-lua\n${MARKER}\n\`\`\`\n`);
+    handlers["editor.getCurrentPage"] = () => "CONFIG";
+    await saveManagedChanges({ config: { set: { a: 1 }, unset: [] } });
+    expect(calls.indexOf("editor.save")).toBeGreaterThan(-1);
+    expect(calls.indexOf("editor.save")).toBeLessThan(
+      calls.indexOf("space.readPage"),
+    );
+  });
+
+  test("an open CONFIG is reloaded in the editor after the write", async () => {
+    configPage(`\`\`\`space-lua\n${MARKER}\n\`\`\`\n`);
+    handlers["editor.getCurrentPage"] = () => "CONFIG";
+    await saveManagedChanges({ config: { set: { a: 1 }, unset: [] } });
+    expect(calls.indexOf("editor.reloadPage")).toBeGreaterThan(
+      calls.indexOf("space.writePage"),
+    );
+  });
+
+  test("another open page isn't saved", async () => {
+    configPage(`\`\`\`space-lua\n${MARKER}\n\`\`\`\n`);
+    await saveManagedChanges({ config: { set: { a: 1 }, unset: [] } });
+    expect(calls).not.toContain("editor.save");
+    expect(calls).not.toContain("editor.reloadPage");
+  });
+});
+
+describe("saveSchemaChanges", () => {
+  test("writes the schemas block", async () => {
+    configPage("# Config\n");
+    await saveSchemaChanges({
+      define: { meeting: { type: "object" } },
+      set: [],
+      reset: [],
+      require: [],
+    });
+    expect(written[0]).toContain("-- managed-by: workbench-schemas");
+    expect(written[0]).toContain('name = "meeting"');
+  });
+
+  test("a reload failure after the write is marked as such", async () => {
+    configPage("# Config\n");
+    handlers["editor.reloadConfigAndCommands"] = () => {
+      throw new Error("script error");
+    };
+    await expect(
+      saveSchemaChanges({
+        define: { meeting: { type: "object" } },
+        set: [],
+        reset: [],
+        require: [],
+      }),
+    ).rejects.toBeInstanceOf(ConfigReloadError);
+    expect(written).toHaveLength(1);
   });
 });

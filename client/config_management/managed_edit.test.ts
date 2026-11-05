@@ -255,6 +255,19 @@ describe("applyManagedChanges", () => {
   });
 });
 
+describe("applyManagedChanges: one key set and unset", () => {
+  test("the set wins", () => {
+    const text = `\`\`\`space-lua\n${MARKER}\nconfig.set("a", 1)\n\`\`\`\n`;
+    const result = applyManagedChanges(text, {
+      config: { set: { a: 2 }, unset: ["a"] },
+    });
+    expect(parseManagedBlock(findManagedBlock(result)!.innerContent)).toEqual({
+      configOverrides: { a: 2 },
+      commandOverrides: {},
+    });
+  });
+});
+
 describe("diffOverrides", () => {
   test("sets new and changed values, unsets missing ones", () => {
     expect(

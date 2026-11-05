@@ -50,13 +50,13 @@ describe("toLua", () => {
   });
 
   test("array", () => {
-    expect(toLua(["a", "b"])).toBe('{\n  "a",\n  "b",\n}');
+    expect(toLua(["a", "b"])).toBe('{"a", "b"}');
   });
 
   test("non-finite numbers serialize as nil", () => {
     expect(toLua(Number.NaN)).toBe("nil");
     expect(toLua(Number.POSITIVE_INFINITY)).toBe("nil");
-    expect(toLua([1, Number.NEGATIVE_INFINITY])).toBe("{\n  1,\n  nil,\n}");
+    expect(toLua([1, Number.NEGATIVE_INFINITY])).toBe("{1, nil}");
   });
 
   test("an empty array serializes as an empty table and parses back as {}", () => {

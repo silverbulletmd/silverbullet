@@ -1,13 +1,15 @@
 import {
+  CONFIG_BLOCK,
   findManagedBlock,
   invalidManagedBlockMessage,
-  MANAGED_MARKER,
+  type ManagedBlockKind,
   replaceManagedBlock,
 } from "./config_block.ts";
 import {
   type CommandOverride,
-  type ManagedStatement,
-  scanManagedStatements,
+  type LiteralExtension,
+  type ScannedStatement,
+  scanStatements,
   toLua,
 } from "./managed_lua.ts";
 
@@ -51,17 +53,6 @@ export function diffOverrides<T>(
   return { set, unset };
 }
 
-function configStatement(path: string, value: unknown): string {
-  return `config.set(${toLua(path)}, ${toLua(value)})`;
-}
-
-function commandStatement(name: string, override: CommandOverride): string {
-  const parts = [`name = ${toLua(name)}`];
-  if (override.key !== undefined) parts.push(`key = ${toLua(override.key)}`);
-  if (override.mac !== undefined) parts.push(`mac = ${toLua(override.mac)}`);
-  return `command.update { ${parts.join(", ")} }`;
-}
-
 /**
  * Remove the source range [start, end) from text; when that leaves its line
  * blank, remove the whole line.
@@ -83,61 +74,71 @@ function removeRange(text: string, start: number, end: number): string {
   return text.slice(0, start) + text.slice(to);
 }
 
-type Edit = ManagedStatement & { replacement: string | null };
+type Edit = { start: number; end: number; replacement: string | null };
+
+export type BlockWrite = {
+  key: string;
+  statement: string;
+  /** A narrower edit of the statement it replaces, instead of the whole statement */
+  replace?: (st: ScannedStatement, inner: string) => Edit | undefined;
+};
+
+export type BlockChanges = {
+  /** Statements to write; the last write to a key wins */
+  writes: BlockWrite[];
+  /** Keys whose statements are removed, unless also written */
+  removals: string[];
+};
 
 /**
- * Apply changes to the managed block of a CONFIG text by editing statements
- * in place: a set replaces the first statement for its config path or
- * command (removing any duplicates) or is appended, an unset removes them
- * all. Every other line and block is left untouched. The block is created
- * when needed and removed once it holds nothing but the marker. Refuses
- * (throws) to edit a block that is not valid Lua.
+ * Apply changes to a managed block of a CONFIG text by editing statements in
+ * place: a write replaces the first statement with its key (removing any
+ * duplicates) or is appended, a removal removes them all. Every other line
+ * and block is left untouched. The block is created when needed and removed
+ * once it holds nothing but its header. Refuses (throws) to edit a block that
+ * is not valid Lua.
  */
-export function applyManagedChanges(
+export function editManagedBlock(
   text: string,
-  changes: ManagedChanges,
+  kind: ManagedBlockKind,
+  keyOf: (st: ScannedStatement) => string | null,
+  { writes, removals }: BlockChanges,
+  ext?: LiteralExtension,
 ): string {
-  const sets = [
-    ...Object.entries(changes.config?.set ?? {}).map(([key, value]) => ({
-      kind: "config" as const,
-      key,
-      statement: configStatement(key, value),
-    })),
-    ...Object.entries(changes.commands?.set ?? {}).map(([key, value]) => ({
-      kind: "command" as const,
-      key,
-      statement: commandStatement(key, value),
-    })),
-  ];
-  const unsets = [
-    ...(changes.config?.unset ?? []).map((key) => ({ kind: "config", key })),
-    ...(changes.commands?.unset ?? []).map((key) => ({ kind: "command", key })),
-  ];
-
-  const block = findManagedBlock(text);
-  const inner = block ? block.innerContent.replace(/\n+$/, "") : MANAGED_MARKER;
-  let statements: ManagedStatement[];
+  const block = findManagedBlock(text, kind);
+  const inner = block ? block.innerContent.replace(/\n+$/, "") : kind.header;
+  let statements: ScannedStatement[];
   try {
-    statements = scanManagedStatements(inner);
+    statements = scanStatements(inner, ext);
   } catch (e: any) {
-    throw new Error(invalidManagedBlockMessage(e.message));
+    throw new Error(invalidManagedBlockMessage(e.message, kind));
   }
-  const statementsFor = (kind: string, key: string) =>
-    statements.filter((st) => st.kind === kind && st.key === key);
+  const unique = [...new Map(writes.map((w) => [w.key, w])).values()];
+  const written = new Set(unique.map((w) => w.key));
+  const removed = new Set(removals.filter((key) => !written.has(key)));
 
   const edits: Edit[] = [];
   const appended: string[] = [];
-  for (const { kind, key, statement } of sets) {
-    const [first, ...duplicates] = statementsFor(kind, key);
+  for (const write of unique) {
+    const [first, ...duplicates] = statements.filter(
+      (st) => keyOf(st) === write.key,
+    );
     if (!first) {
-      appended.push(statement);
+      appended.push(write.statement);
       continue;
     }
-    edits.push({ ...first, replacement: statement });
+    edits.push(
+      write.replace?.(first, inner) ?? {
+        start: first.start,
+        end: first.end,
+        replacement: write.statement,
+      },
+    );
     for (const st of duplicates) edits.push({ ...st, replacement: null });
   }
-  for (const { kind, key } of unsets) {
-    for (const st of statementsFor(kind, key)) {
+  for (const st of statements) {
+    const key = keyOf(st);
+    if (key !== null && removed.has(key)) {
       edits.push({ ...st, replacement: null });
     }
   }
@@ -152,10 +153,57 @@ export function applyManagedChanges(
         ? removeRange(updated, start, end)
         : updated.slice(0, start) + replacement + updated.slice(end);
   }
-  updated = [updated, ...appended].join("\n");
+  updated = [updated.replace(/\n+$/, ""), ...appended].join("\n");
 
-  return replaceManagedBlock(
-    text,
-    updated.trim() === MANAGED_MARKER ? "" : updated,
-  );
+  const header = new Set(kind.header.split("\n"));
+  const onlyHeader = updated
+    .split("\n")
+    .every((line) => !line.trim() || header.has(line.trim()));
+  return replaceManagedBlock(text, onlyHeader ? "" : updated, kind);
+}
+
+const configKey = (path: string) => `config:${path}`;
+const commandKey = (name: string) => `command:${name}`;
+
+function managedKey(st: ScannedStatement): string | null {
+  if (st.kind === "set" && typeof st.path === "string") {
+    return configKey(st.path);
+  }
+  return st.kind === "command" ? commandKey(st.name) : null;
+}
+
+function commandStatement(name: string, override: CommandOverride): string {
+  const parts = [`name = ${toLua(name)}`];
+  if (override.key !== undefined) parts.push(`key = ${toLua(override.key)}`);
+  if (override.mac !== undefined) parts.push(`mac = ${toLua(override.mac)}`);
+  return `command.update { ${parts.join(", ")} }`;
+}
+
+/**
+ * Apply changes to the managed configuration block of a CONFIG text (see
+ * editManagedBlock): a set replaces the statement for its config path or
+ * command, an unset removes them all.
+ */
+export function applyManagedChanges(
+  text: string,
+  changes: ManagedChanges,
+): string {
+  return editManagedBlock(text, CONFIG_BLOCK, managedKey, {
+    writes: [
+      ...Object.entries(changes.config?.set ?? {}).map(([path, value]) => ({
+        key: configKey(path),
+        statement: `config.set(${toLua(path)}, ${toLua(value)})`,
+      })),
+      ...Object.entries(changes.commands?.set ?? {}).map(
+        ([name, override]) => ({
+          key: commandKey(name),
+          statement: commandStatement(name, override),
+        }),
+      ),
+    ],
+    removals: [
+      ...(changes.config?.unset ?? []).map(configKey),
+      ...(changes.commands?.unset ?? []).map(commandKey),
+    ],
+  });
 }

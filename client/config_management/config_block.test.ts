@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { findManagedBlock, replaceManagedBlock } from "./config_block.ts";
+import {
+  findManagedBlock,
+  replaceManagedBlock,
+  SCHEMAS_BLOCK,
+} from "./config_block.ts";
 
 const MARKER = "-- managed-by: configuration-manager";
 
@@ -103,5 +107,29 @@ End
     expect(result).not.toContain(MARKER);
     expect(result).toContain("Intro");
     expect(result).toContain("End");
+  });
+});
+
+describe("managed block markers", () => {
+  const SCHEMAS = "-- managed-by: workbench-schemas";
+  const text = `\`\`\`space-lua\n${MARKER}\nconfig.set("a", 1)\n\`\`\`\n\n\`\`\`space-lua\n${SCHEMAS}\ntag.setRequired("p", "x", true)\n\`\`\`\n`;
+
+  test("without a marker the configuration block is found", () => {
+    expect(findManagedBlock(text)!.innerContent).toContain(
+      'config.set("a", 1)',
+    );
+  });
+
+  test("a marker picks its own block", () => {
+    expect(findManagedBlock(text, SCHEMAS_BLOCK)!.innerContent).toContain(
+      "tag.setRequired",
+    );
+  });
+
+  test("a new block goes right after the block with the given marker", () => {
+    const base = `Intro\n\n\`\`\`space-lua\n${MARKER}\n\`\`\`\n\n## Later\n`;
+    expect(replaceManagedBlock(base, `${SCHEMAS}\nx()`, SCHEMAS_BLOCK)).toBe(
+      `Intro\n\n\`\`\`space-lua\n${MARKER}\n\`\`\`\n\n\`\`\`space-lua\n${SCHEMAS}\nx()\n\`\`\`\n\n## Later\n`,
+    );
   });
 });

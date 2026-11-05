@@ -1,16 +1,40 @@
-/** Conversion between JS values and the Lua source of the managed block of CONFIG. */
+/**
+ * Conversion between JS values and the Lua source of CONFIG's managed blocks,
+ * which are read structurally, never evaluated.
+ */
 import type {
-  LuaBlock,
   LuaExpression,
   LuaFunctionCallExpression,
   LuaTableField,
 } from "../space_lua/ast.ts";
 import { parseBlock } from "../space_lua/parse.ts";
 import { prettyPrintExpression } from "../space_lua/pretty_print.ts";
+import type { JsonSchema } from "./schema_lua.ts";
+
+/** What reading a Lua expression that isn't a literal yields */
+export const UNREADABLE = Symbol("unreadable");
+
+/** Lua expressions beyond plain literals that a codec reads and writes */
+export type LiteralExtension = {
+  /** The value of a non-literal expression, or UNREADABLE */
+  read: (e: LuaExpression, read: (e: LuaExpression) => unknown) => unknown;
+  /** An expression for a value, or undefined to write it as a plain literal */
+  write: (
+    value: unknown,
+    write: (value: unknown) => LuaExpression,
+  ) => LuaExpression | undefined;
+};
+
+const ctx = {};
 
 /** Build the AST of a Lua literal for a JS value. */
-function toLuaAst(value: unknown): LuaExpression {
-  const ctx = {};
+export function toLuaAst(
+  value: unknown,
+  ext?: LiteralExtension,
+): LuaExpression {
+  const write = (v: unknown) => toLuaAst(v, ext);
+  const custom = ext?.write(value, write);
+  if (custom) return custom;
   if (value === null || value === undefined) return { type: "Nil", ctx };
   if (typeof value === "boolean") return { type: "Boolean", value, ctx };
   if (typeof value === "number") {
@@ -25,7 +49,7 @@ function toLuaAst(value: unknown): LuaExpression {
     // empty array from an empty table
     const fields: LuaTableField[] = value.map((v) => ({
       type: "ExpressionField",
-      value: toLuaAst(v),
+      value: write(v),
       ctx,
     }));
     return { type: "TableConstructor", fields, ctx };
@@ -33,7 +57,7 @@ function toLuaAst(value: unknown): LuaExpression {
   if (typeof value === "object") {
     const fields: LuaTableField[] = Object.entries(value)
       .filter(([_, v]) => v !== null && v !== undefined)
-      .map(([key, v]) => ({ type: "PropField", key, value: toLuaAst(v), ctx }));
+      .map(([key, v]) => ({ type: "PropField", key, value: write(v), ctx }));
     return { type: "TableConstructor", fields, ctx };
   }
   return { type: "Nil", ctx };
@@ -42,17 +66,17 @@ function toLuaAst(value: unknown): LuaExpression {
 /**
  * Serialize a JavaScript value to Lua source code.
  */
-export function toLua(value: unknown): string {
-  return prettyPrintExpression(toLuaAst(value));
+export function toLua(value: unknown, ext?: LiteralExtension): string {
+  return prettyPrintExpression(toLuaAst(value, ext));
 }
-
-const UNPARSEABLE = Symbol("unparseable");
 
 /**
  * Convert a literal expression AST (strings, numbers, booleans, nil, tables
- * of literals) to a JS value. Returns UNPARSEABLE for anything else.
+ * of literals, and what `ext` reads) to a JS value. Returns UNREADABLE for
+ * anything else.
  */
-function fromLuaAst(e: LuaExpression): any {
+export function fromLuaAst(e: LuaExpression, ext?: LiteralExtension): unknown {
+  const read = (x: LuaExpression) => fromLuaAst(x, ext);
   switch (e.type) {
     case "Nil":
       return undefined;
@@ -63,85 +87,40 @@ function fromLuaAst(e: LuaExpression): any {
     case "Unary":
       return e.operator === "-" && e.argument.type === "Number"
         ? -e.argument.value
-        : UNPARSEABLE;
+        : UNREADABLE;
     case "TableConstructor": {
-      const items: any[] = [];
-      const entries: Record<string, any> = {};
+      const items: unknown[] = [];
+      const entries: Record<string, unknown> = {};
       for (const f of e.fields) {
-        const v = fromLuaAst(f.value);
-        if (v === UNPARSEABLE) return UNPARSEABLE;
+        const v = read(f.value);
+        if (typeof v === "symbol") return UNREADABLE;
         if (f.type === "ExpressionField") items.push(v);
         else if (f.type === "PropField") entries[f.key] = v;
         else if (f.key.type === "String") entries[f.key.value] = v;
-        else return UNPARSEABLE;
+        else return UNREADABLE;
       }
       const keyed = items.length < e.fields.length;
-      if (keyed && items.length > 0) return UNPARSEABLE;
+      if (keyed && items.length > 0) return UNREADABLE;
       return keyed ? entries : items.length > 0 ? items : {};
     }
     default:
-      return UNPARSEABLE;
+      return ext ? ext.read(e, read) : UNREADABLE;
   }
 }
 
-function tryParseBlock(
-  code: string,
-): { block: LuaBlock; error?: undefined } | { error: string } {
-  try {
-    return { block: parseBlock(code) };
-  } catch (e: any) {
-    return { error: e?.message ?? String(e) };
+/** The `<object>.<method>` a call names, if it is one */
+export function calleeOf(
+  call: LuaFunctionCallExpression,
+): { object: string; method: string } | null {
+  const { prefix, name } = call;
+  if (
+    !name &&
+    prefix.type === "PropertyAccess" &&
+    prefix.object.type === "Variable"
+  ) {
+    return { object: prefix.object.name, method: prefix.property };
   }
-}
-
-/** Source range of a statement: start index, end index (exclusive) */
-type Range = { start: number; end: number };
-
-/** Top-level `<object>.<method>(...)` call statements of a parsed chunk. */
-function methodCalls(
-  block: LuaBlock,
-  object: string,
-  method: string,
-): ({ call: LuaFunctionCallExpression } & Range)[] {
-  const result = [];
-  for (const stmt of block.statements) {
-    if (stmt.type !== "FunctionCallStatement") continue;
-    const { prefix, name } = stmt.call;
-    if (
-      !name &&
-      prefix.type === "PropertyAccess" &&
-      prefix.property === method &&
-      prefix.object.type === "Variable" &&
-      prefix.object.name === object
-    ) {
-      result.push({
-        call: stmt.call,
-        start: stmt.ctx.from!,
-        end: stmt.ctx.to!,
-      });
-    }
-  }
-  return result;
-}
-
-/**
- * Top-level `config.set("path", value)` statements, with the value as a JS
- * value: undefined for nil or non-literal expressions.
- */
-function configSets(block: LuaBlock): ({ path: string; value: any } & Range)[] {
-  const result: ({ path: string; value: any } & Range)[] = [];
-  for (const { call, start, end } of methodCalls(block, "config", "set")) {
-    const [path, valueExpr] = call.args;
-    if (call.args.length !== 2 || path.type !== "String") continue;
-    const value = fromLuaAst(valueExpr);
-    result.push({
-      path: path.value,
-      value: value === UNPARSEABLE ? undefined : value,
-      start,
-      end,
-    });
-  }
-  return result;
+  return null;
 }
 
 export type CommandOverride = {
@@ -156,68 +135,131 @@ function isStringOrList(v: unknown): v is string | string[] {
   );
 }
 
-/**
- * Top-level `command.update { name = "...", key = ..., mac = ... }`
- * statements, where key/mac are strings or string lists. Other fields, and
- * fields that are not literals, are ignored.
- */
-function commandUpdates(
-  block: LuaBlock,
-): ({ name: string; override: CommandOverride } & Range)[] {
-  const result: ({ name: string; override: CommandOverride } & Range)[] = [];
-  for (const { call, start, end } of methodCalls(block, "command", "update")) {
-    const [spec] = call.args;
-    if (call.args.length !== 1 || spec.type !== "TableConstructor") continue;
-    const fields: Record<string, any> = {};
-    for (const f of spec.fields) {
-      if (f.type !== "PropField") continue;
-      const v = fromLuaAst(f.value);
-      if (v !== UNPARSEABLE) fields[f.key] = v;
+export type Statement =
+  /** `config.set(path, value)`; value is UNREADABLE when not a literal */
+  | { kind: "set"; path: string | string[]; value: unknown }
+  /** `command.update { name = …, key = …, mac = … }` */
+  | { kind: "command"; name: string; override: CommandOverride }
+  | {
+      kind: "define";
+      tag: string;
+      /** null when there is no schema field or its value can't be read */
+      schema: JsonSchema | null;
+      /** Names of the definition's other fields (tagPage, …) */
+      other: string[];
+      /** Where the schema field's value is, when there is one */
+      schemaRange?: { start: number; end: number };
     }
-    if (typeof fields.name !== "string") continue;
-    const override: CommandOverride = {};
-    if (isStringOrList(fields.key)) override.key = fields.key;
-    if (isStringOrList(fields.mac)) override.mac = fields.mac;
-    result.push({ name: fields.name, override, start, end });
+  | { kind: "require"; tag: string; attribute: string; required: boolean }
+  | { kind: "opaque" };
+
+export type ScannedStatement = Statement & { start: number; end: number };
+
+const OPAQUE = { kind: "opaque" } as const;
+
+function readCall(
+  call: LuaFunctionCallExpression,
+  ext: LiteralExtension | undefined,
+): Statement {
+  const callee = calleeOf(call);
+  const { args } = call;
+  switch (`${callee?.object}.${callee?.method}`) {
+    case "config.set": {
+      if (args.length !== 2) return OPAQUE;
+      const path = fromLuaAst(args[0]);
+      if (
+        typeof path !== "string" &&
+        !(Array.isArray(path) && path.every((p) => typeof p === "string"))
+      ) {
+        return OPAQUE;
+      }
+      return { kind: "set", path, value: fromLuaAst(args[1], ext) };
+    }
+    case "command.update": {
+      const [spec] = args;
+      if (args.length !== 1 || spec.type !== "TableConstructor") return OPAQUE;
+      const fields: Record<string, unknown> = {};
+      for (const f of spec.fields) {
+        if (f.type !== "PropField") continue;
+        const v = fromLuaAst(f.value);
+        if (v !== UNREADABLE) fields[f.key] = v;
+      }
+      if (typeof fields.name !== "string") return OPAQUE;
+      const override: CommandOverride = {};
+      if (isStringOrList(fields.key)) override.key = fields.key;
+      if (isStringOrList(fields.mac)) override.mac = fields.mac;
+      return { kind: "command", name: fields.name, override };
+    }
+    case "tag.define": {
+      const [spec] = args;
+      if (args.length !== 1 || spec.type !== "TableConstructor") return OPAQUE;
+      let tag: string | undefined;
+      let schema: JsonSchema | null = null;
+      let schemaRange: { start: number; end: number } | undefined;
+      const other: string[] = [];
+      for (const f of spec.fields) {
+        if (f.type !== "PropField") return OPAQUE;
+        if (f.key === "name") {
+          if (f.value.type !== "String") return OPAQUE;
+          tag = f.value.value;
+        } else if (f.key === "schema") {
+          const v = fromLuaAst(f.value, ext);
+          if (v && typeof v === "object" && !Array.isArray(v)) schema = v;
+          schemaRange = { start: f.value.ctx.from!, end: f.value.ctx.to! };
+        } else {
+          other.push(f.key);
+        }
+      }
+      if (tag === undefined) return OPAQUE;
+      return schemaRange
+        ? { kind: "define", tag, schema, other, schemaRange }
+        : { kind: "define", tag, schema, other };
+    }
+    case "tag.setRequired": {
+      const [t, a, r] = args;
+      if (
+        args.length === 3 &&
+        t.type === "String" &&
+        a.type === "String" &&
+        r.type === "Boolean"
+      ) {
+        return {
+          kind: "require",
+          tag: t.value,
+          attribute: a.value,
+          required: r.value,
+        };
+      }
+      return OPAQUE;
+    }
+    default:
+      return OPAQUE;
   }
-  return result;
 }
 
-/** A statement of the managed block that sets one override. */
-export type ManagedStatement = {
-  kind: "config" | "command";
-  /** The config path or command name */
-  key: string;
-} & Range;
-
 /**
- * Every top-level override statement of a managed block, with its source
- * range. Throws if the text is not valid Lua.
+ * Every top-level statement of a chunk, with its source range; values are
+ * read with `ext`. Throws if the text is not valid Lua.
  */
-export function scanManagedStatements(text: string): ManagedStatement[] {
-  const block = parseBlock(text);
-  return [
-    ...configSets(block).map(({ path, start, end }) => ({
-      kind: "config" as const,
-      key: path,
-      start,
-      end,
-    })),
-    ...commandUpdates(block).map(({ name, start, end }) => ({
-      kind: "command" as const,
-      key: name,
-      start,
-      end,
-    })),
-  ];
+export function scanStatements(
+  text: string,
+  ext?: LiteralExtension,
+): ScannedStatement[] {
+  return parseBlock(text).statements.map((stmt) => ({
+    ...(stmt.type === "FunctionCallStatement"
+      ? readCall(stmt.call, ext)
+      : OPAQUE),
+    start: stmt.ctx.from!,
+    end: stmt.ctx.to!,
+  }));
 }
 
 /**
- * Parse the body of the managed block of CONFIG back into the
- * structured form the UI consumes (see configSets and commandUpdates). A
- * block that is not valid Lua yields no overrides and the parse error in
- * `error`; callers must then not rewrite the block from these (empty)
- * overrides.
+ * Parse the body of the managed block of CONFIG back into the structured
+ * form the UI consumes: `config.set` with a string path (its value undefined
+ * when not a literal) and `command.update`. A block that is not valid Lua
+ * yields no overrides and the parse error in `error`; callers must then not
+ * rewrite the block from these (empty) overrides.
  */
 export function parseManagedBlock(blockContent: string): {
   configOverrides: Record<string, any>;
@@ -226,15 +268,22 @@ export function parseManagedBlock(blockContent: string): {
 } {
   const configOverrides: Record<string, any> = {};
   const commandOverrides: Record<string, CommandOverride> = {};
-  const parsed = tryParseBlock(blockContent);
-  if (parsed.error !== undefined) {
-    return { configOverrides, commandOverrides, error: parsed.error };
+  let statements: ScannedStatement[];
+  try {
+    statements = scanStatements(blockContent);
+  } catch (e: any) {
+    return {
+      configOverrides,
+      commandOverrides,
+      error: e?.message ?? String(e),
+    };
   }
-  for (const { path, value } of configSets(parsed.block)) {
-    configOverrides[path] = value;
-  }
-  for (const { name, override } of commandUpdates(parsed.block)) {
-    commandOverrides[name] = override;
+  for (const st of statements) {
+    if (st.kind === "set" && typeof st.path === "string") {
+      configOverrides[st.path] = st.value === UNREADABLE ? undefined : st.value;
+    } else if (st.kind === "command") {
+      commandOverrides[st.name] = st.override;
+    }
   }
   return { configOverrides, commandOverrides };
 }
