@@ -6,13 +6,13 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * [[Space Lua/Page Lua]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page.
 * [[Workbench]]: Think _DevTools for SilverBullet_. This is a large feature that will likely take some time to fully iron out, but you’re welcome to play with it. Currently there:
   * [[Workbench/Overview]]: “Fun facts” about your space (replacing the old Space Overview page that nobody found)
-  * [[Workbench/Configuration]]: the [[Configuration Manager]], moved into the Workbench as a tab with a Configuration and a Key bindings section. `Cmd-,`/`Ctrl-,` opens it. Edits stay pending (marked on the tab) until you save them, even when you close the Workbench.
-  * [[Workbench/Query]]: UI to build queries (exportable as [[Space Lua/Integrated Query]] to paste in your page)
+  * [[Workbench/Configuration]]: the [[Configuration Manager]] moved into the Workbench.
+  * [[Workbench/Data]]: for each tag, **Objects** builds queries visually (exportable as [[Space Lua/Integrated Query]] to paste in your page) and **Schema** shows and edits its attributes, saved to CONFIG.
   * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Switch between space and page context to work with Page Lua variables and functions. Also logs a lot of useful stuff.
-  * [[Workbench/Scripts]]: all the [[Space Lua]] that’s loaded, in what order
-  * [[Workbench/Styles]]: all the [[Space Style]] that’s loaded, in what order
+  * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Health]]: checks the “health” of your space: broken links, conflicts, other things.
+* Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]], [[Object Graph]] and [[Shared Pages]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
 * [[Fonts]]: pick the interface, editor and code fonts in [[Workbench/Configuration]] (Appearance), **including proportional** ones, and the editor's text size. A server-wide **Default font** (Dashboard → Server) sets the dashboard and every space that doesn’t pick its own.
@@ -49,11 +49,15 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
   * `net.proxyFetch` now sets `ok` from the remote server’s status (2xx), as its `status` already was. It used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing. Publishing still authenticates. See [[API/net]].
   * New `index.awaitPendingChanges()` picks up files changed outside the client, such as through the HTTP API, and waits until they are indexed. See [[API/index]].
+  * New `markdown.link(target, alias?)` makes a wiki link to a page or any object (by its `ref`), and nothing when there's nothing to link to. The query builder, docs and standard library use it instead of `"[[" .. p.name .. "]]"`. See [[API/markdown]].
   * `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
   * **Potentially breaking:** `command.define`, `slashCommand.define`, `identity.define`, `taskState.define`, `codeWidget.define`, `virtualPage.define` and `syntax.define` now _merge_ repeated definitions with the same name, like `tag.define` already did, so you can e.g. define a tag’s schema in one place and add a `transform` elsewhere. Previously, each call replaced the whole definition.
 * [[MCP]]: SilverBullet Server can now serve an MCP endpoint at `/.mcp`, so AI assistants can directly read, write, search and query your spaces. Clients sign in with OAuth and act as the account that approved them, on the spaces chosen on a consent page. MCP is off by default: an admin turns it on in the APIs tab.
 * **Potentially breaking:** the legacy `/.auth/authorize` and `/.auth/token` endpoints now only accept SilverBullet’s own clients (`silverbullet-app`, `silverbullet-cli` and `silverbullet-share`); other `client_id`s are refused.
+* Fix: slow filesystem watcher registration no longer delays space startup. Polling tracks changes while native notifications start, and a resync reconciles changes made during registration.
 * Fix: when several files changed outside the editor at once (another device, a script, an assistant), queries could miss all but the first for up to a minute; the rest are now indexed right away.
+* Fix: the frontmatter and data block forms could show unstyled (plain inputs and buttons) on the first visit to a new space, until a reload. Their styles now ship with SilverBullet instead of loading from the space’s index, and space styles no longer wait for docked views to open.
+* Fix: typing a page link next to a live query or widget no longer closes the completion list when the page autosaves.
 * Fix: opening the command palette or a picker right after a page loaded could lose its focus to the editor, so what you typed went into the page instead.
 * Fix: while Space Lua scripts reloaded (after editing a script page), widgets on the open page could briefly fail with errors such as "attempt to index a nil value", because they rendered against a half-loaded environment. Scripts now load into a fresh environment that takes over only once all of them have run.
 * Fix: index-backed views no longer refresh halfway through a queued reindex, which could temporarily hide the page being edited.
