@@ -75,8 +75,11 @@ test("tables keep floats stored in them", () => {
 
 test("a table cell's continuation lines follow the cell's indentation", () => {
   const text = "* Items:\n  ${items = {}}\n";
-  expect(apply(text, "items", new LuaTable(["a", "b"]))).toBe(
-    '* Items:\n  ${items = {\n    "a",\n    "b",\n  }}\n',
+  const value = new LuaTable();
+  void value.rawSet("a", 1);
+  void value.rawSet("b", 2);
+  expect(apply(text, "items", value)).toBe(
+    "* Items:\n  ${items = {\n    a = 1,\n    b = 2,\n  }}\n",
   );
 });
 

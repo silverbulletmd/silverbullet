@@ -65,15 +65,36 @@ test("tables: empty and single field inline", () => {
   expect(fmtExpr('{["a b"]=1}')).toBe('{["a b"] = 1}');
 });
 
+test("tables: a single field that spans lines is expanded", () => {
+  expect(
+    fmtExpr("{anyOf = {schema.number(), {type = 'string', minLength = 2}}}"),
+  ).toBe(`{
+  anyOf = {
+    schema.number(),
+    {
+      type = "string",
+      minLength = 2,
+    },
+  },
+}`);
+});
+
+test("tables: a short list of plain values stays on one line", () => {
+  expect(fmtExpr('{"tags", "page", "schema"}')).toBe(
+    '{"tags", "page", "schema"}',
+  );
+  const long = `{${Array.from({ length: 12 }, (_, i) => `"value${i}"`).join(", ")}}`;
+  expect(fmtExpr(long).split("\n").length).toBeGreaterThan(1);
+});
+
 test("tables: 2+ fields break multiline with trailing comma", () => {
   expect(fmtExpr("{a=1,b=2}")).toBe(`{
   a = 1,
   b = 2,
 }`);
-  expect(fmtExpr("{1,2,3}")).toBe(`{
-  1,
-  2,
-  3,
+  expect(fmtExpr("{a=1,b={c=2}}")).toBe(`{
+  a = 1,
+  b = {c = 2},
 }`);
 });
 
@@ -94,8 +115,9 @@ end`);
 test("function calls and sugar", () => {
   expect(fmtExpr("f(1, 2)")).toBe("f(1, 2)");
   expect(fmtExpr("obj:m(1)")).toBe("obj:m(1)");
-  expect(fmtExpr('f "x"')).toBe('f "x"');
-  expect(fmtExpr('f("x")')).toBe('f "x"');
+  // Only a table argument drops the parentheses: `schema.ref "x"` reads oddly
+  expect(fmtExpr('f "x"')).toBe('f("x")');
+  expect(fmtExpr('f("x")')).toBe('f("x")');
   expect(fmtExpr("f {a=1,b=2}")).toBe(`f {
   a = 1,
   b = 2,

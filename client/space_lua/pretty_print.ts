@@ -230,7 +230,17 @@ class Printer {
 
   private tableConstructor(fields: LuaTableField[], depth: number): string {
     if (fields.length === 0) return "{}";
-    if (fields.length === 1) return `{${this.field(fields[0], depth)}}`;
+    if (fields.length === 1) {
+      const one = `{${this.field(fields[0], depth)}}`;
+      if (!one.includes("\n")) return one;
+    }
+    // A short list of plain values reads best on one line
+    if (fields.every(isPlainListItem)) {
+      const inline = `{${this.fieldList(fields, depth)}}`;
+      if (this.indent(depth).length + inline.length <= INLINE_WIDTH) {
+        return inline;
+      }
+    }
     const lines = fields.map(
       (f) => this.indent(depth + 1) + this.field(f, depth + 1),
     );
@@ -264,7 +274,7 @@ class Printer {
     if (
       !e.orderBy &&
       args.length === 1 &&
-      (args[0].type === "TableConstructor" || args[0].type === "String")
+      args[0].type === "TableConstructor"
     ) {
       return `${base} ${this.expression(args[0], depth)}`;
     }
@@ -464,4 +474,13 @@ export function prettyPrintExpression(
 
 export function prettyPrintBlock(block: LuaBlock, opts?: PrintOptions): string {
   return new Printer(resolveOptions(opts)).block(block, 0);
+}
+
+/** How wide a list of plain values may be and still go on one line */
+const INLINE_WIDTH = 80;
+
+function isPlainListItem(f: LuaTableField): boolean {
+  if (f.type !== "ExpressionField") return false;
+  const t = f.value.type;
+  return t === "String" || t === "Number" || t === "Boolean" || t === "Nil";
 }
