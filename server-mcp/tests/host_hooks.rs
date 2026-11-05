@@ -6,11 +6,11 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use axum::http::{HeaderMap, StatusCode};
 use serde_json::{json, Value};
+use server_space_tools::help::{HelpData, Outline};
 use silverbullet_server_mcp::{
     text_result, Caller, ExtraTool, HostError, Located, McpHost, PathLocator, SpaceInfo,
     SpaceRequest, SpaceResponse, ToolDef, ToolResult, ToolSet, Tools,
 };
-use space_tools::help::{HelpData, Outline};
 
 /// One space, `notes`, whose folder is `/work/notes`.
 struct FolderHost {

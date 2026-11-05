@@ -454,15 +454,17 @@ async fn a_failed_reload_is_retried_only_for_its_writer_and_space() {
 #[tokio::test]
 async fn writing_away_a_script_block_reloads_too() {
     let env = env(Script::new(|_, _, _| ok(Value::Null)));
-    env.call(
-        "write",
-        json!({"page": "Library/Mine", "content": "```space-lua\nx = 1\n```"}),
-    )
-    .await;
+    let created = env
+        .call(
+            "write",
+            json!({"page": "Library/Mine", "content": "```space-lua\nx = 1\n```"}),
+        )
+        .await;
     let w = env
         .call(
             "write",
-            json!({"page": "Library/Mine", "content": "no scripts"}),
+            json!({"page": "Library/Mine", "content": "no scripts",
+                   "ifRevision": created["structuredContent"]["revision"]}),
         )
         .await;
     assert!(text(&w).contains("were reloaded without errors"), "{w}");
@@ -713,12 +715,16 @@ async fn search_returns_page_and_passage() {
 #[tokio::test(flavor = "multi_thread")]
 async fn search_right_after_a_write_sees_it() {
     let env = env(Script::new(|_, _, _| ok(Value::Null)));
+    let mut revision = Value::Null;
     for word in ["fiddlehead", "bracken", "maidenhair"] {
         let content = format!("# Ferns\n\nWater the {word} weekly.\n");
-        let r = env
-            .call("write", json!({"page": "Garden/Ferns", "content": content}))
-            .await;
+        let mut args = json!({"page": "Garden/Ferns", "content": content});
+        if !revision.is_null() {
+            args["ifRevision"] = revision;
+        }
+        let r = env.call("write", args).await;
         assert!(!is_error(&r), "{r}");
+        revision = r["structuredContent"]["revision"].clone();
         let r = env.call("search", json!({"text": word})).await;
         assert!(!is_error(&r), "{r}");
         assert_eq!(

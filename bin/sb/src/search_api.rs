@@ -3,7 +3,7 @@
 
 use reqwest::StatusCode;
 use serde_json::{json, Value};
-use space_tools::ops::{IndexStatus, AWAIT_INDEX_HEADER};
+use server_space_tools::ops::{IndexStatus, AWAIT_INDEX_HEADER};
 
 use crate::api::{read_response, runtime_error};
 use crate::conn::SpaceConnection;

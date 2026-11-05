@@ -1,11 +1,11 @@
 [package]
-name = "silverbullet-space-tools"
+name = "silverbullet-server-space-tools"
 edition.workspace = true
 license.workspace = true
 publish = false
 
 [lib]
-name = "space_tools"
+name = "server_space_tools"
 
 [lints]
 workspace = true

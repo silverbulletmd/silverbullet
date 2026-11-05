@@ -2,8 +2,8 @@
 //! or (with --full-page) the whole page, optionally after opening a page.
 
 use reqwest::Method;
-use space_tools::lua_text::runtime_failure;
-use space_tools::ops::{self, IndexStatus, SpaceApi, SpaceRequest};
+use server_space_tools::lua_text::runtime_failure;
+use server_space_tools::ops::{self, IndexStatus, SpaceApi, SpaceRequest};
 
 use super::lua::{run_options, write_index_note};
 use crate::api::STILL_USABLE_CLI;

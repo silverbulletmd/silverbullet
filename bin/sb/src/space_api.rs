@@ -5,7 +5,7 @@ use std::future::Future;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use space_tools::ops::{SpaceApi, SpaceRequest, SpaceResponse};
+use server_space_tools::ops::{SpaceApi, SpaceRequest, SpaceResponse};
 
 use crate::api::AUTHENTICATION_REQUIRED;
 use crate::conn::SpaceConnection;
@@ -242,7 +242,7 @@ pub(crate) mod test_server {
 #[cfg(test)]
 mod tests {
     use reqwest::Method;
-    use space_tools::ops::{SpaceApi, SpaceRequest};
+    use server_space_tools::ops::{SpaceApi, SpaceRequest};
 
     use super::test_server::{connection, json, response, serve};
     use super::*;

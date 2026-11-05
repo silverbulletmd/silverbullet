@@ -874,7 +874,7 @@ mod tests {
         let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();
-        let data: space_tools::help::HelpData = serde_json::from_slice(&bytes).unwrap();
+        let data: server_space_tools::help::HelpData = serde_json::from_slice(&bytes).unwrap();
         let querying = data
             .skills
             .iter()

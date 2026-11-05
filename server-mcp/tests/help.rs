@@ -6,14 +6,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use axum::http::{HeaderMap, Method, StatusCode};
 use serde_json::{json, Value};
+use server_space_tools::help::{
+    render_overview, FolderCount, HelpData, Outline, SpaceRow, TagSummary, Voice,
+};
+use server_space_tools::skills::{bundled_skills, Skill, SkillSource};
 use silverbullet_server_mcp::{
     Caller, CallerCredential, HostError, McpHost, SpaceInfo, SpaceRequest, SpaceResponse, ToolSet,
     Tools,
 };
-use space_tools::help::{
-    render_overview, FolderCount, HelpData, Outline, SpaceRow, TagSummary, Voice,
-};
-use space_tools::skills::{bundled_skills, Skill, SkillSource};
 use support::{Fixture, Script};
 
 fn std_dir() -> PathBuf {
@@ -113,6 +113,25 @@ impl Env {
     async fn write(&self, page: &str, content: &str) {
         let r = self
             .help_write(json!({"space": self.alpha, "page": page, "content": content}))
+            .await;
+        assert!(!is_error(&r), "{r}");
+    }
+
+    /// Replaces an existing page over the revision a plain read gives.
+    async fn replace(&self, page: &str, content: &str) {
+        let read = self
+            .call_as(
+                "writer-one",
+                "read",
+                json!({"space": self.alpha, "page": page}),
+            )
+            .await;
+        let revision = read["structuredContent"]["revision"].clone();
+        let r = self
+            .help_write(
+                json!({"space": self.alpha, "page": page, "content": content,
+                               "ifRevision": revision}),
+            )
             .await;
         assert!(!is_error(&r), "{r}");
     }
@@ -287,7 +306,7 @@ async fn space_skills_follow_page_changes() {
     let t = env.help_until(|t| t.contains("**Fresh**")).await;
     assert!(t.contains("- **Fresh**: Fresh skill."), "{t}");
 
-    env.write("Notes/Fresh", "---\ntags: notes\n---\n").await;
+    env.replace("Notes/Fresh", "---\ntags: notes\n---\n").await;
     let t = env.help_until(|t| !t.contains("**Fresh**")).await;
     assert!(!t.contains("**Fresh**"), "{t}");
 }

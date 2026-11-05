@@ -22,7 +22,9 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use space_tools::spaces::{ambiguous_message, not_available_message, SpaceLookupError, SpaceRef};
+use server_space_tools::spaces::{
+    ambiguous_message, not_available_message, SpaceLookupError, SpaceRef,
+};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -444,7 +446,7 @@ pub fn find_space<'a>(cfg: &'a Config, wanted: &str) -> Result<&'a SpaceConfig, 
             name: s.name.clone(),
         })
         .collect();
-    match space_tools::spaces::resolve_space(&visible, wanted) {
+    match server_space_tools::spaces::resolve_space(&visible, wanted) {
         Ok(id) => cfg
             .spaces
             .iter()

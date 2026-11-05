@@ -75,7 +75,7 @@
     {
       "name": "write",
       "title": "Write a page",
-      "description": "Create a page or replace it entirely with the given content. To change part of an existing page use `edit` instead.",
+      "description": "Create a page, or replace one entirely. Without `ifRevision` it only creates. To change part of a page use `edit` instead.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -93,7 +93,7 @@
           },
           "ifRevision": {
             "type": "string",
-            "description": "Revision from a previous read; the call fails instead of overwriting a newer change."
+            "description": "Revision from a plain (not `rendered`) `read`. Required to replace a page; omit it to create one."
           }
         },
         "required": ["space", "page", "content"],

@@ -3692,7 +3692,7 @@ dependencies = [
  "silverbullet-server-common",
  "silverbullet-server-runtime-chrome",
  "silverbullet-server-search",
- "silverbullet-space-tools",
+ "silverbullet-server-space-tools",
  "similar",
  "tempfile",
  "tokio",
@@ -4039,7 +4039,7 @@ dependencies = [
  "silverbullet-server-common",
  "silverbullet-server-merge",
  "silverbullet-server-search",
- "silverbullet-space-tools",
+ "silverbullet-server-space-tools",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -4092,7 +4092,7 @@ dependencies = [
  "silverbullet-server",
  "silverbullet-server-common",
  "silverbullet-server-search",
- "silverbullet-space-tools",
+ "silverbullet-server-space-tools",
  "similar",
  "tempfile",
  "tokio",
@@ -4146,7 +4146,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "silverbullet-space-tools"
+name = "silverbullet-server-space-tools"
 version = "0.0.0"
 dependencies = [
  "async-trait",

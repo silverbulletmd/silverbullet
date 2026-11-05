@@ -4,8 +4,8 @@
 use std::io::Write;
 
 use serde_json::Value;
-use space_tools::lua_text::console_section;
-use space_tools::ops::{self, IndexStatus, LuaRun, RunOptions};
+use server_space_tools::lua_text::console_section;
+use server_space_tools::ops::{self, IndexStatus, LuaRun, RunOptions};
 
 use crate::api::STILL_USABLE_CLI;
 use crate::conn::SpaceConnection;

@@ -16,7 +16,7 @@ use silverbullet_server_search::{
     RequestCx, SearchBackend, SearchError, StatusResponse,
 };
 
-use space_tools::ops::{IndexStatus, INDEX_STATUS_HEADER};
+use server_space_tools::ops::{IndexStatus, INDEX_STATUS_HEADER};
 
 use crate::auth::{AccessLevel, Actor};
 use crate::handlers::runtime::{awaits_index, parse_timeout, CATCH_UP_LIMIT};

@@ -1,5 +1,5 @@
 //! `sb help`: the saved spaces, the skills of the selected space and its
-//! outline, or one skill by topic. Rendered by `space_tools::help`, as the
+//! outline, or one skill by topic. Rendered by `server_space_tools::help`, as the
 //! MCP's `help` tool is.
 
 use std::collections::HashMap;
@@ -8,13 +8,13 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use serde_json::json;
-use space_tools::docs::docs_url;
-use space_tools::help::{
+use server_space_tools::docs::docs_url;
+use server_space_tools::help::{
     after_read, find_skill, first_step, no_match_message, or_bundled_copy, render_overview,
     source_label, topic_header, HelpData, Searched, SpaceRow, Topic, TopicStep, Voice,
 };
-use space_tools::paths::page_to_path;
-use space_tools::skills::{bundled_skills, Skill, SkillSource};
+use server_space_tools::paths::page_to_path;
+use server_space_tools::skills::{bundled_skills, Skill, SkillSource};
 
 use crate::cli::GlobalFlags;
 use crate::config::{self, Config};
@@ -102,7 +102,7 @@ fn built_in() -> BuiltIn {
     );
     let text = embedded::STD_SKILLS
         .iter()
-        .map(|(path, text)| (space_tools::paths::path_to_page(path), *text))
+        .map(|(path, text)| (server_space_tools::paths::path_to_page(path), *text))
         .collect();
     BuiltIn { skills, text }
 }

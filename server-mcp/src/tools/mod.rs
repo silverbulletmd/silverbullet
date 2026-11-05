@@ -22,8 +22,8 @@ pub use args::SPACE as SPACE_DESCRIPTION;
 use help::PathHelpArgs;
 pub use pages::PAGE as PAGE_DESCRIPTION;
 use reply::{into_result, Outcome, ToolError};
-use space_tools::skills::{bundled_skills, Skill};
-use space_tools::spaces::{
+use server_space_tools::skills::{bundled_skills, Skill};
+use server_space_tools::spaces::{
     ambiguous_message, not_available_message, resolve_space, SpaceLookupError, SpaceRef,
 };
 
@@ -89,7 +89,7 @@ impl Tools {
         self.bundled_text = pages
             .into_iter()
             .filter_map(|(path, bytes)| {
-                let page = space_tools::paths::path_to_page(&path);
+                let page = server_space_tools::paths::path_to_page(&path);
                 self.bundled
                     .iter()
                     .any(|s| s.page == page)

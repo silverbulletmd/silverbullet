@@ -17,7 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 silverbullet-server-common = { path = "../../server-common" }
-silverbullet-space-tools = { path = "../../space-tools" }
+silverbullet-server-space-tools = { path = "../../server-space-tools" }
 async-trait = { workspace = true }
 clap = { workspace = true }
 reqwest = { workspace = true }

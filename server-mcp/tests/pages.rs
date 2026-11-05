@@ -43,6 +43,16 @@ impl Env {
             .await
     }
 
+    /// Replaces an existing page over the revision a plain read gives.
+    async fn replace(&self, page: &str, content: &str) -> Value {
+        let revision = self.revision(page).await;
+        self.call(
+            "write",
+            json!({"page": page, "content": content, "ifRevision": revision}),
+        )
+        .await
+    }
+
     async fn put_raw(&self, path: &str, body: Vec<u8>) {
         let response = self
             .fixture
@@ -179,9 +189,32 @@ async fn write_creates_and_replaces() {
     let rev1 = created["structuredContent"]["revision"].clone();
     assert_eq!(rev1, r["structuredContent"]["revision"]);
 
-    env.write("Café/Menü", "second").await;
+    let refused = env.write("Café/Menü", "second").await;
+    assert!(is_error(&refused));
+    assert!(text(&refused).contains("already exists"), "{refused}");
+    assert!(text(&refused).contains("ifRevision"), "{refused}");
+    // The refusal names no revision, so replacing takes a read.
+    assert!(
+        !text(&refused).contains(rev1.as_str().unwrap()),
+        "{refused}"
+    );
+    let r = env.call("read", json!({"page": "Café/Menü"})).await;
+    assert_eq!(text(&r), "first");
+
+    let replaced = env.replace("Café/Menü", "second").await;
+    assert!(!is_error(&replaced), "{replaced}");
     let r = env.call("read", json!({"page": "Café/Menü"})).await;
     assert_eq!(text(&r), "second");
+
+    // The revision a write returns replaces it again without a read.
+    let again = env
+        .call(
+            "write",
+            json!({"page": "Café/Menü", "content": "third",
+                   "ifRevision": replaced["structuredContent"]["revision"]}),
+        )
+        .await;
+    assert!(!is_error(&again), "{again}");
 
     for page in ["has space #1?", "Q&A 100%"] {
         env.write(page, page).await;
@@ -194,7 +227,7 @@ async fn write_with_stale_if_revision_reports_conflict() {
     let env = env();
     env.write("Doc", "v1").await;
     let stale = env.revision("Doc").await;
-    env.write("Doc", "v2").await;
+    env.replace("Doc", "v2").await;
     let current = env.revision("Doc").await;
 
     let r = env
@@ -373,7 +406,7 @@ async fn edit_with_stale_if_revision_reports_conflict() {
     let env = env();
     env.write("Doc", "a\n").await;
     let stale = env.revision("Doc").await;
-    env.write("Doc", "a\nb\n").await;
+    env.replace("Doc", "a\nb\n").await;
     let r = env
         .call(
             "edit",

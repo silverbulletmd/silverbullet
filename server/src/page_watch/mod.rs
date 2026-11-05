@@ -8,8 +8,8 @@ pub mod catch_up;
 
 use std::sync::{Arc, OnceLock};
 
+use server_space_tools::skills::{bundled_skills, Skill};
 use silverbullet_server_common::SpacePrimitives;
-use space_tools::skills::{bundled_skills, Skill};
 
 use crate::search::PageSource;
 use catalog::PageCatalog;

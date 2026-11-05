@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
+use server_space_tools::ops::IndexStatus;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 use silverbullet_server_search::{ChangeFeed, FeedEvent, SearchBackend};
-use space_tools::ops::IndexStatus;
 use tokio::sync::broadcast::{self, error::RecvError};
 use tokio::sync::mpsc;
 

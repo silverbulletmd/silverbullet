@@ -4,7 +4,7 @@
 use std::io::{self, Write};
 
 use serde_json::{json, Value};
-use space_tools::page_text::{line_range, slice_lines};
+use server_space_tools::page_text::{line_range, slice_lines};
 
 use super::{connection, emit, invalid, operational, range, text, Mode};
 use crate::cli::GlobalFlags;
@@ -92,7 +92,7 @@ pub(super) fn outline_output(
     let content = text(&file.bytes)?;
     let lines: Vec<&str> = content.lines().collect();
     if matches!(mode, Mode::Json | Mode::Jsonl) {
-        let entries: Vec<Value> = space_tools::page_text::outline_entries(&lines)
+        let entries: Vec<Value> = server_space_tools::page_text::outline_entries(&lines)
             .into_iter()
             .map(|(line, text)| json!({"line": line, "text": text}))
             .collect();
@@ -104,7 +104,7 @@ pub(super) fn outline_output(
         });
         emit(out, &value, "", mode)
     } else {
-        let body = space_tools::page_text::outline(&lines)
+        let body = server_space_tools::page_text::outline(&lines)
             .replace("with offset and limit.", "with --offset and --limit.");
         writeln!(out, "{body}").map_err(operational)
     }
@@ -120,9 +120,9 @@ pub(super) fn read_rendered_page(
 ) -> Result<(), FsError> {
     let conn = connection(g)?;
     let api = crate::space_api::HttpSpaceApi::from_connection(&conn).map_err(operational)?;
-    let rendered = crate::space_api::block_on(space_tools::ops::read_rendered(
+    let rendered = crate::space_api::block_on(server_space_tools::ops::read_rendered(
         &api,
-        &space_tools::paths::path_to_page(path),
+        &server_space_tools::paths::path_to_page(path),
         super::super::lua::run_options(&conn),
         crate::api::STILL_USABLE_CLI,
     ))
@@ -134,7 +134,7 @@ pub(super) fn read_rendered_page(
     super::super::lua::write_index_note(rendered.index, &mut io::stderr()).map_err(operational)?;
     let lines: Vec<&str> = rendered.text.lines().collect();
     let selection = line_range(lines.len(), offset, limit, "rendered page").map_err(invalid)?;
-    let problems = space_tools::ops::lint_values(&rendered.lint);
+    let problems = server_space_tools::ops::lint_values(&rendered.lint);
     if matches!(mode, Mode::Json | Mode::Jsonl) {
         let content = if offset.is_some() || limit.is_some() {
             lines[selection.0 - 1..selection.1].join("\n")
@@ -161,7 +161,7 @@ pub(super) fn read_rendered_page(
             "Widgets are shown as their text; use sb screenshot to see how they look.".to_owned(),
         );
     }
-    sections.push(space_tools::lua_text::lint_section(&problems));
+    sections.push(server_space_tools::lua_text::lint_section(&problems));
     writeln!(out, "{}", sections.join("\n\n")).map_err(operational)
 }
 

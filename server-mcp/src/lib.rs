@@ -24,9 +24,9 @@ pub use host::{
 pub use instructions::instructions;
 pub use multi_host::MultiHost;
 pub use protocol::{AuthFailure, Authenticate};
-pub use space_tools::ops::IndexStatus;
-pub use space_tools::paths::{is_page_name, page_to_path, path_to_page, MAX_RESULT_BYTES};
-pub use space_tools::skills::{bundled_skills, parse_skill, Skill, SkillSource};
+pub use server_space_tools::ops::IndexStatus;
+pub use server_space_tools::paths::{is_page_name, page_to_path, path_to_page, MAX_RESULT_BYTES};
+pub use server_space_tools::skills::{bundled_skills, parse_skill, Skill, SkillSource};
 pub use tool::{
     error_result, image_result, image_result_with_mime, json_result, text_result, Caller,
     CallerCredential, ExtraTool, ToolDef, ToolResult, ToolSet,

@@ -7,13 +7,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use server_space_tools::skills::{page_data, parse_skill, PageData, Skill};
 use silverbullet_server_search::limits::MAX_FILE_BYTES;
 use silverbullet_server_search::{FeedEvent, FileStamp, SpaceView};
-use space_tools::skills::{page_data, parse_skill, PageData, Skill};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
-pub use space_tools::help::TagSummary;
+pub use server_space_tools::help::TagSummary;
 
 use crate::search::PageSource;
 

@@ -37,6 +37,26 @@ pub enum FileError {
     Invalid(String),
     /// The request could not be sent.
     Transport(String),
+    /// A create-only write was refused because the file already exists.
+    Exists,
+}
+
+/// What a write may replace.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Precondition<'a> {
+    /// Whatever is there, or nothing.
+    Any,
+    /// Nothing: the file must not exist yet.
+    Absent,
+    /// Only the file at this revision.
+    Revision(&'a str),
+}
+
+impl<'a> Precondition<'a> {
+    /// `Revision` when `revision` is given, else `Any`.
+    pub fn revision_or_any(revision: Option<&'a str>) -> Self {
+        revision.map_or(Self::Any, Self::Revision)
+    }
 }
 
 fn revision_of(response: &SpaceResponse) -> String {
@@ -90,13 +110,13 @@ pub async fn read_file(api: &dyn SpaceApi, path: &str) -> Result<File, FileError
     }
 }
 
-/// PUTs `body` to `path`, only over revision `if_match` when given, and
-/// returns the new revision.
+/// PUTs `body` to `path` when `precondition` holds, and returns the new
+/// revision.
 pub async fn put_file(
     api: &dyn SpaceApi,
     path: &str,
     body: Vec<u8>,
-    if_match: Option<&str>,
+    precondition: Precondition<'_>,
 ) -> Result<String, FileError> {
     let content_type = if path.ends_with(".md") {
         "text/markdown"
@@ -104,14 +124,20 @@ pub async fn put_file(
         "text/plain"
     };
     let mut headers = vec![(header::CONTENT_TYPE, content_type.to_owned())];
-    if let Some(revision) = if_match {
-        headers.push((header::IF_MATCH, revision.to_owned()));
+    match precondition {
+        Precondition::Any => {}
+        Precondition::Absent => headers.push((header::IF_NONE_MATCH, "*".to_owned())),
+        Precondition::Revision(revision) => headers.push((header::IF_MATCH, revision.to_owned())),
     }
     let response = send(api, Method::PUT, fs_url(path), body, headers).await?;
-    match response.status {
-        StatusCode::OK => Ok(revision_of(&response)),
-        StatusCode::PRECONDITION_FAILED => Err(FileError::Conflict {
-            expected: if_match.unwrap_or_default().to_owned(),
+    match (response.status, precondition) {
+        (StatusCode::OK, _) => Ok(revision_of(&response)),
+        (StatusCode::PRECONDITION_FAILED, Precondition::Absent) => Err(FileError::Exists),
+        (StatusCode::PRECONDITION_FAILED, _) => Err(FileError::Conflict {
+            expected: match precondition {
+                Precondition::Revision(revision) => revision.to_owned(),
+                _ => String::new(),
+            },
             current: Some(revision_of(&response)).filter(|c| !c.is_empty()),
         }),
         _ => Err(status_error(response)),
@@ -125,12 +151,12 @@ pub struct Written {
     pub scripts: bool,
 }
 
-/// Writes `content` to `path`, only over revision `if_match` when given.
+/// Writes `content` to `path` when `precondition` holds.
 pub async fn write_page(
     api: &dyn SpaceApi,
     path: &str,
     content: &str,
-    if_match: Option<&str>,
+    precondition: Precondition<'_>,
 ) -> Result<Written, FileError> {
     // The old text only matters when the new one has no scripts; a page that
     // cannot be read is judged by its new text.
@@ -143,7 +169,7 @@ pub async fn write_page(
         None
     };
     let scripts = needs_reload(path, old.as_deref(), content);
-    let revision = put_file(api, path, content.as_bytes().to_vec(), if_match).await?;
+    let revision = put_file(api, path, content.as_bytes().to_vec(), precondition).await?;
     Ok(Written { revision, scripts })
 }
 
@@ -192,9 +218,14 @@ pub async fn edit_page(
         return Ok(edited);
     }
     let if_match = if_revision.or(Some(edited.read_revision.as_str()).filter(|r| !r.is_empty()));
-    let revision = put_file(api, path, after.into_bytes(), if_match)
-        .await
-        .map_err(EditPageError::Write)?;
+    let revision = put_file(
+        api,
+        path,
+        after.into_bytes(),
+        Precondition::revision_or_any(if_match),
+    )
+    .await
+    .map_err(EditPageError::Write)?;
     edited.written = Some(Written {
         revision,
         scripts: needs_reload(path, Some(&edited.before), &edited.after),
@@ -286,9 +317,15 @@ mod tests {
                         .iter()
                         .find(|(name, _)| *name == header::IF_MATCH)
                         .map(|(_, value)| value.clone());
+                    let if_none_match = req
+                        .headers
+                        .iter()
+                        .any(|(name, value)| *name == header::IF_NONE_MATCH && value == "*");
                     self.puts.lock().unwrap().push(if_match.clone());
                     let current = content.as_deref().map(revision);
-                    if if_match.is_some() && if_match != current {
+                    if (if_match.is_some() && if_match != current)
+                        || (if_none_match && current.is_some())
+                    {
                         StatusCode::PRECONDITION_FAILED
                     } else {
                         headers.insert(REVISION_HEADER, revision(&req.body).parse().unwrap());
@@ -407,9 +444,11 @@ mod tests {
     #[tokio::test]
     async fn removing_a_script_needs_a_reload() {
         let api = OneFile::new("```space-lua\nx = 1\n```\n");
-        let written = write_page(&api, "Tools.md", "plain", None).await.unwrap();
+        let written = write_page(&api, "Tools.md", "plain", Precondition::Any)
+            .await
+            .unwrap();
         assert!(written.scripts);
-        let written = write_page(&api, "Tools.md", "still plain", None)
+        let written = write_page(&api, "Tools.md", "still plain", Precondition::Any)
             .await
             .unwrap();
         assert!(!written.scripts);
@@ -418,12 +457,32 @@ mod tests {
     #[tokio::test]
     async fn a_stale_revision_is_a_conflict() {
         let api = OneFile::new("a");
-        let error = write_page(&api, "Doc.md", "b", Some("\"old\""))
+        let error = write_page(&api, "Doc.md", "b", Precondition::Revision("\"old\""))
             .await
             .err()
             .unwrap();
         assert!(
             matches!(error, FileError::Conflict { expected, current: None } if expected == "\"old\"")
         );
+    }
+
+    #[tokio::test]
+    async fn a_create_only_write_creates_a_missing_file() {
+        let api = with_bytes(None);
+        write_page(&api, "Doc.md", "new", Precondition::Absent)
+            .await
+            .unwrap();
+        assert_eq!(api.text(), "new");
+    }
+
+    #[tokio::test]
+    async fn a_create_only_write_refuses_an_existing_file() {
+        let api = OneFile::new("old");
+        let error = write_page(&api, "Doc.md", "new", Precondition::Absent)
+            .await
+            .err()
+            .unwrap();
+        assert!(matches!(error, FileError::Exists));
+        assert_eq!(api.text(), "old");
     }
 }

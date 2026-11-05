@@ -5,9 +5,9 @@ use std::io::Write;
 
 use serde::Deserialize;
 use serde_json::{json, Value};
-use space_tools::edit::{Edit, EditError, EditErrorKind};
-use space_tools::ops::ReloadReport;
-use space_tools::page_text::needs_reload;
+use server_space_tools::edit::{Edit, EditError, EditErrorKind};
+use server_space_tools::ops::ReloadReport;
+use server_space_tools::page_text::needs_reload;
 
 use super::{connection, operational, Mode};
 use crate::cli::GlobalFlags;
@@ -122,9 +122,9 @@ fn reload_with(conn: &SpaceConnection, path: &str) -> ReloadReport {
     let Ok(api) = crate::space_api::HttpSpaceApi::from_connection(conn) else {
         return ReloadReport::Failed;
     };
-    crate::space_api::block_on(space_tools::ops::reload_after_write(
+    crate::space_api::block_on(server_space_tools::ops::reload_after_write(
         &api,
-        &space_tools::paths::path_to_page(path),
+        &server_space_tools::paths::path_to_page(path),
         super::super::lua::run_options(conn),
     ))
 }
@@ -141,7 +141,7 @@ fn reload_value(report: &ReloadReport) -> Value {
     json!({
         "status": status,
         "loadErrors": load_errors,
-        "lint": space_tools::ops::lint_values(lint),
+        "lint": server_space_tools::ops::lint_values(lint),
     })
 }
 
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn edit_errors_exit_6_when_the_text_does_not_fit_and_2_when_invalid() {
-        use space_tools::edit::{apply, EditOpts};
+        use server_space_tools::edit::{apply, EditOpts};
         let opts = EditOpts {
             all: false,
             old_text: "old text",

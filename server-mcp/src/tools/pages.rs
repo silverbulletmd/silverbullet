@@ -2,10 +2,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use space_tools::edit::{unified_diff, Edit, EditOpts};
-use space_tools::ops::pages::{self, EditPageError, FileError};
-use space_tools::page_text::{conflict_message, line_range, outline, slice_lines};
-use space_tools::paths::{page_to_path, path_to_page, MAX_RESULT_BYTES};
+use server_space_tools::edit::{unified_diff, Edit, EditOpts};
+use server_space_tools::ops::pages::{self, EditPageError, FileError, Precondition};
+use server_space_tools::page_text::{conflict_message, line_range, outline, slice_lines};
+use server_space_tools::paths::{page_to_path, path_to_page, MAX_RESULT_BYTES};
 
 use super::args::{input_schema, Count, SPACE};
 use super::reply::{Outcome, Reply, ToolError};
@@ -22,6 +22,8 @@ const MAX_IMAGE_BYTES: usize = MAX_RESULT_BYTES * 7;
 pub const PAGE: &str = "Page name, e.g. \"Projects/Garden Plan\". The .md extension is optional, except for a name ending in a dot and letters or digits (\"Notes v1.2\"), which otherwise names a document.";
 const IF_REVISION: &str =
     "Revision from a previous read; the call fails instead of overwriting a newer change.";
+const WRITE_IF_REVISION: &str =
+    "Revision from a plain (not `rendered`) `read`. Required to replace a page; omit it to create one.";
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -53,7 +55,7 @@ pub(super) struct WriteArgs {
     page: String,
     /// Full Markdown content of the page.
     content: String,
-    #[schemars(description = IF_REVISION)]
+    #[schemars(description = WRITE_IF_REVISION)]
     if_revision: Option<String>,
 }
 
@@ -97,8 +99,8 @@ pub(super) fn definitions() -> Vec<ToolDef> {
         ToolDef {
             name: "write",
             title: "Write a page",
-            description: "Create a page or replace it entirely with the given content. To change part \
-                of an existing page use `edit` instead."
+            description: "Create a page, or replace one entirely. Without `ifRevision` it only \
+                creates. To change part of a page use `edit` instead."
                 .into(),
             input_schema: input_schema::<WriteArgs>(),
             annotations: annotations(false, false, true),
@@ -176,6 +178,11 @@ fn file_error(error: FileError, action: &str, page: &str, path: &str) -> ToolErr
         }
         FileError::Invalid(e) => format!("{action} returned invalid JSON: {e}"),
         FileError::Transport(e) => e,
+        FileError::Exists => format!(
+            "page \"{}\" already exists; nothing was written. To replace it, `read` it (without \
+             `rendered`) and pass its revision as `ifRevision`, or change part of it with `edit`.",
+            path_to_page(path)
+        ),
     })
 }
 
@@ -428,7 +435,9 @@ impl Tools {
             &self.api(caller, &space),
             &path,
             &content,
-            if_revision.as_deref(),
+            if_revision
+                .as_deref()
+                .map_or(Precondition::Absent, Precondition::Revision),
         )
         .await
         .map_err(|e| file_error(e, "write", &page, &path))?;

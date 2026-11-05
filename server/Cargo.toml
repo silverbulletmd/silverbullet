@@ -11,7 +11,7 @@ workspace = true
 silverbullet-server-common = { path = "../server-common" }
 silverbullet-server-merge = { path = "../server-merge" }
 silverbullet-server-search = { path = "../server-search" }
-silverbullet-space-tools = { path = "../space-tools" }
+silverbullet-server-space-tools = { path = "../server-space-tools" }
 axum = { workspace = true }
 async-trait = { workspace = true }
 tower-http = { workspace = true, features = ["compression-gzip", "compression-br"] }

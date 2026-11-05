@@ -3,7 +3,7 @@
 
 use async_trait::async_trait;
 
-use space_tools::ops::{SpaceApi, SpaceRequest, SpaceResponse};
+use server_space_tools::ops::{SpaceApi, SpaceRequest, SpaceResponse};
 
 use crate::host::McpHost;
 use crate::tool::Caller;

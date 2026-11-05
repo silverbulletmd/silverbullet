@@ -2,7 +2,7 @@ use std::io::{self, IsTerminal, Read, Write};
 use std::process::ExitCode;
 
 use serde_json::{json, Value};
-use space_tools::edit::{self, unified_diff, Edit, EditOpts};
+use server_space_tools::edit::{self, unified_diff, Edit, EditOpts};
 
 use crate::cli::GlobalFlags;
 use crate::conn::SpaceConnection;

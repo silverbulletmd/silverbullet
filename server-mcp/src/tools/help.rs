@@ -4,12 +4,12 @@ use axum::http::{header, Method};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;
-use space_tools::help::{
+use server_space_tools::help::{
     after_read, find_skill, first_step, no_match_message, or_bundled_copy, render_overview,
     source_label, topic_header, HelpData, Searched, SpaceRow, Topic, TopicStep, Voice,
 };
-use space_tools::ops::{SpaceRequest, SpaceResponse};
-use space_tools::skills::Skill;
+use server_space_tools::ops::{SpaceRequest, SpaceResponse};
+use server_space_tools::skills::Skill;
 
 use super::args::{input_schema, SPACE};
 use super::pages::{not_found, PageView};

@@ -1,5 +1,5 @@
 {
-  "rule": "A page name is what SilverBullet shows as a page, never a document or attachment. It is non-empty, does not start with ^, contains none of @ # | < > $ \\ [[ ]], has no empty or dot-leading '/' segment, and does not end in a file extension (a dot after the first character, then one or more ASCII letters or digits to the end). Names are given without a trailing .md. Rust: space_tools::paths::is_page_name. TypeScript: isPageName in desktop/src/main/editor/editor-adapter.ts. Both are tested against this file.",
+  "rule": "A page name is what SilverBullet shows as a page, never a document or attachment. It is non-empty, does not start with ^, contains none of @ # | < > $ \\ [[ ]], has no empty or dot-leading '/' segment, and does not end in a file extension (a dot after the first character, then one or more ASCII letters or digits to the end). Names are given without a trailing .md. Rust: server_space_tools::paths::is_page_name. TypeScript: isPageName in desktop/src/main/editor/editor-adapter.ts. Both are tested against this file.",
   "cases": [
     { "name": "Plan", "page": true },
     { "name": "Projects/Plan", "page": true },

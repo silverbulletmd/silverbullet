@@ -8,13 +8,13 @@ use std::time::Duration;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
-use silverbullet_server_search::FileStamp;
-use space_tools::help::{
+use server_space_tools::help::{
     FolderCount, HelpData, Outline, TagSummary, OUTLINE_ATTRIBUTES, OUTLINE_PAGES, OUTLINE_TAGS,
     SCAN_WAIT_SECS,
 };
-use space_tools::paths::path_to_page;
-use space_tools::skills::merge_skills;
+use server_space_tools::paths::path_to_page;
+use server_space_tools::skills::merge_skills;
+use silverbullet_server_search::FileStamp;
 
 use crate::auth::{AccessLevel, Actor};
 use crate::handlers::space_error_response;
@@ -137,11 +137,11 @@ mod tests {
 
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
+    use server_space_tools::help::{FolderCount, HelpData, TagSummary};
+    use server_space_tools::skills::SkillSource;
     use silverbullet_server_common::space::GitignoreMatcher;
     use silverbullet_server_common::space::{FallthroughSpacePrimitives, MemorySpacePrimitives};
     use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
-    use space_tools::help::{FolderCount, HelpData, TagSummary};
-    use space_tools::skills::SkillSource;
     use tower::ServiceExt;
 
     use crate::auth::{AccessLevel, AuthContext, AuthOutcome, RequestAuthorizer};

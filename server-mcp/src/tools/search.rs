@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use super::args::{input_schema, Count, SPACE};
 use super::reply::{Outcome, Reply};
 use super::{annotations, Tools};
-use space_tools::ops::{IndexStatus, AWAIT_INDEX_HEADER};
+use server_space_tools::ops::{IndexStatus, AWAIT_INDEX_HEADER};
 
 use crate::host::SpaceRequest;
 use crate::tool::{Caller, ToolDef};

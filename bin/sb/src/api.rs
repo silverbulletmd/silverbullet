@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::Read;
 
-use space_tools::lua_text::runtime_failure;
+use server_space_tools::lua_text::runtime_failure;
 
 use crate::conn::{self, SpaceConnection};
 

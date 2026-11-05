@@ -9,12 +9,14 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use space_tools::lua_text::{console_section, lint_section, list_section, value_section, EvalMode};
-use space_tools::ops::{
+use server_space_tools::lua_text::{
+    console_section, lint_section, list_section, value_section, EvalMode,
+};
+use server_space_tools::ops::{
     self, lint_values, IndexStatus, ReloadReport, RunOptions, SpaceApi, SpaceRequest, SpaceResponse,
 };
-use space_tools::page_text::{line_range, slice_lines, truncate_to_boundary};
-use space_tools::paths::{page_to_path, path_to_page, MAX_RESULT_BYTES};
+use server_space_tools::page_text::{line_range, slice_lines, truncate_to_boundary};
+use server_space_tools::paths::{page_to_path, path_to_page, MAX_RESULT_BYTES};
 
 use super::api::HostApi;
 use super::args::{input_schema, SPACE};
@@ -94,7 +96,7 @@ pub(super) fn definitions() -> Vec<ToolDef> {
 }
 
 fn runtime_failure(response: &SpaceResponse) -> String {
-    space_tools::lua_text::runtime_failure(
+    server_space_tools::lua_text::runtime_failure(
         response.status,
         &response.body,
         CALL_TIMEOUT_SECS,
