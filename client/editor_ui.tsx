@@ -150,12 +150,6 @@ export class MainUI {
         void client.startCommandPalette();
       }
     });
-
-    globalThis.addEventListener("mouseup", (_) => {
-      setTimeout(() => {
-        client.editorView.dispatch({});
-      });
-    });
   }
 
   private progressMap = new Map<

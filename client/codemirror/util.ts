@@ -2,8 +2,8 @@
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
 import {
-  type EditorState,
   type EditorSelection,
+  type EditorState,
   type Range,
   StateEffect,
   StateField,
@@ -13,6 +13,7 @@ import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { createIconElement } from "../lib/icon.ts";
+import { pointerPreviewHeld } from "./editing/pointer_preview.ts";
 
 type LinkOptions = {
   text: string;
@@ -48,8 +49,18 @@ export class LinkWidget extends WidgetType {
       anchor.append(document.createTextNode(this.options.text));
     }
 
-    anchor.addEventListener("click", (e) => {
-      if (e.button !== 0) {
+    let altPressHandled = false;
+    const activate = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      if (e.type === "mousedown") {
+        altPressHandled = false;
+        if (!e.altKey) return;
+        // Revealing another source range can move the link before mouseup.
+        altPressHandled = true;
+      } else if (altPressHandled) {
+        altPressHandled = false;
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
       e.preventDefault();
@@ -59,7 +70,9 @@ export class LinkWidget extends WidgetType {
       } catch (e) {
         console.error("Error handling wiki link click", e);
       }
-    });
+    };
+    anchor.addEventListener("mousedown", activate, true);
+    anchor.addEventListener("click", activate);
 
     let touchCount = 0;
     anchor.addEventListener("touchmove", () => {
@@ -134,7 +147,12 @@ export function decoratorStateField(
         return value;
       }
 
-      if (tr.isUserEvent("select.pointer")) return value;
+      if (
+        tr.isUserEvent("select.pointer") ||
+        tr.state.field(pointerPreviewHeld, false)
+      ) {
+        return tr.docChanged ? value.map(tr.changes) : value;
+      }
       return stateToDecoratorMapper(tr.state, tr);
     },
 

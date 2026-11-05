@@ -30,3 +30,36 @@ test("a link with empty text renders no text", () => {
   });
   expect(w.toDOM().textContent).toBe("");
 });
+
+test("Alt press reveals source without navigating if Alt is released before the click", () => {
+  const widget = new LinkWidget({
+    text: "Library",
+    title: "Library",
+    cssClass: "sb-wiki-link",
+    from: 0,
+    callback: (event) => {
+      if (event.altKey) anchor.textContent = "[[Library]]";
+      else anchor.dataset.navigated = "true";
+    },
+  });
+  const anchor = widget.toDOM();
+  anchor.dispatchEvent(
+    new MouseEvent("mousedown", {
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  expect(anchor.textContent).toBe("[[Library]]");
+  anchor.dispatchEvent(
+    new MouseEvent("click", { bubbles: true, cancelable: true }),
+  );
+  expect(anchor.dataset.navigated).toBeUndefined();
+  anchor.dispatchEvent(
+    new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+  );
+  anchor.dispatchEvent(
+    new MouseEvent("click", { bubbles: true, cancelable: true }),
+  );
+  expect(anchor.dataset.navigated).toBe("true");
+});

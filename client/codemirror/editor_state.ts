@@ -54,6 +54,7 @@ import { keyboardAwareTooltips } from "../lib/keyboard_viewport.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { editorHighlightStyle } from "../style.ts";
 import { loadVim } from "../vim_loader.ts";
+import { androidInputSelection } from "./editing/android_input.ts";
 import type { TextChange } from "./editing/change.ts";
 import { cleanModePlugins } from "./editing/clean.ts";
 import {
@@ -61,12 +62,12 @@ import {
   pasteLinkExtension,
 } from "./editing/editor_paste.ts";
 import { iosCompletionTapHandling } from "./editing/ios_completion.ts";
-import { androidInputSelection } from "./editing/android_input.ts";
 import { iosEnterHandling } from "./editing/ios_enter.ts";
 import {
   customDeleteMarkupBackward,
   customEnterCommand,
 } from "./editing/markdown_enter.ts";
+import { pointerPreview } from "./editing/pointer_preview.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
@@ -264,6 +265,7 @@ export function buildPageExtensions(
     externalPresence(),
     conflictMarkers(client),
     codeFolding(),
+    pointerPreview,
     ...cleanModePlugins(client),
     EditorView.lineWrapping,
     plugLinter(client),
