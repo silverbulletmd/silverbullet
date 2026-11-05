@@ -38,7 +38,7 @@ similar = "3"
 percent-encoding = "2"
 regex = "1"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
-minijinja = "2"
+minijinja = { version = "2", default-features = false, features = ["builtins", "serde"] }
 prometheus = { version = "0.14", default-features = false }
 tracing = "0.1"
 async-trait = "0.1"
