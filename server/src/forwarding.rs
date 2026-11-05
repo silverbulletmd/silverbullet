@@ -4,6 +4,7 @@
 //! runs; [`crate::FsGuard`] reports each recorded write to it.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -33,7 +34,7 @@ struct Unforwarded {
 }
 
 pub struct ForwardTracker {
-    mode: WatchMode,
+    polls: AtomicBool,
     unforwarded: Mutex<Unforwarded>,
     forwarded: Notify,
 }
@@ -41,7 +42,7 @@ pub struct ForwardTracker {
 impl ForwardTracker {
     pub(crate) fn new(mode: WatchMode) -> Self {
         Self {
-            mode,
+            polls: AtomicBool::new(matches!(mode, WatchMode::Poll(_))),
             unforwarded: Mutex::default(),
             forwarded: Notify::new(),
         }
@@ -50,7 +51,11 @@ impl ForwardTracker {
     /// Whether the watcher polls, so [`Self::caught_up`] can never confirm
     /// that changes made on disk were seen.
     pub fn polls(&self) -> bool {
-        matches!(self.mode, WatchMode::Poll(_))
+        self.polls.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn native_ready(&self) {
+        self.polls.store(false, Ordering::Release);
     }
 
     /// Tracks a recorded write until the watcher reports its path. Dot paths
@@ -104,15 +109,14 @@ impl ForwardTracker {
         if !self.writes_forwarded(deadline).await {
             return false;
         }
-        match self.mode {
-            WatchMode::Poll(_) => false,
-            WatchMode::Auto | WatchMode::Off => {
-                let window = (started + PIPELINE_WINDOW)
-                    .max(Instant::now() + FEED_HOP)
-                    .min(deadline);
-                tokio::time::sleep_until(window.into()).await;
-                true
-            }
+        if self.polls() {
+            false
+        } else {
+            let window = (started + PIPELINE_WINDOW)
+                .max(Instant::now() + FEED_HOP)
+                .min(deadline);
+            tokio::time::sleep_until(window.into()).await;
+            true
         }
     }
 

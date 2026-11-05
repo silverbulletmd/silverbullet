@@ -234,6 +234,17 @@ impl FsGuard {
         self.forwarding.get()
     }
 
+    pub(crate) fn expected_write_paths(&self) -> std::collections::HashSet<String> {
+        let now = Instant::now();
+        self.expected_writes
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(_, write)| now.duration_since(write.recorded_at) < EXPECTED_WRITE_TTL)
+            .map(|((path, _), _)| path.clone())
+            .collect()
+    }
+
     /// The expected-write entry for an exact `(path, hash)`, if any and not
     /// yet expired.
     pub fn lookup_expected_write(&self, path: &str, hash: &str) -> Option<ExpectedWrite> {

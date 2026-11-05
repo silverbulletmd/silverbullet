@@ -59,6 +59,7 @@ async fn a_disk_write_is_searchable_once_the_watcher_caught_up() {
         watcher.subscribe(),
     );
     indexed(search.as_ref(), "tomatoes").await;
+    crate::test_support::wait_for_native_watcher(&guard).await;
 
     std::fs::write(root.join("Garden.md"), "basil").unwrap();
     let deadline = Instant::now() + Duration::from_secs(5);

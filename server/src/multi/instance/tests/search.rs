@@ -271,6 +271,7 @@ async fn multi_user_indexes_live_under_the_data_root_hidden_from_a_root_folder_s
         dir.path().to_str().unwrap(),
     );
     let state = Arc::new(try_build_state("root", &cfg, "", &deps).unwrap());
+    crate::test_support::wait_for_native_watcher(&state.fs_guard).await;
     // What `/.events` clients, the listing cache and the index's forwarder see.
     let mut events = state.fs_events.as_ref().unwrap().subscribe();
     std::fs::create_dir_all(dir.path().join("git-keys")).unwrap();

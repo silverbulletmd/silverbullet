@@ -25,6 +25,7 @@ async fn watched_state(dir: &std::path::Path) -> Arc<crate::ServerState> {
     state.boot_config.space_folder_path = folder;
     state.authorizer = Some(Arc::new(Grant(Some(AccessLevel::Write), Some("gardener"))));
     wait_ready(&state).await;
+    crate::test_support::wait_for_native_watcher(&state.fs_guard).await;
     Arc::new(state)
 }
 

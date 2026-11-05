@@ -9,12 +9,13 @@ use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
-use notify::{Event, EventKind, RecursiveMode, Watcher};
 use serde::Serialize;
 use tokio::sync::broadcast;
 
 use silverbullet_server_common::space::disk::DiskSpacePrimitives;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
+
+mod startup;
 
 use crate::fs_guard::{ExpectedWrite, FsGuard};
 
@@ -234,10 +235,10 @@ const CHANNEL_CAPACITY: usize = 256;
 const ERROR_LOG_INTERVAL: Duration = Duration::from_secs(30);
 const ABANDONMENT_CHECK_INTERVAL: Duration = Duration::from_secs(30);
 
-/// Start watching `root`. Returns the broadcast sender (subscribe for events),
-/// or None if the watcher is off or could not be started (callers degrade to
-/// polling). `gitignore` must match what the space's DiskSpacePrimitives was
-/// built with, so watcher visibility agrees with the /.fs API.
+/// Returns a filesystem event feed. Native registration runs in the
+/// background with polling until it completes; resync events reconcile the
+/// startup and handoff gaps. None means watching is off or startup failed.
+/// `gitignore` must match the space's DiskSpacePrimitives visibility rules.
 pub fn start_watcher(
     root: &Path,
     gitignore: &str,
@@ -264,78 +265,21 @@ pub fn start_watcher(
             return None;
         }
     };
+    let validator = Arc::new(validator);
     let (broadcast_tx, _) = broadcast::channel(CHANNEL_CAPACITY);
     let (raw_tx, raw_rx) = mpsc::channel::<PathBuf>();
 
-    let watcher_tx = raw_tx.clone();
-    let mut last_error_log: Option<Instant> = None;
-    // Only the path is forwarded, not the raw event kind: the debounce loop
-    // decides Change vs. Delete from actual on-disk state at flush time (see
-    // its comment) rather than trusting which notify::EventKind fired.
-    let event_handler = move |res: notify::Result<Event>| {
-        let event = match res {
-            Ok(event) => event,
-            Err(e) => {
-                let now = Instant::now();
-                let should_log = last_error_log
-                    .map(|t| now.duration_since(t) >= ERROR_LOG_INTERVAL)
-                    .unwrap_or(true);
-                if should_log {
-                    tracing::warn!("fs watcher error: {e}");
-                    last_error_log = Some(now);
-                }
-                return;
-            }
-        };
-        if matches!(event.kind, EventKind::Access(_)) {
-            return;
-        }
-        for path in event.paths {
-            let _ = watcher_tx.send(path);
-        }
-    };
-
-    // Both variants are kept alive by moving them into the debounce thread;
-    // neither field is read again, only dropped when the thread exits.
-    #[allow(dead_code)]
-    enum AnyWatcher {
-        Native(notify::RecommendedWatcher),
-        Poll(notify::PollWatcher),
-    }
-    let watcher = match mode {
-        WatchMode::Auto => match notify::recommended_watcher(event_handler) {
-            Ok(mut w) => match w.watch(&root, RecursiveMode::Recursive) {
-                Ok(()) => AnyWatcher::Native(w),
-                Err(e) => {
-                    tracing::warn!("Not starting fs watcher: {e}");
-                    return None;
-                }
-            },
-            Err(e) => {
-                tracing::warn!("Not starting fs watcher: {e}");
-                return None;
-            }
-        },
-        WatchMode::Poll(interval) => {
-            let config = notify::Config::default().with_poll_interval(interval);
-            match notify::PollWatcher::new(event_handler, config) {
-                Ok(mut w) => match w.watch(&root, RecursiveMode::Recursive) {
-                    Ok(()) => AnyWatcher::Poll(w),
-                    Err(e) => {
-                        tracing::warn!("Not starting poll watcher: {e}");
-                        return None;
-                    }
-                },
-                Err(e) => {
-                    tracing::warn!("Not starting poll watcher: {e}");
-                    return None;
-                }
-            }
-        }
-        WatchMode::Off => unreachable!(),
-    };
-
     let weak_out = broadcast_tx.downgrade();
+    let watcher = startup::start(
+        root.clone(),
+        mode,
+        raw_tx,
+        weak_out.clone(),
+        fs_guard.clone(),
+        validator.clone(),
+    )
+    .map_err(|error| tracing::warn!("Not starting fs watcher: {error}"))
+    .ok()?;
     let thread_guard = fs_guard.clone();
     std::thread::Builder::new()
         .name("sb-fs-watcher".into())
@@ -352,10 +296,31 @@ pub fn start_watcher(
             );
         })
         .ok()?;
-    // Only once the thread runs: without it no write would ever be forwarded.
-    fs_guard.watched(mode);
 
     Some(broadcast_tx)
+}
+
+fn startup_resync(
+    root: &Path,
+    validator: &DiskSpacePrimitives,
+    guard: &FsGuard,
+    sender: &broadcast::Sender<FsEvent>,
+) {
+    // The initial polling baseline can absorb an HTTP write without a file
+    // event. Replay its attribution before a blanket resync marks it external.
+    let ignore = validator.gitignore_matcher();
+    for name in guard.expected_write_paths() {
+        if to_space_path(root, &root.join(&name)).is_none() || ignore.is_ignored(&name, false) {
+            continue;
+        }
+        let (event, meta) = match validator.get_file_meta_if_listable(&name) {
+            Ok(Some(meta)) => (FsEvent::change(name, meta.last_modified), Some(meta)),
+            Err(SpaceError::NotFound) => (FsEvent::delete(name), None),
+            _ => continue,
+        };
+        let _ = sender.send(enrich_event(event, meta.as_ref(), guard, validator));
+    }
+    let _ = sender.send(FsEvent::resync());
 }
 
 pub(crate) fn debounce_loop(
@@ -489,6 +454,50 @@ mod tests {
     use crate::auth::Actor;
     use std::time::Duration;
 
+    async fn start_watcher(
+        root: &Path,
+        gitignore: &str,
+        mode: WatchMode,
+        guard: Arc<FsGuard>,
+    ) -> Option<broadcast::Sender<FsEvent>> {
+        let events = super::start_watcher(root, gitignore, mode, guard.clone())?;
+        if mode == WatchMode::Auto {
+            crate::test_support::wait_for_native_watcher(&guard).await;
+        }
+        Some(events)
+    }
+
+    #[test]
+    fn startup_resync_preserves_the_author_of_a_write_absorbed_by_the_baseline() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        std::fs::write(root.join("Note.md"), b"hello").unwrap();
+        let validator = DiskSpacePrimitives::new(&root, "").unwrap();
+        let guard = FsGuard::default();
+        let hash = guard.hash_for(&validator, "Note.md").unwrap();
+        guard.record_expected_write(
+            "Note.md",
+            &hash,
+            Actor {
+                full_name: Some("Rowan Vale".into()),
+                email: Some("rowan@example.test".into()),
+                ..Default::default()
+            },
+            None,
+            None,
+        );
+        let (sender, mut events) = broadcast::channel(16);
+        startup_resync(&root, &validator, &guard, &sender);
+        let change = events.try_recv().unwrap();
+        assert_eq!(change.name, "Note.md");
+        assert_eq!(change.action, FsAction::Change);
+        let origin = change.origin.unwrap();
+        assert_eq!(origin.kind, EventOriginKind::User);
+        assert_eq!(origin.display_name.as_deref(), Some("Rowan Vale"));
+        assert_eq!(origin.email.as_deref(), Some("rowan@example.test"));
+        assert_eq!(events.try_recv().unwrap().action, FsAction::Resync);
+    }
+
     #[test]
     fn poll_interval_defaults_when_unset_or_unusable() {
         assert_eq!(parse_poll_interval(None), DEFAULT_POLL_INTERVAL);
@@ -601,6 +610,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .expect("watcher should start");
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("test.md"), b"hello").unwrap();
@@ -622,6 +632,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join(".hidden"), b"x").unwrap();
@@ -639,6 +650,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("build/output.js"), b"x").unwrap();
@@ -655,6 +667,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::create_dir(dir.path().join("subdir")).unwrap();
@@ -671,6 +684,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("Makefile"), b"x").unwrap();
@@ -689,6 +703,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::remove_file(&p).unwrap();
@@ -716,7 +731,9 @@ mod tests {
         std::os::unix::fs::symlink(real.path(), &link).unwrap();
         // Watch via the symlink; write via the symlink; expect the event to
         // arrive with a correctly-relativized name (canonicalization at work)
-        let tx = start_watcher(&link, "", WatchMode::Auto, Arc::new(FsGuard::default())).unwrap();
+        let tx = start_watcher(&link, "", WatchMode::Auto, Arc::new(FsGuard::default()))
+            .await
+            .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(link.join("linked.md"), b"via symlink").unwrap();
         let ev = tokio::time::timeout(Duration::from_secs(3), rx.recv())
@@ -742,6 +759,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::rename(dir.path().join("Foo.md"), dir.path().join("foo.md")).unwrap();
@@ -779,6 +797,7 @@ mod tests {
             WatchMode::Poll(Duration::from_millis(100)),
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("polled.md"), b"hello").unwrap();
@@ -795,7 +814,9 @@ mod tests {
     async fn off_mode_returns_none() {
         let dir = tempfile::tempdir().unwrap();
         assert!(
-            start_watcher(dir.path(), "", WatchMode::Off, Arc::new(FsGuard::default())).is_none()
+            start_watcher(dir.path(), "", WatchMode::Off, Arc::new(FsGuard::default()))
+                .await
+                .is_none()
         );
     }
 
@@ -808,6 +829,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         for i in 0..40 {
@@ -837,7 +859,9 @@ mod tests {
     async fn flood_does_not_hash_files_before_collapsing_into_resync() {
         let dir = tempfile::tempdir().unwrap();
         let guard = Arc::new(FsGuard::default());
-        let tx = start_watcher(dir.path(), "", WatchMode::Auto, guard.clone()).unwrap();
+        let tx = start_watcher(dir.path(), "", WatchMode::Auto, guard.clone())
+            .await
+            .unwrap();
         let mut rx = tx.subscribe();
         for i in 0..40 {
             std::fs::write(dir.path().join(format!("flood{i}.md")), b"x").unwrap();
@@ -873,6 +897,7 @@ mod tests {
             WatchMode::Auto,
             Arc::new(FsGuard::default()),
         )
+        .await
         .unwrap();
         let mut rx = tx.subscribe();
         for i in 0..5 {

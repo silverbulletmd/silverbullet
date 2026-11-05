@@ -34,6 +34,16 @@ mod test_support {
     use silverbullet_server_common::space::MemorySpacePrimitives;
     use silverbullet_server_common::{BootConfig, RevisionsMode};
 
+    pub async fn wait_for_native_watcher(guard: &crate::FsGuard) {
+        tokio::time::timeout(std::time::Duration::from_secs(30), async {
+            while guard.forwarding().unwrap().polls() {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("native watcher did not become ready");
+    }
+
     /// An `ServerState` backed by a fresh in-memory space and a fresh in-memory
     /// "bundle" (also a MemorySpacePrimitives). Tests seed files as needed.
     pub fn test_state() -> ServerState {
