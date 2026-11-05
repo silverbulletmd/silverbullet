@@ -24,6 +24,7 @@ Defines a tag explicitly.
 * `metatable` to set a custom Lua metatable for objects with this tag.
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
 * `schema` [[Schema]] to validate against
+* `icon` a [Feather](https://feathericons.com) icon name for the tag itself, shown in the [[Workbench]]. Unlike `pageDecoration`, it doesn't decorate the tag's pages; when it's absent, `pageDecoration.icon` is used.
 * `pageDecoration` [[Page Decorations|page decoration]] (`icon`, `prefix`, `cssClasses`, …) for every page with this tag. See [[Page Decorations#Apply to every page with a tag]].
 * `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
@@ -31,6 +32,13 @@ Defines a tag explicitly.
 * `renderDataBlock` callback function `function(object, ctx)` that renders each object of a ` ```#name ` [[Tag/data|data block]] as a custom widget in the editor. See [[#Data block previews]].
 
 When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback. To remove a field set by an earlier call, set it to `config.unset` (e.g. `tag.define { name = "person", transform = config.unset }`).
+
+## tag.setRequired(name, attribute, required)
+Makes `attribute` required (`true`) or optional (`false`) in the schema of tag `name`, keeping its other required attributes. Because it runs each time configuration loads, it extends a schema defined elsewhere (a built-in tag, a library) without freezing that schema's own required list. The [[Workbench]] writes these calls when you change whether an attribute is required.
+
+```lua
+tag.setRequired("page", "category", true)
+```
 
 # Use cases
 ## Schema validation

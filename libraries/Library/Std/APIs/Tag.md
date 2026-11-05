@@ -16,6 +16,7 @@ Defines a tag, or extends an existing definition. Put `tag.define` calls in your
 * `schema` (table): a [JSON Schema](https://silverbullet.md/Schema) the tag's objects are validated against. Build it with the [[^Library/Std/APIs/Schema|schema]] helpers. Validation failures show as lint warnings in the editor.
 * `mustValidate` (boolean): when `true`, objects that fail `schema` or `validate` are not indexed. Defaults to `false`.
 * `validate` (function `function(object)`): custom validation; returns `nil` when valid, or an error message.
+* `icon` (string): a [Feather](https://feathericons.com) icon name for the tag itself, shown in the Workbench. Unlike `pageDecoration`, it doesn't decorate the tag's pages; when it's absent, `pageDecoration.icon` is used.
 * `pageDecoration` (table): a [page decoration](https://silverbullet.md/Page%20Decorations) (`icon`, `prefix`, `cssClasses`, …) for every page with this tag. A page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` from all of them combine. Changing it re-indexes the pages with the tag.
 * `transform` (function `function(object)`): called for each indexed object with this tag. Change the object and return it, return `{}` to skip indexing it, return `nil` to index it unchanged, or return a list of objects to index instead (one of which must keep the original `ref`).
 * `metatable` (table): a Lua metatable set on the tag's objects, e.g. to add computed attributes via `__index`.
@@ -23,6 +24,9 @@ Defines a tag, or extends an existing definition. Put `tag.define` calls in your
 * `renderDataBlock` (function `function(object, ctx)`): renders each object of a ` ```#name ` data block as a widget. See [[#Rendering objects]].
 
 Calling `tag.define` again with the same `name` merges the new fields into the existing definition, so you can extend built-in tags. Set a field to `config.unset` to remove it.
+
+## tag.setRequired(name, attribute, required)
+Makes `attribute` required (`true`) or optional (`false`) in the schema of tag `name`, keeping the other required attributes. It runs whenever configuration loads, so requirements a library or built-in tag adds later are kept rather than frozen. The Workbench's Data tab writes these calls when you change whether an attribute is required.
 
 Example:
 
@@ -89,6 +93,31 @@ function tag.define(spec)
   if metatable then
     config.setLuaValue({"tags", spec.name, "metatable"}, metatable)
   end
+end
+
+--- Makes `attribute` required or optional in the schema of tag `name`, keeping its other required attributes.
+--- @param name string the tag's name
+--- @param attribute string the attribute
+--- @param required boolean whether it is required
+--- @see API/tag
+function tag.setRequired(name, attribute, required)
+  local path = {"tags", name, "schema"}
+  local schema = config.get(path)
+  if not schema then
+    config.set(path, { type = "object" })
+    schema = {}
+  end
+  local list = {}
+  for _, n in ipairs(schema.required or {}) do
+    if n ~= attribute then
+      table.insert(list, n)
+    end
+  end
+  if required then
+    table.insert(list, attribute)
+  end
+  -- An empty Lua table would read back as an object, not an empty list
+  config.set({"tags", name, "schema", "required"}, #list > 0 and list or config.unset)
 end
 
 -- Set up tags.* short cut via meta tables

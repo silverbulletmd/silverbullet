@@ -138,3 +138,40 @@ config.set("view.defaults", {
 })
 ```
 
+
+```space-lua
+-- managed-by: configuration-manager
+config.set("fonts.ui", "inter")
+config.set("fonts.editor", "inter")
+config.set("workbench.pinnedTags", {
+  "page",
+  "task",
+})
+```
+
+```space-lua
+-- managed-by: workbench-schemas
+-- priority: -10
+tag.define {
+  name = "api/lua",
+  schema = {
+    type = "object",
+    properties = {references = schema.array "string"},
+    required = {"references"},
+  },
+}
+tag.define {
+  name = "component",
+  schema = {
+    type = "object",
+    properties = {
+      connectsTo = {anyOf = {
+        schema.array "string",
+        schema.ref(),
+      }},
+      partOf = schema.ref(),
+      consumes = schema.ref(),
+    },
+  },
+}
+```

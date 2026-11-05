@@ -22,6 +22,7 @@ local rangeType = {
 
 tag.define {
   name = "page",
+  icon = "file-text",
   schema = {
     type = "object",
     additionalProperties = true,
@@ -91,6 +92,7 @@ tag.define {
 
 tag.define {
   name = "aspiring-page",
+  icon = "file-plus",
   schema = {
     type = "object",
     additionalProperties = true,
@@ -106,6 +108,7 @@ tag.define {
 
 tag.define {
   name = "document",
+  icon = "file",
   schema = {
     type = "object",
     additionalProperties = true,
@@ -137,6 +140,7 @@ tag.define {
 
 tag.define {
   name = "item",
+  icon = "list",
   schema = {
     type = "object",
     additionalProperties = true,
@@ -164,6 +168,7 @@ tag.define {
 
 tag.define {
   name = "tag",
+  icon = "tag",
   schema = {
     type = "object",
     properties = {
@@ -187,6 +192,7 @@ tag.define {
 -- Deprecated: a view over relation records, kept for compatibility
 tag.define {
   name = "link",
+  icon = "link",
   schema = {
     type = "object",
     properties = {
@@ -218,6 +224,7 @@ tag.define {
 
 tag.define {
   name = "relation",
+  icon = "share-2",
   schema = {
     type = "object",
     properties = {
@@ -250,6 +257,7 @@ tag.define {
 
 tag.define {
   name = "header",
+  icon = "hash",
   schema = {
     type = "object",
     properties = {
@@ -273,6 +281,7 @@ tag.define {
 
 tag.define {
   name = "paragraph",
+  icon = "align-left",
   schema = {
     type = "object",
     properties = {
@@ -296,6 +305,7 @@ tag.define {
 
 tag.define {
   name = "table",
+  icon = "grid",
   schema = {
     type = "object",
     -- One property per column
@@ -320,6 +330,7 @@ tag.define {
 
 tag.define {
   name = "data",
+  icon = "database",
   schema = {
     type = "object",
     -- One property per YAML key
@@ -349,6 +360,7 @@ tag.define {
 
 tag.define {
   name = "space-lua",
+  icon = "code",
   schema = {
     type = "object",
     properties = {
@@ -363,6 +375,7 @@ tag.define {
 
 tag.define {
   name = "space-style",
+  icon = "droplet",
   schema = {
     type = "object",
     properties = {
@@ -377,6 +390,7 @@ tag.define {
 
 tag.define {
   name = "ambiguous-link",
+  icon = "help-circle",
   schema = {
     type = "object",
     properties = {
@@ -396,6 +410,7 @@ tag.define {
 
 tag.define {
   name = "identity",
+  icon = "at-sign",
   schema = {
     type = "object",
     properties = {
@@ -410,6 +425,7 @@ tag.define {
 
 tag.define {
   name = "anchor",
+  icon = "anchor",
   schema = {
     type = "object",
     properties = {
@@ -426,6 +442,7 @@ tag.define {
 
 tag.define {
   name = "task",
+  icon = "check-square",
   schema = {
     type = "object",
     additionalProperties = true,
@@ -450,6 +467,42 @@ tag.define {
       done = readOnlyType("boolean"),
       pageLastModified = readOnlyType("string"),
     },
+  },
+}
+
+tag.define {
+  name = "meta/library/remote",
+  schema = {
+    type = "object",
+    properties = {
+      name = schema.string(),
+      author = schema.string(),
+      description = schema.string(),
+      uri = {
+        type = "string",
+        format = "uri",
+      },
+      website = {
+        type = "string",
+        format = "uri",
+      },
+    },
+    required = {
+      "name",
+      "uri",
+    },
+  },
+}
+tag.define {
+  name = "meta/library",
+  schema = {
+    type = "object",
+    properties = {
+      files = schema.array("string"),
+      share = schema.object(),
+      description = schema.string(),
+    },
+    required = {"name"},
   },
 }
 

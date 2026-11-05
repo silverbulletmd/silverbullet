@@ -39,6 +39,8 @@ tag.define {
 }
 ```
 
+Without writing Lua, the Workbench's Data tab (`Workbench: Schema`) shows a tag's attributes, creates a schema from the ones its objects use, and edits schemas in place, saving them to a managed block in `CONFIG`.
+
 # Schema helpers
 The `schema` table builds JSON Schema values; a plain table such as `{type = "string"}` works too.
 

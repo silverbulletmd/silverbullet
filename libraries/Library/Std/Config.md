@@ -505,6 +505,8 @@ config.define("tags", {
     type = "object",
     properties = {
       name = schema.string(),
+      -- Feather icon name for how the tag itself is shown (Workbench)
+      icon = schema.string(),
       schema = schema.schema(),
       -- Whether or not an object HAS to validate to be indexed (defaults to false), has a performance penalty
       mustValidate = schema.boolean(),
@@ -585,6 +587,13 @@ config.define("keyboardBar", {
     required = {"icon"},
     additionalProperties = false
   }
+})
+
+config.define("workbench.pinnedTags", {
+  description = "Tags pinned at the top of the Workbench Data tab, in order.",
+  type = "array",
+  items = schema.string(),
+  default = {"page", "task"},
 })
 
 config.define("view.defaults", {
