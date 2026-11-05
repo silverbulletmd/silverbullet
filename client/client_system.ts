@@ -508,8 +508,12 @@ export class ClientSystem {
       "Now loading space scripts, custom styles and rebuilding editor state",
     );
     await this.loadLuaScripts();
-    await restoreDocks();
+    // Before the docks: opening a docked view can be slow or fail, and the
+    // page shouldn't wait unstyled for it
     await this.client.loadCustomStyles();
+    await restoreDocks().catch((e) =>
+      console.error("Could not restore docked views:", e),
+    );
     // Prewarmed widget results hold values (and closures) from the previous
     // Lua environment; drop them so rebuilt widgets bind to the new one.
     this.client.widgetCache.clearPrewarm();

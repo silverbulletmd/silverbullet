@@ -167,6 +167,11 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     }
 
     const previous = pendingActivation.get(slot);
+    // A restore puts back what was docked: it must not undo a view the user
+    // opened since, nor re-open the same view and drop its options (segment)
+    if (passive && previous && (!previous.passive || previous.view === name)) {
+      return false;
+    }
 
     try {
       const token = ++activationToken;

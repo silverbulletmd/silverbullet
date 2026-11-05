@@ -987,3 +987,20 @@ test("a narrow screen skips the configured-open pass", async () => {
   await lifecycle.restoreDocks();
   expect(slots.showSlot).not.toHaveBeenCalled();
 });
+
+test("a boot restore leaves a view the user opened in its slot meanwhile, with the user's options", async () => {
+  const { config, getMeta } = makeConfig({ sidebarSlots: ["bhs"] } as any);
+  getMeta.mockReturnValue({ dock: "bhs" });
+  datastore.get.mockImplementation(async (key) =>
+    key[1] === "docked" ? "w" : undefined,
+  );
+  const lc = createPanelLifecycle(config);
+
+  // The restore reads the docked key first, so the user's open lands in between
+  await Promise.all([lc.restoreDocks(), lc.open("w", { segment: "Data" })]);
+  expect(lc.current("bhs")).toMatchObject({ view: "w", segment: "Data" });
+
+  // A later restore (System: Reload) leaves it too
+  await lc.restoreDocks();
+  expect(lc.current("bhs")).toMatchObject({ view: "w", segment: "Data" });
+});
