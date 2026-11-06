@@ -24,6 +24,7 @@ export function RowItem({
   hasIcon,
   readOnly,
   phrase,
+  segment,
   onClick,
   onAction,
   elRef,
@@ -42,6 +43,8 @@ export function RowItem({
   readOnly: boolean;
   /** The phrase ranking rows, for matched-character highlighting -- undefined while it's empty. */
   phrase?: string;
+  /** The segment this row lives in, when it isn't the active one. */
+  segment?: string;
   onClick?: () => void;
   onAction: (index: number) => void;
   elRef?: Ref<HTMLDivElement>;
@@ -53,6 +56,13 @@ export function RowItem({
   const showActions = selected || hovered;
   const left = decorations.filter((d) => d.position === "left");
   const right = decorations.filter((d) => d.position !== "left");
+  if (segment) {
+    right.unshift({
+      text: segment,
+      position: "right",
+      cssClass: "sb-nav-chip-hint",
+    });
+  }
   return (
     <div
       ref={elRef}

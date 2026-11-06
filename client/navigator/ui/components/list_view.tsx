@@ -95,6 +95,7 @@ export function ListView({
             hasIcon={hasIcon}
             readOnly={readOnly}
             phrase={phrase}
+            segment={entry.segment}
             elRef={i === selectedIndex ? selectedRef : undefined}
             onClick={onSelect ? () => onSelect(i) : undefined}
             onAction={(actionIndex) => onAction(i, actionIndex)}

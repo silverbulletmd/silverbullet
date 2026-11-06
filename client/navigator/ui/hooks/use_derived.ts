@@ -12,7 +12,7 @@ import type { NavigatorEngine, RankedRow } from "../engine.ts";
 import { type RankCacheEntry, rankIncrementally } from "../incremental_rank.ts";
 import type { ActiveView } from "../panel.ts";
 import { matchesTags, splitHashtags } from "../phrase.ts";
-import { applySegment } from "../segments.ts";
+import { applySegment, exactMatchElsewhere } from "../segments.ts";
 
 /** Rendered rows when the view doesn't set `presentation.limit`. */
 const DEFAULT_LIMIT = 200;
@@ -149,13 +149,45 @@ export function useDerived({
     return result.ranked;
   }, [view, sourceMode, filteredRows, rankPhrase]);
 
+  // An exact name the active segment hides still shows, on top and labelled
+  // with where it lives: otherwise you get neither the row nor a create.
+  const trimmedRankPhrase = rankPhrase.trim();
+  const elsewhere = useMemo(() => {
+    if (!view || sourceMode || view.meta.mode === "tree") return undefined;
+    const wanted = tagKey ? tagKey.split("\u0000") : [];
+    return exactMatchElsewhere(
+      view.rows,
+      trimmedRankPhrase,
+      segmentIndex,
+      view.meta.segments,
+      view.segmentMasks,
+      (row) =>
+        applyDropdown([row], dropdownIndex, view.dropdownMasks).length > 0 &&
+        (wanted.length === 0 || matchesTags(row, wanted)),
+    );
+  }, [
+    view,
+    sourceMode,
+    trimmedRankPhrase,
+    segmentIndex,
+    dropdownIndex,
+    tagKey,
+  ]);
+
   const limit = view?.meta.limit || DEFAULT_LIMIT;
-  const visible = ranked.length > limit ? ranked.slice(0, limit) : ranked;
+  const visible = useMemo(() => {
+    const capped = ranked.length > limit ? ranked.slice(0, limit) : ranked;
+    if (!elsewhere) return capped;
+    return [
+      { row: elsewhere.row, score: 0, segment: elsewhere.segment },
+      ...capped,
+    ];
+  }, [ranked, limit, elsewhere]);
 
   const segments = view?.meta.segments;
 
   // Use the ranking phrase for creation so hashtag filters stay out of the name.
-  const trimmedPhrase = rankPhrase.trim();
+  const trimmedPhrase = trimmedRankPhrase;
   // Same trigger as FilterList's `allowNew`: a non-empty phrase that no row
   // already carries verbatim. Scanning `view.rows` (not `ranked`) keeps this
   // honest when the fuzzy ranker drops an exact match off the visible list.
@@ -208,7 +240,7 @@ export function useDerived({
   // An unfiltered tree is bounded by what's expanded, so it renders whole; a
   // filtered one auto-expands every match, which is what the cap is for.
   const truncated =
-    !isTreeMode || treeFiltering ? ranked.length - visible.length : 0;
+    !isTreeMode || treeFiltering ? Math.max(0, ranked.length - limit) : 0;
   // While filtering, the pruned tree isn't the real structure -- a "folder"
   // on screen may be missing most of its children -- so a drop into it would
   // mean something other than what the user sees.

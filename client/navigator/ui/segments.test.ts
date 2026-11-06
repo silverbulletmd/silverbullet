@@ -3,6 +3,7 @@ import {
   applySegment,
   cycleSegmentIndex,
   defaultSegmentIndex,
+  exactMatchElsewhere,
   type SegmentMasks,
   segmentIndexFor,
 } from "./segments.ts";
@@ -78,4 +79,37 @@ test("a row with no mask is dropped, not admitted", () => {
     "a",
   ]);
   expect(applySegment(rows, 1, segments, undefined)).toEqual([]);
+});
+
+test("an exact name the active segment hides is found in its own segment", () => {
+  const segs: SegmentMeta[] = [
+    { label: "Pages", hasWhere: true, default: true },
+    { label: "Meta", hasWhere: true },
+    { label: "All", hasWhere: false },
+  ];
+  const config = row("CONFIG");
+  const hidden = row("Secret");
+  const notes = row("Notes");
+  const rows = [notes, config, hidden];
+  const masks = masksFor(rows, [
+    [true, false, false],
+    [false, true, false],
+    [false, false, false],
+  ]);
+  expect(exactMatchElsewhere(rows, "CONFIG", 0, segs, masks)).toEqual({
+    row: config,
+    segment: "Meta",
+  });
+  // Only "All" shows a hidden page.
+  expect(exactMatchElsewhere(rows, "Secret", 0, segs, masks)?.segment).toBe(
+    "All",
+  );
+  // Already shown, not an exact name, or a pass-through segment: nothing.
+  expect(exactMatchElsewhere(rows, "Notes", 0, segs, masks)).toBeUndefined();
+  expect(exactMatchElsewhere(rows, "CONF", 0, segs, masks)).toBeUndefined();
+  expect(exactMatchElsewhere(rows, "CONFIG", 2, segs, masks)).toBeUndefined();
+  // Other filters (dropdown, hashtags) still apply.
+  expect(
+    exactMatchElsewhere(rows, "CONFIG", 0, segs, masks, () => false),
+  ).toBeUndefined();
 });

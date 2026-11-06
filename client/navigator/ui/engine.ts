@@ -63,7 +63,13 @@ export type ViewState = {
   tracked?: string[];
 };
 
-export type RankedRow = { row: Row; score: number };
+export type RankedRow = {
+  row: Row;
+  score: number;
+  /** Set when the row belongs to a segment other than the active one -- the
+   * exact-name match `exactMatchElsewhere` lets through -- and names it. */
+  segment?: string;
+};
 
 function metaChanged(a: ViewMeta, b: ViewMeta): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
