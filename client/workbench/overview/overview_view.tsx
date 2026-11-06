@@ -259,7 +259,7 @@ export function OverviewView({ client, builder, showing }: TabProps) {
                 {headline.to ? (
                   <Link
                     to={headline.to}
-                    name="Show conflicts in Health"
+                    name="Show conflicts in Maintenance"
                     className={headline.tone && `sb-wbo-${headline.tone}`}
                   >
                     {headline.text}
@@ -276,8 +276,8 @@ export function OverviewView({ client, builder, showing }: TabProps) {
                   <>
                     {" · "}
                     <Link
-                      to={LINKS.health}
-                      name="Show conflicts in Health"
+                      to={LINKS.maintenance}
+                      name="Show conflicts in Maintenance"
                       className="sb-wbo-danger"
                     >
                       {fmt(conflicts)} conflicts

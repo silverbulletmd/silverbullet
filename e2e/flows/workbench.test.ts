@@ -843,7 +843,7 @@ test.describe("query builder refresh", () => {
   });
 });
 
-test.describe("overview and health", () => {
+test.describe("overview and maintenance", () => {
   test.use({
     spaceFiles: {
       "index.md": "See [[Missing Placeholder]] #idea\n\n- [ ] Open task #idea",
@@ -853,7 +853,7 @@ test.describe("overview and health", () => {
     },
   });
 
-  test("workbench opens on Overview; Health lists a broken link and the space-wide lint finds bad YAML", async ({
+  test("workbench opens on Overview; Maintenance lists a broken link and the space-wide lint finds bad YAML", async ({
     page,
     sbServer,
   }) => {
@@ -896,17 +896,20 @@ test.describe("overview and health", () => {
     ).toHaveCount(1);
     await tabs.getByRole("radio", { name: /^Overview/ }).click();
 
-    await tabs.getByRole("radio", { name: /^Health/ }).click();
+    await runCommandViaPalette(page, "Workbench: Maintenance");
+    await expect(
+      tabs.getByRole("radio", { name: /^Maintenance/ }),
+    ).toHaveAttribute("aria-checked", "true");
     await expect(visibleTab).toContainText("Missing Placeholder");
 
     await visibleTab
       .getByRole("button", { name: "Run space-wide lint" })
       .click();
     const deep = visibleTab.getByRole("region", { name: "Space-wide lint" });
-    const row = deep.locator(".sb-wbh-row", { hasText: "Broken" });
+    const row = deep.locator(".sb-wbm-row", { hasText: "Broken" });
     await expect(row).toBeVisible();
     await expect(
-      deep.locator(".sb-wbh-row", { hasText: "Script" }),
+      deep.locator(".sb-wbm-row", { hasText: "Script" }),
     ).toHaveCount(0);
     await expect(row).toBeVisible();
     await row.click();

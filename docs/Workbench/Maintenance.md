@@ -1,11 +1,11 @@
 ---
 description: "Find broken links, script failures, merge conflicts and space-wide lint errors."
 references:
-- client/workbench/health/**
+- client/workbench/maintenance/**
 ---
-The Health tab lists (potential) problems in your space in one place.
+The Maintenance tab lists (potential) problems in your space in one place.
 
-${widgets.commandButton("Workbench: Health")} opens this tab in the [[Workbench]].
+${widgets.commandButton("Workbench: Maintenance")} opens this tab in the [[Workbench]].
 
 The checks below are instant, and refresh as your space changes:
 * **Broken links:** links to pages that don’t exist yet ([[Tag/aspiring-page|aspiring pages]]).

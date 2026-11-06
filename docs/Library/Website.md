@@ -169,7 +169,7 @@ docsNav.sections = {
           { ref = "Workbench/Code/Styles" },
         },
         { ref = "Workbench/Libraries" },
-        { ref = "Workbench/Health" },
+        { ref = "Workbench/Maintenance" },
         { ref = "Workbench/Console" },
       },
       { label = "Collaboration and history",

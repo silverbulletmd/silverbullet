@@ -286,12 +286,12 @@ describe("gitHeadline", () => {
     ).toEqual({ text: "Sync failed", tone: "danger" });
   });
 
-  test("conflicted counts the conflicts and links to Health", () => {
+  test("conflicted counts the conflicts and links to Maintenance", () => {
     const conflicted = snapshot({ state: "conflicted", paths: ["a.md"] });
     expect(gitHeadline(conflicted, 2)).toEqual({
       text: "2 conflicted",
       tone: "danger",
-      to: LINKS.health,
+      to: LINKS.maintenance,
     });
     expect(gitHeadline(conflicted, undefined).text).toBe("1 conflicted");
   });

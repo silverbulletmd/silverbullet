@@ -17,7 +17,7 @@ import { errorMessage } from "../shared/value_preview.ts";
 import { styleStatus } from "../styles/styles.ts";
 
 export type Severity = "error" | "warning" | "info";
-export type HealthGroup =
+export type MaintenanceGroup =
   | "deep"
   | "broken"
   | "ambiguous"
@@ -27,8 +27,8 @@ export type HealthGroup =
 /** Where a problem opens: a position (parseable by `parseToRef`, e.g. `Page@L3C5`), or a navigator view. */
 export type ProblemTarget = { ref: string } | { view: string };
 
-export type HealthProblem = {
-  group: HealthGroup;
+export type MaintenanceProblem = {
+  group: MaintenanceGroup;
   severity: Severity;
   label: string;
   message: string;
@@ -39,7 +39,7 @@ export type HealthProblem = {
 };
 
 /** The groups listed from the index and Git; the space-wide lint follows them. */
-export const INSTANT_GROUPS: Exclude<HealthGroup, "deep">[] = [
+export const INSTANT_GROUPS: Exclude<MaintenanceGroup, "deep">[] = [
   "broken",
   "ambiguous",
   "scripts",
@@ -60,7 +60,7 @@ function refPage(ref: string): string {
 
 export function brokenLinkProblems(
   rows: { ref: string; name: string }[],
-): HealthProblem[] {
+): MaintenanceProblem[] {
   return rows.map((r) => ({
     group: "broken",
     severity: "warning",
@@ -79,7 +79,7 @@ export function ambiguousLinkProblems(
     resolvesTo: string;
     candidates: string[];
   }[],
-): HealthProblem[] {
+): MaintenanceProblem[] {
   return rows.map((r) => ({
     group: "ambiguous",
     severity: "warning",
@@ -104,8 +104,8 @@ function blockTarget(
 export function scriptStyleProblems(
   scripts: ScriptRecord[],
   styles: StyleRecord[],
-): HealthProblem[] {
-  const out: HealthProblem[] = [];
+): MaintenanceProblem[] {
+  const out: MaintenanceProblem[] = [];
   for (const s of scripts) {
     let severity: Severity;
     let message: string;
@@ -144,7 +144,9 @@ export function scriptStyleProblems(
   return out;
 }
 
-export function conflictProblems(conflicts: GitConflict[]): HealthProblem[] {
+export function conflictProblems(
+  conflicts: GitConflict[],
+): MaintenanceProblem[] {
   return conflicts.map((c) => ({
     group: "conflicts",
     severity: "error",
@@ -163,9 +165,9 @@ export function conflictProblems(conflicts: GitConflict[]): HealthProblem[] {
 export function syncStateProblems(
   snapshot: GitSyncSnapshot,
   listed: GitConflict[] = [],
-): HealthProblem[] {
+): MaintenanceProblem[] {
   const { sync } = snapshot;
-  const row = (severity: Severity, message: string): HealthProblem => ({
+  const row = (severity: Severity, message: string): MaintenanceProblem => ({
     group: "conflicts",
     severity,
     label: "Git sync",
@@ -197,7 +199,9 @@ export function syncStateProblems(
   }
 }
 
-export function lintProblems(diags: SpaceLintDiagnostic[]): HealthProblem[] {
+export function lintProblems(
+  diags: SpaceLintDiagnostic[],
+): MaintenanceProblem[] {
   return diags.map((d) => ({
     // Leftover markers are a merge problem, wherever they came from
     group: d.source === "conflict" ? "conflicts" : "deep",
@@ -217,10 +221,10 @@ export function lintProblems(diags: SpaceLintDiagnostic[]): HealthProblem[] {
 }
 
 export function filterProblems(
-  ps: HealthProblem[],
+  ps: MaintenanceProblem[],
   severity: Severity | "all",
   text: string,
-): HealthProblem[] {
+): MaintenanceProblem[] {
   const needle = text.trim().toLowerCase();
   return ps.filter(
     (p) =>
@@ -232,7 +236,7 @@ export function filterProblems(
 }
 
 export function severityCounts(
-  ps: HealthProblem[],
+  ps: MaintenanceProblem[],
 ): Record<Severity | "all", number> {
   const counts = { all: ps.length, error: 0, warning: 0, info: 0 };
   for (const p of ps) counts[p.severity]++;
@@ -240,6 +244,6 @@ export function severityCounts(
 }
 
 /** Only errors count toward the tab badge. */
-export function badgeCount(ps: HealthProblem[]): number {
+export function badgeCount(ps: MaintenanceProblem[]): number {
   return ps.filter((p) => p.severity === "error").length;
 }

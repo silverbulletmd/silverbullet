@@ -9,7 +9,7 @@ export const WORKBENCH_TABS = [
   "Data",
   "Code",
   "Libraries",
-  "Health",
+  "Maintenance",
   "Console",
 ] as const;
 export type WorkbenchTab = (typeof WORKBENCH_TABS)[number];

@@ -20,13 +20,13 @@ import type { TabProps } from "../tab.ts";
 import type { DeepCheckState } from "./deep_check.ts";
 import {
   filterProblems,
-  type HealthGroup,
-  type HealthProblem,
+  type MaintenanceGroup,
+  type MaintenanceProblem,
   INSTANT_GROUPS,
   lintProblems,
   type Severity,
   severityCounts,
-} from "./health.ts";
+} from "./maintenance.ts";
 
 const SEVERITIES: { value: Severity | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -35,7 +35,7 @@ const SEVERITIES: { value: Severity | "all"; label: string }[] = [
   { value: "info", label: "Info" },
 ];
 
-const GROUPS: Record<HealthGroup, string> = {
+const GROUPS: Record<MaintenanceGroup, string> = {
   broken: "Broken links",
   ambiguous: "Ambiguous links",
   scripts: "Scripts and styles",
@@ -84,14 +84,18 @@ function useWatched<T>(
   return value;
 }
 
-export function HealthView({ client, focusTarget, health }: TabProps) {
-  const { deepCheck } = health;
-  const instant = useWatched(health, () => health.instant);
+export function MaintenanceView({
+  client,
+  focusTarget,
+  maintenance,
+}: TabProps) {
+  const { deepCheck } = maintenance;
+  const instant = useWatched(maintenance, () => maintenance.instant);
   const deep = useWatched(deepCheck, () => deepCheck.state);
   const [phrase, setPhrase] = useState("");
   const [severity, setSeverity] = useState(0);
-  const [collapsed, setCollapsed] = useState<Set<HealthGroup>>(new Set());
-  const [expanded, setExpanded] = useState<Set<HealthGroup>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<MaintenanceGroup>>(new Set());
+  const [expanded, setExpanded] = useState<Set<MaintenanceGroup>>(new Set());
   const filterInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -118,25 +122,25 @@ export function HealthView({ client, focusTarget, health }: TabProps) {
   const filtering = severity !== 0 || phrase.trim() !== "";
 
   const toggle =
-    (set: Set<HealthGroup>, update: (s: Set<HealthGroup>) => void) =>
-    (g: HealthGroup) => {
+    (set: Set<MaintenanceGroup>, update: (s: Set<MaintenanceGroup>) => void) =>
+    (g: MaintenanceGroup) => {
       const next = new Set(set);
       if (!next.delete(g)) next.add(g);
       update(next);
     };
   const toggleCollapsed = toggle(collapsed, setCollapsed);
   const toggleExpanded = toggle(expanded, setExpanded);
-  const inGroup = (ps: HealthProblem[], g: HealthGroup) =>
+  const inGroup = (ps: MaintenanceProblem[], g: MaintenanceGroup) =>
     ps.filter((p) => p.group === g);
 
   const section = (
-    g: HealthGroup,
-    rows: HealthProblem[],
+    g: MaintenanceGroup,
+    rows: MaintenanceProblem[],
     status?: ComponentChildren,
   ) => {
     const open = !collapsed.has(g);
     return (
-      <section key={g} className="sb-wbh-group" aria-label={GROUPS[g]}>
+      <section key={g} className="sb-wbm-group" aria-label={GROUPS[g]}>
         <GroupHeader
           group={g}
           count={rows.length}
@@ -157,7 +161,7 @@ export function HealthView({ client, focusTarget, health }: TabProps) {
   };
 
   return (
-    <div className="sb-workbench sb-wb-health">
+    <div className="sb-workbench sb-wb-maintenance">
       <div className="sb-wb-toolbar">
         <input
           ref={filterInput}
@@ -212,7 +216,7 @@ export function HealthView({ client, focusTarget, health }: TabProps) {
 }
 
 function GroupHeader(props: {
-  group: HealthGroup;
+  group: MaintenanceGroup;
   count: number;
   open: boolean;
   onToggle: () => void;
@@ -222,22 +226,22 @@ function GroupHeader(props: {
   return (
     <button
       type="button"
-      className="sb-wbh-head"
+      className="sb-wbm-head"
       aria-expanded={props.open}
       onClick={props.onToggle}
     >
-      <Chevron size={14} className="sb-wbh-chevron" />
-      <span className="sb-wbh-name">{name}</span>
-      <span className="sb-wbh-count">{fmt(props.count)}</span>
+      <Chevron size={14} className="sb-wbm-chevron" />
+      <span className="sb-wbm-name">{name}</span>
+      <span className="sb-wbm-count">{fmt(props.count)}</span>
     </button>
   );
 }
 
-function CleanGroup({ group }: { group: HealthGroup }) {
+function CleanGroup({ group }: { group: MaintenanceGroup }) {
   const name = GROUPS[group];
   return (
-    <div className="sb-wbh-clean">
-      <Check size={14} className="sb-wbh-check" />
+    <div className="sb-wbm-clean">
+      <Check size={14} className="sb-wbm-check" />
       <span>{name}</span>
     </div>
   );
@@ -252,7 +256,7 @@ function DeepStatus(props: {
   if (state.kind === "idle") {
     return (
       <DeepLine>
-        <span className="sb-wbh-explain">
+        <span className="sb-wbm-explain">
           Lints every page and renders every widget to find YAML, Lua, schema,
           anchor and widget errors. Takes a while on large spaces.
         </span>
@@ -265,13 +269,13 @@ function DeepStatus(props: {
   if (state.kind === "running") {
     return (
       <DeepLine>
-        <div className="sb-wbh-progress">
+        <div className="sb-wbm-progress">
           <span>
             {fmt(state.done)} / {fmt(state.total)} pages
           </span>
           <Progress value={state.total ? state.done / state.total : 0} />
-          <span className="sb-wbh-page">{state.page}</span>
-          <span className="sb-wbh-hint">
+          <span className="sb-wbm-page">{state.page}</span>
+          <span className="sb-wbm-hint">
             {plural(state.found.length, "finding")} so far
           </span>
         </div>
@@ -288,7 +292,7 @@ function DeepStatus(props: {
   return (
     <>
       <DeepLine>
-        <span className="sb-wbh-hint">
+        <span className="sb-wbm-hint">
           ran {time} · {plural(state.pages, "page")} ·{" "}
           {seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s
           {state.cancelled ? " · cancelled" : ""}
@@ -296,12 +300,12 @@ function DeepStatus(props: {
         <Button onClick={props.onRun}>Run again</Button>
       </DeepLine>
       {state.error !== undefined ? (
-        <div className="sb-wbh-failed" role="alert">
+        <div className="sb-wbm-failed" role="alert">
           Space-wide lint failed: {state.error}
         </div>
       ) : state.found.length === 0 ? (
-        <div className="sb-wbh-clean">
-          <Check size={14} className="sb-wbh-check" />
+        <div className="sb-wbm-clean">
+          <Check size={14} className="sb-wbm-check" />
           <span>No problems found</span>
         </div>
       ) : null}
@@ -310,12 +314,12 @@ function DeepStatus(props: {
 }
 
 function DeepLine({ children }: { children: ComponentChildren }) {
-  return <div className="sb-wbh-deep">{children}</div>;
+  return <div className="sb-wbm-deep">{children}</div>;
 }
 
 function ProblemRows(props: {
   client: Client;
-  problems: HealthProblem[];
+  problems: MaintenanceProblem[];
   all: boolean;
   onMore: () => void;
 }) {
@@ -331,7 +335,7 @@ function ProblemRows(props: {
         />
       ))}
       {problems.length > shown.length && (
-        <button type="button" className="sb-wbh-more" onClick={props.onMore}>
+        <button type="button" className="sb-wbm-more" onClick={props.onMore}>
           + {fmt(problems.length - shown.length)} more
         </button>
       )}
@@ -350,7 +354,7 @@ function ProblemRow({
   problem,
 }: {
   client: Client;
-  problem: HealthProblem;
+  problem: MaintenanceProblem;
 }) {
   const { target } = problem;
   const refText = target && "ref" in target ? target.ref : undefined;
@@ -371,12 +375,12 @@ function ProblemRow({
   const hint = refText ? ` (${refText})` : "";
   return (
     <div
-      className={`sb-wbh-row sb-wbh-${problem.severity}${canOpen ? " sb-wbh-openable" : ""}`}
+      className={`sb-wbm-row sb-wbm-${problem.severity}${canOpen ? " sb-wbm-openable" : ""}`}
       title={refText}
       onClick={canOpen ? () => void open() : undefined}
     >
       <div
-        className="sb-wbh-main"
+        className="sb-wbm-main"
         role={canOpen ? "button" : undefined}
         tabIndex={canOpen ? 0 : undefined}
         aria-label={
@@ -395,13 +399,13 @@ function ProblemRow({
             : undefined
         }
       >
-        <Icon size={14} className="sb-wbh-icon" aria-hidden="true" />
-        <span className="sb-wbh-label">
+        <Icon size={14} className="sb-wbm-icon" aria-hidden="true" />
+        <span className="sb-wbm-label">
           {problem.label}
           {line}
         </span>
-        <span className="sb-wbh-message">{problem.message}</span>
-        <span className="sb-wbh-source">{problem.source}</span>
+        <span className="sb-wbm-message">{problem.message}</span>
+        <span className="sb-wbm-source">{problem.source}</span>
       </div>
       <ActionMenu actions={canOpen ? [OPEN, COPY] : [COPY]} deps={deps} />
     </div>

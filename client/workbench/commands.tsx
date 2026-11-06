@@ -18,8 +18,11 @@ import {
 import { consoleLog } from "./console/console_log.ts";
 import { ConsoleSession } from "./console/console_session.ts";
 import { dataModel, schemaDrafts } from "./data/data_commands.ts";
-import { DeepCheck } from "./health/deep_check.ts";
-import { HealthMonitor, healthWatch } from "./health/health_sources.ts";
+import { DeepCheck } from "./maintenance/deep_check.ts";
+import {
+  MaintenanceMonitor,
+  maintenanceWatch,
+} from "./maintenance/maintenance_sources.ts";
 import { updateByName } from "./libraries/libraries_backend.ts";
 import {
   LIBRARY_COMMANDS,
@@ -59,8 +62,8 @@ export function registerWorkbenchCommands(
     ui: () => client.ui,
   });
   const builder = new QueryBuilder();
-  const health = new HealthMonitor(
-    healthWatch(client),
+  const maintenance = new MaintenanceMonitor(
+    maintenanceWatch(client),
     new DeepCheck((opts) => lintPages(spaceLintDeps(client), undefined, opts)),
   );
   const configuration = configurationModel(client);
@@ -71,7 +74,7 @@ export function registerWorkbenchCommands(
       {...props}
       session={session}
       builder={builder}
-      health={health}
+      maintenance={maintenance}
       configuration={configuration}
       data={data}
       schemas={schemas}

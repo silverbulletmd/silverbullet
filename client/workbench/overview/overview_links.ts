@@ -40,7 +40,7 @@ export const LINKS = {
   allTags: { kind: "queryText", expr: ALL_TAGS_QUERY },
   spaceLog: { kind: "view", view: "std.spaceLog" },
   gitStatus: { kind: "view", view: "std.gitStatus" },
-  health: { kind: "workbench", target: { tab: "Health" } },
+  maintenance: { kind: "workbench", target: { tab: "Maintenance" } },
   scripts: { kind: "workbench", target: { tab: "Code", section: "lua" } },
   styles: { kind: "workbench", target: { tab: "Code", section: "style" } },
 } satisfies Record<string, OverviewLink>;

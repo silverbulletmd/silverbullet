@@ -17,8 +17,8 @@ import { ConsoleView } from "./console/console_view.tsx";
 import type { DataModel } from "./data/data_model.ts";
 import { DataView } from "./data/data_view.tsx";
 import type { SchemaDrafts } from "./data/schema/schema_drafts.ts";
-import type { HealthMonitor } from "./health/health_sources.ts";
-import { HealthView } from "./health/health_view.tsx";
+import type { MaintenanceMonitor } from "./maintenance/maintenance_sources.ts";
+import { MaintenanceView } from "./maintenance/maintenance_view.tsx";
 import { LibrariesView } from "./libraries/libraries_view.tsx";
 import { OverviewView } from "./overview/overview_view.tsx";
 import type { QueryBuilder } from "./query/query_builder.ts";
@@ -26,7 +26,7 @@ import type { TabProps } from "./tab.ts";
 
 const BODIES: Record<WorkbenchTab, FunctionComponent<TabProps>> = {
   Overview: OverviewView,
-  Health: HealthView,
+  Maintenance: MaintenanceView,
   Console: ConsoleView,
   Code: CodeView,
   Libraries: LibrariesView,
@@ -46,14 +46,14 @@ export function WorkbenchView({
   focusTarget,
   session,
   builder,
-  health,
+  maintenance,
   configuration,
   data,
   schemas,
 }: NativeViewProps & {
   session: ConsoleSession;
   builder: QueryBuilder;
-  health: HealthMonitor;
+  maintenance: MaintenanceMonitor;
   configuration: ConfigurationModel;
   data: DataModel;
   schemas: SchemaDrafts;
@@ -62,9 +62,9 @@ export function WorkbenchView({
   const shown = useRef(segmentIndex);
   const noFocus = useCallback(() => () => {}, []);
 
-  // Health's problems and badge load only while the Workbench is open: this
+  // Maintenance's problems and badge load only while the Workbench is open: this
   // body unmounts when the panel closes
-  useEffect(() => health.start(), [health]);
+  useEffect(() => maintenance.start(), [maintenance]);
 
   // The navigator restores a view's remembered tab only after its first
   // render (`activation.ts`), so the default tab can take focus and then be
@@ -95,7 +95,7 @@ export function WorkbenchView({
               client={client}
               session={session}
               builder={builder}
-              health={health}
+              maintenance={maintenance}
               configuration={configuration}
               data={data}
               schemas={schemas}

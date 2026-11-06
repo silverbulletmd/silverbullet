@@ -45,8 +45,8 @@ test("a badge set for a view's segment reaches its subscribers and clears", asyn
   };
   await act(() => render(h(Probe, {}), document.createElement("div")));
   expect(seen).toEqual({});
-  await act(() => setNativeBadge("std.workbench", "Health", "2"));
-  expect(seen).toEqual({ Health: "2" });
-  await act(() => setNativeBadge("std.workbench", "Health", undefined));
+  await act(() => setNativeBadge("std.workbench", "Maintenance", "2"));
+  expect(seen).toEqual({ Maintenance: "2" });
+  await act(() => setNativeBadge("std.workbench", "Maintenance", undefined));
   expect(seen).toEqual({});
 });

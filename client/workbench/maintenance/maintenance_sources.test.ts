@@ -7,14 +7,14 @@ import type { SpaceLintDiagnostic } from "../../space_lint.ts";
 import type { ScriptRecord } from "../../space_lua.ts";
 import { PermissionDeniedError } from "../../spaces/http_space_primitives.ts";
 import { DeepCheck } from "./deep_check.ts";
-import type { HealthProblem } from "./health.ts";
+import type { MaintenanceProblem } from "./maintenance.ts";
 import {
   badgeErrorCount,
-  HealthMonitor,
-  type HealthWatch,
+  MaintenanceMonitor,
+  type MaintenanceWatch,
   type InstantSources,
-  loadInstantHealth,
-} from "./health_sources.ts";
+  loadInstantMaintenance,
+} from "./maintenance_sources.ts";
 
 const setNativeBadge = vi.fn();
 vi.mock("../../navigator/ui/native_views.ts", () => ({
@@ -33,9 +33,9 @@ function sources(over: Partial<InstantSources> = {}): InstantSources {
   };
 }
 
-describe("loadInstantHealth", () => {
+describe("loadInstantMaintenance", () => {
   it("includes links from library and repository pages, sorted by page and position", async () => {
-    const problems = await loadInstantHealth(
+    const problems = await loadInstantMaintenance(
       sources({
         aspiring: async () => [
           { ref: "Notes@40", page: "Notes", pos: 40, name: "Later" },
@@ -61,7 +61,7 @@ describe("loadInstantHealth", () => {
   });
 
   it("includes ambiguous links in library pages", async () => {
-    const problems = await loadInstantHealth(
+    const problems = await loadInstantMaintenance(
       sources({
         ambiguous: async () => [
           {
@@ -108,13 +108,13 @@ describe("loadInstantHealth", () => {
       pending: null,
       incoming: null,
     });
-    const off = await loadInstantHealth(
+    const off = await loadInstantMaintenance(
       sources({ conflicts, syncStatus: async () => snapshot(false) }),
     );
     expect(off).toEqual([]);
     expect(asked).toBe(0);
 
-    const on = await loadInstantHealth(
+    const on = await loadInstantMaintenance(
       sources({ conflicts, syncStatus: async () => snapshot(true) }),
     );
     expect(on.map((p) => [p.group, p.source, p.message])).toEqual([
@@ -124,7 +124,7 @@ describe("loadInstantHealth", () => {
   });
 
   it("keeps the other groups when one source fails", async () => {
-    const problems = await loadInstantHealth(
+    const problems = await loadInstantMaintenance(
       sources({
         aspiring: async () => {
           throw new Error("index not ready");
@@ -153,7 +153,7 @@ describe("loadInstantHealth", () => {
       async (_, error) => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         let asked = 0;
-        const problems = await loadInstantHealth(
+        const problems = await loadInstantMaintenance(
           sources({
             syncStatus: () => Promise.reject(error),
             conflicts: async () => {
@@ -171,9 +171,9 @@ describe("loadInstantHealth", () => {
 });
 
 const instantError = (
-  group: HealthProblem["group"],
+  group: MaintenanceProblem["group"],
   page: string,
-): HealthProblem => ({
+): MaintenanceProblem => ({
   group,
   severity: "error",
   label: page,
@@ -242,12 +242,12 @@ describe("badgeErrorCount", () => {
   });
 });
 
-describe("HealthMonitor", () => {
+describe("MaintenanceMonitor", () => {
   function fakeWatch() {
-    const pending: ((ps: HealthProblem[]) => void)[] = [];
+    const pending: ((ps: MaintenanceProblem[]) => void)[] = [];
     let subscribed = 0;
     let changed: () => void = () => {};
-    const watch: HealthWatch = {
+    const watch: MaintenanceWatch = {
       load: () => new Promise((resolve) => pending.push(resolve)),
       subscribe: (fn) => {
         subscribed++;
@@ -268,14 +268,17 @@ describe("HealthMonitor", () => {
 
   it("loads nothing until started", () => {
     const w = fakeWatch();
-    new HealthMonitor(w.watch, new DeepCheck(async () => []));
+    new MaintenanceMonitor(w.watch, new DeepCheck(async () => []));
     expect(w.pending).toHaveLength(0);
     expect(w.subscribed()).toBe(0);
   });
 
   it("loads on start and on each change, and badges the errors", async () => {
     const w = fakeWatch();
-    const monitor = new HealthMonitor(w.watch, new DeepCheck(async () => []));
+    const monitor = new MaintenanceMonitor(
+      w.watch,
+      new DeepCheck(async () => []),
+    );
     setNativeBadge.mockClear();
     const stop = monitor.start();
     w.pending.shift()!([instantError("scripts", "A")]);
@@ -283,7 +286,7 @@ describe("HealthMonitor", () => {
     expect(monitor.instant).toHaveLength(1);
     expect(setNativeBadge).toHaveBeenLastCalledWith(
       "std.workbench",
-      "Health",
+      "Maintenance",
       "1",
     );
     w.change();
@@ -291,7 +294,7 @@ describe("HealthMonitor", () => {
     await flush();
     expect(setNativeBadge).toHaveBeenLastCalledWith(
       "std.workbench",
-      "Health",
+      "Maintenance",
       undefined,
     );
     stop();
@@ -300,13 +303,13 @@ describe("HealthMonitor", () => {
   it("counts a finished space-wide lint in the badge", async () => {
     const w = fakeWatch();
     const deep = new DeepCheck(async () => [diag("BadYaml", 3)]);
-    const monitor = new HealthMonitor(w.watch, deep);
+    const monitor = new MaintenanceMonitor(w.watch, deep);
     const stop = monitor.start();
     w.pending.shift()!([]);
     await deep.run();
     expect(setNativeBadge).toHaveBeenLastCalledWith(
       "std.workbench",
-      "Health",
+      "Maintenance",
       "1",
     );
     stop();
@@ -314,7 +317,10 @@ describe("HealthMonitor", () => {
 
   it("unsubscribes on stop and drops a load still in flight", async () => {
     const w = fakeWatch();
-    const monitor = new HealthMonitor(w.watch, new DeepCheck(async () => []));
+    const monitor = new MaintenanceMonitor(
+      w.watch,
+      new DeepCheck(async () => []),
+    );
     const stop = monitor.start();
     expect(w.subscribed()).toBe(1);
     setNativeBadge.mockClear();

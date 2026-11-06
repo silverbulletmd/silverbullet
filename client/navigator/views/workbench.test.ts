@@ -8,7 +8,7 @@ test("Overview is the first tab, and the Workbench opens on it", () => {
     "Data",
     "Code",
     "Libraries",
-    "Health",
+    "Maintenance",
     "Console",
   ]);
   expect(workbenchView.segments?.find((s) => s.default)?.label).toBe(

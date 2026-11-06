@@ -12,19 +12,19 @@ import {
   brokenLinkProblems,
   conflictProblems,
   filterProblems,
-  type HealthProblem,
+  type MaintenanceProblem,
   INSTANT_GROUPS,
   lintProblems,
   scriptStyleProblems,
   severityCounts,
   syncStateProblems,
-} from "./health.ts";
+} from "./maintenance.ts";
 
 const problem = (
-  severity: HealthProblem["severity"],
+  severity: MaintenanceProblem["severity"],
   label: string,
   message: string,
-): HealthProblem => ({
+): MaintenanceProblem => ({
   group: "deep",
   severity,
   label,
@@ -32,7 +32,7 @@ const problem = (
   source: "test",
 });
 
-describe("health problems", () => {
+describe("maintenance problems", () => {
   it("lists the instant groups in order, without the space-wide lint", () => {
     expect(INSTANT_GROUPS).toEqual([
       "broken",
@@ -113,7 +113,7 @@ describe("health problems", () => {
       "Stopped while loading; quarantined from the next load",
     );
     expect(ps.every((p) => p.group === "scripts")).toBe(true);
-    const refOf = (p: HealthProblem) =>
+    const refOf = (p: MaintenanceProblem) =>
       p.target && "ref" in p.target ? p.target.ref : "";
     for (const p of ps) expect(parseToRef(refOf(p))).not.toBeNull();
     expect(refOf(ps[0])).toBe(`Lib/Boom@${10 + "```space-lua\n".length}`);

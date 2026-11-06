@@ -11,7 +11,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Switch between space and page context to work with Page Lua variables and functions. Also logs a lot of useful stuff.
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
-  * [[Workbench/Health]]: checks the “health” of your space: broken links, conflicts, other things.
+  * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
 * Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]], [[Object Graph]] and [[Shared Pages]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.

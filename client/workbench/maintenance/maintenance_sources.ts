@@ -19,10 +19,10 @@ import {
   badgeCount,
   brokenLinkProblems,
   conflictProblems,
-  type HealthProblem,
+  type MaintenanceProblem,
   scriptStyleProblems,
   syncStateProblems,
-} from "./health.ts";
+} from "./maintenance.ts";
 
 type LinkRow = { ref: string; page: string; pos: number; name: string };
 type AmbiguousRow = LinkRow & { resolvesTo: string; candidates: string[] };
@@ -44,13 +44,13 @@ function sortedLinks<R extends LinkRow>(rows: R[]): R[] {
 // One failing source (an index still building) mustn't hide the rest
 const orEmpty = <T>(p: Promise<T[]>): Promise<T[]> =>
   p.catch((e) => {
-    console.warn("health: source failed", e);
+    console.warn("maintenance: source failed", e);
     return [];
   });
 
-export async function loadInstantHealth(
+export async function loadInstantMaintenance(
   src: InstantSources,
-): Promise<HealthProblem[]> {
+): Promise<MaintenanceProblem[]> {
   const [aspiring, ambiguous, git] = await Promise.all([
     orEmpty(src.aspiring()),
     orEmpty(src.ambiguous()),
@@ -86,10 +86,10 @@ export function instantSources(client: Client): InstantSources {
  * line.
  */
 export function badgeErrorCount(
-  instant: HealthProblem[],
+  instant: MaintenanceProblem[],
   deepFound: SpaceLintDiagnostic[],
 ): number {
-  const errorPages = (group: HealthProblem["group"]) =>
+  const errorPages = (group: MaintenanceProblem["group"]) =>
     new Set(
       instant
         .filter((p) => p.group === group && p.severity === "error")
@@ -111,14 +111,14 @@ export function badgeErrorCount(
 }
 
 /** How the monitor loads the instant problems, and what makes them stale. */
-export type HealthWatch = {
-  load: () => Promise<HealthProblem[]>;
+export type MaintenanceWatch = {
+  load: () => Promise<MaintenanceProblem[]>;
   subscribe: (changed: () => void) => () => void;
 };
 
-export function healthWatch(client: Client): HealthWatch {
+export function maintenanceWatch(client: Client): MaintenanceWatch {
   return {
-    load: () => loadInstantHealth(instantSources(client)),
+    load: () => loadInstantMaintenance(instantSources(client)),
     subscribe: (changed) => {
       const offs = [
         subscribeRefresh(
@@ -137,19 +137,19 @@ export function healthWatch(client: Client): HealthWatch {
 }
 
 /**
- * The Health tab's problems and its badge: the instant problems, kept current
+ * The Maintenance tab's problems and its badge: the instant problems, kept current
  * while started, plus the space-wide lint. The Workbench starts it while open,
  * so nothing loads while it's closed.
  */
-export class HealthMonitor {
+export class MaintenanceMonitor {
   /** Undefined until the first load finishes. */
-  instant: HealthProblem[] | undefined;
+  instant: MaintenanceProblem[] | undefined;
   private listeners = new Set<() => void>();
   // The last finished lint, counted while the next one runs
   private lastLint: SpaceLintDiagnostic[];
 
   constructor(
-    private watch: HealthWatch,
+    private watch: MaintenanceWatch,
     readonly deepCheck: DeepCheck,
   ) {
     const s = deepCheck.state;
@@ -187,7 +187,11 @@ export class HealthMonitor {
 
   private changed() {
     const n = badgeErrorCount(this.instant ?? [], this.lastLint);
-    setNativeBadge(WORKBENCH_VIEW, "Health", n > 0 ? String(n) : undefined);
+    setNativeBadge(
+      WORKBENCH_VIEW,
+      "Maintenance",
+      n > 0 ? String(n) : undefined,
+    );
     for (const fn of [...this.listeners]) fn();
   }
 }

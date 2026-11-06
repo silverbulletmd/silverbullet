@@ -194,7 +194,7 @@ export function gitHeadline(
       return {
         text: `${(conflicts ?? sync.paths.length).toLocaleString()} conflicted`,
         tone: "danger",
-        to: LINKS.health,
+        to: LINKS.maintenance,
       };
     case "paused":
       return { text: "Paused", tone: "warning" };

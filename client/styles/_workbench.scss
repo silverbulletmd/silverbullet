@@ -495,8 +495,8 @@
   }
 }
 
-// The Health tab: problems in groups, each under a header row
-.sb-wb-health {
+// The Maintenance tab: problems in groups, each under a header row
+.sb-wb-maintenance {
   .sb-wb-toolbar .sb-wb-menu {
     margin-left: auto;
     opacity: 1;
@@ -506,8 +506,8 @@
     font-family: var(--ui-font);
   }
 
-  .sb-wbh-head,
-  .sb-wbh-clean {
+  .sb-wbm-head,
+  .sb-wbm-clean {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -520,24 +520,24 @@
     text-align: left;
   }
 
-  .sb-wbh-head {
+  .sb-wbm-head {
     background-color: var(--ui-surface-section-background-color);
     color: var(--root-color);
     font-weight: 600;
     cursor: pointer;
   }
 
-  .sb-wbh-chevron,
-  .sb-wbh-check,
-  .sb-wbh-icon {
+  .sb-wbm-chevron,
+  .sb-wbm-check,
+  .sb-wbm-icon {
     flex: none;
   }
 
-  .sb-wbh-count {
+  .sb-wbm-count {
     @include rows.count;
   }
 
-  .sb-wbh-hint {
+  .sb-wbm-hint {
     min-width: 0;
     margin-left: auto;
     overflow: hidden;
@@ -548,19 +548,19 @@
     text-overflow: ellipsis;
   }
 
-  .sb-wbh-clean {
+  .sb-wbm-clean {
     color: var(--subtle-color);
 
-    .sb-wbh-check {
+    .sb-wbm-check {
       color: var(--success-color);
     }
   }
 
-  .sb-wbh-row {
+  .sb-wbm-row {
     @include rows.list-row(3px 10px 3px 32px);
   }
 
-  .sb-wbh-main {
+  .sb-wbm-main {
     display: grid;
     grid-template-columns: 14px auto minmax(0, 1fr) auto;
     align-items: center;
@@ -572,23 +572,23 @@
     }
   }
 
-  .sb-wbh-openable {
+  .sb-wbm-openable {
     cursor: pointer;
   }
 
-  .sb-wbh-error .sb-wbh-icon {
+  .sb-wbm-error .sb-wbm-icon {
     color: var(--alert-error-color);
   }
 
-  .sb-wbh-warning .sb-wbh-icon {
+  .sb-wbm-warning .sb-wbm-icon {
     color: var(--alert-warning-color);
   }
 
-  .sb-wbh-info .sb-wbh-icon {
+  .sb-wbm-info .sb-wbm-icon {
     color: var(--subtle-color);
   }
 
-  .sb-wbh-label {
+  .sb-wbm-label {
     max-width: 24ch;
     overflow: hidden;
     color: var(--editor-link-color);
@@ -596,17 +596,17 @@
     text-overflow: ellipsis;
   }
 
-  .sb-wbh-message {
+  .sb-wbm-message {
     overflow-wrap: anywhere;
   }
 
-  .sb-wbh-source {
+  .sb-wbm-source {
     color: var(--subtle-color);
     font-family: var(--editor-monospace-font, monospace);
     font-size: 11px;
   }
 
-  .sb-wbh-more {
+  .sb-wbm-more {
     display: block;
     width: 100%;
     padding: 3px 10px 3px 54px;
@@ -619,7 +619,7 @@
     cursor: pointer;
   }
 
-  .sb-wbh-deep {
+  .sb-wbm-deep {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -628,12 +628,12 @@
     border-bottom: 1px solid var(--ui-surface-border-color);
   }
 
-  .sb-wbh-explain {
+  .sb-wbm-explain {
     flex: 1 1 20rem;
     color: var(--subtle-color);
   }
 
-  .sb-wbh-progress {
+  .sb-wbm-progress {
     display: flex;
     flex: 1 1 20rem;
     flex-wrap: wrap;
@@ -646,12 +646,12 @@
       height: 3px;
     }
 
-    .sb-wbh-hint {
+    .sb-wbm-hint {
       margin-left: 0;
     }
   }
 
-  .sb-wbh-page {
+  .sb-wbm-page {
     min-width: 0;
     overflow: hidden;
     color: var(--subtle-color);
@@ -659,12 +659,12 @@
     text-overflow: ellipsis;
   }
 
-  .sb-wbh-deep > .sb-wbh-hint {
+  .sb-wbm-deep > .sb-wbm-hint {
     flex: 1 1 auto;
     margin-left: 0;
   }
 
-  .sb-wbh-failed {
+  .sb-wbm-failed {
     padding: 4px 10px 4px 32px;
     border-bottom: 1px solid var(--ui-surface-border-color);
     background-color: var(--alert-error-background-color);
@@ -673,29 +673,29 @@
 
   // A phone has no room for the source tag; the label wraps above the message
   @media only screen and (max-width: 600px) {
-    .sb-wbh-row {
+    .sb-wbm-row {
       padding-left: 10px;
     }
 
-    .sb-wbh-main {
+    .sb-wbm-main {
       grid-template-columns: 14px minmax(0, 1fr);
     }
 
-    .sb-wbh-row .sb-wb-menu {
+    .sb-wbm-row .sb-wb-menu {
       align-self: start;
     }
 
-    .sb-wbh-label {
+    .sb-wbm-label {
       max-width: none;
     }
 
-    .sb-wbh-message {
+    .sb-wbm-message {
       grid-column: 2;
     }
 
-    .sb-wbh-source,
-    .sb-wbh-head .sb-wbh-hint,
-    .sb-wbh-clean .sb-wbh-hint {
+    .sb-wbm-source,
+    .sb-wbm-head .sb-wbm-hint,
+    .sb-wbm-clean .sb-wbm-hint {
       display: none;
     }
   }

@@ -27,7 +27,7 @@ Here are some things that a library may provide:
 * Various [[Slash Command|Slash Commands]], such as `/today`, `/task`, `/table`.
 * Useful [[Page Template|Page Templates]]
 * Useful [[^Library/Std/Widgets/Widgets|Widgets]]
-* Useful pages that help you look after your space. For checking its health (broken links and more), see the [[Workbench/Health]] tab.
+* Useful pages that help you look after your space. For broken links and other diagnostics, see the [[Workbench/Maintenance]] tab.
 * Additional functionality with compiled [[Plugs]]
 
 # Can I change libraries locally?

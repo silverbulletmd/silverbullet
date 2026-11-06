@@ -24,7 +24,7 @@ test("the target waits before the Workbench shows, and is taken once by its tab"
 test("a later target replaces one not yet taken", async () => {
   const show = vi.fn(async () => {});
   await openWorkbench({ tab: "Code", section: "style" }, show);
-  await openWorkbench({ tab: "Health" }, show);
+  await openWorkbench({ tab: "Maintenance" }, show);
   expect(takeWorkbenchTarget("Code")).toBeUndefined();
 });
 

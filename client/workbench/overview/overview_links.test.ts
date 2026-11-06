@@ -24,9 +24,9 @@ describe("followOverviewLink", () => {
   const client = { ui: { flashNotification: vi.fn() } } as never;
 
   test("a Workbench link shows that tab", async () => {
-    await followOverviewLink(client, new QueryBuilder(), LINKS.health);
+    await followOverviewLink(client, new QueryBuilder(), LINKS.maintenance);
     expect(showView).toHaveBeenCalledWith(WORKBENCH_VIEW, {
-      segment: "Health",
+      segment: "Maintenance",
     });
   });
 

@@ -5,7 +5,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/revisions";
 import { PermissionDeniedError } from "../../spaces/http_space_primitives.ts";
 
-/** Git sync as Overview and Health show it; `conflicts` is undefined when listing them failed. */
+/** Git sync as Overview and Maintenance show it; `conflicts` is undefined when listing them failed. */
 export type GitState = {
   snapshot: GitSyncSnapshot;
   conflicts: GitConflict[] | undefined;

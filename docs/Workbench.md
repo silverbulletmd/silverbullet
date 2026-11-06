@@ -15,5 +15,5 @@ The workbench has the following tabs:
 * [[Workbench/Data|Data]]: browse the objects in your space by tag, shape them into a [[Space Lua/Integrated Query|query]] without writing it, and define the tags' [[Schema|schemas]].
 * [[Workbench/Code|Code]]: every `space-lua` block in your space and how loading it went ([[Workbench/Code/Scripts|Space Lua]]), and every `space-style` block and whether the browser could make sense of it ([[Workbench/Code/Styles|Space Style]]).
 * [[Workbench/Libraries|Libraries]]: install, update and remove [[Library|libraries]] and [[Repository|repositories]], and check what has an update.
-* [[Workbench/Health|Health]]: problems in your space, such as broken links, failed scripts, merge conflicts and (on demand) lint errors.
+* [[Workbench/Maintenance|Maintenance]]: problems in your space, such as broken links, failed scripts, merge conflicts and (on demand) lint errors.
 * [[Workbench/Console|Console]]: everything your space logs, plus a [[Space Lua]] REPL.
