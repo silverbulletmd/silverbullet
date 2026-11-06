@@ -1,7 +1,7 @@
 use silverbullet_server::runtime::RuntimeSnapshot;
 use std::path::Path;
 use std::time::{Duration, Instant};
-use sysinfo::{Pid, ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 
 pub(crate) fn process_identity(pid: u32) -> Option<(u32, u64)> {
     let mut system = System::new();
@@ -49,11 +49,19 @@ impl Metrics {
         let (cpu_percent, memory_bytes) = if status == "stopped" {
             (Some(0.0), Some(0))
         } else if let Some(identity) = identity {
-            self.system.refresh_processes(ProcessesToUpdate::All, true);
+            // No `.with_tasks()`: on Linux, sysinfo would otherwise list each
+            // thread as a child "process" carrying its owner's full RSS and
+            // CPU, so summing the tree counts every process once per thread.
+            self.system.refresh_processes_specifics(
+                ProcessesToUpdate::All,
+                true,
+                ProcessRefreshKind::nothing().with_memory().with_cpu(),
+            );
             let rows = self
                 .system
                 .processes()
                 .iter()
+                .filter(|(_, process)| process.thread_kind().is_none())
                 .map(|(pid, process)| ProcessSample {
                     pid: pid.as_u32(),
                     parent: process.parent().map(|pid| pid.as_u32()),
@@ -171,6 +179,30 @@ mod tests {
         assert_eq!(aggregate(&rows, (10, 100), true), (Some(69.0), Some(210)));
         assert_eq!(aggregate(&rows, (10, 100), false), (None, Some(210)));
         assert_eq!(aggregate(&rows, (10, 99), true), (None, None));
+    }
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn threads_do_not_multiply_memory() {
+        let stop = std::sync::Arc::new(std::sync::Barrier::new(9));
+        let threads = (0..8)
+            .map(|_| {
+                let stop = stop.clone();
+                std::thread::spawn(move || {
+                    stop.wait();
+                })
+            })
+            .collect::<Vec<_>>();
+        let pid = std::process::id();
+        let identity = process_identity(pid);
+        let snapshot = Metrics::default().snapshot("running", identity, None);
+        let mut system = System::new();
+        system.refresh_processes(ProcessesToUpdate::Some(&[Pid::from_u32(pid)]), true);
+        let own = system.process(Pid::from_u32(pid)).unwrap().memory();
+        stop.wait();
+        threads
+            .into_iter()
+            .for_each(|thread| thread.join().unwrap());
+        assert!(snapshot.memory_bytes.unwrap() < own * 2);
     }
     #[test]
     fn disk_counts_nested_files_without_following_links() {
