@@ -97,6 +97,20 @@ async fn read_returns_markdown_and_revision() {
     assert_eq!(s["truncated"], false);
     assert!(s["lines"].as_u64().unwrap() >= 1);
     assert!(s["revision"].as_str().unwrap().contains("sha256:"));
+    // Clients that show `structuredContent` in place of `content` (Claude
+    // Code does) must still see the page.
+    assert_eq!(s["text"].as_str().unwrap(), text(&r));
+    // Clients that show only `content` see the revision too, after the page.
+    assert_eq!(
+        r["content"][1]["text"],
+        format!("[revision {}]", s["revision"].as_str().unwrap())
+    );
+
+    let several = env.call("read", json!({"pages": ["index"]})).await;
+    assert!(several["structuredContent"]["pages"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("# Fixture"));
 
     let missing = env.call("read", json!({"page": "Nope/Missing"})).await;
     assert!(is_error(&missing));
@@ -205,6 +219,20 @@ async fn write_creates_and_replaces() {
     assert!(!is_error(&replaced), "{replaced}");
     let r = env.call("read", json!({"page": "Café/Menü"})).await;
     assert_eq!(text(&r), "second");
+
+    // A revision copied from the text without its ETag quotes still matches.
+    let unquoted = r["structuredContent"]["revision"]
+        .as_str()
+        .unwrap()
+        .trim_matches('"')
+        .to_owned();
+    let replaced = env
+        .call(
+            "write",
+            json!({"page": "Café/Menü", "content": "second", "ifRevision": unquoted}),
+        )
+        .await;
+    assert!(!is_error(&replaced), "{replaced}");
 
     // The revision a write returns replaces it again without a read.
     let again = env

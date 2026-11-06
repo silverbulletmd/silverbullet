@@ -1,6 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 
 use server_space_tools::edit::{unified_diff, Edit, EditOpts};
 use server_space_tools::ops::pages::{self, EditPageError, FileError, Precondition};
@@ -118,8 +118,8 @@ pub(super) fn definitions() -> Vec<ToolDef> {
     ]
 }
 
-/// What `read` returns for a page: its metadata travels as
-/// `structuredContent`.
+/// What `read` returns for a page besides its text. In `structuredContent`
+/// it travels together with the text (see [`page_structured`]).
 #[derive(Serialize)]
 pub(super) struct PageMeta {
     page: String,
@@ -155,11 +155,27 @@ pub(super) enum PageOutput {
 impl From<PageOutput> for Reply {
     fn from(output: PageOutput) -> Self {
         match output {
-            PageOutput::Text { text, meta } => Reply::text(text).with_structured(meta),
+            PageOutput::Text { text, meta } => {
+                // In its own block, so the first stays exactly the page.
+                let revision = format!("[revision {}]", meta.revision);
+                let structured = page_structured(&text, meta);
+                let mut reply = Reply::text(text).with_structured(structured);
+                reply.push_text(revision);
+                reply
+            }
             PageOutput::Image { bytes, mime } => Reply::image(bytes, mime),
             PageOutput::Listing { text, listing } => Reply::text(text).with_structured(listing),
         }
     }
+}
+
+/// `structuredContent` for a page: its metadata plus the same `text` as the
+/// `content` block. Some clients (Claude Code among them) show only
+/// `structuredContent` when it is present, so it must carry the page itself.
+fn page_structured(text: &str, meta: PageMeta) -> Value {
+    let mut structured = json!(meta);
+    structured["text"] = json!(text);
+    structured
 }
 
 /// `error` of a request for `page` (at `path`) as the tool reports it;
@@ -365,8 +381,8 @@ impl Tools {
             let (header, body, item) = match read {
                 Ok(Some(PageOutput::Text { text, meta })) => (
                     format!("=== {} (revision {}) ===", meta.page, meta.revision),
-                    text,
-                    json!(meta),
+                    text.clone(),
+                    page_structured(&text, meta),
                 ),
                 // Neither has a revision, and an image no text
                 Ok(Some(PageOutput::Image { .. })) => (
