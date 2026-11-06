@@ -146,6 +146,22 @@ describe("markdown links (absolute)", () => {
 });
 
 describe("markdown links (angle-wrapped)", () => {
+  test.each([
+    ["Old (draft)", "[t](<Old (draft)>)", "[t](<New>)"],
+    [
+      "Old (draft)",
+      "[t](<Old (draft)#Section (one)>)",
+      "[t](<New#Section (one)>)",
+    ],
+    ["Old(draft)", "[t](Old(draft))", "[t](New)"],
+    ["Old((draft))", "[t](Old((draft)))", "[t](New)"],
+  ])(
+    "rewrites destinations containing parentheses: %s",
+    (oldName, link, expected) => {
+      expect(splice(link, link, oldName, "New", "Editor")).toBe(expected);
+    },
+  );
+
   test("preserves angle wrapping when present", () => {
     expect(splice("[t](<Old>)", "[t](<Old>)", "Old", "New", "Editor")).toBe(
       "[t](<New>)",
