@@ -32,7 +32,7 @@ query[[
 Always write `from` with an iterator variable: `from p = index.pages("project")`, then `p.status`, `p.name`.
 
 # Answer from the data
-For a question about the space's data (counts, totals, rankings, "which"), query it: one query with `group by` beats reading pages one by one. When a page already holds a query for the answer, `read` it with `rendered: true` to see the evaluated result.
+For a question about the space's data (counts, totals, rankings, "which"), query it: one query with `group by` beats reading pages one by one. Pages often already hold the query you need: `read` them with `rendered: true` to get the evaluated results and their links in one call, and follow those links rather than querying again.
 
 # A live table in a page
 In page Markdown, a query inside a dollar-brace expression renders as a table and updates by itself when the pages it reads change:

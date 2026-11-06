@@ -152,7 +152,7 @@ fn parse_lint(value: &Value) -> Vec<LintProblem> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rendered {
     pub text: String,
-    /// Whether any widget HTML was reduced to text.
+    /// Whether a widget showed more than its text (query tables do not).
     pub had_html: bool,
     pub lint: Vec<LintProblem>,
     pub index: IndexStatus,

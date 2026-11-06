@@ -101,23 +101,38 @@ pub fn html_to_text(html: &str) -> String {
         .join("\n")
 }
 
+/// Whether every tag in `html` is table structure, as in a query result:
+/// its text then says all it shows.
+fn only_table_markup(html: &str) -> bool {
+    const TABLE_TAGS: &[&str] = &["table", "thead", "tbody", "tfoot", "tr", "th", "td"];
+    html.split('<').skip(1).all(|tag| {
+        let name: String = tag
+            .trim_start_matches('/')
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric())
+            .collect();
+        TABLE_TAGS.contains(&name.to_ascii_lowercase().as_str())
+    })
+}
+
 /// `rendered` with every line that is an HTML block replaced by its text,
-/// and whether any was.
+/// and whether any of those showed more than its text (a widget, not just a
+/// query table).
 pub fn compact_rendered(rendered: &str) -> (String, bool) {
-    let mut any = false;
+    let mut lossy = false;
     let lines: Vec<String> = rendered
         .lines()
         .map(|line| {
             let trimmed = line.trim_start();
             if trimmed.starts_with('<') && trimmed.contains('>') {
-                any = true;
+                lossy |= !only_table_markup(trimmed);
                 html_to_text(trimmed)
             } else {
                 line.to_owned()
             }
         })
         .collect();
-    (lines.join("\n"), any)
+    (lines.join("\n"), lossy)
 }
 
 #[cfg(test)]
@@ -146,5 +161,17 @@ mod tests {
         let (text, any) = compact_rendered("plain");
         assert!(!any);
         assert_eq!(text, "plain");
+    }
+
+    #[test]
+    fn a_query_table_is_text_and_is_not_flagged() {
+        let (text, lossy) = compact_rendered(
+            "<table><thead><tr><th>table</th></tr></thead><tbody>\
+             <tr><td data-table-cell-type=\"string\">[[A]]</td></tr></tbody></table>",
+        );
+        assert!(!lossy);
+        assert_eq!(text, "table\n[[A]]");
+        let (_, lossy) = compact_rendered("<table><tr><td><button>Go</button></td></tr></table>");
+        assert!(lossy);
     }
 }

@@ -3,7 +3,7 @@ SilverBullet is a programmable Markdown knowledge base. A *space* is a folder of
 Pages use SilverBullet Markdown: `[[wiki links]]`, `#tags`, YAML frontmatter, `[attribute: value]`, `* [ ] tasks`, and `${lua expression}` / `space-lua` blocks that render live. Load the `Markdown` skill before writing pages others will read in SilverBullet.
 
 Operations work the same on every space:
-- `read`, `write` and `edit` for pages, `search` for text search across entire space. `read` with `rendered` shows a page as it displays to the user (queries evaluated) plus its lint problems: use it to diagnose a broken page, and once to check your work. Edit from a plain `read`, not this view.
+- `read`, `write` and `edit` for pages, `search` for full-text search. `read` with `rendered` shows a page as the user sees it, queries and widgets evaluated into results and links, plus lint problems: read hub and index pages this way and follow their links, and use it to diagnose a page or check your work. Edit from a plain `read`, not this view.
 - `lua` runs Space Lua in the live space: queries (`query[[from p = index.pages("project") where p.status == "active"]]`), the data model (`index.tags()`, `index.tagSchema("task")`), API discovery (`spacelua.listFunctions()`, `spacelua.describe("space.readPage")`), commands, and anything a user can script. For questions about the data, query it rather than reading pages one by one. Load the `Querying` skill before writing a query and `Space Lua` before writing scripts; do not guess syntax. `lua` results include console output; `system.recentLogs()` shows recent errors.
 - `screenshot` shows what a page actually looks like; use it to verify widgets, styles and layouts you build.
 
