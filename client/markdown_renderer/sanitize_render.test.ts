@@ -48,6 +48,21 @@ test("href hiding javascript: behind a control character is neutralized", () => 
   expect(html).toContain("click");
 });
 
+test("angle-bracket link destinations render without the brackets", () => {
+  expect(
+    render("[title](<https://github.com/silverbulletmd/silverbullet>)"),
+  ).toContain('href="https://github.com/silverbulletmd/silverbullet"');
+  expect(render("[cite](<zotero://select/library/items/ABC>)")).toContain(
+    'href="zotero://select/library/items/ABC"',
+  );
+  expect(render('[title](<https://example.com/a> "docs")')).toContain(
+    'href="https://example.com/a"',
+  );
+  expect(render("<https://github.com/silverbulletmd/silverbullet>")).toContain(
+    'href="https://github.com/silverbulletmd/silverbullet"',
+  );
+});
+
 test("application links survive Markdown rendering", () => {
   for (const url of [
     "message://example-id",

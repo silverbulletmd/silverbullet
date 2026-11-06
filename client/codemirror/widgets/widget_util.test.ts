@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, test, vi } from "vitest";
 import type { Client } from "../../client.ts";
-import { attachWidgetEventHandlers } from "./widget_util.ts";
+import {
+  attachWidgetEventHandlers,
+  buildTranslateUrls,
+} from "./widget_util.ts";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -27,6 +30,18 @@ const click = (el: Element, init: MouseEventInit = {}) =>
   el.dispatchEvent(
     new MouseEvent("click", { bubbles: true, cancelable: true, ...init }),
   );
+
+test("translated urls unwrap angle-bracket destinations", () => {
+  const translate = buildTranslateUrls({
+    currentName: () => "Folder/Current",
+  } as Client);
+  expect(translate("<https://example.com/a>")).toBe("https://example.com/a");
+  expect(translate("<zotero://select/library/items/ABC>")).toBe(
+    "zotero://select/library/items/ABC",
+  );
+  expect(translate("<My Page>")).toBe("Folder/My Page");
+  expect(translate("https://example.com/a")).toBe("https://example.com/a");
+});
 
 test("clicking a mention in a widget opens the Mention Inbox on that recipient", () => {
   const client = fakeClient();

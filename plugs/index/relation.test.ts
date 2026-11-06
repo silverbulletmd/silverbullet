@@ -331,6 +331,52 @@ test("url relation has toTag=url", async () => {
   expect(r!.toTag).toEqual("url");
 });
 
+test("angle-bracket urls are external relations", async () => {
+  createMockSystem();
+  const text =
+    "[title](<https://github.com/silverbulletmd/silverbullet>) and [cite](<zotero://select/library/items/ABC>)";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Src"), fm, tree, text);
+
+  const urls = objects.filter((o) => o.tag === "relation" && o.toTag === "url");
+  expect(urls.map((o) => o.to)).toEqual([
+    "https://github.com/silverbulletmd/silverbullet",
+    "zotero://select/library/items/ABC",
+  ]);
+});
+
+test("angle-bracket urls keep a following title out of the destination", async () => {
+  createMockSystem();
+  const text = '[title](<https://example.com/a> "docs")';
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Src"), fm, tree, text);
+
+  const r = objects.find((o) => o.tag === "relation" && o.toTag === "url");
+  expect(r).toBeDefined();
+  expect(r!.to).toEqual("https://example.com/a");
+  expect(r!.alias).toEqual("title");
+});
+
+test("angle-bracket page links stay page mentions", async () => {
+  createMockSystem();
+  const text = "[notes](<My Page>)";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(
+    pageMeta("Folder/Current"),
+    fm,
+    tree,
+    text,
+  );
+
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "mention");
+  expect(r).toBeDefined();
+  expect(r!.toTag).toEqual("page");
+  expect(r!.to).toEqual("Folder/My Page");
+});
+
 test("two refs in same item emit co-mention edges in both directions", async () => {
   const { space } = createMockSystem();
   await space.writePage("Linda", "");

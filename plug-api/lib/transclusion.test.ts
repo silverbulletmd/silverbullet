@@ -30,6 +30,14 @@ test.each(["30%extra", "30%%", "-30%", "x30%", "Sample|x30%"])(
   },
 );
 
+test("markdown image destinations drop angle brackets", () => {
+  expect(parseTransclusion("![shot](<https://example.com/a.png>)")?.url).toBe(
+    "https://example.com/a.png",
+  );
+  expect(parseTransclusion("![shot](<my file.png>)")?.url).toBe("my file.png");
+  expect(parseTransclusion("![shot](plain.png)")?.url).toBe("plain.png");
+});
+
 test.each(["![[image.png|30%]]", "![Sample|30%](image.png)"])(
   "preserves percentage widths in %s",
   (text) => {

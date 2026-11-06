@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   isLocalURL,
   resolveMarkdownLink,
+  unwrapLinkDestination,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 
 test("Test URL resolver", () => {
@@ -21,6 +22,33 @@ test("Test URL resolver", () => {
   expect(resolveMarkdownLink("bar/qux", "foo/../baz")).toEqual(
     "bar/foo/../baz",
   );
+});
+
+test("angle-bracket destinations unwrap to the link target", () => {
+  expect(unwrapLinkDestination("<https://example.com>")).toEqual(
+    "https://example.com",
+  );
+  expect(unwrapLinkDestination("<zotero://select/library/items/ABC>")).toEqual(
+    "zotero://select/library/items/ABC",
+  );
+  expect(unwrapLinkDestination("<page with spaces>")).toEqual(
+    "page with spaces",
+  );
+  expect(unwrapLinkDestination("https://example.com")).toEqual(
+    "https://example.com",
+  );
+  expect(unwrapLinkDestination("<>")).toEqual("");
+  expect(unwrapLinkDestination("<")).toEqual("<");
+  expect(resolveMarkdownLink("Folder/Current", "<My Page>")).toEqual(
+    "Folder/My Page",
+  );
+  expect(
+    isLocalURL(unwrapLinkDestination("<https://github.com/silverbulletmd>")),
+  ).toBe(false);
+  expect(
+    isLocalURL(unwrapLinkDestination("<zotero://select/library/items/ABC>")),
+  ).toBe(false);
+  expect(isLocalURL(unwrapLinkDestination("<My Page>"))).toBe(true);
 });
 
 test("application protocols are external regardless of URL shape", () => {
