@@ -25,6 +25,9 @@ export class MQHook implements Hook<MQHookT> {
     private system: System<MQHookT>,
     readonly mq: DataStoreMQ,
     readonly config: Config,
+    private queuePause?: (
+      queue: string,
+    ) => (() => Promise<boolean>) | undefined,
   ) {}
 
   apply(system: System<MQHookT>): void {
@@ -67,6 +70,7 @@ export class MQHook implements Hook<MQHookT> {
               {
                 batchSize: subscriptionDef.batchSize,
                 pollInterval: subscriptionDef.pollInterval,
+                pause: this.queuePause?.(queue),
               },
               async (messages: MQMessage[]) => {
                 try {
@@ -107,6 +111,7 @@ export class MQHook implements Hook<MQHookT> {
             {
               batchSize: listener.batchSize,
               pollInterval: listener.pollInterval,
+              pause: this.queuePause?.(queue),
             },
             async (messages: MQMessage[]) => {
               try {
