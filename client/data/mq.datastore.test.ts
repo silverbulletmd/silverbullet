@@ -326,3 +326,85 @@ test("an abandoned in-flight batch still times out once its worker stops renewin
   await mq.requeueTimeouts(20);
   expect((await mq.getQueueStats("dead")).queued).toEqual(1);
 });
+
+// A paused worker must not lease anything: leasing and releasing would hold
+// messages away from the client that is meant to be draining the queue.
+test("a paused worker leaves the queue untouched until it is unpaused", async () => {
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+  const mq = new DataStoreMQ(
+    new DataStore(new MemoryKvPrimitives()),
+    eventHook,
+  );
+
+  let paused = true;
+  const received: string[] = [];
+  const worker = mq.subscribe(
+    "gated",
+    { pollInterval: 5, pause: () => paused },
+    async (messages) => {
+      received.push(...messages.map((m) => m.body));
+      await mq.batchAck(
+        "gated",
+        messages.map((m) => m.id),
+      );
+    },
+  );
+
+  await mq.send("gated", "work");
+  await new Promise((r) => setTimeout(r, 50));
+  expect(received).toEqual([]);
+  const stats = await mq.getQueueStats("gated");
+  expect(stats.queued).toEqual(1);
+  expect(stats.processing).toEqual(0);
+
+  paused = false;
+  const deadline = Date.now() + 2000;
+  while (received.length === 0 && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  worker.stop();
+  expect(received).toEqual(["work"]);
+});
+
+test("a pause check that throws does not stop the worker", async () => {
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+  const mq = new DataStoreMQ(
+    new DataStore(new MemoryKvPrimitives()),
+    eventHook,
+  );
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+  try {
+    const received: string[] = [];
+    const worker = mq.subscribe(
+      "flaky",
+      {
+        pollInterval: 5,
+        pause: () => {
+          throw new Error("no locks here");
+        },
+      },
+      async (messages) => {
+        received.push(...messages.map((m) => m.body));
+        await mq.batchAck(
+          "flaky",
+          messages.map((m) => m.id),
+        );
+      },
+    );
+
+    await mq.send("flaky", "work");
+    const deadline = Date.now() + 2000;
+    while (received.length === 0 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    worker.stop();
+    expect(received).toEqual(["work"]);
+  } finally {
+    consoleError.mockRestore();
+  }
+});
