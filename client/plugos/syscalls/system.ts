@@ -183,6 +183,7 @@ export function systemSyscalls(
         await client.eventedSpacePrimitives.fetchFileListWhenIdle();
         await client.mq.awaitEmptyQueue("indexQueue");
         await client.clientSystem.reloadState();
+        client.clientSystem.announceScriptReload();
       },
       description:
         "Saves the current editor buffer, detects on-disk changes, waits for indexing, and reloads configuration, scripts, styles, and client state. An external edit to the currently open page is never overwritten: an unmodified buffer reloads it, and unsaved edits are merged with it first.",
@@ -222,6 +223,7 @@ export function systemSyscalls(
     "system.loadScripts": {
       callback: async () => {
         await client.clientSystem.loadLuaScripts();
+        client.clientSystem.announceScriptReload();
       },
       description: "Reloads Space Lua scripts and configuration.",
     },
