@@ -220,34 +220,40 @@ ${_.snippet}
 
 ]==]
 
-function widgets.linkedMentionsMarkdown(pageName)
+local function mentions(pageName)
   pageName = pageName or editor.getCurrentPage()
-  local linkedMentions = query[[
+  return query[[
     from r = index.relations()
     where r.page != pageName
       and r.to == pageName
       and r.kind != "co-mention"
     order by r.pageLastModified desc, r.range[1]
-    select mentionTemplate({
-      page = r.page,
-      snippet = r.snippet,
-      start = r.range[1],
-    })
   ]]
-  if #linkedMentions == 0 then
-    return ""
+end
+
+function widgets.linkedMentionsMarkdown(pageName)
+  local rows = {}
+  for _, r in ipairs(mentions(pageName)) do
+    table.insert(rows, mentionTemplate({ page = r.page, snippet = r.snippet, start = r.range[1] }))
   end
-  return table.concat(linkedMentions)
+  return table.concat(rows, "")
+end
+
+local function linkedMentionsSummary(pageName)
+  local rows = {}
+  for _, r in ipairs(mentions(pageName)) do
+    local link = widget.markdown("**" .. markdown.link(r.page .. "@" .. r.range[1], r.page) .. "**", { evaluate = false })
+    local line = (r.snippet or ""):match("^[^\n]*")
+    local summary = widget.markdownSummary(line, { sourcePage = r.page })
+    table.insert(rows, "* " .. link .. " " .. summary)
+  end
+  return table.concat(rows, "\n")
 end
 
 function widgets.linkedMentions(pageName)
-  local md = widgets.linkedMentionsMarkdown(pageName)
-  if md != "" then
-    -- Snippets quote other pages verbatim: show them, don't run them
-    return widget.new {
-      markdown = "# Linked Mentions\n" .. md,
-      evaluate = false
-    }
+  local md = linkedMentionsSummary(pageName)
+  if md ~= "" then
+    return widget.markdownBlock("# Linked Mentions\n\n" .. md)
   end
 end
 
@@ -261,9 +267,9 @@ view.define {
   defaultOpen = true,
   refreshOnOpen = true,
   content = function()
-    local md = widgets.linkedMentionsMarkdown()
+    local md = linkedMentionsSummary()
     if md == "" then return "" end
-    return widget.markdown(md, { evaluate = false })
+    return widget.markdown(md)
   end,
 }
 ```

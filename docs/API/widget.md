@@ -346,6 +346,17 @@ To render a widget, call `widget.new` with a `spec` table setting any of the fol
 ## widget.markdown(text)
 Shortcut for `widget.new { markdown = text }`
 
+## widget.markdownSummary(text, options?)
+Creates a composable inline widget for a short Markdown excerpt. It keeps emphasis, inline code and links, and flattens headings, lists and blockquotes to text. Expressions appear as an ellipsis and never run. An excerpt made up only of expressions renders empty.
+
+- `sourcePage` gives relative links their original context. Defaults to the current page.
+- `maxChars` limits visible characters, including the truncation ellipsis. Defaults to 160.
+
+```lua
+"* " .. markdown.link(page.name) .. " " ..
+  widget.markdownSummary(excerpt, { sourcePage = page.name })
+```
+
 ## widget.html(htmlOrDOM)
 Shortcut for `widget.new { html = htmlOrDOM }`
 

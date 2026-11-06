@@ -191,12 +191,6 @@ if relatedOk and relatedStatus and relatedStatus.backend == "semantic" then
     return (s:gsub("^,", ""))
   end
 
-  local function excerptOf(m)
-    local text = (m.excerpt or ""):gsub("%s+", " "):match("^ ?(.-) ?$")
-    if #text > 160 then text = text:sub(1, 160) .. "…" end
-    return text
-  end
-
   -- Related pages as Markdown, or "" when there is nothing to show. In a page
   -- dock an empty or not-yet-ready panel shows nothing at all; elsewhere a
   -- short line says why it is empty.
@@ -220,7 +214,9 @@ if relatedOk and relatedStatus and relatedStatus.backend == "semantic" then
     end
     local lines = {}
     for _, m in ipairs(result.items) do
-      table.insert(lines, "* " .. markdown.link(m.page) .. ": " .. excerptOf(m))
+      local link = widget.markdown(markdown.link(m.page), { evaluate = false })
+      local summary = widget.markdownSummary(m.excerpt or "", { sourcePage = m.page })
+      table.insert(lines, "* " .. link .. " " .. summary)
     end
     return table.concat(lines, "\n")
   end
@@ -238,8 +234,7 @@ if relatedOk and relatedStatus and relatedStatus.backend == "semantic" then
       local inPage = ctx and (ctx.dock == "page-top" or ctx.dock == "page-bottom")
       local md = relatedMarkdown(inPage)
       if md == "" then return "" end
-      -- Excerpts quote other pages verbatim: show them, don't run them
-      return widget.markdown(md, { evaluate = false })
+      return widget.markdown(md)
     end,
   }
 end

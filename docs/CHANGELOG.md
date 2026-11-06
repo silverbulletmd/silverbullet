@@ -14,6 +14,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
 * Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]], [[Object Graph]] and [[Shared Pages]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
+* Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
 * [[Fonts]]: pick the interface, editor and code fonts in [[Workbench/Configuration]] (Appearance), **including proportional** ones, and the editor's text size. A server-wide **Default font** (Dashboard → Server) sets the dashboard and every space that doesn’t pick its own.
   * **Potentially breaking for themes:** code (inline and fenced, frontmatter, tables being edited, `${...}`) now uses `--editor-monospace-font` instead of `--editor-font`. See [[Fonts#Notes for theme authors]].

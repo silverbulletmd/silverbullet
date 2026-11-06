@@ -9,6 +9,7 @@ import { evalExpression } from "../../space_lua/eval.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import {
   LuaBuiltinFunction,
+  LuaNativeJSFunction,
   LuaStackFrame,
   type LuaTable,
 } from "../../space_lua/runtime.ts";
@@ -127,6 +128,13 @@ async function withEnv() {
     ),
     LuaStackFrame.lostFrame,
   );
+  await (t.env.get("widget") as LuaTable).set(
+    "markdownSummary",
+    new LuaNativeJSFunction((...args) =>
+      mapping["widget.markdownSummary"].callback({}, ...args),
+    ),
+    LuaStackFrame.lostFrame,
+  );
   return { t, lua, toMarkdown };
 }
 
@@ -202,4 +210,54 @@ test("link of nothing is nothing, so a missing attribute leaves an empty cell", 
   const s = await syscalls();
   expect(s("markdown.link", undefined)).toBeUndefined();
   expect(s("markdown.link", "")).toBeUndefined();
+});
+
+test("markdown summaries render inline without running source content", async () => {
+  const s = await syscalls();
+  const summary = await s(
+    "widget.markdownSummary",
+    "# **Plan**\n- [notes](../Notes.md) and ${error('private')}\n- `${literal}` [[Page|status ${private}]] #trail",
+    { sourcePage: "Projects/Field/Log" },
+  );
+  const node = (await s("markdown.renderToDom", summary)) as HTMLElement;
+  expect(node.textContent).toBe("Plan notes and … ${literal} status … #trail");
+  expect(node.querySelector("strong")?.textContent).toBe("Plan");
+  expect(node.querySelector("a")?.getAttribute("href")).toBe(
+    "/Projects/Notes.md",
+  );
+  expect(node.querySelector("code")?.textContent?.trim()).toBe("${literal}");
+  expect(node.querySelector("h1, ul, li")).toBeNull();
+});
+
+test("markdown summaries shorten visible text and sanitize links", async () => {
+  const s = await syscalls();
+  const summary = await s(
+    "widget.markdownSummary",
+    "[**é🌱abcdef**](javascript:alert%281%29)",
+    { maxChars: 4 },
+  );
+  const node = (await s("markdown.renderToDom", summary)) as HTMLElement;
+  expect(node.textContent).toBe("é🌱a…");
+  expect(node.querySelector("strong")?.textContent).toBe("é🌱a");
+  expect(node.querySelector("a")?.hasAttribute("href")).toBe(false);
+});
+
+test("markdownSummary composes with Lua list rows and hides expression-only excerpts", async () => {
+  const { lua } = await withEnv();
+  const s = await syscalls();
+  const rows = await lua(`table.concat({
+    "* [[Field Notes]] " .. widget.markdownSummary("*Fresh* [[#Overview|overview]]", { sourcePage = "Places/Field Notes" }),
+    "* [[Log]] " .. widget.markdownSummary([==[\${error("private")}]==]),
+  }, "\\n")`);
+  const node = (await s("markdown.renderToDom", rows)) as HTMLElement;
+  const items = node.querySelectorAll("li");
+  expect(items).toHaveLength(2);
+  expect(items[0].querySelector("em")?.textContent).toBe("Fresh");
+  expect(items[0].querySelectorAll("a")[1].getAttribute("data-ref")).toBe(
+    "Places/Field Notes#Overview",
+  );
+  expect(items[1].textContent?.trim()).toBe("Log");
+  const copy = await s("lua:widget.toMarkdown", rows);
+  expect(copy).toContain("<em>Fresh</em>");
+  expect(copy).not.toContain("private");
 });

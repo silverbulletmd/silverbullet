@@ -28,7 +28,9 @@ import {
   renderMarkdownStatic,
   renderValue,
 } from "../../markdown_renderer/compose.ts";
+import { renderMarkdownSummary } from "../../markdown_renderer/summary.ts";
 import { wikiLink } from "../../lib/wiki_link.ts";
+import { jsToLuaValue } from "../../space_lua/runtime.ts";
 import { isWidgetValue } from "../../space_lua/fragment.ts";
 import {
   liveContextForClient,
@@ -123,6 +125,44 @@ export function markdownSyscalls(client: Client): SysCallMapping {
           code: 'local expanded = markdown.expandMarkdown("This is some Lua: ${1 + 2}")',
         },
       ],
+    },
+    "widget.markdownSummary": {
+      callback: (
+        _ctx,
+        text: string,
+        options: { sourcePage?: string; maxChars?: number } = {},
+      ) => {
+        const html = renderMarkdownSummary(
+          text,
+          {
+            page: options.sourcePage ?? client.currentName(),
+            files: client.clientSystem.allKnownFiles,
+            language: markdownLanguageWithUserExtensions(client),
+          },
+          options.maxChars === undefined || !Number.isFinite(options.maxChars)
+            ? undefined
+            : Math.floor(options.maxChars),
+        );
+        // The portable copy must keep literal expression syntax inert when pasted.
+        return jsToLuaValue({
+          _isWidget: true,
+          html,
+          markdown: html.replaceAll("$", "&#36;"),
+        });
+      },
+      description:
+        "Creates an inline Markdown summary widget. Expressions are never evaluated.",
+      parameters: [
+        { name: "text", type: "string", description: "Markdown source." },
+        {
+          name: "options",
+          type: "table",
+          optional: true,
+          description:
+            "sourcePage: page for relative links (defaults to the current page). maxChars: maximum visible characters, including an ellipsis (defaults to 160).",
+        },
+      ],
+      returns: [{ type: "table", description: "An inline widget." }],
     },
     "lua:widget.toMarkdown": {
       callback: async (ctx, w: unknown): Promise<string> => {

@@ -52,7 +52,7 @@ When enabled (default off), SilverBullet offers semantic search — search based
 
 After selecting a model, it is downloaded once. Choosing a model turns semantic search on for every space by default. The dashboard asks first, saying how many spaces will build a semantic index.
 
-Once the semantic index is ready, a **Related Pages** panel becomes available (toggle it with `Navigate: Related Pages`). It lists up to 5 content pages. From [[Space Lua]], `search.related()` returns the same list (see [[API/search]]).
+Once the semantic index is ready, a **Related Pages** panel becomes available (toggle it with `Navigate: Related Pages`). It lists up to 5 content pages, each with a formatted excerpt from its closest matching passage. From [[Space Lua]], `search.related()` returns the same list (see [[API/search]]).
 
 * **`granite-embedding-97m-multilingual-r2` (default):** 52 languages (and 200+ with less training), a 220 MB download and about 490 MB of memory.
 * **`multilingual-e5-small`:** About 100 languages, a 488 MB download and about 590 MB of memory.
