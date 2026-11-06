@@ -3,10 +3,11 @@ import {
   offlineError,
 } from "@silverbulletmd/silverbullet/constants";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import { applyCachedFonts } from "@silverbulletmd/silverbullet/lib/fonts";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { loadBootFiles } from "./boot_fetch.ts";
 import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
-import { applyCachedFonts } from "@silverbulletmd/silverbullet/lib/fonts";
 import { initLogger } from "./lib/logger.ts";
 import { logoutInProgress } from "./logout.ts";
 import { waitForLogout } from "./logout_state.ts";
@@ -93,15 +94,31 @@ safeRun(async () => {
   const clientProxy = new BoxProxy({});
   let bootstrapLuaScriptPages: string[] = [];
   try {
-    let configJSONText: string;
-    [configJSONText, ...bootstrapLuaScriptPages] = await Promise.all([
-      cachedFetch(".config"),
-      cachedFetch(".fs/Library/Std/APIs/Schema.md"),
-      cachedFetch(".fs/Library/Std/Config.md"),
-      cachedFetch(".fs/Library/Std/APIs/Tag.md"),
-      cachedFetch(".fs/CONFIG.md"),
-    ]);
-    bootConfig = JSON.parse(configJSONText);
+    const { configText, pageTexts } = await loadBootFiles(
+      ".config",
+      [
+        ".fs/Library/Std/APIs/Schema.md",
+        ".fs/Library/Std/Config.md",
+        ".fs/Library/Std/APIs/Tag.md",
+        ".fs/CONFIG.md",
+      ],
+      {
+        fetch: globalThis.fetch.bind(globalThis),
+        storage: localStorage,
+        cacheKeyPrefix: `silverbullet.${document.baseURI}.`,
+        logoutInProgress,
+        resetAndReload: async () => {
+          await unregisterServiceWorkers();
+          console.log("Ok, now going to reload, let's hope for the best");
+          location.reload();
+        },
+        navigate: (url) => {
+          location.href = url;
+        },
+      },
+    );
+    bootstrapLuaScriptPages = pageTexts;
+    bootConfig = JSON.parse(configText);
     if (!navigator.serviceWorker) bootConfig!.disableServiceWorker = true;
     if (!globalThis.isSecureContext) bootConfig!.enableClientEncryption = false;
   } catch (e: any) {
@@ -115,10 +132,10 @@ safeRun(async () => {
       // A redirect to the login page is already under way; stop booting.
       return;
     }
-    // Anything else (e.g. no space is bound at this URL, so `.config` 404s and
-    // parses as empty) leaves bootConfig undefined. Falling through would throw
-    // an opaque TypeError further down and bury the real cause — stop here and
-    // report what actually failed.
+    // Anything else (e.g. no space is bound at this URL and nothing is cached)
+    // leaves bootConfig undefined. Falling through would throw an opaque
+    // TypeError further down and bury the real cause — stop here and report
+    // what actually failed.
     console.error("Could not load boot config:", e);
     alert(`Could not load this space: ${e.message}`);
     return;
@@ -330,95 +347,4 @@ if (!globalThis.indexedDB) {
   alert(
     "SilverBullet requires IndexedDB to operate and it is not available in your browser. Please use a recent version of Chrome, Firefox (not in private mode) or Safari.",
   );
-}
-
-/**
- * Set once a boot fetch discovers it must navigate away (auth redirect or
- * service-worker-reset reload). The navigation aborts the sibling in-flight
- * boot fetches; this flag lets their error handlers report the redirect
- * instead of misclassifying the abort as being offline.
- */
-let redirectingAway = false;
-
-async function cachedFetch(path: string): Promise<string> {
-  const cacheKey = `silverbullet.${document.baseURI}.${path}`;
-  try {
-    const response = await fetch(path, {
-      // We don't want to follow redirects, we want to get the redirect header in case of auth issues
-      redirect: "manual",
-      // Tinyauth/forward-auth can take longer than 1s on cold or remote auth checks.
-      // Keep this bounded, but do not abort normal authenticated startup requests too aggressively.
-      signal: AbortSignal.timeout(10000),
-      headers: {
-        "X-Sync-Mode": "1",
-      },
-    });
-    if (response.status >= 500 && response.status < 600) {
-      const text = localStorage.getItem(cacheKey);
-      if (text) {
-        console.info("Falling back to cache for", path);
-        return text;
-      } else {
-        throw offlineError;
-      }
-    }
-    if (response.status === 404) {
-      // File doesn't exist yet (e.g., CONFIG.md before first sync).
-      // Cache the empty body so that, when offline next time, the fallback
-      // path can serve "" instead of throwing a raw fetch error (which the
-      // boot's outer catch would otherwise silently swallow). The cache is
-      // only consulted on network failure, so caching this won't mask a
-      // later 200 response when online.
-      localStorage.setItem(cacheKey, "");
-      return "";
-    }
-    if (logoutInProgress()) throw notAuthenticatedError;
-    if (response.type === "opaqueredirect") {
-      // We received an opaque redirect, there's little sensible we can do than unregister service workers and reload
-      console.log(
-        "Got opaque redirect, going to unregister service workers and reload",
-      );
-      await unregisterServiceWorkers();
-      console.log("Ok, now going to reload, let's hope for the best");
-      redirectingAway = true;
-      location.reload();
-      throw notAuthenticatedError;
-    }
-    const redirectHeader = response.headers.get("location");
-    if (redirectHeader) {
-      console.info(
-        "Received an (authentication) redirect, redirecting to URL: " +
-          redirectHeader,
-      );
-      // Only the first fetch to see the redirect navigates; its siblings just
-      // report the authentication failure.
-      if (!redirectingAway) {
-        redirectingAway = true;
-        location.href = redirectHeader;
-      }
-      throw notAuthenticatedError;
-    }
-    const text = await response.text();
-    localStorage.setItem(cacheKey, text);
-    return text;
-  } catch (e: any) {
-    if (e.message === notAuthenticatedError.message) {
-      throw e;
-    }
-    if (redirectingAway) {
-      // Our own redirect-to-login (or reload) navigation aborted this fetch —
-      // that's an authentication situation, not an offline one.
-      throw notAuthenticatedError;
-    }
-    console.info("Falling back to cache for", path);
-    const text = localStorage.getItem(cacheKey);
-    if (text !== null) {
-      return text;
-    } else {
-      // No cache and the network is unreachable: treat as offline so the
-      // boot path can take its offline-handling branch instead of silently
-      // swallowing the raw fetch error.
-      throw offlineError;
-    }
-  }
 }
