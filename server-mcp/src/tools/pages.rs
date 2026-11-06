@@ -164,7 +164,7 @@ impl From<PageOutput> for Reply {
                 reply
             }
             PageOutput::Image { bytes, mime } => Reply::image(bytes, mime),
-            PageOutput::Listing { text, listing } => Reply::text(text).with_structured(listing),
+            PageOutput::Listing { text, listing } => Reply::text(text).with_meta(listing),
         }
     }
 }
@@ -465,10 +465,7 @@ impl Tools {
         {
             text = format!("{text} {note}");
         }
-        Ok(
-            Reply::text(text)
-                .with_structured(json!({ "page": name, "revision": written.revision })),
-        )
+        Ok(Reply::text(text).with_meta(json!({ "page": name, "revision": written.revision })))
     }
 
     /// Reloads a page's scripts after a write that changed them; the
@@ -534,7 +531,7 @@ impl Tools {
             } else {
                 diff
             };
-            return Ok(Reply::text(text).with_structured(json!({
+            return Ok(Reply::text(text).with_meta(json!({
                 "page": name, "revision": edited.read_revision, "dryRun": true, "edits": edits.len()
             })));
         };
@@ -545,7 +542,7 @@ impl Tools {
         {
             text = format!("{text} {note}");
         }
-        Ok(Reply::text(text).with_structured(json!({
+        Ok(Reply::text(text).with_meta(json!({
             "page": name, "revision": written.revision, "edits": edits.len()
         })))
     }

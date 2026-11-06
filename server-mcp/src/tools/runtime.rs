@@ -223,7 +223,7 @@ impl Tools {
         sections.push(lint_section(&problems));
         sections.extend(index_note);
         sections.extend(index.note().map(str::to_owned));
-        Ok(Reply::text(sections.join("\n\n")).with_structured(json!({
+        Ok(Reply::text(sections.join("\n\n")).with_meta(json!({
             "page": name,
             "rendered": true,
             "problems": problems.len(),

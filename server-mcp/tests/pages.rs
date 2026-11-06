@@ -426,7 +426,17 @@ async fn edit_dry_run_returns_diff_without_writing() {
     assert!(t.contains("-b"), "{t}");
     assert!(t.contains("+B"), "{t}");
     assert!(t.contains("@@"));
+    // Structured-only clients see the diff too.
+    assert_eq!(r["structuredContent"]["text"], t);
     assert_eq!(env.revision("Doc").await, rev);
+
+    let written = env.write("Other", "x").await;
+    assert!(written["structuredContent"]["text"]
+        .as_str()
+        .unwrap()
+        .starts_with("Wrote Other"));
+    let listed = env.call("read", json!({"page": "/"})).await;
+    assert_eq!(listed["structuredContent"]["text"], text(&listed));
 }
 
 #[tokio::test]

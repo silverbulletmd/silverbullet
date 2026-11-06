@@ -49,7 +49,7 @@ virtualPage.define {
     ]]
     local result = "# " .. count .. " Most Recent Pages\n"
     for _, page in ipairs(pages) do
-      result = result .. "* [[" .. page.name .. "]]\n"
+      result = result .. "* " .. markdown.link(page.name) .. "\n"
     end
     return result
   end

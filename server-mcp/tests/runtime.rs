@@ -631,6 +631,8 @@ async fn rendered_read_evaluates_the_page_and_lists_lint_problems() {
         "{t}"
     );
     assert_eq!(r["structuredContent"]["problems"], 1);
+    // Structured-only clients see the rendered page and its problems too.
+    assert_eq!(r["structuredContent"]["text"], t);
     assert_eq!(
         env.script.calls.lock().unwrap()[0].0,
         "sbRuntime.evalLuaScript"

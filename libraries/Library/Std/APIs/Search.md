@@ -220,7 +220,7 @@ if relatedOk and relatedStatus and relatedStatus.backend == "semantic" then
     end
     local lines = {}
     for _, m in ipairs(result.items) do
-      table.insert(lines, "* [[" .. m.page .. "]]: " .. excerptOf(m))
+      table.insert(lines, "* " .. markdown.link(m.page) .. ": " .. excerptOf(m))
     end
     return table.concat(lines, "\n")
   end

@@ -473,7 +473,7 @@ for from, to in pairs(docsRedirects) do
       local details = state and state.details
       movedHash = details and details.type == "header"
         and "#" .. details.header or ""
-      return "This page moved to [[" .. to .. rest .. "]]."
+      return "This page moved to " .. markdown.link(to .. rest) .. "."
     end,
   }
 end

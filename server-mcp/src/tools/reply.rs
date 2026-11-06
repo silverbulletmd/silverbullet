@@ -16,6 +16,8 @@ pub(super) enum Content {
 pub(super) struct Reply {
     pub content: Vec<Content>,
     pub structured: Option<Value>,
+    /// Whether `structured` gets the text content as its `text` field.
+    echo_text: bool,
 }
 
 /// A tool error: its text, returned with `isError`.
@@ -51,6 +53,7 @@ impl Reply {
         Self {
             content: vec![Content::Text(text.into())],
             structured: None,
+            echo_text: false,
         }
     }
 
@@ -58,12 +61,23 @@ impl Reply {
         Self {
             content: vec![Content::Image { bytes, mime }],
             structured: None,
+            echo_text: false,
         }
     }
 
     pub fn with_structured(mut self, structured: impl Serialize) -> Self {
         self.structured =
             Some(serde_json::to_value(structured).expect("structured content serialises"));
+        self
+    }
+
+    /// Like [`Self::with_structured`] for metadata that leaves out what the
+    /// text says: the final text content is added to it as `text`. Some
+    /// clients (Claude Code among them) show only `structuredContent` when it
+    /// is present.
+    pub fn with_meta(mut self, meta: impl Serialize) -> Self {
+        self = self.with_structured(meta);
+        self.echo_text = true;
         self
     }
 
@@ -98,6 +112,17 @@ pub(super) fn into_result(outcome: Outcome) -> ToolResult {
         Ok(reply) => reply,
         Err(ToolError(message)) => return error_result(message),
     };
+    let echoed = reply.echo_text.then(|| {
+        reply
+            .content
+            .iter()
+            .filter_map(|item| match item {
+                Content::Text(text) => Some(text.as_str()),
+                Content::Image { .. } => None,
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n")
+    });
     let content: Vec<Value> = reply
         .content
         .into_iter()
@@ -111,7 +136,10 @@ pub(super) fn into_result(outcome: Outcome) -> ToolResult {
         })
         .collect();
     let mut result = json!({ "content": content });
-    if let Some(structured) = reply.structured {
+    if let Some(mut structured) = reply.structured {
+        if let Some(text) = echoed {
+            structured["text"] = json!(text);
+        }
         result["structuredContent"] = structured;
     }
     result
