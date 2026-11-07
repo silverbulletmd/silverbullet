@@ -77,11 +77,11 @@ impl ReadOnlyDirSpacePrimitives {
     /// `embed.FS` implementation rejected `..` by spec; this restores that.)
     fn resolve_path(&self, path: &str) -> Result<PathBuf, SpaceError> {
         let clean = Path::new(path);
-        if clean.is_absolute() {
-            return Err(SpaceError::PathOutsideRoot);
-        }
         for component in clean.components() {
-            if matches!(component, std::path::Component::ParentDir) {
+            if !matches!(
+                component,
+                std::path::Component::Normal(_) | std::path::Component::CurDir
+            ) {
                 return Err(SpaceError::PathOutsideRoot);
             }
         }
@@ -443,6 +443,19 @@ mod tests {
                 matches!(p.read_file(evil), Err(SpaceError::PathOutsideRoot)),
                 "read_file({evil:?}) must be PathOutsideRoot"
             );
+            assert!(
+                matches!(p.get_file_meta(evil), Err(SpaceError::PathOutsideRoot)),
+                "get_file_meta({evil:?}) must be PathOutsideRoot"
+            );
+        }
+    }
+
+    /// Same Windows gap as `DiskSpacePrimitives::safe_path`.
+    #[cfg(windows)]
+    #[test]
+    fn rejects_windows_escapes() {
+        let (_td, p) = make_readonly_with_file("ok.txt", b"hi");
+        for evil in ["C:ok.txt", "\\ok.txt"] {
             assert!(
                 matches!(p.get_file_meta(evil), Err(SpaceError::PathOutsideRoot)),
                 "get_file_meta({evil:?}) must be PathOutsideRoot"

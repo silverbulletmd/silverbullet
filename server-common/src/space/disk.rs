@@ -83,12 +83,11 @@ impl DiskSpacePrimitives {
     pub fn safe_path(&self, path: &str) -> Result<PathBuf, SpaceError> {
         let clean = Path::new(path);
 
-        if clean.is_absolute() {
-            return Err(SpaceError::PathOutsideRoot);
-        }
-
         for component in clean.components() {
-            if matches!(component, std::path::Component::ParentDir) {
+            if !matches!(
+                component,
+                std::path::Component::Normal(_) | std::path::Component::CurDir
+            ) {
                 return Err(SpaceError::PathOutsideRoot);
             }
         }
@@ -606,6 +605,22 @@ mod plan_tests {
             sp.read_file("../escape.md"),
             Err(crate::types::SpaceError::PathOutsideRoot)
         ));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn rejects_windows_escapes() {
+        let dir = tempdir().unwrap();
+        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
+        for evil in ["C:escape.md", "\\escape.md", "/escape.md"] {
+            assert!(
+                matches!(
+                    sp.safe_path(evil),
+                    Err(crate::types::SpaceError::PathOutsideRoot)
+                ),
+                "safe_path({evil:?}) must be PathOutsideRoot"
+            );
+        }
     }
 
     #[test]
