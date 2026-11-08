@@ -186,24 +186,27 @@ for (const wiki of [true, false]) {
 test("Alt press reveals wiki source even with an earlier collapse pending", async ({
   page,
 }) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.setViewportSize({ width: 2000, height: 800 });
   const point = await mountEditor(
     page,
     true,
     "Look at the [Libraries](Long/Example/Library/With/A/Hidden/Path) then [[Library|Libraries]] you can install.",
   );
+  await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
   await page.mouse.click(point.x, point.y);
   const link = page.locator(".cm-content a.sb-wiki-link");
   const box = await link.boundingBox();
   await page.keyboard.down("Alt");
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(350);
+  await page.clock.runFor(350);
   await expect(page.locator(".cm-content")).toContainText(
     "[[Library|Libraries]]",
   );
   await page.mouse.up();
   await page.keyboard.up("Alt");
+  await page.clock.runFor(1);
   await expect(page.locator(".cm-content")).toContainText(
     "[[Library|Libraries]]",
   );
