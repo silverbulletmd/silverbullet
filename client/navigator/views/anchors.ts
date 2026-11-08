@@ -39,6 +39,19 @@ export const anchorPicker: BuiltinView = {
           : firstLine;
       return `${truncated} — ${obj.page}`;
     },
+    summary: (obj) => {
+      const text = String(obj.snippet ?? "")
+        .split("\n")[0]
+        .trim();
+      if (text) {
+        return {
+          text,
+          sourcePage: obj.page,
+          maxChars: MAX_ANCHOR_DESCRIPTION,
+          suffix: obj.page,
+        };
+      }
+    },
     decorations: (obj) =>
       obj.hostTag ? [{ text: obj.hostTag, position: "right" }] : undefined,
     icon: () => "anchor",

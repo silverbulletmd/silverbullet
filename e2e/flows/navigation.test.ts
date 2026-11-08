@@ -733,3 +733,43 @@ test.describe("read-only list editing keys", () => {
     );
   });
 });
+
+test.describe("Markdown summaries in pickers", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "Route.md":
+        "- $ridge @reviewer Check the **ridge trail**. ${'hidden value'}\n",
+    },
+  });
+
+  test("anchor results format the excerpt and still open the source", async ({
+    sbPage,
+  }) => {
+    const frame = await openPagePicker(sbPage);
+    await navInput(sbPage).fill("$ridge");
+    const row = frame.locator(".sb-nav-row", { hasText: "ridge trail" });
+    await expect(row.locator(".sb-nav-description strong")).toHaveText(
+      "ridge trail",
+    );
+    await expect(row).toContainText("…");
+    await expect(row).toContainText("Route");
+    await row.click();
+    await expect(currentPage(sbPage)).toHaveValue("Route");
+  });
+
+  test("the Mention Inbox formats leaf labels and still opens the source", async ({
+    sbPage,
+  }) => {
+    await runCommandViaPalette(sbPage, "Navigate: Mentions");
+    const inbox = sbPage.locator(".sb-nav-root-rhs");
+    await inbox
+      .locator("select.sb-nav-dropdown")
+      .selectOption({ label: "All Recipients" });
+    const row = inbox.locator(".sb-nav-row", { hasText: "ridge trail" });
+    await expect(row.locator("strong")).toHaveText("ridge trail");
+    await expect(row).toContainText("…");
+    await row.locator("strong").click();
+    await expect(currentPage(sbPage)).toHaveValue("Route");
+  });
+});

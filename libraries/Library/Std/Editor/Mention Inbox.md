@@ -35,6 +35,7 @@ local function inboxRows()
     table.insert(rows, {
       name = m.page .. SEP .. snippet .. "\30" .. (declared and (m.ref .. m.target) or m.pos),
       snippet = snippet,
+      excerpt = m.snippet,
       recipient = declared and recipient or nil,
       ref = m.ref,
       page = m.page,
@@ -80,6 +81,11 @@ view.define {
       end,
       label = function(obj)
         return obj.snippet
+      end,
+      summary = function(obj)
+        if type(obj.excerpt) == "string" and obj.excerpt != "" then
+          return { text = obj.excerpt, sourcePage = obj.page }
+        end
       end,
       decorations = function(obj)
         if obj.declared then
