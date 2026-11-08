@@ -2,10 +2,9 @@
 tags: api/space-lua
 references:
 - libraries/Library/Std/Infrastructure/Share.md
-- libraries/Library/Std/Infrastructure/Share Collections.md
 - libraries/Library/Std/Infrastructure/Share Commands.md
 ---
-APIs and extension points of [[Share]], which publishes a page to, pulls it from, or syncs it with an external location. See [[^Library/Std/Infrastructure/Share]] for the implementation, [[^Library/Std/Infrastructure/Share Collections]] for collections and [[^Library/Std/Infrastructure/Share Commands]] for the commands and the functions behind them (listing, web links, unsharing). The location is a [[URI]] kept in the page’s `share.*` frontmatter.
+APIs and extension points of [[Share]], which publishes a page to, pulls it from, or syncs it with an external location. See [[^Library/Std/Infrastructure/Share]] for the implementation and [[^Library/Std/Infrastructure/Share Commands]] for the commands and the functions behind them (web links, unsharing). The location is a [[URI]] kept in the page’s `share.*` frontmatter.
 
 # API
 ## share.sharePage(name?)
@@ -27,14 +26,8 @@ Reads the remotes of the given pages and compares them with the local pages and 
 * `differs`: they differ, and there is no `share.hash` to tell which side changed. Always the case for `push`, which keeps none (a `share.hash` left on a push page by older versions is ignored).
 * `error`: reading failed, with the message in `error`.
 
-## share.list()
-Returns every page with a `share.uri`, sorted by name, as `{name, uri, mode, kind}`: `mode` is `push` when unset, `kind` is `library` for pages tagged `meta/library`, `repository` for `meta/repository` and `page` for everything else. Read from the index, so a page shared a moment ago appears once it is indexed. The [[Shared Pages]] view lists these.
-
-## share.changedPages()
-Returns the names of the pages `Share: All Changed` shares: the `sync` pages whose [[#share.status(name)]] is `localChanged`, and the `push` pages whose [[#share.check(names)]] is `differs` or `missing` (so their remotes are read, a push page whose check fails, say because its remote needs a sign-in, is left out for its own share to report). `pull` pages never.
-
 ## share.notifyShared(ok, ret)
-Tells the user how a share went, from what `pcall(share.sharePage, ...)` returned: the error, “Share successful”, “No changes”, or nothing when `share.sharePage` returned `nil` (the user already knows). Used by `Share: Page` and the [[Shared Pages]] view.
+Tells the user how a share went, from what `pcall(share.sharePage, ...)` returned: the error, “Share successful”, “No changes”, or nothing when `share.sharePage` returned `nil` (the user already knows). Used by `Share: Page`.
 
 ## share.unshare(name?)
 Stops sharing a page: removes its `share.*` keys. The copy at the remote stays. Without a name it unshares the current page in the editor.
@@ -48,37 +41,11 @@ Opens the web page of `uri` (see `share.webUrl`) in the browser, or tells the us
 ## share.copyLink(uri)
 Copies the link to the web page of `uri` (see `share.webUrl`) to the clipboard, or tells the user there is none.
 
-## share.collections()
-Returns the names of the [[Share/Collection|collections]] configured in `share.collections`, sorted.
-
-## share.collection(name)
-Returns the collection as `{name, root, mode, members}`: `root` is the configured `uri` without trailing slashes, `mode` is always `push`, and `members` lists `{page, path, uri}` in the order `pages()` returned them, a page listed twice only once. `uri` is built by the `memberUri` of the root’s [[#share:target:<uri>|target]]. Errors with `Unknown collection: <name>`, or `Collection <name>: ...` when the `mode` isn’t `push`, `pages` or `path` fails, or two members go to the same member URI (on a gist, `Blog/Post` and `Blog-Post` both go to `Blog-Post.md`).
-
-## share.checkCollection(name)
-Reads the remote and compares it with what each member would send, like [[#share.check(names)]]. Where the target has a [[#net.listURI: and net.deleteURI:|listing]], one listing is read, and a member whose entry has a `hash` is compared by its [[#share.gitBlobSha(text)|git blob SHA]] without reading it. Otherwise each member is read. Never prompts, connects, signs in or writes. Returns `{members, removed}`: `members` is keyed by page name with `{uri, state}`, `state` being `upToDate`, `missing`, `differs` or `error` (with the message in `error`), and `removed` lists the URIs of the listed files no member maps to (empty without a listing).
-
-## share.publishCollection(name)
-Publishes a collection, the same as `Share: Collection`: first prepares the root’s transport with [[#share.ensureTransport(uri)]] (which may ask to connect or sign in), so the members’ URIs are those of the root’s [[#share:target:<uri>|target]] even when the transport was set up just now. Then resolves the collection and transforms every member with the collection as the share set (afresh, so baked content is current) (see `members` at [[#share.transform(text, ctx)]]), lists the root (letting the provider sign in, `{signIn = true}`), writes the members whose text differs from the remote (by the listed `hash`, or else by reading the member’s remote, one that can’t be read is written) and offers the listed files no member maps to for removal with [[API/editor#editor.pickMany|editor.pickMany]], every item unticked. Only ticked files are deleted. Writes and deletes go in one call to a [[#share:writeBatch:<root>]] service when the root has one, and otherwise through `net.writeURI` and `net.deleteURI` one by one.
-
-Returns `{written, unchanged, removed, failed, cancelled?}`: the pages written, the pages left alone, the URIs deleted, and `{page?, uri, error}` for each write or delete that failed. `cancelled` is true when the batch service reported that the user cancelled it (for example dismissing GitHub’s commit message prompt): then nothing was written or deleted, and nothing counts as failed. A failed member’s remote still differs, so the next publish tries it again. Errors before anything is written: a failing listing or a broken collection (see `share.collection`).
-
-## share.changedCollections()
-Returns the names of the collections `Share: All Changed` publishes: those with a member that is `missing` or `differs` by [[#share.checkCollection(name)]] (so their remotes are read). A collection whose check fails is left out, for its own publish to report.
-
-## share.notifyPublished(name, ok, result)
-Tells the user how a publish went, from what `pcall(share.publishCollection, name)` returned: `Published <name>: N written, M unchanged` (and `, K removed`), and the first failure as an error, or `Publish of <name> cancelled` when the user cancelled the batch.
-
-## share.collectionFailure(f)
-Returns one entry of the `failed` list of `share.publishCollection` as text: its page (or URI) and error.
-
-## share.collectionLabel(root, uri)
-Returns how a file under `root` is shown: its path below `root`, URL-decoded (`Old%20Page` reads `Old Page`, a path that doesn’t decode, such as the gist file `50% off.md`, is shown as it is), or `uri` itself when it isn’t under `root`.
-
 ## share.readRemote(uri)
 Reads `uri` with `net.readURI` and returns its text without `share.*` keys, or `nil` when it is missing.
 
 ## share.remoteState(r)
-The decision behind the states of [[#share.check(names)]] and [[#share.checkCollection(name)]]: returns `missing`, `upToDate`, `localChanged`, `remoteChanged`, `bothChanged` or `differs`. `r.remote` is `nil` when the remote is missing, `{text = ...}` for its text (as `share.readRemote` returns it) or `{sha = ...}` for its [[#share.gitBlobSha(text)|git blob SHA]]. `r.outgoing` is what would be sent. `r.hash` (optional) is the page’s `share.hash`: without it a remote that isn’t `upToDate` `differs`. With it, a remote matching the hash means only the local side changed, an outgoing text matching it means only the remote changed, and neither means both. The hash is compared with `r.remote.text` only.
+The decision behind the states of [[#share.check(names)]]: returns `missing`, `upToDate`, `localChanged`, `remoteChanged`, `bothChanged` or `differs`. `r.remote` is `nil` when the remote is missing, `{text = ...}` for its text (as `share.readRemote` returns it) or `{sha = ...}` for its [[#share.gitBlobSha(text)|git blob SHA]]. `r.outgoing` is what would be sent. `r.hash` (optional) is the page’s `share.hash`: without it a remote that isn’t `upToDate` `differs`. With it, a remote matching the hash means only the local side changed, an outgoing text matching it means only the remote changed, and neither means both. The hash is compared with `r.remote.text` only.
 
 ## share.memo(copy?)
 For Std pages that memoize per key (such as `share.status`): returns `memo(key, inputs, compute)`, which returns the result kept for `key` while `inputs` (a table of values, compared with `==`) are unchanged, and otherwise calls `compute()` and keeps its result. `copy(result)`, when given, makes what each call returns, so callers changing it leave the memo alone.
@@ -120,7 +87,7 @@ Returns what a push sends: `text` without its `share.*` keys, with the steps ena
 * `page`: the name of the page. `bake` evaluates live content as this page.
 * `uri`: the URI it is shared to.
 * `target`: the descriptor of the provider, see [[#share:target:<uri>]].
-* `members`: a table mapping the names of the pages that are shared together to their URIs, used to tell links inside the share from links outside it. `share.prepare` passes just the page itself, so links to other pages become text. A collection passes all its members.
+* `members`: a table mapping the names of the pages that are shared together to their URIs, used to tell links inside the share from links outside it. `share.prepare` passes just the page itself, so links to other pages become text. A publish of several pages together passes all of them.
 * `steps`: a table of booleans for `links`, `comments`, `bake` and `extensions` (the `share:transform` services).
 
 The `share.*` frontmatter keys are always removed. The rest of the frontmatter is kept as it is. The steps are:
@@ -196,7 +163,7 @@ Describes how a location wants the pages published to it. A provider registers a
 * `kind`: a name for the kind of location, for example `github`.
 * `defaults`: the steps that are on by default, a table of booleans for `links`, `comments` and `bake`. The [[API/sbShare|SilverBullet space]] target has links and comments on and bake off, GitHub files, gists and everything else have all three on.
 * `webUrl(uri)` (optional): returns the address of the shared page in a browser, used by [[#share.webUrl(uri)]]. Without it, `http://` and `https://` URIs are their own web address and others have none. A gist file’s is the gist page with an anchor to the file.
-* `memberUri(root, path)` (optional): returns the URI of a collection member at `path` (a page name, or what the collection’s `path` function returns) under `root`. It must match the URIs `net.listURI` returns for the root, or every member reads as missing and is offered for removal. Without it, `<root>/<path>.md`. SilverBullet spaces use `<root>/<encoded path>` (page URLs, without `.md`), GitHub `<root>/<encoded path>.md`, and gists `<root>/<path>.md` with every `/` in the path replaced by `-`.
+* `memberUri(root, path)` (optional): returns the URI of the page at `path` (a page name, or a path derived from it) when several pages are published together under `root`. It must match the URIs `net.listURI` returns for the root. Without it, `<root>/<path>.md`. SilverBullet spaces use `<root>/<encoded path>` (page URLs, without `.md`), GitHub `<root>/<encoded path>.md`, and gists `<root>/<path>.md` with every `/` in the path replaced by `-`.
 * `link(l)`: returns the text that replaces a wiki link or transclusion that points inside the share. `l` has `page` and `anchor` (the target, the anchor without `#`), `alias`, `text` (the alias, or the page name), `transclusion` (true for `![[...]]`), `fromUri` (the URI of the page being shared) and `toUri` (the URI of the target page, or nil for a link within the page itself).
 
 ## share:transform
@@ -213,10 +180,10 @@ service.define {
 ```
 
 ## share:writeBatch:<root>
-Writes and deletes everything of one collection publish in a single call, for example as one commit. `share.publishCollection` invokes the best service matching `share:writeBatch:<root>` with `{root, writes, deletes}`: `writes` lists `{uri, content}`, `deletes` lists URIs. An error marks every write and delete of the call as failed. GitHub registers one that makes a single commit, asking for the commit message first. A service the user cancels returns `{cancelled = true}` (GitHub’s does when the commit message is dismissed or empty): the publish then writes nothing and reports `cancelled`. Without such a service, `net.writeURI` and `net.deleteURI` are called per file, which applies to gists and SilverBullet spaces (GitHub has no `net.deleteURI`).
+Writes and deletes the files of a publish of several pages under one root in a single call, for example as one commit. It is invoked with `{root, writes, deletes}`: `writes` lists `{uri, content}`, `deletes` lists URIs. An error marks every write and delete of the call as failed. GitHub registers one that makes a single commit, asking for the commit message first. A service the user cancels returns `{cancelled = true}` (GitHub’s does when the commit message is dismissed or empty): then nothing is written. Gists and SilverBullet spaces have no such service: their files are written and deleted one by one with `net.writeURI` and `net.deleteURI` (GitHub has no `net.deleteURI`).
 
 ## net.listURI: and net.deleteURI:
-Collections use [[API/net|net.listURI and net.deleteURI]]: a provider registers `net.listURI:myservice:*` returning `{uri, hash?}` for every file under `data.uri`, in the form its `memberUri` builds (`hash` a git blob SHA when it has one, see [[#share.gitBlobSha(text)]]), and `net.deleteURI:myservice:*` deleting `data.uri`. `share.publishCollection` lists with `{signIn = true}`, so the provider may sign in. `share.checkCollection` doesn’t pass it, and the listing should fail rather than prompt. SilverBullet spaces list every page under the root (a root that is the whole space isn’t listed, so nothing is offered for removal there), GitHub every `.md` file under the root folder (with blob SHAs), and gists every `.md` file of the gist. A target without a listing service (`net.listURI` returns `nil`) is written member by member, with nothing offered for removal.
+To publish several pages under one root, [[API/net|net.listURI and net.deleteURI]] list and remove the files there: a provider registers `net.listURI:myservice:*` returning `{uri, hash?}` for every file under `data.uri`, in the form its `memberUri` builds (`hash` a git blob SHA when it has one, see [[#share.gitBlobSha(text)]]), and `net.deleteURI:myservice:*` deleting `data.uri`. A listing called with `{signIn = true}` may sign in. Without it, the listing should fail rather than prompt. SilverBullet spaces list every page under the root (a root that is the whole space isn’t listed, so nothing is offered for removal there), GitHub every `.md` file under the root folder (with blob SHAs), and gists every `.md` file of the gist. Without a listing service, `net.listURI` returns `nil`.
 
 ## net.readURI: and net.writeURI:
 The actual transfer is done by [[API/net|net.readURI and net.writeURI]]. A provider registers services with selectors such as `net.readURI:myservice:*` and `net.writeURI:myservice:*`. `run(data)` receives the `uri` (and `content` for writes, plus any options passed to `net.writeURI`). A read returns the text, or nil when missing. When a write has `conditional` set and finds the remote changed since it was last read, it should return `{conflict = true}` instead of writing, so sync can retry. Without `conditional`, a write overwrites. See [[API/github]] and [[API/sbShare]] for implementations.

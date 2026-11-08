@@ -20,7 +20,6 @@ const PAGES = [
   "libraries/Library/Std/Infrastructure/Share.md",
   "libraries/Library/Std/Infrastructure/SilverBullet Share.md",
   "libraries/Library/Std/Infrastructure/Share Transforms.md",
-  "libraries/Library/Std/Infrastructure/Share Collections.md",
   "libraries/Library/Std/Infrastructure/Share Commands.md",
 ];
 
@@ -68,9 +67,6 @@ export class ShareWorld {
   // editor.chooseVersion calls, and the choice id it returns (nil: cancelled)
   chooseVersions: Array<Record<string, unknown>> = [];
   chooseAnswer: string | undefined;
-  // editor.pickMany calls, and the ids it returns (nil: cancelled)
-  pickManys: Array<Record<string, unknown>> = [];
-  pickManyAnswer: string[] | undefined;
   // Current page as the editor sees it, for the Share: Page command
   editorText = "";
   deviceFlows: unknown[] = [];
@@ -85,8 +81,6 @@ export class ShareWorld {
   refreshWorks = false;
   // Picked in Share: Page's provider list
   shareProvider = "SilverBullet space";
-  // Picked in Share: Collection's list (nil: cancelled)
-  collectionPick: string | undefined;
   // Page metadata as the index would return it, by page name
   pageMetas = new Map<string, Record<string, unknown>>();
   // Recording fakes for markdown.bakeSections / expandMarkdown, in call order
@@ -338,9 +332,6 @@ export class ShareWorld {
             label: string,
             options: Array<Record<string, unknown>>,
           ) => {
-            if (label === "Collection") {
-              return options.find((o) => o.name === this.collectionPick);
-            }
             return label === "Share provider"
               ? options.find((o) => o.name === this.shareProvider)
               : options.find((o) => o.name === SPACE);
@@ -352,10 +343,6 @@ export class ShareWorld {
           chooseVersion: (options: Record<string, unknown>) => {
             this.chooseVersions.push(options);
             return this.chooseAnswer;
-          },
-          pickMany: (options: Record<string, unknown>) => {
-            this.pickManys.push(options);
-            return jsToLuaValue(this.pickManyAnswer);
           },
           flashNotification: (msg: string, type?: string) => {
             this.notifications.push([msg, type]);

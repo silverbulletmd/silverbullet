@@ -12,7 +12,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
-* Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]], [[Object Graph]] and [[Shared Pages]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
+* Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]] and [[Object Graph]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
@@ -20,8 +20,6 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * **Potentially breaking for themes:** code (inline and fenced, frontmatter, tables being edited, `${...}`) now uses `--editor-monospace-font` instead of `--editor-font`. See [[Fonts#Notes for theme authors]].
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
 * [[Share]] refresh:
-  * New [[Shared Pages]] view (`Navigate: Shared Pages`): lists your shared pages, libraries and repositories with their status, checks their remotes, and shares, opens, copies links to or updates them.
-  * [[Share/Collection|Collections]]: publish a _set_ of pages.
   * Sharing no longer changes the source page or stores `share.hash` in its frontmatter.
   * Support for publishing to other SilverBullet spaces (see [[^Library/Std/Infrastructure/SilverBullet Share]])
   * Sign in to GitHub with a device code instead of configuring a personal access token. Credentials stay on the current device and are never synced. `Credentials: List` and `Credentials: Clear` let you inspect and remove them. Sharing individual pages with another SilverBullet space now supports push, pull and sync with device-code sign-in. See [[API/auth]] and [[API/github]].

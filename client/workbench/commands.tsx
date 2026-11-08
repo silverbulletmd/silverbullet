@@ -140,7 +140,7 @@ export function registerWorkbenchCommands(
       },
     });
   }
-  // Called by the Shared Pages view; opens nothing
+  // Called by the Shared Pages view of the Share Collections library; opens nothing
   hook.registerCommand({
     name: "Library: Update",
     hide: true,

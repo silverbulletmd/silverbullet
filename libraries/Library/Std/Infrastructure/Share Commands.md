@@ -1,40 +1,10 @@
 #meta
 
-The page-facing side of [[Share]]: listing shared pages, opening and copying their web links, onboarding a page to a share provider, unsharing, and the Share commands.
+The page-facing side of [[Share]]: opening and copying web links, onboarding a page to a share provider, unsharing, and the Share commands.
 
 # Implementation
 ```space-lua
 -- priority: 7
-
-local function kindOf(tags)
-  for _, tag in ipairs(tags or {}) do
-    if tag == "meta/library" then
-      return "library"
-    elseif tag == "meta/repository" then
-      return "repository"
-    end
-  end
-  return "page"
-end
-
--- Every page with a share.uri, by name
-function share.list()
-  local shared = {}
-  for _, p in ipairs(index.queryLuaObjects("page", {})) do
-    if type(p.share) == "table" and p.share.uri then
-      table.insert(shared, {
-        name = p.name,
-        uri = p.share.uri,
-        mode = p.share.mode or "push",
-        kind = kindOf(p.tags),
-      })
-    end
-  end
-  table.sort(shared, function(a, b)
-    return a.name < b.name
-  end)
-  return shared
-end
 
 -- Where uri can be viewed in a browser, or nil
 function share.webUrl(uri)
@@ -73,29 +43,6 @@ function share.copyLink(uri)
     editor.copyToClipboard(url)
     editor.flashNotification "Copied"
   end
-end
-
--- The shared pages Share: All Changed shares: sync pages changed since their
--- last share (as share.hash tells), and push pages whose remote differs or is
--- missing (read to tell). Pull pages never.
-function share.changedPages()
-  local names = {}
-  for _, p in ipairs(share.list()) do
-    -- A page that can't be prepared or checked is left for its own share to
-    -- report
-    if p.mode == "sync" then
-      local ok, status = pcall(share.status, p.name)
-      if ok and status.state == "localChanged" then
-        table.insert(names, p.name)
-      end
-    elseif p.mode == "push" then
-      local state = share.check({p.name})[p.name].state
-      if state == "differs" or state == "missing" then
-        table.insert(names, p.name)
-      end
-    end
-  end
-  return names
 end
 
 -- Stops sharing the page (the current one without a name): removes its share
@@ -220,49 +167,6 @@ command.define {
     if uri and editor.confirm("Stop sharing " .. editor.getCurrentPage()
         .. "? The copy at " .. uri .. " stays.") then
       share.unshare()
-    end
-  end
-}
-
-command.define {
-  name = "Share: All Changed",
-  requireMode = "rw",
-  run = function()
-    local names = share.changedPages()
-    local collections = share.changedCollections()
-    local total = #names + #collections
-    if total == 0 then
-      editor.flashNotification "Nothing to share"
-      return
-    end
-    local results = share.shareMany(names)
-    local shared, firstFailure = 0, nil
-    local function failed(name, message)
-      firstFailure = firstFailure or (name .. ": " .. message)
-    end
-    for _, name in ipairs(names) do
-      local r = results[name]
-      if r.ok then
-        shared = shared + 1
-      else
-        failed(name, r.error)
-      end
-    end
-    for _, name in ipairs(collections) do
-      local ok, r = pcall(share.publishCollection, name)
-      if not ok then
-        failed(name, tostring(r))
-      elseif r.cancelled then
-        -- Neither shared nor failed: the user knows
-      elseif #r.failed > 0 then
-        failed(name, share.collectionFailure(r.failed[1]))
-      else
-        shared = shared + 1
-      end
-    end
-    editor.flashNotification("Shared " .. shared .. " of " .. total)
-    if firstFailure then
-      editor.flashNotification(firstFailure, "error")
     end
   end
 }

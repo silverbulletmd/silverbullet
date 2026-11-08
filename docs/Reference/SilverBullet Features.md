@@ -32,7 +32,7 @@ Look up the editing interface, visual tools and feature behavior.
 # Storage, sync and publishing
 * [[Local Space]], [[Sync]], [[Desktop Sync]] and [[PWA]] — local files, browser offline access and Server connections.
 * [[Git]] — the revision repository and remote synchronization.
-* [[Share]], [[Shared Pages]] and [[Publishing]] — selected-page exchange and access to a whole space.
+* [[Share]] and [[Publishing]] — selected-page exchange and access to a whole space.
 * [[Export]] and [[Baked Sections]] — one-time copies and stored computed results.
 
 # Server and Desktop

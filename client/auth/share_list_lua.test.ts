@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { ShareWorld, URI } from "./share_world_test_util.ts";
 
-describe("Share.md list, status memo and web URLs", () => {
+describe("Share.md status memo and web URLs", () => {
   let w: ShareWorld;
 
   beforeEach(async () => {
@@ -11,34 +11,6 @@ describe("Share.md list, status memo and web URLs", () => {
   // Errors as strings: Lua error objects don't survive vitest's reporting
   const call = (fn: string, ...args: unknown[]) =>
     w.h.call(fn, ...args).catch((e) => `THREW ${e.message}`);
-
-  test("list returns every shared page with its kind", async () => {
-    w.pages.set("Page", "---\nshare.uri: https://h/n/Page\n---\nA\n");
-    w.pages.set(
-      "Library/A",
-      "---\ntags: meta/library\nshare.uri: https://h/n/Library/A\nshare.mode: pull\n---\nA\n",
-    );
-    w.pages.set(
-      "Repositories/R",
-      "---\ntags: meta/repository\nshare:\n  uri: https://h/n/R\n  mode: pull\n---\nR\n",
-    );
-    w.pages.set("Plain", "---\ntags: x\n---\nPlain\n");
-    expect(await call("share.list")).toEqual([
-      {
-        name: "Library/A",
-        uri: "https://h/n/Library/A",
-        mode: "pull",
-        kind: "library",
-      },
-      { name: "Page", uri: "https://h/n/Page", mode: "push", kind: "page" },
-      {
-        name: "Repositories/R",
-        uri: "https://h/n/R",
-        mode: "pull",
-        kind: "repository",
-      },
-    ]);
-  });
 
   test("status never transforms, and is computed once per text", async () => {
     let transforms = 0;

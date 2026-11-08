@@ -1,9 +1,8 @@
 ---
-description: Push, pull or synchronize selected pages with an external destination, or publish a collection.
+description: Push, pull or synchronize selected pages with an external destination.
 tags: maturity/beta glossary
 references:
 - libraries/Library/Std/Infrastructure/Share.md
-- libraries/Library/Std/Infrastructure/Share Collections.md
 - libraries/Library/Std/Infrastructure/Share Commands.md
 - docs/API/share.md
 - client/workbench/libraries/libraries_backend.ts
@@ -41,11 +40,6 @@ For the current page, these commands exist:
 * ${widgets.commandButton "Share: Open Remote"}: opens the shared copy in your browser, where the location has a web address.
 * ${widgets.commandButton "Share: Copy Link"}: copies that web address.
 * `Share: Unshare`: stops sharing the page, removing its `share.*` keys. The shared copy stays where it is.
-
-`Share: All Changed` shares every _sync_ page you changed since its last share (as its `share.hash` tells), every _push_ page whose remote differs from it or is missing (it reads each push page’s remote to find out), and every [[Share/Collection|collection]] with such a page. _Pull_ pages are left alone. To see all your shared pages and collections and their status, open [[Shared Pages]].
-
-# Collections
-See [[Share/Collection]] for publishing a set of pages together.
 
 # What gets published
 In _push_ mode the page is not sent as it is. Its `share.*` keys are always removed (the rest of its frontmatter is published as it is), and these steps run first, switched on or off depending on where it goes:
