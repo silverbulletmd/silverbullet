@@ -91,10 +91,12 @@ export function MarkdownText({
   node,
   className,
   client,
+  stopLinkClicks,
 }: {
   node: HTMLElement;
   className: string;
   client: Client;
+  stopLinkClicks?: boolean;
 }) {
   const host = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
@@ -103,5 +105,22 @@ export function MarkdownText({
     el.replaceChildren(node);
     attachWidgetEventHandlers(el, client);
   }, [node]);
-  return <span ref={host} className={className} />;
+  return (
+    <span
+      ref={host}
+      className={className}
+      onClick={
+        stopLinkClicks
+          ? (event) => {
+              if (
+                event.target instanceof Element &&
+                event.target.closest("a[href]")
+              ) {
+                event.stopPropagation();
+              }
+            }
+          : undefined
+      }
+    />
+  );
 }

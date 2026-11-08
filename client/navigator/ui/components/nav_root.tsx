@@ -1,3 +1,5 @@
+import type { RowSummary } from "../../../../plug-api/ui/tree_types.ts";
+import { RowSummaryText } from "./row_summary.tsx";
 import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
 import {
   useCallback,
@@ -129,6 +131,12 @@ export function NavRoot({
     setExpanded,
   };
 
+  const renderSummary = useCallback(
+    (summary: RowSummary) => (
+      <RowSummaryText client={client} summary={summary} />
+    ),
+    [client],
+  );
   const publish = useCallback(() => {
     const state = engine.activeState();
     if (state) setView({ name: state.meta.name, ...state });
@@ -539,6 +547,7 @@ export function NavRoot({
           ) : null
         ) : view && isTreeMode && treeDisplay ? (
           <TreeView
+            renderSummary={renderSummary}
             tree={treeDisplay.tree}
             expanded={treeDisplay.effectiveExpanded}
             selectedPath={activeTreeNode?.path}
@@ -664,6 +673,7 @@ export function NavRoot({
           />
         ) : view ? (
           <ListView
+            client={client}
             rows={listItems}
             selectedIndex={activeIndex}
             showEmpty={!canCreate}

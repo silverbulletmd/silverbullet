@@ -10,16 +10,23 @@ export function RowText({
   description?: Description;
   renderedDescription?: ComponentChildren;
 }) {
+  if (renderedDescription != null) {
+    return (
+      <>
+        {primary}
+        {renderedDescription}
+      </>
+    );
+  }
   if (!description || typeof description === "string") {
     return (
       <>
         {primary}
-        {renderedDescription ??
-          (description && (
-            <span className="sb-nav-description" dir="auto">
-              {description}
-            </span>
-          ))}
+        {description && (
+          <span className="sb-nav-description" dir="auto">
+            {description}
+          </span>
+        )}
       </>
     );
   }

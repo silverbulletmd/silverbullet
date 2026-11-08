@@ -1,3 +1,4 @@
+import type { RowSummary } from "../../../plug-api/ui/tree_types.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Decoration, Row, SourceCtx, ViewMeta } from "../types.ts";
 
@@ -19,6 +20,7 @@ export type RowSpec<T = ObjectValue<Record<string, any>>> = {
   /** Tree mode: what a row reads as in place of its last path segment. */
   label?: (obj: T) => string | undefined;
   description?: (obj: T) => string | undefined;
+  summary?: (obj: T) => RowSummary | undefined;
   decorations?: (obj: T) => Decoration[] | undefined;
   cssClass?: (obj: T) => string | undefined;
   icon?: (obj: T) => string | undefined;

@@ -117,6 +117,7 @@ async function buildRows(
           }),
         )
       : undefined;
+    const summary = await resolveField(sf, field(row, "summary"), obj);
     rows.push({
       obj,
       ...(cells ? { cells } : {}),
@@ -133,6 +134,7 @@ async function buildRows(
       description: normalizeDescription(
         await resolveField(sf, field(row, "description"), obj),
       ),
+      ...(typeof summary?.text === "string" && { summary }),
       decorations: await resolveDecorations(sf, field(row, "decorations"), obj),
       cssClass: await resolveField(sf, field(row, "cssClass"), obj),
     });

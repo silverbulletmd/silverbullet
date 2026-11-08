@@ -1,4 +1,4 @@
-import { Component } from "preact";
+import { Component, type ComponentChildren } from "preact";
 import {
   useEffect,
   useLayoutEffect,
@@ -14,7 +14,7 @@ import { RowActions } from "./row_actions.tsx";
 import { RowText } from "./row_text.tsx";
 import { revealInClosest } from "./scroll.ts";
 import { allFolderPaths, findNode, type TreeNode } from "./tree_model.ts";
-import type { ActionMeta, RowStates } from "./tree_types.ts";
+import type { ActionMeta, RowStates, RowSummary } from "./tree_types.ts";
 
 /** How long a collapsed folder has to be hovered before it springs open. */
 const SPRING_LOAD_MS = 700;
@@ -70,6 +70,7 @@ export type TreeViewProps = {
   selectedPath?: string;
   currentPath?: string;
   phrase?: string;
+  renderSummary?: (summary: RowSummary) => ComponentChildren;
   showEmpty: boolean;
   separator: string;
   /** Whether rows are drag sources / drop targets at all. */
@@ -100,6 +101,7 @@ export function TreeView({
   selectedPath,
   currentPath,
   phrase,
+  renderSummary,
   showEmpty,
   separator,
   canDrag,
@@ -350,6 +352,7 @@ export function TreeView({
           draggable: canDrag,
           fileDragFor,
           phrase,
+          renderSummary,
           actions,
           actionIcons,
           documentActions,
@@ -388,6 +391,7 @@ type SharedRowProps = {
   dropTarget?: string;
   draggable: boolean;
   fileDragFor: (node: TreeNode) => FileDragData | null;
+  renderSummary?: TreeViewProps["renderSummary"];
   phrase?: string;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
@@ -748,7 +752,8 @@ function TreeItemRow(props: TreeItemProps) {
         <RowText
           primary={
             <span class="sb-nav-primary">
-              {highlightMatches(node.row?.label ?? node.segment, phrase)}
+              {(node.row?.summary && props.renderSummary?.(node.row.summary)) ??
+                highlightMatches(node.row?.label ?? node.segment, phrase)}
             </span>
           }
           description={node.row?.description}

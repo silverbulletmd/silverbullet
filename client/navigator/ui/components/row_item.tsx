@@ -8,12 +8,15 @@ import {
 import { Icon } from "../../../../plug-api/ui/icon.tsx";
 import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
 import { RowText } from "../../../../plug-api/ui/row_text.tsx";
+import type { Client } from "../../../client.ts";
+import { RowSummaryText } from "./row_summary.tsx";
 import type { ActionMeta, Row } from "../../types.ts";
 import type { RowState } from "../engine.ts";
 
 export { Chip };
 
 export function RowItem({
+  client,
   row,
   index,
   selected,
@@ -29,6 +32,7 @@ export function RowItem({
   onAction,
   elRef,
 }: {
+  client: Client;
   row: Row;
   /** Position in the rendered list -- the hover tracking reads it back. */
   index: number;
@@ -93,6 +97,15 @@ export function RowItem({
           </span>
         }
         description={row.description}
+        renderedDescription={
+          row.summary && (
+            <RowSummaryText
+              client={client}
+              summary={row.summary}
+              className="sb-nav-description"
+            />
+          )
+        }
       />
       {right.length > 0 && <TrailingChips decorations={right} />}
       {actions && showActions && (

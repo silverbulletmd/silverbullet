@@ -1,9 +1,13 @@
+import { RowSummaryText } from "./row_summary.tsx";
 import { inferColumns } from "../../table_model.ts";
 import { TableView } from "./table_view.tsx";
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { Icon } from "../../../../plug-api/ui/icon.tsx";
 import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
-import type { RowStates } from "../../../../plug-api/ui/tree_types.ts";
+import type {
+  RowStates,
+  RowSummary,
+} from "../../../../plug-api/ui/tree_types.ts";
 import { Chip } from "./row_item.tsx";
 import { createDocumentRowLoader } from "../document_row_state.ts";
 import { RowText } from "../../../../plug-api/ui/row_text.tsx";
@@ -12,7 +16,13 @@ import {
   nodeObject,
 } from "../../../../plug-api/ui/tree_model.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import type { Client } from "../../../client.ts";
 import type { Tracker } from "../../../space_lua/dependencies.ts";
 import {
@@ -283,6 +293,12 @@ export function DocumentRowsBody({
         : [],
     [meta.mode, meta.columns, sourceRows, suppliedColumns],
   );
+  const renderSummary = useCallback(
+    (summary: RowSummary) => (
+      <RowSummaryText client={client} summary={summary} pageName={pageName} />
+    ),
+    [client, pageName],
+  );
   if (meta.mode === "table") {
     const { shown, more } = visibleRows(sourceRows, meta.limit);
     return (
@@ -320,6 +336,7 @@ export function DocumentRowsBody({
     <>
       {display ? (
         <TreeView
+          renderSummary={renderSummary}
           tree={display.tree}
           expanded={display.effectiveExpanded}
           showEmpty={false}
@@ -400,7 +417,14 @@ export function DocumentRowsBody({
                 }
                 description={row.description}
                 renderedDescription={
-                  descriptionNode ? (
+                  row.summary ? (
+                    <RowSummaryText
+                      client={client}
+                      summary={row.summary}
+                      pageName={pageName}
+                      className="sb-nav-description"
+                    />
+                  ) : descriptionNode ? (
                     <MarkdownText
                       node={descriptionNode}
                       className="sb-nav-description"

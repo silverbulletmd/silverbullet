@@ -123,6 +123,7 @@ async function builtinRows(
       primary: view.row.primary?.(obj) ?? obj.name ?? obj.ref,
       label: view.row.label?.(obj),
       description: view.row.description?.(obj),
+      summary: view.row.summary?.(obj),
       decorations: view.row.decorations?.(obj),
       cssClass: view.row.cssClass?.(obj),
       priority: view.row.priority?.(obj),

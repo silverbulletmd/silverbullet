@@ -9,7 +9,15 @@ export type Decoration = {
   title?: string;
 };
 
+export type RowSummary = {
+  text: string;
+  sourcePage?: string;
+  maxChars?: number;
+  suffix?: string;
+};
+
 export type Row = {
+  summary?: RowSummary;
   obj: Record<string, any>;
   primary: string;
   cells?: unknown[];

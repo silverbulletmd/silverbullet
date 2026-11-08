@@ -251,6 +251,7 @@ export function rowsIdentity(rows: Row[]): string | undefined {
         row.primary,
         row.label,
         row.description,
+        row.summary,
         row.cssClass,
         // Drawn as chips by `TreeView`, so a decoration that carries a count
         // or a relative time would otherwise freeze at its first value.
