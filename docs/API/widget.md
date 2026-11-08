@@ -188,6 +188,8 @@ ${widget.new {
 
 A string `row.description` appears inline and supports Markdown in document lists. For an excerpt below the primary text, return `{ text = "...", label = "...", highlights = { { start, end } } }`. The text and optional label are plain text. Highlights use zero-based UTF-16 offsets with exclusive ends. `row.decorations(obj)` returns chips with `text`, `icon`, `cssClass`, `position` (`"left"` or `"right"`), and `title`. The `sb-hashtag` class gives a tag pill. `sb-nav-chip-hint` right-aligns a hint.
 
+For a Markdown excerpt, `row.summary` can supply a table with `text`, optional `sourcePage`, optional `maxChars`, and optional plain-text `suffix`. It uses the same formatting as `widget.markdownSummary`. In a tree the excerpt replaces the displayed row label. In a list it replaces the displayed description. The existing label and description still supply text for filtering.
+
 ### Table columns
 `presentation = { mode = "table" }` derives columns from the union of attributes in the loaded objects. It keeps the first object’s attribute order and appends new attributes in the order they first appear in later objects. Filtering and `presentation.limit` do not change those columns in client search mode. Source order is also the row order. Table headers do not sort rows, so sort the source before returning it if needed.
 

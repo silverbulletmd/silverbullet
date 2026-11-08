@@ -30,7 +30,7 @@ Inside a comment you can use [[At-Mention|at-mentions]]:
 
 # Find and answer it
 1. Run `Navigate: Mentions`, or click a mention to open the _Mention Inbox_.
-2. Select the recipient from the dropdown. The inbox normally starts with your own identity and groups entries by page.
+2. Select the recipient from the dropdown. The inbox normally starts with your own identity and groups entries by page. Entries show a compact, formatted excerpt of the mention.
 3. Open the request and write the answer underneath. Mention the original writer if the reply should appear in their inbox:
 
 ```markdown
